@@ -2244,6 +2244,20 @@ URL: ${url}`;
                     </div>
 
                     <div className="flex flex-col gap-1 col-span-2">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Bidang / Kategori (Desk)</label>
+                      <input
+                        type="text"
+                        value={formConfig.manualDesk}
+                        onChange={(e) => setFormConfig({ ...formConfig, manualDesk: e.target.value })}
+                        placeholder="Contoh: TEKNOLOGI, EKONOMI, SUKAN..."
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                      />
+                      <p className="text-[9px] text-stone-500 font-sans mt-0.5">
+                        Tentukan bidang/kategori khusus untuk menyaring penjanaan berita AI dan menetapkan label kategori.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-1 col-span-2">
                       <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Strategi Pencarian</label>
                       <select
                         value={formConfig.searchStrategy}

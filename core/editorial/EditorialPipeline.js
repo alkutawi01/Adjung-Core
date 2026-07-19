@@ -138,6 +138,10 @@ class EditorialPipeline {
       }
     }
 
+    if (slot.manualDesk && slot.manualDesk.trim() !== '') {
+      compiledPrompt += `\nArahan Bidang/Kategori: Kandungan yang ditulis MESTILAH berkaitan dengan bidang/kategori: "${slot.manualDesk.trim().toUpperCase()}".\n`;
+    }
+
     const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex);
 
     if (isBarSlot) {
@@ -194,7 +198,9 @@ class EditorialPipeline {
 
     const finalTitle = validation.cleanTitle;
     const finalSummary = validation.cleanSummary;
-    const finalCategory = parsedJson.category ? parsedJson.category.trim().toUpperCase() : 'UMUM';
+    const finalCategory = (slot.manualDesk && slot.manualDesk.trim() !== '') 
+      ? slot.manualDesk.trim().toUpperCase() 
+      : (parsedJson.category ? parsedJson.category.trim().toUpperCase() : 'UMUM');
     const finalSourceUrl = parsedJson.source_url || aiSourceUrl || '#';
     const finalSource = isBarSlot ? (parsedJson.source || parsedJson.date || '19 Jul 2026') : provider.name;
 
