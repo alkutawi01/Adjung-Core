@@ -1476,11 +1476,7 @@ URL: ${url}`;
         {/* Bento Grid News Layout */}
         <section className="my-8" id="bento-news-grid">
           <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-3">
-              <h2 className="font-serif font-semibold text-lg md:text-xl tracking-wide text-[#802334] uppercase">
-                In The News
-              </h2>
-            </div>
+            <div />
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsEditMode(!isEditMode)}
