@@ -146,8 +146,19 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
     if (providerName.includes(' (')) providerName = providerName.split(' (')[0];
   }
   return (
-    <div key={itemKey} className={`animate-bento-fade-in w-full h-full flex flex-col justify-between relative ${className}`}>
-      {children}
+    <div className={`w-full h-full relative ${className}`}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={itemKey}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="w-full h-full flex flex-col justify-between"
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
       {providerName && (
         <span className="absolute bottom-0 right-0 font-mono text-[8px] opacity-40 pointer-events-none select-none">
           {providerName}
