@@ -1639,6 +1639,7 @@ export const DESK_ACCENTS: Record<string, string> = {
   'Space': '#1E293B',
   'Science': '#15803D',
   'Medicine': '#7B2737',
+  'Kesihatan': '#7B2737',
   'Artificial Intelligence': '#6D28D9',
   'History': '#78350F',
   'Archaeology': '#B45309',
@@ -1646,12 +1647,17 @@ export const DESK_ACCENTS: Record<string, string> = {
   'Museums': '#D97706',
   'Environment': '#4D7C0F',
   'Education': '#1E3A8A',
+  'Pendidikan': '#D97706',
   'Technology': '#475569',
   'Publishing': '#881337',
   'Languages': '#4338CA',
   'Heritage': '#92400E',
   'Islamic Affairs': '#047857',
-  'International Relations': '#1F1F1F'
+  'International Relations': '#1F1F1F',
+  'Dalam Negeri': '#802334',
+  'Ekonomi': '#1E3A8A',
+  'Politik': '#4338CA',
+  'Sukan': '#047857'
 };
 
 export function getDeskAccentColor(deskName: string): string {
