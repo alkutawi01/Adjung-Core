@@ -1,5 +1,5 @@
 class EditorialValidator {
-  static validate(title, summary) {
+  static validate(title, summary, maxSummaryLength = 380) {
     if (!title || !title.trim()) {
       return { isValid: false, reason: 'Tajuk berita kosong.' };
     }
@@ -14,8 +14,8 @@ class EditorialValidator {
       return { isValid: false, reason: `Panjang tajuk melebihi 115 aksara (Semasa: ${cleanTitle.length}).` };
     }
 
-    if (cleanSummary.length > 240) {
-      return { isValid: false, reason: `Panjang ringkasan melebihi 240 aksara (Semasa: ${cleanSummary.length}).` };
+    if (cleanSummary.length > maxSummaryLength) {
+      return { isValid: false, reason: `Panjang ringkasan melebihi ${maxSummaryLength} aksara (Semasa: ${cleanSummary.length}).` };
     }
 
     return { isValid: true, cleanTitle, cleanSummary };

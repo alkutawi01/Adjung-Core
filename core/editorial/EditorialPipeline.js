@@ -77,10 +77,22 @@ class EditorialPipeline {
       aiInstance = new GeminiProvider(apiKey, 'gemini-3.5-flash');
     }
 
+    // Fetch masterPrompt from system_settings
+    let masterPrompt = '';
+    try {
+      const settingsRow = await dbGet("SELECT masterPrompt FROM system_settings LIMIT 1");
+      if (settingsRow && settingsRow.masterPrompt) {
+        masterPrompt = settingsRow.masterPrompt;
+      }
+    } catch (settingsErr) {
+      console.warn("Failed to read masterPrompt settings:", settingsErr.message);
+    }
+
     // 3. Compile prompt based on search strategy
     let compiledPrompt = `
       Global System Context: ${globalPrompt}
       Current Campaign Focus: ${campaignPrompt}
+      Master Editorial Guidelines: ${masterPrompt}
       Slot Specific Instructions: ${slotPrompt}
     `;
 
@@ -92,22 +104,41 @@ class EditorialPipeline {
       compiledPrompt += `\n\nKandungan Sumber Rujukan Faktual (Rujuk teks ini untuk menulis berita):\n${rawSourceText}`;
     }
 
+    // Tentukan had panjang ringkasan secara dinamik berasaskan susun atur slot bento
+    let minSummaryLen = 130;
+    let maxSummaryLen = 180;
+    let limitDesc = 'mestilah di antara 130 hingga 180 aksara untuk pengisian visual yang kemas.';
+    
+    if (slotIndex === 0) {
+      minSummaryLen = 220;
+      maxSummaryLen = 250;
+      limitDesc = 'mestilah di antara 220 hingga 250 aksara untuk kad Hero utama.';
+    } else if ([1, 12, 14, 25, 36].includes(slotIndex)) {
+      minSummaryLen = 300;
+      maxSummaryLen = 370;
+      limitDesc = 'mestilah di antara 300 hingga 370 aksara (tulis panjang dan penuh, sekurang-kurangnya 4-5 baris) untuk mengisi ruang kad menegak bento secara padat.';
+    } else if ([4, 5, 31, 32].includes(slotIndex)) {
+      minSummaryLen = 60;
+      maxSummaryLen = 80;
+      limitDesc = 'mestilah di antara 60 hingga 80 aksara untuk kad bento kompak.';
+    }
+
     compiledPrompt += `
       Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" berdasarkan arahan dan fakta di atas.
       
       SYARAT PENTING (MANDATORY):
       1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
-      2. Ringkasan berita ("summary") mestilah TIDAK MELEBIHI 240 aksara.
+      2. Ringkasan berita ("summary") ${limitDesc}
       3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
       4. Sertakan pautan URL rujukan spesifik yang aktif untuk harta "source_url". Jika anda merujuk sumber teks di atas, gunakan URL daripada teks tersebut. Jika tiada, gunakan "#". Jangan sesekali reka pautan palsu.
       5. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
       6. Hasilkan respons dalam format JSON sahaja dengan struktur:
-         { 
-           "title": "Tajuk", 
-           "summary": "Ringkasan",
-           "category": "KATEGORI_BERITA",
-           "source_url": "https://url-sumber"
-         }
+          { 
+            "title": "Tajuk", 
+            "summary": "Ringkasan",
+            "category": "KATEGORI_BERITA",
+            "source_url": "https://url-sumber"
+          }
     `;
 
     // 4. Call AI Provider
@@ -115,7 +146,7 @@ class EditorialPipeline {
     const { parsedJson, promptTokens, completionTokens } = aiResult;
 
     // 5. Validate output
-    const validation = EditorialValidator.validate(parsedJson.title, parsedJson.summary);
+    const validation = EditorialValidator.validate(parsedJson.title, parsedJson.summary, maxSummaryLen);
     if (!validation.isValid) {
       throw new Error(`Validation failed: ${validation.reason}`);
     }
@@ -128,9 +159,9 @@ class EditorialPipeline {
     // 6. Save Editorial Object and attributes to Database
     const objectId = `object-${outputType.toLowerCase()}-slot${slotIndex}-${Date.now()}`;
     await dbRun(`
-      INSERT INTO editorial_objects (id, type, categoryId, priority, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [objectId, outputType, finalCategory, slot.priority || 'Medium', timestamp, timestamp]);
+      INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [objectId, outputType, finalCategory, slot.priority || 'Medium', slotIndex, timestamp, timestamp]);
 
     const revisionResult = await dbRun(`
       INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)

@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
+import PresentationComposer from './core/presentation/PresentationComposer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -158,6 +159,28 @@ const seedDatabase = async () => {
                 });
               });
             });
+            // Seed publisher directory
+            await new Promise((resPubs, rejPubs) => {
+              db.serialize(() => {
+                const stmtPubs = db.prepare(`
+                  INSERT OR IGNORE INTO publisher_directory (id, publisherName, domainPattern, isOfficial, authorityScore, defaultGlyphProfile, defaultDesk)
+                  VALUES (?, ?, ?, ?, ?, ?, ?)
+                `);
+                const seedPublishers = [
+                  { id: 'nasa', name: 'NASA', domain: 'nasa.gov', official: 1, authority: 100, glyph: 'archaeology', desk: 'archaeology' },
+                  { id: 'astro-awani', name: 'Astro Awani', domain: 'astroawani.com', official: 1, authority: 80, glyph: 'local-news', desk: 'news' },
+                  { id: 'bernama', name: 'Bernama', domain: 'bernama.com', official: 1, authority: 90, glyph: 'local-news', desk: 'news' },
+                  { id: 'reuters', name: 'Reuters', domain: 'reuters.com', official: 1, authority: 95, glyph: 'world-news', desk: 'world' },
+                  { id: 'bbc', name: 'BBC News', domain: 'bbc.co.uk', official: 1, authority: 90, glyph: 'world-news', desk: 'world' },
+                  { id: 'nature', name: 'Nature', domain: 'nature.com', official: 1, authority: 100, glyph: 'science', desk: 'science' }
+                ];
+                for (const p of seedPublishers) {
+                  stmtPubs.run(p.id, p.name, p.domain, p.official, p.authority, p.glyph, p.desk);
+                }
+                stmtPubs.finalize((errPubs) => errPubs ? rejPubs(errPubs) : resPubs());
+              });
+            });
+
             resolve();
           } catch (pricingErr) {
             reject(pricingErr);
@@ -203,7 +226,7 @@ const seedDatabase = async () => {
         allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText, 
         worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl
       ) VALUES (
-        'settings-main', 'Adjung Mini Portal', 'Editorial Operating System', '{}', 
+        'settings-main', 'Adjung Mini Portal', 'Tetapan Portal', '{}', 
         '', '', '', '', 
         '[]', '', 0, 'Standard', 
         '[]', '[]', '[]', '', 
@@ -363,7 +386,8 @@ app.get('/api/db-state', async (req, res) => {
       worldClockHolidaysText: settingsRow.worldClockHolidaysText || '',
       worldClockHolidaysGoogleDocUrl: settingsRow.worldClockHolidaysGoogleDocUrl || '',
       researchFindingsText: settingsRow.researchFindingsText || '',
-      researchFindingsGoogleDocUrl: settingsRow.researchFindingsGoogleDocUrl || ''
+      researchFindingsGoogleDocUrl: settingsRow.researchFindingsGoogleDocUrl || '',
+      masterPrompt: settingsRow.masterPrompt || ''
     } : {};
 
     let currentUser = null;
@@ -754,7 +778,7 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
   const currentRunId = runId || `run-${Date.now()}`;
 
   const slot = await dbGet("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
-  if (!slot || slot.contentMode !== 'AI Generated') return null;
+  if (!slot || (slot.contentMode !== 'AI Generated' && slot.contentMode !== 'Hybrid')) return null;
 
   // Rekod masa cubaan berjalan (lastAttemptAt) segera
   await dbRun("UPDATE slots_config SET lastAttemptAt = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [timestamp, slotIndex]);
@@ -902,7 +926,7 @@ app.post('/api/system/pipeline/run', async (req, res) => {
       }
     } else {
       // Run all active AI slots
-      const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND contentMode = 'AI Generated'");
+      const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND (contentMode = 'AI Generated' OR contentMode = 'Hybrid')");
       const results = [];
       
       let processedCount = 0;
@@ -968,12 +992,138 @@ app.post('/api/system/pipeline/run', async (req, res) => {
   }
 });
 
+// POST /api/system/pipeline/batch_paste
+app.post('/api/system/pipeline/batch_paste', async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'Text content is empty.' });
+    }
+
+    let parsedItems = [];
+
+    // 1. Try direct JSON parsing
+    try {
+      const rawJson = text.trim();
+      const data = JSON.parse(rawJson);
+      parsedItems = Array.isArray(data) ? data : [data];
+    } catch (e) {
+      // 2. Try to extract JSON blocks
+      const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/g;
+      let match;
+      while ((match = jsonBlockRegex.exec(text)) !== null) {
+        try {
+          const data = JSON.parse(match[1].trim());
+          if (Array.isArray(data)) parsedItems.push(...data);
+          else parsedItems.push(data);
+        } catch (e2) {}
+      }
+    }
+
+    // 3. Fallback Regex Parsing (untuk teks biasa berbilang berita per slot)
+    if (parsedItems.length === 0) {
+      const slotBlocks = text.split(/(?:Slot\s*#?\s*|SlotIndex\s*[:=]?\s*)(\d+)/i);
+      for (let idx = 1; idx < slotBlocks.length; idx += 2) {
+        const slotNum = parseInt(slotBlocks[idx], 10) - 1; // Tukar kepada 0-based
+        const blockContent = slotBlocks[idx + 1] || '';
+
+        // Pecahkan mengikut pembahagi --- atau ___ atau lookahead "Tajuk"
+        const articleBlocks = blockContent.split(/(?:---|___)+/).flatMap(b => b.split(/(?=Tajuk\s*[:=])/i));
+        
+        for (const artBlock of articleBlocks) {
+          if (!artBlock.trim()) continue;
+
+          const titleMatch = artBlock.match(/(?:Tajuk)\s*[:=]?\s*([^\n]+)/i);
+          const summaryMatch = artBlock.match(/(?:Summary|Brief|Ringkasan|Huraian)\s*[:=]?\s*([\s\S]*?)(?:\n\n|\nTajuk|\nKategori|\nPautan|$)/i);
+          const categoryMatch = artBlock.match(/(?:Category|Kategori|Desk|Topik)\s*[:=]?\s*([A-Za-z]+)/i);
+          const urlMatch = artBlock.match(/(?:Source|URL|Pautan)\s*[:=]?\s*(https?:\/\/[^\s\n]+)/i);
+
+          if (titleMatch && slotNum >= 0 && slotNum < 38) {
+            parsedItems.push({
+              slotIndex: slotNum,
+              title: titleMatch[1].trim(),
+              summary: summaryMatch ? summaryMatch[1].trim().replace(/\s+/g, ' ').trim() : '',
+              category: categoryMatch ? categoryMatch[1].trim().toUpperCase() : 'UMUM',
+              source_url: urlMatch ? urlMatch[1].trim() : '#'
+            });
+          }
+        }
+      }
+    }
+
+    if (parsedItems.length === 0) {
+      return res.status(400).json({ error: 'Failed to parse any valid news slot data from the pasted text.' });
+    }
+
+    const timestamp = new Date().toISOString();
+    const results = [];
+
+    for (const item of parsedItems) {
+      const slotIdx = item.slotIndex !== undefined ? parseInt(item.slotIndex, 10) : -1;
+      if (slotIdx < 0 || slotIdx >= 38) continue;
+
+      const objectId = `object-manual-slot${slotIdx}-${Date.now()}`;
+      const finalTitle = item.title ? item.title.trim() : '';
+      const finalSummary = item.summary ? item.summary.trim() : '';
+      const finalCategory = item.category ? item.category.trim().toUpperCase() : 'UMUM';
+      const finalUrl = item.source_url || '#';
+
+      if (!finalTitle) continue;
+
+      await dbRun(`
+        INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
+        VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?)
+      `, [objectId, finalCategory, slotIdx, timestamp, timestamp]);
+
+      const revResult = await dbRun(`
+        INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+        VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'batch-paste', ?, ?)
+      `, [objectId, finalTitle, finalSummary, timestamp, timestamp]);
+      const revisionId = revResult.lastID || 1;
+
+      const attributes = [
+        { key: 'desk', val: finalCategory },
+        { key: 'url', val: finalUrl },
+        { key: 'source', val: 'ChatGPT/Gemini Manual Paste' }
+      ];
+
+      for (const attr of attributes) {
+        await dbRun(`
+          INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText)
+          VALUES (?, ?, ?, ?)
+        `, [objectId, revisionId, attr.key, attr.val]);
+      }
+
+      await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [objectId, slotIdx]);
+      
+      results.push({ slotIndex: slotIdx, title: finalTitle });
+    }
+
+    res.json({ success: true, count: results.length, items: parsedItems });
+  } catch (err) {
+    console.error('Batch paste error:', err);
+    res.status(500).json({ error: 'Failed to process batch paste data. ' + err.message });
+  }
+});
 
 // --- EDITORIAL OPERATING SYSTEM (SPEC-XXX) SCHEMA INIT & SEED ---
 
 const initEditorialOS = (dbConn) => {
   return new Promise((resolve, reject) => {
     dbConn.serialize(() => {
+      // 0. publisher_directory
+      dbConn.run(`
+        CREATE TABLE IF NOT EXISTS publisher_directory (
+          id TEXT PRIMARY KEY,
+          publisherName TEXT,
+          domainPattern TEXT,
+          isOfficial INTEGER DEFAULT 0,
+          authorityScore INTEGER DEFAULT 50,
+          defaultGlyphProfile TEXT,
+          defaultDesk TEXT
+        )
+      `);
+
       // 1. ai_providers
       dbConn.run(`
         CREATE TABLE IF NOT EXISTS ai_providers (
@@ -1209,7 +1359,15 @@ const initEditorialOS = (dbConn) => {
                       dbConn.run("ALTER TABLE slots_config ADD COLUMN lastRunMessage TEXT", () => {
                         dbConn.run("ALTER TABLE editorial_revisions ADD COLUMN language TEXT DEFAULT 'ms'", () => {
                           dbConn.run("ALTER TABLE pipeline_logs ADD COLUMN runId TEXT", () => {
-                            resolve();
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN masterPrompt TEXT", () => {
+                              dbConn.run("ALTER TABLE editorial_objects ADD COLUMN slotIndex INTEGER", () => {
+                                dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselInterval INTEGER DEFAULT 10", () => {
+                                  dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselDelay INTEGER DEFAULT 0", () => {
+                                    resolve();
+                                  });
+                                });
+                              });
+                            });
                           });
                         });
                       });
@@ -1306,85 +1464,116 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
     return null;
   }
 
-  const allowedTypes = (slot.allowedContentTypes || 'Brief').split(',');
-  const outType = allowedTypes[0].trim();
-  let mappedType = 'BERITA';
-  if (outType === 'Book') mappedType = 'BUKU BAHARU';
-  else if (outType === 'Event') mappedType = 'ACARA';
-  else if (outType === 'Essay') mappedType = 'ESEI';
+  let objectIds = [];
+  if (slot.contentMode === 'AI Generated' || slot.contentMode === 'Hybrid') {
+    try {
+      const dbObjects = await dbAll("SELECT id FROM editorial_objects WHERE slotIndex = ? ORDER BY createdAt DESC LIMIT 5", [slot.slotIndex]);
+      objectIds = dbObjects.map(o => o.id);
+    } catch (e) {
+      console.error(e);
+    }
+    const mainId = slot.overrideObjectId || slot.activeObjectId;
+    if (mainId && !objectIds.includes(mainId)) {
+      objectIds.unshift(mainId);
+    }
+  } else if (slot.contentMode === 'Manual') {
+    objectIds = ['manual'];
+  } else {
+    const mainId = slot.overrideObjectId || slot.activeObjectId;
+    if (mainId) objectIds = [mainId];
+  }
 
-  let finalItem = {
+  if (objectIds.length === 0) {
+    return null;
+  }
+
+  const subItems = [];
+  for (const objectId of objectIds) {
+    let approvedRevision = { title: '', summary: '', createdAt: new Date().toISOString() };
+    let editorialObj = { id: objectId, type: 'Brief', categoryId: 'general' };
+    let avs = [];
+
+    if (objectId === 'manual') {
+      approvedRevision.title = slot.manualTitle || '';
+      approvedRevision.summary = slot.manualSummary || '';
+      avs.push({ attributeId: 'url', valueText: slot.manualUrl || '#' });
+      avs.push({ attributeId: 'desk', valueText: slot.manualDesk || 'general' });
+    } else {
+      const obj = await dbGet("SELECT * FROM editorial_objects WHERE id = ?", [objectId]);
+      if (!obj) continue;
+      editorialObj = obj;
+      let rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' AND language = ? ORDER BY version DESC LIMIT 1", [objectId, lang]);
+      if (!rev && lang !== 'ms') {
+        rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' AND language = 'ms' ORDER BY version DESC LIMIT 1", [objectId]);
+      }
+      if (!rev) continue;
+      approvedRevision = rev;
+      avs = await dbAll("SELECT * FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?", [objectId, rev.id]);
+    }
+
+    if (slot.contentMode === 'Hybrid' && objectId === (slot.overrideObjectId || slot.activeObjectId)) {
+      if (slot.manualTitle) approvedRevision.title = slot.manualTitle;
+      if (slot.manualSummary) approvedRevision.summary = slot.manualSummary;
+      if (slot.manualUrl) {
+        avs = avs.filter(a => a.attributeId !== 'url');
+        avs.push({ attributeId: 'url', valueText: slot.manualUrl });
+      }
+      if (slot.manualDesk) {
+        avs = avs.filter(a => a.attributeId !== 'desk');
+        avs.push({ attributeId: 'desk', valueText: slot.manualDesk });
+      }
+    }
+
+    if (!approvedRevision.title || approvedRevision.title.trim() === '') {
+      continue;
+    }
+
+    const renderToken = await PresentationComposer.composeToken(db, slot, editorialObj, approvedRevision, avs);
+    
+    // Find coverImage or manualImageUrl
+    let imageUrl = slot.manualImageUrl || '';
+    const imgAv = avs.find(a => a.attributeId === 'coverImageId' || a.attributeId === 'imageUrl');
+    if (imgAv) {
+      imageUrl = imgAv.valueText;
+    }
+
+    const aiProv = avs.find(a => a.attributeId === 'aiProvider');
+    
+    subItems.push({
+      title: approvedRevision.title,
+      brief: approvedRevision.summary,
+      publishedAt: approvedRevision.createdAt,
+      desk: renderToken.desk || 'UMUM',
+      publisherName: renderToken.publisherName || 'Umum',
+      url: renderToken.url || '#',
+      glyphProfile: renderToken.glyphProfile || null,
+      presentationProfile: renderToken.presentationProfile || 'umum',
+      publicationType: renderToken.publicationType || 'news',
+      isOfficial: renderToken.isOfficial || false,
+      aiProvider: aiProv ? aiProv.valueText : null,
+      imageUrl
+    });
+  }
+
+  if (subItems.length === 0) {
+    return null;
+  }
+
+  const first = subItems[0];
+  
+  return {
     rawIndex: slot.slotIndex + 1,
     bgColor: slot.bgColor || 'transparent',
     borderColor: slot.borderColor || '',
     textColor: slot.textColor || '#1F1F1F',
-    desk: mappedType,
-    title: '',
-    brief: '',
-    source: 'Nature',
-    url: '#',
-    imageUrl: slot.manualImageUrl || '',
-    language: 'ms'
+    imageUrl: first.imageUrl || slot.manualImageUrl || '',
+    language: lang,
+    offset: 0,
+    carouselInterval: slot.carouselInterval || 10,
+    carouselDelay: slot.carouselDelay || 0,
+    ...first,
+    items: subItems
   };
-
-  if (slot.contentMode === 'Manual') {
-    finalItem.title = slot.manualTitle || '';
-    finalItem.brief = slot.manualSummary || '';
-    finalItem.source = slot.manualSource || 'Nature';
-    finalItem.url = slot.manualUrl || '#';
-    finalItem.imageUrl = slot.manualImageUrl || '';
-    finalItem.desk = slot.manualDesk || mappedType;
-  } else {
-    const objectId = slot.overrideObjectId || slot.activeObjectId || `object-frontpage-${slot.slotIndex}`;
-    
-    if (objectId) {
-      const obj = await dbGet("SELECT * FROM editorial_objects WHERE id = ?", [objectId]);
-      if (obj) {
-        let rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' AND language = ? ORDER BY version DESC LIMIT 1", [objectId, lang]);
-        if (!rev && lang !== 'ms') {
-          rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' AND language = 'ms' ORDER BY version DESC LIMIT 1", [objectId]);
-        }
-        
-        if (rev) {
-          finalItem.title = rev.title || '';
-          finalItem.brief = rev.summary || '';
-          finalItem.desk = mappedType;
-          finalItem.language = rev.language || 'ms';
-          
-          // Fetch EAV attributes
-          const avs = await dbAll("SELECT * FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?", [objectId, rev.id]);
-          avs.forEach(av => {
-            if (av.attributeId === 'desk') finalItem.source = av.valueText;
-            else if (av.attributeId === 'url') finalItem.url = av.valueText;
-            else if (av.attributeId === 'deskB') finalItem.deskB = av.valueText;
-            else if (av.attributeId === 'titleB') finalItem.titleB = av.valueText;
-            else if (av.attributeId === 'briefB') finalItem.briefB = av.valueText;
-            else if (av.attributeId === 'sourceB') finalItem.sourceB = av.valueText;
-            else if (av.attributeId === 'urlB') finalItem.urlB = av.valueText;
-            else if (av.attributeId === 'offset') finalItem.offset = parseInt(av.valueText, 10) || 0;
-            else if (av.attributeId === 'coverImageId' || av.attributeId === 'imageUrl') finalItem.imageUrl = av.valueText;
-            else if (av.attributeId === 'aiProvider') finalItem.aiProvider = av.valueText;
-          });
-        }
-      }
-    }
-
-    // If Hybrid mode, the slot settings override the AI values
-    if (slot.contentMode === 'Hybrid') {
-      if (slot.manualTitle) finalItem.title = slot.manualTitle;
-      if (slot.manualSummary) finalItem.brief = slot.manualSummary;
-      if (slot.manualSource) finalItem.source = slot.manualSource;
-      if (slot.manualUrl) finalItem.url = slot.manualUrl;
-      if (slot.manualImageUrl) finalItem.imageUrl = slot.manualImageUrl;
-      if (slot.manualDesk) finalItem.desk = slot.manualDesk;
-    }
-  }
-
-  if (!finalItem.title || finalItem.title.trim() === '') {
-    return null;
-  }
-
-  return finalItem;
 };
 
 // 1. GET /api/system/layout/active
@@ -1527,18 +1716,18 @@ app.get('/api/system/slots', async (req, res) => {
 // 11. POST /api/system/slots
 app.post('/api/system/slots', async (req, res) => {
   try {
-    const slots = req.body; // Array of 38 slot configs
+    const slots = Array.isArray(req.body) ? req.body : [req.body];
     for (const slot of slots) {
       const providerId = slot.providerId && typeof slot.providerId === 'string' && slot.providerId.trim() !== '' && slot.providerId !== 'undefined' && slot.providerId !== 'null' ? slot.providerId : null;
       console.log(`Slot ${slot.slotIndex}: raw providerId = "${slot.providerId}", mapped = ${providerId}`);
       await dbRun(`
         INSERT OR REPLACE INTO slots_config (
           layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor, 
-          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy
-        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay
+        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
-        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only'
+        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0
       ]);
     }
     res.json({ success: true });
@@ -1558,20 +1747,21 @@ app.post('/api/system/settings', async (req, res) => {
         inTheNewsText, inTheNewsGoogleDocUrl, featuredScholarId, featuredEntryId, 
         editorialSelectionIds, announcementBanner, enableArabicAccent, layoutDensity, 
         allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText, 
-        worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl
+        worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl,
+        masterPrompt
       ) VALUES (
         'settings-main', ?, ?, ?, 
         ?, ?, ?, ?, 
         ?, ?, ?, ?, 
         ?, ?, ?, ?, 
-        ?, ?, ?
+        ?, ?, ?, ?
       )
     `, [
       s.frontpageTitle, s.frontpageSubtitle, JSON.stringify(s.rolePermissions || {}),
       s.inTheNewsText, s.inTheNewsGoogleDocUrl, s.featuredScholarId, s.featuredEntryId,
       JSON.stringify(s.editorialSelectionIds || []), s.announcementBanner, s.enableArabicAccent ? 1 : 0, s.layoutDensity,
       JSON.stringify(s.allowedSignatureFonts || []), JSON.stringify(s.featuredEssayIds || []), JSON.stringify(s.featuredNoteIds || []), s.worldClockHolidaysText,
-      s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl
+      s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl, s.masterPrompt
     ]);
     res.json({ success: true });
   } catch (err) {
@@ -1742,6 +1932,50 @@ app.get('/api/system/ai/breakdown', async (req, res) => {
   } catch (err) {
     console.error('Fetch AI breakdown error:', err);
     res.status(500).json({ error: 'Failed to fetch AI breakdown data.' });
+  }
+});
+
+// GET /api/system/ai/slot_costs
+app.get('/api/system/ai/slot_costs', async (req, res) => {
+  try {
+    const rows = await dbAll(`
+      SELECT 
+        COALESCE(p.slotIndex, -1) as slotIndex,
+        COUNT(l.id) as aiCalls,
+        SUM(l.promptTokens) as promptTokens,
+        SUM(l.completionTokens) as completionTokens,
+        SUM(l.estimatedCost) as tokenCost
+      FROM ai_usage_logs l
+      LEFT JOIN pipeline_logs p ON l.runId = p.runId AND p.slotIndex >= 0
+      WHERE l.status = 'SUCCESS'
+      GROUP BY p.slotIndex
+      ORDER BY p.slotIndex ASC
+    `);
+
+    const slots = await dbAll("SELECT slotIndex, searchStrategy FROM slots_config WHERE layoutTemplateId = 'frontpage'");
+    
+    const breakdown = rows.map(r => {
+      const slot = slots.find(s => s.slotIndex === r.slotIndex);
+      const isGrounding = slot && (slot.searchStrategy === 'Search Only' || slot.searchStrategy === 'Structured Sources -> Search Fallback');
+      
+      const groundingCalls = isGrounding ? r.aiCalls : 0;
+      const groundingCost = groundingCalls * 0.01;
+      const totalCostUSD = r.tokenCost + groundingCost;
+
+      return {
+        slotIndex: r.slotIndex,
+        aiCalls: r.aiCalls,
+        groundingCalls,
+        tokenCostUSD: r.tokenCost,
+        groundingCostUSD: groundingCost,
+        totalCostUSD
+      };
+    });
+
+    res.json(breakdown);
+  } catch (err) {
+    console.error('Failed to fetch slot costs:', err);
+    res.status(500).json({ error: 'Failed to fetch slot costs.' });
   }
 });
 

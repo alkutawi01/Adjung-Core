@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { User, Entry, SystemSettings } from './types';
 import { db } from './db/mockDb';
 import { FrontpageView } from './components/portal/FrontpageView';
-import { SettingsView } from './components/portal/SettingsView';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -58,27 +57,7 @@ export default function App() {
       });
   }, []);
 
-  const handleSettingsSave = async (newSettingsText: string) => {
-    if (!systemSettings) return;
-    const updatedSettings = {
-      ...systemSettings,
-      inTheNewsText: newSettingsText
-    };
 
-    const response = await fetch('/api/system/settings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(updatedSettings)
-    });
-
-    if (!response.ok) {
-      throw new Error('Gagal menyimpan tetapan');
-    }
-
-    setSystemSettings(updatedSettings);
-  };
 
   if (initializing || !systemSettings) {
     return (
@@ -125,14 +104,7 @@ export default function App() {
             </motion.div>
           } />
           
-          <Route path="/settings" element={
-            <SettingsView
-              systemSettings={systemSettings}
-              entries={entries}
-              users={users}
-              onSettingsSave={handleSettingsSave}
-            />
-          } />
+
         </Routes>
       </AnimatePresence>
     </BrowserRouter>

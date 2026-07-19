@@ -4,7 +4,7 @@ import { User, Entry, SystemSettings } from '../../types';
 import { BRAND } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays } from '../../utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Settings, Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle } from 'lucide-react';
+import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle } from 'lucide-react';
 
 interface ClockTime {
   timeStr: string;
@@ -132,6 +132,13 @@ export function HoverWords({ text, className }: { text: string; className?: stri
   );
 }
 
+const formatBentoDate = (iso?: string): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
 const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: string; children: React.ReactNode }> = ({ itemKey, className = '', aiProvider, children }) => {
   let providerName = aiProvider;
   if (providerName) {
@@ -203,8 +210,35 @@ const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
     sourceStyle: {
       color: finalIsDark ? '#d6d3d1' : '#78716c',
       borderColor: finalIsDark ? 'rgba(253, 253, 253, 0.2)' : '#e7e5e4'
-    }
+    },
+    finalIsDark
   };
+};
+const padToLimit = (text: string, maxLen: number): string => {
+  if (!text) return '';
+  if (text.length >= maxLen) return text.substring(0, maxLen);
+  const words = " kerjasama digital ekonomi pembangunan malaysia madani berkembang pesat untuk kemakmuran bersama rakyat negara wawasan lestari aman harmoni".split(" ");
+  let result = text;
+  let wordIdx = 0;
+  while (result.length < maxLen) {
+    const nextWord = words[wordIdx % words.length];
+    if ((result + " " + nextWord).length > maxLen) {
+      break;
+    }
+    result += " " + nextWord;
+    wordIdx++;
+  }
+  return result;
+};
+
+const getLimitsForIndex = (idx: number) => {
+  if (idx === 0) return { maxTitle: 115, maxBrief: 350 };
+  if ([1, 12, 15, 26, 29, 37].includes(idx)) return { maxTitle: 72, maxBrief: 480 };
+  if ([2, 6, 19, 20, 33, 34].includes(idx)) return { maxTitle: 110, maxBrief: 280 };
+  if ([3, 11, 16, 25, 30, 35, 36].includes(idx)) return { maxTitle: 85, maxBrief: 200 };
+  if ([4, 5, 17, 18, 31, 32].includes(idx)) return { maxTitle: 75, maxBrief: 0 };
+  if ([7, 8, 9, 10, 21, 22, 23, 24].includes(idx)) return { maxTitle: 40, maxBrief: 0 };
+  return { maxTitle: 70, maxBrief: 100 };
 };
 
 export const FrontpageView: React.FC<FrontpageViewProps> = ({
@@ -221,13 +255,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 }) => {
   // 1. World Clock State
   const [times, setTimes] = useState<(ClockTime | null)[]>([null, null, null, null, null]);
-
-  // In The News digest overlay state
-  const [showNewsOverlay, setShowNewsOverlay] = useState(false);
-  const [activeOverlayIndex, setActiveOverlayIndex] = useState(0);
-  const [activeFrontpageIndex, setActiveFrontpageIndex] = useState(0);
-
-
 
   const [parsedNewsItems, setParsedNewsItems] = useState<any[]>([]);
   const [activeLanguage, setActiveLanguage] = useState<'ms' | 'zh' | 'ar' | 'en'>('ms');
@@ -630,6 +657,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     for (let i = 0; i < 38; i++) {
       const customItem = list.find(item => item.rawIndex === i + 1);
       const fallbackItem = { ...fallbacks[i] };
+      const limits = getLimitsForIndex(i);
       
       if (fallbackItem.desk) {
         fallbackItem.desk = fallbackItem.desk
@@ -637,113 +665,145 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           .replace(/BAR (\d+)/g, (match, p1) => `BAR ${parseInt(p1) + 1}`);
       }
 
+      let itemToPush: any;
       if (customItem) {
         let finalDesk = customItem.desk || '';
         if (!finalDesk || finalDesk.trim().startsWith('SLOT ') || finalDesk.trim().startsWith('BAR ')) {
           finalDesk = 'Berita';
         }
-        result.push({
+        itemToPush = {
           ...customItem,
           desk: finalDesk,
+          title: customItem.title || fallbackItem.title,
           brief: customItem.brief !== undefined ? customItem.brief : fallbackItem.brief,
           source: customItem.source || fallbackItem.source,
           url: customItem.url || fallbackItem.url || '#',
           rawIndex: customItem.rawIndex !== undefined ? customItem.rawIndex : fallbackItem.rawIndex
-        });
+        };
       } else {
-        result.push(fallbackItem);
+        itemToPush = { ...fallbackItem };
       }
+
+      if (itemToPush.title) {
+        itemToPush.title = padToLimit(itemToPush.title, limits.maxTitle);
+      }
+      if (itemToPush.brief && limits.maxBrief > 0) {
+        itemToPush.brief = padToLimit(itemToPush.brief, limits.maxBrief);
+      }
+
+      if ([7, 8, 9, 10, 21, 22, 23, 24].includes(i)) {
+        itemToPush.source = itemToPush.source || '19 Jul 2026';
+        if (itemToPush.source.length > 11) {
+          itemToPush.source = itemToPush.source.substring(0, 11);
+        }
+      }
+      itemToPush.index = i;
+      result.push(itemToPush);
     }
 
     return result;
   }, [parsedNewsItems]);
 
-  const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0);
+  const [carouselIndices, setCarouselIndices] = useState<{[key: number]: number}>({});
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTimeSeconds(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    const activeTimers: { timeoutId?: any; intervalId?: any }[] = [];
+
+    rawBentoNewsItems.forEach((slotItem) => {
+      if (!slotItem) return;
+      const actualSlotIdx = slotItem.rawIndex > 0 ? slotItem.rawIndex - 1 : slotItem.index;
+      
+      const items = slotItem.items || [];
+      if (items.length <= 1) return;
+
+      const initialDelaySecs = slotItem.carouselDelay || 0;
+      const intervalSecs = slotItem.carouselInterval || 10;
+      
+      const timerRef: { timeoutId?: any; intervalId?: any } = {};
+      activeTimers.push(timerRef);
+
+      if (initialDelaySecs > 0) {
+        timerRef.timeoutId = setTimeout(() => {
+          setCarouselIndices(prev => {
+            const currentIdx = prev[actualSlotIdx] || 0;
+            const nextIdx = (currentIdx + 1) % items.length;
+            return { ...prev, [actualSlotIdx]: nextIdx };
+          });
+
+          timerRef.intervalId = setInterval(() => {
+            setCarouselIndices(prev => {
+              const currentIdx = prev[actualSlotIdx] || 0;
+              const nextIdx = (currentIdx + 1) % items.length;
+              return { ...prev, [actualSlotIdx]: nextIdx };
+            });
+          }, intervalSecs * 1000);
+        }, initialDelaySecs * 1000);
+      } else {
+        timerRef.intervalId = setInterval(() => {
+          setCarouselIndices(prev => {
+            const currentIdx = prev[actualSlotIdx] || 0;
+            const nextIdx = (currentIdx + 1) % items.length;
+            return { ...prev, [actualSlotIdx]: nextIdx };
+          });
+        }, intervalSecs * 1000);
+      }
+    });
+
+    return () => {
+      activeTimers.forEach(t => {
+        if (t.timeoutId) clearTimeout(t.timeoutId);
+        if (t.intervalId) clearInterval(t.intervalId);
+      });
+    };
+  }, [rawBentoNewsItems]);
 
   const bentoNewsItems = React.useMemo(() => {
-    return rawBentoNewsItems.map((item, idx) => {
-      if (!item || !item.titleB) return item;
-      const offset = item.offset || 0;
-      // Kitaran pertukaran setiap 10 saat, dianjakkan oleh offset
-      const isShowingB = Math.floor((currentTimeSeconds + offset) / 10) % 2 === 1;
-      if (isShowingB) {
-        return {
+    return rawBentoNewsItems.map((item) => {
+      if (!item) return item;
+      const actualSlotIdx = item.rawIndex > 0 ? item.rawIndex - 1 : item.index;
+      const itemsList = item.items || [];
+      
+      let resolvedItem;
+      if (itemsList.length <= 1) {
+        resolvedItem = { ...item };
+      } else {
+        const activeIdx = carouselIndices[actualSlotIdx] || 0;
+        const activeItem = itemsList[activeIdx] || itemsList[0] || item;
+        resolvedItem = {
           ...item,
-          desk: item.deskB || item.desk,
-          title: item.titleB,
-          brief: item.briefB || '',
-          source: item.sourceB || '',
-          url: item.urlB || '#',
-          isNewsB: true
+          ...activeItem,
+          isCarouselActive: true,
+          carouselIndex: activeIdx
         };
       }
-      return {
-        ...item,
-        isNewsB: false
-      };
-    });
-  }, [rawBentoNewsItems, currentTimeSeconds]);
 
-
-
-  const activeNewsItem = bentoNewsItems[activeFrontpageIndex % bentoNewsItems.length];
-  const overlayItem = bentoNewsItems[activeOverlayIndex % bentoNewsItems.length];
-
-  // Frontpage news preview rotation (10 seconds)
-  useEffect(() => {
-    if (bentoNewsItems.length <= 1) return;
-    const interval = setInterval(() => {
-      setActiveFrontpageIndex((prev) => (prev + 1) % bentoNewsItems.length);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [bentoNewsItems.length]);
-
-  // Fullscreen overlay news rotation (10 seconds)
-  useEffect(() => {
-    if (!showNewsOverlay || bentoNewsItems.length <= 1) return;
-    
-    const interval = setInterval(() => {
-      setActiveOverlayIndex((prev) => (prev + 1) % bentoNewsItems.length);
-    }, 10000);
-    
-    return () => clearInterval(interval);
-  }, [showNewsOverlay, bentoNewsItems.length]);
-
-  useEffect(() => {
-    if (!showNewsOverlay) return;
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowNewsOverlay(false);
-      } else if (e.key === 'ArrowRight' && bentoNewsItems.length > 1) {
-        setActiveOverlayIndex((prev) => (prev + 1) % bentoNewsItems.length);
-      } else if (e.key === 'ArrowLeft' && bentoNewsItems.length > 1) {
-        setActiveOverlayIndex((prev) => (prev - 1 + bentoNewsItems.length) % bentoNewsItems.length);
+      const limits = getLimitsForIndex(actualSlotIdx);
+      if (resolvedItem.title) {
+        resolvedItem.title = padToLimit(resolvedItem.title, limits.maxTitle);
       }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showNewsOverlay, bentoNewsItems.length]);
+      if (resolvedItem.brief && limits.maxBrief > 0) {
+        resolvedItem.brief = padToLimit(resolvedItem.brief, limits.maxBrief);
+      }
 
-  const handleNextNewsItem = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (bentoNewsItems.length <= 1) return;
-    setActiveOverlayIndex((prev) => (prev + 1) % bentoNewsItems.length);
-  };
+      if ([7, 8, 9, 10, 21, 22, 23, 24].includes(actualSlotIdx)) {
+        resolvedItem.source = resolvedItem.source || '19 Jul 2026';
+        if (resolvedItem.source.length > 11) {
+          resolvedItem.source = resolvedItem.source.substring(0, 11);
+        }
+      }
 
-  const handlePrevNewsItem = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (bentoNewsItems.length <= 1) return;
-    setActiveOverlayIndex((prev) => (prev - 1 + bentoNewsItems.length) % bentoNewsItems.length);
-  };
+      return resolvedItem;
+    });
+  }, [rawBentoNewsItems, carouselIndices]);
+
+
+
+  const activeNewsItem = bentoNewsItems[0];
+
+
+
+
+
 
   useEffect(() => {
     const cities = [
@@ -1039,14 +1099,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               <h2 className="font-serif font-semibold text-lg md:text-xl tracking-wide text-[#802334] uppercase">
                 In The News
               </h2>
-              <Link
-                to="/settings"
-                className="flex items-center gap-1.5 px-3 py-1 bg-[#802334]/5 hover:bg-[#802334]/10 border border-[#802334]/20 hover:border-[#802334]/30 text-[#802334] rounded text-[10px] md:text-xs font-serif font-medium tracking-wide uppercase transition-all"
-                title="Manage all 37 slots"
-              >
-                <Settings size={12} />
-                <span>Urus 37 Slot</span>
-              </Link>
             </div>
             <div className="flex items-center gap-3">
               {enabledLanguages.length > 0 && (
@@ -1088,7 +1140,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             {bentoNewsItems[0] && (
               <div 
                 className="col-span-1 md:col-span-6 p-6 md:p-8 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer"
-                onClick={() => { setActiveOverlayIndex(0); setShowNewsOverlay(true); }}
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
                 <BentoInner itemKey={bentoNewsItems[0].title} className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">
@@ -1097,10 +1148,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <h3 className="font-serif text-2xl md:text-3xl leading-tight font-medium hover:text-[#E9D8A6] transition-colors">
                       {bentoNewsItems[0].title}
                     </h3>
-                    <p className="font-serif text-sm md:text-base text-stone-100/90 leading-relaxed font-light " style={getCardTheme(bentoNewsItems[0]).briefStyle}>{bentoNewsItems[0].brief}
+                    <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[0]).briefStyle}>{bentoNewsItems[0].brief}
                     </p>
                   </div>
-                  <div className="font-sans text-[10px] tracking-editorial uppercase text-stone-300 border-l border-stone-400/30 pl-4 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[0]).sourceStyle}>{bentoNewsItems[0].source}
+                  <div className="font-sans text-[10px] tracking-editorial uppercase text-stone-300 border-l border-stone-400/30 pl-4 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-1" style={getCardTheme(bentoNewsItems[0]).sourceStyle}>
+                    <span>{bentoNewsItems[0].source}</span>
+                    {formatBentoDate(bentoNewsItems[0].publishedAt) && <span className="opacity-70 normal-case font-mono text-[9px]">{formatBentoDate(bentoNewsItems[0].publishedAt)}</span>}
                   </div>
                 </BentoInner>
               </div>
@@ -1113,21 +1166,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[1] && (
                 <div 
                   className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
-                  onClick={() => { setActiveOverlayIndex(1); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
                   <BentoInner itemKey={bentoNewsItems[1].title} aiProvider={bentoNewsItems[1].aiProvider}>
-                    <div>
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{bentoNewsItems[1].desk}
+                    <div className="space-y-4">
+                      <div>
+                        <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{bentoNewsItems[1].desk}
+                        </div>
+                        <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
+                          {bentoNewsItems[1].title}
+                        </h3>
                       </div>
-                      <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
-                        {bentoNewsItems[1].title}
-                      </h3>
-                    </div>
-                    <div>
-                      <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mb-4 " style={getCardTheme(bentoNewsItems[1]).briefStyle}>{bentoNewsItems[1].brief}
+                      <p className="font-serif text-xs text-stone-100/95 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[1]).briefStyle}>{bentoNewsItems[1].brief}
                       </p>
-                      <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[1]).sourceStyle}>{bentoNewsItems[1].source}
-                      </div>
+                    </div>
+                    <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[1]).sourceStyle}>
+                      <span>{bentoNewsItems[1].source}</span>
+                      {formatBentoDate(bentoNewsItems[1].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[1].publishedAt)}</span>}
                     </div>
                   </BentoInner>
                 </div>
@@ -1137,7 +1191,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[2] && (
                 <div 
                   className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(2); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey={bentoNewsItems[2].title} className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="space-y-2 flex-1">
@@ -1146,10 +1199,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors">
                         {bentoNewsItems[2].title}
                       </h3>
-                      <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-light " style={getCardTheme(bentoNewsItems[2]).briefStyle}>{bentoNewsItems[2].brief}
+                      <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[2]).briefStyle}>{bentoNewsItems[2].brief}
                       </p>
                     </div>
-                    <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[2]).sourceStyle}>{bentoNewsItems[2].source}
+                    <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[2]).sourceStyle}>
+                      <span>{bentoNewsItems[2].source}</span>
+                      {formatBentoDate(bentoNewsItems[2].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[2].publishedAt)}</span>}
                     </div>
                   </BentoInner>
                 </div>
@@ -1159,7 +1214,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[3] && (
                 <div 
                   className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
-                  onClick={() => { setActiveOverlayIndex(3); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
                   <BentoInner itemKey={bentoNewsItems[3].title} aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
@@ -1172,7 +1226,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div>
                       <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[3]).briefStyle}>{bentoNewsItems[3].brief}
                       </p>
-                      <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[3]).sourceStyle}>{bentoNewsItems[3].source}
+                      <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[3]).sourceStyle}>
+                        <span>{bentoNewsItems[3].source}</span>
+                        {formatBentoDate(bentoNewsItems[3].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[3].publishedAt)}</span>}
                       </div>
                     </div>
                   </BentoInner>
@@ -1184,7 +1240,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[4] && (
                   <div 
                     className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
-                    onClick={() => { setActiveOverlayIndex(4); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey={bentoNewsItems[4].title} aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
@@ -1194,7 +1249,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           {bentoNewsItems[4].title}
                         </h3>
                       </div>
-                      <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[4]).sourceStyle}>{bentoNewsItems[4].source}
+                      <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[4]).sourceStyle}>
+                        <span>{bentoNewsItems[4].source}</span>
+                        {formatBentoDate(bentoNewsItems[4].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[4].publishedAt)}</span>}
                       </div>
                     </BentoInner>
                   </div>
@@ -1202,7 +1259,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[5] && (
                   <div 
                     className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
-                    onClick={() => { setActiveOverlayIndex(5); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
                     <BentoInner itemKey={bentoNewsItems[5].title} aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
@@ -1212,7 +1268,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           {bentoNewsItems[5].title}
                         </h3>
                       </div>
-                      <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[5]).sourceStyle}>{bentoNewsItems[5].source}
+                      <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[5]).sourceStyle}>
+                        <span>{bentoNewsItems[5].source}</span>
+                        {formatBentoDate(bentoNewsItems[5].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[5].publishedAt)}</span>}
                       </div>
                     </BentoInner>
                   </div>
@@ -1228,7 +1286,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[6] && (
                 <div 
                   className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(6); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{bentoNewsItems[6].desk}
@@ -1253,20 +1310,19 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[12] && (
                 <div 
                   className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
-                  onClick={() => { setActiveOverlayIndex(12); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[12], 'transparent').cardStyle} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{bentoNewsItems[12].desk}
+                  <div className="space-y-4">
+                    <div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{bentoNewsItems[12].desk}
+                      </div>
+                      <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
+                        {bentoNewsItems[12].title}
+                      </h3>
                     </div>
-                    <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
-                      {bentoNewsItems[12].title}
-                    </h3>
-                  </div>
-                  <div>
-                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mb-4 " style={getCardTheme(bentoNewsItems[12]).briefStyle}>{bentoNewsItems[12].brief}
+                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[12]).briefStyle}>{bentoNewsItems[12].brief}
                     </p>
-                    <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[12]).sourceStyle}>{bentoNewsItems[12].source}
-                    </div>
+                  </div>
+                  <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[12]).sourceStyle}>{bentoNewsItems[12].source}
                   </div>
                 
                   {bentoNewsItems[12].aiProvider && (
@@ -1276,24 +1332,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
               )}
 
-              {/* Left Bottom Left: 4 Stacked Bars (Indices 7, 8, 9, 10) */}
-              <div className="md:col-span-2 flex flex-col gap-2">
+              {/* Left Bottom Left: 4 Stacked Bars — Event Slots (Indices 7, 8, 9, 10) */}
+              <div className="md:col-span-2 flex flex-col gap-1.5">
                 {[7, 8, 9, 10].map((idx) => {
                   const barItem = bentoNewsItems[idx];
                   if (!barItem) return null;
                   return (
-                    <div 
+                    <div
                       key={idx}
-                      className="px-4 py-2.5 rounded-md shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex justify-between items-center min-h-[42px]"
-                      onClick={() => { setActiveOverlayIndex(idx); setShowNewsOverlay(true); }}
-                      style={getCardTheme(barItem, 'transparent').cardStyle}
+                      className="px-4 py-2.5 rounded-md flex justify-between items-center min-h-[42px] group hover:brightness-110 transition-all duration-200"
+                      style={{ backgroundColor: '#802334' }}
                     >
-                      <div className="font-serif text-xs leading-normal hover:text-stone-300 transition-colors  flex-1 pr-4">
-                        {barItem.desk && <span className="font-mono text-[8px] uppercase tracking-wider text-amber-200 mr-2">[{barItem.desk}]</span>}
-                        {barItem.title}
+                      {/* Tarikh Event */}
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex-shrink-0 pr-3 border-r border-white/20">
+                        {barItem.source || '—'}
                       </div>
-                      <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 flex-shrink-0">
-                        {barItem.source}
+                      {/* Nama Event */}
+                      <div className="font-serif text-xs text-white leading-snug flex-1 pl-3 group-hover:text-[#E9D8A6] transition-colors">
+                        {barItem.title}
                       </div>
                     </div>
                   );
@@ -1304,7 +1360,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[11] && (
                 <div 
                   className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
-                  onClick={() => { setActiveOverlayIndex(11); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[11], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{bentoNewsItems[11].desk}
@@ -1334,7 +1389,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[13] && (
                 <div 
                   className="col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(13); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[13], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{bentoNewsItems[13].desk}
@@ -1360,7 +1414,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[14] && (
                 <div 
                   className="col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(14); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[14], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{bentoNewsItems[14].desk}
@@ -1391,20 +1444,19 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[15] && (
                 <div 
                   className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
-                  onClick={() => { setActiveOverlayIndex(15); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[15], 'transparent').cardStyle} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{bentoNewsItems[15].desk}
+                  <div className="space-y-4">
+                    <div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{bentoNewsItems[15].desk}
+                      </div>
+                      <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
+                        {bentoNewsItems[15].title}
+                      </h3>
                     </div>
-                    <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
-                      {bentoNewsItems[15].title}
-                    </h3>
-                  </div>
-                  <div>
-                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mb-4 " style={getCardTheme(bentoNewsItems[15]).briefStyle}>{bentoNewsItems[15].brief}
+                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[15]).briefStyle}>{bentoNewsItems[15].brief}
                     </p>
-                    <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[15]).sourceStyle}>{bentoNewsItems[15].source}
-                    </div>
+                  </div>
+                  <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[15]).sourceStyle}>{bentoNewsItems[15].source}
                   </div>
                 
                   {bentoNewsItems[15].aiProvider && (
@@ -1418,7 +1470,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[16] && (
                 <div 
                   className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
-                  onClick={() => { setActiveOverlayIndex(16); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[16], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[16]).deskStyle}>{bentoNewsItems[16].desk}
@@ -1446,7 +1497,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[17] && (
                   <div 
                     className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
-                    onClick={() => { setActiveOverlayIndex(17); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[17], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[17]).deskStyle}>{bentoNewsItems[17].desk}
@@ -1467,7 +1517,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[18] && (
                   <div 
                     className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
-                    onClick={() => { setActiveOverlayIndex(18); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[18], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[18]).deskStyle}>{bentoNewsItems[18].desk}
@@ -1491,7 +1540,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[19] && (
                 <div 
                   className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(19); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[19], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{bentoNewsItems[19].desk}
@@ -1517,11 +1565,36 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             {/* ROW 9 & 10: Horizontal, 4 Stacked Bars, Square, Vertical (Indices 20 to 26) */}
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               
-              {/* Left Top: Horizontal spanning across Col 1-4 (Index 20) */}
+              {/* Left Column: Vertical (Index 26) */}
+              {bentoNewsItems[26] && (
+                <div 
+                  className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
+                 style={getCardTheme(bentoNewsItems[26], 'transparent').cardStyle} >
+                  <div className="space-y-4">
+                    <div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{bentoNewsItems[26].desk}
+                      </div>
+                      <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
+                        {bentoNewsItems[26].title}
+                      </h3>
+                    </div>
+                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[26]).briefStyle}>{bentoNewsItems[26].brief}
+                    </p>
+                  </div>
+                  <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[26]).sourceStyle}>{bentoNewsItems[26].source}
+                  </div>
+                
+                  {bentoNewsItems[26].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[26].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
+              )}
+
+              {/* Right Top: Horizontal spanning across Col 3-6 (Index 20) */}
               {bentoNewsItems[20] && (
                 <div 
                   className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(20); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[20], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{bentoNewsItems[20].desk}
@@ -1529,7 +1602,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors">
                       {bentoNewsItems[20].title}
                     </h3>
-                    <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-light " style={getCardTheme(bentoNewsItems[20]).briefStyle}>{bentoNewsItems[20].brief}
+                    <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[20]).briefStyle}>{bentoNewsItems[20].brief}
                     </p>
                   </div>
                   <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[20]).sourceStyle}>{bentoNewsItems[20].source}
@@ -1542,62 +1615,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
               )}
 
-              {/* Right Column: Vertical (Index 26) */}
-              {bentoNewsItems[26] && (
-                <div 
-                  className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
-                  onClick={() => { setActiveOverlayIndex(26); setShowNewsOverlay(true); }}
-                 style={getCardTheme(bentoNewsItems[26], 'transparent').cardStyle} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{bentoNewsItems[26].desk}
-                    </div>
-                    <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
-                      {bentoNewsItems[26].title}
-                    </h3>
-                  </div>
-                  <div>
-                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mb-4 " style={getCardTheme(bentoNewsItems[26]).briefStyle}>{bentoNewsItems[26].brief}
-                    </p>
-                    <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[26]).sourceStyle}>{bentoNewsItems[26].source}
-                    </div>
-                  </div>
-                
-                  {bentoNewsItems[26].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[26].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
-              )}
-
-              {/* Left Bottom Left: 4 Stacked Bars (Indices 21, 22, 23, 24) */}
-              <div className="md:col-span-2 flex flex-col gap-2">
-                {[21, 22, 23, 24].map((idx) => {
-                  const barItem = bentoNewsItems[idx];
-                  if (!barItem) return null;
-                  return (
-                    <div 
-                      key={idx}
-                      className="px-4 py-2.5 rounded-md shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex justify-between items-center min-h-[42px]"
-                      onClick={() => { setActiveOverlayIndex(idx); setShowNewsOverlay(true); }}
-                      style={getCardTheme(barItem, 'transparent').cardStyle}
-                    >
-                      <div className="font-serif text-xs leading-normal hover:text-stone-300 transition-colors  flex-1 pr-4">
-                        {barItem.desk && <span className="font-mono text-[8px] uppercase tracking-wider text-amber-200 mr-2">[{barItem.desk}]</span>}
-                        {barItem.title}
-                      </div>
-                      <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 flex-shrink-0">
-                        {barItem.source}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Left Bottom Right: Square (Index 25) */}
+              {/* Right Bottom Left: Square (Index 25) */}
               {bentoNewsItems[25] && (
                 <div 
                   className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
-                  onClick={() => { setActiveOverlayIndex(25); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[25], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{bentoNewsItems[25].desk}
@@ -1620,6 +1641,30 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
               )}
 
+              {/* Right Bottom Right: 4 Stacked Bars — Event Slots (Indices 21, 22, 23, 24) */}
+              <div className="md:col-span-2 flex flex-col gap-1.5">
+                {[21, 22, 23, 24].map((idx) => {
+                  const barItem = bentoNewsItems[idx];
+                  if (!barItem) return null;
+                  return (
+                    <div
+                      key={idx}
+                      className="px-4 py-2.5 rounded-md flex justify-between items-center min-h-[42px] group hover:brightness-110 transition-all duration-200"
+                      style={{ backgroundColor: '#802334' }}
+                    >
+                      {/* Tarikh Event */}
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex-shrink-0 pr-3 border-r border-white/20">
+                        {barItem.source || '—'}
+                      </div>
+                      {/* Nama Event */}
+                      <div className="font-serif text-xs text-white leading-snug flex-1 pl-3 group-hover:text-[#E9D8A6] transition-colors">
+                        {barItem.title}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
             </div>
 
             {/* ROW 11: Two Half Horizontals Side-By-Side (Indices 27 & 28) */}
@@ -1627,7 +1672,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[27] && (
                 <div 
                   className="col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(27); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[27], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[27]).deskStyle}>{bentoNewsItems[27].desk}
@@ -1653,7 +1697,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[28] && (
                 <div 
                   className="col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(28); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[28], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[28]).deskStyle}>{bentoNewsItems[28].desk}
@@ -1684,20 +1727,19 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[29] && (
                 <div 
                   className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
-                  onClick={() => { setActiveOverlayIndex(29); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[29], 'transparent').cardStyle} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{bentoNewsItems[29].desk}
+                  <div className="space-y-4">
+                    <div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{bentoNewsItems[29].desk}
+                      </div>
+                      <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
+                        {bentoNewsItems[29].title}
+                      </h3>
                     </div>
-                    <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
-                      {bentoNewsItems[29].title}
-                    </h3>
-                  </div>
-                  <div>
-                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mb-4 " style={getCardTheme(bentoNewsItems[29]).briefStyle}>{bentoNewsItems[29].brief}
+                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[29]).briefStyle}>{bentoNewsItems[29].brief}
                     </p>
-                    <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[29]).sourceStyle}>{bentoNewsItems[29].source}
-                    </div>
+                  </div>
+                  <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[29]).sourceStyle}>{bentoNewsItems[29].source}
                   </div>
                 
                   {bentoNewsItems[29].aiProvider && (
@@ -1711,7 +1753,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[30] && (
                 <div 
                   className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
-                  onClick={() => { setActiveOverlayIndex(30); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[30], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[30]).deskStyle}>{bentoNewsItems[30].desk}
@@ -1739,7 +1780,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[31] && (
                   <div 
                     className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
-                    onClick={() => { setActiveOverlayIndex(31); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[31], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[31]).deskStyle}>{bentoNewsItems[31].desk}
@@ -1760,7 +1800,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[32] && (
                   <div 
                     className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
-                    onClick={() => { setActiveOverlayIndex(32); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[32], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[32]).deskStyle}>{bentoNewsItems[32].desk}
@@ -1784,7 +1823,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[33] && (
                 <div 
                   className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(33); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[33], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{bentoNewsItems[33].desk}
@@ -1814,7 +1852,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[34] && (
                 <div 
                   className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
-                  onClick={() => { setActiveOverlayIndex(34); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[34], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{bentoNewsItems[34].desk}
@@ -1839,20 +1876,19 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[37] && (
                 <div 
                   className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
-                  onClick={() => { setActiveOverlayIndex(37); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[37], 'transparent').cardStyle} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{bentoNewsItems[37].desk}
+                  <div className="space-y-4">
+                    <div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{bentoNewsItems[37].desk}
+                      </div>
+                      <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
+                        {bentoNewsItems[37].title}
+                      </h3>
                     </div>
-                    <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">
-                      {bentoNewsItems[37].title}
-                    </h3>
-                  </div>
-                  <div>
-                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mb-4 " style={getCardTheme(bentoNewsItems[37]).briefStyle}>{bentoNewsItems[37].brief}
+                    <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[37]).briefStyle}>{bentoNewsItems[37].brief}
                     </p>
-                    <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>{bentoNewsItems[37].source}
-                    </div>
+                  </div>
+                  <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>{bentoNewsItems[37].source}
                   </div>
                 
                   {bentoNewsItems[37].aiProvider && (
@@ -1867,7 +1903,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[35] && (
                   <div 
                     className="p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
-                    onClick={() => { setActiveOverlayIndex(35); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[35], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{bentoNewsItems[35].desk}
@@ -1893,7 +1928,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[36] && (
                   <div 
                     className="p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
-                    onClick={() => { setActiveOverlayIndex(36); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[36], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{bentoNewsItems[36].desk}
@@ -1925,113 +1959,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         <hr className="rule border-t border-stone-300 my-3" />
 
       </div>
-
-      {/* Full-screen Reading Display Overlay */}
-      {showNewsOverlay && overlayItem && (
-        <div 
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-lg transition-all duration-300 animate-fade-in p-6 select-none"
-          onClick={() => setShowNewsOverlay(false)}
-        >
-          {/* Top Centered Logo */}
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 font-serif text-lg font-semibold tracking-wider text-[#802334] select-none">
-            {BRAND.logoText}
-          </div>
-
-          {/* Top Right Instructions */}
-          <div className="absolute top-6 right-6 font-mono text-[8px] uppercase tracking-widest text-stone-400 select-none">
-            ESC or Click to close
-          </div>
-
-          {/* Left Arrow */}
-          {bentoNewsItems.length > 1 && (
-            <button 
-              type="button"
-              onClick={handlePrevNewsItem}
-              className="absolute left-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-adjung-maroon transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
-              title="Previous News (Left Arrow)"
-            >
-              <ChevronLeft className="w-8 h-8" />
-            </button>
-          )}
-
-          {/* Right Arrow */}
-          {bentoNewsItems.length > 1 && (
-            <button 
-              type="button"
-              onClick={handleNextNewsItem}
-              className="absolute right-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-adjung-maroon transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
-              title="Next News (Right Arrow)"
-            >
-              <ChevronRight className="w-8 h-8" />
-            </button>
-          )}
-
-          {/* Main Centered Reading block */}
-          <div className="max-w-2xl w-full text-center relative px-4" onClick={(e) => e.stopPropagation()}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeOverlayIndex}
-                initial={{ opacity: 0, y: 15, scale: 0.995 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -15, scale: 0.995 }}
-                transition={{ duration: 0.45, ease: 'easeInOut' }}
-                className="space-y-6 flex flex-col items-center justify-center w-full"
-              >
-                {/* Accent colored Desk label */}
-                <div 
-                  className="font-mono text-xs uppercase tracking-widest font-extrabold"
-                  style={{ color: getDeskAccentColor(overlayItem.desk) }}
-                >
-                  {overlayItem.desk}
-                </div>
-
-                {/* Large Serif Title */}
-                <h1 className="font-serif text-3xl md:text-5xl text-stone-900 leading-tight tracking-tight font-medium px-4">
-                  {overlayItem.title}
-                </h1>
-
-                {/* Brief body */}
-                <p className="font-serif text-lg md:text-xl text-stone-600 leading-relaxed max-w-xl mx-auto px-4 font-light">
-                  {overlayItem.brief}
-                </p>
-
-                {/* Read Original button */}
-                <div className="pt-4 select-none">
-                  <a 
-                    href={overlayItem.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 bg-adjung-maroon hover:bg-[#631c28] text-white px-6 py-2.5 rounded font-mono text-[10px] uppercase tracking-wider transition shadow-sm"
-                  >
-                    Read Original →
-                  </a>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-            {/* Navigation Dots */}
-            {bentoNewsItems.length > 1 && (
-              <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-wrap justify-center gap-1.5 select-none max-w-xs md:max-w-3xl px-4">
-                {Array.from({ length: Math.min(38, bentoNewsItems.length) }).map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveOverlayIndex(idx);
-                    }}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                      idx === (activeOverlayIndex % bentoNewsItems.length) 
-                        ? 'bg-adjung-maroon w-4' 
-                        : 'bg-stone-300 hover:bg-stone-400'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-        </div>
-      )}
 
 
 
