@@ -1541,11 +1541,63 @@ URL: ${url}`;
                 </button>
               )}
             </div>
-            {parsedTickerNewsItems.length > 0 && (
-              <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200">
-                &bull; Baca Paparan Penuh
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {parsedTickerNewsItems.length > 0 && (
+                <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200 mr-2">
+                  &bull; Baca Paparan Penuh
+                </span>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditMode(!isEditMode);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer ${
+                  isEditMode
+                    ? 'bg-[#802334] text-white border-[#802334] shadow-sm font-semibold'
+                    : 'bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334]'
+                }`}
+              >
+                <Info size={12} className={isEditMode ? "animate-pulse" : ""} />
+                {isEditMode ? 'Tutup Edit' : 'Edit Kandungan'}
+              </button>
+              {enabledLanguages.length > 0 && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 bg-stone-100 p-0.5 border border-stone-200 rounded text-xs select-none"
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveLanguage('ms');
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] uppercase font-mono transition-all cursor-pointer ${
+                      activeLanguage === 'ms' 
+                        ? 'bg-[#802334] text-white font-bold' 
+                        : 'text-stone-500 hover:text-[#802334]'
+                    }`}
+                  >
+                    MS
+                  </button>
+                  {enabledLanguages.map((lang) => (
+                    <button
+                      key={lang.languageCode}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveLanguage(lang.languageCode);
+                      }}
+                      className={`px-2 py-0.5 rounded text-[10px] uppercase font-mono transition-all cursor-pointer ${
+                        activeLanguage === lang.languageCode
+                          ? 'bg-[#802334] text-white font-bold' 
+                          : 'text-stone-500 hover:text-[#802334]'
+                      }`}
+                    >
+                      {lang.languageCode}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           
           {activeTickerNewsItem ? (
@@ -1578,49 +1630,7 @@ URL: ${url}`;
 
         {/* Bento Grid News Layout */}
         <section className="my-8" id="bento-news-grid">
-          <div className="flex justify-between items-center mb-6">
-            <div />
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsEditMode(!isEditMode)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer ${
-                  isEditMode
-                    ? 'bg-[#802334] text-white border-[#802334] shadow-sm font-semibold'
-                    : 'bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334]'
-                }`}
-              >
-                <Info size={12} className={isEditMode ? "animate-pulse" : ""} />
-                {isEditMode ? 'Tutup Edit' : 'Edit Kandungan'}
-              </button>
-              {enabledLanguages.length > 0 && (
-                <div className="flex items-center gap-1 bg-stone-100 p-0.5 border border-stone-200 rounded text-xs select-none">
-                  <button
-                    onClick={() => setActiveLanguage('ms')}
-                    className={`px-2 py-0.5 rounded text-[10px] uppercase font-mono transition-all cursor-pointer ${
-                      activeLanguage === 'ms' 
-                        ? 'bg-[#802334] text-white font-bold' 
-                        : 'text-stone-500 hover:text-[#802334]'
-                    }`}
-                  >
-                    MS
-                  </button>
-                  {enabledLanguages.map((lang) => (
-                    <button
-                      key={lang.languageCode}
-                      onClick={() => setActiveLanguage(lang.languageCode)}
-                      className={`px-2 py-0.5 rounded text-[10px] uppercase font-mono transition-all cursor-pointer ${
-                        activeLanguage === lang.languageCode
-                          ? 'bg-[#802334] text-white font-bold' 
-                          : 'text-stone-500 hover:text-[#802334]'
-                      }`}
-                    >
-                      {lang.languageCode}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+
 
           <div className="flex flex-col gap-4">
             
