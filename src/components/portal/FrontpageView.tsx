@@ -1241,7 +1241,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[6]).sourceStyle}>{bentoNewsItems[6].source}
                   </div>
-                </div>
+                
+                  {bentoNewsItems[6].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[6].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Right Column: Vertical (Index 12) */}
@@ -1263,7 +1268,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[12]).sourceStyle}>{bentoNewsItems[12].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[12].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[12].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Left Bottom Left: 4 Stacked Bars (Indices 7, 8, 9, 10) */}
@@ -1309,7 +1319,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[11]).sourceStyle}>{bentoNewsItems[11].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[11].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[11].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
             </div>
@@ -1334,7 +1349,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[13]).sourceStyle}>{bentoNewsItems[13].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[13].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[13].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {bentoNewsItems[14] && (
@@ -1355,7 +1375,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[14]).sourceStyle}>{bentoNewsItems[14].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[14].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[14].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
             </div>
 
@@ -1381,7 +1406,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[15]).sourceStyle}>{bentoNewsItems[15].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[15].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[15].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Square (Index 16) */}
@@ -1403,7 +1433,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[16]).sourceStyle}>{bentoNewsItems[16].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[16].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[16].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Two Stacked Compacts (Indices 17 & 18) */}
@@ -1422,7 +1457,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[17]).sourceStyle}>{bentoNewsItems[17].source}
                     </div>
-                  </div>
+                  
+                  {bentoNewsItems[17].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[17].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
                 )}
                 {bentoNewsItems[18] && (
                   <div 
@@ -1438,7 +1478,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[18]).sourceStyle}>{bentoNewsItems[18].source}
                     </div>
-                  </div>
+                  
+                  {bentoNewsItems[18].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[18].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
                 )}
               </div>
 
@@ -1459,7 +1504,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[19]).sourceStyle}>{bentoNewsItems[19].source}
                   </div>
-                </div>
+                
+                  {bentoNewsItems[19].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[19].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
             </div>
@@ -1484,7 +1534,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[20]).sourceStyle}>{bentoNewsItems[20].source}
                   </div>
-                </div>
+                
+                  {bentoNewsItems[20].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[20].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Right Column: Vertical (Index 26) */}
@@ -1506,7 +1561,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[26]).sourceStyle}>{bentoNewsItems[26].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[26].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[26].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Left Bottom Left: 4 Stacked Bars (Indices 21, 22, 23, 24) */}
@@ -1552,7 +1612,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[25]).sourceStyle}>{bentoNewsItems[25].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[25].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[25].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
             </div>
@@ -1577,7 +1642,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[27]).sourceStyle}>{bentoNewsItems[27].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[27].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[27].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {bentoNewsItems[28] && (
@@ -1598,7 +1668,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[28]).sourceStyle}>{bentoNewsItems[28].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[28].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[28].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
             </div>
 
@@ -1624,7 +1699,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[29]).sourceStyle}>{bentoNewsItems[29].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[29].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[29].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Square (Index 30) */}
@@ -1646,7 +1726,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[30]).sourceStyle}>{bentoNewsItems[30].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[30].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[30].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Two Stacked Compacts (Indices 31 & 32) */}
@@ -1665,7 +1750,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[31]).sourceStyle}>{bentoNewsItems[31].source}
                     </div>
-                  </div>
+                  
+                  {bentoNewsItems[31].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[31].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
                 )}
                 {bentoNewsItems[32] && (
                   <div 
@@ -1681,7 +1771,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <div className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[32]).sourceStyle}>{bentoNewsItems[32].source}
                     </div>
-                  </div>
+                  
+                  {bentoNewsItems[32].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[32].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
                 )}
               </div>
 
@@ -1702,7 +1797,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[33]).sourceStyle}>{bentoNewsItems[33].source}
                   </div>
-                </div>
+                
+                  {bentoNewsItems[33].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[33].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
             </div>
@@ -1727,7 +1827,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[34]).sourceStyle}>{bentoNewsItems[34].source}
                   </div>
-                </div>
+                
+                  {bentoNewsItems[34].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[34].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Right Column: Vertical (Index 37) */}
@@ -1749,7 +1854,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>{bentoNewsItems[37].source}
                     </div>
                   </div>
-                </div>
+                
+                  {bentoNewsItems[37].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[37].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
               )}
 
               {/* Left Bottom: Two Side-by-Side elements in Col 1-4 */}
@@ -1772,7 +1882,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[35]).sourceStyle}>{bentoNewsItems[35].source}
                       </div>
                     </div>
-                  </div>
+                  
+                  {bentoNewsItems[35].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[35].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
                 )}
 
                 {bentoNewsItems[36] && (
@@ -1793,7 +1908,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <div className="font-sans text-[9px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[36]).sourceStyle}>{bentoNewsItems[36].source}
                       </div>
                     </div>
-                  </div>
+                  
+                  {bentoNewsItems[36].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[36].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
                 )}
               </div>
 
