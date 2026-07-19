@@ -146,7 +146,7 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
     if (providerName.includes(' (')) providerName = providerName.split(' (')[0];
   }
   return (
-    <div className={`w-full h-full relative ${className}`}>
+    <div className="w-full h-full relative">
       <AnimatePresence mode="wait">
         <motion.div
           key={itemKey}
@@ -154,7 +154,7 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="w-full h-full flex flex-col justify-between"
+          className={`w-full h-full flex flex-col justify-between ${className}`}
         >
           {children}
         </motion.div>
