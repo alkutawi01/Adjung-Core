@@ -272,6 +272,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [slotsConfig, setSlotsConfig] = useState<any[]>([]);
   const [formConfig, setFormConfig] = useState<any | null>(null);
   const [isSavingSlot, setIsSavingSlot] = useState<boolean>(false);
+  const [isExecutingNow, setIsExecutingNow] = useState<boolean>(false);
+  const [executingSuccessMessage, setExecutingSuccessMessage] = useState<string>('');
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [aiProviders, setAiProviders] = useState<any[]>([]);
   const [masterPrompt, setMasterPrompt] = useState<string>('');
@@ -398,7 +400,9 @@ URL: ${url}`;
       generationLimit: config?.generationLimit || 1,
       maxTitle: config?.maxTitle !== undefined && config?.maxTitle !== null ? config.maxTitle : limits.maxTitle,
       maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief,
-      masterPrompt: masterPrompt
+      masterPrompt: masterPrompt,
+      refreshHour: config?.refreshHour || '00:00',
+      refreshDay: config?.refreshDay || 'Isnin'
     });
     setEditingSlotIndex(idx);
   };
@@ -426,6 +430,34 @@ URL: ${url}`;
       alert('Ralat menyimpan slot: ' + (err.message || ''));
     } finally {
       setIsSavingSlot(false);
+    }
+  };
+
+  const handleRunSlotNow = async () => {
+    if (!formConfig) return;
+    setIsExecutingNow(true);
+    setExecutingSuccessMessage('');
+    try {
+      const response = await fetch('/api/system/slots/run-now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slotIndex: formConfig.slotIndex })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setExecutingSuccessMessage('Penjanaan AI berjaya diaktifkan dan dikemas kini!');
+        setRefreshKey(prev => prev + 1);
+        setTimeout(() => {
+          setExecutingSuccessMessage('');
+        }, 5000);
+      } else {
+        alert('Gagal mengaktifkan segera: ' + (data.error || ''));
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Ralat mengaktifkan segera: ' + (err.message || ''));
+    } finally {
+      setIsExecutingNow(false);
     }
   };
 
@@ -2335,13 +2367,90 @@ URL: ${url}`;
                       <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kadar Segar Semula (refreshRate)</label>
                       <select
                         value={formConfig.refreshRate}
-                        onChange={(e) => setFormConfig({ ...formConfig, refreshRate: e.target.value })}
-                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                        onChange={(e) => {
+                          const newRate = e.target.value;
+                          setFormConfig({ 
+                            ...formConfig, 
+                            refreshRate: newRate,
+                            refreshHour: formConfig.refreshHour || '00:00',
+                            refreshDay: formConfig.refreshDay || 'Isnin'
+                          });
+                        }}
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
                       >
-                        <option value="Hourly">Setiap Jam (Hourly)</option>
                         <option value="Daily">Setiap Hari (Daily)</option>
                         <option value="Weekly">Setiap Minggu (Weekly)</option>
                       </select>
+                    </div>
+
+                    {formConfig.refreshRate === 'Daily' && (
+                      <div className="flex flex-col gap-1">
+                        <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Pilih Waktu/Jam</label>
+                        <select
+                          value={formConfig.refreshHour || '00:00'}
+                          onChange={(e) => setFormConfig({ ...formConfig, refreshHour: e.target.value })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                        >
+                          {Array.from({ length: 24 }).map((_, h) => {
+                            const hh = h.toString().padStart(2, '0') + ':00';
+                            return <option key={hh} value={hh}>{hh}</option>;
+                          })}
+                        </select>
+                      </div>
+                    )}
+
+                    {formConfig.refreshRate === 'Weekly' && (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Pilih Hari</label>
+                          <select
+                            value={formConfig.refreshDay || 'Isnin'}
+                            onChange={(e) => setFormConfig({ ...formConfig, refreshDay: e.target.value })}
+                            className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                          >
+                            {['Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu', 'Ahad'].map(d => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Pilih Waktu/Jam</label>
+                          <select
+                            value={formConfig.refreshHour || '00:00'}
+                            onChange={(e) => setFormConfig({ ...formConfig, refreshHour: e.target.value })}
+                            className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                          >
+                            {Array.from({ length: 24 }).map((_, h) => {
+                              const hh = h.toString().padStart(2, '0') + ':00';
+                              return <option key={hh} value={hh}>{hh}</option>;
+                            })}
+                          </select>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="flex flex-col gap-1 col-span-2 mt-2 p-3 bg-stone-50 border border-stone-200 rounded">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Tindakan Segera (Trigger AI)</label>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleRunSlotNow}
+                          disabled={isExecutingNow}
+                          className={`px-4 py-2 text-xs font-bold text-white rounded transition-colors ${
+                            isExecutingNow ? 'bg-stone-400 cursor-not-allowed' : 'bg-[#802334] hover:bg-[#6c1d2c]'
+                          }`}
+                        >
+                          {isExecutingNow ? 'Menjalankan Penjanaan AI...' : 'Aktifkan Segera'}
+                        </button>
+                        {executingSuccessMessage && (
+                          <span className="text-[11px] text-green-600 font-sans font-semibold animate-pulse">
+                            ✓ {executingSuccessMessage}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[9px] text-stone-500 font-sans mt-1">
+                        Butang ini akan mencetuskan penjanaan AI serta-merta untuk slot ini secara manual. Jadual automasi seterusnya akan tetap mengikut waktu yang ditetapkan di atas.
+                      </p>
                     </div>
 
                     <div className="flex flex-col gap-1 col-span-2">

@@ -774,6 +774,38 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
   return parsedJson;
 };
 
+const calculateNextRunTime = (slot) => {
+  const rate = slot.refreshRate || 'Daily';
+  const targetHourStr = slot.refreshHour || '00:00';
+  const [hour, minute] = targetHourStr.split(':').map(Number);
+  
+  const now = new Date();
+  let nextDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute || 0, 0, 0);
+  
+  if (rate === 'Weekly') {
+    const dayNames = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+    const targetDayStr = slot.refreshDay || 'Isnin';
+    let targetDayIndex = dayNames.indexOf(targetDayStr);
+    if (targetDayIndex === -1) targetDayIndex = 1; // Default to Isnin
+    
+    let currentDayIndex = now.getDay();
+    let daysToAdd = (targetDayIndex - currentDayIndex + 7) % 7;
+    
+    if (daysToAdd === 0 && nextDate.getTime() <= now.getTime()) {
+      daysToAdd = 7;
+    }
+    
+    nextDate.setDate(nextDate.getDate() + daysToAdd);
+  } else {
+    // Daily
+    if (nextDate.getTime() <= now.getTime()) {
+      nextDate.setDate(nextDate.getDate() + 1);
+    }
+  }
+  
+  return nextDate.getTime();
+};
+
 const runEditorialPipeline = async (slotIndex, runId = null) => {
   const timestamp = new Date().toISOString();
   const currentRunId = runId || `run-${Date.now()}`;
@@ -803,8 +835,7 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
       currentRunId
     );
 
-    const intervalSecs = 3600; // Lalai 1 jam
-    const nextRun = Date.now() + (intervalSecs * 1000);
+    const nextRun = calculateNextRunTime(slot);
 
     if (result.status === 'SKIPPED_CACHE') {
       const logMessage = result.message || 'Skipped: Kandungan sumber tidak berubah.';
@@ -1366,9 +1397,13 @@ const initEditorialOS = (dbConn) => {
                                   dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselDelay INTEGER DEFAULT 0", () => {
                                     dbConn.run("ALTER TABLE slots_config ADD COLUMN generationLimit INTEGER DEFAULT 1", () => {
                                       dbConn.run("ALTER TABLE slots_config ADD COLUMN maxTitle INTEGER", () => {
-                                        dbConn.run("ALTER TABLE slots_config ADD COLUMN maxBrief INTEGER", () => {
-                                          resolve();
-                                        });
+                                         dbConn.run("ALTER TABLE slots_config ADD COLUMN maxBrief INTEGER", () => {
+                                           dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshHour TEXT DEFAULT '00:00'", () => {
+                                             dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshDay TEXT DEFAULT 'Isnin'", () => {
+                                               resolve();
+                                             });
+                                           });
+                                         });
                                       });
                                     });
                                   });
@@ -1818,11 +1853,11 @@ app.post('/api/system/slots', async (req, res) => {
       await dbRun(`
         INSERT OR REPLACE INTO slots_config (
           layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor, 
-          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief
-        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, refreshHour, refreshDay
+        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
-        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null
+        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin'
       ]);
 
       if (slot.masterPrompt !== undefined && slot.masterPrompt !== null) {
@@ -1833,6 +1868,32 @@ app.post('/api/system/slots', async (req, res) => {
   } catch (err) {
     console.error('Save slots config error:', err);
     res.status(500).json({ error: 'Failed to save slots configuration. ' + (err.message || '') });
+  }
+});
+
+app.post('/api/system/slots/run-now', async (req, res) => {
+  const { slotIndex } = req.body;
+  if (slotIndex === undefined || slotIndex === null) {
+    return res.status(400).json({ error: 'Missing slotIndex parameter.' });
+  }
+
+  try {
+    const currentRunId = `manual-run-${Date.now()}`;
+    const result = await runEditorialPipeline(slotIndex, currentRunId);
+    if (result) {
+      if (result.status === 'CACHE_HIT' || result.status === 'SUCCESS') {
+        if (result.objectId) {
+          await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [result.objectId, slotIndex]);
+        }
+        return res.json({ success: true, status: result.status, message: 'Berjaya diaktifkan!' });
+      } else {
+        return res.status(400).json({ error: result.message || 'Penjanaan gagal.' });
+      }
+    }
+    res.status(400).json({ error: 'Gagal menjalankan pipeline.' });
+  } catch (err) {
+    console.error('Run slot now error:', err);
+    res.status(500).json({ error: err.message || 'Ralat pelayan.' });
   }
 });
 
