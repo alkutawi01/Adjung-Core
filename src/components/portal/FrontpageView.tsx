@@ -2653,6 +2653,7 @@ URL: ${url}`;
                           className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
                         >
                           <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                          <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
                           <option value="gemini-2.5-flash">gemini-2.5-flash</option>
                           <option value="gemini-2.5-pro">gemini-2.5-pro</option>
                           <option value="gemini-1.5-flash">gemini-1.5-flash</option>
