@@ -818,7 +818,7 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
 
     const allowedTypes = (slot.allowedContentTypes || 'Berita').split(',');
     const outputType = allowedTypes[0].trim();
-    const category = 'Umum';
+    let aiCategory = 'Umum';
 
     let aiSourceUrl = '';
 
@@ -829,18 +829,20 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
           Current Campaign Focus: ${campaignPrompt}
           Slot Specific Instructions: ${slotPrompt}
           
-          Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" untuk bahagian berita "${category}" berdasarkan arahan di atas.
+          Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" berdasarkan arahan di atas.
           Lakukan carian di internet menggunakan enjin carian sekiranya perlu untuk mendapatkan fakta berita terbaharu.
           
           SYARAT PENTING (MANDATORY):
           1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
           2. Ringkasan berita ("summary") mestilah TIDAK MELEBIHI 240 aksara.
           3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
-          4. Cari dan sertakan pautan URL artikel berita sebenar (contoh daripada Bernama/Awani/etc.) yang anda rujuk dalam harta "source_url". Jika tiada pautan khusus, gunakan "".
-          5. Hasilkan respons dalam format JSON sahaja dengan struktur:
+          4. Cari dan sertakan pautan URL artikel berita sebenar (contoh daripada Bernama, Astro Awani, dll.) yang wujud dan betul-betul aktif untuk harta "source_url". DILARANG REKA ATAU HALUSINASI PAUTAN. Jika anda tidak menemui pautan artikel yang tepat dan aktif, gunakan URL utama portal berita sahaja (contoh: "https://www.astroawani.com" atau "https://www.bernama.com"). Jangan sesekali reka pautan palsu.
+          5. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
+          6. Hasilkan respons dalam format JSON sahaja dengan struktur:
              { 
                "title": "Tajuk", 
                "summary": "Ringkasan",
+               "category": "KATEGORI_BERITA",
                "source_url": "https://url-sumber-berita-sebenar"
              }
         `;
@@ -848,6 +850,7 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
         title = data.title || '';
         summary = data.summary || '';
         aiSourceUrl = data.source_url || '';
+        aiCategory = data.category ? data.category.trim().toUpperCase() : 'UMUM';
       } catch (e) {
         throw new Error(`AI generation error: ${e.message}`);
       }
@@ -864,7 +867,7 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
     await dbRun(`
       INSERT INTO editorial_objects (id, type, categoryId, priority, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?)
-    `, [objectId, outputType, category, slot.priority || 'Medium', timestamp, timestamp]);
+    `, [objectId, outputType, aiCategory, slot.priority || 'Medium', timestamp, timestamp]);
 
     // Insert Initial Revision
     const revisionResult = await dbRun(`
@@ -881,7 +884,7 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
     const attributesToSave = [
       { key: 'aiCacheKey', val: aiCacheKey },
       { key: 'sourceHash', val: sourceHash },
-      { key: 'desk', val: category },
+      { key: 'desk', val: aiCategory },
       { key: 'source', val: provider.name },
       { key: 'url', val: sourceUrl },
       { key: 'aiProvider', val: provider.name }
@@ -1390,12 +1393,19 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
     return null;
   }
 
+  const allowedTypes = (slot.allowedContentTypes || 'Brief').split(',');
+  const outType = allowedTypes[0].trim();
+  let mappedType = 'BERITA';
+  if (outType === 'Book') mappedType = 'BUKU BAHARU';
+  else if (outType === 'Event') mappedType = 'ACARA';
+  else if (outType === 'Essay') mappedType = 'ESEI';
+
   let finalItem = {
     rawIndex: slot.slotIndex + 1,
     bgColor: slot.bgColor || 'transparent',
     borderColor: slot.borderColor || '',
     textColor: slot.textColor || '#1F1F1F',
-    desk: slot.allowedContentTypes || '',
+    desk: mappedType,
     title: '',
     brief: '',
     source: 'Nature',
@@ -1410,7 +1420,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
     finalItem.source = slot.manualSource || 'Nature';
     finalItem.url = slot.manualUrl || '#';
     finalItem.imageUrl = slot.manualImageUrl || '';
-    finalItem.desk = slot.manualDesk || slot.allowedContentTypes || '';
+    finalItem.desk = slot.manualDesk || mappedType;
   } else {
     const objectId = slot.overrideObjectId || slot.activeObjectId || `object-frontpage-${slot.slotIndex}`;
     
@@ -1425,14 +1435,13 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         if (rev) {
           finalItem.title = rev.title || '';
           finalItem.brief = rev.summary || '';
-          finalItem.desk = obj.categoryId || slot.allowedContentTypes || '';
+          finalItem.desk = mappedType;
           finalItem.language = rev.language || 'ms';
           
           // Fetch EAV attributes
           const avs = await dbAll("SELECT * FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?", [objectId, rev.id]);
           avs.forEach(av => {
-            if (av.attributeId === 'desk') finalItem.desk = av.valueText;
-            else if (av.attributeId === 'source') finalItem.source = av.valueText;
+            if (av.attributeId === 'desk') finalItem.source = av.valueText;
             else if (av.attributeId === 'url') finalItem.url = av.valueText;
             else if (av.attributeId === 'deskB') finalItem.deskB = av.valueText;
             else if (av.attributeId === 'titleB') finalItem.titleB = av.valueText;

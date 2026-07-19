@@ -132,13 +132,25 @@ export function HoverWords({ text, className }: { text: string; className?: stri
   );
 }
 
-const BentoInner: React.FC<{ itemKey: string; className?: string; children: React.ReactNode }> = ({ itemKey, className = '', children }) => {
+const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: string; children: React.ReactNode }> = ({ itemKey, className = '', aiProvider, children }) => {
+  let providerName = aiProvider;
+  if (providerName) {
+    if (providerName.startsWith('Google ')) providerName = providerName.replace('Google ', '');
+    if (providerName.includes(' (')) providerName = providerName.split(' (')[0];
+  }
   return (
-    <div key={itemKey} className={`animate-bento-fade-in w-full h-full flex flex-col justify-between ${className}`}>
+    <div key={itemKey} className={`animate-bento-fade-in w-full h-full flex flex-col justify-between relative ${className}`}>
       {children}
+      {providerName && (
+        <span className="absolute bottom-0 right-0 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+          {providerName}
+        </span>
+      )}
     </div>
   );
 };
+
+
 
 let BENTO_FALLBACKS: any[] = [];
 
@@ -1078,7 +1090,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 className="col-span-1 md:col-span-6 p-6 md:p-8 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer"
                 onClick={() => { setActiveOverlayIndex(0); setShowNewsOverlay(true); }}
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
-                <BentoInner itemKey={bentoNewsItems[0].title} className="md:flex-row md:items-center justify-between gap-6">
+                <BentoInner itemKey={bentoNewsItems[0].title} className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">
                     <div className="font-mono text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{bentoNewsItems[0].desk}
                     </div>
@@ -1103,7 +1115,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
                   onClick={() => { setActiveOverlayIndex(1); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
-                  <BentoInner itemKey={bentoNewsItems[1].title}>
+                  <BentoInner itemKey={bentoNewsItems[1].title} aiProvider={bentoNewsItems[1].aiProvider}>
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{bentoNewsItems[1].desk}
                       </div>
@@ -1127,7 +1139,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
                   onClick={() => { setActiveOverlayIndex(2); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
-                  <BentoInner itemKey={bentoNewsItems[2].title} className="md:flex-row md:items-center justify-between gap-4">
+                  <BentoInner itemKey={bentoNewsItems[2].title} className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="space-y-2 flex-1">
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{bentoNewsItems[2].desk}
                       </div>
@@ -1149,7 +1161,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
                   onClick={() => { setActiveOverlayIndex(3); setShowNewsOverlay(true); }}
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
-                  <BentoInner itemKey={bentoNewsItems[3].title}>
+                  <BentoInner itemKey={bentoNewsItems[3].title} aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[3]).deskStyle}>{bentoNewsItems[3].desk}
                       </div>
@@ -1174,7 +1186,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
                     onClick={() => { setActiveOverlayIndex(4); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
-                    <BentoInner itemKey={bentoNewsItems[4].title}>
+                    <BentoInner itemKey={bentoNewsItems[4].title} aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
                         <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[4]).deskStyle}>{bentoNewsItems[4].desk}
                         </div>
@@ -1192,7 +1204,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
                     onClick={() => { setActiveOverlayIndex(5); setShowNewsOverlay(true); }}
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
-                    <BentoInner itemKey={bentoNewsItems[5].title}>
+                    <BentoInner itemKey={bentoNewsItems[5].title} aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
                         <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[5]).deskStyle}>{bentoNewsItems[5].desk}
                         </div>
