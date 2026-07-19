@@ -436,7 +436,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         model: config?.model || '',
         promptText: config?.promptText || '',
         sourcesList: config?.sourcesList || '',
-        refreshRate: config?.refreshRate || 'Daily',
+        refreshRate: (config?.refreshRate === 'Daily' || config?.refreshRate === 'Weekly') ? config.refreshRate : 'Daily',
         allowedContentTypes: config?.allowedContentTypes || '',
         priority: config?.priority || 'High',
         expiresAt: config?.expiresAt || '',
@@ -516,7 +516,7 @@ URL: ${url}`;
       model: config?.model || '',
       promptText: config?.promptText || '',
       sourcesList: config?.sourcesList || '',
-      refreshRate: config?.refreshRate || 'Daily',
+      refreshRate: (config?.refreshRate === 'Daily' || config?.refreshRate === 'Weekly') ? config.refreshRate : 'Daily',
       allowedContentTypes: config?.allowedContentTypes || '',
       priority: config?.priority || 'Medium',
       expiresAt: config?.expiresAt || '',
@@ -2833,23 +2833,25 @@ URL: ${url}`;
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-1 col-span-2">
-                      <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Jumlah Kandungan Carousel AI (AI Generation Limit)</label>
-                      <select
-                        value={formConfig.generationLimit || 1}
-                        onChange={(e) => setFormConfig({ ...formConfig, generationLimit: parseInt(e.target.value) || 1 })}
-                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
-                      >
-                        <option value={1}>1 Kandungan (Statik)</option>
-                        <option value={2}>2 Kandungan Carousel</option>
-                        <option value={3}>3 Kandungan Carousel</option>
-                        <option value={4}>4 Kandungan Carousel</option>
-                        <option value={5}>5 Kandungan Carousel</option>
-                      </select>
-                      <p className="text-[9px] text-stone-500 font-sans mt-0.5">
-                        Tentukan had maksima kandungan sejarah penjanaan AI terkini yang akan dipaparkan secara berganti-ganti (carousel).
-                      </p>
-                    </div>
+                    {editingSlotIndex !== -1 && (
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Jumlah Kandungan Carousel AI (AI Generation Limit)</label>
+                        <select
+                          value={formConfig.generationLimit || 1}
+                          onChange={(e) => setFormConfig({ ...formConfig, generationLimit: parseInt(e.target.value) || 1 })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                        >
+                          <option value={1}>1 Kandungan (Statik)</option>
+                          <option value={2}>2 Kandungan Carousel</option>
+                          <option value={3}>3 Kandungan Carousel</option>
+                          <option value={4}>4 Kandungan Carousel</option>
+                          <option value={5}>5 Kandungan Carousel</option>
+                        </select>
+                        <p className="text-[9px] text-stone-500 font-sans mt-0.5">
+                          Tentukan had maksima kandungan sejarah penjanaan AI terkini yang akan dipaparkan secara berganti-ganti (carousel).
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
 

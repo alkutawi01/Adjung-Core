@@ -28,10 +28,29 @@ class GeminiProvider extends AIProvider {
 
     const text = response.text.trim();
     let parsedJson = null;
+    let cleanText = text;
     try {
-      parsedJson = JSON.parse(text);
+      // Clean markdown blocks if present
+      if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.substring(7);
+      }
+      if (cleanText.startsWith('```')) {
+        cleanText = cleanText.substring(3);
+      }
+      if (cleanText.endsWith('```')) {
+        cleanText = cleanText.slice(0, -3);
+      }
+      cleanText = cleanText.trim();
+      
+      // Strip search grounding citation footnotes like [1], [1.1], [1.1.2], etc.
+      cleanText = cleanText.replace(/\[\d+(?:\.\d+)*\]/g, '');
+      
+      // Remove trailing commas before closing braces/brackets
+      cleanText = cleanText.replace(/,\s*([}\]])/g, '$1');
+      
+      parsedJson = JSON.parse(cleanText);
     } catch (e) {
-      throw new Error(`Failed to parse Gemini response as JSON: ${text}`);
+      throw new Error(`Failed to parse Gemini response as JSON: ${cleanText} (Original: ${text})`);
     }
 
     let promptTokens = 0;
