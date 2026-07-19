@@ -1952,19 +1952,21 @@ app.get('/api/system/clock-holidays', async (req, res) => {
     const currentYear = new Date().getFullYear();
     let apiHolidays = [];
     try {
-      const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/MY`);
+      const response = await fetch(`https://malaysia-holiday.dydxsoft.my/api/v1/holidays?year=${currentYear}`);
       if (response.ok) {
-        const rawList = await response.json();
-        apiHolidays = rawList.map(h => {
-          const [yr, mn, dy] = h.date.split('-');
-          return {
-            dateStr: `${dy}/${mn}/${yr.slice(-2)}`,
-            name: h.localName || h.name
-          };
-        });
+        const jsonResult = await response.json();
+        if (jsonResult && Array.isArray(jsonResult.data)) {
+          apiHolidays = jsonResult.data.map(h => {
+            return {
+              name: h.name,
+              date: h.date, // "YYYY-MM-DD"
+              state_codes: h.state_codes || []
+            };
+          });
+        }
       }
     } catch (apiErr) {
-      console.warn('Failed to fetch public holidays from API:', apiErr.message);
+      console.warn('Failed to fetch public holidays from DyDxSoft API:', apiErr.message);
     }
 
     const schoolHolidays = [

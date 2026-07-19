@@ -1241,7 +1241,23 @@ URL: ${url}`;
           }
 
           if (apiHolidaysData && Array.isArray(apiHolidaysData.publicHolidays)) {
-            const apiMatch = apiHolidaysData.publicHolidays.find(h => h.dateStr === dateStr);
+            const stateMap: Record<string, string> = {
+              'Kangar': 'PLS',
+              'Kuala Lumpur': 'KUL',
+              'Kota Bharu': 'KTN',
+              'Kuching': 'SWK',
+              'Kota Kinabalu': 'SBH'
+            };
+            const targetStateCode = stateMap[c.name];
+
+            const apiMatch = apiHolidaysData.publicHolidays.find((h: any) => {
+              const [yr, mn, dy] = h.date.split('-');
+              const matchDate = `${dy}/${mn}/${yr.slice(-2)}`;
+              const isDateMatch = matchDate === dateStr;
+              const isStateMatch = !targetStateCode || (h.state_codes && h.state_codes.includes(targetStateCode));
+              return isDateMatch && isStateMatch;
+            });
+
             if (apiMatch) {
               isHoliday = true;
               holidayName = apiMatch.name;
