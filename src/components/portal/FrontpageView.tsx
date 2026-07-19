@@ -287,6 +287,86 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [aiProviders, setAiProviders] = useState<any[]>([]);
   const [masterPrompt, setMasterPrompt] = useState<string>('');
 
+  const [activeOverlayIndex, setActiveOverlayIndex] = useState(0);
+  const [activeFrontpageIndex, setActiveFrontpageIndex] = useState(0);
+  const [showNewsOverlay, setShowNewsOverlay] = useState(false);
+
+  const { items: parsedNewsItemsA } = parseInTheNews(systemSettings?.inTheNewsText || '');
+  const { items: parsedNewsItemsB } = parseInTheNews(inTheNewsGoogleDocText || '');
+
+  const parsedTickerNewsItems = React.useMemo(() => {
+    let merged: any[] = [];
+    if (parsedNewsItemsA.length === 0) {
+      merged = parsedNewsItemsB;
+    } else if (parsedNewsItemsB.length === 0) {
+      merged = parsedNewsItemsA;
+    } else {
+      const result: any[] = [];
+      let iA = 0;
+      let iB = 0;
+      while (iA < parsedNewsItemsA.length || iB < parsedNewsItemsB.length) {
+        if (iB < parsedNewsItemsB.length) {
+          result.push(parsedNewsItemsB[iB++]);
+        }
+        if (iA < parsedNewsItemsA.length) {
+          result.push(parsedNewsItemsA[iA++]);
+        }
+      }
+      merged = result;
+    }
+    return merged.slice(0, 50);
+  }, [parsedNewsItemsA, parsedNewsItemsB]);
+
+  const activeTickerNewsItem = parsedTickerNewsItems[activeFrontpageIndex];
+  const overlayItem = parsedTickerNewsItems[activeOverlayIndex];
+
+  // Frontpage news preview rotation (10 seconds)
+  useEffect(() => {
+    if (parsedTickerNewsItems.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveFrontpageIndex((prev) => (prev + 1) % parsedTickerNewsItems.length);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [parsedTickerNewsItems.length]);
+
+  // Fullscreen overlay news rotation (10 seconds)
+  useEffect(() => {
+    if (!showNewsOverlay || parsedTickerNewsItems.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveOverlayIndex((prev) => (prev + 1) % parsedTickerNewsItems.length);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [showNewsOverlay, parsedTickerNewsItems.length]);
+
+  useEffect(() => {
+    if (!showNewsOverlay) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowNewsOverlay(false);
+      } else if (e.key === 'ArrowRight' && parsedTickerNewsItems.length > 1) {
+        setActiveOverlayIndex((prev) => (prev + 1) % parsedTickerNewsItems.length);
+      } else if (e.key === 'ArrowLeft' && parsedTickerNewsItems.length > 1) {
+        setActiveOverlayIndex((prev) => (prev - 1 + parsedTickerNewsItems.length) % parsedTickerNewsItems.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showNewsOverlay, parsedTickerNewsItems.length]);
+
+  const handlePrevNewsItem = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (parsedTickerNewsItems.length > 1) {
+      setActiveOverlayIndex((prev) => (prev - 1 + parsedTickerNewsItems.length) % parsedTickerNewsItems.length);
+    }
+  };
+
+  const handleNextNewsItem = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (parsedTickerNewsItems.length > 1) {
+      setActiveOverlayIndex((prev) => (prev + 1) % parsedTickerNewsItems.length);
+    }
+  };
+
   useEffect(() => {
     if (systemSettings?.masterPrompt) {
       setMasterPrompt(systemSettings.masterPrompt);
@@ -1340,6 +1420,55 @@ URL: ${url}`;
               </div>
             );
           })}
+        </div>
+
+        <hr className="rule border-t border-stone-300 my-3" />
+
+        {/* Landing Page quiet news panel */}
+        <div 
+          onClick={() => {
+            if (parsedTickerNewsItems.length > 0) {
+              setActiveOverlayIndex(activeFrontpageIndex);
+              setShowNewsOverlay(true);
+            }
+          }}
+          className="py-3 px-0 bg-transparent hover:opacity-85 transition duration-300 cursor-pointer text-left space-y-2 group relative"
+        >
+          <div className="flex justify-between items-center select-none">
+            <p className="font-sans text-[10px] tracking-editorial uppercase text-[#802334] font-semibold">
+              IN THE NEWS
+            </p>
+            {parsedTickerNewsItems.length > 0 && (
+              <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200">
+                &bull; Read Fullscreen
+              </span>
+            )}
+          </div>
+          
+          {activeTickerNewsItem ? (
+            <div className="select-text py-1 min-h-[2.5rem] flex items-center overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.h4
+                  key={activeFrontpageIndex}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.4, ease: 'easeInOut' }}
+                  className="font-serif text-[#1F1F1F] text-base md:text-lg leading-snug tracking-tight font-medium"
+                >
+                  <strong 
+                    className="font-sans text-[11px] md:text-xs uppercase tracking-wider mr-2.5 font-bold inline-block"
+                    style={{ color: getDeskAccentColor(activeTickerNewsItem.desk) }}
+                  >
+                    <HoverWords text={activeTickerNewsItem.desk} />
+                  </strong>
+                  <HoverWords text={activeTickerNewsItem.title} />
+                </motion.h4>
+              </AnimatePresence>
+            </div>
+          ) : (
+            <p className="font-serif italic text-stone-400 text-xs py-2 select-none">No curated news items available.</p>
+          )}
         </div>
 
         <hr className="rule border-t border-stone-300 my-3" />
@@ -2827,6 +2956,117 @@ URL: ${url}`;
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Full-screen Reading Display Overlay */}
+      {showNewsOverlay && overlayItem && (
+        <div 
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-lg transition-all duration-300 animate-fade-in p-6 select-none"
+          onClick={() => setShowNewsOverlay(false)}
+        >
+          {/* Top Centered Logo */}
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 font-serif text-lg font-semibold tracking-wider text-[#802334] select-none">
+            {BRAND.logoText}
+          </div>
+
+          {/* Top Right Instructions */}
+          <div className="absolute top-6 right-6 font-mono text-[8px] uppercase tracking-widest text-stone-400 select-none">
+            ESC or Click to close
+          </div>
+
+          {/* Left Arrow */}
+          {parsedTickerNewsItems.length > 1 && (
+            <button 
+              type="button"
+              onClick={handlePrevNewsItem}
+              className="absolute left-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
+              title="Previous News (Left Arrow)"
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </button>
+          )}
+
+          {/* Right Arrow */}
+          {parsedTickerNewsItems.length > 1 && (
+            <button 
+              type="button"
+              onClick={handleNextNewsItem}
+              className="absolute right-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
+              title="Next News (Right Arrow)"
+            >
+              <ChevronRight className="w-8 h-8" />
+            </button>
+          )}
+
+          {/* Main Centered Reading block */}
+          <div className="max-w-2xl w-full text-center relative px-4" onClick={(e) => e.stopPropagation()}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeOverlayIndex}
+                initial={{ opacity: 0, y: 15, scale: 0.995 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -15, scale: 0.995 }}
+                transition={{ duration: 0.45, ease: 'easeInOut' }}
+                className="space-y-6 flex flex-col items-center justify-center w-full"
+              >
+                {/* Accent colored Desk label */}
+                <div 
+                  className="font-mono text-xs uppercase tracking-widest font-extrabold"
+                  style={{ color: getDeskAccentColor(overlayItem.desk) }}
+                >
+                  {overlayItem.desk}
+                </div>
+
+                {/* Large Serif Title */}
+                <h1 className="font-serif text-3xl md:text-5xl text-stone-900 leading-tight tracking-tight font-medium px-4">
+                  {overlayItem.title}
+                </h1>
+
+                {/* Brief body */}
+                {overlayItem.brief && (
+                  <p className="font-serif text-lg md:text-xl text-stone-600 leading-relaxed max-w-xl mx-auto px-4 font-light">
+                    {overlayItem.brief}
+                  </p>
+                )}
+
+                {/* Read Original button */}
+                {overlayItem.url && (
+                  <div className="pt-4 select-none">
+                    <a 
+                      href={overlayItem.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 bg-[#802334] hover:bg-[#631c28] text-white px-6 py-2.5 rounded font-mono text-[10px] uppercase tracking-wider transition shadow-sm"
+                    >
+                      Read Original &rarr;
+                    </a>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Navigation Dots */}
+          {parsedTickerNewsItems.length > 1 && (
+            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex justify-center gap-2 select-none">
+              {Array.from({ length: Math.min(10, parsedTickerNewsItems.length) }).map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveOverlayIndex(idx);
+                  }}
+                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                    idx === (activeOverlayIndex % 10) 
+                      ? 'bg-[#802334] w-4' 
+                      : 'bg-stone-300 hover:bg-stone-400'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
