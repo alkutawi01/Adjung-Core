@@ -274,6 +274,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [isSavingSlot, setIsSavingSlot] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [aiProviders, setAiProviders] = useState<any[]>([]);
+  const [masterPrompt, setMasterPrompt] = useState<string>('');
+
+  useEffect(() => {
+    if (systemSettings?.masterPrompt) {
+      setMasterPrompt(systemSettings.masterPrompt);
+    }
+  }, [systemSettings]);
 
   const loadSlotsConfig = () => {
     fetch('/api/system/slots')
@@ -390,7 +397,8 @@ URL: ${url}`;
       carouselDelay: config?.carouselDelay || 0,
       generationLimit: config?.generationLimit || 1,
       maxTitle: config?.maxTitle !== undefined && config?.maxTitle !== null ? config.maxTitle : limits.maxTitle,
-      maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief
+      maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief,
+      masterPrompt: masterPrompt
     });
     setEditingSlotIndex(idx);
   };
@@ -2254,6 +2262,23 @@ URL: ${url}`;
                       />
                       <p className="text-[9px] text-stone-500 font-sans mt-0.5">
                         Tentukan bidang/kategori khusus untuk menyaring penjanaan berita AI dan menetapkan label kategori.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-1 col-span-2">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Peraturan Am (Sistem/Global)</label>
+                      <textarea
+                        value={formConfig.masterPrompt || ''}
+                        onChange={(e) => {
+                          setFormConfig({ ...formConfig, masterPrompt: e.target.value });
+                          setMasterPrompt(e.target.value);
+                        }}
+                        placeholder="Contoh: Gunakan bahasa Melayu yang baku, elakkan jargon..."
+                        rows={4}
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs leading-relaxed"
+                      />
+                      <p className="text-[9px] text-stone-500 font-sans mt-0.5">
+                        * Nota: Peraturan am ini selaras secara global bagi semua slot AI Generated yang lain.
                       </p>
                     </div>
 
