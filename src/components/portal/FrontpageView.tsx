@@ -1176,11 +1176,11 @@ URL: ${url}`;
 
   useEffect(() => {
     const cities = [
-      { name: 'New York', tz: 'America/New_York' },
-      { name: 'London', tz: 'Europe/London' },
-      { name: 'Mecca', tz: 'Asia/Riyadh' }, // Mecca is in Riyadh timezone (UTC+3)
+      { name: 'Kangar (Perlis)', tz: 'Asia/Kuala_Lumpur' },
       { name: 'Kuala Lumpur', tz: 'Asia/Kuala_Lumpur' },
-      { name: 'Tokyo', tz: 'Asia/Tokyo' }
+      { name: 'Kota Bharu', tz: 'Asia/Kuala_Lumpur' },
+      { name: 'Kota Kinabalu (Sabah)', tz: 'Asia/Kuala_Lumpur' },
+      { name: 'Kuching (Sarawak)', tz: 'Asia/Kuala_Lumpur' }
     ];
 
     const updateTime = () => {
@@ -1194,33 +1194,13 @@ URL: ${url}`;
             weekday: 'short',
             hour: '2-digit',
             minute: '2-digit',
-            hour12: false
+            hour12: true
           });
           const parts = formatter.formatToParts(new Date());
           const obj: any = {};
           parts.forEach(p => { obj[p.type] = p.value; });
 
-          let dateStr = `${obj.day}/${obj.month}/${obj.year}`;
-          if (c.name === 'New York') {
-            dateStr = `${obj.month}/${obj.day}/${obj.year}`;
-          } else if (c.name === 'Tokyo') {
-            dateStr = `${obj.year}/${obj.month}/${obj.day}`;
-          } else if (c.name === 'Mecca') {
-            try {
-              const hijriFormatter = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
-                timeZone: c.tz,
-                year: '2-digit',
-                month: '2-digit',
-                day: '2-digit'
-              });
-              const hParts = hijriFormatter.formatToParts(new Date());
-              const hObj: any = {};
-              hParts.forEach(p => { hObj[p.type] = p.value; });
-              dateStr = `${hObj.day}/${hObj.month}/${hObj.year}`;
-            } catch (err) {
-              console.error(err);
-            }
-          }
+          const dateStr = `${obj.day}/${obj.month}/${obj.year}`;
 
           // Parse custom holidays
           const { items: customHolidaysText } = parseWorldClockHolidays(systemSettings.worldClockHolidaysText || '');
@@ -1243,7 +1223,7 @@ URL: ${url}`;
             if (customMatch.status === 'Holiday') {
               isHoliday = true;
               holidayName = customMatch.holidayName || 'Public Holiday';
-              isWeekend = c.name === 'Mecca'
+              isWeekend = c.name === 'Kota Bharu'
                 ? (day === 'FRI' || day === 'SAT')
                 : (day === 'SAT' || day === 'SUN');
             } else if (customMatch.status === 'Weekend') {
@@ -1259,12 +1239,12 @@ URL: ${url}`;
             holidayName = cityHolidays[gregKey] || '';
             isHoliday = !!holidayName;
 
-            isWeekend = c.name === 'Mecca'
+            isWeekend = c.name === 'Kota Bharu'
               ? (day === 'FRI' || day === 'SAT')
               : (day === 'SAT' || day === 'SUN');
           }
 
-          const timeStr = `${dateStr} · ${day} · ${obj.hour}:${obj.minute}`;
+          const timeStr = `${dateStr} · ${day} · ${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
 
           return {
             timeStr,
@@ -1415,11 +1395,11 @@ URL: ${url}`;
         {/* World Clock Strip */}
         <div className="py-2.5 flex justify-center items-center overflow-x-auto gap-10 px-1 text-center" id="world-clock">
           {[
-            { city: 'New York', tz: 'America/New_York' },
-            { city: 'London', tz: 'Europe/London' },
-            { city: 'Mecca', tz: 'Asia/Riyadh' },
+            { city: 'Kangar (Perlis)', tz: 'Asia/Kuala_Lumpur' },
             { city: 'Kuala Lumpur', tz: 'Asia/Kuala_Lumpur' },
-            { city: 'Tokyo', tz: 'Asia/Tokyo' }
+            { city: 'Kota Bharu', tz: 'Asia/Kuala_Lumpur' },
+            { city: 'Kota Kinabalu (Sabah)', tz: 'Asia/Kuala_Lumpur' },
+            { city: 'Kuching (Sarawak)', tz: 'Asia/Kuala_Lumpur' }
           ].map((c, i) => {
             const timeData = times[i];
             let cityColor = 'text-[#555555]';
