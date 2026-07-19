@@ -836,7 +836,7 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
           1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
           2. Ringkasan berita ("summary") mestilah TIDAK MELEBIHI 240 aksara.
           3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
-          4. Cari dan sertakan pautan URL artikel berita sebenar (contoh daripada Bernama, Astro Awani, dll.) yang wujud dan betul-betul aktif untuk harta "source_url". DILARANG REKA ATAU HALUSINASI PAUTAN. Jika anda tidak menemui pautan artikel yang tepat dan aktif, gunakan URL utama portal berita sahaja (contoh: "https://www.astroawani.com" atau "https://www.bernama.com"). Jangan sesekali reka pautan palsu.
+          4. Cari dan sertakan pautan URL artikel berita sebenar yang khusus (spesifik) yang anda rujuk dalam harta "source_url". Anda mestilah mengutamakan pautan artikel penuh (cth: "https://www.astroawani.com/berita-sukan/...") jika ia ditemui dalam carian Google. Hanya sekiranya carian Google tidak memulangkan pautan artikel khusus yang tepat, barulah anda menggunakan URL utama portal berita (cth: "https://www.astroawani.com" atau "https://www.bernama.com"). Jangan sesekali reka pautan palsu.
           5. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
           6. Hasilkan respons dalam format JSON sahaja dengan struktur:
              { 
