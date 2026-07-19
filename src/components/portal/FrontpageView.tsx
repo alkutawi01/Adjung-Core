@@ -276,6 +276,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [isSavingSlot, setIsSavingSlot] = useState<boolean>(false);
   const [isExecutingNow, setIsExecutingNow] = useState<boolean>(false);
   const [executingSuccessMessage, setExecutingSuccessMessage] = useState<string>('');
+  const [activeFooterPageKey, setActiveFooterPageKey] = useState<string | null>(null);
+  const [footerPageData, setFooterPageData] = useState<any | null>(null);
+  const [isEditingFooterPage, setIsEditingFooterPage] = useState<boolean>(false);
+  const [footerFormTitle, setFooterFormTitle] = useState<string>('');
+  const [footerFormContent, setFooterFormContent] = useState<string>('');
+  const [isSavingFooterPage, setIsSavingFooterPage] = useState<boolean>(false);
+  const [isLoadingFooterPage, setIsLoadingLoadingFooterPage] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [aiProviders, setAiProviders] = useState<any[]>([]);
   const [masterPrompt, setMasterPrompt] = useState<string>('');
@@ -467,6 +474,61 @@ URL: ${url}`;
       alert('Ralat mengaktifkan segera: ' + (err.message || ''));
     } finally {
       setIsExecutingNow(false);
+    }
+  };
+
+  const handleFooterLinkClick = async (key: string) => {
+    setActiveFooterPageKey(key);
+    setIsLoadingLoadingFooterPage(true);
+    setIsEditingFooterPage(false);
+    setFooterPageData(null);
+    try {
+      const res = await fetch(`/api/pages/${key}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFooterPageData(data);
+        setFooterFormTitle(data.title || '');
+        setFooterFormContent(data.content || '');
+      } else {
+        alert('Gagal memuatkan kandungan halaman.');
+        setActiveFooterPageKey(null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Ralat memuatkan kandungan halaman.');
+      setActiveFooterPageKey(null);
+    } finally {
+      setIsLoadingLoadingFooterPage(false);
+    }
+  };
+
+  const handleSaveFooterPage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeFooterPageKey) return;
+    setIsSavingFooterPage(true);
+    try {
+      const res = await fetch(`/api/pages/${activeFooterPageKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: footerFormTitle, content: footerFormContent })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFooterPageData({
+          key: activeFooterPageKey,
+          title: footerFormTitle,
+          content: footerFormContent,
+          updatedAt: new Date().toISOString()
+        });
+        setIsEditingFooterPage(false);
+      } else {
+        alert('Gagal menyimpan kandungan: ' + (data.error || ''));
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Ralat menyimpan kandungan: ' + (err.message || ''));
+    } finally {
+      setIsSavingFooterPage(false);
     }
   };
 
@@ -2195,20 +2257,20 @@ URL: ${url}`;
             {/* Kolum INSTITUTIONAL */}
             <div className="flex flex-col gap-2.5">
               <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Institutional</h3>
-              <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold">
-                <li><a href="#" className="hover:text-[#802334] transition-colors">Editor&apos;s Notes</a></li>
-                <li><a href="#" className="hover:text-[#802334] transition-colors">Notices</a></li>
-                <li><a href="#" className="hover:text-[#802334] transition-colors">Publishing Policies</a></li>
-                <li><a href="#" className="hover:text-[#802334] transition-colors">Version History</a></li>
+              <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
+                <li className="flex"><button onClick={() => handleFooterLinkClick('editors-notes')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Editor&apos;s Notes</button></li>
+                <li className="flex"><button onClick={() => handleFooterLinkClick('notices')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Notices</button></li>
+                <li className="flex"><button onClick={() => handleFooterLinkClick('publishing-policies')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Publishing Policies</button></li>
+                <li className="flex"><button onClick={() => handleFooterLinkClick('version-history')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Version History</button></li>
               </ul>
             </div>
 
             {/* Kolum NETWORK */}
             <div className="flex flex-col gap-2.5">
               <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Network</h3>
-              <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold">
-                <li><a href="#" className="hover:text-[#802334] transition-colors">About Adjung</a></li>
-                <li><a href="#" className="hover:text-[#802334] transition-colors">Editorial Board</a></li>
+              <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
+                <li className="flex"><button onClick={() => handleFooterLinkClick('about')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">About Adjung</button></li>
+                <li className="flex"><button onClick={() => handleFooterLinkClick('editorial-board')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Editorial Board</button></li>
               </ul>
             </div>
           </div>
@@ -2632,6 +2694,138 @@ URL: ${url}`;
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pop-up Modal Halaman Footer (Tentang/Sidang Ed/dll) */}
+      {activeFooterPageKey && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="bg-[#FDFDFD] rounded-lg border border-stone-200 max-w-2xl w-full max-h-[85vh] overflow-y-auto flex flex-col shadow-2xl animate-fade-in">
+            <header className="px-6 py-5 border-b border-stone-200 flex justify-between items-center bg-stone-50/50">
+              <div>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-[#8E8B82] font-bold">
+                  {['editors-notes', 'notices', 'publishing-policies', 'version-history'].includes(activeFooterPageKey) ? 'Institutional' : 'Network'}
+                </span>
+                <h3 className="font-serif text-2xl font-bold text-[#802334] tracking-tight mt-0.5">
+                  {isEditingFooterPage ? 'Sunting Halaman' : (footerPageData?.title || 'Kandungan')}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveFooterPageKey(null);
+                  setFooterPageData(null);
+                  setIsEditingFooterPage(false);
+                }}
+                className="text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </header>
+
+            {isEditingFooterPage ? (
+              <form onSubmit={handleSaveFooterPage} className="p-6 flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Tajuk Halaman</label>
+                  <input
+                    type="text"
+                    value={footerFormTitle}
+                    onChange={(e) => setFooterFormTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kandungan (Teks / Markdown)</label>
+                  <textarea
+                    value={footerFormContent}
+                    onChange={(e) => setFooterFormContent(e.target.value)}
+                    rows={12}
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs leading-relaxed"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-stone-150">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingFooterPage(false)}
+                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded text-xs font-semibold cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingFooterPage}
+                    className="px-5 py-2 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingFooterPage ? 'Menyimpan...' : 'Simpan Kandungan'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-6 flex flex-col justify-between flex-grow">
+                <div className="font-serif text-sm leading-relaxed text-stone-700 whitespace-pre-wrap flex-grow">
+                  {footerPageData?.content ? (
+                    footerPageData.content.split('\n\n').map((paragraph: string, idx: number) => {
+                      if (paragraph.trim().startsWith('*') || paragraph.trim().startsWith('-')) {
+                        const items = paragraph.split('\n').map((li: string) => li.replace(/^[\*\-]\s+/, '').trim());
+                        return (
+                          <ul key={idx} className="list-disc pl-5 my-3 flex flex-col gap-1.5">
+                            {items.map((item: string, liIdx: number) => {
+                              const parts = item.split(/\*\*([^*]+)\*\*/g);
+                              return (
+                                <li key={liIdx}>
+                                  {parts.map((part, pIdx) => pIdx % 2 === 1 ? <strong key={pIdx} className="text-[#802334] font-bold">{part}</strong> : part)}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        );
+                      }
+                      
+                      const parts = paragraph.split(/\*\*([^*]+)\*\*/g);
+                      return (
+                        <p key={idx} className="mb-4">
+                          {parts.map((part, pIdx) => pIdx % 2 === 1 ? <strong key={pIdx} className="text-[#802334] font-bold">{part}</strong> : part)}
+                        </p>
+                      );
+                    })
+                  ) : (
+                    <div className="py-10 text-center text-stone-400 font-sans text-xs animate-pulse">
+                      Memuatkan kandungan...
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center mt-6 pt-4 border-t border-stone-150">
+                  <span className="font-sans text-[9px] text-stone-400">
+                    {footerPageData?.updatedAt && `Kemaskini Terakhir: ${new Date(footerPageData.updatedAt).toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                  </span>
+                  <div className="flex gap-2">
+                    {isEditMode && footerPageData && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingFooterPage(true)}
+                        className="px-4 py-2 border border-stone-300 text-stone-700 hover:bg-stone-50 rounded text-xs font-semibold cursor-pointer"
+                      >
+                        Sunting Halaman
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveFooterPageKey(null);
+                        setFooterPageData(null);
+                      }}
+                      className="px-5 py-2 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
+                    >
+                      Tutup
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

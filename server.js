@@ -1401,7 +1401,16 @@ const initEditorialOS = (dbConn) => {
                                            dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshHour TEXT DEFAULT '00:00'", () => {
                                              dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshDay TEXT DEFAULT 'Isnin'", () => {
                                                dbConn.run("ALTER TABLE slots_config ADD COLUMN eventExpiryFilter TEXT DEFAULT ''", () => {
-                                                 resolve();
+                                                 dbConn.run(`
+                                                    CREATE TABLE IF NOT EXISTS static_pages (
+                                                      key TEXT PRIMARY KEY,
+                                                      title TEXT NOT NULL,
+                                                      content TEXT NOT NULL,
+                                                      updatedAt TEXT NOT NULL
+                                                    )
+                                                  `, () => {
+                                                    resolve();
+                                                  });
                                                });
                                              });
                                            });
@@ -1896,6 +1905,40 @@ app.post('/api/system/slots/run-now', async (req, res) => {
   } catch (err) {
     console.error('Run slot now error:', err);
     res.status(500).json({ error: err.message || 'Ralat pelayan.' });
+  }
+});
+
+// Endpoints for static/footer pages
+app.get('/api/pages/:key', async (req, res) => {
+  const { key } = req.params;
+  try {
+    const page = await dbGet("SELECT * FROM static_pages WHERE key = ?", [key]);
+    if (!page) {
+      return res.status(404).json({ error: 'Page not found.' });
+    }
+    res.json(page);
+  } catch (err) {
+    console.error(`Get page ${key} error:`, err);
+    res.status(500).json({ error: 'Failed to fetch page. ' + err.message });
+  }
+});
+
+app.post('/api/pages/:key', async (req, res) => {
+  const { key } = req.params;
+  const { title, content } = req.body;
+  if (!title || !content) {
+    return res.status(400).json({ error: 'Missing title or content.' });
+  }
+  const timestamp = new Date().toISOString();
+  try {
+    await dbRun(`
+      INSERT OR REPLACE INTO static_pages (key, title, content, updatedAt)
+      VALUES (?, ?, ?, ?)
+    `, [key, title, content, timestamp]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(`Save page ${key} error:`, err);
+    res.status(500).json({ error: 'Failed to save page. ' + err.message });
   }
 });
 
