@@ -231,14 +231,22 @@ const padToLimit = (text: string, maxLen: number): string => {
   return result;
 };
 
-const getLimitsForIndex = (idx: number) => {
-  if (idx === 0) return { maxTitle: 115, maxBrief: 350 };
-  if ([1, 12, 15, 26, 29, 37].includes(idx)) return { maxTitle: 72, maxBrief: 480 };
-  if ([2, 6, 19, 20, 33, 34].includes(idx)) return { maxTitle: 110, maxBrief: 280 };
-  if ([3, 11, 16, 25, 30, 35, 36].includes(idx)) return { maxTitle: 85, maxBrief: 200 };
-  if ([4, 5, 17, 18, 31, 32].includes(idx)) return { maxTitle: 75, maxBrief: 0 };
-  if ([7, 8, 9, 10, 21, 22, 23, 24].includes(idx)) return { maxTitle: 40, maxBrief: 0 };
-  return { maxTitle: 70, maxBrief: 100 };
+const getLimitsForIndex = (idx: number, config?: any) => {
+  const customTitle = config?.maxTitle;
+  const customBrief = config?.maxBrief;
+
+  let defaults = { maxTitle: 70, maxBrief: 100 };
+  if (idx === 0) defaults = { maxTitle: 115, maxBrief: 350 };
+  else if ([1, 12, 15, 26, 29, 37].includes(idx)) defaults = { maxTitle: 72, maxBrief: 480 };
+  else if ([2, 6, 19, 20, 33, 34].includes(idx)) defaults = { maxTitle: 110, maxBrief: 280 };
+  else if ([3, 11, 16, 25, 30, 35, 36].includes(idx)) defaults = { maxTitle: 85, maxBrief: 200 };
+  else if ([4, 5, 17, 18, 31, 32].includes(idx)) defaults = { maxTitle: 75, maxBrief: 0 };
+  else if ([7, 8, 9, 10, 21, 22, 23, 24].includes(idx)) defaults = { maxTitle: 40, maxBrief: 0 };
+
+  return {
+    maxTitle: (typeof customTitle === 'number' && customTitle > 0) ? customTitle : (config?.manualTitle === undefined && typeof customTitle === 'string' && parseInt(customTitle) > 0 ? parseInt(customTitle) : defaults.maxTitle),
+    maxBrief: (typeof customBrief === 'number' && customBrief >= 0) ? customBrief : (config?.manualTitle === undefined && typeof customBrief === 'string' && parseInt(customBrief) >= 0 ? parseInt(customBrief) : defaults.maxBrief)
+  };
 };
 
 export const FrontpageView: React.FC<FrontpageViewProps> = ({
@@ -312,7 +320,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     if (!isEditMode) return;
     const config = slotsConfig.find(s => s.slotIndex === idx);
     const item = bentoNewsItems[idx];
-    const limits = getLimitsForIndex(idx);
+    const limits = getLimitsForIndex(idx, config);
 
     const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(idx);
 
@@ -380,7 +388,9 @@ URL: ${url}`;
       searchStrategy: config?.searchStrategy || 'Structured Sources Only',
       carouselInterval: config?.carouselInterval || 10,
       carouselDelay: config?.carouselDelay || 0,
-      generationLimit: config?.generationLimit || 1
+      generationLimit: config?.generationLimit || 1,
+      maxTitle: config?.maxTitle !== undefined && config?.maxTitle !== null ? config.maxTitle : limits.maxTitle,
+      maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief
     });
     setEditingSlotIndex(idx);
   };
@@ -788,7 +798,7 @@ URL: ${url}`;
     for (let i = 0; i < 38; i++) {
       const customItem = list.find(item => item.rawIndex === i + 1);
       const fallbackItem = { ...fallbacks[i] };
-      const limits = getLimitsForIndex(i);
+      const limits = getLimitsForIndex(i, customItem);
       
       if (fallbackItem.desk) {
         fallbackItem.desk = fallbackItem.desk
@@ -908,7 +918,7 @@ URL: ${url}`;
         };
       }
 
-      const limits = getLimitsForIndex(actualSlotIdx);
+      const limits = getLimitsForIndex(actualSlotIdx, resolvedItem);
       if (resolvedItem.title) {
         resolvedItem.title = padToLimit(resolvedItem.title, limits.maxTitle);
       }
@@ -2314,7 +2324,29 @@ URL: ${url}`;
 
                 {/* GAYA / STYLES (DITUNJUKKAN KEDUA-DUA MOD) */}
                 <div className="border-t border-stone-150 col-span-2 my-2 pt-2">
-                  <h4 className="font-sans text-[10px] font-bold text-[#802334] uppercase tracking-wider">Konfigurasi Reka Bentuk & Animasi</h4>
+                  <h4 className="font-sans text-[10px] font-bold text-[#802334] uppercase tracking-wider">Had Aksara, Reka Bentuk &amp; Animasi</h4>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Had Aksara Tajuk (maxTitle)</label>
+                  <input
+                    type="number"
+                    value={formConfig.maxTitle !== undefined && formConfig.maxTitle !== null ? formConfig.maxTitle : ''}
+                    onChange={(e) => setFormConfig({ ...formConfig, maxTitle: parseInt(e.target.value) || 0 })}
+                    placeholder="Contoh: 70"
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Had Aksara Huraian (maxBrief)</label>
+                  <input
+                    type="number"
+                    value={formConfig.maxBrief !== undefined && formConfig.maxBrief !== null ? formConfig.maxBrief : ''}
+                    onChange={(e) => setFormConfig({ ...formConfig, maxBrief: e.target.value === '' ? 0 : (parseInt(e.target.value) || 0) })}
+                    placeholder="Contoh: 150 (0 jika tiada)"
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1">

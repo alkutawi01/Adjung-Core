@@ -109,18 +109,33 @@ class EditorialPipeline {
     let maxSummaryLen = 180;
     let limitDesc = 'mestilah di antara 130 hingga 180 aksara untuk pengisian visual yang kemas.';
     
-    if (slotIndex === 0) {
-      minSummaryLen = 220;
-      maxSummaryLen = 250;
-      limitDesc = 'mestilah di antara 220 hingga 250 aksara untuk kad Hero utama.';
-    } else if ([1, 12, 14, 25, 36].includes(slotIndex)) {
-      minSummaryLen = 300;
-      maxSummaryLen = 370;
-      limitDesc = 'mestilah di antara 300 hingga 370 aksara (tulis panjang dan penuh, sekurang-kurangnya 4-5 baris) untuk mengisi ruang kad menegak bento secara padat.';
-    } else if ([4, 5, 31, 32].includes(slotIndex)) {
-      minSummaryLen = 60;
-      maxSummaryLen = 80;
-      limitDesc = 'mestilah di antara 60 hingga 80 aksara untuk kad bento kompak.';
+    if (slot.maxBrief !== null && slot.maxBrief !== undefined) {
+      maxSummaryLen = slot.maxBrief;
+      minSummaryLen = Math.floor(maxSummaryLen * 0.75);
+      limitDesc = `mestilah di antara ${minSummaryLen} hingga ${maxSummaryLen} aksara mengikut tetapan slot.`;
+    } else {
+      if (slotIndex === 0) {
+        minSummaryLen = 220;
+        maxSummaryLen = 250;
+        limitDesc = 'mestilah di antara 220 hingga 250 aksara untuk kad Hero utama.';
+      } else if ([1, 12, 14, 25, 36].includes(slotIndex)) {
+        minSummaryLen = 300;
+        maxSummaryLen = 370;
+        limitDesc = 'mestilah di antara 300 hingga 370 aksara (tulis panjang dan penuh, sekurang-kurangnya 4-5 baris) untuk mengisi ruang kad menegak bento secara padat.';
+      } else if ([4, 5, 31, 32].includes(slotIndex)) {
+        minSummaryLen = 60;
+        maxSummaryLen = 80;
+        limitDesc = 'mestilah di antara 60 hingga 80 aksara untuk kad bento kompak.';
+      }
+    }
+
+    let maxTitleLen = 115;
+    if (slot.maxTitle !== null && slot.maxTitle !== undefined) {
+      maxTitleLen = slot.maxTitle;
+    } else {
+      if ([7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex)) {
+        maxTitleLen = 40;
+      }
     }
 
     const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex);
@@ -130,7 +145,7 @@ class EditorialPipeline {
         Tulis nama acara/event ("title") dan tarikh/tempoh berlangsung ("source") berdasarkan fakta di atas.
         
         SYARAT PENTING (MANDATORY):
-        1. Nama Acara ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 40 aksara. Cth: "Pesta Buku Selangor".
+        1. Nama Acara ("title") mestilah ringkas, padat dan TIDAK MELEBIHI ${maxTitleLen} aksara. Cth: "Pesta Buku Selangor".
         2. Tarikh/Tempoh Acara ("source") mestilah ringkas, padat dan mewakili tarikh acara secara tepat. Cth: "19-26 Julai 26" atau "20 Jun 27".
         3. Ringkasan berita ("summary") tidak diperlukan, kosongkan sahaja ("").
         4. Gunakan bahasa Melayu yang profesional.
@@ -149,7 +164,7 @@ class EditorialPipeline {
         Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" berdasarkan arahan dan fakta di atas.
         
         SYARAT PENTING (MANDATORY):
-        1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
+        1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI ${maxTitleLen} aksara.
         2. Ringkasan berita ("summary") ${limitDesc}
         3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
         4. Sertakan pautan URL rujukan spesifik yang aktif untuk harta "source_url". Jika anda merujuk sumber teks di atas, gunakan URL daripada teks tersebut. Jika tiada, gunakan "#". Jangan sesekali reka pautan palsu.
