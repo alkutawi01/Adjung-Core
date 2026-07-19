@@ -547,12 +547,11 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
     // 1. Google Gemini (Google AI SDK)
     if (provider.id === 'gemini-1') {
       const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
+       const response = await ai.models.generateContent({
         model: provider.model || 'gemini-3.5-flash',
         contents: prompt,
         config: {
-          responseMimeType: 'application/json',
-          tools: [{ googleSearch: {} }]
+          responseMimeType: 'application/json'
         }
       });
       responseText = response.text.trim();
@@ -828,30 +827,27 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
           Global System Context: ${globalPrompt}
           Current Campaign Focus: ${campaignPrompt}
           Slot Specific Instructions: ${slotPrompt}
-          Dikehendaki Rujuk Sumber (Sources List): ${slot.sourcesList || 'Mana-mana sumber berita yang sahih'}
           
           Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" berdasarkan arahan di atas.
-          Lakukan carian di internet menggunakan enjin carian sekiranya perlu untuk mendapatkan fakta berita terbaharu berdasarkan sumber yang dikehendaki.
           
           SYARAT PENTING (MANDATORY):
-          1. Rujuk rapat sumber yang dikehendaki (cth: jika "Berita antarabangsa", sila cari dan rujuk artikel daripada agensi luar negara seperti BBC, Reuters, CNN, dsb. dan sertakan pautan daripada portal tersebut. Jika nama laman web seperti "Bernama" dinyatakan, sila hadkan kepada laman tersebut).
-          2. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
-          3. Ringkasan berita ("summary") mestilah TIDAK MELEBIHI 240 aksara.
-          4. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
-          5. Cari dan sertakan pautan URL artikel berita sebenar yang khusus (spesifik) yang anda rujuk dalam harta "source_url". Anda mestilah mengutamakan pautan artikel penuh (cth: "https://www.bbc.com/sport/...") jika ia ditemui dalam carian Google. Hanya sekiranya carian Google tidak memulangkan pautan artikel khusus yang tepat, barulah anda menggunakan URL utama portal berita yang dirujuk. Jangan sesekali reka pautan palsu.
-          6. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
-          7. Hasilkan respons dalam format JSON sahaja dengan struktur:
+          1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
+          2. Ringkasan berita ("summary") mestilah TIDAK MELEBIHI 240 aksara.
+          3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
+          4. Sertakan pautan URL rujukan yang anda ketahui (jika ada) untuk harta "source_url". Jika tiada pautan rujukan, gunakan "#".
+          5. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
+          6. Hasilkan respons dalam format JSON sahaja dengan struktur:
              { 
                "title": "Tajuk", 
                "summary": "Ringkasan",
                "category": "KATEGORI_BERITA",
-               "source_url": "https://url-sumber-berita-sebenar"
+               "source_url": "https://url-sumber-berita"
              }
         `;
         const data = await callAIProvider(provider, fullPromptToAI, 'Editorial Generation', currentRunId);
         title = data.title || '';
         summary = data.summary || '';
-        aiSourceUrl = data.source_url || '';
+        aiSourceUrl = data.source_url || '#';
         aiCategory = data.category ? data.category.trim().toUpperCase() : 'UMUM';
       } catch (e) {
         throw new Error(`AI generation error: ${e.message}`);
@@ -879,9 +875,7 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
     const revisionId = revisionResult.lastID || 1;
 
     // Save Attribute Values
-    const sourceUrl = (slot.sourcesList && (slot.sourcesList.trim().startsWith('http://') || slot.sourcesList.trim().startsWith('https://'))) 
-      ? slot.sourcesList.trim() 
-      : (aiSourceUrl && aiSourceUrl.trim().startsWith('http') ? aiSourceUrl.trim() : '#');
+    const sourceUrl = aiSourceUrl.trim();
 
     const attributesToSave = [
       { key: 'aiCacheKey', val: aiCacheKey },

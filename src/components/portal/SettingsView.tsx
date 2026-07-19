@@ -795,30 +795,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] uppercase font-bold text-blue-800">Sumber (Sources)</label>
-                        <input
-                          type="text"
-                          value={currentSlotConfig.sourcesList || ''}
-                          onChange={(e) => setSlotsConfig(prev => prev.map(s => s.slotIndex === selectedSlotIndex ? { ...s, sourcesList: e.target.value } : s))}
-                          placeholder="Cth: Jurnal A, Berita B"
-                          className="w-full px-2 py-1.5 border border-blue-200 rounded text-xs bg-white"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] uppercase font-bold text-blue-800">Refresh Rate</label>
-                        <select
-                          value={currentSlotConfig.refreshRate || 'Daily'}
-                          onChange={(e) => setSlotsConfig(prev => prev.map(s => s.slotIndex === selectedSlotIndex ? { ...s, refreshRate: e.target.value } : s))}
-                          className="w-full px-2 py-1.5 border border-blue-200 rounded text-xs bg-white"
-                        >
-                          <option value="Hourly">Hourly</option>
-                          <option value="Daily">Daily</option>
-                          <option value="Weekly">Weekly</option>
-                          <option value="Manual">Manual Only</option>
-                        </select>
-                      </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase font-bold text-blue-800">Refresh Rate</label>
+                      <select
+                        value={currentSlotConfig.refreshRate || 'Daily'}
+                        onChange={(e) => setSlotsConfig(prev => prev.map(s => s.slotIndex === selectedSlotIndex ? { ...s, refreshRate: e.target.value } : s))}
+                        className="w-full px-2 py-1.5 border border-blue-200 rounded text-xs bg-white"
+                      >
+                        <option value="Hourly">Hourly</option>
+                        <option value="Daily">Daily</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="Manual">Manual Only</option>
+                      </select>
                     </div>
                   </div>
                 )}
