@@ -1208,7 +1208,7 @@ URL: ${url}`;
           const allCustomHolidays = [...customHolidaysText, ...customHolidaysGoogle];
 
           // Find match for this city and dateStr
-          const customMatch = allCustomHolidays.find(h => 
+          const customMatches = allCustomHolidays.filter(h => 
             h.city.toLowerCase() === c.name.toLowerCase() && 
             h.dateStr === dateStr
           );
@@ -1216,41 +1216,63 @@ URL: ${url}`;
           let isHoliday = false;
           let holidayName = '';
           let isWeekend = false;
+          let isSchoolHoliday = false;
 
           const day = obj.weekday.toUpperCase();
 
-          if (customMatch) {
-            if (customMatch.status === 'Holiday') {
-              isHoliday = true;
-              holidayName = customMatch.holidayName || 'Public Holiday';
-              isWeekend = c.name === 'Kota Bharu'
-                ? (day === 'FRI' || day === 'SAT')
-                : (day === 'SAT' || day === 'SUN');
-            } else if (customMatch.status === 'Weekend') {
-              isWeekend = true;
-            } else if (customMatch.status === 'Working') {
-              isWeekend = false;
-              isHoliday = false;
-            }
-          } else {
-            // Default pre-seeded logic
-            const gregKey = `${obj.month}/${obj.day}`;
-            const cityHolidays = HOLIDAYS_2026[c.name] || {};
-            holidayName = cityHolidays[gregKey] || '';
-            isHoliday = !!holidayName;
+          const gregKey = `${obj.month}/${obj.day}`;
+          let cityHolidays = HOLIDAYS_2026[c.name];
+          if (!cityHolidays && c.tz === 'Asia/Kuala_Lumpur') {
+            cityHolidays = HOLIDAYS_2026['Kuala Lumpur'] || {};
+          }
+          if (cityHolidays && cityHolidays[gregKey]) {
+            isHoliday = true;
+            holidayName = cityHolidays[gregKey];
+          }
 
-            isWeekend = c.name === 'Kota Bharu'
-              ? (day === 'FRI' || day === 'SAT')
-              : (day === 'SAT' || day === 'SUN');
+          const isDefaultWeekend = c.name === 'Kota Bharu'
+            ? (day === 'FRI' || day === 'SAT')
+            : (day === 'SAT' || day === 'SUN');
+          isWeekend = isDefaultWeekend;
+
+          const customHolidayMatch = customMatches.find(m => m.status === 'Holiday');
+          if (customHolidayMatch) {
+            isHoliday = true;
+            holidayName = customHolidayMatch.holidayName || holidayName || 'Cuti Umum';
+          }
+
+          const customSchoolHolidayMatch = customMatches.find(m => m.status === 'SchoolHoliday');
+          if (customSchoolHolidayMatch) {
+            isSchoolHoliday = true;
+          }
+
+          const customWeekendMatch = customMatches.find(m => m.status === 'Weekend');
+          if (customWeekendMatch) {
+            isWeekend = true;
+          }
+
+          const customWorkingMatch = customMatches.find(m => m.status === 'Working');
+          if (customWorkingMatch) {
+            isHoliday = false;
+            isWeekend = false;
+            isSchoolHoliday = false;
+          }
+
+          let finalStatus: 'Holiday' | 'Weekend' | 'SchoolHoliday' | 'Working' = 'Working';
+          if (isHoliday) {
+            finalStatus = 'Holiday';
+          } else if (isWeekend) {
+            finalStatus = 'Weekend';
+          } else if (isSchoolHoliday) {
+            finalStatus = 'SchoolHoliday';
           }
 
           const timeStr = `${dateStr} · ${day} · ${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
 
           return {
             timeStr,
-            isHoliday,
-            holidayName,
-            isWeekend
+            status: finalStatus,
+            holidayName
           };
         } catch (e) {
           return null;
@@ -1402,22 +1424,22 @@ URL: ${url}`;
             { city: 'Kuching (Sarawak)', tz: 'Asia/Kuala_Lumpur' }
           ].map((c, i) => {
             const timeData = times[i];
-            let cityColor = 'text-[#555555]';
+            let cityColor = 'text-[#802334] font-semibold';
             let isHoliday = false;
-            let isWeekend = false;
             let holidayName = '';
 
             if (timeData) {
-              isHoliday = timeData.isHoliday;
-              isWeekend = timeData.isWeekend;
-              holidayName = timeData.holidayName;
+              isHoliday = timeData.status === 'Holiday';
+              holidayName = timeData.holidayName || '';
 
-              if (isHoliday) {
+              if (timeData.status === 'Holiday') {
                 cityColor = 'text-[#1F1F1F] font-bold border-b border-dashed border-[#1F1F1F]/40';
-              } else if (isWeekend) {
+              } else if (timeData.status === 'Weekend') {
                 cityColor = 'text-stone-400 font-light';
+              } else if (timeData.status === 'SchoolHoliday') {
+                cityColor = 'text-[#C06C84] font-medium';
               } else {
-                cityColor = 'text-[#7B2737] font-semibold';
+                cityColor = 'text-[#802334] font-semibold';
               }
             }
 

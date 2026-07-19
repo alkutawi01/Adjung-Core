@@ -1889,7 +1889,7 @@ export function parseInTheNews(text: string): { items: NewsItem[]; errors: Parse
 export interface HolidayItem {
   city: string;
   dateStr: string; // DD/MM/YY
-  status: 'Holiday' | 'Weekend' | 'Working';
+  status: 'Holiday' | 'Weekend' | 'Working' | 'SchoolHoliday';
   holidayName?: string;
 }
 
@@ -1951,18 +1951,20 @@ export function parseWorldClockHolidays(text: string): { items: HolidayItem[]; e
     }
     
     // Normalize status
-    let normStatus: 'Holiday' | 'Weekend' | 'Working' = 'Working';
+    let normStatus: 'Holiday' | 'Weekend' | 'Working' | 'SchoolHoliday' = 'Working';
     const cleanStatus = status.toLowerCase();
-    if (cleanStatus.includes('holiday')) {
+    if (cleanStatus.includes('school') || cleanStatus.includes('cuti sekolah')) {
+      normStatus = 'SchoolHoliday';
+    } else if (cleanStatus.includes('holiday') || cleanStatus.includes('umum')) {
       normStatus = 'Holiday';
-    } else if (cleanStatus.includes('weekend')) {
+    } else if (cleanStatus.includes('weekend') || cleanStatus.includes('mingguan')) {
       normStatus = 'Weekend';
-    } else if (cleanStatus.includes('working') || cleanStatus.includes('work')) {
+    } else if (cleanStatus.includes('working') || cleanStatus.includes('work') || cleanStatus.includes('biasa')) {
       normStatus = 'Working';
     } else {
       errors.push({
         index: itemIndex,
-        error: `Invalid status "${status}". Must be Holiday, Weekend, or Working`
+        error: `Invalid status "${status}". Must be Holiday, Weekend, SchoolHoliday, or Working`
       });
       return;
     }
