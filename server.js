@@ -779,7 +779,7 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
   const currentRunId = runId || `run-${Date.now()}`;
 
   const slot = await dbGet("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
-  if (!slot || (slot.contentMode !== 'AI Generated' && slot.contentMode !== 'Hybrid')) return null;
+  if (!slot || slot.contentMode !== 'AI Generated') return null;
 
   // Rekod masa cubaan berjalan (lastAttemptAt) segera
   await dbRun("UPDATE slots_config SET lastAttemptAt = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [timestamp, slotIndex]);
@@ -927,7 +927,7 @@ app.post('/api/system/pipeline/run', async (req, res) => {
       }
     } else {
       // Run all active AI slots
-      const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND (contentMode = 'AI Generated' OR contentMode = 'Hybrid')");
+      const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND contentMode = 'AI Generated'");
       const results = [];
       
       let processedCount = 0;
@@ -1460,13 +1460,82 @@ const fetchSourceWithCache = async (sourceUri) => {
 };
 
 // Helper function to resolve active layout slots
+const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
+  if (!summaryText || !summaryText.includes('Tajuk:')) {
+    return [{
+      title: defaultSlot.manualTitle || '',
+      summary: defaultSlot.manualSummary || '',
+      url: defaultSlot.manualUrl || '#',
+      desk: defaultSlot.manualDesk || 'general',
+      source: defaultSlot.manualSource || '19 Jul 2026',
+      publishedAt: defaultSlot.lastAttemptAt || new Date().toISOString()
+    }];
+  }
+
+  const blocks = summaryText.split(/____+/);
+  const items = [];
+  for (const block of blocks) {
+    const lines = block.split('\n');
+    let title = '';
+    let brief = '';
+    let desk = '';
+    let date = '';
+    let source = '';
+    let url = '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('Tajuk:')) {
+        title = trimmed.replace(/^Tajuk:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Huraian:')) {
+        brief = trimmed.replace(/^Huraian:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Kategori:')) {
+        desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Tarikh:')) {
+        date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Sumber:')) {
+        source = trimmed.replace(/^Sumber:\s*/i, '').trim();
+      } else if (trimmed.startsWith('URL:')) {
+        url = trimmed.replace(/^URL:\s*/i, '').trim();
+      }
+    }
+
+    // Buang notasi had aksara template seperti (max 70 aksara)
+    title = title.replace(/^\([^)]+\)\s*/g, '').trim();
+    brief = brief.replace(/^\([^)]+\)\s*/g, '').trim();
+
+    if (title) {
+      items.push({
+        title,
+        summary: brief,
+        desk: desk || defaultSlot.manualDesk || 'general',
+        source: source || defaultSlot.manualSource || '19 Jul 2026',
+        url: url || defaultSlot.manualUrl || '#',
+        publishedAt: date || new Date().toISOString()
+      });
+    }
+  }
+
+  return items.length > 0 ? items : [{
+    title: defaultSlot.manualTitle || '',
+    summary: defaultSlot.manualSummary || '',
+    url: defaultSlot.manualUrl || '#',
+    desk: defaultSlot.manualDesk || 'general',
+    source: defaultSlot.manualSource || '19 Jul 2026',
+    publishedAt: defaultSlot.lastAttemptAt || new Date().toISOString()
+  }];
+};
+
 const resolveSlotContent = async (slot, lang = 'ms') => {
   if (slot.contentMode === 'Disabled') {
     return null;
   }
 
   let objectIds = [];
-  if (slot.contentMode === 'AI Generated' || slot.contentMode === 'Hybrid') {
+  let isManualParsed = false;
+  const subItems = [];
+
+  if (slot.contentMode === 'AI Generated') {
     try {
       const dbObjects = await dbAll("SELECT id FROM editorial_objects WHERE slotIndex = ? ORDER BY createdAt DESC LIMIT 5", [slot.slotIndex]);
       objectIds = dbObjects.map(o => o.id);
@@ -1478,28 +1547,53 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       objectIds.unshift(mainId);
     }
   } else if (slot.contentMode === 'Manual') {
-    objectIds = ['manual'];
+    isManualParsed = true;
+    const parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot);
+    for (const parsed of parsedItems) {
+      const approvedRevision = { 
+        title: parsed.title, 
+        summary: parsed.summary, 
+        createdAt: parsed.publishedAt 
+      };
+      const editorialObj = { id: 'manual', type: 'Brief', categoryId: 'general' };
+      const avs = [
+        { attributeId: 'url', valueText: parsed.url },
+        { attributeId: 'desk', valueText: parsed.desk },
+        { attributeId: 'source', valueText: parsed.source }
+      ];
+
+      const renderToken = await PresentationComposer.composeToken(db, slot, editorialObj, approvedRevision, avs);
+      
+      subItems.push({
+        title: approvedRevision.title,
+        brief: approvedRevision.summary,
+        publishedAt: approvedRevision.createdAt,
+        desk: (renderToken.desk || parsed.desk || 'UMUM').toUpperCase(),
+        publisherName: renderToken.publisherName || parsed.source || 'Umum',
+        url: renderToken.url || parsed.url || '#',
+        glyphProfile: renderToken.glyphProfile || null,
+        presentationProfile: renderToken.presentationProfile || 'umum',
+        publicationType: renderToken.publicationType || 'news',
+        isOfficial: renderToken.isOfficial || false,
+        aiProvider: null,
+        imageUrl: slot.manualImageUrl || ''
+      });
+    }
   } else {
     const mainId = slot.overrideObjectId || slot.activeObjectId;
     if (mainId) objectIds = [mainId];
   }
 
-  if (objectIds.length === 0) {
-    return null;
-  }
+  if (!isManualParsed) {
+    if (objectIds.length === 0) {
+      return null;
+    }
 
-  const subItems = [];
-  for (const objectId of objectIds) {
-    let approvedRevision = { title: '', summary: '', createdAt: new Date().toISOString() };
-    let editorialObj = { id: objectId, type: 'Brief', categoryId: 'general' };
-    let avs = [];
+    for (const objectId of objectIds) {
+      let approvedRevision = { title: '', summary: '', createdAt: new Date().toISOString() };
+      let editorialObj = { id: objectId, type: 'Brief', categoryId: 'general' };
+      let avs = [];
 
-    if (objectId === 'manual') {
-      approvedRevision.title = slot.manualTitle || '';
-      approvedRevision.summary = slot.manualSummary || '';
-      avs.push({ attributeId: 'url', valueText: slot.manualUrl || '#' });
-      avs.push({ attributeId: 'desk', valueText: slot.manualDesk || 'general' });
-    } else {
       const obj = await dbGet("SELECT * FROM editorial_objects WHERE id = ?", [objectId]);
       if (!obj) continue;
       editorialObj = obj;
@@ -1510,50 +1604,37 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       if (!rev) continue;
       approvedRevision = rev;
       avs = await dbAll("SELECT * FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?", [objectId, rev.id]);
-    }
 
-    if (slot.contentMode === 'Hybrid' && objectId === (slot.overrideObjectId || slot.activeObjectId)) {
-      if (slot.manualTitle) approvedRevision.title = slot.manualTitle;
-      if (slot.manualSummary) approvedRevision.summary = slot.manualSummary;
-      if (slot.manualUrl) {
-        avs = avs.filter(a => a.attributeId !== 'url');
-        avs.push({ attributeId: 'url', valueText: slot.manualUrl });
+      if (!approvedRevision.title || approvedRevision.title.trim() === '') {
+        continue;
       }
-      if (slot.manualDesk) {
-        avs = avs.filter(a => a.attributeId !== 'desk');
-        avs.push({ attributeId: 'desk', valueText: slot.manualDesk });
+
+      const renderToken = await PresentationComposer.composeToken(db, slot, editorialObj, approvedRevision, avs);
+      
+      // Dapatkan coverImage
+      let imageUrl = slot.manualImageUrl || '';
+      const imgAv = avs.find(a => a.attributeId === 'coverImageId' || a.attributeId === 'imageUrl');
+      if (imgAv) {
+        imageUrl = imgAv.valueText;
       }
-    }
 
-    if (!approvedRevision.title || approvedRevision.title.trim() === '') {
-      continue;
+      const aiProv = avs.find(a => a.attributeId === 'aiProvider');
+      
+      subItems.push({
+        title: approvedRevision.title,
+        brief: approvedRevision.summary,
+        publishedAt: approvedRevision.createdAt,
+        desk: (renderToken.desk || 'UMUM').toUpperCase(),
+        publisherName: renderToken.publisherName || 'Umum',
+        url: renderToken.url || '#',
+        glyphProfile: renderToken.glyphProfile || null,
+        presentationProfile: renderToken.presentationProfile || 'umum',
+        publicationType: renderToken.publicationType || 'news',
+        isOfficial: renderToken.isOfficial || false,
+        aiProvider: aiProv ? aiProv.valueText : null,
+        imageUrl
+      });
     }
-
-    const renderToken = await PresentationComposer.composeToken(db, slot, editorialObj, approvedRevision, avs);
-    
-    // Find coverImage or manualImageUrl
-    let imageUrl = slot.manualImageUrl || '';
-    const imgAv = avs.find(a => a.attributeId === 'coverImageId' || a.attributeId === 'imageUrl');
-    if (imgAv) {
-      imageUrl = imgAv.valueText;
-    }
-
-    const aiProv = avs.find(a => a.attributeId === 'aiProvider');
-    
-    subItems.push({
-      title: approvedRevision.title,
-      brief: approvedRevision.summary,
-      publishedAt: approvedRevision.createdAt,
-      desk: renderToken.desk || 'UMUM',
-      publisherName: renderToken.publisherName || 'Umum',
-      url: renderToken.url || '#',
-      glyphProfile: renderToken.glyphProfile || null,
-      presentationProfile: renderToken.presentationProfile || 'umum',
-      publicationType: renderToken.publicationType || 'news',
-      isOfficial: renderToken.isOfficial || false,
-      aiProvider: aiProv ? aiProv.valueText : null,
-      imageUrl
-    });
   }
 
   if (subItems.length === 0) {

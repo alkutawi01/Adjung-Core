@@ -265,6 +265,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [formConfig, setFormConfig] = useState<any | null>(null);
   const [isSavingSlot, setIsSavingSlot] = useState<boolean>(false);
   const [refreshKey, setRefreshKey] = useState<number>(0);
+  const [aiProviders, setAiProviders] = useState<any[]>([]);
 
   const loadSlotsConfig = () => {
     fetch('/api/system/slots')
@@ -286,6 +287,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         }
       })
       .catch(err => console.error('Failed to load enabled languages:', err));
+
+    fetch('/api/ai/providers')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setAiProviders(data.filter((p: any) => p.enabled === 1 || p.enabled === true));
+        }
+      })
+      .catch(err => console.error('Failed to load AI providers:', err));
   }, []);
 
   useEffect(() => {
@@ -302,6 +312,32 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     if (!isEditMode) return;
     const config = slotsConfig.find(s => s.slotIndex === idx);
     const item = bentoNewsItems[idx];
+    const limits = getLimitsForIndex(idx);
+
+    let manualSummaryText = config?.manualSummary || '';
+    if (!manualSummaryText.includes('Tajuk:')) {
+      const itemsList = item?.items || [];
+      if (itemsList.length > 0) {
+        manualSummaryText = itemsList.map((itm: any) => {
+          return `Tajuk: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nHuraian: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ` : ''}${itm.brief || ''}\nKategori: ${itm.desk || ''}\nTarikh: ${itm.publishedAt || ''}\nSumber: ${itm.source || ''}\nURL: ${itm.url || ''}`;
+        }).join('\n\n____\n\n');
+      } else {
+        const title = config?.manualTitle || item?.title || '';
+        const brief = config?.manualSummary || item?.brief || '';
+        const desk = config?.manualDesk || item?.desk || '';
+        const source = config?.manualSource || item?.source || '';
+        const url = config?.manualUrl || item?.url || '#';
+        const date = item?.publishedAt || '';
+        
+        manualSummaryText = `Tajuk: (had ${limits.maxTitle} aksara) ${title}
+Huraian: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ${brief}` : ''}
+Kategori: ${desk}
+Tarikh: ${date}
+Sumber: ${source}
+URL: ${url}`;
+      }
+    }
+
     setFormConfig({
       slotIndex: idx,
       contentMode: config?.contentMode || 'Manual',
@@ -317,7 +353,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       borderColor: config?.borderColor || '',
       textColor: config?.textColor || '#1F1F1F',
       manualTitle: config?.manualTitle || item?.title || '',
-      manualSummary: config?.manualSummary || item?.brief || '',
+      manualSummary: manualSummaryText,
       manualSource: config?.manualSource || item?.source || '',
       manualUrl: config?.manualUrl || item?.url || '#',
       manualImageUrl: config?.manualImageUrl || item?.imageUrl || '',
@@ -2109,89 +2145,141 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   <select
                     value={formConfig.contentMode}
                     onChange={(e) => setFormConfig({ ...formConfig, contentMode: e.target.value })}
-                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
                   >
                     <option value="Manual">Manual (Kemasukan Sendiri)</option>
                     <option value="AI Generated">AI Generated (Automatik)</option>
-                    <option value="Hybrid">Hybrid (Campuran)</option>
                   </select>
                 </div>
 
-                {/* Tajuk Manual */}
-                <div className="flex flex-col gap-1 col-span-2">
-                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Tajuk Manual</label>
-                  <input
-                    type="text"
-                    value={formConfig.manualTitle}
-                    onChange={(e) => setFormConfig({ ...formConfig, manualTitle: e.target.value })}
-                    placeholder="Masukkan tajuk berita..."
-                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
-                  />
-                </div>
+                {/* MODUS MANUAL */}
+                {formConfig.contentMode === 'Manual' && (
+                  <>
+                    <div className="flex flex-col gap-1 col-span-2">
+                      <div className="flex justify-between items-center">
+                        <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kandungan Manual (Ikuti Format Template)</label>
+                        <span className="text-[8px] text-[#802334] font-sans font-bold">Had aksara dinyatakan di bawah</span>
+                      </div>
+                      <textarea
+                        value={formConfig.manualSummary}
+                        onChange={(e) => setFormConfig({ ...formConfig, manualSummary: e.target.value })}
+                        rows={12}
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs leading-relaxed"
+                      />
+                      <p className="text-[9px] text-[#802334] font-sans font-bold leading-normal mt-1">
+                        * Nota: Jika ingin meletakkan 2 atau lebih kandungan berita untuk bertukar secara animasi (carousel/slide), pisahkan setiap blok berita dengan garisan pemisah empat underscores (____).
+                      </p>
+                    </div>
 
-                {/* Ringkasan Manual */}
-                {formConfig.contentMode !== 'AI Generated' && (
-                  <div className="flex flex-col gap-1 col-span-2">
-                    <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Ringkasan / Brief Manual</label>
-                    <textarea
-                      value={formConfig.manualSummary}
-                      onChange={(e) => setFormConfig({ ...formConfig, manualSummary: e.target.value })}
-                      placeholder="Masukkan ringkasan berita..."
-                      rows={4}
-                      className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs leading-relaxed"
-                    />
-                  </div>
+                    <div className="flex flex-col gap-1 col-span-2">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Gambar Latar Belakang (URL / Fail)</label>
+                      <input
+                        type="text"
+                        value={formConfig.manualImageUrl}
+                        onChange={(e) => setFormConfig({ ...formConfig, manualImageUrl: e.target.value })}
+                        placeholder="/uploads/... atau URL luar"
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                      />
+                    </div>
+                  </>
                 )}
 
-                {/* Kategori / Desk */}
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kategori (Desk)</label>
-                  <input
-                    type="text"
-                    value={formConfig.manualDesk}
-                    onChange={(e) => setFormConfig({ ...formConfig, manualDesk: e.target.value })}
-                    placeholder="Contoh: SUKAN, EKONOMI..."
-                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
-                  />
+                {/* MODUS AI GENERATED */}
+                {formConfig.contentMode === 'AI Generated' && (
+                  <>
+                    <div className="flex flex-col gap-1">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Pembekal AI (AI Provider)</label>
+                      <select
+                        value={formConfig.providerId}
+                        onChange={(e) => {
+                          const p = aiProviders.find(prov => prov.id === e.target.value);
+                          setFormConfig({ ...formConfig, providerId: e.target.value, model: p ? p.model : '' });
+                        }}
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                      >
+                        <option value="">-- Pilih Pembekal --</option>
+                        {aiProviders.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Model AI</label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={formConfig.model || 'Pilih pembekal di atas'}
+                        className="w-full px-3 py-2 border border-stone-200 rounded bg-stone-50 text-stone-500 font-mono text-xs cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1 col-span-2">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Strategi Pencarian</label>
+                      <select
+                        value={formConfig.searchStrategy}
+                        onChange={(e) => setFormConfig({ ...formConfig, searchStrategy: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                      >
+                        <option value="Structured Sources Only">Structured Sources Only (RSS/Atom Feed Sahaja)</option>
+                        <option value="Search Only">Search Only (Web Google Search Sahaja)</option>
+                        <option value="Structured Sources -> Search Fallback">Structured Sources — Search Fallback (RSS &amp; Search)</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1 col-span-2">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Pautan Sumber (sourcesList RSS / Web URL)</label>
+                      <input
+                        type="text"
+                        value={formConfig.sourcesList}
+                        onChange={(e) => setFormConfig({ ...formConfig, sourcesList: e.target.value })}
+                        placeholder="https://feeds.feedburner.com/... atau URL portal berita"
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1 col-span-2">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Arahan Khusus Penjanaan (Prompt Teks)</label>
+                      <textarea
+                        value={formConfig.promptText}
+                        onChange={(e) => setFormConfig({ ...formConfig, promptText: e.target.value })}
+                        placeholder="Contoh: Fokus kepada berita geopolitik Asia Tenggara..."
+                        rows={4}
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Allowed Content Types</label>
+                      <input
+                        type="text"
+                        value={formConfig.allowedContentTypes}
+                        onChange={(e) => setFormConfig({ ...formConfig, allowedContentTypes: e.target.value })}
+                        placeholder="Brief, Essay, dll."
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kadar Segar Semula (refreshRate)</label>
+                      <select
+                        value={formConfig.refreshRate}
+                        onChange={(e) => setFormConfig({ ...formConfig, refreshRate: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                      >
+                        <option value="Hourly">Setiap Jam (Hourly)</option>
+                        <option value="Daily">Setiap Hari (Daily)</option>
+                        <option value="Weekly">Setiap Minggu (Weekly)</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* GAYA / STYLES (DITUNJUKKAN KEDUA-DUA MOD) */}
+                <div className="border-t border-stone-150 col-span-2 my-2 pt-2">
+                  <h4 className="font-sans text-[10px] font-bold text-[#802334] uppercase tracking-wider">Konfigurasi Reka Bentuk & Animasi</h4>
                 </div>
 
-                {/* Sumber / Tarikh */}
-                <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Sumber / Tarikh</label>
-                  <input
-                    type="text"
-                    value={formConfig.manualSource}
-                    onChange={(e) => setFormConfig({ ...formConfig, manualSource: e.target.value })}
-                    placeholder="Contoh: Utusan, 19 Jul 2026..."
-                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
-                  />
-                </div>
-
-                {/* Pautan URL */}
-                <div className="flex flex-col gap-1 col-span-2">
-                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Pautan URL</label>
-                  <input
-                    type="text"
-                    value={formConfig.manualUrl}
-                    onChange={(e) => setFormConfig({ ...formConfig, manualUrl: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
-                  />
-                </div>
-
-                {/* Gambar URL */}
-                <div className="flex flex-col gap-1 col-span-2">
-                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Gambar URL</label>
-                  <input
-                    type="text"
-                    value={formConfig.manualImageUrl}
-                    onChange={(e) => setFormConfig({ ...formConfig, manualImageUrl: e.target.value })}
-                    placeholder="/uploads/... atau URL luar"
-                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
-                  />
-                </div>
-
-                {/* Warna Latar (bgColor) */}
                 <div className="flex flex-col gap-1">
                   <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Warna Latar (bgColor)</label>
                   <input
@@ -2203,7 +2291,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   />
                 </div>
 
-                {/* Warna Teks (textColor) */}
                 <div className="flex flex-col gap-1">
                   <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Warna Teks (textColor)</label>
                   <input
@@ -2212,6 +2299,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     onChange={(e) => setFormConfig({ ...formConfig, textColor: e.target.value })}
                     placeholder="#1F1F1F, #FDFDFD..."
                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Selang Masa Carousel (saat)</label>
+                  <input
+                    type="number"
+                    value={formConfig.carouselInterval}
+                    onChange={(e) => setFormConfig({ ...formConfig, carouselInterval: parseInt(e.target.value) || 10 })}
+                    placeholder="10"
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kelewatan Mula Carousel (saat)</label>
+                  <input
+                    type="number"
+                    value={formConfig.carouselDelay}
+                    onChange={(e) => setFormConfig({ ...formConfig, carouselDelay: parseInt(e.target.value) || 0 })}
+                    placeholder="0"
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
                   />
                 </div>
 
