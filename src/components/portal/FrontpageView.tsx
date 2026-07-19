@@ -581,6 +581,17 @@ URL: ${url}`;
     setIsExecutingNow(true);
     setExecutingSuccessMessage('');
     try {
+      // Simpan konfigurasi secara senyap ke pangkalan data terlebih dahulu
+      const finalFormConfig = { ...formConfig };
+      const saveResponse = await fetch('/api/system/slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(finalFormConfig)
+      });
+      if (!saveResponse.ok) {
+        throw new Error('Gagal menyimpan tetapan semasa sebelum memulakan penjanaan.');
+      }
+
       const response = await fetch('/api/system/slots/run-now', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
