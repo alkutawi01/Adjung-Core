@@ -163,7 +163,7 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          transition={{ duration: 1.0, ease: 'easeInOut' }}
           className={`w-full h-full flex flex-col justify-between ${className}`}
         >
           {children}
