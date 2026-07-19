@@ -1946,6 +1946,52 @@ app.post('/api/pages/:key', async (req, res) => {
   }
 });
 
+// GET /api/system/clock-holidays
+app.get('/api/system/clock-holidays', async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    let apiHolidays = [];
+    try {
+      const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/MY`);
+      if (response.ok) {
+        const rawList = await response.json();
+        apiHolidays = rawList.map(h => {
+          const [yr, mn, dy] = h.date.split('-');
+          return {
+            dateStr: `${dy}/${mn}/${yr.slice(-2)}`,
+            name: h.localName || h.name
+          };
+        });
+      }
+    } catch (apiErr) {
+      console.warn('Failed to fetch public holidays from API:', apiErr.message);
+    }
+
+    const schoolHolidays = [
+      // Penggal 1
+      { start: '2026-05-24', end: '2026-06-01', group: 'A', name: 'Cuti Penggal 1 Sekolah' },
+      { start: '2026-05-25', end: '2026-06-02', group: 'B', name: 'Cuti Penggal 1 Sekolah' },
+      // Penggal 2
+      { start: '2026-09-11', end: '2026-09-19', group: 'A', name: 'Cuti Penggal 2 Sekolah' },
+      { start: '2026-09-12', end: '2026-09-20', group: 'B', name: 'Cuti Penggal 2 Sekolah' },
+      // Penggal 3
+      { start: '2026-12-25', end: '2027-01-02', group: 'A', name: 'Cuti Penggal 3 Sekolah' },
+      { start: '2026-12-26', end: '2027-01-03', group: 'B', name: 'Cuti Penggal 3 Sekolah' },
+      // Akhir Persekolahan
+      { start: '2027-01-22', end: '2027-02-13', group: 'A', name: 'Cuti Akhir Persekolahan' },
+      { start: '2027-01-23', end: '2027-02-14', group: 'B', name: 'Cuti Akhir Persekolahan' }
+    ];
+
+    res.json({
+      publicHolidays: apiHolidays,
+      schoolHolidays
+    });
+  } catch (err) {
+    console.error('Failed to resolve holidays:', err);
+    res.status(500).json({ error: 'Failed to retrieve holidays list.' });
+  }
+});
+
 // 11b. POST /api/system/settings
 app.post('/api/system/settings', async (req, res) => {
   try {

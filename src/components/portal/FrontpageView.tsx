@@ -286,6 +286,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [refreshKey, setRefreshKey] = useState<number>(0);
   const [aiProviders, setAiProviders] = useState<any[]>([]);
   const [masterPrompt, setMasterPrompt] = useState<string>('');
+  const [apiHolidaysData, setApiHolidaysData] = useState<{ publicHolidays: any[]; schoolHolidays: any[] } | null>(null);
 
   const [activeOverlayIndex, setActiveOverlayIndex] = useState(0);
   const [activeFrontpageIndex, setActiveFrontpageIndex] = useState(0);
@@ -402,6 +403,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         }
       })
       .catch(err => console.error('Failed to load AI providers:', err));
+
+    fetch('/api/system/clock-holidays')
+      .then(res => res.json())
+      .then(data => {
+        if (data && (data.publicHolidays || data.schoolHolidays)) {
+          setApiHolidaysData(data);
+        }
+      })
+      .catch(err => console.error('Failed to load clock holidays:', err));
   }, []);
 
   useEffect(() => {
@@ -1176,11 +1186,11 @@ URL: ${url}`;
 
   useEffect(() => {
     const cities = [
-      { name: 'Kangar (Perlis)', tz: 'Asia/Kuala_Lumpur' },
+      { name: 'Kangar', tz: 'Asia/Kuala_Lumpur' },
       { name: 'Kuala Lumpur', tz: 'Asia/Kuala_Lumpur' },
       { name: 'Kota Bharu', tz: 'Asia/Kuala_Lumpur' },
-      { name: 'Kota Kinabalu (Sabah)', tz: 'Asia/Kuala_Lumpur' },
-      { name: 'Kuching (Sarawak)', tz: 'Asia/Kuala_Lumpur' }
+      { name: 'Kuching', tz: 'Asia/Kuala_Lumpur' },
+      { name: 'Kota Kinabalu', tz: 'Asia/Kuala_Lumpur' }
     ];
 
     const updateTime = () => {
@@ -1228,6 +1238,31 @@ URL: ${url}`;
           if (cityHolidays && cityHolidays[gregKey]) {
             isHoliday = true;
             holidayName = cityHolidays[gregKey];
+          }
+
+          if (apiHolidaysData && Array.isArray(apiHolidaysData.publicHolidays)) {
+            const apiMatch = apiHolidaysData.publicHolidays.find(h => h.dateStr === dateStr);
+            if (apiMatch) {
+              isHoliday = true;
+              holidayName = apiMatch.name;
+            }
+          }
+
+          if (apiHolidaysData && Array.isArray(apiHolidaysData.schoolHolidays)) {
+            const today = new Date();
+            const yearStr = today.getFullYear();
+            const monthStr = String(today.getMonth() + 1).padStart(2, '0');
+            const dayStrVal = String(today.getDate()).padStart(2, '0');
+            const todayISO = `${yearStr}-${monthStr}-${dayStrVal}`;
+            
+            const isGroupA = c.name === 'Kota Bharu';
+            const schoolMatch = apiHolidaysData.schoolHolidays.find((sh: any) => {
+              const groupMatch = isGroupA ? sh.group === 'A' : sh.group === 'B';
+              return groupMatch && todayISO >= sh.start && todayISO <= sh.end;
+            });
+            if (schoolMatch) {
+              isSchoolHoliday = true;
+            }
           }
 
           const isDefaultWeekend = c.name === 'Kota Bharu'
@@ -1284,7 +1319,7 @@ URL: ${url}`;
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText]);
+  }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData]);
 
   // Helper to extract name initials (e.g. "Elena Vasquez" -> "E.V.")
   const getInitials = (name: string): string => {
@@ -1417,11 +1452,11 @@ URL: ${url}`;
         {/* World Clock Strip */}
         <div className="py-2.5 flex justify-center items-center overflow-x-auto gap-10 px-1 text-center" id="world-clock">
           {[
-            { city: 'Kangar (Perlis)', tz: 'Asia/Kuala_Lumpur' },
+            { city: 'Kangar', tz: 'Asia/Kuala_Lumpur' },
             { city: 'Kuala Lumpur', tz: 'Asia/Kuala_Lumpur' },
             { city: 'Kota Bharu', tz: 'Asia/Kuala_Lumpur' },
-            { city: 'Kota Kinabalu (Sabah)', tz: 'Asia/Kuala_Lumpur' },
-            { city: 'Kuching (Sarawak)', tz: 'Asia/Kuala_Lumpur' }
+            { city: 'Kuching', tz: 'Asia/Kuala_Lumpur' },
+            { city: 'Kota Kinabalu', tz: 'Asia/Kuala_Lumpur' }
           ].map((c, i) => {
             const timeData = times[i];
             let cityColor = 'text-[#802334] font-semibold';
