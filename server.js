@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
+import { db as mockDb } from './src/db/mockDb.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
