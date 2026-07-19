@@ -166,7 +166,7 @@ class EditorialPipeline {
         2. Tajuk berita ("title") MESTILAH ringkas, padat dan MESTILAH KETAT DI BAWAH 80 aksara.
         3. Huraian berita ("brief") MESTILAH ringkas, MESTILAH KETAT DI BAWAH 220 aksara, dan ditulis dalam TEPAT SATU AYAT SAHAJA.
         4. Setiap item MESTILAH mempunyai "desk" (kategori berita) dalam satu perkataan sahaja (cth: EKONOMI, KESIHATAN, SUKAN).
-        5. Anda MESTILAH mengambil URL artikel khusus dan spesifik (contohnya: https://www.sinarharian.com.my/article/194827/berita-semasa) dari hasil carian internet untuk harta "url". DILARANG sama sekali memulangkan pautan domain umum (seperti www.sinarharian.com atau bharian.com.my) atau tanda pagar (#) jika berita tersebut datang dari carian.
+        5. Anda MESTILAH mengambil URL artikel khusus dan spesifik yang lengkap (contohnya: https://www.sinarharian.com.my/article/194827/berita-semasa atau https://www.astroawani.com/berita-malaysia/tajuk-artikel-12345) secara terus dari hasil carian Google (citation links). JANGAN sesekali memotong, meringkaskan atau memendekkan URL tersebut kepada halaman utama portal (seperti www.sinarharian.com.my) sahaja. Setiap berita MESTILAH mempunyai URL artikel penuh yang sah yang menuju terus ke halaman berita tersebut. DILARANG sama sekali memulangkan pautan domain umum atau tanda pagar (#).
         6. Hasilkan respons dalam format JSON sahaja dengan struktur objek:
            {
              "items": [
