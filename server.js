@@ -6,6 +6,7 @@ import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { db as mockDb } from './src/db/mockDb.js';
+import { GoogleGenAI } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,7 +99,7 @@ const seedDatabase = async () => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const now = new Date().toISOString();
-      stmtProviders.run('gemini-1', 'Google Gemini', 'GEMINI_API_KEY', 'gemini-1.5-pro', 100, 10, 'Active', now, 1);
+      stmtProviders.run('gemini-1', 'Google Gemini', 'GEMINI_API_KEY', 'gemini-3.5-flash', 100, 10, 'Active', now, 1);
       stmtProviders.run('openai-1', 'ChatGPT (OpenAI)', 'OPENAI_API_KEY', 'gpt-4o', 100, 10, 'Active', now, 1);
       stmtProviders.run('claude-1', 'Claude (Anthropic)', 'CLAUDE_API_KEY', 'claude-3-5-sonnet-latest', 100, 10, 'Active', now, 1);
       stmtProviders.run('meta-1', 'Meta AI (Llama)', 'META_API_KEY', 'llama-3.3-70b-instruct', 100, 10, 'Active', now, 1);
@@ -117,8 +118,7 @@ const seedDatabase = async () => {
                   VALUES (?, ?, ?, ?, 'USD', ?)
                 `);
                 const nowStr = new Date().toISOString();
-                stmtPricing.run('gemini-1', 'gemini-1.5-pro', 1.25, 5.00, nowStr);
-                stmtPricing.run('gemini-1', 'gemini-1.5-flash', 0.075, 0.30, nowStr);
+                stmtPricing.run('gemini-1', 'gemini-3.5-flash', 0.075, 0.30, nowStr);
                 stmtPricing.run('openai-1', 'gpt-4o', 2.50, 10.00, nowStr);
                 stmtPricing.run('claude-1', 'claude-3-5-sonnet-latest', 3.00, 15.00, nowStr);
                 stmtPricing.run('deepseek-1', 'deepseek-chat', 0.14, 0.28, nowStr);
@@ -546,8 +546,9 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
   try {
     // 1. Google Gemini (Google AI SDK)
     if (provider.id === 'gemini-1') {
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: provider.model || 'gemini-1.5-pro',
+        model: provider.model || 'gemini-3.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -1455,6 +1456,10 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       if (slot.manualImageUrl) finalItem.imageUrl = slot.manualImageUrl;
       if (slot.manualDesk) finalItem.desk = slot.manualDesk;
     }
+  }
+
+  if (!finalItem.title || finalItem.title.trim() === '') {
+    return null;
   }
 
   return finalItem;
