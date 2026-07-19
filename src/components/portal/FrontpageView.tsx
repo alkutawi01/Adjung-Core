@@ -216,20 +216,7 @@ const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
   };
 };
 const padToLimit = (text: string, maxLen: number): string => {
-  if (!text) return '';
-  if (text.length >= maxLen) return text.substring(0, maxLen);
-  const words = " kerjasama digital ekonomi pembangunan malaysia madani berkembang pesat untuk kemakmuran bersama rakyat negara wawasan lestari aman harmoni".split(" ");
-  let result = text;
-  let wordIdx = 0;
-  while (result.length < maxLen) {
-    const nextWord = words[wordIdx % words.length];
-    if ((result + " " + nextWord).length > maxLen) {
-      break;
-    }
-    result += " " + nextWord;
-    wordIdx++;
-  }
-  return result;
+  return text || '';
 };
 
 const getLimitsForIndex = (idx: number, config?: any) => {
