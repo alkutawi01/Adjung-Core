@@ -754,6 +754,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         placeholder="Tulis arahan kepada AI untuk slot ini..."
                         className="w-full px-2 py-1.5 border border-blue-200 rounded text-xs bg-white font-mono"
                       />
+                      <div className="text-[10px] text-stone-500 font-sans mt-1 bg-stone-50 p-2 border border-stone-200 rounded">
+                        <span className="font-bold text-[#802334]">Nota Amalan Terbaik:</span> Tulis arahan khusus dalam lingkungan 100 - 2,000 aksara untuk hasil optimum bagi mengelakkan "prompt drift" (AI mengabaikan arahan penting).
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
