@@ -1,0 +1,26 @@
+- [x] Domain-Driven Directory Layout (`/core`)
+  - [x] Bina folder `/core/sources`, `/core/ai`, `/core/editorial`
+- [x] Modul Domain Sources
+  - [x] Cipta Lightweight `CanonicalSourceRecord` (Fakta Sahaja)
+  - [x] Cipta `SourceFetcher` (Muat Turun Tulen)
+  - [x] Cipta `SourceTransformer` (Parsing RSS, Atom, JSON, HTML)
+  - [x] Cipta `ProviderRegistry` (Plugin-based mapping)
+  - [x] Cipta `SourceNormalizer` (Clean tracking parameters, sort stabil)
+  - [x] Cipta `SourceCache` (Stable JSON serializing, SQLite hash check)
+- [x] Modul Domain AI
+  - [x] Cipta `AIProvider` base class
+  - [x] Cipta `GeminiProvider` & `ClaudeProvider` implementations
+- [x] Modul Domain Editorial
+  - [x] Cipta `EditorialValidator` (Validasi tajuk & ringkasan)
+  - [x] Cipta `EditorialPipeline` (Pipeline orchestrator)
+- [x] Database & REST API Updates
+  - [x] Integrasi migrasi SQLite `searchStrategy` colum di `server.js`
+  - [x] Kemas kini POST `/api/system/slots` untuk menyimpan `searchStrategy`
+  - [x] Gantikan `runEditorialPipeline` monolitik dengan `EditorialPipeline` teras
+- [x] UI Admin Updates (`SettingsView.tsx`)
+  - [x] Pulihkan input Sumber (Sources URL)
+  - [x] Tambah dropdown Search Strategy (Structured Sources, Search Fallback, Search Only, Disabled)
+  - [x] Kemas kini Refresh Rate dropdown layout
+- [x] Ujian Larian & Git Commit
+  - [x] Uji larian pipeline di backend (Berjaya)
+  - [x] Commit dan push fail terbaharu ke GitHub

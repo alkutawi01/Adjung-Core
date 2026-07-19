@@ -31,6 +31,33 @@ const BORDER_PRESETS = [
   { name: 'Slate Gray', hex: '#4B5563' }
 ];
 
+const formatModelName = (model: string) => {
+  if (!model) return '';
+  const lower = model.toLowerCase();
+  if (lower.startsWith('gemini')) {
+    return model.replace(/-/g, ' ').replace(/\b[a-z]/g, l => l.toUpperCase());
+  }
+  if (lower.startsWith('gpt')) {
+    return model.replace('gpt', 'GPT');
+  }
+  if (lower.startsWith('claude')) {
+    return model.replace(/-/g, ' ').replace(/\b[a-z]/g, l => l.toUpperCase());
+  }
+  if (lower.startsWith('deepseek')) {
+    return model.replace('deepseek', 'DeepSeek');
+  }
+  if (lower.startsWith('llama')) {
+    return model.replace('llama', 'Llama');
+  }
+  if (lower.startsWith('grok')) {
+    return model.replace('grok', 'Grok');
+  }
+  if (lower.startsWith('qwen')) {
+    return model.replace('qwen', 'Qwen');
+  }
+  return model.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
 const SLOT_LAYOUTS = [
   { index: 0, type: 'LEBAR PENUH', desc: 'Slot Lebar Penuh (Row 1): Had tajuk 115 aksara, ringkasan 240 aksara.', allowed: ['Brief', 'Book', 'Event'] },
   { index: 1, type: 'MENEGAK', desc: 'Slot Menegak Kiri (Row 2-3): Had tajuk 72 aksara, ringkasan 145 aksara.', allowed: ['Brief', 'Book', 'Event'] },
@@ -755,7 +782,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       >
                         <option value="">-- Pilih Provider --</option>
                         {providers.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} ({p.model})</option>
+                          <option key={p.id} value={p.id}>{p.name} ({formatModelName(p.model)})</option>
                         ))}
                       </select>
                     </div>
@@ -1398,7 +1425,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                                 className="px-3 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
                               >
                                 {providers.map(p => (
-                                  <option key={p.id} value={p.id}>{p.name} ({p.model})</option>
+                                  <option key={p.id} value={p.id}>{p.name} ({formatModelName(p.model)})</option>
                                 ))}
                               </select>
                             </div>
@@ -1460,7 +1487,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         >
                           <option value="">Pilih Model...</option>
                           {providers.map(p => (
-                            <option key={p.id} value={p.id}>{p.name} ({p.model})</option>
+                            <option key={p.id} value={p.id}>{p.name} ({formatModelName(p.model)})</option>
                           ))}
                         </select>
                       </div>
