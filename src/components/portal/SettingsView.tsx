@@ -1744,11 +1744,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       logs.map(log => (
                         <div key={log.id} className="p-3 bg-white hover:bg-stone-50/30 flex flex-col gap-1 leading-relaxed">
                           <div className="flex justify-between items-center w-full">
-                            <span className="text-stone-400 font-bold">{new Date(log.timestamp).toLocaleString()}</span>
+                            <span className="text-stone-400 font-bold">{new Date(log.createdAt || log.timestamp).toLocaleString()}</span>
                             <div className="flex gap-2">
                               <span className="text-stone-500">Prompt: {log.promptVersion}</span>
                               <span className={`px-1.5 py-0.2 rounded font-bold uppercase ${
-                                log.level === 'SUCCESS' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+                                log.level === 'SUCCESS' ? 'bg-emerald-50 text-emerald-700' :
+                                log.level === 'ERROR' ? 'bg-red-50 text-red-700' :
+                                'bg-blue-50 text-blue-700'
                               }`}>{log.level}</span>
                             </div>
                           </div>
