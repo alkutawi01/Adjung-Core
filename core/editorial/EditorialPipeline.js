@@ -123,38 +123,65 @@ class EditorialPipeline {
       limitDesc = 'mestilah di antara 60 hingga 80 aksara untuk kad bento kompak.';
     }
 
-    compiledPrompt += `
-      Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" berdasarkan arahan dan fakta di atas.
-      
-      SYARAT PENTING (MANDATORY):
-      1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
-      2. Ringkasan berita ("summary") ${limitDesc}
-      3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
-      4. Sertakan pautan URL rujukan spesifik yang aktif untuk harta "source_url". Jika anda merujuk sumber teks di atas, gunakan URL daripada teks tersebut. Jika tiada, gunakan "#". Jangan sesekali reka pautan palsu.
-      5. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
-      6. Hasilkan respons dalam format JSON sahaja dengan struktur:
-          { 
-            "title": "Tajuk", 
-            "summary": "Ringkasan",
-            "category": "KATEGORI_BERITA",
-            "source_url": "https://url-sumber"
-          }
-    `;
+    const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex);
+
+    if (isBarSlot) {
+      compiledPrompt += `
+        Tulis nama acara/event ("title") dan tarikh/tempoh berlangsung ("source") berdasarkan fakta di atas.
+        
+        SYARAT PENTING (MANDATORY):
+        1. Nama Acara ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 40 aksara. Cth: "Pesta Buku Selangor".
+        2. Tarikh/Tempoh Acara ("source") mestilah ringkas, padat dan mewakili tarikh acara secara tepat. Cth: "19-26 Julai 26" atau "20 Jun 27".
+        3. Ringkasan berita ("summary") tidak diperlukan, kosongkan sahaja ("").
+        4. Gunakan bahasa Melayu yang profesional.
+        5. Tentukan kategori/topik berita yang paling relevan (cth: ACARA, ILMU, SEJARAH, PORTAL) dalam satu perkataan sahaja untuk harta "category".
+        6. Hasilkan respons dalam format JSON sahaja dengan struktur:
+            { 
+              "title": "Nama Acara", 
+              "source": "Tarikh Acara",
+              "category": "ACARA",
+              "source_url": "https://url-sumber",
+              "summary": ""
+            }
+      `;
+    } else {
+      compiledPrompt += `
+        Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" berdasarkan arahan dan fakta di atas.
+        
+        SYARAT PENTING (MANDATORY):
+        1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
+        2. Ringkasan berita ("summary") ${limitDesc}
+        3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
+        4. Sertakan pautan URL rujukan spesifik yang aktif untuk harta "source_url". Jika anda merujuk sumber teks di atas, gunakan URL daripada teks tersebut. Jika tiada, gunakan "#". Jangan sesekali reka pautan palsu.
+        5. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
+        6. Hasilkan respons dalam format JSON sahaja dengan struktur:
+            { 
+              "title": "Tajuk", 
+              "summary": "Ringkasan",
+              "category": "KATEGORI_BERITA",
+              "source_url": "https://url-sumber"
+            }
+      `;
+    }
 
     // 4. Call AI Provider
     const aiResult = await aiInstance.generate(compiledPrompt, 'Anda adalah editor berita profesional.', searchTools);
     const { parsedJson, promptTokens, completionTokens } = aiResult;
 
     // 5. Validate output
-    const validation = EditorialValidator.validate(parsedJson.title, parsedJson.summary, maxSummaryLen);
-    if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.reason}`);
+    let validation = { isValid: true, cleanTitle: parsedJson.title || '', cleanSummary: parsedJson.summary || '' };
+    if (!isBarSlot) {
+      validation = EditorialValidator.validate(parsedJson.title, parsedJson.summary, maxSummaryLen);
+      if (!validation.isValid) {
+        throw new Error(`Validation failed: ${validation.reason}`);
+      }
     }
 
     const finalTitle = validation.cleanTitle;
     const finalSummary = validation.cleanSummary;
     const finalCategory = parsedJson.category ? parsedJson.category.trim().toUpperCase() : 'UMUM';
     const finalSourceUrl = parsedJson.source_url || aiSourceUrl || '#';
+    const finalSource = isBarSlot ? (parsedJson.source || parsedJson.date || '19 Jul 2026') : provider.name;
 
     // 6. Save Editorial Object and attributes to Database
     const objectId = `object-${outputType.toLowerCase()}-slot${slotIndex}-${Date.now()}`;
@@ -173,7 +200,7 @@ class EditorialPipeline {
     const attributesToSave = [
       { key: 'sourceHash', val: sourceHash },
       { key: 'desk', val: finalCategory },
-      { key: 'source', val: provider.name },
+      { key: 'source', val: finalSource },
       { key: 'url', val: finalSourceUrl },
       { key: 'aiProvider', val: provider.name }
     ];

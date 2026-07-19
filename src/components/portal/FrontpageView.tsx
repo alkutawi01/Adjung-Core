@@ -314,27 +314,45 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     const item = bentoNewsItems[idx];
     const limits = getLimitsForIndex(idx);
 
+    const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(idx);
+
     let manualSummaryText = config?.manualSummary || '';
-    if (!manualSummaryText.includes('Tajuk:')) {
+    if (!manualSummaryText.includes('Tajuk:') && !manualSummaryText.includes('Event:')) {
       const itemsList = item?.items || [];
-      if (itemsList.length > 0) {
-        manualSummaryText = itemsList.map((itm: any) => {
-          return `Tajuk: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nHuraian: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ` : ''}${itm.brief || ''}\nKategori: ${itm.desk || ''}\nTarikh: ${itm.publishedAt || ''}\nSumber: ${itm.source || ''}\nURL: ${itm.url || ''}`;
-        }).join('\n\n____\n\n');
+      if (isBarSlot) {
+        if (itemsList.length > 0) {
+          manualSummaryText = itemsList.map((itm: any) => {
+            return `Tarikh: (contoh: 19-26 Julai 26) ${itm.source || ''}\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nURL: ${itm.url || ''}`;
+          }).join('\n\n____\n\n');
+        } else {
+          const title = config?.manualTitle || item?.title || '';
+          const source = config?.manualSource || item?.source || '';
+          const url = config?.manualUrl || item?.url || '#';
+          
+          manualSummaryText = `Tarikh: (contoh: 19-26 Julai 26) ${source}
+Event: (had ${limits.maxTitle} aksara) ${title}
+URL: ${url}`;
+        }
       } else {
-        const title = config?.manualTitle || item?.title || '';
-        const brief = config?.manualSummary || item?.brief || '';
-        const desk = config?.manualDesk || item?.desk || '';
-        const source = config?.manualSource || item?.source || '';
-        const url = config?.manualUrl || item?.url || '#';
-        const date = item?.publishedAt || '';
-        
-        manualSummaryText = `Tajuk: (had ${limits.maxTitle} aksara) ${title}
+        if (itemsList.length > 0) {
+          manualSummaryText = itemsList.map((itm: any) => {
+            return `Tajuk: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nHuraian: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ` : ''}${itm.brief || ''}\nKategori: ${itm.desk || ''}\nTarikh: ${itm.publishedAt || ''}\nSumber: ${itm.source || ''}\nURL: ${itm.url || ''}`;
+          }).join('\n\n____\n\n');
+        } else {
+          const title = config?.manualTitle || item?.title || '';
+          const brief = config?.manualSummary || item?.brief || '';
+          const desk = config?.manualDesk || item?.desk || '';
+          const source = config?.manualSource || item?.source || '';
+          const url = config?.manualUrl || item?.url || '#';
+          const date = item?.publishedAt || '';
+          
+          manualSummaryText = `Tajuk: (had ${limits.maxTitle} aksara) ${title}
 Huraian: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ${brief}` : ''}
 Kategori: ${desk}
 Tarikh: ${date}
 Sumber: ${source}
 URL: ${url}`;
+        }
       }
     }
 
@@ -805,8 +823,8 @@ URL: ${url}`;
 
       if ([7, 8, 9, 10, 21, 22, 23, 24].includes(i)) {
         itemToPush.source = itemToPush.source || '19 Jul 2026';
-        if (itemToPush.source.length > 11) {
-          itemToPush.source = itemToPush.source.substring(0, 11);
+        if (itemToPush.source.length > 25) {
+          itemToPush.source = itemToPush.source.substring(0, 25);
         }
       }
       itemToPush.index = i;
@@ -899,8 +917,8 @@ URL: ${url}`;
 
       if ([7, 8, 9, 10, 21, 22, 23, 24].includes(actualSlotIdx)) {
         resolvedItem.source = resolvedItem.source || '19 Jul 2026';
-        if (resolvedItem.source.length > 11) {
-          resolvedItem.source = resolvedItem.source.substring(0, 11);
+        if (resolvedItem.source.length > 25) {
+          resolvedItem.source = resolvedItem.source.substring(0, 25);
         }
       }
 

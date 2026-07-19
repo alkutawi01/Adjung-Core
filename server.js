@@ -1461,7 +1461,7 @@ const fetchSourceWithCache = async (sourceUri) => {
 
 // Helper function to resolve active layout slots
 const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
-  if (!summaryText || !summaryText.includes('Tajuk:')) {
+  if (!summaryText || (!summaryText.includes('Tajuk:') && !summaryText.includes('Event:'))) {
     return [{
       title: defaultSlot.manualTitle || '',
       summary: defaultSlot.manualSummary || '',
@@ -1487,12 +1487,16 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       const trimmed = line.trim();
       if (trimmed.startsWith('Tajuk:')) {
         title = trimmed.replace(/^Tajuk:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Event:')) {
+        title = trimmed.replace(/^Event:\s*/i, '').trim();
+        desk = 'ACARA'; // Default desk untuk event
       } else if (trimmed.startsWith('Huraian:')) {
         brief = trimmed.replace(/^Huraian:\s*/i, '').trim();
       } else if (trimmed.startsWith('Kategori:')) {
         desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
       } else if (trimmed.startsWith('Tarikh:')) {
         date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
+        source = date; // Memetakan tarikh ke ruangan sumber (sebelah kiri bar)
       } else if (trimmed.startsWith('Sumber:')) {
         source = trimmed.replace(/^Sumber:\s*/i, '').trim();
       } else if (trimmed.startsWith('URL:')) {
