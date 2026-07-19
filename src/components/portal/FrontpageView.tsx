@@ -2176,8 +2176,41 @@ URL: ${url}`;
 
           </div>
         </section>
+        {/* Footer Reka Bentuk Premium */}
+        <footer className="w-full mt-12 pt-10 pb-6 border-t border-stone-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 px-4">
+            {/* Logo / Kiri */}
+            <div className="flex flex-col justify-start">
+              <h2 className="font-serif text-3xl font-bold text-[#802334] tracking-tight">Adjung</h2>
+            </div>
+            
+            {/* Kolum INSTITUTIONAL */}
+            <div className="flex flex-col gap-2.5">
+              <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Institutional</h3>
+              <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold">
+                <li><a href="#" className="hover:text-[#802334] transition-colors">Editor&apos;s Notes</a></li>
+                <li><a href="#" className="hover:text-[#802334] transition-colors">Notices</a></li>
+                <li><a href="#" className="hover:text-[#802334] transition-colors">Publishing Policies</a></li>
+                <li><a href="#" className="hover:text-[#802334] transition-colors">Version History</a></li>
+              </ul>
+            </div>
 
-        <hr className="rule border-t border-stone-300 my-3" />
+            {/* Kolum NETWORK */}
+            <div className="flex flex-col gap-2.5">
+              <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Network</h3>
+              <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold">
+                <li><a href="#" className="hover:text-[#802334] transition-colors">About Adjung</a></li>
+                <li><a href="#" className="hover:text-[#802334] transition-colors">Editorial Board</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-stone-150 pt-6 text-center">
+            <p className="font-mono text-[9px] tracking-widest text-stone-400 uppercase font-bold">
+              &copy; 2026 Adjung Platform
+            </p>
+          </div>
+        </footer>
 
       </div>
 
