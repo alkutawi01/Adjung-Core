@@ -1332,15 +1332,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
               )}
 
-              {/* Left Bottom Left: 4 Stacked Bars — Event Slots (Indices 7, 8, 9, 10) */}
-              <div className="md:col-span-2 flex flex-col gap-1.5">
+              <div className="md:col-span-2 flex flex-col gap-2 h-full">
                 {[7, 8, 9, 10].map((idx) => {
                   const barItem = bentoNewsItems[idx];
                   if (!barItem) return null;
                   return (
                     <div
                       key={idx}
-                      className="px-4 py-2.5 rounded-md flex justify-between items-center min-h-[42px] group hover:brightness-110 transition-all duration-200"
+                      className="px-4 py-2 rounded-md flex justify-between items-center flex-1 min-h-[38px] group hover:brightness-110 transition-all duration-200"
                       style={{ backgroundColor: '#802334' }}
                     >
                       {/* Tarikh Event */}
@@ -1641,15 +1640,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
               )}
 
-              {/* Right Bottom Right: 4 Stacked Bars — Event Slots (Indices 21, 22, 23, 24) */}
-              <div className="md:col-span-2 flex flex-col gap-1.5">
+              <div className="md:col-span-2 flex flex-col gap-2 h-full">
                 {[21, 22, 23, 24].map((idx) => {
                   const barItem = bentoNewsItems[idx];
                   if (!barItem) return null;
                   return (
                     <div
                       key={idx}
-                      className="px-4 py-2.5 rounded-md flex justify-between items-center min-h-[42px] group hover:brightness-110 transition-all duration-200"
+                      className="px-4 py-2 rounded-md flex justify-between items-center flex-1 min-h-[38px] group hover:brightness-110 transition-all duration-200"
                       style={{ backgroundColor: '#802334' }}
                     >
                       {/* Tarikh Event */}
