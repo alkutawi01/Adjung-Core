@@ -205,7 +205,8 @@ const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
       color: finalTextColor
     },
     briefStyle: {
-      color: finalIsDark ? 'rgba(253, 253, 253, 0.95)' : '#57534e'
+      color: finalIsDark ? 'rgba(253, 253, 253, 0.95)' : '#57534e',
+      fontSize: '14px'
     },
     sourceStyle: {
       color: finalIsDark ? '#d6d3d1' : '#78716c',
