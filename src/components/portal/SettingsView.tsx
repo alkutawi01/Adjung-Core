@@ -235,6 +235,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   
   // Form states
   const [isSaving, setIsSaving] = useState(false);
+  const [isRunningPipeline, setIsRunningPipeline] = useState(false);
   const [testingProviderId, setTestingProviderId] = useState<string | null>(null);
   
   // Strategy modal/form states
@@ -486,6 +487,41 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       alert('Ralat semasa menyimpan.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleRunPipeline = async () => {
+    setIsRunningPipeline(true);
+    try {
+      const res = await fetch('/api/system/pipeline/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: true })
+      });
+      if (res.ok) {
+        // Reload logs
+        const logsRes = await fetch('/api/ai/logs');
+        const logsData = await logsRes.json();
+        setLogs(logsData);
+
+        // Reload Cost Center stats
+        const statsRes = await fetch('/api/system/ai/statistics');
+        const statsData = await statsRes.json();
+        setAiStats(statsData.today);
+
+        const breakdownRes = await fetch('/api/system/ai/breakdown');
+        const breakdownData = await breakdownRes.json();
+        setAiBreakdown(breakdownData);
+
+        alert('Pipeline editorial selesai dijalankan untuk semua slot AI.');
+      } else {
+        alert('Gagal menjalankan pipeline editorial.');
+      }
+    } catch (err) {
+      console.error('Failed to run pipeline:', err);
+      alert('Sambungan ralat untuk menjalankan pipeline.');
+    } finally {
+      setIsRunningPipeline(false);
     }
   };
 
@@ -1691,9 +1727,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       </button>
                       <button
                         onClick={() => handleRunPipeline()}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all flex items-center gap-1 font-medium cursor-pointer"
+                        disabled={isRunningPipeline}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition-all flex items-center gap-1 font-medium cursor-pointer disabled:opacity-50"
                       >
-                        <Play size={12} /> Run All Pipelines
+                        <Play size={12} /> {isRunningPipeline ? 'Running...' : 'Run All Pipelines'}
                       </button>
                     </div>
                   </header>
