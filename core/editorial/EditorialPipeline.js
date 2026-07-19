@@ -158,6 +158,10 @@ class EditorialPipeline {
     const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex);
 
     if (isBarSlot) {
+      if (slot.eventExpiryFilter && slot.eventExpiryFilter !== '') {
+        const todayStr = new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
+        compiledPrompt += `\nArahan Had Tempoh Masa Acara: Acara yang dijana MESTILAH berlangsung atau tamat dalam tempoh ${slot.eventExpiryFilter.toLowerCase()} dari tarikh hari ini (${todayStr}) dan belum lagi tamat.\n`;
+      }
       compiledPrompt += `
         Tulis nama acara/event ("title") dan tarikh/tempoh berlangsung ("source") berdasarkan fakta di atas.
         

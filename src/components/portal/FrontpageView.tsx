@@ -270,6 +270,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
+  const isEditingBarSlot = editingSlotIndex !== null && [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
   const [slotsConfig, setSlotsConfig] = useState<any[]>([]);
   const [formConfig, setFormConfig] = useState<any | null>(null);
   const [isSavingSlot, setIsSavingSlot] = useState<boolean>(false);
@@ -403,7 +404,8 @@ URL: ${url}`;
       maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief,
       masterPrompt: masterPrompt,
       refreshHour: config?.refreshHour || '00:00',
-      refreshDay: config?.refreshDay || 'Isnin'
+      refreshDay: config?.refreshDay || 'Isnin',
+      eventExpiryFilter: config?.eventExpiryFilter || ''
     });
     setEditingSlotIndex(idx);
   };
@@ -412,11 +414,17 @@ URL: ${url}`;
     e.preventDefault();
     if (!formConfig) return;
     setIsSavingSlot(true);
+
+    const finalFormConfig = { ...formConfig };
+    if ([7, 8, 9, 10, 21, 22, 23, 24].includes(formConfig.slotIndex)) {
+      finalFormConfig.allowedContentTypes = 'Event';
+    }
+
     try {
       const response = await fetch('/api/system/slots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formConfig)
+        body: JSON.stringify(finalFormConfig)
       });
       const data = await response.json();
       if (data.success) {
@@ -2380,7 +2388,7 @@ URL: ${url}`;
                       <textarea
                         value={formConfig.promptText}
                         onChange={(e) => setFormConfig({ ...formConfig, promptText: e.target.value })}
-                        placeholder="Contoh: Fokus kepada berita geopolitik Asia Tenggara..."
+                        placeholder={isEditingBarSlot ? "Contoh: Cari dan jana program ilmiah, seminar, atau pesta buku di Selangor." : "Contoh: Fokus kepada berita geopolitik Asia Tenggara..."}
                         rows={4}
                         className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs leading-relaxed"
                       />
@@ -2388,14 +2396,38 @@ URL: ${url}`;
 
                     <div className="flex flex-col gap-1">
                       <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Allowed Content Types</label>
-                      <input
-                        type="text"
-                        value={formConfig.allowedContentTypes}
-                        onChange={(e) => setFormConfig({ ...formConfig, allowedContentTypes: e.target.value })}
-                        placeholder="Brief, Essay, dll."
-                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
-                      />
+                      {isEditingBarSlot ? (
+                        <input
+                          type="text"
+                          readOnly
+                          value="Event"
+                          className="w-full px-3 py-2 border border-stone-200 rounded bg-stone-50 text-stone-500 font-mono text-xs cursor-not-allowed font-semibold"
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={formConfig.allowedContentTypes}
+                          onChange={(e) => setFormConfig({ ...formConfig, allowedContentTypes: e.target.value })}
+                          placeholder="Brief, Essay, dll."
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                        />
+                      )}
                     </div>
+
+                    {isEditingBarSlot && (
+                      <div className="flex flex-col gap-1">
+                        <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Had Tempoh Masa Acara</label>
+                        <select
+                          value={formConfig.eventExpiryFilter || ''}
+                          onChange={(e) => setFormConfig({ ...formConfig, eventExpiryFilter: e.target.value })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                        >
+                          <option value="">Tiada Had (Semua Acara)</option>
+                          <option value="Seminggu Sebelum Tamat">Seminggu Sebelum Tamat</option>
+                          <option value="Sebulan Sebelum Tamat">Sebulan Sebelum Tamat</option>
+                        </select>
+                      </div>
+                    )}
 
                     <div className="flex flex-col gap-1">
                       <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kadar Segar Semula (refreshRate)</label>
