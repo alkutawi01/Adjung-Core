@@ -26,37 +26,50 @@ class EditorialPipeline {
 
     // 1. Resolve structured source fetching (RSS/Atom/JSON/API/HTML)
     if (strategy === 'Structured Sources Only' || strategy === 'Structured Sources -> Search Fallback') {
-      if (slot.sourcesList && (slot.sourcesList.startsWith('http://') || slot.sourcesList.startsWith('https://'))) {
-        try {
-          const fetchResult = await SourceFetcher.fetchRaw(slot.sourcesList);
-          
-          if (fetchResult.status === 200) {
-            const transformer = registry.resolve(slot.sourcesList, fetchResult.rawContent, fetchResult.responseHeaders);
-            const records = transformer.parse(fetchResult.rawContent);
-            const normalized = SourceNormalizer.normalize(records);
+      if (slot.sourcesList && slot.sourcesList.trim() !== '') {
+        const urls = slot.sourcesList.split(/[\s,;\n\r]+/).map(u => u.trim()).filter(u => u.startsWith('http://') || u.startsWith('https://'));
+        
+        let allNormalizedRecords = [];
+        let combinedHashes = [];
+        let firstActiveUrl = '';
 
-            if (normalized.length > 0) {
-              sourceHash = SourceCache.calculateHash(normalized);
-              const isUnchanged = await SourceCache.isHashUnchanged(dbGet, slotIndex, sourceHash);
-
-              if (isUnchanged) {
-                return {
-                  status: 'SKIPPED_CACHE',
-                  message: `Skipped: Source content is unchanged (stable hash match: ${sourceHash.substring(0, 8)}).`
-                };
+        for (const url of urls) {
+          try {
+            const fetchResult = await SourceFetcher.fetchRaw(url);
+            if (fetchResult.status === 200) {
+              const transformer = registry.resolve(url, fetchResult.rawContent, fetchResult.responseHeaders);
+              const records = transformer.parse(fetchResult.rawContent);
+              const normalized = SourceNormalizer.normalize(records);
+              if (normalized && normalized.length > 0) {
+                if (!firstActiveUrl) {
+                  firstActiveUrl = normalized[0].url || url;
+                }
+                allNormalizedRecords.push(...normalized);
+                combinedHashes.push(SourceCache.calculateHash(normalized));
               }
-
-              // Serialize normalized factual records for the AI prompt
-              rawSourceText = normalized.map(r => `Title: ${r.title}\nURL: ${r.url}\nContent: ${r.content}\n---`).join('\n');
-              aiSourceUrl = normalized[0].url || slot.sourcesList;
-              fetchedSuccessfully = true;
             }
+          } catch (error) {
+            console.error(`Structured source fetch failed for url "${url}" in slot ${slotIndex}:`, error);
           }
-        } catch (error) {
-          console.error(`Structured source fetch failed for slot ${slotIndex}:`, error);
-          if (strategy === 'Structured Sources Only') {
-            throw new Error(`Failed to fetch structured source: ${error.message}`);
+        }
+
+        if (allNormalizedRecords.length > 0) {
+          sourceHash = combinedHashes.join('-');
+          const isUnchanged = await SourceCache.isHashUnchanged(dbGet, slotIndex, sourceHash);
+
+          if (isUnchanged) {
+            return {
+              status: 'SKIPPED_CACHE',
+              message: `Skipped: Source content is unchanged (stable hash match: ${sourceHash.substring(0, 8)}).`
+            };
           }
+
+          // Serialize normalized factual records for the AI prompt
+          rawSourceText = allNormalizedRecords.map(r => `Title: ${r.title}\nURL: ${r.url}\nContent: ${r.content}\n---`).join('\n');
+          aiSourceUrl = firstActiveUrl || slot.sourcesList.split(/[\s,;\n\r]+/)[0] || '#';
+          fetchedSuccessfully = true;
+        } else if (strategy === 'Structured Sources Only') {
+          throw new Error('Failed to fetch structured sources or no content records resolved.');
         }
       }
     }

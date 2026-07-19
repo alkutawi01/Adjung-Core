@@ -2279,6 +2279,9 @@ URL: ${url}`;
                         placeholder="https://feeds.feedburner.com/... atau URL portal berita"
                         className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
                       />
+                      <p className="text-[9px] text-stone-500 font-sans mt-0.5">
+                        * Nota: Anda boleh memasukkan lebih daripada satu pautan sumber berita (RSS Feed atau URL) dengan memisahkannya menggunakan koma (,), jarak (space), atau baris baru.
+                      </p>
                     </div>
 
                     <div className="flex flex-col gap-1 col-span-2">
