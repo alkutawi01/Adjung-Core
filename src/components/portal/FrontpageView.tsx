@@ -259,6 +259,23 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [parsedNewsItems, setParsedNewsItems] = useState<any[]>([]);
   const [activeLanguage, setActiveLanguage] = useState<'ms' | 'zh' | 'ar' | 'en'>('ms');
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
+  const [slotsConfig, setSlotsConfig] = useState<any[]>([]);
+  const [formConfig, setFormConfig] = useState<any | null>(null);
+  const [isSavingSlot, setIsSavingSlot] = useState<boolean>(false);
+  const [refreshKey, setRefreshKey] = useState<number>(0);
+
+  const loadSlotsConfig = () => {
+    fetch('/api/system/slots')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSlotsConfig(data);
+        }
+      })
+      .catch(err => console.error('Failed to load slots config:', err));
+  };
 
   useEffect(() => {
     fetch('/api/translation/configs')
@@ -278,7 +295,66 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         setParsedNewsItems(data);
       })
       .catch(err => console.error('Failed to load active bento layout:', err));
-  }, [systemSettings.inTheNewsText, activeLanguage]);
+    loadSlotsConfig();
+  }, [systemSettings.inTheNewsText, activeLanguage, refreshKey]);
+
+  const handleCardClick = (idx: number) => {
+    if (!isEditMode) return;
+    const config = slotsConfig.find(s => s.slotIndex === idx);
+    const item = bentoNewsItems[idx];
+    setFormConfig({
+      slotIndex: idx,
+      contentMode: config?.contentMode || 'Manual',
+      providerId: config?.providerId || '',
+      model: config?.model || '',
+      promptText: config?.promptText || '',
+      sourcesList: config?.sourcesList || '',
+      refreshRate: config?.refreshRate || 'Daily',
+      allowedContentTypes: config?.allowedContentTypes || '',
+      priority: config?.priority || 'Medium',
+      expiresAt: config?.expiresAt || '',
+      bgColor: config?.bgColor || 'transparent',
+      borderColor: config?.borderColor || '',
+      textColor: config?.textColor || '#1F1F1F',
+      manualTitle: config?.manualTitle || item?.title || '',
+      manualSummary: config?.manualSummary || item?.brief || '',
+      manualSource: config?.manualSource || item?.source || '',
+      manualUrl: config?.manualUrl || item?.url || '#',
+      manualImageUrl: config?.manualImageUrl || item?.imageUrl || '',
+      manualDesk: config?.manualDesk || item?.desk || '',
+      activeObjectId: config?.activeObjectId || '',
+      searchStrategy: config?.searchStrategy || 'Structured Sources Only',
+      carouselInterval: config?.carouselInterval || 10,
+      carouselDelay: config?.carouselDelay || 0
+    });
+    setEditingSlotIndex(idx);
+  };
+
+  const handleSaveSlot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formConfig) return;
+    setIsSavingSlot(true);
+    try {
+      const response = await fetch('/api/system/slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formConfig)
+      });
+      const data = await response.json();
+      if (data.success) {
+        setRefreshKey(prev => prev + 1);
+        setEditingSlotIndex(null);
+        setFormConfig(null);
+      } else {
+        alert('Gagal menyimpan slot: ' + (data.error || ''));
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Ralat menyimpan slot: ' + (err.message || ''));
+    } finally {
+      setIsSavingSlot(false);
+    }
+  };
 
   const newestEssays = React.useMemo(() => {
     const list = [...entries]
@@ -1101,6 +1177,17 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               </h2>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsEditMode(!isEditMode)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer ${
+                  isEditMode
+                    ? 'bg-[#802334] text-white border-[#802334] shadow-sm font-semibold'
+                    : 'bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334]'
+                }`}
+              >
+                <Info size={12} className={isEditMode ? "animate-pulse" : ""} />
+                {isEditMode ? 'Tutup Edit' : 'Edit Kandungan'}
+              </button>
               {enabledLanguages.length > 0 && (
                 <div className="flex items-center gap-1 bg-stone-100 p-0.5 border border-stone-200 rounded text-xs select-none">
                   <button
@@ -1138,8 +1225,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             
             {/* ROW 1: Full horizontal (Index 0) */}
             {bentoNewsItems[0] && (
-              <div 
-                className="col-span-1 md:col-span-6 p-6 md:p-8 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer"
+                <div 
+                  onClick={() => handleCardClick(0)}
+                  className={`col-span-1 md:col-span-6 p-6 md:p-8 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
                 <BentoInner itemKey={bentoNewsItems[0].title} className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">
@@ -1165,7 +1253,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Left Column: Vertical (Index 1) */}
               {bentoNewsItems[1] && (
                 <div 
-                  className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
+                  onClick={() => handleCardClick(1)}
+                  className={`md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
                   <BentoInner itemKey={bentoNewsItems[1].title} aiProvider={bentoNewsItems[1].aiProvider}>
                     <div className="space-y-4">
@@ -1190,7 +1279,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Right/Top: Horizontal (Index 2) */}
               {bentoNewsItems[2] && (
                 <div 
-                  className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
+                  onClick={() => handleCardClick(2)}
+                  className={`md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey={bentoNewsItems[2].title} className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="space-y-2 flex-1">
@@ -1213,7 +1303,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Right/Bottom-Left: Square (Index 3) */}
               {bentoNewsItems[3] && (
                 <div 
-                  className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
+                  onClick={() => handleCardClick(3)}
+                  className={`md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
                   <BentoInner itemKey={bentoNewsItems[3].title} aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
@@ -1238,8 +1329,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Right/Bottom-Right: Two Stacked Compacts (Indices 4 & 5) */}
               <div className="md:col-span-2 flex flex-col gap-4">
                 {bentoNewsItems[4] && (
-                  <div 
-                    className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
+                <div 
+                  onClick={() => handleCardClick(4)}
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey={bentoNewsItems[4].title} aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
@@ -1257,8 +1349,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                 )}
                 {bentoNewsItems[5] && (
-                  <div 
-                    className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
+                <div 
+                  onClick={() => handleCardClick(5)}
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
                     <BentoInner itemKey={bentoNewsItems[5].title} aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
@@ -1285,7 +1378,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Left Top: Horizontal (Index 6) */}
               {bentoNewsItems[6] && (
                 <div 
-                  className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
+                  onClick={() => handleCardClick(6)}
+                  className={`md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{bentoNewsItems[6].desk}
@@ -1309,7 +1403,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Right Column: Vertical (Index 12) */}
               {bentoNewsItems[12] && (
                 <div 
-                  className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
+                  onClick={() => handleCardClick(12)}
+                  className={`md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[12], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <div>
@@ -1339,7 +1434,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   return (
                     <div
                       key={idx}
-                      className="px-4 py-2 rounded-md flex justify-between items-center flex-1 min-h-[38px] group hover:brightness-110 transition-all duration-200"
+                      onClick={() => handleCardClick(idx)} className={`px-4 py-2 rounded-md flex justify-between items-center flex-1 min-h-[38px] group hover:brightness-110 transition-all duration-200 ${isEditMode ? 'ring-2 ring-dashed ring-[#E9D8A6] cursor-pointer' : ''}`}
                       style={{ backgroundColor: '#802334' }}
                     >
                       {/* Tarikh Event */}
@@ -1358,7 +1453,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Left Bottom Right: Square (Index 11) */}
               {bentoNewsItems[11] && (
                 <div 
-                  className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
+                  onClick={() => handleCardClick(11)}
+                  className={`md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[11], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{bentoNewsItems[11].desk}
@@ -1387,7 +1483,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               {bentoNewsItems[13] && (
                 <div 
-                  className="col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
+                  onClick={() => handleCardClick(13)}
+                  className={`col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[13], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{bentoNewsItems[13].desk}
@@ -1412,7 +1509,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
               {bentoNewsItems[14] && (
                 <div 
-                  className="col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
+                  onClick={() => handleCardClick(14)}
+                  className={`col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[14], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{bentoNewsItems[14].desk}
@@ -1442,7 +1540,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Left Column: Vertical (Index 15) */}
               {bentoNewsItems[15] && (
                 <div 
-                  className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
+                  onClick={() => handleCardClick(15)}
+                  className={`md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[15], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <div>
@@ -1468,7 +1567,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Square (Index 16) */}
               {bentoNewsItems[16] && (
                 <div 
-                  className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
+                  onClick={() => handleCardClick(16)}
+                  className={`md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[16], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[16]).deskStyle}>{bentoNewsItems[16].desk}
@@ -1494,8 +1594,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Two Stacked Compacts (Indices 17 & 18) */}
               <div className="md:col-span-2 flex flex-col gap-4">
                 {bentoNewsItems[17] && (
-                  <div 
-                    className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
+                <div 
+                  onClick={() => handleCardClick(17)}
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[17], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[17]).deskStyle}>{bentoNewsItems[17].desk}
@@ -1514,8 +1615,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
                 )}
                 {bentoNewsItems[18] && (
-                  <div 
-                    className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
+                <div 
+                  onClick={() => handleCardClick(18)}
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[18], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[18]).deskStyle}>{bentoNewsItems[18].desk}
@@ -1538,7 +1640,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Bottom Horizontal spanning across Col 3-6 (Index 19) */}
               {bentoNewsItems[19] && (
                 <div 
-                  className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
+                  onClick={() => handleCardClick(19)}
+                  className={`md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[19], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{bentoNewsItems[19].desk}
@@ -1567,7 +1670,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Left Column: Vertical (Index 26) */}
               {bentoNewsItems[26] && (
                 <div 
-                  className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
+                  onClick={() => handleCardClick(26)}
+                  className={`md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[26], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <div>
@@ -1593,7 +1697,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Right Top: Horizontal spanning across Col 3-6 (Index 20) */}
               {bentoNewsItems[20] && (
                 <div 
-                  className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
+                  onClick={() => handleCardClick(20)}
+                  className={`md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[20], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{bentoNewsItems[20].desk}
@@ -1617,7 +1722,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Right Bottom Left: Square (Index 25) */}
               {bentoNewsItems[25] && (
                 <div 
-                  className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
+                  onClick={() => handleCardClick(25)}
+                  className={`md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[25], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{bentoNewsItems[25].desk}
@@ -1647,7 +1753,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   return (
                     <div
                       key={idx}
-                      className="px-4 py-2 rounded-md flex justify-between items-center flex-1 min-h-[38px] group hover:brightness-110 transition-all duration-200"
+                      onClick={() => handleCardClick(idx)} className={`px-4 py-2 rounded-md flex justify-between items-center flex-1 min-h-[38px] group hover:brightness-110 transition-all duration-200 ${isEditMode ? 'ring-2 ring-dashed ring-[#E9D8A6] cursor-pointer' : ''}`}
                       style={{ backgroundColor: '#802334' }}
                     >
                       {/* Tarikh Event */}
@@ -1669,7 +1775,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               {bentoNewsItems[27] && (
                 <div 
-                  className="col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
+                  onClick={() => handleCardClick(27)}
+                  className={`col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[27], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[27]).deskStyle}>{bentoNewsItems[27].desk}
@@ -1694,7 +1801,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
               {bentoNewsItems[28] && (
                 <div 
-                  className="col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
+                  onClick={() => handleCardClick(28)}
+                  className={`col-span-1 md:col-span-3 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[28], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[28]).deskStyle}>{bentoNewsItems[28].desk}
@@ -1724,7 +1832,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Left Column: Vertical (Index 29) */}
               {bentoNewsItems[29] && (
                 <div 
-                  className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
+                  onClick={() => handleCardClick(29)}
+                  className={`md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[29], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <div>
@@ -1750,7 +1859,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Square (Index 30) */}
               {bentoNewsItems[30] && (
                 <div 
-                  className="md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full"
+                  onClick={() => handleCardClick(30)}
+                  className={`md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[30], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[30]).deskStyle}>{bentoNewsItems[30].desk}
@@ -1776,8 +1886,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Two Stacked Compacts (Indices 31 & 32) */}
               <div className="md:col-span-2 flex flex-col gap-4">
                 {bentoNewsItems[31] && (
-                  <div 
-                    className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
+                <div 
+                  onClick={() => handleCardClick(31)}
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[31], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[31]).deskStyle}>{bentoNewsItems[31].desk}
@@ -1796,8 +1907,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
                 )}
                 {bentoNewsItems[32] && (
-                  <div 
-                    className="p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1"
+                <div 
+                  onClick={() => handleCardClick(32)}
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[32], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[32]).deskStyle}>{bentoNewsItems[32].desk}
@@ -1820,7 +1932,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Bottom Horizontal spanning across Col 3-6 (Index 33) */}
               {bentoNewsItems[33] && (
                 <div 
-                  className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
+                  onClick={() => handleCardClick(33)}
+                  className={`md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[33], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{bentoNewsItems[33].desk}
@@ -1849,7 +1962,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Left Top: Horizontal spanning across Col 1-4 (Index 34) */}
               {bentoNewsItems[34] && (
                 <div 
-                  className="md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px]"
+                  onClick={() => handleCardClick(34)}
+                  className={`md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[34], 'transparent').cardStyle} >
                   <div className="space-y-2 flex-1">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{bentoNewsItems[34].desk}
@@ -1873,7 +1987,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Right Column: Vertical (Index 37) */}
               {bentoNewsItems[37] && (
                 <div 
-                  className="md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full"
+                  onClick={() => handleCardClick(37)}
+                  className={`md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[37], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <div>
@@ -1899,8 +2014,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Left Bottom: Two Side-by-Side elements in Col 1-4 */}
               <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {bentoNewsItems[35] && (
-                  <div 
-                    className="p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
+                <div 
+                  onClick={() => handleCardClick(35)}
+                  className={`p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[35], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{bentoNewsItems[35].desk}
@@ -1924,8 +2040,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 )}
 
                 {bentoNewsItems[36] && (
-                  <div 
-                    className="p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px]"
+                <div 
+                  onClick={() => handleCardClick(36)}
+                  className={`p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[36], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{bentoNewsItems[36].desk}
@@ -1958,8 +2075,171 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
       </div>
 
+      {/* Pop-up Modal Penyuntingan Slot Bento */}
+      {editingSlotIndex !== null && formConfig && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-lg border border-stone-200 max-w-xl w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl animate-fade-in">
+            <header className="px-6 py-4 border-b border-stone-150 flex justify-between items-center bg-stone-50">
+              <div>
+                <h3 className="font-serif text-xs md:text-sm font-bold text-[#802334] uppercase tracking-wide">
+                  Urus Slot {editingSlotIndex + 1}: {bentoNewsItems[editingSlotIndex]?.desk || 'Umum'}
+                </h3>
+                <p className="text-[9px] text-stone-500 font-sans mt-0.5 font-bold uppercase tracking-wider">
+                  Ubah kandungan manual, warna, atau mod penjanaan.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingSlotIndex(null);
+                  setFormConfig(null);
+                }}
+                className="text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </header>
+            
+            <form onSubmit={handleSaveSlot} className="p-6 flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+                
+                {/* Mod Kandungan */}
+                <div className="flex flex-col gap-1 col-span-2">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Mod Kandungan</label>
+                  <select
+                    value={formConfig.contentMode}
+                    onChange={(e) => setFormConfig({ ...formConfig, contentMode: e.target.value })}
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                  >
+                    <option value="Manual">Manual (Kemasukan Sendiri)</option>
+                    <option value="AI Generated">AI Generated (Automatik)</option>
+                    <option value="Hybrid">Hybrid (Campuran)</option>
+                  </select>
+                </div>
 
+                {/* Tajuk Manual */}
+                <div className="flex flex-col gap-1 col-span-2">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Tajuk Manual</label>
+                  <input
+                    type="text"
+                    value={formConfig.manualTitle}
+                    onChange={(e) => setFormConfig({ ...formConfig, manualTitle: e.target.value })}
+                    placeholder="Masukkan tajuk berita..."
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                  />
+                </div>
 
+                {/* Ringkasan Manual */}
+                {formConfig.contentMode !== 'AI Generated' && (
+                  <div className="flex flex-col gap-1 col-span-2">
+                    <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Ringkasan / Brief Manual</label>
+                    <textarea
+                      value={formConfig.manualSummary}
+                      onChange={(e) => setFormConfig({ ...formConfig, manualSummary: e.target.value })}
+                      placeholder="Masukkan ringkasan berita..."
+                      rows={4}
+                      className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs leading-relaxed"
+                    />
+                  </div>
+                )}
+
+                {/* Kategori / Desk */}
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kategori (Desk)</label>
+                  <input
+                    type="text"
+                    value={formConfig.manualDesk}
+                    onChange={(e) => setFormConfig({ ...formConfig, manualDesk: e.target.value })}
+                    placeholder="Contoh: SUKAN, EKONOMI..."
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                  />
+                </div>
+
+                {/* Sumber / Tarikh */}
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Sumber / Tarikh</label>
+                  <input
+                    type="text"
+                    value={formConfig.manualSource}
+                    onChange={(e) => setFormConfig({ ...formConfig, manualSource: e.target.value })}
+                    placeholder="Contoh: Utusan, 19 Jul 2026..."
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
+                  />
+                </div>
+
+                {/* Pautan URL */}
+                <div className="flex flex-col gap-1 col-span-2">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Pautan URL</label>
+                  <input
+                    type="text"
+                    value={formConfig.manualUrl}
+                    onChange={(e) => setFormConfig({ ...formConfig, manualUrl: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                  />
+                </div>
+
+                {/* Gambar URL */}
+                <div className="flex flex-col gap-1 col-span-2">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Gambar URL</label>
+                  <input
+                    type="text"
+                    value={formConfig.manualImageUrl}
+                    onChange={(e) => setFormConfig({ ...formConfig, manualImageUrl: e.target.value })}
+                    placeholder="/uploads/... atau URL luar"
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                  />
+                </div>
+
+                {/* Warna Latar (bgColor) */}
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Warna Latar (bgColor)</label>
+                  <input
+                    type="text"
+                    value={formConfig.bgColor}
+                    onChange={(e) => setFormConfig({ ...formConfig, bgColor: e.target.value })}
+                    placeholder="transparent, #ffffff, #802334..."
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                  />
+                </div>
+
+                {/* Warna Teks (textColor) */}
+                <div className="flex flex-col gap-1">
+                  <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Warna Teks (textColor)</label>
+                  <input
+                    type="text"
+                    value={formConfig.textColor}
+                    onChange={(e) => setFormConfig({ ...formConfig, textColor: e.target.value })}
+                    placeholder="#1F1F1F, #FDFDFD..."
+                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                  />
+                </div>
+
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-stone-150">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingSlotIndex(null);
+                    setFormConfig(null);
+                  }}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded text-xs font-semibold cursor-pointer transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingSlot}
+                  className="px-5 py-2 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm transition-all disabled:opacity-50"
+                >
+                  {isSavingSlot ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
