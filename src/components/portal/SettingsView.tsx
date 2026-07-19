@@ -795,18 +795,43 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] uppercase font-bold text-blue-800">Refresh Rate</label>
-                      <select
-                        value={currentSlotConfig.refreshRate || 'Daily'}
-                        onChange={(e) => setSlotsConfig(prev => prev.map(s => s.slotIndex === selectedSlotIndex ? { ...s, refreshRate: e.target.value } : s))}
-                        className="w-full px-2 py-1.5 border border-blue-200 rounded text-xs bg-white"
-                      >
-                        <option value="Hourly">Hourly</option>
-                        <option value="Daily">Daily</option>
-                        <option value="Weekly">Weekly</option>
-                        <option value="Manual">Manual Only</option>
-                      </select>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase font-bold text-blue-800">Sumber (Sources URL)</label>
+                        <input
+                          type="text"
+                          value={currentSlotConfig.sourcesList || ''}
+                          onChange={(e) => setSlotsConfig(prev => prev.map(s => s.slotIndex === selectedSlotIndex ? { ...s, sourcesList: e.target.value } : s))}
+                          placeholder="Cth: https://example.com/rss.xml"
+                          className="w-full px-2 py-1.5 border border-blue-200 rounded text-xs bg-white"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase font-bold text-blue-800">Search Strategy</label>
+                        <select
+                          value={currentSlotConfig.searchStrategy || 'Structured Sources Only'}
+                          onChange={(e) => setSlotsConfig(prev => prev.map(s => s.slotIndex === selectedSlotIndex ? { ...s, searchStrategy: e.target.value } : s))}
+                          className="w-full px-2 py-1.5 border border-blue-200 rounded text-xs bg-white"
+                        >
+                          <option value="Structured Sources Only">Structured Sources Only</option>
+                          <option value="Structured Sources -> Search Fallback">Structured Sources → Search Fallback</option>
+                          <option value="Search Only">Search Only</option>
+                          <option value="Disabled">Disabled</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase font-bold text-blue-800">Refresh Rate</label>
+                        <select
+                          value={currentSlotConfig.refreshRate || 'Daily'}
+                          onChange={(e) => setSlotsConfig(prev => prev.map(s => s.slotIndex === selectedSlotIndex ? { ...s, refreshRate: e.target.value } : s))}
+                          className="w-full px-2 py-1.5 border border-blue-200 rounded text-xs bg-white"
+                        >
+                          <option value="Hourly">Hourly</option>
+                          <option value="Daily">Daily</option>
+                          <option value="Weekly">Weekly</option>
+                          <option value="Manual">Manual Only</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -5,8 +5,8 @@ import crypto from 'crypto';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { db as mockDb } from './src/db/mockDb.js';
 import { GoogleGenAI } from '@google/genai';
+import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -751,7 +751,7 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
 
 const runEditorialPipeline = async (slotIndex, runId = null) => {
   const timestamp = new Date().toISOString();
-  const currentRunId = runId || `${new Date().toISOString().replace(/[^0-9]/g, '').substring(0, 14)}`;
+  const currentRunId = runId || `run-${Date.now()}`;
 
   const slot = await dbGet("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
   if (!slot || slot.contentMode !== 'AI Generated') return null;
@@ -761,184 +761,44 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
 
   try {
     const provider = await dbGet("SELECT * FROM ai_providers WHERE id = ?", [slot.providerId]);
-    
-    if (!provider || !slot.promptText) {
-      throw new Error('Slot is missing AI provider or prompt text');
+    if (!provider) {
+      throw new Error('AI Provider not configured.');
     }
 
-    // Fetch and Hash Source
-    const { rawContent, fromCache } = await fetchSourceWithCache(slot.sourcesList);
-    const normalizedSource = normalizeContent(rawContent);
-    const sourceHash = crypto.createHash('sha256').update(normalizedSource).digest('hex');
+    const globalPrompt = process.env.GLOBAL_PROMPT_PREFIX || 'Anda adalah editor berita profesional.';
+    const campaignPrompt = process.env.EDITORIAL_CAMPAIGN || 'Fokus kepada berita terkini.';
 
-    // Compile and Hash Prompt
-    const globalPrompt = process.env.GLOBAL_PROMPT_PREFIX || '';
-    const campaignPrompt = process.env.EDITORIAL_CAMPAIGN || '';
-    const slotPrompt = slot.promptText || '';
-    const compiledPrompt = `Global: ${globalPrompt} | Campaign: ${campaignPrompt} | Slot: ${slotPrompt}`;
-    const promptHash = crypto.createHash('sha256').update(normalizeContent(compiledPrompt)).digest('hex');
+    // Panggil enjin pipeline modular teras
+    const result = await EditorialPipeline.runSlotPipeline(
+      db,
+      slot,
+      provider,
+      globalPrompt,
+      campaignPrompt,
+      currentRunId
+    );
 
-    // Multi-layer Caching Key
-    const systemPromptVersion = '1.0';
-    const outputSchemaVersion = '1.0';
-    const providerVersion = provider.status || 'unknown';
-    const aiCacheKey = crypto.createHash('sha256').update(
-      sourceHash + promptHash + provider.id + provider.model + providerVersion + systemPromptVersion + outputSchemaVersion
-    ).digest('hex');
+    const intervalSecs = 3600; // Lalai 1 jam
+    const nextRun = Date.now() + (intervalSecs * 1000);
 
-    // Check AI Cache
-    const cachedValue = await dbGet("SELECT objectId FROM editorial_attribute_values WHERE attributeId = 'aiCacheKey' AND valueText = ? LIMIT 1", [aiCacheKey]);
-    if (cachedValue) {
-      const logMessage = fromCache 
-        ? `Skipped because Source Cache: Source content is unchanged (Layer 0/1 hit). (AI Cache Key: ${aiCacheKey.substring(0, 8)})`
-        : `Skipped because AI Cache: Reusing AI response. (AI Cache Key: ${aiCacheKey.substring(0, 8)})`;
-
-      await dbRun(`
-        INSERT INTO pipeline_logs (createdAt, level, promptVersion, layoutTemplateId, slotIndex, message, runId)
-        VALUES (?, 'INFO', ?, 'frontpage', ?, ?, ?)
-      `, [timestamp, '1.0', slotIndex, logMessage, currentRunId]);
-
-      // Kemas kini nextRunAt (Falsafah Berkala) dan metadata state machine
-      const intervalSecs = slot.refreshInterval || 3600;
-      const nextRun = Date.now() + (intervalSecs * 1000);
+    if (result.status === 'SKIPPED_CACHE') {
+      const logMessage = result.message || 'Skipped: Kandungan sumber tidak berubah.';
       await dbRun(`
         UPDATE slots_config 
         SET nextRunAt = ?, lastSuccessfulRunAt = ?, lastRunStatus = 'CACHE_HIT', lastRunMessage = ? 
         WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?
       `, [nextRun, timestamp, logMessage, slotIndex]);
 
-      return { objectId: cachedValue.objectId, status: 'CACHE_HIT' };
-    }
-
-    const apiKey = process.env[provider.secretName] || '';
-    let title = '';
-    let summary = '';
-    let customPayload = {};
-
-    const allowedTypes = (slot.allowedContentTypes || 'Berita').split(',');
-    const outputType = allowedTypes[0].trim();
-    let aiCategory = 'Umum';
-
-    let aiSourceUrl = '';
-
-    if (apiKey) {
-      try {
-        const fullPromptToAI = `
-          Global System Context: ${globalPrompt}
-          Current Campaign Focus: ${campaignPrompt}
-          Slot Specific Instructions: ${slotPrompt}
-          
-          Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" berdasarkan arahan di atas.
-          
-          SYARAT PENTING (MANDATORY):
-          1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
-          2. Ringkasan berita ("summary") mestilah TIDAK MELEBIHI 240 aksara.
-          3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
-          4. Sertakan pautan URL rujukan yang anda ketahui (jika ada) untuk harta "source_url". Jika tiada pautan rujukan, gunakan "#".
-          5. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
-          6. Hasilkan respons dalam format JSON sahaja dengan struktur:
-             { 
-               "title": "Tajuk", 
-               "summary": "Ringkasan",
-               "category": "KATEGORI_BERITA",
-               "source_url": "https://url-sumber-berita"
-             }
-        `;
-        const data = await callAIProvider(provider, fullPromptToAI, 'Editorial Generation', currentRunId);
-        title = data.title || '';
-        summary = data.summary || '';
-        aiSourceUrl = data.source_url || '#';
-        aiCategory = data.category ? data.category.trim().toUpperCase() : 'UMUM';
-      } catch (e) {
-        throw new Error(`AI generation error: ${e.message}`);
-      }
-    } else {
-      throw new Error(`Secret key ${provider.secretName} is not set for provider ${provider.name}`);
-    }
-
-    if (!title || !summary) {
-      throw new Error('AI returned empty title or summary.');
-    }
-
-    // Insert Editorial Object
-    const objectId = `object-${outputType.toLowerCase()}-slot${slotIndex}-${Date.now()}`;
-    await dbRun(`
-      INSERT INTO editorial_objects (id, type, categoryId, priority, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [objectId, outputType, aiCategory, slot.priority || 'Medium', timestamp, timestamp]);
-
-    // Insert Initial Revision
-    const revisionResult = await dbRun(`
-      INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-      VALUES (?, 1.0, 'ms', ?, ?, 'approved', ?, ?, ?)
-    `, [objectId, title, summary, `pipeline-slot-${slotIndex}`, timestamp, timestamp]);
-    const revisionId = revisionResult.lastID || 1;
-
-    // Save Attribute Values
-    const sourceUrl = aiSourceUrl.trim();
-
-    const attributesToSave = [
-      { key: 'aiCacheKey', val: aiCacheKey },
-      { key: 'sourceHash', val: sourceHash },
-      { key: 'desk', val: aiCategory },
-      { key: 'source', val: provider.name },
-      { key: 'url', val: sourceUrl },
-      { key: 'aiProvider', val: provider.name }
-    ];
-
-    Object.keys(customPayload).forEach(key => {
-      attributesToSave.push({ key: key, val: customPayload[key] });
-    });
-
-    for (const av of attributesToSave) {
       await dbRun(`
-        INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText)
-        VALUES (?, ?, ?, ?)
-      `, [objectId, revisionId, av.key, av.val]);
+        INSERT INTO pipeline_logs (createdAt, level, promptVersion, layoutTemplateId, slotIndex, message, runId)
+        VALUES (?, 'INFO', '1.0', 'frontpage', ?, ?, ?)
+      `, [timestamp, slotIndex, logMessage, currentRunId]);
+
+      return { status: 'CACHE_HIT' };
     }
 
-    // Auto Translations
-    const translationConfigs = await dbAll("SELECT * FROM translation_configs WHERE isEnabled = 1");
-    for (const tConfig of translationConfigs) {
-      const translatorProvider = await dbGet("SELECT * FROM ai_providers WHERE id = ?", [tConfig.providerId]);
-      if (translatorProvider) {
-        try {
-          const transPrompt = `
-            Terjemah tajuk dan ringkasan kandungan berita di bawah dari Bahasa Melayu ke ${tConfig.languageName} (${tConfig.languageCode}).
-            
-            Tajuk Asal: ${title}
-            Ringkasan Asal: ${summary}
-            
-            Syarat Terjemahan:
-            1. Terjemah secara profesional.
-            2. Had saiz tajuk terjemahan mestilah di bawah 115 aksara.
-            3. Had saiz ringkasan terjemahan mestilah di bawah 240 aksara.
-            4. Hasilkan respons dalam format JSON sahaja dengan struktur:
-               { "title": "Tajuk Terjemahan", "summary": "Ringkasan Terjemahan" }
-          `;
-          const transData = await callAIProvider(translatorProvider, transPrompt, 'Translation', currentRunId);
-          const transTitle = transData.title || '';
-          const transSummary = transData.summary || '';
-
-          if (transTitle && transSummary) {
-            await dbRun(`
-              INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-              VALUES (?, 1.0, ?, ?, ?, 'approved', ?, ?, ?)
-            `, [objectId, tConfig.languageCode, transTitle, transSummary, `translator-${tConfig.languageCode}`, timestamp, timestamp]);
-            
-            console.log(`Translated successfully to ${tConfig.languageCode} using ${translatorProvider.name}`);
-          }
-        } catch (tErr) {
-          console.error(`Translation failed for language ${tConfig.languageCode}:`, tErr);
-        }
-      }
-    }
-
-    // Set next run time and update state machine metadata
-    const intervalSecs = slot.refreshInterval || 3600;
-    const nextRun = Date.now() + (intervalSecs * 1000);
-    const logMsg = `Successfully generated Editorial Object ${objectId} (${outputType}) using ${provider.name}`;
-
+    // Penjanaan Berjaya (Success)
+    const logMsg = `Successfully generated Editorial Object ${result.objectId} using ${provider.name}`;
     await dbRun(`
       UPDATE slots_config 
       SET nextRunAt = ?, lastSuccessfulRunAt = ?, lastRunStatus = 'SUCCESS', lastRunMessage = ? 
@@ -947,13 +807,62 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
 
     await dbRun(`
       INSERT INTO pipeline_logs (createdAt, level, promptVersion, layoutTemplateId, slotIndex, message, runId)
-      VALUES (?, 'SUCCESS', ?, 'frontpage', ?, ?, ?)
-    `, [timestamp, '1.0', slotIndex, logMsg, currentRunId]);
+      VALUES (?, 'SUCCESS', '1.0', 'frontpage', ?, ?, ?)
+    `, [timestamp, slotIndex, logMsg, currentRunId]);
 
-    return { objectId, status: 'SUCCESS' };
+    // Jalankan Terjemahan Automatik jika ada
+    const translationConfigs = await dbAll("SELECT * FROM translation_configs WHERE isEnabled = 1");
+    for (const tConfig of translationConfigs) {
+      const translatorProvider = await dbGet("SELECT * FROM ai_providers WHERE id = ?", [tConfig.providerId]);
+      if (translatorProvider) {
+        try {
+          const transPrompt = `
+            Terjemah tajuk dan ringkasan kandungan berita di bawah dari Bahasa Melayu ke ${tConfig.languageName} (${tConfig.languageCode}).
+            
+            Tajuk Asal: ${result.title}
+            Ringkasan Asal: ${result.summary}
+            
+            Syarat Terjemahan:
+            1. Terjemah secara profesional.
+            2. Had saiz tajuk terjemahan mestilah di bawah 115 aksara.
+            3. Had saiz ringkasan terjemahan mestilah di bawah 240 aksara.
+            4. Hasilkan respons dalam format JSON sahaja dengan struktur:
+               { "title": "Tajuk Terjemahan", "summary": "Ringkasan Terjemahan" }
+          `;
+          
+          let translatorInstance;
+          const transApiKey = process.env[translatorProvider.secretName] || '';
+          if (transApiKey) {
+            if (translatorProvider.id.includes('gemini')) {
+              const GeminiProvider = (await import('./core/ai/GeminiProvider.js')).default;
+              translatorInstance = new GeminiProvider(transApiKey, translatorProvider.model);
+            } else if (translatorProvider.id.includes('claude')) {
+              const ClaudeProvider = (await import('./core/ai/ClaudeProvider.js')).default;
+              translatorInstance = new ClaudeProvider(transApiKey, translatorProvider.model);
+            }
+
+            if (translatorInstance) {
+              const transResult = await translatorInstance.generate(transPrompt, 'Anda adalah penterjemah profesional.');
+              const transTitle = transResult.parsedJson.title || '';
+              const transSummary = transResult.parsedJson.summary || '';
+
+              if (transTitle && transSummary) {
+                await dbRun(`
+                  INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+                  VALUES (?, 1.0, ?, ?, ?, 'approved', ?, ?, ?)
+                `, [result.objectId, tConfig.languageCode, transTitle, transSummary, `translator-${tConfig.languageCode}`, timestamp, timestamp]);
+              }
+            }
+          }
+        } catch (tErr) {
+          console.error(`Translation failed for language ${tConfig.languageCode}:`, tErr);
+        }
+      }
+    }
+
+    return { objectId: result.objectId, status: 'SUCCESS' };
 
   } catch (error) {
-    // Kemas kini status kepada FAILED
     const failMsg = error.message || 'Unknown error';
     await dbRun(`
       UPDATE slots_config 
@@ -1191,10 +1100,13 @@ const initEditorialOS = (dbConn) => {
           manualUrl TEXT,
           manualImageUrl TEXT,
           activeObjectId TEXT,
+          searchStrategy TEXT DEFAULT 'Structured Sources Only',
           PRIMARY KEY (layoutTemplateId, slotIndex),
           FOREIGN KEY(providerId) REFERENCES ai_providers(id) ON DELETE SET NULL
         )
-      `);
+      `, () => {
+        dbConn.run("ALTER TABLE slots_config ADD COLUMN searchStrategy TEXT DEFAULT 'Structured Sources Only'", () => {});
+      });
 
       // 11. pipeline_logs
       dbConn.run(`
@@ -1617,11 +1529,11 @@ app.post('/api/system/slots', async (req, res) => {
       await dbRun(`
         INSERT OR REPLACE INTO slots_config (
           layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor, 
-          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId
-        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy
+        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
-        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId
+        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only'
       ]);
     }
     res.json({ success: true });
