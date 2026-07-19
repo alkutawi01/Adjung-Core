@@ -2646,12 +2646,48 @@ URL: ${url}`;
 
                     <div className="flex flex-col gap-1">
                       <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Model AI</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={formConfig.model || 'Pilih pembekal di atas'}
-                        className="w-full px-3 py-2 border border-stone-200 rounded bg-stone-50 text-stone-500 font-mono text-xs cursor-not-allowed"
-                      />
+                      {formConfig.providerId === 'gemini-1' ? (
+                        <select
+                          value={formConfig.model || 'gemini-3.5-flash'}
+                          onChange={(e) => setFormConfig({ ...formConfig, model: e.target.value })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                        >
+                          <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                          <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                          <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                        </select>
+                      ) : formConfig.providerId === 'openai-1' ? (
+                        <select
+                          value={formConfig.model || 'gpt-4o'}
+                          onChange={(e) => setFormConfig({ ...formConfig, model: e.target.value })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                        >
+                          <option value="gpt-4o">gpt-4o</option>
+                          <option value="gpt-4o-mini">gpt-4o-mini</option>
+                          <option value="o1-mini">o1-mini</option>
+                          <option value="o1-preview">o1-preview</option>
+                        </select>
+                      ) : formConfig.providerId === 'claude-1' ? (
+                        <select
+                          value={formConfig.model || 'claude-3-5-sonnet-latest'}
+                          onChange={(e) => setFormConfig({ ...formConfig, model: e.target.value })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                        >
+                          <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
+                          <option value="claude-3-5-haiku-latest">claude-3-5-haiku-latest</option>
+                          <option value="claude-3-opus-20240229">claude-3-opus-20240229</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={formConfig.model || ''}
+                          onChange={(e) => setFormConfig({ ...formConfig, model: e.target.value })}
+                          placeholder="Pilih pembekal di atas"
+                          className="w-full px-3 py-2 border border-stone-300 rounded bg-white text-stone-700 font-mono text-xs focus:outline-none focus:border-[#802334]"
+                        />
+                      )}
                     </div>
 
                     {editingSlotIndex !== -1 && (
