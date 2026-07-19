@@ -92,7 +92,11 @@ class PresentationComposer {
     const cleanCategory = category.toLowerCase().trim();
 
     // 1. Resolve Publisher details
+    const customSource = getAttr('source');
     const publisherMeta = await this.resolvePublisher(db, rawUrl);
+    if (customSource && customSource.trim() !== '') {
+      publisherMeta.publisherName = customSource.trim();
+    }
 
     // 2. Map presentation and glyph profiles based on category
     const presentationProfile = cleanCategory;

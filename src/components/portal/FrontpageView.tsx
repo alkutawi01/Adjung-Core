@@ -122,9 +122,19 @@ export function HoverWords({ text, className }: { text: string; className?: stri
         const hoverClass = isMaroon 
           ? 'hover:text-stone-900 transition-colors duration-150 cursor-default' 
           : 'hover:text-adjung-maroon transition-colors duration-150 cursor-default';
+
+        let content: React.ReactNode = w;
+        if (/^\*\*(.+)\*\*$/.test(w) || /^__(.+)__$/.test(w)) {
+          const inner = w.replace(/^\*\*|__|\*\*|__$/g, '');
+          content = <strong className="font-bold text-[#111111]">{inner}</strong>;
+        } else if (/^\*(.+)\*$/.test(w) || /^_(.+)_$/.test(w)) {
+          const inner = w.replace(/^[*_]|[*_]$/g, '');
+          content = <em className="italic">{inner}</em>;
+        }
+
         return (
           <span key={idx} className={hoverClass}>
-            {w}
+            {content}
           </span>
         );
       })}
@@ -319,23 +329,27 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const activeTickerNewsItem = parsedTickerNewsItems[activeFrontpageIndex];
   const overlayItem = parsedTickerNewsItems[activeOverlayIndex];
 
-  // Frontpage news preview rotation (10 seconds)
+  // Frontpage news preview rotation
   useEffect(() => {
     if (parsedTickerNewsItems.length <= 1) return;
+    const tickerConfig = slotsConfig.find(s => s.slotIndex === -1);
+    const tickerInterval = tickerConfig?.carouselInterval || 10;
     const interval = setInterval(() => {
       setActiveFrontpageIndex((prev) => (prev + 1) % parsedTickerNewsItems.length);
-    }, 10000);
+    }, tickerInterval * 1000);
     return () => clearInterval(interval);
-  }, [parsedTickerNewsItems.length]);
+  }, [parsedTickerNewsItems.length, slotsConfig]);
 
-  // Fullscreen overlay news rotation (10 seconds)
+  // Fullscreen overlay news rotation
   useEffect(() => {
     if (!showNewsOverlay || parsedTickerNewsItems.length <= 1) return;
+    const tickerConfig = slotsConfig.find(s => s.slotIndex === -1);
+    const tickerInterval = tickerConfig?.carouselInterval || 10;
     const interval = setInterval(() => {
       setActiveOverlayIndex((prev) => (prev + 1) % parsedTickerNewsItems.length);
-    }, 10000);
+    }, tickerInterval * 1000);
     return () => clearInterval(interval);
-  }, [showNewsOverlay, parsedTickerNewsItems.length]);
+  }, [showNewsOverlay, parsedTickerNewsItems.length, slotsConfig]);
 
   useEffect(() => {
     if (!showNewsOverlay) return;
@@ -1167,10 +1181,10 @@ URL: ${url}`;
 
       const limits = getLimitsForIndex(actualSlotIdx, resolvedItem);
       if (resolvedItem.title) {
-        resolvedItem.title = padToLimit(resolvedItem.title, limits.maxTitle);
+        resolvedItem.title = parseInlineFormatting(padToLimit(resolvedItem.title, limits.maxTitle));
       }
       if (resolvedItem.brief && limits.maxBrief > 0) {
-        resolvedItem.brief = padToLimit(resolvedItem.brief, limits.maxBrief);
+        resolvedItem.brief = parseInlineFormatting(padToLimit(resolvedItem.brief, limits.maxBrief));
       }
 
       if ([7, 8, 9, 10, 21, 22, 23, 24].includes(actualSlotIdx)) {
