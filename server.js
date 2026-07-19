@@ -925,17 +925,22 @@ app.post('/api/system/pipeline/run', async (req, res) => {
           continue;
         }
         
-        const result = await runEditorialPipeline(slot.slotIndex, currentRunId);
-        if (result && result.objectId) {
-          await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [result.objectId, slot.slotIndex]);
-          
-          if (result.status === 'CACHE_HIT') {
-            skippedByAiCache++;
-          } else if (result.status === 'SUCCESS') {
-            actualAiCalls++;
+        try {
+          const result = await runEditorialPipeline(slot.slotIndex, currentRunId);
+          if (result && result.objectId) {
+            await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [result.objectId, slot.slotIndex]);
+            
+            if (result.status === 'CACHE_HIT') {
+              skippedByAiCache++;
+            } else if (result.status === 'SUCCESS') {
+              actualAiCalls++;
+            }
+            
+            results.push({ slotIndex: slot.slotIndex, objectId: result.objectId, status: result.status });
           }
-          
-          results.push({ slotIndex: slot.slotIndex, objectId: result.objectId, status: result.status });
+        } catch (slotErr) {
+          console.error(`Error running pipeline for slot ${slot.slotIndex}:`, slotErr);
+          results.push({ slotIndex: slot.slotIndex, error: slotErr.message || 'Unknown error', status: 'FAILED' });
         }
       }
       

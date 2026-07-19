@@ -58,8 +58,6 @@ class EditorialPipeline {
             throw new Error(`Failed to fetch structured source: ${error.message}`);
           }
         }
-      } else if (strategy === 'Structured Sources Only') {
-        throw new Error('Slot sourcesList is empty or not a valid URL.');
       }
     }
 
