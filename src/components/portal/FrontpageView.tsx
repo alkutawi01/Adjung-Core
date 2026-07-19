@@ -4,7 +4,7 @@ import { User, Entry, SystemSettings } from '../../types';
 import { BRAND } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays } from '../../utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle } from 'lucide-react';
+import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Settings } from 'lucide-react';
 
 interface ClockTime {
   timeStr: string;
@@ -417,6 +417,43 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const handleCardClick = (idx: number) => {
     if (!isEditMode) return;
     const config = slotsConfig.find(s => s.slotIndex === idx);
+
+    if (idx === -1) {
+      setFormConfig({
+        slotIndex: -1,
+        contentMode: config?.contentMode || 'Manual',
+        providerId: config?.providerId || '',
+        model: config?.model || '',
+        promptText: config?.promptText || '',
+        sourcesList: config?.sourcesList || '',
+        refreshRate: config?.refreshRate || 'Daily',
+        allowedContentTypes: config?.allowedContentTypes || '',
+        priority: config?.priority || 'High',
+        expiresAt: config?.expiresAt || '',
+        bgColor: config?.bgColor || 'transparent',
+        borderColor: config?.borderColor || '',
+        textColor: config?.textColor || '#1F1F1F',
+        manualTitle: 'Terkini di Malaysia',
+        manualSummary: config?.manualSummary || systemSettings?.inTheNewsText || '',
+        manualSource: '',
+        manualUrl: '',
+        manualImageUrl: '',
+        manualDesk: '',
+        activeObjectId: '',
+        searchStrategy: config?.searchStrategy || 'Structured Sources Only',
+        carouselInterval: config?.carouselInterval || 10,
+        carouselDelay: config?.carouselDelay || 0,
+        generationLimit: config?.generationLimit || 1,
+        maxTitle: 80,
+        maxBrief: 220,
+        masterPrompt: masterPrompt,
+        refreshHour: config?.refreshHour || '00:00',
+        refreshDay: config?.refreshDay || 'Isnin',
+        eventExpiryFilter: ''
+      });
+      setEditingSlotIndex(-1);
+      return;
+    }
     const item = bentoNewsItems[idx];
     const limits = getLimitsForIndex(idx, config);
 
@@ -1435,9 +1472,24 @@ URL: ${url}`;
           className="py-3 px-0 bg-transparent hover:opacity-85 transition duration-300 cursor-pointer text-left space-y-2 group relative"
         >
           <div className="flex justify-between items-center select-none">
-            <p className="font-sans text-[10px] tracking-editorial uppercase text-[#802334] font-semibold">
-              IN THE NEWS
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="font-sans text-[10px] tracking-editorial uppercase text-[#802334] font-bold">
+                TERKINI DI MALAYSIA
+              </p>
+              {isEditMode && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCardClick(-1);
+                  }}
+                  className="p-1 text-stone-400 hover:text-[#802334] transition cursor-pointer rounded hover:bg-stone-100"
+                  title="Urus Ticker Terkini di Malaysia"
+                >
+                  <Settings size={12} />
+                </button>
+              )}
+            </div>
             {parsedTickerNewsItems.length > 0 && (
               <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200">
                 &bull; Read Fullscreen
@@ -2416,7 +2468,7 @@ URL: ${url}`;
             <header className="px-6 py-4 border-b border-stone-150 flex justify-between items-center bg-stone-50">
               <div>
                 <h3 className="font-serif text-xs md:text-sm font-bold text-[#802334] uppercase tracking-wide">
-                  Urus Slot {editingSlotIndex + 1}: {bentoNewsItems[editingSlotIndex]?.desk || 'Umum'}
+                  {editingSlotIndex === -1 ? 'Urus Ticker: Terkini di Malaysia' : `Urus Slot ${editingSlotIndex + 1}: ${bentoNewsItems[editingSlotIndex]?.desk || 'Umum'}`}
                 </h3>
                 <p className="text-[9px] text-stone-500 font-sans mt-0.5 font-bold uppercase tracking-wider">
                   Ubah kandungan manual, warna, atau mod penjanaan.
@@ -2465,20 +2517,25 @@ URL: ${url}`;
                         className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs leading-relaxed"
                       />
                       <p className="text-[9px] text-[#802334] font-sans font-bold leading-normal mt-1">
-                        * Nota: Jika ingin meletakkan 2 atau lebih kandungan berita untuk bertukar secara animasi (carousel/slide), pisahkan setiap blok berita dengan garisan pemisah empat underscores (____).
+                        {editingSlotIndex === -1 
+                          ? '* Nota: Pisahkan setiap berita ticker dengan garisan pemisah tiga sempang (---) di baris baharu.' 
+                          : '* Nota: Jika ingin meletakkan 2 atau lebih kandungan berita untuk bertukar secara animasi (carousel/slide), pisahkan setiap blok berita dengan garisan pemisah empat underscores (____).'
+                        }
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-1 col-span-2">
-                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Gambar Latar Belakang (URL / Fail)</label>
-                      <input
-                        type="text"
-                        value={formConfig.manualImageUrl}
-                        onChange={(e) => setFormConfig({ ...formConfig, manualImageUrl: e.target.value })}
-                        placeholder="/uploads/... atau URL luar"
-                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
-                      />
-                    </div>
+                    {editingSlotIndex !== -1 && (
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Gambar Latar Belakang (URL / Fail)</label>
+                        <input
+                          type="text"
+                          value={formConfig.manualImageUrl}
+                          onChange={(e) => setFormConfig({ ...formConfig, manualImageUrl: e.target.value })}
+                          placeholder="/uploads/... atau URL luar"
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                        />
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -2512,19 +2569,21 @@ URL: ${url}`;
                       />
                     </div>
 
-                    <div className="flex flex-col gap-1 col-span-2">
-                      <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Bidang / Kategori (Desk)</label>
-                      <input
-                        type="text"
-                        value={formConfig.manualDesk}
-                        onChange={(e) => setFormConfig({ ...formConfig, manualDesk: e.target.value })}
-                        placeholder="Contoh: TEKNOLOGI, EKONOMI, SUKAN..."
-                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
-                      />
-                      <p className="text-[9px] text-stone-500 font-sans mt-0.5">
-                        Tentukan bidang/kategori khusus untuk menyaring penjanaan berita AI dan menetapkan label kategori.
-                      </p>
-                    </div>
+                    {editingSlotIndex !== -1 && (
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Bidang / Kategori (Desk)</label>
+                        <input
+                          type="text"
+                          value={formConfig.manualDesk}
+                          onChange={(e) => setFormConfig({ ...formConfig, manualDesk: e.target.value })}
+                          placeholder="Contoh: TEKNOLOGI, EKONOMI, SUKAN..."
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                        />
+                        <p className="text-[9px] text-stone-500 font-sans mt-0.5">
+                          Tentukan bidang/kategori khusus untuk menyaring penjanaan berita AI dan menetapkan label kategori.
+                        </p>
+                      </div>
+                    )}
 
                     <div className="flex flex-col gap-1 col-span-2">
                       <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Peraturan Am (Sistem/Global)</label>
@@ -2575,7 +2634,7 @@ URL: ${url}`;
                       <textarea
                         value={formConfig.promptText}
                         onChange={(e) => setFormConfig({ ...formConfig, promptText: e.target.value })}
-                        placeholder={isEditingBarSlot ? "Contoh: Cari dan jana program ilmiah, seminar, atau pesta buku di Selangor." : "Contoh: Fokus kepada berita geopolitik Asia Tenggara..."}
+                        placeholder={editingSlotIndex === -1 ? "Contoh: Fokus kepada berita terkini Malaysia, saringan kesihatan, ekonomi..." : isEditingBarSlot ? "Contoh: Cari dan jana program ilmiah, seminar, atau pesta buku di Selangor." : "Contoh: Fokus kepada berita geopolitik Asia Tenggara..."}
                         rows={4}
                         className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs leading-relaxed"
                       />
@@ -2583,7 +2642,14 @@ URL: ${url}`;
 
                     <div className="flex flex-col gap-1">
                       <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Allowed Content Types</label>
-                      {isEditingBarSlot ? (
+                      {editingSlotIndex === -1 ? (
+                        <input
+                          type="text"
+                          readOnly
+                          value="Ticker"
+                          className="w-full px-3 py-2 border border-stone-200 rounded bg-stone-50 text-stone-500 font-mono text-xs cursor-not-allowed font-semibold"
+                        />
+                      ) : isEditingBarSlot ? (
                         <input
                           type="text"
                           readOnly

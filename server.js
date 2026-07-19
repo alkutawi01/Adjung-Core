@@ -1874,6 +1874,10 @@ app.post('/api/system/slots', async (req, res) => {
       if (slot.masterPrompt !== undefined && slot.masterPrompt !== null) {
         await dbRun("UPDATE system_settings SET masterPrompt = ? WHERE id = 'settings-main'", [slot.masterPrompt]);
       }
+
+      if (slot.slotIndex === -1 && slot.contentMode === 'Manual') {
+        await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [slot.manualSummary || '']);
+      }
     }
     res.json({ success: true });
   } catch (err) {

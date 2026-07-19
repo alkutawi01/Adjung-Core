@@ -157,7 +157,29 @@ class EditorialPipeline {
 
     const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex);
 
-    if (isBarSlot) {
+    if (slotIndex === -1) {
+      compiledPrompt += `
+        Tulis 5 hingga 10 baris kandungan berita terkini bertipe Ticker untuk dipaparkan di segmen "Terkini di Malaysia".
+        
+        SYARAT PENTING (MANDATORY):
+        1. Berita MESTILAH berita terkini berkaitan Malaysia sahaja (Dalam Negeri, Kesihatan, Ekonomi, Politik, Sukan, Pendidikan, dsb.) yang berlaku dalam tempoh 24 jam terakhir.
+        2. Tajuk berita ("title") MESTILAH ringkas, padat dan MESTILAH KETAT DI BAWAH 80 aksara.
+        3. Huraian berita ("brief") MESTILAH ringkas, MESTILAH KETAT DI BAWAH 220 aksara, dan ditulis dalam TEPAT SATU AYAT SAHAJA.
+        4. Setiap item MESTILAH mempunyai "desk" (kategori berita) dalam satu perkataan sahaja (cth: EKONOMI, KESIHATAN, SUKAN).
+        5. Hasilkan respons dalam format JSON sahaja dengan struktur objek:
+           {
+             "items": [
+               {
+                 "desk": "KATEGORI_BERITA",
+                 "title": "Tajuk berita di bawah 80 aksara",
+                 "brief": "Huraian pendek tepat satu ayat di bawah 220 aksara.",
+                 "source": "Nama Sumber Berita",
+                 "url": "https://url-sumber"
+               }
+             ]
+           }
+      `;
+    } else if (isBarSlot) {
       if (slot.eventExpiryFilter && slot.eventExpiryFilter !== '') {
         const todayStr = new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
         compiledPrompt += `\nArahan Had Tempoh Masa Acara: Acara yang dijana MESTILAH berlangsung atau tamat dalam tempoh ${slot.eventExpiryFilter.toLowerCase()} dari tarikh hari ini (${todayStr}) dan belum lagi tamat.\n`;
@@ -205,6 +227,28 @@ class EditorialPipeline {
     const { parsedJson, promptTokens, completionTokens } = aiResult;
 
     // 5. Validate output
+    if (slotIndex === -1) {
+      const items = parsedJson.items || [];
+      const textItems = items.map(item => {
+        const desk = (item.desk || 'UMUM').trim().toUpperCase();
+        const title = (item.title || '').trim().slice(0, 80);
+        const brief = (item.brief || '').trim().slice(0, 220);
+        const source = (item.source || provider.name).trim();
+        const url = (item.url || '#').trim();
+        return `Desk: ${desk}\nTitle: ${title}\nBrief: ${brief}\nSource: ${source}\nUrl: ${url}`;
+      });
+      const formattedText = textItems.join('\n---\n');
+
+      await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
+
+      return {
+        status: 'SUCCESS',
+        objectId: 'ticker-updated',
+        title: 'Terkini di Malaysia',
+        summary: 'Updated successfully via AI'
+      };
+    }
+
     let validation = { isValid: true, cleanTitle: parsedJson.title || '', cleanSummary: parsedJson.summary || '' };
     if (!isBarSlot) {
       validation = EditorialValidator.validate(parsedJson.title, parsedJson.summary, maxSummaryLen);
