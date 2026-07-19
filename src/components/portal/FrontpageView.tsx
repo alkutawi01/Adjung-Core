@@ -1545,7 +1545,7 @@ URL: ${url}`;
             </div>
             {parsedTickerNewsItems.length > 0 && (
               <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200">
-                &bull; Read Fullscreen
+                &bull; Baca Paparan Penuh
               </span>
             )}
           </div>
@@ -1621,9 +1621,6 @@ URL: ${url}`;
                   ))}
                 </div>
               )}
-              <div className="font-mono text-[9px] uppercase tracking-widest text-stone-400">
-                {bentoNewsItems.length} curated briefs
-              </div>
             </div>
           </div>
 
@@ -3154,7 +3151,7 @@ URL: ${url}`;
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 bg-[#802334] hover:bg-[#631c28] text-white px-6 py-2.5 rounded font-mono text-[10px] uppercase tracking-wider transition shadow-sm"
                     >
-                      Read Original &rarr;
+                      Baca Berita Asal &rarr;
                     </a>
                   </div>
                 )}
