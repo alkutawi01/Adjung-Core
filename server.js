@@ -828,17 +828,19 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
           Global System Context: ${globalPrompt}
           Current Campaign Focus: ${campaignPrompt}
           Slot Specific Instructions: ${slotPrompt}
+          Dikehendaki Rujuk Sumber (Sources List): ${slot.sourcesList || 'Mana-mana sumber berita yang sahih'}
           
           Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" berdasarkan arahan di atas.
-          Lakukan carian di internet menggunakan enjin carian sekiranya perlu untuk mendapatkan fakta berita terbaharu.
+          Lakukan carian di internet menggunakan enjin carian sekiranya perlu untuk mendapatkan fakta berita terbaharu berdasarkan sumber yang dikehendaki.
           
           SYARAT PENTING (MANDATORY):
-          1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
-          2. Ringkasan berita ("summary") mestilah TIDAK MELEBIHI 240 aksara.
-          3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
-          4. Cari dan sertakan pautan URL artikel berita sebenar yang khusus (spesifik) yang anda rujuk dalam harta "source_url". Anda mestilah mengutamakan pautan artikel penuh (cth: "https://www.astroawani.com/berita-sukan/...") jika ia ditemui dalam carian Google. Hanya sekiranya carian Google tidak memulangkan pautan artikel khusus yang tepat, barulah anda menggunakan URL utama portal berita (cth: "https://www.astroawani.com" atau "https://www.bernama.com"). Jangan sesekali reka pautan palsu.
-          5. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
-          6. Hasilkan respons dalam format JSON sahaja dengan struktur:
+          1. Rujuk rapat sumber yang dikehendaki (cth: jika "Berita antarabangsa", sila cari dan rujuk artikel daripada agensi luar negara seperti BBC, Reuters, CNN, dsb. dan sertakan pautan daripada portal tersebut. Jika nama laman web seperti "Bernama" dinyatakan, sila hadkan kepada laman tersebut).
+          2. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI 115 aksara.
+          3. Ringkasan berita ("summary") mestilah TIDAK MELEBIHI 240 aksara.
+          4. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
+          5. Cari dan sertakan pautan URL artikel berita sebenar yang khusus (spesifik) yang anda rujuk dalam harta "source_url". Anda mestilah mengutamakan pautan artikel penuh (cth: "https://www.bbc.com/sport/...") jika ia ditemui dalam carian Google. Hanya sekiranya carian Google tidak memulangkan pautan artikel khusus yang tepat, barulah anda menggunakan URL utama portal berita yang dirujuk. Jangan sesekali reka pautan palsu.
+          6. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
+          7. Hasilkan respons dalam format JSON sahaja dengan struktur:
              { 
                "title": "Tajuk", 
                "summary": "Ringkasan",
