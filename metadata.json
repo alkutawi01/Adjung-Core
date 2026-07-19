@@ -1,0 +1,8 @@
+{
+  "name": "Adjung",
+  "description": "A long-term knowledge publishing ecosystem focused on intellectual quality, editorial integrity, and long-term preservation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
