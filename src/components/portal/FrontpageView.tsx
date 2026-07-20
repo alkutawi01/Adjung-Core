@@ -1752,7 +1752,7 @@ URL: ${url}`;
             )}
 
             {/* ROW 2 & 3: Vertical, Horizontal, Square, 2 Compact (Indices 1 to 5) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 md:grid-rows-[180px_180px] gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               
               {/* Left Column: Vertical (Index 1) */}
               {bentoNewsItems[1] && (
@@ -1877,7 +1877,7 @@ URL: ${url}`;
             </div>
 
             {/* ROW 4 & 5: Horizontal, Vertical, Bars, Square (Indices 6 to 12) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 md:grid-rows-[180px_180px] gap-4 animate-fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 animate-fade-in">
               
               {/* Left Top: Horizontal (Index 6) */}
               {bentoNewsItems[6] && (
