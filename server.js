@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
+import CategoryRegistry from './core/category/CategoryRegistry.js';
 import { db as mockDb } from './src/db/mockDb.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -744,10 +745,10 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
     status = 'FAILED';
     promptTokens = Math.ceil(prompt.length / 4);
     const latencyMs = Date.now() - startTime;
-    await dbRun(`
-      INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt)
-      VALUES (?, ?, ?, ?, ?, 0, ?, 0, 'USD', ?, 'FAILED', ?)
-    `, [runId, provider.id, provider.model || 'unknown', capability, promptTokens, promptTokens, latencyMs, new Date().toISOString()]).catch(() => {});
+     await dbRun(`
+      INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
+      VALUES (?, ?, ?, ?, ?, 0, ?, 0, 'USD', ?, 'FAILED', ?, ?, ?)
+    `, [runId, provider.id, provider.model || 'unknown', capability, promptTokens, promptTokens, latencyMs, new Date().toISOString(), prompt, err.message]).catch(() => {});
     throw err;
   }
 
@@ -767,9 +768,9 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
   }
 
   await dbRun(`
-    INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'USD', ?, 'SUCCESS', ?)
-  `, [runId, provider.id, provider.model, capability, promptTokens, completionTokens, totalTokens, estimatedCost, latencyMs, new Date().toISOString()]).catch(() => {});
+    INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'USD', ?, 'SUCCESS', ?, ?, ?)
+  `, [runId, provider.id, provider.model, capability, promptTokens, completionTokens, totalTokens, estimatedCost, latencyMs, new Date().toISOString(), prompt, responseText]).catch(() => {});
 
   return parsedJson;
 };
@@ -1102,6 +1103,12 @@ app.post('/api/system/pipeline/batch_paste', async (req, res) => {
 
       if (!finalTitle) continue;
 
+      try {
+        await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
+      } catch (e) {
+        console.warn("Failed to register category:", e.message);
+      }
+
       await dbRun(`
         INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
         VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?)
@@ -1397,24 +1404,40 @@ const initEditorialOS = (dbConn) => {
                                   dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselDelay INTEGER DEFAULT 0", () => {
                                     dbConn.run("ALTER TABLE slots_config ADD COLUMN generationLimit INTEGER DEFAULT 1", () => {
                                       dbConn.run("ALTER TABLE slots_config ADD COLUMN maxTitle INTEGER", () => {
-                                         dbConn.run("ALTER TABLE slots_config ADD COLUMN maxBrief INTEGER", () => {
-                                           dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshHour TEXT DEFAULT '00:00'", () => {
-                                             dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshDay TEXT DEFAULT 'Isnin'", () => {
-                                               dbConn.run("ALTER TABLE slots_config ADD COLUMN eventExpiryFilter TEXT DEFAULT ''", () => {
-                                                 dbConn.run(`
-                                                    CREATE TABLE IF NOT EXISTS static_pages (
-                                                      key TEXT PRIMARY KEY,
-                                                      title TEXT NOT NULL,
-                                                      content TEXT NOT NULL,
+                                        dbConn.run("ALTER TABLE slots_config ADD COLUMN maxBrief INTEGER", () => {
+                                          dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshHour TEXT DEFAULT '00:00'", () => {
+                                            dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshDay TEXT DEFAULT 'Isnin'", () => {
+                                              dbConn.run("ALTER TABLE slots_config ADD COLUMN eventExpiryFilter TEXT DEFAULT ''", () => {
+                                                dbConn.run(`
+                                                  CREATE TABLE IF NOT EXISTS static_pages (
+                                                    key TEXT PRIMARY KEY,
+                                                    title TEXT NOT NULL,
+                                                    content TEXT NOT NULL,
+                                                    updatedAt TEXT NOT NULL
+                                                  )
+                                                `, () => {
+                                                  dbConn.run(`
+                                                    CREATE TABLE IF NOT EXISTS CategoryRegistry (
+                                                      id TEXT PRIMARY KEY,
+                                                      slug TEXT UNIQUE NOT NULL,
+                                                      name TEXT NOT NULL,
+                                                      color TEXT NOT NULL,
+                                                      usageCount INTEGER DEFAULT 0,
+                                                      createdAt TEXT NOT NULL,
                                                       updatedAt TEXT NOT NULL
                                                     )
                                                   `, () => {
-                                                    resolve();
+                                                    dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN promptText TEXT", () => {
+                                                      dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN responseText TEXT", () => {
+                                                        resolve();
+                                                      });
+                                                    });
                                                   });
-                                               });
-                                             });
-                                           });
-                                         });
+                                                });
+                                              });
+                                            });
+                                          });
+                                        });
                                       });
                                     });
                                   });
@@ -1724,11 +1747,25 @@ app.get('/api/system/layout/active', async (req, res) => {
   try {
     const lang = req.query.lang || 'ms';
     const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' ORDER BY slotIndex ASC");
+    const categories = await CategoryRegistry.getAllCategories(db);
     const resolvedSlots = [];
     
     for (const slot of slots) {
       const resolved = await resolveSlotContent(slot, lang);
       if (resolved) {
+        // Map category colors to items
+        if (resolved.items && Array.isArray(resolved.items)) {
+          for (const item of resolved.items) {
+            const catSlug = CategoryRegistry.getSlug(item.desk || 'UMUM');
+            const matched = categories.find(c => c.slug === catSlug);
+            item.categoryColor = matched ? matched.color : '#802334';
+          }
+        }
+        // Also map for the main resolved object properties
+        const catSlug = CategoryRegistry.getSlug(resolved.desk || 'UMUM');
+        const matched = categories.find(c => c.slug === catSlug);
+        resolved.categoryColor = matched ? matched.color : '#802334';
+
         resolvedSlots.push(resolved);
       }
     }
@@ -1872,6 +1909,14 @@ app.post('/api/system/slots', async (req, res) => {
         slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
         slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || ''
       ]);
+
+      if (slot.manualDesk && slot.manualDesk.trim() !== '') {
+        try {
+          await CategoryRegistry.incrementCategoryUsage(db, slot.manualDesk);
+        } catch (e) {
+          console.warn("Failed to register category:", e.message);
+        }
+      }
 
       if (slot.masterPrompt !== undefined && slot.masterPrompt !== null) {
         await dbRun("UPDATE system_settings SET masterPrompt = ? WHERE id = 'settings-main'", [slot.masterPrompt]);
@@ -2275,6 +2320,75 @@ app.get('/api/ai/logs', async (req, res) => {
   } catch (err) {
     console.error('Fetch pipeline logs error:', err);
     res.status(500).json({ error: 'Failed to fetch pipeline logs.' });
+  }
+});
+
+// 13. GET /api/system/categories
+app.get('/api/system/categories', async (req, res) => {
+  try {
+    const categories = await CategoryRegistry.getAllCategories(db);
+    res.json(categories);
+  } catch (err) {
+    console.error('Fetch categories error:', err);
+    res.status(500).json({ error: 'Failed to fetch categories.' });
+  }
+});
+
+// 14. POST /api/system/categories/register
+app.post('/api/system/categories/register', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'Missing name parameter.' });
+    const reg = await CategoryRegistry.registerCategory(db, name);
+    res.json({ success: true, category: reg });
+  } catch (err) {
+    console.error('Register category error:', err);
+    res.status(500).json({ error: 'Failed to register category.' });
+  }
+});
+
+// 15. POST /api/system/categories/rename
+app.post('/api/system/categories/rename', async (req, res) => {
+  try {
+    const { oldName, newName } = req.body;
+    if (!oldName || !newName) return res.status(400).json({ error: 'Missing oldName or newName parameter.' });
+    await CategoryRegistry.renameCategory(db, oldName, newName);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Rename category error:', err);
+    res.status(500).json({ error: 'Failed to rename category.' });
+  }
+});
+
+// 16. POST /api/system/categories/merge
+app.post('/api/system/categories/merge', async (req, res) => {
+  try {
+    const { sourceCategory, targetCategory } = req.body;
+    if (!sourceCategory || !targetCategory) return res.status(400).json({ error: 'Missing sourceCategory or targetCategory parameter.' });
+    await CategoryRegistry.mergeCategories(db, sourceCategory, targetCategory);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Merge categories error:', err);
+    res.status(500).json({ error: 'Failed to merge categories.' });
+  }
+});
+
+// 17. GET /api/ai/logs/:slotIndex
+app.get('/api/ai/logs/:slotIndex', async (req, res) => {
+  try {
+    const slotIdx = parseInt(req.params.slotIndex, 10);
+    const logs = await dbAll(`
+      SELECT l.*, p.slotIndex
+      FROM ai_usage_logs l
+      JOIN pipeline_logs p ON l.runId = p.runId
+      WHERE p.slotIndex = ?
+      ORDER BY l.createdAt DESC
+      LIMIT 5
+    `, [slotIdx]);
+    res.json(logs);
+  } catch (err) {
+    console.error('Fetch slot AI logs error:', err);
+    res.status(500).json({ error: 'Failed to fetch AI logs for slot.' });
   }
 });
 

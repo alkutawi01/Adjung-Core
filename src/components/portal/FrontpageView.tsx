@@ -220,7 +220,7 @@ const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
       position: 'relative' as const,
     },
     deskStyle: {
-      color: finalIsDark ? '#E9D8A6' : '#802334'
+      color: item.categoryColor || (finalIsDark ? '#E9D8A6' : '#802334')
     },
     titleStyle: {
       color: finalTextColor
@@ -278,6 +278,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
+  const [aiLogs, setAiLogs] = useState<any[]>([]);
+  const [activeLogPayload, setActiveLogPayload] = useState<{ type: 'prompt' | 'response'; content: string } | null>(null);
+
+  useEffect(() => {
+    if (editingSlotIndex === null) {
+      setAiLogs([]);
+      return;
+    }
+    fetch(`/api/ai/logs/${editingSlotIndex}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setAiLogs(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch AI logs for slot:', err));
+  }, [editingSlotIndex]);
+
   const isEditingBarSlot = editingSlotIndex !== null && [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
   const [slotsConfig, setSlotsConfig] = useState<any[]>([]);
   const [formConfig, setFormConfig] = useState<any | null>(null);
@@ -613,6 +631,17 @@ URL: ${url}`;
       if (response.ok && data.success) {
         setExecutingSuccessMessage('Penjanaan AI berjaya diaktifkan dan dikemas kini!');
         setRefreshKey(prev => prev + 1);
+        
+        // Re-fetch AI logs after successful run
+        fetch(`/api/ai/logs/${formConfig.slotIndex}`)
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) {
+              setAiLogs(data);
+            }
+          })
+          .catch(err => console.error('Failed to fetch AI logs for slot:', err));
+
         setTimeout(() => {
           setExecutingSuccessMessage('');
         }, 5000);
@@ -1640,7 +1669,7 @@ URL: ${url}`;
                 >
                   <strong 
                     className="font-sans text-[11px] md:text-xs uppercase tracking-wider mr-2.5 font-bold inline-block"
-                    style={{ color: getDeskAccentColor(activeTickerNewsItem.desk) }}
+                    style={{ color: activeTickerNewsItem.categoryColor || getDeskAccentColor(activeTickerNewsItem.desk) }}
                   >
                     <HoverWords text={activeTickerNewsItem.desk} />
                   </strong>
@@ -2913,6 +2942,65 @@ URL: ${url}`;
                         </p>
                       </div>
                     )}
+
+                    <div className="flex flex-col gap-2 col-span-2 mt-4 p-4 bg-stone-50 border border-stone-200 rounded">
+                      <label className="font-mono text-[10px] uppercase tracking-wider text-[#802334] font-bold">Sejarah Penjanaan AI (AI Generation History)</label>
+                      {aiLogs.length === 0 ? (
+                        <p className="text-[10px] text-stone-500 font-sans italic">Tiada rekod log penjanaan AI ditemui untuk slot ini.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left font-sans text-[11px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-stone-300 text-stone-500 uppercase font-bold text-[9px] tracking-wider">
+                                <th className="pb-2">Tarikh / Waktu</th>
+                                <th className="pb-2">Status</th>
+                                <th className="pb-2">Model</th>
+                                <th className="pb-2 text-right">Kos (USD)</th>
+                                <th className="pb-2 text-center">Payload</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {aiLogs.map((log) => {
+                                const costStr = typeof log.estimatedCost === 'number' ? `$${log.estimatedCost.toFixed(5)}` : '$0.00000';
+                                const timeStr = new Date(log.createdAt).toLocaleString('ms-MY', { hour12: false });
+                                return (
+                                  <tr key={log.id} className="border-b border-stone-200 hover:bg-stone-100 transition-colors">
+                                    <td className="py-2 text-stone-600 font-mono text-[10px]">{timeStr}</td>
+                                    <td className="py-2">
+                                      <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-bold uppercase ${
+                                        log.status === 'SUCCESS' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                      }`}>
+                                        {log.status}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 text-stone-600 font-mono text-[10px]">{log.modelName}</td>
+                                    <td className="py-2 text-right text-stone-600 font-mono text-[10px]">{costStr}</td>
+                                    <td className="py-2 text-center">
+                                      <div className="flex justify-center gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => setActiveLogPayload({ type: 'prompt', content: log.promptText || 'Tiada prompt direkodkan.' })}
+                                          className="px-2 py-1 text-[9px] font-bold text-stone-700 bg-white border border-stone-300 rounded hover:bg-stone-50 transition-colors cursor-pointer"
+                                        >
+                                          Prompt
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setActiveLogPayload({ type: 'response', content: log.responseText || 'Tiada respons direkodkan.' })}
+                                          className="px-2 py-1 text-[9px] font-bold text-stone-700 bg-white border border-stone-300 rounded hover:bg-stone-50 transition-colors cursor-pointer"
+                                        >
+                                          Respons
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
 
@@ -3009,6 +3097,48 @@ URL: ${url}`;
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pop-up Modal untuk Melihat Prompt / Respons AI (AI Payload Auditor) */}
+      {activeLogPayload && (
+        <div className="fixed inset-0 z-[100] bg-black/75 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-lg border border-stone-250 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in">
+            <header className="px-5 py-3 border-b border-stone-150 flex justify-between items-center bg-stone-50">
+              <h4 className="font-mono text-xs font-bold text-[#802334] uppercase tracking-wider">
+                Paparan {activeLogPayload.type === 'prompt' ? 'Prompt API' : 'Respons Mentah API'}
+              </h4>
+              <button
+                type="button"
+                onClick={() => setActiveLogPayload(null)}
+                className="text-stone-400 hover:text-stone-600 font-bold font-sans text-xs cursor-pointer"
+              >
+                Tutup
+              </button>
+            </header>
+            <div className="p-5 overflow-y-auto flex-1 font-mono text-[11px] leading-relaxed bg-stone-900 text-stone-100 select-text whitespace-pre-wrap">
+              {activeLogPayload.content}
+            </div>
+            <footer className="px-5 py-3 border-t border-stone-150 flex justify-between items-center bg-stone-50">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(activeLogPayload.content);
+                  alert('Kandungan disalin ke papan klip!');
+                }}
+                className="px-3 py-1.5 text-[10px] font-bold text-stone-700 bg-white border border-stone-300 rounded hover:bg-stone-50 transition-colors cursor-pointer"
+              >
+                Salin Kandungan
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveLogPayload(null)}
+                className="px-3 py-1.5 text-[10px] font-bold text-white bg-stone-700 rounded hover:bg-stone-850 transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </footer>
           </div>
         </div>
       )}
@@ -3199,7 +3329,7 @@ URL: ${url}`;
                 {/* Accent colored Desk label */}
                 <div 
                   className="font-mono text-xs uppercase tracking-widest font-extrabold"
-                  style={{ color: getDeskAccentColor(overlayItem.desk) }}
+                  style={{ color: overlayItem.categoryColor || getDeskAccentColor(overlayItem.desk) }}
                 >
                   {overlayItem.desk}
                 </div>

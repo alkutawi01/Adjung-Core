@@ -6,6 +6,7 @@ import SourceDiscovery from '../sources/SourceDiscovery.js';
 import GeminiProvider from '../ai/GeminiProvider.js';
 import ClaudeProvider from '../ai/ClaudeProvider.js';
 import EditorialValidator from './EditorialValidator.js';
+import CategoryRegistry from '../category/CategoryRegistry.js';
 
 class EditorialPipeline {
   static async runSlotPipeline(db, slot, provider, globalPrompt, campaignPrompt, currentRunId = null) {
@@ -268,6 +269,11 @@ class EditorialPipeline {
 
     // 6. Save Editorial Object and attributes to Database
     const objectId = `object-${outputType.toLowerCase()}-slot${slotIndex}-${Date.now()}`;
+    try {
+      await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
+    } catch (e) {
+      console.warn("Failed to register category:", e.message);
+    }
     await dbRun(`
       INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -303,9 +309,9 @@ class EditorialPipeline {
     }
 
     await dbRun(`
-      INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt)
-      VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?)
-    `, [currentRunId, provider.id, provider.model, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp]);
+      INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
+      VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?)
+    `, [currentRunId, provider.id, provider.model, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, compiledPrompt, aiResult.text]);
 
     return {
       status: 'SUCCESS',
