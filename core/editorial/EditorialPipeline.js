@@ -200,8 +200,8 @@ Nothing more.`;
       const items = parsedJson.items || [];
       const textItems = items.map(item => {
         const desk = (item.desk || 'UMUM').trim().toUpperCase();
-        const title = (item.title || '').trim().slice(0, 80);
-        const brief = (item.brief || '').trim().slice(0, 220);
+        const title = (item.title || '').trim().slice(0, maxTitleLen);
+        const brief = (item.brief || '').trim().slice(0, maxSummaryLen);
         const source = (item.source || provider.name).trim();
         const url = (item.url || '#').trim();
         return `Desk: ${desk}\nTitle: ${title}\nBrief: ${brief}\nSource: ${source}\nUrl: ${url}`;
