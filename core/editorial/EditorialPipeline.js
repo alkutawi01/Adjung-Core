@@ -157,8 +157,8 @@ Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
   "items": [
     {
       "desk": "KATEGORI_BERITA (Satu perkataan sahaja, cth: EKONOMI, KESIHATAN, SUKAN)",
-      "title": "Tajuk berita terkini Malaysia di bawah 80 aksara",
-      "brief": "Huraian pendek tepat satu ayat di bawah 220 aksara.",
+      "title": "Tajuk berita terkini Malaysia di bawah ${maxTitleLen} aksara",
+      "brief": "Huraian pendek tepat satu ayat di bawah ${maxSummaryLen} aksara.",
       "source": "Nama Sumber Berita",
       "url": "Pautan URL artikel khusus dan spesifik yang lengkap dan sah (citation link)"
     }
