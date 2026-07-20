@@ -245,7 +245,8 @@ const getLimitsForIndex = (idx: number, config?: any) => {
   const customBrief = config?.maxBrief;
 
   let defaults = { maxTitle: 70, maxBrief: 100 };
-  if (idx === 0) defaults = { maxTitle: 115, maxBrief: 350 };
+  if (idx === -1) defaults = { maxTitle: 80, maxBrief: 220 };
+  else if (idx === 0) defaults = { maxTitle: 115, maxBrief: 350 };
   else if ([1, 12, 15, 26, 29, 37].includes(idx)) defaults = { maxTitle: 72, maxBrief: 480 };
   else if ([2, 6, 19, 20, 33, 34].includes(idx)) defaults = { maxTitle: 110, maxBrief: 280 };
   else if ([3, 11, 16, 25, 30, 35, 36].includes(idx)) defaults = { maxTitle: 85, maxBrief: 200 };
@@ -457,6 +458,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const handleCardClick = (idx: number) => {
     if (!isEditMode) return;
     const config = slotsConfig.find(s => s.slotIndex === idx);
+    const limits = getLimitsForIndex(idx, config);
 
     if (idx === -1) {
       setFormConfig({
@@ -484,8 +486,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         carouselInterval: config?.carouselInterval || 10,
         carouselDelay: config?.carouselDelay || 0,
         generationLimit: config?.generationLimit || 1,
-        maxTitle: 80,
-        maxBrief: 220,
+        maxTitle: config?.maxTitle !== undefined && config?.maxTitle !== null ? config.maxTitle : limits.maxTitle,
+        maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief,
         masterPrompt: masterPrompt,
         refreshHour: config?.refreshHour || '00:00',
         refreshDay: config?.refreshDay || 'Isnin',
@@ -495,7 +497,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       return;
     }
     const item = bentoNewsItems[idx];
-    const limits = getLimitsForIndex(idx, config);
 
     const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(idx);
 
