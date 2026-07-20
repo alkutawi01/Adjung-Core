@@ -243,6 +243,18 @@ class EditorialPipeline {
 
       await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
 
+      // Track AI Usage Logs for Ticker
+      const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, provider.model]);
+      let estimatedCost = 0;
+      if (pricing) {
+        estimatedCost = ((promptTokens / 1000000) * pricing.inputCostPerMillion) + ((completionTokens / 1000000) * pricing.outputCostPerMillion);
+      }
+
+      await dbRun(`
+        INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
+        VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?)
+      `, [currentRunId, provider.id, provider.model, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, compiledPrompt, aiResult.text]);
+
       return {
         status: 'SUCCESS',
         objectId: 'ticker-updated',
