@@ -24,13 +24,14 @@ class EditorialPipeline {
       throw new Error(`API key for ${provider.name} (${provider.secretName}) was not found.`);
     }
 
+    const modelToUse = slot.model || provider.model;
     let aiInstance;
     if (provider.id.includes('gemini')) {
-      aiInstance = new GeminiProvider(apiKey, provider.model);
+      aiInstance = new GeminiProvider(apiKey, modelToUse);
     } else if (provider.id.includes('claude')) {
-      aiInstance = new ClaudeProvider(apiKey, provider.model);
+      aiInstance = new ClaudeProvider(apiKey, modelToUse);
     } else {
-      aiInstance = new GeminiProvider(apiKey, 'gemini-3.5-flash');
+      aiInstance = new GeminiProvider(apiKey, modelToUse || 'gemini-3.5-flash');
     }
 
     // Fetch masterPrompt from system_settings
@@ -210,7 +211,7 @@ Nothing more.`;
       await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
 
       // Track AI Usage Logs for Ticker
-      const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, provider.model]);
+      const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, modelToUse]);
       let estimatedCost = 0;
       if (pricing) {
         estimatedCost = ((promptTokens / 1000000) * pricing.inputCostPerMillion) + ((completionTokens / 1000000) * pricing.outputCostPerMillion);
@@ -219,7 +220,7 @@ Nothing more.`;
       await dbRun(`
         INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
         VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?)
-      `, [currentRunId, provider.id, provider.model, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text]);
+      `, [currentRunId, provider.id, modelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text]);
 
       return {
         status: 'SUCCESS',
@@ -280,7 +281,7 @@ Nothing more.`;
     }
 
     // 9. Track AI Usage Logs
-    const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, provider.model]);
+    const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, modelToUse]);
     let estimatedCost = 0;
     if (pricing) {
       estimatedCost = ((promptTokens / 1000000) * pricing.inputCostPerMillion) + ((completionTokens / 1000000) * pricing.outputCostPerMillion);
@@ -289,7 +290,7 @@ Nothing more.`;
     await dbRun(`
       INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
       VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?)
-    `, [currentRunId, provider.id, provider.model, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text]);
+    `, [currentRunId, provider.id, modelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text]);
 
     return {
       status: 'SUCCESS',
