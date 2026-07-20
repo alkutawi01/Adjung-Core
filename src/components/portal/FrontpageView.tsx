@@ -523,8 +523,8 @@ URL: ${url}`;
             return `Tajuk: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nHuraian: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ` : ''}${itm.brief || ''}\nKategori: ${itm.desk || ''}\nTarikh: ${itm.publishedAt || ''}\nSumber: ${itm.source || ''}\nURL: ${itm.url || ''}`;
           }).join('\n\n____\n\n');
         } else {
-          const title = config?.manualTitle || item?.title || '';
-          const brief = config?.manualSummary || item?.brief || '';
+          const title = config?.manualTitle || item?.titleString || '';
+          const brief = config?.manualSummary || item?.briefString || '';
           const desk = config?.manualDesk || item?.desk || '';
           const source = config?.manualSource || item?.source || '';
           const url = config?.manualUrl || item?.url || '#';
@@ -554,7 +554,7 @@ URL: ${url}`;
       bgColor: config?.bgColor || 'transparent',
       borderColor: config?.borderColor || '',
       textColor: config?.textColor || '#1F1F1F',
-      manualTitle: config?.manualTitle || item?.title || '',
+      manualTitle: config?.manualTitle || item?.titleString || '',
       manualSummary: manualSummaryText,
       manualSource: config?.manualSource || item?.source || '',
       manualUrl: config?.manualUrl || item?.url || '#',
@@ -1211,6 +1211,7 @@ URL: ${url}`;
 
       const limits = getLimitsForIndex(actualSlotIdx, resolvedItem);
       const originalTitle = resolvedItem.title || '';
+      const originalBrief = resolvedItem.brief || '';
       if (resolvedItem.title) {
         resolvedItem.title = parseInlineFormatting(padToLimit(resolvedItem.title, limits.maxTitle));
       }
@@ -1218,6 +1219,7 @@ URL: ${url}`;
         resolvedItem.brief = parseInlineFormatting(padToLimit(resolvedItem.brief, limits.maxBrief));
       }
       resolvedItem.titleString = originalTitle;
+      resolvedItem.briefString = originalBrief;
 
       if ([7, 8, 9, 10, 21, 22, 23, 24].includes(actualSlotIdx)) {
         resolvedItem.source = resolvedItem.source || '19 Jul 2026';
