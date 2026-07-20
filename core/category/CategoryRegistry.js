@@ -42,10 +42,31 @@ const COLOR_PALETTE = [
   '#075985', // Sky 800
   '#115E59', // Teal 800
   '#065F46', // Emerald 800
-  '#15803D'  // Green 800
+  '#166534'  // Green 800
 ];
 
 class CategoryRegistry {
+  // HSL->hex, used once the curated palette above is exhausted. Golden-angle hue stepping (the same
+  // technique used to space seeds in a sunflower head) gives each successive category a hue as far
+  // as possible from every hue picked before it, so colors stay genuinely distinct indefinitely
+  // instead of wrapping around and reusing an already-assigned color. Fixed saturation/lightness
+  // keeps every generated color in the same "family" (medium-dark, readable on white) as the palette.
+  static hslToHex(h, s, l) {
+    s /= 100;
+    l /= 100;
+    const k = (n) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    const toHex = (x) => Math.round(255 * x).toString(16).padStart(2, '0');
+    return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`.toUpperCase();
+  }
+
+  static generateColorBeyondPalette(index) {
+    const GOLDEN_ANGLE = 137.508;
+    const hue = (index * GOLDEN_ANGLE) % 360;
+    return this.hslToHex(hue, 65, 42);
+  }
+
   static getSlug(name) {
     if (!name) return 'umum';
     return name.toLowerCase().trim()
@@ -96,11 +117,14 @@ class CategoryRegistry {
     const allRegistered = await this.dbAll(db, "SELECT color FROM CategoryRegistry");
     const assignedColors = allRegistered.map(r => r.color.toUpperCase());
 
-    // Find first unused color
+    // Find first unused color in the curated palette; once that's exhausted, generate a new one
+    // algorithmically rather than wrapping around and reusing an already-assigned color.
     let chosenColor = COLOR_PALETTE.find(c => !assignedColors.includes(c.toUpperCase()));
     if (!chosenColor) {
-      // Fallback wrap around
-      chosenColor = COLOR_PALETTE[allRegistered.length % COLOR_PALETTE.length];
+      chosenColor = this.generateColorBeyondPalette(allRegistered.length);
+      while (assignedColors.includes(chosenColor.toUpperCase())) {
+        chosenColor = this.generateColorBeyondPalette(allRegistered.length + assignedColors.length);
+      }
     }
 
     const id = `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

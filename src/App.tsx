@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Entry, SystemSettings } from './types';
 import { db } from './db/mockDb';
 import { FrontpageView } from './components/portal/FrontpageView';
+import { ContentReview } from './components/studio/ContentReview';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -103,7 +104,17 @@ export default function App() {
               </main>
             </motion.div>
           } />
-          
+
+          <Route path="/studio/semakan-kandungan" element={
+            <motion.div
+              key="content-review"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            >
+              <ContentReview />
+            </motion.div>
+          } />
 
         </Routes>
       </AnimatePresence>

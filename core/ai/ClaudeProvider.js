@@ -41,7 +41,10 @@ class ClaudeProvider extends AIProvider {
       text,
       parsedJson,
       promptTokens,
-      completionTokens
+      completionTokens,
+      // Claude has no live web-search/grounding tool wired up here, so it has no way to verify
+      // any URL it writes — every source_url from Claude is generated from training data alone.
+      groundingUrls: []
     };
   }
 }

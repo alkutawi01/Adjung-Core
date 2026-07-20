@@ -121,7 +121,10 @@ const seedDatabase = async () => {
                   VALUES (?, ?, ?, ?, 'USD', ?)
                 `);
                 const nowStr = new Date().toISOString();
-                stmtPricing.run('gemini-1', 'gemini-3.5-flash', 0.075, 0.30, nowStr);
+                // Verified against https://ai.google.dev/gemini-api/docs/pricing — the previous
+                // 0.075/0.30 values here were Gemini 1.5 Flash's old rate, not this model's real
+                // price (1.50/9.00), and silently understated every cost estimate by ~20-30x.
+                stmtPricing.run('gemini-1', 'gemini-3.5-flash', 1.50, 9.00, nowStr);
                 stmtPricing.run('openai-1', 'gpt-4o', 2.50, 10.00, nowStr);
                 stmtPricing.run('claude-1', 'claude-3-5-sonnet-latest', 3.00, 15.00, nowStr);
                 stmtPricing.run('deepseek-1', 'deepseek-chat', 0.14, 0.28, nowStr);
@@ -1420,6 +1423,11 @@ const initEditorialOS = (dbConn) => {
                                           dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshHour TEXT DEFAULT '00:00'", () => {
                                             dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshDay TEXT DEFAULT 'Isnin'", () => {
                                               dbConn.run("ALTER TABLE slots_config ADD COLUMN eventExpiryFilter TEXT DEFAULT ''", () => {
+                                              dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptTopic TEXT DEFAULT ''", () => {
+                                              dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptRecency TEXT DEFAULT ''", () => {
+                                              dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptLanguage TEXT DEFAULT ''", () => {
+                                              dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptRegion TEXT DEFAULT ''", () => {
+                                              dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptSource TEXT DEFAULT ''", () => {
                                                 dbConn.run(`
                                                   CREATE TABLE IF NOT EXISTS static_pages (
                                                     key TEXT PRIMARY KEY,
@@ -1446,6 +1454,11 @@ const initEditorialOS = (dbConn) => {
                                                     });
                                                   });
                                                 });
+                                              });
+                                              });
+                                              });
+                                              });
+                                              });
                                               });
                                             });
                                           });
@@ -1559,7 +1572,12 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     }];
   }
 
-  const blocks = summaryText.split(/____+/);
+  // Some pasted AI content omits the "____" separator between items entirely. Falling back to
+  // splitting on each new "Tajuk:"/"Event:" line boundary prevents multiple items from silently
+  // collapsing into a single item (last-value-wins in the line-scan loop below).
+  const blocks = /____+/.test(summaryText)
+    ? summaryText.split(/____+/)
+    : summaryText.split(/\n(?=\s*(?:Tajuk|Event):)/);
   const items = [];
   for (const block of blocks) {
     const lines = block.split('\n');
@@ -1617,6 +1635,96 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
   }];
 };
 
+// The Ticker (slotIndex -1) never writes to editorial_objects, in either Manual or AI Generated
+// mode — it always lives as a single "---"-delimited text blob in system_settings.inTheNewsText
+// (see EditorialPipeline.js's slotIndex===-1 branch, and the ticker save path in POST
+// /api/system/slots). These mirror the client-side parseInTheNews()/serialization convention
+// (Desk:/Title:/Brief:/Source:/Url: fields) so the content-review endpoints can read/write it too.
+const parseTickerText = (text) => {
+  if (!text) return [];
+  const blocks = text.split(/\n?[-_—–―]{3,}\n?/);
+  const items = [];
+  for (const block of blocks) {
+    let desk = '', title = '', brief = '', source = '', url = '';
+    for (const line of block.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        if (!url) url = trimmed;
+        continue;
+      }
+      const colonIdx = trimmed.indexOf(':');
+      if (colonIdx <= 0) continue;
+      const key = trimmed.slice(0, colonIdx).trim().toLowerCase();
+      const val = trimmed.slice(colonIdx + 1).trim();
+      if (key === 'desk') desk = val;
+      else if (key === 'title') title = val;
+      else if (key === 'brief' || key === 'summary') brief = val;
+      else if (key === 'source') source = val;
+      else if (key === 'url') url = val;
+    }
+    if (title) items.push({ desk, title, brief, source, url });
+  }
+  return items;
+};
+
+const serializeTickerText = (items) => {
+  return items
+    .map(i => `Desk: ${i.desk || 'UMUM'}\nTitle: ${i.title}\nBrief: ${i.brief || ''}\nSource: ${i.source || ''}\nUrl: ${i.url || '#'}`)
+    .join('\n---\n');
+};
+
+// Keeps editorial_objects/editorial_revisions/editorial_attribute_values in sync with a Manual-mode
+// slot's manualSummary text blob. resolveSlotContent now prefers real EAV rows over the blob for
+// Manual slots (so per-item editing/deletion works the same way as AI Generated content) — without
+// this sync running on every save, editing the "Kandungan Manual" textarea would silently stop
+// having any visible effect once a slot has been migrated, since the stale DB rows would keep
+// winning over the freshly-typed blob. Safe to call with an empty/unparseable blob: it just clears
+// any existing rows for that slot.
+const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) => {
+  const items = parseManualSummaryTemplate(manualSummary || '', slotConfig);
+  await dbRun('DELETE FROM editorial_objects WHERE slotIndex = ?', [slotIndex]);
+  if (items.length === 0) return;
+
+  const baseTs = Date.now();
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const objectId = `object-manual-slot${slotIndex}-${baseTs}-${i}`;
+    const createdAt = new Date(baseTs + i).toISOString();
+    const finalCategory = (item.desk || 'UMUM').trim().toUpperCase();
+    try {
+      await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
+    } catch (e) {
+      console.warn("Failed to register category:", e.message);
+    }
+
+    await dbRun(
+      `INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
+       VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?)`,
+      [objectId, finalCategory, slotIndex, createdAt, createdAt]
+    );
+    const rev = await dbRun(
+      `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+       VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'manual-slot-save', ?, ?)`,
+      [objectId, item.title, item.summary, createdAt, createdAt]
+    );
+    const revisionId = rev.lastID;
+
+    const attrs = [
+      { key: 'desk', val: finalCategory },
+      { key: 'url', val: item.url || '#' },
+      { key: 'source', val: item.source || '' },
+    ];
+    for (const a of attrs) {
+      await dbRun(
+        `INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText)
+         VALUES (?, ?, ?, ?)`,
+        [objectId, revisionId, a.key, a.val]
+      );
+    }
+  }
+};
+
 const resolveSlotContent = async (slot, lang = 'ms') => {
   if (slot.contentMode === 'Disabled') {
     return null;
@@ -1629,7 +1737,15 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
   if (slot.contentMode === 'AI Generated') {
     try {
       const limit = slot.generationLimit || 5;
-      const dbObjects = await dbAll("SELECT id FROM editorial_objects WHERE slotIndex = ? ORDER BY createdAt DESC LIMIT ?", [slot.slotIndex, limit]);
+      // Exclude Manual-origin rows: a slot can be switched between Manual and AI Generated over
+      // time, and old rows from the OTHER mode can still share the same slotIndex — without this
+      // filter, stale content from a previous mode silently bleeds into the current mode's carousel.
+      const dbObjects = await dbAll(`
+        SELECT eo.id FROM editorial_objects eo
+        INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.status = 'approved'
+        WHERE eo.slotIndex = ? AND er.createdBy NOT IN ('manual-slot-save', 'migration-manual-blob', 'content-review')
+        ORDER BY eo.createdAt DESC LIMIT ?
+      `, [slot.slotIndex, limit]);
       objectIds = dbObjects.map(o => o.id);
     } catch (e) {
       console.error(e);
@@ -1639,38 +1755,60 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       objectIds.unshift(mainId);
     }
   } else if (slot.contentMode === 'Manual') {
-    isManualParsed = true;
-    const parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot);
-    for (const parsed of parsedItems) {
-      const approvedRevision = { 
-        title: parsed.title, 
-        summary: parsed.summary, 
-        createdAt: parsed.publishedAt 
-      };
-      const editorialObj = { id: 'manual', type: 'Brief', categoryId: 'general' };
-      const avs = [
-        { attributeId: 'url', valueText: parsed.url },
-        { attributeId: 'desk', valueText: parsed.desk },
-        { attributeId: 'source', valueText: parsed.source }
-      ];
+    // Manual-mode content is being migrated from the raw manualSummary text blob into real
+    // editorial_objects rows (same storage as AI Generated), so it can be listed/edited/deleted
+    // individually elsewhere in the admin. Prefer real DB rows when they exist; only fall back to
+    // parsing the legacy text blob directly for slots that haven't been migrated yet (or freshly
+    // created ones with content still sitting only in the blob) — zero behavior change for those.
+    try {
+      // Only rows actually authored through the Manual pathway — a slot previously in AI Generated
+      // mode can leave behind pipeline-authored rows sharing the same slotIndex, which must NOT
+      // bleed into this carousel once the slot is switched to Manual.
+      const dbObjects = await dbAll(`
+        SELECT eo.id FROM editorial_objects eo
+        INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.status = 'approved'
+        WHERE eo.slotIndex = ? AND er.createdBy IN ('manual-slot-save', 'migration-manual-blob', 'content-review')
+        ORDER BY eo.createdAt ASC
+      `, [slot.slotIndex]);
+      objectIds = dbObjects.map(o => o.id);
+    } catch (e) {
+      console.error(e);
+    }
 
-      const renderToken = await PresentationComposer.composeToken(db, slot, editorialObj, approvedRevision, avs);
-      
-      subItems.push({
-        title: approvedRevision.title,
-        brief: approvedRevision.summary,
-        publishedAt: approvedRevision.createdAt,
-        desk: (renderToken.desk || parsed.desk || 'UMUM').toUpperCase(),
-        publisherName: renderToken.publisherName || parsed.source || 'Umum',
-        source: renderToken.publisherName || parsed.source || 'Umum',
-        url: renderToken.url || parsed.url || '#',
-        glyphProfile: renderToken.glyphProfile || null,
-        presentationProfile: renderToken.presentationProfile || 'umum',
-        publicationType: renderToken.publicationType || 'news',
-        isOfficial: renderToken.isOfficial || false,
-        aiProvider: null,
-        imageUrl: slot.manualImageUrl || ''
-      });
+    if (objectIds.length === 0) {
+      isManualParsed = true;
+      const parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot);
+      for (const parsed of parsedItems) {
+        const approvedRevision = {
+          title: parsed.title,
+          summary: parsed.summary,
+          createdAt: parsed.publishedAt
+        };
+        const editorialObj = { id: 'manual', type: 'Brief', categoryId: 'general' };
+        const avs = [
+          { attributeId: 'url', valueText: parsed.url },
+          { attributeId: 'desk', valueText: parsed.desk },
+          { attributeId: 'source', valueText: parsed.source }
+        ];
+
+        const renderToken = await PresentationComposer.composeToken(db, slot, editorialObj, approvedRevision, avs);
+
+        subItems.push({
+          title: approvedRevision.title,
+          brief: approvedRevision.summary,
+          publishedAt: approvedRevision.createdAt,
+          desk: (renderToken.desk || parsed.desk || 'UMUM').toUpperCase(),
+          publisherName: renderToken.publisherName || parsed.source || 'Umum',
+          source: renderToken.publisherName || parsed.source || 'Umum',
+          url: renderToken.url || parsed.url || '#',
+          glyphProfile: renderToken.glyphProfile || null,
+          presentationProfile: renderToken.presentationProfile || 'umum',
+          publicationType: renderToken.publicationType || 'news',
+          isOfficial: renderToken.isOfficial || false,
+          aiProvider: null,
+          imageUrl: slot.manualImageUrl || ''
+        });
+      }
     }
   } else {
     const mainId = slot.overrideObjectId || slot.activeObjectId;
@@ -1914,12 +2052,14 @@ app.post('/api/system/slots', async (req, res) => {
       console.log(`Slot ${slot.slotIndex}: raw providerId = "${slot.providerId}", mapped = ${providerId}`);
       await dbRun(`
         INSERT OR REPLACE INTO slots_config (
-          layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor, 
-          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, refreshHour, refreshDay, eventExpiryFilter
-        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
+          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, refreshHour, refreshDay, eventExpiryFilter,
+          aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource
+        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
-        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || ''
+        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
+        slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || ''
       ]);
 
       if (slot.manualDesk && slot.manualDesk.trim() !== '') {
@@ -1927,6 +2067,14 @@ app.post('/api/system/slots', async (req, res) => {
           await CategoryRegistry.incrementCategoryUsage(db, slot.manualDesk);
         } catch (e) {
           console.warn("Failed to register category:", e.message);
+        }
+      }
+
+      if (slot.contentMode === 'Manual' && slot.slotIndex >= 0) {
+        try {
+          await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot);
+        } catch (e) {
+          console.warn(`Failed to sync editorial_objects for slot ${slot.slotIndex}:`, e.message);
         }
       }
 
@@ -1942,6 +2090,256 @@ app.post('/api/system/slots', async (req, res) => {
   } catch (err) {
     console.error('Save slots config error:', err);
     res.status(500).json({ error: 'Failed to save slots configuration. ' + (err.message || '') });
+  }
+});
+
+// --- CONTENT REVIEW (aggregate cross-slot listing/editing over editorial_objects) ---
+
+app.get('/api/system/content/all', async (req, res) => {
+  try {
+    const rows = await dbAll(`
+      SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, eo.createdAt as objectCreatedAt,
+             er.id as revisionId, er.title, er.summary, er.createdAt as revisionCreatedAt, er.updatedAt as revisionUpdatedAt
+      FROM editorial_objects eo
+      INNER JOIN editorial_revisions er ON er.objectId = eo.id
+      INNER JOIN (
+        SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions WHERE status = 'approved' GROUP BY objectId
+      ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
+      ORDER BY eo.slotIndex ASC, eo.createdAt ASC
+    `);
+
+    const objectIds = rows.map(r => r.objectId);
+    let attrsByObject = {};
+    if (objectIds.length > 0) {
+      const placeholders = objectIds.map(() => '?').join(',');
+      const attrRows = await dbAll(`SELECT * FROM editorial_attribute_values WHERE objectId IN (${placeholders})`, objectIds);
+      for (const a of attrRows) {
+        if (!attrsByObject[a.objectId]) attrsByObject[a.objectId] = {};
+        attrsByObject[a.objectId][a.attributeId] = a.valueText;
+      }
+    }
+
+    const slotRows = await dbAll("SELECT slotIndex, maxTitle, maxBrief FROM slots_config WHERE layoutTemplateId = 'frontpage'");
+    const limitsBySlot = {};
+    for (const s of slotRows) {
+      limitsBySlot[s.slotIndex] = { maxTitle: s.maxTitle, maxBrief: s.maxBrief };
+    }
+
+    // seriesIndex: 1-based position within its own slot, in the same createdAt-ASC order used to
+    // render the carousel — this is what the "#slot-series" numbering in the bulk text view anchors to.
+    const seriesCounter = {};
+    const items = rows.map(r => {
+      const attrs = attrsByObject[r.objectId] || {};
+      seriesCounter[r.slotIndex] = (seriesCounter[r.slotIndex] || 0) + 1;
+      const limits = limitsBySlot[r.slotIndex] || {};
+      return {
+        id: r.objectId,
+        revisionId: r.revisionId,
+        slotIndex: r.slotIndex,
+        seriesIndex: seriesCounter[r.slotIndex],
+        title: r.title,
+        summary: r.summary,
+        desk: attrs.desk || r.categoryId || '',
+        source: attrs.source || '',
+        url: attrs.url || '#',
+        imageUrl: attrs.imageUrl || attrs.coverImageId || '',
+        maxTitle: limits.maxTitle !== undefined ? limits.maxTitle : null,
+        maxBrief: limits.maxBrief !== undefined ? limits.maxBrief : null,
+        createdAt: r.revisionCreatedAt,
+        updatedAt: r.revisionUpdatedAt
+      };
+    });
+
+    const tickerSettings = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+    const tickerLimits = limitsBySlot[-1] || {};
+    const tickerParsed = parseTickerText(tickerSettings ? tickerSettings.inTheNewsText : '');
+    const tickerItems = tickerParsed.map((t, idx) => ({
+      id: `ticker-${idx}`,
+      revisionId: null,
+      slotIndex: -1,
+      seriesIndex: idx + 1,
+      title: t.title,
+      summary: t.brief,
+      desk: t.desk,
+      source: t.source,
+      url: t.url || '#',
+      imageUrl: '',
+      maxTitle: tickerLimits.maxTitle !== undefined ? tickerLimits.maxTitle : null,
+      maxBrief: tickerLimits.maxBrief !== undefined ? tickerLimits.maxBrief : null,
+      createdAt: null,
+      updatedAt: null
+    }));
+
+    const allItems = [...tickerItems, ...items];
+    res.json({ items: allItems, count: allItems.length });
+  } catch (err) {
+    console.error('Fetch aggregate content error:', err);
+    res.status(500).json({ error: 'Failed to fetch aggregate content. ' + (err.message || '') });
+  }
+});
+
+app.patch('/api/system/content/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, summary, desk, source, url } = req.body;
+
+    if (id.startsWith('ticker-')) {
+      const idx = parseInt(id.slice('ticker-'.length), 10);
+      const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+      const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
+      if (idx < 0 || idx >= tickerItems.length) {
+        return res.status(404).json({ error: 'Item ticker tidak dijumpai.' });
+      }
+      if (title !== undefined) tickerItems[idx].title = title;
+      if (summary !== undefined) tickerItems[idx].brief = summary;
+      if (desk !== undefined) tickerItems[idx].desk = desk;
+      if (source !== undefined) tickerItems[idx].source = source;
+      if (url !== undefined) tickerItems[idx].url = url;
+      await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
+      return res.json({ success: true });
+    }
+
+    const { imageUrl } = req.body;
+    const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' ORDER BY version DESC LIMIT 1", [id]);
+    if (!rev) {
+      return res.status(404).json({ error: 'Item tidak dijumpai.' });
+    }
+
+    const setClauses = [];
+    const params = [];
+    if (title !== undefined) { setClauses.push('title = ?'); params.push(title); }
+    if (summary !== undefined) { setClauses.push('summary = ?'); params.push(summary); }
+    if (setClauses.length > 0) {
+      setClauses.push('updatedAt = ?');
+      params.push(new Date().toISOString());
+      params.push(rev.id);
+      await dbRun(`UPDATE editorial_revisions SET ${setClauses.join(', ')} WHERE id = ?`, params);
+    }
+
+    if (desk !== undefined && desk.trim() !== '') {
+      try {
+        await CategoryRegistry.incrementCategoryUsage(db, desk);
+      } catch (e) {
+        console.warn("Failed to register category:", e.message);
+      }
+    }
+
+    const attrCandidates = { desk, source, url, imageUrl };
+    for (const [key, val] of Object.entries(attrCandidates)) {
+      if (val === undefined) continue;
+      const existing = await dbGet(
+        "SELECT id FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = ?",
+        [id, rev.id, key]
+      );
+      if (existing) {
+        await dbRun("UPDATE editorial_attribute_values SET valueText = ? WHERE id = ?", [val, existing.id]);
+      } else {
+        await dbRun(
+          "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
+          [id, rev.id, key, val]
+        );
+      }
+    }
+
+    await dbRun("UPDATE editorial_objects SET updatedAt = ? WHERE id = ?", [new Date().toISOString(), id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Patch content item error:', err);
+    res.status(500).json({ error: 'Failed to update item. ' + (err.message || '') });
+  }
+});
+
+app.delete('/api/system/content/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (id.startsWith('ticker-')) {
+      const idx = parseInt(id.slice('ticker-'.length), 10);
+      const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+      const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
+      if (idx < 0 || idx >= tickerItems.length) {
+        return res.status(404).json({ error: 'Item ticker tidak dijumpai.' });
+      }
+      tickerItems.splice(idx, 1);
+      await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
+      return res.json({ success: true });
+    }
+
+    await dbRun("DELETE FROM editorial_attribute_values WHERE objectId = ?", [id]);
+    await dbRun("DELETE FROM editorial_revisions WHERE objectId = ?", [id]);
+    const result = await dbRun("DELETE FROM editorial_objects WHERE id = ?", [id]);
+    if (!result.changes) {
+      return res.status(404).json({ error: 'Item tidak dijumpai.' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete content item error:', err);
+    res.status(500).json({ error: 'Failed to delete item. ' + (err.message || '') });
+  }
+});
+
+app.post('/api/system/content', async (req, res) => {
+  try {
+    const { slotIndex, title, summary, desk, source, url, imageUrl } = req.body;
+    if (slotIndex === undefined || slotIndex === null) {
+      return res.status(400).json({ error: 'Missing slotIndex.' });
+    }
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Tajuk diperlukan.' });
+    }
+
+    if (slotIndex === -1) {
+      const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+      const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
+      tickerItems.push({
+        desk: (desk || 'UMUM').trim().toUpperCase(),
+        title: title.trim(),
+        brief: (summary || '').trim(),
+        source: source || '',
+        url: url || '#'
+      });
+      await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
+      return res.json({ success: true, id: `ticker-${tickerItems.length - 1}` });
+    }
+
+    const timestamp = new Date().toISOString();
+    const finalCategory = (desk || 'UMUM').trim().toUpperCase();
+    try {
+      await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
+    } catch (e) {
+      console.warn("Failed to register category:", e.message);
+    }
+    const objectId = `object-manual-slot${slotIndex}-${Date.now()}-new`;
+
+    await dbRun(
+      `INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
+       VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?)`,
+      [objectId, finalCategory, slotIndex, timestamp, timestamp]
+    );
+    const rev = await dbRun(
+      `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+       VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'content-review', ?, ?)`,
+      [objectId, title.trim(), (summary || '').trim(), timestamp, timestamp]
+    );
+    const revisionId = rev.lastID;
+
+    const attrs = [
+      { key: 'desk', val: finalCategory },
+      { key: 'url', val: url || '#' },
+      { key: 'source', val: source || '' },
+    ];
+    if (imageUrl) attrs.push({ key: 'imageUrl', val: imageUrl });
+    for (const a of attrs) {
+      await dbRun(
+        "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
+        [objectId, revisionId, a.key, a.val]
+      );
+    }
+
+    res.json({ success: true, id: objectId });
+  } catch (err) {
+    console.error('Create content item error:', err);
+    res.status(500).json({ error: 'Failed to create item. ' + (err.message || '') });
   }
 });
 

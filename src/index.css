@@ -60,6 +60,15 @@ html, body {
   scrollbar-width: thin !important;
 }
 
+/* Thinner scrollbar for the horizontally-scrolling World Clock strip — the default 6px reads as
+   thick and heavy at small/mobile viewport scale. */
+#world-clock::-webkit-scrollbar {
+  height: 3px;
+}
+#world-clock {
+  scrollbar-width: thin;
+}
+
 /* Elegant line selection style */
 ::selection {
   background-color: rgba(128, 35, 52, 0.12);

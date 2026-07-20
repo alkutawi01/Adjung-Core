@@ -1,8 +1,97 @@
 import SourceDiscovery from '../sources/SourceDiscovery.js';
+import SourceFetcher from '../sources/SourceFetcher.js';
+import SourceNormalizer from '../sources/SourceNormalizer.js';
+import SourceCache from '../sources/SourceCache.js';
+import registry from '../sources/ProviderRegistry.js';
 import GeminiProvider from '../ai/GeminiProvider.js';
 import ClaudeProvider from '../ai/ClaudeProvider.js';
 import EditorialValidator from './EditorialValidator.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
+
+const CONTENT_POOL_MAX_ITEMS = 30; // Bound prompt token cost regardless of how many sources are configured.
+const CONTENT_POOL_MAX_CONTENT_CHARS = 400; // Per-item content cap — enough for editorial judgment, not full article reprint.
+const RECENCY_WINDOW_HOURS = 24;
+
+// Fetch + parse + normalize every URL in a slot's sourcesList into a bounded, deduplicated
+// Content Pool (real fetched text, not AI-guessed). This replaces handing Gemini raw URLs and
+// trusting its own web search/browsing to "figure it out" — the AI never crawls, it only judges
+// pre-fetched material. Items with a parseable publishedAt older than 24h are dropped; items with
+// no parseable date are kept (many feeds/pages don't expose one reliably) but still count toward
+// the item cap. Returns both the trimmed pool and a stable hash for cache-skip change detection.
+async function buildContentPool(sourcesListRaw) {
+  if (!sourcesListRaw || !sourcesListRaw.trim()) {
+    return { pool: [], sourceHash: '' };
+  }
+
+  const urls = sourcesListRaw.split(/[\s,;\n\r]+/).map(u => u.trim()).filter(Boolean);
+  const allRecords = [];
+
+  for (const url of urls) {
+    try {
+      const { rawContent, responseHeaders, status } = await SourceFetcher.fetchRaw(url);
+      if (status !== 200 || !rawContent) continue;
+      const transformer = registry.resolve(url, rawContent, responseHeaders);
+      const records = transformer.parse(rawContent);
+      // StaticHtmlTransformer (and any other single-page transformer) doesn't know its own source
+      // URL — parse() only receives raw content — so it can't set a real id/url per record. Backfill
+      // both from the URL we actually fetched, otherwise every homepage-style source collapses to
+      // the same generic id ('html-static') and gets deduplicated down to just one surviving source.
+      for (const r of records) {
+        if (!r.url) r.url = url;
+        if (!r.id || r.id === 'html-static') r.id = url;
+      }
+      allRecords.push(...records);
+    } catch (e) {
+      console.warn(`Content pool fetch failed for ${url}:`, e.message);
+    }
+  }
+
+  const normalized = SourceNormalizer.normalize(allRecords);
+
+  const now = Date.now();
+  const seenUrls = new Set();
+  const recent = [];
+  for (const record of normalized) {
+    const dedupeKey = record.url || record.id;
+    if (dedupeKey && seenUrls.has(dedupeKey)) continue;
+    if (dedupeKey) seenUrls.add(dedupeKey);
+
+    if (record.publishedAt) {
+      const parsed = Date.parse(record.publishedAt);
+      if (!isNaN(parsed) && (now - parsed) > RECENCY_WINDOW_HOURS * 60 * 60 * 1000) {
+        continue; // Older than the recency window and we CAN verify it — drop.
+      }
+    }
+    recent.push(record);
+    if (recent.length >= CONTENT_POOL_MAX_ITEMS) break;
+  }
+
+  const pool = recent.map(r => ({ ...r, content: r.content.slice(0, CONTENT_POOL_MAX_CONTENT_CHARS) }));
+  const sourceHash = SourceCache.calculateHash(pool);
+
+  return { pool, sourceHash };
+}
+
+// Safety net against dead/hallucinated links for ANY provider (not just Gemini): confirm the
+// candidate URL actually resolves before publishing it. Doesn't catch "real URL, wrong content" —
+// only "URL doesn't exist at all" — but costs nothing when combined with real grounding citations.
+async function verifyUrlReachable(url) {
+  if (!url || url === '#' || !url.startsWith('http')) return false;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  try {
+    let res = await fetch(url, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
+    if (res.status === 405 || res.status === 403) {
+      // Some sites reject HEAD requests specifically; retry with GET before giving up.
+      res = await fetch(url, { method: 'GET', redirect: 'follow', signal: controller.signal });
+    }
+    return res.ok;
+  } catch (e) {
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 class EditorialPipeline {
   static async runSlotPipeline(db, slot, provider, globalPrompt, campaignPrompt, currentRunId = null, bypassCache = false) {
@@ -12,11 +101,31 @@ class EditorialPipeline {
     const strategy = slot.searchStrategy || 'Structured Sources Only';
     const slotPrompt = slot.promptText || '';
 
-    const sourceHash = '';
     const aiSourceUrl = slot.sourcesList ? slot.sourcesList.split(/[\s,;\n\r]+/)[0] : '#';
 
     const dbGet = (query, params) => new Promise((res, rej) => db.get(query, params, (err, row) => err ? rej(err) : res(row)));
     const dbRun = (query, params) => new Promise((res, rej) => db.run(query, params, function(err) { err ? rej(err) : res(this); }));
+
+    // 0. Content Pool: fetch + parse + normalize real source material BEFORE calling any AI, for
+    // strategies that use structured sources. This is what makes Gemini an editor, not a crawler —
+    // and it's also the main cost saver: if the fetched pool is byte-identical to last run's pool
+    // (same hash), skip the AI call entirely rather than pay for a regeneration of unchanged news.
+    let contentPool = [];
+    let sourceHash = '';
+    const usesStructuredSources = strategy === 'Structured Sources Only' || strategy === 'Structured Sources -> Search Fallback';
+    if (usesStructuredSources && slot.sourcesList && slot.sourcesList.trim() !== '') {
+      const built = await buildContentPool(slot.sourcesList);
+      contentPool = built.pool;
+      sourceHash = built.sourceHash;
+      console.log(`[Content Pool] Slot ${slotIndex}: ${contentPool.length} item(s) fetched, ${contentPool.filter(i => i.url).length} with a URL, hash ${sourceHash ? sourceHash.slice(0, 8) : '(empty)'}`);
+
+      if (!bypassCache && sourceHash && await SourceCache.isHashUnchanged(dbGet, slotIndex, sourceHash)) {
+        return {
+          status: 'SKIPPED_CACHE',
+          message: `Skipped: source pool unchanged since last run (${contentPool.length} item(s), hash ${sourceHash.slice(0, 8)}) — no AI call made.`
+        };
+      }
+    }
 
     // 1. Resolve AI Provider instance
     const apiKey = process.env[provider.secretName] || '';
@@ -108,7 +217,16 @@ Search Strategy:
 ${strategy}
 `;
 
-    if (slot.sourcesList && slot.sourcesList.trim() !== '') {
+    if (contentPool.length > 0) {
+      const poolText = contentPool.map((item, i) =>
+        `[${i + 1}] Title: ${item.title}\nURL: ${item.url}\nPublished: ${item.publishedAt || 'unknown'}\nContent: ${item.content}`
+      ).join('\n---\n');
+      userPrompt += `
+Kandungan Sumber Rujukan Faktual (fetched terus dari sumber, BUKAN carian anda — gunakan HANYA
+maklumat ini untuk fakta dan URL rujukan, jangan cari/reka fakta lain):
+${poolText}
+`;
+    } else if (slot.sourcesList && slot.sourcesList.trim() !== '' && !usesStructuredSources) {
       userPrompt += `
 Sources to read/consult:
 ${slot.sourcesList.trim()}
@@ -148,6 +266,17 @@ Task:
 ${slotPrompt}
 `;
 
+    // When a Content Pool exists, NEVER ask the AI to transcribe a URL as free text — that step is
+    // exactly where it silently drops/skips links (observed: only ~1 in 10 items correctly copied
+    // through in testing). Instead ask for "sourceIndex", the [N] number of the pool item it based
+    // the item on — a single integer is far less likely to be dropped than a full URL string — and
+    // let the CODE below deterministically look up the real, already-fetched URL from that index.
+    // AI-transcribed "url"/"source_url" stays as a fallback field only for when there's no pool
+    // (e.g. Search Only strategy) and grounding/self-report is genuinely the only option.
+    const sourceIndexInstruction = contentPool.length > 0
+      ? `\n      "sourceIndex": <WAJIB — nombor [N] rujukan sumber di atas yang paling berkaitan dengan item ini (integer, cth 3)>`
+      : '';
+
     if (slotIndex === -1) {
       userPrompt += `
 Tulis tepat ${slot.generationLimit || 5} baris kandungan berita terkini bertipe Ticker untuk dipaparkan di segmen "Terkini di Malaysia".
@@ -160,7 +289,7 @@ Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
       "title": "Tajuk berita terkini Malaysia di bawah ${maxTitleLen} aksara",
       "brief": "Huraian pendek tepat satu ayat di bawah ${maxSummaryLen} aksara.",
       "source": "Nama Sumber Berita",
-      "url": "Pautan URL artikel khusus dan spesifik yang lengkap dan sah (citation link)"
+      "url": "Pautan URL artikel khusus dan spesifik yang lengkap dan sah (citation link) — HANYA jika tiada sourceIndex"${sourceIndexInstruction}
     }
   ]
 }
@@ -168,44 +297,79 @@ Nothing more.`;
     } else if (isBarSlot) {
       userPrompt += `
 Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
-{ 
-  "title": "Nama Acara (Tidak melebihi ${maxTitleLen} aksara)", 
+{
+  "title": "Nama Acara (Tidak melebihi ${maxTitleLen} aksara)",
   "source": "Tarikh/Tempoh Acara secara ringkas dan padat",
   "category": "Kategori/Topik berita yang paling relevan (Satu perkataan sahaja, cth: ACARA, ILMU, SEJARAH, PORTAL)",
-  "source_url": "Pautan URL rujukan spesifik yang aktif",
-  "summary": ""
+  "source_url": "Pautan URL rujukan spesifik yang aktif — HANYA jika tiada sourceIndex",
+  "summary": ""${sourceIndexInstruction}
 }
 Nothing more.`;
     } else {
       userPrompt += `
 Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
-{ 
-  "title": "Tajuk berita (Tidak melebihi ${maxTitleLen} aksara)", 
+{
+  "title": "Tajuk berita (Tidak melebihi ${maxTitleLen} aksara)",
   "summary": "Ringkasan berita (${limitDesc})",
   "category": "Kategori berita (Satu perkataan sahaja, cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA)",
-  "source_url": "Pautan URL rujukan spesifik yang aktif"
+  "source_url": "Pautan URL rujukan spesifik yang aktif — HANYA jika tiada sourceIndex"${sourceIndexInstruction}
 }
 Nothing more.`;
     }
 
-    // 5. Native Search Grounding Tools (AI Provider will discover reality natively)
-    const searchTools = SourceDiscovery.getNativeSearchTools(provider.id);
+    // 5. Native Search Grounding Tools — ONLY when the slot actually wants AI to search live.
+    // "Structured Sources Only" must NEVER trigger a live search: that's the whole point of the
+    // strategy (bounded, predictable, cheap — no grounding token overhead). Grounding roughly
+    // doubles-to-quintuples prompt token usage (observed ~600 tokens ungrounded vs ~3500-4000
+    // grounded for the same prompt), so skipping it whenever real fetched content already exists
+    // is the single biggest cost lever here, on top of the cache-skip above.
+    const needsLiveSearch = strategy === 'Search Only' ||
+      (strategy === 'Structured Sources -> Search Fallback' && contentPool.length === 0);
+    const searchTools = needsLiveSearch ? SourceDiscovery.getNativeSearchTools(provider.id) : [];
+
+    if (strategy === 'Structured Sources -> Search Fallback' && contentPool.length === 0 && slot.sourcesList) {
+      // Pool fetch yielded nothing (dead feed, unreachable, etc.) — fall back to giving the AI the
+      // raw source URLs as a hint for its live search, same as a "Search Only" slot would get.
+      userPrompt += `
+Sources to read/consult (structured fetch failed, cari secara langsung):
+${slot.sourcesList.trim()}
+`;
+    }
 
     // 6. Call AI Provider
     const aiResult = await aiInstance.generate(userPrompt, staticSystemPrompt, searchTools);
-    const { parsedJson, promptTokens, completionTokens } = aiResult;
+    const { parsedJson, promptTokens, completionTokens, groundingUrls = [] } = aiResult;
 
     // 7. Validate output
     if (slotIndex === -1) {
       const items = parsedJson.items || [];
-      const textItems = items.map(item => {
+      const textItems = await Promise.all(items.map(async (item, idx) => {
         const desk = (item.desk || 'UMUM').trim().toUpperCase();
         const title = (item.title || '').trim().slice(0, maxTitleLen);
         const brief = (item.brief || '').trim().slice(0, maxSummaryLen);
-        const source = (item.source || provider.name).trim();
-        const url = (item.url || '#').trim();
+
+        // 1st choice: deterministic lookup via sourceIndex — the AI only had to pick a NUMBER,
+        // not transcribe a URL string, so this is far more reliable (code does the URL lookup,
+        // not the model). 2nd choice: cycle real grounding URLs (Search Only, no pool). 3rd: the
+        // model's own free-text claim, verified reachable before use. Never publish an unverified
+        // AI-written URL.
+        const poolItem = contentPool[(item.sourceIndex | 0) - 1];
+        let url, source;
+        if (poolItem) {
+          url = poolItem.url || '#';
+          source = (item.source || provider.name).trim();
+        } else {
+          source = (item.source || provider.name).trim();
+          const claimedUrl = (groundingUrls.length > 0 ? groundingUrls[idx % groundingUrls.length] : (item.url || '#')).trim();
+          url = (await verifyUrlReachable(claimedUrl)) ? claimedUrl : '#';
+        }
+        try {
+          await CategoryRegistry.incrementCategoryUsage(db, desk);
+        } catch (e) {
+          console.warn("Failed to register ticker category:", e.message);
+        }
         return `Desk: ${desk}\nTitle: ${title}\nBrief: ${brief}\nSource: ${source}\nUrl: ${url}`;
-      });
+      }));
       const formattedText = textItems.join('\n---\n');
 
       await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
@@ -243,7 +407,17 @@ Nothing more.`;
     const finalCategory = (slot.manualDesk && slot.manualDesk.trim() !== '') 
       ? slot.manualDesk.trim().toUpperCase() 
       : (parsedJson.category ? parsedJson.category.trim().toUpperCase() : 'UMUM');
-    const finalSourceUrl = parsedJson.source_url || aiSourceUrl || '#';
+    // 1st choice: deterministic sourceIndex lookup into the already-fetched Content Pool — the
+    // model only had to pick a number, so this can't be dropped/mistranscribed like a URL string
+    // can. 2nd: real grounding citation. 3rd: the model's own free-text claim, verified reachable.
+    const poolItemForUrl = contentPool[(parsedJson.sourceIndex | 0) - 1];
+    let finalSourceUrl;
+    if (poolItemForUrl) {
+      finalSourceUrl = poolItemForUrl.url || '#';
+    } else {
+      const claimedUrl = groundingUrls[0] || parsedJson.source_url || aiSourceUrl || '#';
+      finalSourceUrl = await verifyUrlReachable(claimedUrl) ? claimedUrl : '#';
+    }
     const finalSource = isBarSlot ? (parsedJson.source || parsedJson.date || '19 Jul 2026') : provider.name;
 
     // 8. Save Editorial Object and attributes to Database
