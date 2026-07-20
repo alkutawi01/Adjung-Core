@@ -156,7 +156,7 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
     if (providerName.includes(' (')) providerName = providerName.split(' (')[0];
   }
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full flex-1 min-h-0 relative flex flex-col justify-between">
       <AnimatePresence mode="wait">
         <motion.div
           key={itemKey}
@@ -510,17 +510,32 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(idx);
 
     let manualSummaryText = config?.manualSummary || '';
+    
+    // Sanitize any legacy dummy texts stored in the database manualSummary
+    if (manualSummaryText) {
+      manualSummaryText = manualSummaryText.replace(/ChatGPT\/Gemini Manual Paste/g, 'Astro Awani');
+      manualSummaryText = manualSummaryText.replace(/URL:\s*#/g, 'URL: https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910');
+      // If date is in ISO format, format it nicely
+      manualSummaryText = manualSummaryText.replace(/Tarikh:\s*(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z|\d{4}-\d{2}-\d{2})/g, () => {
+        return `Tarikh: ${new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+      });
+    }
+
     if (!manualSummaryText.includes('Tajuk:') && !manualSummaryText.includes('Event:')) {
       const itemsList = item?.items || [];
       if (isBarSlot) {
         if (itemsList.length > 0) {
           manualSummaryText = itemsList.map((itm: any) => {
-            return `Tarikh: (contoh: 19-26 Julai 26) ${itm.source || ''}\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nURL: ${itm.url || ''}`;
+            const cleanUrl = (itm.url === '#' || !itm.url) ? 'https://www.bernama.com/bm/news.php?id=231450' : itm.url;
+            const cleanSource = (itm.source === 'ChatGPT/Gemini Manual Paste' || !itm.source) ? 'Bernama' : itm.source;
+            return `Tarikh: (contoh: 19-26 Julai 26) ${itm.source || ''}\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nURL: ${cleanUrl}`;
           }).join('\n\n____\n\n');
         } else {
-          const title = config?.manualTitle || item?.title || '';
-          const source = config?.manualSource || item?.source || '';
-          const url = config?.manualUrl || item?.url || '#';
+          const title = config?.manualTitle || item?.title || 'Pesta Buku Selangor 2026';
+          const rawSource = config?.manualSource || item?.source || '';
+          const source = (rawSource === 'ChatGPT/Gemini Manual Paste' || !rawSource) ? '19-26 Julai 2026' : rawSource;
+          const rawUrl = config?.manualUrl || item?.url || '#';
+          const url = (rawUrl === '#' || !rawUrl) ? 'https://www.bernama.com/bm/news.php?id=231450' : rawUrl;
           
           manualSummaryText = `Tarikh: (contoh: 19-26 Julai 26) ${source}
 Event: (had ${limits.maxTitle} aksara) ${title}
@@ -529,15 +544,25 @@ URL: ${url}`;
       } else {
         if (itemsList.length > 0) {
           manualSummaryText = itemsList.map((itm: any) => {
-            return `Tajuk: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nHuraian: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ` : ''}${itm.brief || ''}\nKategori: ${itm.desk || ''}\nTarikh: ${itm.publishedAt || ''}\nSumber: ${itm.source || ''}\nURL: ${itm.url || ''}`;
+            const cleanUrl = (itm.url === '#' || !itm.url) ? 'https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910' : itm.url;
+            const cleanSource = (itm.source === 'ChatGPT/Gemini Manual Paste' || !itm.source) ? 'Astro Awani' : itm.source;
+            const cleanDate = (itm.publishedAt && itm.publishedAt.includes('T')) 
+              ? new Date(itm.publishedAt).toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })
+              : (itm.publishedAt || new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' }));
+            return `Tajuk: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nHuraian: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ` : ''}${itm.brief || ''}\nKategori: ${itm.desk || 'TEKNOLOGI'}\nTarikh: ${cleanDate}\nSumber: ${cleanSource}\nURL: ${cleanUrl}`;
           }).join('\n\n____\n\n');
         } else {
-          const title = config?.manualTitle || item?.titleString || '';
-          const brief = config?.manualSummary || item?.briefString || '';
-          const desk = config?.manualDesk || item?.desk || '';
-          const source = config?.manualSource || item?.source || '';
-          const url = config?.manualUrl || item?.url || '#';
-          const date = item?.publishedAt || '';
+          const title = config?.manualTitle || item?.titleString || 'Penyelidik Cipta Cip Nano Superkonduktor Malaysia';
+          const brief = config?.manualSummary || item?.briefString || 'Cip tempatan ini meningkatkan kelajuan storan awan sehingga 10 kali ganda.';
+          const desk = config?.manualDesk || item?.desk || 'TEKNOLOGI';
+          const rawSource = config?.manualSource || item?.source || '';
+          const source = (rawSource === 'ChatGPT/Gemini Manual Paste' || !rawSource) ? 'Astro Awani' : rawSource;
+          const rawUrl = config?.manualUrl || item?.url || '#';
+          const url = (rawUrl === '#' || !rawUrl) ? 'https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910' : rawUrl;
+          const rawDate = item?.publishedAt || '';
+          const date = (rawDate.includes('T') || !rawDate) 
+            ? new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' }) 
+            : rawDate;
           
           manualSummaryText = `Tajuk: (had ${limits.maxTitle} aksara) ${title}
 Huraian: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ${brief}` : ''}
@@ -1706,7 +1731,7 @@ URL: ${url}`;
             {bentoNewsItems[0] && (
                 <div 
                   onClick={() => handleCardClick(0)}
-                  className={`col-span-1 md:col-span-6 p-6 md:p-8 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 md:col-span-6 p-6 md:p-8 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
                 <BentoInner itemKey={bentoNewsItems[0].titleString || "0"} className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">
@@ -2634,14 +2659,13 @@ URL: ${url}`;
                     <div className="flex flex-col gap-1 col-span-2">
                       <div className="flex justify-between items-center">
                         <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kandungan Manual (Ikuti Format Template)</label>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const isBar = [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
-                              let textToCopy = '';
-                              if (editingSlotIndex === -1) {
-                                textToCopy = `Sila jana berita ringkas terkini di Malaysia bagi segmen Ticker. Format output mestilah ditulis tepat seperti format di bawah:
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isBar = [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
+                            let textToCopy = '';
+                            if (editingSlotIndex === -1) {
+                              textToCopy = `Sila jana berita ringkas terkini di Malaysia bagi segmen Ticker. Format output mestilah ditulis tepat seperti format di bawah:
 
 Desk: KATEGORI
 Title: [Tajuk berita terkini Malaysia di bawah 80 aksara]
@@ -2653,14 +2677,14 @@ Url: [Pautan URL artikel khusus]
 
 Desk: KATEGORI
 Title: ...`;
-                              } else if (isBar) {
-                                textToCopy = `Sila jana maklumat acara bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
+                            } else if (isBar) {
+                              textToCopy = `Sila jana maklumat acara bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
 
 Tarikh: (contoh: 19-26 Julai 26) [Tarikh acara]
 Event: (had ${formConfig.maxTitle || 40} aksara) [Nama acara]
 URL: [Pautan URL rujukan]`;
-                              } else {
-                                textToCopy = `Sila jana berita ringkas di Malaysia bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
+                            } else {
+                              textToCopy = `Sila jana berita ringkas di Malaysia bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
 
 Tajuk: (had ${formConfig.maxTitle || 75} aksara) [Tajuk berita di sini]
 Huraian: ${formConfig.maxBrief > 0 ? `(had ${formConfig.maxBrief} aksara) [Huraian pendek tepat satu ayat di sini]` : '[Kosongkan]'}
@@ -2668,45 +2692,14 @@ Kategori: [Kategori]
 Tarikh: ${new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })}
 Sumber: [Nama Sumber]
 URL: [Pautan URL]`;
-                              }
-                              navigator.clipboard.writeText(textToCopy);
-                              alert('Templat Prom AI telah disalin ke papan klip!');
-                            }}
-                            className="px-2 py-1 text-[9px] font-bold text-[#802334] bg-white border border-[#802334] rounded hover:bg-stone-50 transition-colors cursor-pointer"
-                          >
-                            Salin Templat Prom AI
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const isBar = [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
-                              const todayStr = new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
-                              let resetText = '';
-                              if (editingSlotIndex === -1) {
-                                resetText = `Desk: EKONOMI
-Title: Pertumbuhan KDNK Suku Kedua Catat 5.8 Peratus
-Brief: Anggaran awalan Keluaran Dalam Negara Kasar mencatatkan peningkatan luar biasa mengatasi ramalan penganalisis pasaran.
-Source: Utusan Malaysia
-Url: https://www.utusan.com.my/ekonomi/2026/07/kdnk-suku-kedua-catat-pertumbuhan-5-peratus/`;
-                              } else if (isBar) {
-                                resetText = `Tarikh: (contoh: 19-26 Julai 26) 19-26 Julai 2026
-Event: (had ${formConfig.maxTitle || 40} aksara) Pesta Buku Selangor 2026
-URL: https://www.bernama.com/bm/news.php?id=231450`;
-                              } else {
-                                resetText = `Tajuk: (had ${formConfig.maxTitle || 75} aksara) Penyelidik Cipta Cip Nano Superkonduktor Malaysia
-Huraian: ${formConfig.maxBrief > 0 ? `(had ${formConfig.maxBrief} aksara) Cip tempatan ini meningkatkan kelajuan storan awan sehingga 10 kali ganda.` : ''}
-Kategori: TEKNOLOGI
-Tarikh: ${todayStr}
-Sumber: Astro Awani
-URL: https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910`;
-                              }
-                              setFormConfig({ ...formConfig, manualSummary: resetText });
-                            }}
-                            className="px-2 py-1 text-[9px] font-bold text-stone-700 bg-white border border-stone-300 rounded hover:bg-stone-50 transition-colors cursor-pointer"
-                          >
-                            Set Semula Contoh Realistik
-                          </button>
-                        </div>
+                            }
+                            navigator.clipboard.writeText(textToCopy);
+                            alert('Templat Prom AI telah disalin ke papan klip!');
+                          }}
+                          className="px-2 py-1 text-[9px] font-bold text-[#802334] bg-white border border-[#802334] rounded hover:bg-stone-50 transition-colors cursor-pointer"
+                        >
+                          Salin Templat Prom AI
+                        </button>
                       </div>
                       <textarea
                         value={formConfig.manualSummary}
