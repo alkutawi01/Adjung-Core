@@ -807,7 +807,7 @@ const calculateNextRunTime = (slot) => {
   return nextDate.getTime();
 };
 
-const runEditorialPipeline = async (slotIndex, runId = null) => {
+const runEditorialPipeline = async (slotIndex, runId = null, bypassCache = false) => {
   const timestamp = new Date().toISOString();
   const currentRunId = runId || `run-${Date.now()}`;
 
@@ -833,7 +833,8 @@ const runEditorialPipeline = async (slotIndex, runId = null) => {
       provider,
       globalPrompt,
       campaignPrompt,
-      currentRunId
+      currentRunId,
+      bypassCache
     );
 
     const nextRun = calculateNextRunTime(slot);
@@ -1941,7 +1942,7 @@ app.post('/api/system/slots/run-now', async (req, res) => {
 
   try {
     const currentRunId = `manual-run-${Date.now()}`;
-    const result = await runEditorialPipeline(slotIndex, currentRunId);
+    const result = await runEditorialPipeline(slotIndex, currentRunId, true);
     if (result) {
       if (result.status === 'CACHE_HIT' || result.status === 'SUCCESS') {
         if (result.objectId) {

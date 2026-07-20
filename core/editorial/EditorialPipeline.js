@@ -9,7 +9,7 @@ import EditorialValidator from './EditorialValidator.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 
 class EditorialPipeline {
-  static async runSlotPipeline(db, slot, provider, globalPrompt, campaignPrompt, currentRunId = null) {
+  static async runSlotPipeline(db, slot, provider, globalPrompt, campaignPrompt, currentRunId = null, bypassCache = false) {
     const timestamp = new Date().toISOString();
     const slotIndex = slot.slotIndex;
     const outputType = (slot.allowedContentTypes || 'Brief').split(',')[0].trim();
@@ -58,7 +58,7 @@ class EditorialPipeline {
           sourceHash = combinedHashes.join('-');
           const isUnchanged = await SourceCache.isHashUnchanged(dbGet, slotIndex, sourceHash);
 
-          if (isUnchanged) {
+          if (isUnchanged && !bypassCache) {
             return {
               status: 'SKIPPED_CACHE',
               message: `Skipped: Source content is unchanged (stable hash match: ${sourceHash.substring(0, 8)}).`
