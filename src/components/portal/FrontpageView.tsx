@@ -2634,47 +2634,79 @@ URL: ${url}`;
                     <div className="flex flex-col gap-1 col-span-2">
                       <div className="flex justify-between items-center">
                         <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kandungan Manual (Ikuti Format Template)</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const isBar = [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
-                            let textToCopy = '';
-                            if (editingSlotIndex === -1) {
-                              textToCopy = `Sila jana berita ringkas terkini di Malaysia bagi segmen Ticker. Format output mestilah ditulis tepat seperti format di bawah:
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const isBar = [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
+                              let textToCopy = '';
+                              if (editingSlotIndex === -1) {
+                                textToCopy = `Sila jana berita ringkas terkini di Malaysia bagi segmen Ticker. Format output mestilah ditulis tepat seperti format di bawah:
 
 Desk: KATEGORI
 Title: [Tajuk berita terkini Malaysia di bawah 80 aksara]
 Brief: [Huraian pendek tepat satu ayat di bawah 220 aksara]
-Source: [Nama Sumber Berita]
+Source: [Nama Sumber Berita, cth: Sinar Harian/Astro Awani]
 Url: [Pautan URL artikel khusus]
 
 ---
 
 Desk: KATEGORI
 Title: ...`;
-                            } else if (isBar) {
-                              textToCopy = `Sila jana maklumat acara bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
+                              } else if (isBar) {
+                                textToCopy = `Sila jana maklumat acara bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
 
 Tarikh: (contoh: 19-26 Julai 26) [Tarikh acara]
 Event: (had ${formConfig.maxTitle || 40} aksara) [Nama acara]
 URL: [Pautan URL rujukan]`;
-                            } else {
-                              textToCopy = `Sila jana berita ringkas di Malaysia bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
+                              } else {
+                                textToCopy = `Sila jana berita ringkas di Malaysia bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
 
 Tajuk: (had ${formConfig.maxTitle || 75} aksara) [Tajuk berita di sini]
 Huraian: ${formConfig.maxBrief > 0 ? `(had ${formConfig.maxBrief} aksara) [Huraian pendek tepat satu ayat di sini]` : '[Kosongkan]'}
 Kategori: [Kategori]
-Tarikh: ${new Date().toISOString()}
+Tarikh: ${new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })}
 Sumber: [Nama Sumber]
 URL: [Pautan URL]`;
-                            }
-                            navigator.clipboard.writeText(textToCopy);
-                            alert('Templat Prom AI telah disalin ke papan klip!');
-                          }}
-                          className="px-2 py-1 text-[9px] font-bold text-[#802334] bg-white border border-[#802334] rounded hover:bg-stone-50 transition-colors cursor-pointer"
-                        >
-                          Salin Templat Prom AI
-                        </button>
+                              }
+                              navigator.clipboard.writeText(textToCopy);
+                              alert('Templat Prom AI telah disalin ke papan klip!');
+                            }}
+                            className="px-2 py-1 text-[9px] font-bold text-[#802334] bg-white border border-[#802334] rounded hover:bg-stone-50 transition-colors cursor-pointer"
+                          >
+                            Salin Templat Prom AI
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const isBar = [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
+                              const todayStr = new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
+                              let resetText = '';
+                              if (editingSlotIndex === -1) {
+                                resetText = `Desk: EKONOMI
+Title: Pertumbuhan KDNK Suku Kedua Catat 5.8 Peratus
+Brief: Anggaran awalan Keluaran Dalam Negara Kasar mencatatkan peningkatan luar biasa mengatasi ramalan penganalisis pasaran.
+Source: Utusan Malaysia
+Url: https://www.utusan.com.my/ekonomi/2026/07/kdnk-suku-kedua-catat-pertumbuhan-5-peratus/`;
+                              } else if (isBar) {
+                                resetText = `Tarikh: (contoh: 19-26 Julai 26) 19-26 Julai 2026
+Event: (had ${formConfig.maxTitle || 40} aksara) Pesta Buku Selangor 2026
+URL: https://www.bernama.com/bm/news.php?id=231450`;
+                              } else {
+                                resetText = `Tajuk: (had ${formConfig.maxTitle || 75} aksara) Penyelidik Cipta Cip Nano Superkonduktor Malaysia
+Huraian: ${formConfig.maxBrief > 0 ? `(had ${formConfig.maxBrief} aksara) Cip tempatan ini meningkatkan kelajuan storan awan sehingga 10 kali ganda.` : ''}
+Kategori: TEKNOLOGI
+Tarikh: ${todayStr}
+Sumber: Astro Awani
+URL: https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910`;
+                              }
+                              setFormConfig({ ...formConfig, manualSummary: resetText });
+                            }}
+                            className="px-2 py-1 text-[9px] font-bold text-stone-700 bg-white border border-stone-300 rounded hover:bg-stone-50 transition-colors cursor-pointer"
+                          >
+                            Set Semula Contoh Realistik
+                          </button>
+                        </div>
                       </div>
                       <textarea
                         value={formConfig.manualSummary}
