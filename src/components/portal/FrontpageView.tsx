@@ -485,7 +485,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         searchStrategy: config?.searchStrategy || 'Structured Sources Only',
         carouselInterval: config?.carouselInterval || 10,
         carouselDelay: config?.carouselDelay || 0,
-        generationLimit: config?.generationLimit || 1,
+        generationLimit: config?.generationLimit || 5,
         maxTitle: config?.maxTitle !== undefined && config?.maxTitle !== null ? config.maxTitle : limits.maxTitle,
         maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief,
         masterPrompt: masterPrompt,
@@ -2926,7 +2926,25 @@ URL: ${url}`;
                       </p>
                     </div>
 
-                    {editingSlotIndex !== -1 && (
+                    {editingSlotIndex === -1 ? (
+                      <div className="flex flex-col gap-1 col-span-2">
+                        <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Jumlah Berita Ticker (Ticker News Limit)</label>
+                        <select
+                          value={formConfig.generationLimit || 5}
+                          onChange={(e) => setFormConfig({ ...formConfig, generationLimit: parseInt(e.target.value) || 5 })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                        >
+                          <option value={3}>3 Berita</option>
+                          <option value={5}>5 Berita</option>
+                          <option value={8}>8 Berita</option>
+                          <option value={10}>10 Berita</option>
+                          <option value={15}>15 Berita</option>
+                        </select>
+                        <p className="text-[9px] text-stone-500 font-sans mt-0.5">
+                          Tentukan bilangan baris berita terkini Malaysia yang ingin dimasukkan ke dalam Ticker.
+                        </p>
+                      </div>
+                    ) : (
                       <div className="flex flex-col gap-1 col-span-2">
                         <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Jumlah Kandungan Carousel AI (AI Generation Limit)</label>
                         <select

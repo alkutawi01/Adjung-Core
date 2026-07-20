@@ -149,6 +149,8 @@ ${slotPrompt}
 
     if (slotIndex === -1) {
       userPrompt += `
+Tulis tepat ${slot.generationLimit || 5} baris kandungan berita terkini bertipe Ticker untuk dipaparkan di segmen "Terkini di Malaysia".
+
 Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
 {
   "items": [
