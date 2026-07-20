@@ -20,8 +20,16 @@ class GeminiProvider extends AIProvider {
       config.tools = searchTools;
     }
 
+    const modelToUse = this.modelName || 'gemini-3.5-flash';
+    console.log(`[Gemini API Call]`);
+    console.log(`- Request Reason: Generating content for editorial slot`);
+    console.log(`- Resolved Model Name: ${modelToUse}`);
+    if (!this.modelName) {
+      console.log(`- Fallback Triggered: Model name was not provided. Falling back to default model: gemini-3.5-flash`);
+    }
+
     const response = await ai.models.generateContent({
-      model: this.modelName || 'gemini-3.5-flash',
+      model: modelToUse,
       contents: promptText,
       config
     });
@@ -59,6 +67,10 @@ class GeminiProvider extends AIProvider {
       promptTokens = response.usageMetadata.promptTokenCount || 0;
       completionTokens = response.usageMetadata.candidatesTokenCount || 0;
     }
+
+    console.log(`[Gemini API Usage]`);
+    console.log(`- Prompt Tokens: ${promptTokens}`);
+    console.log(`- Completion Tokens: ${completionTokens}`);
 
     return {
       text,

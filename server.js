@@ -572,9 +572,17 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
   try {
     // 1. Google Gemini (Google AI SDK)
     if (provider.id === 'gemini-1') {
+      const modelToUse = provider.model || 'gemini-3.5-flash';
+      console.log(`[Gemini API Call via legacy server.js]`);
+      console.log(`- Request Reason: ${capability}`);
+      console.log(`- Resolved Model Name: ${modelToUse}`);
+      if (!provider.model) {
+        console.log(`- Fallback Triggered: Model name was not provided. Falling back to default model: gemini-3.5-flash`);
+      }
+
       const ai = new GoogleGenAI({ apiKey });
-       const response = await ai.models.generateContent({
-        model: provider.model || 'gemini-3.5-flash',
+      const response = await ai.models.generateContent({
+        model: modelToUse,
         contents: prompt,
         config: {
           responseMimeType: 'application/json'
@@ -587,6 +595,9 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
         promptTokens = response.usageMetadata.promptTokenCount || 0;
         completionTokens = response.usageMetadata.candidatesTokenCount || 0;
       }
+      console.log(`[Gemini API Usage via legacy server.js]`);
+      console.log(`- Prompt Tokens: ${promptTokens}`);
+      console.log(`- Completion Tokens: ${completionTokens}`);
     }
 
     // 2. OpenAI / ChatGPT
