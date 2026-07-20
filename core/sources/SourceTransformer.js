@@ -167,19 +167,32 @@ class StaticHtmlTransformer extends SourceTransformer {
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
 
     // Extract page title
-    const titleMatch = cleanHtml.match(/<title>([\s\\S]*?)<\/title>/i);
+    const titleMatch = cleanHtml.match(/<title>([\s\S]*?)<\/title>/i);
     const title = titleMatch ? titleMatch[1].trim() : 'Static Page';
 
-    // Strip remaining tags for simple content body
-    const bodyContent = cleanHtml
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    // Extract headings and paragraphs to focus on news content and ignore layout garbage
+    const matches = cleanHtml.match(/<(h[1-4]|p)\b[^>]*>([\s\S]*?)<\/\1>/gi) || [];
+    let textParts = [];
+    for (const match of matches) {
+      const text = match.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (text.length > 10 && !text.toLowerCase().includes('log masuk') && !text.toLowerCase().includes('cookie') && !text.toLowerCase().includes('privacy')) {
+        textParts.push(text);
+      }
+    }
+
+    let bodyContent = textParts.join('\n');
+    if (bodyContent.length < 200) {
+      // Fallback to stripped body if headings extraction yielded too little text
+      bodyContent = cleanHtml
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
 
     records.push(new CanonicalSourceRecord({
       id: 'html-static',
       title,
-      content: bodyContent.substring(0, 10000), // Cap size
+      content: bodyContent.substring(0, 1500), // Cap size optimized to 1500 to drastically save API costs
       url: ''
     }));
 

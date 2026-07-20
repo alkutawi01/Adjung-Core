@@ -1,7 +1,3 @@
-import SourceFetcher from '../sources/SourceFetcher.js';
-import registry from '../sources/ProviderRegistry.js';
-import SourceNormalizer from '../sources/SourceNormalizer.js';
-import SourceCache from '../sources/SourceCache.js';
 import SourceDiscovery from '../sources/SourceDiscovery.js';
 import GeminiProvider from '../ai/GeminiProvider.js';
 import ClaudeProvider from '../ai/ClaudeProvider.js';
@@ -16,66 +12,13 @@ class EditorialPipeline {
     const strategy = slot.searchStrategy || 'Structured Sources Only';
     const slotPrompt = slot.promptText || '';
 
-    let rawSourceText = '';
-    let fetchedSuccessfully = false;
-    let fromCache = false;
-    let sourceHash = '';
-    let aiSourceUrl = '';
+    const sourceHash = '';
+    const aiSourceUrl = slot.sourcesList ? slot.sourcesList.split(/[\s,;\n\r]+/)[0] : '#';
 
     const dbGet = (query, params) => new Promise((res, rej) => db.get(query, params, (err, row) => err ? rej(err) : res(row)));
     const dbRun = (query, params) => new Promise((res, rej) => db.run(query, params, function(err) { err ? rej(err) : res(this); }));
 
-    // 1. Resolve structured source fetching (RSS/Atom/JSON/API/HTML)
-    if (strategy === 'Structured Sources Only' || strategy === 'Structured Sources -> Search Fallback') {
-      if (slot.sourcesList && slot.sourcesList.trim() !== '') {
-        const urls = slot.sourcesList.split(/[\s,;\n\r]+/).map(u => u.trim()).filter(u => u.startsWith('http://') || u.startsWith('https://'));
-        
-        let allNormalizedRecords = [];
-        let combinedHashes = [];
-        let firstActiveUrl = '';
-
-        for (const url of urls) {
-          try {
-            const fetchResult = await SourceFetcher.fetchRaw(url);
-            if (fetchResult.status === 200) {
-              const transformer = registry.resolve(url, fetchResult.rawContent, fetchResult.responseHeaders);
-              const records = transformer.parse(fetchResult.rawContent);
-              const normalized = SourceNormalizer.normalize(records);
-              if (normalized && normalized.length > 0) {
-                if (!firstActiveUrl) {
-                  firstActiveUrl = normalized[0].url || url;
-                }
-                allNormalizedRecords.push(...normalized);
-                combinedHashes.push(SourceCache.calculateHash(normalized));
-              }
-            }
-          } catch (error) {
-            console.error(`Structured source fetch failed for url "${url}" in slot ${slotIndex}:`, error);
-          }
-        }
-
-        if (allNormalizedRecords.length > 0) {
-          sourceHash = combinedHashes.join('-');
-          const isUnchanged = await SourceCache.isHashUnchanged(dbGet, slotIndex, sourceHash);
-
-          if (isUnchanged && !bypassCache) {
-            return {
-              status: 'SKIPPED_CACHE',
-              message: `Skipped: Source content is unchanged (stable hash match: ${sourceHash.substring(0, 8)}).`
-            };
-          }
-
-          // Serialize normalized factual records for the AI prompt
-          rawSourceText = allNormalizedRecords.map(r => `Title: ${r.title}\nURL: ${r.url}\nContent: ${r.content}\n---`).join('\n');
-          aiSourceUrl = firstActiveUrl || slot.sourcesList.split(/[\s,;\n\r]+/)[0] || '#';
-          fetchedSuccessfully = true;
-        } else if (strategy === 'Structured Sources Only') {
-          throw new Error('Failed to fetch structured sources or no content records resolved.');
-        }
-      }
-    }
-
-    // 2. Resolve AI Provider instance
+    // 1. Resolve AI Provider instance
     const apiKey = process.env[provider.secretName] || '';
     if (!apiKey) {
       throw new Error(`API key for ${provider.name} (${provider.secretName}) was not found.`);
@@ -87,7 +30,6 @@ class EditorialPipeline {
     } else if (provider.id.includes('claude')) {
       aiInstance = new ClaudeProvider(apiKey, provider.model);
     } else {
-      // General fallback to Gemini
       aiInstance = new GeminiProvider(apiKey, 'gemini-3.5-flash');
     }
 
@@ -102,23 +44,7 @@ class EditorialPipeline {
       console.warn("Failed to read masterPrompt settings:", settingsErr.message);
     }
 
-    // 3. Compile prompt based on search strategy
-    let compiledPrompt = `
-      Global System Context: ${globalPrompt}
-      Current Campaign Focus: ${campaignPrompt}
-      Master Editorial Guidelines: ${masterPrompt}
-      Slot Specific Instructions: ${slotPrompt}
-    `;
-
-    let searchTools = null;
-    if (strategy === 'Search Only' || (!fetchedSuccessfully && strategy === 'Structured Sources -> Search Fallback')) {
-      searchTools = SourceDiscovery.getNativeSearchTools(provider.id);
-      compiledPrompt += `\nLakukan carian di internet menggunakan enjin carian sekiranya perlu untuk mendapatkan fakta berita terbaharu.`;
-    } else if (rawSourceText) {
-      compiledPrompt += `\n\nKandungan Sumber Rujukan Faktual (Rujuk teks ini untuk menulis berita):\n${rawSourceText}`;
-    }
-
-    // Tentukan had panjang ringkasan secara dinamik berasaskan susun atur slot bento
+    // 2. Determine output limits
     let minSummaryLen = 130;
     let maxSummaryLen = 180;
     let limitDesc = 'mestilah di antara 130 hingga 180 aksara untuk pengisian visual yang kemas.';
@@ -152,83 +78,121 @@ class EditorialPipeline {
       }
     }
 
-    if (slot.manualDesk && slot.manualDesk.trim() !== '') {
-      compiledPrompt += `\nArahan Bidang/Kategori: Kandungan yang ditulis MESTILAH berkaitan dengan bidang/kategori: "${slot.manualDesk.trim().toUpperCase()}".\n`;
-    }
-
     const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex);
 
-    if (slotIndex === -1) {
-      compiledPrompt += `
-        Tulis 5 hingga 10 baris kandungan berita terkini bertipe Ticker untuk dipaparkan di segmen "Terkini di Malaysia".
-        
-        SYARAT PENTING (MANDATORY):
-        1. Berita MESTILAH berita terkini berkaitan Malaysia sahaja (Dalam Negeri, Kesihatan, Ekonomi, Politik, Sukan, Pendidikan, dsb.) yang berlaku dalam tempoh 24 jam terakhir.
-        2. Tajuk berita ("title") MESTILAH ringkas, padat dan MESTILAH KETAT DI BAWAH 80 aksara.
-        3. Huraian berita ("brief") MESTILAH ringkas, MESTILAH KETAT DI BAWAH 220 aksara, dan ditulis dalam TEPAT SATU AYAT SAHAJA.
-        4. Setiap item MESTILAH mempunyai "desk" (kategori berita) dalam satu perkataan sahaja (cth: EKONOMI, KESIHATAN, SUKAN).
-        5. Anda MESTILAH mengambil URL artikel khusus dan spesifik yang lengkap (contohnya: https://www.sinarharian.com.my/article/194827/berita-semasa atau https://www.astroawani.com/berita-malaysia/tajuk-artikel-12345) secara terus dari hasil carian Google (citation links). JANGAN sesekali memotong, meringkaskan atau memendekkan URL tersebut kepada halaman utama portal (seperti www.sinarharian.com.my) sahaja. Setiap berita MESTILAH mempunyai URL artikel penuh yang sah yang menuju terus ke halaman berita tersebut. DILARANG sama sekali memulangkan pautan domain umum atau tanda pagar (#).
-        6. Hasilkan respons dalam format JSON sahaja dengan struktur objek:
-           {
-             "items": [
-               {
-                 "desk": "KATEGORI_BERITA",
-                 "title": "Tajuk berita di bawah 80 aksara",
-                 "brief": "Huraian pendek tepat satu ayat di bawah 220 aksara.",
-                 "source": "Nama Sumber Berita",
-                 "url": "https://url-spesifik-artikel-penuh"
-               }
-             ]
-           }
-      `;
-    } else if (isBarSlot) {
-      if (slot.eventExpiryFilter && slot.eventExpiryFilter !== '') {
-        const todayStr = new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
-        compiledPrompt += `\nArahan Had Tempoh Masa Acara: Acara yang dijana MESTILAH berlangsung atau tamat dalam tempoh ${slot.eventExpiryFilter.toLowerCase()} dari tarikh hari ini (${todayStr}) dan belum lagi tamat.\n`;
-      }
-      compiledPrompt += `
-        Tulis nama acara/event ("title") dan tarikh/tempoh berlangsung ("source") berdasarkan fakta di atas.
-        
-        SYARAT PENTING (MANDATORY):
-        1. Nama Acara ("title") mestilah ringkas, padat dan TIDAK MELEBIHI ${maxTitleLen} aksara. Cth: "Pesta Buku Selangor".
-        2. Tarikh/Tempoh Acara ("source") mestilah ringkas, padat dan mewakili tarikh acara secara tepat. Cth: "19-26 Julai 26" atau "20 Jun 27".
-        3. Ringkasan berita ("summary") tidak diperlukan, kosongkan sahaja ("").
-        4. Gunakan bahasa Melayu yang profesional.
-        5. Tentukan kategori/topik berita yang paling relevan (cth: ACARA, ILMU, SEJARAH, PORTAL) dalam satu perkataan sahaja untuk harta "category".
-        6. Hasilkan respons dalam format JSON sahaja dengan struktur:
-            { 
-              "title": "Nama Acara", 
-              "source": "Tarikh Acara",
-              "category": "ACARA",
-              "source_url": "https://url-sumber",
-              "summary": ""
-            }
-      `;
-    } else {
-      compiledPrompt += `
-        Tulis tajuk dan ringkasan kandungan bertipe "${outputType}" berdasarkan arahan dan fakta di atas.
-        
-        SYARAT PENTING (MANDATORY):
-        1. Tajuk berita ("title") mestilah ringkas, padat dan TIDAK MELEBIHI ${maxTitleLen} aksara.
-        2. Ringkasan berita ("summary") ${limitDesc}
-        3. Gunakan bahasa Melayu yang profesional dan bergaya editorial.
-        4. Sertakan pautan URL rujukan spesifik yang aktif untuk harta "source_url". Jika anda merujuk sumber teks di atas, gunakan URL daripada teks tersebut. Jika tiada, gunakan "#". Jangan sesekali reka pautan palsu.
-        5. Tentukan kategori/topik berita yang paling relevan (cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA) dalam satu perkataan sahaja untuk harta "category".
-        6. Hasilkan respons dalam format JSON sahaja dengan struktur:
-            { 
-              "title": "Tajuk", 
-              "summary": "Ringkasan",
-              "category": "KATEGORI_BERITA",
-              "source_url": "https://url-sumber"
-            }
-      `;
+    // 3. Static System Prompt (Identity)
+    const staticSystemPrompt = `You are Adjung AI.
+You are the editorial generation engine of the Adjung publishing platform.
+
+Your responsibilities:
+- Follow editorial instructions
+- Follow output schema
+- Produce valid JSON only
+- Never fabricate facts
+- Never copy copyrighted articles verbatim
+- Rewrite information professionally
+- If the selected provider supports web search or grounding, use it when necessary
+- Do not output explanations`;
+
+    // 4. UI-configured User Prompt (Editorial Configuration & Instructions)
+    let userPrompt = `Editorial Rules
+
+Language:
+Malay
+
+Writing Style:
+Professional Journalism
+
+Search Strategy:
+${strategy}
+`;
+
+    if (slot.sourcesList && slot.sourcesList.trim() !== '') {
+      userPrompt += `
+Sources to read/consult:
+${slot.sourcesList.trim()}
+`;
     }
 
-    // 4. Call AI Provider
-    const aiResult = await aiInstance.generate(compiledPrompt, 'Anda adalah editor berita profesional.', searchTools);
+    userPrompt += `
+Global System Context:
+${globalPrompt}
+
+Current Campaign Focus:
+${campaignPrompt}
+`;
+
+    if (masterPrompt) {
+      userPrompt += `
+Master Editorial Guidelines:
+${masterPrompt}
+`;
+    }
+
+    if (slot.manualDesk && slot.manualDesk.trim() !== '') {
+      userPrompt += `
+Arahan Bidang/Kategori: Kandungan yang ditulis MESTILAH berkaitan dengan bidang/kategori: "${slot.manualDesk.trim().toUpperCase()}".
+`;
+    }
+
+    if (slot.eventExpiryFilter && slot.eventExpiryFilter !== '') {
+      const todayStr = new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
+      userPrompt += `
+Arahan Had Tempoh Masa Acara: Acara yang dijana MESTILAH berlangsung atau tamat dalam tempoh ${slot.eventExpiryFilter.toLowerCase()} dari tarikh hari ini (${todayStr}) dan belum lagi tamat.
+`;
+    }
+
+    userPrompt += `
+Task:
+${slotPrompt}
+`;
+
+    if (slotIndex === -1) {
+      userPrompt += `
+Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
+{
+  "items": [
+    {
+      "desk": "KATEGORI_BERITA (Satu perkataan sahaja, cth: EKONOMI, KESIHATAN, SUKAN)",
+      "title": "Tajuk berita terkini Malaysia di bawah 80 aksara",
+      "brief": "Huraian pendek tepat satu ayat di bawah 220 aksara.",
+      "source": "Nama Sumber Berita",
+      "url": "Pautan URL artikel khusus dan spesifik yang lengkap dan sah (citation link)"
+    }
+  ]
+}
+Nothing more.`;
+    } else if (isBarSlot) {
+      userPrompt += `
+Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
+{ 
+  "title": "Nama Acara (Tidak melebihi ${maxTitleLen} aksara)", 
+  "source": "Tarikh/Tempoh Acara secara ringkas dan padat",
+  "category": "Kategori/Topik berita yang paling relevan (Satu perkataan sahaja, cth: ACARA, ILMU, SEJARAH, PORTAL)",
+  "source_url": "Pautan URL rujukan spesifik yang aktif",
+  "summary": ""
+}
+Nothing more.`;
+    } else {
+      userPrompt += `
+Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
+{ 
+  "title": "Tajuk berita (Tidak melebihi ${maxTitleLen} aksara)", 
+  "summary": "Ringkasan berita (${limitDesc})",
+  "category": "Kategori berita (Satu perkataan sahaja, cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA)",
+  "source_url": "Pautan URL rujukan spesifik yang aktif"
+}
+Nothing more.`;
+    }
+
+    // 5. Native Search Grounding Tools (AI Provider will discover reality natively)
+    const searchTools = SourceDiscovery.getNativeSearchTools(provider.id);
+
+    // 6. Call AI Provider
+    const aiResult = await aiInstance.generate(userPrompt, staticSystemPrompt, searchTools);
     const { parsedJson, promptTokens, completionTokens } = aiResult;
 
-    // 5. Validate output
+    // 7. Validate output
     if (slotIndex === -1) {
       const items = parsedJson.items || [];
       const textItems = items.map(item => {
@@ -253,7 +217,7 @@ class EditorialPipeline {
       await dbRun(`
         INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
         VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?)
-      `, [currentRunId, provider.id, provider.model, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, compiledPrompt, aiResult.text]);
+      `, [currentRunId, provider.id, provider.model, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text]);
 
       return {
         status: 'SUCCESS',
@@ -279,7 +243,7 @@ class EditorialPipeline {
     const finalSourceUrl = parsedJson.source_url || aiSourceUrl || '#';
     const finalSource = isBarSlot ? (parsedJson.source || parsedJson.date || '19 Jul 2026') : provider.name;
 
-    // 6. Save Editorial Object and attributes to Database
+    // 8. Save Editorial Object and attributes to Database
     const objectId = `object-${outputType.toLowerCase()}-slot${slotIndex}-${Date.now()}`;
     try {
       await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
@@ -297,7 +261,7 @@ class EditorialPipeline {
     `, [objectId, finalTitle, finalSummary, `pipeline-slot-${slotIndex}`, timestamp, timestamp]);
     const revisionId = revisionResult.lastID || 1;
 
-    // Save attributes (Cache key, source hash, category, provider information)
+    // Save attributes (desk, source, url, provider information)
     const attributesToSave = [
       { key: 'sourceHash', val: sourceHash },
       { key: 'desk', val: finalCategory },
@@ -313,7 +277,7 @@ class EditorialPipeline {
       `, [objectId, revisionId, attr.key, attr.val]);
     }
 
-    // 7. Track AI Usage Logs
+    // 9. Track AI Usage Logs
     const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, provider.model]);
     let estimatedCost = 0;
     if (pricing) {
@@ -323,7 +287,7 @@ class EditorialPipeline {
     await dbRun(`
       INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
       VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?)
-    `, [currentRunId, provider.id, provider.model, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, compiledPrompt, aiResult.text]);
+    `, [currentRunId, provider.id, provider.model, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text]);
 
     return {
       status: 'SUCCESS',
