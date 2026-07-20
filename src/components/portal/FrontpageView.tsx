@@ -240,6 +240,15 @@ const padToLimit = (text: string, maxLen: number): string => {
   return text || '';
 };
 
+const updateLimitsInText = (text: string, maxTitle: number, maxBrief: number) => {
+  if (!text) return '';
+  let updated = text;
+  updated = updated.replace(/Tajuk:\s*\(had\s*\d+\s*aksara\)/gi, `Tajuk: (had ${maxTitle} aksara)`);
+  updated = updated.replace(/Huraian:\s*\(had\s*\d+\s*aksara\)/gi, `Huraian: (had ${maxBrief} aksara)`);
+  updated = updated.replace(/Event:\s*\(had\s*\d+\s*aksara\)/gi, `Event: (had ${maxTitle} aksara)`);
+  return updated;
+};
+
 const getLimitsForIndex = (idx: number, config?: any) => {
   const customTitle = config?.maxTitle;
   const customBrief = config?.maxBrief;
@@ -2625,7 +2634,47 @@ URL: ${url}`;
                     <div className="flex flex-col gap-1 col-span-2">
                       <div className="flex justify-between items-center">
                         <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kandungan Manual (Ikuti Format Template)</label>
-                        <span className="text-[8px] text-[#802334] font-sans font-bold">Had aksara dinyatakan di bawah</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const isBar = [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
+                            let textToCopy = '';
+                            if (editingSlotIndex === -1) {
+                              textToCopy = `Sila jana berita ringkas terkini di Malaysia bagi segmen Ticker. Format output mestilah ditulis tepat seperti format di bawah:
+
+Desk: KATEGORI
+Title: [Tajuk berita terkini Malaysia di bawah 80 aksara]
+Brief: [Huraian pendek tepat satu ayat di bawah 220 aksara]
+Source: [Nama Sumber Berita]
+Url: [Pautan URL artikel khusus]
+
+---
+
+Desk: KATEGORI
+Title: ...`;
+                            } else if (isBar) {
+                              textToCopy = `Sila jana maklumat acara bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
+
+Tarikh: (contoh: 19-26 Julai 26) [Tarikh acara]
+Event: (had ${formConfig.maxTitle || 40} aksara) [Nama acara]
+URL: [Pautan URL rujukan]`;
+                            } else {
+                              textToCopy = `Sila jana berita ringkas di Malaysia bagi slot Bento. Format output mestilah ditulis tepat seperti format di bawah:
+
+Tajuk: (had ${formConfig.maxTitle || 75} aksara) [Tajuk berita di sini]
+Huraian: ${formConfig.maxBrief > 0 ? `(had ${formConfig.maxBrief} aksara) [Huraian pendek tepat satu ayat di sini]` : '[Kosongkan]'}
+Kategori: [Kategori]
+Tarikh: ${new Date().toISOString()}
+Sumber: [Nama Sumber]
+URL: [Pautan URL]`;
+                            }
+                            navigator.clipboard.writeText(textToCopy);
+                            alert('Templat Prom AI telah disalin ke papan klip!');
+                          }}
+                          className="px-2 py-1 text-[9px] font-bold text-[#802334] bg-white border border-[#802334] rounded hover:bg-stone-50 transition-colors cursor-pointer"
+                        >
+                          Salin Templat Prom AI
+                        </button>
                       </div>
                       <textarea
                         value={formConfig.manualSummary}
@@ -3035,7 +3084,14 @@ URL: ${url}`;
                   <input
                     type="number"
                     value={formConfig.maxTitle !== undefined && formConfig.maxTitle !== null ? formConfig.maxTitle : ''}
-                    onChange={(e) => setFormConfig({ ...formConfig, maxTitle: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      const newMaxTitle = parseInt(e.target.value) || 0;
+                      setFormConfig({
+                        ...formConfig,
+                        maxTitle: newMaxTitle,
+                        manualSummary: updateLimitsInText(formConfig.manualSummary, newMaxTitle, formConfig.maxBrief)
+                      });
+                    }}
                     placeholder="Contoh: 70"
                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
                   />
@@ -3046,7 +3102,14 @@ URL: ${url}`;
                   <input
                     type="number"
                     value={formConfig.maxBrief !== undefined && formConfig.maxBrief !== null ? formConfig.maxBrief : ''}
-                    onChange={(e) => setFormConfig({ ...formConfig, maxBrief: e.target.value === '' ? 0 : (parseInt(e.target.value) || 0) })}
+                    onChange={(e) => {
+                      const newMaxBrief = e.target.value === '' ? 0 : (parseInt(e.target.value) || 0);
+                      setFormConfig({
+                        ...formConfig,
+                        maxBrief: newMaxBrief,
+                        manualSummary: updateLimitsInText(formConfig.manualSummary, formConfig.maxTitle, newMaxBrief)
+                      });
+                    }}
                     placeholder="Contoh: 150 (0 jika tiada)"
                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
                   />
