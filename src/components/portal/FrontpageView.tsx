@@ -1617,7 +1617,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(1)}
                   className={`md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
-                  <BentoInner itemKey={bentoNewsItems[1].titleString || "1"} aiProvider={bentoNewsItems[1].aiProvider}>
+                  <BentoInner itemKey={bentoNewsItems[1].titleString || "1"} className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
                     <div className="space-y-4">
                       <CarouselStableBlock
                         items={bentoNewsItems[1].items && bentoNewsItems[1].items.length > 0 ? bentoNewsItems[1].items : [bentoNewsItems[1]]}
@@ -1673,7 +1673,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(3)}
                   className={`md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
-                  <BentoInner itemKey={bentoNewsItems[3].titleString || "3"} aiProvider={bentoNewsItems[3].aiProvider}>
+                  <BentoInner itemKey={bentoNewsItems[3].titleString || "3"} className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[3]).deskStyle}>{bentoNewsItems[3].desk}
                       </div>
@@ -1685,7 +1685,7 @@ URL: ${url}`;
                         )}
                       />
                     </div>
-                    <div className="mt-3">
+                    <div>
                       <CarouselStableBlock
                         items={bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]]}
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
@@ -1709,7 +1709,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(4)}
                   className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
-                    <BentoInner itemKey={bentoNewsItems[4].titleString || "4"} aiProvider={bentoNewsItems[4].aiProvider}>
+                    <BentoInner itemKey={bentoNewsItems[4].titleString || "4"} className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
                         <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[4]).deskStyle}>{bentoNewsItems[4].desk}
                         </div>
@@ -1733,7 +1733,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(5)}
                   className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
-                    <BentoInner itemKey={bentoNewsItems[5].titleString || "5"} aiProvider={bentoNewsItems[5].aiProvider}>
+                    <BentoInner itemKey={bentoNewsItems[5].titleString || "5"} className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
                         <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[5]).deskStyle}>{bentoNewsItems[5].desk}
                         </div>
