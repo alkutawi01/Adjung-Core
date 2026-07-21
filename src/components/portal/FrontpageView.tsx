@@ -295,6 +295,29 @@ const updateLimitsInText = (text: string, maxTitle: number, maxBrief: number) =>
   return updated;
 };
 
+// Geometry tiers for the 4 card types whose title+brief share a fixed vertical budget (source is
+// reserved separately, below, and anchored to the card bottom -- see CarouselStableBlock/mt-auto
+// work). Computed 2026-07-21 from live-measured card widths/fonts via canvas.measureText on a
+// representative Malay news sentence: maxTitleAlone/maxBriefAlone are the character counts that
+// would exactly fill the shared budget if given ENTIRELY to one field; ratio = maxBriefAlone /
+// maxTitleAlone is how many brief characters one title character "costs" in shared vertical space.
+// Used both for the (maxTitle, maxBrief) defaults below and to auto-balance the two fields in
+// Mini Editorium (see handleMaxTitleChange/handleMaxBriefChange).
+const GEOMETRY_RATIOS: Record<string, { maxTitleAlone: number; maxBriefAlone: number; ratio: number }> = {
+  MENEGAK: { maxTitleAlone: 168, maxBriefAlone: 429, ratio: 2.554 },
+  SEGI_EMPAT_MEDIUM: { maxTitleAlone: 94, maxBriefAlone: 126, ratio: 1.340 },
+  SEGI_EMPAT_SMALL: { maxTitleAlone: 62, maxBriefAlone: 78, ratio: 1.258 },
+  KOMPAK: { maxTitleAlone: 80, maxBriefAlone: 41, ratio: 0.512 },
+};
+
+const getGeometryTierForIndex = (idx: number): string | null => {
+  if ([1, 12, 15, 26, 29, 37].includes(idx)) return 'MENEGAK';
+  if ([13, 14, 27, 28].includes(idx)) return 'SEGI_EMPAT_MEDIUM';
+  if ([3, 11, 16, 25, 30, 35, 36].includes(idx)) return 'SEGI_EMPAT_SMALL';
+  if ([4, 5, 17, 18, 31, 32].includes(idx)) return 'KOMPAK';
+  return null;
+};
+
 const getLimitsForIndex = (idx: number, config?: any) => {
   const customTitle = config?.maxTitle;
   const customBrief = config?.maxBrief;
@@ -304,8 +327,9 @@ const getLimitsForIndex = (idx: number, config?: any) => {
   else if (idx === 0) defaults = { maxTitle: 115, maxBrief: 350 };
   else if ([1, 12, 15, 26, 29, 37].includes(idx)) defaults = { maxTitle: 72, maxBrief: 480 };
   else if ([2, 6, 19, 20, 33, 34].includes(idx)) defaults = { maxTitle: 110, maxBrief: 280 };
-  else if ([3, 11, 16, 25, 30, 35, 36].includes(idx)) defaults = { maxTitle: 85, maxBrief: 200 };
-  else if ([4, 5, 17, 18, 31, 32].includes(idx)) defaults = { maxTitle: 75, maxBrief: 0 };
+  else if ([13, 14, 27, 28].includes(idx)) defaults = { maxTitle: 60, maxBrief: 100 };
+  else if ([3, 11, 16, 25, 30, 35, 36].includes(idx)) defaults = { maxTitle: 40, maxBrief: 65 };
+  else if ([4, 5, 17, 18, 31, 32].includes(idx)) defaults = { maxTitle: 55, maxBrief: 25 };
   else if ([7, 8, 9, 10, 21, 22, 23, 24].includes(idx)) defaults = { maxTitle: 40, maxBrief: 0 };
 
   return {
@@ -1701,7 +1725,7 @@ URL: ${url}`;
                 {bentoNewsItems[4] && (
                 <div 
                   onClick={() => handleCardClick(4)}
-                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey={bentoNewsItems[4].titleString || "4"} className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
@@ -1711,7 +1735,10 @@ URL: ${url}`;
                           items={bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]]}
                           activeIndex={bentoNewsItems[4].carouselIndex || 0}
                           renderItem={(it) => (
-                            <h3 className="font-serif text-xs md:text-sm leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                            <>
+                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                            </>
                           )}
                         />
                       </div>
@@ -1725,7 +1752,7 @@ URL: ${url}`;
                 {bentoNewsItems[5] && (
                 <div 
                   onClick={() => handleCardClick(5)}
-                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
                     <BentoInner itemKey={bentoNewsItems[5].titleString || "5"} className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
@@ -1735,7 +1762,10 @@ URL: ${url}`;
                           items={bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]]}
                           activeIndex={bentoNewsItems[5].carouselIndex || 0}
                           renderItem={(it) => (
-                            <h3 className="font-serif text-xs md:text-sm leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                            <>
+                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                            </>
                           )}
                         />
                       </div>
@@ -2012,7 +2042,7 @@ URL: ${url}`;
                 {bentoNewsItems[17] && (
                 <div 
                   onClick={() => handleCardClick(17)}
-                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[17], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[17]).deskStyle}>{bentoNewsItems[17].desk}
@@ -2021,11 +2051,14 @@ URL: ${url}`;
                         items={bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]]}
                         activeIndex={bentoNewsItems[17].carouselIndex || 0}
                         renderItem={(it) => (
-                          <h3 className="font-serif text-xs md:text-sm leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                          <>
+                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                            </>
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[17].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[17]).sourceStyle}>
+                    <a href={bentoNewsItems[17].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[17]).sourceStyle}>
                       <span>{bentoNewsItems[17].source}</span>
                       {formatBentoDate(bentoNewsItems[17].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[17].publishedAt)}</span>}
                     </a>
@@ -2039,7 +2072,7 @@ URL: ${url}`;
                 {bentoNewsItems[18] && (
                 <div 
                   onClick={() => handleCardClick(18)}
-                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[18], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[18]).deskStyle}>{bentoNewsItems[18].desk}
@@ -2048,11 +2081,14 @@ URL: ${url}`;
                         items={bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]]}
                         activeIndex={bentoNewsItems[18].carouselIndex || 0}
                         renderItem={(it) => (
-                          <h3 className="font-serif text-xs md:text-sm leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                          <>
+                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                            </>
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[18].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[18]).sourceStyle}>
+                    <a href={bentoNewsItems[18].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[18]).sourceStyle}>
                       <span>{bentoNewsItems[18].source}</span>
                       {formatBentoDate(bentoNewsItems[18].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[18].publishedAt)}</span>}
                     </a>
@@ -2360,7 +2396,7 @@ URL: ${url}`;
                 {bentoNewsItems[31] && (
                 <div 
                   onClick={() => handleCardClick(31)}
-                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[31], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[31]).deskStyle}>{bentoNewsItems[31].desk}
@@ -2369,11 +2405,14 @@ URL: ${url}`;
                         items={bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]]}
                         activeIndex={bentoNewsItems[31].carouselIndex || 0}
                         renderItem={(it) => (
-                          <h3 className="font-serif text-xs md:text-sm leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                          <>
+                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                            </>
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[31].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[31]).sourceStyle}>
+                    <a href={bentoNewsItems[31].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[31]).sourceStyle}>
                       <span>{bentoNewsItems[31].source}</span>
                       {formatBentoDate(bentoNewsItems[31].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[31].publishedAt)}</span>}
                     </a>
@@ -2387,7 +2426,7 @@ URL: ${url}`;
                 {bentoNewsItems[32] && (
                 <div 
                   onClick={() => handleCardClick(32)}
-                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[84px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[32], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[32]).deskStyle}>{bentoNewsItems[32].desk}
@@ -2396,11 +2435,14 @@ URL: ${url}`;
                         items={bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]]}
                         activeIndex={bentoNewsItems[32].carouselIndex || 0}
                         renderItem={(it) => (
-                          <h3 className="font-serif text-xs md:text-sm leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                          <>
+                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                            </>
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[32].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[32]).sourceStyle}>
+                    <a href={bentoNewsItems[32].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[32]).sourceStyle}>
                       <span>{bentoNewsItems[32].source}</span>
                       {formatBentoDate(bentoNewsItems[32].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[32].publishedAt)}</span>}
                     </a>
@@ -3259,16 +3301,26 @@ ${extraInstructions}`;
                     type="number"
                     value={formConfig.maxTitle !== undefined && formConfig.maxTitle !== null ? formConfig.maxTitle : ''}
                     onChange={(e) => {
-                      const newMaxTitle = parseInt(e.target.value) || 0;
+                      const newMaxTitle = Math.max(0, parseInt(e.target.value) || 0);
+                      const tier = getGeometryTierForIndex(formConfig.slotIndex);
+                      const ratio = tier ? GEOMETRY_RATIOS[tier].ratio : null;
+                      const prevMaxTitle = formConfig.maxTitle || 0;
+                      const newMaxBrief = ratio !== null
+                        ? Math.max(0, Math.round((formConfig.maxBrief || 0) - (newMaxTitle - prevMaxTitle) * ratio))
+                        : formConfig.maxBrief;
                       setFormConfig({
                         ...formConfig,
                         maxTitle: newMaxTitle,
-                        manualSummary: updateLimitsInText(formConfig.manualSummary, newMaxTitle, formConfig.maxBrief)
+                        maxBrief: newMaxBrief,
+                        manualSummary: updateLimitsInText(formConfig.manualSummary, newMaxTitle, newMaxBrief)
                       });
                     }}
                     placeholder="Contoh: 70"
                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
                   />
+                  {getGeometryTierForIndex(formConfig.slotIndex) && (
+                    <p className="text-[9px] text-stone-400 font-sans">Tajuk &amp; huraian kad ini kongsi satu bajet ruang tetap — naikkan satu, satu lagi berkurang automatik.</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -3277,11 +3329,18 @@ ${extraInstructions}`;
                     type="number"
                     value={formConfig.maxBrief !== undefined && formConfig.maxBrief !== null ? formConfig.maxBrief : ''}
                     onChange={(e) => {
-                      const newMaxBrief = e.target.value === '' ? 0 : (parseInt(e.target.value) || 0);
+                      const newMaxBrief = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value) || 0);
+                      const tier = getGeometryTierForIndex(formConfig.slotIndex);
+                      const ratio = tier ? GEOMETRY_RATIOS[tier].ratio : null;
+                      const prevMaxBrief = formConfig.maxBrief || 0;
+                      const newMaxTitle = ratio !== null
+                        ? Math.max(0, Math.round((formConfig.maxTitle || 0) - (newMaxBrief - prevMaxBrief) / ratio))
+                        : formConfig.maxTitle;
                       setFormConfig({
                         ...formConfig,
                         maxBrief: newMaxBrief,
-                        manualSummary: updateLimitsInText(formConfig.manualSummary, formConfig.maxTitle, newMaxBrief)
+                        maxTitle: newMaxTitle,
+                        manualSummary: updateLimitsInText(formConfig.manualSummary, newMaxTitle, newMaxBrief)
                       });
                     }}
                     placeholder="Contoh: 150 (0 jika tiada)"

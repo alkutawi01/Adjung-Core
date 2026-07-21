@@ -172,10 +172,10 @@ class EditorialPipeline {
         minSummaryLen = 300;
         maxSummaryLen = 370;
         limitDesc = 'mestilah di antara 300 hingga 370 aksara (tulis panjang dan penuh, sekurang-kurangnya 4-5 baris) untuk mengisi ruang kad menegak bento secara padat.';
-      } else if ([4, 5, 31, 32].includes(slotIndex)) {
-        minSummaryLen = 60;
-        maxSummaryLen = 80;
-        limitDesc = 'mestilah di antara 60 hingga 80 aksara untuk kad bento kompak.';
+      } else if ([4, 5, 17, 18, 31, 32].includes(slotIndex)) {
+        minSummaryLen = 18;
+        maxSummaryLen = 25;
+        limitDesc = 'mestilah di antara 18 hingga 25 aksara sahaja (satu ayat pendek) untuk kad bento kompak.';
       }
     }
 
@@ -185,6 +185,8 @@ class EditorialPipeline {
     } else {
       if ([7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex)) {
         maxTitleLen = 40;
+      } else if ([4, 5, 17, 18, 31, 32].includes(slotIndex)) {
+        maxTitleLen = 55;
       }
     }
 
