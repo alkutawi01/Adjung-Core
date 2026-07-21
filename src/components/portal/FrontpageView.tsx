@@ -569,7 +569,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         searchStrategy: config?.searchStrategy || 'Structured Sources Only',
         carouselInterval: config?.carouselInterval || 10,
         carouselDelay: config?.carouselDelay || 0,
-        generationLimit: config?.generationLimit || 5,
+        generationLimit: config?.generationLimit || 10,
         maxTitle: config?.maxTitle !== undefined && config?.maxTitle !== null ? config.maxTitle : limits.maxTitle,
         maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief,
         masterPrompt: masterPrompt,
@@ -577,9 +577,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         refreshDay: config?.refreshDay || 'Isnin',
         eventExpiryFilter: '',
         aiPromptTopic: config?.aiPromptTopic || '',
-        aiPromptRecency: config?.aiPromptRecency || '24 jam terkini',
+        aiPromptRecency: config?.aiPromptRecency || '1 minggu terkini',
         aiPromptLanguage: config?.aiPromptLanguage || 'Bahasa Melayu',
-        aiPromptRegion: config?.aiPromptRegion || 'Malaysia',
+        aiPromptRegion: config?.aiPromptRegion || 'Global, Malaysia',
         aiPromptSource: config?.aiPromptSource || ''
       });
       setEditingSlotIndex(-1);
@@ -678,7 +678,7 @@ URL: ${url}`;
       searchStrategy: config?.searchStrategy || 'Structured Sources Only',
       carouselInterval: config?.carouselInterval || 10,
       carouselDelay: config?.carouselDelay || 0,
-      generationLimit: config?.generationLimit || 1,
+      generationLimit: config?.generationLimit || 10,
       maxTitle: config?.maxTitle !== undefined && config?.maxTitle !== null ? config.maxTitle : limits.maxTitle,
       maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief,
       masterPrompt: masterPrompt,
@@ -686,9 +686,9 @@ URL: ${url}`;
       refreshDay: config?.refreshDay || 'Isnin',
       eventExpiryFilter: config?.eventExpiryFilter || '',
       aiPromptTopic: config?.aiPromptTopic || '',
-      aiPromptRecency: config?.aiPromptRecency || '24 jam terkini',
+      aiPromptRecency: config?.aiPromptRecency || '1 minggu terkini',
       aiPromptLanguage: config?.aiPromptLanguage || 'Bahasa Melayu',
-      aiPromptRegion: config?.aiPromptRegion || 'Malaysia',
+      aiPromptRegion: config?.aiPromptRegion || 'Global, Malaysia',
       aiPromptSource: config?.aiPromptSource || ''
     });
     setEditingSlotIndex(idx);
