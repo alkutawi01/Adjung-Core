@@ -1623,7 +1623,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-2xl md:text-3xl leading-tight font-medium hover:text-[#E9D8A6] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-light mt-4" style={getCardTheme(bentoNewsItems[0]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[0]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -1654,7 +1654,7 @@ URL: ${url}`;
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{it.desk}</div>
                             <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-100/95 leading-relaxed font-light mt-4" style={getCardTheme(bentoNewsItems[1]).briefStyle}>{safeParseInline(it.brief)}</p>
+                            <p className="font-serif text-xs text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[1]).briefStyle}>{safeParseInline(it.brief)}</p>
                           </>
                         )}
                       />
@@ -1682,7 +1682,7 @@ URL: ${url}`;
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{it.desk}</div>
                             <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[2]).briefStyle}>{safeParseInline(it.brief)}</p>
+                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[2]).briefStyle}>{safeParseInline(it.brief)}</p>
                           </>
                         )}
                       />
@@ -1711,7 +1711,7 @@ URL: ${url}`;
                         renderItem={(it) => (
                           <>
                             <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[3]).briefStyle}>{safeParseInline(it.brief)}</p>
+                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[3]).briefStyle}>{safeParseInline(it.brief)}</p>
                           </>
                         )}
                       />
@@ -1740,8 +1740,8 @@ URL: ${url}`;
                           activeIndex={bentoNewsItems[4].carouselIndex || 0}
                           renderItem={(it) => (
                             <>
-                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-normal mt-1">{safeParseInline(it.brief)}</p>
                             </>
                           )}
                         />
@@ -1767,8 +1767,8 @@ URL: ${url}`;
                           activeIndex={bentoNewsItems[5].carouselIndex || 0}
                           renderItem={(it) => (
                             <>
-                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-normal mt-1">{safeParseInline(it.brief)}</p>
                             </>
                           )}
                         />
@@ -1801,7 +1801,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[6]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[6]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -1832,7 +1832,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mt-4" style={getCardTheme(bentoNewsItems[12]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[12]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -1887,7 +1887,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[11]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[11]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -1923,7 +1923,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[13]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[13]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -1955,7 +1955,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[14]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[14]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -1991,7 +1991,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mt-4" style={getCardTheme(bentoNewsItems[15]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[15]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2023,7 +2023,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[16]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[16]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2056,8 +2056,8 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[17].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-normal mt-1">{safeParseInline(it.brief)}</p>
                             </>
                         )}
                       />
@@ -2086,8 +2086,8 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[18].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-normal mt-1">{safeParseInline(it.brief)}</p>
                             </>
                         )}
                       />
@@ -2119,7 +2119,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[19]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[19]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2155,7 +2155,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mt-4" style={getCardTheme(bentoNewsItems[26]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[26]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2186,7 +2186,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[20]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[20]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2218,7 +2218,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[25]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[25]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2277,7 +2277,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[27]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[27]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2309,7 +2309,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[28]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[28]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2345,7 +2345,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mt-4" style={getCardTheme(bentoNewsItems[29]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[29]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2377,7 +2377,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[30]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[30]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2410,8 +2410,8 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[31].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-normal mt-1">{safeParseInline(it.brief)}</p>
                             </>
                         )}
                       />
@@ -2440,8 +2440,8 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[32].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-xs md:text-sm font-bold leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-light mt-1">{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-400 leading-relaxed font-normal mt-1">{safeParseInline(it.brief)}</p>
                             </>
                         )}
                       />
@@ -2473,7 +2473,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[33]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[33]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2509,7 +2509,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[34]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[34]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2540,7 +2540,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-light mt-4" style={getCardTheme(bentoNewsItems[37]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[37]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2573,7 +2573,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[35]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[35]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2605,7 +2605,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-300/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[36]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-300/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[36]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
