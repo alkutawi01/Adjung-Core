@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { User, Entry, SystemSettings } from '../../types';
 import { BRAND } from '../../config/brand';
@@ -207,16 +207,66 @@ const CarouselStableBlock: React.FC<{
   renderItem: (item: any) => React.ReactNode;
 }> = ({ items, activeIndex, renderItem }) => {
   const list = items && items.length > 0 ? items : [{}];
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
+  // Content fingerprint (not the array reference, which can churn on every poll even when the
+  // underlying text hasn't changed) -- only remeasure when what's actually rendered could differ.
+  const contentKey = list.map((it) => `${it.title || ''}|${it.brief || ''}`).join(' ');
+
+  // CSS Grid's "stack everything in one cell, size to the tallest" trick (col-start-1/row-start-1
+  // + opacity toggle) is the ideal way to do this declaratively, but empirically the grid track's
+  // auto-size recalculation is unreliable while an opacity CSS transition is actively running on
+  // the stacked children -- verified live: all N stacked items intermittently report the SAME
+  // wrong height in sync with each other, then correct themselves, with no change in viewport
+  // width or content. Measuring each item's natural height in JS and pinning min-height explicitly
+  // sidesteps that browser-timing quirk entirely instead of depending on implicit grid sizing.
+  //
+  // A single measurement pass isn't enough either: for flex-row card layouts (source-as-side-column
+  // cards), the content column's available width can still be settling (flex-basis negotiation
+  // against the sibling source column) at the moment this effect first runs, so text can measure
+  // as wrapping into fewer lines than it will once layout truly settles -- under-measuring the real
+  // max. A ResizeObserver on every stacked item catches that (and font loads, and window resizes)
+  // generically, and the max only ever grows, never shrinks, once observed -- it never "forgets" a
+  // real max height it already saw.
+  useLayoutEffect(() => {
+    if (list.length <= 1) return;
+    let maxSeen = 0;
+    const recompute = () => {
+      const heights = itemRefs.current.map((el) => (el ? el.scrollHeight : 0));
+      const max = Math.max(0, ...heights);
+      if (max > maxSeen) {
+        maxSeen = max;
+        setMaxHeight(max);
+      }
+    };
+    recompute();
+
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => recompute()) : null;
+    itemRefs.current.forEach((el) => { if (el && observer) observer.observe(el); });
+
+    return () => {
+      observer?.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentKey, list.length]);
+
   if (list.length <= 1) {
     return <>{renderItem(list[0] || {})}</>;
   }
   return (
-    <div className="grid">
+    <div className="grid" style={{ minHeight: maxHeight }}>
       {list.map((it, i) => (
         <div
           key={i}
+          ref={(el) => { itemRefs.current[i] = el; }}
           className="col-start-1 row-start-1 min-w-0"
           style={{
+            // alignSelf: 'start' stops the grid's default stretch-to-fill-track behavior --
+            // without it, once minHeight is applied to the parent every stacked child gets
+            // stretched to match it, so re-measuring scrollHeight afterwards just reads back
+            // the stretched size instead of the item's true natural content height, masking
+            // any real variance on every subsequent measurement.
+            alignSelf: 'start',
             opacity: i === activeIndex ? 1 : 0,
             transition: 'opacity 1s ease-in-out',
             pointerEvents: i === activeIndex ? 'auto' : 'none',
@@ -1614,7 +1664,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(0)}
                   className={`col-span-1 md:col-span-6 p-6 md:p-8 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
-                <BentoInner itemKey={bentoNewsItems[0].titleString || "0"} className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
+                <BentoInner itemKey="0" className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">
                     <CarouselStableBlock
                       items={bentoNewsItems[0].items && bentoNewsItems[0].items.length > 0 ? bentoNewsItems[0].items : [bentoNewsItems[0]]}
@@ -1645,7 +1695,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(1)}
                   className={`md:col-span-2 md:row-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
-                  <BentoInner itemKey={bentoNewsItems[1].titleString || "1"} className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
+                  <BentoInner itemKey="1" className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
                     <div className="space-y-4">
                       <CarouselStableBlock
                         items={bentoNewsItems[1].items && bentoNewsItems[1].items.length > 0 ? bentoNewsItems[1].items : [bentoNewsItems[1]]}
@@ -1673,7 +1723,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(2)}
                   className={`md:col-span-4 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
-                  <BentoInner itemKey={bentoNewsItems[2].titleString || "2"} className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
+                  <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="flex-1">
                       <CarouselStableBlock
                         items={bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]]}
@@ -1701,7 +1751,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(3)}
                   className={`md:col-span-2 p-6 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
-                  <BentoInner itemKey={bentoNewsItems[3].titleString || "3"} className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
+                  <BentoInner itemKey="3" className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[3]).deskStyle}>{bentoNewsItems[3].desk}
                       </div>
@@ -1731,7 +1781,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(4)}
                   className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
-                    <BentoInner itemKey={bentoNewsItems[4].titleString || "4"} className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
+                    <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
                         <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[4]).deskStyle}>{bentoNewsItems[4].desk}
                         </div>
@@ -1758,7 +1808,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(5)}
                   className={`p-4 rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
-                    <BentoInner itemKey={bentoNewsItems[5].titleString || "5"} className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
+                    <BentoInner itemKey="5" className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
                         <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[5]).deskStyle}>{bentoNewsItems[5].desk}
                         </div>
