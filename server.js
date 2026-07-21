@@ -951,20 +951,82 @@ const runEditorialPipeline = async (slotIndex, runId = null, bypassCache = false
   }
 };
 
+// Menjalankan semua slot 'AI Generated' yang layak (nextRunAt sudah lepas, atau force=true).
+// Dipanggil oleh endpoint manual /api/system/pipeline/run DAN oleh scheduler dalaman automatik
+// (lihat setInterval berhampiran app.listen) supaya "Kadar Segar Semula" (Daily/Weekly + jam)
+// yang ditetapkan Izzat di Mini Editorium benar-benar tercetus tanpa perlu klik "Aktifkan Segera".
+const runAllScheduledSlots = async (force = false) => {
+  const currentRunId = `run-${Date.now()}`;
+  const timestamp = new Date().toISOString();
+
+  const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND contentMode = 'AI Generated'");
+  const results = [];
+
+  let processedCount = 0;
+  let skippedByScheduler = 0;
+  let skippedByAiCache = 0;
+  let actualAiCalls = 0;
+
+  const now = Date.now();
+
+  for (const slot of slots) {
+    processedCount++;
+
+    // Penjadual Pintar Check (unless force is true)
+    if (!force && slot.nextRunAt && slot.nextRunAt > now) {
+      skippedByScheduler++;
+      await dbRun(`
+        INSERT INTO pipeline_logs (createdAt, level, promptVersion, layoutTemplateId, slotIndex, message, runId)
+        VALUES (?, 'INFO', '1.0', 'frontpage', ?, ?, ?)
+      `, [timestamp, slot.slotIndex, `Skipped by Scheduler: nextRunAt (${new Date(slot.nextRunAt).toLocaleString()}) is in the future.`, currentRunId]);
+      continue;
+    }
+
+    try {
+      const result = await runEditorialPipeline(slot.slotIndex, currentRunId);
+      if (result && result.objectId) {
+        await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [result.objectId, slot.slotIndex]);
+
+        if (result.status === 'CACHE_HIT') {
+          skippedByAiCache++;
+        } else if (result.status === 'SUCCESS') {
+          actualAiCalls++;
+        }
+
+        results.push({ slotIndex: slot.slotIndex, objectId: result.objectId, status: result.status });
+      }
+    } catch (slotErr) {
+      console.error(`Error running pipeline for slot ${slot.slotIndex}:`, slotErr);
+      results.push({ slotIndex: slot.slotIndex, error: slotErr.message || 'Unknown error', status: 'FAILED' });
+    }
+  }
+
+  const statsMessage = `Pipeline completed. Total: ${processedCount}, Scheduler Skip: ${skippedByScheduler}, AI Cache Skip: ${skippedByAiCache}, Actual AI calls: ${actualAiCalls}`;
+  await dbRun(`
+    INSERT INTO pipeline_logs (createdAt, level, promptVersion, layoutTemplateId, slotIndex, message, runId)
+    VALUES (?, 'INFO', '1.0', 'frontpage', -1, ?, ?)
+  `, [timestamp, statsMessage, currentRunId]);
+
+  return {
+    runId: currentRunId,
+    results,
+    stats: { processed: processedCount, skippedByScheduler, skippedByAiCache, actualAiCalls }
+  };
+};
+
 // POST /api/system/pipeline/run
 app.post('/api/system/pipeline/run', async (req, res) => {
   const currentRunId = `run-${Date.now()}`;
-  const timestamp = new Date().toISOString();
-  
+
   try {
     const { slotIndex, force = false } = req.body;
-    
+
     if (slotIndex !== undefined) {
       const slot = await dbGet("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
       if (!slot) {
         return res.status(404).json({ error: 'Slot not found.' });
       }
-      
+
       const result = await runEditorialPipeline(slotIndex, currentRunId);
       if (result && result.objectId) {
         await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [result.objectId, slotIndex]);
@@ -973,66 +1035,8 @@ app.post('/api/system/pipeline/run', async (req, res) => {
         return res.status(400).json({ error: 'Failed to run pipeline (slot might be disabled).' });
       }
     } else {
-      // Run all active AI slots
-      const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND contentMode = 'AI Generated'");
-      const results = [];
-      
-      let processedCount = 0;
-      let skippedByScheduler = 0;
-      let skippedByAiCache = 0;
-      let actualAiCalls = 0;
-      
-      const now = Date.now();
-      
-      for (const slot of slots) {
-        processedCount++;
-        
-        // Penjadual Pintar Check (unless force is true)
-        if (!force && slot.nextRunAt && slot.nextRunAt > now) {
-          skippedByScheduler++;
-          await dbRun(`
-            INSERT INTO pipeline_logs (createdAt, level, promptVersion, layoutTemplateId, slotIndex, message, runId)
-            VALUES (?, 'INFO', '1.0', 'frontpage', ?, ?, ?)
-          `, [timestamp, slot.slotIndex, `Skipped by Scheduler: nextRunAt (${new Date(slot.nextRunAt).toLocaleString()}) is in the future.`, currentRunId]);
-          continue;
-        }
-        
-        try {
-          const result = await runEditorialPipeline(slot.slotIndex, currentRunId);
-          if (result && result.objectId) {
-            await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [result.objectId, slot.slotIndex]);
-            
-            if (result.status === 'CACHE_HIT') {
-              skippedByAiCache++;
-            } else if (result.status === 'SUCCESS') {
-              actualAiCalls++;
-            }
-            
-            results.push({ slotIndex: slot.slotIndex, objectId: result.objectId, status: result.status });
-          }
-        } catch (slotErr) {
-          console.error(`Error running pipeline for slot ${slot.slotIndex}:`, slotErr);
-          results.push({ slotIndex: slot.slotIndex, error: slotErr.message || 'Unknown error', status: 'FAILED' });
-        }
-      }
-      
-      const statsMessage = `Pipeline completed. Total: ${processedCount}, Scheduler Skip: ${skippedByScheduler}, AI Cache Skip: ${skippedByAiCache}, Actual AI calls: ${actualAiCalls}`;
-      await dbRun(`
-        INSERT INTO pipeline_logs (createdAt, level, promptVersion, layoutTemplateId, slotIndex, message, runId)
-        VALUES (?, 'INFO', '1.0', 'frontpage', -1, ?, ?)
-      `, [timestamp, statsMessage, currentRunId]);
-      
-      return res.json({ 
-        success: true, 
-        runId: currentRunId,
-        results,
-        stats: {
-          processed: processedCount,
-          skippedByScheduler,
-          skippedByAiCache,
-          actualAiCalls
-        }
-      });
+      const { runId, results, stats } = await runAllScheduledSlots(force);
+      return res.json({ success: true, runId, results, stats });
     }
   } catch (err) {
     console.error('Run pipeline error:', err);
@@ -2806,4 +2810,16 @@ app.get('/api/ai/logs/:slotIndex', async (req, res) => {
 const PORT = 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend API server running on http://localhost:${PORT}`);
+
+  // Scheduler dalaman: server ni proses Node yang berjalan berterusan (bukan serverless), jadi
+  // ini yang benar-benar mencetuskan "Kadar Segar Semula" (Daily/Weekly + jam) yang Izzat tetapkan
+  // di Mini Editorium. Semak setiap 5 minit — cukup halus utk jam yang ditetapkan (cth 07:00) tanpa
+  // membebankan pangkalan data. Server MESTI kekal berjalan (dev server / PM2 / dsb) utk ini berfungsi.
+  const SCHEDULER_INTERVAL_MS = 5 * 60 * 1000;
+  setInterval(() => {
+    runAllScheduledSlots(false).catch((err) => {
+      console.error('Internal scheduler run failed:', err);
+    });
+  }, SCHEDULER_INTERVAL_MS);
+  console.log(`Internal AI pipeline scheduler active (checks every ${SCHEDULER_INTERVAL_MS / 60000} min).`);
 });
