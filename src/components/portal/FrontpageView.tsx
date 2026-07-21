@@ -171,12 +171,12 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
   }
   return (
     <div className="w-full flex-1 min-h-0 relative flex flex-col justify-between">
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         <motion.div
           key={itemKey}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          exit={{ opacity: 0, position: 'absolute' }}
           transition={{ duration: 1.0, ease: 'easeInOut' }}
           className={`w-full h-full flex flex-col ${className}`}
         >
@@ -216,7 +216,11 @@ const CarouselStableBlock: React.FC<{
         <div
           key={i}
           className="col-start-1 row-start-1 min-w-0"
-          style={{ visibility: i === activeIndex ? 'visible' : 'hidden', pointerEvents: i === activeIndex ? 'auto' : 'none' }}
+          style={{
+            opacity: i === activeIndex ? 1 : 0,
+            transition: 'opacity 1s ease-in-out',
+            pointerEvents: i === activeIndex ? 'auto' : 'none',
+          }}
           aria-hidden={i === activeIndex ? undefined : true}
         >
           {renderItem(it)}
