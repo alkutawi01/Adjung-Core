@@ -1681,16 +1681,10 @@ URL: ${url}`;
                         items={bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]]}
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
                         renderItem={(it) => (
-                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                        )}
-                      />
-                    </div>
-                    <div>
-                      <CarouselStableBlock
-                        items={bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]]}
-                        activeIndex={bentoNewsItems[3].carouselIndex || 0}
-                        renderItem={(it) => (
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[3]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <>
+                            <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[3]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          </>
                         )}
                       />
                     </div>
@@ -1857,16 +1851,10 @@ URL: ${url}`;
                       items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
                       activeIndex={bentoNewsItems[11].carouselIndex || 0}
                       renderItem={(it) => (
-                        <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
-                      activeIndex={bentoNewsItems[11].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[11]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        <>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[11]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
                       )}
                     />
                   </div>
@@ -1899,16 +1887,10 @@ URL: ${url}`;
                       items={bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]]}
                       activeIndex={bentoNewsItems[13].carouselIndex || 0}
                       renderItem={(it) => (
-                        <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors ">{safeParseInline(it.title)}</h3>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]]}
-                      activeIndex={bentoNewsItems[13].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[13]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        <>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[13]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
                       )}
                     />
                   </div>
@@ -1937,16 +1919,10 @@ URL: ${url}`;
                       items={bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]]}
                       activeIndex={bentoNewsItems[14].carouselIndex || 0}
                       renderItem={(it) => (
-                        <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]]}
-                      activeIndex={bentoNewsItems[14].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[14]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        <>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[14]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
                       )}
                     />
                   </div>
@@ -2011,16 +1987,10 @@ URL: ${url}`;
                       items={bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]]}
                       activeIndex={bentoNewsItems[16].carouselIndex || 0}
                       renderItem={(it) => (
-                        <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]]}
-                      activeIndex={bentoNewsItems[16].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[16]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        <>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[16]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
                       )}
                     />
                   </div>
@@ -2206,16 +2176,10 @@ URL: ${url}`;
                       items={bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]]}
                       activeIndex={bentoNewsItems[25].carouselIndex || 0}
                       renderItem={(it) => (
-                        <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]]}
-                      activeIndex={bentoNewsItems[25].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[25]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        <>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[25]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
                       )}
                     />
                   </div>
@@ -2271,16 +2235,10 @@ URL: ${url}`;
                       items={bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]]}
                       activeIndex={bentoNewsItems[27].carouselIndex || 0}
                       renderItem={(it) => (
-                        <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors ">{safeParseInline(it.title)}</h3>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]]}
-                      activeIndex={bentoNewsItems[27].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[27]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        <>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[27]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
                       )}
                     />
                   </div>
@@ -2309,16 +2267,10 @@ URL: ${url}`;
                       items={bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]]}
                       activeIndex={bentoNewsItems[28].carouselIndex || 0}
                       renderItem={(it) => (
-                        <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]]}
-                      activeIndex={bentoNewsItems[28].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[28]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        <>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[28]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
                       )}
                     />
                   </div>
@@ -2383,16 +2335,10 @@ URL: ${url}`;
                       items={bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]]}
                       activeIndex={bentoNewsItems[30].carouselIndex || 0}
                       renderItem={(it) => (
-                        <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]]}
-                      activeIndex={bentoNewsItems[30].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[30]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        <>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[30]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
                       )}
                     />
                   </div>
@@ -2576,22 +2522,16 @@ URL: ${url}`;
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{bentoNewsItems[35].desk}
                       </div>
                       <CarouselStableBlock
-                        items={bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]]}
-                        activeIndex={bentoNewsItems[35].carouselIndex || 0}
-                        renderItem={(it) => (
+                      items={bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]]}
+                      activeIndex={bentoNewsItems[35].carouselIndex || 0}
+                      renderItem={(it) => (
+                        <>
                           <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                        )}
-                      />
-                    </div>
-                    <div>
-                      <CarouselStableBlock
-                        items={bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]]}
-                        activeIndex={bentoNewsItems[35].carouselIndex || 0}
-                        renderItem={(it) => (
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[35]).briefStyle}>{safeParseInline(it.brief)}</p>
-                        )}
-                      />
-                    </div>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[35]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
+                      )}
+                    />
+                  </div>
                       <a href={bentoNewsItems[35].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[35]).sourceStyle}>
                         <span>{bentoNewsItems[35].source}</span>
                         {formatBentoDate(bentoNewsItems[35].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[35].publishedAt)}</span>}
@@ -2614,22 +2554,16 @@ URL: ${url}`;
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{bentoNewsItems[36].desk}
                       </div>
                       <CarouselStableBlock
-                        items={bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]]}
-                        activeIndex={bentoNewsItems[36].carouselIndex || 0}
-                        renderItem={(it) => (
+                      items={bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]]}
+                      activeIndex={bentoNewsItems[36].carouselIndex || 0}
+                      renderItem={(it) => (
+                        <>
                           <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                        )}
-                      />
-                    </div>
-                    <div>
-                      <CarouselStableBlock
-                        items={bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]]}
-                        activeIndex={bentoNewsItems[36].carouselIndex || 0}
-                        renderItem={(it) => (
-                          <p className="font-serif text-xs text-stone-300/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[36]).briefStyle}>{safeParseInline(it.brief)}</p>
-                        )}
-                      />
-                    </div>
+                          <p className="font-serif text-xs text-stone-300/90 leading-relaxed font-light mt-2" style={getCardTheme(bentoNewsItems[36]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
+                      )}
+                    />
+                  </div>
                       <a href={bentoNewsItems[36].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[36]).sourceStyle}>
                         <span>{bentoNewsItems[36].source}</span>
                         {formatBentoDate(bentoNewsItems[36].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[36].publishedAt)}</span>}
