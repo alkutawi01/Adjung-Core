@@ -124,12 +124,23 @@ class PresentationComposer {
 
     // 4. Apply Metadata Composition Rules Matrix (SPEC-023 Section C)
     if (layoutVariant === 'compact-news') {
-      // Compact Card hides: desk, publisher, publishedAt, isOfficial, glyphProfile
+      // Compact (KOMPAK) cards now render desk/source/url/date and a brief line (2026-07-21
+      // update), so the old SPEC-023 rule stripping this metadata down to bare title would
+      // silently discard real, accurate desk/source/url data and fall back to "UMUM"/"Umum"/"#"
+      // placeholders -- same shape as standard-news, plus brief.
       return {
         layoutVariant,
         presentationProfile,
+        glyphProfile,
         publicationType: token.publicationType,
-        title: approvedRevision.title || ''
+        desk: token.desk,
+        publisherId: token.publisherId,
+        publisherName: token.publisherName,
+        publishedAt: token.publishedAt,
+        isOfficial: token.isOfficial,
+        sourceUrl: token.sourceUrl,
+        title: approvedRevision.title || '',
+        brief: approvedRevision.summary || ''
       };
     } else if (layoutVariant === 'standard-news') {
       // Standard card has all except: summary/brief (handled in markup), glyph sometimes depending on style

@@ -1804,7 +1804,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
           desk: (renderToken.desk || parsed.desk || 'UMUM').toUpperCase(),
           publisherName: renderToken.publisherName || parsed.source || 'Umum',
           source: renderToken.publisherName || parsed.source || 'Umum',
-          url: renderToken.url || parsed.url || '#',
+          url: renderToken.sourceUrl || renderToken.url || parsed.url || '#',
           glyphProfile: renderToken.glyphProfile || null,
           presentationProfile: renderToken.presentationProfile || 'umum',
           publicationType: renderToken.publicationType || 'news',
@@ -1862,7 +1862,9 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         desk: (renderToken.desk || 'UMUM').toUpperCase(),
         publisherName: renderToken.publisherName || 'Umum',
         source: renderToken.publisherName || 'Umum',
-        url: renderToken.url || '#',
+        // PresentationComposer's token names this field sourceUrl, not url -- this fallback
+        // chain avoids silently dropping every DB-backed item's click-through link to '#'.
+        url: renderToken.sourceUrl || renderToken.url || '#',
         glyphProfile: renderToken.glyphProfile || null,
         presentationProfile: renderToken.presentationProfile || 'umum',
         publicationType: renderToken.publicationType || 'news',
