@@ -1778,7 +1778,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[6].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[6]).sourceStyle}>{bentoNewsItems[6].source}
+                  <a href={bentoNewsItems[6].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[6]).sourceStyle}>
+                    <span>{bentoNewsItems[6].source}</span>
+                    {formatBentoDate(bentoNewsItems[6].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[6].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[6].aiProvider && (
@@ -1807,7 +1809,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[12].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[12]).sourceStyle}>{bentoNewsItems[12].source}
+                  <a href={bentoNewsItems[12].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[12]).sourceStyle}>
+                    <span>{bentoNewsItems[12].source}</span>
+                    {formatBentoDate(bentoNewsItems[12].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[12].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[12].aiProvider && (
@@ -1865,7 +1869,9 @@ URL: ${url}`;
                         <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[11]).briefStyle}>{safeParseInline(it.brief)}</p>
                       )}
                     />
-                    <a href={bentoNewsItems[11].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[11]).sourceStyle}>{bentoNewsItems[11].source}
+                    <a href={bentoNewsItems[11].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[11]).sourceStyle}>
+                      <span>{bentoNewsItems[11].source}</span>
+                      {formatBentoDate(bentoNewsItems[11].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[11].publishedAt)}</span>}
                     </a>
                   </div>
                 
@@ -1904,7 +1910,9 @@ URL: ${url}`;
                         <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[13]).briefStyle}>{safeParseInline(it.brief)}</p>
                       )}
                     />
-                    <a href={bentoNewsItems[13].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[13]).sourceStyle}>{bentoNewsItems[13].source}
+                    <a href={bentoNewsItems[13].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[13]).sourceStyle}>
+                      <span>{bentoNewsItems[13].source}</span>
+                      {formatBentoDate(bentoNewsItems[13].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[13].publishedAt)}</span>}
                     </a>
                   </div>
                 
@@ -1939,7 +1947,9 @@ URL: ${url}`;
                         <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[14]).briefStyle}>{safeParseInline(it.brief)}</p>
                       )}
                     />
-                    <a href={bentoNewsItems[14].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[14]).sourceStyle}>{bentoNewsItems[14].source}
+                    <a href={bentoNewsItems[14].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[14]).sourceStyle}>
+                      <span>{bentoNewsItems[14].source}</span>
+                      {formatBentoDate(bentoNewsItems[14].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[14].publishedAt)}</span>}
                     </a>
                   </div>
                 
@@ -1973,7 +1983,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[15].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[15]).sourceStyle}>{bentoNewsItems[15].source}
+                  <a href={bentoNewsItems[15].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[15]).sourceStyle}>
+                    <span>{bentoNewsItems[15].source}</span>
+                    {formatBentoDate(bentoNewsItems[15].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[15].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[15].aiProvider && (
@@ -2008,7 +2020,9 @@ URL: ${url}`;
                         <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[16]).briefStyle}>{safeParseInline(it.brief)}</p>
                       )}
                     />
-                    <a href={bentoNewsItems[16].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[16]).sourceStyle}>{bentoNewsItems[16].source}
+                    <a href={bentoNewsItems[16].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[16]).sourceStyle}>
+                      <span>{bentoNewsItems[16].source}</span>
+                      {formatBentoDate(bentoNewsItems[16].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[16].publishedAt)}</span>}
                     </a>
                   </div>
                 
@@ -2037,7 +2051,9 @@ URL: ${url}`;
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[17].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[17]).sourceStyle}>{bentoNewsItems[17].source}
+                    <a href={bentoNewsItems[17].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[17]).sourceStyle}>
+                      <span>{bentoNewsItems[17].source}</span>
+                      {formatBentoDate(bentoNewsItems[17].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[17].publishedAt)}</span>}
                     </a>
                   
                   {bentoNewsItems[17].aiProvider && (
@@ -2062,7 +2078,9 @@ URL: ${url}`;
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[18].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[18]).sourceStyle}>{bentoNewsItems[18].source}
+                    <a href={bentoNewsItems[18].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[18]).sourceStyle}>
+                      <span>{bentoNewsItems[18].source}</span>
+                      {formatBentoDate(bentoNewsItems[18].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[18].publishedAt)}</span>}
                     </a>
                   
                   {bentoNewsItems[18].aiProvider && (
@@ -2092,7 +2110,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[19].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[19]).sourceStyle}>{bentoNewsItems[19].source}
+                  <a href={bentoNewsItems[19].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[19]).sourceStyle}>
+                    <span>{bentoNewsItems[19].source}</span>
+                    {formatBentoDate(bentoNewsItems[19].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[19].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[19].aiProvider && (
@@ -2126,7 +2146,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[26].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[26]).sourceStyle}>{bentoNewsItems[26].source}
+                  <a href={bentoNewsItems[26].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[26]).sourceStyle}>
+                    <span>{bentoNewsItems[26].source}</span>
+                    {formatBentoDate(bentoNewsItems[26].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[26].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[26].aiProvider && (
@@ -2155,7 +2177,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[20].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[20]).sourceStyle}>{bentoNewsItems[20].source}
+                  <a href={bentoNewsItems[20].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[20]).sourceStyle}>
+                    <span>{bentoNewsItems[20].source}</span>
+                    {formatBentoDate(bentoNewsItems[20].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[20].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[20].aiProvider && (
@@ -2190,7 +2214,9 @@ URL: ${url}`;
                         <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[25]).briefStyle}>{safeParseInline(it.brief)}</p>
                       )}
                     />
-                    <a href={bentoNewsItems[25].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[25]).sourceStyle}>{bentoNewsItems[25].source}
+                    <a href={bentoNewsItems[25].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[25]).sourceStyle}>
+                      <span>{bentoNewsItems[25].source}</span>
+                      {formatBentoDate(bentoNewsItems[25].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[25].publishedAt)}</span>}
                     </a>
                   </div>
                 
@@ -2252,7 +2278,9 @@ URL: ${url}`;
                         <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[27]).briefStyle}>{safeParseInline(it.brief)}</p>
                       )}
                     />
-                    <a href={bentoNewsItems[27].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[27]).sourceStyle}>{bentoNewsItems[27].source}
+                    <a href={bentoNewsItems[27].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[27]).sourceStyle}>
+                      <span>{bentoNewsItems[27].source}</span>
+                      {formatBentoDate(bentoNewsItems[27].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[27].publishedAt)}</span>}
                     </a>
                   </div>
                 
@@ -2287,7 +2315,9 @@ URL: ${url}`;
                         <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[28]).briefStyle}>{safeParseInline(it.brief)}</p>
                       )}
                     />
-                    <a href={bentoNewsItems[28].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[28]).sourceStyle}>{bentoNewsItems[28].source}
+                    <a href={bentoNewsItems[28].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[28]).sourceStyle}>
+                      <span>{bentoNewsItems[28].source}</span>
+                      {formatBentoDate(bentoNewsItems[28].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[28].publishedAt)}</span>}
                     </a>
                   </div>
                 
@@ -2321,7 +2351,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[29].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[29]).sourceStyle}>{bentoNewsItems[29].source}
+                  <a href={bentoNewsItems[29].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[29]).sourceStyle}>
+                    <span>{bentoNewsItems[29].source}</span>
+                    {formatBentoDate(bentoNewsItems[29].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[29].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[29].aiProvider && (
@@ -2356,7 +2388,9 @@ URL: ${url}`;
                         <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[30]).briefStyle}>{safeParseInline(it.brief)}</p>
                       )}
                     />
-                    <a href={bentoNewsItems[30].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[30]).sourceStyle}>{bentoNewsItems[30].source}
+                    <a href={bentoNewsItems[30].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[30]).sourceStyle}>
+                      <span>{bentoNewsItems[30].source}</span>
+                      {formatBentoDate(bentoNewsItems[30].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[30].publishedAt)}</span>}
                     </a>
                   </div>
                 
@@ -2385,7 +2419,9 @@ URL: ${url}`;
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[31].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[31]).sourceStyle}>{bentoNewsItems[31].source}
+                    <a href={bentoNewsItems[31].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[31]).sourceStyle}>
+                      <span>{bentoNewsItems[31].source}</span>
+                      {formatBentoDate(bentoNewsItems[31].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[31].publishedAt)}</span>}
                     </a>
                   
                   {bentoNewsItems[31].aiProvider && (
@@ -2410,7 +2446,9 @@ URL: ${url}`;
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[32].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2" style={getCardTheme(bentoNewsItems[32]).sourceStyle}>{bentoNewsItems[32].source}
+                    <a href={bentoNewsItems[32].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[8px] tracking-editorial uppercase text-stone-400 mt-2 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[32]).sourceStyle}>
+                      <span>{bentoNewsItems[32].source}</span>
+                      {formatBentoDate(bentoNewsItems[32].publishedAt) && <span className="opacity-60 normal-case font-mono text-[7px]">{formatBentoDate(bentoNewsItems[32].publishedAt)}</span>}
                     </a>
                   
                   {bentoNewsItems[32].aiProvider && (
@@ -2440,7 +2478,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[33].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[33]).sourceStyle}>{bentoNewsItems[33].source}
+                  <a href={bentoNewsItems[33].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[33]).sourceStyle}>
+                    <span>{bentoNewsItems[33].source}</span>
+                    {formatBentoDate(bentoNewsItems[33].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[33].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[33].aiProvider && (
@@ -2474,7 +2514,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[34].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex items-center" style={getCardTheme(bentoNewsItems[34]).sourceStyle}>{bentoNewsItems[34].source}
+                  <a href={bentoNewsItems[34].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[34]).sourceStyle}>
+                    <span>{bentoNewsItems[34].source}</span>
+                    {formatBentoDate(bentoNewsItems[34].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[34].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[34].aiProvider && (
@@ -2503,7 +2545,9 @@ URL: ${url}`;
                       )}
                     />
                   </div>
-                  <a href={bentoNewsItems[37].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>{bentoNewsItems[37].source}
+                  <a href={bentoNewsItems[37].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>
+                    <span>{bentoNewsItems[37].source}</span>
+                    {formatBentoDate(bentoNewsItems[37].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[37].publishedAt)}</span>}
                   </a>
                 
                   {bentoNewsItems[37].aiProvider && (
@@ -2539,7 +2583,9 @@ URL: ${url}`;
                           <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[35]).briefStyle}>{safeParseInline(it.brief)}</p>
                         )}
                       />
-                      <a href={bentoNewsItems[35].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[35]).sourceStyle}>{bentoNewsItems[35].source}
+                      <a href={bentoNewsItems[35].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[35]).sourceStyle}>
+                        <span>{bentoNewsItems[35].source}</span>
+                        {formatBentoDate(bentoNewsItems[35].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[35].publishedAt)}</span>}
                       </a>
                     </div>
                   
@@ -2574,7 +2620,9 @@ URL: ${url}`;
                           <p className="font-serif text-xs text-stone-300/90 leading-relaxed font-light mb-3 " style={getCardTheme(bentoNewsItems[36]).briefStyle}>{safeParseInline(it.brief)}</p>
                         )}
                       />
-                      <a href={bentoNewsItems[36].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10" style={getCardTheme(bentoNewsItems[36]).sourceStyle}>{bentoNewsItems[36].source}
+                      <a href={bentoNewsItems[36].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5" style={getCardTheme(bentoNewsItems[36]).sourceStyle}>
+                        <span>{bentoNewsItems[36].source}</span>
+                        {formatBentoDate(bentoNewsItems[36].publishedAt) && <span className="opacity-60 normal-case font-mono text-[8px]">{formatBentoDate(bentoNewsItems[36].publishedAt)}</span>}
                       </a>
                     </div>
                   
