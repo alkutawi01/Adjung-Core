@@ -1,10 +1,10 @@
 class EditorialValidator {
   static validate(title, summary, maxSummaryLength = 380) {
     if (!title || !title.trim()) {
-      return { isValid: false, reason: 'Tajuk berita kosong.' };
+      return { isValid: false, reason: 'Tajuk kandungan kosong.' };
     }
     if (!summary || !summary.trim()) {
-      return { isValid: false, reason: 'Ringkasan berita kosong.' };
+      return { isValid: false, reason: 'Ringkasan kandungan kosong.' };
     }
 
     const cleanTitle = title.trim();

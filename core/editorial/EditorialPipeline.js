@@ -281,16 +281,16 @@ ${slotPrompt}
 
     if (slotIndex === -1) {
       userPrompt += `
-Tulis tepat ${slot.generationLimit || 5} baris kandungan berita terkini bertipe Ticker untuk dipaparkan di segmen "Terkini di Malaysia".
+Tulis tepat ${slot.generationLimit || 5} baris kandungan terkini bertipe Ticker untuk dipaparkan di segmen "Terkini di Malaysia".
 
 Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
 {
   "items": [
     {
-      "desk": "KATEGORI_BERITA (Satu perkataan sahaja, cth: EKONOMI, KESIHATAN, SUKAN)",
-      "title": "Tajuk berita terkini Malaysia di bawah ${maxTitleLen} aksara",
+      "desk": "KATEGORI_KANDUNGAN (Satu perkataan sahaja, cth: EKONOMI, KESIHATAN, SUKAN)",
+      "title": "Tajuk kandungan terkini Malaysia di bawah ${maxTitleLen} aksara",
       "brief": "Huraian pendek tepat satu ayat di bawah ${maxSummaryLen} aksara.",
-      "source": "Nama Sumber Berita",
+      "source": "Nama Sumber",
       "url": "Pautan URL artikel khusus dan spesifik yang lengkap dan sah (citation link) — HANYA jika tiada sourceIndex"${sourceIndexInstruction}
     }
   ]
@@ -302,7 +302,7 @@ Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
 {
   "title": "Nama Acara (Tidak melebihi ${maxTitleLen} aksara)",
   "source": "Tarikh/Tempoh Acara secara ringkas dan padat",
-  "category": "Kategori/Topik berita yang paling relevan (Satu perkataan sahaja, cth: ACARA, ILMU, SEJARAH, PORTAL)",
+  "category": "Kategori/Topik kandungan yang paling relevan (Satu perkataan sahaja, cth: ACARA, ILMU, SEJARAH, PORTAL)",
   "source_url": "Pautan URL rujukan spesifik yang aktif — HANYA jika tiada sourceIndex",
   "summary": ""${sourceIndexInstruction}
 }
@@ -311,9 +311,9 @@ Nothing more.`;
       userPrompt += `
 Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
 {
-  "title": "Tajuk berita (Tidak melebihi ${maxTitleLen} aksara)",
-  "summary": "Ringkasan berita (${limitDesc})",
-  "category": "Kategori berita (Satu perkataan sahaja, cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA)",
+  "title": "Tajuk kandungan (Tidak melebihi ${maxTitleLen} aksara)",
+  "summary": "Ringkasan kandungan (${limitDesc})",
+  "category": "Kategori kandungan (Satu perkataan sahaja, cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA)",
   "source_url": "Pautan URL rujukan spesifik yang aktif — HANYA jika tiada sourceIndex"${sourceIndexInstruction}
 }
 Nothing more.`;

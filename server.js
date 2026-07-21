@@ -837,8 +837,8 @@ const runEditorialPipeline = async (slotIndex, runId = null, bypassCache = false
       throw new Error('AI Provider not configured.');
     }
 
-    const globalPrompt = process.env.GLOBAL_PROMPT_PREFIX || 'Anda adalah editor berita profesional.';
-    const campaignPrompt = process.env.EDITORIAL_CAMPAIGN || 'Fokus kepada berita terkini.';
+    const globalPrompt = process.env.GLOBAL_PROMPT_PREFIX || 'Anda adalah editor kandungan profesional.';
+    const campaignPrompt = process.env.EDITORIAL_CAMPAIGN || 'Fokus kepada kandungan terkini.';
 
     // Panggil enjin pipeline modular teras
     const result = await EditorialPipeline.runSlotPipeline(
@@ -889,7 +889,7 @@ const runEditorialPipeline = async (slotIndex, runId = null, bypassCache = false
       if (translatorProvider) {
         try {
           const transPrompt = `
-            Terjemah tajuk dan ringkasan kandungan berita di bawah dari Bahasa Melayu ke ${tConfig.languageName} (${tConfig.languageCode}).
+            Terjemah tajuk dan ringkasan kandungan di bawah dari Bahasa Melayu ke ${tConfig.languageName} (${tConfig.languageCode}).
             
             Tajuk Asal: ${result.title}
             Ringkasan Asal: ${result.summary}
@@ -1072,7 +1072,7 @@ app.post('/api/system/pipeline/batch_paste', async (req, res) => {
       }
     }
 
-    // 3. Fallback Regex Parsing (untuk teks biasa berbilang berita per slot)
+    // 3. Fallback Regex Parsing (untuk teks biasa berbilang kandungan per slot)
     if (parsedItems.length === 0) {
       const slotBlocks = text.split(/(?:Slot\s*#?\s*|SlotIndex\s*[:=]?\s*)(\d+)/i);
       for (let idx = 1; idx < slotBlocks.length; idx += 2) {
@@ -1408,6 +1408,15 @@ const initEditorialOS = (dbConn) => {
         if (err) reject(err);
         else {
           // Jalankan migrasi lajur tambahan secara selamat (mengabaikan ralat jika lajur sudah wujud)
+          // maxBriefLong: had aksara "Huraian Panjang" -- ciri baharu untuk spotlight mode (belum
+          // dibina), disimpan sekarang supaya kandungannya boleh mula dikumpul lebih awal.
+          dbConn.run("ALTER TABLE slots_config ADD COLUMN maxBriefLong INTEGER", () => {});
+          // editorial_attribute_values.attributeId has a FOREIGN KEY into editorial_attributes --
+          // any new EAV attribute key (briefLong, originalDate) MUST be registered here first, or
+          // every syncManualObjectsForSlot() insert using it throws SQLITE_CONSTRAINT and silently
+          // aborts (caught + console.warn'd by the caller), dropping that slot's sync entirely.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('briefLong', 'Huraian Panjang', 'text')", () => {});
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('originalDate', 'Tarikh Asal', 'text')", () => {});
           dbConn.run("ALTER TABLE slots_config ADD COLUMN manualDesk TEXT", () => {
             dbConn.run("ALTER TABLE slots_config ADD COLUMN nextRunAt INTEGER", () => {
               dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshInterval INTEGER", () => {
@@ -1563,6 +1572,34 @@ const fetchSourceWithCache = async (sourceUri) => {
   return cacheEntry ? { rawContent: cacheEntry.rawContent, fromCache: true } : { rawContent: '', fromCache: false };
 };
 
+// Server-side mirror of FrontpageView.tsx's getLimitsForIndex/GEOMETRY_RATIOS defaults -- these
+// ARE the hard ceilings: a card's geometry physically cannot show more than this much text
+// without breaking its size/legibility, so no slot may be configured (or publish content) beyond
+// its own tier's numbers. Kept in sync manually with the client-side defaults.
+const GEOMETRY_TIER_CEILINGS = {
+  MENEGAK: { maxTitle: 72, maxBrief: 480, maxBriefLong: 800 },
+  STANDARD: { maxTitle: 110, maxBrief: 280, maxBriefLong: 600 },
+  SEGI_EMPAT_MEDIUM: { maxTitle: 60, maxBrief: 100, maxBriefLong: 500 },
+  SEGI_EMPAT_SMALL: { maxTitle: 40, maxBrief: 65, maxBriefLong: 400 },
+  KOMPAK: { maxTitle: 55, maxBrief: 25, maxBriefLong: 400 },
+  BAR: { maxTitle: 40, maxBrief: 0, maxBriefLong: 0 },
+  HERO: { maxTitle: 115, maxBrief: 350, maxBriefLong: 800 },
+  TICKER: { maxTitle: 80, maxBrief: 220, maxBriefLong: 0 },
+  DEFAULT: { maxTitle: 70, maxBrief: 100, maxBriefLong: 600 }
+};
+
+const getGeometryCeilingForSlot = (slotIndex) => {
+  if (slotIndex === -1) return GEOMETRY_TIER_CEILINGS.TICKER;
+  if (slotIndex === 0) return GEOMETRY_TIER_CEILINGS.HERO;
+  if ([1, 12, 15, 26, 29, 37].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.MENEGAK;
+  if ([2, 6, 19, 20, 33, 34].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.STANDARD;
+  if ([13, 14, 27, 28].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.SEGI_EMPAT_MEDIUM;
+  if ([3, 11, 16, 25, 30, 35, 36].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.SEGI_EMPAT_SMALL;
+  if ([4, 5, 17, 18, 31, 32].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.KOMPAK;
+  if ([7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.BAR;
+  return GEOMETRY_TIER_CEILINGS.DEFAULT;
+};
+
 // Helper function to resolve active layout slots
 const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
   if (!summaryText || (!summaryText.includes('Tajuk:') && !summaryText.includes('Event:'))) {
@@ -1587,10 +1624,14 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     const lines = block.split('\n');
     let title = '';
     let brief = '';
+    let briefLong = '';
     let desk = '';
     let date = '';
     let source = '';
     let url = '';
+    let isEventBlock = false; // "Event:" blocks (bar/acara slots) have no separate Sumber: line --
+    // the date IS the source-position text there. Regular Tajuk: blocks must NEVER fall back to
+    // this, or a missing "Sumber:" line silently shows the date where the source name belongs.
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -1599,13 +1640,17 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       } else if (trimmed.startsWith('Event:')) {
         title = trimmed.replace(/^Event:\s*/i, '').trim();
         desk = 'ACARA'; // Default desk untuk event
+        isEventBlock = true;
+      } else if (trimmed.startsWith('Huraian panjang:')) {
+        briefLong = trimmed.replace(/^Huraian panjang:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Huraian ringkas:')) {
+        brief = trimmed.replace(/^Huraian ringkas:\s*/i, '').trim();
       } else if (trimmed.startsWith('Huraian:')) {
         brief = trimmed.replace(/^Huraian:\s*/i, '').trim();
       } else if (trimmed.startsWith('Kategori:')) {
         desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
       } else if (trimmed.startsWith('Tarikh:')) {
         date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
-        source = date; // Memetakan tarikh ke ruangan sumber (sebelah kiri bar)
       } else if (trimmed.startsWith('Sumber:')) {
         source = trimmed.replace(/^Sumber:\s*/i, '').trim();
       } else if (trimmed.startsWith('URL:')) {
@@ -1613,18 +1658,31 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       }
     }
 
+    // "Tarikh:" precedes "Event:" in the actual bar/acara template, so isEventBlock is only known
+    // for certain after the full line loop -- apply the source-position fallback here, not inline.
+    if (isEventBlock && !source) {
+      source = date; // Memetakan tarikh ke ruangan sumber (sebelah kiri bar)
+    }
+
     // Buang notasi had aksara template seperti (max 70 aksara)
     title = title.replace(/^\([^)]+\)\s*/g, '').trim();
     brief = brief.replace(/^\([^)]+\)\s*/g, '').trim();
+    briefLong = briefLong.replace(/^\([^)]+\)\s*/g, '').trim();
 
     if (title) {
       items.push({
         title,
         summary: brief,
+        briefLong,
         desk: desk || defaultSlot.manualDesk || 'general',
         source: source || defaultSlot.manualSource || '19 Jul 2026',
         url: url || defaultSlot.manualUrl || '#',
-        publishedAt: date || new Date().toISOString()
+        // originalDate: the raw "Tarikh:" text as typed/extracted (e.g. "1980", "20 Julai 2026",
+        // or empty) -- displayed verbatim next to source on the card, never reformatted as a Date.
+        // Tiada fallback ke tarikh hari ini di sini secara sengaja -- jika AI/admin tidak
+        // menyatakan tarikh sebenar, kad terus kosongkan baris tarikh, bukan paparkan tarikh palsu.
+        originalDate: date || '',
+        publishedAt: date || ''
       });
     }
   }
@@ -1687,6 +1745,32 @@ const serializeTickerText = (items) => {
 // any existing rows for that slot.
 const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) => {
   const items = parseManualSummaryTemplate(manualSummary || '', slotConfig);
+
+  // Hard-block: content that exceeds its card's had aksara must never be published, since it
+  // breaks the card's size/legibility. Validate ALL items before touching the DB, so a rejected
+  // save leaves whatever was already there untouched (no DELETE ever runs on failure).
+  const ceiling = getGeometryCeilingForSlot(slotIndex);
+  const effectiveMaxTitle = typeof slotConfig.maxTitle === 'number' ? slotConfig.maxTitle : ceiling.maxTitle;
+  const effectiveMaxBrief = typeof slotConfig.maxBrief === 'number' ? slotConfig.maxBrief : ceiling.maxBrief;
+  const effectiveMaxBriefLong = typeof slotConfig.maxBriefLong === 'number' ? slotConfig.maxBriefLong : ceiling.maxBriefLong;
+  for (const item of items) {
+    if (effectiveMaxTitle && item.title && item.title.length > effectiveMaxTitle) {
+      const err = new Error(`Tajuk "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxTitle} aksara (semasa: ${item.title.length}). Kandungan tidak disiarkan -- pendekkan tajuk dahulu.`);
+      err.isValidationError = true;
+      throw err;
+    }
+    if (effectiveMaxBrief && item.summary && item.summary.length > effectiveMaxBrief) {
+      const err = new Error(`Huraian ringkas bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBrief} aksara (semasa: ${item.summary.length}). Kandungan tidak disiarkan -- pendekkan huraian dahulu.`);
+      err.isValidationError = true;
+      throw err;
+    }
+    if (effectiveMaxBriefLong && item.briefLong && item.briefLong.length > effectiveMaxBriefLong) {
+      const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan -- pendekkan huraian dahulu.`);
+      err.isValidationError = true;
+      throw err;
+    }
+  }
+
   await dbRun('DELETE FROM editorial_objects WHERE slotIndex = ?', [slotIndex]);
   if (items.length === 0) return;
 
@@ -1718,6 +1802,8 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
       { key: 'desk', val: finalCategory },
       { key: 'url', val: item.url || '#' },
       { key: 'source', val: item.source || '' },
+      { key: 'briefLong', val: item.briefLong || '' },
+      { key: 'originalDate', val: item.originalDate || '' },
     ];
     for (const a of attrs) {
       await dbRun(
@@ -1801,6 +1887,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
           title: approvedRevision.title,
           brief: approvedRevision.summary,
           publishedAt: approvedRevision.createdAt,
+          originalDate: parsed.originalDate || '',
           desk: (renderToken.desk || parsed.desk || 'UMUM').toUpperCase(),
           publisherName: renderToken.publisherName || parsed.source || 'Umum',
           source: renderToken.publisherName || parsed.source || 'Umum',
@@ -1854,11 +1941,13 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       }
 
       const aiProv = avs.find(a => a.attributeId === 'aiProvider');
-      
+      const origDateAv = avs.find(a => a.attributeId === 'originalDate');
+
       subItems.push({
         title: approvedRevision.title,
         brief: approvedRevision.summary,
         publishedAt: approvedRevision.createdAt,
+        originalDate: origDateAv ? origDateAv.valueText : '',
         desk: (renderToken.desk || 'UMUM').toUpperCase(),
         publisherName: renderToken.publisherName || 'Umum',
         source: renderToken.publisherName || 'Umum',
@@ -2056,15 +2145,23 @@ app.post('/api/system/slots', async (req, res) => {
     for (const slot of slots) {
       const providerId = slot.providerId && typeof slot.providerId === 'string' && slot.providerId.trim() !== '' && slot.providerId !== 'undefined' && slot.providerId !== 'null' ? slot.providerId : null;
       console.log(`Slot ${slot.slotIndex}: raw providerId = "${slot.providerId}", mapped = ${providerId}`);
+
+      // Hard ceiling: a slot's own had aksara can never exceed what its card geometry can
+      // physically show, regardless of what the client sends -- clamp before it ever reaches
+      // storage, so an oversized value can't sneak in and later get copied around on re-save.
+      const ceiling = getGeometryCeilingForSlot(slot.slotIndex);
+      if (typeof slot.maxTitle === 'number' && slot.maxTitle > ceiling.maxTitle) slot.maxTitle = ceiling.maxTitle;
+      if (typeof slot.maxBrief === 'number' && slot.maxBrief > ceiling.maxBrief) slot.maxBrief = ceiling.maxBrief;
+      if (typeof slot.maxBriefLong === 'number' && slot.maxBriefLong > ceiling.maxBriefLong) slot.maxBriefLong = ceiling.maxBriefLong;
       await dbRun(`
         INSERT OR REPLACE INTO slots_config (
           layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
-          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, refreshHour, refreshDay, eventExpiryFilter,
+          manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, maxBriefLong, refreshHour, refreshDay, eventExpiryFilter,
           aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource
-        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
-        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
+        slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
         slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || ''
       ]);
 
@@ -2080,6 +2177,11 @@ app.post('/api/system/slots', async (req, res) => {
         try {
           await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot);
         } catch (e) {
+          if (e.isValidationError) {
+            // Hard-block: abort the whole save (not just this slot) so the admin sees exactly
+            // why nothing was published, instead of a silent partial save.
+            return res.status(400).json({ error: e.message });
+          }
           console.warn(`Failed to sync editorial_objects for slot ${slot.slotIndex}:`, e.message);
         }
       }
@@ -2125,10 +2227,10 @@ app.get('/api/system/content/all', async (req, res) => {
       }
     }
 
-    const slotRows = await dbAll("SELECT slotIndex, maxTitle, maxBrief FROM slots_config WHERE layoutTemplateId = 'frontpage'");
+    const slotRows = await dbAll("SELECT slotIndex, maxTitle, maxBrief, maxBriefLong, manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage'");
     const limitsBySlot = {};
     for (const s of slotRows) {
-      limitsBySlot[s.slotIndex] = { maxTitle: s.maxTitle, maxBrief: s.maxBrief };
+      limitsBySlot[s.slotIndex] = { maxTitle: s.maxTitle, maxBrief: s.maxBrief, maxBriefLong: s.maxBriefLong, slotCategory: s.manualDesk || '' };
     }
 
     // seriesIndex: 1-based position within its own slot, in the same createdAt-ASC order used to
@@ -2145,12 +2247,16 @@ app.get('/api/system/content/all', async (req, res) => {
         seriesIndex: seriesCounter[r.slotIndex],
         title: r.title,
         summary: r.summary,
+        summaryLong: attrs.briefLong || '',
+        originalDate: attrs.originalDate || '',
         desk: attrs.desk || r.categoryId || '',
         source: attrs.source || '',
         url: attrs.url || '#',
         imageUrl: attrs.imageUrl || attrs.coverImageId || '',
         maxTitle: limits.maxTitle !== undefined ? limits.maxTitle : null,
         maxBrief: limits.maxBrief !== undefined ? limits.maxBrief : null,
+        maxBriefLong: limits.maxBriefLong !== undefined ? limits.maxBriefLong : null,
+        slotCategory: limits.slotCategory || '',
         createdAt: r.revisionCreatedAt,
         updatedAt: r.revisionUpdatedAt
       };
@@ -2172,6 +2278,7 @@ app.get('/api/system/content/all', async (req, res) => {
       imageUrl: '',
       maxTitle: tickerLimits.maxTitle !== undefined ? tickerLimits.maxTitle : null,
       maxBrief: tickerLimits.maxBrief !== undefined ? tickerLimits.maxBrief : null,
+      slotCategory: tickerLimits.slotCategory || '',
       createdAt: null,
       updatedAt: null
     }));

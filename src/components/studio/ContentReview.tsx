@@ -14,6 +14,7 @@ interface ContentItem {
   imageUrl: string;
   maxTitle: number | null;
   maxBrief: number | null;
+  slotCategory: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -254,7 +255,11 @@ export function ContentReview() {
     setBulkSaving(false);
   };
 
-  const slotLabel = (slotIndex: number) => (slotIndex === -1 ? 'Ticker: Terkini di Malaysia' : `Slot ${slotIndex + 1}`);
+  const slotLabel = (slotIndex: number) => {
+    if (slotIndex === -1) return 'Ticker: Terkini di Malaysia';
+    const category = groupedBySlot[slotIndex]?.[0]?.slotCategory;
+    return category ? `Slot ${slotIndex + 1}: ${category}` : `Slot ${slotIndex + 1}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] font-sans">
