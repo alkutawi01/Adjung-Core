@@ -1595,7 +1595,7 @@ URL: ${url}`;
                         <>
                           <div className="font-mono text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{it.desk}</div>
                           <h3 className="font-serif text-2xl md:text-3xl leading-tight font-medium hover:text-[#E9D8A6] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-light" style={getCardTheme(bentoNewsItems[0]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-light mt-4" style={getCardTheme(bentoNewsItems[0]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
