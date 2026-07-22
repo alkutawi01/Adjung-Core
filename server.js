@@ -9,6 +9,7 @@ import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
+import { validateContentBudget } from './core/editorial/ContentBudget.js';
 import { db as mockDb } from './src/db/mockDb.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1107,6 +1108,18 @@ app.post('/api/system/pipeline/batch_paste', async (req, res) => {
       return res.status(400).json({ error: 'Failed to parse any valid news slot data from the pasted text.' });
     }
 
+    // Same hard-block as the per-slot manual save: every slot of the same geometry tier is
+    // validated by the exact same budget rule (core/editorial/ContentBudget.js). Validate the
+    // whole batch before writing anything, so one oversized item doesn't leave a partial paste.
+    for (const item of parsedItems) {
+      const slotIdx = item.slotIndex !== undefined ? parseInt(item.slotIndex, 10) : -1;
+      if (slotIdx < 0 || slotIdx >= 38) continue;
+      const budgetCheck = validateContentBudget(slotIdx, item.title, item.summary);
+      if (!budgetCheck.isValid) {
+        return res.status(400).json({ error: `Slot ${slotIdx + 1} -- "${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason}` });
+      }
+    }
+
     const timestamp = new Date().toISOString();
     const results = [];
 
@@ -1746,21 +1759,17 @@ const serializeTickerText = (items) => {
 const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) => {
   const items = parseManualSummaryTemplate(manualSummary || '', slotConfig);
 
-  // Hard-block: content that exceeds its card's had aksara must never be published, since it
-  // breaks the card's size/legibility. Validate ALL items before touching the DB, so a rejected
-  // save leaves whatever was already there untouched (no DELETE ever runs on failure).
+  // Hard-block: content that exceeds its card's shared title+brief space budget must never be
+  // published, since it breaks the card's size/legibility. Every slot of the same geometry tier
+  // is validated by the exact same rule -- see core/editorial/ContentBudget.js. Validate ALL items
+  // before touching the DB, so a rejected save leaves whatever was already there untouched (no
+  // DELETE ever runs on failure).
   const ceiling = getGeometryCeilingForSlot(slotIndex);
-  const effectiveMaxTitle = typeof slotConfig.maxTitle === 'number' ? slotConfig.maxTitle : ceiling.maxTitle;
-  const effectiveMaxBrief = typeof slotConfig.maxBrief === 'number' ? slotConfig.maxBrief : ceiling.maxBrief;
   const effectiveMaxBriefLong = typeof slotConfig.maxBriefLong === 'number' ? slotConfig.maxBriefLong : ceiling.maxBriefLong;
   for (const item of items) {
-    if (effectiveMaxTitle && item.title && item.title.length > effectiveMaxTitle) {
-      const err = new Error(`Tajuk "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxTitle} aksara (semasa: ${item.title.length}). Kandungan tidak disiarkan -- pendekkan tajuk dahulu.`);
-      err.isValidationError = true;
-      throw err;
-    }
-    if (effectiveMaxBrief && item.summary && item.summary.length > effectiveMaxBrief) {
-      const err = new Error(`Huraian ringkas bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBrief} aksara (semasa: ${item.summary.length}). Kandungan tidak disiarkan -- pendekkan huraian dahulu.`);
+    const budgetCheck = validateContentBudget(slotIndex, item.title, item.summary);
+    if (!budgetCheck.isValid) {
+      const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason} Kandungan tidak disiarkan.`);
       err.isValidationError = true;
       throw err;
     }
@@ -2318,6 +2327,18 @@ app.patch('/api/system/content/:id', async (req, res) => {
       return res.status(404).json({ error: 'Item tidak dijumpai.' });
     }
 
+    // Same hard-block as every other content path: an edit can never push a slot's title+brief
+    // over its tier's budget, no matter which screen the edit came from.
+    const objRow = await dbGet("SELECT slotIndex FROM editorial_objects WHERE id = ?", [id]);
+    if (objRow) {
+      const nextTitle = title !== undefined ? title : rev.title;
+      const nextSummary = summary !== undefined ? summary : rev.summary;
+      const budgetCheck = validateContentBudget(objRow.slotIndex, nextTitle, nextSummary);
+      if (!budgetCheck.isValid) {
+        return res.status(400).json({ error: budgetCheck.reason });
+      }
+    }
+
     const setClauses = [];
     const params = [];
     if (title !== undefined) { setClauses.push('title = ?'); params.push(title); }
@@ -2413,6 +2434,13 @@ app.post('/api/system/content', async (req, res) => {
       });
       await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
       return res.json({ success: true, id: `ticker-${tickerItems.length - 1}` });
+    }
+
+    // Same hard-block as every other content-creation path: this slot's tier's budget rule applies
+    // no matter which screen the content came from (core/editorial/ContentBudget.js).
+    const budgetCheck = validateContentBudget(slotIndex, title.trim(), (summary || '').trim());
+    if (!budgetCheck.isValid) {
+      return res.status(400).json({ error: budgetCheck.reason });
     }
 
     const timestamp = new Date().toISOString();

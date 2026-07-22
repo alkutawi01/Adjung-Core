@@ -7,6 +7,7 @@ import GeminiProvider from '../ai/GeminiProvider.js';
 import ClaudeProvider from '../ai/ClaudeProvider.js';
 import EditorialValidator from './EditorialValidator.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
+import { validateContentBudget } from './ContentBudget.js';
 
 const CONTENT_POOL_MAX_ITEMS = 30; // Bound prompt token cost regardless of how many sources are configured.
 const CONTENT_POOL_MAX_CONTENT_CHARS = 400; // Per-item content cap — enough for editorial judgment, not full article reprint.
@@ -398,9 +399,16 @@ ${slot.sourcesList.trim()}
 
     let validation = { isValid: true, cleanTitle: parsedJson.title || '', cleanSummary: parsedJson.summary || '' };
     if (!isBarSlot) {
-      validation = EditorialValidator.validate(parsedJson.title, parsedJson.summary, maxSummaryLen);
+      validation = EditorialValidator.validate(parsedJson.title, parsedJson.summary);
       if (!validation.isValid) {
         throw new Error(`Validation failed: ${validation.reason}`);
+      }
+      // Same budget rule as every other content path: every slot of this tier is held to the
+      // exact same title+brief space budget (core/editorial/ContentBudget.js), regardless of how
+      // the content was produced.
+      const budgetCheck = validateContentBudget(slotIndex, validation.cleanTitle, validation.cleanSummary);
+      if (!budgetCheck.isValid) {
+        throw new Error(`Validation failed: ${budgetCheck.reason}`);
       }
     }
 
