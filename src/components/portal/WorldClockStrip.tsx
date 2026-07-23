@@ -139,7 +139,7 @@ const renderCityCard = (
           <span className="font-serif text-[11px] text-[#1F1F1F] font-medium tracking-tight">{holidayName}</span>
         </div>
       )}
-      <p className="font-serif text-xs md:text-sm text-[#1F1F1F] font-light whitespace-nowrap">
+      <p className="font-serif text-[10px] sm:text-[11px] md:text-xs text-[#1F1F1F] font-light tracking-tight whitespace-nowrap">
         {timeData ? timeData.timeStr : 'Loading...'}
       </p>
     </div>
@@ -411,7 +411,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
       }}
       title="Klik kawasan Jam Dunia untuk menukar set paparan bandar"
     >
-      <div className="flex justify-center items-center gap-6 md:gap-10 px-1 w-full max-w-5xl">
+      <div className="grid grid-cols-5 gap-1 sm:gap-3 md:gap-6 px-2 w-full max-w-6xl mx-auto">
         {[0, 1, 2, 3, 4].map((colIndex) => {
           const currentCity = CITY_SETS[displaySetIndex][colIndex];
           const targetCity = CITY_SETS[worldClockSetIndex][colIndex];
@@ -424,7 +424,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           return (
             <div 
               key={`odometer-reel-${colIndex}`} 
-              className="relative h-[60px] overflow-hidden flex flex-col items-center justify-center min-w-[130px] md:min-w-[145px]"
+              className="relative h-[60px] overflow-hidden flex flex-col items-center justify-center w-full px-0.5"
             >
               {isAnimating ? (
                 <motion.div
