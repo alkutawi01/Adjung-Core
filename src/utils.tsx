@@ -119,6 +119,8 @@ export function markdownToHtml(md: string): string {
   const html = htmlBlocks.filter(Boolean).join('');
 
   return html
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
     .replace(/\[\^(fn-[a-zA-Z0-9-]+)\]/g, '<span class="footnote-badge" data-id="$1" contenteditable="false"></span>')
     .replace(/\[\^(mn-[a-zA-Z0-9-]+)\]/g, '<span class="margin-note-badge" data-id="$1" contenteditable="false"></span>')
     .replace(/\[\^(\d+)\]/g, '<span class="footnote-badge" data-id="fn-legacy-$1" contenteditable="false"></span>')
@@ -1639,7 +1641,7 @@ export const DESK_ACCENTS: Record<string, string> = {
   'Space': '#1E293B',
   'Science': '#15803D',
   'Medicine': '#7B2737',
-  'Kesihatan': '#7B2737',
+  'Kesihatan': '#991B1B',
   'Artificial Intelligence': '#6D28D9',
   'History': '#78350F',
   'Archaeology': '#B45309',
@@ -1647,25 +1649,52 @@ export const DESK_ACCENTS: Record<string, string> = {
   'Museums': '#D97706',
   'Environment': '#4D7C0F',
   'Education': '#1E3A8A',
-  'Pendidikan': '#D97706',
+  'Pendidikan': '#B55604',
   'Technology': '#475569',
   'Publishing': '#881337',
   'Languages': '#4338CA',
   'Heritage': '#92400E',
   'Islamic Affairs': '#047857',
-  'International Relations': '#1F1F1F',
+  'International Relations': '#0F172A',
   'Dalam Negeri': '#802334',
-  'Ekonomi': '#1E3A8A',
-  'Politik': '#4338CA',
-  'Sukan': '#047857'
+  'Ekonomi': '#1D4ED8',
+  'Bisnes': '#0284C7',
+  'Negara': '#0369A1',
+  'Nasional': '#2563EB',
+  'Dunia': '#7C3AED',
+  'Teknologi': '#0D9488',
+  'Gaya Hidup': '#DB2777',
+  'Hiburan': '#EA580C',
+  'Kesusasteraan Melayu': '#E05638',
+  'Psikolinguistik': '#6366F1',
+  'Warisan': '#A16207',
+  'Ujian': '#64748B',
+  'Semasa': '#B91C1C',
+  'Politik': '#3730A3',
+  'Sukan': '#059669',
+  'Berita': '#BE123C',
+  'Terkini': '#9F1239',
+  'Diplomasi': '#312E81',
+  'Falsafah': '#6B21A8',
+  'Sejarah': '#854D0E',
+  'Sains': '#0891B2',
+  'Sains & Teknologi': '#0284C7'
 };
 
 export function getDeskAccentColor(deskName: string): string {
-  if (!deskName) return '#777777';
+  if (!deskName) return '#802334';
   const normalized = Object.keys(DESK_ACCENTS).find(
     k => k.toLowerCase() === deskName.trim().toLowerCase()
   );
-  return normalized ? DESK_ACCENTS[normalized] : '#777777';
+  if (normalized) return DESK_ACCENTS[normalized];
+
+  // Dynamic hash to distinct HSL color for any new category
+  let hash = 0;
+  for (let i = 0; i < deskName.length; i++) {
+    hash = deskName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 75%, 38%)`;
 }
 
 export function parseInTheNews(text: string): { items: NewsItem[]; errors: ParseError[] } {
@@ -1719,23 +1748,23 @@ export function parseInTheNews(text: string): { items: NewsItem[]; errors: Parse
       const key = trimmed.substring(0, colonIndex).trim().toLowerCase();
       const val = trimmed.substring(colonIndex + 1).trim();
       
-      if (key === 'desk' || key === 'deska') {
+      if (key === 'desk' || key === 'deska' || key === 'kategori') {
         desk = val;
       } else if (key === 'deskb') {
         deskB = val;
-      } else if (key === 'title' || key === 'titlea') {
+      } else if (key === 'title' || key === 'titlea' || key === 'tajuk') {
         title = val;
       } else if (key === 'titleb') {
         titleB = val;
-      } else if (key === 'brief' || key === 'summary' || key === 'briefa' || key === 'summarya') {
-        brief = val;
+      } else if (key === 'brief' || key === 'summary' || key === 'briefa' || key === 'summarya' || key === 'huraian' || key === 'huraian ringkas') {
+        brief = val.replace(/&(?:copy);?/gi, '').replace(/©/g, '').replace(/\s+\([cC]\)\s*/g, ' ').replace(/(?:\s*[-–—|•]?\s*(?:\bcopyright\b|\bhakcipta\b|\bhak cipta\b|\ball rights reserved\b|new straits times(?: press)?(?: \(m\) bhd)?|bernama|media prima|astro awani|utusan malaysia|kosmo(?: digital)?|sinar harian|berita harian|rtm|the star)\b.*$)/gi, '').replace(/^(?:[A-Z\s]{2,30}(?:[,\s]+\d{1,2}\s+[A-Za-z]+)?)\s*[\-–—:]+\s*/i, '').replace(/,\s*(?:\.{3,}|…)/g, '...').replace(/\s+[A-Za-z0-9]{1,5}(?:\.\.\.|…)$/, '...').replace(/\.{4,}/g, '. ...').replace(/,\s*\.\.\./g, '...').replace(/\.\s*\.\.\./g, '. ...').trim();
       } else if (key === 'briefb' || key === 'summaryb') {
-        briefB = val;
-      } else if (key === 'source' || key === 'sourcea') {
+        briefB = val.replace(/&(?:copy);?/gi, '').replace(/©/g, '').replace(/\s+\([cC]\)\s*/g, ' ').replace(/(?:\s*[-–—|•]?\s*(?:\bcopyright\b|\bhakcipta\b|\bhak cipta\b|\ball rights reserved\b|new straits times(?: press)?(?: \(m\) bhd)?|bernama|media prima|astro awani|utusan malaysia|kosmo(?: digital)?|sinar harian|berita harian|rtm|the star)\b.*$)/gi, '').replace(/^(?:[A-Z\s]{2,30}(?:[,\s]+\d{1,2}\s+[A-Za-z]+)?)\s*[\-–—:]+\s*/i, '').replace(/,\s*(?:\.{3,}|…)/g, '...').replace(/\s+[A-Za-z0-9]{1,5}(?:\.\.\.|…)$/, '...').replace(/\.{4,}/g, '. ...').replace(/,\s*\.\.\./g, '...').replace(/\.\s*\.\.\./g, '. ...').trim();
+      } else if (key === 'source' || key === 'sourcea' || key === 'sumber') {
         source = val;
       } else if (key === 'sourceb') {
         sourceB = val;
-      } else if (key === 'url' || key === 'urla') {
+      } else if (key === 'url' || key === 'urla' || key === 'pautan') {
         url = val;
       } else if (key === 'urlb') {
         urlB = val;

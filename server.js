@@ -10,7 +10,14 @@ import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
 import { validateContentBudget } from './core/editorial/ContentBudget.js';
-import { db as mockDb } from './src/db/mockDb.js';
+import { safeJsonParse } from './core/utils/jsonUtils.js';
+import { detectSourceType } from './core/editorial/SourceDetector.js';
+import { createAIRoutes } from './core/routes/aiRoutes.js';
+import { createCategoryRoutes } from './core/routes/categoryRoutes.js';
+import { createSystemRoutes } from './core/routes/systemRoutes.js';
+import { createContentRoutes } from './core/routes/contentRoutes.js';
+import { createSlotRoutes, executeDirectRssFetch } from './core/routes/slotRoutes.js';
+const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -83,11 +90,292 @@ const initializeSchema = () => {
           researchFindingsText TEXT,
           researchFindingsGoogleDocUrl TEXT
         )
-      `, (err) => {
-        if (err) reject(err);
-        else {
-          initEditorialOS(db).then(resolve).catch(reject);
-        }
+      `, (errSys) => {
+        if (errSys) return reject(errSys);
+        db.run(`
+          CREATE TABLE IF NOT EXISTS rss_editorial_settings (
+            id TEXT PRIMARY KEY,
+            autoLiveThreshold INTEGER DEFAULT 80,
+            reviewThreshold INTEGER DEFAULT 60,
+            priorityKeywords TEXT,
+            blockedKeywords TEXT,
+            priorityBonus INTEGER DEFAULT 15,
+            blockedPenalty INTEGER DEFAULT 40,
+            updatedAt TEXT
+          )
+        `, (errRssSet) => {
+          if (errRssSet) reject(errRssSet);
+          else {
+            db.run("ALTER TABLE rss_ticker_items ADD COLUMN formattedBrief TEXT;", () => {});
+            db.run("ALTER TABLE rss_ticker_items ADD COLUMN scoreBreakdown TEXT;", () => {});
+            db.run("ALTER TABLE rss_ticker_items ADD COLUMN decision TEXT;", () => {});
+            db.run("ALTER TABLE rss_ticker_items ADD COLUMN deskBreakdown TEXT;", () => {});
+            db.run("ALTER TABLE rss_ticker_items ADD COLUMN secondaryDesk TEXT;", () => {});
+            db.run("ALTER TABLE rss_ticker_items ADD COLUMN secondaryScore INTEGER DEFAULT 0;", () => {});
+            db.run("ALTER TABLE rss_ticker_items ADD COLUMN rawCategory TEXT;", () => {});
+            db.run("ALTER TABLE rss_editorial_settings ADD COLUMN maxNewsAgeHours INTEGER DEFAULT 48;", () => {});
+            db.run("ALTER TABLE rss_editorial_settings ADD COLUMN tickerMaxItems INTEGER DEFAULT 20;", () => {});
+
+            db.run(`
+              CREATE TABLE IF NOT EXISTS rss_editorial_memory (
+                id TEXT PRIMARY KEY,
+                rssItemId TEXT,
+                phraseExtracted TEXT NOT NULL,
+                suggestedDesk TEXT NOT NULL,
+                occurrenceCount INTEGER DEFAULT 1,
+                status TEXT DEFAULT 'pending',
+                createdAt TEXT
+              )
+            `, () => {});
+
+            db.run(`
+              CREATE TABLE IF NOT EXISTS rss_global_exclusion_rules (
+                id TEXT PRIMARY KEY,
+                keyword TEXT NOT NULL UNIQUE,
+                penaltyWeight INTEGER DEFAULT 45,
+                targetDesksExcluded TEXT DEFAULT 'Sains & Teknologi,Ekonomi,Pendidikan,Kesihatan',
+                enabled INTEGER DEFAULT 1,
+                createdAt TEXT
+              )
+            `, () => {});
+
+            db.run(`
+              CREATE TABLE IF NOT EXISTS rss_blocked_categories (
+                id TEXT PRIMARY KEY,
+                categoryName TEXT NOT NULL UNIQUE,
+                enabled INTEGER DEFAULT 1,
+                createdAt TEXT
+              )
+            `, () => {});
+
+            db.run(`
+              CREATE TABLE IF NOT EXISTS adjung_typography_rules (
+                id TEXT PRIMARY KEY,
+                term TEXT NOT NULL,
+                style TEXT DEFAULT 'italic',
+                category TEXT DEFAULT 'foreign_term',
+                matchType TEXT DEFAULT 'word',
+                scope TEXT DEFAULT 'all',
+                language TEXT DEFAULT 'ms-MY',
+                caseSensitive INTEGER DEFAULT 0,
+                priority INTEGER DEFAULT 50,
+                status TEXT DEFAULT 'active',
+                enabled INTEGER DEFAULT 1,
+                excludeTerms TEXT,
+                ruleVersion INTEGER DEFAULT 1,
+                createdBy TEXT DEFAULT 'Chief Editor',
+                createdAt TEXT,
+                updatedAt TEXT,
+                UNIQUE(term, language, scope)
+              )
+            `, () => {});
+            
+            db.run(`
+              CREATE TABLE IF NOT EXISTS rss_text_rules (
+                id TEXT PRIMARY KEY,
+                ruleName TEXT NOT NULL,
+                ruleType TEXT NOT NULL,
+                scope TEXT DEFAULT 'brief',
+                sourceId TEXT NULL,
+                pattern TEXT,
+                replacement TEXT,
+                enabled INTEGER DEFAULT 1,
+                locked INTEGER DEFAULT 0,
+                orderIndex INTEGER DEFAULT 10,
+                createdAt TEXT
+              )
+            `, () => {
+              const now = new Date().toISOString();
+              db.run(`INSERT OR IGNORE INTO rss_text_rules (id, ruleName, ruleType, scope, sourceId, pattern, replacement, enabled, locked, orderIndex, createdAt) VALUES 
+                ('rule-sys-1', 'Decode HTML Entities', 'decode_entities', 'all', NULL, '', '', 1, 1, 1, ?),
+                ('rule-sys-2', 'Remove HTML Tags', 'regex', 'all', NULL, '<[^>]*>', ' ', 1, 1, 2, ?),
+                ('rule-sys-3', 'Normalize Whitespace', 'regex', 'all', NULL, '\\s+', ' ', 1, 1, 3, ?),
+                ('rule-sys-4', 'Buang Awalan Lokasi (Dateline)', 'strip_dateline', 'brief', NULL, '', '', 1, 0, 4, ?)
+              `, [now, now, now, now], () => {
+                db.run(`
+                  CREATE TABLE IF NOT EXISTS adjung_desks (
+                    id TEXT PRIMARY KEY,
+                    deskName TEXT NOT NULL UNIQUE,
+                    description TEXT,
+                    displayOrder INTEGER DEFAULT 10,
+                    enabled INTEGER DEFAULT 1,
+                    locked INTEGER DEFAULT 0,
+                    createdAt TEXT
+                  )
+                `, () => {
+                  db.run(`
+                    CREATE TABLE IF NOT EXISTS rss_desk_rules (
+                      id TEXT PRIMARY KEY,
+                      deskId TEXT NOT NULL,
+                      keyword TEXT NOT NULL,
+                      weight INTEGER DEFAULT 15,
+                      isNegative INTEGER DEFAULT 0,
+                      enabled INTEGER DEFAULT 1,
+                      orderIndex INTEGER DEFAULT 10,
+                      createdAt TEXT
+                    )
+                  `, () => {
+                    const seedDesks = [
+                      ['desk-dip-1', 'Diplomasi', 'Hal ehwal diplomasi, ASEAN, PBB, & hubungan antarabangsa', 1],
+                      ['desk-eko-2', 'Ekonomi', 'Kewangan, inflasi, Bank Negara, pasaran, & pelaburan', 2],
+                      ['desk-nas-3', 'Nasional', 'Dasar kerajaan, parlimen, kabinet, & hal ehwal pentadbiran', 3],
+                      ['desk-pol-4', 'Politik', 'Pilihan raya, parti politik, & dinamika kepimpinan', 4],
+                      ['desk-tek-5', 'Sains & Teknologi', 'Kecerdasan buatan (AI), angkasa, inovasi, & digital', 5],
+                      ['desk-kes-6', 'Kesihatan', 'Hospital, KKM, ubat-ubatan, & kesihatan awam', 6],
+                      ['desk-pen-7', 'Pendidikan', 'Universiti, sekolah, KPM, KPT, & pembangunan modal insan', 7],
+                      ['desk-ala-8', 'Alam Sekitar', 'Perubahan iklim, banjir, isu alam sekitar, & kelestarian', 8],
+                      ['desk-bud-9', 'Budaya & Warisan', 'Kesenian, sastera, sejarah, & khazanah warisan', 9],
+                      ['desk-mas-10', 'Masyarakat', 'Komuniti, kebajikan, bantuan, & kerja kemasyarakatan', 10],
+                      ['desk-suk-11', 'Sukan', 'Bola sepak, kejohanan, atlet negara, & sukan dunia', 11],
+                      ['desk-sem-12', 'Semasa', 'Berita am & isu semasa', 12]
+                    ];
+
+                    const seedRules = [
+                      // Diplomasi
+                      ['rule-dip-1', 'desk-dip-1', 'asean', 30, 0, 1],
+                      ['rule-dip-2', 'desk-dip-1', 'pbb', 30, 0, 2],
+                      ['rule-dip-3', 'desk-dip-1', 'bilateral', 25, 0, 3],
+                      ['rule-dip-4', 'desk-dip-1', 'hubungan luar', 25, 0, 4],
+                      ['rule-dip-5', 'desk-dip-1', 'duta', 20, 0, 5],
+                      ['rule-dip-6', 'desk-dip-1', 'lawatan rasmi', 20, 0, 6],
+                      // Ekonomi (Aliasi: BNM, Bursa, KWSP, EPF, LHDN, SST, GST)
+                      ['rule-eko-1', 'desk-eko-2', 'bnm', 45, 0, 1],
+                      ['rule-eko-2', 'desk-eko-2', 'bursa', 40, 0, 2],
+                      ['rule-eko-3', 'desk-eko-2', 'kwsp', 40, 0, 3],
+                      ['rule-eko-4', 'desk-eko-2', 'epf', 40, 0, 4],
+                      ['rule-eko-5', 'desk-eko-2', 'lhdn', 40, 0, 5],
+                      ['rule-eko-6', 'desk-eko-2', 'ringgit', 30, 0, 6],
+                      ['rule-eko-7', 'desk-eko-2', 'inflasi', 30, 0, 7],
+                      ['rule-eko-8', 'desk-eko-2', 'bank negara', 30, 0, 8],
+                      ['rule-eko-9', 'desk-eko-2', 'pelaburan', 25, 0, 9],
+                      ['rule-eko-10', 'desk-eko-2', 'kewangan', 20, 0, 10],
+                      // Nasional (Aliasi: PDRM, ATM, MKN, JPJ, JPN, KDN)
+                      ['rule-nas-1', 'desk-nas-3', 'pdrm', 45, 0, 1],
+                      ['rule-nas-2', 'desk-nas-3', 'atm', 40, 0, 2],
+                      ['rule-nas-3', 'desk-nas-3', 'mkn', 40, 0, 3],
+                      ['rule-nas-4', 'desk-nas-3', 'jpj', 40, 0, 4],
+                      ['rule-nas-5', 'desk-nas-3', 'jpn', 40, 0, 5],
+                      ['rule-nas-6', 'desk-nas-3', 'kdn', 40, 0, 6],
+                      ['rule-nas-7', 'desk-nas-3', 'pasport', 35, 0, 7],
+                      ['rule-nas-8', 'desk-nas-3', 'imigresen', 35, 0, 8],
+                      ['rule-nas-9', 'desk-nas-3', 'mahkamah', 35, 0, 9],
+                      ['rule-nas-10', 'desk-nas-3', 'polis', 30, 0, 10],
+                      ['rule-nas-11', 'desk-nas-3', 'tahan', 25, 0, 11],
+                      ['rule-nas-12', 'desk-nas-3', 'dakwa', 30, 0, 12],
+                      ['rule-nas-13', 'desk-nas-3', 'kerajaan', 20, 0, 13],
+                      // Sains & Teknologi (Positif + Negative Exclusion Rules)
+                      ['rule-tek-1', 'desk-tek-5', 'ai', 35, 0, 1],
+                      ['rule-tek-2', 'desk-tek-5', 'kecerdasan buatan', 35, 0, 2],
+                      ['rule-tek-3', 'desk-tek-5', 'angkasa', 30, 0, 3],
+                      ['rule-tek-4', 'desk-tek-5', 'satelit', 25, 0, 4],
+                      ['rule-tek-5', 'desk-tek-5', 'teknologi', 20, 0, 5],
+                      ['rule-tek-6', 'desk-tek-5', 'pasport', 50, 1, 6],
+                      ['rule-tek-7', 'desk-tek-5', 'polis', 40, 1, 7],
+                      ['rule-tek-8', 'desk-tek-5', 'mahkamah', 40, 1, 8],
+                      ['rule-tek-9', 'desk-tek-5', 'imigresen', 40, 1, 9],
+                      // Sukan
+                      ['rule-suk-1', 'desk-suk-11', 'atlet', 40, 0, 1],
+                      ['rule-suk-2', 'desk-suk-11', 'pingat', 35, 0, 2],
+                      ['rule-suk-3', 'desk-suk-11', 'kejohanan', 30, 0, 3],
+                      ['rule-suk-4', 'desk-suk-11', 'bola sepak', 30, 0, 4],
+                      ['rule-suk-5', 'desk-suk-11', 'badminton', 30, 0, 5],
+                      // Kesihatan (Aliasi: KKM, MOH)
+                      ['rule-kes-1', 'desk-kes-6', 'kkm', 45, 0, 1],
+                      ['rule-kes-2', 'desk-kes-6', 'moh', 40, 0, 2],
+                      ['rule-kes-3', 'desk-kes-6', 'hospital', 40, 0, 3],
+                      ['rule-kes-4', 'desk-kes-6', 'pesakit', 35, 0, 4],
+                      ['rule-kes-5', 'desk-kes-6', 'doktor', 35, 0, 5],
+                      ['rule-kes-6', 'desk-kes-6', 'klinik', 35, 0, 6],
+                      ['rule-kes-7', 'desk-kes-6', 'vaksin', 40, 0, 7],
+                      ['rule-kes-8', 'desk-kes-6', 'penyakit', 35, 0, 8],
+                      ['rule-kes-9', 'desk-kes-6', 'rawatan', 35, 0, 9],
+                      // Pendidikan (Aliasi: KPM, KPT, IPT, IPTA, IPTS, SPM, STPM)
+                      ['rule-pen-1', 'desk-pen-7', 'kpm', 40, 0, 1],
+                      ['rule-pen-2', 'desk-pen-7', 'kpt', 40, 0, 2],
+                      ['rule-pen-3', 'desk-pen-7', 'ipt', 40, 0, 3],
+                      ['rule-pen-4', 'desk-pen-7', 'ipta', 40, 0, 4],
+                      ['rule-pen-5', 'desk-pen-7', 'ipts', 40, 0, 5],
+                      ['rule-pen-6', 'desk-pen-7', 'universiti', 45, 0, 6],
+                      ['rule-pen-7', 'desk-pen-7', 'sekolah', 38, 0, 7],
+                      ['rule-pen-8', 'desk-pen-7', 'pelajar', 30, 0, 8],
+                      ['rule-pen-9', 'desk-pen-7', 'guru', 35, 0, 9],
+                      ['rule-pen-10', 'desk-pen-7', 'spm', 40, 0, 10],
+                      ['rule-pen-11', 'desk-pen-7', 'stpm', 40, 0, 11],
+                      // Alam Sekitar
+                      ['rule-sek-1', 'desk-sek-8', 'banjir', 45, 0, 1],
+                      ['rule-sek-2', 'desk-sek-8', 'pencemaran', 45, 0, 2],
+                      ['rule-sek-3', 'desk-sek-8', 'iklim', 45, 0, 3],
+                      ['rule-sek-4', 'desk-sek-8', 'sungai', 40, 0, 4],
+                      ['rule-sek-5', 'desk-sek-8', 'hutan', 40, 0, 5],
+                      ['rule-sek-6', 'desk-sek-8', 'air', 35, 0, 6],
+                      // Masyarakat (Aliasi: JAKIM, MAIK, JAWHAR, MAIWP)
+                      ['rule-mas-1', 'desk-mas-10', 'jakim', 40, 0, 1],
+                      ['rule-mas-2', 'desk-mas-10', 'maik', 40, 0, 2],
+                      ['rule-mas-3', 'desk-mas-10', 'jawhar', 40, 0, 3],
+                      ['rule-mas-4', 'desk-mas-10', 'maiwp', 40, 0, 4],
+                      ['rule-mas-5', 'desk-mas-10', 'bantuan', 40, 0, 5],
+                      ['rule-mas-6', 'desk-mas-10', 'kebajikan', 40, 0, 6],
+                      ['rule-mas-7', 'desk-mas-10', 'penduduk', 35, 0, 7],
+                      ['rule-mas-8', 'desk-mas-10', 'komuniti', 35, 0, 8],
+                      ['rule-mas-9', 'desk-mas-10', 'rakyat', 20, 0, 9]
+                    ];
+
+                    const seedGlobalExclusions = [
+                      ['gex-1', 'mahkamah', 50, 'Sains & Teknologi,Ekonomi,Pendidikan,Kesihatan,Alam Sekitar'],
+                      ['gex-2', 'polis', 45, 'Sains & Teknologi,Ekonomi,Pendidikan,Kesihatan,Alam Sekitar'],
+                      ['gex-3', 'dakwa', 45, 'Sains & Teknologi,Ekonomi,Pendidikan,Kesihatan,Alam Sekitar'],
+                      ['gex-4', 'tahanan', 45, 'Sains & Teknologi,Ekonomi,Pendidikan,Kesihatan,Alam Sekitar'],
+                      ['gex-5', 'siasatan', 40, 'Sains & Teknologi,Ekonomi,Pendidikan,Kesihatan,Alam Sekitar']
+                    ];
+
+                    seedGlobalExclusions.forEach(([id, kw, pen, target]) => {
+                      db.run(`INSERT OR IGNORE INTO rss_global_exclusion_rules (id, keyword, penaltyWeight, targetDesksExcluded, enabled, createdAt) VALUES (?, ?, ?, ?, 1, ?)`, [id, kw, pen, target, now]);
+                    });
+
+                    const seedBlockedCategories = [
+                      ['blk-1', 'Hiburan'],
+                      ['blk-2', 'Gaya'],
+                      ['blk-3', 'Sensasi'],
+                      ['blk-4', 'Hiburan & Selebriti'],
+                      ['blk-5', 'Gossip']
+                    ];
+
+                    seedBlockedCategories.forEach(([id, catName]) => {
+                      db.run(`INSERT OR IGNORE INTO rss_blocked_categories (id, categoryName, enabled, createdAt) VALUES (?, ?, 1, ?)`, [id, catName, now]);
+                    });
+
+                    const seedTypographyRules = [
+                      ['typo-1', 'scammer', 'italic', 'foreign_term', 'word', 'all', 'ms-MY', 0, 50, 'active', 1, null],
+                      ['typo-2', 'phishing', 'italic', 'foreign_term', 'word', 'all', 'ms-MY', 0, 50, 'active', 1, null],
+                      ['typo-3', 'deepfake', 'italic', 'foreign_term', 'word', 'all', 'ms-MY', 0, 50, 'active', 1, null],
+                      ['typo-4', 'cyberbullying', 'italic', 'foreign_term', 'word', 'all', 'ms-MY', 0, 50, 'active', 1, null],
+                      ['typo-5', 'startup', 'italic', 'foreign_term', 'word', 'all', 'ms-MY', 0, 50, 'pending', 0, JSON.stringify(["Startup Malaysia"])],
+                      ['typo-6', 'freelancer', 'italic', 'foreign_term', 'word', 'all', 'ms-MY', 0, 50, 'pending', 0, null]
+                    ];
+
+                    seedTypographyRules.forEach(([id, term, style, category, matchType, scope, lang, cs, prio, status, en, excl]) => {
+                      db.run(`
+                        INSERT OR IGNORE INTO adjung_typography_rules (
+                          id, term, style, category, matchType, scope, language, caseSensitive, priority, status, enabled, excludeTerms, ruleVersion, createdBy, createdAt, updatedAt
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'Chief Editor', ?, ?)
+                      `, [id, term, style, category, matchType, scope, lang, cs, prio, status, en, excl, now, now]);
+                    });
+
+                    seedDesks.forEach(([id, name, desc, order]) => {
+                      db.run(`INSERT OR IGNORE INTO adjung_desks (id, deskName, description, displayOrder, enabled, locked, createdAt) VALUES (?, ?, ?, ?, 1, 0, ?)`, [id, name, desc, order, now]);
+                    });
+
+                    seedRules.forEach(([id, deskId, kw, weight, neg, order]) => {
+                      db.run(`INSERT OR IGNORE INTO rss_desk_rules (id, deskId, keyword, weight, isNegative, enabled, orderIndex, createdAt) VALUES (?, ?, ?, ?, ?, 1, ?, ?)`, [id, deskId, kw, weight, neg, order, now]);
+                    });
+
+                    initEditorialOS(db).then(resolve).catch(reject);
+                  });
+                });
+              });
+            });
+          }
+        });
       });
     });
   });
@@ -184,6 +472,22 @@ const seedDatabase = async () => {
                   stmtPubs.run(p.id, p.name, p.domain, p.official, p.authority, p.glyph, p.desk);
                 }
                 stmtPubs.finalize((errPubs) => errPubs ? rejPubs(errPubs) : resPubs());
+              });
+            });
+
+            // Seed RSS Direct Sources
+            await new Promise((resRss, rejRss) => {
+              db.serialize(() => {
+                const stmtRss = db.prepare(`
+                  INSERT OR IGNORE INTO rss_sources_registry (id, sourceName, rssUrl, language, trustScore, edition, categoryMapping, enabled, createdAt)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+                `);
+                const nowStr = new Date().toISOString();
+                stmtRss.run('rss-kosmo', 'Kosmo Digital', 'https://www.kosmo.com.my/feed/', 'ms-MY', 90, 'Malaysia', 'BERITA UTAMA', nowStr);
+                stmtRss.run('rss-utusan', 'Utusan Malaysia', 'https://www.utusan.com.my/feed/', 'ms-MY', 95, 'Malaysia', 'BERITA UTAMA', nowStr);
+                stmtRss.run('rss-metro', 'Harian Metro', 'https://www.hmetro.com.my/mutakhir.xml', 'ms-MY', 90, 'Malaysia', 'MUTAKHIR', nowStr);
+                stmtRss.run('rss-bernama', 'Bernama', 'https://www.bernama.com/bm/rss/news.php', 'ms-MY', 95, 'Malaysia', 'TERKINI', nowStr);
+                stmtRss.finalize((errRss) => errRss ? rejRss(errRss) : resRss());
               });
             });
 
@@ -377,18 +681,18 @@ app.get('/api/db-state', async (req, res) => {
       id: settingsRow.id,
       frontpageTitle: settingsRow.frontpageTitle,
       frontpageSubtitle: settingsRow.frontpageSubtitle,
-      rolePermissions: JSON.parse(settingsRow.rolePermissions || '{}'),
+      rolePermissions: safeJsonParse(settingsRow.rolePermissions, {}),
       inTheNewsText: settingsRow.inTheNewsText || '',
       inTheNewsGoogleDocUrl: settingsRow.inTheNewsGoogleDocUrl || '',
       featuredScholarId: settingsRow.featuredScholarId || '',
       featuredEntryId: settingsRow.featuredEntryId || '',
-      editorialSelectionIds: JSON.parse(settingsRow.editorialSelectionIds || '[]'),
+      editorialSelectionIds: safeJsonParse(settingsRow.editorialSelectionIds, []),
       announcementBanner: settingsRow.announcementBanner || '',
       enableArabicAccent: settingsRow.enableArabicAccent === 1,
       layoutDensity: settingsRow.layoutDensity || 'Standard',
-      allowedSignatureFonts: JSON.parse(settingsRow.allowedSignatureFonts || '[]'),
-      featuredEssayIds: JSON.parse(settingsRow.featuredEssayIds || '[]'),
-      featuredNoteIds: JSON.parse(settingsRow.featuredNoteIds || '[]'),
+      allowedSignatureFonts: safeJsonParse(settingsRow.allowedSignatureFonts, []),
+      featuredEssayIds: safeJsonParse(settingsRow.featuredEssayIds, []),
+      featuredNoteIds: safeJsonParse(settingsRow.featuredNoteIds, []),
       worldClockHolidaysText: settingsRow.worldClockHolidaysText || '',
       worldClockHolidaysGoogleDocUrl: settingsRow.worldClockHolidaysGoogleDocUrl || '',
       researchFindingsText: settingsRow.researchFindingsText || '',
@@ -1195,6 +1499,42 @@ const initEditorialOS = (dbConn) => {
         )
       `);
 
+      // RSS Direct Sources Registry Table
+      dbConn.run(`
+        CREATE TABLE IF NOT EXISTS rss_sources_registry (
+          id TEXT PRIMARY KEY,
+          sourceName TEXT NOT NULL,
+          rssUrl TEXT NOT NULL,
+          language TEXT DEFAULT 'ms-MY',
+          trustScore INTEGER DEFAULT 80,
+          edition TEXT DEFAULT 'Malaysia',
+          categoryMapping TEXT,
+          allowedForTicker INTEGER DEFAULT 1,
+          allowedForBrief INTEGER DEFAULT 1,
+          enabled INTEGER DEFAULT 1,
+          createdAt TEXT
+        )
+      `);
+
+      // RSS Ticker Parsed Items & Review Queue Table
+      dbConn.run(`
+        CREATE TABLE IF NOT EXISTS rss_ticker_items (
+          id TEXT PRIMARY KEY,
+          rssGuid TEXT UNIQUE,
+          title TEXT NOT NULL,
+          formattedBrief TEXT,
+          source TEXT NOT NULL,
+          originalUrl TEXT NOT NULL,
+          category TEXT,
+          publishedAt TEXT,
+          score INTEGER DEFAULT 0,
+          scoreBreakdown TEXT,
+          decision TEXT,
+          status TEXT DEFAULT 'pending',
+          createdAt TEXT
+        )
+      `);
+
       // 1. ai_providers
       dbConn.run(`
         CREATE TABLE IF NOT EXISTS ai_providers (
@@ -1229,6 +1569,7 @@ const initEditorialOS = (dbConn) => {
           type TEXT NOT NULL,
           categoryId TEXT,
           priority TEXT,
+          slotIndex INTEGER,
           createdAt TEXT,
           updatedAt TEXT
         )
@@ -1289,9 +1630,12 @@ const initEditorialOS = (dbConn) => {
         )
       `);
       
-      // Indexes for EAV
+      // Indexes for EAV & High-Speed Content Lookup
       dbConn.run("CREATE INDEX IF NOT EXISTS idx_eav_object ON editorial_attribute_values(objectId, revisionId)");
       dbConn.run("CREATE INDEX IF NOT EXISTS idx_eav_attribute ON editorial_attribute_values(attributeId)");
+      dbConn.run("CREATE INDEX IF NOT EXISTS idx_editorial_objects_category ON editorial_objects(categoryId, createdAt)");
+      dbConn.run("CREATE INDEX IF NOT EXISTS idx_editorial_revisions_lookup ON editorial_revisions(objectId, status, version)");
+      dbConn.run("CREATE INDEX IF NOT EXISTS idx_rss_ticker_category ON rss_ticker_items(category, publishedAt)");
 
       // 9. layout_templates
       dbConn.run(`
@@ -1454,6 +1798,9 @@ const initEditorialOS = (dbConn) => {
                                               dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptLanguage TEXT DEFAULT ''", () => {
                                               dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptRegion TEXT DEFAULT ''", () => {
                                               dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptSource TEXT DEFAULT ''", () => {
+                                                dbConn.run("ALTER TABLE slots_config ADD COLUMN sourceType TEXT DEFAULT 'web'", () => {});
+                                                dbConn.run("ALTER TABLE editorial_objects ADD COLUMN sourceType TEXT DEFAULT 'web'", () => {});
+                                                dbConn.run("CREATE INDEX IF NOT EXISTS idx_editorial_objects_source_type ON editorial_objects(sourceType)", () => {});
                                                 dbConn.run(`
                                                   CREATE TABLE IF NOT EXISTS static_pages (
                                                     key TEXT PRIMARY KEY,
@@ -1626,15 +1973,12 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     }];
   }
 
-  // Some pasted AI content omits the "____" separator between items entirely. Falling back to
-  // splitting on each new "Tajuk:"/"Event:" line boundary prevents multiple items from silently
-  // collapsing into a single item (last-value-wins in the line-scan loop below).
-  const blocks = /____+/.test(summaryText)
-    ? summaryText.split(/____+/)
-    : summaryText.split(/\n(?=\s*(?:Tajuk|Event):)/);
+  // Robust multi-boundary block splitting: splits on ____, ---, ===, full underscore lines, or new UUID/Tajuk/Event lines
+  const blocks = summaryText.split(/(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i);
   const items = [];
   for (const block of blocks) {
     const lines = block.split('\n');
+    let uuid = '';
     let title = '';
     let brief = '';
     let briefLong = '';
@@ -1642,13 +1986,14 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let date = '';
     let source = '';
     let url = '';
-    let isEventBlock = false; // "Event:" blocks (bar/acara slots) have no separate Sumber: line --
-    // the date IS the source-position text there. Regular Tajuk: blocks must NEVER fall back to
-    // this, or a missing "Sumber:" line silently shows the date where the source name belongs.
+    let sourceType = '';
+    let isEventBlock = false;
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (trimmed.startsWith('Tajuk:')) {
+      if (trimmed.startsWith('UUID:')) {
+        uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Tajuk:')) {
         title = trimmed.replace(/^Tajuk:\s*/i, '').trim();
       } else if (trimmed.startsWith('Event:')) {
         title = trimmed.replace(/^Event:\s*/i, '').trim();
@@ -1662,6 +2007,8 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         brief = trimmed.replace(/^Huraian:\s*/i, '').trim();
       } else if (trimmed.startsWith('Kategori:')) {
         desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Jenis sumber:')) {
+        sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
       } else if (trimmed.startsWith('Tarikh:')) {
         date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
       } else if (trimmed.startsWith('Sumber:')) {
@@ -1669,6 +2016,21 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       } else if (trimmed.startsWith('URL:')) {
         url = trimmed.replace(/^URL:\s*/i, '').trim();
       }
+    }
+
+    // Resolve sourceType from text or fallback to auto-detection
+    let finalSourceType = 'web';
+    const stLower = sourceType.toLowerCase();
+    if (stLower.includes('bercetak') || stLower.includes('buku') || stLower.includes('print')) {
+      finalSourceType = 'print';
+    } else if (stLower.includes('audio') || stLower.includes('podcast')) {
+      finalSourceType = 'audio';
+    } else if (stLower.includes('video') || stLower.includes('tonton')) {
+      finalSourceType = 'video';
+    } else if (stLower.includes('web') || stLower.includes('laman')) {
+      finalSourceType = 'web';
+    } else {
+      finalSourceType = detectSourceType(url, `${title} ${brief}`);
     }
 
     // "Tarikh:" precedes "Event:" in the actual bar/acara template, so isEventBlock is only known
@@ -1688,12 +2050,9 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         summary: brief,
         briefLong,
         desk: desk || defaultSlot.manualDesk || 'general',
+        sourceType: finalSourceType,
         source: source || defaultSlot.manualSource || '19 Jul 2026',
         url: url || defaultSlot.manualUrl || '#',
-        // originalDate: the raw "Tarikh:" text as typed/extracted (e.g. "1980", "20 Julai 2026",
-        // or empty) -- displayed verbatim next to source on the card, never reformatted as a Date.
-        // Tiada fallback ke tarikh hari ini di sini secara sengaja -- jika AI/admin tidak
-        // menyatakan tarikh sebenar, kad terus kosongkan baris tarikh, bukan paparkan tarikh palsu.
         originalDate: date || '',
         publishedAt: date || ''
       });
@@ -1750,12 +2109,7 @@ const serializeTickerText = (items) => {
 };
 
 // Keeps editorial_objects/editorial_revisions/editorial_attribute_values in sync with a Manual-mode
-// slot's manualSummary text blob. resolveSlotContent now prefers real EAV rows over the blob for
-// Manual slots (so per-item editing/deletion works the same way as AI Generated content) — without
-// this sync running on every save, editing the "Kandungan Manual" textarea would silently stop
-// having any visible effect once a slot has been migrated, since the stale DB rows would keep
-// winning over the freshly-typed blob. Safe to call with an empty/unparseable blob: it just clears
-// any existing rows for that slot.
+// and slots_config.manualSummary.
 const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) => {
   const items = parseManualSummaryTemplate(manualSummary || '', slotConfig);
 
@@ -1786,7 +2140,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
   const baseTs = Date.now();
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    const objectId = `object-manual-slot${slotIndex}-${baseTs}-${i}`;
+    const objectId = item.uuid || `object-manual-slot${slotIndex}-${baseTs}-${i}`;
     const createdAt = new Date(baseTs + i).toISOString();
     const finalCategory = (item.desk || 'UMUM').trim().toUpperCase();
     try {
@@ -1796,9 +2150,9 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
     }
 
     await dbRun(
-      `INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
-       VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?)`,
-      [objectId, finalCategory, slotIndex, createdAt, createdAt]
+      `INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, sourceType, createdAt, updatedAt)
+       VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?, ?)`,
+      [objectId, finalCategory, slotIndex, item.sourceType || 'web', createdAt, createdAt]
     );
     const rev = await dbRun(
       `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
@@ -1811,6 +2165,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
       { key: 'desk', val: finalCategory },
       { key: 'url', val: item.url || '#' },
       { key: 'source', val: item.source || '' },
+      { key: 'sourceType', val: item.sourceType || 'web' },
       { key: 'briefLong', val: item.briefLong || '' },
       { key: 'originalDate', val: item.originalDate || '' },
     ];
@@ -2007,15 +2362,17 @@ app.get('/api/system/layout/active', async (req, res) => {
     for (const slot of slots) {
       const resolved = await resolveSlotContent(slot, lang);
       if (resolved) {
-        // Map category colors to items
+        // Map category colors & public category fallback to items
         if (resolved.items && Array.isArray(resolved.items)) {
           for (const item of resolved.items) {
+            if (item.desk === 'BELUM DIKELASKAN') item.desk = 'SEMASA';
             const catSlug = CategoryRegistry.getSlug(item.desk || 'UMUM');
             const matched = categories.find(c => c.slug === catSlug);
             item.categoryColor = matched ? matched.color : '#802334';
           }
         }
         // Also map for the main resolved object properties
+        if (resolved.desk === 'BELUM DIKELASKAN') resolved.desk = 'SEMASA';
         const catSlug = CategoryRegistry.getSlug(resolved.desk || 'UMUM');
         const matched = categories.find(c => c.slug === catSlug);
         resolved.categoryColor = matched ? matched.color : '#802334';
@@ -2162,16 +2519,18 @@ app.post('/api/system/slots', async (req, res) => {
       if (typeof slot.maxTitle === 'number' && slot.maxTitle > ceiling.maxTitle) slot.maxTitle = ceiling.maxTitle;
       if (typeof slot.maxBrief === 'number' && slot.maxBrief > ceiling.maxBrief) slot.maxBrief = ceiling.maxBrief;
       if (typeof slot.maxBriefLong === 'number' && slot.maxBriefLong > ceiling.maxBriefLong) slot.maxBriefLong = ceiling.maxBriefLong;
+      const resolvedSourceType = slot.sourceType || detectSourceType(slot.manualUrl, `${slot.manualTitle || ''} ${slot.manualSummary || ''}`);
+
       await dbRun(`
         INSERT OR REPLACE INTO slots_config (
           layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
           manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, maxBriefLong, refreshHour, refreshDay, eventExpiryFilter,
-          aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource
-        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType
+        ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
         slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
-        slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || ''
+        slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType
       ]);
 
       if (slot.manualDesk && slot.manualDesk.trim() !== '') {
@@ -2863,85 +3222,12 @@ app.post('/api/system/ai/pricing', async (req, res) => {
   }
 });
 
-// 12. GET /api/ai/logs
-app.get('/api/ai/logs', async (req, res) => {
-  try {
-    const logs = await dbAll("SELECT * FROM pipeline_logs ORDER BY createdAt DESC LIMIT 100");
-    res.json(logs);
-  } catch (err) {
-    console.error('Fetch pipeline logs error:', err);
-    res.status(500).json({ error: 'Failed to fetch pipeline logs.' });
-  }
-});
-
-// 13. GET /api/system/categories
-app.get('/api/system/categories', async (req, res) => {
-  try {
-    const categories = await CategoryRegistry.getAllCategories(db);
-    res.json(categories);
-  } catch (err) {
-    console.error('Fetch categories error:', err);
-    res.status(500).json({ error: 'Failed to fetch categories.' });
-  }
-});
-
-// 14. POST /api/system/categories/register
-app.post('/api/system/categories/register', async (req, res) => {
-  try {
-    const { name } = req.body;
-    if (!name) return res.status(400).json({ error: 'Missing name parameter.' });
-    const reg = await CategoryRegistry.registerCategory(db, name);
-    res.json({ success: true, category: reg });
-  } catch (err) {
-    console.error('Register category error:', err);
-    res.status(500).json({ error: 'Failed to register category.' });
-  }
-});
-
-// 15. POST /api/system/categories/rename
-app.post('/api/system/categories/rename', async (req, res) => {
-  try {
-    const { oldName, newName } = req.body;
-    if (!oldName || !newName) return res.status(400).json({ error: 'Missing oldName or newName parameter.' });
-    await CategoryRegistry.renameCategory(db, oldName, newName);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Rename category error:', err);
-    res.status(500).json({ error: 'Failed to rename category.' });
-  }
-});
-
-// 16. POST /api/system/categories/merge
-app.post('/api/system/categories/merge', async (req, res) => {
-  try {
-    const { sourceCategory, targetCategory } = req.body;
-    if (!sourceCategory || !targetCategory) return res.status(400).json({ error: 'Missing sourceCategory or targetCategory parameter.' });
-    await CategoryRegistry.mergeCategories(db, sourceCategory, targetCategory);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Merge categories error:', err);
-    res.status(500).json({ error: 'Failed to merge categories.' });
-  }
-});
-
-// 17. GET /api/ai/logs/:slotIndex
-app.get('/api/ai/logs/:slotIndex', async (req, res) => {
-  try {
-    const slotIdx = parseInt(req.params.slotIndex, 10);
-    const logs = await dbAll(`
-      SELECT l.*, p.slotIndex
-      FROM ai_usage_logs l
-      JOIN pipeline_logs p ON l.runId = p.runId
-      WHERE p.slotIndex = ?
-      ORDER BY l.createdAt DESC
-      LIMIT 5
-    `, [slotIdx]);
-    res.json(logs);
-  } catch (err) {
-    console.error('Fetch slot AI logs error:', err);
-    res.status(500).json({ error: 'Failed to fetch AI logs for slot.' });
-  }
-});
+// Mount Modular Router Endpoints
+app.use('/api/ai', createAIRoutes(dbAll, dbRun));
+app.use('/api/system', createCategoryRoutes(db));
+app.use('/api', createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb));
+app.use('/api/system', createContentRoutes(dbAll, dbRun, dbGet));
+app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet, getGeometryCeilingForSlot, syncManualObjectsForSlot, runEditorialPipeline));
 
 // Start Express Server
 const PORT = 5000;
@@ -2953,10 +3239,22 @@ app.listen(PORT, '0.0.0.0', () => {
   // di Mini Editorium. Semak setiap 5 minit — cukup halus utk jam yang ditetapkan (cth 07:00) tanpa
   // membebankan pangkalan data. Server MESTI kekal berjalan (dev server / PM2 / dsb) utk ini berfungsi.
   const SCHEDULER_INTERVAL_MS = 5 * 60 * 1000;
+  let lastRssAutoFetchTime = 0;
+  const RSS_AUTO_FETCH_INTERVAL_MS = 3 * 60 * 60 * 1000; // Auto-refresh RSS every 3 hours (8x a day / 4 target windows)
+
   setInterval(() => {
     runAllScheduledSlots(false).catch((err) => {
       console.error('Internal scheduler run failed:', err);
     });
+
+    const now = Date.now();
+    if (now - lastRssAutoFetchTime >= RSS_AUTO_FETCH_INTERVAL_MS) {
+      lastRssAutoFetchTime = now;
+      console.log('[RSS Auto Scheduler] Triggering automated RSS Direct absorption...');
+      executeDirectRssFetch(dbAll, dbGet, dbRun)
+        .then((res) => console.log(`[RSS Auto Scheduler] Absorbed ${res.autoLiveCount} Auto-Live RSS items.`))
+        .catch((err) => console.error('[RSS Auto Scheduler] Error:', err.message));
+    }
   }, SCHEDULER_INTERVAL_MS);
-  console.log(`Internal AI pipeline scheduler active (checks every ${SCHEDULER_INTERVAL_MS / 60000} min).`);
+  console.log(`Internal AI pipeline & RSS Direct scheduler active (checks every ${SCHEDULER_INTERVAL_MS / 60000} min).`);
 });

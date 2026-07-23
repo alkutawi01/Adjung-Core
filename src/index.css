@@ -36,6 +36,11 @@ html, body {
   scrollbar-width: thin;
 }
 
+/* Ensure all buttons use Inter font */
+button, input[type="button"], input[type="submit"], input[type="reset"] {
+  font-family: 'Inter', "Libre Franklin", system-ui, sans-serif !important;
+}
+
 /* Custom scrollbars matching the cream theme with maroon accent */
 ::-webkit-scrollbar {
   width: 6px;

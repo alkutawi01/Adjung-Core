@@ -339,8 +339,34 @@ ${slot.sourcesList.trim()}
 `;
     }
 
-    // 6. Call AI Provider
-    const aiResult = await aiInstance.generate(userPrompt, staticSystemPrompt, searchTools);
+    // 6. Call AI Provider (with Fallback Failover)
+    let aiResult;
+    try {
+      aiResult = await aiInstance.generate(userPrompt, staticSystemPrompt, searchTools);
+    } catch (primaryErr) {
+      console.warn(`[AI Failover] Primary provider (${provider.name}) failed for Slot ${slotIndex}: ${primaryErr.message}. Attempting failover...`);
+
+      let fallbackInstance = null;
+      const claudeKey = process.env.CLAUDE_API_KEY || '';
+      const geminiKey = process.env.GEMINI_API_KEY || '';
+
+      if (!provider.id.includes('claude') && claudeKey) {
+        fallbackInstance = new ClaudeProvider(claudeKey, 'claude-3-5-sonnet-latest');
+      } else if (!provider.id.includes('gemini') && geminiKey) {
+        fallbackInstance = new GeminiProvider(geminiKey, 'gemini-3.5-flash');
+      }
+
+      if (fallbackInstance) {
+        try {
+          console.log(`[AI Failover] Executing fallback AI provider for Slot ${slotIndex}...`);
+          aiResult = await fallbackInstance.generate(userPrompt, staticSystemPrompt, searchTools);
+        } catch (fallbackErr) {
+          throw new Error(`Primary provider (${provider.name}: ${primaryErr.message}) and fallback provider (${fallbackErr.message}) both failed.`);
+        }
+      } else {
+        throw primaryErr;
+      }
+    }
     const { parsedJson, promptTokens, completionTokens, groundingUrls = [] } = aiResult;
 
     // 7. Validate output

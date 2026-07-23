@@ -248,6 +248,8 @@ export interface SystemSettings {
   inTheNewsGoogleDocUrl?: string;
   worldClockHolidaysText?: string;
   worldClockHolidaysGoogleDocUrl?: string;
+  worldClockIntervalSec?: number;
+  worldClockBgClickEnabled?: boolean;
   researchFindingsText?: string;
   researchFindingsGoogleDocUrl?: string;
 }

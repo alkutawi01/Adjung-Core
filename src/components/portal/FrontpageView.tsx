@@ -4,7 +4,13 @@ import { User, Entry, SystemSettings } from '../../types';
 import { BRAND } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays } from '../../utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Settings } from 'lucide-react';
+import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Settings, Sun, CloudSun, CloudRain, CloudLightning, CloudFog, Cloud } from 'lucide-react';
+import { ToastContainer, ToastMessage } from '../common/Toast';
+import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
+import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRenderer';
+import { TypographyPreview } from '../editorial/TypographyPreview';
+import { WorldClockStrip } from './WorldClockStrip';
+import { TickerManagementModal } from './TickerManagementModal';
 
 // parseInlineFormatting is designed for hand-authored Note/Essay body text; applying it broadly to
 // every carousel item's title/brief (including years of accumulated AI-generated history per slot)
@@ -22,10 +28,66 @@ const safeParseInline = (text: string): React.ReactNode => {
 
 interface ClockTime {
   timeStr: string;
+  status: 'Holiday' | 'Weekend' | 'SchoolHoliday' | 'Working';
   isHoliday: boolean;
   holidayName: string;
   isWeekend: boolean;
 }
+
+const CITY_SETS = [
+  // Set 1 (Default)
+  [
+    { name: 'Kangar', tz: 'Asia/Kuala_Lumpur', stateCode: 'PLS', lat: 6.4414, lon: 100.1986 },
+    { name: 'Kuala Lumpur', tz: 'Asia/Kuala_Lumpur', stateCode: 'KUL', lat: 3.1390, lon: 101.6869 },
+    { name: 'Kota Bharu', tz: 'Asia/Kuala_Lumpur', stateCode: 'KTN', lat: 6.1254, lon: 102.2381 },
+    { name: 'Johor Bahru', tz: 'Asia/Kuala_Lumpur', stateCode: 'JHR', lat: 1.4927, lon: 103.7414 },
+    { name: 'Kota Kinabalu', tz: 'Asia/Kuala_Lumpur', stateCode: 'SBH', lat: 5.9804, lon: 116.0735 }
+  ],
+  // Set 2
+  [
+    { name: 'Alor Setar', tz: 'Asia/Kuala_Lumpur', stateCode: 'KDH', lat: 6.1248, lon: 100.3678 },
+    { name: 'Shah Alam', tz: 'Asia/Kuala_Lumpur', stateCode: 'SGR', lat: 3.0738, lon: 101.5183 },
+    { name: 'Seremban', tz: 'Asia/Kuala_Lumpur', stateCode: 'NSN', lat: 2.7258, lon: 101.9424 },
+    { name: 'Kuantan', tz: 'Asia/Kuala_Lumpur', stateCode: 'PHG', lat: 3.8077, lon: 103.3260 },
+    { name: 'Labuan', tz: 'Asia/Kuala_Lumpur', stateCode: 'LBN', lat: 5.2831, lon: 115.2308 }
+  ],
+  // Set 3
+  [
+    { name: 'George Town', tz: 'Asia/Kuala_Lumpur', stateCode: 'PNG', lat: 5.4164, lon: 100.3327 },
+    { name: 'Ipoh', tz: 'Asia/Kuala_Lumpur', stateCode: 'PRK', lat: 4.5975, lon: 101.0901 },
+    { name: 'Bandaraya Melaka', tz: 'Asia/Kuala_Lumpur', stateCode: 'MLK', lat: 2.1896, lon: 102.2501 },
+    { name: 'Kuala Terengganu', tz: 'Asia/Kuala_Lumpur', stateCode: 'TRG', lat: 5.3302, lon: 103.1408 },
+    { name: 'Kuching', tz: 'Asia/Kuala_Lumpur', stateCode: 'SWK', lat: 1.5533, lon: 110.3592 }
+  ]
+];
+
+const DEFAULT_CITY_WEATHER: Record<string, { temp: number; code: number; label: string }> = {
+  'Kangar': { temp: 31, code: 1, label: 'Berawan' },
+  'Kuala Lumpur': { temp: 32, code: 2, label: 'Berawan' },
+  'Kota Bharu': { temp: 30, code: 61, label: 'Hujan' },
+  'Johor Bahru': { temp: 31, code: 2, label: 'Berawan' },
+  'Kota Kinabalu': { temp: 31, code: 0, label: 'Cerah' },
+  'Alor Setar': { temp: 32, code: 1, label: 'Berawan' },
+  'Shah Alam': { temp: 33, code: 2, label: 'Berawan' },
+  'Seremban': { temp: 31, code: 1, label: 'Berawan' },
+  'Kuantan': { temp: 30, code: 61, label: 'Hujan' },
+  'Labuan': { temp: 30, code: 0, label: 'Cerah' },
+  'George Town': { temp: 31, code: 1, label: 'Berawan' },
+  'Ipoh': { temp: 32, code: 2, label: 'Berawan' },
+  'Bandaraya Melaka': { temp: 31, code: 1, label: 'Berawan' },
+  'Kuala Terengganu': { temp: 29, code: 61, label: 'Hujan' },
+  'Kuching': { temp: 29, code: 2, label: 'Berawan' }
+};
+
+const getWeatherDetails = (code: number) => {
+  if (code === 0) return { icon: Sun, label: 'Cerah' };
+  if (code === 1 || code === 2) return { icon: CloudSun, label: 'Berawan' };
+  if (code === 3) return { icon: Cloud, label: 'Redup' };
+  if (code === 45 || code === 48) return { icon: CloudFog, label: 'Kabut' };
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return { icon: CloudRain, label: 'Hujan' };
+  if ([95, 96, 99].includes(code)) return { icon: CloudLightning, label: 'Ribut Petir' };
+  return { icon: CloudSun, label: 'Berawan' };
+};
 
 const HOLIDAYS_2026: Record<string, Record<string, string>> = {
   'New York': {
@@ -76,11 +138,87 @@ const HOLIDAYS_2026: Record<string, Record<string, string>> = {
     '05/31': "Wesak Day",
     '06/01': "Yang di-Pertuan Agong's Birthday",
     '07/16': "Awal Muharram",
-    '08/31': "National Day (Merdeka)",
-    '09/16': "Malaysia Day",
+    '08/31': "Hari Kebangsaan (Merdeka)",
+    '09/16': "Hari Malaysia",
     '09/25': "Maulidur Rasul",
-    '11/08': "Deepavali",
-    '12/25': "Christmas Day"
+    '11/08': "Hari Deepavali",
+    '12/25': "Hari Krismas"
+  },
+  'Kuching': {
+    '01/01': "Tahun Baharu",
+    '01/29': "Tahun Baharu Cina",
+    '01/30': "Tahun Baharu Cina (Hari Kedua)",
+    '03/20': "Hari Raya Aidilfitri",
+    '03/21': "Hari Raya Aidilfitri (Hari Kedua)",
+    '05/01': "Hari Pekerja",
+    '05/27': "Hari Raya Aidiladha",
+    '05/31': "Hari Wesak",
+    '06/01': "Hari Gawai Dayak",
+    '06/02': "Hari Gawai Dayak (Hari Kedua)",
+    '06/06': "Hari Lahir YdP Agong",
+    '07/16': "Awal Muharram",
+    '07/22': "Hari Sarawak",
+    '08/31': "Hari Kebangsaan",
+    '09/16': "Hari Malaysia",
+    '09/25': "Maulidur Rasul",
+    '10/10': "Hari Lahir TYT Yang di-Pertua Negeri Sarawak",
+    '12/25': "Hari Krismas"
+  },
+  'Kota Kinabalu': {
+    '01/01': "Tahun Baharu",
+    '01/29': "Tahun Baharu Cina",
+    '01/30': "Tahun Baharu Cina (Hari Kedua)",
+    '04/03': "Good Friday",
+    '03/20': "Hari Raya Aidilfitri",
+    '03/21': "Hari Raya Aidilfitri (Hari Kedua)",
+    '05/01': "Hari Pekerja",
+    '05/27': "Hari Raya Aidiladha",
+    '05/30': "Pesta Kaamatan",
+    '05/31': "Pesta Kaamatan (Hari Kedua)",
+    '06/01': "Hari Lahir YdP Agong",
+    '07/16': "Awal Muharram",
+    '08/31': "Hari Kebangsaan / Hari Sabah",
+    '09/16': "Hari Malaysia",
+    '09/25': "Maulidur Rasul",
+    '10/03': "Hari Lahir TYT Yang di-Pertua Negeri Sabah",
+    '11/08': "Hari Deepavali",
+    '12/25': "Hari Krismas"
+  },
+  'Kota Bharu': {
+    '01/29': "Tahun Baharu Cina",
+    '03/20': "Hari Raya Aidilfitri",
+    '03/21': "Hari Raya Aidilfitri (Hari Kedua)",
+    '05/01': "Hari Pekerja",
+    '05/27': "Hari Raya Aidiladha",
+    '05/28': "Hari Raya Aidiladha (Hari Kedua)",
+    '05/31': "Hari Wesak",
+    '06/01': "Hari Lahir YdP Agong",
+    '07/16': "Awal Muharram",
+    '08/31': "Hari Kebangsaan",
+    '09/16': "Hari Malaysia",
+    '09/25': "Maulidur Rasul",
+    '09/29': "Hari Keputeraan Sultan Kelantan",
+    '09/30': "Hari Keputeraan Sultan Kelantan (Hari Kedua)",
+    '11/08': "Hari Deepavali",
+    '12/25': "Hari Krismas"
+  },
+  'Kangar': {
+    '01/01': "Tahun Baharu",
+    '01/29': "Tahun Baharu Cina",
+    '01/30': "Tahun Baharu Cina (Hari Kedua)",
+    '03/20': "Hari Raya Aidilfitri",
+    '03/21': "Hari Raya Aidilfitri (Hari Kedua)",
+    '05/01': "Hari Pekerja",
+    '05/17': "Hari Ulang Tahun Keputeraan Raja Perlis",
+    '05/27': "Hari Raya Aidiladha",
+    '05/31': "Hari Wesak",
+    '06/01': "Hari Lahir YdP Agong",
+    '07/16': "Awal Muharram",
+    '08/31': "Hari Kebangsaan",
+    '09/16': "Hari Malaysia",
+    '09/25': "Maulidur Rasul",
+    '11/08': "Hari Deepavali",
+    '12/25': "Hari Krismas"
   },
   'Tokyo': {
     '01/01': "New Year's Day",
@@ -381,20 +519,7 @@ const updateLimitsInText = (text: string, maxTitle: number, maxBrief: number, ma
 // maxTitleAlone is how many brief characters one title character "costs" in shared vertical space.
 // Used both for the (maxTitle, maxBrief) defaults below and to auto-balance the two fields in
 // Mini Editorium (see handleMaxTitleChange/handleMaxBriefChange).
-const GEOMETRY_RATIOS: Record<string, { maxTitleAlone: number; maxBriefAlone: number; ratio: number }> = {
-  MENEGAK: { maxTitleAlone: 168, maxBriefAlone: 429, ratio: 2.554 },
-  SEGI_EMPAT_MEDIUM: { maxTitleAlone: 94, maxBriefAlone: 126, ratio: 1.340 },
-  SEGI_EMPAT_SMALL: { maxTitleAlone: 62, maxBriefAlone: 78, ratio: 1.258 },
-  KOMPAK: { maxTitleAlone: 80, maxBriefAlone: 41, ratio: 0.512 },
-};
-
-const getGeometryTierForIndex = (idx: number): string | null => {
-  if ([1, 12, 15, 26, 29, 37].includes(idx)) return 'MENEGAK';
-  if ([13, 14, 27, 28].includes(idx)) return 'SEGI_EMPAT_MEDIUM';
-  if ([3, 11, 16, 25, 30, 35, 36].includes(idx)) return 'SEGI_EMPAT_SMALL';
-  if ([4, 5, 17, 18, 31, 32].includes(idx)) return 'KOMPAK';
-  return null;
-};
+import { GEOMETRY_RATIOS, tierForSlot as getGeometryTierForIndex } from '../../../core/editorial/GeometryConfig.js';
 
 // Fixed ruleset for the "Salin Templat Prom AI (Lampiran)" button -- unlike Peraturan Am/Tambahan,
 // this is not admin-editable per slot; it's the same encyclopedia-style writing discipline every
@@ -477,9 +602,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   worldClockHolidaysGoogleDocText = '',
   setIndexSearchQuery,
 }) => {
-  // 1. World Clock State
-  const [times, setTimes] = useState<(ClockTime | null)[]>([null, null, null, null, null]);
-
   const [parsedNewsItems, setParsedNewsItems] = useState<any[]>([]);
   // Distinguishes "haven't fetched real content yet" from "fetched, and this slot is genuinely
   // unconfigured" — without this, every fresh page load briefly renders the character-limit
@@ -497,10 +619,689 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [aiLogs, setAiLogs] = useState<any[]>([]);
   const [activeLogPayload, setActiveLogPayload] = useState<{ type: 'prompt' | 'response'; content: string } | null>(null);
   const [showResetMenu, setShowResetMenu] = useState<boolean>(false);
-  // Anchor point for the maxTitle/maxBrief ratio-lock, captured on focus. Diffing against a fixed
-  // anchor (instead of the previous keystroke's value) means small stepwise edits (spinner clicks,
-  // digit-by-digit typing) accumulate correctly instead of each losing their sub-1 rounded remainder.
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const addToast = (type: 'success' | 'error' | 'info', message: string) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, type, message }]);
+  };
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
   const ratioAnchorRef = useRef<{ title: number; brief: number } | null>(null);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+  const [articleFontSize, setArticleFontSize] = useState<'normal' | 'large' | 'xlarge'>('normal');
+  const [showScrollToTop, setShowScrollToTop] = useState<boolean>(false);
+  const [rssStatus, setRssStatus] = useState<any>({ activeSourcesCount: 0, totalFetchedCount: 0, autoLiveCount: 0, pendingReviewCount: 0, lastFetchedAt: '' });
+  const [reviewQueue, setReviewQueue] = useState<any[]>([]);
+  const [isFetchingRss, setIsFetchingRss] = useState<boolean>(false);
+  const [newRssName, setNewRssName] = useState<string>('');
+  const [newRssUrl, setNewRssUrl] = useState<string>('');
+  const [newRssTrust, setNewRssTrust] = useState<number>(90);
+  const [newRssCategory, setNewRssCategory] = useState<string>('BERITA UTAMA');
+  const [registeredRssSources, setRegisteredRssSources] = useState<any[]>([]);
+  const [openScoreAccordionId, setOpenScoreAccordionId] = useState<string | null>(null);
+
+  // Dynamic RSS Editorial Settings State
+  const [rssAutoLiveThreshold, setRssAutoLiveThreshold] = useState<number>(80);
+  const [rssReviewThreshold, setRssReviewThreshold] = useState<number>(60);
+  const [rssPriorityKeywords, setRssPriorityKeywords] = useState<string>('dasar, belanjawan, ekonomi, pendidikan, menteri, kerajaan');
+  const [rssBlockedKeywords, setRssBlockedKeywords] = useState<string>('gempar, viral, panas, terbongkar');
+  const [rssPriorityBonus, setRssPriorityBonus] = useState<number>(15);
+  const [rssBlockedPenalty, setRssBlockedPenalty] = useState<number>(40);
+  const [rssMaxNewsAgeHours, setRssMaxNewsAgeHours] = useState<number>(48);
+
+  // Adjung Editorial Text Rules State & Handlers
+  const [rssTextRules, setRssTextRules] = useState<any[]>([]);
+  const [newRuleName, setNewRuleName] = useState<string>('');
+  const [newRuleType, setNewRuleType] = useState<string>('substitute');
+  const [newRuleScope, setNewRuleScope] = useState<string>('brief');
+  const [newRuleSourceId, setNewRuleSourceId] = useState<string>('global');
+  const [newRulePattern, setNewRulePattern] = useState<string>('');
+  const [newRuleReplacement, setNewRuleReplacement] = useState<string>('');
+  
+  // Live Sandbox Tester State
+  const [testerRawText, setTesterRawText] = useState<string>('PETALING JAYA &#8211; Seorang wanita hamil terpaksa berdiri lama di dalam tren LRT.');
+  const [testerScope, setTesterScope] = useState<string>('brief');
+  const [testerSourceId, setTesterSourceId] = useState<string>('global');
+  const [testerResult, setTesterResult] = useState<any>(null);
+
+  const loadRssTextRules = () => {
+    fetch('/api/system/rss-text-rules')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setRssTextRules(data);
+      })
+      .catch(err => console.error('Failed to load RSS text rules:', err));
+  };
+
+  const handleAddRssTextRule = async () => {
+    if (!newRuleName.trim()) {
+      addToast('error', 'Sila masukkan Nama Peraturan.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/system/rss-text-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ruleName: newRuleName,
+          ruleType: newRuleType,
+          scope: newRuleScope,
+          sourceId: newRuleSourceId === 'global' ? null : newRuleSourceId,
+          pattern: newRulePattern,
+          replacement: newRuleReplacement,
+          enabled: 1,
+          orderIndex: (rssTextRules.length + 1) * 10
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', `Peraturan '${newRuleName}' berjaya ditambah!`);
+        setNewRuleName('');
+        setNewRulePattern('');
+        setNewRuleReplacement('');
+        loadRssTextRules();
+      } else {
+        addToast('error', data.error || 'Gagal menambah peraturan.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const handleToggleRule = async (ruleId: string, currentEnabled: number) => {
+    try {
+      const res = await fetch(`/api/system/rss-text-rules/${ruleId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: currentEnabled === 1 ? 0 : 1 })
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadRssTextRules();
+      } else {
+        addToast('error', data.error || 'Gagal mengubah status peraturan.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const handleDeleteRssTextRule = async (ruleId: string, ruleName: string) => {
+    try {
+      const res = await fetch(`/api/system/rss-text-rules/${ruleId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        addToast('info', `Peraturan '${ruleName}' telah dibuang.`);
+        loadRssTextRules();
+      } else {
+        addToast('error', data.error || 'Gagal membuang peraturan.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal membuang peraturan.');
+    }
+  };
+
+  const handleRunLiveTester = async () => {
+    try {
+      const res = await fetch('/api/system/rss-text-rules/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          testText: testerRawText,
+          scope: testerScope,
+          sourceId: testerSourceId === 'global' ? null : testerSourceId
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTesterResult(data);
+      } else {
+        addToast('error', data.error || 'Gagal menjalankan ujian live.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan ujian.');
+    }
+  };
+  // Adjung Desk Rules State & Handlers
+  const [adjungDesks, setAdjungDesks] = useState<any[]>([]);
+  const [rssDeskRules, setRssDeskRules] = useState<any[]>([]);
+
+  const [newDeskName, setNewDeskName] = useState<string>('');
+  const [newDeskDescription, setNewDeskDescription] = useState<string>('');
+
+  const [newRuleDeskId, setNewRuleDeskId] = useState<string>('');
+  const [newRuleKeyword, setNewRuleKeyword] = useState<string>('');
+  const [newRuleWeight, setNewRuleWeight] = useState<number>(20);
+  const [newRuleIsNegative, setNewRuleIsNegative] = useState<boolean>(false);
+
+  // Live Desk Classifier Tester State
+  const [deskTestTitle, setDeskTestTitle] = useState<string>('PM Anwar bincang ekonomi ASEAN bersama pemimpin Thailand');
+  const [deskTestBrief, setDeskTestBrief] = useState<string>('Perdagangan bilateral dan kerjasama ekonomi serantau dipersetujui.');
+  const [deskTestCategory, setDeskTestCategory] = useState<string>('Berita');
+  const [deskTestResult, setDeskTestResult] = useState<any>(null);
+
+  const loadAdjungDesks = () => {
+    fetch('/api/system/adjung-desks')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setAdjungDesks(data);
+          if (data.length > 0 && !newRuleDeskId) {
+            setNewRuleDeskId(data[0].id);
+          }
+        }
+      })
+      .catch(err => console.error('Failed to load Adjung desks:', err));
+  };
+
+  // Adjung Typography Rules State & Handlers
+  const [adjungTypographyRules, setAdjungTypographyRules] = useState<TypographyRule[]>([]);
+  const [newTypoTerm, setNewTypoTerm] = useState<string>('');
+  const [newTypoStyle, setNewTypoStyle] = useState<string>('italic');
+  const [newTypoCategory, setNewTypoCategory] = useState<string>('foreign_term');
+  const [newTypoMatchType, setNewTypoMatchType] = useState<string>('word');
+  const [newTypoScope, setNewTypoScope] = useState<string>('all');
+  const [newTypoLanguage, setNewTypoLanguage] = useState<string>('ms-MY');
+  const [newTypoCaseSensitive, setNewTypoCaseSensitive] = useState<boolean>(false);
+  const [newTypoPriority, setNewTypoPriority] = useState<number>(50);
+  const [newTypoStatus, setNewTypoStatus] = useState<string>('active');
+  const [newTypoExcludeTerms, setNewTypoExcludeTerms] = useState<string>('');
+
+  const loadAdjungTypographyRules = () => {
+    fetch('/api/system/adjung-typography-rules')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setAdjungTypographyRules(data);
+      })
+      .catch(err => console.error('Failed to load typography rules:', err));
+  };
+
+  const handleAddAdjungTypographyRule = async () => {
+    if (!newTypoTerm.trim()) {
+      addToast('error', 'Sila masukkan Istilah Tipografi.');
+      return;
+    }
+    try {
+      let excludeList: string[] = [];
+      if (newTypoExcludeTerms.trim()) {
+        excludeList = newTypoExcludeTerms.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      const res = await fetch('/api/system/adjung-typography-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          term: newTypoTerm.trim(),
+          style: newTypoStyle,
+          category: newTypoCategory,
+          matchType: newTypoMatchType,
+          scope: newTypoScope,
+          language: newTypoLanguage,
+          caseSensitive: newTypoCaseSensitive,
+          priority: Number(newTypoPriority) || 50,
+          status: newTypoStatus,
+          excludeTerms: excludeList
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', `Peraturan Tipografi '${newTypoTerm.trim()}' berjaya ditambah!`);
+        setNewTypoTerm('');
+        setNewTypoExcludeTerms('');
+        loadAdjungTypographyRules();
+      } else {
+        addToast('error', data.error || 'Gagal menambah peraturan tipografi.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const handleToggleAdjungTypographyRuleStatus = async (rule: any) => {
+    try {
+      const nextStatus = rule.status === 'active' ? 'pending' : 'active';
+      const nextEnabled = nextStatus === 'active' ? 1 : 0;
+      const res = await fetch(`/api/system/adjung-typography-rules/${rule.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus, enabled: nextEnabled })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('info', `Status '${rule.term}' ditukar kepada '${nextStatus}'.`);
+        loadAdjungTypographyRules();
+      } else {
+        addToast('error', data.error || 'Gagal mengubah status.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const handleDeleteAdjungTypographyRule = async (id: string, term: string) => {
+    try {
+      const res = await fetch(`/api/system/adjung-typography-rules/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        addToast('info', `Peraturan Tipografi '${term}' telah dipadam.`);
+        loadAdjungTypographyRules();
+      } else {
+        addToast('error', data.error || 'Gagal memadam peraturan.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  // Editorial Memory State & Handlers
+  const [editorialMemories, setEditorialMemories] = useState<any[]>([]);
+
+  const loadEditorialMemories = () => {
+    fetch('/api/system/editorial-memory')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setEditorialMemories(data);
+      })
+      .catch(err => console.error('Failed to load editorial memories:', err));
+  };
+
+  const handlePromoteMemory = async (memoryId: string, deskName: string, phrase: string) => {
+    try {
+      const res = await fetch('/api/system/editorial-memory/promote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memoryId, deskName, phrase })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', `Memori '${phrase}' disahkan sebagai Peraturan Desk ${deskName}!`);
+        loadEditorialMemories();
+        loadRssDeskRules();
+      } else {
+        addToast('error', data.error || 'Gagal mempromosikan cadangan memori.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  // RSS Blocked Categories State & Handlers
+  const [rssBlockedCategories, setRssBlockedCategories] = useState<any[]>([]);
+  const [newBlockedCategoryName, setNewBlockedCategoryName] = useState<string>('');
+  const [blockedQueue, setBlockedQueue] = useState<any[]>([]);
+
+  const loadRssBlockedCategories = () => {
+    fetch('/api/system/rss-blocked-categories')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setRssBlockedCategories(data);
+      })
+      .catch(err => console.error('Failed to load blocked categories:', err));
+  };
+
+  const loadBlockedQueue = () => {
+    fetch('/api/system/ticker/blocked-queue')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setBlockedQueue(data);
+      })
+      .catch(err => console.error('Failed to load blocked queue:', err));
+  };
+
+  const handleAddRssBlockedCategory = async () => {
+    if (!newBlockedCategoryName.trim()) {
+      addToast('error', 'Sila masukkan nama Kategori yang ingin disekat.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/system/rss-blocked-categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryName: newBlockedCategoryName.trim() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', `Kategori XML '${newBlockedCategoryName.trim()}' berjaya ditambah ke Senarai Sekat!`);
+        setNewBlockedCategoryName('');
+        loadRssBlockedCategories();
+      } else {
+        addToast('error', data.error || 'Gagal menambah kategori tersekat.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const handleDeleteRssBlockedCategory = async (id: string, name: string) => {
+    try {
+      const res = await fetch(`/api/system/rss-blocked-categories/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        addToast('info', `Kategori XML '${name}' telah dikeluarkan dari Senarai Sekat.`);
+        loadRssBlockedCategories();
+      } else {
+        addToast('error', data.error || 'Gagal membuang kategori.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const loadRssDeskRules = () => {
+    loadEditorialMemories();
+    loadRssBlockedCategories();
+    loadBlockedQueue();
+    loadAdjungTypographyRules();
+    fetch('/api/system/rss-desk-rules')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setRssDeskRules(data);
+      })
+      .catch(err => console.error('Failed to load RSS desk rules:', err));
+  };
+
+  const handleAddAdjungDesk = async () => {
+    if (!newDeskName.trim()) {
+      addToast('error', 'Sila masukkan Nama Desk.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/system/adjung-desks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deskName: newDeskName,
+          description: newDeskDescription,
+          displayOrder: (adjungDesks.length + 1) * 10
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', `Desk '${newDeskName}' berjaya didaftarkan!`);
+        setNewDeskName('');
+        setNewDeskDescription('');
+        loadAdjungDesks();
+      } else {
+        addToast('error', data.error || 'Gagal mendaftar desk.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const handleDeleteAdjungDesk = async (deskId: string, deskName: string) => {
+    try {
+      const res = await fetch(`/api/system/adjung-desks/${deskId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        addToast('info', `Desk '${deskName}' telah dibuang.`);
+        loadAdjungDesks();
+        loadRssDeskRules();
+      } else {
+        addToast('error', data.error || 'Gagal membuang desk.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal membuang desk.');
+    }
+  };
+
+  const handleAddRssDeskRule = async () => {
+    if (!newRuleDeskId || !newRuleKeyword.trim()) {
+      addToast('error', 'Sila pilih Desk dan masukkan Kata Kunci.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/system/rss-desk-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deskId: newRuleDeskId,
+          keyword: newRuleKeyword,
+          weight: newRuleWeight,
+          isNegative: newRuleIsNegative ? 1 : 0,
+          enabled: 1,
+          orderIndex: (rssDeskRules.length + 1) * 10
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', `Peraturan Kata Kunci '${newRuleKeyword}' berjaya ditambah!`);
+        setNewRuleKeyword('');
+        loadRssDeskRules();
+      } else {
+        addToast('error', data.error || 'Gagal menambah peraturan kata kunci.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const handleDeleteRssDeskRule = async (ruleId: string, keyword: string) => {
+    try {
+      const res = await fetch(`/api/system/rss-desk-rules/${ruleId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        addToast('info', `Peraturan kata kunci '${keyword}' telah dibuang.`);
+        loadRssDeskRules();
+      } else {
+        addToast('error', data.error || 'Gagal membuang peraturan.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal membuang peraturan.');
+    }
+  };
+
+  const handleRunDeskClassifierTest = async () => {
+    try {
+      const res = await fetch('/api/system/rss-desk-rules/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          testTitle: deskTestTitle,
+          testBrief: deskTestBrief,
+          testCategory: deskTestCategory
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDeskTestResult(data);
+      } else {
+        addToast('error', data.error || 'Gagal menguji klasifikasi desk.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan ujian klasifikasi.');
+    }
+  };
+
+  const handleOverrideTickerDesk = async (itemId: string, newDesk: string) => {
+    try {
+      const res = await fetch(`/api/system/ticker/override-desk/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newDesk })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', `Desk artikel berjaya ditukar kepada '${newDesk}'!`);
+        loadReviewQueue();
+      } else {
+        addToast('error', data.error || 'Gagal mengubah desk artikel.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const loadRssEditorialSettings = () => {
+    loadRssTextRules();
+    loadAdjungDesks();
+    loadRssDeskRules();
+    fetch('/api/system/rss-settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          if (data.autoLiveThreshold) setRssAutoLiveThreshold(data.autoLiveThreshold);
+          if (data.reviewThreshold) setRssReviewThreshold(data.reviewThreshold);
+          if (data.priorityKeywords !== undefined) setRssPriorityKeywords(data.priorityKeywords);
+          if (data.blockedKeywords !== undefined) setRssBlockedKeywords(data.blockedKeywords);
+          if (data.priorityBonus) setRssPriorityBonus(data.priorityBonus);
+          if (data.blockedPenalty) setRssBlockedPenalty(data.blockedPenalty);
+          if (data.maxNewsAgeHours !== undefined) setRssMaxNewsAgeHours(data.maxNewsAgeHours);
+        }
+      })
+      .catch(err => console.error('Failed to load RSS editorial settings:', err));
+  };
+
+  const handleSaveRssEditorialSettings = async () => {
+    try {
+      const res = await fetch('/api/system/rss-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          autoLiveThreshold: rssAutoLiveThreshold,
+          reviewThreshold: rssReviewThreshold,
+          priorityKeywords: rssPriorityKeywords,
+          blockedKeywords: rssBlockedKeywords,
+          priorityBonus: rssPriorityBonus,
+          blockedPenalty: rssBlockedPenalty,
+          maxNewsAgeHours: rssMaxNewsAgeHours
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', 'Tetapan & Peraturan Editorial RSS berjaya disimpan!');
+      } else {
+        addToast('error', data.error || 'Gagal menyimpan tetapan.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan.');
+    }
+  };
+
+  const loadRssSources = () => {
+    loadRssEditorialSettings();
+    fetch('/api/system/rss-sources')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setRegisteredRssSources(data);
+      })
+      .catch(err => console.error('Failed to load RSS sources:', err));
+  };
+
+  const handleAddRssSource = async () => {
+    if (!newRssName.trim() || !newRssUrl.trim()) {
+      addToast('error', 'Sila masukkan Nama Sumber dan URL RSS Feed.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/system/rss-sources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceName: newRssName,
+          rssUrl: newRssUrl,
+          language: 'ms-MY',
+          trustScore: Number(newRssTrust) || 90,
+          categoryMapping: newRssCategory,
+          enabled: 1
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('success', `Sumber RSS '${newRssName}' berjaya didaftarkan!`);
+        setNewRssName('');
+        setNewRssUrl('');
+        loadRssSources();
+      } else {
+        addToast('error', data.error || 'Gagal mendaftar sumber RSS.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan RSS.');
+    }
+  };
+
+  const handleDeleteRssSource = async (sourceId: string, sourceName: string) => {
+    try {
+      const res = await fetch(`/api/system/rss-sources/${sourceId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        addToast('info', `Sumber RSS '${sourceName}' telah dibuang.`);
+        loadRssSources();
+      } else {
+        addToast('error', data.error || 'Gagal membuang sumber RSS.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal membuang sumber RSS.');
+    }
+  };
+
+  const loadRssStatus = () => {
+    fetch('/api/system/ticker/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          setRssStatus(data);
+        }
+      })
+      .catch(err => console.error('Failed to load RSS status:', err));
+  };
+
+  const loadReviewQueue = () => {
+    fetch('/api/system/ticker/review-queue')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setReviewQueue(data);
+      })
+      .catch(err => console.error('Failed to load review queue:', err));
+    loadRssStatus();
+  };
+
+  const handleFetchDirectRss = async () => {
+    setIsFetchingRss(true);
+    try {
+      const res = await fetch('/api/system/ticker/fetch-direct', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setRssStatus(data);
+        addToast('success', `RSS Direct berjaya diserap! (${data.autoLiveCount} Auto Live, ${data.pendingReviewCount} Menunggu Review)`);
+        loadReviewQueue();
+      } else {
+        addToast('error', data.error || 'Gagal menyerap RSS Direct.');
+      }
+    } catch (err) {
+      addToast('error', 'Gagal menyambung ke pelayan RSS Direct.');
+    } finally {
+      setIsFetchingRss(false);
+    }
+  };
+
+  useEffect(() => {
+    if (editingSlotIndex === -1) {
+      loadRssSources();
+      loadReviewQueue();
+      loadRssStatus();
+    }
+  }, [editingSlotIndex]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowNewsOverlay(false);
+        setActiveFooterPageKey(null);
+        setEditingSlotIndex(null);
+        setFormConfig(null);
+      }
+    };
+    const handleScroll = () => {
+      setShowScrollToTop(window.scrollY > 400);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   useEffect(() => {
     if (editingSlotIndex === null) {
@@ -562,10 +1363,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       }
       merged = result;
     }
-    return merged.slice(0, 50).map(item => ({
-      ...item,
-      categoryColor: item.categoryColor || (item.desk ? categoryColors[item.desk.toLowerCase()] : undefined)
-    }));
+    return merged.slice(0, 50).map(item => {
+      const displayDesk = (item.desk === 'BELUM DIKELASKAN' || !item.desk) ? 'SEMASA' : item.desk;
+      return {
+        ...item,
+        desk: displayDesk,
+        categoryColor: item.categoryColor || categoryColors[displayDesk.toLowerCase()]
+      };
+    });
   }, [parsedNewsItemsA, parsedNewsItemsB, categoryColors]);
 
   const activeTickerNewsItem = parsedTickerNewsItems[activeFrontpageIndex];
@@ -677,6 +1482,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         }
       })
       .catch(err => console.error('Failed to load category colors:', err));
+
+    loadAdjungTypographyRules();
   }, []);
 
   useEffect(() => {
@@ -715,7 +1522,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         bgColor: config?.bgColor || 'transparent',
         borderColor: config?.borderColor || '',
         textColor: config?.textColor || '#1F1F1F',
-        manualTitle: 'Terkini di Malaysia',
+        manualTitle: 'Berita Terkini',
         manualSummary: config?.manualSummary || systemSettings?.inTheNewsText || '',
         manualSource: '',
         manualUrl: '',
@@ -781,13 +1588,16 @@ URL: ${url}`;
         }
       } else {
         if (itemsList.length > 0) {
-          manualSummaryText = itemsList.map((itm: any) => {
+          manualSummaryText = itemsList.map((itm: any, bIdx: number) => {
+            const uuid = itm.id || `object-manual-slot${idx}-${Date.now()}-${bIdx}`;
             const cleanUrl = (itm.url === '#' || !itm.url) ? 'https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910' : itm.url;
             const cleanSource = (itm.source === 'ChatGPT/Gemini Manual Paste' || !itm.source) ? 'Astro Awani' : itm.source;
             const cleanDate = itm.originalDate || '';
-            return `Tajuk: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nHuraian ringkas: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ` : ''}${itm.brief || ''}\nHuraian panjang: ${limits.maxBriefLong > 0 ? `(had ${limits.maxBriefLong} aksara) ` : ''}\nKategori: ${itm.desk || 'TEKNOLOGI'}\nTarikh: ${cleanDate}\nSumber: ${cleanSource}\nURL: ${cleanUrl}`;
-          }).join('\n\n____\n\n');
+            const cleanSourceType = itm.sourceType === 'print' ? 'Bahan Bercetak' : itm.sourceType === 'audio' ? 'Audio' : itm.sourceType === 'video' ? 'Video' : 'Laman Web';
+            return `UUID: ${uuid}\nTajuk: ${itm.title || ''}\nHuraian ringkas: ${itm.brief || ''}\nHuraian panjang: ${itm.briefLong || ''}\nKategori: ${itm.desk || 'TEKNOLOGI'}\nJenis sumber: ${cleanSourceType}\nTarikh: ${cleanDate}\nSumber: ${cleanSource}\nURL: ${cleanUrl}`;
+          }).join('\n\n________________________________________\n\n');
         } else {
+          const uuid = item?.id || `object-manual-slot${idx}-${Date.now()}-0`;
           const title = config?.manualTitle || item?.titleString || 'Penyelidik Cipta Cip Nano Superkonduktor Malaysia';
           const brief = config?.manualSummary || item?.briefString || 'Cip tempatan ini meningkatkan kelajuan storan awan sehingga 10 kali ganda.';
           const desk = config?.manualDesk || item?.desk || 'TEKNOLOGI';
@@ -796,11 +1606,14 @@ URL: ${url}`;
           const rawUrl = config?.manualUrl || item?.url || '#';
           const url = (rawUrl === '#' || !rawUrl) ? 'https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910' : rawUrl;
           const date = item?.originalDate || '';
+          const st = item?.sourceType === 'print' ? 'Bahan Bercetak' : item?.sourceType === 'audio' ? 'Audio' : item?.sourceType === 'video' ? 'Video' : 'Laman Web';
           
-          manualSummaryText = `Tajuk: (had ${limits.maxTitle} aksara) ${title}
-Huraian ringkas: ${limits.maxBrief > 0 ? `(had ${limits.maxBrief} aksara) ${brief}` : ''}
-Huraian panjang: ${limits.maxBriefLong > 0 ? `(had ${limits.maxBriefLong} aksara) ` : ''}
+          manualSummaryText = `UUID: ${uuid}
+Tajuk: ${title}
+Huraian ringkas: ${brief}
+Huraian panjang: 
 Kategori: ${desk}
+Jenis sumber: ${st}
 Tarikh: ${date}
 Sumber: ${source}
 URL: ${url}`;
@@ -872,12 +1685,13 @@ URL: ${url}`;
         setEditingSlotIndex(null);
         setFormConfig(null);
         setShowResetMenu(false);
+        addToast('success', 'Tetapan slot berjaya disimpan.');
       } else {
-        alert('Gagal menyimpan slot: ' + (data.error || ''));
+        addToast('error', 'Gagal menyimpan slot: ' + (data.error || ''));
       }
     } catch (err: any) {
       console.error(err);
-      alert('Ralat menyimpan slot: ' + (err.message || ''));
+      addToast('error', 'Ralat menyimpan slot: ' + (err.message || ''));
     } finally {
       setIsSavingSlot(false);
     }
@@ -907,6 +1721,7 @@ URL: ${url}`;
       const data = await response.json();
       if (response.ok && data.success) {
         setExecutingSuccessMessage('Penjanaan AI berjaya diaktifkan dan dikemas kini!');
+        addToast('success', 'Penjanaan AI berjaya dikemas kini!');
         setRefreshKey(prev => prev + 1);
         
         // Re-fetch AI logs after successful run
@@ -923,11 +1738,11 @@ URL: ${url}`;
           setExecutingSuccessMessage('');
         }, 5000);
       } else {
-        alert('Gagal mengaktifkan segera: ' + (data.error || ''));
+        addToast('error', 'Gagal mengaktifkan segera: ' + (data.error || ''));
       }
     } catch (err: any) {
       console.error(err);
-      alert('Ralat mengaktifkan segera: ' + (err.message || ''));
+      addToast('error', 'Ralat mengaktifkan segera: ' + (err.message || ''));
     } finally {
       setIsExecutingNow(false);
     }
@@ -946,12 +1761,12 @@ URL: ${url}`;
         setFooterFormTitle(data.title || '');
         setFooterFormContent(data.content || '');
       } else {
-        alert('Gagal memuatkan kandungan halaman.');
+        addToast('error', 'Gagal memuatkan kandungan halaman.');
         setActiveFooterPageKey(null);
       }
     } catch (err) {
       console.error(err);
-      alert('Ralat memuatkan kandungan halaman.');
+      addToast('error', 'Ralat memuatkan kandungan halaman.');
       setActiveFooterPageKey(null);
     } finally {
       setIsLoadingLoadingFooterPage(false);
@@ -977,12 +1792,13 @@ URL: ${url}`;
           updatedAt: new Date().toISOString()
         });
         setIsEditingFooterPage(false);
+        addToast('success', 'Halaman berjaya disimpan.');
       } else {
-        alert('Gagal menyimpan kandungan: ' + (data.error || ''));
+        addToast('error', 'Gagal menyimpan kandungan: ' + (data.error || ''));
       }
     } catch (err: any) {
       console.error(err);
-      alert('Ralat menyimpan kandungan: ' + (err.message || ''));
+      addToast('error', 'Ralat menyimpan kandungan: ' + (err.message || ''));
     } finally {
       setIsSavingFooterPage(false);
     }
@@ -1145,6 +1961,9 @@ URL: ${url}`;
           itemToPush.source = itemToPush.source.substring(0, 25);
         }
       }
+      if (itemToPush.desk === 'BELUM DIKELASKAN') {
+        itemToPush.desk = 'SEMASA';
+      }
       if (itemToPush.desk && !itemToPush.categoryColor) {
         itemToPush.categoryColor = categoryColors[itemToPush.desk.toLowerCase()];
       }
@@ -1271,163 +2090,6 @@ URL: ${url}`;
 
 
 
-
-  useEffect(() => {
-    const cities = [
-      { name: 'Kangar', tz: 'Asia/Kuala_Lumpur' },
-      { name: 'Kuala Lumpur', tz: 'Asia/Kuala_Lumpur' },
-      { name: 'Kota Bharu', tz: 'Asia/Kuala_Lumpur' },
-      { name: 'Kuching', tz: 'Asia/Kuala_Lumpur' },
-      { name: 'Kota Kinabalu', tz: 'Asia/Kuala_Lumpur' }
-    ];
-
-    const updateTime = () => {
-      const newTimes = cities.map(c => {
-        try {
-          const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: c.tz,
-            year: '2-digit',
-            month: '2-digit',
-            day: '2-digit',
-            weekday: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          });
-          const parts = formatter.formatToParts(new Date());
-          const obj: any = {};
-          parts.forEach(p => { obj[p.type] = p.value; });
-
-          const dateStr = `${obj.day}/${obj.month}/${obj.year}`;
-
-          // Parse custom holidays
-          const { items: customHolidaysText } = parseWorldClockHolidays(systemSettings.worldClockHolidaysText || '');
-          const { items: customHolidaysGoogle } = parseWorldClockHolidays(worldClockHolidaysGoogleDocText || '');
-          const allCustomHolidays = [...customHolidaysText, ...customHolidaysGoogle];
-
-          // Find match for this city and dateStr
-          const customMatches = allCustomHolidays.filter(h => 
-            h.city.toLowerCase() === c.name.toLowerCase() && 
-            h.dateStr === dateStr
-          );
-
-          let isHoliday = false;
-          let holidayName = '';
-          let isWeekend = false;
-          let isSchoolHoliday = false;
-
-          const day = obj.weekday.toUpperCase();
-
-          const gregKey = `${obj.month}/${obj.day}`;
-          let cityHolidays = HOLIDAYS_2026[c.name];
-          if (!cityHolidays && c.tz === 'Asia/Kuala_Lumpur') {
-            cityHolidays = HOLIDAYS_2026['Kuala Lumpur'] || {};
-          }
-          if (cityHolidays && cityHolidays[gregKey]) {
-            isHoliday = true;
-            holidayName = cityHolidays[gregKey];
-          }
-
-          if (apiHolidaysData && Array.isArray(apiHolidaysData.publicHolidays)) {
-            const stateMap: Record<string, string> = {
-              'Kangar': 'PLS',
-              'Kuala Lumpur': 'KUL',
-              'Kota Bharu': 'KTN',
-              'Kuching': 'SWK',
-              'Kota Kinabalu': 'SBH'
-            };
-            const targetStateCode = stateMap[c.name];
-
-            const apiMatch = apiHolidaysData.publicHolidays.find((h: any) => {
-              const [yr, mn, dy] = h.date.split('-');
-              const matchDate = `${dy}/${mn}/${yr.slice(-2)}`;
-              const isDateMatch = matchDate === dateStr;
-              const isStateMatch = !targetStateCode || (h.state_codes && h.state_codes.includes(targetStateCode));
-              return isDateMatch && isStateMatch;
-            });
-
-            if (apiMatch) {
-              isHoliday = true;
-              holidayName = apiMatch.name;
-            }
-          }
-
-          if (apiHolidaysData && Array.isArray(apiHolidaysData.schoolHolidays)) {
-            const today = new Date();
-            const yearStr = today.getFullYear();
-            const monthStr = String(today.getMonth() + 1).padStart(2, '0');
-            const dayStrVal = String(today.getDate()).padStart(2, '0');
-            const todayISO = `${yearStr}-${monthStr}-${dayStrVal}`;
-            
-            const isGroupA = c.name === 'Kota Bharu';
-            const schoolMatch = apiHolidaysData.schoolHolidays.find((sh: any) => {
-              const groupMatch = isGroupA ? sh.group === 'A' : sh.group === 'B';
-              return groupMatch && todayISO >= sh.start && todayISO <= sh.end;
-            });
-            if (schoolMatch) {
-              isSchoolHoliday = true;
-            }
-          }
-
-          const isDefaultWeekend = c.name === 'Kota Bharu'
-            ? (day === 'FRI' || day === 'SAT')
-            : (day === 'SAT' || day === 'SUN');
-          isWeekend = isDefaultWeekend;
-
-          const customHolidayMatch = customMatches.find(m => m.status === 'Holiday');
-          if (customHolidayMatch) {
-            isHoliday = true;
-            holidayName = customHolidayMatch.holidayName || holidayName || 'Cuti Umum';
-          }
-
-          const customSchoolHolidayMatch = customMatches.find(m => m.status === 'SchoolHoliday');
-          if (customSchoolHolidayMatch) {
-            isSchoolHoliday = true;
-          }
-
-          const customWeekendMatch = customMatches.find(m => m.status === 'Weekend');
-          if (customWeekendMatch) {
-            isWeekend = true;
-          }
-
-          const customWorkingMatch = customMatches.find(m => m.status === 'Working');
-          if (customWorkingMatch) {
-            isHoliday = false;
-            isWeekend = false;
-            isSchoolHoliday = false;
-          }
-
-          let finalStatus: 'Holiday' | 'Weekend' | 'SchoolHoliday' | 'Working' = 'Working';
-          if (isHoliday) {
-            finalStatus = 'Holiday';
-          } else if (isWeekend) {
-            finalStatus = 'Weekend';
-          } else if (isSchoolHoliday) {
-            finalStatus = 'SchoolHoliday';
-          }
-
-          const DAY_LABEL_MS: Record<string, string> = {
-            MON: 'ISN', TUE: 'SEL', WED: 'RAB', THU: 'KHA', FRI: 'JUM', SAT: 'SAB', SUN: 'AHD'
-          };
-          const dayLabel = DAY_LABEL_MS[day] || day;
-          const timeStr = `${dateStr} · ${dayLabel} · ${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
-
-          return {
-            timeStr,
-            status: finalStatus,
-            holidayName
-          };
-        } catch (e) {
-          return null;
-        }
-      });
-      setTimes(newTimes);
-    };
-
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData]);
 
   // Helper to extract name initials (e.g. "Elena Vasquez" -> "E.V.")
   const getInitials = (name: string): string => {
@@ -1767,125 +2429,113 @@ URL: ${url}`;
         
         {/* Wordmark Hero */}
         <section className="text-center pt-8 pb-6 animate-fade-in">
-          <motion.h1 
-            animate={{
-              color: ['#1F1F1F', '#802334', '#1F1F1F']
-            }}
-            transition={{
-              duration: 15,
-              ease: 'easeInOut',
-              repeat: Infinity
-            }}
-            className="font-serif font-light tracking-tight text-6xl md:text-7xl"
-          >
+          <h1 className="font-serif font-normal tracking-tight text-6xl md:text-7xl text-[#802334]">
             <HoverWords text={BRAND.logoText} />
-          </motion.h1>
-          <p className="font-sans text-[10px] md:text-xs tracking-editorial uppercase text-[#555555] mt-3">
+          </h1>
+          <div className="flex items-center justify-center gap-3 mt-[8px] mb-1 max-w-xs mx-auto">
+            <div className="h-[1px] bg-[#b4b4b4] w-12 md:w-16"></div>
+            <span className="font-sans text-[11px] md:text-xs tracking-[0.25em] font-semibold text-[#b4b4b4] uppercase">BRIEF</span>
+            <div className="h-[1px] bg-[#b4b4b4] w-12 md:w-16"></div>
+          </div>
+          <p className="font-sans text-[9px] md:text-[11px] tracking-editorial uppercase text-[#555555] mt-2">
             <HoverWords text={BRAND.tagline} />
           </p>
         </section>
 
         <hr className="rule border-t border-stone-300 my-3" />
 
-        {/* World Clock Strip */}
-        <div className="py-2.5 flex justify-center items-center overflow-x-auto gap-10 px-1 text-center" id="world-clock">
-          {[
-            { city: 'Kangar', tz: 'Asia/Kuala_Lumpur' },
-            { city: 'Kuala Lumpur', tz: 'Asia/Kuala_Lumpur' },
-            { city: 'Kota Bharu', tz: 'Asia/Kuala_Lumpur' },
-            { city: 'Kuching', tz: 'Asia/Kuala_Lumpur' },
-            { city: 'Kota Kinabalu', tz: 'Asia/Kuala_Lumpur' }
-          ].map((c, i) => {
-            const timeData = times[i];
-            let cityColor = 'text-[#802334] font-semibold';
-            let isHoliday = false;
-            let holidayName = '';
-
-            if (timeData) {
-              isHoliday = timeData.status === 'Holiday';
-              holidayName = timeData.holidayName || '';
-
-              if (timeData.status === 'Holiday') {
-                cityColor = 'text-[#1F1F1F] font-bold border-b border-dashed border-[#1F1F1F]/40';
-              } else if (timeData.status === 'Weekend') {
-                cityColor = 'text-stone-400 font-light';
-              } else if (timeData.status === 'SchoolHoliday') {
-                cityColor = 'text-[#C06C84] font-medium';
-              } else {
-                cityColor = 'text-[#802334] font-semibold';
-              }
-            }
-
-            return (
-              <div key={c.city} className="flex-shrink-0 group relative">
-                <p className={`font-sans text-[9px] tracking-editorial uppercase mb-0.5 inline-block select-none transition-colors duration-200 ${cityColor} ${isHoliday ? 'cursor-help' : ''}`}>
-                  {c.city}
-                </p>
-                {isHoliday && holidayName && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-[#1F1F1F] text-[#FDFDFD] text-[9px] font-sans py-1 px-2.5 rounded shadow-lg whitespace-nowrap z-50 animate-fade-in pointer-events-none tracking-normal">
-                    {holidayName}
-                  </div>
-                )}
-                <p className="font-serif text-xs md:text-sm text-[#1F1F1F] font-light min-w-[140px]">
-                  {timeData ? timeData.timeStr : 'Loading...'}
-                </p>
-              </div>
-            );
-          })}
-        </div>
+        {/* World Clock Strip (Isolated High-Performance Component) */}
+        <WorldClockStrip 
+          systemSettings={systemSettings} 
+          worldClockHolidaysGoogleDocText={worldClockHolidaysGoogleDocText}
+          apiHolidaysData={apiHolidaysData}
+        />
 
         <hr className="rule border-t border-stone-300 my-3" />
 
         {/* Landing Page quiet news panel */}
         <div 
           onClick={() => {
-            if (parsedTickerNewsItems.length > 0) {
+            if (isEditMode) {
+              handleCardClick(-1);
+            } else if (parsedTickerNewsItems.length > 0) {
               setActiveOverlayIndex(activeFrontpageIndex);
               setShowNewsOverlay(true);
             }
           }}
-          className="py-3 px-0 bg-transparent hover:opacity-85 transition duration-300 cursor-pointer text-left space-y-2 group relative"
+          className="py-1 px-0 bg-transparent hover:opacity-90 transition duration-300 cursor-pointer text-left group relative flex flex-col md:flex-row md:items-center justify-between gap-3"
         >
-          <div className="flex justify-between items-center select-none">
-            <div className="flex items-center gap-2">
-              <p className="font-sans text-[10px] tracking-editorial uppercase text-[#802334] font-bold">
-                TERKINI DI MALAYSIA
-              </p>
-              {isEditMode && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCardClick(-1);
-                  }}
-                  className="p-1 text-stone-400 hover:text-[#802334] transition cursor-pointer rounded hover:bg-stone-100"
-                  title="Urus Ticker Terkini di Malaysia"
-                >
-                  <Settings size={12} />
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              {parsedTickerNewsItems.length > 0 && (
-                <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200 mr-2">
-                  &bull; Baca Paparan Penuh
-                </span>
-              )}
+          {/* LEFT: TICKER SCROLLER ITEM */}
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            {isEditMode && (
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsEditMode(!isEditMode);
+                  handleCardClick(-1);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer ${
-                  isEditMode
-                    ? 'bg-[#802334] text-white border-[#802334] shadow-sm font-semibold'
-                    : 'bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334]'
-                }`}
+                className="p-1 text-stone-400 hover:text-[#802334] transition cursor-pointer rounded hover:bg-stone-100 shrink-0"
+                title="Urus Ticker Berita Terkini"
               >
-                <Info size={12} className={isEditMode ? "animate-pulse" : ""} />
-                {isEditMode ? 'Tutup Edit' : 'Edit Kandungan'}
+                <Settings size={12} />
               </button>
-              {isEditMode && (
+            )}
+
+            {activeTickerNewsItem ? (
+              <div className="select-text py-1 flex items-center overflow-hidden flex-1 gap-2.5">
+                <strong
+                  className="font-sans text-[11px] md:text-xs uppercase tracking-wider font-bold inline-block shrink-0 text-[#802334]"
+                >
+                  <HoverWords text="BERITA SEMASA" />
+                </strong>
+                <AnimatePresence mode="wait">
+                  <motion.h4
+                    key={activeFrontpageIndex}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.4, ease: 'easeInOut' }}
+                    className="font-serif text-[#1F1F1F] text-base md:text-lg leading-snug tracking-tight font-medium flex items-baseline truncate flex-1 min-w-0"
+                  >
+                    <span className="truncate"><TypographyRenderer text={activeTickerNewsItem.title} rules={adjungTypographyRules} scope="title" /></span>
+                  </motion.h4>
+                </AnimatePresence>
+              </div>
+            ) : (
+              <p className="font-serif italic text-stone-400 text-xs py-1 select-none">No curated news items available.</p>
+            )}
+          </div>
+
+          {/* RIGHT: CONTROLS & LANGUAGE TOGGLES */}
+          <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
+            {parsedTickerNewsItems.length > 0 && (
+              <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200 mr-1 hidden sm:inline">
+                &bull; Baca Paparan Penuh
+              </span>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditMode(!isEditMode);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer ${
+                isEditMode
+                  ? 'bg-[#802334] text-white border-[#802334] shadow-sm font-semibold'
+                  : 'bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334]'
+              }`}
+            >
+              <Info size={12} className={isEditMode ? "animate-pulse" : ""} />
+              {isEditMode ? 'Tutup Edit' : 'Edit Kandungan'}
+            </button>
+            {isEditMode && (
+              <>
+                <a
+                  href="/editorium"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans font-bold cursor-pointer bg-[#802334] text-white border-[#802334] hover:bg-[#6c1d2c]"
+                >
+                  🏢 Editorium Control Room
+                </a>
                 <a
                   href="/studio/semakan-kandungan"
                   onClick={(e) => e.stopPropagation()}
@@ -1893,70 +2543,45 @@ URL: ${url}`;
                 >
                   Semakan Kandungan
                 </a>
-              )}
-              {enabledLanguages.length > 0 && (
-                <div 
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1 bg-stone-100 p-0.5 border border-stone-200 rounded text-xs select-none"
+              </>
+            )}
+            {enabledLanguages.length > 0 && (
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 bg-stone-100 p-0.5 border border-stone-200 rounded text-xs select-none"
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveLanguage('ms');
+                  }}
+                  className={`px-2 py-0.5 rounded text-[10px] uppercase font-mono transition-all cursor-pointer ${
+                    activeLanguage === 'ms' 
+                      ? 'bg-[#802334] text-white font-bold' 
+                      : 'text-stone-500 hover:text-[#802334]'
+                  }`}
                 >
+                  MS
+                </button>
+                {enabledLanguages.map((lang) => (
                   <button
+                    key={lang.languageCode}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveLanguage('ms');
+                      setActiveLanguage(lang.languageCode);
                     }}
                     className={`px-2 py-0.5 rounded text-[10px] uppercase font-mono transition-all cursor-pointer ${
-                      activeLanguage === 'ms' 
+                      activeLanguage === lang.languageCode
                         ? 'bg-[#802334] text-white font-bold' 
                         : 'text-stone-500 hover:text-[#802334]'
                     }`}
                   >
-                    MS
+                    {lang.languageCode}
                   </button>
-                  {enabledLanguages.map((lang) => (
-                    <button
-                      key={lang.languageCode}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveLanguage(lang.languageCode);
-                      }}
-                      className={`px-2 py-0.5 rounded text-[10px] uppercase font-mono transition-all cursor-pointer ${
-                        activeLanguage === lang.languageCode
-                          ? 'bg-[#802334] text-white font-bold' 
-                          : 'text-stone-500 hover:text-[#802334]'
-                      }`}
-                    >
-                      {lang.languageCode}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
-          
-          {activeTickerNewsItem ? (
-            <div className="select-text py-1 min-h-[2.5rem] flex items-center overflow-hidden">
-              <AnimatePresence mode="wait">
-                <motion.h4
-                  key={activeFrontpageIndex}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.4, ease: 'easeInOut' }}
-                  className="font-serif text-[#1F1F1F] text-base md:text-lg leading-snug tracking-tight font-medium flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-2.5"
-                >
-                  <strong
-                    className="font-sans text-[11px] md:text-xs uppercase tracking-wider font-bold inline-block shrink-0"
-                    style={{ color: activeTickerNewsItem.categoryColor || getDeskAccentColor(activeTickerNewsItem.desk) }}
-                  >
-                    <HoverWords text={activeTickerNewsItem.desk} />
-                  </strong>
-                  <span><HoverWords text={activeTickerNewsItem.title} /></span>
-                </motion.h4>
-              </AnimatePresence>
-            </div>
-          ) : (
-            <p className="font-serif italic text-stone-400 text-xs py-2 select-none">No curated news items available.</p>
-          )}
         </div>
 
         <hr className="rule border-t border-stone-300 my-3" />
@@ -1971,7 +2596,7 @@ URL: ${url}`;
             {bentoNewsItems[0] && (
                 <div 
                   onClick={() => handleCardClick(0)}
-                  className={`col-span-1 md:col-span-6 p-6 md:p-8 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 md:col-span-6 p-6 md:p-8 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
                 <BentoInner itemKey="0" className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">
@@ -1981,7 +2606,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{it.desk}</div>
-                          <h3 className="font-serif text-2xl md:text-3xl leading-tight font-medium hover:text-[#E9D8A6] transition-colors">{safeParseInline(it.title)}</h3>
+                          <h3 className="font-serif text-2xl md:text-3xl leading-tight font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[0]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
@@ -2002,7 +2627,7 @@ URL: ${url}`;
               {bentoNewsItems[1] && (
                 <div 
                   onClick={() => handleCardClick(1)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
                   <BentoInner itemKey="1" className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
                     <div className="space-y-4">
@@ -2012,7 +2637,7 @@ URL: ${url}`;
                         renderItem={(it) => (
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{it.desk}</div>
-                            <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
+                            <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                             <p className="font-serif text-xs text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[1]).briefStyle}>{safeParseInline(it.brief)}</p>
                           </>
                         )}
@@ -2030,7 +2655,7 @@ URL: ${url}`;
               {bentoNewsItems[2] && (
                 <div 
                   onClick={() => handleCardClick(2)}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="flex-1">
@@ -2040,7 +2665,7 @@ URL: ${url}`;
                         renderItem={(it) => (
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{it.desk}</div>
-                            <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
+                            <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
                             <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[2]).briefStyle}>{safeParseInline(it.brief)}</p>
                           </>
                         )}
@@ -2058,7 +2683,7 @@ URL: ${url}`;
               {bentoNewsItems[3] && (
                 <div 
                   onClick={() => handleCardClick(3)}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
                   <BentoInner itemKey="3" className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
@@ -2068,7 +2693,7 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                            <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                            <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                             <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[3]).briefStyle}>{safeParseInline(it.brief)}</p>
                           </>
                         )}
@@ -2087,7 +2712,7 @@ URL: ${url}`;
                 {bentoNewsItems[4] && (
                 <div 
                   onClick={() => handleCardClick(4)}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
@@ -2097,7 +2722,7 @@ URL: ${url}`;
                           activeIndex={bentoNewsItems[4].carouselIndex || 0}
                           renderItem={(it) => (
                             <>
-                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                               <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[4]).briefStyle}>{safeParseInline(it.brief)}</p>
                             </>
                           )}
@@ -2113,7 +2738,7 @@ URL: ${url}`;
                 {bentoNewsItems[5] && (
                 <div 
                   onClick={() => handleCardClick(5)}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
                     <BentoInner itemKey="5" className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
@@ -2123,7 +2748,7 @@ URL: ${url}`;
                           activeIndex={bentoNewsItems[5].carouselIndex || 0}
                           renderItem={(it) => (
                             <>
-                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                               <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[5]).briefStyle}>{safeParseInline(it.brief)}</p>
                             </>
                           )}
@@ -2147,7 +2772,7 @@ URL: ${url}`;
               {bentoNewsItems[6] && (
                 <div 
                   onClick={() => handleCardClick(6)}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -2156,7 +2781,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[6]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
@@ -2178,7 +2803,7 @@ URL: ${url}`;
               {bentoNewsItems[12] && (
                 <div 
                   onClick={() => handleCardClick(12)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[12], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -2187,7 +2812,7 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[12].publishedAt)}</span>
-                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
+                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[12]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
@@ -2232,7 +2857,7 @@ URL: ${url}`;
               {bentoNewsItems[11] && (
                 <div 
                   onClick={() => handleCardClick(11)}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[11], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{bentoNewsItems[11].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
@@ -2241,7 +2866,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[11].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[11]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
@@ -2267,7 +2892,7 @@ URL: ${url}`;
               {bentoNewsItems[13] && (
                 <div 
                   onClick={() => handleCardClick(13)}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[13], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{bentoNewsItems[13].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[13].publishedAt)}</span>
@@ -2276,7 +2901,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[13].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[13]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
@@ -2298,7 +2923,7 @@ URL: ${url}`;
               {bentoNewsItems[14] && (
                 <div 
                   onClick={() => handleCardClick(14)}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[14], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{bentoNewsItems[14].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[14].publishedAt)}</span>
@@ -2307,7 +2932,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[14].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[14]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
@@ -2975,7 +3600,7 @@ URL: ${url}`;
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 px-4">
             {/* Logo / Kiri */}
             <div className="flex flex-col justify-start">
-              <h2 className="font-serif text-3xl font-bold text-[#802334] tracking-tight">Adjung</h2>
+              <h2 className="font-serif text-3xl font-normal text-[#802334] tracking-tight">Adjung</h2>
             </div>
             
             {/* Kolum INSTITUSI */}
@@ -3008,14 +3633,37 @@ URL: ${url}`;
 
       </div>
 
+      {/* Pop-up Modal Penyuntingan Ticker (Zero-Lag Isolated Component) */}
+      <TickerManagementModal
+        isOpen={editingSlotIndex === -1}
+        onClose={() => {
+          setEditingSlotIndex(null);
+          setFormConfig(null);
+          setShowResetMenu(false);
+        }}
+        formConfig={formConfig}
+        setFormConfig={setFormConfig}
+        slotsConfig={slotsConfig}
+        handleSaveSlot={handleSaveSlot}
+        registeredRssSources={registeredRssSources}
+        loadRssSources={loadRssSources}
+        reviewQueue={reviewQueue}
+        loadReviewQueue={loadReviewQueue}
+        rssStatus={rssStatus}
+        adjungDesks={adjungDesks}
+        addToast={addToast}
+        validateContentBudget={validateContentBudget}
+        handleOverrideTickerDesk={handleOverrideTickerDesk}
+      />
+
       {/* Pop-up Modal Penyuntingan Slot Bento */}
-      {editingSlotIndex !== null && formConfig && (
+      {editingSlotIndex !== null && editingSlotIndex !== -1 && formConfig && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-lg border border-stone-200 max-w-xl w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl animate-fade-in">
             <header className="px-6 py-4 border-b border-stone-150 flex justify-between items-center bg-stone-50">
               <div>
                 <h3 className="font-serif text-xs md:text-sm font-bold text-[#802334] uppercase tracking-wide">
-                  {editingSlotIndex === -1 ? 'Urus Ticker: Terkini di Malaysia' : `Urus Slot ${editingSlotIndex + 1}: ${formConfig.manualDesk || 'Umum'}`}
+                  {`Urus Slot ${editingSlotIndex + 1}: ${formConfig.manualDesk || 'Umum'}`}
                 </h3>
                 <p className="text-[9px] text-stone-500 font-sans mt-0.5 font-bold uppercase tracking-wider">
                   Ubah kandungan manual, warna, atau mod penjanaan.
@@ -3034,7 +3682,134 @@ URL: ${url}`;
               </button>
             </header>
             
-            <form onSubmit={handleSaveSlot} className="p-6 flex flex-col gap-4">
+            {/* Slot Summary & Compliance Bar with Live Mode Indicator & Numbered Chips */}
+            {(() => {
+              const liveSlotConfig = slotsConfig.find((s) => s.slotIndex === editingSlotIndex);
+              const liveMode = liveSlotConfig ? (liveSlotConfig.contentMode || 'Manual') : 'Manual';
+
+              const manualBlocks = (formConfig.manualSummary || '')
+                .split(/(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i)
+                .filter((b: string) => b.trim().length > 0);
+              const activeCount = formConfig.contentMode === 'Manual' ? Math.max(1, manualBlocks.length) : (formConfig.generationLimit || 1);
+              
+              const blockStatusList: { index: number; isValid: boolean; reason?: string; titleSnippet: string }[] = [];
+              let passedCount = 0;
+              let failedCount = 0;
+
+              if (formConfig.contentMode === 'Manual' && manualBlocks.length > 0) {
+                manualBlocks.forEach((block: string, bIdx: number) => {
+                  const titleMatch = block.match(/Tajuk:\s*(?:\([^)]*\))?\s*([^\n]+)/i);
+                  const briefMatch = block.match(/Huraian ringkas:\s*(?:\([^)]*\))?\s*([^\n]+)/i);
+                  const title = titleMatch ? titleMatch[1].trim() : '';
+                  const brief = briefMatch ? briefMatch[1].trim() : '';
+                  
+                  const check = (title || brief) 
+                    ? validateContentBudget(editingSlotIndex, title, brief) 
+                    : { isValid: true };
+                  
+                  if (check.isValid) {
+                    passedCount++;
+                  } else {
+                    failedCount++;
+                  }
+
+                  blockStatusList.push({
+                    index: bIdx + 1,
+                    isValid: check.isValid,
+                    reason: check.reason,
+                    titleSnippet: title ? (title.length > 25 ? title.substring(0, 25) + '...' : title) : `Artikel #${bIdx + 1}`
+                  });
+                });
+              }
+
+              const scrollToBlockInTextarea = (blockIndex: number) => {
+                if (editingSlotIndex === -1) {
+                  const textarea = document.getElementById('manualSummaryTextarea') as HTMLTextAreaElement;
+                  if (textarea) textarea.focus();
+                  return;
+                }
+                const cardElem = document.getElementById(`manual-block-card-${blockIndex}`);
+                const textareaElem = document.getElementById(`manual-block-textarea-${blockIndex}`) as HTMLTextAreaElement;
+                if (cardElem) {
+                  cardElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                if (textareaElem) {
+                  textareaElem.focus();
+                }
+              };
+
+              return (
+                <div className="px-6 pt-4 space-y-3">
+                  {/* Live Status & Form Status Header - Adjung Design System */}
+                  <div className="bg-[#F9F8F6] p-3 rounded border border-stone-200 flex flex-wrap items-center justify-between gap-2 text-xs select-none">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-extrabold mr-0.5">
+                        MOD LIVE:
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-mono font-extrabold uppercase tracking-widest bg-[#802334] text-white border border-[#601824]">
+                        {(liveMode || 'Manual').toUpperCase()}
+                      </span>
+
+                      <span className="text-stone-300 mx-1">•</span>
+
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-extrabold">
+                        BORANG:
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-widest bg-stone-100 text-stone-700 border border-stone-300">
+                        {(formConfig.contentMode || 'Manual').toUpperCase()}
+                      </span>
+
+                      <span className="font-mono text-[9px] text-stone-700 font-bold px-2 py-0.5 bg-white rounded border border-stone-250 uppercase tracking-wider">
+                        {activeCount} ITEM KANDUNGAN
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {failedCount > 0 ? (
+                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-[#802334]/10 text-[#802334] border border-[#802334]/30 uppercase tracking-wider animate-pulse">
+                          ⚠️ {failedCount} GAGAL HAD AKSARA
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-stone-100 text-stone-800 border border-stone-300 uppercase tracking-wider">
+                          ✓ 100% MEMATUHI HAD
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Interactive Numbered Content Chips - Adjung Design System */}
+                  {formConfig.contentMode === 'Manual' && blockStatusList.length > 0 && (
+                    <div className="bg-[#F9F8F6] p-3 rounded border border-stone-200 space-y-2 select-none">
+                      <div className="flex justify-between items-center text-[9px] font-mono font-extrabold uppercase text-stone-500 tracking-widest">
+                        <span>PILIH MUKA KANDUNGAN (KLIK NOMBOR UNTUK SUNTING):</span>
+                        <span>{passedCount}/{blockStatusList.length} LULUS</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {blockStatusList.map((item) => (
+                          <button
+                            key={item.index}
+                            type="button"
+                            onClick={() => scrollToBlockInTextarea(item.index)}
+                            className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                              item.isValid
+                                ? 'bg-white hover:bg-stone-100 text-stone-800 border-stone-300 hover:border-[#802334]/50'
+                                : 'bg-[#802334]/10 hover:bg-[#802334]/20 text-[#802334] border-[#802334]/40 animate-pulse'
+                            }`}
+                            title={item.reason || `${item.titleSnippet} - Mematuhi Had Aksara`}
+                          >
+                            <span className="font-extrabold">#{item.index}</span>
+                            <span>{item.isValid ? '✓' : '⚠️'}</span>
+                            <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{item.titleSnippet}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            <form onSubmit={handleSaveSlot} className="p-6 pt-3 flex flex-col gap-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
                 
                 {/* Mod Kandungan */}
@@ -3050,37 +3825,1416 @@ URL: ${url}`;
                   </select>
                 </div>
 
+                {/* MODUS RSS DIRECT */}
+                {formConfig.contentMode === 'RSS Direct' && (
+                  <div className="col-span-2 space-y-4 pt-2 border-t border-stone-200">
+                    <div className="bg-[#F9F8F6] p-4 rounded border border-stone-200 space-y-3">
+                      <div className="flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                          <h4 className="font-mono text-xs font-bold uppercase text-[#802334] tracking-wider">
+                            ENJIN PENYERAPAN RSS DIRECT (TANPA API AI)
+                          </h4>
+                          <p className="font-sans text-[10px] text-stone-500 mt-0.5">
+                            Menyerap terus berita RSS/Atom Feed, menapis bahasa ms-MY, dan mengira skor wajaran editorial.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleFetchDirectRss}
+                          disabled={isFetchingRss}
+                          className="px-4 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-mono font-bold uppercase tracking-wider transition cursor-pointer shadow-xs disabled:opacity-50"
+                        >
+                          {isFetchingRss ? 'Menyerap RSS...' : '⚡ Serap RSS Sekarang'}
+                        </button>
+                      </div>
+
+                      {/* Display Status 5-Item */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 text-center select-none font-mono">
+                        <div className="bg-white p-2.5 rounded border border-stone-200">
+                          <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Sumber Aktif</div>
+                          <div className="text-sm font-bold text-stone-800">{registeredRssSources.filter(s => s.enabled).length || 1}</div>
+                        </div>
+                        <div className="bg-white p-2.5 rounded border border-stone-200">
+                          <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Item Ditemui</div>
+                          <div className="text-sm font-bold text-stone-800">{rssStatus.totalFetchedCount || 0}</div>
+                        </div>
+                        <div className="bg-white p-2.5 rounded border border-stone-200">
+                          <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Auto Live</div>
+                          <div className="text-sm font-bold text-emerald-700">{rssStatus.autoLiveCount || 0}</div>
+                        </div>
+                        <div className="bg-white p-2.5 rounded border border-stone-200">
+                          <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Menunggu Review</div>
+                          <div className="text-sm font-bold text-amber-700">{rssStatus.pendingReviewCount || reviewQueue.length}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Borang Tambah Pautan RSS Feed (RSS Source Registry Form) */}
+                    <div className="bg-white p-4 rounded border border-stone-200 space-y-3">
+                      <h5 className="font-mono text-xs font-bold uppercase text-[#802334] tracking-wider">
+                        + DAFTAR PAUTAN RSS FEED BAHARU
+                      </h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                          <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Nama Sumber (Agensi / Portal)</label>
+                          <input
+                            type="text"
+                            placeholder="cth: Bernama / Utusan Malaysia"
+                            value={newRssName}
+                            onChange={(e) => setNewRssName(e.target.value)}
+                            className="w-full px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] font-sans text-xs"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Pautan URL RSS / Atom Feed</label>
+                          <input
+                            type="url"
+                            placeholder="https://www.bernama.com/bm/rss/news.php"
+                            value={newRssUrl}
+                            onChange={(e) => setNewRssUrl(e.target.value)}
+                            className="w-full px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] font-mono text-xs"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1 md:col-span-2">
+                          <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Trust Score (0 - 100)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={newRssTrust}
+                            onChange={(e) => setNewRssTrust(Number(e.target.value))}
+                            className="w-full px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] font-mono text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-1">
+                        <button
+                          type="button"
+                          onClick={handleAddRssSource}
+                          className="px-4 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer"
+                        >
+                          + Simpan & Daftarkan Pautan RSS
+                        </button>
+                      </div>
+
+                      {/* Senarai Sumber RSS Berdaftar */}
+                      {registeredRssSources.length > 0 && (
+                        <div className="pt-3 border-t border-stone-150 space-y-2">
+                          <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold block">
+                            Senarai Sumber RSS Berdaftar ({registeredRssSources.length} Sumber):
+                          </label>
+                          <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                            {registeredRssSources.map((src) => (
+                              <div key={src.id} className="p-2.5 bg-stone-50 rounded border border-stone-200 flex justify-between items-center text-xs font-mono gap-2">
+                                <div className="min-w-0 flex-1 truncate">
+                                  <span className="font-bold text-stone-800">{src.sourceName}</span>
+                                  <span className="text-[10px] text-stone-500 ml-2">Trust: {src.trustScore}/100</span>
+                                  <div className="text-[10px] text-stone-400 truncate">{src.rssUrl}</div>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold uppercase">
+                                    Aktif
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRssSource(src.id, src.sourceName)}
+                                    className="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[9px] font-bold uppercase cursor-pointer"
+                                  >
+                                    🗑️ Buang
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Dynamic Editorial Settings Form */}
+                      <div className="pt-3 border-t border-stone-200 space-y-3">
+                        <h5 className="font-mono text-xs font-bold uppercase text-[#802334] tracking-wider flex items-center gap-1.5">
+                          ⚙️ TETAPAN & PERATURAN EDITORIAL RSS (DINAMIK / TANPA HARDCODE)
+                        </h5>
+                        <p className="font-sans text-[11px] text-stone-500 leading-normal">
+                          Laras ambang skor automatik, senarai kata kunci keutamaan, dan kata kunci yang disekat mengikut kriteria meja editorial anda.
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Ambang Skor Auto Live (Min. Skor)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={rssAutoLiveThreshold}
+                              onChange={(e) => setRssAutoLiveThreshold(Number(e.target.value))}
+                              className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334]"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Ambang Skor Review Queue (Min. Skor)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={rssReviewThreshold}
+                              onChange={(e) => setRssReviewThreshold(Number(e.target.value))}
+                              className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334]"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-1 md:col-span-2">
+                            <label className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">Had Usia Berita (Freshness Filter / Cutoff Usia)</label>
+                            <select
+                              value={rssMaxNewsAgeHours}
+                              onChange={(e) => setRssMaxNewsAgeHours(Number(e.target.value))}
+                              className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                            >
+                              <option value={24}>24 Jam Terakhir (Berita Hari Ini)</option>
+                              <option value={48}>48 Jam Terakhir (Disyorkan - 2 Hari)</option>
+                              <option value={72}>72 Jam Terakhir (3 Hari)</option>
+                              <option value={168}>7 Hari Terakhir (Seminggu)</option>
+                              <option value={0}>Tiada Had (Semua Usia Berita)</option>
+                            </select>
+                            <span className="text-[9px] text-stone-400">Berita yang lebih lama daripada had ini akan ditapis secara automatik.</span>
+                          </div>
+
+                          <div className="flex flex-col gap-1 md:col-span-2">
+                            <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Kata Kunci Keutamaan (+Bonus Skor)</label>
+                            <input
+                              type="text"
+                              placeholder="dasar, belanjawan, ekonomi, pendidikan, menteri, kerajaan"
+                              value={rssPriorityKeywords}
+                              onChange={(e) => setRssPriorityKeywords(e.target.value)}
+                              className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334]"
+                            />
+                            <span className="text-[9px] text-stone-400">Pisahkan kata kunci dengan koma (cth: dasar, ekonomi, pendidikan).</span>
+                          </div>
+
+                          <div className="flex flex-col gap-1 md:col-span-2">
+                            <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Kata Kunci Diharamkan / Sensasi (-Penalti Skor)</label>
+                            <input
+                              type="text"
+                              placeholder="gempar, viral, panas, terbongkar"
+                              value={rssBlockedKeywords}
+                              onChange={(e) => setRssBlockedKeywords(e.target.value)}
+                              className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334]"
+                            />
+                            <span className="text-[9px] text-stone-400">Berita yang mengandungi kata kunci ini akan ditolak atau dipotong markah.</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end pt-1">
+                          <button
+                            type="button"
+                            onClick={handleSaveRssEditorialSettings}
+                            className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer shadow-xs"
+                          >
+                            💾 Simpan Tetapan Editorial Dinamik
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Review Queue Table */}
+                    <div className="bg-white p-4 rounded border border-stone-200 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h5 className="font-mono text-xs font-bold uppercase text-stone-700 tracking-wider">
+                          EDITOR REVIEW QUEUE (SKOR 60 - 89)
+                        </h5>
+                        <button
+                          type="button"
+                          onClick={loadReviewQueue}
+                          className="text-[10px] font-mono uppercase text-[#802334] hover:underline cursor-pointer"
+                        >
+                          Muat Semula Queue
+                        </button>
+                      </div>
+
+                      {reviewQueue.length > 0 ? (
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                          {reviewQueue.map((item) => {
+                            let bd: any = null;
+                            try {
+                              bd = typeof item.scoreBreakdown === 'string' ? JSON.parse(item.scoreBreakdown) : item.scoreBreakdown;
+                            } catch (e) {
+                              bd = null;
+                            }
+                            const isExpanded = openScoreAccordionId === item.id;
+
+                            return (
+                              <div key={item.id} className="p-3 bg-[#F9F8F6] rounded border border-stone-200 space-y-2">
+                                <div className="flex justify-between items-start gap-3">
+                                  <div className="space-y-1 min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded">
+                                        Skor {item.score}/100 ({item.decision || 'EDITOR_REVIEW'})
+                                      </span>
+                                      <span className="font-mono text-[9px] text-stone-500 font-bold uppercase">
+                                        {item.source}
+                                      </span>
+                                      <div className="flex items-center gap-1 bg-white px-1.5 py-0.5 rounded border border-stone-200">
+                                        <span className="font-mono text-[9px] font-bold text-stone-500 uppercase">Desk:</span>
+                                        <select
+                                          value={item.category || 'SEMASA'}
+                                          onChange={(e) => handleOverrideTickerDesk(item.id, e.target.value)}
+                                          className="font-mono text-[9px] font-bold uppercase text-[#802334] bg-transparent focus:outline-none cursor-pointer"
+                                        >
+                                          {adjungDesks.map(d => (
+                                            <option key={d.id} value={d.deskName}>{d.deskName}</option>
+                                          ))}
+                                          <option value="SEMASA">SEMASA</option>
+                                          <option value="BELUM DIKELASKAN">BELUM DIKELASKAN</option>
+                                        </select>
+                                      </div>
+                                      {item.publishedAt && (
+                                        <span className="font-mono text-[9px] text-stone-400">
+                                          • {new Date(item.publishedAt).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <h6 className="font-serif text-xs font-bold text-stone-900 leading-snug">
+                                      {item.title}
+                                    </h6>
+                                    {item.formattedBrief && (
+                                      <p className="font-sans text-[11px] text-stone-600 leading-relaxed bg-white p-2 rounded border border-stone-150">
+                                        {item.formattedBrief}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                    <div className="flex items-center gap-1">
+                                      <a
+                                        href={item.originalUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-2 py-1 text-[9px] font-mono uppercase bg-stone-100 hover:bg-stone-200 text-stone-700 rounded border border-stone-300"
+                                      >
+                                        Buka Pautan Asal
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          await fetch('/api/system/ticker/review-action', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ itemId: item.id, action: 'approve' })
+                                          });
+                                          addToast('success', 'Artikel diluluskan ke Ticker Live!');
+                                          loadReviewQueue();
+                                        }}
+                                        className="px-2.5 py-1 text-[9px] font-mono font-bold uppercase bg-emerald-600 hover:bg-emerald-700 text-white rounded cursor-pointer shadow-xs"
+                                      >
+                                        ✓ Lulus
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          await fetch('/api/system/ticker/review-action', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ itemId: item.id, action: 'reject' })
+                                          });
+                                          addToast('info', 'Artikel ditolak.');
+                                          loadReviewQueue();
+                                        }}
+                                        className="px-2.5 py-1 text-[9px] font-mono font-bold uppercase bg-rose-600 hover:bg-rose-700 text-white rounded cursor-pointer shadow-xs"
+                                      >
+                                        ✕ Tolak
+                                      </button>
+                                    </div>
+
+                                    {/* Toggle Score Accordion Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenScoreAccordionId(isExpanded ? null : item.id)}
+                                      className="text-[9px] font-mono uppercase text-[#802334] hover:underline cursor-pointer flex items-center gap-1 mt-1"
+                                    >
+                                      {isExpanded ? '▲ Sembunyi Pecahan Skor' : '▼ Lihat Pecahan Skor'}
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Accordion Breakdown Details */}
+                                {isExpanded && bd && (
+                                  <div className="pt-2 border-t border-stone-200 grid grid-cols-2 md:grid-cols-5 gap-1.5 font-mono text-[9px] bg-white p-2.5 rounded">
+                                    <div>
+                                      <span className="text-stone-400 block uppercase">Source Trust</span>
+                                      <span className="font-bold text-stone-800">+{bd.sourceTrust || 80}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-stone-400 block uppercase">Language Match</span>
+                                      <span className="font-bold text-emerald-700">+{bd.languageMatch || 10}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-stone-400 block uppercase">Category Match</span>
+                                      <span className="font-bold text-emerald-700">+{bd.categoryMatch || 0}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-stone-400 block uppercase">Keyword Impact</span>
+                                      <span className={`font-bold ${bd.keywordImpact < 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
+                                        {bd.keywordImpact >= 0 ? `+${bd.keywordImpact}` : bd.keywordImpact}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-stone-400 block uppercase">Jumlah Skor</span>
+                                      <span className="font-bold text-[#802334]">{bd.totalScore || item.score}/100</span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Desk Classification Audit Breakdown */}
+                                {isExpanded && item.deskBreakdown && (() => {
+                                  let dbd: any = null;
+                                  try {
+                                    dbd = typeof item.deskBreakdown === 'string' ? JSON.parse(item.deskBreakdown) : item.deskBreakdown;
+                                  } catch (e) {
+                                    dbd = null;
+                                  }
+                                  if (!dbd) return null;
+                                  return (
+                                    <div className="pt-2 border-t border-stone-200 font-mono text-[9px] bg-stone-900 text-stone-200 p-2.5 rounded space-y-1">
+                                      <div className="flex justify-between items-center text-amber-300 font-bold uppercase">
+                                        <span>🔍 EXPLAIN CLASSIFICATION TRACE</span>
+                                        <span>Keyakinan: {dbd.confidence} | Margin: +{dbd.margin || 0}</span>
+                                      </div>
+                                      <p className="text-[#E9D8A6] text-[10px] leading-snug">{dbd.explanation || dbd.reason}</p>
+                                      {dbd.resolver && dbd.resolver !== 'STANDARD_WEIGHTED_MATCH' && (
+                                        <div className="text-emerald-400 font-bold">
+                                          ⚡ Resolusi Konflik Domain: {dbd.resolver}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center text-stone-400 font-sans text-xs">
+                          Tiada artikel di dalam Review Queue.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ✍️ ADJUNG EDITORIAL TEXT RULES PANEL */}
+                  <div className="col-span-2 mt-4 p-4 bg-stone-50 border border-stone-250 rounded-lg space-y-4">
+                    <div className="flex justify-between items-center border-b border-stone-200 pb-3">
+                      <div>
+                        <h4 className="font-mono text-xs uppercase font-bold text-[#802334] tracking-wider flex items-center gap-2">
+                          ✍️ Adjung Editorial Text Rules (Pembersihan Teks RSS)
+                        </h4>
+                        <p className="text-[10px] text-stone-500 font-sans mt-0.5">
+                          Kawalan 100% di tangan Ketua Editor. Peraturan SUBSTITUTE, REGEXREPLACE, dan pembersihan dateline tanpa penulisan kod hardcoded.
+                        </p>
+                      </div>
+                      <span className="px-2 py-0.5 bg-stone-200 text-stone-700 font-mono text-[9px] font-bold rounded">
+                        {rssTextRules.length} Peraturan Berdaftar
+                      </span>
+                    </div>
+
+                    {/* Senarai Peraturan Aktif Table */}
+                    <div className="overflow-x-auto border border-stone-200 rounded bg-white">
+                      <table className="w-full text-left font-sans text-xs">
+                        <thead>
+                          <tr className="bg-stone-100 border-b border-stone-200 text-[9px] font-mono uppercase text-stone-600 font-bold tracking-wider">
+                            <th className="p-2 text-center">Aktif</th>
+                            <th className="p-2">Nama Peraturan</th>
+                            <th className="p-2">Skop</th>
+                            <th className="p-2">Sumber</th>
+                            <th className="p-2">Jenis Formula</th>
+                            <th className="p-2">Carian (Pattern)</th>
+                            <th className="p-2">Gantian</th>
+                            <th className="p-2 text-center">Tindakan</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rssTextRules.map((rule) => {
+                            const isLocked = rule.locked === 1;
+                            return (
+                              <tr key={rule.id} className="border-b border-stone-150 hover:bg-stone-50 transition-colors">
+                                <td className="p-2 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={rule.enabled === 1}
+                                    onChange={() => handleToggleRule(rule.id, rule.enabled)}
+                                    className="cursor-pointer accent-[#802334]"
+                                  />
+                                </td>
+                                <td className="p-2 font-semibold text-stone-800 flex items-center gap-1.5">
+                                  {rule.ruleName}
+                                  {isLocked && (
+                                    <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[8px] font-mono font-bold rounded" title="Peraturan Asas Sistem (Locked)">
+                                      🔒 ASAS
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="p-2 font-mono text-[10px] uppercase">
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                    rule.scope === 'all' ? 'bg-purple-100 text-purple-800' : rule.scope === 'title' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                                  }`}>
+                                    {rule.scope || 'brief'}
+                                  </span>
+                                </td>
+                                <td className="p-2 font-mono text-[10px] text-stone-600">
+                                  {rule.sourceId ? rule.sourceId : 'Global'}
+                                </td>
+                                <td className="p-2 font-mono text-[10px] font-bold text-[#802334]">
+                                  {rule.ruleType.toUpperCase()}
+                                </td>
+                                <td className="p-2 font-mono text-[10px] text-stone-600 max-w-[150px] truncate" title={rule.pattern}>
+                                  {rule.pattern || '-'}
+                                </td>
+                                <td className="p-2 font-mono text-[10px] text-stone-600 max-w-[150px] truncate" title={rule.replacement}>
+                                  {rule.replacement !== undefined && rule.replacement !== '' ? `"${rule.replacement}"` : '(kosong)'}
+                                </td>
+                                <td className="p-2 text-center">
+                                  {!isLocked ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteRssTextRule(rule.id, rule.ruleName)}
+                                      className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
+                                      title="Hapus Peraturan"
+                                    >
+                                      🗑️
+                                    </button>
+                                  ) : (
+                                    <span className="text-stone-300 text-[10px] select-none">-</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Borang Tambah Peraturan Baharu */}
+                    <div className="p-3 bg-white border border-stone-200 rounded space-y-3">
+                      <h5 className="font-mono text-[10px] uppercase font-bold text-[#802334] tracking-wider">
+                        + Tambah Peraturan Pembersihan Baharu
+                      </h5>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Nama Peraturan</label>
+                          <input
+                            type="text"
+                            value={newRuleName}
+                            onChange={(e) => setNewRuleName(e.target.value)}
+                            placeholder="cth: Buang perkataan gempar"
+                            className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Jenis Formula</label>
+                          <select
+                            value={newRuleType}
+                            onChange={(e) => setNewRuleType(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
+                          >
+                            <option value="substitute">SUBSTITUTE (Ganti Teks Harfiah)</option>
+                            <option value="regex">REGEXREPLACE (Ganti Dengan Regex)</option>
+                            <option value="strip_dateline">STRIP_DATELINE (Buang Awalan Lokasi/Tarikh)</option>
+                            <option value="decode_entities">DECODE_HTML (Nyahkod Entiti Nombor HTML)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Skop (Scope)</label>
+                          <select
+                            value={newRuleScope}
+                            onChange={(e) => setNewRuleScope(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
+                          >
+                            <option value="brief">Brief / Description Sahaja (Disyorkan)</option>
+                            <option value="title">Title Sahaja</option>
+                            <option value="all">Semua (Title & Brief)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Sumber RSS Specific</label>
+                          <select
+                            value={newRuleSourceId}
+                            onChange={(e) => setNewRuleSourceId(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
+                          >
+                            <option value="global">Global (Semua Sumber RSS)</option>
+                            {registeredRssSources.map((src) => (
+                              <option key={src.id} value={src.id}>{src.sourceName}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {(newRuleType === 'substitute' || newRuleType === 'regex') && (
+                          <>
+                            <div>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Teks / Pattern Carian</label>
+                              <input
+                                type="text"
+                                value={newRulePattern}
+                                onChange={(e) => setNewRulePattern(e.target.value)}
+                                placeholder={newRuleType === 'regex' ? '^[A-Z ]+,' : '&#039;'}
+                                className="w-full px-2 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Teks Gantian (Replacement)</label>
+                              <input
+                                type="text"
+                                value={newRuleReplacement}
+                                onChange={(e) => setNewRuleReplacement(e.target.value)}
+                                placeholder="Tinggalkan kosong untuk buang"
+                                className="w-full px-2 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex justify-end pt-2 border-t border-stone-150">
+                        <button
+                          type="button"
+                          onClick={handleAddRssTextRule}
+                          className="px-4 py-1.5 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm transition-all"
+                        >
+                          + Tambah Peraturan Teks
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* LIVE SANDBOX TESTER (FORMULA TESTER) */}
+                    <div className="p-3 bg-[#1F1F1F] text-stone-100 rounded-lg space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h5 className="font-mono text-xs font-bold text-[#E9D8A6] uppercase tracking-wider flex items-center gap-2">
+                          🧪 Live Sandbox Tester (Preview Hasil Pembersihan)
+                        </h5>
+                        <button
+                          type="button"
+                          onClick={handleRunLiveTester}
+                          className="px-3 py-1 bg-[#802334] hover:bg-[#a02c42] text-white font-mono text-[10px] uppercase font-bold rounded cursor-pointer transition-all"
+                        >
+                          ▶ Uji Peraturan Sekarang
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-stone-400 font-bold">Teks Mentah RSS Untuk Diuji</label>
+                          <textarea
+                            value={testerRawText}
+                            onChange={(e) => setTesterRawText(e.target.value)}
+                            rows={3}
+                            className="w-full px-2.5 py-1.5 bg-stone-900 border border-stone-700 rounded font-serif text-xs text-stone-200 focus:outline-none focus:border-[#E9D8A6]"
+                          />
+                        </div>
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-[#E9D8A6] font-bold">Preview Hasil Pembersihan (Output)</label>
+                          <div className="w-full min-h-[4.5rem] p-2.5 bg-stone-900 border border-stone-700 rounded font-serif text-xs text-green-300 select-text whitespace-pre-wrap">
+                            {testerResult ? testerResult.cleanedText : '(Tekan "Uji Peraturan Sekarang" untuk melihat pratonton)'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Transformation Trace Debug Output */}
+                      {testerResult && testerResult.trace && testerResult.trace.length > 0 && (
+                        <div className="p-2.5 bg-stone-900 border border-stone-800 rounded space-y-1.5 font-mono text-[10px]">
+                          <span className="text-amber-400 font-bold uppercase tracking-wider block">
+                            Transformation Trace ({testerResult.trace.length} Langkah Berjaya Diguna)
+                          </span>
+                          {testerResult.trace.map((tr: any) => (
+                            <div key={tr.step} className="flex flex-col gap-0.5 border-b border-stone-800 pb-1 text-stone-300">
+                              <span className="text-[#E9D8A6] font-bold">
+                                [{tr.step}] {tr.ruleName} ({tr.ruleType})
+                              </span>
+                              <div className="grid grid-cols-2 gap-2 text-[9px]">
+                                <span className="text-red-400 truncate">Sebelum: {tr.before}</span>
+                                <span className="text-green-400 truncate">Selepas: {tr.after}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 🏷️ ADJUNG DESK CLASSIFICATION ENGINE PANEL */}
+                  <div className="col-span-2 mt-4 p-4 bg-stone-50 border border-stone-250 rounded-lg space-y-4">
+                    <div className="flex justify-between items-center border-b border-stone-200 pb-3">
+                      <div>
+                        <h4 className="font-mono text-xs uppercase font-bold text-[#802334] tracking-wider flex items-center gap-2">
+                          🏷️ Adjung Desk Classification Engine (Pemberat Kata Kunci & Confidence)
+                        </h4>
+                        <p className="text-[10px] text-stone-500 font-sans mt-0.5">
+                          Mengelaskan berita ke dalam desk jurnal Adjung secara automatik mengikut markah pemberat kata kunci (Weighted Keywords) & skor keyakinan.
+                        </p>
+                      </div>
+                      <div className="flex gap-1.5 font-mono text-[9px] font-bold">
+                        <span className="px-2 py-0.5 bg-stone-200 text-stone-700 rounded">
+                          {adjungDesks.length} Desk Berdaftar
+                        </span>
+                        <span className="px-2 py-0.5 bg-[#802334] text-white rounded">
+                          {rssDeskRules.length} Kata Kunci Berwajaran
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 1. JADUAL DESK REGISTRY (adjung_desks) */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <h5 className="font-mono text-[10px] uppercase font-bold text-stone-700 tracking-wider">
+                          1. Senarai Desk Redaksi Adjung (Desk Registry)
+                        </h5>
+                      </div>
+
+                      <div className="overflow-x-auto border border-stone-200 rounded bg-white">
+                        <table className="w-full text-left font-sans text-xs">
+                          <thead>
+                            <tr className="bg-stone-100 border-b border-stone-200 text-[9px] font-mono uppercase text-stone-600 font-bold tracking-wider">
+                              <th className="p-2">Nama Desk</th>
+                              <th className="p-2">Penerangan / Skop Desk</th>
+                              <th className="p-2 text-center">Urutan</th>
+                              <th className="p-2 text-center">Tindakan</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {adjungDesks.map((d) => (
+                              <tr key={d.id} className="border-b border-stone-150 hover:bg-stone-50 transition-colors">
+                                <td className="p-2 font-bold text-[#802334]">
+                                  {d.deskName}
+                                </td>
+                                <td className="p-2 text-stone-600 text-[11px]">
+                                  {d.description || '-'}
+                                </td>
+                                <td className="p-2 text-center font-mono text-[10px] font-semibold text-stone-500">
+                                  #{d.displayOrder}
+                                </td>
+                                <td className="p-2 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteAdjungDesk(d.id, d.deskName)}
+                                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
+                                    title="Hapus Desk"
+                                  >
+                                    🗑️
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Borang Tambah Desk Baharu */}
+                      <div className="p-3 bg-white border border-stone-200 rounded flex flex-wrap gap-2 items-end">
+                        <div className="flex-1 min-w-[150px]">
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Nama Desk Baharu</label>
+                          <input
+                            type="text"
+                            value={newDeskName}
+                            onChange={(e) => setNewDeskName(e.target.value)}
+                            placeholder="cth: Agama / Geopolitik"
+                            className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
+                          />
+                        </div>
+                        <div className="flex-2 min-w-[200px]">
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Penerangan Ringkas</label>
+                          <input
+                            type="text"
+                            value={newDeskDescription}
+                            onChange={(e) => setNewDeskDescription(e.target.value)}
+                            placeholder="cth: Hal ehwal agama, fikrah, & pemikiran Islam"
+                            className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddAdjungDesk}
+                          className="px-3 py-1.5 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
+                        >
+                          + Tambah Desk
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 2. JADUAL PERATURAN KATA KUNCI BERWAJARAN (rss_desk_rules) */}
+                    <div className="space-y-2 pt-2 border-t border-stone-200">
+                      <h5 className="font-mono text-[10px] uppercase font-bold text-stone-700 tracking-wider">
+                        2. Peraturan Kata Kunci Berwajaran (Weighted Keyword Rules)
+                      </h5>
+
+                      <div className="overflow-x-auto border border-stone-200 rounded bg-white max-h-60 overflow-y-auto">
+                        <table className="w-full text-left font-sans text-xs">
+                          <thead>
+                            <tr className="bg-stone-100 border-b border-stone-200 text-[9px] font-mono uppercase text-stone-600 font-bold tracking-wider sticky top-0 bg-stone-100">
+                              <th className="p-2">Desk Sasaran</th>
+                              <th className="p-2">Kata Kunci Padanan</th>
+                              <th className="p-2 text-center">Pemberat (Weight)</th>
+                              <th className="p-2 text-center">Jenis Padanan</th>
+                              <th className="p-2 text-center">Tindakan</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rssDeskRules.map((rule) => {
+                              const targetDesk = adjungDesks.find(d => d.id === rule.deskId || d.deskName.toLowerCase() === rule.deskId.toLowerCase());
+                              const isNeg = rule.isNegative === 1;
+                              return (
+                                <tr key={rule.id} className="border-b border-stone-150 hover:bg-stone-50 transition-colors">
+                                  <td className="p-2 font-bold text-[#802334]">
+                                    {targetDesk ? targetDesk.deskName : rule.deskId}
+                                  </td>
+                                  <td className="p-2 font-mono text-[11px] font-semibold text-stone-800">
+                                    {rule.keyword}
+                                  </td>
+                                  <td className="p-2 text-center font-mono text-[11px] font-bold">
+                                    <span className={isNeg ? 'text-red-600' : 'text-emerald-700'}>
+                                      {isNeg ? `-50` : `+${rule.weight}`}
+                                    </span>
+                                  </td>
+                                  <td className="p-2 text-center font-mono text-[10px]">
+                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
+                                      isNeg ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                                    }`}>
+                                      {isNeg ? 'NEGATIF (-50)' : 'POSITIF'}
+                                    </span>
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteRssDeskRule(rule.id, rule.keyword)}
+                                      className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
+                                      title="Hapus Peraturan Kata Kunci"
+                                    >
+                                      🗑️
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Borang Tambah Peraturan Kata Kunci Baharu */}
+                      <div className="p-3 bg-white border border-stone-200 rounded grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Pilih Desk Sasaran</label>
+                          <select
+                            value={newRuleDeskId}
+                            onChange={(e) => setNewRuleDeskId(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
+                          >
+                            {adjungDesks.map(d => (
+                              <option key={d.id} value={d.id}>{d.deskName}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Kata Kunci Padanan</label>
+                          <input
+                            type="text"
+                            value={newRuleKeyword}
+                            onChange={(e) => setNewRuleKeyword(e.target.value)}
+                            placeholder="cth: ASEAN / ringgit / AI"
+                            className="w-full px-2 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Mata Pemberat (Weight)</label>
+                          <input
+                            type="number"
+                            value={newRuleWeight}
+                            onChange={(e) => setNewRuleWeight(Number(e.target.value))}
+                            placeholder="15 - 40"
+                            className="w-full px-2 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 pb-1">
+                          <label className="flex items-center gap-1.5 cursor-pointer font-sans text-xs text-stone-700">
+                            <input
+                              type="checkbox"
+                              checked={newRuleIsNegative}
+                              onChange={(e) => setNewRuleIsNegative(e.target.checked)}
+                              className="accent-red-600"
+                            />
+                            Kata Kunci Penolakan (Negatif)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleAddRssDeskRule}
+                            className="ml-auto px-3 py-1.5 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
+                          >
+                            + Tambah Rule
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 3. CADANGAN MEMORI EDITORIAL (PASSIVE EDITORIAL MEMORY WITH HUMAN APPROVAL) */}
+                      {editorialMemories.length > 0 && (
+                        <div className="space-y-2 pt-3 border-t border-stone-200">
+                          <div className="flex justify-between items-center">
+                            <h5 className="font-mono text-[10px] uppercase font-bold text-amber-800 tracking-wider flex items-center gap-1.5">
+                              🧠 Cadangan Memori Editorial ({editorialMemories.length} Cadangan Menunggu Kelulusan)
+                            </h5>
+                            <span className="text-[9px] font-mono text-stone-500">Hasil Override Manual Editor</span>
+                          </div>
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                            {editorialMemories.map((mem) => (
+                              <div key={mem.id} className="p-2.5 bg-amber-50 rounded border border-amber-200 flex justify-between items-center text-xs font-mono gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-bold text-stone-900">"{mem.phraseExtracted}"</span>
+                                  <span className="text-[10px] text-amber-800 ml-2">→ Cadangan Desk: <strong>{mem.suggestedDesk}</strong></span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handlePromoteMemory(mem.id, mem.suggestedDesk, mem.phraseExtracted)}
+                                  className="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded text-[10px] font-bold uppercase tracking-wider cursor-pointer shrink-0 shadow-xs"
+                                >
+                                  + Jadikan Peraturan Desk
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 4. PENGURUS KATEGORI XML RSS TERSEKAT (DYNAMIC CATEGORY BLOCKLIST MANAGER) */}
+                      <div className="space-y-3 pt-3 border-t border-stone-200">
+                        <div className="flex justify-between items-center">
+                          <h5 className="font-mono text-[10px] uppercase font-bold text-red-800 tracking-wider flex items-center gap-1.5">
+                            🚫 Kategori XML RSS Tersekat (Blocked XML Categories - 100% Dinamik)
+                          </h5>
+                          <span className="text-[9px] font-mono text-stone-500">{rssBlockedCategories.length} Kategori Disekat</span>
+                        </div>
+
+                        {/* Chips Kategori Tersekat */}
+                        <div className="flex flex-wrap gap-1.5 bg-red-50/50 p-2.5 rounded border border-red-200 min-h-[40px] items-center">
+                          {rssBlockedCategories.length === 0 ? (
+                            <span className="text-xs text-stone-400 italic">Tiada kategori XML disekat. Semua kategori diserap.</span>
+                          ) : (
+                            rssBlockedCategories.map(cat => (
+                              <span key={cat.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 border border-red-300 text-red-800 rounded-full font-mono text-xs font-bold shadow-2xs">
+                                <span>{cat.categoryName}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRssBlockedCategory(cat.id, cat.categoryName)}
+                                  className="ml-1 text-red-600 hover:text-red-900 cursor-pointer font-extrabold"
+                                  title={`Nyahsekat ${cat.categoryName}`}
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Borang Tambah Kategori Sekat Baharu */}
+                        <div className="flex gap-2 items-center bg-white p-2 border border-stone-200 rounded">
+                          <input
+                            type="text"
+                            value={newBlockedCategoryName}
+                            onChange={(e) => setNewBlockedCategoryName(e.target.value)}
+                            placeholder="Taip nama kategori XML untuk disekat (cth: Hiburan / Gaya / Gossip)"
+                            className="flex-1 px-3 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddRssBlockedCategory}
+                            className="px-3 py-1.5 bg-red-800 hover:bg-red-900 text-white rounded text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs shrink-0"
+                          >
+                            + Sekat Kategori
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 5. JEJAK AUDIT BERITA DISEKAT (BLOCKED NEWS VISUAL AUDIT TRAIL) */}
+                      {blockedQueue.length > 0 && (
+                        <div className="space-y-2 pt-3 border-t border-stone-200">
+                          <div className="flex justify-between items-center">
+                            <h5 className="font-mono text-[10px] uppercase font-bold text-red-900 tracking-wider flex items-center gap-1.5">
+                              🚫 Jejak Audit Berita Disekat ({blockedQueue.length} Berita Disekat)
+                            </h5>
+                            <span className="text-[9px] font-mono text-stone-500 font-bold text-red-700">Ditolak di Pintu Masuk XML</span>
+                          </div>
+
+                          <div className="overflow-x-auto border border-red-200 rounded bg-red-50/30 max-h-48 overflow-y-auto">
+                            <table className="w-full text-left font-sans text-xs">
+                              <thead>
+                                <tr className="bg-red-100 border-b border-red-200 text-[9px] font-mono uppercase text-red-900 font-bold tracking-wider sticky top-0">
+                                  <th className="p-2">Tajuk Berita</th>
+                                  <th className="p-2">Sumber</th>
+                                  <th className="p-2 text-center">Tag XML Asal</th>
+                                  <th className="p-2 text-center">Status Audit</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {blockedQueue.map((item) => (
+                                  <tr key={item.id} className="border-b border-red-100 hover:bg-red-100/50 transition-colors">
+                                    <td className="p-2 font-medium text-stone-900 max-w-xs truncate" title={item.title}>
+                                      {item.title}
+                                    </td>
+                                    <td className="p-2 text-stone-600 font-mono text-[10px] shrink-0">
+                                      {item.source}
+                                    </td>
+                                    <td className="p-2 text-center font-mono text-[11px] font-bold text-red-800 shrink-0">
+                                      <span className="px-2 py-0.5 bg-red-200/80 rounded border border-red-300">{item.category}</span>
+                                    </td>
+                                    <td className="p-2 text-center font-mono text-[10px] font-bold text-red-700 shrink-0">
+                                      🚫 DISEKAT
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. LIVE DESK CLASSIFIER SANDBOX (WITH CONFIDENCE SCORE) */}
+                    <div className="p-3 bg-[#1F1F1F] text-stone-100 rounded-lg space-y-3 pt-3 border-t border-stone-700">
+                      <div className="flex justify-between items-center">
+                        <h5 className="font-mono text-xs font-bold text-[#E9D8A6] uppercase tracking-wider flex items-center gap-2">
+                          🧪 Live Desk Classifier Sandbox (Analisis Skor & Confidence)
+                        </h5>
+                        <button
+                          type="button"
+                          onClick={handleRunDeskClassifierTest}
+                          className="px-3 py-1 bg-[#802334] hover:bg-[#a02c42] text-white font-mono text-[10px] uppercase font-bold rounded cursor-pointer transition-all"
+                        >
+                          ▶ Uji Klasifikasi Desk
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <div>
+                            <label className="font-mono text-[9px] uppercase text-stone-400 font-bold">Tajuk Berita</label>
+                            <input
+                              type="text"
+                              value={deskTestTitle}
+                              onChange={(e) => setDeskTestTitle(e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-stone-900 border border-stone-700 rounded font-serif text-xs text-stone-200"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-mono text-[9px] uppercase text-stone-400 font-bold">Huraian / Brief Berita</label>
+                            <textarea
+                              value={deskTestBrief}
+                              onChange={(e) => setDeskTestBrief(e.target.value)}
+                              rows={2}
+                              className="w-full px-2.5 py-1.5 bg-stone-900 border border-stone-700 rounded font-serif text-xs text-stone-200"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="font-mono text-[9px] uppercase text-[#E9D8A6] font-bold">Cadangan Desk Sistem & Kedudukan Skor</label>
+                          <div className="w-full min-h-[5.5rem] p-2.5 bg-stone-900 border border-stone-700 rounded font-mono text-xs text-stone-200 space-y-1.5 select-text">
+                            {deskTestResult ? (
+                              <>
+                                <div className="flex items-center justify-between border-b border-stone-800 pb-1">
+                                  <span className="text-emerald-400 font-bold text-sm">
+                                    ✓ DESK: {deskTestResult.winningDesk.toUpperCase()}
+                                  </span>
+                                  <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${
+                                    deskTestResult.confidence === 'HIGH' ? 'bg-green-900 text-green-200' : deskTestResult.confidence === 'MEDIUM' ? 'bg-amber-900 text-amber-200' : 'bg-red-900 text-red-200'
+                                  }`}>
+                                    Keyakinan: {deskTestResult.confidence} (Skor: {deskTestResult.topScore})
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-stone-400 italic">
+                                  {deskTestResult.reason}
+                                </p>
+                                {deskTestResult.deskScores && deskTestResult.deskScores.length > 0 && (
+                                  <div className="pt-1 flex flex-wrap gap-2 text-[10px]">
+                                    {deskTestResult.deskScores.slice(0, 4).map((ds: any, idx: number) => (
+                                      <span key={ds.deskName} className={idx === 0 ? 'text-green-300 font-bold' : 'text-stone-400'}>
+                                        {ds.deskName} ({ds.score})
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-stone-500 text-xs">(Tekan "Uji Klasifikasi Desk" untuk melihat kedudukan skor)</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 6. ADJUNG TYPOGRAPHY RULES (v2.1 - GLOBAL EDITORIAL STYLE LAYER) */}
+                      <div className="p-3 bg-stone-50/70 border border-stone-200 rounded-lg space-y-3 pt-3">
+                        <div className="flex justify-between items-center">
+                          <h5 className="font-mono text-xs font-bold text-[#802334] uppercase tracking-wider flex items-center gap-2">
+                            ✒️ Adjung Typography Rules (v2.1 - Lapisan Gaya Penerbitan Global)
+                          </h5>
+                          <span className="text-[9px] font-mono text-stone-500">{adjungTypographyRules.length} Aturan Tipografi</span>
+                        </div>
+
+                        {/* Live Sandbox Preview */}
+                        <TypographyPreview rules={adjungTypographyRules} />
+
+                        {/* Jadual Peraturan Tipografi */}
+                        <div className="overflow-x-auto border border-stone-200 rounded bg-white max-h-56 overflow-y-auto">
+                          <table className="w-full text-left font-sans text-xs">
+                            <thead>
+                              <tr className="bg-stone-100 border-b border-stone-200 text-[9px] font-mono uppercase text-stone-700 font-bold tracking-wider sticky top-0">
+                                <th className="p-2">Istilah</th>
+                                <th className="p-2 text-center">Gaya</th>
+                                <th className="p-2 text-center">Kategori</th>
+                                <th className="p-2 text-center">Keutamaan</th>
+                                <th className="p-2 text-center">Status</th>
+                                <th className="p-2 text-center">Tindakan</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {adjungTypographyRules.length === 0 ? (
+                                <tr>
+                                  <td colSpan={6} className="p-4 text-center text-stone-400 font-mono text-xs italic">
+                                    Tiada peraturan tipografi didaftarkan.
+                                  </td>
+                                </tr>
+                              ) : (
+                                adjungTypographyRules.map((rule) => {
+                                  const isPending = rule.status === 'pending';
+                                  return (
+                                    <tr key={rule.id} className={`border-b border-stone-100 hover:bg-stone-50 transition-colors ${isPending ? 'bg-amber-50/40' : ''}`}>
+                                      <td className="p-2 font-mono font-bold text-stone-900">
+                                        {rule.term}
+                                        {rule.excludeTerms && (
+                                          <span className="block text-[9px] text-stone-400 font-normal">
+                                            Pengecualian: {rule.excludeTerms}
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="p-2 text-center font-mono text-[10px]">
+                                        <span className="px-2 py-0.5 bg-stone-100 border border-stone-300 rounded font-bold uppercase">
+                                          {rule.style}
+                                        </span>
+                                      </td>
+                                      <td className="p-2 text-center font-mono text-[10px] text-stone-600">
+                                        {rule.category}
+                                      </td>
+                                      <td className="p-2 text-center font-mono text-[10px] font-bold text-amber-800">
+                                        {rule.priority}
+                                      </td>
+                                      <td className="p-2 text-center shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleAdjungTypographyRuleStatus(rule)}
+                                          className={`px-2 py-0.5 rounded font-mono text-[9px] uppercase font-bold cursor-pointer border ${
+                                            rule.status === 'active'
+                                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                              : 'bg-amber-100 text-amber-800 border-amber-300'
+                                          }`}
+                                        >
+                                          {rule.status === 'active' ? '● Aktif' : '⏳ Pending'}
+                                        </button>
+                                      </td>
+                                      <td className="p-2 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteAdjungTypographyRule(rule.id, rule.term)}
+                                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
+                                          title="Hapus Peraturan"
+                                        >
+                                          🗑️
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Borang Tambah Peraturan Tipografi Baharu */}
+                        <div className="p-3 bg-white border border-stone-200 rounded space-y-2">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                            <div>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Istilah Padanan</label>
+                              <input
+                                type="text"
+                                value={newTypoTerm}
+                                onChange={(e) => setNewTypoTerm(e.target.value)}
+                                placeholder="cth: scammer / Dewan Rakyat"
+                                className="w-full px-2 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Gaya Tipografi</label>
+                              <select
+                                value={newTypoStyle}
+                                onChange={(e) => setNewTypoStyle(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
+                              >
+                                <option value="italic">Italic (Senget)</option>
+                                <option value="bold">Bold (Tebal)</option>
+                                <option value="small_caps">Small Caps (Huruf Kecil Kapital)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Jenis Padanan</label>
+                              <select
+                                value={newTypoMatchType}
+                                onChange={(e) => setNewTypoMatchType(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
+                              >
+                                <option value="word">Perkataan (Word)</option>
+                                <option value="phrase">Frasa Penuh (Phrase)</option>
+                                <option value="regex">RegEx Custom</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Keutamaan (Priority)</label>
+                              <input
+                                type="number"
+                                value={newTypoPriority}
+                                onChange={(e) => setNewTypoPriority(Number(e.target.value))}
+                                className="w-full px-2 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end pt-1">
+                            <div>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Skop Pemformatan</label>
+                              <select
+                                value={newTypoScope}
+                                onChange={(e) => setNewTypoScope(e.target.value)}
+                                className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
+                              >
+                                <option value="all">Semua Skop (All)</option>
+                                <option value="title">Tajuk Sahaja (Title)</option>
+                                <option value="brief">Huraian Ringkas (Brief)</option>
+                                <option value="body">Kandungan Utama (Body)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Frasa Pengecualian (Optional)</label>
+                              <input
+                                type="text"
+                                value={newTypoExcludeTerms}
+                                onChange={(e) => setNewTypoExcludeTerms(e.target.value)}
+                                placeholder="cth: Startup Malaysia, Startup Studio"
+                                className="w-full px-2 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                              />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={handleAddAdjungTypographyRule}
+                                className="px-4 py-1.5 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs"
+                              >
+                                + Simpan Peraturan
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                )}
+
                 {/* MODUS MANUAL */}
                 {formConfig.contentMode === 'Manual' && (
                   <>
-                    <div className="flex flex-col gap-1 col-span-2 pt-1">
-                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kandungan Manual (Ikuti Format Template)</label>
-                      <textarea
-                        value={formConfig.manualSummary}
-                        onChange={(e) => setFormConfig({ ...formConfig, manualSummary: e.target.value })}
-                        rows={12}
-                        className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs leading-relaxed"
-                      />
-                      <p className="text-[9px] text-[#802334] font-sans font-bold leading-normal mt-1">
-                        {editingSlotIndex === -1
-                          ? '* Nota: Pisahkan setiap kandungan ticker dengan garisan pemisah tiga sempang (---) di baris baharu.'
-                          : '* Nota: Jika ingin meletakkan 2 atau lebih kandungan untuk bertukar secara animasi (carousel/slide), pisahkan setiap blok kandungan dengan garisan pemisah empat underscores (____).'
-                        }
-                      </p>
-                    </div>
+                    {/* MODUS MANUAL BENTO SLOTS (0 - 36) */}
+                    {editingSlotIndex !== -1 ? (
+                      <div className="flex flex-col gap-4 col-span-2 pt-1">
+                        <div className="flex justify-between items-center flex-wrap gap-1">
+                          <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">
+                            Kandungan Manual Redaksi (Kirim Pukal / Tunggal)
+                          </label>
+                          <span className="text-[10px] font-mono text-stone-500 font-semibold">
+                            * UUID dikunci automatik. Tampal kandungan pukal untuk pemisahan automatik.
+                          </span>
+                        </div>
 
-                    {editingSlotIndex !== -1 && (
-                      <div className="flex flex-col gap-1 col-span-2">
-                        <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Gambar Latar Belakang (URL / Fail)</label>
-                        <input
-                          type="text"
-                          value={formConfig.manualImageUrl}
-                          onChange={(e) => setFormConfig({ ...formConfig, manualImageUrl: e.target.value })}
-                          placeholder="/uploads/... atau URL luar"
-                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                        {(() => {
+                          // Parse manualSummary into structured blocks
+                          const rawText = formConfig.manualSummary || '';
+                          const rawBlocks = rawText.split(/(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i).filter(b => b.trim().length > 0);
+
+                          const parsedList = (rawBlocks.length > 0 ? rawBlocks : [rawText]).map((blk, idx) => {
+                            let uuid = '';
+                            const uuidMatch = blk.match(/^UUID:\s*([^\r\n]+)/i);
+                            if (uuidMatch) {
+                              uuid = uuidMatch[1].trim();
+                            } else {
+                              uuid = `object-manual-slot${editingSlotIndex}-${Date.now()}-${idx}`;
+                            }
+                            // Clean text by stripping UUID line if present at top
+                            const cleanContent = blk.replace(/^UUID:[^\r\n]*\r?\n?/i, '').trim();
+                            return { uuid, text: cleanContent };
+                          });
+
+                          const updateSummaryFromList = (newList: { uuid: string; text: string }[]) => {
+                            const serialized = newList.map(item => `UUID: ${item.uuid}\n${item.text}`).join('\n\n________________________________________\n\n');
+                            setFormConfig({ ...formConfig, manualSummary: serialized });
+                          };
+
+                          const handleBlockChange = (index: number, val: string) => {
+                            // Check if user pasted bulk content into this single block
+                            const subBlocks = val.split(/(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i).filter(b => b.trim().length > 0);
+                            
+                            if (subBlocks.length > 1) {
+                              // Bulk paste detected! Auto-split into separate blocks
+                              const replacementBlocks = subBlocks.map((sb, sbIdx) => {
+                                let sbUuid = '';
+                                const m = sb.match(/^UUID:\s*([^\r\n]+)/i);
+                                if (m) {
+                                  sbUuid = m[1].trim();
+                                } else {
+                                  sbUuid = `object-manual-slot${editingSlotIndex}-${Date.now()}-${index}-${sbIdx}`;
+                                }
+                                return { uuid: sbUuid, text: sb.replace(/^UUID:[^\r\n]*\r?\n?/i, '').trim() };
+                              });
+
+                              const newList = [...parsedList];
+                              newList.splice(index, 1, ...replacementBlocks);
+                              updateSummaryFromList(newList);
+                            } else {
+                              // Regular single block update
+                              const newList = [...parsedList];
+                              newList[index] = { ...newList[index], text: val };
+                              updateSummaryFromList(newList);
+                            }
+                          };
+
+                          const handleAddBlock = () => {
+                            const newUuid = `object-manual-slot${editingSlotIndex}-${Date.now()}-${parsedList.length}`;
+                            const template = `Tajuk: \nHuraian ringkas: \nHuraian panjang: \nKategori: TEKNOLOGI\nJenis sumber: Laman Web\nTarikh: \nSumber: \nURL: `;
+                            const newList = [...parsedList, { uuid: newUuid, text: template }];
+                            updateSummaryFromList(newList);
+                          };
+
+                          const handleRemoveBlock = (index: number) => {
+                            if (parsedList.length <= 1) return;
+                            const newList = parsedList.filter((_, i) => i !== index);
+                            updateSummaryFromList(newList);
+                          };
+
+                          const handleKeyDownItalic = (e: React.KeyboardEvent<HTMLTextAreaElement>, bIndex: number, currentText: string) => {
+                            if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) {
+                              e.preventDefault();
+                              const textarea = e.currentTarget;
+                              const start = textarea.selectionStart;
+                              const end = textarea.selectionEnd;
+
+                              if (start !== end) {
+                                const selectedText = currentText.substring(start, end);
+                                let replacement = '';
+                                let newStart = start;
+                                let newEnd = end;
+
+                                if (selectedText.startsWith('*') && selectedText.endsWith('*') && selectedText.length >= 2) {
+                                  replacement = selectedText.slice(1, -1);
+                                  newEnd = start + replacement.length;
+                                } else {
+                                  replacement = `*${selectedText}*`;
+                                  newEnd = start + replacement.length;
+                                }
+
+                                const updatedText = currentText.substring(0, start) + replacement + currentText.substring(end);
+                                handleBlockChange(bIndex, updatedText);
+
+                                setTimeout(() => {
+                                  textarea.focus();
+                                  textarea.setSelectionRange(newStart, newEnd);
+                                }, 0);
+                              } else {
+                                const updatedText = currentText.substring(0, start) + '**' + currentText.substring(end);
+                                handleBlockChange(bIndex, updatedText);
+
+                                setTimeout(() => {
+                                  textarea.focus();
+                                  textarea.setSelectionRange(start + 1, start + 1);
+                                }, 0);
+                              }
+                            }
+                          };
+
+                          return (
+                            <div className="flex flex-col gap-6">
+                              {parsedList.map((item, bIndex) => (
+                                <div id={`manual-block-card-${bIndex + 1}`} key={item.uuid || bIndex} className="flex flex-col gap-2 p-3 bg-[#F9F8F6] rounded border border-stone-250">
+                                  {/* Header Bar dengan Read-only UUID & Butang Padam */}
+                                  <div className="flex justify-between items-center bg-stone-100 px-3 py-1.5 rounded border border-stone-200">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                      <span className="text-[10px] font-mono font-bold text-[#802334] bg-white px-2 py-0.5 rounded border border-stone-300 shadow-2xs shrink-0">
+                                        Blok #{bIndex + 1}
+                                      </span>
+                                      <span className="text-[10px] font-mono font-bold text-stone-600 truncate select-all" title="UUID Kanonikal (Dikunci oleh Sistem)">
+                                        🔒 UUID: <span className="text-stone-900">{item.uuid}</span>
+                                      </span>
+                                    </div>
+                                    {parsedList.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveBlock(bIndex)}
+                                        className="text-[10px] font-mono text-rose-700 hover:text-rose-900 font-bold px-2 py-0.5 bg-rose-50 hover:bg-rose-100 rounded border border-rose-200 transition cursor-pointer shrink-0"
+                                      >
+                                        🗑️ Hapus Blok
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <textarea
+                                    id={`manual-block-textarea-${bIndex + 1}`}
+                                    value={item.text}
+                                    onChange={(e) => handleBlockChange(bIndex, e.target.value)}
+                                    onKeyDown={(e) => handleKeyDownItalic(e, bIndex, item.text)}
+                                    rows={8}
+                                    placeholder="Taip atau tampal kandungan di sini... (Ctrl+I untuk italic perkataan)"
+                                    className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs leading-relaxed"
+                                  />
+
+                                  {/* Pemisah UI Hujung ke Hujung (bukan markdown) */}
+                                  {bIndex < parsedList.length - 1 && (
+                                    <div className="pt-3 pb-1">
+                                      <hr className="border-t-2 border-dashed border-stone-300" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+
+                              {/* Butang Tambah Blok Baharu */}
+                              <div className="flex justify-center pt-2">
+                                <button
+                                  type="button"
+                                  onClick={handleAddBlock}
+                                  className="w-full py-2.5 px-4 bg-stone-100 hover:bg-stone-200 text-stone-800 font-mono text-xs font-bold rounded border border-stone-300 flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs"
+                                >
+                                  <span>+ Tambah Blok Kandungan Baharu (Carousel / Slide)</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      /* MODUS MANUAL TICKER (-1) */
+                      <div className="flex flex-col gap-1 col-span-2 pt-1">
+                        <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Kandungan Ticker Manual</label>
+                        <textarea
+                          id="manualSummaryTextarea"
+                          value={formConfig.manualSummary}
+                          onChange={(e) => setFormConfig({ ...formConfig, manualSummary: e.target.value })}
+                          rows={12}
+                          className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs leading-relaxed"
                         />
+                        <p className="text-[9px] text-[#802334] font-sans font-bold leading-normal mt-1">
+                          * Nota: Pisahkan setiap kandungan ticker dengan garisan pemisah tiga sempang (---) di baris baharu.
+                        </p>
                       </div>
                     )}
+
+
 
                     {renderTetapanSlot()}
 
@@ -3979,10 +6133,9 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
               >
                 {/* Accent colored Desk label */}
                 <div 
-                  className="font-mono text-xs uppercase tracking-widest font-extrabold"
-                  style={{ color: overlayItem.categoryColor || getDeskAccentColor(overlayItem.desk) }}
+                  className="font-mono text-xs uppercase tracking-widest font-extrabold text-[#802334]"
                 >
-                  {overlayItem.desk}
+                  BERITA SEMASA
                 </div>
 
                 {/* Large Serif Title */}
@@ -3997,19 +6150,26 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                   </p>
                 )}
 
+                {/* Source Metadata */}
+                {overlayItem.source && (
+                  <div className="font-sans text-xs text-stone-800 font-semibold tracking-wide pt-1">
+                    {overlayItem.source}
+                  </div>
+                )}
+
                 {/* Read Original button */}
-                {overlayItem.url && (
-                  <div className="pt-4 select-none">
+                <div className="pt-4 select-none flex items-center justify-center gap-3">
+                  {overlayItem.url && (
                     <a 
                       href={overlayItem.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 bg-[#802334] hover:bg-[#631c28] text-white px-6 py-2.5 rounded font-mono text-[10px] uppercase tracking-wider transition shadow-sm"
                     >
-                      Baca Kandungan Asal &rarr;
+                      Pautan Sumber &rarr;
                     </a>
-                  </div>
-                )}
+                  )}
+                </div>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -4036,6 +6196,18 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           )}
         </div>
       )}
+      {showScrollToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+          title="Kembali Ke Atas"
+          aria-label="Kembali Ke Atas"
+        >
+          <ChevronLeft className="w-5 h-5 rotate-90 group-hover:-translate-y-0.5 transition-transform" />
+        </button>
+      )}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 };
