@@ -300,7 +300,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
   };
 
   return (
-    <div className="fixed inset-0 bg-stone-900/60 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
       <div 
         className="relative max-w-2xl w-full bg-white rounded-lg shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[90vh] animate-fade-in"
         style={{ contain: 'paint' }}

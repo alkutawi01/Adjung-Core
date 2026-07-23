@@ -3658,7 +3658,7 @@ URL: ${url}`;
 
       {/* Pop-up Modal Penyuntingan Slot Bento */}
       {editingSlotIndex !== null && editingSlotIndex !== -1 && formConfig && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white rounded-lg border border-stone-200 max-w-xl w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl animate-fade-in">
             <header className="px-6 py-4 border-b border-stone-150 flex justify-between items-center bg-stone-50">
               <div>
@@ -5908,7 +5908,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
 
       {/* Pop-up Modal untuk Melihat Prompt / Respons AI (AI Payload Auditor) */}
       {activeLogPayload && (
-        <div className="fixed inset-0 z-[100] bg-black/75 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] bg-black/75 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white rounded-lg border border-stone-250 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in">
             <header className="px-5 py-3 border-b border-stone-150 flex justify-between items-center bg-stone-50">
               <h4 className="font-mono text-xs font-bold text-[#802334] uppercase tracking-wider">
