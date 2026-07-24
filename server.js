@@ -696,7 +696,9 @@ app.get('/api/db-state', async (req, res) => {
       worldClockHolidaysGoogleDocUrl: settingsRow.worldClockHolidaysGoogleDocUrl || '',
       researchFindingsText: settingsRow.researchFindingsText || '',
       researchFindingsGoogleDocUrl: settingsRow.researchFindingsGoogleDocUrl || '',
-      masterPrompt: settingsRow.masterPrompt || ''
+      masterPrompt: settingsRow.masterPrompt || '',
+      worldClockIntervalSec: settingsRow.worldClockIntervalSec !== undefined && settingsRow.worldClockIntervalSec !== null ? settingsRow.worldClockIntervalSec : 60,
+      worldClockBgClickEnabled: settingsRow.worldClockBgClickEnabled !== undefined && settingsRow.worldClockBgClickEnabled !== null ? settingsRow.worldClockBgClickEnabled === 1 : true
     } : {};
 
     let currentUser = null;
@@ -1782,6 +1784,8 @@ const initEditorialOS = (dbConn) => {
                       dbConn.run("ALTER TABLE slots_config ADD COLUMN lastRunMessage TEXT", () => {
                         dbConn.run("ALTER TABLE editorial_revisions ADD COLUMN language TEXT DEFAULT 'ms'", () => {
                           dbConn.run("ALTER TABLE pipeline_logs ADD COLUMN runId TEXT", () => {
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN worldClockIntervalSec INTEGER DEFAULT 60", () => {});
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN worldClockBgClickEnabled INTEGER DEFAULT 1", () => {});
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN masterPrompt TEXT", () => {
                               dbConn.run("ALTER TABLE editorial_objects ADD COLUMN slotIndex INTEGER", () => {
                                 dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselInterval INTEGER DEFAULT 10", () => {
@@ -3012,22 +3016,25 @@ app.post('/api/system/settings', async (req, res) => {
         id, frontpageTitle, frontpageSubtitle, rolePermissions, 
         inTheNewsText, inTheNewsGoogleDocUrl, featuredScholarId, featuredEntryId, 
         editorialSelectionIds, announcementBanner, enableArabicAccent, layoutDensity, 
-        allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText, 
+        allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText,
         worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl,
-        masterPrompt
+        masterPrompt, worldClockIntervalSec, worldClockBgClickEnabled
       ) VALUES (
-        'settings-main', ?, ?, ?, 
-        ?, ?, ?, ?, 
-        ?, ?, ?, ?, 
-        ?, ?, ?, ?, 
-        ?, ?, ?, ?
+        'settings-main', ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?
       )
     `, [
       s.frontpageTitle, s.frontpageSubtitle, JSON.stringify(s.rolePermissions || {}),
       s.inTheNewsText, s.inTheNewsGoogleDocUrl, s.featuredScholarId, s.featuredEntryId,
       JSON.stringify(s.editorialSelectionIds || []), s.announcementBanner, s.enableArabicAccent ? 1 : 0, s.layoutDensity,
       JSON.stringify(s.allowedSignatureFonts || []), JSON.stringify(s.featuredEssayIds || []), JSON.stringify(s.featuredNoteIds || []), s.worldClockHolidaysText,
-      s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl, s.masterPrompt
+      s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl, s.masterPrompt,
+      s.worldClockIntervalSec !== undefined ? Number(s.worldClockIntervalSec) : 60,
+      s.worldClockBgClickEnabled !== undefined ? (s.worldClockBgClickEnabled ? 1 : 0) : 1
     ]);
     res.json({ success: true });
   } catch (err) {

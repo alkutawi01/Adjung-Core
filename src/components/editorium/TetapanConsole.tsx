@@ -56,13 +56,15 @@ interface DeskItem {
   status: 'Aktif' | 'Tidak Aktif';
 }
 
-interface DeskRule {
+interface TypographyTerm {
   id: string;
-  deskId: string;
-  deskName?: string;
-  keyword: string;
-  weight: number;
-  isNegative: boolean;
+  term: string;
+  style: string;
+}
+
+interface BlockedCategory {
+  id: string;
+  categoryName: string;
   enabled: boolean;
 }
 
@@ -82,6 +84,27 @@ interface RbacMatrixRow {
   };
 }
 
+const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
+  {
+    roleId: 'ketua_editor',
+    roleName: 'Ketua Editor',
+    isImmutableAdmin: true,
+    permissions: {
+      viewAll: true, editOwn: true, editAll: true, publish: true,
+      reject: true, assignSlot: true, manageSettings: true, manageRbac: true
+    }
+  },
+  {
+    roleId: 'editor',
+    roleName: 'Editor',
+    isImmutableAdmin: false,
+    permissions: {
+      viewAll: true, editOwn: true, editAll: false, publish: true,
+      reject: false, assignSlot: false, manageSettings: false, manageRbac: false
+    }
+  }
+];
+
 interface TetapanConsoleProps {
   currentUserRole?: 'KETUA_EDITOR' | 'EDITOR';
 }
@@ -89,69 +112,78 @@ interface TetapanConsoleProps {
 export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   currentUserRole = 'KETUA_EDITOR'
 }) => {
-  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'AdjungBrief' | 'Taksonomi' | 'Komponen' | 'RBAC'>('PolisiKandungan');
+  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'Operasi' | 'Taksonomi' | 'Komponen' | 'RBAC'>('PolisiKandungan');
 
   // Interactive Configuration Drawer Modal State
-  const [activeConfigModal, setActiveConfigModal] = useState<'italic' | 'ticker' | 'add_desk' | null>(null);
+  const [activeConfigModal, setActiveConfigModal] = useState<'italic' | 'add_desk' | null>(null);
 
-  // Kamus Istilah Italic Dictionary State
-  const [italicTerms, setItalicTerms] = useState<string[]>([
-    'avatar', 'podcast', 'live streaming', 'machine learning', 'scammer', 'blockchain', 'biosemiotic'
-  ]);
+  // Kamus Istilah Italic -- backed by the same adjung_typography_rules table the main
+  // frontpage settings drawer uses (core/routes/slotRoutes.js), not a separate local list.
+  const [italicTerms, setItalicTerms] = useState<TypographyTerm[]>([]);
+  const [loadingItalicTerms, setLoadingItalicTerms] = useState(false);
   const [newTermInput, setNewTermInput] = useState('');
 
-  // Ticker & RSS Editorial Settings State
-  const [tickerHeaderLabel, setTickerHeaderLabel] = useState('TERKINI DI MALAYSIA');
-  const [tickerMaxItems, setTickerMaxItems] = useState<number>(30);
-  const [blockedKeywords, setBlockedKeywords] = useState<string>('');
-  const [blockedCategoryTags, setBlockedCategoryTags] = useState<string>('');
-  const [isSavingTickerSettings, setIsSavingTickerSettings] = useState<boolean>(false);
-
-  const fetchTickerSettings = async () => {
+  const fetchItalicTerms = async () => {
+    setLoadingItalicTerms(true);
     try {
-      const res = await fetch('/api/system/ticker/settings');
+      const res = await fetch('/api/system/adjung-typography-rules');
       if (res.ok) {
-        const settings = await res.json();
-        if (settings.tickerHeaderLabel) setTickerHeaderLabel(settings.tickerHeaderLabel);
-        if (settings.blockedKeywords !== undefined) setBlockedKeywords(settings.blockedKeywords);
-        if (settings.blockedCategoryTags !== undefined) setBlockedCategoryTags(settings.blockedCategoryTags);
-        if (settings.tickerMaxItems !== undefined) setTickerMaxItems(Number(settings.tickerMaxItems) || 30);
+        const rules = await res.json();
+        setItalicTerms(
+          (rules || [])
+            .filter((r: any) => r.style === 'italic')
+            .map((r: any) => ({ id: r.id, term: r.term, style: r.style }))
+        );
       }
     } catch (e) {
-      console.error('Error fetching ticker settings:', e);
+      console.error('Error fetching italic terms:', e);
+    } finally {
+      setLoadingItalicTerms(false);
     }
   };
 
-  const handleSaveTickerSettings = async () => {
+  const handleAddItalicTerm = async () => {
+    const term = newTermInput.trim().toLowerCase();
+    if (!term || italicTerms.some(t => t.term === term)) return;
     try {
-      setIsSavingTickerSettings(true);
-      const payload = {
-        tickerHeaderLabel,
-        tickerMaxItems,
-        blockedKeywords,
-        blockedCategoryTags
-      };
-      const res = await fetch('/api/system/ticker/settings', {
+      const res = await fetch('/api/system/adjung-typography-rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ term, style: 'italic', category: 'foreign_term' })
       });
       if (res.ok) {
-        alert('Tetapan RSS & Ticker berjaya disimpan dan disegerakkan dengan pangkalan data!');
+        setNewTermInput('');
+        fetchItalicTerms();
       } else {
-        alert('Gagal menyimpan tetapan RSS & Ticker.');
+        const body = await res.json().catch(() => ({}));
+        alert(body.error || 'Gagal menambah istilah.');
       }
     } catch (e) {
-      console.error('Save ticker settings error:', e);
-      alert('Ralat menyimpan tetapan RSS & Ticker.');
-    } finally {
-      setIsSavingTickerSettings(false);
+      console.error('Add italic term error:', e);
+      alert('Ralat menambah istilah.');
     }
   };
 
-  // World Clock & Weather API Governance State
+  const handleRemoveItalicTerm = async (id: string) => {
+    try {
+      const res = await fetch(`/api/system/adjung-typography-rules/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setItalicTerms(prev => prev.filter(t => t.id !== id));
+      }
+    } catch (e) {
+      console.error('Remove italic term error:', e);
+    }
+  };
+
+  // Governance Jam Dunia (World Clock) -- these were previously local-only state with no
+  // backing DB columns at all (WorldClockStrip.tsx has read systemSettings.worldClockIntervalSec
+  // / worldClockBgClickEnabled from day one, but nothing ever wrote them). Now backed by real
+  // columns on system_settings.
   const [worldClockIntervalSec, setWorldClockIntervalSec] = useState<number>(60);
   const [worldClockBgClickEnabled, setWorldClockBgClickEnabled] = useState<boolean>(true);
+  const [savingWorldClock, setSavingWorldClock] = useState(false);
+  const [worldClockSaveError, setWorldClockSaveError] = useState<string | null>(null);
+
   const [apiHealthStatus, setApiHealthStatus] = useState<any>(null);
   const [isLoadingApiStatus, setIsLoadingApiStatus] = useState<boolean>(false);
 
@@ -170,24 +202,93 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
+  // Saving system_settings is a full INSERT OR REPLACE server-side (server.js POST
+  // /api/system/settings) -- always fetch the current row and merge in just the field(s) being
+  // changed here, or unrelated settings saved elsewhere (frontpage title, banners, etc.) get
+  // silently wiped.
+  const saveSystemSettingsPatch = async (patch: Record<string, any>) => {
+    const current = await fetch('/api/db-state').then(r => r.json());
+    const merged = { ...(current.systemSettings || {}), ...patch };
+    const res = await fetch('/api/system/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(merged)
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Gagal menyimpan tetapan.');
+    }
+    return merged;
+  };
+
+  const handleSaveWorldClockSettings = async () => {
+    setSavingWorldClock(true);
+    setWorldClockSaveError(null);
+    try {
+      await saveSystemSettingsPatch({
+        worldClockIntervalSec,
+        worldClockBgClickEnabled
+      });
+    } catch (e: any) {
+      setWorldClockSaveError(e.message || 'Gagal menyimpan tetapan Jam Dunia.');
+    } finally {
+      setSavingWorldClock(false);
+    }
+  };
+
   // Taksonomi Desk List State (Auto-registered from Live content + Unique Hex Colors)
   const [desks, setDesks] = useState<DeskItem[]>([]);
 
-  // Adjung Desk Classification Rules Engine State (Khusus Ticker & Curation)
-  const [rules, setRules] = useState<DeskRule[]>([
-    { id: 'rule_01', deskId: 'Kesusasteraan Melayu', deskName: 'Kesusasteraan Melayu', keyword: 'sastera', weight: 25, isNegative: false, enabled: true },
-    { id: 'rule_02', deskId: 'Kesusasteraan Melayu', deskName: 'Kesusasteraan Melayu', keyword: 'puisi', weight: 20, isNegative: false, enabled: true },
-    { id: 'rule_03', deskId: 'Psikolinguistik', deskName: 'Psikolinguistik', keyword: 'psikologi', weight: 20, isNegative: false, enabled: true },
-    { id: 'rule_04', deskId: 'Psikolinguistik', deskName: 'Psikolinguistik', keyword: 'dementia', weight: 15, isNegative: false, enabled: true },
-    { id: 'rule_05', deskId: 'Teknologi', deskName: 'Teknologi', keyword: 'kecerdasan buatan', weight: 30, isNegative: false, enabled: true },
-    { id: 'rule_06', deskId: 'Sejarah', deskName: 'Sejarah', keyword: 'fosil', weight: 25, isNegative: false, enabled: true },
-    { id: 'rule_07', deskId: 'Warisan', deskName: 'Warisan', keyword: 'unesco', weight: 25, isNegative: false, enabled: true },
-    { id: 'rule_08', deskId: 'Ekonomi', deskName: 'Ekonomi', keyword: 'bank negara', weight: 20, isNegative: false, enabled: true },
-    { id: 'rule_09', deskId: 'Nasional', deskName: 'Nasional', keyword: 'parlimen', weight: 25, isNegative: false, enabled: true },
-    { id: 'rule_10', deskId: 'Politik', deskName: 'Politik', keyword: 'pilihan raya', weight: 25, isNegative: false, enabled: true }
-  ]);
+  // Blocked RSS categories -- real CRUD table (rss_blocked_categories), managed here AND in the
+  // main frontpage's Ticker Management modal; both point at the same backend so they can never
+  // drift out of sync with each other.
+  const [blockedCategories, setBlockedCategories] = useState<BlockedCategory[]>([]);
+  const [newBlockedCategoryInput, setNewBlockedCategoryInput] = useState('');
 
-  // Live Classifier Tester State (Metodologi Multi-Dimensi 3-Tier)
+  const fetchBlockedCategories = async () => {
+    try {
+      const res = await fetch('/api/system/rss-blocked-categories');
+      if (res.ok) {
+        const rows = await res.json();
+        setBlockedCategories((rows || []).map((r: any) => ({ id: r.id, categoryName: r.categoryName, enabled: r.enabled === 1 || r.enabled === true })));
+      }
+    } catch (e) {
+      console.error('Fetch blocked categories error:', e);
+    }
+  };
+
+  const handleAddBlockedCategory = async () => {
+    const name = newBlockedCategoryInput.trim();
+    if (!name) return;
+    try {
+      const res = await fetch('/api/system/rss-blocked-categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryName: name })
+      });
+      if (res.ok) {
+        setNewBlockedCategoryInput('');
+        fetchBlockedCategories();
+      } else {
+        const body = await res.json().catch(() => ({}));
+        alert(body.error || 'Gagal menambah kategori.');
+      }
+    } catch (e) {
+      console.error('Add blocked category error:', e);
+    }
+  };
+
+  const handleRemoveBlockedCategory = async (id: string) => {
+    try {
+      const res = await fetch(`/api/system/rss-blocked-categories/${id}`, { method: 'DELETE' });
+      if (res.ok) setBlockedCategories(prev => prev.filter(c => c.id !== id));
+    } catch (e) {
+      console.error('Remove blocked category error:', e);
+    }
+  };
+
+  // Live Classifier Tester -- exercises the real desk-classification engine
+  // (core/engines/DeskClassifierEngine.js via /api/system/rss-desk-rules/test).
   const [testInputTitle, setTestInputTitle] = useState('PDRM tahan 3 suspek kes jenayah biometrik di KLIA');
   const [testInputBrief, setTestInputBrief] = useState('Siasatan lanjut mendapati penglibatan sindiket antarabangsa.');
   const [testInputCategory, setTestInputCategory] = useState('Jenayah');
@@ -216,7 +317,21 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   };
 
   useEffect(() => {
-    fetchTickerSettings();
+    fetchItalicTerms();
+    fetchBlockedCategories();
+
+    fetch('/api/db-state')
+      .then(res => res.json())
+      .then(data => {
+        const s = data.systemSettings || {};
+        if (s.worldClockIntervalSec !== undefined) setWorldClockIntervalSec(Number(s.worldClockIntervalSec));
+        if (s.worldClockBgClickEnabled !== undefined) setWorldClockBgClickEnabled(!!s.worldClockBgClickEnabled);
+        if (s.rolePermissions && Array.isArray(s.rolePermissions) && s.rolePermissions.length > 0) {
+          setRbacMatrix(s.rolePermissions);
+        }
+      })
+      .catch(e => console.error('Error fetching system settings:', e));
+
     // Fetch live content items to extract actual live desks dynamically
     fetch('/api/system/content/all')
       .then(res => res.json())
@@ -284,39 +399,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const [newDeskColor, setNewDeskColor] = useState('#802334');
   const [newDeskLabel, setNewDeskLabel] = useState('');
 
-  // Interactive RBAC Permission Matrix State
-  const [rbacMatrix, setRbacMatrix] = useState<RbacMatrixRow[]>([
-    {
-      roleId: 'ketua_editor',
-      roleName: 'Ketua Editor',
-      isImmutableAdmin: true,
-      permissions: {
-        viewAll: true,
-        editOwn: true,
-        editAll: true,
-        publish: true,
-        reject: true,
-        assignSlot: true,
-        manageSettings: true,
-        manageRbac: true
-      }
-    },
-    {
-      roleId: 'editor',
-      roleName: 'Editor',
-      isImmutableAdmin: false,
-      permissions: {
-        viewAll: true,
-        editOwn: true,
-        editAll: false,
-        publish: true,
-        reject: false,
-        assignSlot: false,
-        manageSettings: false,
-        manageRbac: false
-      }
-    }
-  ]);
+  // Interactive RBAC Permission Matrix State -- backed by system_settings.rolePermissions.
+  const [rbacMatrix, setRbacMatrix] = useState<RbacMatrixRow[]>(DEFAULT_RBAC_MATRIX);
+  const [savingRbac, setSavingRbac] = useState(false);
+  const [rbacSaveError, setRbacSaveError] = useState<string | null>(null);
+  const [rbacDirty, setRbacDirty] = useState(false);
 
   const handleTogglePermission = (roleId: string, permKey: keyof RbacMatrixRow['permissions']) => {
     setRbacMatrix(prev =>
@@ -336,17 +423,20 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         };
       })
     );
+    setRbacDirty(true);
   };
 
-  const handleAddItalicTerm = () => {
-    if (newTermInput.trim() && !italicTerms.includes(newTermInput.trim().toLowerCase())) {
-      setItalicTerms(prev => [...prev, newTermInput.trim().toLowerCase()]);
-      setNewTermInput('');
+  const handleSaveRbac = async () => {
+    setSavingRbac(true);
+    setRbacSaveError(null);
+    try {
+      await saveSystemSettingsPatch({ rolePermissions: rbacMatrix });
+      setRbacDirty(false);
+    } catch (e: any) {
+      setRbacSaveError(e.message || 'Gagal menyimpan matriks RBAC.');
+    } finally {
+      setSavingRbac(false);
     }
-  };
-
-  const handleRemoveItalicTerm = (term: string) => {
-    setItalicTerms(prev => prev.filter(t => t !== term));
   };
 
   const handleAddDesk = () => {
@@ -406,12 +496,21 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </button>
 
           <button
+            onClick={() => setSubTab('Operasi')}
+            className={`px-4 py-2 font-semibold transition-all border-b-2 ${
+              subTab === 'Operasi' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            3. Operasi & Governance
+          </button>
+
+          <button
             onClick={() => setSubTab('Komponen')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
               subTab === 'Komponen' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
-            3. Adjung Editorial Intelligence Platform (AEIP)
+            4. Adjung Editorial Intelligence Platform (AEIP)
           </button>
 
           <button
@@ -420,13 +519,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               subTab === 'RBAC' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
-            4. RBAC
+            5. RBAC
           </button>
         </div>
-
-        <button className="bg-[#802334] hover:bg-[#6c1d2c] text-white px-4 py-1.5 rounded font-semibold shadow-xs transition-colors text-xs">
-          Simpan Polisi
-        </button>
       </div>
 
       {/* 1. POLISI KANDUNGAN */}
@@ -439,7 +534,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             <div className="pt-3 flex flex-wrap justify-between items-center gap-3">
               <div className="space-y-1">
                 <label className="flex items-center gap-2 font-semibold text-stone-900 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="rounded border-stone-300 text-[#802334]" />
+                  <input type="checkbox" checked readOnly className="rounded border-stone-300 text-[#802334]" />
                   <span>Auto Italic Istilah Asing & Pinjaman</span>
                 </label>
                 <p className="text-stone-500 text-xs">
@@ -456,171 +551,187 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
             <div className="pt-4 flex flex-wrap justify-between items-center gap-3">
               <div className="space-y-1">
-                <label className="flex items-center gap-2 font-semibold text-stone-900 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="rounded border-stone-300 text-[#802334]" />
+                <label className="flex items-center gap-2 font-semibold text-stone-400 cursor-not-allowed">
+                  <input type="checkbox" disabled className="rounded border-stone-300" />
                   <span>Citation & Rujukan Akademik</span>
                 </label>
-                <p className="text-stone-500 text-xs">
+                <p className="text-stone-400 text-xs">
                   Enjin rujukan automatik bagi format sitasi jurnal dan dokumen sejarah.
                 </p>
               </div>
-              <button className="w-64 flex items-center justify-center bg-stone-100 text-stone-700 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-300">
-                ⚙️ Konfigurasi Citation
-              </button>
+              <span className="w-64 flex items-center justify-center bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
+                🚧 Belum Dibina
+              </span>
             </div>
 
             <div className="pt-4 flex flex-wrap justify-between items-center gap-3">
               <div className="space-y-1">
-                <label className="flex items-center gap-2 font-semibold text-stone-900 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="rounded border-stone-300 text-[#802334]" />
+                <label className="flex items-center gap-2 font-semibold text-stone-400 cursor-not-allowed">
+                  <input type="checkbox" disabled className="rounded border-stone-300" />
                   <span>Footnote & Nota Kaki Dinamik</span>
                 </label>
-                <p className="text-stone-500 text-xs">
+                <p className="text-stone-400 text-xs">
                   Penomboran nota kaki bawah halaman bagi istilah khusus akademik.
                 </p>
               </div>
-              <button className="w-64 flex items-center justify-center bg-stone-100 text-stone-700 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-300">
-                ⚙️ Konfigurasi Footnote
-              </button>
+              <span className="w-64 flex items-center justify-center bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
+                🚧 Belum Dibina
+              </span>
             </div>
 
             <div className="pt-4 flex flex-wrap justify-between items-center gap-3">
               <div className="space-y-1">
-                <label className="flex items-center gap-2 font-semibold text-stone-900 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="rounded border-stone-300 text-[#802334]" />
+                <label className="flex items-center gap-2 font-semibold text-stone-400 cursor-not-allowed">
+                  <input type="checkbox" disabled className="rounded border-stone-300" />
                   <span>Interlinear Gloss (Teks Dwibahasa / Arab-Melayu)</span>
                 </label>
-                <p className="text-stone-500 text-xs">
+                <p className="text-stone-400 text-xs">
                   Paparan baris selari glosarium bagi istilah dwibahasa dan teks klasik.
                 </p>
               </div>
-              <button className="w-64 flex items-center justify-center bg-stone-100 text-stone-700 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-300">
-                ⚙️ Konfigurasi Gloss
-              </button>
+              <span className="w-64 flex items-center justify-center bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
+                🚧 Belum Dibina
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* 2. ADJUNG BRIEF */}
-      {subTab === 'AdjungBrief' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-6 text-xs">
-          <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider mb-1">
-              Polisi Automasik, Ingestion & Geometri Nisbah
-            </h3>
-            <p className="text-stone-500 text-xs">
-              Had aksara brief dikawal secara dinamik mengikut nisbah geometri spatial slot masing-masing (GeometryConfig Engine).
-            </p>
-          </div>
-
-          {/* Live RSS & Ticker Moderation Panel */}
-          <div className="p-4 bg-[#F9F8F6] rounded border border-stone-250 space-y-4">
-            <h4 className="font-mono text-xs uppercase tracking-wider text-[#802334] font-bold">
-              ⚙️ TETAPAN LIVE RSS & PENAPISAN TICKER
-            </h4>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* 2. TAKSONOMI (DESK MANAGEMENT) */}
+      {subTab === 'Taksonomi' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+            <div className="flex flex-wrap justify-between items-center gap-4">
               <div>
-                <label className="font-mono text-[10px] uppercase font-bold text-stone-600 block mb-1">
-                  Had Maksimum Berita Live (Ranking Skor Tertinggi)
-                </label>
-                <select
-                  value={tickerMaxItems}
-                  onChange={(e) => setTickerMaxItems(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded font-mono text-xs font-bold"
-                >
-                  <option value={10}>10 Berita (Ranking 1 - 10)</option>
-                  <option value={20}>20 Berita (Ranking 1 - 20)</option>
-                  <option value={30}>30 Berita (Ranking 1 - 30)</option>
-                  <option value={50}>50 Berita (Ranking 1 - 50)</option>
-                  <option value={100}>100 Berita (Ranking 1 - 100)</option>
-                </select>
+                <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
+                  Taksonomi Desk Disiplin Ilmu (Slot Spatial Frontpage)
+                </h3>
+                <p className="text-stone-500 text-xs">
+                  Pendaftaran Desk dan Warna Unik Hex untuk slot-slot spatial (Hero, Feature, Brief, Compact, dll.) yang disunting oleh Editor atau AI. Ticker dijana automatik menerusi enjin rules berasingan.
+                </p>
               </div>
-
-              <div>
-                <label className="font-mono text-[10px] uppercase font-bold text-stone-600 block mb-1">
-                  Label Pengepala Ticker
-                </label>
-                <input
-                  type="text"
-                  value={tickerHeaderLabel}
-                  onChange={(e) => setTickerHeaderLabel(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded font-mono text-xs font-bold"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <label className="font-mono text-[10px] uppercase font-bold text-rose-800 block mb-1">
-                  🚫 Kata Kunci Diharamkan (Hard-Block Keywords)
-                </label>
-                <input
-                  type="text"
-                  value={blockedKeywords}
-                  onChange={(e) => setBlockedKeywords(e.target.value)}
-                  placeholder="rogol, bunuh, dadah (pisahkan dengan koma)"
-                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded font-mono text-xs"
-                />
-                <span className="text-[9px] font-mono text-stone-500 block mt-1">
-                  * Berita yang mengandungi kata kunci ini diblok automatik (skor = 0) dan dipadam secara berturut-turut dari database.
-                </span>
-              </div>
-
-              <div className="col-span-2">
-                <label className="font-mono text-[10px] uppercase font-bold text-amber-900 block mb-1">
-                  🏷️ Kawalan Kategori XML RSS Tersekat (Blocked Category Tags)
-                </label>
-                <input
-                  type="text"
-                  value={blockedCategoryTags}
-                  onChange={(e) => setBlockedCategoryTags(e.target.value)}
-                  placeholder="Hiburan, Gosip, Sukan, Keningau (pisahkan dengan koma)"
-                  className="w-full px-3 py-2 bg-white border border-stone-300 rounded font-mono text-xs"
-                />
-                <span className="text-[9px] font-mono text-stone-500 block mt-1">
-                  * Berita RSS yang mengandungi tag kategori mentah ini akan disaring secara automatik.
-                </span>
-              </div>
+              <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
+                <span>⚡</span> Pendaftaran Automatik Live ({desks.length} Desk)
+              </span>
             </div>
 
-            <div className="pt-2 flex justify-end">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+                  <th className="p-3">Warna Unik Desk (Kod Hex)</th>
+                  <th className="p-3">Nama Desk</th>
+                  <th className="p-3">Peruntukan Disiplin Spatial</th>
+                  <th className="p-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {desks.map(d => (
+                  <tr key={d.name} className="hover:bg-stone-50">
+                    <td className="p-3 flex items-center gap-2">
+                      <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-xs" style={{ backgroundColor: d.color }}></span>
+                      <code className="font-mono text-[11px] text-stone-700 font-bold">{d.color}</code>
+                    </td>
+                    <td className="p-3 font-semibold text-stone-900">{d.name}</td>
+                    <td className="p-3 text-stone-600 font-sans text-[11px]">Slot Spatial Frontpage (Manual/AI)</td>
+                    <td className="p-3 text-emerald-800 font-semibold">{d.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Live Desk Classifier Tester -- exercises the real rss-desk-rules/test endpoint */}
+          <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+            <div>
+              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
+                Uji Enjin Klasifikasi Desk
+              </h3>
+              <p className="text-stone-500 text-xs">
+                Semak secara langsung bagaimana enjin klasifikasi automatik akan mengagihkan tajuk/brief kepada desk tertentu.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Tajuk Ujian</label>
+                <input type="text" value={testInputTitle} onChange={e => setTestInputTitle(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
+              </div>
+              <div>
+                <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Kategori Mentah RSS (jika ada)</label>
+                <input type="text" value={testInputCategory} onChange={e => setTestInputCategory(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Brief Ujian</label>
+                <textarea value={testInputBrief} onChange={e => setTestInputBrief(e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
               <button
-                type="button"
-                onClick={handleSaveTickerSettings}
-                disabled={isSavingTickerSettings}
-                className="px-4 py-2 bg-[#802334] hover:bg-[#601824] text-white font-mono text-xs font-bold rounded shadow-2xs transition cursor-pointer disabled:opacity-50"
+                onClick={handleRunClassifierTest}
+                disabled={testingClassifier}
+                className="bg-[#802334] hover:bg-[#6c1d2c] text-white px-4 py-2 rounded font-semibold text-xs disabled:opacity-50"
               >
-                {isSavingTickerSettings ? '⏳ Menyimpan...' : '💾 SIMPAN TETAPAN RSS & TICKER LIVE'}
+                {testingClassifier ? '⏳ Menguji...' : '▶️ Jalankan Ujian Klasifikasi'}
               </button>
             </div>
+            {testResult && (
+              <pre className="bg-stone-900 text-emerald-300 text-[10px] p-3 rounded overflow-x-auto max-h-64">
+                {JSON.stringify(testResult, null, 2)}
+              </pre>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 3. OPERASI & GOVERNANCE */}
+      {subTab === 'Operasi' && (
+        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-6 text-xs">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
+            🗞️ Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Frontpage → Urus Ticker</strong>, bukan di sini -- supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
           </div>
 
-          {/* Polisi Moderasi & Automasik */}
-          <div className="pt-2 border-t border-stone-100 max-w-md">
+          {/* Kategori RSS Tersekat -- shared with the Frontpage Ticker Management modal */}
+          <div className="space-y-3">
             <div>
-              <label className="font-sans text-xs uppercase tracking-wider text-stone-500 font-semibold block mb-1">
-                Status Lalai Kandungan Baharu (Auto-Fetch Ingestion)
-              </label>
-              <select className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 font-sans text-xs font-semibold">
-                <option value="Pending">Pending (Semakan Tahan Manual)</option>
-                <option value="Live">Live (Terus Terbit Automasik)</option>
-              </select>
+              <h4 className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold mb-0.5">
+                Kategori RSS Tersekat (Blocked Category Tags)
+              </h4>
+              <p className="text-stone-500 text-[11px]">
+                Kategori mentah RSS yang disenaraikan di sini turut terpakai di modal Urus Ticker Frontpage -- satu senarai kongsi.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {blockedCategories.map(c => (
+                <span key={c.id} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
+                  <span>{c.categoryName}</span>
+                  <button onClick={() => handleRemoveBlockedCategory(c.id)} className="text-stone-400 hover:text-red-700 font-bold">✕</button>
+                </span>
+              ))}
+              {blockedCategories.length === 0 && <span className="text-stone-400 italic">Tiada kategori disekat lagi.</span>}
+            </div>
+            <div className="flex gap-2 max-w-md">
+              <input
+                type="text"
+                placeholder="Cth: Hiburan, Gosip..."
+                value={newBlockedCategoryInput}
+                onChange={e => setNewBlockedCategoryInput(e.target.value)}
+                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs flex-1"
+              />
+              <button onClick={handleAddBlockedCategory} className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs">+ Tambah</button>
             </div>
           </div>
 
-          {/* Had Geometri Aksara Mengikut 8 Tier Sebenar (GeometryConfig.js) */}
+          {/* Had Geometri Aksara Mengikut 8 Tier Sebenar (GeometryConfig.js) -- read-only reference */}
           <div className="space-y-3 pt-4 border-t border-stone-100">
             <div>
               <h4 className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold mb-0.5">
                 Nisbah Geometri & Belanjawan Aksara Spatial (GEOMETRY_RATIOS)
               </h4>
               <p className="text-stone-500 text-[11px]">
-                Diambil secara langsung dari enjin <code className="bg-stone-100 text-[#802334] px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code> (Nisbah Brief/Tajuk Sebenar).
+                Rujukan sahaja -- diambil dari nilai tetap dalam <code className="bg-stone-100 text-[#802334] px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>. Untuk ubah nisbah sebenar, edit fail tersebut terus (perubahan menjejaskan reka bentuk kad bento).
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-stone-700">
-              {/* 1. HERO */}
               <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">HERO (Slot 0)</span>
@@ -629,10 +740,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <div className="font-mono text-xs text-stone-900 font-bold">
                   Tajuk: <span className="text-emerald-700">115</span> | Brief: <span className="text-emerald-700">350</span> aksara
                 </div>
-                <span className="text-[9px] text-stone-400 block font-mono">Max Alone: 115 / 350</span>
               </div>
-
-              {/* 2. MENEGAK */}
               <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">MENEGAK (6 Slot)</span>
@@ -643,8 +751,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </div>
                 <span className="text-[9px] text-stone-400 block font-mono">Slot: 1, 12, 15, 26, 29, 37</span>
               </div>
-
-              {/* 3. STANDARD */}
               <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">STANDARD (6 Slot)</span>
@@ -655,8 +761,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </div>
                 <span className="text-[9px] text-stone-400 block font-mono">Slot: 2, 6, 19, 20, 33, 34</span>
               </div>
-
-              {/* 4. SEGI EMPAT MEDIUM */}
               <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">SEGI EMPAT MEDIUM</span>
@@ -667,8 +771,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </div>
                 <span className="text-[9px] text-stone-400 block font-mono">Slot: 13, 14, 27, 28</span>
               </div>
-
-              {/* 5. SEGI EMPAT SMALL */}
               <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">SEGI EMPAT SMALL</span>
@@ -679,8 +781,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </div>
                 <span className="text-[9px] text-stone-400 block font-mono">Slot: 3, 11, 16, 25, 30, 35, 36</span>
               </div>
-
-              {/* 6. KOMPAK */}
               <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">KOMPAK (6 Slot)</span>
@@ -691,20 +791,16 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </div>
                 <span className="text-[9px] text-stone-400 block font-mono">Slot: 4, 5, 17, 18, 31, 32</span>
               </div>
-
-              {/* 7. BAR */}
               <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">BAR (8 Slot)</span>
-                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 0.000</span>
+                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 0.850</span>
                 </div>
                 <div className="font-mono text-xs text-stone-900 font-bold">
-                  Tajuk: <span className="text-emerald-700">40</span> | Brief: <span className="text-stone-400">0 (Tiada)</span>
+                  Tajuk: <span className="text-emerald-700">95</span> | Brief: <span className="text-stone-400">0 (Tiada)</span>
                 </div>
                 <span className="text-[9px] text-stone-400 block font-mono">Slot: 7, 8, 9, 10, 21, 22, 23, 24</span>
               </div>
-
-              {/* 8. TICKER */}
               <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">TICKER (Slot -1)</span>
@@ -718,7 +814,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             </div>
           </div>
 
-          {/* 🌐 TETAPAN JAM DUNIA, CUACA & API GOVERNANCE */}
+          {/* Tetapan Jam Dunia & Cuaca */}
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
               <h4 className="font-sans text-xs uppercase tracking-wider text-[#802334] font-bold mb-0.5 flex items-center gap-1.5">
@@ -729,8 +825,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               </p>
             </div>
 
+            {worldClockSaveError && (
+              <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded">⚠️ {worldClockSaveError}</div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Selang Masa Auto-Rotate */}
               <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
                 <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
                   Selang Masa Auto-Slaid Jam Dunia
@@ -751,7 +850,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </span>
               </div>
 
-              {/* Suis Pemicu Klik Latar Belakang */}
               <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
                 <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
                   Pemicu Pertukaran Klik Latar Belakang
@@ -770,7 +868,16 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               </div>
             </div>
 
-            {/* Kad Status API Health & Governance */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleSaveWorldClockSettings}
+                disabled={savingWorldClock}
+                className="bg-[#802334] hover:bg-[#6c1d2c] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
+              >
+                {savingWorldClock ? '⏳ Menyimpan...' : '💾 Simpan Tetapan Jam Dunia'}
+              </button>
+            </div>
+
             <div className="pt-2">
               <div className="flex justify-between items-center mb-2">
                 <h5 className="font-sans text-[11px] uppercase tracking-wider text-stone-700 font-bold">
@@ -787,7 +894,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
-                {/* Open-Meteo API Status */}
                 <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-stone-800">Open-Meteo Weather API</span>
@@ -803,7 +909,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   </div>
                 </div>
 
-                {/* Malaysia Public Holiday API 2026 Status */}
                 <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-stone-800">Malaysia Holiday API 2026</span>
@@ -824,53 +929,14 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         </div>
       )}
 
-      {/* 3. TAKSONOMI (DESK MANAGEMENT) */}
-      {subTab === 'Taksonomi' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-          <div className="flex flex-wrap justify-between items-center gap-4">
-            <div>
-              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-                Taksonomi Desk Disiplin Ilmu (Slot Spatial Frontpage)
-              </h3>
-              <p className="text-stone-500 text-xs">
-                Pendaftaran Desk dan Warna Unik Hex untuk slot-slot spatial (Hero, Feature, Brief, Compact, dll.) yang disunting oleh Editor atau AI. Ticker dijana automatik menerusi enjin rules berasingan.
-              </p>
-            </div>
-            <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
-              <span>⚡</span> Pendaftaran Automatik Live ({desks.length} Desk)
-            </span>
-          </div>
-
-          {/* Jadual 1: Senarai Desk Spatial Frontpage & Warna Unik Hex */}
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
-                <th className="p-3">Warna Unik Desk (Kod Hex)</th>
-                <th className="p-3">Nama Desk</th>
-                <th className="p-3">Peruntukan Disiplin Spatial</th>
-                <th className="p-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {desks.map(d => (
-                <tr key={d.name} className="hover:bg-stone-50">
-                  <td className="p-3 flex items-center gap-2">
-                    <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-xs" style={{ backgroundColor: d.color }}></span>
-                    <code className="font-mono text-[11px] text-stone-700 font-bold">{d.color}</code>
-                  </td>
-                  <td className="p-3 font-semibold text-stone-900">{d.name}</td>
-                  <td className="p-3 text-stone-600 font-sans text-[11px]">Slot Spatial Frontpage (Manual/AI)</td>
-                  <td className="p-3 text-emerald-800 font-semibold">{d.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* 3. ADJUNG EDITORIAL INTELLIGENCE PLATFORM (AEIP) */}
+      {/* 4. ADJUNG EDITORIAL INTELLIGENCE PLATFORM (AEIP) */}
       {subTab === 'Komponen' && (
-        <EditorialIntelligencePlatform />
+        <div className="space-y-4">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900 text-xs">
+            🚧 AEIP di bawah ini masih prototaip antara muka sahaja -- tiada enjin rule-pack/experiment/release sebenar di belakangnya lagi. Ia bukan sekadar salah wiring (macam bahagian lain Tetapan yang baru dibaiki), sebaliknya keseluruhan sistem baru perlu dibina dari kosong. Ditangguhkan buat masa ini memandangkan skopnya jauh lebih besar daripada pembaikan lain dalam laluan ini -- bincang dengan saya dahulu sebelum melabur masa membina backend penuh untuknya.
+          </div>
+          <EditorialIntelligencePlatform />
+        </div>
       )}
 
       {/* 5. INTERACTIVE RBAC PERMISSION TABLE MATRIX */}
@@ -890,7 +956,10 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             </span>
           </div>
 
-          {/* Interactive Checkbox Table Matrix */}
+          {rbacSaveError && (
+            <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded">⚠️ {rbacSaveError}</div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -915,84 +984,43 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     </td>
 
                     <td className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.permissions.viewAll}
-                        onChange={() => handleTogglePermission(row.roleId, 'viewAll')}
-                        disabled={row.isImmutableAdmin}
-                        className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50"
-                      />
+                      <input type="checkbox" checked={row.permissions.viewAll} onChange={() => handleTogglePermission(row.roleId, 'viewAll')} disabled={row.isImmutableAdmin} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
-
                     <td className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.permissions.editOwn}
-                        onChange={() => handleTogglePermission(row.roleId, 'editOwn')}
-                        className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer"
-                      />
+                      <input type="checkbox" checked={row.permissions.editOwn} onChange={() => handleTogglePermission(row.roleId, 'editOwn')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
-
                     <td className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.permissions.editAll}
-                        onChange={() => handleTogglePermission(row.roleId, 'editAll')}
-                        disabled={row.isImmutableAdmin}
-                        className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer"
-                      />
+                      <input type="checkbox" checked={row.permissions.editAll} onChange={() => handleTogglePermission(row.roleId, 'editAll')} disabled={row.isImmutableAdmin} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
-
                     <td className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.permissions.publish}
-                        onChange={() => handleTogglePermission(row.roleId, 'publish')}
-                        className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer"
-                      />
+                      <input type="checkbox" checked={row.permissions.publish} onChange={() => handleTogglePermission(row.roleId, 'publish')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
-
                     <td className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.permissions.reject}
-                        onChange={() => handleTogglePermission(row.roleId, 'reject')}
-                        className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer"
-                      />
+                      <input type="checkbox" checked={row.permissions.reject} onChange={() => handleTogglePermission(row.roleId, 'reject')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
-
                     <td className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.permissions.assignSlot}
-                        onChange={() => handleTogglePermission(row.roleId, 'assignSlot')}
-                        className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer"
-                      />
+                      <input type="checkbox" checked={row.permissions.assignSlot} onChange={() => handleTogglePermission(row.roleId, 'assignSlot')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
-
                     <td className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.permissions.manageSettings}
-                        onChange={() => handleTogglePermission(row.roleId, 'manageSettings')}
-                        disabled={row.isImmutableAdmin}
-                        className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50"
-                      />
+                      <input type="checkbox" checked={row.permissions.manageSettings} onChange={() => handleTogglePermission(row.roleId, 'manageSettings')} disabled={row.isImmutableAdmin} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
-
                     <td className="p-3 text-center">
-                      <input
-                        type="checkbox"
-                        checked={row.permissions.manageRbac}
-                        onChange={() => handleTogglePermission(row.roleId, 'manageRbac')}
-                        disabled={row.isImmutableAdmin}
-                        className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50"
-                      />
+                      <input type="checkbox" checked={row.permissions.manageRbac} onChange={() => handleTogglePermission(row.roleId, 'manageRbac')} disabled={row.isImmutableAdmin} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={handleSaveRbac}
+              disabled={savingRbac || !rbacDirty}
+              className="bg-[#802334] hover:bg-[#6c1d2c] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
+            >
+              {savingRbac ? '⏳ Menyimpan...' : rbacDirty ? '💾 Simpan Matriks RBAC' : '✓ Tersimpan'}
+            </button>
           </div>
         </div>
       )}
@@ -1018,6 +1046,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 placeholder="Tambah perkataan (e.g. machine learning)..."
                 value={newTermInput}
                 onChange={e => setNewTermInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddItalicTerm(); }}
                 className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs flex-1"
               />
               <button
@@ -1029,49 +1058,19 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             </div>
 
             <div className="flex flex-wrap gap-2 pt-2 max-h-48 overflow-y-auto">
-              {italicTerms.map(term => (
-                <span key={term} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
-                  <span className="italic font-semibold">{term}</span>
-                  <button onClick={() => handleRemoveItalicTerm(term)} className="text-stone-400 hover:text-red-700 font-bold">✕</button>
+              {loadingItalicTerms && <span className="text-stone-400">Memuatkan...</span>}
+              {!loadingItalicTerms && italicTerms.length === 0 && <span className="text-stone-400 italic">Kamus masih kosong.</span>}
+              {italicTerms.map(t => (
+                <span key={t.id} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
+                  <span className="italic font-semibold">{t.term}</span>
+                  <button onClick={() => handleRemoveItalicTerm(t.id)} className="text-stone-400 hover:text-red-700 font-bold">✕</button>
                 </span>
               ))}
             </div>
 
             <div className="pt-2 border-t border-stone-200 flex justify-end">
               <button onClick={() => setActiveConfigModal(null)} className="bg-stone-800 text-white text-xs px-4 py-1.5 rounded font-semibold">
-                Tutup & Simpan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CONFIGURATION DRAWER: TICKER LABELS */}
-      {activeConfigModal === 'ticker' && (
-        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs">
-            <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
-                Konfigurasi Label Ticker
-              </h3>
-              <button onClick={() => setActiveConfigModal(null)} className="text-stone-400 font-bold">✕</button>
-            </div>
-
-            <div>
-              <label className="text-xs uppercase font-semibold text-stone-500 block mb-1">
-                Label Header Ticker Strip
-              </label>
-              <input
-                type="text"
-                value={tickerHeaderLabel}
-                onChange={e => setTickerHeaderLabel(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 text-xs font-semibold"
-              />
-            </div>
-
-            <div className="pt-2 border-t border-stone-200 flex justify-end">
-              <button onClick={() => setActiveConfigModal(null)} className="bg-stone-800 text-white text-xs px-4 py-1.5 rounded font-semibold">
-                Simpan Konfigurasi Ticker
+                Tutup
               </button>
             </div>
           </div>
