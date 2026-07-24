@@ -1,5 +1,25 @@
 # Adjung Specification
 
+> ⚠️ **ARCHIVED — WRONG PROJECT. DO NOT USE FOR ADJUNG BRIEF / ADJUNG CORE WORK.**
+>
+> This folder describes **"Adjung Platform"** — a separate, unrelated scholarly-publishing
+> product (author Folios, Biographies, personal sites, citation management, Reviewer/Editor
+> RBAC). It was copied into this repository by accident in the initial commit, alongside a
+> full duplicate codebase (`adjung-platform-1-main/`, since removed) that implemented it.
+>
+> **This repository is Adjung Core / Adjung Brief** — an internal newsroom editorial
+> curation tool (public bento-grid frontpage + Editorium admin console). It is a different
+> product with different domain concepts. None of these documents (Folio, Biography, Writing
+> Desk, citation styles, scholarly RBAC, etc.) describe anything that exists or should be
+> built here.
+>
+> For the real architecture, rules, and conventions of this project, read
+> [`CLAUDE.md`](../CLAUDE.md) and [`.agents/AGENTS.md`](../.agents/AGENTS.md) at the repo
+> root instead. If you are an AI agent working on this codebase: **ignore everything below
+> this notice.**
+
+---
+
 Welcome to the official specification repository for **Adjung**.
 
 This directory is the single source of truth for the design,
