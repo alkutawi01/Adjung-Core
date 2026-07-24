@@ -515,16 +515,26 @@ const seedDatabase = async () => {
   }
 
   console.log('Database is empty. Seeding initial users and default configurations...');
+  // Note: hashPassword() is defined further down this file (search "Password hashing"), but
+  // function declarations aren't hoisted here since it's a const -- this runs from
+  // initializeSchema().then(() => seedDatabase()) at module load time, after the whole file
+  // (including that const) has already been evaluated, so it's safe to reference here.
+  const defaultUserSeedPassword = 'adjung-brief-' + crypto.randomBytes(4).toString('hex');
   db.serialize(() => {
-    // 1. Seed Users
+    // 1. Seed Users -- a single Chief Editor account (no multi-editor sign-in system yet; see
+    // .agents/AGENTS.md). Previously called the undefined mockDb.getUsers(), which threw and
+    // crashed the whole process on first run against any empty/fresh database file.
     const stmtUser = db.prepare(`
-      INSERT INTO users (id, username, email, role, penName, signature, avatarColor, bioSummary, isSuspended, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      INSERT INTO users (id, username, email, role, penName, signature, avatarColor, bioSummary, isSuspended, password, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `);
-    mockDb.getUsers().forEach(u => {
-      stmtUser.run(u.id, u.username, u.email, u.role, u.penName, u.signature, u.avatarColor, u.bioSummary, u.suspended ? 1 : 0);
-    });
+    stmtUser.run(
+      'user-chief-editor', 'izzat', 'izzat@adjung.local', 'KETUA_EDITOR',
+      'Izzat Anas', '', '#802334', 'Chief Editor, Adjung Brief', 0,
+      hashPassword(defaultUserSeedPassword)
+    );
     stmtUser.finalize();
+    console.log(`Seeded Chief Editor account "izzat" with a random temporary password: ${defaultUserSeedPassword} -- change this after first login.`);
 
     // 3. Seed System Settings
     db.run(`
@@ -759,6 +769,29 @@ app.get('/api/db-state', async (req, res) => {
   }
 });
 
+// Password hashing -- scrypt via Node's built-in crypto (already imported above), so no new
+// dependency is needed. Format: "scrypt$<saltHex>$<hashHex>". Existing rows predate this and
+// still hold plaintext; verifyPassword falls back to a direct comparison for those and the login
+// route below transparently re-hashes on the next successful login (no forced reset, no lockout
+// risk for the one account that already exists).
+const hashPassword = (plain) => {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(plain, salt, 64).toString('hex');
+  return `scrypt$${salt}$${hash}`;
+};
+
+const verifyPassword = (plain, stored) => {
+  if (typeof stored === 'string' && stored.startsWith('scrypt$')) {
+    const [, salt, hash] = stored.split('$');
+    const candidate = crypto.scryptSync(plain, salt, 64).toString('hex');
+    const a = Buffer.from(hash, 'hex');
+    const b = Buffer.from(candidate, 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+  // Legacy plaintext row.
+  return plain === stored;
+};
+
 // 2. Authentication Login
 app.post('/api/auth/login', async (req, res) => {
   try {
@@ -781,12 +814,21 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(403).json({ error: 'AccountSuspended', message: 'This account has been suspended by the editorial board.' });
     }
 
-    if (password !== userRow.password) {
+    if (!verifyPassword(password, userRow.password)) {
       return res.status(401).json({ error: 'IncorrectPassword', message: 'Incorrect password.' });
     }
 
+    // Transparent migration: a legacy plaintext row that just matched gets upgraded to a real
+    // hash immediately, with the same password the user already knows -- no reset required.
+    if (typeof userRow.password !== 'string' || !userRow.password.startsWith('scrypt$')) {
+      const upgraded = hashPassword(password);
+      await dbRun("UPDATE users SET password = ? WHERE id = ?", [upgraded, userRow.id]);
+      userRow.password = upgraded;
+    }
+
+    const { password: _omit, ...userWithoutPassword } = userRow;
     const authenticatedUser = {
-      ...userRow,
+      ...userWithoutPassword,
       suspended: userRow.isSuspended === 1
     };
 
@@ -817,7 +859,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
     await dbRun(
       "UPDATE users SET password = ? WHERE id = ?",
-      [password, userRow.id]
+      [hashPassword(password), userRow.id]
     );
 
     res.json({ success: true, message: 'Password updated successfully.' });
