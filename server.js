@@ -15,7 +15,6 @@ import { detectSourceType } from './core/editorial/SourceDetector.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
 import { createCategoryRoutes } from './core/routes/categoryRoutes.js';
 import { createSystemRoutes } from './core/routes/systemRoutes.js';
-import { createContentRoutes } from './core/routes/contentRoutes.js';
 import { createSlotRoutes, executeDirectRssFetch } from './core/routes/slotRoutes.js';
 const mockDb = {};
 
@@ -3238,7 +3237,6 @@ app.post('/api/system/ai/pricing', async (req, res) => {
 app.use('/api/ai', createAIRoutes(dbAll, dbRun));
 app.use('/api/system', createCategoryRoutes(db));
 app.use('/api', createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb));
-app.use('/api/system', createContentRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet, getGeometryCeilingForSlot, syncManualObjectsForSlot, runEditorialPipeline));
 
 // Start Express Server

@@ -423,19 +423,21 @@ ${slot.sourcesList.trim()}
       };
     }
 
-    let validation = { isValid: true, cleanTitle: parsedJson.title || '', cleanSummary: parsedJson.summary || '' };
+    // BAR-tier content has no brief by design (GEOMETRY_RATIOS.BAR.maxBriefAlone === 0), so
+    // EditorialValidator.validate -- which requires a non-empty summary -- doesn't apply to it.
+    let validation = { isValid: true, cleanTitle: (parsedJson.title || '').trim(), cleanSummary: (parsedJson.summary || '').trim() };
     if (!isBarSlot) {
       validation = EditorialValidator.validate(parsedJson.title, parsedJson.summary);
       if (!validation.isValid) {
         throw new Error(`Validation failed: ${validation.reason}`);
       }
-      // Same budget rule as every other content path: every slot of this tier is held to the
-      // exact same title+brief space budget (core/editorial/ContentBudget.js), regardless of how
-      // the content was produced.
-      const budgetCheck = validateContentBudget(slotIndex, validation.cleanTitle, validation.cleanSummary);
-      if (!budgetCheck.isValid) {
-        throw new Error(`Validation failed: ${budgetCheck.reason}`);
-      }
+    }
+    // Same budget rule as every other content path: every slot of this tier -- BAR included -- is
+    // held to the exact same title+brief space budget (core/editorial/ContentBudget.js), regardless
+    // of how the content was produced.
+    const budgetCheck = validateContentBudget(slotIndex, validation.cleanTitle, validation.cleanSummary);
+    if (!budgetCheck.isValid) {
+      throw new Error(`Validation failed: ${budgetCheck.reason}`);
     }
 
     const finalTitle = validation.cleanTitle;
