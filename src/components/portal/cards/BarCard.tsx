@@ -1,5 +1,5 @@
 import React from 'react';
-import { getDeskAccentColor } from '../../../utils';
+import { extractOrganizerAcronym } from '../../../../core/editorial/EventDateValidator.js';
 
 interface BarCardProps {
   item: any;
@@ -8,42 +8,49 @@ interface BarCardProps {
   onEditClick?: (e: React.MouseEvent) => void;
 }
 
+export function extractOrganizerLabel(item: any): string {
+  return extractOrganizerAcronym(item);
+}
+
+// Extract access badge e.g. "Terbuka" / "Tertutup"
+export function extractAccessBadge(item: any): { label: string; isTerbuka: boolean } {
+  const accessText = (item.access || item.manualAccess || item.akses || 'Terbuka').toString().toLowerCase();
+  const isTertutup = accessText.includes('tertutup') || accessText.includes('closed');
+  return {
+    label: isTertutup ? 'TERTUTUP' : 'TERBUKA',
+    isTerbuka: !isTertutup,
+  };
+}
+
 export const BarCard: React.FC<BarCardProps> = ({ item, onClick, isEditMode, onEditClick }) => {
   if (!item) return null;
 
-  const accentColor = item.categoryColor || getDeskAccentColor(item.desk || item.category);
+  const organizerLabel = extractOrganizerLabel(item);
+  const eventDate = (item.originalDate || item.date || item.publishedAt || '').toString().trim().toUpperCase();
 
   return (
     <div
       onClick={onClick}
-      className="group relative bg-white border border-stone-200 rounded-lg p-3.5 hover:shadow-md transition-all duration-300 cursor-pointer flex items-center justify-between gap-4 w-full overflow-hidden"
+      className={`group relative bg-[#802334] border border-amber-300/40 rounded-lg p-3 sm:px-3.5 sm:py-2.5 hover:brightness-110 transition-all duration-200 cursor-pointer flex flex-col justify-start gap-1.5 min-h-[84px] w-full overflow-hidden shadow-sm ${
+        isEditMode ? 'ring-2 ring-dashed ring-amber-300 cursor-pointer' : ''
+      }`}
     >
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <span
-          className="font-mono text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded bg-stone-50 border border-stone-150 shrink-0"
-          style={{ color: accentColor }}
-        >
-          {item.desk || item.category || 'KAD BAR'}
+      {/* Top Row: Tarikh (Kiri) & Akronim Penganjur (Kanan) */}
+      <div className="flex items-center justify-between gap-2 w-full">
+        {eventDate ? (
+          <span className="font-mono text-[8px] sm:text-[9px] uppercase font-bold text-amber-100/90 tracking-wider truncate max-w-[60%] select-none">
+            {eventDate}
+          </span>
+        ) : <span />}
+        <span className="font-mono text-[9px] uppercase tracking-widest font-bold text-[#E9D8A6] truncate max-w-[40%] text-right shrink-0">
+          {organizerLabel}
         </span>
-        <h4 className="font-serif text-sm text-stone-900 leading-snug font-medium truncate group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">
-          {item.title}
-        </h4>
       </div>
 
-      <div className="flex items-center gap-3 shrink-0 select-none">
-        <span className="font-mono text-[9px] text-stone-400">
-          {item.source || 'ADJUNG'}
-        </span>
-        {isEditMode && onEditClick && (
-          <button
-            type="button"
-            onClick={onEditClick}
-            className="px-2 py-0.5 text-[9px] font-mono uppercase bg-stone-100 hover:bg-[#802334] hover:text-white rounded transition-colors text-stone-600"
-          >
-            Sunting
-          </button>
-        )}
-      </div>
+      {/* Main Row: Tajuk Acara (Bawah) */}
+      <h4 className="font-serif text-xs sm:text-sm text-white leading-snug font-medium line-clamp-2 group-hover:text-[#E9D8A6] transition-colors duration-200 mt-1">
+        {item.title}
+      </h4>
     </div>
   );
 };

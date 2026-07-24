@@ -8,7 +8,7 @@ export const GEOMETRY_RATIOS = {
   SEGI_EMPAT_MEDIUM: { maxTitleAlone: 94, maxBriefAlone: 126, ratio: 1.340 },
   SEGI_EMPAT_SMALL: { maxTitleAlone: 62, maxBriefAlone: 78, ratio: 1.258 },
   KOMPAK: { maxTitleAlone: 80, maxBriefAlone: 41, ratio: 0.512 },
-  BAR: { maxTitleAlone: 40, maxBriefAlone: 0, ratio: 0.000 },
+  BAR: { maxTitleAlone: 95, maxBriefAlone: 0, ratio: 0.850 },
   TICKER: { maxTitleAlone: 80, maxBriefAlone: 220, ratio: 2.750 },
 };
 
@@ -25,7 +25,7 @@ export const TIER_SLOTS = {
 export const FALLBACK_CEILINGS = {
   HERO: { maxTitle: 115, maxBrief: 350 },
   STANDARD: { maxTitle: 110, maxBrief: 280 },
-  BAR: { maxTitle: 40, maxBrief: 0 },
+  BAR: { maxTitle: 95, maxBrief: 0 },
   TICKER: { maxTitle: 80, maxBrief: 220 },
   DEFAULT: { maxTitle: 70, maxBrief: 100 },
 };

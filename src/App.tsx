@@ -128,6 +128,30 @@ export default function App() {
               </main>
             </motion.div>
           } />
+          <Route path="/sandbox" element={
+            <motion.div
+              key="sandbox"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="min-h-screen bg-[#FDFDFD]"
+            >
+              <main className="max-w-6xl w-full mx-auto">
+                <FrontpageView
+                  entries={entries}
+                  users={users}
+                  systemSettings={systemSettings}
+                  setSelectedEntry={() => {}}
+                  setSelectedAuthorId={() => {}}
+                  setActiveTab={() => {}}
+                  currentUser={null}
+                  inTheNewsGoogleDocText={inTheNewsGoogleDocText}
+                  worldClockHolidaysGoogleDocText={worldClockHolidaysGoogleDocText}
+                  setIndexSearchQuery={() => {}}
+                />
+              </main>
+            </motion.div>
+          } />
 
           <Route path="/studio/semakan-kandungan" element={
             <motion.div

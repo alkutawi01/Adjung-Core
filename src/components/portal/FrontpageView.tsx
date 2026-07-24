@@ -11,6 +11,7 @@ import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRende
 import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
 import { TickerManagementModal } from './TickerManagementModal';
+import { BarCard } from './cards/BarCard';
 
 // parseInlineFormatting is designed for hand-authored Note/Essay body text; applying it broadly to
 // every carousel item's title/brief (including years of accumulated AI-generated history per slot)
@@ -1573,7 +1574,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           manualSummaryText = itemsList.map((itm: any) => {
             const cleanUrl = (itm.url === '#' || !itm.url) ? 'https://www.bernama.com/bm/news.php?id=231450' : itm.url;
             const cleanSource = (itm.source === 'ChatGPT/Gemini Manual Paste' || !itm.source) ? 'Bernama' : itm.source;
-            return `Tarikh: (contoh: 19-26 Julai 26) ${itm.source || ''}\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nURL: ${cleanUrl}`;
+            const organizer = itm.organizer || itm.penganjur || itm.source || 'PPAS';
+            const location = itm.location || 'SACC Mall';
+            const access = itm.access || 'Terbuka';
+            return `Tarikh: 19-26 Julai 2026\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nPenganjur: ${organizer}\nLokasi: ${location}\nAkses: ${access}\nURL: ${cleanUrl}`;
           }).join('\n\n____\n\n');
         } else {
           const title = config?.manualTitle || item?.title || 'Pesta Buku Selangor 2026';
@@ -1582,8 +1586,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           const rawUrl = config?.manualUrl || item?.url || '#';
           const url = (rawUrl === '#' || !rawUrl) ? 'https://www.bernama.com/bm/news.php?id=231450' : rawUrl;
           
-          manualSummaryText = `Tarikh: (contoh: 19-26 Julai 26) ${source}
+          manualSummaryText = `Tarikh: 19-26 Julai 2026
 Event: (had ${limits.maxTitle} aksara) ${title}
+Penganjur: PPAS
+Lokasi: SACC Mall
+Akses: Terbuka
 URL: ${url}`;
         }
       } else {
@@ -2830,25 +2837,26 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="md:col-span-2 flex flex-col gap-2 h-full">
+              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full">
+                <div className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 -translate-x-full items-center justify-center pointer-events-none select-none">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
+                    PROGRAM-PROGRAM BERMANFAAT
+                  </span>
+                </div>
                 {[7, 8, 9, 10].map((idx) => {
                   const barItem = bentoNewsItems[idx];
                   if (!barItem) return null;
                   return (
-                    <div
+                    <BarCard
                       key={idx}
-                      onClick={() => handleCardClick(idx)} className={`px-4 py-2 rounded-md flex justify-between items-center flex-1 min-h-[38px] group hover:brightness-110 transition-all duration-200 ${isEditMode ? 'ring-2 ring-dashed ring-[#E9D8A6] cursor-pointer' : ''}`}
-                      style={{ backgroundColor: '#802334' }}
-                    >
-                      {/* Tarikh Event */}
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex-shrink-0 pr-3 border-r border-white/20">
-                        {barItem.source || '—'}
-                      </div>
-                      {/* Nama Event */}
-                      <div className="font-serif text-xs text-white leading-snug flex-1 pl-3 group-hover:text-[#E9D8A6] transition-colors">
-                        {barItem.title}
-                      </div>
-                    </div>
+                      item={barItem}
+                      onClick={() => handleCardClick(idx)}
+                      isEditMode={isEditMode}
+                      onEditClick={(e) => {
+                        e.stopPropagation();
+                        handleCardClick(idx);
+                      }}
+                    />
                   );
                 })}
               </div>
@@ -3210,25 +3218,26 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="md:col-span-2 flex flex-col gap-2 h-full">
+              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full">
+                <div className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 translate-x-full items-center justify-center pointer-events-none select-none">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-0 whitespace-nowrap">
+                    PROGRAM-PROGRAM BERMANFAAT
+                  </span>
+                </div>
                 {[21, 22, 23, 24].map((idx) => {
                   const barItem = bentoNewsItems[idx];
                   if (!barItem) return null;
                   return (
-                    <div
+                    <BarCard
                       key={idx}
-                      onClick={() => handleCardClick(idx)} className={`px-4 py-2 rounded-md flex justify-between items-center flex-1 min-h-[38px] group hover:brightness-110 transition-all duration-200 ${isEditMode ? 'ring-2 ring-dashed ring-[#E9D8A6] cursor-pointer' : ''}`}
-                      style={{ backgroundColor: '#802334' }}
-                    >
-                      {/* Tarikh Event */}
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex-shrink-0 pr-3 border-r border-white/20">
-                        {barItem.source || '—'}
-                      </div>
-                      {/* Nama Event */}
-                      <div className="font-serif text-xs text-white leading-snug flex-1 pl-3 group-hover:text-[#E9D8A6] transition-colors">
-                        {barItem.title}
-                      </div>
-                    </div>
+                      item={barItem}
+                      onClick={() => handleCardClick(idx)}
+                      isEditMode={isEditMode}
+                      onEditClick={(e) => {
+                        e.stopPropagation();
+                        handleCardClick(idx);
+                      }}
+                    />
                   );
                 })}
               </div>
@@ -5108,7 +5117,9 @@ URL: ${url}`;
 
                           const handleAddBlock = () => {
                             const newUuid = `object-manual-slot${editingSlotIndex}-${Date.now()}-${parsedList.length}`;
-                            const template = `Tajuk: \nHuraian ringkas: \nHuraian panjang: \nKategori: TEKNOLOGI\nJenis sumber: Laman Web\nTarikh: \nSumber: \nURL: `;
+                            const template = isEditingBarSlot
+                              ? `Tarikh: 19-26 Julai 2026\nEvent: (had ${formConfig.maxTitle || 95} aksara) Pesta Buku Selangor 2026\nPenganjur: PPAS\nLokasi: SACC Mall\nAkses: Terbuka\nURL: https://www.bernama.com/bm/news.php?id=231450`
+                              : `Tajuk: \nHuraian ringkas: \nHuraian panjang: \nKategori: TEKNOLOGI\nJenis sumber: Laman Web\nTarikh: \nSumber: \nURL: `;
                             const newList = [...parsedList, { uuid: newUuid, text: template }];
                             updateSummaryFromList(newList);
                           };
@@ -5283,14 +5294,20 @@ ${extraInstructions}`;
 
 ${masterPromptBlock}${settingsBlock}${barMultiNote}Format output mestilah ditulis tepat seperti format di bawah:
 
-Tarikh: (contoh: 19-26 Julai 26) [Tarikh acara]
-Event: (had ${formConfig.maxTitle || 40} aksara) [Nama acara]
+Tarikh: (contoh: 19-26 Julai 2026) [Tarikh acara]
+Event: (had ${formConfig.maxTitle || 95} aksara) [Nama acara]
+Penganjur: [Akronim penganjur, contoh: PPAS / DBP / PNM / KPM]
+Lokasi: [Lokasi acara, contoh: SACC Mall]
+Akses: [Terbuka / Tertutup]
 URL: [Pautan URL rujukan]${count > 1 ? `
 
 ____
 
-Tarikh: (contoh: 19-26 Julai 26) [Tarikh acara]
-Event: (had ${formConfig.maxTitle || 40} aksara) [Nama acara]
+Tarikh: (contoh: 19-26 Julai 2026) [Tarikh acara]
+Event: (had ${formConfig.maxTitle || 95} aksara) [Nama acara]
+Penganjur: [Akronim penganjur, contoh: PPAS / DBP / PNM / KPM]
+Lokasi: [Lokasi acara, contoh: SACC Mall]
+Akses: [Terbuka / Tertutup]
 URL: [Pautan URL rujukan]` : ''}
 ${extraInstructions}`;
                             } else {

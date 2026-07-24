@@ -1942,7 +1942,7 @@ const GEOMETRY_TIER_CEILINGS = {
   SEGI_EMPAT_MEDIUM: { maxTitle: 60, maxBrief: 100, maxBriefLong: 500 },
   SEGI_EMPAT_SMALL: { maxTitle: 40, maxBrief: 65, maxBriefLong: 400 },
   KOMPAK: { maxTitle: 55, maxBrief: 25, maxBriefLong: 400 },
-  BAR: { maxTitle: 40, maxBrief: 0, maxBriefLong: 0 },
+  BAR: { maxTitle: 95, maxBrief: 0, maxBriefLong: 0 },
   HERO: { maxTitle: 115, maxBrief: 350, maxBriefLong: 800 },
   TICKER: { maxTitle: 80, maxBrief: 220, maxBriefLong: 0 },
   DEFAULT: { maxTitle: 70, maxBrief: 100, maxBriefLong: 600 }
@@ -1989,6 +1989,10 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let sourceType = '';
     let isEventBlock = false;
 
+    let organizer = '';
+    let location = '';
+    let access = '';
+
     for (const line of lines) {
       const trimmed = line.trim();
       if (trimmed.startsWith('UUID:')) {
@@ -2011,6 +2015,12 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
       } else if (trimmed.startsWith('Tarikh:')) {
         date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Penganjur:')) {
+        organizer = trimmed.replace(/^Penganjur:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Lokasi:')) {
+        location = trimmed.replace(/^Lokasi:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Akses:')) {
+        access = trimmed.replace(/^Akses:\s*/i, '').trim();
       } else if (trimmed.startsWith('Sumber:')) {
         source = trimmed.replace(/^Sumber:\s*/i, '').trim();
       } else if (trimmed.startsWith('URL:')) {
@@ -2033,16 +2043,15 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       finalSourceType = detectSourceType(url, `${title} ${brief}`);
     }
 
-    // "Tarikh:" precedes "Event:" in the actual bar/acara template, so isEventBlock is only known
-    // for certain after the full line loop -- apply the source-position fallback here, not inline.
     if (isEventBlock && !source) {
-      source = date; // Memetakan tarikh ke ruangan sumber (sebelah kiri bar)
+      source = organizer || date; // Utama penganjur, jika tiada baru gunakan tarikh
     }
 
     // Buang notasi had aksara template seperti (max 70 aksara)
     title = title.replace(/^\([^)]+\)\s*/g, '').trim();
     brief = brief.replace(/^\([^)]+\)\s*/g, '').trim();
     briefLong = briefLong.replace(/^\([^)]+\)\s*/g, '').trim();
+    organizer = organizer.replace(/^\([^)]+\)\s*/g, '').trim();
 
     if (title) {
       items.push({
@@ -2051,7 +2060,10 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         briefLong,
         desk: desk || defaultSlot.manualDesk || 'general',
         sourceType: finalSourceType,
-        source: source || defaultSlot.manualSource || '19 Jul 2026',
+        organizer: organizer || source || '',
+        location,
+        access,
+        source: organizer || source || defaultSlot.manualSource || '19 Jul 2026',
         url: url || defaultSlot.manualUrl || '#',
         originalDate: date || '',
         publishedAt: date || ''
