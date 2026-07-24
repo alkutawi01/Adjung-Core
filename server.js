@@ -2240,7 +2240,27 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       console.error(e);
     }
 
-    if (objectIds.length === 0) {
+    // Only fall back to parsing the legacy manualSummary blob if this slot has genuinely never
+    // been migrated to real DB rows. If migrated rows exist but happen to all be currently
+    // pending/rejected/archived (e.g. via Indeks' Reject/Arkib action), that's a deliberate
+    // editorial decision -- falling back to the blob would silently resurrect stale duplicate
+    // content the chief editor just pulled, defeating the whole point of the status action.
+    let slotHasMigratedRows = objectIds.length > 0;
+    if (!slotHasMigratedRows) {
+      try {
+        const anyRow = await dbGet(`
+          SELECT eo.id FROM editorial_objects eo
+          INNER JOIN editorial_revisions er ON er.objectId = eo.id
+          WHERE eo.slotIndex = ? AND er.createdBy IN ('manual-slot-save', 'migration-manual-blob', 'content-review')
+          LIMIT 1
+        `, [slot.slotIndex]);
+        slotHasMigratedRows = !!anyRow;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (objectIds.length === 0 && !slotHasMigratedRows) {
       isManualParsed = true;
       const parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot);
       for (const parsed of parsedItems) {
@@ -2584,13 +2604,19 @@ app.post('/api/system/slots', async (req, res) => {
 
 app.get('/api/system/content/all', async (req, res) => {
   try {
+    // Admin index view: show the latest revision of every object regardless of status (approved,
+    // pending, rejected, archived) -- unlike the public-facing layout/active endpoint, which only
+    // ever serves 'approved' rows. This is what lets Adjung Brief show and manage items the chief
+    // editor has rejected/archived after the fact, without those items ever reappearing on the
+    // public frontpage.
     const rows = await dbAll(`
       SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, eo.createdAt as objectCreatedAt,
-             er.id as revisionId, er.title, er.summary, er.createdAt as revisionCreatedAt, er.updatedAt as revisionUpdatedAt
+             er.id as revisionId, er.title, er.summary, er.status, er.createdBy,
+             er.createdAt as revisionCreatedAt, er.updatedAt as revisionUpdatedAt
       FROM editorial_objects eo
       INNER JOIN editorial_revisions er ON er.objectId = eo.id
       INNER JOIN (
-        SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions WHERE status = 'approved' GROUP BY objectId
+        SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions GROUP BY objectId
       ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
       ORDER BY eo.slotIndex ASC, eo.createdAt ASC
     `);
@@ -2636,6 +2662,8 @@ app.get('/api/system/content/all', async (req, res) => {
         maxBrief: limits.maxBrief !== undefined ? limits.maxBrief : null,
         maxBriefLong: limits.maxBriefLong !== undefined ? limits.maxBriefLong : null,
         slotCategory: limits.slotCategory || '',
+        status: r.status || 'approved',
+        createdBy: r.createdBy || '',
         createdAt: r.revisionCreatedAt,
         updatedAt: r.revisionUpdatedAt
       };
@@ -2658,6 +2686,8 @@ app.get('/api/system/content/all', async (req, res) => {
       maxTitle: tickerLimits.maxTitle !== undefined ? tickerLimits.maxTitle : null,
       maxBrief: tickerLimits.maxBrief !== undefined ? tickerLimits.maxBrief : null,
       slotCategory: tickerLimits.slotCategory || '',
+      status: 'approved',
+      createdBy: 'ticker',
       createdAt: null,
       updatedAt: null
     }));
@@ -2670,12 +2700,20 @@ app.get('/api/system/content/all', async (req, res) => {
   }
 });
 
+const CONTENT_STATUSES = ['approved', 'pending', 'rejected', 'archived'];
+
 app.patch('/api/system/content/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, summary, desk, source, url } = req.body;
+    const { title, summary, desk, source, url, status } = req.body;
+    if (status !== undefined && !CONTENT_STATUSES.includes(status)) {
+      return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${CONTENT_STATUSES.join(', ')}.` });
+    }
 
     if (id.startsWith('ticker-')) {
+      if (status !== undefined) {
+        return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah -- buang baris tu terus daripada tetapan ticker untuk menariknya balik.' });
+      }
       const idx = parseInt(id.slice('ticker-'.length), 10);
       const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
       const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
@@ -2692,7 +2730,9 @@ app.patch('/api/system/content/:id', async (req, res) => {
     }
 
     const { imageUrl } = req.body;
-    const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' ORDER BY version DESC LIMIT 1", [id]);
+    // Look up the latest revision regardless of current status -- a previously rejected/archived
+    // item must still be reachable here so the chief editor can flip it back to 'approved'.
+    const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1", [id]);
     if (!rev) {
       return res.status(404).json({ error: 'Item tidak dijumpai.' });
     }
@@ -2713,6 +2753,7 @@ app.patch('/api/system/content/:id', async (req, res) => {
     const params = [];
     if (title !== undefined) { setClauses.push('title = ?'); params.push(title); }
     if (summary !== undefined) { setClauses.push('summary = ?'); params.push(summary); }
+    if (status !== undefined) { setClauses.push('status = ?'); params.push(status); }
     if (setClauses.length > 0) {
       setClauses.push('updatedAt = ?');
       params.push(new Date().toISOString());

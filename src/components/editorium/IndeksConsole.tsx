@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { tierForSlot } from '../../../core/editorial/GeometryConfig.js';
 
 interface BriefRecord {
   id: string;
@@ -7,11 +8,9 @@ interface BriefRecord {
   desk: string;
   status: 'Pending' | 'Live' | 'Rejected' | 'Archive';
   creator: string;
-  editor: string;
   cardType: 'Hero Card' | 'Feature Card' | 'Ticker' | 'Brief Card' | 'Compact Card' | '-';
   slot: string;
   date: string;
-  isMine: boolean;
 }
 
 interface IndeksConsoleProps {
@@ -28,22 +27,70 @@ const formatTitleCase = (str: string) => {
     .join(' ');
 };
 
+// Backend stores a lowercase status on editorial_revisions; the console displays the Malay/title
+// case labels the rest of the UI already uses.
+const STATUS_TO_LABEL: Record<string, BriefRecord['status']> = {
+  approved: 'Live',
+  pending: 'Pending',
+  rejected: 'Rejected',
+  archived: 'Archive',
+};
+const LABEL_TO_STATUS: Record<BriefRecord['status'], string> = {
+  Live: 'approved',
+  Pending: 'pending',
+  Rejected: 'rejected',
+  Archive: 'archived',
+};
+
+// createdBy on editorial_revisions is a machine token (which save path wrote it), not a human
+// name -- there's no multi-editor sign-in system yet, so this labels *how* content was created
+// rather than *who by*. Once real accounts exist, the pipeline/manual paths should start writing
+// the actual authenticated username here instead.
+const formatCreatedBy = (createdBy: string): string => {
+  if (!createdBy) return 'Tidak diketahui';
+  if (createdBy === 'ticker') return 'Ticker';
+  if (createdBy.startsWith('pipeline-slot-')) return 'AI Pipeline';
+  if (createdBy === 'manual-user' || createdBy === 'manual-slot-save') return 'Manual';
+  if (createdBy === 'content-review') return 'Disunting (Indeks)';
+  if (createdBy === 'migration-manual-blob') return 'Migrasi';
+  return createdBy;
+};
+
+// Real geometry tier per slot (same source of truth the frontpage itself uses) instead of a
+// random rotation -- see core/editorial/GeometryConfig.js.
+const cardTypeForSlot = (slotIndex: number): BriefRecord['cardType'] => {
+  if (slotIndex === -1) return 'Ticker';
+  const tier = tierForSlot(slotIndex);
+  switch (tier) {
+    case 'HERO': return 'Hero Card';
+    case 'MENEGAK':
+    case 'STANDARD': return 'Feature Card';
+    case 'SEGI_EMPAT_MEDIUM':
+    case 'SEGI_EMPAT_SMALL': return 'Brief Card';
+    case 'KOMPAK':
+    case 'BAR': return 'Compact Card';
+    default: return '-';
+  }
+};
+
 export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   currentUserRole = 'KETUA_EDITOR',
   currentUserName = 'Izzat Anas'
 }) => {
   const [items, setItems] = useState<BriefRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Smart Filter Bar States
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('Semua');
   const [selectedCardType, setSelectedCardType] = useState<string>('Semua');
-  const [selectedEditor, setSelectedEditor] = useState<string>('Semua');
+  const [selectedCreator, setSelectedCreator] = useState<string>('Semua');
   const [selectedDesk, setSelectedDesk] = useState<string>('Semua');
   const [selectedSlot, setSelectedSlot] = useState<string>('Semua');
 
-  // Editor View Filter: Saya vs Semua (Read Only)
+  // Editor View Filter: Saya vs Semua (Read Only) -- only meaningful once real EDITOR accounts
+  // exist; KETUA_EDITOR always sees and can act on everything.
   const [editorViewMode, setEditorViewMode] = useState<'mine' | 'all'>(currentUserRole === 'EDITOR' ? 'mine' : 'all');
 
   // Detail Modal State
@@ -56,36 +103,21 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       .then(res => res.json())
       .then(data => {
         const rawItems = data.items || [];
-        const cardTypes: Array<'Hero Card' | 'Feature Card' | 'Ticker' | 'Brief Card' | 'Compact Card'> = [
-          'Hero Card', 'Feature Card', 'Brief Card', 'Compact Card'
-        ];
 
         const normalized: BriefRecord[] = rawItems.map((item: any, idx: number) => {
-          let status: 'Pending' | 'Live' | 'Rejected' | 'Archive' = 'Live';
-          if (idx % 7 === 1) status = 'Pending';
-          else if (idx % 19 === 2) status = 'Rejected';
-          else if (idx % 23 === 3) status = 'Archive';
-
-          const isMine = idx % 5 === 0 || item.source === 'Manual' || idx % 8 === 0;
-          const creator = isMine ? currentUserName : (idx % 2 === 0 ? 'Ahmad' : 'Ali');
-          const editor = isMine ? currentUserName : (idx % 3 === 0 ? 'Ahmad' : 'Fatimah');
-          
           const isTicker = item.slotIndex === -1 || item.id?.startsWith('ticker-');
-          const slot = isTicker ? 'Ticker' : `Slot ${item.slotIndex >= 0 ? item.slotIndex : (idx % 15)}`;
-          const cardType = isTicker ? '-' : cardTypes[idx % cardTypes.length];
+          const slot = isTicker ? 'Ticker' : `Slot ${item.slotIndex}`;
 
           return {
             id: item.id || `cnt_${idx}`,
             title: item.title || 'Kandungan Tanpa Tajuk',
             summary: item.summary || item.brief || '',
-            desk: formatTitleCase(item.desk || (idx % 2 === 0 ? 'Sains' : 'Sejarah')),
-            status,
-            creator,
-            editor,
-            cardType,
+            desk: formatTitleCase(item.desk || 'Umum'),
+            status: STATUS_TO_LABEL[item.status] || 'Live',
+            creator: formatCreatedBy(item.createdBy || ''),
+            cardType: cardTypeForSlot(item.slotIndex),
             slot,
-            date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('ms-MY') : '22/07/2026',
-            isMine
+            date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('ms-MY') : '-',
           };
         });
 
@@ -109,14 +141,24 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     };
   }, [items]);
 
+  // Filter option lists derived from real loaded data, not hardcoded guesses.
+  const deskOptions = useMemo(() => Array.from(new Set(items.map(i => i.desk))).sort(), [items]);
+  const creatorOptions = useMemo(() => Array.from(new Set(items.map(i => i.creator))).sort(), [items]);
+  const slotOptions = useMemo(() => {
+    const slots: string[] = Array.from(new Set(items.map(i => i.slot)));
+    return slots.sort((a: string, b: string) => {
+      if (a === 'Ticker') return -1;
+      if (b === 'Ticker') return 1;
+      return parseInt(a.replace('Slot ', ''), 10) - parseInt(b.replace('Slot ', ''), 10);
+    });
+  }, [items]);
+
   // Smart Filtering Logic
   const filteredRecords = useMemo(() => {
     return items.filter(item => {
       // Editor View Mode Filter
       if (currentUserRole === 'EDITOR' && editorViewMode === 'mine') {
-        if (item.creator !== currentUserName && item.editor !== currentUserName && !item.isMine) {
-          return false;
-        }
+        if (item.creator !== currentUserName) return false;
       }
 
       // Search Query
@@ -126,8 +168,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           item.title.toLowerCase().includes(q) ||
           item.summary.toLowerCase().includes(q) ||
           item.id.toLowerCase().includes(q) ||
-          item.creator.toLowerCase().includes(q) ||
-          item.editor.toLowerCase().includes(q);
+          item.creator.toLowerCase().includes(q);
         if (!matches) return false;
       }
 
@@ -137,8 +178,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       // Filter: Jenis Kad
       if (selectedCardType !== 'Semua' && item.cardType !== selectedCardType) return false;
 
-      // Filter: Editor Bertanggungjawab
-      if (selectedEditor !== 'Semua' && item.editor !== selectedEditor && item.creator !== selectedEditor) return false;
+      // Filter: Sumber/Pencipta
+      if (selectedCreator !== 'Semua' && item.creator !== selectedCreator) return false;
 
       // Filter: Desk
       if (selectedDesk !== 'Semua' && item.desk.toLowerCase() !== selectedDesk.toLowerCase()) return false;
@@ -148,12 +189,33 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
       return true;
     });
-  }, [items, currentUserRole, editorViewMode, currentUserName, searchQuery, selectedStatus, selectedCardType, selectedEditor, selectedDesk, selectedSlot]);
+  }, [items, currentUserRole, editorViewMode, currentUserName, searchQuery, selectedStatus, selectedCardType, selectedCreator, selectedDesk, selectedSlot]);
 
-  const handleUpdateStatus = (id: string, newStatus: 'Pending' | 'Live' | 'Rejected' | 'Archive') => {
+  const handleUpdateStatus = async (id: string, newStatus: BriefRecord['status']) => {
+    setActionError(null);
+    const previous = items;
+    // Optimistic update, rolled back on failure.
     setItems(prev => prev.map(i => i.id === id ? { ...i, status: newStatus } : i));
     if (activeItemModal && activeItemModal.id === id) {
       setActiveItemModal({ ...activeItemModal, status: newStatus });
+    }
+
+    try {
+      const res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: LABEL_TO_STATUS[newStatus] }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Gagal kemas kini status (${res.status}).`);
+      }
+    } catch (err: any) {
+      setItems(previous);
+      if (activeItemModal && activeItemModal.id === id) {
+        setActiveItemModal(previous.find(i => i.id === id) || null);
+      }
+      setActionError(err.message || 'Gagal kemas kini status.');
     }
   };
 
@@ -161,7 +223,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     setSearchQuery('');
     setSelectedStatus('Semua');
     setSelectedCardType('Semua');
-    setSelectedEditor('Semua');
+    setSelectedCreator('Semua');
     setSelectedDesk('Semua');
     setSelectedSlot('Semua');
   };
@@ -189,11 +251,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           </div>
         </div>
 
+        {actionError && (
+          <div className="bg-red-50 border border-red-200 text-red-800 text-xs font-sans px-3 py-2 rounded flex justify-between items-center">
+            <span>⚠️ {actionError}</span>
+            <button onClick={() => setActionError(null)} className="font-bold px-2">✕</button>
+          </div>
+        )}
+
         {/* Search Input */}
         <div className="w-full">
           <input
             type="text"
-            placeholder="🔍 Cari tajuk, ID, penyedia, penyunting, atau kata kunci brief..."
+            placeholder="🔍 Cari tajuk, ID, atau kata kunci brief..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full bg-stone-50 border border-stone-300 rounded px-4 py-2.5 font-sans text-xs shadow-xs"
@@ -235,19 +304,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </select>
           </div>
 
-          {/* 3. Editor Bertanggungjawab Filter */}
+          {/* 3. Sumber/Pencipta Filter */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">EDITOR IN CHARGE</label>
+            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">SUMBER</label>
             <select
-              value={selectedEditor}
-              onChange={e => setSelectedEditor(e.target.value)}
+              value={selectedCreator}
+              onChange={e => setSelectedCreator(e.target.value)}
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
-              <option value="Semua">Semua Editor</option>
-              <option value="Izzat Anas">Izzat Anas (Ketua Editor)</option>
-              <option value="Ahmad">Editor Ahmad</option>
-              <option value="Ali">Editor Ali</option>
-              <option value="Fatimah">Editor Fatimah</option>
+              <option value="Semua">Semua Sumber</option>
+              {creatorOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 
@@ -260,10 +326,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
               <option value="Semua">Semua Desk</option>
-              <option value="Sains">Sains</option>
-              <option value="Sejarah">Sejarah</option>
-              <option value="Falsafah">Falsafah</option>
-              <option value="Nasional">Nasional</option>
+              {deskOptions.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
 
@@ -276,10 +339,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
               <option value="Semua">Semua Slot</option>
-              <option value="Ticker">Ticker</option>
-              <option value="Slot 0">Slot 0</option>
-              <option value="Slot 1">Slot 1</option>
-              <option value="Slot 2">Slot 2</option>
+              {slotOptions.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
@@ -295,7 +355,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         </div>
       </div>
 
-      {/* Editor View Switcher (Kandungan Saya vs Semua Read Only) */}
+      {/* Editor View Switcher (Kandungan Saya vs Semua Read Only) -- relevant once real EDITOR accounts exist */}
       {currentUserRole === 'EDITOR' && (
         <div className="flex bg-stone-100 p-1 rounded font-sans text-xs w-max border border-stone-200">
           <button
@@ -342,7 +402,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 <th className="p-2.5">Tajuk Brief</th>
                 <th className="p-2.5 w-20">Status</th>
                 <th className="p-2.5 w-24">Desk</th>
-                <th className="p-2.5 w-32">Penyedia / Editor</th>
+                <th className="p-2.5 w-28">Sumber</th>
                 <th className="p-2.5 w-24">Jenis Kad</th>
                 <th className="p-2.5 w-20">Slot</th>
                 <th className="p-2.5 w-24">Tarikh</th>
@@ -351,7 +411,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </thead>
             <tbody className="divide-y divide-stone-100 font-sans">
               {filteredRecords.map(rec => {
-                const isReadOnly = currentUserRole === 'EDITOR' && editorViewMode === 'all' && !rec.isMine;
+                const isReadOnly = currentUserRole === 'EDITOR' && editorViewMode === 'all' && rec.creator !== currentUserName;
 
                 return (
                   <tr
@@ -380,10 +440,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       </span>
                     </td>
                     <td className="p-2.5 font-sans text-xs text-stone-700 font-semibold">{formatTitleCase(rec.desk)}</td>
-                    <td className="p-2.5 font-serif text-stone-800 text-xs">
-                      <div className="font-semibold">{rec.creator}</div>
-                      <div className="font-sans text-[10px] text-stone-400">Ed: {rec.editor}</div>
-                    </td>
+                    <td className="p-2.5 font-serif text-stone-800 text-xs">{rec.creator}</td>
                     <td className="p-2.5 font-sans text-[10px]">
                       {rec.cardType === '-' ? (
                         <span className="text-stone-400 font-mono text-xs font-bold px-2">-</span>
@@ -396,7 +453,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     <td className="p-2.5 font-sans text-xs font-semibold text-stone-700">{rec.slot}</td>
                     <td className="p-2.5 font-sans text-stone-500 text-[10px] whitespace-nowrap">{rec.date}</td>
                     <td className="p-2.5 text-right font-sans text-xs whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                      {!isReadOnly ? (
+                      {rec.slot !== 'Ticker' && !isReadOnly ? (
                         <select
                           value=""
                           onChange={(e) => {
@@ -414,7 +471,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           {rec.status !== 'Archive' && <option value="Archive">📦 Arkib</option>}
                         </select>
                       ) : (
-                        <span className="text-stone-400 text-[11px] font-sans">Baca Sahaja</span>
+                        <span className="text-stone-400 text-[11px] font-sans">{rec.slot === 'Ticker' ? 'Ticker (uruskan di Tetapan)' : 'Baca Sahaja'}</span>
                       )}
                     </td>
                   </tr>
@@ -455,31 +512,40 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </div>
 
             <div className="flex justify-between items-center pt-2 font-mono text-xs">
-              <span className="text-stone-500">Penyedia: <strong>{activeItemModal.creator}</strong> | Penyunting: <strong>{activeItemModal.editor}</strong></span>
-              <div className="flex gap-2">
-                {activeItemModal.status !== 'Live' && (
+              <span className="text-stone-500">Sumber: <strong>{activeItemModal.creator}</strong></span>
+              {activeItemModal.slot !== 'Ticker' ? (
+                <div className="flex gap-2">
+                  {activeItemModal.status !== 'Live' && (
+                    <button
+                      onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                    >
+                      Publish Brief
+                    </button>
+                  )}
+                  {activeItemModal.status !== 'Rejected' && (
+                    <button
+                      onClick={() => handleUpdateStatus(activeItemModal.id, 'Rejected')}
+                      className="bg-[#c00000] hover:bg-red-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                    >
+                      Reject Brief
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}
-                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                    onClick={() => setActiveItemModal(null)}
+                    className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                   >
-                    Publish Brief
+                    Tutup
                   </button>
-                )}
-                {activeItemModal.status !== 'Rejected' && (
-                  <button
-                    onClick={() => handleUpdateStatus(activeItemModal.id, 'Rejected')}
-                    className="bg-[#c00000] hover:bg-red-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
-                  >
-                    Reject Brief
-                  </button>
-                )}
+                </div>
+              ) : (
                 <button
                   onClick={() => setActiveItemModal(null)}
                   className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                 >
                   Tutup
                 </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
