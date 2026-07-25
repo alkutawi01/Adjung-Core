@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-07-25T11:43:38.940Z",
+    "summary": "Betulkan bug: butang '+Tambah Blok Kandungan Baharu' pra-isi medan Kategori dengan 'TEKNOLOGI' dan Jenis sumber dengan 'Laman Web' secara automatik (sisa contoh templat yang tak dibersihkan) -- kedua-dua medan sepatutnya kosong macam semua medan lain (Tajuk, Huraian, Tarikh, Sumber, URL) sehingga editor isi sendiri. Disahkan di browser: blok baharu kini kosong sepenuhnya.",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T11:31:15.000Z",
     "summary": "KEMBALIKAN sepenuhnya susun atur bento kepada versi asal (sebelum sesi 2026-07-25's self-start fix, restrukturisasi flex, dan restrukturisasi masonry) atas arahan eksplisit pemilik projek selepas percubaan masonry 2-lajur secara sepihak menukar bilangan lajur reka bentuk (patut 3, saya buat 2) tanpa pengesahan dulu. FrontpageView.tsx dipulihkan bit-for-bit ke commit 0746a3b. Peraturan Perlembagaan 'Tinggi kad ikut kandungan' (yang menghurai mekanisme self-start/flex/masonry yang kini tak wujud lagi) dibuang; peraturan fon tajuk/huraian (tidak berkaitan, kekal sah) tidak disentuh.",
     "files": [
