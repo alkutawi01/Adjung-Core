@@ -1,40 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { GEOMETRY_RATIOS, TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
+import { GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 
 // Everything under CHART DATA below is read directly from core/editorial/GeometryConfig.js --
 // the exact same module server.js imports for validateContentBudget. There is no second copy of
-// the numbers here: if that file changes, this page changes with it on the next load.
+// the numbers here: if that file changes, this page changes with it on the next load. TIER_LABELS
+// / TIER_LABEL_IS_ENGLISH likewise come from there now -- no local copy of tier names either.
 
-const TIER_LABELS: Record<string, string> = {
-  HERO: 'Hero',
-  MENEGAK: 'Menegak',
-  STANDARD: 'Standard',
-  SEGI_EMPAT_MEDIUM: 'Segi Empat Medium',
-  SEGI_EMPAT_SMALL: 'Segi Empat Small',
-  KOMPAK: 'Kompak',
-  BAR: 'Bar',
-  TICKER: 'Ticker',
-};
+// Renders a tier label, condong (italic) whenever GeometryConfig flags it as an unapproved
+// English/borrowed word (peraturan: label mesti 100% Bahasa Melayu, Inggeris hanya dibenarkan
+// bertulis condong).
+const TierLabel: React.FC<{ tier: string }> = ({ tier }) =>
+  TIER_LABEL_IS_ENGLISH[tier] ? <em className="italic">{TIER_LABELS[tier]}</em> : <>{TIER_LABELS[tier]}</>;
 
 const TIER_ORDER = ['HERO', 'MENEGAK', 'STANDARD', 'SEGI_EMPAT_MEDIUM', 'SEGI_EMPAT_SMALL', 'KOMPAK', 'BAR', 'TICKER'];
 
-// Real grid proportions (columns wide x row-tracks tall) copied directly from the actual
-// col-span-*/row-span-* classes + min-h-[...] values in FrontpageView.tsx's bento grid (a 6-column
-// grid, ~180px per row track -- verified: row-span-2 cards use min-h-[380px] = ~2 tracks + gap).
-// Not an artistic approximation -- these are the literal grid units each tier occupies on the
-// real public frontpage, scaled down here so every tier's true shape can be compared at a glance.
-// subRows: for KOMPAK/BAR, how many items are stacked inside that one grid area (2 and 4).
-const TIER_SHAPE: Record<string, { w: number; h: number; subRows?: number }> = {
-  HERO: { w: 6, h: 1 },
-  MENEGAK: { w: 2, h: 2 },
-  STANDARD: { w: 4, h: 1 },
-  SEGI_EMPAT_MEDIUM: { w: 3, h: 1 },
-  SEGI_EMPAT_SMALL: { w: 2, h: 1 },
-  KOMPAK: { w: 2, h: 1, subRows: 2 },
-  BAR: { w: 2, h: 1, subRows: 4 },
-  TICKER: { w: 6, h: 0.28 },
+// Real pixel dimensions, MEASURED directly off the live rendered page (getBoundingClientRect on
+// an actual card of each tier at desktop width 1280px) -- not derived from col-span/row-span grid
+// units. An earlier version of this illustration assumed 1 grid column-width ~= 1 row-height,
+// which was wrong: a "row" renders much taller in real pixels than a single column is wide (real
+// content/padding stretches height well past the declared min-h-[...] floor). That wrong
+// assumption made MENEGAK render near-square here when the real card is genuinely tall (0.47
+// width:height ratio measured). BAR and TICKER were first measured against the wrong target (the
+// inner card, which only renders when content exists) and came back as unmeasurable estimates;
+// re-measured against the always-present wrapper elements instead (the 4-slot BAR column div, and
+// the ticker strip), both of which exist in the DOM regardless of content -- now genuinely
+// measured, no more dashed/estimated tiers.
+const TIER_SHAPE_PX: Record<string, { w: number; h: number; measured: boolean; subRows?: number }> = {
+  HERO: { w: 1024, h: 225, measured: true },
+  MENEGAK: { w: 331, h: 698, measured: true },
+  STANDARD: { w: 677, h: 276, measured: true },
+  SEGI_EMPAT_MEDIUM: { w: 504, h: 299, measured: true },
+  SEGI_EMPAT_SMALL: { w: 331, h: 406, measured: true },
+  KOMPAK: { w: 331, h: 84, measured: true, subRows: 2 },
+  BAR: { w: 331, h: 360, measured: true, subRows: 4 },
+  TICKER: { w: 1024, h: 41, measured: true },
 };
-const SHAPE_UNIT_PX = 15; // 1 grid column/row-track = 15px in the mini illustration
+const SHAPE_SCALE = 1 / 12; // real px -> illustration px
 
 interface ChangelogCommit {
   hash: string;
@@ -42,6 +43,19 @@ interface ChangelogCommit {
   date: string;
   message: string;
 }
+
+interface UiUxLogEntry {
+  time: string;
+  summary: string;
+  files: string[];
+}
+
+const formatLogTime = (iso: string) => {
+  const d = new Date(iso);
+  const datePart = d.toLocaleDateString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timePart = d.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  return `${datePart}, ${timePart}`;
+};
 
 const UNIVERSAL_RULES = [
   {
@@ -68,12 +82,24 @@ const UNIVERSAL_RULES = [
     title: 'Body kandungan editorial ialah tulisan sebenar.',
     body: 'Jangan potong atau tulis-ganti secara mekanikal tanpa kelulusan eksplisit pemilik projek -- itu vandalisme editorial, bukan "fix".',
   },
+  {
+    title: 'Penomboran slot mula dari 1, bukan 0.',
+    body: 'Manusia sentiasa nampak "Slot 1", "Slot 2" ... "Slot 38". TIADA "Slot 0" dipaparkan di mana-mana UI. Indeks dalaman kod (0-37) kekal tak berubah -- ini peraturan PAPARAN sahaja, bukan skema data.',
+  },
+  {
+    title: 'Label mesti 100% Bahasa Melayu.',
+    body: 'Kalau terpaksa guna Bahasa Inggeris (tiada padanan Melayu yang diluluskan lagi), tulis dengan huruf condong (italic). Lihat carta tier di bawah -- Bar dan Ticker kini bertulis condong kerana sebab ini.',
+  },
 ];
 
 export const PerlembagaanConsole: React.FC = () => {
   const [commits, setCommits] = useState<ChangelogCommit[]>([]);
   const [changelogUnavailable, setChangelogUnavailable] = useState(false);
   const [loadingLog, setLoadingLog] = useState(true);
+
+  const [uiUxEntries, setUiUxEntries] = useState<UiUxLogEntry[]>([]);
+  const [uiUxUnavailable, setUiUxUnavailable] = useState(false);
+  const [loadingUiUxLog, setLoadingUiUxLog] = useState(true);
 
   useEffect(() => {
     fetch('/api/system/rules-changelog')
@@ -86,6 +112,18 @@ export const PerlembagaanConsole: React.FC = () => {
       .catch(() => {
         setChangelogUnavailable(true);
         setLoadingLog(false);
+      });
+
+    fetch('/api/system/ui-ux-changelog')
+      .then(res => res.json())
+      .then(data => {
+        setUiUxEntries(data.entries || []);
+        setUiUxUnavailable(!!data.unavailable);
+        setLoadingUiUxLog(false);
+      })
+      .catch(() => {
+        setUiUxUnavailable(true);
+        setLoadingUiUxLog(false);
       });
   }, []);
 
@@ -131,25 +169,28 @@ export const PerlembagaanConsole: React.FC = () => {
       {/* TIER CHART -- live from GeometryConfig.js */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          02 -- Carta Pembahagian Slot (Live)
+          02 -- Carta Pembahagian Slot (<em className="italic">Live</em>)
         </span>
 
-        {/* Shape gallery: real grid proportions (col-span x row-span, to scale) side by side, so
-            every tier's actual shape can be told apart at a glance. */}
+        {/* Shape gallery: real MEASURED pixel proportions (getBoundingClientRect on the live page
+            at 1280px width), to scale, side by side -- not derived from grid units (that
+            approach was tried first and produced a wrong, near-square MENEGAK box; see the
+            TIER_SHAPE_PX comment above for what happened and why). */}
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs mb-3">
           <div className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold mb-3">
-            Bentuk sebenar (skala {SHAPE_UNIT_PX}px = 1 lajur/baris grid)
+            Bentuk sebenar (diukur terus dari kad hidup, skala 1:{Math.round(1 / SHAPE_SCALE)})
           </div>
           <div className="flex flex-wrap items-end gap-6">
             {TIER_ORDER.map(tier => {
-              const shape = TIER_SHAPE[tier];
-              const boxW = shape.w * SHAPE_UNIT_PX;
-              const boxH = Math.max(shape.h * SHAPE_UNIT_PX, 5);
+              const shape = TIER_SHAPE_PX[tier];
+              const boxW = Math.max(shape.w * SHAPE_SCALE, 4);
+              const boxH = Math.max(shape.h * SHAPE_SCALE, 4);
               return (
                 <div key={tier} className="flex flex-col items-center gap-1.5">
                   <div
-                    className="border-2 border-[#802334] bg-[#f3e9d2] rounded-sm relative"
+                    className={`border-2 bg-[#f3e9d2] rounded-sm relative ${shape.measured ? 'border-[#802334]' : 'border-[#802334]/40 border-dashed'}`}
                     style={{ width: boxW, height: boxH }}
+                    title={shape.measured ? 'Diukur terus dari kad sebenar' : 'Dianggar -- tiada kandungan sebenar untuk diukur ketika ini'}
                   >
                     {shape.subRows && Array.from({ length: shape.subRows - 1 }).map((_, i) => (
                       <div
@@ -160,7 +201,7 @@ export const PerlembagaanConsole: React.FC = () => {
                     ))}
                   </div>
                   <span className="font-mono text-[9px] text-stone-600 font-bold text-center leading-tight max-w-[70px]">
-                    {TIER_LABELS[tier]}
+                    <TierLabel tier={tier} />{!shape.measured && ' *'}
                   </span>
                 </div>
               );
@@ -177,7 +218,7 @@ export const PerlembagaanConsole: React.FC = () => {
             return (
               <div key={tier} className="grid grid-cols-1 md:grid-cols-[140px_1fr] gap-2 md:gap-4 items-start">
                 <div>
-                  <div className="font-serif text-sm font-bold text-stone-900">{TIER_LABELS[tier]}</div>
+                  <div className="font-serif text-sm font-bold text-stone-900"><TierLabel tier={tier} /></div>
                   <div className="font-mono text-[9px] text-stone-400 uppercase">
                     {slots ? `${slots.length} slot` : 'Jalur berasingan'}
                   </div>
@@ -197,7 +238,7 @@ export const PerlembagaanConsole: React.FC = () => {
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {slots.map((s: number) => (
                         <span key={s} className="bg-stone-100 text-stone-600 border border-stone-200 rounded px-1.5 py-0.5 font-mono text-[9px]">
-                          {s}
+                          {s + 1}
                         </span>
                       ))}
                     </div>
@@ -212,7 +253,7 @@ export const PerlembagaanConsole: React.FC = () => {
       {/* LIVE CHANGE LOG */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          03 -- Log Perubahan Peraturan (Live, Daripada Git)
+          03 -- Log Perubahan Peraturan (<em className="italic">Live</em>, Daripada Git)
         </span>
         <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
           {loadingLog ? (
@@ -249,6 +290,45 @@ export const PerlembagaanConsole: React.FC = () => {
         <p className="font-sans text-[10px] text-stone-400 mt-2">
           Rujukan (cth. <code className="bg-stone-100 px-1 py-0.5 rounded">{commits[0]?.hash || '1a2b3c4'}</code>) boleh diminta untuk dibatalkan (revert) bila-bila masa.
         </p>
+      </div>
+
+      {/* LIVE UI/UX CHANGE LOG -- separate from section 03: this one is written the instant a
+          UI/UX-affecting change lands (scripts/log-ui-change.mjs), not deferred to commit time,
+          and carries a full jam:minit:saat timestamp, not just a date. */}
+      <div>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+          04 -- Log Perubahan UI/UX (<em className="italic">Live</em>, Masa Sebenar)
+        </span>
+        <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
+          {loadingUiUxLog ? (
+            <div className="p-8 text-center font-serif text-stone-500 text-xs">Memuatkan log...</div>
+          ) : uiUxUnavailable ? (
+            <div className="p-8 text-center font-serif text-stone-500 text-xs">Log UI/UX tidak tersedia.</div>
+          ) : uiUxEntries.length === 0 ? (
+            <div className="p-8 text-center font-serif text-stone-500 text-xs">Tiada rekod perubahan UI/UX setakat ini.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse font-sans text-xs min-w-[480px]">
+                <thead>
+                  <tr className="bg-stone-100 border-b border-stone-200 font-mono text-[9px] uppercase text-stone-600 tracking-wider">
+                    <th className="p-3 w-40">Masa</th>
+                    <th className="p-3">Perubahan</th>
+                    <th className="p-3 w-56">Fail</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {uiUxEntries.map((e, i) => (
+                    <tr key={i} className="hover:bg-stone-50">
+                      <td className="p-3 font-mono text-[10px] text-stone-500 whitespace-nowrap">{formatLogTime(e.time)}</td>
+                      <td className="p-3 font-serif text-stone-800">{e.summary}</td>
+                      <td className="p-3 font-mono text-[9px] text-stone-500">{e.files.join(', ')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -30,6 +30,32 @@ export const FALLBACK_CEILINGS = {
   DEFAULT: { maxTitle: 70, maxBrief: 100 },
 };
 
+// Canonical Malay tier labels -- single source of truth, imported by PerlembagaanConsole.tsx and
+// IndeksConsole.tsx (no local copies). Derived from the Fasa 0 shape illustration (Full
+// horizontal/Vertical/Horizontal/Square/Compact/Bar) translated to Malay per project owner's
+// explicit instruction: "Horizontal" -> "Melintang", "Square" -> "Kiub", with Besar/Kecil added
+// to split SEGI_EMPAT_MEDIUM/SMALL since the illustration only had one "Square" label for what is
+// now two distinct tiers.
+export const TIER_LABELS = {
+  HERO: 'Melintang Penuh',
+  MENEGAK: 'Menegak',
+  STANDARD: 'Melintang',
+  SEGI_EMPAT_MEDIUM: 'Kiub Besar',
+  SEGI_EMPAT_SMALL: 'Kiub Kecil',
+  KOMPAK: 'Kompak',
+  BAR: 'Bar',
+  TICKER: 'Ticker',
+};
+
+// Peraturan Perlembagaan: label mesti 100% Bahasa Melayu; Bahasa Inggeris hanya dibenarkan
+// bertulis condong (italic) bila tiada padanan Melayu yang diluluskan lagi. "Bar" dan "Ticker"
+// tiada terjemahan Melayu rasmi setakat ini -- tandakan di sini supaya semua paparan (Perlembagaan,
+// Indeks, dll.) condongkan kedua-dua label ini secara konsisten dari satu tempat.
+export const TIER_LABEL_IS_ENGLISH = {
+  BAR: true,
+  TICKER: true,
+};
+
 export const tierForSlot = (slotIndex) => {
   if (slotIndex === -1) return 'TICKER';
   for (const key of Object.keys(TIER_SLOTS)) {

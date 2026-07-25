@@ -520,7 +520,7 @@ const updateLimitsInText = (text: string, maxTitle: number, maxBrief: number, ma
 // maxTitleAlone is how many brief characters one title character "costs" in shared vertical space.
 // Used both for the (maxTitle, maxBrief) defaults below and to auto-balance the two fields in
 // Mini Editorium (see handleMaxTitleChange/handleMaxBriefChange).
-import { GEOMETRY_RATIOS, tierForSlot as getGeometryTierForIndex, ceilingForSlot } from '../../../core/editorial/GeometryConfig.js';
+import { GEOMETRY_RATIOS, tierForSlot as getGeometryTierForIndex, ceilingForSlot, TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 
 // Fixed ruleset for the "Salin Templat Prom AI (Lampiran)" button -- unlike Peraturan Am/Tambahan,
 // this is not admin-editable per slot; it's the same encyclopedia-style writing discipline every
@@ -1314,7 +1314,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .catch(err => console.error('Failed to fetch AI logs for slot:', err));
   }, [editingSlotIndex]);
 
-  const isEditingBarSlot = editingSlotIndex !== null && [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
+  const isEditingBarSlot = editingSlotIndex !== null && TIER_SLOTS.BAR.includes(editingSlotIndex);
   const [slotsConfig, setSlotsConfig] = useState<any[]>([]);
   const [formConfig, setFormConfig] = useState<any | null>(null);
   const [isSavingSlot, setIsSavingSlot] = useState<boolean>(false);
@@ -1548,7 +1548,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     }
     const item = bentoNewsItems[idx];
 
-    const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(idx);
+    const isBarSlot = TIER_SLOTS.BAR.includes(idx);
 
     let manualSummaryText = config?.manualSummary || '';
     
@@ -1671,7 +1671,7 @@ URL: ${url}`;
     setIsSavingSlot(true);
 
     const finalFormConfig = { ...formConfig };
-    if ([7, 8, 9, 10, 21, 22, 23, 24].includes(formConfig.slotIndex)) {
+    if (TIER_SLOTS.BAR.includes(formConfig.slotIndex)) {
       finalFormConfig.allowedContentTypes = 'Event';
     }
 
@@ -1889,7 +1889,7 @@ URL: ${url}`;
     ];
     // Indices (into ABOUT_ADJUNG_ITEMS) whose title is short enough (<=40 chars) for BAR-type slots.
     const SHORT_TITLE_SAFE = [0, 2, 5, 6, 7, 9];
-    const BAR_SLOTS = new Set([7, 8, 9, 10, 21, 22, 23, 24]);
+    const BAR_SLOTS = new Set(TIER_SLOTS.BAR);
     const NO_BRIEF_SLOTS = new Set([4, 5, 17, 18, 31, 32, 7, 8, 9, 10, 21, 22, 23, 24]);
 
     const fallbacks = Array.from({ length: 38 }, (_, i) => {
@@ -1957,7 +1957,7 @@ URL: ${url}`;
         itemToPush.brief = padToLimit(itemToPush.brief, limits.maxBrief);
       }
 
-      if ([7, 8, 9, 10, 21, 22, 23, 24].includes(i)) {
+      if (TIER_SLOTS.BAR.includes(i)) {
         itemToPush.source = itemToPush.source || '19 Jul 2026';
         if (itemToPush.source.length > 25) {
           itemToPush.source = itemToPush.source.substring(0, 25);
@@ -2073,7 +2073,7 @@ URL: ${url}`;
       resolvedItem.titleString = originalTitle;
       resolvedItem.briefString = originalBrief;
 
-      if ([7, 8, 9, 10, 21, 22, 23, 24].includes(actualSlotIdx)) {
+      if (TIER_SLOTS.BAR.includes(actualSlotIdx)) {
         resolvedItem.source = resolvedItem.source || '19 Jul 2026';
         if (resolvedItem.source.length > 25) {
           resolvedItem.source = resolvedItem.source.substring(0, 25);
@@ -5255,7 +5255,7 @@ URL: ${url}`;
                         <button
                           type="button"
                           onClick={() => {
-                            const isBar = [7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex);
+                            const isBar = TIER_SLOTS.BAR.includes(editingSlotIndex);
                             const count = formConfig.generationLimit || 1;
                             const settingsLines = [];
                             if (formConfig.aiPromptTopic) settingsLines.push(`Topik: ${formConfig.aiPromptTopic}`);
@@ -5357,7 +5357,7 @@ ${exampleBlock}` : ''}`;
                         >
                           Salin Templat Prom AI
                         </button>
-                        {editingSlotIndex !== -1 && ![7, 8, 9, 10, 21, 22, 23, 24].includes(editingSlotIndex) && (
+                        {editingSlotIndex !== -1 && !TIER_SLOTS.BAR.includes(editingSlotIndex) && (
                           <button
                             type="button"
                             onClick={() => {

@@ -2446,6 +2446,23 @@ app.get('/api/system/rules-changelog', async (req, res) => {
   }
 });
 
+// GET /api/system/ui-ux-changelog -- live, millisecond-timestamped log of UI/UX-affecting changes,
+// written by scripts/log-ui-change.mjs the instant each change lands (not batched at commit time
+// like /api/system/rules-changelog above, which only carries git's per-second commit timestamp and
+// only updates when a commit happens). Read-only here; fails soft with an empty list if the log
+// file doesn't exist yet.
+app.get('/api/system/ui-ux-changelog', (req, res) => {
+  try {
+    const logPath = path.join(__dirname, 'core', 'data', 'ui_ux_changelog.json');
+    if (!fs.existsSync(logPath)) return res.json({ entries: [] });
+    const entries = JSON.parse(fs.readFileSync(logPath, 'utf-8'));
+    res.json({ entries });
+  } catch (err) {
+    console.warn('Failed to read UI/UX changelog:', err.message);
+    res.json({ entries: [], unavailable: true });
+  }
+});
+
 // 1. GET /api/system/layout/active
 app.get('/api/system/layout/active', async (req, res) => {
   try {

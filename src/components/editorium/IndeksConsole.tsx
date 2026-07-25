@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { tierForSlot } from '../../../core/editorial/GeometryConfig.js';
+import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 
 interface BriefRecord {
   id: string;
@@ -8,10 +8,15 @@ interface BriefRecord {
   desk: string;
   status: 'Pending' | 'Live' | 'Rejected' | 'Archive';
   creator: string;
-  cardType: 'Hero' | 'Menegak' | 'Standard' | 'Segi Empat Medium' | 'Segi Empat Small' | 'Kompak' | 'Bar' | 'Ticker' | '-';
+  cardType: string;
   slot: string;
   date: string;
 }
+
+// Renders a tier label, condong (italic) whenever GeometryConfig flags it as an unapproved
+// English/borrowed word -- same rule and same source as PerlembagaanConsole.tsx's TierLabel.
+const TierLabel: React.FC<{ tier: string }> = ({ tier }) =>
+  TIER_LABEL_IS_ENGLISH[tier] ? <em className="italic">{TIER_LABELS[tier]}</em> : <>{TIER_LABELS[tier]}</>;
 
 interface IndeksConsoleProps {
   currentUserRole?: 'KETUA_EDITOR' | 'EDITOR';
@@ -57,22 +62,12 @@ const formatCreatedBy = (createdBy: string): string => {
 };
 
 // Real geometry tier per slot (same source of truth the frontpage itself uses) instead of a
-// random rotation -- see core/editorial/GeometryConfig.js. Uses the actual tier name as the
-// display label (matching PerlembagaanConsole.tsx's TIER_LABELS) -- no invented English
-// "Card"-style names, and no merging two distinct tiers under one shared label.
-const cardTypeForSlot = (slotIndex: number): BriefRecord['cardType'] => {
-  if (slotIndex === -1) return 'Ticker';
-  const tier = tierForSlot(slotIndex);
-  switch (tier) {
-    case 'HERO': return 'Hero';
-    case 'MENEGAK': return 'Menegak';
-    case 'STANDARD': return 'Standard';
-    case 'SEGI_EMPAT_MEDIUM': return 'Segi Empat Medium';
-    case 'SEGI_EMPAT_SMALL': return 'Segi Empat Small';
-    case 'KOMPAK': return 'Kompak';
-    case 'BAR': return 'Bar';
-    default: return '-';
-  }
+// random rotation -- see core/editorial/GeometryConfig.js. Stores the tier KEY (e.g. 'HERO'),
+// not a display label -- TIER_LABELS (also from GeometryConfig.js) supplies the label at render
+// time, so this file carries no label copy of its own and can't drift from PerlembagaanConsole.
+const cardTypeForSlot = (slotIndex: number): string => {
+  if (slotIndex === -1) return 'TICKER';
+  return tierForSlot(slotIndex) || '-';
 };
 
 export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
@@ -108,7 +103,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
         const normalized: BriefRecord[] = rawItems.map((item: any, idx: number) => {
           const isTicker = item.slotIndex === -1 || item.id?.startsWith('ticker-');
-          const slot = isTicker ? 'Ticker' : `Slot ${item.slotIndex}`;
+          const slot = isTicker ? 'Ticker' : `Slot ${item.slotIndex + 1}`;
 
           return {
             id: item.id || `cnt_${idx}`,
@@ -298,14 +293,14 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
               <option value="Semua">Semua Kad</option>
-              <option value="Hero">Hero</option>
-              <option value="Menegak">Menegak</option>
-              <option value="Standard">Standard</option>
-              <option value="Segi Empat Medium">Segi Empat Medium</option>
-              <option value="Segi Empat Small">Segi Empat Small</option>
-              <option value="Kompak">Kompak</option>
-              <option value="Bar">Bar</option>
-              <option value="Ticker">Ticker</option>
+              <option value="HERO">{TIER_LABELS.HERO}</option>
+              <option value="MENEGAK">{TIER_LABELS.MENEGAK}</option>
+              <option value="STANDARD">{TIER_LABELS.STANDARD}</option>
+              <option value="SEGI_EMPAT_MEDIUM">{TIER_LABELS.SEGI_EMPAT_MEDIUM}</option>
+              <option value="SEGI_EMPAT_SMALL">{TIER_LABELS.SEGI_EMPAT_SMALL}</option>
+              <option value="KOMPAK">{TIER_LABELS.KOMPAK}</option>
+              <option value="BAR">{TIER_LABELS.BAR}</option>
+              <option value="TICKER">{TIER_LABELS.TICKER}</option>
             </select>
           </div>
 
@@ -451,7 +446,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         <span className="text-stone-400 font-mono text-xs font-bold px-2">-</span>
                       ) : (
                         <span className="bg-stone-100 text-stone-800 px-2 py-0.5 rounded font-semibold border border-stone-200">
-                          {rec.cardType}
+                          <TierLabel tier={rec.cardType} />
                         </span>
                       )}
                     </td>
@@ -512,7 +507,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs bg-stone-100 p-3 rounded border border-stone-200">
               <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{activeItemModal.status}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">DESK</span><strong className="text-stone-900">{formatTitleCase(activeItemModal.desk)}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>
             </div>
 
