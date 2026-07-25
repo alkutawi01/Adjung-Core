@@ -1,5 +1,19 @@
 [
   {
+    "time": "2026-07-25T10:43:46.543Z",
+    "summary": "Perlembagaan peraturan #9: kemas kini penerangan - kaedah sebenar kini flex bersarang (bukan self-start dalam grid sahaja), jelaskan kenapa self-start-dalam-grid tak cukup",
+    "files": [
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
+    "time": "2026-07-25T10:42:58.531Z",
+    "summary": "FrontpageView.tsx: Pilihan B - susun semula LAPAN blok bento (semua yg ada row-span-2 + 2 blok 'skip' asal) drpd CSS Grid ke flex bersarang (items-start). Grid paksa semua kad sebaris padan tinggi kad paling tinggi walau lepas self-start; flex tak ada kekangan tinggi sebaris ni langsung. Disahkan visual: jurang bawah 'Pertandingan Cerita Pendek' & seumpama hilang 100%, desktop+mobile OK",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T10:18:38.067Z",
     "summary": "Perlembagaan: tambah peraturan sejagat #10 'Fon tajuk tak boleh lebih kecil drpd fon huraian' - dedah punca sebenar (briefStyle paksa 14px inline, titleStyle tiada paksaan) & catat pelanggaran sedia ada (Kompak text-xs=12px di bawah md) belum dibetulkan",
     "files": [

@@ -2627,14 +2627,17 @@ URL: ${url}`;
               </div>
             )}
 
-            {/* ROW 2 & 3: Vertical, Horizontal, Square, 2 Compact (Indices 1 to 5) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              
+            {/* ROW 2 & 3: Vertical, Horizontal, Square, 2 Compact (Indices 1 to 5)
+                Restructured from CSS Grid to nested flex (items-start) -- see the comment on the
+                ROW 4 & 5 block below for why: a grid row/row-span track forces every sharing card
+                to match the tallest member even with self-start on each card's own box. */}
+            <div className="flex flex-col md:flex-row gap-4">
+
               {/* Left Column: Vertical (Index 1) */}
               {bentoNewsItems[1] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(1)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-2/6 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
                   <BentoInner itemKey="1" className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
                     <div className="space-y-4">
@@ -2658,64 +2661,66 @@ URL: ${url}`;
                 </div>
               )}
 
-              {/* Right/Top: Horizontal (Index 2) */}
-              {bentoNewsItems[2] && (
-                <div 
-                  onClick={() => handleCardClick(2)}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] self-start overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
-                 style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
-                  <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
-                    <div className="flex-1">
-                      <CarouselStableBlock
-                        items={bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]]}
-                        activeIndex={bentoNewsItems[2].carouselIndex || 0}
-                        renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{it.desk}</div>
-                            <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[2]).briefStyle}>{safeParseInline(it.brief)}</p>
-                          </>
-                        )}
-                      />
-                    </div>
-                    <a href={bentoNewsItems[2].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[2]).sourceStyle}>
-                      <span>{bentoNewsItems[2].source}</span>
-                      {(getDisplayDate(bentoNewsItems[2].originalDate) || formatBentoDate(bentoNewsItems[2].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[2].originalDate) || formatBentoDate(bentoNewsItems[2].publishedAt))}</span>}
-                    </a>
-                  </BentoInner><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[2].publishedAt)}</span>
-                </div>
-              )}
+              <div className="w-full md:w-4/6 flex flex-col gap-4">
+                {/* Right/Top: Horizontal (Index 2) */}
+                {bentoNewsItems[2] && (
+                  <div
+                    onClick={() => handleCardClick(2)}
+                    className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                   style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
+                    <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
+                      <div className="flex-1">
+                        <CarouselStableBlock
+                          items={bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]]}
+                          activeIndex={bentoNewsItems[2].carouselIndex || 0}
+                          renderItem={(it) => (
+                            <>
+                              <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{it.desk}</div>
+                              <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[2]).briefStyle}>{safeParseInline(it.brief)}</p>
+                            </>
+                          )}
+                        />
+                      </div>
+                      <a href={bentoNewsItems[2].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[2]).sourceStyle}>
+                        <span>{bentoNewsItems[2].source}</span>
+                        {(getDisplayDate(bentoNewsItems[2].originalDate) || formatBentoDate(bentoNewsItems[2].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[2].originalDate) || formatBentoDate(bentoNewsItems[2].publishedAt))}</span>}
+                      </a>
+                    </BentoInner><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[2].publishedAt)}</span>
+                  </div>
+                )}
 
-              {/* Right/Bottom-Left: Square (Index 3) */}
-              {bentoNewsItems[3] && (
-                <div 
-                  onClick={() => handleCardClick(3)}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] self-start group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
-                 style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
-                  <BentoInner itemKey="3" className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
-                    <div>
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[3]).deskStyle}>{bentoNewsItems[3].desk}</div>
-                      <CarouselStableBlock
-                        items={bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]]}
-                        activeIndex={bentoNewsItems[3].carouselIndex || 0}
-                        renderItem={(it) => (
-                          <>
-                            <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[3]).briefStyle}>{safeParseInline(it.brief)}</p>
-                          </>
-                        )}
-                      />
+                <div className="flex flex-col md:flex-row gap-4 items-start">
+                  {/* Right/Bottom-Left: Square (Index 3) */}
+                  {bentoNewsItems[3] && (
+                    <div
+                      onClick={() => handleCardClick(3)}
+                      className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                     style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
+                      <BentoInner itemKey="3" className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
+                        <div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[3]).deskStyle}>{bentoNewsItems[3].desk}</div>
+                          <CarouselStableBlock
+                            items={bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]]}
+                            activeIndex={bentoNewsItems[3].carouselIndex || 0}
+                            renderItem={(it) => (
+                              <>
+                                <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
+                                <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[3]).briefStyle}>{safeParseInline(it.brief)}</p>
+                              </>
+                            )}
+                          />
+                        </div>
+                        <a href={bentoNewsItems[3].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[3]).sourceStyle}>
+                          <span>{bentoNewsItems[3].source}</span>
+                          {(getDisplayDate(bentoNewsItems[3].originalDate) || formatBentoDate(bentoNewsItems[3].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[3].originalDate) || formatBentoDate(bentoNewsItems[3].publishedAt))}</span>}
+                        </a>
+                      </BentoInner><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[3].publishedAt)}</span>
                     </div>
-                    <a href={bentoNewsItems[3].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[3]).sourceStyle}>
-                      <span>{bentoNewsItems[3].source}</span>
-                      {(getDisplayDate(bentoNewsItems[3].originalDate) || formatBentoDate(bentoNewsItems[3].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[3].originalDate) || formatBentoDate(bentoNewsItems[3].publishedAt))}</span>}
-                    </a>
-                  </BentoInner><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[3].publishedAt)}</span>
-                </div>
-              )}
+                  )}
 
               {/* Right/Bottom-Right: Two Stacked Compacts (Indices 4 & 5) */}
-              <div className="md:col-span-2 flex flex-col gap-4 self-start">
+              <div className="w-full md:w-1/2 flex flex-col gap-4">
                 {bentoNewsItems[4] && (
                 <div 
                   onClick={() => handleCardClick(4)}
@@ -2769,48 +2774,116 @@ URL: ${url}`;
                   </div>
                 )}
               </div>
+                </div>
+              </div>
 
             </div>
 
-            {/* ROW 4 & 5: Horizontal, Vertical, Bars, Square (Indices 6 to 12) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 animate-fade-in">
-              
-              {/* Left Top: Horizontal (Index 6) */}
-              {bentoNewsItems[6] && (
-                <div 
-                  onClick={() => handleCardClick(6)}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] self-start overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
-                 style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
-                  <div className="flex-1">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]]}
-                      activeIndex={bentoNewsItems[6].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[6]).briefStyle}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
+            {/* ROW 4 & 5: Horizontal, Vertical, Bars, Square (Indices 6 to 12)
+                Restructured from CSS Grid to nested flex (items-start): Grid forced every card
+                sharing a row/row-span track to match the tallest member's height, even after the
+                self-start fix (self-start only stops a card's own box from stretching -- the grid
+                TRACK itself, and any shorter self-start sibling, still ends up shrink-wrapped
+                inside empty space). Flex children never share a forced track height, so index 6,
+                the Bar cluster, and index 11 now each size purely to their own content, both against
+                each other AND against index 12 -- no gap-producing neighbor left, tall or short. */}
+            <div className="flex flex-col md:flex-row gap-4 items-start animate-fade-in">
+              <div className="w-full md:w-4/6 flex flex-col gap-4">
+                {/* Left Top: Horizontal (Index 6) */}
+                {bentoNewsItems[6] && (
+                  <div
+                    onClick={() => handleCardClick(6)}
+                    className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                   style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
+                    <div className="flex-1">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]]}
+                        activeIndex={bentoNewsItems[6].carouselIndex || 0}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
+                            <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
+                            <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[6]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[6].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[6]).sourceStyle}>
+                      <span>{bentoNewsItems[6].source}</span>
+                      {(getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt))}</span>}
+                    </a>
+
+                    {bentoNewsItems[6].aiProvider && (
+                      <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                        {bentoNewsItems[6].aiProvider.replace('Google ', '').split(' (')[0]}
+                      </span>
+                    )}</div>
+                )}
+
+                <div className="flex flex-col md:flex-row gap-4 items-start">
+                  <div className="w-full md:w-1/2 relative flex flex-col justify-between gap-2">
+                    <div className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 -translate-x-full items-center justify-center pointer-events-none select-none">
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
+                        PROGRAM-PROGRAM BERMANFAAT
+                      </span>
+                    </div>
+                    {[7, 8, 9, 10].map((idx) => {
+                      const barItem = bentoNewsItems[idx];
+                      if (!barItem) return null;
+                      return (
+                        <BarCard
+                          key={idx}
+                          item={barItem}
+                          onClick={() => handleCardClick(idx)}
+                          isEditMode={isEditMode}
+                          onEditClick={(e) => {
+                            e.stopPropagation();
+                            handleCardClick(idx);
+                          }}
+                        />
+                      );
+                    })}
                   </div>
-                  <a href={bentoNewsItems[6].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300 pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[6]).sourceStyle}>
-                    <span>{bentoNewsItems[6].source}</span>
-                    {(getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[6].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[6].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
-              )}
+
+                  {/* Left Bottom Right: Square (Index 11) */}
+                  {bentoNewsItems[11] && (
+                    <div
+                      onClick={() => handleCardClick(11)}
+                      className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                     style={getCardTheme(bentoNewsItems[11], 'transparent').cardStyle} >
+                      <div>
+                        <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{bentoNewsItems[11].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
+                        <CarouselStableBlock
+                          items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
+                          activeIndex={bentoNewsItems[11].carouselIndex || 0}
+                          renderItem={(it) => (
+                            <>
+                              <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[11]).briefStyle}>{safeParseInline(it.brief)}</p>
+                            </>
+                          )}
+                        />
+                      </div>
+                        <a href={bentoNewsItems[11].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[11]).sourceStyle}>
+                          <span>{bentoNewsItems[11].source}</span>
+                          {(getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt))}</span>}
+                        </a>
+
+
+                      {bentoNewsItems[11].aiProvider && (
+                        <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                          {bentoNewsItems[11].aiProvider.replace('Google ', '').split(' (')[0]}
+                        </span>
+                      )}</div>
+                  )}
+                </div>
+              </div>
 
               {/* Right Column: Vertical (Index 12) */}
               {bentoNewsItems[12] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(12)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-2/6 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[12], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -2829,78 +2902,24 @@ URL: ${url}`;
                     <span>{bentoNewsItems[12].source}</span>
                     {(getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt))}</span>}
                   </a>
-                
+
                   {bentoNewsItems[12].aiProvider && (
                     <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
                       {bentoNewsItems[12].aiProvider.replace('Google ', '').split(' (')[0]}
                     </span>
                   )}</div>
               )}
-
-              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 self-start">
-                <div className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 -translate-x-full items-center justify-center pointer-events-none select-none">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
-                    PROGRAM-PROGRAM BERMANFAAT
-                  </span>
-                </div>
-                {[7, 8, 9, 10].map((idx) => {
-                  const barItem = bentoNewsItems[idx];
-                  if (!barItem) return null;
-                  return (
-                    <BarCard
-                      key={idx}
-                      item={barItem}
-                      onClick={() => handleCardClick(idx)}
-                      isEditMode={isEditMode}
-                      onEditClick={(e) => {
-                        e.stopPropagation();
-                        handleCardClick(idx);
-                      }}
-                    />
-                  );
-                })}
-              </div>
-
-              {/* Left Bottom Right: Square (Index 11) */}
-              {bentoNewsItems[11] && (
-                <div 
-                  onClick={() => handleCardClick(11)}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] self-start group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
-                 style={getCardTheme(bentoNewsItems[11], 'transparent').cardStyle} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{bentoNewsItems[11].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
-                      activeIndex={bentoNewsItems[11].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[11]).briefStyle}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                    <a href={bentoNewsItems[11].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[11]).sourceStyle}>
-                      <span>{bentoNewsItems[11].source}</span>
-                      {(getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt))}</span>}
-                    </a>
-
-                
-                  {bentoNewsItems[11].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[11].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
-              )}
-
             </div>
 
-            {/* ROW 6: Two Half Horizontals Side-By-Side (Indices 13 & 14) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* ROW 6: Two Half Horizontals Side-By-Side (Indices 13 & 14)
+                Flex items-start, not grid: two siblings of differing natural content height would
+                otherwise stretch to match each other (same underlying issue as the row-span-2
+                blocks, just without a row-span-2 card involved -- ANY grid row-mates share this). */}
+            <div className="flex flex-col md:flex-row gap-4 items-start">
               {bentoNewsItems[13] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(13)}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[13], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{bentoNewsItems[13].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[13].publishedAt)}</span>
@@ -2929,9 +2948,9 @@ URL: ${url}`;
               )}
 
               {bentoNewsItems[14] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(14)}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[14], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{bentoNewsItems[14].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[14].publishedAt)}</span>
@@ -2960,14 +2979,16 @@ URL: ${url}`;
               )}
             </div>
 
-            {/* ROW 7 & 8: Vertical, Square, Stacked Compacts, Horizontal (Indices 15 to 19) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              
+            {/* ROW 7 & 8: Vertical, Square, Stacked Compacts, Horizontal (Indices 15 to 19)
+                Restructured from CSS Grid to nested flex (items-start) -- see the ROW 4 & 5 block
+                comment for why. */}
+            <div className="flex flex-col md:flex-row gap-4">
+
               {/* Left Column: Vertical (Index 15) */}
               {bentoNewsItems[15] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(15)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-2/6 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[15], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -2994,11 +3015,13 @@ URL: ${url}`;
                   )}</div>
               )}
 
+              <div className="w-full md:w-4/6 flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row gap-4 items-start">
               {/* Square (Index 16) */}
               {bentoNewsItems[16] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(16)}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] self-start ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[16], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[16]).deskStyle}>{bentoNewsItems[16].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[16].publishedAt)}</span>
@@ -3027,7 +3050,7 @@ URL: ${url}`;
               )}
 
               {/* Two Stacked Compacts (Indices 17 & 18) */}
-              <div className="md:col-span-2 flex flex-col gap-4 self-start">
+              <div className="w-full md:w-1/2 flex flex-col gap-4">
                 {bentoNewsItems[17] && (
                 <div 
                   onClick={() => handleCardClick(17)}
@@ -3087,12 +3110,13 @@ URL: ${url}`;
                   )}</div>
                 )}
               </div>
+                </div>
 
               {/* Bottom Horizontal spanning across Col 3-6 (Index 19) */}
               {bentoNewsItems[19] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(19)}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] self-start overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[19], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3118,17 +3142,20 @@ URL: ${url}`;
                     </span>
                   )}</div>
               )}
+              </div>
 
             </div>
 
-            {/* ROW 9 & 10: Horizontal, 4 Stacked Bars, Square, Vertical (Indices 20 to 26) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              
+            {/* ROW 9 & 10: Horizontal, 4 Stacked Bars, Square, Vertical (Indices 20 to 26)
+                Restructured from CSS Grid to nested flex (items-start) -- see the ROW 4 & 5 block
+                comment for why. */}
+            <div className="flex flex-col md:flex-row gap-4">
+
               {/* Left Column: Vertical (Index 26) */}
               {bentoNewsItems[26] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(26)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-2/6 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[26], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -3155,11 +3182,12 @@ URL: ${url}`;
                   )}</div>
               )}
 
+              <div className="w-full md:w-4/6 flex flex-col gap-4">
               {/* Right Top: Horizontal spanning across Col 3-6 (Index 20) */}
               {bentoNewsItems[20] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(20)}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] self-start overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[20], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3186,11 +3214,12 @@ URL: ${url}`;
                   )}</div>
               )}
 
+              <div className="flex flex-col md:flex-row gap-4 items-start">
               {/* Right Bottom Left: Square (Index 25) */}
               {bentoNewsItems[25] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(25)}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] self-start ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[25], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{bentoNewsItems[25].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[25].publishedAt)}</span>
@@ -3218,7 +3247,7 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 self-start">
+              <div className="w-full md:w-1/2 relative flex flex-col justify-between gap-2">
                 <div className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-0 whitespace-nowrap">
                     PROGRAM-PROGRAM BERMANFAAT
@@ -3241,15 +3270,18 @@ URL: ${url}`;
                   );
                 })}
               </div>
+              </div>
+              </div>
 
             </div>
 
-            {/* ROW 11: Two Half Horizontals Side-By-Side (Indices 27 & 28) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* ROW 11: Two Half Horizontals Side-By-Side (Indices 27 & 28)
+                Flex items-start, not grid -- see the ROW 6 block comment for why. */}
+            <div className="flex flex-col md:flex-row gap-4 items-start">
               {bentoNewsItems[27] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(27)}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[27], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[27]).deskStyle}>{bentoNewsItems[27].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[27].publishedAt)}</span>
@@ -3280,7 +3312,7 @@ URL: ${url}`;
               {bentoNewsItems[28] && (
                 <div 
                   onClick={() => handleCardClick(28)}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[28], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[28]).deskStyle}>{bentoNewsItems[28].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[28].publishedAt)}</span>
@@ -3309,14 +3341,16 @@ URL: ${url}`;
               )}
             </div>
 
-            {/* ROW 12 & 13: Vertical, Square, Stacked Compacts, Horizontal (Indices 29 to 33) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              
+            {/* ROW 12 & 13: Vertical, Square, Stacked Compacts, Horizontal (Indices 29 to 33)
+                Restructured from CSS Grid to nested flex (items-start) -- see the ROW 4 & 5 block
+                comment for why. */}
+            <div className="flex flex-col md:flex-row gap-4">
+
               {/* Left Column: Vertical (Index 29) */}
               {bentoNewsItems[29] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(29)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-2/6 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[29], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -3343,11 +3377,13 @@ URL: ${url}`;
                   )}</div>
               )}
 
+              <div className="w-full md:w-4/6 flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row gap-4 items-start">
               {/* Square (Index 30) */}
               {bentoNewsItems[30] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(30)}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] self-start ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[30], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[30]).deskStyle}>{bentoNewsItems[30].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[30].publishedAt)}</span>
@@ -3376,7 +3412,7 @@ URL: ${url}`;
               )}
 
               {/* Two Stacked Compacts (Indices 31 & 32) */}
-              <div className="md:col-span-2 flex flex-col gap-4 self-start">
+              <div className="w-full md:w-1/2 flex flex-col gap-4">
                 {bentoNewsItems[31] && (
                 <div 
                   onClick={() => handleCardClick(31)}
@@ -3436,12 +3472,13 @@ URL: ${url}`;
                   )}</div>
                 )}
               </div>
+                </div>
 
               {/* Bottom Horizontal spanning across Col 3-6 (Index 33) */}
               {bentoNewsItems[33] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(33)}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] self-start overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[33], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3467,17 +3504,21 @@ URL: ${url}`;
                     </span>
                   )}</div>
               )}
+              </div>
 
             </div>
 
-            {/* ROW 14 & 15: Horizontal, Two Half-Horizontals, Vertical (Indices 34 to 37) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              
+            {/* ROW 14 & 15: Horizontal, Two Half-Horizontals, Vertical (Indices 34 to 37)
+                Restructured from CSS Grid to nested flex (items-start) -- see the ROW 4 & 5 block
+                comment for why. */}
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="w-full md:w-4/6 flex flex-col gap-4">
+
               {/* Left Top: Horizontal spanning across Col 1-4 (Index 34) */}
               {bentoNewsItems[34] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(34)}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] self-start overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[34], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3504,43 +3545,12 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              {/* Right Column: Vertical (Index 37) */}
-              {bentoNewsItems[37] && (
-                <div 
-                  onClick={() => handleCardClick(37)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
-                 style={getCardTheme(bentoNewsItems[37], 'transparent').cardStyle} >
-                  <div className="space-y-4">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]]}
-                      activeIndex={bentoNewsItems[37].carouselIndex || 0}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[37].publishedAt)}</span>
-                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[37]).briefStyle}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[37].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>
-                    <span>{bentoNewsItems[37].source}</span>
-                    {(getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[37].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[37].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
-              )}
-
               {/* Left Bottom: Two Side-by-Side elements in Col 1-4 */}
-              <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col md:flex-row gap-4 items-start">
                 {bentoNewsItems[35] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(35)}
-                  className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] self-start overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                    style={getCardTheme(bentoNewsItems[35], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{bentoNewsItems[35].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[35].publishedAt)}</span>
@@ -3571,7 +3581,7 @@ URL: ${url}`;
                 {bentoNewsItems[36] && (
                 <div 
                   onClick={() => handleCardClick(36)}
-                  className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] self-start overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`w-full md:w-1/2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                    style={getCardTheme(bentoNewsItems[36], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{bentoNewsItems[36].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[36].publishedAt)}</span>
@@ -3599,6 +3609,38 @@ URL: ${url}`;
                   )}</div>
                 )}
               </div>
+              </div>
+
+              {/* Right Column: Vertical (Index 37) */}
+              {bentoNewsItems[37] && (
+                <div
+                  onClick={() => handleCardClick(37)}
+                  className={`w-full md:w-2/6 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                 style={getCardTheme(bentoNewsItems[37], 'transparent').cardStyle} >
+                  <div className="space-y-4">
+                    <CarouselStableBlock
+                      items={bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]]}
+                      activeIndex={bentoNewsItems[37].carouselIndex || 0}
+                      renderItem={(it) => (
+                        <>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[37].publishedAt)}</span>
+                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[37]).briefStyle}>{safeParseInline(it.brief)}</p>
+                        </>
+                      )}
+                    />
+                  </div>
+                  <a href={bentoNewsItems[37].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isEditMode) { e.preventDefault(); } else { e.stopPropagation(); } }} className="font-sans text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>
+                    <span>{bentoNewsItems[37].source}</span>
+                    {(getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[8px]">{(getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt))}</span>}
+                  </a>
+
+                  {bentoNewsItems[37].aiProvider && (
+                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
+                      {bentoNewsItems[37].aiProvider.replace('Google ', '').split(' (')[0]}
+                    </span>
+                  )}</div>
+              )}
 
             </div>
 

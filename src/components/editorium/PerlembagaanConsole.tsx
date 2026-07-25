@@ -100,7 +100,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Tinggi kad ikut kandungan, bukan ikut jiran.',
-    body: 'Kad tak lagi paksa isi penuh sel grid (self-start, bukan h-full) -- pada saiz skrin TETAP, dua slot tier sama mesti nampak setinggi kandungan sebenar masing-masing, tak kira jiran row-span-2 apa yang duduk sebaris dengannya. PENGECUALIAN sah: tinggi boleh berubah ikut SAIZ SKRIN/viewport (responsif) -- bila itu berlaku, ia mesti berubah SERENTAK untuk semua slot dalam baris yang sama, bukan slot demi slot secara berbeza.',
+    body: 'Susun atur bento guna flex bersarang (items-start), bukan CSS Grid row auto-placement -- CSS Grid regangkan SEMUA kad sebaris ikut kad paling tinggi walau lepas self-start diguna (sel grid tetap tinggi, cuma kandungan dalam sel yang tak regang, jurang kekal wujud di bawah). Flex tiada kekangan tinggi-sebaris macam itu langsung. Pada saiz skrin TETAP, dua slot tier sama mesti nampak setinggi kandungan sebenar masing-masing, tak kira jiran row-span-2 (atau kelompok Bar) apa yang duduk sebaris dengannya. PENGECUALIAN sah: tinggi boleh berubah ikut SAIZ SKRIN/viewport (responsif) -- bila itu berlaku, ia mesti berubah SERENTAK untuk semua slot dalam baris yang sama, bukan slot demi slot secara berbeza.',
   },
   {
     title: 'Fon tajuk tak boleh lebih kecil daripada fon huraian.',
