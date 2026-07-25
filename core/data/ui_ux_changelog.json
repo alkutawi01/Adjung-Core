@@ -1,5 +1,13 @@
 [
   {
+    "time": "2026-07-25T11:17:54.221Z",
+    "summary": "Susun atur bento (slot 2-38) ditukar sepenuhnya kepada CSS multi-column masonry tulen (columns-1 md:columns-2, break-inside-avoid-column), gantikan pendekatan flex bersarang (items-start) yang masih tinggalkan jurang kosong sehingga 222px antara lajur tinggi tak sama. Kelompok Bar (4 kad) dan pasangan Kompak (2 kad) kekal unit atomik. Disahkan: jurang antara kad kini konsisten 16px (gap yang disengajakan) di semua 28 unit masonry, desktop (2 lajur) dan mobile (1 lajur), sifar jurang tambahan berlebihan.",
+    "files": [
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T10:43:46.543Z",
     "summary": "Perlembagaan peraturan #9: kemas kini penerangan - kaedah sebenar kini flex bersarang (bukan self-start dalam grid sahaja), jelaskan kenapa self-start-dalam-grid tak cukup",
     "files": [
