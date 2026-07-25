@@ -273,10 +273,10 @@ export function HoverWords({ text, className }: { text: string; className?: stri
     <span className={className}>
       {words.map((w, idx) => {
         if (/\s+/.test(w)) return w;
-        const isMaroon = className?.includes('text-adjung-maroon') || className?.includes('text-[#7B2737]') || className?.includes('text-[#802334]');
-        const hoverClass = isMaroon 
-          ? 'hover:text-stone-900 transition-colors duration-150 cursor-default' 
-          : 'hover:text-adjung-maroon transition-colors duration-150 cursor-default';
+        const isMaroon = className?.includes('text-Adjung-maroon') || className?.includes('text-[#7B2737]') || className?.includes('text-[#802334]');
+        const hoverClass = isMaroon
+          ? 'hover:text-stone-900 transition-colors duration-150 cursor-default'
+          : 'hover:text-Adjung-maroon transition-colors duration-150 cursor-default';
 
         let content: React.ReactNode = w;
         if (/^\*\*(.+)\*\*$/.test(w) || /^__(.+)__$/.test(w)) {
