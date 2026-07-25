@@ -1,5 +1,27 @@
 [
   {
+    "time": "2026-07-25T10:10:11.952Z",
+    "summary": "Perlembagaan: tambah peraturan sejagat #9 'Tinggi kad ikut kandungan, bukan ikut jiran' - dokumen fix self-start & bezakan jelas dgn pengecualian sah (perubahan responsif ikut saiz skrin, serentak semua slot sebaris)",
+    "files": [
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
+    "time": "2026-07-25T10:09:26.439Z",
+    "summary": "FrontpageView.tsx: betulkan regangan grid CSS - 18 kad/kelompok (semua yg kongsi baris grid dgn kad row-span-2) ditukar dari h-full (paksa isi sel) ke self-start (setinggi kandungan sahaja). Merentasi kesemua 6 blok grid yg ada kad row-span-2 (Slot 2,7-11,13-19,20-26,29-33,34-38) - sama rata ikut Peraturan #3, bukan tampalan sebahagian",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
+    "time": "2026-07-25T10:06:43.457Z",
+    "summary": "ContentBudget.js: mesej ralat had aksara kini kira had huraian SEBENAR bagi tajuk semasa (bukan dua angka solo statik) - cth tajuk 57/62 aksara tunjuk had huraian sebenar ~6 aksara, bukan '78' yg mengelirukan",
+    "files": [
+      "core/editorial/ContentBudget.js",
+      "tests/geometry.test.js"
+    ]
+  },
+  {
     "time": "2026-07-25T08:26:01.392Z",
     "summary": "Perlembagaan seksyen 03: format Bar dikemas kini 6->7 medan (+Penerangan), tambah sub-seksyen 'Medan Penerangan' & 'Label PROGRAM-PROGRAM BERMANFAAT' (label khas kelompok Bar, kedudukan bergantung lokasi kelompok, kod sedia ada diterima tanpa perubahan)",
     "files": [

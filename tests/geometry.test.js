@@ -47,7 +47,7 @@ test('validateContentBudget - rejects budget overflow', () => {
   // MENEGAK title overflow: > 168 (175)
   const result = validateContentBudget(1, 'A'.repeat(175), 'B'.repeat(200));
   assert.equal(result.isValid, false);
-  assert.match(result.reason, /melebihi had maksima/);
+  assert.match(result.reason, /melebihi had yang dibenarkan/);
 });
 
 test('validateContentBudget - KOMPAK tier budget line validation', () => {

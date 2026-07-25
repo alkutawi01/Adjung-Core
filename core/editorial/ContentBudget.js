@@ -17,22 +17,42 @@ const validateContentBudget = (slotIndex, title, summary) => {
   const ratioDef = tier ? GEOMETRY_RATIOS[tier] : null;
 
   if (ratioDef) {
-    if (ratioDef.maxTitleAlone && titleLen > ratioDef.maxTitleAlone) {
-      return {
-        isValid: false,
-        reason: `Tajuk (${titleLen} aksara) melebihi had maksima ruang kad ${tier} (${ratioDef.maxTitleAlone} aksara).`,
-      };
+    const { maxTitleAlone, maxBriefAlone } = ratioDef;
+
+    // Tiers with no brief field at all (e.g. BAR, maxBriefAlone === 0): title gets the full solo
+    // budget, brief must stay empty -- there's no trade-off to compute against zero.
+    if (maxBriefAlone === 0) {
+      if (briefLen > 0) {
+        return {
+          isValid: false,
+          reason: `Kad ${tier} tidak menyokong huraian ringkas. Sila kosongkan huraian.`,
+        };
+      }
+      if (maxTitleAlone && titleLen > maxTitleAlone) {
+        return {
+          isValid: false,
+          reason: `Tajuk (${titleLen} aksara) melebihi had maksima ruang kad ${tier} (${maxTitleAlone} aksara).`,
+        };
+      }
+      return { isValid: true };
     }
-    if (ratioDef.maxBriefAlone === 0 && briefLen > 0) {
+
+    // Title and brief share ONE fixed space budget, not two independent caps: the fraction of
+    // each field's SOLO maximum actually used must sum to <= 1 (Peraturan #2, Perlembagaan). A
+    // short title frees up room for a longer brief, and vice versa. Previously this checked title
+    // and brief as two flat independent caps -- silently contradicting the documented formula
+    // (and this file's own header comment) and rejecting legitimate short-title/long-brief content.
+    const usedFraction = (maxTitleAlone ? titleLen / maxTitleAlone : 0) + (maxBriefAlone ? briefLen / maxBriefAlone : 0);
+    if (usedFraction > 1) {
+      // Report the ACTUAL remaining huraian budget this specific title length leaves behind, not
+      // the two static solo-max numbers side by side -- those are only the ceiling when the OTHER
+      // field is empty, and stating them unqualified reads as "huraian limit is always 78" when a
+      // near-max-length title can shrink that to single digits. Editors need the real number for
+      // THIS content, not the tier's theoretical maximum.
+      const remainingBrief = Math.max(0, Math.round((1 - titleLen / maxTitleAlone) * maxBriefAlone));
       return {
         isValid: false,
-        reason: `Kad ${tier} tidak menyokong huraian ringkas. Sila kosongkan huraian.`,
-      };
-    }
-    if (ratioDef.maxBriefAlone > 0 && briefLen > ratioDef.maxBriefAlone) {
-      return {
-        isValid: false,
-        reason: `Huraian (${briefLen} aksara) melebihi had maksima ruang kad ${tier} (${ratioDef.maxBriefAlone} aksara).`,
+        reason: `Huraian (${briefLen} aksara) melebihi had yang dibenarkan untuk tajuk sepanjang ${titleLen} aksara ini (had huraian maksimum: ${remainingBrief} aksara, kad ${tier}). Kandungan tidak disiarkan.`,
       };
     }
     return { isValid: true };

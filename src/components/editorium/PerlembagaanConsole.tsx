@@ -98,6 +98,10 @@ const UNIVERSAL_RULES = [
     title: 'Label mesti 100% Bahasa Melayu.',
     body: 'Kalau terpaksa guna Bahasa Inggeris (tiada padanan Melayu yang diluluskan lagi), tulis dengan huruf condong (italic). Lihat carta tier di bawah -- Bar dan Ticker kini bertulis condong kerana sebab ini.',
   },
+  {
+    title: 'Tinggi kad ikut kandungan, bukan ikut jiran.',
+    body: 'Kad tak lagi paksa isi penuh sel grid (self-start, bukan h-full) -- pada saiz skrin TETAP, dua slot tier sama mesti nampak setinggi kandungan sebenar masing-masing, tak kira jiran row-span-2 apa yang duduk sebaris dengannya. PENGECUALIAN sah: tinggi boleh berubah ikut SAIZ SKRIN/viewport (responsif) -- bila itu berlaku, ia mesti berubah SERENTAK untuk semua slot dalam baris yang sama, bukan slot demi slot secara berbeza.',
+  },
 ];
 
 export const PerlembagaanConsole: React.FC = () => {
