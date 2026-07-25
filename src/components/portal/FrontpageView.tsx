@@ -2541,7 +2541,7 @@ URL: ${url}`;
                   onClick={(e) => e.stopPropagation()}
                   className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans font-bold cursor-pointer bg-[#802334] text-white border-[#802334] hover:bg-[#6c1d2c]"
                 >
-                  🏢 Editorium Control Room
+                  🏢 Editorium
                 </a>
                 <a
                   href="/studio/semakan-kandungan"
