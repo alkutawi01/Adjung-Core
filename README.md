@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Adjung Brief
 
-# Run and deploy your AI Studio app
+Portal berita/kandungan bahasa Melayu bergaya "scholarly magazine" — bento-grid
+frontpage yang memaparkan kandungan editorial (berita, ilmu, kebudayaan), diurus
+melalui alat editorial dalaman **Adjung Brief** (Editorium).
 
-This contains everything you need to run your app locally.
+Stack: Vite + React (`src/`) + Express (`server.js`) + SQLite (`adjung.db`).
 
-View your app in AI Studio: https://ai.studio/apps/b7656b81-7a26-4411-8367-d71c0878ef85
+## Jalankan Secara Tempatan
 
-## Run Locally
+**Prasyarat:** Node.js
 
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
+1. Pasang dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. Jalankan aplikasi (frontend + backend serentak):
    `npm run dev`
+3. Buka http://localhost:3000 untuk frontpage awam, atau
+   http://localhost:3000/editorium untuk Editorium (admin editorial).
+
+Tiada API key diperlukan untuk jalan asas — sumber kandungan (RSS) percuma dan
+tidak bergantung kepada mana-mana API AI berbayar.
+
+## Struktur Ringkas
+
+- `src/components/portal/` — halaman awam (bento frontpage)
+- `src/components/editorium/` — konsol editorial dalaman (Adjung Brief)
+- `core/` — logik editorial & AI pipeline sisi pelayan (dikongsi dengan `server.js`)
+- `server.js` — API Express + pangkalan data SQLite
+
+Rujuk [CLAUDE.md](CLAUDE.md) untuk peraturan seni bina dan konvensyen projek.

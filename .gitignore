@@ -10,3 +10,4 @@ adjung.db
 *.db
 *.sqlite
 *.sqlite3
+.claude/
