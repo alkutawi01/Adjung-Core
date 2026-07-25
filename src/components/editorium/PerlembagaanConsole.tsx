@@ -18,6 +18,24 @@ const TIER_LABELS: Record<string, string> = {
 
 const TIER_ORDER = ['HERO', 'MENEGAK', 'STANDARD', 'SEGI_EMPAT_MEDIUM', 'SEGI_EMPAT_SMALL', 'KOMPAK', 'BAR', 'TICKER'];
 
+// Real grid proportions (columns wide x row-tracks tall) copied directly from the actual
+// col-span-*/row-span-* classes + min-h-[...] values in FrontpageView.tsx's bento grid (a 6-column
+// grid, ~180px per row track -- verified: row-span-2 cards use min-h-[380px] = ~2 tracks + gap).
+// Not an artistic approximation -- these are the literal grid units each tier occupies on the
+// real public frontpage, scaled down here so every tier's true shape can be compared at a glance.
+// subRows: for KOMPAK/BAR, how many items are stacked inside that one grid area (2 and 4).
+const TIER_SHAPE: Record<string, { w: number; h: number; subRows?: number }> = {
+  HERO: { w: 6, h: 1 },
+  MENEGAK: { w: 2, h: 2 },
+  STANDARD: { w: 4, h: 1 },
+  SEGI_EMPAT_MEDIUM: { w: 3, h: 1 },
+  SEGI_EMPAT_SMALL: { w: 2, h: 1 },
+  KOMPAK: { w: 2, h: 1, subRows: 2 },
+  BAR: { w: 2, h: 1, subRows: 4 },
+  TICKER: { w: 6, h: 0.28 },
+};
+const SHAPE_UNIT_PX = 15; // 1 grid column/row-track = 15px in the mini illustration
+
 interface ChangelogCommit {
   hash: string;
   fullHash: string;
@@ -115,6 +133,41 @@ export const PerlembagaanConsole: React.FC = () => {
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
           02 -- Carta Pembahagian Slot (Live)
         </span>
+
+        {/* Shape gallery: real grid proportions (col-span x row-span, to scale) side by side, so
+            every tier's actual shape can be told apart at a glance. */}
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs mb-3">
+          <div className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold mb-3">
+            Bentuk sebenar (skala {SHAPE_UNIT_PX}px = 1 lajur/baris grid)
+          </div>
+          <div className="flex flex-wrap items-end gap-6">
+            {TIER_ORDER.map(tier => {
+              const shape = TIER_SHAPE[tier];
+              const boxW = shape.w * SHAPE_UNIT_PX;
+              const boxH = Math.max(shape.h * SHAPE_UNIT_PX, 5);
+              return (
+                <div key={tier} className="flex flex-col items-center gap-1.5">
+                  <div
+                    className="border-2 border-[#802334] bg-[#f3e9d2] rounded-sm relative"
+                    style={{ width: boxW, height: boxH }}
+                  >
+                    {shape.subRows && Array.from({ length: shape.subRows - 1 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute left-0 right-0 border-t border-[#802334]/50"
+                        style={{ top: `${((i + 1) / shape.subRows!) * 100}%` }}
+                      />
+                    ))}
+                  </div>
+                  <span className="font-mono text-[9px] text-stone-600 font-bold text-center leading-tight max-w-[70px]">
+                    {TIER_LABELS[tier]}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
           {TIER_ORDER.map(tier => {
             const ratio = GEOMETRY_RATIOS[tier as keyof typeof GEOMETRY_RATIOS];
