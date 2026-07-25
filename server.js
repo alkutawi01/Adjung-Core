@@ -1833,6 +1833,12 @@ const initEditorialOS = (dbConn) => {
           // aborts (caught + console.warn'd by the caller), dropping that slot's sync entirely.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('briefLong', 'Huraian Panjang', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('originalDate', 'Tarikh Asal', 'text')", () => {});
+          // Slot BAR sahaja: Penganjur/Lokasi/Akses (lihat Perlembagaan seksyen "Peraturan Khas
+          // Slot Bar"). Sama corak macam briefLong/originalDate di atas -- kena didaftar dulu di sini
+          // sebelum syncManualObjectsForSlot() boleh simpannya, atau INSERT gagal senyap.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('organizer', 'Penganjur', 'text')", () => {});
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('location', 'Lokasi', 'text')", () => {});
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('access', 'Akses', 'text')", () => {});
           dbConn.run("ALTER TABLE slots_config ADD COLUMN manualDesk TEXT", () => {
             dbConn.run("ALTER TABLE slots_config ADD COLUMN nextRunAt INTEGER", () => {
               dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshInterval INTEGER", () => {
@@ -2213,6 +2219,10 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
       { key: 'sourceType', val: item.sourceType || 'web' },
       { key: 'briefLong', val: item.briefLong || '' },
       { key: 'originalDate', val: item.originalDate || '' },
+      // Slot BAR sahaja (Peraturan Khas Slot Bar) -- diabaikan (string kosong) untuk tier lain.
+      { key: 'organizer', val: item.organizer || '' },
+      { key: 'location', val: item.location || '' },
+      { key: 'access', val: item.access || '' },
     ];
     for (const a of attrs) {
       await dbRun(
@@ -2326,7 +2336,11 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
           publicationType: renderToken.publicationType || 'news',
           isOfficial: renderToken.isOfficial || false,
           aiProvider: null,
-          imageUrl: slot.manualImageUrl || ''
+          imageUrl: slot.manualImageUrl || '',
+          // Peraturan Khas Slot Bar -- kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
+          organizer: parsed.organizer || '',
+          location: parsed.location || '',
+          access: parsed.access || ''
         });
       }
     }
@@ -2371,6 +2385,9 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
 
       const aiProv = avs.find(a => a.attributeId === 'aiProvider');
       const origDateAv = avs.find(a => a.attributeId === 'originalDate');
+      const organizerAv = avs.find(a => a.attributeId === 'organizer');
+      const locationAv = avs.find(a => a.attributeId === 'location');
+      const accessAv = avs.find(a => a.attributeId === 'access');
 
       subItems.push({
         title: approvedRevision.title,
@@ -2388,7 +2405,11 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         publicationType: renderToken.publicationType || 'news',
         isOfficial: renderToken.isOfficial || false,
         aiProvider: aiProv ? aiProv.valueText : null,
-        imageUrl
+        imageUrl,
+        // Peraturan Khas Slot Bar -- kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
+        organizer: organizerAv ? organizerAv.valueText : '',
+        location: locationAv ? locationAv.valueText : '',
+        access: accessAv ? accessAv.valueText : ''
       });
     }
   }

@@ -20,19 +20,27 @@ const TIER_ORDER = ['HERO', 'MENEGAK', 'STANDARD', 'SEGI_EMPAT_MEDIUM', 'SEGI_EM
 // which was wrong: a "row" renders much taller in real pixels than a single column is wide (real
 // content/padding stretches height well past the declared min-h-[...] floor). That wrong
 // assumption made MENEGAK render near-square here when the real card is genuinely tall (0.47
-// width:height ratio measured). BAR and TICKER were first measured against the wrong target (the
-// inner card, which only renders when content exists) and came back as unmeasurable estimates;
-// re-measured against the always-present wrapper elements instead (the 4-slot BAR column div, and
-// the ticker strip), both of which exist in the DOM regardless of content -- now genuinely
-// measured, no more dashed/estimated tiers.
-const TIER_SHAPE_PX: Record<string, { w: number; h: number; measured: boolean; subRows?: number }> = {
+// width:height ratio measured).
+//
+// `w`/`h` are always the size of ONE card of that tier -- same basis for every tier, so boxes are
+// comparable at a glance. Most tiers occupy their own grid cell 1-slot-per-position, so one box IS
+// the whole slot. BAR and KOMPAK are different: in the real layout several of their slots share one
+// grid column, stacked with a real CSS gap between them (`units`/`gap`, both measured off the
+// wrapper). An earlier version of this illustration measured that whole stacked wrapper as if it
+// were a single card and sliced it with thin internal lines -- that made a 2-unit KOMPAK group and
+// a 4-unit BAR group look like near-identical shapes, which is wrong on two counts: it hid that a
+// single BAR card (84px) is a different height from a single KOMPAK card (135px), and it drew a
+// seam-less box where reality is genuinely separate rounded cards with visible gaps between them
+// (confirmed against a real frontpage screenshot). `units`/`gap` now render as that many distinct
+// stacked boxes instead.
+const TIER_SHAPE_PX: Record<string, { w: number; h: number; measured: boolean; units?: number; gap?: number }> = {
   HERO: { w: 1024, h: 225, measured: true },
   MENEGAK: { w: 331, h: 698, measured: true },
   STANDARD: { w: 677, h: 276, measured: true },
   SEGI_EMPAT_MEDIUM: { w: 504, h: 299, measured: true },
   SEGI_EMPAT_SMALL: { w: 331, h: 406, measured: true },
-  KOMPAK: { w: 331, h: 84, measured: true, subRows: 2 },
-  BAR: { w: 331, h: 360, measured: true, subRows: 4 },
+  KOMPAK: { w: 331, h: 135, measured: true, units: 2, gap: 16 },
+  BAR: { w: 331, h: 84, measured: true, units: 4, gap: 8 },
   TICKER: { w: 1024, h: 41, measured: true },
 };
 const SHAPE_SCALE = 1 / 12; // real px -> illustration px
@@ -185,24 +193,29 @@ export const PerlembagaanConsole: React.FC = () => {
               const shape = TIER_SHAPE_PX[tier];
               const boxW = Math.max(shape.w * SHAPE_SCALE, 4);
               const boxH = Math.max(shape.h * SHAPE_SCALE, 4);
+              const unitBox = (key: React.Key) => (
+                <div
+                  key={key}
+                  className={`border-2 bg-[#f3e9d2] rounded-sm ${shape.measured ? 'border-[#802334]' : 'border-[#802334]/40 border-dashed'}`}
+                  style={{ width: boxW, height: boxH }}
+                  title={shape.measured ? 'Diukur terus dari kad sebenar' : 'Dianggar -- tiada kandungan sebenar untuk diukur ketika ini'}
+                />
+              );
               return (
                 <div key={tier} className="flex flex-col items-center gap-1.5">
-                  <div
-                    className={`border-2 bg-[#f3e9d2] rounded-sm relative ${shape.measured ? 'border-[#802334]' : 'border-[#802334]/40 border-dashed'}`}
-                    style={{ width: boxW, height: boxH }}
-                    title={shape.measured ? 'Diukur terus dari kad sebenar' : 'Dianggar -- tiada kandungan sebenar untuk diukur ketika ini'}
-                  >
-                    {shape.subRows && Array.from({ length: shape.subRows - 1 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="absolute left-0 right-0 border-t border-[#802334]/50"
-                        style={{ top: `${((i + 1) / shape.subRows!) * 100}%` }}
-                      />
-                    ))}
-                  </div>
+                  {shape.units ? (
+                    <div className="flex flex-col" style={{ gap: Math.max((shape.gap || 0) * SHAPE_SCALE, 1) }}>
+                      {Array.from({ length: shape.units }).map((_, i) => unitBox(i))}
+                    </div>
+                  ) : unitBox('single')}
                   <span className="font-mono text-[9px] text-stone-600 font-bold text-center leading-tight max-w-[70px]">
                     <TierLabel tier={tier} />{!shape.measured && ' *'}
                   </span>
+                  {shape.units && (
+                    <span className="font-mono text-[7px] text-stone-400 text-center leading-tight">
+                      1 kad = {Math.round(shape.h)}px, {shape.units}× bertindan
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -250,10 +263,78 @@ export const PerlembagaanConsole: React.FC = () => {
         </div>
       </div>
 
+      {/* PERATURAN KHAS SLOT BAR -- diekstrak & disahkan terus daripada kod semasa (server.js,
+          BarCard.tsx, EventDateValidator.js), bukan disalin buta daripada spesifikasi lama. Ditulis
+          selepas siasatan mendalam mendapati beberapa medan (organizer/location/access) pernah
+          dihurai betul tapi gugur senyap sebelum sampai ke pangkalan data -- jurang itu dah
+          dibetulkan dulu sebelum peraturan ini ditulis, supaya apa yang tertulis di sini sentiasa
+          padan dengan apa yang benar-benar berlaku, bukan spesifikasi angan-angan. */}
+      <div>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+          03 -- Peraturan Khas Slot Bar
+        </span>
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Slot Bar 100% untuk acara/program (seminar, pesta buku, majlis anugerah, dll.) --
+              BUKAN untuk berita. Pipeline AI (<code className="bg-stone-100 px-1 rounded text-[11px]">EditorialPipeline.js</code>) dihadkan kepada kandungan acara sahaja untuk tier ini.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Format input manual (6 medan rasmi)</h3>
+            <pre className="bg-stone-100 border border-stone-200 rounded p-3 font-mono text-[10px] text-stone-700 leading-relaxed overflow-x-auto">{`Tarikh:
+Event:
+Penganjur:
+Lokasi:
+Akses:
+URL:`}</pre>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Pemetaan paparan pada kad (baris atas)</h3>
+            <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
+              <li><strong>Kiri atas</strong> (teks amber): medan <code className="bg-stone-100 px-1 rounded text-[11px]">Tarikh</code>. Jika kosong → nama desk (cth. "ADJUNG EDITORIAL") sebagai jatuh balik.</li>
+              <li><strong>Kanan atas</strong> (lencana): akronim daripada <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> SAHAJA bila medan itu diisi terus. Jika <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> kosong → jatuh balik kepada lencana status <code className="bg-stone-100 px-1 rounded text-[11px]">Akses</code>.</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Ekstrak akronim Penganjur</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Ikut urutan: (1) teks dalam kurungan -- cth. <em className="italic">"Dewan Bahasa dan Pustaka (DBP)"</em> → "DBP"; (2) kamus akronim rasmi (DBP, PPAS, PNM, KPM, DBKL, ITBM, MAIS, JAIS, JAKIM, UM, UKM, UPM, USM, UiTM, UIAM, YWI) bila nama penuh ditaip tanpa kurungan; (3) input yang sedia pendek (≤2 patah perkataan / ≤10 aksara) dikekalkan terus; (4) jika tiada padanan, bina akronim daripada huruf pertama setiap perkataan utama. Sebab: lencana terlalu kecil untuk nama penuh.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Medan Akses</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Hanya 2 nilai sah: <em className="italic">Terbuka</em> / <em className="italic">Tertutup</em>. Dipaparkan sebagai lencana jatuh balik SAHAJA bila <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> tiada -- bukan dipaparkan serentak dengan lencana Penganjur.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Skim warna (Adjung theme sahaja)</h3>
+            <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
+              <li>Lencana <strong>Penganjur</strong>: putih krim glassmorphism -- <code className="bg-stone-100 px-1 rounded text-[11px]">bg-white/15 text-white border-white/30</code>.</li>
+              <li>Lencana <strong>Akses: Terbuka</strong>: emas Adjung -- <code className="bg-stone-100 px-1 rounded text-[11px]">bg-amber-400/20 text-amber-300 border-amber-300/30</code>.</li>
+              <li>Lencana <strong>Akses: Tertutup</strong>: marun gelap -- <code className="bg-stone-100 px-1 rounded text-[11px]">bg-rose-950/60 text-rose-300 border-rose-500/40</code>.</li>
+              <li>Prinsip am: lencana Penganjur dan lencana Akses TIDAK BOLEH kongsi warna -- fungsi semantik berbeza (entiti vs status).</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Jaminan pipeline (wajib, setiap laluan simpan Bar)</h3>
+            <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
+              <li>Kunci atribut <code className="bg-stone-100 px-1 rounded text-[11px]">organizer</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">location</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">access</code> mesti didaftar dalam <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attributes</code> sebelum disimpan (FK constraint -- kalau tidak, INSERT gagal senyap).</li>
+              <li>Laluan simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">syncManualObjectsForSlot</code>) mesti tulis kesemua 3 medan ke <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attribute_values</code>.</li>
+              <li>Laluan baca (<code className="bg-stone-100 px-1 rounded text-[11px]">resolveSlotContent</code>, KEDUA-DUA laluan -- blob mentah belum-dimigrasi DAN baris DB sebenar) mesti ekstrak semula kesemua 3 medan.</li>
+              <li>Parser teks (<code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Lokasi:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Akses:</code>) case-insensitive.</li>
+              <li>4 slot Bar dalam satu kumpulan (Slot 8,9,10,11 / Slot 22,23,24,25) setiap satu SLOT BERASINGAN dengan kandungan sendiri -- bukan satu carousel dikongsi bersama.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       {/* LIVE CHANGE LOG */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          03 -- Log Perubahan Peraturan (<em className="italic">Live</em>, Daripada Git)
+          04 -- Log Perubahan Peraturan (<em className="italic">Live</em>, Daripada Git)
         </span>
         <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
           {loadingLog ? (
@@ -297,7 +378,7 @@ export const PerlembagaanConsole: React.FC = () => {
           and carries a full jam:minit:saat timestamp, not just a date. */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          04 -- Log Perubahan UI/UX (<em className="italic">Live</em>, Masa Sebenar)
+          05 -- Log Perubahan UI/UX (<em className="italic">Live</em>, Masa Sebenar)
         </span>
         <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
           {loadingUiUxLog ? (

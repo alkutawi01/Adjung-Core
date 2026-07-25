@@ -1,5 +1,34 @@
 [
   {
+    "time": "2026-07-25T07:54:13.555Z",
+    "summary": "Sahkan pipeline Bar hujung-ke-hujung: ujian tulis/baca bukan-destruktif (objek sementara, dipadam selepas) sahkan organizer/location/access berjaya simpan+baca semula tanpa SQLITE_CONSTRAINT. Sahkan lencana Akses (TERBUKA emas) papar betul pada kad Bar sebenar di frontpage untuk slot tanpa Penganjur.",
+    "files": [
+      "server.js"
+    ]
+  },
+  {
+    "time": "2026-07-25T07:50:36.941Z",
+    "summary": "Tambah seksyen 03 'Peraturan Khas Slot Bar' ke Perlembagaan (fungsi, format 6-medan, pemetaan paparan, ekstrak akronim Penganjur, medan Akses, skim warna, jaminan pipeline) - diekstrak & disahkan terus drpd kod semasa selepas jurang pipeline dibetulkan. Nombor seksyen log sedia ada dialih ke 04/05.",
+    "files": [
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
+    "time": "2026-07-25T07:49:08.569Z",
+    "summary": "Perlembagaan: betulkan ilustrasi Kompak & Bar - kini papar sebagai kad berasingan bertindan dgn gap sebenar (bukan satu kotak dgn garis dalaman). Ukur semula per-unit Kompak (135px, bukan ~38px anggaran lama) & Bar (84px/unit, padan min-h-[84px] BarCard.tsx) - asas perbandingan kini 1 kad = 1 kad utk semua tier",
+    "files": [
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
+    "time": "2026-07-25T07:46:59.787Z",
+    "summary": "Slot Bar: sambung jurang pipeline organizer/location/access (daftar atribut DB, simpan dalam syncManualObjectsForSlot, baca semula dalam resolveSlotContent 2 laluan). BarCard.tsx: lencana Penganjur (putih krim) vs lencana Akses (emas Terbuka/marun Tertutup) ikut fallback betul, kiri atas jatuh balik ke nama desk bila tiada Tarikh",
+    "files": [
+      "server.js",
+      "src/components/portal/cards/BarCard.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T07:18:54.708Z",
     "summary": "Audit-perlembagaan: FrontpageView.tsx guna TIER_SLOTS.BAR kongsi (buang 8 salinan literal [7,8,9,10,21,22,23,24]); condongkan perkataan 'Live' dalam 3 tajuk seksyen Perlembagaan (kesalahan sendiri sesi ini, peraturan #8)",
     "files": [
