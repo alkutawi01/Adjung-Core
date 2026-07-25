@@ -1839,6 +1839,10 @@ const initEditorialOS = (dbConn) => {
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('organizer', 'Penganjur', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('location', 'Lokasi', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('access', 'Akses', 'text')", () => {});
+          // Penerangan: huraian tambahan slot Bar, belum dipaparkan di mana-mana (disediakan untuk
+          // ciri akordion akan datang) -- tiada had aksara dikuatkuasakan setakat ini sebab tiada
+          // panel sebenar untuk diukur, sama macam briefLong sebelum ciri spotlight dibina.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('penerangan', 'Penerangan', 'text')", () => {});
           dbConn.run("ALTER TABLE slots_config ADD COLUMN manualDesk TEXT", () => {
             dbConn.run("ALTER TABLE slots_config ADD COLUMN nextRunAt INTEGER", () => {
               dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshInterval INTEGER", () => {
@@ -2031,6 +2035,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let organizer = '';
     let location = '';
     let access = '';
+    let penerangan = '';
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -2060,6 +2065,8 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         location = trimmed.replace(/^Lokasi:\s*/i, '').trim();
       } else if (trimmed.startsWith('Akses:')) {
         access = trimmed.replace(/^Akses:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Penerangan:')) {
+        penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
       } else if (trimmed.startsWith('Sumber:')) {
         source = trimmed.replace(/^Sumber:\s*/i, '').trim();
       } else if (trimmed.startsWith('URL:')) {
@@ -2102,6 +2109,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         organizer: organizer || source || '',
         location,
         access,
+        penerangan,
         source: organizer || source || defaultSlot.manualSource || '19 Jul 2026',
         url: url || defaultSlot.manualUrl || '#',
         originalDate: date || '',
@@ -2223,6 +2231,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
       { key: 'organizer', val: item.organizer || '' },
       { key: 'location', val: item.location || '' },
       { key: 'access', val: item.access || '' },
+      { key: 'penerangan', val: item.penerangan || '' },
     ];
     for (const a of attrs) {
       await dbRun(
@@ -2340,7 +2349,8 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
           // Peraturan Khas Slot Bar -- kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
           organizer: parsed.organizer || '',
           location: parsed.location || '',
-          access: parsed.access || ''
+          access: parsed.access || '',
+          penerangan: parsed.penerangan || ''
         });
       }
     }
@@ -2388,6 +2398,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       const organizerAv = avs.find(a => a.attributeId === 'organizer');
       const locationAv = avs.find(a => a.attributeId === 'location');
       const accessAv = avs.find(a => a.attributeId === 'access');
+      const peneranganAv = avs.find(a => a.attributeId === 'penerangan');
 
       subItems.push({
         title: approvedRevision.title,
@@ -2409,7 +2420,8 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         // Peraturan Khas Slot Bar -- kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
         organizer: organizerAv ? organizerAv.valueText : '',
         location: locationAv ? locationAv.valueText : '',
-        access: accessAv ? accessAv.valueText : ''
+        access: accessAv ? accessAv.valueText : '',
+        penerangan: peneranganAv ? peneranganAv.valueText : ''
       });
     }
   }

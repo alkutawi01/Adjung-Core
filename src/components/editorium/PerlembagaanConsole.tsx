@@ -282,12 +282,13 @@ export const PerlembagaanConsole: React.FC = () => {
             </p>
           </div>
           <div>
-            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Format input manual (6 medan rasmi)</h3>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Format input manual (7 medan rasmi)</h3>
             <pre className="bg-stone-100 border border-stone-200 rounded p-3 font-mono text-[10px] text-stone-700 leading-relaxed overflow-x-auto">{`Tarikh:
 Event:
 Penganjur:
 Lokasi:
 Akses:
+Penerangan:
 URL:`}</pre>
           </div>
           <div>
@@ -310,6 +311,16 @@ URL:`}</pre>
             </p>
           </div>
           <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Medan Penerangan</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Huraian tambahan pilihan, disimpan penuh tapi <strong>TIDAK dipaparkan pada kad</strong> --
+              disediakan untuk ciri akordion (panel kembang) akan datang, belum dibina. Tiada had aksara
+              dikuatkuasakan setakat ini (tiada panel sebenar untuk diukur) -- sama prinsip dengan
+              <code className="bg-stone-100 px-1 rounded text-[11px] mx-1">briefLong</code>
+              tier lain sebelum ciri spotlight dibina.
+            </p>
+          </div>
+          <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Skim warna (Adjung theme sahaja)</h3>
             <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
               <li>Lencana <strong>Penganjur</strong>: putih krim glassmorphism -- <code className="bg-stone-100 px-1 rounded text-[11px]">bg-white/15 text-white border-white/30</code>.</li>
@@ -321,12 +332,21 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Jaminan pipeline (wajib, setiap laluan simpan Bar)</h3>
             <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
-              <li>Kunci atribut <code className="bg-stone-100 px-1 rounded text-[11px]">organizer</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">location</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">access</code> mesti didaftar dalam <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attributes</code> sebelum disimpan (FK constraint -- kalau tidak, INSERT gagal senyap).</li>
-              <li>Laluan simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">syncManualObjectsForSlot</code>) mesti tulis kesemua 3 medan ke <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attribute_values</code>.</li>
-              <li>Laluan baca (<code className="bg-stone-100 px-1 rounded text-[11px]">resolveSlotContent</code>, KEDUA-DUA laluan -- blob mentah belum-dimigrasi DAN baris DB sebenar) mesti ekstrak semula kesemua 3 medan.</li>
-              <li>Parser teks (<code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Lokasi:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Akses:</code>) case-insensitive.</li>
+              <li>Kunci atribut <code className="bg-stone-100 px-1 rounded text-[11px]">organizer</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">location</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">access</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">penerangan</code> mesti didaftar dalam <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attributes</code> sebelum disimpan (FK constraint -- kalau tidak, INSERT gagal senyap).</li>
+              <li>Laluan simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">syncManualObjectsForSlot</code>) mesti tulis kesemua 4 medan ke <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attribute_values</code>.</li>
+              <li>Laluan baca (<code className="bg-stone-100 px-1 rounded text-[11px]">resolveSlotContent</code>, KEDUA-DUA laluan -- blob mentah belum-dimigrasi DAN baris DB sebenar) mesti ekstrak semula kesemua 4 medan.</li>
+              <li>Parser teks (<code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Lokasi:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Akses:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Penerangan:</code>) case-insensitive.</li>
               <li>4 slot Bar dalam satu kumpulan (Slot 8,9,10,11 / Slot 22,23,24,25) setiap satu SLOT BERASINGAN dengan kandungan sendiri -- bukan satu carousel dikongsi bersama.</li>
             </ul>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Label "PROGRAM-PROGRAM BERMANFAAT"</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Label menegak khas untuk kelompok slot Bar sahaja (bukan tier lain). Kedudukannya
+              (kiri/kanan) bergantung kepada lokasi fizikal kelompok slot Bar dalam grid -- bukan
+              kedudukan tetap. Label ini sudah wujud dalam kod sedia ada dan diterima seadanya; tiada
+              perubahan kod diperlukan untuknya.
+            </p>
           </div>
         </div>
       </div>

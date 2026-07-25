@@ -1572,7 +1572,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             const organizer = itm.organizer || itm.penganjur || itm.source || 'PPAS';
             const location = itm.location || 'SACC Mall';
             const access = itm.access || 'Terbuka';
-            return `Tarikh: 19-26 Julai 2026\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nPenganjur: ${organizer}\nLokasi: ${location}\nAkses: ${access}\nURL: ${cleanUrl}`;
+            const penerangan = itm.penerangan || '';
+            return `Tarikh: 19-26 Julai 2026\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nPenganjur: ${organizer}\nLokasi: ${location}\nAkses: ${access}\nPenerangan: ${penerangan}\nURL: ${cleanUrl}`;
           }).join('\n\n____\n\n');
         } else {
           const title = config?.manualTitle || item?.title || 'Pesta Buku Selangor 2026';
@@ -1586,6 +1587,7 @@ Event: (had ${limits.maxTitle} aksara) ${title}
 Penganjur: PPAS
 Lokasi: SACC Mall
 Akses: Terbuka
+Penerangan:
 URL: ${url}`;
         }
       } else {
@@ -5116,7 +5118,7 @@ URL: ${url}`;
                           const handleAddBlock = () => {
                             const newUuid = `object-manual-slot${editingSlotIndex}-${Date.now()}-${parsedList.length}`;
                             const template = isEditingBarSlot
-                              ? `Tarikh: 19-26 Julai 2026\nEvent: (had ${formConfig.maxTitle || 95} aksara) Pesta Buku Selangor 2026\nPenganjur: PPAS\nLokasi: SACC Mall\nAkses: Terbuka\nURL: https://www.bernama.com/bm/news.php?id=231450`
+                              ? `Tarikh: 19-26 Julai 2026\nEvent: (had ${formConfig.maxTitle || 95} aksara) Pesta Buku Selangor 2026\nPenganjur: PPAS\nLokasi: SACC Mall\nAkses: Terbuka\nPenerangan: \nURL: https://www.bernama.com/bm/news.php?id=231450`
                               : `Tajuk: \nHuraian ringkas: \nHuraian panjang: \nKategori: TEKNOLOGI\nJenis sumber: Laman Web\nTarikh: \nSumber: \nURL: `;
                             const newList = [...parsedList, { uuid: newUuid, text: template }];
                             updateSummaryFromList(newList);
@@ -5297,6 +5299,7 @@ Event: (had ${formConfig.maxTitle || 95} aksara) [Nama acara]
 Penganjur: [Akronim penganjur, contoh: PPAS / DBP / PNM / KPM]
 Lokasi: [Lokasi acara, contoh: SACC Mall]
 Akses: [Terbuka / Tertutup]
+Penerangan: [Pilihan -- huraian tambahan acara, tidak dipaparkan pada kad]
 URL: [Pautan URL rujukan]${count > 1 ? `
 
 ____
@@ -5306,6 +5309,7 @@ Event: (had ${formConfig.maxTitle || 95} aksara) [Nama acara]
 Penganjur: [Akronim penganjur, contoh: PPAS / DBP / PNM / KPM]
 Lokasi: [Lokasi acara, contoh: SACC Mall]
 Akses: [Terbuka / Tertutup]
+Penerangan: [Pilihan -- huraian tambahan acara, tidak dipaparkan pada kad]
 URL: [Pautan URL rujukan]` : ''}
 ${extraInstructions}`;
                             } else {

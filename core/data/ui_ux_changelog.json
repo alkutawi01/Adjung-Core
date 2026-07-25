@@ -1,5 +1,20 @@
 [
   {
+    "time": "2026-07-25T08:26:01.392Z",
+    "summary": "Perlembagaan seksyen 03: format Bar dikemas kini 6->7 medan (+Penerangan), tambah sub-seksyen 'Medan Penerangan' & 'Label PROGRAM-PROGRAM BERMANFAAT' (label khas kelompok Bar, kedudukan bergantung lokasi kelompok, kod sedia ada diterima tanpa perubahan)",
+    "files": [
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
+    "time": "2026-07-25T08:25:58.487Z",
+    "summary": "Tambah medan 'Penerangan:' (medan ke-7) pada format input manual slot Bar - daftar atribut, parser, simpan, baca-semula (2 laluan) di server.js; templat borang admin dikemas kini di 4 lokasi (FrontpageView.tsx) termasuk templat salin-prom AI. Tiada had aksara dikuatkuasakan (belum ada panel utk diukur). Sahkan tulis/baca DB bukan-destruktif: PASS.",
+    "files": [
+      "server.js",
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T07:54:13.555Z",
     "summary": "Sahkan pipeline Bar hujung-ke-hujung: ujian tulis/baca bukan-destruktif (objek sementara, dipadam selepas) sahkan organizer/location/access berjaya simpan+baca semula tanpa SQLITE_CONSTRAINT. Sahkan lencana Akses (TERBUKA emas) papar betul pada kad Bar sebenar di frontpage untuk slot tanpa Penganjur.",
     "files": [
