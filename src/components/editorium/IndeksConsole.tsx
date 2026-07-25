@@ -8,7 +8,7 @@ interface BriefRecord {
   desk: string;
   status: 'Pending' | 'Live' | 'Rejected' | 'Archive';
   creator: string;
-  cardType: 'Hero Card' | 'Feature Card' | 'Ticker' | 'Brief Card' | 'Compact Card' | '-';
+  cardType: 'Hero Card' | 'Feature Card' | 'Ticker' | 'Brief Card' | 'Compact Card' | 'Bar Strip' | '-';
   slot: string;
   date: string;
 }
@@ -67,8 +67,8 @@ const cardTypeForSlot = (slotIndex: number): BriefRecord['cardType'] => {
     case 'STANDARD': return 'Feature Card';
     case 'SEGI_EMPAT_MEDIUM':
     case 'SEGI_EMPAT_SMALL': return 'Brief Card';
-    case 'KOMPAK':
-    case 'BAR': return 'Compact Card';
+    case 'KOMPAK': return 'Compact Card';
+    case 'BAR': return 'Bar Strip';
     default: return '-';
   }
 };
@@ -301,6 +301,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <option value="Ticker">Ticker</option>
               <option value="Brief Card">Brief Card</option>
               <option value="Compact Card">Compact Card</option>
+              <option value="Bar Strip">Bar Strip</option>
             </select>
           </div>
 
