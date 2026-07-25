@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-07-25T13:13:04.836Z",
+    "summary": "Betulkan bug sama kategori dengan yang sebelum ni: parseManualSummaryTemplate (server.js) ada 3 tempat guna '19 Jul 2026' (tarikh palsu) sebagai nilai fallback untuk medan Sumber bila Penganjur/Sumber kosong -- akan terpapar terus sebagai atribusi/citation pada kad sebenar (setiap kad papar {item.source} tanpa syarat). Kini kosong sebenar bila tiada Penganjur/Sumber dinyatakan.",
+    "files": [
+      "server.js"
+    ]
+  },
+  {
     "time": "2026-07-25T13:02:24.735Z",
     "summary": "Bina komponen Editorial Accordion untuk kad Bar (marun): klik kad di luar Mod Edit buka/tutup panel Penerangan sebagai ELEMEN BAHARU berasingan selepas kad tu (kad itu sendiri tak diubah langsung). Kad-kad lain dalam kluster yang sama beralih ke bawah secara animasi CSS licin; hanya satu kad terbuka sekaligus PER KLUSTER. Dua kad yang berkongsi baris grid dengan kluster Bar (kad menegak row-span-2 + satu lagi) kekal statik 100% (tinggi/kedudukan tak berubah) melalui teknik height-lock JS (ukur tinggi sebelum terbuka, bekukan nilai semasa terbuka) -- grid bento sendiri tak disentuh/diubah struktur langsung. Tambah had 460 aksara untuk medan Penerangan (GeometryConfig.js MAX_PENERANGAN_CHARS), dikuatkuasakan di peringkat simpan (server.js). Disahkan menyeluruh: desktop (kedua-dua kluster, buka/tutup/tukar kad), mobile (satu lajur), tsc bersih, 42/45 ujian (asas sedia ada).",
     "files": [

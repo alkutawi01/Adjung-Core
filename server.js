@@ -2011,7 +2011,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       summary: defaultSlot.manualSummary || '',
       url: defaultSlot.manualUrl || '#',
       desk: defaultSlot.manualDesk || 'general',
-      source: defaultSlot.manualSource || '19 Jul 2026',
+      source: defaultSlot.manualSource || '',
       publishedAt: defaultSlot.lastAttemptAt || new Date().toISOString()
     }];
   }
@@ -2110,7 +2110,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         location,
         access,
         penerangan,
-        source: organizer || source || defaultSlot.manualSource || '19 Jul 2026',
+        source: organizer || source || defaultSlot.manualSource || '',
         url: url || defaultSlot.manualUrl || '#',
         originalDate: date || '',
         publishedAt: date || ''
@@ -2123,7 +2123,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     summary: defaultSlot.manualSummary || '',
     url: defaultSlot.manualUrl || '#',
     desk: defaultSlot.manualDesk || 'general',
-    source: defaultSlot.manualSource || '19 Jul 2026',
+    source: defaultSlot.manualSource || '',
     publishedAt: defaultSlot.lastAttemptAt || new Date().toISOString()
   }];
 };
