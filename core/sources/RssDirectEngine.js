@@ -77,6 +77,11 @@ export function formatRssBrief(rawDescription) {
   cleanText = cleanText.replace(/^[A-Z\s]+,\s*\d+\s+[A-Za-z]+\s*–\s*/, '');
   cleanText = cleanText.replace(/^([A-Z\s]+:)\s*/, '');
 
+  // Strip a trailing ellipsis already present in the raw source (many RSS feeds truncate
+  // their own descriptions with "..."). Truncation below re-adds "..." only when this
+  // function itself is the one cutting the text.
+  cleanText = cleanText.replace(/\s*(?:\.{3,}|…)\s*$/, '');
+
   // Truncate to maximum 220 characters without cutting words mid-word
   if (cleanText.length > 220) {
     let truncated = cleanText.substring(0, 220);
