@@ -8,7 +8,7 @@ interface BriefRecord {
   desk: string;
   status: 'Pending' | 'Live' | 'Rejected' | 'Archive';
   creator: string;
-  cardType: 'Hero Card' | 'Feature Card' | 'Ticker' | 'Brief Card' | 'Compact Card' | 'Bar Strip' | '-';
+  cardType: 'Hero' | 'Menegak' | 'Standard' | 'Segi Empat Medium' | 'Segi Empat Small' | 'Kompak' | 'Bar' | 'Ticker' | '-';
   slot: string;
   date: string;
 }
@@ -57,18 +57,20 @@ const formatCreatedBy = (createdBy: string): string => {
 };
 
 // Real geometry tier per slot (same source of truth the frontpage itself uses) instead of a
-// random rotation -- see core/editorial/GeometryConfig.js.
+// random rotation -- see core/editorial/GeometryConfig.js. Uses the actual tier name as the
+// display label (matching PerlembagaanConsole.tsx's TIER_LABELS) -- no invented English
+// "Card"-style names, and no merging two distinct tiers under one shared label.
 const cardTypeForSlot = (slotIndex: number): BriefRecord['cardType'] => {
   if (slotIndex === -1) return 'Ticker';
   const tier = tierForSlot(slotIndex);
   switch (tier) {
-    case 'HERO': return 'Hero Card';
-    case 'MENEGAK':
-    case 'STANDARD': return 'Feature Card';
-    case 'SEGI_EMPAT_MEDIUM':
-    case 'SEGI_EMPAT_SMALL': return 'Brief Card';
-    case 'KOMPAK': return 'Compact Card';
-    case 'BAR': return 'Bar Strip';
+    case 'HERO': return 'Hero';
+    case 'MENEGAK': return 'Menegak';
+    case 'STANDARD': return 'Standard';
+    case 'SEGI_EMPAT_MEDIUM': return 'Segi Empat Medium';
+    case 'SEGI_EMPAT_SMALL': return 'Segi Empat Small';
+    case 'KOMPAK': return 'Kompak';
+    case 'BAR': return 'Bar';
     default: return '-';
   }
 };
@@ -296,12 +298,14 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
               <option value="Semua">Semua Kad</option>
-              <option value="Hero Card">Hero Card</option>
-              <option value="Feature Card">Feature Card</option>
+              <option value="Hero">Hero</option>
+              <option value="Menegak">Menegak</option>
+              <option value="Standard">Standard</option>
+              <option value="Segi Empat Medium">Segi Empat Medium</option>
+              <option value="Segi Empat Small">Segi Empat Small</option>
+              <option value="Kompak">Kompak</option>
+              <option value="Bar">Bar</option>
               <option value="Ticker">Ticker</option>
-              <option value="Brief Card">Brief Card</option>
-              <option value="Compact Card">Compact Card</option>
-              <option value="Bar Strip">Bar Strip</option>
             </select>
           </div>
 
