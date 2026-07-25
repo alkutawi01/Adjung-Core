@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-07-25T10:18:38.067Z",
+    "summary": "Perlembagaan: tambah peraturan sejagat #10 'Fon tajuk tak boleh lebih kecil drpd fon huraian' - dedah punca sebenar (briefStyle paksa 14px inline, titleStyle tiada paksaan) & catat pelanggaran sedia ada (Kompak text-xs=12px di bawah md) belum dibetulkan",
+    "files": [
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T10:10:11.952Z",
     "summary": "Perlembagaan: tambah peraturan sejagat #9 'Tinggi kad ikut kandungan, bukan ikut jiran' - dokumen fix self-start & bezakan jelas dgn pengecualian sah (perubahan responsif ikut saiz skrin, serentak semua slot sebaris)",
     "files": [

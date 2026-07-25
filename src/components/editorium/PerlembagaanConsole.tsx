@@ -102,6 +102,10 @@ const UNIVERSAL_RULES = [
     title: 'Tinggi kad ikut kandungan, bukan ikut jiran.',
     body: 'Kad tak lagi paksa isi penuh sel grid (self-start, bukan h-full) -- pada saiz skrin TETAP, dua slot tier sama mesti nampak setinggi kandungan sebenar masing-masing, tak kira jiran row-span-2 apa yang duduk sebaris dengannya. PENGECUALIAN sah: tinggi boleh berubah ikut SAIZ SKRIN/viewport (responsif) -- bila itu berlaku, ia mesti berubah SERENTAK untuk semua slot dalam baris yang sama, bukan slot demi slot secara berbeza.',
   },
+  {
+    title: 'Fon tajuk tak boleh lebih kecil daripada fon huraian.',
+    body: 'Saiz fon huraian TETAP (14px, inline style yang menewaskan class Tailwind apa pun) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier/breakpoint (class Tailwind sahaja, tiada paksaan). Sebab tajuk dinamik (panjang & saiz berubah ikut tier) tapi huraian statik, setiap kombinasi tier+breakpoint MESTI disemak: fon tajuk >= 14px pada semua saiz skrin. (Diketahui melanggar setakat ini: kad Kompak guna text-xs [12px] untuk tajuk di bawah breakpoint md -- belum dibetulkan, tunggu arahan.)',
+  },
 ];
 
 export const PerlembagaanConsole: React.FC = () => {
