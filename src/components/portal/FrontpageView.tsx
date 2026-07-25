@@ -12,6 +12,7 @@ import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
 import { TickerManagementModal } from './TickerManagementModal';
 import { BarCard } from './cards/BarCard';
+import { BarCardExpandedPanel } from './cards/BarCardExpandedPanel';
 
 // parseInlineFormatting is designed for hand-authored Note/Essay body text; applying it broadly to
 // every carousel item's title/brief (including years of accumulated AI-generated history per slot)
@@ -441,6 +442,38 @@ const CarouselStableBlock: React.FC<{
   );
 };
 
+// Freezes an element's height at its last-measured value from BEFORE `isLocked` became true --
+// used so the 2 cards sharing a BAR cluster's grid row stay pixel-static while that cluster's
+// accordion is open, without needing to know/hardcode what their "normal" (grid-stretched) height
+// is. While isLocked is false, keeps measuring on every render + window resize (so the frozen
+// value is always the real, current, un-expanded size); once isLocked flips true, stops
+// re-measuring and applies that last value as an explicit inline height, overriding the grid's
+// stretch-driven growth from the now-taller BAR cluster cell. Same "measure and pin" approach as
+// CarouselStableBlock above, applied to a different problem (freeze on interaction vs. pick a max
+// across carousel items).
+function useCollapsedHeightLock(isLocked: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [naturalHeight, setNaturalHeight] = useState<number | undefined>(undefined);
+  // No dependency array: re-measure after EVERY render while unlocked, so the frozen value is
+  // always the size right up to the moment it locks -- not a stale snapshot from whenever isLocked
+  // last flipped to false (which could predate later content/data/font changes).
+  useLayoutEffect(() => {
+    if (isLocked || !ref.current) return;
+    const h = ref.current.getBoundingClientRect().height;
+    setNaturalHeight((prev) => (prev !== h ? h : prev));
+  });
+  useEffect(() => {
+    if (isLocked) return;
+    const onResize = () => {
+      if (ref.current) setNaturalHeight(ref.current.getBoundingClientRect().height);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [isLocked]);
+  const lockStyle = isLocked && naturalHeight ? { height: `${naturalHeight}px` } : undefined;
+  return { ref, lockStyle };
+}
+
 let BENTO_FALLBACKS: any[] = [];
 
 
@@ -612,6 +645,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
+  // BAR accordion: which card (by slot index) is expanded, per cluster -- independent so opening
+  // one cluster's accordion never affects the other. Only active outside edit mode (edit mode's
+  // click behavior on BAR cards is unchanged: it opens the admin slot editor, see handleCardClick).
+  const [expandedBarCluster1, setExpandedBarCluster1] = useState<number | null>(null);
+  const [expandedBarCluster2, setExpandedBarCluster2] = useState<number | null>(null);
+  // Height locks for the 2 cards sharing each BAR cluster's grid row (index 11/12 for cluster 1,
+  // 25/26 for cluster 2) -- see useCollapsedHeightLock. Locked whenever that cluster's accordion
+  // is open, so these cards never move/resize while a card elsewhere in their row expands.
+  const bar1SiblingLocks = {
+    idx11: useCollapsedHeightLock(expandedBarCluster1 !== null),
+    idx12: useCollapsedHeightLock(expandedBarCluster1 !== null),
+  };
+  const bar2SiblingLocks = {
+    idx25: useCollapsedHeightLock(expandedBarCluster2 !== null),
+    idx26: useCollapsedHeightLock(expandedBarCluster2 !== null),
+  };
   const [aiLogs, setAiLogs] = useState<any[]>([]);
   const [activeLogPayload, setActiveLogPayload] = useState<{ type: 'prompt' | 'response'; content: string } | null>(null);
   const [showResetMenu, setShowResetMenu] = useState<boolean>(false);
@@ -2787,7 +2836,7 @@ URL: ${url}`;
 
             {/* ROW 4 & 5: Horizontal, Vertical, Bars, Square (Indices 6 to 12) */}
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4 animate-fade-in">
-              
+
               {/* Left Top: Horizontal (Index 6) */}
               {bentoNewsItems[6] && (
                 <div 
@@ -2821,10 +2870,11 @@ URL: ${url}`;
 
               {/* Right Column: Vertical (Index 12) */}
               {bentoNewsItems[12] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(12)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
-                 style={getCardTheme(bentoNewsItems[12], 'transparent').cardStyle} >
+                  ref={bar1SiblingLocks.idx12.ref}
+                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                 style={{ ...getCardTheme(bentoNewsItems[12], 'transparent').cardStyle, ...bar1SiblingLocks.idx12.lockStyle }} >
                   <div className="space-y-4">
                     <CarouselStableBlock
                       items={bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]]}
@@ -2859,27 +2909,41 @@ URL: ${url}`;
                 {[7, 8, 9, 10].map((idx) => {
                   const barItem = bentoNewsItems[idx];
                   if (!barItem) return null;
+                  const isExpanded = expandedBarCluster1 === idx;
                   return (
-                    <BarCard
-                      key={idx}
-                      item={barItem}
-                      onClick={() => handleCardClick(idx)}
-                      isEditMode={isEditMode}
-                      onEditClick={(e) => {
-                        e.stopPropagation();
-                        handleCardClick(idx);
-                      }}
-                    />
+                    <div key={idx}>
+                      <BarCard
+                        item={barItem}
+                        onClick={() => {
+                          if (isEditMode) {
+                            handleCardClick(idx);
+                          } else {
+                            setExpandedBarCluster1((prev) => (prev === idx ? null : idx));
+                          }
+                        }}
+                        isEditMode={isEditMode}
+                        onEditClick={(e) => {
+                          e.stopPropagation();
+                          handleCardClick(idx);
+                        }}
+                      />
+                      <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] mt-1.5' : 'grid-rows-[0fr] mt-0'}`}>
+                        <div className="overflow-hidden">
+                          <BarCardExpandedPanel item={barItem} />
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
 
               {/* Left Bottom Right: Square (Index 11) */}
               {bentoNewsItems[11] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(11)}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
-                 style={getCardTheme(bentoNewsItems[11], 'transparent').cardStyle} >
+                  ref={bar1SiblingLocks.idx11.ref}
+                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                 style={{ ...getCardTheme(bentoNewsItems[11], 'transparent').cardStyle, ...bar1SiblingLocks.idx11.lockStyle }} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{bentoNewsItems[11].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
                     <CarouselStableBlock
@@ -3139,10 +3203,11 @@ URL: ${url}`;
               
               {/* Left Column: Vertical (Index 26) */}
               {bentoNewsItems[26] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(26)}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
-                 style={getCardTheme(bentoNewsItems[26], 'transparent').cardStyle} >
+                  ref={bar2SiblingLocks.idx26.ref}
+                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                 style={{ ...getCardTheme(bentoNewsItems[26], 'transparent').cardStyle, ...bar2SiblingLocks.idx26.lockStyle }} >
                   <div className="space-y-4">
                     <CarouselStableBlock
                       items={bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]]}
@@ -3201,10 +3266,11 @@ URL: ${url}`;
 
               {/* Right Bottom Left: Square (Index 25) */}
               {bentoNewsItems[25] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(25)}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
-                 style={getCardTheme(bentoNewsItems[25], 'transparent').cardStyle} >
+                  ref={bar2SiblingLocks.idx25.ref}
+                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                 style={{ ...getCardTheme(bentoNewsItems[25], 'transparent').cardStyle, ...bar2SiblingLocks.idx25.lockStyle }} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{bentoNewsItems[25].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[25].publishedAt)}</span>
                     <CarouselStableBlock
@@ -3240,17 +3306,30 @@ URL: ${url}`;
                 {[21, 22, 23, 24].map((idx) => {
                   const barItem = bentoNewsItems[idx];
                   if (!barItem) return null;
+                  const isExpanded = expandedBarCluster2 === idx;
                   return (
-                    <BarCard
-                      key={idx}
-                      item={barItem}
-                      onClick={() => handleCardClick(idx)}
-                      isEditMode={isEditMode}
-                      onEditClick={(e) => {
-                        e.stopPropagation();
-                        handleCardClick(idx);
-                      }}
-                    />
+                    <div key={idx}>
+                      <BarCard
+                        item={barItem}
+                        onClick={() => {
+                          if (isEditMode) {
+                            handleCardClick(idx);
+                          } else {
+                            setExpandedBarCluster2((prev) => (prev === idx ? null : idx));
+                          }
+                        }}
+                        isEditMode={isEditMode}
+                        onEditClick={(e) => {
+                          e.stopPropagation();
+                          handleCardClick(idx);
+                        }}
+                      />
+                      <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] mt-1.5' : 'grid-rows-[0fr] mt-0'}`}>
+                        <div className="overflow-hidden">
+                          <BarCardExpandedPanel item={barItem} />
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>

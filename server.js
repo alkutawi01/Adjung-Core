@@ -12,7 +12,7 @@ import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
 import { validateContentBudget } from './core/editorial/ContentBudget.js';
-import { ceilingForSlot as getGeometryCeilingForSlot } from './core/editorial/GeometryConfig.js';
+import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
@@ -2188,6 +2188,13 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
     }
     if (effectiveMaxBriefLong && item.briefLong && item.briefLong.length > effectiveMaxBriefLong) {
       const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan -- pendekkan huraian dahulu.`);
+      err.isValidationError = true;
+      throw err;
+    }
+    // Peraturan Khas Slot Bar -- Penerangan diisi ke panel akordion (BarCardExpandedPanel.tsx),
+    // jadi perlu had ruang sebenar sama macam Huraian Panjang di atas.
+    if (TIER_SLOTS.BAR.includes(slotIndex) && item.penerangan && item.penerangan.length > MAX_PENERANGAN_CHARS) {
+      const err = new Error(`Penerangan bagi "${(item.title || '').slice(0, 40)}..." melebihi had ${MAX_PENERANGAN_CHARS} aksara (semasa: ${item.penerangan.length}). Kandungan tidak disiarkan -- pendekkan penerangan dahulu.`);
       err.isValidationError = true;
       throw err;
     }

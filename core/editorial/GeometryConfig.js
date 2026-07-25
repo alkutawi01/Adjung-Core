@@ -81,6 +81,15 @@ export const MAX_BRIEF_LONG_BY_TIER = {
   DEFAULT: 600,
 };
 
+// Character budget for BAR's "Penerangan" field -- the accordion detail panel body text (see
+// BarCardExpandedPanel.tsx). BAR-only field, not part of MAX_BRIEF_LONG_BY_TIER above (that's
+// keyed by tier for a field every tier could theoretically have; Penerangan only exists for BAR).
+// Measured empirically once the panel was actually built: at the panel's real rendered width
+// (~293px, the BAR cluster's column), a 458-character sample rendered as a legible ~13-line
+// paragraph at ~348px tall -- comfortable for an accordion, not excessive. Enforced at save time
+// by ContentBudget.js's validateBarPeneranganBudget(), same as every other tier's ceiling.
+export const MAX_PENERANGAN_CHARS = 460;
+
 // Single source of truth for "what's the hard ceiling for this slot's title/brief/briefLong" --
 // used both to validate/clamp admin-saved slot config (server.js) and to pre-fill the admin slot
 // settings form's defaults (FrontpageView.tsx). Previously each of those kept its own hand-typed

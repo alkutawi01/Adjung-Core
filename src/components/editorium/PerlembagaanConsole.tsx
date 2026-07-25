@@ -102,6 +102,10 @@ const UNIVERSAL_RULES = [
     title: 'Fon tajuk tak boleh lebih kecil daripada fon huraian.',
     body: 'Saiz fon huraian TETAP (14px, inline style yang menewaskan class Tailwind apa pun) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier/breakpoint (class Tailwind sahaja, tiada paksaan). Sebab tajuk dinamik (panjang & saiz berubah ikut tier) tapi huraian statik, setiap kombinasi tier+breakpoint MESTI disemak: fon tajuk >= 14px pada semua saiz skrin. (Diketahui melanggar setakat ini: kad Kompak guna text-xs [12px] untuk tajuk di bawah breakpoint md -- belum dibetulkan, tunggu arahan.)',
   },
+  {
+    title: 'Akordion Bar: kad kekal statik, panel muncul berasingan di bawahnya.',
+    body: 'Klik kad Bar (maroon) di luar Mod Edit membuka/tutup panel Penerangan sebagai ELEMEN BAHARU selepas kad tu -- kad Bar itu sendiri TIDAK diubah langsung (tiada saiz/rupa berbeza bila terbuka). Hanya SATU kad boleh terbuka pada satu masa PER KLUSTER (4 kad); klik kad lain dalam kluster yang sama tutup yang sebelum, buka yang baharu. Dua kad yang berkongsi baris grid dengan kluster Bar (row-span-2 menegak + satu lagi) WAJIB kekal statik (tinggi/kedudukan tak berubah) walaupun kluster Bar membesar -- dikuatkuasakan melalui height-lock JS (ukur tinggi semula jadi sebelum terbuka, bekukan nilai tu semasa terbuka), BUKAN ubah struktur grid (lihat peraturan "jangan ubah grid bento"). Medan Penerangan dihadkan 460 aksara (core/editorial/GeometryConfig.js MAX_PENERANGAN_CHARS, dikuatkuasakan server.js syncManualObjectsForSlot) -- diukur empirik daripada lebar panel sebenar.',
+  },
 ];
 
 export const PerlembagaanConsole: React.FC = () => {

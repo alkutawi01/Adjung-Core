@@ -1,5 +1,16 @@
 [
   {
+    "time": "2026-07-25T13:02:24.735Z",
+    "summary": "Bina komponen Editorial Accordion untuk kad Bar (marun): klik kad di luar Mod Edit buka/tutup panel Penerangan sebagai ELEMEN BAHARU berasingan selepas kad tu (kad itu sendiri tak diubah langsung). Kad-kad lain dalam kluster yang sama beralih ke bawah secara animasi CSS licin; hanya satu kad terbuka sekaligus PER KLUSTER. Dua kad yang berkongsi baris grid dengan kluster Bar (kad menegak row-span-2 + satu lagi) kekal statik 100% (tinggi/kedudukan tak berubah) melalui teknik height-lock JS (ukur tinggi sebelum terbuka, bekukan nilai semasa terbuka) -- grid bento sendiri tak disentuh/diubah struktur langsung. Tambah had 460 aksara untuk medan Penerangan (GeometryConfig.js MAX_PENERANGAN_CHARS), dikuatkuasakan di peringkat simpan (server.js). Disahkan menyeluruh: desktop (kedua-dua kluster, buka/tutup/tukar kad), mobile (satu lajur), tsc bersih, 42/45 ujian (asas sedia ada).",
+    "files": [
+      "src/components/portal/cards/BarCardExpandedPanel.tsx",
+      "src/components/portal/FrontpageView.tsx",
+      "core/editorial/GeometryConfig.js",
+      "server.js",
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T12:00:31.528Z",
     "summary": "Betulkan bug lebih besar di logik 'jana teks manual daripada data sedia ada' (handleCardClick, laluan bila slot ditukar ke Mod Manual buat kali pertama): (1) BUG SEBENAR -- cawangan BAR item-tunggal guna item.title (bentuk React yang dah diproses untuk paparan) bukan item.titleString (teks asal), punca medan Event tunjuk literal '[object Object]' -- disahkan pada Slot 8 Penerbitan; (2) semua 4 cawangan (BAR/biasa x tunggal/berbilang) serta blok 'sanitize legacy dummy text' turut suntik nilai contoh palsu (PPAS, SACC Mall, 19-26 Julai 2026, TEKNOLOGI, Laman Web, URL Astro Awani/Bernama palsu) bila medan sebenar kosong -- kini semua medan kosong sebenar dibiarkan kosong, dibaca daripada medan struktur sebenar item (organizer/location/access/originalDate) bila ada. Disahkan di browser: Slot 8 kini tunjuk tajuk sebenar + medan kosong yang benar-benar kosong, URL sebenar dikekalkan.",
     "files": [
