@@ -499,62 +499,75 @@ const seedDatabase = async () => {
     });
   });
 
-  const checkUsersCount = () => {
+  // Each table's seed is gated on ITS OWN row count, independently -- not on the users table as
+  // a proxy for "is the whole database empty". A database can legitimately have zero users (e.g.
+  // right after clearing test/mock accounts) while still holding real settings/content, and
+  // treating that as "fresh database" would try to re-insert a settings-main row that already
+  // exists and crash the process on a UNIQUE constraint violation (this happened in practice).
+  const countRows = (table) => {
     return new Promise((resolve, reject) => {
-      db.get("SELECT COUNT(*) as count FROM users", [], (err, row) => {
+      db.get(`SELECT COUNT(*) as count FROM ${table}`, [], (err, row) => {
         if (err) reject(err);
         else resolve(row.count);
       });
     });
   };
 
-  const usersCount = await checkUsersCount();
-  if (usersCount > 0) {
-    console.log('Database already contains seed data. Bypassing user & settings seed operation.');
-    return;
+  const usersCount = await countRows('users');
+  const settingsCount = await countRows('system_settings');
+
+  if (usersCount === 0) {
+    // Note: hashPassword() is defined further down this file (search "Password hashing"), but
+    // function declarations aren't hoisted here since it's a const -- this runs from
+    // initializeSchema().then(() => seedDatabase()) at module load time, after the whole file
+    // (including that const) has already been evaluated, so it's safe to reference here.
+    const defaultUserSeedPassword = 'adjung-brief-' + crypto.randomBytes(4).toString('hex');
+    // A single Chief Editor account (no multi-editor sign-in system yet; see .agents/AGENTS.md).
+    // Previously called the undefined mockDb.getUsers(), which threw and crashed the whole
+    // process on first run against any empty/fresh database file.
+    await new Promise((resolve, reject) => {
+      db.run(`
+        INSERT INTO users (id, username, email, role, penName, signature, avatarColor, bioSummary, isSuspended, password, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `, [
+        'user-chief-editor', 'izzat', 'izzat@adjung.local', 'KETUA_EDITOR',
+        'Izzat Anas', '', '#802334', 'Chief Editor, Adjung Brief', 0,
+        hashPassword(defaultUserSeedPassword)
+      ], (err) => {
+        if (err) { console.error('Failed to seed Chief Editor account:', err.message); reject(err); return; }
+        console.log(`Seeded Chief Editor account "izzat" with a random temporary password: ${defaultUserSeedPassword} -- change this after first login.`);
+        resolve();
+      });
+    });
+  } else {
+    console.log(`Users table already has ${usersCount} row(s). Skipping user seed.`);
   }
 
-  console.log('Database is empty. Seeding initial users and default configurations...');
-  // Note: hashPassword() is defined further down this file (search "Password hashing"), but
-  // function declarations aren't hoisted here since it's a const -- this runs from
-  // initializeSchema().then(() => seedDatabase()) at module load time, after the whole file
-  // (including that const) has already been evaluated, so it's safe to reference here.
-  const defaultUserSeedPassword = 'adjung-brief-' + crypto.randomBytes(4).toString('hex');
-  db.serialize(() => {
-    // 1. Seed Users -- a single Chief Editor account (no multi-editor sign-in system yet; see
-    // .agents/AGENTS.md). Previously called the undefined mockDb.getUsers(), which threw and
-    // crashed the whole process on first run against any empty/fresh database file.
-    const stmtUser = db.prepare(`
-      INSERT INTO users (id, username, email, role, penName, signature, avatarColor, bioSummary, isSuspended, password, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-    `);
-    stmtUser.run(
-      'user-chief-editor', 'izzat', 'izzat@adjung.local', 'KETUA_EDITOR',
-      'Izzat Anas', '', '#802334', 'Chief Editor, Adjung Brief', 0,
-      hashPassword(defaultUserSeedPassword)
-    );
-    stmtUser.finalize();
-    console.log(`Seeded Chief Editor account "izzat" with a random temporary password: ${defaultUserSeedPassword} -- change this after first login.`);
-
-    // 3. Seed System Settings
-    db.run(`
-      INSERT INTO system_settings (
-        id, frontpageTitle, frontpageSubtitle, rolePermissions, 
-        inTheNewsText, inTheNewsGoogleDocUrl, featuredScholarId, featuredEntryId, 
-        editorialSelectionIds, announcementBanner, enableArabicAccent, layoutDensity, 
-        allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText, 
-        worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl
-      ) VALUES (
-        'settings-main', 'Adjung Mini Portal', 'Tetapan Portal', '{}', 
-        '', '', '', '', 
-        '[]', '', 0, 'Standard', 
-        '[]', '[]', '[]', '', 
-        '', '', ''
-      )
-    `);
-
-    console.log('Database seeding operation complete.');
-  });
+  if (settingsCount === 0) {
+    await new Promise((resolve, reject) => {
+      db.run(`
+        INSERT INTO system_settings (
+          id, frontpageTitle, frontpageSubtitle, rolePermissions,
+          inTheNewsText, inTheNewsGoogleDocUrl, featuredScholarId, featuredEntryId,
+          editorialSelectionIds, announcementBanner, enableArabicAccent, layoutDensity,
+          allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText,
+          worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl
+        ) VALUES (
+          'settings-main', 'Adjung Mini Portal', 'Tetapan Portal', '{}',
+          '', '', '', '',
+          '[]', '', 0, 'Standard',
+          '[]', '[]', '[]', '',
+          '', '', ''
+        )
+      `, (err) => {
+        if (err) { console.error('Failed to seed system_settings:', err.message); reject(err); return; }
+        console.log('Seeded default system_settings row.');
+        resolve();
+      });
+    });
+  } else {
+    console.log(`system_settings already has ${settingsCount} row(s). Skipping settings seed.`);
+  }
 };
 
 // Start initialization flow

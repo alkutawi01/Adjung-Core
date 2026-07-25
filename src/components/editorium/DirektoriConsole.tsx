@@ -54,133 +54,11 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const [editingMandat, setEditingMandat] = useState(false);
   const [mandatInput, setMandatInput] = useState('');
 
-  const [staffList, setStaffList] = useState<StaffProfile[]>([
-    {
-      id: 'usr_editor_chief_001',
-      fullName: 'Izzat Anas',
-      role: 'Ketua Editor',
-      status: 'Aktif',
-      desk: 'Global (Keseluruhan)',
-      joinDate: '01/01/2026',
-      endDate: '-',
-      email: 'izzatanas@adjung.my',
-      accountCreated: '01/01/2026 08:00 AM',
-
-      skop: 'Global (Semua Sektor)',
-      slotMandat: 'Semua Slot (Slot 0-37)',
-
-      countProvided: 45,
-      countEdited: 98,
-      countPublished: 142,
-
-      history: [
-        { date: '01/01/2026', event: 'Akaun editorial diwujudkan' },
-        { date: '01/01/2026', event: 'Dilantik sebagai Ketua Editor dengan Kuasa Kawalan Global' }
-      ],
-
-      permissions: {
-        view: 'Semua Kandungan (Global)',
-        edit: 'Semua Kandungan (Global)',
-        publish: 'Semua Kandungan (Global)',
-        assignSlot: 'Ya (Kawalan Penuh Mandat)',
-        manageSettings: 'Ya (Tetapan Sistem & Polisi)'
-      }
-    },
-    {
-      id: 'usr_editor_ahmad_002',
-      fullName: 'Ahmad bin Zulkifli',
-      role: 'Editor',
-      status: 'Aktif',
-      desk: 'Sains',
-      joinDate: '05/01/2026',
-      endDate: '-',
-      email: 'ahmad@adjung.my',
-      accountCreated: '05/01/2026 09:30 AM',
-
-      skop: 'Sektor Sains & Teknologi',
-      slotMandat: 'Slot 1-10',
-
-      countProvided: 28,
-      countEdited: 40,
-      countPublished: 35,
-
-      history: [
-        { date: '05/01/2026', event: 'Akaun editorial diwujudkan' },
-        { date: '05/01/2026', event: 'Dilantik sebagai Editor Sektor Sains' },
-        { date: '10/01/2026', event: 'Mandat Slot 1-10 ditetapkan oleh Ketua Editor' }
-      ],
-
-      permissions: {
-        view: 'Semua Kandungan (Kandungan Lain Read-Only)',
-        edit: 'Kandungan Saya Sahaja',
-        publish: 'Kandungan Saya Sahaja',
-        assignSlot: 'Tidak (Akses Terhad)',
-        manageSettings: 'Tidak (Akses Terhad)'
-      }
-    },
-    {
-      id: 'usr_editor_ali_003',
-      fullName: 'Ali bin Mahmud',
-      role: 'Editor',
-      status: 'Cuti',
-      desk: 'Sejarah',
-      joinDate: '10/01/2026',
-      endDate: '-',
-      email: 'ali@adjung.my',
-      accountCreated: '10/01/2026 11:00 AM',
-
-      skop: 'Sektor Sejarah & Kebudayaan',
-      slotMandat: 'Slot 11-20 (Sementara Didilegasi)',
-
-      countProvided: 15,
-      countEdited: 22,
-      countPublished: 20,
-
-      history: [
-        { date: '10/01/2026', event: 'Akaun editorial diwujudkan' },
-        { date: '15/07/2026', event: 'Status dikemaskini ke Cuti Tahunan' }
-      ],
-
-      permissions: {
-        view: 'Semua Kandungan (Kandungan Lain Read-Only)',
-        edit: 'Kandungan Saya Sahaja',
-        publish: 'Kandungan Saya Sahaja',
-        assignSlot: 'Tidak (Akses Terhad)',
-        manageSettings: 'Tidak (Akses Terhad)'
-      }
-    },
-    {
-      id: 'usr_editor_fatimah_004',
-      fullName: 'Fatimah binti Hassan',
-      role: 'Editor',
-      status: 'Tidak Aktif',
-      joinDate: '01/02/2026',
-      endDate: '30/06/2026',
-      desk: 'Falsafah',
-      email: 'fatimah@adjung.my',
-      accountCreated: '01/02/2026 02:00 PM',
-
-      skop: 'Sektor Falsafah & Pemikiran',
-      slotMandat: 'Tiada (Mandat Ditarik)',
-
-      countProvided: 12,
-      countEdited: 18,
-      countPublished: 16,
-
-      history: [
-        { date: '01/02/2026', event: 'Akaun editorial diwujudkan' },
-        { date: '30/06/2026', event: 'Perkhidmatan tamat. Status dikemaskini ke Tidak Aktif' }
-      ],
-
-      permissions: {
-        view: 'Semua Kandungan (Read-Only)',
-        edit: 'Tidak Dibenarkan',
-        publish: 'Tidak Dibenarkan',
-        assignSlot: 'Tidak Dibenarkan',
-        manageSettings: 'Tidak Dibenarkan'
-      }
-    }
-  ]);
+  // No staff-directory table exists in the backend yet -- this console previously showed 4
+  // hardcoded fake profiles (Izzat, Ahmad, Ali, Fatimah) with fabricated activity counts and
+  // history instead of being honest that there's no real data source here. Empty until a real
+  // multi-editor account system exists (see .agents/AGENTS.md -- solo Chief Editor for now).
+  const [staffList, setStaffList] = useState<StaffProfile[]>([]);
 
   const filteredStaff = staffList.filter(s =>
     s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -226,9 +104,12 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           />
 
           {currentUserRole === 'KETUA_EDITOR' && (
-            <button className="bg-[#802334] hover:bg-[#6c1d2c] text-white font-mono text-xs px-4 py-2 rounded font-bold shadow-sm transition-colors">
-              + TAMBAH ANGGOTA
-            </button>
+            <span
+              title="Belum dibina -- tiada sistem akaun pengguna berbilang lagi"
+              className="bg-stone-100 text-stone-400 font-mono text-xs px-4 py-2 rounded font-bold border border-stone-200 cursor-not-allowed"
+            >
+              🚧 + TAMBAH ANGGOTA
+            </span>
           )}
         </div>
       </div>
@@ -248,6 +129,18 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100 font-sans">
+            {filteredStaff.length === 0 && (
+              <tr>
+                <td colSpan={7} className="p-12 text-center text-stone-500">
+                  <div className="text-2xl mb-2">🗂️</div>
+                  <div className="font-bold uppercase tracking-wider text-[11px] mb-1">Direktori Kosong</div>
+                  <p className="text-xs max-w-sm mx-auto">
+                    Belum ada anggota lain berdaftar -- sistem akaun pengguna berbilang belum dibina.
+                    Sekarang hanya Ketua Editor seorang yang beroperasi.
+                  </p>
+                </td>
+              </tr>
+            )}
             {filteredStaff.map(staff => (
               <tr key={staff.id} className="hover:bg-stone-50 transition-colors">
                 <td className="p-4 font-serif font-bold text-stone-900">{staff.fullName}</td>

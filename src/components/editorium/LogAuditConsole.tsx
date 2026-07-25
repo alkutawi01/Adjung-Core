@@ -1,71 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-interface AuditLogEntry {
-  id: string;
-  date: string;
-  user: string;
-  action: string;
-  object: string;
-}
-
+// No audit-log table exists in the backend yet -- this console has no real data source to read
+// from. Previously showed 4 hardcoded fake entries (Ahmad, Izzat, Ali) instead of being honest
+// about that. Shows an empty state until a real audit_log table + write-path is built.
 export const LogAuditConsole: React.FC = () => {
-  const [logs] = useState<AuditLogEntry[]>([
-    {
-      id: 'log-01',
-      date: '22/07/2026',
-      user: 'Ahmad',
-      action: 'Publish Brief',
-      object: 'NASA Reviews Hubble Mission'
-    },
-    {
-      id: 'log-02',
-      date: '22/07/2026',
-      user: 'Izzat',
-      action: 'Update Editorial Policy',
-      object: 'Had Panjang Ringkasan Brief (250 aksara)'
-    },
-    {
-      id: 'log-03',
-      date: '22/07/2026',
-      user: 'Izzat',
-      action: 'Tetapkan Mandat',
-      object: 'Editor Ahmad (Slot 1-10)'
-    },
-    {
-      id: 'log-04',
-      date: '20/07/2026',
-      user: 'Ali',
-      action: 'Publish Brief',
-      object: 'Gua Niah Tapak Warisan UNESCO'
-    }
-  ]);
-
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-stone-200 overflow-hidden">
-      <table className="w-full text-left border-collapse font-sans text-xs">
-        <thead>
-          <tr className="bg-stone-100 border-b border-stone-200 font-mono text-[9px] uppercase text-stone-600 tracking-wider">
-            <th className="p-4">TARIKH</th>
-            <th className="p-4">PENGGUNA</th>
-            <th className="p-4">TINDAKAN</th>
-            <th className="p-4">OBJEK</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-stone-100 font-mono">
-          {logs.map(log => (
-            <tr key={log.id} className="hover:bg-stone-50 transition-colors">
-              <td className="p-4 text-stone-500 font-bold whitespace-nowrap">{log.date}</td>
-              <td className="p-4 font-bold text-stone-900">{log.user}</td>
-              <td className="p-4">
-                <span className="bg-stone-100 text-stone-800 px-2 py-0.5 rounded font-bold border border-stone-200">
-                  {log.action}
-                </span>
-              </td>
-              <td className="p-4 font-serif text-stone-900">{log.object}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-12 text-center space-y-2">
+      <div className="text-2xl">🗒️</div>
+      <h3 className="font-serif text-sm font-bold text-[#802334] uppercase tracking-wider">
+        Log Audit Belum Dibina
+      </h3>
+      <p className="font-serif text-stone-500 text-xs max-w-sm mx-auto">
+        Belum ada sistem rekod audit sebenar di belakang skrin ini. Ia akan mula catat tindakan
+        editorial sebenar (terbit, tolak, ubah polisi) apabila sistem log masuk sedia.
+      </p>
     </div>
   );
 };
