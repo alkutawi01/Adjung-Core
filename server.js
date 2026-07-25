@@ -12,6 +12,7 @@ import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
 import { validateContentBudget } from './core/editorial/ContentBudget.js';
+import { ceilingForSlot as getGeometryCeilingForSlot } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
@@ -1992,34 +1993,6 @@ const fetchSourceWithCache = async (sourceUri) => {
   return cacheEntry ? { rawContent: cacheEntry.rawContent, fromCache: true } : { rawContent: '', fromCache: false };
 };
 
-// Server-side mirror of FrontpageView.tsx's getLimitsForIndex/GEOMETRY_RATIOS defaults -- these
-// ARE the hard ceilings: a card's geometry physically cannot show more than this much text
-// without breaking its size/legibility, so no slot may be configured (or publish content) beyond
-// its own tier's numbers. Kept in sync manually with the client-side defaults.
-const GEOMETRY_TIER_CEILINGS = {
-  MENEGAK: { maxTitle: 72, maxBrief: 480, maxBriefLong: 800 },
-  STANDARD: { maxTitle: 110, maxBrief: 280, maxBriefLong: 600 },
-  SEGI_EMPAT_MEDIUM: { maxTitle: 60, maxBrief: 100, maxBriefLong: 500 },
-  SEGI_EMPAT_SMALL: { maxTitle: 40, maxBrief: 65, maxBriefLong: 400 },
-  KOMPAK: { maxTitle: 55, maxBrief: 25, maxBriefLong: 400 },
-  BAR: { maxTitle: 95, maxBrief: 0, maxBriefLong: 0 },
-  HERO: { maxTitle: 115, maxBrief: 350, maxBriefLong: 800 },
-  TICKER: { maxTitle: 80, maxBrief: 220, maxBriefLong: 0 },
-  DEFAULT: { maxTitle: 70, maxBrief: 100, maxBriefLong: 600 }
-};
-
-const getGeometryCeilingForSlot = (slotIndex) => {
-  if (slotIndex === -1) return GEOMETRY_TIER_CEILINGS.TICKER;
-  if (slotIndex === 0) return GEOMETRY_TIER_CEILINGS.HERO;
-  if ([1, 12, 15, 26, 29, 37].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.MENEGAK;
-  if ([2, 6, 19, 20, 33, 34].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.STANDARD;
-  if ([13, 14, 27, 28].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.SEGI_EMPAT_MEDIUM;
-  if ([3, 11, 16, 25, 30, 35, 36].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.SEGI_EMPAT_SMALL;
-  if ([4, 5, 17, 18, 31, 32].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.KOMPAK;
-  if ([7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex)) return GEOMETRY_TIER_CEILINGS.BAR;
-  return GEOMETRY_TIER_CEILINGS.DEFAULT;
-};
-
 // Helper function to resolve active layout slots
 const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
   if (!summaryText || (!summaryText.includes('Tajuk:') && !summaryText.includes('Event:'))) {
@@ -3387,7 +3360,7 @@ app.post('/api/system/ai/pricing', async (req, res) => {
 app.use('/api/ai', createAIRoutes(dbAll, dbRun));
 app.use('/api/system', createCategoryRoutes(db));
 app.use('/api', createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb));
-app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet, getGeometryCeilingForSlot, syncManualObjectsForSlot, runEditorialPipeline));
+app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet));
 
 // Start Express Server
 const PORT = 5000;

@@ -8,6 +8,7 @@ import ClaudeProvider from '../ai/ClaudeProvider.js';
 import EditorialValidator from './EditorialValidator.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { validateContentBudget } from './ContentBudget.js';
+import { TIER_SLOTS } from './GeometryConfig.js';
 
 const CONTENT_POOL_MAX_ITEMS = 30; // Bound prompt token cost regardless of how many sources are configured.
 const CONTENT_POOL_MAX_CONTENT_CHARS = 400; // Per-item content cap — enough for editorial judgment, not full article reprint.
@@ -169,11 +170,14 @@ class EditorialPipeline {
         minSummaryLen = 220;
         maxSummaryLen = 250;
         limitDesc = 'mestilah di antara 220 hingga 250 aksara untuk kad Hero utama.';
-      } else if ([1, 12, 14, 25, 36].includes(slotIndex)) {
+      } else if (TIER_SLOTS.MENEGAK.includes(slotIndex)) {
+        // Was literally [1, 12, 14, 25, 36] -- 14/25/36 aren't MENEGAK slots at all (they're
+        // SEGI_EMPAT_MEDIUM/SMALL, with a much smaller real budget), and the real MENEGAK slots
+        // 15/26/29/37 were missing from the array entirely, so they never got this target.
         minSummaryLen = 300;
         maxSummaryLen = 370;
         limitDesc = 'mestilah di antara 300 hingga 370 aksara (tulis panjang dan penuh, sekurang-kurangnya 4-5 baris) untuk mengisi ruang kad menegak bento secara padat.';
-      } else if ([4, 5, 17, 18, 31, 32].includes(slotIndex)) {
+      } else if (TIER_SLOTS.KOMPAK.includes(slotIndex)) {
         minSummaryLen = 18;
         maxSummaryLen = 25;
         limitDesc = 'mestilah di antara 18 hingga 25 aksara sahaja (satu ayat pendek) untuk kad bento kompak.';
@@ -184,14 +188,14 @@ class EditorialPipeline {
     if (slot.maxTitle !== null && slot.maxTitle !== undefined) {
       maxTitleLen = slot.maxTitle;
     } else {
-      if ([7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex)) {
+      if (TIER_SLOTS.BAR.includes(slotIndex)) {
         maxTitleLen = 40;
-      } else if ([4, 5, 17, 18, 31, 32].includes(slotIndex)) {
+      } else if (TIER_SLOTS.KOMPAK.includes(slotIndex)) {
         maxTitleLen = 55;
       }
     }
 
-    const isBarSlot = [7, 8, 9, 10, 21, 22, 23, 24].includes(slotIndex);
+    const isBarSlot = TIER_SLOTS.BAR.includes(slotIndex);
 
     // 3. Static System Prompt (Identity)
     const staticSystemPrompt = `You are Adjung AI.

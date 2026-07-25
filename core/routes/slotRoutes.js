@@ -5,94 +5,17 @@ import { calculateEditorialScore } from '../sources/EditorialScoreEngine.js';
 import { processTextWithTrace, normalizeEditorialText } from '../sources/EditorialTextNormalizer.js';
 import { calculateDeskScores, classifyDesk } from '../sources/DeskClassifier.js';
 import { parseTypographyTokens } from '../sources/TypographyRulesEngine.js';
-import { SlotGovernanceService } from '../services/SlotGovernanceService.js';
 
-export function createSlotRoutes(dbAll, dbRun, dbGet, getGeometryCeilingForSlot, syncManualObjectsForSlot, runEditorialPipeline) {
+// NOTE: this router used to also define GET/POST /slots and POST /slots/run-now, plus a whole
+// "Slot Governance" section (SlotGovernanceService + 4 routes at /api/slot-governance*,
+// /api/slot-ownerships). All of that was dead code: server.js registers its own (more complete,
+// e.g. it actually clamps to the real geometry ceiling and updates activeObjectId) handlers for
+// the same paths earlier in the file, so Express never reached any of these. The governance
+// section was additionally backed entirely by mock data (a fake in-memory DB stub, hardcoded
+// "Chief Editor Izzat" as every mandate owner) with zero real frontend callers. Removed rather
+// than fixed -- see core/db/legacy_slot_mapping.js removal in the same change.
+export function createSlotRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
-
-  // GET /api/system/slots
-  router.get('/slots', async (req, res) => {
-    try {
-      const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' ORDER BY slotIndex ASC");
-      res.json(slots);
-    } catch (err) {
-      console.error('Fetch slots config error:', err);
-      res.status(500).json({ error: 'Failed to fetch slots configuration.' });
-    }
-  });
-
-  // POST /api/system/slots
-  router.post('/slots', async (req, res) => {
-    try {
-      const slots = Array.isArray(req.body) ? req.body : [req.body];
-      for (const slot of slots) {
-        const providerId = slot.providerId && typeof slot.providerId === 'string' && slot.providerId.trim() !== '' && slot.providerId !== 'undefined' && slot.providerId !== 'null' ? slot.providerId : null;
-
-        const ceiling = getGeometryCeilingForSlot(slot.slotIndex);
-        if (typeof slot.maxTitle === 'number' && slot.maxTitle > ceiling.maxTitle) slot.maxTitle = ceiling.maxTitle;
-        if (typeof slot.maxBrief === 'number' && slot.maxBrief > ceiling.maxBrief) slot.maxBrief = ceiling.maxBrief;
-        if (typeof slot.maxBriefLong === 'number' && slot.maxBriefLong > ceiling.maxBriefLong) slot.maxBriefLong = ceiling.maxBriefLong;
-
-        await dbRun(`
-          INSERT OR REPLACE INTO slots_config (
-            layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
-            manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, maxBriefLong, refreshHour, refreshDay, eventExpiryFilter,
-            aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource
-          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
-          slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
-          slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || ''
-        ]);
-
-        if (slot.manualDesk && slot.manualDesk.trim() !== '') {
-          try {
-            await CategoryRegistry.incrementCategoryUsage(dbRun, slot.manualDesk);
-          } catch (e) {
-            console.warn("Failed to register category:", e.message);
-          }
-        }
-
-        if (slot.contentMode === 'Manual' && slot.slotIndex >= 0) {
-          try {
-            await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot);
-          } catch (e) {
-            if (e.isValidationError) {
-              return res.status(400).json({ error: e.message });
-            }
-            console.warn(`Failed to sync editorial_objects for slot ${slot.slotIndex}:`, e.message);
-          }
-        }
-
-        if (slot.masterPrompt !== undefined && slot.masterPrompt !== null) {
-          await dbRun("UPDATE system_settings SET masterPrompt = ? WHERE id = 'settings-main'", [slot.masterPrompt]);
-        }
-
-        if (slot.slotIndex === -1 && slot.contentMode === 'Manual') {
-          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [slot.manualSummary || '']);
-        }
-      }
-      res.json({ success: true });
-    } catch (err) {
-      console.error('Save slots config error:', err);
-      res.status(500).json({ error: 'Failed to save slots configuration. ' + (err.message || '') });
-    }
-  });
-
-  // POST /api/system/slots/run-now
-  router.post('/slots/run-now', async (req, res) => {
-    try {
-      const { slotIndex } = req.body;
-      if (slotIndex === undefined || slotIndex === null) {
-        return res.status(400).json({ error: 'Missing slotIndex parameter.' });
-      }
-      const result = await runEditorialPipeline(slotIndex, null, true);
-      res.json({ success: true, result });
-    } catch (err) {
-      console.error('Run slot now error:', err);
-      res.status(500).json({ error: err.message || 'Failed to run slot pipeline.' });
-    }
-  });
 
   // GET /api/system/rss-sources
   router.get('/rss-sources', async (req, res) => {
@@ -809,53 +732,6 @@ export function createSlotRoutes(dbAll, dbRun, dbGet, getGeometryCeilingForSlot,
     } catch (err) {
       console.error('Fetch direct RSS ticker error:', err);
       res.status(500).json({ error: 'Failed to fetch direct RSS ticker.' });
-    }
-  });
-
-  // ==========================================
-  // ADJUNG BRIEF SLOT GOVERNANCE REST API (v1.1)
-  // ==========================================
-  const slotGovernanceService = new SlotGovernanceService(dbRun ? { prepare: () => ({ run: () => {}, all: () => [], get: () => null }) } : null, null);
-
-  // GET /api/slot-governance
-  router.get('/slot-governance', (req, res) => {
-    try {
-      const mandates = slotGovernanceService.getSlotMandates();
-      res.json({ success: true, mandates });
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to fetch slot governance mandates.' });
-    }
-  });
-
-  // GET /api/slot-ownerships (Alias)
-  router.get('/slot-ownerships', (req, res) => {
-    try {
-      const mandates = slotGovernanceService.getSlotMandates();
-      res.json({ success: true, mandates });
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to fetch slot ownerships.' });
-    }
-  });
-
-  // POST /api/slot-governance/assign
-  router.post('/slot-governance/assign', (req, res) => {
-    try {
-      const { slotIndex, editorialUserId, scope } = req.body;
-      const assigned = slotGovernanceService.assignMandate(Number(slotIndex), editorialUserId, 'usr_editor_chief', scope || 'primary_owner');
-      res.json({ success: true, mandate: assigned });
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to assign slot mandate.' });
-    }
-  });
-
-  // POST /api/slot-governance/override
-  router.post('/slot-governance/override', (req, res) => {
-    try {
-      const { slotIndex, contentId } = req.body;
-      const result = slotGovernanceService.overrideSlotContent(Number(slotIndex), contentId, 'usr_editor_chief');
-      res.json({ success: true, result });
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to override slot content.' });
     }
   });
 

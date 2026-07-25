@@ -720,97 +720,24 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             </div>
           </div>
 
-          {/* Had Geometri Aksara Mengikut 8 Tier Sebenar (GeometryConfig.js) -- read-only reference */}
-          <div className="space-y-3 pt-4 border-t border-stone-100">
-            <div>
-              <h4 className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold mb-0.5">
-                Nisbah Geometri & Belanjawan Aksara Spatial (GEOMETRY_RATIOS)
-              </h4>
-              <p className="text-stone-500 text-[11px]">
-                Rujukan sahaja -- diambil dari nilai tetap dalam <code className="bg-stone-100 text-[#802334] px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>. Untuk ubah nisbah sebenar, edit fail tersebut terus (perubahan menjejaskan reka bentuk kad bento).
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-stone-700">
-              <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">HERO (Slot 0)</span>
-                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 3.043</span>
-                </div>
-                <div className="font-mono text-xs text-stone-900 font-bold">
-                  Tajuk: <span className="text-emerald-700">115</span> | Brief: <span className="text-emerald-700">350</span> aksara
-                </div>
+          {/* Had Geometri Aksara Mengikut 8 Tier -- this used to be a hand-typed duplicate of
+              core/editorial/GeometryConfig.js and had already drifted stale (BAR showed the old
+              ratio 0.850 after GeometryConfig.js was corrected to 0). Removed in favour of the
+              live chart on the Perlembagaan tab, which reads the same module directly so it can
+              never drift again. */}
+          <div className="pt-4 border-t border-stone-100">
+            <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 flex items-center justify-between gap-3">
+              <div>
+                <h4 className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold mb-0.5">
+                  Nisbah Geometri & Belanjawan Aksara Spatial
+                </h4>
+                <p className="text-stone-500 text-[11px]">
+                  Carta penuh (live, terus dari <code className="bg-stone-100 text-[#802334] px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>) kini di tab <strong>Perlembagaan</strong> supaya tak pernah lapuk.
+                </p>
               </div>
-              <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">MENEGAK (6 Slot)</span>
-                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 2.554</span>
-                </div>
-                <div className="font-mono text-xs text-stone-900 font-bold">
-                  Tajuk: <span className="text-emerald-700">168</span> | Brief: <span className="text-emerald-700">429</span> aksara
-                </div>
-                <span className="text-[9px] text-stone-400 block font-mono">Slot: 1, 12, 15, 26, 29, 37</span>
-              </div>
-              <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">STANDARD (6 Slot)</span>
-                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 2.545</span>
-                </div>
-                <div className="font-mono text-xs text-stone-900 font-bold">
-                  Tajuk: <span className="text-emerald-700">110</span> | Brief: <span className="text-emerald-700">280</span> aksara
-                </div>
-                <span className="text-[9px] text-stone-400 block font-mono">Slot: 2, 6, 19, 20, 33, 34</span>
-              </div>
-              <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">SEGI EMPAT MEDIUM</span>
-                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 1.340</span>
-                </div>
-                <div className="font-mono text-xs text-stone-900 font-bold">
-                  Tajuk: <span className="text-emerald-700">94</span> | Brief: <span className="text-emerald-700">126</span> aksara
-                </div>
-                <span className="text-[9px] text-stone-400 block font-mono">Slot: 13, 14, 27, 28</span>
-              </div>
-              <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">SEGI EMPAT SMALL</span>
-                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 1.258</span>
-                </div>
-                <div className="font-mono text-xs text-stone-900 font-bold">
-                  Tajuk: <span className="text-emerald-700">62</span> | Brief: <span className="text-emerald-700">78</span> aksara
-                </div>
-                <span className="text-[9px] text-stone-400 block font-mono">Slot: 3, 11, 16, 25, 30, 35, 36</span>
-              </div>
-              <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">KOMPAK (6 Slot)</span>
-                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 0.512</span>
-                </div>
-                <div className="font-mono text-xs text-stone-900 font-bold">
-                  Tajuk: <span className="text-emerald-700">80</span> | Brief: <span className="text-emerald-700">41</span> aksara
-                </div>
-                <span className="text-[9px] text-stone-400 block font-mono">Slot: 4, 5, 17, 18, 31, 32</span>
-              </div>
-              <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">BAR (8 Slot)</span>
-                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 0.850</span>
-                </div>
-                <div className="font-mono text-xs text-stone-900 font-bold">
-                  Tajuk: <span className="text-emerald-700">95</span> | Brief: <span className="text-stone-400">0 (Tiada)</span>
-                </div>
-                <span className="text-[9px] text-stone-400 block font-mono">Slot: 7, 8, 9, 10, 21, 22, 23, 24</span>
-              </div>
-              <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">TICKER (Slot -1)</span>
-                  <span className="font-mono text-[10px] text-stone-500 font-bold">Ratio: 2.750</span>
-                </div>
-                <div className="font-mono text-xs text-stone-900 font-bold">
-                  Tajuk: <span className="text-emerald-700">80</span> | Brief: <span className="text-emerald-700">220</span> aksara
-                </div>
-                <span className="text-[9px] text-stone-400 block font-mono">Jalur Berita Berjalan</span>
-              </div>
+              <span className="font-mono text-[9px] uppercase tracking-widest text-[#802334] font-bold whitespace-nowrap">
+                → Perlembagaan
+              </span>
             </div>
           </div>
 

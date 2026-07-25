@@ -46,10 +46,17 @@ istilah teknikal; terangkan kesan visual/fungsian, bukan jargon kod.
 ### Geometry tiers (saiz kad)
 Setiap slot (index 0-37, + Ticker slotIndex -1) tergolong dalam satu tier geometri
 tetap: `HERO` (slot 0), `MENEGAK`, `STANDARD`, `SEGI_EMPAT_MEDIUM`, `SEGI_EMPAT_SMALL`,
-`KOMPAK`, `BAR`, `TICKER`. Pemetaan slot→tier didefinisikan di **dua** tempat yang mesti
-kekal segerak (tiada modul kongsi client/server buat masa ini):
-- Client: `GEOMETRY_RATIOS`/`getGeometryTierForIndex` di `src/components/portal/FrontpageView.tsx`
-- Server: `TIER_SLOTS`/`tierForSlot` di `core/editorial/ContentBudget.js`
+`KOMPAK`, `BAR`, `TICKER`. Pemetaan slot→tier dan semua had aksara kini disimpan di
+**satu** modul kongsi tunggal, `core/editorial/GeometryConfig.js`
+(`GEOMETRY_RATIOS`, `TIER_SLOTS`, `tierForSlot()`, `ceilingForSlot()`) — diimport
+terus (bukan disalin semula) oleh `core/editorial/ContentBudget.js`,
+`server.js`, `src/components/portal/FrontpageView.tsx`,
+`core/editorial/EditorialPipeline.js`, dan
+`src/components/editorium/PerlembagaanConsole.tsx` (rujukan live "Perlembagaan"
+dalam Editorium). **Jangan taip semula nombor had aksara di tempat lain** —
+import terus daripada fail ni. (Sejarah: pada 2026-07-25 5 salinan berasingan
+nombor ni ditemui, 2 daripadanya bug sebenar yang mengurangkan ruang sebenar
+editor boleh guna untuk 4 daripada 8 tier — lihat log git `core/editorial/`.)
 
 ### Bajet ruang kongsi (title + brief budget line)
 Tajuk dan huraian SATU kad kongsi satu bajet ruang tetap — bukan dua had berasingan.
@@ -58,9 +65,10 @@ Formula: `title.length / maxTitleAlone + brief.length / maxBriefAlone <= 1`, di 
 (diukur secara empirik dari saiz kad sebenar). Ini bermakna tajuk panjang + huraian
 pendek boleh muat, dan sebaliknya — tapi kedua-duanya panjang serentak tak boleh.
 
-Formula ni baru ada untuk 4 tier: `MENEGAK`, `SEGI_EMPAT_MEDIUM`, `SEGI_EMPAT_SMALL`,
-`KOMPAK` (lihat `core/editorial/ContentBudget.js`). Tier `HERO`/`STANDARD`/`BAR`/`TICKER`
-**belum** ada nisbah — masih guna had berasingan (fallback ceiling) sebagai gap sementara.
+Formula ni terpakai pada **kesemua 8 tier** (termasuk `BAR` — yang `maxBriefAlone`
+sentiasa 0 sebab tiada medan huraian langsung — dan `TICKER`), dikuatkuasakan oleh
+`validateContentBudget()` di setiap laluan simpan (manual paste, batch paste,
+pipeline AI, PATCH/POST edit terus) tanpa pengecualian.
 
 Validation ini WAJIB dipanggil di **setiap** laluan yang cipta/ubah kandungan
 (`validateContentBudget(slotIndex, title, summary)` dari `core/editorial/ContentBudget.js`):

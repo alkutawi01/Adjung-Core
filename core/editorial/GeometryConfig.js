@@ -37,3 +37,34 @@ export const tierForSlot = (slotIndex) => {
   }
   return null;
 };
+
+// maxBriefLong: character budget for the "Huraian Panjang" field -- extra content not shown on
+// the card itself, only in a not-yet-built "spotlight" detail view. There's no geometry-derived
+// ceiling for it (it isn't rendered on the card), so it stays a manually curated per-tier value.
+// Promoted here from two previously-independent copies (server.js, FrontpageView.tsx) that had
+// already happened to agree on these exact numbers -- unifying them now so they can't drift apart.
+export const MAX_BRIEF_LONG_BY_TIER = {
+  HERO: 800,
+  MENEGAK: 800,
+  STANDARD: 600,
+  SEGI_EMPAT_MEDIUM: 500,
+  SEGI_EMPAT_SMALL: 400,
+  KOMPAK: 400,
+  BAR: 0,
+  TICKER: 0,
+  DEFAULT: 600,
+};
+
+// Single source of truth for "what's the hard ceiling for this slot's title/brief/briefLong" --
+// used both to validate/clamp admin-saved slot config (server.js) and to pre-fill the admin slot
+// settings form's defaults (FrontpageView.tsx). Previously each of those kept its own hand-typed
+// copy of these numbers, which drifted out of sync for 4 of 8 tiers.
+export const ceilingForSlot = (slotIndex) => {
+  const tier = tierForSlot(slotIndex) || 'DEFAULT';
+  const ratioDef = GEOMETRY_RATIOS[tier];
+  return {
+    maxTitle: ratioDef ? ratioDef.maxTitleAlone : FALLBACK_CEILINGS.DEFAULT.maxTitle,
+    maxBrief: ratioDef ? ratioDef.maxBriefAlone : FALLBACK_CEILINGS.DEFAULT.maxBrief,
+    maxBriefLong: MAX_BRIEF_LONG_BY_TIER[tier] ?? MAX_BRIEF_LONG_BY_TIER.DEFAULT,
+  };
+};

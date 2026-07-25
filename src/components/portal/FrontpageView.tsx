@@ -520,7 +520,7 @@ const updateLimitsInText = (text: string, maxTitle: number, maxBrief: number, ma
 // maxTitleAlone is how many brief characters one title character "costs" in shared vertical space.
 // Used both for the (maxTitle, maxBrief) defaults below and to auto-balance the two fields in
 // Mini Editorium (see handleMaxTitleChange/handleMaxBriefChange).
-import { GEOMETRY_RATIOS, tierForSlot as getGeometryTierForIndex } from '../../../core/editorial/GeometryConfig.js';
+import { GEOMETRY_RATIOS, tierForSlot as getGeometryTierForIndex, ceilingForSlot } from '../../../core/editorial/GeometryConfig.js';
 
 // Fixed ruleset for the "Salin Templat Prom AI (Lampiran)" button -- unlike Peraturan Am/Tambahan,
 // this is not admin-editable per slot; it's the same encyclopedia-style writing discipline every
@@ -574,15 +574,10 @@ const getLimitsForIndex = (idx: number, config?: any) => {
 
   // maxBriefLong: had aksara "Huraian Panjang" -- kandungan tambahan yang tidak dipaparkan pada kad,
   // hanya dalam mod spotlight (belum dibina). Tiada guna untuk Ticker/slot bar (0).
-  let defaults = { maxTitle: 70, maxBrief: 100, maxBriefLong: 600 };
-  if (idx === -1) defaults = { maxTitle: 80, maxBrief: 220, maxBriefLong: 0 };
-  else if (idx === 0) defaults = { maxTitle: 115, maxBrief: 350, maxBriefLong: 800 };
-  else if ([1, 12, 15, 26, 29, 37].includes(idx)) defaults = { maxTitle: 72, maxBrief: 480, maxBriefLong: 800 };
-  else if ([2, 6, 19, 20, 33, 34].includes(idx)) defaults = { maxTitle: 110, maxBrief: 280, maxBriefLong: 600 };
-  else if ([13, 14, 27, 28].includes(idx)) defaults = { maxTitle: 60, maxBrief: 100, maxBriefLong: 500 };
-  else if ([3, 11, 16, 25, 30, 35, 36].includes(idx)) defaults = { maxTitle: 40, maxBrief: 65, maxBriefLong: 400 };
-  else if ([4, 5, 17, 18, 31, 32].includes(idx)) defaults = { maxTitle: 55, maxBrief: 25, maxBriefLong: 400 };
-  else if ([7, 8, 9, 10, 21, 22, 23, 24].includes(idx)) defaults = { maxTitle: 40, maxBrief: 0, maxBriefLong: 0 };
+  // Previously a hand-typed if/else chain here had drifted from the canonical values in
+  // core/editorial/GeometryConfig.js for 4 of 8 tiers (and disagreed with server.js's own copy on
+  // BAR) -- now derived live from the single shared source, so it can't drift again.
+  const defaults = ceilingForSlot(idx);
 
   return {
     maxTitle: (typeof customTitle === 'number' && customTitle > 0) ? customTitle : (config?.manualTitle === undefined && typeof customTitle === 'string' && parseInt(customTitle) > 0 ? parseInt(customTitle) : defaults.maxTitle),

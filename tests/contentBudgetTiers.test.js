@@ -39,11 +39,11 @@ test('ContentBudget - SEGI_EMPAT_SMALL tier validation (Slot 3)', () => {
 });
 
 test('ContentBudget - BAR tier validation (Slot 7)', () => {
-  // BAR solo max: title 40, brief 0 (brief = 0)
-  const valid = validateContentBudget(7, 'A'.repeat(35), '');
+  // BAR solo max: title 95, brief 0 (brief = 0)
+  const valid = validateContentBudget(7, 'A'.repeat(90), '');
   assert.equal(valid.isValid, true);
 
-  const invalid = validateContentBudget(7, 'A'.repeat(45), '');
+  const invalid = validateContentBudget(7, 'A'.repeat(100), '');
   assert.equal(invalid.isValid, false);
 });
 
