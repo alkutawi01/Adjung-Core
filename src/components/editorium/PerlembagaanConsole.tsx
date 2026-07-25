@@ -99,10 +99,6 @@ const UNIVERSAL_RULES = [
     body: 'Kalau terpaksa guna Bahasa Inggeris (tiada padanan Melayu yang diluluskan lagi), tulis dengan huruf condong (italic). Lihat carta tier di bawah -- Bar dan Ticker kini bertulis condong kerana sebab ini.',
   },
   {
-    title: 'Tinggi kad ikut kandungan, bukan ikut jiran.',
-    body: 'Susun atur bento (slot 2-38) guna CSS multi-column TULEN (columns-1 md:columns-2, break-inside-avoid-column per kad) -- bukan CSS Grid, dan bukan lagi flex bersarang (items-start). Grid/flex sebaris kekal ada konsep "baris": dua kad sebelah-menyebelah dalam satu baris tetap tinggalkan jurang kosong di bawah kad lebih pendek bila jiran sebarisnya lebih tinggi (flex items-start halang regangan tinggi, tapi tak halang jurang -- terbukti sesi 2026-07-25, jurang sehingga 222px masih wujud lepas flex). Multi-column TIADA konsep baris langsung -- kandungan mengalir berterusan atas-ke-bawah dalam SETIAP lajur, jadi kad selepas satu kad pendek terus mengisi lajur yang sama, menutup jurang automatik. Kelompok Bar (4 kad) dan pasangan Kompak (2 kad) kekal SATU unit break-inside-avoid-column atomik supaya kumpulan visualnya tak terpecah merentasi lajur. PENGECUALIAN sah: susunan reflow ikut SAIZ SKRIN/viewport (1 lajur mobile, 2 lajur desktop dari breakpoint md) -- itu tabiat multi-column yang disengajakan, bukan pelanggaran.',
-  },
-  {
     title: 'Fon tajuk tak boleh lebih kecil daripada fon huraian.',
     body: 'Saiz fon huraian TETAP (14px, inline style yang menewaskan class Tailwind apa pun) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier/breakpoint (class Tailwind sahaja, tiada paksaan). Sebab tajuk dinamik (panjang & saiz berubah ikut tier) tapi huraian statik, setiap kombinasi tier+breakpoint MESTI disemak: fon tajuk >= 14px pada semua saiz skrin. (Diketahui melanggar setakat ini: kad Kompak guna text-xs [12px] untuk tajuk di bawah breakpoint md -- belum dibetulkan, tunggu arahan.)',
   },

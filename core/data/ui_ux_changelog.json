@@ -1,5 +1,13 @@
 [
   {
+    "time": "2026-07-25T11:31:15.000Z",
+    "summary": "KEMBALIKAN sepenuhnya susun atur bento kepada versi asal (sebelum sesi 2026-07-25's self-start fix, restrukturisasi flex, dan restrukturisasi masonry) atas arahan eksplisit pemilik projek selepas percubaan masonry 2-lajur secara sepihak menukar bilangan lajur reka bentuk (patut 3, saya buat 2) tanpa pengesahan dulu. FrontpageView.tsx dipulihkan bit-for-bit ke commit 0746a3b. Peraturan Perlembagaan 'Tinggi kad ikut kandungan' (yang menghurai mekanisme self-start/flex/masonry yang kini tak wujud lagi) dibuang; peraturan fon tajuk/huraian (tidak berkaitan, kekal sah) tidak disentuh.",
+    "files": [
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T11:17:54.221Z",
     "summary": "Susun atur bento (slot 2-38) ditukar sepenuhnya kepada CSS multi-column masonry tulen (columns-1 md:columns-2, break-inside-avoid-column), gantikan pendekatan flex bersarang (items-start) yang masih tinggalkan jurang kosong sehingga 222px antara lajur tinggi tak sama. Kelompok Bar (4 kad) dan pasangan Kompak (2 kad) kekal unit atomik. Disahkan: jurang antara kad kini konsisten 16px (gap yang disengajakan) di semua 28 unit masonry, desktop (2 lajur) dan mobile (1 lajur), sifar jurang tambahan berlebihan.",
     "files": [
