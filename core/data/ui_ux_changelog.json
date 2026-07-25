@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-07-25T11:50:31.883Z",
+    "summary": "Sama macam bug Kategori/Jenis sumber tadi: butang '+Tambah Blok' untuk slot BAR (BarCard) turut pra-isi Tarikh, Penganjur, Lokasi, Akses, URL dengan nilai contoh palsu (19-26 Julai 2026 / PPAS / SACC Mall / Terbuka / URL bernama.com palsu) -- kini kosong sepenuhnya (kekal petunjuk had aksara dinamik pada medan Event sahaja).",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T11:43:38.940Z",
     "summary": "Betulkan bug: butang '+Tambah Blok Kandungan Baharu' pra-isi medan Kategori dengan 'TEKNOLOGI' dan Jenis sumber dengan 'Laman Web' secara automatik (sisa contoh templat yang tak dibersihkan) -- kedua-dua medan sepatutnya kosong macam semua medan lain (Tajuk, Huraian, Tarikh, Sumber, URL) sehingga editor isi sendiri. Disahkan di browser: blok baharu kini kosong sepenuhnya.",
     "files": [

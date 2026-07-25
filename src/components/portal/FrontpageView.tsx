@@ -5118,7 +5118,7 @@ URL: ${url}`;
                           const handleAddBlock = () => {
                             const newUuid = `object-manual-slot${editingSlotIndex}-${Date.now()}-${parsedList.length}`;
                             const template = isEditingBarSlot
-                              ? `Tarikh: 19-26 Julai 2026\nEvent: (had ${formConfig.maxTitle || 95} aksara) Pesta Buku Selangor 2026\nPenganjur: PPAS\nLokasi: SACC Mall\nAkses: Terbuka\nPenerangan: \nURL: https://www.bernama.com/bm/news.php?id=231450`
+                              ? `Tarikh: \nEvent: (had ${formConfig.maxTitle || 95} aksara) \nPenganjur: \nLokasi: \nAkses: \nPenerangan: \nURL: `
                               : `Tajuk: \nHuraian ringkas: \nHuraian panjang: \nKategori: \nJenis sumber: \nTarikh: \nSumber: \nURL: `;
                             const newList = [...parsedList, { uuid: newUuid, text: template }];
                             updateSummaryFromList(newList);
