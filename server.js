@@ -5,6 +5,8 @@ import crypto from 'crypto';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
@@ -2441,6 +2443,36 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
   };
 };
 
+const execFileAsync = promisify(execFile);
+
+// GET /api/system/rules-changelog -- live history of changes to the editorial rule/validation
+// files (core/editorial/, server.js), read straight from git so it always reflects reality and
+// carries a real commit hash the chief editor can ask to have reverted. Read-only, never mutates
+// the repo. If git isn't available in this environment (e.g. a deploy without a .git directory),
+// fails soft with an empty list rather than breaking the page that renders it.
+app.get('/api/system/rules-changelog', async (req, res) => {
+  try {
+    const { stdout } = await execFileAsync('git', [
+      'log',
+      '--pretty=format:%H%x1f%ad%x1f%s',
+      '--date=format:%d %b %Y',
+      '-n', '40',
+      '--',
+      'core/editorial/',
+      'server.js'
+    ], { cwd: __dirname });
+
+    const commits = stdout.split('\n').filter(Boolean).map(line => {
+      const [hash, date, message] = line.split('\x1f');
+      return { hash: (hash || '').slice(0, 7), fullHash: hash || '', date: date || '', message: message || '' };
+    });
+    res.json({ commits });
+  } catch (err) {
+    console.warn('Failed to read git changelog:', err.message);
+    res.json({ commits: [], unavailable: true });
+  }
+});
+
 // 1. GET /api/system/layout/active
 app.get('/api/system/layout/active', async (req, res) => {
   try {
@@ -2779,6 +2811,14 @@ app.patch('/api/system/content/:id', async (req, res) => {
       if (idx < 0 || idx >= tickerItems.length) {
         return res.status(404).json({ error: 'Item ticker tidak dijumpai.' });
       }
+      // Same hard-block as every other content path: an edit can never push this tier's
+      // title+brief over its budget, no matter which screen the edit came from.
+      const nextTitle = title !== undefined ? title : tickerItems[idx].title;
+      const nextBrief = summary !== undefined ? summary : tickerItems[idx].brief;
+      const tickerBudgetCheck = validateContentBudget(-1, nextTitle, nextBrief);
+      if (!tickerBudgetCheck.isValid) {
+        return res.status(400).json({ error: tickerBudgetCheck.reason });
+      }
       if (title !== undefined) tickerItems[idx].title = title;
       if (summary !== undefined) tickerItems[idx].brief = summary;
       if (desk !== undefined) tickerItems[idx].desk = desk;
@@ -2893,6 +2933,13 @@ app.post('/api/system/content', async (req, res) => {
     }
 
     if (slotIndex === -1) {
+      // Same hard-block as every other tier -- Ticker is not an exception. Previously this
+      // branch returned before ever reaching the validateContentBudget call below, so a manually
+      // added ticker item could be any length at all.
+      const tickerBudgetCheck = validateContentBudget(-1, title.trim(), (summary || '').trim());
+      if (!tickerBudgetCheck.isValid) {
+        return res.status(400).json({ error: tickerBudgetCheck.reason });
+      }
       const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
       const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
       tickerItems.push({

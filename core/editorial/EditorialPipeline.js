@@ -372,10 +372,21 @@ ${slot.sourcesList.trim()}
     // 7. Validate output
     if (slotIndex === -1) {
       const items = parsedJson.items || [];
-      const textItems = await Promise.all(items.map(async (item, idx) => {
+      const textItems = (await Promise.all(items.map(async (item, idx) => {
         const desk = (item.desk || 'UMUM').trim().toUpperCase();
-        const title = (item.title || '').trim().slice(0, maxTitleLen);
-        const brief = (item.brief || '').trim().slice(0, maxSummaryLen);
+        const title = (item.title || '').trim();
+        const brief = (item.brief || '').trim();
+
+        // Same hard-block as every other tier -- Ticker is not an exception. Previously this
+        // silently `.slice()`d oversized text to fit instead of enforcing the budget, which meant
+        // an AI-generated ticker item could never actually fail validation the way every other
+        // tier's content can. Here we skip (not truncate) an item that doesn't fit, so the ticker
+        // never carries mangled/cut-off text.
+        const budgetCheck = validateContentBudget(-1, title, brief);
+        if (!budgetCheck.isValid) {
+          console.warn(`[Ticker] Skipped AI-generated item (budget violation): ${budgetCheck.reason}`);
+          return null;
+        }
 
         // 1st choice: deterministic lookup via sourceIndex — the AI only had to pick a NUMBER,
         // not transcribe a URL string, so this is far more reliable (code does the URL lookup,
@@ -398,7 +409,7 @@ ${slot.sourcesList.trim()}
           console.warn("Failed to register ticker category:", e.message);
         }
         return `Desk: ${desk}\nTitle: ${title}\nBrief: ${brief}\nSource: ${source}\nUrl: ${url}`;
-      }));
+      }))).filter(Boolean);
       const formattedText = textItems.join('\n---\n');
 
       await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);

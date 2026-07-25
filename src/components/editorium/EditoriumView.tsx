@@ -4,6 +4,7 @@ import { IndeksConsole } from './IndeksConsole';
 import { DirektoriConsole } from './DirektoriConsole';
 import { TetapanConsole } from './TetapanConsole';
 import { LogAuditConsole } from './LogAuditConsole';
+import { PerlembagaanConsole } from './PerlembagaanConsole';
 
 export const EditoriumView: React.FC = () => {
   const [activeTab, setActiveTab] = useState('indeks');
@@ -45,6 +46,9 @@ export const EditoriumView: React.FC = () => {
       )}
       {activeTab === 'log_audit' && (
         <LogAuditConsole />
+      )}
+      {activeTab === 'perlembagaan' && (
+        <PerlembagaanConsole />
       )}
     </EditoriumLayout>
   );

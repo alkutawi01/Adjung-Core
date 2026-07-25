@@ -26,7 +26,8 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
     { id: 'indeks', label: 'Indeks' },
     { id: 'direktori', label: 'Direktori' },
     { id: 'tetapan', label: 'Tetapan', restricted: currentUser.role !== 'KETUA_EDITOR' },
-    { id: 'log_audit', label: 'Log Audit' }
+    { id: 'log_audit', label: 'Log Audit' },
+    { id: 'perlembagaan', label: 'Perlembagaan' }
   ];
 
   return (
