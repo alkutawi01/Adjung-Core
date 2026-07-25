@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
+import { Tooltip } from '../common/Tooltip';
 
 // Everything under CHART DATA below is read directly from core/editorial/GeometryConfig.js --
 // the exact same module server.js imports for validateContentBudget. There is no second copy of
@@ -202,12 +203,12 @@ export const PerlembagaanConsole: React.FC = () => {
               const boxW = Math.max(shape.w * SHAPE_SCALE, 4);
               const boxH = Math.max(shape.h * SHAPE_SCALE, 4);
               const unitBox = (key: React.Key) => (
-                <div
-                  key={key}
-                  className={`border-2 bg-[#f3e9d2] rounded-sm ${shape.measured ? 'border-[#802334]' : 'border-[#802334]/40 border-dashed'}`}
-                  style={{ width: boxW, height: boxH }}
-                  title={shape.measured ? 'Diukur terus dari kad sebenar' : 'Dianggar -- tiada kandungan sebenar untuk diukur ketika ini'}
-                />
+                <Tooltip key={key} text={shape.measured ? 'Diukur terus dari kad sebenar' : 'Dianggar -- tiada kandungan sebenar untuk diukur ketika ini'}>
+                  <div
+                    className={`border-2 bg-[#f3e9d2] rounded-sm ${shape.measured ? 'border-[#802334]' : 'border-[#802334]/40 border-dashed'}`}
+                    style={{ width: boxW, height: boxH }}
+                  />
+                </Tooltip>
               );
               return (
                 <div key={tier} className="flex flex-col items-center gap-1.5">
@@ -385,11 +386,13 @@ URL:`}</pre>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {commits.map(c => (
-                    <tr key={c.fullHash} className="hover:bg-stone-50" title={`git revert ${c.hash} -- untuk batalkan perubahan ini`}>
-                      <td className="p-3 font-mono text-[11px] text-stone-500">{c.hash}</td>
-                      <td className="p-3 font-mono text-[10px] text-stone-500 whitespace-nowrap">{c.date}</td>
-                      <td className="p-3 font-serif text-stone-800">{c.message}</td>
-                    </tr>
+                    <Tooltip key={c.fullHash} text={`git revert ${c.hash} -- untuk batalkan perubahan ini`}>
+                      <tr className="hover:bg-stone-50">
+                        <td className="p-3 font-mono text-[11px] text-stone-500">{c.hash}</td>
+                        <td className="p-3 font-mono text-[10px] text-stone-500 whitespace-nowrap">{c.date}</td>
+                        <td className="p-3 font-serif text-stone-800">{c.message}</td>
+                      </tr>
+                    </Tooltip>
                   ))}
                 </tbody>
               </table>

@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Sun, CloudSun, Cloud, CloudFog, CloudRain, CloudLightning } from 'lucide-react';
 import { SystemSettings } from '../../types';
 import { parseWorldClockHolidays } from '../../utils';
+import { Tooltip } from '../common/Tooltip';
 
 interface ClockTime {
   timeStr: string;
@@ -120,15 +121,16 @@ const renderCityCard = (
   return (
     <div className="h-[60px] w-full flex flex-col items-center justify-center select-none py-1 group relative">
       {/* Weather Icon & Temp synced with City Status Color */}
-      <div 
-        className={`flex items-center justify-center gap-1 ${weatherColor} mb-0.5 select-none transition-transform duration-200 group-hover:scale-105`} 
-        title={`Cuaca ${c.name}: ${weatherLabel} (${Math.round(weather.temp)}°C)`}
-      >
-        <WeatherIcon className={`w-3.5 h-3.5 ${weatherColor} stroke-[2.2]`} />
-        <span className={`font-mono text-[9px] font-bold ${weatherColor} tracking-tight`}>
-          {Math.round(weather.temp)}°C
-        </span>
-      </div>
+      <Tooltip text={weatherLabel}>
+        <div
+          className={`flex items-center justify-center gap-1 ${weatherColor} mb-0.5 select-none transition-transform duration-200 group-hover:scale-105`}
+        >
+          <WeatherIcon className={`w-3.5 h-3.5 ${weatherColor} stroke-[2.2]`} />
+          <span className={`font-mono text-[9px] font-bold ${weatherColor} tracking-tight`}>
+            {Math.round(weather.temp)}°C
+          </span>
+        </div>
+      </Tooltip>
 
       <p className={`font-sans text-[9px] tracking-editorial uppercase mb-0.5 inline-block select-none transition-colors duration-200 ${cityColor} ${isHoliday ? 'cursor-help' : ''}`}>
         {c.name}
@@ -401,15 +403,14 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData]);
 
   return (
-    <div 
-      className="relative w-full overflow-hidden min-h-[68px] py-1 flex justify-center items-center text-center cursor-pointer select-none" 
+    <div
+      className="relative w-full overflow-hidden min-h-[68px] py-1 flex justify-center items-center text-center cursor-pointer select-none"
       id="world-clock"
       onClick={(e) => {
         const bgClickEnabled = systemSettings.worldClockBgClickEnabled !== false;
         if (!bgClickEnabled) return;
         triggerNextSet();
       }}
-      title="Klik kawasan Jam Dunia untuk menukar set paparan bandar"
     >
       <div className="grid grid-cols-5 gap-1 sm:gap-3 md:gap-6 px-2 w-full max-w-6xl mx-auto">
         {[0, 1, 2, 3, 4].map((colIndex) => {

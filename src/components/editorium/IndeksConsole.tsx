@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
+import { Tooltip } from '../common/Tooltip';
 
 interface BriefRecord {
   id: string;
@@ -419,9 +420,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     onClick={() => setActiveItemModal(rec)}
                     className="hover:bg-stone-50 cursor-pointer transition-colors"
                   >
-                    <td className="p-2.5 font-sans text-xs text-stone-500 font-semibold truncate max-w-[100px]" title={rec.id}>
-                      {rec.id}
-                    </td>
+                    <Tooltip text={rec.id}>
+                      <td className="p-2.5 font-sans text-xs text-stone-500 font-semibold truncate max-w-[100px]">
+                        {rec.id}
+                      </td>
+                    </Tooltip>
                     <td className="p-2.5">
                       <div className="font-serif font-medium text-stone-900 leading-snug line-clamp-1">
                         {rec.title}

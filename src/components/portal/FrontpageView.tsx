@@ -13,6 +13,7 @@ import { WorldClockStrip } from './WorldClockStrip';
 import { TickerManagementModal } from './TickerManagementModal';
 import { BarCard } from './cards/BarCard';
 import { BarCardExpandedPanel } from './cards/BarCardExpandedPanel';
+import { Tooltip } from '../common/Tooltip';
 
 // parseInlineFormatting is designed for hand-authored Note/Essay body text; applying it broadly to
 // every carousel item's title/brief (including years of accumulated AI-generated history per slot)
@@ -2325,20 +2326,20 @@ URL: ${url}`;
             const isSelected = current === opt.value;
             const isLight = opt.value === '#FFFFFF' || opt.value === 'transparent' || opt.value === '';
             return (
-              <button
-                key={opt.label}
-                type="button"
-                title={opt.label}
-                onClick={() => setFormConfig({ ...formConfig, [fieldKey]: opt.value })}
-                className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center ${isSelected ? 'border-[#802334] scale-110' : 'border-stone-300'}`}
-                style={{
-                  backgroundColor: (opt.value === 'transparent' || opt.value === '') ? '#ffffff' : opt.value,
-                  backgroundImage: (opt.value === 'transparent' || opt.value === '') ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
-                  backgroundSize: (opt.value === 'transparent' || opt.value === '') ? '8px 8px' : undefined,
-                }}
-              >
-                {isSelected && <Check size={14} className={isLight ? 'text-stone-800' : 'text-white'} />}
-              </button>
+              <Tooltip key={opt.label} text={opt.label}>
+                <button
+                  type="button"
+                  onClick={() => setFormConfig({ ...formConfig, [fieldKey]: opt.value })}
+                  className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center ${isSelected ? 'border-[#802334] scale-110' : 'border-stone-300'}`}
+                  style={{
+                    backgroundColor: (opt.value === 'transparent' || opt.value === '') ? '#ffffff' : opt.value,
+                    backgroundImage: (opt.value === 'transparent' || opt.value === '') ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
+                    backgroundSize: (opt.value === 'transparent' || opt.value === '') ? '8px 8px' : undefined,
+                  }}
+                >
+                  {isSelected && <Check size={14} className={isLight ? 'text-stone-800' : 'text-white'} />}
+                </button>
+              </Tooltip>
             );
           })}
         </div>
@@ -2537,17 +2538,18 @@ URL: ${url}`;
           {/* LEFT: TICKER SCROLLER ITEM */}
           <div className="flex-1 min-w-0 flex items-center gap-2">
             {isEditMode && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCardClick(-1);
-                }}
-                className="p-1 text-stone-400 hover:text-[#802334] transition cursor-pointer rounded hover:bg-stone-100 shrink-0"
-                title="Urus Ticker Berita Terkini"
-              >
-                <Settings size={12} />
-              </button>
+              <Tooltip text="Urus Ticker Berita Terkini">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCardClick(-1);
+                  }}
+                  className="p-1 text-stone-400 hover:text-[#802334] transition cursor-pointer rounded hover:bg-stone-100 shrink-0"
+                >
+                  <Settings size={12} />
+                </button>
+              </Tooltip>
             )}
 
             {activeTickerNewsItem ? (
@@ -3887,21 +3889,21 @@ URL: ${url}`;
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {blockStatusList.map((item) => (
-                          <button
-                            key={item.index}
-                            type="button"
-                            onClick={() => scrollToBlockInTextarea(item.index)}
-                            className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
-                              item.isValid
-                                ? 'bg-white hover:bg-stone-100 text-stone-800 border-stone-300 hover:border-[#802334]/50'
-                                : 'bg-[#802334]/10 hover:bg-[#802334]/20 text-[#802334] border-[#802334]/40 animate-pulse'
-                            }`}
-                            title={item.reason || `${item.titleSnippet} - Mematuhi Had Aksara`}
-                          >
-                            <span className="font-extrabold">#{item.index}</span>
-                            <span>{item.isValid ? '✓' : '⚠️'}</span>
-                            <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{item.titleSnippet}</span>
-                          </button>
+                          <Tooltip key={item.index} text={item.reason || `${item.titleSnippet} - Mematuhi Had Aksara`}>
+                            <button
+                              type="button"
+                              onClick={() => scrollToBlockInTextarea(item.index)}
+                              className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                                item.isValid
+                                  ? 'bg-white hover:bg-stone-100 text-stone-800 border-stone-300 hover:border-[#802334]/50'
+                                  : 'bg-[#802334]/10 hover:bg-[#802334]/20 text-[#802334] border-[#802334]/40 animate-pulse'
+                              }`}
+                            >
+                              <span className="font-extrabold">#{item.index}</span>
+                              <span>{item.isValid ? '✓' : '⚠️'}</span>
+                              <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{item.titleSnippet}</span>
+                            </button>
+                          </Tooltip>
                         ))}
                       </div>
                     </div>
@@ -4370,9 +4372,11 @@ URL: ${url}`;
                                 <td className="p-2 font-semibold text-stone-800 flex items-center gap-1.5">
                                   {rule.ruleName}
                                   {isLocked && (
-                                    <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[8px] font-mono font-bold rounded" title="Peraturan Asas Sistem (Locked)">
-                                      🔒 ASAS
-                                    </span>
+                                    <Tooltip text="Peraturan Asas Sistem (Locked)">
+                                      <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[8px] font-mono font-bold rounded">
+                                        🔒 ASAS
+                                      </span>
+                                    </Tooltip>
                                   )}
                                 </td>
                                 <td className="p-2 font-mono text-[10px] uppercase">
@@ -4388,22 +4392,27 @@ URL: ${url}`;
                                 <td className="p-2 font-mono text-[10px] font-bold text-[#802334]">
                                   {rule.ruleType.toUpperCase()}
                                 </td>
-                                <td className="p-2 font-mono text-[10px] text-stone-600 max-w-[150px] truncate" title={rule.pattern}>
-                                  {rule.pattern || '-'}
-                                </td>
-                                <td className="p-2 font-mono text-[10px] text-stone-600 max-w-[150px] truncate" title={rule.replacement}>
-                                  {rule.replacement !== undefined && rule.replacement !== '' ? `"${rule.replacement}"` : '(kosong)'}
-                                </td>
+                                <Tooltip text={rule.pattern}>
+                                  <td className="p-2 font-mono text-[10px] text-stone-600 max-w-[150px] truncate">
+                                    {rule.pattern || '-'}
+                                  </td>
+                                </Tooltip>
+                                <Tooltip text={rule.replacement}>
+                                  <td className="p-2 font-mono text-[10px] text-stone-600 max-w-[150px] truncate">
+                                    {rule.replacement !== undefined && rule.replacement !== '' ? `"${rule.replacement}"` : '(kosong)'}
+                                  </td>
+                                </Tooltip>
                                 <td className="p-2 text-center">
                                   {!isLocked ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteRssTextRule(rule.id, rule.ruleName)}
-                                      className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
-                                      title="Hapus Peraturan"
-                                    >
-                                      🗑️
-                                    </button>
+                                    <Tooltip text="Hapus Peraturan">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteRssTextRule(rule.id, rule.ruleName)}
+                                        className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
+                                      >
+                                        🗑️
+                                      </button>
+                                    </Tooltip>
                                   ) : (
                                     <span className="text-stone-300 text-[10px] select-none">-</span>
                                   )}
@@ -4612,14 +4621,15 @@ URL: ${url}`;
                                   #{d.displayOrder}
                                 </td>
                                 <td className="p-2 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteAdjungDesk(d.id, d.deskName)}
-                                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
-                                    title="Hapus Desk"
-                                  >
-                                    🗑️
-                                  </button>
+                                  <Tooltip text="Hapus Desk">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteAdjungDesk(d.id, d.deskName)}
+                                      className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
+                                    >
+                                      🗑️
+                                    </button>
+                                  </Tooltip>
                                 </td>
                               </tr>
                             ))}
@@ -4701,14 +4711,15 @@ URL: ${url}`;
                                     </span>
                                   </td>
                                   <td className="p-2 text-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteRssDeskRule(rule.id, rule.keyword)}
-                                      className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
-                                      title="Hapus Peraturan Kata Kunci"
-                                    >
-                                      🗑️
-                                    </button>
+                                    <Tooltip text="Hapus Peraturan Kata Kunci">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteRssDeskRule(rule.id, rule.keyword)}
+                                        className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
+                                      >
+                                        🗑️
+                                      </button>
+                                    </Tooltip>
                                   </td>
                                 </tr>
                               );
@@ -4817,14 +4828,15 @@ URL: ${url}`;
                             rssBlockedCategories.map(cat => (
                               <span key={cat.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 border border-red-300 text-red-800 rounded-full font-mono text-xs font-bold shadow-2xs">
                                 <span>{cat.categoryName}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteRssBlockedCategory(cat.id, cat.categoryName)}
-                                  className="ml-1 text-red-600 hover:text-red-900 cursor-pointer font-extrabold"
-                                  title={`Nyahsekat ${cat.categoryName}`}
-                                >
-                                  ✕
-                                </button>
+                                <Tooltip text={`Nyahsekat ${cat.categoryName}`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRssBlockedCategory(cat.id, cat.categoryName)}
+                                    className="ml-1 text-red-600 hover:text-red-900 cursor-pointer font-extrabold"
+                                  >
+                                    ✕
+                                  </button>
+                                </Tooltip>
                               </span>
                             ))
                           )}
@@ -4872,9 +4884,11 @@ URL: ${url}`;
                               <tbody>
                                 {blockedQueue.map((item) => (
                                   <tr key={item.id} className="border-b border-red-100 hover:bg-red-100/50 transition-colors">
-                                    <td className="p-2 font-medium text-stone-900 max-w-xs truncate" title={item.title}>
-                                      {item.title}
-                                    </td>
+                                    <Tooltip text={item.title}>
+                                      <td className="p-2 font-medium text-stone-900 max-w-xs truncate">
+                                        {item.title}
+                                      </td>
+                                    </Tooltip>
                                     <td className="p-2 text-stone-600 font-mono text-[10px] shrink-0">
                                       {item.source}
                                     </td>
@@ -5035,14 +5049,15 @@ URL: ${url}`;
                                         </button>
                                       </td>
                                       <td className="p-2 text-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteAdjungTypographyRule(rule.id, rule.term)}
-                                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
-                                          title="Hapus Peraturan"
-                                        >
-                                          🗑️
-                                        </button>
+                                        <Tooltip text="Hapus Peraturan">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteAdjungTypographyRule(rule.id, rule.term)}
+                                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
+                                          >
+                                            🗑️
+                                          </button>
+                                        </Tooltip>
                                       </td>
                                     </tr>
                                   );
@@ -5272,9 +5287,11 @@ URL: ${url}`;
                                       <span className="text-[10px] font-mono font-bold text-[#802334] bg-white px-2 py-0.5 rounded border border-stone-300 shadow-2xs shrink-0">
                                         Blok #{bIndex + 1}
                                       </span>
-                                      <span className="text-[10px] font-mono font-bold text-stone-600 truncate select-all" title="UUID Kanonikal (Dikunci oleh Sistem)">
-                                        🔒 UUID: <span className="text-stone-900">{item.uuid}</span>
-                                      </span>
+                                      <Tooltip text="UUID Kanonikal (Dikunci oleh Sistem)">
+                                        <span className="text-[10px] font-mono font-bold text-stone-600 truncate select-all">
+                                          🔒 UUID: <span className="text-stone-900">{item.uuid}</span>
+                                        </span>
+                                      </Tooltip>
                                     </div>
                                     {parsedList.length > 1 && (
                                       <button
@@ -6209,26 +6226,28 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
 
           {/* Left Arrow */}
           {parsedTickerNewsItems.length > 1 && (
-            <button 
-              type="button"
-              onClick={handlePrevNewsItem}
-              className="absolute left-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
-              title="Previous News (Left Arrow)"
-            >
-              <ChevronLeft className="w-8 h-8" />
-            </button>
+            <Tooltip text="Previous News (Left Arrow)">
+              <button
+                type="button"
+                onClick={handlePrevNewsItem}
+                className="absolute left-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
+              >
+                <ChevronLeft className="w-8 h-8" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Right Arrow */}
           {parsedTickerNewsItems.length > 1 && (
-            <button 
-              type="button"
-              onClick={handleNextNewsItem}
-              className="absolute right-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
-              title="Next News (Right Arrow)"
-            >
-              <ChevronRight className="w-8 h-8" />
-            </button>
+            <Tooltip text="Next News (Right Arrow)">
+              <button
+                type="button"
+                onClick={handleNextNewsItem}
+                className="absolute right-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
+              >
+                <ChevronRight className="w-8 h-8" />
+              </button>
+            </Tooltip>
           )}
 
           {/* Main Centered Reading block */}
@@ -6308,15 +6327,16 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
         </div>
       )}
       {showScrollToTop && (
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
-          title="Kembali Ke Atas"
-          aria-label="Kembali Ke Atas"
-        >
-          <ChevronLeft className="w-5 h-5 rotate-90 group-hover:-translate-y-0.5 transition-transform" />
-        </button>
+        <Tooltip text="Kembali Ke Atas">
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+            aria-label="Kembali Ke Atas"
+          >
+            <ChevronLeft className="w-5 h-5 rotate-90 group-hover:-translate-y-0.5 transition-transform" />
+          </button>
+        </Tooltip>
       )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>

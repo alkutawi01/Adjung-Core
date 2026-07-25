@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trash2, Save, Plus, Search, ChevronDown, ChevronUp, LayoutGrid, FileText } from 'lucide-react';
+import { Tooltip } from '../common/Tooltip';
 
 interface ContentItem {
   id: string;
@@ -471,14 +472,15 @@ export function ContentReview() {
                                 >
                                   Sunting
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteItem(item.id, item.title)}
-                                  className="p-1.5 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
-                                  title="Padam"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+                                <Tooltip text="Padam">
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteItem(item.id, item.title)}
+                                    className="p-1.5 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </Tooltip>
                               </div>
                             </div>
                           )}

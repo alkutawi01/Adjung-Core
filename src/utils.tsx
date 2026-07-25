@@ -1,6 +1,7 @@
 import React from 'react';
 import { Citation, EditorBlock, NewsItem, ParseError } from './types';
 import { citationStyleRegistry, HarvardStylePlugin } from './services/citationStyles';
+import { Tooltip } from './components/common/Tooltip';
 
 const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
 const LATIN_REGEX = /[a-zA-Z]/g;
@@ -424,52 +425,52 @@ function renderPartNode(
       num = part.content.startsWith('fn-legacy-') ? part.content.replace('fn-legacy-', '') : '?';
     }
     return (
-      <span
-        key={part.key}
-        className="footnote-ref text-[10px] font-medium align-super select-none hover:text-Adjung-maroon font-sans px-0.5 cursor-pointer scroll-mt-24 transition-all duration-350"
-        id={`fnref-${part.content}`}
-        title={`Jump to footnote ${num}`}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const target = document.getElementById(`footnote-dest-${part.content}`);
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            target.classList.remove('footnote-dest-flash');
-            void target.offsetWidth;
-            target.classList.add('footnote-dest-flash');
-            setTimeout(() => target.classList.remove('footnote-dest-flash'), 2500);
-          }
-        }}
-      >
-        ({num})
-      </span>
+      <Tooltip key={part.key} text={`Jump to footnote ${num}`}>
+        <span
+          className="footnote-ref text-[10px] font-medium align-super select-none hover:text-Adjung-maroon font-sans px-0.5 cursor-pointer scroll-mt-24 transition-all duration-350"
+          id={`fnref-${part.content}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const target = document.getElementById(`footnote-dest-${part.content}`);
+            if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              target.classList.remove('footnote-dest-flash');
+              void target.offsetWidth;
+              target.classList.add('footnote-dest-flash');
+              setTimeout(() => target.classList.remove('footnote-dest-flash'), 2500);
+            }
+          }}
+        >
+          ({num})
+        </span>
+      </Tooltip>
     );
   }
 
   if (part.type === 'fn-legacy') {
     const num = footnotesMap[part.content] || part.content;
     return (
-      <span
-        key={part.key}
-        className="footnote-ref text-[10px] font-medium align-super select-none hover:text-Adjung-maroon font-sans px-0.5 cursor-pointer scroll-mt-24 transition-all duration-350"
-        id={`fnref-legacy-${part.content}`}
-        title={`Jump to footnote ${num}`}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const target = document.getElementById(`footnote-dest-legacy-${part.content}`);
-          if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            target.classList.remove('footnote-dest-flash');
-            void target.offsetWidth;
-            target.classList.add('footnote-dest-flash');
-            setTimeout(() => target.classList.remove('footnote-dest-flash'), 2500);
-          }
-        }}
-      >
-        ({num})
-      </span>
+      <Tooltip key={part.key} text={`Jump to footnote ${num}`}>
+        <span
+          className="footnote-ref text-[10px] font-medium align-super select-none hover:text-Adjung-maroon font-sans px-0.5 cursor-pointer scroll-mt-24 transition-all duration-350"
+          id={`fnref-legacy-${part.content}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const target = document.getElementById(`footnote-dest-legacy-${part.content}`);
+            if (target) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              target.classList.remove('footnote-dest-flash');
+              void target.offsetWidth;
+              target.classList.add('footnote-dest-flash');
+              setTimeout(() => target.classList.remove('footnote-dest-flash'), 2500);
+            }
+          }}
+        >
+          ({num})
+        </span>
+      </Tooltip>
     );
   }
 
@@ -477,14 +478,14 @@ function renderPartNode(
     const num = marginNotesMap[part.content] || '?';
     const roman = typeof num === 'number' ? toRoman(num).toLowerCase() : num;
     return (
-      <span 
-        key={part.key}
-        id={`mn-marker-${part.content}`}
-        className="margin-note-ref text-[10px] font-medium align-super select-none text-Adjung-maroon font-sans px-0.5 cursor-default"
-        title={`Margin Note ${roman}`}
-      >
-        ({roman})
-      </span>
+      <Tooltip key={part.key} text={`Margin Note ${roman}`}>
+        <span
+          id={`mn-marker-${part.content}`}
+          className="margin-note-ref text-[10px] font-medium align-super select-none text-Adjung-maroon font-sans px-0.5 cursor-default"
+        >
+          ({roman})
+        </span>
+      </Tooltip>
     );
   }
 
@@ -493,25 +494,25 @@ function renderPartNode(
     if (!citation) {
       return <span key={part.key} className="text-red-500 font-mono text-xs">[cite-error]</span>;
     }
-    
+
     const stylePlugin = citationStyleRegistry.get(citationStyle) || HarvardStylePlugin;
     const index = citationsMap[citation.id] || 1;
     const label = stylePlugin.formatCitation(citation, index, sortOrder);
-    
+
     return (
-      <span
-        key={part.key}
-        className="citation-ref text-[11px] font-sans font-medium text-Adjung-maroon hover:underline px-0.5 select-none cursor-pointer"
-        title={`${citation.author} (${citation.year}) - ${citation.title}`}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const target = document.getElementById(`reference-${citation.id}`);
-          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }}
-      >
-        {label}
-      </span>
+      <Tooltip key={part.key} text={`${citation.author} (${citation.year}) - ${citation.title}`}>
+        <span
+          className="citation-ref text-[11px] font-sans font-medium text-Adjung-maroon hover:underline px-0.5 select-none cursor-pointer"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const target = document.getElementById(`reference-${citation.id}`);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }}
+        >
+          {label}
+        </span>
+      </Tooltip>
     );
   }
 

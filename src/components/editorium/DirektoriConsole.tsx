@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Tooltip } from '../common/Tooltip';
 
 const formatTitleCase = (str: string) => {
   if (!str) return '';
@@ -104,12 +105,13 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           />
 
           {currentUserRole === 'KETUA_EDITOR' && (
-            <span
-              title="Belum dibina -- tiada sistem akaun pengguna berbilang lagi"
-              className="bg-stone-100 text-stone-400 font-mono text-xs px-4 py-2 rounded font-bold border border-stone-200 cursor-not-allowed"
-            >
-              🚧 + TAMBAH ANGGOTA
-            </span>
+            <Tooltip text="Belum dibina -- tiada sistem akaun pengguna berbilang lagi">
+              <span
+                className="bg-stone-100 text-stone-400 font-mono text-xs px-4 py-2 rounded font-bold border border-stone-200 cursor-not-allowed"
+              >
+                🚧 + TAMBAH ANGGOTA
+              </span>
+            </Tooltip>
           )}
         </div>
       </div>

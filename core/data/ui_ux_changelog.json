@@ -1,5 +1,21 @@
 [
   {
+    "time": "2026-07-25T13:51:08.225Z",
+    "summary": "Bina komponen Tooltip tersuai (src/components/common/Tooltip.tsx) dan gantikan SEMUA 32 tooltip native title= merentasi 9 fail dengannya -- title= browser (kotak putih bersegi hitam) langsung tak boleh distailkan CSS. Rupa: tiada border, opacity+blur (bg-[#802334]/80 backdrop-blur-md), bucu bulat, teks 10px. Mengendalikan tooltip bersarang (cth ikon cuaca dalam bekas Jam Dunia) supaya hanya SATU (paling dalam) dipaparkan pada satu masa, sama macam title= asli. Tooltip cuaca dipendekkan kepada label sahaja (cth 'Redup', bukan 'Cuaca Kota Bharu: Redup (27C)') -- nama bandar/suhu dah dipaparkan pada kad. Tooltip 'Klik kawasan Jam Dunia...' dibuang 100% atas arahan.",
+    "files": [
+      "src/components/common/Tooltip.tsx",
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/portal/WorldClockStrip.tsx",
+      "src/components/portal/TickerManagementModal.tsx",
+      "src/components/editorium/PerlembagaanConsole.tsx",
+      "src/components/editorium/IndeksConsole.tsx",
+      "src/components/editorium/DirektoriConsole.tsx",
+      "src/components/editorium/EditoriumLayout.tsx",
+      "src/components/studio/ContentReview.tsx",
+      "src/utils.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T13:13:04.836Z",
     "summary": "Betulkan bug sama kategori dengan yang sebelum ni: parseManualSummaryTemplate (server.js) ada 3 tempat guna '19 Jul 2026' (tarikh palsu) sebagai nilai fallback untuk medan Sumber bila Penganjur/Sumber kosong -- akan terpapar terus sebagai atribusi/citation pada kad sebenar (setiap kad papar {item.source} tanpa syarat). Kini kosong sebenar bila tiada Penganjur/Sumber dinyatakan.",
     "files": [

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Tooltip } from '../common/Tooltip';
 
 interface EditoriumLayoutProps {
   activeTab?: string;
@@ -37,14 +38,16 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
         {/* Left Side: Logo (Paling Kiri) -> Divider -> Badge Editorium -> Menu Navigasi */}
         <div className="flex flex-wrap items-center gap-4">
           {/* Logo Adjung Brief Baharu (Paling Kiri, BRIEF di bawah Adjung, Klik ke Frontpage) */}
-          <a href="/" className="flex flex-col items-center justify-center hover:opacity-90 transition-opacity select-none" title="Klik untuk kembali ke Frontpage">
-            <span className="font-serif font-normal text-2xl tracking-tight text-[#FAF9F6] leading-none">Adjung</span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="h-[1px] w-2.5 bg-[#b4b4b4]"></span>
-              <span className="font-sans text-[8px] tracking-[0.2em] font-semibold text-[#b4b4b4] uppercase leading-none">BRIEF</span>
-              <span className="h-[1px] w-2.5 bg-[#b4b4b4]"></span>
-            </div>
-          </a>
+          <Tooltip text="Klik untuk kembali ke Frontpage">
+            <a href="/" className="flex flex-col items-center justify-center hover:opacity-90 transition-opacity select-none">
+              <span className="font-serif font-normal text-2xl tracking-tight text-[#FAF9F6] leading-none">Adjung</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="h-[1px] w-2.5 bg-[#b4b4b4]"></span>
+                <span className="font-sans text-[8px] tracking-[0.2em] font-semibold text-[#b4b4b4] uppercase leading-none">BRIEF</span>
+                <span className="h-[1px] w-2.5 bg-[#b4b4b4]"></span>
+              </div>
+            </a>
+          </Tooltip>
 
           <span className="h-6 w-[1px] bg-stone-700 hidden sm:block" />
 

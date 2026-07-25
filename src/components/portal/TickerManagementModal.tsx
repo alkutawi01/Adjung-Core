@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, RefreshCw, Plus, Trash2, Check, AlertTriangle, ShieldCheck, Zap, Save, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { SystemSettings } from '../../types';
+import { Tooltip } from '../common/Tooltip';
 
 interface TickerManagementModalProps {
   isOpen: boolean;
@@ -316,14 +317,15 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
               Konfigurasi Enjin RSS, Kawalan Editorial, & Kelulusan Berita
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 text-stone-400 hover:text-[#802334] transition cursor-pointer rounded-full hover:bg-stone-200/60"
-            title="Tutup Panel"
-          >
-            <X size={20} />
-          </button>
+          <Tooltip text="Tutup Panel">
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 text-stone-400 hover:text-[#802334] transition cursor-pointer rounded-full hover:bg-stone-200/60"
+            >
+              <X size={20} />
+            </button>
+          </Tooltip>
         </header>
 
         {/* Scrollable Body Container with contain: paint */}
@@ -371,21 +373,21 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {blockStatusList.map((item) => (
-                  <button
-                    key={item.index}
-                    type="button"
-                    onClick={() => scrollToBlockInTextarea(item.index)}
-                    className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
-                      item.isValid
-                        ? 'bg-white hover:bg-stone-100 text-stone-800 border-stone-300 hover:border-[#802334]/50'
-                        : 'bg-[#802334]/10 hover:bg-[#802334]/20 text-[#802334] border-[#802334]/40 animate-pulse'
-                    }`}
-                    title={item.reason || `${item.titleSnippet} - Mematuhi Had Aksara`}
-                  >
-                    <span className="font-extrabold">#{item.index}</span>
-                    <span>{item.isValid ? '✓' : '⚠️'}</span>
-                    <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{item.titleSnippet}</span>
-                  </button>
+                  <Tooltip key={item.index} text={item.reason || `${item.titleSnippet} - Mematuhi Had Aksara`}>
+                    <button
+                      type="button"
+                      onClick={() => scrollToBlockInTextarea(item.index)}
+                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                        item.isValid
+                          ? 'bg-white hover:bg-stone-100 text-stone-800 border-stone-300 hover:border-[#802334]/50'
+                          : 'bg-[#802334]/10 hover:bg-[#802334]/20 text-[#802334] border-[#802334]/40 animate-pulse'
+                      }`}
+                    >
+                      <span className="font-extrabold">#{item.index}</span>
+                      <span>{item.isValid ? '✓' : '⚠️'}</span>
+                      <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{item.titleSnippet}</span>
+                    </button>
+                  </Tooltip>
                 ))}
               </div>
             </div>
@@ -670,14 +672,15 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                               className="px-2 py-1 bg-white border border-stone-300 text-stone-800 rounded font-mono text-[10px] font-bold flex items-center gap-1.5 shadow-2xs"
                             >
                               <span className="text-[#802334]">🏷️ {cat.categoryName}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteBlockedCategory(cat.id, cat.categoryName)}
-                                className="text-stone-400 hover:text-rose-700 cursor-pointer font-bold ml-1"
-                                title="Buka Sekatan Tag Ini"
-                              >
-                                ✕
-                              </button>
+                              <Tooltip text="Buka Sekatan Tag Ini">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteBlockedCategory(cat.id, cat.categoryName)}
+                                  className="text-stone-400 hover:text-rose-700 cursor-pointer font-bold ml-1"
+                                >
+                                  ✕
+                                </button>
+                              </Tooltip>
                             </span>
                           ))}
                         </div>
@@ -752,14 +755,15 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
 
                                   {/* Quick Block Tag Button */}
                                   {rawTag && rawTag !== 'TIADA TAG' && rawTag !== 'SEMASA' && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleAddBlockedCategory(rawTag)}
-                                      className="font-mono text-[8px] font-bold uppercase px-1.5 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded transition cursor-pointer flex items-center gap-1 border border-rose-300"
-                                      title={`Sekat semua berita dengan tag '${rawTag}'`}
-                                    >
-                                      🚫 Sekat Tag '{rawTag}'
-                                    </button>
+                                    <Tooltip text={`Sekat semua berita dengan tag '${rawTag}'`}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddBlockedCategory(rawTag)}
+                                        className="font-mono text-[8px] font-bold uppercase px-1.5 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded transition cursor-pointer flex items-center gap-1 border border-rose-300"
+                                      >
+                                        🚫 Sekat Tag '{rawTag}'
+                                      </button>
+                                    </Tooltip>
                                   )}
                                 </div>
                                 <h6 className="font-serif text-xs font-bold text-stone-900 leading-snug">
