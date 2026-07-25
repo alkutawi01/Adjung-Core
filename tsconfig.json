@@ -25,7 +25,6 @@
   },
   "exclude": [
     "node_modules",
-    "dist",
-    "adjung-platform-1-main"
+    "dist"
   ]
 }

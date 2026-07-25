@@ -15,7 +15,6 @@ import { detectSourceType } from './core/editorial/SourceDetector.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
 import { createCategoryRoutes } from './core/routes/categoryRoutes.js';
 import { createSystemRoutes } from './core/routes/systemRoutes.js';
-import { createContentRoutes } from './core/routes/contentRoutes.js';
 import { createSlotRoutes, executeDirectRssFetch } from './core/routes/slotRoutes.js';
 const mockDb = {};
 
@@ -516,16 +515,26 @@ const seedDatabase = async () => {
   }
 
   console.log('Database is empty. Seeding initial users and default configurations...');
+  // Note: hashPassword() is defined further down this file (search "Password hashing"), but
+  // function declarations aren't hoisted here since it's a const -- this runs from
+  // initializeSchema().then(() => seedDatabase()) at module load time, after the whole file
+  // (including that const) has already been evaluated, so it's safe to reference here.
+  const defaultUserSeedPassword = 'adjung-brief-' + crypto.randomBytes(4).toString('hex');
   db.serialize(() => {
-    // 1. Seed Users
+    // 1. Seed Users -- a single Chief Editor account (no multi-editor sign-in system yet; see
+    // .agents/AGENTS.md). Previously called the undefined mockDb.getUsers(), which threw and
+    // crashed the whole process on first run against any empty/fresh database file.
     const stmtUser = db.prepare(`
-      INSERT INTO users (id, username, email, role, penName, signature, avatarColor, bioSummary, isSuspended, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      INSERT INTO users (id, username, email, role, penName, signature, avatarColor, bioSummary, isSuspended, password, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `);
-    mockDb.getUsers().forEach(u => {
-      stmtUser.run(u.id, u.username, u.email, u.role, u.penName, u.signature, u.avatarColor, u.bioSummary, u.suspended ? 1 : 0);
-    });
+    stmtUser.run(
+      'user-chief-editor', 'izzat', 'izzat@adjung.local', 'KETUA_EDITOR',
+      'Izzat Anas', '', '#802334', 'Chief Editor, Adjung Brief', 0,
+      hashPassword(defaultUserSeedPassword)
+    );
     stmtUser.finalize();
+    console.log(`Seeded Chief Editor account "izzat" with a random temporary password: ${defaultUserSeedPassword} -- change this after first login.`);
 
     // 3. Seed System Settings
     db.run(`
@@ -697,7 +706,9 @@ app.get('/api/db-state', async (req, res) => {
       worldClockHolidaysGoogleDocUrl: settingsRow.worldClockHolidaysGoogleDocUrl || '',
       researchFindingsText: settingsRow.researchFindingsText || '',
       researchFindingsGoogleDocUrl: settingsRow.researchFindingsGoogleDocUrl || '',
-      masterPrompt: settingsRow.masterPrompt || ''
+      masterPrompt: settingsRow.masterPrompt || '',
+      worldClockIntervalSec: settingsRow.worldClockIntervalSec !== undefined && settingsRow.worldClockIntervalSec !== null ? settingsRow.worldClockIntervalSec : 60,
+      worldClockBgClickEnabled: settingsRow.worldClockBgClickEnabled !== undefined && settingsRow.worldClockBgClickEnabled !== null ? settingsRow.worldClockBgClickEnabled === 1 : true
     } : {};
 
     let currentUser = null;
@@ -758,6 +769,29 @@ app.get('/api/db-state', async (req, res) => {
   }
 });
 
+// Password hashing -- scrypt via Node's built-in crypto (already imported above), so no new
+// dependency is needed. Format: "scrypt$<saltHex>$<hashHex>". Existing rows predate this and
+// still hold plaintext; verifyPassword falls back to a direct comparison for those and the login
+// route below transparently re-hashes on the next successful login (no forced reset, no lockout
+// risk for the one account that already exists).
+const hashPassword = (plain) => {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(plain, salt, 64).toString('hex');
+  return `scrypt$${salt}$${hash}`;
+};
+
+const verifyPassword = (plain, stored) => {
+  if (typeof stored === 'string' && stored.startsWith('scrypt$')) {
+    const [, salt, hash] = stored.split('$');
+    const candidate = crypto.scryptSync(plain, salt, 64).toString('hex');
+    const a = Buffer.from(hash, 'hex');
+    const b = Buffer.from(candidate, 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+  // Legacy plaintext row.
+  return plain === stored;
+};
+
 // 2. Authentication Login
 app.post('/api/auth/login', async (req, res) => {
   try {
@@ -780,12 +814,21 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(403).json({ error: 'AccountSuspended', message: 'This account has been suspended by the editorial board.' });
     }
 
-    if (password !== userRow.password) {
+    if (!verifyPassword(password, userRow.password)) {
       return res.status(401).json({ error: 'IncorrectPassword', message: 'Incorrect password.' });
     }
 
+    // Transparent migration: a legacy plaintext row that just matched gets upgraded to a real
+    // hash immediately, with the same password the user already knows -- no reset required.
+    if (typeof userRow.password !== 'string' || !userRow.password.startsWith('scrypt$')) {
+      const upgraded = hashPassword(password);
+      await dbRun("UPDATE users SET password = ? WHERE id = ?", [upgraded, userRow.id]);
+      userRow.password = upgraded;
+    }
+
+    const { password: _omit, ...userWithoutPassword } = userRow;
     const authenticatedUser = {
-      ...userRow,
+      ...userWithoutPassword,
       suspended: userRow.isSuspended === 1
     };
 
@@ -816,7 +859,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
     await dbRun(
       "UPDATE users SET password = ? WHERE id = ?",
-      [password, userRow.id]
+      [hashPassword(password), userRow.id]
     );
 
     res.json({ success: true, message: 'Password updated successfully.' });
@@ -1783,6 +1826,8 @@ const initEditorialOS = (dbConn) => {
                       dbConn.run("ALTER TABLE slots_config ADD COLUMN lastRunMessage TEXT", () => {
                         dbConn.run("ALTER TABLE editorial_revisions ADD COLUMN language TEXT DEFAULT 'ms'", () => {
                           dbConn.run("ALTER TABLE pipeline_logs ADD COLUMN runId TEXT", () => {
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN worldClockIntervalSec INTEGER DEFAULT 60", () => {});
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN worldClockBgClickEnabled INTEGER DEFAULT 1", () => {});
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN masterPrompt TEXT", () => {
                               dbConn.run("ALTER TABLE editorial_objects ADD COLUMN slotIndex INTEGER", () => {
                                 dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselInterval INTEGER DEFAULT 10", () => {
@@ -2241,7 +2286,27 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       console.error(e);
     }
 
-    if (objectIds.length === 0) {
+    // Only fall back to parsing the legacy manualSummary blob if this slot has genuinely never
+    // been migrated to real DB rows. If migrated rows exist but happen to all be currently
+    // pending/rejected/archived (e.g. via Indeks' Reject/Arkib action), that's a deliberate
+    // editorial decision -- falling back to the blob would silently resurrect stale duplicate
+    // content the chief editor just pulled, defeating the whole point of the status action.
+    let slotHasMigratedRows = objectIds.length > 0;
+    if (!slotHasMigratedRows) {
+      try {
+        const anyRow = await dbGet(`
+          SELECT eo.id FROM editorial_objects eo
+          INNER JOIN editorial_revisions er ON er.objectId = eo.id
+          WHERE eo.slotIndex = ? AND er.createdBy IN ('manual-slot-save', 'migration-manual-blob', 'content-review')
+          LIMIT 1
+        `, [slot.slotIndex]);
+        slotHasMigratedRows = !!anyRow;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (objectIds.length === 0 && !slotHasMigratedRows) {
       isManualParsed = true;
       const parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot);
       for (const parsed of parsedItems) {
@@ -2585,13 +2650,19 @@ app.post('/api/system/slots', async (req, res) => {
 
 app.get('/api/system/content/all', async (req, res) => {
   try {
+    // Admin index view: show the latest revision of every object regardless of status (approved,
+    // pending, rejected, archived) -- unlike the public-facing layout/active endpoint, which only
+    // ever serves 'approved' rows. This is what lets Adjung Brief show and manage items the chief
+    // editor has rejected/archived after the fact, without those items ever reappearing on the
+    // public frontpage.
     const rows = await dbAll(`
       SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, eo.createdAt as objectCreatedAt,
-             er.id as revisionId, er.title, er.summary, er.createdAt as revisionCreatedAt, er.updatedAt as revisionUpdatedAt
+             er.id as revisionId, er.title, er.summary, er.status, er.createdBy,
+             er.createdAt as revisionCreatedAt, er.updatedAt as revisionUpdatedAt
       FROM editorial_objects eo
       INNER JOIN editorial_revisions er ON er.objectId = eo.id
       INNER JOIN (
-        SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions WHERE status = 'approved' GROUP BY objectId
+        SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions GROUP BY objectId
       ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
       ORDER BY eo.slotIndex ASC, eo.createdAt ASC
     `);
@@ -2637,6 +2708,8 @@ app.get('/api/system/content/all', async (req, res) => {
         maxBrief: limits.maxBrief !== undefined ? limits.maxBrief : null,
         maxBriefLong: limits.maxBriefLong !== undefined ? limits.maxBriefLong : null,
         slotCategory: limits.slotCategory || '',
+        status: r.status || 'approved',
+        createdBy: r.createdBy || '',
         createdAt: r.revisionCreatedAt,
         updatedAt: r.revisionUpdatedAt
       };
@@ -2659,6 +2732,8 @@ app.get('/api/system/content/all', async (req, res) => {
       maxTitle: tickerLimits.maxTitle !== undefined ? tickerLimits.maxTitle : null,
       maxBrief: tickerLimits.maxBrief !== undefined ? tickerLimits.maxBrief : null,
       slotCategory: tickerLimits.slotCategory || '',
+      status: 'approved',
+      createdBy: 'ticker',
       createdAt: null,
       updatedAt: null
     }));
@@ -2671,12 +2746,20 @@ app.get('/api/system/content/all', async (req, res) => {
   }
 });
 
+const CONTENT_STATUSES = ['approved', 'pending', 'rejected', 'archived'];
+
 app.patch('/api/system/content/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, summary, desk, source, url } = req.body;
+    const { title, summary, desk, source, url, status } = req.body;
+    if (status !== undefined && !CONTENT_STATUSES.includes(status)) {
+      return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${CONTENT_STATUSES.join(', ')}.` });
+    }
 
     if (id.startsWith('ticker-')) {
+      if (status !== undefined) {
+        return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah -- buang baris tu terus daripada tetapan ticker untuk menariknya balik.' });
+      }
       const idx = parseInt(id.slice('ticker-'.length), 10);
       const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
       const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
@@ -2693,7 +2776,9 @@ app.patch('/api/system/content/:id', async (req, res) => {
     }
 
     const { imageUrl } = req.body;
-    const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' ORDER BY version DESC LIMIT 1", [id]);
+    // Look up the latest revision regardless of current status -- a previously rejected/archived
+    // item must still be reachable here so the chief editor can flip it back to 'approved'.
+    const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1", [id]);
     if (!rev) {
       return res.status(404).json({ error: 'Item tidak dijumpai.' });
     }
@@ -2714,6 +2799,7 @@ app.patch('/api/system/content/:id', async (req, res) => {
     const params = [];
     if (title !== undefined) { setClauses.push('title = ?'); params.push(title); }
     if (summary !== undefined) { setClauses.push('summary = ?'); params.push(summary); }
+    if (status !== undefined) { setClauses.push('status = ?'); params.push(status); }
     if (setClauses.length > 0) {
       setClauses.push('updatedAt = ?');
       params.push(new Date().toISOString());
@@ -2972,22 +3058,25 @@ app.post('/api/system/settings', async (req, res) => {
         id, frontpageTitle, frontpageSubtitle, rolePermissions, 
         inTheNewsText, inTheNewsGoogleDocUrl, featuredScholarId, featuredEntryId, 
         editorialSelectionIds, announcementBanner, enableArabicAccent, layoutDensity, 
-        allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText, 
+        allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText,
         worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl,
-        masterPrompt
+        masterPrompt, worldClockIntervalSec, worldClockBgClickEnabled
       ) VALUES (
-        'settings-main', ?, ?, ?, 
-        ?, ?, ?, ?, 
-        ?, ?, ?, ?, 
-        ?, ?, ?, ?, 
-        ?, ?, ?, ?
+        'settings-main', ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?
       )
     `, [
       s.frontpageTitle, s.frontpageSubtitle, JSON.stringify(s.rolePermissions || {}),
       s.inTheNewsText, s.inTheNewsGoogleDocUrl, s.featuredScholarId, s.featuredEntryId,
       JSON.stringify(s.editorialSelectionIds || []), s.announcementBanner, s.enableArabicAccent ? 1 : 0, s.layoutDensity,
       JSON.stringify(s.allowedSignatureFonts || []), JSON.stringify(s.featuredEssayIds || []), JSON.stringify(s.featuredNoteIds || []), s.worldClockHolidaysText,
-      s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl, s.masterPrompt
+      s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl, s.masterPrompt,
+      s.worldClockIntervalSec !== undefined ? Number(s.worldClockIntervalSec) : 60,
+      s.worldClockBgClickEnabled !== undefined ? (s.worldClockBgClickEnabled ? 1 : 0) : 1
     ]);
     res.json({ success: true });
   } catch (err) {
@@ -3238,7 +3327,6 @@ app.post('/api/system/ai/pricing', async (req, res) => {
 app.use('/api/ai', createAIRoutes(dbAll, dbRun));
 app.use('/api/system', createCategoryRoutes(db));
 app.use('/api', createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb));
-app.use('/api/system', createContentRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet, getGeometryCeilingForSlot, syncManualObjectsForSlot, runEditorialPipeline));
 
 // Start Express Server
