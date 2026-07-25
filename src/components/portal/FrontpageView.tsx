@@ -1552,11 +1552,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
     let manualSummaryText = config?.manualSummary || '';
     
-    // Sanitize any legacy dummy texts stored in the database manualSummary
+    // Sanitize any legacy dummy texts stored in the database manualSummary. Known-bad legacy
+    // placeholder values are cleared to empty, NOT replaced with a different fabricated value --
+    // a specific fake source/URL is exactly as misleading as the placeholder it replaces.
     if (manualSummaryText) {
-      manualSummaryText = manualSummaryText.replace(/ChatGPT\/Gemini Manual Paste/g, 'Astro Awani');
-      manualSummaryText = manualSummaryText.replace(/URL:\s*#/g, 'URL: https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910');
-      // If date is in ISO format, format it nicely
+      manualSummaryText = manualSummaryText.replace(/ChatGPT\/Gemini Manual Paste/g, '');
+      manualSummaryText = manualSummaryText.replace(/URL:\s*#\s*$/gm, 'URL: ');
+      // If date is in ISO format, format it nicely (reformatting a real value, not fabricating one)
       manualSummaryText = manualSummaryText.replace(/Tarikh:\s*(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z|\d{4}-\d{2}-\d{2})/g, () => {
         return `Tarikh: ${new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })}`;
       });
@@ -1566,56 +1568,67 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       const itemsList = item?.items || [];
       if (isBarSlot) {
         if (itemsList.length > 0) {
+          // itm here comes from the raw (unprocessed) carousel items array, so itm.title is
+          // still the original string -- unlike the single-item case below, which reads from
+          // the top-level resolved item whose .title has been overwritten with parsed React
+          // elements for rendering (see bentoNewsItems useMemo); .titleString holds the raw
+          // string there instead.
           manualSummaryText = itemsList.map((itm: any) => {
-            const cleanUrl = (itm.url === '#' || !itm.url) ? 'https://www.bernama.com/bm/news.php?id=231450' : itm.url;
-            const cleanSource = (itm.source === 'ChatGPT/Gemini Manual Paste' || !itm.source) ? 'Bernama' : itm.source;
-            const organizer = itm.organizer || itm.penganjur || itm.source || 'PPAS';
-            const location = itm.location || 'SACC Mall';
-            const access = itm.access || 'Terbuka';
+            const eventDate = itm.originalDate || itm.date || itm.publishedAt || '';
+            const organizer = itm.organizer || itm.penganjur || '';
+            const location = itm.location || '';
+            const access = itm.access || '';
             const penerangan = itm.penerangan || '';
-            return `Tarikh: 19-26 Julai 2026\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nPenganjur: ${organizer}\nLokasi: ${location}\nAkses: ${access}\nPenerangan: ${penerangan}\nURL: ${cleanUrl}`;
+            const url = (itm.url && itm.url !== '#') ? itm.url : '';
+            return `Tarikh: ${eventDate}\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nPenganjur: ${organizer}\nLokasi: ${location}\nAkses: ${access}\nPenerangan: ${penerangan}\nURL: ${url}`;
           }).join('\n\n____\n\n');
         } else {
-          const title = config?.manualTitle || item?.title || 'Pesta Buku Selangor 2026';
-          const rawSource = config?.manualSource || item?.source || '';
-          const source = (rawSource === 'ChatGPT/Gemini Manual Paste' || !rawSource) ? '19-26 Julai 2026' : rawSource;
-          const rawUrl = config?.manualUrl || item?.url || '#';
-          const url = (rawUrl === '#' || !rawUrl) ? 'https://www.bernama.com/bm/news.php?id=231450' : rawUrl;
-          
-          manualSummaryText = `Tarikh: 19-26 Julai 2026
+          const title = config?.manualTitle || item?.titleString || '';
+          const organizer = config?.manualSource || item?.organizer || item?.penganjur || '';
+          const location = item?.location || '';
+          const access = item?.access || '';
+          const penerangan = item?.penerangan || '';
+          const eventDate = item?.originalDate || item?.date || item?.publishedAt || '';
+          const rawUrl = config?.manualUrl || item?.url || '';
+          const url = rawUrl === '#' ? '' : rawUrl;
+
+          manualSummaryText = `Tarikh: ${eventDate}
 Event: (had ${limits.maxTitle} aksara) ${title}
-Penganjur: PPAS
-Lokasi: SACC Mall
-Akses: Terbuka
-Penerangan:
+Penganjur: ${organizer}
+Lokasi: ${location}
+Akses: ${access}
+Penerangan: ${penerangan}
 URL: ${url}`;
         }
       } else {
         if (itemsList.length > 0) {
+          // Same note as the BAR branch above: itm.title/itm.brief are raw strings here (from
+          // the unprocessed items array), not the parsed-for-render form.
           manualSummaryText = itemsList.map((itm: any, bIdx: number) => {
             const uuid = itm.id || `object-manual-slot${idx}-${Date.now()}-${bIdx}`;
-            const cleanUrl = (itm.url === '#' || !itm.url) ? 'https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910' : itm.url;
-            const cleanSource = (itm.source === 'ChatGPT/Gemini Manual Paste' || !itm.source) ? 'Astro Awani' : itm.source;
+            const url = (itm.url && itm.url !== '#') ? itm.url : '';
+            const source = (itm.source && itm.source !== 'ChatGPT/Gemini Manual Paste') ? itm.source : '';
             const cleanDate = itm.originalDate || '';
-            const cleanSourceType = itm.sourceType === 'print' ? 'Bahan Bercetak' : itm.sourceType === 'audio' ? 'Audio' : itm.sourceType === 'video' ? 'Video' : 'Laman Web';
-            return `UUID: ${uuid}\nTajuk: ${itm.title || ''}\nHuraian ringkas: ${itm.brief || ''}\nHuraian panjang: ${itm.briefLong || ''}\nKategori: ${itm.desk || 'TEKNOLOGI'}\nJenis sumber: ${cleanSourceType}\nTarikh: ${cleanDate}\nSumber: ${cleanSource}\nURL: ${cleanUrl}`;
+            const cleanSourceType = itm.sourceType === 'print' ? 'Bahan Bercetak' : itm.sourceType === 'audio' ? 'Audio' : itm.sourceType === 'video' ? 'Video' : (itm.sourceType || '');
+            return `UUID: ${uuid}\nTajuk: ${itm.title || ''}\nHuraian ringkas: ${itm.brief || ''}\nHuraian panjang: ${itm.briefLong || ''}\nKategori: ${itm.desk || ''}\nJenis sumber: ${cleanSourceType}\nTarikh: ${cleanDate}\nSumber: ${source}\nURL: ${url}`;
           }).join('\n\n________________________________________\n\n');
         } else {
           const uuid = item?.id || `object-manual-slot${idx}-${Date.now()}-0`;
-          const title = config?.manualTitle || item?.titleString || 'Penyelidik Cipta Cip Nano Superkonduktor Malaysia';
-          const brief = config?.manualSummary || item?.briefString || 'Cip tempatan ini meningkatkan kelajuan storan awan sehingga 10 kali ganda.';
-          const desk = config?.manualDesk || item?.desk || 'TEKNOLOGI';
+          const title = config?.manualTitle || item?.titleString || '';
+          const brief = config?.manualSummary || item?.briefString || '';
+          const briefLong = item?.briefLong || '';
+          const desk = config?.manualDesk || item?.desk || '';
           const rawSource = config?.manualSource || item?.source || '';
-          const source = (rawSource === 'ChatGPT/Gemini Manual Paste' || !rawSource) ? 'Astro Awani' : rawSource;
-          const rawUrl = config?.manualUrl || item?.url || '#';
-          const url = (rawUrl === '#' || !rawUrl) ? 'https://www.astroawani.com/berita-malaysia/penyelidik-cipta-cip-nano-465910' : rawUrl;
+          const source = rawSource === 'ChatGPT/Gemini Manual Paste' ? '' : rawSource;
+          const rawUrl = config?.manualUrl || item?.url || '';
+          const url = rawUrl === '#' ? '' : rawUrl;
           const date = item?.originalDate || '';
-          const st = item?.sourceType === 'print' ? 'Bahan Bercetak' : item?.sourceType === 'audio' ? 'Audio' : item?.sourceType === 'video' ? 'Video' : 'Laman Web';
-          
+          const st = item?.sourceType === 'print' ? 'Bahan Bercetak' : item?.sourceType === 'audio' ? 'Audio' : item?.sourceType === 'video' ? 'Video' : (item?.sourceType || '');
+
           manualSummaryText = `UUID: ${uuid}
 Tajuk: ${title}
 Huraian ringkas: ${brief}
-Huraian panjang: 
+Huraian panjang: ${briefLong}
 Kategori: ${desk}
 Jenis sumber: ${st}
 Tarikh: ${date}
