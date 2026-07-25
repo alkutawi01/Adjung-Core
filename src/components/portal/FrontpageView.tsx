@@ -2351,7 +2351,10 @@ URL: ${url}`;
               const tier = getGeometryTierForIndex(formConfig.slotIndex);
               const ratio = tier ? GEOMETRY_RATIOS[tier].ratio : null;
               const anchor = ratioAnchorRef.current || { title: formConfig.maxTitle || 0, brief: formConfig.maxBrief || 0 };
-              const newMaxTitle = ratio !== null
+              // ratio === 0 means this tier's brief is always empty (e.g. BAR) -- there's no
+              // valid title/brief trade-off to compute, so leave maxTitle untouched instead of
+              // dividing by zero.
+              const newMaxTitle = ratio !== null && ratio !== 0
                 ? Math.max(0, Math.round(anchor.title - (newMaxBrief - anchor.brief) / ratio))
                 : formConfig.maxTitle;
               setFormConfig({
