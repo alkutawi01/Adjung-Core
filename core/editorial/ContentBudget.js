@@ -1,6 +1,6 @@
 // Single source of truth for "does this title+brief fit the card" for every code path that can
 // create or edit editorial content (manual paste, AI pipeline generation, content-review edits).
-// Mirrors GEOMETRY_RATIOS in src/components/portal/FrontpageView.tsx -- keep both in sync if the
+// Mirrors GEOMETRY_RATIOS in src/components/portal/FrontpageView.tsx — keep both in sync if the
 // underlying card geometry ever changes (measured empirically per tier, see that file's comments).
 //
 // Title and brief share one fixed space budget per card, not two independent caps: a card can fit
@@ -9,7 +9,7 @@
 // the fraction of that solo budget a field actually uses (length / soloMax) must sum to <= 1.
 import { GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot } from './GeometryConfig.js';
 
-// Every slot of the same tier gets the exact same rule -- there is no per-slot special-casing.
+// Every slot of the same tier gets the exact same rule — there is no per-slot special-casing.
 const validateContentBudget = (slotIndex, title, summary) => {
   const tier = tierForSlot(slotIndex);
   const titleLen = (title || '').length;
@@ -20,7 +20,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
     const { maxTitleAlone, maxBriefAlone } = ratioDef;
 
     // Tiers with no brief field at all (e.g. BAR, maxBriefAlone === 0): title gets the full solo
-    // budget, brief must stay empty -- there's no trade-off to compute against zero.
+    // budget, brief must stay empty — there's no trade-off to compute against zero.
     if (maxBriefAlone === 0) {
       if (briefLen > 0) {
         return {
@@ -40,12 +40,12 @@ const validateContentBudget = (slotIndex, title, summary) => {
     // Title and brief share ONE fixed space budget, not two independent caps: the fraction of
     // each field's SOLO maximum actually used must sum to <= 1 (Peraturan #2, Perlembagaan). A
     // short title frees up room for a longer brief, and vice versa. Previously this checked title
-    // and brief as two flat independent caps -- silently contradicting the documented formula
+    // and brief as two flat independent caps — silently contradicting the documented formula
     // (and this file's own header comment) and rejecting legitimate short-title/long-brief content.
     const usedFraction = (maxTitleAlone ? titleLen / maxTitleAlone : 0) + (maxBriefAlone ? briefLen / maxBriefAlone : 0);
     if (usedFraction > 1) {
       // Report the ACTUAL remaining huraian budget this specific title length leaves behind, not
-      // the two static solo-max numbers side by side -- those are only the ceiling when the OTHER
+      // the two static solo-max numbers side by side — those are only the ceiling when the OTHER
       // field is empty, and stating them unqualified reads as "huraian limit is always 78" when a
       // near-max-length title can shrink that to single digits. Editors need the real number for
       // THIS content, not the tier's theoretical maximum.
@@ -70,7 +70,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
 
 // Bidang (kategori/desk) is locked per-slot: every item saved into a slot must share that slot's
 // Bidang. Topik is a free-text per-item field, mandatory only for new/edited content (not for
-// status-only actions on legacy content that predates this rule -- pass requireTopik accordingly).
+// status-only actions on legacy content that predates this rule — pass requireTopik accordingly).
 const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik }) => {
   if (slotBidang && itemBidang && slotBidang.trim().toUpperCase() !== itemBidang.trim().toUpperCase()) {
     return {

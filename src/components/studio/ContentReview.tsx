@@ -404,7 +404,7 @@ export function ContentReview() {
                               <div className="grid grid-cols-2 gap-2">
                                 <div
                                   className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-100 text-stone-500 flex items-center"
-                                  title="Bidang terkunci ikut slot -- tukar di Tetapan Slot (Ketua Editor sahaja)"
+                                  title="Bidang terkunci ikut slot — tukar di Tetapan Slot (Ketua Editor sahaja)"
                                 >
                                   {editDraft.desk || 'Bidang'}
                                 </div>
@@ -526,7 +526,7 @@ export function ContentReview() {
                             <div className="grid grid-cols-2 gap-2">
                               <div
                                 className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-100 text-stone-500 flex items-center"
-                                title="Bidang terkunci ikut slot -- tukar di Tetapan Slot (Ketua Editor sahaja)"
+                                title="Bidang terkunci ikut slot — tukar di Tetapan Slot (Ketua Editor sahaja)"
                               >
                                 {newItemDraft.desk || 'Bidang'}
                               </div>
@@ -579,7 +579,7 @@ export function ContentReview() {
                             type="button"
                             onClick={() => {
                               setAddingToSlot(slotIndex);
-                              // Bidang terkunci ikut slot -- item baharu warisi Bidang item sedia
+                              // Bidang terkunci ikut slot — item baharu warisi Bidang item sedia
                               // ada dalam slot yang sama (bukan taip bebas lagi).
                               setNewItemDraft(prev => ({ ...prev, desk: groupedBySlot[slotIndex]?.[0]?.slotCategory || groupedBySlot[slotIndex]?.[0]?.desk || '' }));
                             }}

@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 
-// Password hashing -- scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
+// Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
 // Existing rows predate this and still hold plaintext; verifyPassword falls back to a direct
 // comparison for those and the login route below transparently re-hashes on the next successful
 // login (no forced reset, no lockout risk for the one account that already exists). Exported so
@@ -54,7 +54,7 @@ export function createAuthRoutes(dbGet, dbRun) {
       }
 
       // Transparent migration: a legacy plaintext row that just matched gets upgraded to a real
-      // hash immediately, with the same password the user already knows -- no reset required.
+      // hash immediately, with the same password the user already knows — no reset required.
       if (typeof userRow.password !== 'string' || !userRow.password.startsWith('scrypt$')) {
         const upgraded = hashPassword(password);
         await dbRun("UPDATE users SET password = ? WHERE id = ?", [upgraded, userRow.id]);

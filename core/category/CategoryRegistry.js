@@ -233,7 +233,7 @@ class CategoryRegistry {
     `, [targetNameUpper, sourceCategory.trim().toUpperCase(), sourceReg.name.toUpperCase()]);
   }
 
-  // Senarai Bidang tertutup (isActive=1) -- sumber untuk dropdown/Taksonomi. Baris isActive=0
+  // Senarai Bidang tertutup (isActive=1) — sumber untuk dropdown/Taksonomi. Baris isActive=0
   // (sejarah auto-daftar lama) tetap wujud untuk warna kad lama (getAllCategories/GET /categories),
   // cuma tak muncul di sini.
   static async getActiveCategories(db) {
@@ -252,7 +252,7 @@ class CategoryRegistry {
     if (existing) {
       const finalColor = color || existing.color;
       // Nama dipaksa ikut apa yang ditaip di sini (bukan kekal nama lama, cth "EKONOMI" huruf
-      // besar dari auto-daftar dulu) -- ini tindakan kurasi Ketua Editor yang sengaja, menang
+      // besar dari auto-daftar dulu) — ini tindakan kurasi Ketua Editor yang sengaja, menang
       // atas casing lama. Tak sentuh string 'desk' tersimpan pada kandungan sedia ada.
       await this.dbRun(db, "UPDATE CategoryRegistry SET name = ?, isActive = 1, color = ?, updatedAt = ? WHERE slug = ?", [trimmedName, finalColor, now, slug]);
       return { ...existing, name: trimmedName, color: finalColor, isActive: 1 };
@@ -267,7 +267,7 @@ class CategoryRegistry {
     return { id, slug, name: trimmedName, color: finalColor, usageCount: 0, isActive: 1, createdAt: now, updatedAt: now };
   }
 
-  // Namakan-semula SATU baris Bidang taksonomi -- sengaja BUKAN renameCategory()/mergeCategories()
+  // Namakan-semula SATU baris Bidang taksonomi — sengaja BUKAN renameCategory()/mergeCategories()
   // di atas, sebab dua fungsi tu cascade-tulis-ganti string 'desk' dalam editorial_objects/
   // editorial_attribute_values (melanggar peraturan "kandungan lama kekal"). Ni cuma ubah baris
   // taksonomi tu sendiri.
@@ -279,7 +279,7 @@ class CategoryRegistry {
     await this.dbRun(db, "UPDATE CategoryRegistry SET name = ?, slug = ?, updatedAt = ? WHERE id = ?", [trimmedName, newSlug, now, id]);
   }
 
-  // Nombor slot (0-based) yang manualDesk-nya sepadan (case-insensitive) nama Bidang ni -- untuk
+  // Nombor slot (0-based) yang manualDesk-nya sepadan (case-insensitive) nama Bidang ni — untuk
   // paparan "Nombor Slot Diperuntukkan" di Taksonomi.
   static async getSlotsForCategory(db, name) {
     if (!name) return [];
@@ -291,7 +291,7 @@ class CategoryRegistry {
   }
 
   // Bila Bidang sesuatu slot berubah, kandungan yang sedang live/pending dalam slot tu tak lagi
-  // sepadan Bidang terkunci baharu -- diarkib (status flip sahaja, BUKAN padam row) supaya hilang
+  // sepadan Bidang terkunci baharu — diarkib (status flip sahaja, BUKAN padam row) supaya hilang
   // dari paparan awam tapi ID/objectId kekal selama-lamanya, boleh disiar semula lepas ni (lihat
   // PATCH /api/system/content/:id).
   static async archiveLiveContentInSlot(db, slotIndex) {

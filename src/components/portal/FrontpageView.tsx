@@ -262,7 +262,7 @@ interface FrontpageViewProps {
   setSelectedAuthorId: (id: string | null) => void;
   setActiveTab: (tab: string) => void;
   currentUser?: User | null;
-  // Peranan Editorium (Ketua Editor / Editor), diangkat naik dari App.tsx -- berasingan
+  // Peranan Editorium (Ketua Editor / Editor), diangkat naik dari App.tsx — berasingan
   // daripada currentUser di atas (yang memang dead-code/KIV, lihat canCurate). Guna khusus
   // untuk kunci medan Bidang di Tetapan Slot kepada Ketua Editor sahaja.
   currentEditoriumRole?: 'KETUA_EDITOR' | 'EDITOR';
@@ -308,7 +308,7 @@ const formatBentoDate = (iso?: string): string => {
   return d.toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-// Tarikh siaran (bila kandungan disimpan ke Adjung) -- DD.MM.YY, ditunjuk di bucu kad, sengaja
+// Tarikh siaran (bila kandungan disimpan ke Adjung) — DD.MM.YY, ditunjuk di bucu kad, sengaja
 // berbeza format daripada tarikh sumber (formatBentoDate) supaya kedua-dua tarikh tidak keliru.
 const formatSiaranDate = (iso?: string): string => {
   if (!iso) return '';
@@ -320,7 +320,7 @@ const formatSiaranDate = (iso?: string): string => {
   return `${dd}.${mm}.${yy}`;
 };
 
-// Tarikh sumber/asal dipaparkan PERSIS seperti ditaip (cth "1980", "20 Julai 2026") -- tidak
+// Tarikh sumber/asal dipaparkan PERSIS seperti ditaip (cth "1980", "20 Julai 2026") — tidak
 // dihurai semula sebagai Date, supaya tarikh separa/tahun sahaja (rujukan lama/tesis) tidak
 // hilang atau jadi "Invalid Date". "Tidak dinyatakan"/kosong terus disembunyikan.
 const getDisplayDate = (raw?: string): string => {
@@ -383,13 +383,13 @@ const CarouselStableBlock: React.FC<{
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
   // Content fingerprint (not the array reference, which can churn on every poll even when the
-  // underlying text hasn't changed) -- only remeasure when what's actually rendered could differ.
+  // underlying text hasn't changed) — only remeasure when what's actually rendered could differ.
   const contentKey = list.map((it) => `${it.title || ''}|${it.brief || ''}|${it.topik || ''}`).join(' ');
 
   // CSS Grid's "stack everything in one cell, size to the tallest" trick (col-start-1/row-start-1
   // + opacity toggle) is the ideal way to do this declaratively, but empirically the grid track's
   // auto-size recalculation is unreliable while an opacity CSS transition is actively running on
-  // the stacked children -- verified live: all N stacked items intermittently report the SAME
+  // the stacked children — verified live: all N stacked items intermittently report the SAME
   // wrong height in sync with each other, then correct themselves, with no change in viewport
   // width or content. Measuring each item's natural height in JS and pinning min-height explicitly
   // sidesteps that browser-timing quirk entirely instead of depending on implicit grid sizing.
@@ -397,9 +397,9 @@ const CarouselStableBlock: React.FC<{
   // A single measurement pass isn't enough either: for flex-row card layouts (source-as-side-column
   // cards), the content column's available width can still be settling (flex-basis negotiation
   // against the sibling source column) at the moment this effect first runs, so text can measure
-  // as wrapping into fewer lines than it will once layout truly settles -- under-measuring the real
+  // as wrapping into fewer lines than it will once layout truly settles — under-measuring the real
   // max. A ResizeObserver on every stacked item catches that (and font loads, and window resizes)
-  // generically, and the max only ever grows, never shrinks, once observed -- it never "forgets" a
+  // generically, and the max only ever grows, never shrinks, once observed — it never "forgets" a
   // real max height it already saw.
   useLayoutEffect(() => {
     if (list.length <= 1) return;
@@ -466,7 +466,7 @@ function useCollapsedHeightLock(isLocked: boolean) {
   const ref = useRef<HTMLDivElement>(null);
   const [naturalHeight, setNaturalHeight] = useState<number | undefined>(undefined);
   // No dependency array: re-measure after EVERY render while unlocked, so the frozen value is
-  // always the size right up to the moment it locks -- not a stale snapshot from whenever isLocked
+  // always the size right up to the moment it locks — not a stale snapshot from whenever isLocked
   // last flipped to false (which could predate later content/data/font changes).
   useLayoutEffect(() => {
     if (isLocked || !ref.current) return;
@@ -557,7 +557,7 @@ const updateLimitsInText = (text: string, maxTitle: number, maxBrief: number, ma
 };
 
 // Geometry tiers for the 4 card types whose title+brief share a fixed vertical budget (source is
-// reserved separately, below, and anchored to the card bottom -- see CarouselStableBlock/mt-auto
+// reserved separately, below, and anchored to the card bottom — see CarouselStableBlock/mt-auto
 // work). Computed 2026-07-21 from live-measured card widths/fonts via canvas.measureText on a
 // representative Malay news sentence: maxTitleAlone/maxBriefAlone are the character counts that
 // would exactly fill the shared budget if given ENTIRELY to one field; ratio = maxBriefAlone /
@@ -566,7 +566,7 @@ const updateLimitsInText = (text: string, maxTitle: number, maxBrief: number, ma
 // Mini Editorium (see handleMaxTitleChange/handleMaxBriefChange).
 import { GEOMETRY_RATIOS, tierForSlot as getGeometryTierForIndex, ceilingForSlot, TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 
-// Fixed ruleset for the "Salin Templat Prom AI (Lampiran)" button -- unlike Peraturan Am/Tambahan,
+// Fixed ruleset for the "Salin Templat Prom AI (Lampiran)" button — unlike Peraturan Am/Tambahan,
 // this is not admin-editable per slot; it's the same encyclopedia-style writing discipline every
 // time a piece of attached material (URL/PDF) is analyzed and summarized.
 const LAMPIRAN_EDITORIAL_RULES = `1. Tulis mengenai kandungan, bukan mengenai bahan asal.
@@ -616,11 +616,11 @@ const getLimitsForIndex = (idx: number, config?: any) => {
   const customBrief = config?.maxBrief;
   const customBriefLong = config?.maxBriefLong;
 
-  // maxBriefLong: had aksara "Huraian Panjang" -- kandungan tambahan yang tidak dipaparkan pada kad,
+  // maxBriefLong: had aksara "Huraian Panjang" — kandungan tambahan yang tidak dipaparkan pada kad,
   // hanya dalam mod spotlight (belum dibina). Tiada guna untuk Ticker/slot bar (0).
   // Previously a hand-typed if/else chain here had drifted from the canonical values in
   // core/editorial/GeometryConfig.js for 4 of 8 tiers (and disagreed with server.js's own copy on
-  // BAR) -- now derived live from the single shared source, so it can't drift again.
+  // BAR) — now derived live from the single shared source, so it can't drift again.
   const defaults = ceilingForSlot(idx);
 
   return {
@@ -653,7 +653,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // cards, Ticker) — backed by CategoryRegistry (server.js + core/category/CategoryRegistry.js),
   // not the old static DESK_ACCENTS list. Keyed lowercase for case-insensitive lookup.
   const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
-  // Senarai Bidang tertutup (24 disiplin kurasi Ketua Editor) -- sumber dropdown Bidang di
+  // Senarai Bidang tertutup (24 disiplin kurasi Ketua Editor) — sumber dropdown Bidang di
   // Tetapan Slot. Berasingan daripada categoryColors di atas (yang baca SEMUA baris
   // CategoryRegistry, termasuk 93 baris lama tak aktif, untuk warna kad).
   const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string }[]>([]);
@@ -661,13 +661,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
-  // BAR accordion: which card (by slot index) is expanded, per cluster -- independent so opening
+  // BAR accordion: which card (by slot index) is expanded, per cluster — independent so opening
   // one cluster's accordion never affects the other. Only active outside edit mode (edit mode's
   // click behavior on BAR cards is unchanged: it opens the admin slot editor, see handleCardClick).
   const [expandedBarCluster1, setExpandedBarCluster1] = useState<number | null>(null);
   const [expandedBarCluster2, setExpandedBarCluster2] = useState<number | null>(null);
   // Height locks for the 2 cards sharing each BAR cluster's grid row (index 11/12 for cluster 1,
-  // 25/26 for cluster 2) -- see useCollapsedHeightLock. Locked whenever that cluster's accordion
+  // 25/26 for cluster 2) — see useCollapsedHeightLock. Locked whenever that cluster's accordion
   // is open, so these cards never move/resize while a card elsewhere in their row expands.
   const bar1SiblingLocks = {
     idx11: useCollapsedHeightLock(expandedBarCluster1 !== null),
@@ -1643,7 +1643,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       if (isBarSlot) {
         if (itemsList.length > 0) {
           // itm here comes from the raw (unprocessed) carousel items array, so itm.title is
-          // still the original string -- unlike the single-item case below, which reads from
+          // still the original string — unlike the single-item case below, which reads from
           // the top-level resolved item whose .title has been overwritten with parsed React
           // elements for rendering (see bentoNewsItems useMemo); .titleString holds the raw
           // string there instead.
@@ -2449,7 +2449,7 @@ URL: ${url}`;
               const tier = getGeometryTierForIndex(formConfig.slotIndex);
               const ratio = tier ? GEOMETRY_RATIOS[tier].ratio : null;
               const anchor = ratioAnchorRef.current || { title: formConfig.maxTitle || 0, brief: formConfig.maxBrief || 0 };
-              // ratio === 0 means this tier's brief is always empty (e.g. BAR) -- there's no
+              // ratio === 0 means this tier's brief is always empty (e.g. BAR) — there's no
               // valid title/brief trade-off to compute, so leave maxTitle untouched instead of
               // dividing by zero.
               const newMaxTitle = ratio !== null && ratio !== 0
@@ -3961,8 +3961,8 @@ URL: ${url}`;
                     onChange={(e) => setFormConfig({ ...formConfig, contentMode: e.target.value })}
                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
                   >
-                    <option value="Manual">Manual (Kemasukan Sendiri)</option>
-                    <option value="AI Generated">AI Generated (Automatik)</option>
+                    <option value="Manual">Manual</option>
+                    <option value="AI Generated">AI Generated</option>
                   </select>
                 </div>
 
@@ -4128,14 +4128,14 @@ URL: ${url}`;
                           </div>
 
                           <div className="flex flex-col gap-1 md:col-span-2">
-                            <label className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">Had Usia Berita (Freshness Filter / Cutoff Usia)</label>
+                            <label className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">Had Usia Berita</label>
                             <select
                               value={rssMaxNewsAgeHours}
                               onChange={(e) => setRssMaxNewsAgeHours(Number(e.target.value))}
                               className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
                             >
                               <option value={24}>24 Jam Terakhir (Berita Hari Ini)</option>
-                              <option value={48}>48 Jam Terakhir (Disyorkan - 2 Hari)</option>
+                              <option value={48}>48 Jam Terakhir (2 Hari)</option>
                               <option value={72}>72 Jam Terakhir (3 Hari)</option>
                               <option value={168}>7 Hari Terakhir (Seminggu)</option>
                               <option value={0}>Tiada Had (Semua Usia Berita)</option>
@@ -4304,19 +4304,19 @@ URL: ${url}`;
                                 {isExpanded && bd && (
                                   <div className="pt-2 border-t border-stone-200 grid grid-cols-2 md:grid-cols-5 gap-1.5 font-mono text-[9px] bg-white p-2.5 rounded">
                                     <div>
-                                      <span className="text-stone-400 block uppercase">Source Trust</span>
+                                      <span className="text-stone-400 block uppercase">Kepercayaan Sumber</span>
                                       <span className="font-bold text-stone-800">+{bd.sourceTrust || 80}</span>
                                     </div>
                                     <div>
-                                      <span className="text-stone-400 block uppercase">Language Match</span>
+                                      <span className="text-stone-400 block uppercase">Padanan Bahasa</span>
                                       <span className="font-bold text-emerald-700">+{bd.languageMatch || 10}</span>
                                     </div>
                                     <div>
-                                      <span className="text-stone-400 block uppercase">Category Match</span>
+                                      <span className="text-stone-400 block uppercase">Padanan Kategori</span>
                                       <span className="font-bold text-emerald-700">+{bd.categoryMatch || 0}</span>
                                     </div>
                                     <div>
-                                      <span className="text-stone-400 block uppercase">Keyword Impact</span>
+                                      <span className="text-stone-400 block uppercase">Kesan Kata Kunci</span>
                                       <span className={`font-bold ${bd.keywordImpact < 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
                                         {bd.keywordImpact >= 0 ? `+${bd.keywordImpact}` : bd.keywordImpact}
                                       </span>
@@ -4485,32 +4485,32 @@ URL: ${url}`;
                             onChange={(e) => setNewRuleType(e.target.value)}
                             className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
                           >
-                            <option value="substitute">SUBSTITUTE (Ganti Teks Harfiah)</option>
-                            <option value="regex">REGEXREPLACE (Ganti Dengan Regex)</option>
-                            <option value="strip_dateline">STRIP_DATELINE (Buang Awalan Lokasi/Tarikh)</option>
-                            <option value="decode_entities">DECODE_HTML (Nyahkod Entiti Nombor HTML)</option>
+                            <option value="substitute">Ganti Teks Harfiah</option>
+                            <option value="regex">Ganti Dengan Regex</option>
+                            <option value="strip_dateline">Buang Awalan Lokasi/Tarikh</option>
+                            <option value="decode_entities">Nyahkod Entiti Nombor HTML</option>
                           </select>
                         </div>
                         <div>
-                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Skop (Scope)</label>
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Skop</label>
                           <select
                             value={newRuleScope}
                             onChange={(e) => setNewRuleScope(e.target.value)}
                             className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
                           >
-                            <option value="brief">Brief / Description Sahaja (Disyorkan)</option>
-                            <option value="title">Title Sahaja</option>
-                            <option value="all">Semua (Title & Brief)</option>
+                            <option value="brief">Brief Sahaja</option>
+                            <option value="title">Tajuk Sahaja</option>
+                            <option value="all">Semua (Tajuk & Brief)</option>
                           </select>
                         </div>
                         <div>
-                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Sumber RSS Specific</label>
+                          <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Sumber RSS Khusus</label>
                           <select
                             value={newRuleSourceId}
                             onChange={(e) => setNewRuleSourceId(e.target.value)}
                             className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
                           >
-                            <option value="global">Global (Semua Sumber RSS)</option>
+                            <option value="global">Semua Sumber RSS</option>
                             {registeredRssSources.map((src) => (
                               <option key={src.id} value={src.id}>{src.sourceName}</option>
                             ))}
@@ -5125,9 +5125,9 @@ URL: ${url}`;
                                 onChange={(e) => setNewTypoStyle(e.target.value)}
                                 className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
                               >
-                                <option value="italic">Italic (Senget)</option>
-                                <option value="bold">Bold (Tebal)</option>
-                                <option value="small_caps">Small Caps (Huruf Kecil Kapital)</option>
+                                <option value="italic">Condong</option>
+                                <option value="bold">Tebal</option>
+                                <option value="small_caps">Huruf Kecil Kapital</option>
                               </select>
                             </div>
                             <div>
@@ -5137,13 +5137,13 @@ URL: ${url}`;
                                 onChange={(e) => setNewTypoMatchType(e.target.value)}
                                 className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
                               >
-                                <option value="word">Perkataan (Word)</option>
-                                <option value="phrase">Frasa Penuh (Phrase)</option>
-                                <option value="regex">RegEx Custom</option>
+                                <option value="word">Perkataan</option>
+                                <option value="phrase">Frasa Penuh</option>
+                                <option value="regex">RegEx Tersuai</option>
                               </select>
                             </div>
                             <div>
-                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Keutamaan (Priority)</label>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Keutamaan</label>
                               <input
                                 type="number"
                                 value={newTypoPriority}
@@ -5161,14 +5161,14 @@ URL: ${url}`;
                                 onChange={(e) => setNewTypoScope(e.target.value)}
                                 className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold"
                               >
-                                <option value="all">Semua Skop (All)</option>
-                                <option value="title">Tajuk Sahaja (Title)</option>
-                                <option value="brief">Huraian Ringkas (Brief)</option>
-                                <option value="body">Kandungan Utama (Body)</option>
+                                <option value="all">Semua Skop</option>
+                                <option value="title">Tajuk Sahaja</option>
+                                <option value="brief">Huraian Ringkas</option>
+                                <option value="body">Kandungan Utama</option>
                               </select>
                             </div>
                             <div>
-                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Frasa Pengecualian (Optional)</label>
+                              <label className="font-mono text-[9px] uppercase text-stone-500 font-bold">Frasa Pengecualian (Pilihan)</label>
                               <input
                                 type="text"
                                 value={newTypoExcludeTerms}
@@ -5446,7 +5446,7 @@ Event: (had ${formConfig.maxTitle || 95} aksara) [Nama acara]
 Penganjur: [Akronim penganjur, contoh: PPAS / DBP / PNM / KPM]
 Lokasi: [Lokasi acara, contoh: SACC Mall]
 Akses: [Terbuka / Tertutup]
-Penerangan: [Pilihan -- huraian tambahan acara, tidak dipaparkan pada kad]
+Penerangan: [Pilihan — huraian tambahan acara, tidak dipaparkan pada kad]
 URL: [Pautan URL rujukan]${count > 1 ? `
 
 ____
@@ -5456,7 +5456,7 @@ Event: (had ${formConfig.maxTitle || 95} aksara) [Nama acara]
 Penganjur: [Akronim penganjur, contoh: PPAS / DBP / PNM / KPM]
 Lokasi: [Lokasi acara, contoh: SACC Mall]
 Akses: [Terbuka / Tertutup]
-Penerangan: [Pilihan -- huraian tambahan acara, tidak dipaparkan pada kad]
+Penerangan: [Pilihan — huraian tambahan acara, tidak dipaparkan pada kad]
 URL: [Pautan URL rujukan]` : ''}
 ${extraInstructions}`;
                             } else {
@@ -5474,7 +5474,7 @@ ${extraInstructions}`;
                               const exampleBlock = `Tajuk: [Tajuk kandungan di sini maksimum ${maxTitleVal} aksara]
 Huraian ringkas: [Huraian ringkas maksimum ${maxBriefVal} aksara dan tidak lebih dua (2) ayat di sini]
 Huraian panjang: [Huraian panjang maksimum ${maxBriefLongVal} aksara]
-Bidang: ${kategori} [WAJIB sama dengan bidang tetap slot ini -- jangan tukar]
+Bidang: ${kategori} [WAJIB sama dengan bidang tetap slot ini — jangan tukar]
 Topik: [nama topik/subbidang yang bersesuaian dalam bidang ${kategori}, misalnya: Teknologi Robotik, Sejarah Malaysia]
 Tarikh: [Tarikh sebenar penerbitan kandungan, cth: 20 Julai 2026]
 Sumber: [Nama sumber, contohnya: CNN, Bernama, Aljazeera]
@@ -5529,7 +5529,7 @@ Huraian ringkas:
 Huraian panjang:
 [Huraian maksimum ${maxBriefLongVal} aksara.]
 Bidang:
-${bidangSlotIni} [WAJIB sama dengan bidang tetap slot ini -- jangan tukar]
+${bidangSlotIni} [WAJIB sama dengan bidang tetap slot ini — jangan tukar]
 Topik:
 [Nama topik/subbidang yang paling sesuai dalam bidang ${bidangSlotIni}, contohnya: Teknologi Robotik, Sejarah Malaysia, Kesusasteraan Arab.]
 Tarikh:
@@ -5746,8 +5746,8 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                         onChange={(e) => setFormConfig({ ...formConfig, searchStrategy: e.target.value })}
                         className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs"
                       >
-                        <option value="Structured Sources Only">Structured Sources Only (RSS/Atom Feed Sahaja)</option>
-                        <option value="Search Only">Search Only (Web Google Search Sahaja)</option>
+                        <option value="Structured Sources Only">RSS/Atom Feed Sahaja</option>
+                        <option value="Search Only">Web Google Search Sahaja</option>
                         <option value="Structured Sources -> Search Fallback">Structured Sources — Search Fallback (RSS &amp; Search)</option>
                       </select>
                     </div>
@@ -5834,8 +5834,8 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                         }}
                         className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
                       >
-                        <option value="Daily">Setiap Hari (Daily)</option>
-                        <option value="Weekly">Setiap Minggu (Weekly)</option>
+                        <option value="Daily">Setiap Hari</option>
+                        <option value="Weekly">Setiap Minggu</option>
                       </select>
                     </div>
 
@@ -6019,7 +6019,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                     onClick={() => setShowResetMenu(prev => !prev)}
                     className="px-3 py-2 bg-white hover:bg-stone-50 text-stone-600 border border-stone-300 rounded text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
                   >
-                    <RotateCcw size={12} /> Reset
+                    <RotateCcw size={12} /> Set Semula
                   </button>
                   {showResetMenu && (
                     <>
@@ -6030,21 +6030,21 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                           onClick={handleResetAll}
                           className="w-full text-left px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer border-b border-stone-100"
                         >
-                          Reset Semua
+                          Set Semula Semua
                         </button>
                         <button
                           type="button"
                           onClick={handleResetAI}
                           className="w-full text-left px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer border-b border-stone-100"
                         >
-                          Reset Tetapan Penjanaan AI Sahaja
+                          Set Semula Tetapan Penjanaan AI Sahaja
                         </button>
                         <button
                           type="button"
                           onClick={handleResetManual}
                           className="w-full text-left px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer"
                         >
-                          Reset Kandungan Manual Sahaja
+                          Set Semula Kandungan Manual Sahaja
                         </button>
                       </div>
                     </>

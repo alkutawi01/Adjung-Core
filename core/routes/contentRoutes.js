@@ -32,7 +32,7 @@ const parseTickerText = (text) => {
       // mirrors the client-side parseInTheNews() in src/utils.tsx, which already tolerated this.
       else if (key === 'source' || key === 'sumber') source = val;
       else if (key === 'url') url = val;
-      // Mod Kandungan Ticker sebenar (Manual/AI Generated/RSS Direct) -- lihat setiap penulis di
+      // Mod Kandungan Ticker sebenar (Manual/AI Generated/RSS Direct) — lihat setiap penulis di
       // slotRoutes.js/slotsConfigRoutes.js/EditorialPipeline.js. Blok lama sebelum medan ni wujud
       // kekal '' (tak diketahui), bukan andaian salah.
       else if (key === 'mode') mode = val;
@@ -57,7 +57,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   router.get('/content/all', async (req, res) => {
     try {
       // Admin index view: show the latest revision of every object regardless of status (approved,
-      // pending, rejected, archived) -- unlike the public-facing layout/active endpoint, which only
+      // pending, rejected, archived) — unlike the public-facing layout/active endpoint, which only
       // ever serves 'approved' rows. This is what lets Adjung Brief show and manage items the chief
       // editor has rejected/archived after the fact, without those items ever reappearing on the
       // public frontpage.
@@ -140,7 +140,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         maxBrief: tickerLimits.maxBrief !== undefined ? tickerLimits.maxBrief : null,
         slotCategory: tickerLimits.slotCategory || '',
         status: 'approved',
-        // Mod sebenar (Manual/AI Generated/RSS Direct) yang mencipta baris ni -- BUKAN konstan
+        // Mod sebenar (Manual/AI Generated/RSS Direct) yang mencipta baris ni — BUKAN konstan
         // 'ticker' tetap macam dulu (tak bawa maklumat, lihat "Kaedah" audit di Indeks). Blok lama
         // sebelum medan Mode: wujud kekal '', papar sebagai "Tidak diketahui" di UI, bukan silap.
         createdBy: t.mode || '',
@@ -167,7 +167,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
       if (id.startsWith('ticker-')) {
         if (status !== undefined) {
-          return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah -- buang baris tu terus daripada tetapan ticker untuk menariknya balik.' });
+          return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah — buang baris tu terus daripada tetapan ticker untuk menariknya balik.' });
         }
         const idx = parseInt(id.slice('ticker-'.length), 10);
         const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
@@ -193,7 +193,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       }
 
       const { imageUrl } = req.body;
-      // Look up the latest revision regardless of current status -- a previously rejected/archived
+      // Look up the latest revision regardless of current status — a previously rejected/archived
       // item must still be reachable here so the chief editor can flip it back to 'approved'.
       const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1", [id]);
       if (!rev) {
@@ -215,7 +215,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           return res.status(400).json({ error: budgetCheck.reason });
         }
 
-        // Bidang terkunci per-slot, Topik wajib -- bila tajuk/huraian diedit, kandungan dipindah
+        // Bidang terkunci per-slot, Topik wajib — bila tajuk/huraian diedit, kandungan dipindah
         // ke slot lain, ATAU kandungan sedang diaktifkan semula (archived/rejected -> approved/
         // pending, cth "Siarkan Semula" di Indeks). Bukan tindakan status-sahaja lain (Tolak/
         // Arkib pada kandungan lama tak perlu sepadan Bidang). Kecuali slot BAR.
@@ -338,7 +338,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       }
 
       if (slotIndex === -1) {
-        // Same hard-block as every other tier -- Ticker is not an exception. Previously this
+        // Same hard-block as every other tier — Ticker is not an exception. Previously this
         // branch returned before ever reaching the validateContentBudget call below, so a manually
         // added ticker item could be any length at all.
         const tickerBudgetCheck = validateContentBudget(-1, title.trim(), (summary || '').trim());
@@ -368,8 +368,8 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const timestamp = new Date().toISOString();
       const finalCategory = (desk || 'UMUM').trim().toUpperCase();
 
-      // Bidang terkunci per-slot, Topik wajib untuk kandungan baharu -- kecuali slot BAR. Checked
-      // against finalCategory (not raw desk) so an omitted desk -- which defaults to 'UMUM' -- still
+      // Bidang terkunci per-slot, Topik wajib untuk kandungan baharu — kecuali slot BAR. Checked
+      // against finalCategory (not raw desk) so an omitted desk — which defaults to 'UMUM' — still
       // gets caught if the slot has a different locked Bidang, instead of silently bypassing the check.
       if (!TIER_SLOTS.BAR.includes(slotIndex)) {
         const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);

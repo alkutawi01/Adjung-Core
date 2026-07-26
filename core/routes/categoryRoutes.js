@@ -54,7 +54,7 @@ export function createCategoryRoutes(db) {
     }
   });
 
-  // GET /api/system/categories/active -- senarai Bidang tertutup (Taksonomi), setiap satu
+  // GET /api/system/categories/active — senarai Bidang tertutup (Taksonomi), setiap satu
   // disertakan nombor slot yang diperuntukkan untuknya.
   router.get('/categories/active', async (req, res) => {
     try {
@@ -70,8 +70,8 @@ export function createCategoryRoutes(db) {
     }
   });
 
-  // POST /api/system/categories/activate -- "+ Tambah Bidang" di Taksonomi (Ketua Editor sahaja,
-  // dikuatkuasakan di peringkat UI -- lihat TetapanConsole.tsx).
+  // POST /api/system/categories/activate — "+ Tambah Bidang" di Taksonomi (Ketua Editor sahaja,
+  // dikuatkuasakan di peringkat UI — lihat TetapanConsole.tsx).
   router.post('/categories/activate', async (req, res) => {
     try {
       const { name, color } = req.body;
@@ -84,8 +84,8 @@ export function createCategoryRoutes(db) {
     }
   });
 
-  // POST /api/system/categories/rename-active -- tukar nama SATU baris Bidang taksonomi (tak
-  // cascade ke kandungan sedia ada -- lihat nota di renameActiveCategory()).
+  // POST /api/system/categories/rename-active — tukar nama SATU baris Bidang taksonomi (tak
+  // cascade ke kandungan sedia ada — lihat nota di renameActiveCategory()).
   router.post('/categories/rename-active', async (req, res) => {
     try {
       const { id, newName } = req.body;
@@ -98,7 +98,7 @@ export function createCategoryRoutes(db) {
     }
   });
 
-  // POST /api/system/categories/assign-slot -- arah "pilih slot untuk Bidang" dari Taksonomi.
+  // POST /api/system/categories/assign-slot — arah "pilih slot untuk Bidang" dari Taksonomi.
   // SENGAJA hanya UPDATE lajur manualDesk (bukan guna POST /slots yang INSERT OR REPLACE ~30
   // lajur sekali gus dan akan kosongkan medan slot lain). bidangName kosong = nyahtetapkan slot.
   router.post('/categories/assign-slot', async (req, res) => {
@@ -121,7 +121,7 @@ export function createCategoryRoutes(db) {
 
       await CategoryRegistry.dbRun(db, "UPDATE slots_config SET manualDesk = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [trimmed, slotIndex]);
 
-      // Bidang slot betul-betul berubah -- kandungan live/pending lama dalam slot ni tak lagi
+      // Bidang slot betul-betul berubah — kandungan live/pending lama dalam slot ni tak lagi
       // sepadan, arkib supaya tak terus terpapar dengan Bidang yang tak sah.
       if (oldDesk.toLowerCase() !== trimmed.toLowerCase()) {
         await CategoryRegistry.archiveLiveContentInSlot(db, slotIndex);

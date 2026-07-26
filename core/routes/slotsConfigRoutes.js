@@ -4,7 +4,7 @@ import { detectSourceType } from '../editorial/SourceDetector.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 
 // Ticker Manual mode is genuinely freeform text (the Chief Editor types the whole
-// desk:/title:/brief:/source:/url: block directly into a plain textarea -- no client-side template
+// desk:/title:/brief:/source:/url: block directly into a plain textarea — no client-side template
 // assembly to hook into, see TickerManagementModal.tsx). Stamping "Mode: Manual" per block here,
 // server-side, is the only reliable place: every block saved through THIS handler (contentMode ===
 // 'Manual') was, by construction, entered manually, so this is safe to add unconditionally rather
@@ -46,7 +46,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         const providerId = slot.providerId && typeof slot.providerId === 'string' && slot.providerId.trim() !== '' && slot.providerId !== 'undefined' && slot.providerId !== 'null' ? slot.providerId : null;
         console.log(`Slot ${slot.slotIndex}: raw providerId = "${slot.providerId}", mapped = ${providerId}`);
 
-        // Bidang kini senarai tertutup kurasi Ketua Editor -- sekatan keras sama macam bajet
+        // Bidang kini senarai tertutup kurasi Ketua Editor — sekatan keras sama macam bajet
         // aksara, bukan cuma UI dropdown yang boleh dipintas terus dari API.
         const nextDesk = (slot.manualDesk || '').trim();
         if (nextDesk) {
@@ -60,7 +60,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         const prevDesk = (prevRow[0] && prevRow[0].manualDesk) || '';
 
         // Hard ceiling: a slot's own had aksara can never exceed what its card geometry can
-        // physically show, regardless of what the client sends -- clamp before it ever reaches
+        // physically show, regardless of what the client sends — clamp before it ever reaches
         // storage, so an oversized value can't sneak in and later get copied around on re-save.
         const ceiling = getGeometryCeilingForSlot(slot.slotIndex);
         if (typeof slot.maxTitle === 'number' && slot.maxTitle > ceiling.maxTitle) slot.maxTitle = ceiling.maxTitle;
@@ -88,8 +88,8 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
           }
         }
 
-        // Bidang slot betul-betul berubah -- kandungan live/pending lama dalam slot ni tak lagi
-        // sepadan Bidang terkunci baharu, arkib (status flip, bukan padam -- lihat
+        // Bidang slot betul-betul berubah — kandungan live/pending lama dalam slot ni tak lagi
+        // sepadan Bidang terkunci baharu, arkib (status flip, bukan padam — lihat
         // archiveLiveContentInSlot) supaya tak terus terpapar dengan Bidang yang tak sah.
         if (prevDesk.toLowerCase() !== nextDesk.toLowerCase()) {
           try {

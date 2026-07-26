@@ -3,28 +3,28 @@ import { BRAND } from '../../config/brand';
 import { Tooltip } from '../common/Tooltip';
 
 // Rujukan visual tunggal (warna, tipografi, komponen kongsi). Geometri kad (saiz, had aksara)
-// didokumentasikan berasingan di Perlembagaan -- muka ni tak ulang kandungan tu.
+// didokumentasikan berasingan di Perlembagaan — muka ni tak ulang kandungan tu.
 //
-// Nilai warna & fon TIDAK ditaip semula di sini -- dibaca terus daripada CSS custom properties
+// Nilai warna & fon TIDAK ditaip semula di sini — dibaca terus daripada CSS custom properties
 // hidup (getComputedStyle atas :root) supaya muka ni automatik betul bila src/index.css berubah,
 // sama falsafah dengan Perlembagaan yang import terus daripada GeometryConfig.js. Cuma NAMA
-// token (bukan nilai) yang perlu disenaraikan tangan di bawah -- JS tak boleh "temui" nama custom
+// token (bukan nilai) yang perlu disenaraikan tangan di bawah — JS tak boleh "temui" nama custom
 // property tanpa menghurai CSS mentah.
 
 const COLOR_TOKENS = [
-  { varName: '--color-Adjung-maroon', tw: 'bg-Adjung-maroon', usage: 'Aksen jenama utama -- butang, pautan, wordmark, sempadan aktif.' },
+  { varName: '--color-Adjung-maroon', tw: 'bg-Adjung-maroon', usage: 'Aksen jenama utama — butang, pautan, wordmark, sempadan aktif.' },
   { varName: '--color-Adjung-maroon-dark', tw: 'bg-Adjung-maroon-dark', usage: 'State hover/tekan bagi elemen maroon. Terbitan HSL -10 lightness drpd maroon utama (349deg 57% 32% -> 22%), bukan tekaan tangan.' },
   { varName: '--color-Adjung-cream', tw: 'bg-Adjung-cream', usage: 'Latar halaman (portal awam & Editorium, diselaraskan 2026-07-26).' },
   { varName: '--color-Adjung-dark', tw: 'bg-Adjung-dark', usage: 'Warna teks/ink utama.' },
-  { varName: '--color-Adjung-gray-light', tw: 'bg-Adjung-gray-light', usage: 'Neutral cair -- sempadan, latar sekunder.' },
+  { varName: '--color-Adjung-gray-light', tw: 'bg-Adjung-gray-light', usage: 'Neutral cair — sempadan, latar sekunder.' },
 ];
 
-// Belum jadi token @theme rasmi -- hex terus dlm komponen berkenaan. Disenaraikan di sini supaya
+// Belum jadi token @theme rasmi — hex terus dlm komponen berkenaan. Disenaraikan di sini supaya
 // kelihatan (bukan bersembunyi), bukan dakwaan yang ia dah "diselaraskan".
 const SEMANTIC_COLORS_UNTOKENIZED = [
-  { hex: '#b8934a', label: 'Emas/Ochre -- label seksyen dokumentasi', where: 'PerlembagaanConsole.tsx sahaja' },
-  { hex: '#3d6b4c', label: 'Hijau -- Toast berjaya (success)', where: 'Toast.tsx' },
-  { hex: '#a8241f', label: 'Merah karat -- Toast ralat (error)', where: 'Toast.tsx' },
+  { hex: '#b8934a', label: 'Emas/Ochre — label seksyen dokumentasi', where: 'PerlembagaanConsole.tsx sahaja' },
+  { hex: '#3d6b4c', label: 'Hijau — Toast berjaya (success)', where: 'Toast.tsx' },
+  { hex: '#a8241f', label: 'Merah karat — Toast ralat (error)', where: 'Toast.tsx' },
 ];
 
 const FONT_TOKENS = [
@@ -84,18 +84,18 @@ export const SistemRekaBentukConsole: React.FC = () => {
           Sistem Reka Bentuk Adjung Brief
         </h2>
         <p className="font-sans text-xs text-stone-600 max-w-2xl">
-          Rujukan tunggal identiti visual -- jenama, warna, tipografi, komponen kongsi. Nilai di
+          Rujukan tunggal identiti visual — jenama, warna, tipografi, komponen kongsi. Nilai di
           bawah dibaca TERUS daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/index.css</code> dan{' '}
           <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/config/brand.ts</code> semasa
-          muka ni dimuatkan -- bukan salinan tangan. Peraturan geometri kad (saiz slot, had aksara)
+          muka ni dimuatkan — bukan salinan tangan. Peraturan geometri kad (saiz slot, had aksara)
           kekal di <span className="font-semibold text-stone-800">Perlembagaan</span>, tak diulang di sini.
         </p>
       </div>
 
-      {/* 01 -- BRAND IDENTITY */}
+      {/* 01 — BRAND IDENTITY */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          01 -- Identiti Jenama
+          01 — Identiti Jenama
         </span>
         <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-xs">
           <div className="flex flex-col items-center text-center py-4 mb-5 border-b border-stone-150">
@@ -122,16 +122,16 @@ export const SistemRekaBentukConsole: React.FC = () => {
           </table>
           <p className="font-sans text-[10px] text-stone-500 mt-3 italic">
             Simbol (segi empat tegak, nisbah 1:2, sudut 0px) ikut Sistem Identiti Visual Adjung
-            v1.0 (Mei 2025) -- <code className="not-italic bg-stone-100 px-1 py-0.5 rounded">public/adjung-symbol.svg</code>.
+            v1.0 (Mei 2025) — <code className="not-italic bg-stone-100 px-1 py-0.5 rounded">public/adjung-symbol.svg</code>.
             Favicon dikemas kini guna simbol ni (bukan lagi segi empat rata tanpa reka bentuk).
           </p>
 
-          {/* Sistem Logo -- 4 versi dibenarkan ikut panduan v1.0 seksyen 12 (Logo System).
+          {/* Sistem Logo — 4 versi dibenarkan ikut panduan v1.0 seksyen 12 (Logo System).
               Disusun terus drpd aset sebenar (adjung-symbol.svg + BRAND.logoText), bukan gambar
-              statik -- kalau simbol/wordmark berubah, keempat-empat versi ni ikut berubah sekali. */}
+              statik — kalau simbol/wordmark berubah, keempat-empat versi ni ikut berubah sekali. */}
           <div className="mt-6 pt-5 border-t border-stone-150">
             <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold block mb-3">
-              Sistem Logo -- 4 versi dibenarkan (Panduan v1.0, seksyen 12)
+              Sistem Logo — 4 versi dibenarkan (Panduan v1.0, seksyen 12)
             </span>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="flex flex-col">
@@ -164,16 +164,16 @@ export const SistemRekaBentukConsole: React.FC = () => {
             </div>
             <p className="font-sans text-[10px] text-stone-500 mt-3 italic">
               Senarai ini disusun drpd imej panduan yang dikongsi Izzat (bukan fail hidup boleh
-              dirujuk semula) -- sahkan label tepat kalau ada silap.
+              dirujuk semula) — sahkan label tepat kalau ada silap.
             </p>
           </div>
         </div>
       </div>
 
-      {/* 02 -- COLORS */}
+      {/* 02 — COLORS */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          02 -- Warna
+          02 — Warna
         </span>
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
@@ -190,7 +190,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
 
           <div className="pt-4 border-t border-stone-150">
             <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold block mb-2.5">
-              Warna semantik -- belum jadi token @theme, hex terus dlm komponen
+              Warna semantik — belum jadi token @theme, hex terus dlm komponen
             </span>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {SEMANTIC_COLORS_UNTOKENIZED.map(c => (
@@ -208,10 +208,10 @@ export const SistemRekaBentukConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 03 -- TYPOGRAPHY */}
+      {/* 03 — TYPOGRAPHY */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          03 -- Tipografi
+          03 — Tipografi
         </span>
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
           {FONT_TOKENS.map(f => (
@@ -231,19 +231,19 @@ export const SistemRekaBentukConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 04 -- COMPONENTS */}
+      {/* 04 — COMPONENTS */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          04 -- Komponen Kongsi
+          04 — Komponen Kongsi
         </span>
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-6">
           <div>
             <div className="font-serif text-sm font-bold text-stone-900 mb-1">Tooltip</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
               Ganti sepenuhnya atribut <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">title=</code> native
-              (32 tempat, digantikan 2026-07-25). Halaman ni sendiri guna Tooltip -- hover atas swatch warna di atas.
+              (32 tempat, digantikan 2026-07-25). Halaman ni sendiri guna Tooltip — hover atas swatch warna di atas.
             </p>
-            <Tooltip text="Contoh tooltip Adjung -- opacity+blur, maroon, tiada border">
+            <Tooltip text="Contoh tooltip Adjung — opacity+blur, maroon, tiada border">
               <button className="px-3 py-1.5 bg-[#802334] hover:bg-Adjung-maroon-dark text-white rounded text-xs font-semibold cursor-pointer shadow-sm">
                 Hover Saya
               </button>

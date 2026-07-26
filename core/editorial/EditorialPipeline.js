@@ -171,7 +171,7 @@ class EditorialPipeline {
         maxSummaryLen = 250;
         limitDesc = 'mestilah di antara 220 hingga 250 aksara untuk kad Hero utama.';
       } else if (TIER_SLOTS.MENEGAK.includes(slotIndex)) {
-        // Was literally [1, 12, 14, 25, 36] -- 14/25/36 aren't MENEGAK slots at all (they're
+        // Was literally [1, 12, 14, 25, 36] — 14/25/36 aren't MENEGAK slots at all (they're
         // SEGI_EMPAT_MEDIUM/SMALL, with a much smaller real budget), and the real MENEGAK slots
         // 15/26/29/37 were missing from the array entirely, so they never got this target.
         minSummaryLen = 300;
@@ -260,11 +260,11 @@ ${masterPrompt}
 Arahan Bidang: Kandungan yang ditulis MESTILAH berkaitan dengan bidang: "${slot.manualDesk.trim().toUpperCase()}".
 `;
       // Topik (sub-fokus dalam Bidang di atas) hanya terpakai untuk kad "Standard" (bukan Ticker,
-      // bukan BAR -- dua-dua dikecualikan ciri Bidang/Topik). Diminta di sini, di bawah Bidang yang
+      // bukan BAR — dua-dua dikecualikan ciri Bidang/Topik). Diminta di sini, di bawah Bidang yang
       // sudah diwajibkan, supaya Topik yang dijana kekal koheren dengan Bidang tersebut.
       if (slotIndex !== -1 && !isBarSlot) {
         userPrompt += `
-Arahan Topik: Sertakan juga 'topik' -- fokus khusus kandungan ni DALAM bidang "${slot.manualDesk.trim().toUpperCase()}" yang diwajibkan di atas (cth: dalam bidang Ekonomi -- Kewangan, Perbankan).
+Arahan Topik: Sertakan juga 'topik' — fokus khusus kandungan ni DALAM bidang "${slot.manualDesk.trim().toUpperCase()}" yang diwajibkan di atas (cth: dalam bidang Ekonomi — Kewangan, Perbankan).
 `;
       }
     }
@@ -390,7 +390,7 @@ ${slot.sourcesList.trim()}
         const title = (item.title || '').trim();
         const brief = (item.brief || '').trim();
 
-        // Same hard-block as every other tier -- Ticker is not an exception. Previously this
+        // Same hard-block as every other tier — Ticker is not an exception. Previously this
         // silently `.slice()`d oversized text to fit instead of enforcing the budget, which meant
         // an AI-generated ticker item could never actually fail validation the way every other
         // tier's content can. Here we skip (not truncate) an item that doesn't fit, so the ticker
@@ -448,7 +448,7 @@ ${slot.sourcesList.trim()}
     }
 
     // BAR-tier content has no brief by design (GEOMETRY_RATIOS.BAR.maxBriefAlone === 0), so
-    // EditorialValidator.validate -- which requires a non-empty summary -- doesn't apply to it.
+    // EditorialValidator.validate — which requires a non-empty summary — doesn't apply to it.
     let validation = { isValid: true, cleanTitle: (parsedJson.title || '').trim(), cleanSummary: (parsedJson.summary || '').trim() };
     if (!isBarSlot) {
       validation = EditorialValidator.validate(parsedJson.title, parsedJson.summary);
@@ -456,7 +456,7 @@ ${slot.sourcesList.trim()}
         throw new Error(`Validation failed: ${validation.reason}`);
       }
     }
-    // Same budget rule as every other content path: every slot of this tier -- BAR included -- is
+    // Same budget rule as every other content path: every slot of this tier — BAR included — is
     // held to the exact same title+brief space budget (core/editorial/ContentBudget.js), regardless
     // of how the content was produced.
     const budgetCheck = validateContentBudget(slotIndex, validation.cleanTitle, validation.cleanSummary);
@@ -472,7 +472,7 @@ ${slot.sourcesList.trim()}
     const finalTopik = parsedJson.topik ? parsedJson.topik.trim() : '';
 
     // Bidang terkunci per-slot (finalCategory already reflects the manualDesk override above),
-    // Topik wajib -- kecuali slot BAR (dikecualikan ciri Bidang/Topik sepenuhnya). If the AI failed
+    // Topik wajib — kecuali slot BAR (dikecualikan ciri Bidang/Topik sepenuhnya). If the AI failed
     // to include a topik, treat the generation as failed, same as a budget-check failure above --
     // don't silently save content missing the now-mandatory field.
     if (!isBarSlot) {

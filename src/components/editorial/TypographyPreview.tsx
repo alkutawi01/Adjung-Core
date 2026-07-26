@@ -15,17 +15,17 @@ export const TypographyPreview: React.FC<{
       <div className="flex justify-between items-center">
         <label className="font-mono text-[10px] uppercase font-bold text-amber-900 tracking-wider flex items-center gap-1.5">
           <FlaskConical className="w-3.5 h-3.5" strokeWidth={2} />
-          <span>Pratonton Tipografi Langsung (Live Sandbox Preview)</span>
+          <span>Pratonton Tipografi Langsung</span>
         </label>
         <select
           value={targetScope}
           onChange={(e) => setTargetScope(e.target.value)}
           className="px-2 py-0.5 text-[10px] font-mono border border-amber-300 rounded bg-white"
         >
-          <option value="all">Semua Skop (All)</option>
-          <option value="title">Tajuk (Title)</option>
-          <option value="brief">Huraian (Brief)</option>
-          <option value="body">Kandungan (Body)</option>
+          <option value="all">Semua Skop</option>
+          <option value="title">Tajuk</option>
+          <option value="brief">Huraian</option>
+          <option value="body">Kandungan</option>
         </select>
       </div>
 

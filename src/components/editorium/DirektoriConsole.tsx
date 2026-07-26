@@ -56,10 +56,10 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const [editingMandat, setEditingMandat] = useState(false);
   const [mandatInput, setMandatInput] = useState('');
 
-  // No staff-directory table exists in the backend yet -- this console previously showed 4
+  // No staff-directory table exists in the backend yet — this console previously showed 4
   // hardcoded fake profiles (Izzat, Ahmad, Ali, Fatimah) with fabricated activity counts and
   // history instead of being honest that there's no real data source here. Empty until a real
-  // multi-editor account system exists (see .agents/AGENTS.md -- solo Chief Editor for now).
+  // multi-editor account system exists (see .agents/AGENTS.md — solo Chief Editor for now).
   const [staffList, setStaffList] = useState<StaffProfile[]>([]);
 
   const filteredStaff = staffList.filter(s =>
@@ -109,7 +109,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           </div>
 
           {currentUserRole === 'KETUA_EDITOR' && (
-            <Tooltip text="Belum dibina -- tiada sistem akaun pengguna berbilang lagi">
+            <Tooltip text="Belum dibina — tiada sistem akaun pengguna berbilang lagi">
               <span
                 className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-400 font-mono text-xs px-4 py-2 rounded font-bold border border-stone-200 cursor-not-allowed"
               >
@@ -144,7 +144,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                   </div>
                   <div className="font-bold uppercase tracking-wider text-[11px] mb-1">Direktori Kosong</div>
                   <p className="text-xs max-w-sm mx-auto">
-                    Belum ada anggota lain berdaftar -- sistem akaun pengguna berbilang belum dibina.
+                    Belum ada anggota lain berdaftar — sistem akaun pengguna berbilang belum dibina.
                     Sekarang hanya Ketua Editor seorang yang beroperasi.
                   </p>
                 </td>

@@ -106,7 +106,7 @@ baharu/diedit (bukan status-sahaja), disahkan oleh
 `validateBidangTopik()` di `core/editorial/ContentBudget.js`, dipanggil di setiap
 laluan simpan yang sama seperti `validateContentBudget()` di atas. Pertukaran Bidang
 slot tidak retroaktif — cuma mempengaruhi kandungan baharu selepas perubahan. Rujuk
-seksyen "03 -- Bidang & Topik" dalam Perlembagaan (Editorium) untuk butiran penuh.
+seksyen "03 — Bidang & Topik" dalam Perlembagaan (Editorium) untuk butiran penuh.
 
 ## Bila teragak-agak
 

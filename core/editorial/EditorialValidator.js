@@ -1,4 +1,4 @@
-// Length limits are NOT checked here -- a title and its brief share one fixed space budget per
+// Length limits are NOT checked here — a title and its brief share one fixed space budget per
 // card (see core/editorial/ContentBudget.js's validateContentBudget), so checking either field
 // against a flat number in isolation is wrong regardless of what that number is. This class only
 // checks for the one thing that's universally invalid no matter the slot: empty content.

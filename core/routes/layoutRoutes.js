@@ -1,7 +1,7 @@
 import express from 'express';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 
-// resolveSlotContent stays defined in server.js -- it's the render-time function that resolves
+// resolveSlotContent stays defined in server.js — it's the render-time function that resolves
 // each slot's AI-Generated/Manual content (including the parseManualSummaryTemplate fallback for
 // slots never migrated to real editorial_objects rows), passed in here as a parameter rather than
 // moved.

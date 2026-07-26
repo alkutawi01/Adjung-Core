@@ -127,7 +127,7 @@ class PresentationComposer {
       // Compact (KOMPAK) cards now render desk/source/url/date and a brief line (2026-07-21
       // update), so the old SPEC-023 rule stripping this metadata down to bare title would
       // silently discard real, accurate desk/source/url data and fall back to "UMUM"/"Umum"/"#"
-      // placeholders -- same shape as standard-news, plus brief.
+      // placeholders — same shape as standard-news, plus brief.
       return {
         layoutVariant,
         presentationProfile,

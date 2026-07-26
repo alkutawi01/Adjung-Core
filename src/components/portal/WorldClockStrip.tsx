@@ -15,10 +15,10 @@ interface ClockTime {
 
 // States with an official Friday-Saturday weekend (and the matching KPM school-calendar
 // Kumpulan A). Johor observed this from 2014 but reverted to the standard Saturday-Sunday
-// weekend on 2025-01-01 -- do not add it back without checking current state policy first.
+// weekend on 2025-01-01 — do not add it back without checking current state policy first.
 const FRIDAY_SATURDAY_WEEKEND_CITIES = ['Kota Bharu', 'Kuala Terengganu', 'Alor Setar'];
 
-// JAKIM zone code per city, for Maghrib-adjusted Hijri date lookups -- same 3 cities as above.
+// JAKIM zone code per city, for Maghrib-adjusted Hijri date lookups — same 3 cities as above.
 const HIJRI_ZONE_BY_CITY: Record<string, string> = {
   'Alor Setar': 'KDH01',
   'Kota Bharu': 'KTN01',
@@ -174,12 +174,12 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   const [cityWeather, setCityWeather] = useState<Record<string, { temp: number; code: number }>>({});
 
   // Official JAKIM Hijri date, Maghrib-adjusted per state (the Islamic day begins at sunset, not
-  // midnight, and Maghrib time itself varies slightly by location -- so each of the 3 cities needs
+  // midnight, and Maghrib time itself varies slightly by location — so each of the 3 cities needs
   // its own zone lookup, not one shared value). Fetched once per minute (not per-second like the
-  // clock -- a date-plus-Maghrib-cutover doesn't need finer resolution, and this keeps the request
+  // clock — a date-plus-Maghrib-cutover doesn't need finer resolution, and this keeps the request
   // volume reasonable while still catching the Maghrib transition itself same-evening). Falls back
   // to a local islamic-umalqura estimate (computed in updateTime below, no Maghrib adjustment) if
-  // the fetch fails -- confirmed via direct comparison against JAKIM's data that the local estimate
+  // the fetch fails — confirmed via direct comparison against JAKIM's data that the local estimate
   // can drift a day off the real one, so the API result is preferred whenever it's reachable.
   const [jakimHijriByCity, setJakimHijriByCity] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -321,7 +321,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
 
           // Kedah/Terengganu/Kelantan (same 3 states as FRIDAY_SATURDAY_WEEKEND_CITIES) show a
           // Hijri date instead of Gregorian, same DD/MM/YY display format. Only the display
-          // string changes -- dateStr/gregKey above stay Gregorian since holiday matching (both
+          // string changes — dateStr/gregKey above stay Gregorian since holiday matching (both
           // HOLIDAYS_2026 and custom-holiday text) is keyed to the Gregorian calendar.
           let displayDateStr = dateStr;
           if (FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name)) {

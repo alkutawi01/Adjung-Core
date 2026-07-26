@@ -1,7 +1,7 @@
 import React from 'react';
 import { NotebookText } from 'lucide-react';
 
-// No audit-log table exists in the backend yet -- this console has no real data source to read
+// No audit-log table exists in the backend yet — this console has no real data source to read
 // from. Previously showed 4 hardcoded fake entries (Ahmad, Izzat, Ali) instead of being honest
 // about that. Shows an empty state until a real audit_log table + write-path is built.
 export const LogAuditConsole: React.FC = () => {

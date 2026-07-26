@@ -1,5 +1,17 @@
 [
   {
+    "time": "2026-07-26T16:10:35.382Z",
+    "summary": "Buang penerangan kurungan hiasan (Disyorkan)/(Pantas)/(jika ada)/dll di borang Tetapan/Ticker/Slot; padankan Italic->Condong dgn nama semasa; terjemah label kata nama am Inggeris (Reset->Set Semula, Source Trust->Kepercayaan Sumber, dll) sambil kekalkan kata nama khas (RSS, URL, ACEF, nama sumber) dlm Bahasa Inggeris.",
+    "files": [
+      "src/components/editorium/TetapanConsole.tsx",
+      "src/components/editorium/IndeksConsole.tsx",
+      "src/components/editorium/EditorialIntelligencePlatform.tsx",
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/portal/TickerManagementModal.tsx",
+      "src/components/editorial/TypographyPreview.tsx"
+    ]
+  },
+  {
     "time": "2026-07-26T15:16:26.216Z",
     "summary": "Betulkan istilah 'Kamus Istilah Auto-Italic' (guna English 'Italic' terus) jadi 'Senarai Istilah Autocondong' (Bahasa Melayu penuh), atas teguran pemilik projek.",
     "files": [

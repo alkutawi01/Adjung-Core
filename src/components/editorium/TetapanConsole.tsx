@@ -3,7 +3,7 @@ import { Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, R
 import { EditorialIntelligencePlatform } from './EditorialIntelligencePlatform';
 
 // Bidang kini senarai tertutup kurasi Ketua Editor, disimpan di CategoryRegistry (jadual DB
-// sebenar, bukan lagi dikira semula dari kandungan hidup) -- lihat GET /api/system/categories/active.
+// sebenar, bukan lagi dikira semula dari kandungan hidup) — lihat GET /api/system/categories/active.
 interface ActiveBidang {
   id: string;
   slug: string;
@@ -75,7 +75,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   // Interactive Configuration Drawer Modal State
   const [activeConfigModal, setActiveConfigModal] = useState<'italic' | 'add_desk' | null>(null);
 
-  // Senarai Istilah Autocondong -- backed by the same adjung_typography_rules table the main
+  // Senarai Istilah Autocondong — backed by the same adjung_typography_rules table the main
   // frontpage settings drawer uses (core/routes/slotRoutes.js), not a separate local list. That
   // fuller drawer (Tetapan Slot) exposes scope/bahasa/keutamaan/exclude-terms + status toggle;
   // modal ni sengaja kekal ringkas (tambah/buang sahaja) untuk akses pantas, tapi papar status
@@ -136,7 +136,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
-  // Governance Jam Dunia (World Clock) -- these were previously local-only state with no
+  // Governance Jam Dunia (World Clock) — these were previously local-only state with no
   // backing DB columns at all (WorldClockStrip.tsx has read systemSettings.worldClockIntervalSec
   // / worldClockBgClickEnabled from day one, but nothing ever wrote them). Now backed by real
   // columns on system_settings.
@@ -164,7 +164,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   };
 
   // Saving system_settings is a full INSERT OR REPLACE server-side (server.js POST
-  // /api/system/settings) -- always fetch the current row and merge in just the field(s) being
+  // /api/system/settings) — always fetch the current row and merge in just the field(s) being
   // changed here, or unrelated settings saved elsewhere (frontpage title, banners, etc.) get
   // silently wiped.
   const saveSystemSettingsPatch = async (patch: Record<string, any>) => {
@@ -197,7 +197,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
-  // Taksonomi Bidang -- senarai tertutup, dari CategoryRegistry (GET /categories/active).
+  // Taksonomi Bidang — senarai tertutup, dari CategoryRegistry (GET /categories/active).
   const [desks, setDesks] = useState<ActiveBidang[]>([]);
   const [desksLoading, setDesksLoading] = useState(true);
   const [expandedBidangId, setExpandedBidangId] = useState<string | null>(null);
@@ -251,7 +251,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
-  // Blocked RSS categories -- real CRUD table (rss_blocked_categories), managed here AND in the
+  // Blocked RSS categories — real CRUD table (rss_blocked_categories), managed here AND in the
   // main frontpage's Ticker Management modal; both point at the same backend so they can never
   // drift out of sync with each other.
   const [blockedCategories, setBlockedCategories] = useState<BlockedCategory[]>([]);
@@ -299,7 +299,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
-  // Live Classifier Tester -- exercises the real desk-classification engine
+  // Live Classifier Tester — exercises the real desk-classification engine
   // (core/engines/DeskClassifierEngine.js via /api/system/rss-desk-rules/test).
   const [testInputTitle, setTestInputTitle] = useState('PDRM tahan 3 suspek kes jenayah biometrik di KLIA');
   const [testInputBrief, setTestInputBrief] = useState('Siasatan lanjut mendapati penglibatan sindiket antarabangsa.');
@@ -347,12 +347,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     fetchActiveBidang();
   }, []);
 
-  // Modal Tambah Bidang -- Nama + Warna sahaja (schema CategoryRegistry tiada "kod"/"label ticker").
+  // Modal Tambah Bidang — Nama + Warna sahaja (schema CategoryRegistry tiada "kod"/"label ticker").
   const [newDeskName, setNewDeskName] = useState('');
   const [newDeskColor, setNewDeskColor] = useState('#802334');
   const [addingDesk, setAddingDesk] = useState(false);
 
-  // Interactive RBAC Permission Matrix State -- backed by system_settings.rolePermissions.
+  // Interactive RBAC Permission Matrix State — backed by system_settings.rolePermissions.
   const [rbacMatrix, setRbacMatrix] = useState<RbacMatrixRow[]>(DEFAULT_RBAC_MATRIX);
   const [savingRbac, setSavingRbac] = useState(false);
   const [rbacSaveError, setRbacSaveError] = useState<string | null>(null);
@@ -523,7 +523,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         </div>
       )}
 
-      {/* 2. TAKSONOMI (BIDANG -- SENARAI TERTUTUP) */}
+      {/* 2. TAKSONOMI (BIDANG — SENARAI TERTUTUP) */}
       {subTab === 'Taksonomi' && (
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
@@ -533,7 +533,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   Taksonomi Bidang (Senarai Tertutup)
                 </h3>
                 <p className="text-stone-500 text-xs">
-                  Senarai Bidang yang boleh dipilih untuk setiap slot (selain Ticker dan tier Bar) -- dikurasi Ketua Editor sahaja. Menukar Bidang sesuatu slot akan mengarkibkan kandungan live sedia ada dalam slot tu.
+                  Senarai Bidang yang boleh dipilih untuk setiap slot (selain Ticker dan tier Bar) — dikurasi Ketua Editor sahaja. Menukar Bidang sesuatu slot akan mengarkibkan kandungan live sedia ada dalam slot tu.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -616,7 +616,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                         <tr>
                           <td colSpan={4} className="p-4 bg-stone-50">
                             <div className="text-[9px] uppercase font-bold text-stone-500 mb-2">
-                              Tanda slot untuk peruntukkan Bidang "{d.name}" -- nyahtanda untuk kosongkan
+                              Tanda slot untuk peruntukkan Bidang "{d.name}" — nyahtanda untuk kosongkan
                             </div>
                             <div className="grid grid-cols-6 md:grid-cols-10 gap-2">
                               {Array.from({ length: 38 }, (_, i) => i).map(slotIndex => {
@@ -648,7 +648,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             )}
           </div>
 
-          {/* Live Desk Classifier Tester -- exercises the real rss-desk-rules/test endpoint */}
+          {/* Live Desk Classifier Tester — exercises the real rss-desk-rules/test endpoint */}
           <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
             <div>
               <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
@@ -664,7 +664,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <input type="text" value={testInputTitle} onChange={e => setTestInputTitle(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
               </div>
               <div>
-                <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Kategori Mentah RSS (jika ada)</label>
+                <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Kategori Mentah RSS</label>
                 <input type="text" value={testInputCategory} onChange={e => setTestInputCategory(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
               </div>
               <div className="md:col-span-2">
@@ -694,17 +694,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {subTab === 'Operasi' && (
         <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-6 text-xs">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
-            <Newspaper className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Frontpage → Urus Ticker</strong>, bukan di sini -- supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
+            <Newspaper className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Frontpage → Urus Ticker</strong>, bukan di sini — supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
           </div>
 
-          {/* Kategori RSS Tersekat -- shared with the Frontpage Ticker Management modal */}
+          {/* Kategori RSS Tersekat — shared with the Frontpage Ticker Management modal */}
           <div className="space-y-3">
             <div>
               <h4 className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold mb-0.5">
-                Kategori RSS Tersekat (Blocked Category Tags)
+                Kategori RSS Tersekat
               </h4>
               <p className="text-stone-500 text-[11px]">
-                Kategori mentah RSS yang disenaraikan di sini turut terpakai di modal Urus Ticker Frontpage -- satu senarai kongsi.
+                Kategori mentah RSS yang disenaraikan di sini turut terpakai di modal Urus Ticker Frontpage — satu senarai kongsi.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -728,7 +728,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             </div>
           </div>
 
-          {/* Had Geometri Aksara Mengikut 8 Tier -- this used to be a hand-typed duplicate of
+          {/* Had Geometri Aksara Mengikut 8 Tier — this used to be a hand-typed duplicate of
               core/editorial/GeometryConfig.js and had already drifted stale (BAR showed the old
               ratio 0.850 after GeometryConfig.js was corrected to 0). Removed in favour of the
               live chart on the Perlembagaan tab, which reads the same module directly so it can
@@ -774,11 +774,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   onChange={(e) => setWorldClockIntervalSec(Number(e.target.value))}
                   className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[#802334]"
                 >
-                  <option value={30}>30 Saat (Pantas)</option>
-                  <option value={60}>60 Saat / 1 Minit (Disyorkan)</option>
+                  <option value={30}>30 Saat</option>
+                  <option value={60}>60 Saat / 1 Minit</option>
                   <option value={120}>120 Saat / 2 Minit</option>
                   <option value={300}>300 Saat / 5 Minit</option>
-                  <option value={0}>Matikan Auto-Slaid (Manual Sahaja)</option>
+                  <option value={0}>Matikan Auto-Slaid</option>
                 </select>
                 <span className="text-[10px] text-stone-400 block">
                   Paparan Jam Dunia akan bertukar set (Set 1 ➔ Set 2 ➔ Set 3) secara automatik mengikut masa ini.
@@ -794,8 +794,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   onChange={(e) => setWorldClockBgClickEnabled(e.target.value === '1')}
                   className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[#802334]"
                 >
-                  <option value="1">Aktif (Klik Mana-mana Ruang Kosong untuk Tukar Set)</option>
-                  <option value="0">Tidak Aktif (Guna Pemasa Automatik Sahaja)</option>
+                  <option value="1">Aktif</option>
+                  <option value="0">Tidak Aktif</option>
                 </select>
                 <span className="text-[10px] text-stone-400 block">
                   Apabila aktif, pengguna boleh menukar set paparan bandar dengan mengklik mana-mana ruang kosong di luar kad bento.
@@ -868,7 +868,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {subTab === 'Komponen' && (
         <div className="space-y-4">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900 text-xs">
-            <Construction className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> AEIP di bawah ini masih prototaip antara muka sahaja -- tiada enjin rule-pack/experiment/release sebenar di belakangnya lagi. Ia bukan sekadar salah wiring (macam bahagian lain Tetapan yang baru dibaiki), sebaliknya keseluruhan sistem baru perlu dibina dari kosong. Ditangguhkan buat masa ini memandangkan skopnya jauh lebih besar daripada pembaikan lain dalam laluan ini -- bincang dengan saya dahulu sebelum melabur masa membina backend penuh untuknya.
+            <Construction className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> AEIP di bawah ini masih prototaip antara muka sahaja — tiada enjin rule-pack/experiment/release sebenar di belakangnya lagi. Ia bukan sekadar salah wiring (macam bahagian lain Tetapan yang baru dibaiki), sebaliknya keseluruhan sistem baru perlu dibina dari kosong. Ditangguhkan buat masa ini memandangkan skopnya jauh lebih besar daripada pembaikan lain dalam laluan ini — bincang dengan saya dahulu sebelum melabur masa membina backend penuh untuknya.
           </div>
           <EditorialIntelligencePlatform />
         </div>
@@ -974,7 +974,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             <p className="text-stone-600 text-xs">
               Setiap perkataan di sini dicondongkan secara automatik oleh enjin tipografi Adjung semasa paparan
               (data asal tak diubah kekal). Senarai ni sama dengan yang di panel Peraturan Tipografi penuh
-              (Tetapan Slot) -- tambah/buang pantas di sini sahaja; untuk skop, bahasa, keutamaan atau
+              (Tetapan Slot) — tambah/buang pantas di sini sahaja; untuk skop, bahasa, keutamaan atau
               kekecualian, guna panel penuh tu.
             </p>
 

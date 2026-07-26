@@ -12,11 +12,11 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
-  // Peranan Editorium (Ketua Editor / Editor) -- kongsi di sini (bukan local state dalam
+  // Peranan Editorium (Ketua Editor / Editor) — kongsi di sini (bukan local state dalam
   // EditoriumView) supaya FrontpageView (borang Tetapan Slot Bidang) turut boleh kunci ikut
   // peranan yang sama. Toggle kosmetik sahaja (auth backend sebenar memang KIV, pra-MVP).
   // Disimpan ke localStorage sebab navigasi antara "/" dan "/editorium" guna <a href> biasa
-  // (bukan React Router Link) -- setiap pertukaran laman reload penuh & reset semua state App
+  // (bukan React Router Link) — setiap pertukaran laman reload penuh & reset semua state App
   // ni; tanpa localStorage, pilihan peranan akan sentiasa jatuh balik ke lalai setiap kali
   // pindah laman, menjadikan kunci Bidang tak bermakna dalam praktik.
   const ROLE_STORAGE_KEY = 'adjung-editorium-role';

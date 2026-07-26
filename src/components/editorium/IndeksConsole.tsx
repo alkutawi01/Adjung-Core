@@ -19,7 +19,7 @@ interface BriefRecord {
 }
 
 // Renders a tier label, condong (italic) whenever GeometryConfig flags it as an unapproved
-// English/borrowed word -- same rule and same source as PerlembagaanConsole.tsx's TierLabel.
+// English/borrowed word — same rule and same source as PerlembagaanConsole.tsx's TierLabel.
 const TierLabel: React.FC<{ tier: string }> = ({ tier }) =>
   TIER_LABEL_IS_ENGLISH[tier] ? <em className="italic">{TIER_LABELS[tier]}</em> : <>{TIER_LABELS[tier]}</>;
 
@@ -55,21 +55,21 @@ const LABEL_TO_STATUS: Record<BriefRecord['status'], string> = {
 // "Kaedah" ni sepatutnya sama konsep dengan "Mod Kandungan" yang dah sedia ada & user-facing di
 // borang Urus Slot/Ticker (FrontpageView.tsx/TickerManagementModal.tsx): Manual / AI Generated /
 // RSS Direct (Ticker sahaja). createdBy ialah token mentah (laluan kod/skrin mana yang tulis baris
-// ni), BUKAN mod itu sendiri -- beberapa token berlainan sebenarnya sama mod:
+// ni), BUKAN mod itu sendiri — beberapa token berlainan sebenarnya sama mod:
 //   - manual-slot-save (Tetapan Slot), content-review (Semakan Kandungan, disahkan hanya ditulis
 //     semasa CIPTA oleh POST /content, tak pernah disentuh PATCH), migration-manual-blob (import
-//     dari sistem lama -- server.js:1873 "Exclude Manual-origin rows" sendiri kumpulkan ketiga-tiga
-//     token ni sebagai SATU kumpulan "Manual" untuk resolveSlotContent) -- kesemuanya "Manual".
-//   - pipeline-slot-* -- "AI Generated" (nama ditukar drpd "AI Pipeline" supaya sepadan istilah Mod
+//     dari sistem lama — server.js:1873 "Exclude Manual-origin rows" sendiri kumpulkan ketiga-tiga
+//     token ni sebagai SATU kumpulan "Manual" untuk resolveSlotContent) — kesemuanya "Manual".
+//   - pipeline-slot-* — "AI Generated" (nama ditukar drpd "AI Pipeline" supaya sepadan istilah Mod
 //     Kandungan sebenar, bukan reka istilah baharu).
-// Migrasi/"content-review" bukan mod berasingan -- ia jawab soalan lain (asal-usul/skrin mana),
+// Migrasi/"content-review" bukan mod berasingan — ia jawab soalan lain (asal-usul/skrin mana),
 // bukan "apa mod yang digunakan". Tiada sistem log masuk berbilang editor lagi, jadi medan ni
 // jawab *macam mana* dicipta, bukan *oleh siapa*.
 //
 // Ticker: contentRoutes.js kini hantar mod SEBENAR terus (Manual/AI Generated/RSS Direct, dihurai
-// dari baris "Mode:" dalam blok teks Ticker) -- bukan konstan 'ticker' tetap macam dulu. Nilai-nilai
+// dari baris "Mode:" dalam blok teks Ticker) — bukan konstan 'ticker' tetap macam dulu. Nilai-nilai
 // tu dah sepadan istilah di bawah secara semula jadi, jatuh ke `return createdBy` di penghujung
-// tanpa perlu pemetaan khas. Blok Ticker lama (sebelum medan Mode: wujud) hantar '' -- jatuh ke
+// tanpa perlu pemetaan khas. Blok Ticker lama (sebelum medan Mode: wujud) hantar '' — jatuh ke
 // "Tidak diketahui", jujur tentang jurang data, bukan silap paparan.
 const formatCreatedBy = (createdBy: string): string => {
   if (
@@ -79,13 +79,13 @@ const formatCreatedBy = (createdBy: string): string => {
     createdBy === 'migration-manual-blob'
   ) return 'Manual';
   if (createdBy.startsWith('pipeline-slot-')) return 'AI Generated';
-  if (!createdBy) return 'Tidak diketahui'; // data sebenar hilang -- genuine gap, patut kelihatan
+  if (!createdBy) return 'Tidak diketahui'; // data sebenar hilang — genuine gap, patut kelihatan
   return createdBy;
 };
 
 // Real geometry tier per slot (same source of truth the frontpage itself uses) instead of a
-// random rotation -- see core/editorial/GeometryConfig.js. Stores the tier KEY (e.g. 'HERO'),
-// not a display label -- TIER_LABELS (also from GeometryConfig.js) supplies the label at render
+// random rotation — see core/editorial/GeometryConfig.js. Stores the tier KEY (e.g. 'HERO'),
+// not a display label — TIER_LABELS (also from GeometryConfig.js) supplies the label at render
 // time, so this file carries no label copy of its own and can't drift from PerlembagaanConsole.
 const cardTypeForSlot = (slotIndex: number): string => {
   if (slotIndex === -1) return 'TICKER';
@@ -109,15 +109,15 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const [selectedDesk, setSelectedDesk] = useState<string>('Semua');
   const [selectedSlot, setSelectedSlot] = useState<string>('Semua');
 
-  // Editor View Filter: Saya vs Semua (Read Only) -- only meaningful once real EDITOR accounts
+  // Editor View Filter: Saya vs Semua (Read Only) — only meaningful once real EDITOR accounts
   // exist; KETUA_EDITOR always sees and can act on everything.
   const [editorViewMode, setEditorViewMode] = useState<'mine' | 'all'>(currentUserRole === 'EDITOR' ? 'mine' : 'all');
 
   // Detail Modal State
   const [activeItemModal, setActiveItemModal] = useState<BriefRecord | null>(null);
 
-  // Siar-semula kandungan archived -- Bidang/Topik/slot sasaran boleh diedit khusus untuk item
-  // berstatus Archive (lihat "03 -- Bidang & Topik" di Perlembagaan untuk peraturan penuh).
+  // Siar-semula kandungan archived — Bidang/Topik/slot sasaran boleh diedit khusus untuk item
+  // berstatus Archive (lihat "03 — Bidang & Topik" di Perlembagaan untuk peraturan penuh).
   const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string }[]>([]);
   const [allSlots, setAllSlots] = useState<{ slotIndex: number; manualDesk: string }[]>([]);
   const [reactivateDesk, setReactivateDesk] = useState('');
@@ -185,12 +185,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
   // Filter option lists derived from real loaded data, not hardcoded guesses.
   const deskOptions = useMemo(() => Array.from(new Set(items.map(i => i.desk))).sort(), [items]);
-  // Sumber sebenar (Astro Awani, Bernama, dll.) -- berasingan daripada creator/Kaedah di bawah.
-  // Ticker (source sentiasa kosong -- disimpan sebagai blob teks, bukan rekod berasingan) tak
+  // Sumber sebenar (Astro Awani, Bernama, dll.) — berasingan daripada creator/Kaedah di bawah.
+  // Ticker (source sentiasa kosong — disimpan sebagai blob teks, bukan rekod berasingan) tak
   // sumbang opsyen di sini.
   const sourceOptions = useMemo(() => Array.from(new Set(items.map(i => i.source).filter(Boolean))).sort(), [items]);
   // Ticker rows carry an empty creator (see formatCreatedBy) since Ticker isn't a "Kaedah" choice
-  // among Manual/AI Generated/dll. -- filtered out here so it can't show up as a blank option.
+  // among Manual/AI Generated/dll. — filtered out here so it can't show up as a blank option.
   const creatorOptions = useMemo(() => Array.from(new Set(items.map(i => i.creator).filter(Boolean))).sort(), [items]);
   const slotOptions = useMemo(() => {
     const slots: string[] = Array.from(new Set(items.map(i => i.slot)));
@@ -204,8 +204,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // Smart Filtering Logic
   const filteredRecords = useMemo(() => {
     return items.filter(item => {
-      // Editor View Mode Filter -- NOT enforced: item.creator is a machine token (which save path
-      // wrote it -- Manual/AI Generated/RSS Direct/dll., see formatCreatedBy above), not a real per-account
+      // Editor View Mode Filter — NOT enforced: item.creator is a machine token (which save path
+      // wrote it — Manual/AI Generated/RSS Direct/dll., see formatCreatedBy above), not a real per-account
       // author, so it can never equal currentUserName. Without real multi-editor sign-in there is no
       // way to know which content belongs to which editor, so "Kandungan Saya" intentionally shows
       // the same set as "Semua Kandungan" for now (see the notice banner rendered when this mode is
@@ -232,7 +232,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       // Filter: Sumber (nama sumber sebenar, cth Astro Awani)
       if (selectedSource !== 'Semua' && item.source !== selectedSource) return false;
 
-      // Filter: Kaedah (cara kandungan dicipta -- Manual/AI Generated/RSS Direct/dll.)
+      // Filter: Kaedah (cara kandungan dicipta — Manual/AI Generated/RSS Direct/dll.)
       if (selectedCreator !== 'Semua' && item.creator !== selectedCreator) return false;
 
       // Filter: Desk
@@ -274,7 +274,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   };
 
   // Siarkan Semula: kandungan archived boleh diaktifkan semula ke slot yang Bidangnya sepadan
-  // (asal atau lain) -- Bidang/Topik boleh diedit khusus di sini sebab item ni tak lagi terikat
+  // (asal atau lain) — Bidang/Topik boleh diedit khusus di sini sebab item ni tak lagi terikat
   // slot aktif. validateBidangTopik() di server semak semula terhadap slot SASARAN.
   const handleReactivate = async () => {
     if (!activeItemModal || reactivateSlotIndex === '') return;
@@ -412,7 +412,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </select>
           </div>
 
-          {/* 3b. Kaedah (cara kandungan dicipta -- Manual/AI Generated/RSS Direct/dll.) Filter */}
+          {/* 3b. Kaedah (cara kandungan dicipta — Manual/AI Generated/RSS Direct/dll.) Filter */}
           <div>
             <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">KAEDAH</label>
             <select
@@ -457,13 +457,13 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               onClick={handleResetFilters}
               className="w-full bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold px-3 py-1.5 rounded transition-colors text-[11px]"
             >
-              Reset Filter
+              Set Semula Penapis
             </button>
           </div>
         </div>
       </div>
 
-      {/* Editor View Switcher (Kandungan Saya vs Semua Read Only) -- relevant once real EDITOR accounts exist */}
+      {/* Editor View Switcher (Kandungan Saya vs Semua Read Only) — relevant once real EDITOR accounts exist */}
       {currentUserRole === 'EDITOR' && (
         <div className="flex bg-stone-100 p-1 rounded font-sans text-xs w-max border border-stone-200">
           <button
@@ -486,7 +486,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       )}
 
       {/* Jujur tentang had semasa: "Kandungan Saya" perlukan pengecaman siapa cipta apa mengikut
-          akaun sebenar -- sistem log masuk berbilang editor belum dibina (lihat formatCreatedBy di
+          akaun sebenar — sistem log masuk berbilang editor belum dibina (lihat formatCreatedBy di
           atas), jadi tapisan ni tak dapat dikuatkuasakan lagi. Papar penjelasan terus dan bukan
           senyap tunjuk 0 keputusan, yang lebih mengelirukan. */}
       {currentUserRole === 'EDITOR' && editorViewMode === 'mine' && (
@@ -538,7 +538,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               {filteredRecords.map(rec => {
                 // Same caveat as the Editor View Mode filter above: rec.creator !== currentUserName
                 // is always true today (no real per-account authorship yet), so this always evaluates
-                // to read-only for an Editor browsing "Semua Kandungan" -- treated as an acceptable
+                // to read-only for an Editor browsing "Semua Kandungan" — treated as an acceptable
                 // conservative default (better to under-permit than let an Editor edit content that
                 // might not be theirs) rather than something to "fix" until real ownership exists.
                 const isReadOnly = currentUserRole === 'EDITOR' && editorViewMode === 'all' && rec.creator !== currentUserName;
@@ -657,7 +657,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             {activeItemModal.status === 'Archive' && activeItemModal.slot !== 'Ticker' && (
               <div className="space-y-3 font-sans bg-amber-50 border border-amber-200 rounded p-4">
                 <div className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">
-                  Siar Semula -- Bidang kandungan ni tak lagi sepadan slot asal. Pilih Bidang dan slot sasaran (Bidang boleh diubah supaya sepadan slot lain).
+                  Siar Semula — Bidang kandungan ni tak lagi sepadan slot asal. Pilih Bidang dan slot sasaran (Bidang boleh diubah supaya sepadan slot lain).
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -695,7 +695,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       .map(s => <option key={s.slotIndex} value={s.slotIndex}>Slot {s.slotIndex + 1}</option>)}
                   </select>
                   {reactivateDesk && allSlots.filter(s => s.manualDesk.toLowerCase() === reactivateDesk.toLowerCase()).length === 0 && (
-                    <p className="text-[9px] text-amber-700 mt-1">Tiada slot ditetapkan untuk Bidang ni lagi -- tetapkan dulu di Tetapan &gt; Taksonomi.</p>
+                    <p className="text-[9px] text-amber-700 mt-1">Tiada slot ditetapkan untuk Bidang ni lagi — tetapkan dulu di Tetapan &gt; Taksonomi.</p>
                   )}
                 </div>
                 <button

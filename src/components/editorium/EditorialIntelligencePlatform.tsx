@@ -290,7 +290,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
 
                 <div className="flex gap-2">
                   <button className="bg-[#802334] hover:bg-[#962d42] text-white font-semibold px-3 py-1.5 rounded text-xs transition-colors shadow-2xs">
-                    <span className="inline-flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" /> Export ACEF Dataset (.txt)</span>
+                    <span className="inline-flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" /> Eksport Dataset ACEF (.txt)</span>
                   </button>
                 </div>
               </div>
@@ -300,11 +300,11 @@ export const EditorialIntelligencePlatform: React.FC = () => {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead className="bg-stone-100 border-b border-stone-200 text-stone-700 uppercase font-bold text-[10px]">
                     <tr>
-                      <th className="p-2.5">Project ID & Name</th>
+                      <th className="p-2.5">ID & Nama Projek</th>
                       <th className="p-2.5">Dataset ID Rujukan</th>
                       <th className="p-2.5">Bilangan Rekod</th>
                       <th className="p-2.5">Pengarang</th>
-                      <th className="p-2.5">Version Tag</th>
+                      <th className="p-2.5">Tag Versi</th>
                       <th className="p-2.5 text-right">Tindakan</th>
                     </tr>
                   </thead>
@@ -319,7 +319,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
                           <td className="p-2.5 text-stone-600">{proj.author}</td>
                           <td className="p-2.5 font-mono text-emerald-700 font-bold">{proj.versionTag}</td>
                           <td className="p-2.5 text-right">
-                            <button onClick={() => setSelectedProject(proj)} className="bg-stone-800 text-white px-2.5 py-1 rounded text-[11px] font-semibold">Pilih Project</button>
+                            <button onClick={() => setSelectedProject(proj)} className="bg-stone-800 text-white px-2.5 py-1 rounded text-[11px] font-semibold">Pilih Projek</button>
                           </td>
                         </tr>
                       );
@@ -377,8 +377,8 @@ export const EditorialIntelligencePlatform: React.FC = () => {
                       <span className="bg-emerald-800 text-white text-[10px] px-2 py-0.5 rounded uppercase font-bold">{rel.status}</span>
                     </div>
                     <div className="text-[11px] text-stone-600">
-                      <div>Project ID: {rel.projectId}</div>
-                      <div>Experiment ID: {rel.experimentId}</div>
+                      <div>ID Projek: {rel.projectId}</div>
+                      <div>ID Eksperimen: {rel.experimentId}</div>
                     </div>
                   </div>
                 ))}

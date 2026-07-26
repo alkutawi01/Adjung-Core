@@ -511,7 +511,7 @@ const seedDatabase = async () => {
     });
   });
 
-  // Each table's seed is gated on ITS OWN row count, independently -- not on the users table as
+  // Each table's seed is gated on ITS OWN row count, independently — not on the users table as
   // a proxy for "is the whole database empty". A database can legitimately have zero users (e.g.
   // right after clearing test/mock accounts) while still holding real settings/content, and
   // treating that as "fresh database" would try to re-insert a settings-main row that already
@@ -530,7 +530,7 @@ const seedDatabase = async () => {
 
   if (usersCount === 0) {
     // Note: hashPassword() is defined further down this file (search "Password hashing"), but
-    // function declarations aren't hoisted here since it's a const -- this runs from
+    // function declarations aren't hoisted here since it's a const — this runs from
     // initializeSchema().then(() => seedDatabase()) at module load time, after the whole file
     // (including that const) has already been evaluated, so it's safe to reference here.
     const defaultUserSeedPassword = 'adjung-brief-' + crypto.randomBytes(4).toString('hex');
@@ -547,7 +547,7 @@ const seedDatabase = async () => {
         hashPassword(defaultUserSeedPassword)
       ], (err) => {
         if (err) { console.error('Failed to seed Chief Editor account:', err.message); reject(err); return; }
-        console.log(`Seeded Chief Editor account "izzat" with a random temporary password: ${defaultUserSeedPassword} -- change this after first login.`);
+        console.log(`Seeded Chief Editor account "izzat" with a random temporary password: ${defaultUserSeedPassword} — change this after first login.`);
         resolve();
       });
     });
@@ -1398,7 +1398,7 @@ const initEditorialOS = (dbConn) => {
         if (err) reject(err);
         else {
           // Jalankan migrasi lajur tambahan secara selamat (mengabaikan ralat jika lajur sudah wujud)
-          // maxBriefLong: had aksara "Huraian Panjang" -- ciri baharu untuk spotlight mode (belum
+          // maxBriefLong: had aksara "Huraian Panjang" — ciri baharu untuk spotlight mode (belum
           // dibina), disimpan sekarang supaya kandungannya boleh mula dikumpul lebih awal.
           dbConn.run("ALTER TABLE slots_config ADD COLUMN maxBriefLong INTEGER", () => {});
           // editorial_attribute_values.attributeId has a FOREIGN KEY into editorial_attributes --
@@ -1408,21 +1408,21 @@ const initEditorialOS = (dbConn) => {
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('briefLong', 'Huraian Panjang', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('originalDate', 'Tarikh Asal', 'text')", () => {});
           // sourceType: turut disimpan oleh syncManualObjectsForSlot() (attrs array) tapi sebelum ni
-          // tak pernah didaftar di sini -- setiap simpan slot manual gagal senyap dgn
+          // tak pernah didaftar di sini — setiap simpan slot manual gagal senyap dgn
           // SQLITE_CONSTRAINT (FK), DELETE+INSERT sebelumnya rolled back, kandungan slot kekal kosong.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('sourceType', 'Jenis Sumber', 'text')", () => {});
-          // topik: subbidang bebas-had per-kandungan (Bidang -- 'desk' -- terkunci per-slot; Topik
+          // topik: subbidang bebas-had per-kandungan (Bidang — 'desk' — terkunci per-slot; Topik
           // boleh berbeza antara item dalam slot yang sama). Sama corak macam sourceType di atas --
           // kena didaftar dulu di sini atau INSERT gagal senyap dgn FK constraint.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('topik', 'Topik', 'text')", () => {});
           // Slot BAR sahaja: Penganjur/Lokasi/Akses (lihat Perlembagaan seksyen "Peraturan Khas
-          // Slot Bar"). Sama corak macam briefLong/originalDate di atas -- kena didaftar dulu di sini
+          // Slot Bar"). Sama corak macam briefLong/originalDate di atas — kena didaftar dulu di sini
           // sebelum syncManualObjectsForSlot() boleh simpannya, atau INSERT gagal senyap.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('organizer', 'Penganjur', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('location', 'Lokasi', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('access', 'Akses', 'text')", () => {});
           // Penerangan: huraian tambahan slot Bar, belum dipaparkan di mana-mana (disediakan untuk
-          // ciri akordion akan datang) -- tiada had aksara dikuatkuasakan setakat ini sebab tiada
+          // ciri akordion akan datang) — tiada had aksara dikuatkuasakan setakat ini sebab tiada
           // panel sebenar untuk diukur, sama macam briefLong sebelum ciri spotlight dibina.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('penerangan', 'Penerangan', 'text')", () => {});
           dbConn.run("ALTER TABLE slots_config ADD COLUMN manualDesk TEXT", () => {
@@ -1474,9 +1474,9 @@ const initEditorialOS = (dbConn) => {
                                                     )
                                                   `, () => {
                                                     // isActive: Bidang kini senarai tertutup kurasi Ketua Editor (bukan lagi
-                                                    // auto-daftar bebas) -- 93 baris sedia ada kekal isActive=0 (tak dipadam,
+                                                    // auto-daftar bebas) — 93 baris sedia ada kekal isActive=0 (tak dipadam,
                                                     // cuma tak boleh dipilih/dipapar lagi). GET /categories (sumber warna kad
-                                                    // awam) terus baca SEMUA baris tanpa tapisan isActive -- tak disentuh.
+                                                    // awam) terus baca SEMUA baris tanpa tapisan isActive — tak disentuh.
                                                     dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN isActive INTEGER NOT NULL DEFAULT 0", () => {
                                                       const BIDANG_TERKURASI = [
                                                         'Utama', 'Malaysiana', 'Geopolitik', 'Ekonomi', 'Bisnes', 'Teknologi',
@@ -1486,7 +1486,7 @@ const initEditorialOS = (dbConn) => {
                                                         'Sukan', 'Matematik'
                                                       ];
                                                       // Seed idempotent (activateCategory cari-atau-cipta ikut slug, paksa nama
-                                                      // & isActive=1) -- selamat jalan setiap kali server start, tak cipta
+                                                      // & isActive=1) — selamat jalan setiap kali server start, tak cipta
                                                       // baris pendua, dan betulkan casing lama (cth "EKONOMI" -> "Ekonomi").
                                                       (async () => {
                                                         for (const name of BIDANG_TERKURASI) {
@@ -1748,7 +1748,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
 
   // Hard-block: content that exceeds its card's shared title+brief space budget must never be
   // published, since it breaks the card's size/legibility. Every slot of the same geometry tier
-  // is validated by the exact same rule -- see core/editorial/ContentBudget.js. Validate ALL items
+  // is validated by the exact same rule — see core/editorial/ContentBudget.js. Validate ALL items
   // before touching the DB, so a rejected save leaves whatever was already there untouched (no
   // DELETE ever runs on failure).
   const ceiling = getGeometryCeilingForSlot(slotIndex);
@@ -1761,18 +1761,18 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
       throw err;
     }
     if (effectiveMaxBriefLong && item.briefLong && item.briefLong.length > effectiveMaxBriefLong) {
-      const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan -- pendekkan huraian dahulu.`);
+      const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan — pendekkan huraian dahulu.`);
       err.isValidationError = true;
       throw err;
     }
-    // Peraturan Khas Slot Bar -- Penerangan diisi ke panel akordion (BarCardExpandedPanel.tsx),
+    // Peraturan Khas Slot Bar — Penerangan diisi ke panel akordion (BarCardExpandedPanel.tsx),
     // jadi perlu had ruang sebenar sama macam Huraian Panjang di atas.
     if (TIER_SLOTS.BAR.includes(slotIndex) && item.penerangan && item.penerangan.length > MAX_PENERANGAN_CHARS) {
-      const err = new Error(`Penerangan bagi "${(item.title || '').slice(0, 40)}..." melebihi had ${MAX_PENERANGAN_CHARS} aksara (semasa: ${item.penerangan.length}). Kandungan tidak disiarkan -- pendekkan penerangan dahulu.`);
+      const err = new Error(`Penerangan bagi "${(item.title || '').slice(0, 40)}..." melebihi had ${MAX_PENERANGAN_CHARS} aksara (semasa: ${item.penerangan.length}). Kandungan tidak disiarkan — pendekkan penerangan dahulu.`);
       err.isValidationError = true;
       throw err;
     }
-    // Bidang (kategori) terkunci per-slot, Topik wajib untuk kandungan baharu/diedit -- kecuali
+    // Bidang (kategori) terkunci per-slot, Topik wajib untuk kandungan baharu/diedit — kecuali
     // slot BAR (Perlembagaan: Bidang/Topik tak terpakai untuk tier ni).
     if (!TIER_SLOTS.BAR.includes(slotIndex)) {
       const bidangTopikCheck = validateBidangTopik({
@@ -1791,7 +1791,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
 
   // Wrap the DELETE + multi-item multi-table INSERT sequence in a real transaction so a failure
   // partway through (e.g. one item's INSERT throws) rolls back everything already written in this
-  // call -- including the DELETE -- instead of leaving the slot with orphaned/partial rows.
+  // call — including the DELETE — instead of leaving the slot with orphaned/partial rows.
   await dbRun('BEGIN TRANSACTION');
   try {
     await dbRun('DELETE FROM editorial_objects WHERE slotIndex = ?', [slotIndex]);
@@ -1833,7 +1833,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         { key: 'originalDate', val: item.originalDate || '' },
         // Topik: kosong untuk slot BAR (tak terpakai di sana), diabaikan macam Penerangan berikut.
         { key: 'topik', val: item.topik || '' },
-        // Slot BAR sahaja (Peraturan Khas Slot Bar) -- diabaikan (string kosong) untuk tier lain.
+        // Slot BAR sahaja (Peraturan Khas Slot Bar) — diabaikan (string kosong) untuk tier lain.
         { key: 'organizer', val: item.organizer || '' },
         { key: 'location', val: item.location || '' },
         { key: 'access', val: item.access || '' },
@@ -1911,7 +1911,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
     // Only fall back to parsing the legacy manualSummary blob if this slot has genuinely never
     // been migrated to real DB rows. If migrated rows exist but happen to all be currently
     // pending/rejected/archived (e.g. via Indeks' Reject/Arkib action), that's a deliberate
-    // editorial decision -- falling back to the blob would silently resurrect stale duplicate
+    // editorial decision — falling back to the blob would silently resurrect stale duplicate
     // content the chief editor just pulled, defeating the whole point of the status action.
     let slotHasMigratedRows = objectIds.length > 0;
     if (!slotHasMigratedRows) {
@@ -1962,7 +1962,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
           isOfficial: renderToken.isOfficial || false,
           aiProvider: null,
           imageUrl: slot.manualImageUrl || '',
-          // Peraturan Khas Slot Bar -- kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
+          // Peraturan Khas Slot Bar — kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
           organizer: parsed.organizer || '',
           location: parsed.location || '',
           access: parsed.access || '',
@@ -2026,7 +2026,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         topik: topikAv ? topikAv.valueText : '',
         publisherName: renderToken.publisherName || 'Umum',
         source: renderToken.publisherName || 'Umum',
-        // PresentationComposer's token names this field sourceUrl, not url -- this fallback
+        // PresentationComposer's token names this field sourceUrl, not url — this fallback
         // chain avoids silently dropping every DB-backed item's click-through link to '#'.
         url: renderToken.sourceUrl || renderToken.url || '#',
         glyphProfile: renderToken.glyphProfile || null,
@@ -2035,7 +2035,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         isOfficial: renderToken.isOfficial || false,
         aiProvider: aiProv ? aiProv.valueText : null,
         imageUrl,
-        // Peraturan Khas Slot Bar -- kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
+        // Peraturan Khas Slot Bar — kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
         organizer: organizerAv ? organizerAv.valueText : '',
         location: locationAv ? locationAv.valueText : '',
         access: accessAv ? accessAv.valueText : '',

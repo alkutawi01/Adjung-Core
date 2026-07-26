@@ -36,7 +36,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans flex flex-col antialiased">
-      {/* Editorium Header -- bar identiti sahaja, maroon jelas (bukan hampir-hitam). Navigasi kini
+      {/* Editorium Header — bar identiti sahaja, maroon jelas (bukan hampir-hitam). Navigasi kini
           ELEMEN BERASINGAN di bawah, duduk atas latar cream badan halaman (gaya iOS: bar status
           bertona di atas, toolbar kaca lut sinar atas kandungan terang di bawah). */}
       <header className="relative bg-Adjung-maroon-dark text-[#FDFDFD] select-none overflow-hidden">
@@ -85,7 +85,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
         </div>
       </header>
 
-      {/* Navigasi -- elemen berasingan drpd header, kapsul kaca TERANG (bukan gelap) duduk atas
+      {/* Navigasi — elemen berasingan drpd header, kapsul kaca TERANG (bukan gelap) duduk atas
           latar cream badan halaman. Jarak jelas drpd header (bukan bersentuh/bertindih). */}
       <div className="relative z-10 flex justify-center px-4 pt-4 pb-2 overflow-x-auto">
         <nav

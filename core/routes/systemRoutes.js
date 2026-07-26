@@ -37,7 +37,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     }
   });
 
-  // GET /api/pages/:key -- static/footer pages
+  // GET /api/pages/:key — static/footer pages
   router.get('/pages/:key', async (req, res) => {
     const { key } = req.params;
     try {

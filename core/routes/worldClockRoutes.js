@@ -1,6 +1,6 @@
 import express from 'express';
 
-// GET /api/system/hijri-date?zone=KDH01 -- official JAKIM Hijri date (Imkanur Rukyah) via
+// GET /api/system/hijri-date?zone=KDH01 — official JAKIM Hijri date (Imkanur Rukyah) via
 // waktusolat.app's public e-Solat proxy, Maghrib-adjusted for the given zone. Not a client-side
 // islamic-umalqura approximation (confirmed to drift up to a day from JAKIM's actual calendar),
 // and not a naive midnight cutover either: the Islamic day genuinely begins at Maghrib, not

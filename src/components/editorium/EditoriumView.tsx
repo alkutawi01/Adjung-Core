@@ -12,7 +12,7 @@ interface EditoriumViewProps {
   onUserSwitch: (role: 'KETUA_EDITOR' | 'EDITOR') => void;
 }
 
-// Peranan (currentUser/onUserSwitch) kini state kongsi diangkat naik ke App.tsx -- supaya
+// Peranan (currentUser/onUserSwitch) kini state kongsi diangkat naik ke App.tsx — supaya
 // FrontpageView (borang Tetapan Slot Bidang) turut boleh baca peranan yang sama. Bukan lagi
 // local state di sini.
 export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onUserSwitch }) => {

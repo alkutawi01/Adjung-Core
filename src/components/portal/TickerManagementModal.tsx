@@ -403,9 +403,9 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                 onChange={(e) => setFormConfig({ ...formConfig, contentMode: e.target.value })}
                 className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
               >
-                <option value="Manual">Manual (Kemasukan Sendiri)</option>
-                <option value="AI Generated">AI Generated (Automatik)</option>
-                <option value="RSS Direct">RSS Direct (Automatik Tanpa AI)</option>
+                <option value="Manual">Manual</option>
+                <option value="AI Generated">AI Generated</option>
+                <option value="RSS Direct">RSS Direct</option>
               </select>
             </div>
 
@@ -583,11 +583,11 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           onChange={(e) => setTickerMaxItems(Number(e.target.value))}
                           className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
                         >
-                          <option value={10}>10 Berita Teratas (Skor Tertinggi)</option>
-                          <option value={20}>20 Berita Teratas (Disyorkan)</option>
+                          <option value={10}>10 Berita Teratas</option>
+                          <option value={20}>20 Berita Teratas</option>
                           <option value={30}>30 Berita Teratas</option>
                           <option value={50}>50 Berita Teratas</option>
-                          <option value={100}>100 Berita Teratas (Maksimum)</option>
+                          <option value={100}>100 Berita Teratas</option>
                         </select>
                         <span className="text-[9px] text-stone-400 font-sans">
                           Hanya berita yang mendapat ranking markah skor tertinggi disiarkan secara terus ke Ticker Laman Utama.
@@ -595,14 +595,14 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       </div>
 
                       <div className="flex flex-col gap-1 md:col-span-2">
-                        <label className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">Had Usia Berita (Freshness Filter)</label>
+                        <label className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">Had Usia Berita</label>
                         <select
                           value={rssMaxNewsAgeHours}
                           onChange={(e) => setRssMaxNewsAgeHours(Number(e.target.value))}
                           className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
                         >
                           <option value={24}>24 Jam Terakhir (Berita Hari Ini)</option>
-                          <option value={48}>48 Jam Terakhir (Disyorkan - 2 Hari)</option>
+                          <option value={48}>48 Jam Terakhir (2 Hari)</option>
                           <option value={72}>72 Jam Terakhir (3 Hari)</option>
                           <option value={168}>7 Hari Terakhir (Seminggu)</option>
                           <option value={0}>Tiada Had (Semua Usia Berita)</option>
@@ -821,19 +821,19 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                             {isExpanded && bd && (
                               <div className="pt-2 border-t border-stone-200 grid grid-cols-2 md:grid-cols-5 gap-1.5 font-mono text-[9px] bg-white p-2.5 rounded">
                                 <div>
-                                  <span className="text-stone-400 block uppercase">Source Trust</span>
+                                  <span className="text-stone-400 block uppercase">Kepercayaan Sumber</span>
                                   <span className="font-bold text-stone-800">+{bd.sourceTrust || 80}</span>
                                 </div>
                                 <div>
-                                  <span className="text-stone-400 block uppercase">Language Match</span>
+                                  <span className="text-stone-400 block uppercase">Padanan Bahasa</span>
                                   <span className="font-bold text-emerald-700">+{bd.languageMatch || 10}</span>
                                 </div>
                                 <div>
-                                  <span className="text-stone-400 block uppercase">Category Match</span>
+                                  <span className="text-stone-400 block uppercase">Padanan Kategori</span>
                                   <span className="font-bold text-emerald-700">+{bd.categoryMatch || 0}</span>
                                 </div>
                                 <div>
-                                  <span className="text-stone-400 block uppercase">Keyword Impact</span>
+                                  <span className="text-stone-400 block uppercase">Kesan Kata Kunci</span>
                                   <span className={`font-bold ${bd.keywordImpact < 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
                                     {bd.keywordImpact >= 0 ? `+${bd.keywordImpact}` : bd.keywordImpact}
                                   </span>

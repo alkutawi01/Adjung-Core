@@ -4,7 +4,7 @@ interface BarCardExpandedPanelProps {
   item: any;
 }
 
-// Accordion detail panel for a BAR card -- rendered as a separate element directly after the
+// Accordion detail panel for a BAR card — rendered as a separate element directly after the
 // (unchanged) BarCard, never inside it. Surfaces item.location and item.penerangan, neither of
 // which has any other display path on the compact card (see BarCard.tsx). item.penerangan was
 // added to the data pipeline specifically for this panel (server.js, "disediakan untuk ciri

@@ -32,7 +32,7 @@ export const BarCard: React.FC<BarCardProps> = ({ item, onClick, isEditMode, onE
 
   // Peraturan Khas Slot Bar: lencana kanan atas ialah Penganjur SAHAJA bila medan Penganjur diisi
   // terus (item.organizer mentah, bukan hasil rekaan extractOrganizerAcronym daripada desk/sumber
-  // lain) -- jika tidak, jatuh balik ke lencana status Akses (Terbuka/Tertutup).
+  // lain) — jika tidak, jatuh balik ke lencana status Akses (Terbuka/Tertutup).
   const hasOrganizer = !!(item.organizer && item.organizer.toString().trim());
   const organizerLabel = hasOrganizer ? extractOrganizerLabel(item) : '';
   const accessBadge = extractAccessBadge(item);

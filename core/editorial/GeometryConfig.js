@@ -8,7 +8,7 @@ export const GEOMETRY_RATIOS = {
   SEGI_EMPAT_MEDIUM: { maxTitleAlone: 94, maxBriefAlone: 126, ratio: 1.340 },
   SEGI_EMPAT_SMALL: { maxTitleAlone: 62, maxBriefAlone: 78, ratio: 1.258 },
   KOMPAK: { maxTitleAlone: 80, maxBriefAlone: 41, ratio: 0.512 },
-  BAR: { maxTitleAlone: 95, maxBriefAlone: 0, ratio: 0 }, // BAR has no brief field at all -- 0/95 = 0, not the stale 0.850 this used to read.
+  BAR: { maxTitleAlone: 95, maxBriefAlone: 0, ratio: 0 }, // BAR has no brief field at all — 0/95 = 0, not the stale 0.850 this used to read.
   TICKER: { maxTitleAlone: 80, maxBriefAlone: 220, ratio: 2.750 },
 };
 
@@ -30,7 +30,7 @@ export const FALLBACK_CEILINGS = {
   DEFAULT: { maxTitle: 70, maxBrief: 100 },
 };
 
-// Canonical Malay tier labels -- single source of truth, imported by PerlembagaanConsole.tsx and
+// Canonical Malay tier labels — single source of truth, imported by PerlembagaanConsole.tsx and
 // IndeksConsole.tsx (no local copies). Derived from the Fasa 0 shape illustration (Full
 // horizontal/Vertical/Horizontal/Square/Compact/Bar) translated to Malay per project owner's
 // explicit instruction: "Horizontal" -> "Melintang", "Square" -> "Kiub", with Besar/Kecil added
@@ -49,7 +49,7 @@ export const TIER_LABELS = {
 
 // Peraturan Perlembagaan: label mesti 100% Bahasa Melayu; Bahasa Inggeris hanya dibenarkan
 // bertulis condong (italic) bila tiada padanan Melayu yang diluluskan lagi. "Bar" dan "Ticker"
-// tiada terjemahan Melayu rasmi setakat ini -- tandakan di sini supaya semua paparan (Perlembagaan,
+// tiada terjemahan Melayu rasmi setakat ini — tandakan di sini supaya semua paparan (Perlembagaan,
 // Indeks, dll.) condongkan kedua-dua label ini secara konsisten dari satu tempat.
 export const TIER_LABEL_IS_ENGLISH = {
   BAR: true,
@@ -64,11 +64,11 @@ export const tierForSlot = (slotIndex) => {
   return null;
 };
 
-// maxBriefLong: character budget for the "Huraian Panjang" field -- extra content not shown on
+// maxBriefLong: character budget for the "Huraian Panjang" field — extra content not shown on
 // the card itself, only in a not-yet-built "spotlight" detail view. There's no geometry-derived
 // ceiling for it (it isn't rendered on the card), so it stays a manually curated per-tier value.
 // Promoted here from two previously-independent copies (server.js, FrontpageView.tsx) that had
-// already happened to agree on these exact numbers -- unifying them now so they can't drift apart.
+// already happened to agree on these exact numbers — unifying them now so they can't drift apart.
 export const MAX_BRIEF_LONG_BY_TIER = {
   HERO: 800,
   MENEGAK: 800,
@@ -81,12 +81,12 @@ export const MAX_BRIEF_LONG_BY_TIER = {
   DEFAULT: 600,
 };
 
-// Character budget for BAR's "Penerangan" field -- the accordion detail panel body text (see
+// Character budget for BAR's "Penerangan" field — the accordion detail panel body text (see
 // BarCardExpandedPanel.tsx). BAR-only field, not part of MAX_BRIEF_LONG_BY_TIER above (that's
 // keyed by tier for a field every tier could theoretically have; Penerangan only exists for BAR).
 // Measured empirically once the panel was actually built: at the panel's real rendered width
 // (~293px, the BAR cluster's column), a 458-character sample rendered as a legible ~13-line
-// paragraph at ~348px tall -- comfortable for an accordion, not excessive. Enforced at save time
+// paragraph at ~348px tall — comfortable for an accordion, not excessive. Enforced at save time
 // by ContentBudget.js's validateBarPeneranganBudget(), same as every other tier's ceiling.
 export const MAX_PENERANGAN_CHARS = 460;
 

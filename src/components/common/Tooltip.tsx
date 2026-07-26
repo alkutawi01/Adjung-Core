@@ -11,16 +11,16 @@ const TRIGGER_ATTR = 'data-tooltip-trigger';
 
 // Adjung's single tooltip implementation. Replaces the native `title=` attribute, which the
 // browser renders as OS chrome (opaque box, square corners, black border) that CSS cannot touch
-// -- no border-radius, opacity, blur, or color is possible on it. This portals a fully-styled
+// — no border-radius, opacity, blur, or color is possible on it. This portals a fully-styled
 // bubble to document.body instead, positioned from the trigger's live bounding rect.
 //
-// Clones the trigger element directly (no wrapper span/div) rather than wrapping it -- several
+// Clones the trigger element directly (no wrapper span/div) rather than wrapping it — several
 // call sites are <tr>/<td> where an extra wrapper element would break table structure. A
 // Fragment return keeps the trigger as a direct child of its real parent (tbody/tr).
 //
 // Nesting (e.g. a per-city weather Tooltip inside WorldClockStrip's own container Tooltip): each
 // trigger is marked with data-tooltip-trigger so an outer Tooltip can tell, via e.target.closest,
-// whether the actually-hovered element belongs to a MORE NESTED trigger than itself -- if so it
+// whether the actually-hovered element belongs to a MORE NESTED trigger than itself — if so it
 // defers instead of showing, so only the innermost tooltip under the cursor is ever visible (same
 // as native title= only ever showing one tooltip at a time). Uses onMouseOver/Out (bubbling, unlike
 // onMouseEnter/Leave) so an inner trigger's own handling only needs to stop there.

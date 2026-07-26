@@ -13,7 +13,7 @@ import { parseTypographyTokens } from '../sources/TypographyRulesEngine.js';
 // the same paths earlier in the file, so Express never reached any of these. The governance
 // section was additionally backed entirely by mock data (a fake in-memory DB stub, hardcoded
 // "Chief Editor Izzat" as every mandate owner) with zero real frontend callers. Removed rather
-// than fixed -- see core/db/legacy_slot_mapping.js removal in the same change.
+// than fixed — see core/db/legacy_slot_mapping.js removal in the same change.
 export function createSlotRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
 
@@ -164,7 +164,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       // Re-generate live ticker string ordered by HIGHEST SCORE first!
       const newApproved = await dbAll(`SELECT * FROM rss_ticker_items WHERE status = 'approved' ORDER BY score DESC, publishedAt DESC LIMIT ${limitVal}`);
       // Kunci Title:/Brief: (bukan Tajuk:/Huraian ringkas:) padan parseTickerText & laluan RSS-Direct
-      // yang lain (baris ~915 di fail ni) -- kunci Melayu lama diam-diam gugurkan tajuk/huraian bila
+      // yang lain (baris ~915 di fail ni) — kunci Melayu lama diam-diam gugurkan tajuk/huraian bila
       // dihurai. displayCategory padan pengiraan sama di laluan tu jugak (bukan Desk: SEMASA tegar).
       const blocks = newApproved.map(item => {
         const displayCategory = (item.category === 'BELUM DIKELASKAN' || !item.category) ? 'SEMASA' : item.category;
