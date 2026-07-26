@@ -402,13 +402,12 @@ export function ContentReview() {
                                 className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
                               />
                               <div className="grid grid-cols-2 gap-2">
-                                <input
-                                  type="text"
-                                  value={editDraft.desk || ''}
-                                  onChange={(e) => setEditDraft({ ...editDraft, desk: e.target.value })}
-                                  placeholder="Bidang"
-                                  className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
-                                />
+                                <div
+                                  className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-100 text-stone-500 flex items-center"
+                                  title="Bidang terkunci ikut slot -- tukar di Tetapan Slot (Ketua Editor sahaja)"
+                                >
+                                  {editDraft.desk || 'Bidang'}
+                                </div>
                                 <input
                                   type="text"
                                   value={editDraft.topik || ''}
@@ -525,13 +524,12 @@ export function ContentReview() {
                               className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
                             />
                             <div className="grid grid-cols-2 gap-2">
-                              <input
-                                type="text"
-                                value={newItemDraft.desk}
-                                onChange={(e) => setNewItemDraft({ ...newItemDraft, desk: e.target.value })}
-                                placeholder="Bidang"
-                                className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
-                              />
+                              <div
+                                className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-100 text-stone-500 flex items-center"
+                                title="Bidang terkunci ikut slot -- tukar di Tetapan Slot (Ketua Editor sahaja)"
+                              >
+                                {newItemDraft.desk || 'Bidang'}
+                              </div>
                               <input
                                 type="text"
                                 value={newItemDraft.topik}
@@ -579,7 +577,12 @@ export function ContentReview() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => setAddingToSlot(slotIndex)}
+                            onClick={() => {
+                              setAddingToSlot(slotIndex);
+                              // Bidang terkunci ikut slot -- item baharu warisi Bidang item sedia
+                              // ada dalam slot yang sama (bukan taip bebas lagi).
+                              setNewItemDraft(prev => ({ ...prev, desk: groupedBySlot[slotIndex]?.[0]?.slotCategory || groupedBySlot[slotIndex]?.[0]?.desk || '' }));
+                            }}
                             className="text-[10px] font-bold text-[#802334] flex items-center gap-1 cursor-pointer hover:underline"
                           >
                             <Plus size={11} /> Tambah item baharu

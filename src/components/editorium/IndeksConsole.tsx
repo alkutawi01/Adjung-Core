@@ -13,6 +13,7 @@ interface BriefRecord {
   creator: string;
   cardType: string;
   slot: string;
+  slotIndex: number;
   date: string;
 }
 
@@ -96,6 +97,15 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // Detail Modal State
   const [activeItemModal, setActiveItemModal] = useState<BriefRecord | null>(null);
 
+  // Siar-semula kandungan archived -- Bidang/Topik/slot sasaran boleh diedit khusus untuk item
+  // berstatus Archive (lihat "03 -- Bidang & Topik" di Perlembagaan untuk peraturan penuh).
+  const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string }[]>([]);
+  const [allSlots, setAllSlots] = useState<{ slotIndex: number; manualDesk: string }[]>([]);
+  const [reactivateDesk, setReactivateDesk] = useState('');
+  const [reactivateTopik, setReactivateTopik] = useState('');
+  const [reactivateSlotIndex, setReactivateSlotIndex] = useState<number | ''>('');
+  const [reactivating, setReactivating] = useState(false);
+
   // Load Real Data from SQLite Endpoint
   useEffect(() => {
     setLoading(true);
@@ -118,6 +128,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             creator: formatCreatedBy(item.createdBy || ''),
             cardType: cardTypeForSlot(item.slotIndex),
             slot,
+            slotIndex: item.slotIndex,
             date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('ms-MY') : '-',
           };
         });
@@ -129,6 +140,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         console.error('Error loading index data:', err);
         setLoading(false);
       });
+
+    fetch('/api/system/categories/active')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setActiveBidangList(data.map((c: any) => ({ name: c.name, color: c.color }))); })
+      .catch(e => console.error('Error fetching active Bidang:', e));
+
+    fetch('/api/system/slots')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setAllSlots(data.map((s: any) => ({ slotIndex: s.slotIndex, manualDesk: s.manualDesk || '' }))); })
+      .catch(e => console.error('Error fetching slots:', e));
   }, [currentUserName]);
 
   // Status Counters
@@ -217,6 +238,42 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         setActiveItemModal(previous.find(i => i.id === id) || null);
       }
       setActionError(err.message || 'Gagal kemas kini status.');
+    }
+  };
+
+  // Siarkan Semula: kandungan archived boleh diaktifkan semula ke slot yang Bidangnya sepadan
+  // (asal atau lain) -- Bidang/Topik boleh diedit khusus di sini sebab item ni tak lagi terikat
+  // slot aktif. validateBidangTopik() di server semak semula terhadap slot SASARAN.
+  const handleReactivate = async () => {
+    if (!activeItemModal || reactivateSlotIndex === '') return;
+    setReactivating(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/system/content/${encodeURIComponent(activeItemModal.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'approved',
+          desk: reactivateDesk,
+          topik: reactivateTopik,
+          slotIndex: reactivateSlotIndex,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || `Gagal siarkan semula (${res.status}).`);
+      setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
+        ...i,
+        status: 'Live',
+        desk: formatTitleCase(reactivateDesk),
+        topik: reactivateTopik,
+        slotIndex: Number(reactivateSlotIndex),
+        slot: `Slot ${Number(reactivateSlotIndex) + 1}`,
+      } : i));
+      setActiveItemModal(null);
+    } catch (err: any) {
+      setActionError(err.message || 'Gagal siarkan semula.');
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -422,7 +479,13 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 return (
                   <tr
                     key={rec.id}
-                    onClick={() => setActiveItemModal(rec)}
+                    onClick={() => {
+                      setActiveItemModal(rec);
+                      const matchedBidang = activeBidangList.find(b => b.name.toLowerCase() === rec.desk.toLowerCase());
+                      setReactivateDesk(matchedBidang ? matchedBidang.name : '');
+                      setReactivateTopik(rec.topik);
+                      setReactivateSlotIndex(rec.slotIndex);
+                    }}
                     className="hover:bg-stone-50 cursor-pointer transition-colors"
                   >
                     <Tooltip text={rec.id}>
@@ -521,11 +584,65 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>
             </div>
 
+            {activeItemModal.status === 'Archive' && activeItemModal.slot !== 'Ticker' && (
+              <div className="space-y-3 font-sans bg-amber-50 border border-amber-200 rounded p-4">
+                <div className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">
+                  Siar Semula -- Bidang kandungan ni tak lagi sepadan slot asal. Pilih Bidang dan slot sasaran (Bidang boleh diubah supaya sepadan slot lain).
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Bidang</label>
+                    <select
+                      value={reactivateDesk}
+                      onChange={e => { setReactivateDesk(e.target.value); setReactivateSlotIndex(''); }}
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs"
+                    >
+                      <option value="">— Pilih Bidang —</option>
+                      {activeBidangList.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Topik</label>
+                    <input
+                      type="text"
+                      value={reactivateTopik}
+                      onChange={e => setReactivateTopik(e.target.value)}
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Slot Sasaran (Bidang sepadan sahaja)</label>
+                  <select
+                    value={reactivateSlotIndex}
+                    onChange={e => setReactivateSlotIndex(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs"
+                    disabled={!reactivateDesk}
+                  >
+                    <option value="">— Pilih Slot —</option>
+                    {allSlots
+                      .filter(s => s.manualDesk.toLowerCase() === reactivateDesk.toLowerCase())
+                      .map(s => <option key={s.slotIndex} value={s.slotIndex}>Slot {s.slotIndex + 1}</option>)}
+                  </select>
+                  {reactivateDesk && allSlots.filter(s => s.manualDesk.toLowerCase() === reactivateDesk.toLowerCase()).length === 0 && (
+                    <p className="text-[9px] text-amber-700 mt-1">Tiada slot ditetapkan untuk Bidang ni lagi -- tetapkan dulu di Tetapan &gt; Taksonomi.</p>
+                  )}
+                </div>
+                <button
+                  onClick={handleReactivate}
+                  disabled={reactivating || !reactivateDesk || !reactivateTopik.trim() || reactivateSlotIndex === ''}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {reactivating ? 'Menyiarkan...' : 'Siarkan Semula'}
+                </button>
+              </div>
+            )}
+
             <div className="flex justify-between items-center pt-2 font-mono text-xs">
               <span className="text-stone-500">Sumber: <strong>{activeItemModal.creator}</strong></span>
               {activeItemModal.slot !== 'Ticker' ? (
                 <div className="flex gap-2">
-                  {activeItemModal.status !== 'Live' && (
+                  {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
                     <button
                       onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}
                       className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
