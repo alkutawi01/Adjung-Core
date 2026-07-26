@@ -12,6 +12,26 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
+  // Peranan Editorium (Ketua Editor / Editor) -- kongsi di sini (bukan local state dalam
+  // EditoriumView) supaya FrontpageView (borang Tetapan Slot Bidang) turut boleh kunci ikut
+  // peranan yang sama. Toggle kosmetik sahaja (auth backend sebenar memang KIV, pra-MVP).
+  // Disimpan ke localStorage sebab navigasi antara "/" dan "/editorium" guna <a href> biasa
+  // (bukan React Router Link) -- setiap pertukaran laman reload penuh & reset semua state App
+  // ni; tanpa localStorage, pilihan peranan akan sentiasa jatuh balik ke lalai setiap kali
+  // pindah laman, menjadikan kunci Bidang tak bermakna dalam praktik.
+  const ROLE_STORAGE_KEY = 'adjung-editorium-role';
+  const [currentEditoriumUser, setCurrentEditoriumUser] = useState<{ name: string; role: 'KETUA_EDITOR' | 'EDITOR' }>(() => {
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(ROLE_STORAGE_KEY) : null;
+    return stored === 'EDITOR' ? { name: 'Editor Ahmad', role: 'EDITOR' } : { name: 'Izzat Anas', role: 'KETUA_EDITOR' };
+  });
+  const handleEditoriumRoleSwitch = (role: 'KETUA_EDITOR' | 'EDITOR') => {
+    window.localStorage.setItem(ROLE_STORAGE_KEY, role);
+    if (role === 'KETUA_EDITOR') {
+      setCurrentEditoriumUser({ name: 'Izzat Anas', role: 'KETUA_EDITOR' });
+    } else {
+      setCurrentEditoriumUser({ name: 'Editor Ahmad', role: 'EDITOR' });
+    }
+  };
   const [inTheNewsGoogleDocText, setInTheNewsGoogleDocText] = useState('');
   const [worldClockHolidaysGoogleDocText, setWorldClockHolidaysGoogleDocText] = useState('');
   const [initializing, setInitializing] = useState(true);
@@ -121,6 +141,7 @@ export default function App() {
                   setSelectedAuthorId={() => {}}
                   setActiveTab={() => {}}
                   currentUser={null}
+                  currentEditoriumRole={currentEditoriumUser.role}
                   inTheNewsGoogleDocText={inTheNewsGoogleDocText}
                   worldClockHolidaysGoogleDocText={worldClockHolidaysGoogleDocText}
                   setIndexSearchQuery={() => {}}
@@ -145,6 +166,7 @@ export default function App() {
                   setSelectedAuthorId={() => {}}
                   setActiveTab={() => {}}
                   currentUser={null}
+                  currentEditoriumRole={currentEditoriumUser.role}
                   inTheNewsGoogleDocText={inTheNewsGoogleDocText}
                   worldClockHolidaysGoogleDocText={worldClockHolidaysGoogleDocText}
                   setIndexSearchQuery={() => {}}
@@ -171,7 +193,10 @@ export default function App() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
             >
-              <EditoriumView />
+              <EditoriumView
+                currentUser={currentEditoriumUser}
+                onUserSwitch={handleEditoriumRoleSwitch}
+              />
             </motion.div>
           } />
 

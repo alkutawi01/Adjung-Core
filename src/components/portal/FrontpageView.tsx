@@ -262,6 +262,10 @@ interface FrontpageViewProps {
   setSelectedAuthorId: (id: string | null) => void;
   setActiveTab: (tab: string) => void;
   currentUser?: User | null;
+  // Peranan Editorium (Ketua Editor / Editor), diangkat naik dari App.tsx -- berasingan
+  // daripada currentUser di atas (yang memang dead-code/KIV, lihat canCurate). Guna khusus
+  // untuk kunci medan Bidang di Tetapan Slot kepada Ketua Editor sahaja.
+  currentEditoriumRole?: 'KETUA_EDITOR' | 'EDITOR';
   inTheNewsGoogleDocText?: string;
   worldClockHolidaysGoogleDocText?: string;
 }
@@ -634,6 +638,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   setSelectedAuthorId,
   setActiveTab,
   currentUser,
+  currentEditoriumRole = 'KETUA_EDITOR',
   inTheNewsGoogleDocText = '',
   worldClockHolidaysGoogleDocText = '',
   setIndexSearchQuery,
@@ -648,6 +653,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // cards, Ticker) — backed by CategoryRegistry (server.js + core/category/CategoryRegistry.js),
   // not the old static DESK_ACCENTS list. Keyed lowercase for case-insensitive lookup.
   const [categoryColors, setCategoryColors] = useState<Record<string, string>>({});
+  // Senarai Bidang tertutup (24 disiplin kurasi Ketua Editor) -- sumber dropdown Bidang di
+  // Tetapan Slot. Berasingan daripada categoryColors di atas (yang baca SEMUA baris
+  // CategoryRegistry, termasuk 93 baris lama tak aktif, untuk warna kad).
+  const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string }[]>([]);
   const [activeLanguage, setActiveLanguage] = useState<'ms' | 'zh' | 'ar' | 'en'>('ms');
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -1535,6 +1544,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       })
       .catch(err => console.error('Failed to load category colors:', err));
 
+    fetch('/api/system/categories/active')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setActiveBidangList(data.map((c: any) => ({ name: c.name, color: c.color })));
+        }
+      })
+      .catch(err => console.error('Failed to load active Bidang list:', err));
+
     loadAdjungTypographyRules();
   }, []);
 
@@ -2357,18 +2375,32 @@ URL: ${url}`;
           <h4 className="font-sans text-[10px] font-bold text-[#802334] uppercase tracking-wider">Tetapan Slot</h4>
         </div>
 
-        {editingSlotIndex !== -1 && (
+        {editingSlotIndex !== -1 && !TIER_SLOTS.BAR.includes(editingSlotIndex) && (
           <div className="flex flex-col gap-1 col-span-2">
-            <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Bidang</label>
-            <input
-              type="text"
-              value={formConfig.manualDesk}
-              onChange={(e) => setFormConfig({ ...formConfig, manualDesk: e.target.value })}
-              placeholder="Contoh: TEKNOLOGI, EKONOMI, SUKAN..."
-              className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
-            />
+            <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold flex items-center gap-1.5">
+              Bidang
+              {currentEditoriumRole !== 'KETUA_EDITOR' && <Lock className="w-3 h-3" />}
+            </label>
+            {currentEditoriumRole === 'KETUA_EDITOR' ? (
+              <select
+                value={activeBidangList.find(b => b.name.toLowerCase() === (formConfig.manualDesk || '').toLowerCase())?.name || ''}
+                onChange={(e) => setFormConfig({ ...formConfig, manualDesk: e.target.value })}
+                className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+              >
+                <option value="">— Pilih Bidang —</option>
+                {activeBidangList.map(b => (
+                  <option key={b.name} value={b.name}>{b.name}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="w-full px-3 py-2 border border-stone-200 rounded bg-stone-100 font-sans text-xs font-semibold text-stone-500">
+                {formConfig.manualDesk || '— Belum ditetapkan —'}
+              </div>
+            )}
             <p className="text-[9px] text-stone-500 font-sans mt-0.5">
-              Dipaparkan pada tajuk "Urus Slot" di atas dan disegerakkan dengan Semakan Kandungan (Paparan Kad). Juga menyaring penjanaan kandungan AI. Untuk slot bukan-BAR: Bidang terkunci untuk SEMUA kandungan slot ini (Manual + AI Generated); setiap kandungan mesti sepadan bidang ini, dan Topik diperlukan untuk kandungan baharu/diedit.
+              {currentEditoriumRole !== 'KETUA_EDITOR'
+                ? 'Hanya Ketua Editor boleh menetapkan/meminda Bidang slot.'
+                : 'Dipaparkan pada tajuk "Urus Slot" di atas dan disegerakkan dengan Semakan Kandungan (Paparan Kad). Juga menyaring penjanaan kandungan AI. Bidang terkunci untuk SEMUA kandungan slot ini (Manual + AI Generated); setiap kandungan mesti sepadan bidang ini, dan Topik diperlukan untuk kandungan baharu/diedit. Menukar Bidang akan mengarkibkan kandungan live sedia ada dalam slot ini.'}
             </p>
           </div>
         )}

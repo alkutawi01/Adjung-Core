@@ -7,27 +7,23 @@ import { LogAuditConsole } from './LogAuditConsole';
 import { PerlembagaanConsole } from './PerlembagaanConsole';
 import { SistemRekaBentukConsole } from './SistemRekaBentukConsole';
 
-export const EditoriumView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('indeks');
-  const [currentUser, setCurrentUser] = useState<{ name: string; role: 'KETUA_EDITOR' | 'EDITOR' }>({
-    name: 'Izzat Anas',
-    role: 'KETUA_EDITOR'
-  });
+interface EditoriumViewProps {
+  currentUser: { name: string; role: 'KETUA_EDITOR' | 'EDITOR' };
+  onUserSwitch: (role: 'KETUA_EDITOR' | 'EDITOR') => void;
+}
 
-  const handleRoleSwitch = (role: 'KETUA_EDITOR' | 'EDITOR') => {
-    if (role === 'KETUA_EDITOR') {
-      setCurrentUser({ name: 'Izzat Anas', role: 'KETUA_EDITOR' });
-    } else {
-      setCurrentUser({ name: 'Editor Ahmad', role: 'EDITOR' });
-    }
-  };
+// Peranan (currentUser/onUserSwitch) kini state kongsi diangkat naik ke App.tsx -- supaya
+// FrontpageView (borang Tetapan Slot Bidang) turut boleh baca peranan yang sama. Bukan lagi
+// local state di sini.
+export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onUserSwitch }) => {
+  const [activeTab, setActiveTab] = useState('indeks');
 
   return (
     <EditoriumLayout
       activeTab={activeTab}
       onTabChange={setActiveTab}
       currentUser={currentUser}
-      onUserSwitch={handleRoleSwitch}
+      onUserSwitch={onUserSwitch}
     >
       {activeTab === 'indeks' && (
         <IndeksConsole
