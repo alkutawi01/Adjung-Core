@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-07-26T15:16:26.216Z",
+    "summary": "Betulkan istilah 'Kamus Istilah Auto-Italic' (guna English 'Italic' terus) jadi 'Senarai Istilah Autocondong' (Bahasa Melayu penuh), atas teguran pemilik projek.",
+    "files": [
+      "src/components/editorium/TetapanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-07-26T15:02:44.706Z",
     "summary": "Buang Citation & Rujukan Akademik / Footnote & Nota Kaki Dinamik dari Polisi Kandungan (legasi Adjung Platform, bukan skop Adjung Brief); kekalkan Interlinear Gloss. Namakan semula 'Konfigurasi Kamus' jadi 'Kamus Istilah Auto-Italic', papar status aktif/belum aktif per istilah, betulkan kiraan supaya tak kira row pending sebagai aktif.",
     "files": [

@@ -75,7 +75,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   // Interactive Configuration Drawer Modal State
   const [activeConfigModal, setActiveConfigModal] = useState<'italic' | 'add_desk' | null>(null);
 
-  // Kamus Istilah Italic -- backed by the same adjung_typography_rules table the main
+  // Senarai Istilah Autocondong -- backed by the same adjung_typography_rules table the main
   // frontpage settings drawer uses (core/routes/slotRoutes.js), not a separate local list. That
   // fuller drawer (Tetapan Slot) exposes scope/bahasa/keutamaan/exclude-terms + status toggle;
   // modal ni sengaja kekal ringkas (tambah/buang sahaja) untuk akses pantas, tapi papar status
@@ -491,17 +491,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <div className="space-y-1">
                 <label className="flex items-center gap-2 font-semibold text-stone-900 cursor-pointer">
                   <input type="checkbox" checked readOnly className="rounded border-stone-300 text-[#802334]" />
-                  <span>Auto Italic Istilah Asing & Pinjaman</span>
+                  <span>Autocondong Istilah Asing & Pinjaman</span>
                 </label>
                 <p className="text-stone-500 text-xs">
-                  Memformat secara automatik perkataan asing yang tersenarai dalam Kamus Istilah Auto-Italic.
+                  Memformat secara automatik perkataan asing yang tersenarai dalam Senarai Istilah Autocondong.
                 </p>
               </div>
               <button
                 onClick={() => setActiveConfigModal('italic')}
                 className="w-64 flex items-center justify-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold transition-colors"
               >
-                <Settings className="w-3.5 h-3.5" /> Kamus Istilah Auto-Italic ({italicTerms.filter(t => t.status === 'active').length} Aktif)
+                <Settings className="w-3.5 h-3.5" /> Senarai Istilah Autocondong ({italicTerms.filter(t => t.status === 'active').length} Aktif)
               </button>
             </div>
 
@@ -960,19 +960,19 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         </div>
       )}
 
-      {/* MODAL CONFIGURATION DRAWER: KAMUS ISTILAH ITALIC */}
+      {/* MODAL CONFIGURATION DRAWER: SENARAI ISTILAH AUTOCONDONG */}
       {activeConfigModal === 'italic' && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-lg w-full p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
-                Kamus Istilah Auto-Italic
+                Senarai Istilah Autocondong
               </h3>
               <button onClick={() => setActiveConfigModal(null)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
             </div>
 
             <p className="text-stone-600 text-xs">
-              Setiap perkataan di sini di-italic-kan secara automatik oleh enjin tipografi Adjung semasa paparan
+              Setiap perkataan di sini dicondongkan secara automatik oleh enjin tipografi Adjung semasa paparan
               (data asal tak diubah kekal). Senarai ni sama dengan yang di panel Peraturan Tipografi penuh
               (Tetapan Slot) -- tambah/buang pantas di sini sahaja; untuk skop, bahasa, keutamaan atau
               kekecualian, guna panel penuh tu.
@@ -997,7 +997,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
             <div className="flex flex-wrap gap-2 pt-2 max-h-48 overflow-y-auto">
               {loadingItalicTerms && <span className="text-stone-400">Memuatkan...</span>}
-              {!loadingItalicTerms && italicTerms.length === 0 && <span className="text-stone-400 italic">Kamus masih kosong.</span>}
+              {!loadingItalicTerms && italicTerms.length === 0 && <span className="text-stone-400 italic">Senarai masih kosong.</span>}
               {italicTerms.map(t => (
                 <span key={t.id} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
                   <span className="italic font-semibold">{t.term}</span>

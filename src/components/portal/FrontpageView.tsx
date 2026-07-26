@@ -572,7 +572,7 @@ import { GEOMETRY_RATIOS, tierForSlot as getGeometryTierForIndex, ceilingForSlot
 const LAMPIRAN_EDITORIAL_RULES = `1. Tulis mengenai kandungan, bukan mengenai bahan asal.
 Semua huraian hendaklah menerangkan subjek, fakta, peristiwa, tokoh, konsep atau idea yang dibincangkan.
 
-2. Jangan merujuk kepada bahan asal.
+2. Jangan merujuk bahan asal.
 Dilarang menggunakan frasa seperti:
 * Artikel ini...
 * Video ini...
@@ -609,7 +609,7 @@ Lima penemuan arkeologi membantu menjelaskan latar sejarah dan perkembangan epik
 Kuda, lembu, anjing dan beberapa spesies lain memainkan peranan penting dalam perkembangan tamadun manusia melalui pertanian, pengangkutan, peperangan dan penemuan saintifik.
 Perkembangan bahasa Arab dipengaruhi oleh perubahan sosial, politik dan kesusasteraan sejak zaman awal Islam.
 
-Anggap semua medan "Huraian" akan dipaparkan terus kepada pembaca sebagai metadata kandungan dalam pangkalan data digital. Oleh itu, setiap huraian mestilah boleh difahami tanpa perlu merujuk kepada bahan asal.`;
+Anggap semua medan "Huraian" akan dipaparkan terus kepada pembaca sebagai metadata kandungan dalam pangkalan data digital. Oleh itu, setiap huraian mestilah boleh difahami tanpa perlu merujuk bahan asal.`;
 
 const getLimitsForIndex = (idx: number, config?: any) => {
   const customTitle = config?.maxTitle;
@@ -4358,7 +4358,7 @@ URL: ${url}`;
                         </div>
                       ) : (
                         <div className="p-4 text-center text-stone-400 font-sans text-xs">
-                          Tiada artikel di dalam Review Queue.
+                          Tiada artikel dalam Giliran Semakan.
                         </div>
                       )}
                     </div>
@@ -5414,7 +5414,7 @@ URL: ${url}`;
                             if (formConfig.aiPromptRegion) settingsLines.push(`Negara/Wilayah: ${formConfig.aiPromptRegion}`);
                             if (formConfig.aiPromptSource) settingsLines.push(`Sumber dicadangkan: ${formConfig.aiPromptSource}`);
                             const settingsBlock = settingsLines.length > 0 ? `${settingsLines.join('\n')}\n\n` : '';
-                            const masterPromptBlock = formConfig.masterPrompt ? `Peraturan am (berkuatkuasa untuk semua kandungan): ${formConfig.masterPrompt}\n\n` : '';
+                            const masterPromptBlock = formConfig.masterPrompt ? `Peraturan am (berkuat kuasa untuk semua kandungan): ${formConfig.masterPrompt}\n\n` : '';
                             const extraInstructions = formConfig.promptText ? `\nArahan tambahan (khusus slot ini): ${formConfig.promptText}\n` : '';
 
                             let textToCopy = '';
@@ -5638,7 +5638,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                         className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs leading-relaxed"
                       />
                       <p className="text-[9px] text-stone-500 font-sans mt-0.5">
-                        * Nota: Peraturan am ini berkuatkuasa secara global bagi SEMUA slot (Manual & AI Generated). Kemas kini di sini akan terpakai di mana-mana.
+                        * Nota: Peraturan am ini berkuat kuasa secara menyeluruh bagi SEMUA slot (Manual & AI Generated). Kemas kini di sini akan terpakai di semua bahagian.
                       </p>
                     </div>
 
@@ -5762,7 +5762,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                         className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
                       />
                       <p className="text-[9px] text-stone-500 font-sans mt-0.5">
-                        * Nota: Anda boleh memasukkan lebih daripada satu pautan sumber kandungan (RSS Feed atau URL) dengan memisahkannya menggunakan koma (,), jarak (space), atau baris baru.
+                        * Nota: Anda boleh memasukkan lebih daripada satu pautan sumber kandungan (RSS Feed atau URL) dengan memisahkannya menggunakan koma (,), jarak (space), atau baris baharu.
                       </p>
                     </div>
 
@@ -5942,7 +5942,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                           <option value={5}>5 Kandungan Carousel</option>
                         </select>
                         <p className="text-[9px] text-stone-500 font-sans mt-0.5">
-                          Tentukan had maksima kandungan sejarah penjanaan AI terkini yang akan dipaparkan secara berganti-ganti (carousel).
+                          Tentukan had maksimum kandungan sejarah penjanaan AI terkini yang akan dipaparkan secara berganti-ganti (carousel).
                         </p>
                       </div>
                     )}

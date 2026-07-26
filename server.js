@@ -936,7 +936,7 @@ const runEditorialPipeline = async (slotIndex, runId = null, bypassCache = false
       throw new Error('AI Provider not configured.');
     }
 
-    const globalPrompt = process.env.GLOBAL_PROMPT_PREFIX || 'Anda adalah editor kandungan profesional.';
+    const globalPrompt = process.env.GLOBAL_PROMPT_PREFIX || 'Anda ialah editor kandungan profesional.';
     const campaignPrompt = process.env.EDITORIAL_CAMPAIGN || 'Fokus kepada kandungan terkini.';
 
     // Panggil enjin pipeline modular teras
@@ -1013,7 +1013,7 @@ const runEditorialPipeline = async (slotIndex, runId = null, bypassCache = false
             }
 
             if (translatorInstance) {
-              const transResult = await translatorInstance.generate(transPrompt, 'Anda adalah penterjemah profesional.');
+              const transResult = await translatorInstance.generate(transPrompt, 'Anda ialah penterjemah profesional.');
               const transTitle = transResult.parsedJson.title || '';
               const transSummary = transResult.parsedJson.summary || '';
 

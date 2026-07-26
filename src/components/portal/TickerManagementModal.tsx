@@ -850,7 +850,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                     </div>
                   ) : (
                     <div className="p-4 text-center text-stone-400 font-sans text-xs select-none">
-                      Tiada artikel di dalam Review Queue.
+                      Tiada artikel dalam Giliran Semakan.
                     </div>
                   )}
                 </div>

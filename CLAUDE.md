@@ -20,7 +20,7 @@ istilah teknikal; terangkan kesan visual/fungsian, bukan jargon kod.
    Ini bukan cadangan — ia peraturan keras yang dikuatkuasakan di **peringkat simpan**
    (server-side validation menolak kandungan yang tak muat), bukan diselesaikan lepas
    fakta dengan CSS clipping (`overflow-hidden`/`line-clamp`) atau memotong teks sedia
-   ada secara mekanikal. Body kandungan editorial (tajuk berita, huraian) adalah tulisan
+   ada secara mekanikal. Body kandungan editorial (tajuk berita, huraian) ialah tulisan
    sebenar — jangan potong/tulis-ganti secara automatik tanpa kelulusan eksplisit
    pemilik projek; itu vandalisme editorial, bukan "fix".
 
@@ -60,8 +60,8 @@ editor boleh guna untuk 4 daripada 8 tier — lihat log git `core/editorial/`.)
 
 ### Bajet ruang kongsi (title + brief budget line)
 Tajuk dan huraian SATU kad kongsi satu bajet ruang tetap — bukan dua had berasingan.
-Formula: `title.length / maxTitleAlone + brief.length / maxBriefAlone <= 1`, di mana
-`maxTitleAlone`/`maxBriefAlone` ialah had setiap medan bila medan satu lagi kosong
+Formula: `title.length / maxTitleAlone + brief.length / maxBriefAlone <= 1`, iaitu
+`maxTitleAlone`/`maxBriefAlone` ialah had setiap medan apabila medan satu lagi kosong
 (diukur secara empirik dari saiz kad sebenar). Ini bermakna tajuk panjang + huraian
 pendek boleh muat, dan sebaliknya — tapi kedua-duanya panjang serentak tak boleh.
 
@@ -79,11 +79,11 @@ tambah laluan simpan kandungan baharu, WAJIB sambungkan validation ini juga.
 ### CarouselStableBlock (kunci tinggi carousel)
 Sesetengah kad ada carousel berbilang item (rotate). `CarouselStableBlock` di
 `FrontpageView.tsx` mengunci tinggi kad ikut item TERTINGGI dalam senarai (JS-measured
-via `ResizeObserver`) supaya rotation tak buat kad tukar saiz. Ia **hanya** aktif bila
+via `ResizeObserver`) supaya rotation tak buat kad tukar saiz. Ia **hanya** aktif apabila
 `items.length > 1` — kad dengan SATU item sahaja tiada height-lock automatik, jadi
-overflow validation (di atas) adalah satu-satunya perlindungan untuk kes itu.
+overflow validation (di atas) ialah satu-satunya perlindungan untuk kes itu.
 
-Struktur JSX di dalam `renderItem` sangat fragile — perubahan kecil (tambah flex-row,
+Struktur JSX dalam `renderItem` sangat fragile — perubahan kecil (tambah flex-row,
 ubah wrapper) boleh pecahkan height-lock (kandungan bertindih antara item carousel).
 Uji dengan teliti (visual, bukan cuma tsc) selepas ubah struktur kad.
 

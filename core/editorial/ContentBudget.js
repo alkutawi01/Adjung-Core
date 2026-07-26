@@ -31,7 +31,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
       if (maxTitleAlone && titleLen > maxTitleAlone) {
         return {
           isValid: false,
-          reason: `Tajuk (${titleLen} aksara) melebihi had maksima ruang kad ${tier} (${maxTitleAlone} aksara).`,
+          reason: `Tajuk (${titleLen} aksara) melebihi had maksimum ruang kad ${tier} (${maxTitleAlone} aksara).`,
         };
       }
       return { isValid: true };

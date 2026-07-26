@@ -172,7 +172,7 @@ export function calculateDeskScores(text, category, rules = [], desks = [], glob
       runnerUpScore: resolvedDesks[1] ? Math.max(0, resolvedDesks[1].score) : 0,
       margin: 0,
       confidence: 'LOW',
-      reason: topScorer ? `Skor tertinggi (${topScorer.deskName}: ${topScore}) di bawah ambang minima 20.` : 'Tiada desk melepasi markah minimum.',
+      reason: topScorer ? `Skor tertinggi (${topScorer.deskName}: ${topScore}) di bawah ambang minimum 20.` : 'Tiada desk melepasi markah minimum.',
       resolver: resolverTag,
       scores: resolvedDesks.map(d => ({
         desk: d.deskName,
