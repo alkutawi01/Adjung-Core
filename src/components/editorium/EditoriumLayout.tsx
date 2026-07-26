@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { List, FolderOpen, Settings, History, Landmark, Palette } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
@@ -25,20 +26,29 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   };
 
   const navItems = [
-    { id: 'indeks', label: 'Indeks' },
-    { id: 'direktori', label: 'Direktori' },
-    { id: 'tetapan', label: 'Tetapan', restricted: currentUser.role !== 'KETUA_EDITOR' },
-    { id: 'log_audit', label: 'Log Audit' },
-    { id: 'perlembagaan', label: 'Perlembagaan' },
-    { id: 'reka_bentuk', label: 'Reka Bentuk' }
+    { id: 'indeks', label: 'Indeks', Icon: List },
+    { id: 'direktori', label: 'Direktori', Icon: FolderOpen },
+    { id: 'tetapan', label: 'Tetapan', Icon: Settings, restricted: currentUser.role !== 'KETUA_EDITOR' },
+    { id: 'log_audit', label: 'Log Audit', Icon: History },
+    { id: 'perlembagaan', label: 'Perlembagaan', Icon: Landmark },
+    { id: 'reka_bentuk', label: 'Reka Bentuk', Icon: Palette }
   ];
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans flex flex-col antialiased">
-      {/* Editorium Header -- dua baris: (1) identiti + pengguna, senyap; (2) navigasi, tengah, lapang */}
-      <header className="bg-[#161513] text-[#FDFDFD] select-none">
+      {/* Editorium Header -- dua baris, gaya iOS "Liquid Glass": permukaan kaca terapung, kapsul
+          bercahaya pada item aktif, ikon+label macam tab bar iOS (rujukan: Apple HIG - Tab Bars) */}
+      <header className="relative bg-[#161513] text-[#FDFDFD] select-none overflow-hidden">
+        {/* Cahaya latar bertona maroon -- bagi permukaan kaca sesuatu utk dibiaskan/blur, tanpa
+            ini backdrop-blur atas latar rata tak nampak kesan langsung */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 500px 200px at 30% 0%, rgba(128,35,52,0.35), transparent 60%), radial-gradient(ellipse 400px 180px at 80% 100%, rgba(128,35,52,0.25), transparent 60%)'
+          }}
+        />
         {/* Baris 1: Logo (kiri) -- Identiti pengguna (kanan) */}
-        <div className="px-4 md:px-8 py-3 flex flex-wrap justify-between items-center gap-3 border-b border-white/[0.06]">
+        <div className="relative px-4 md:px-8 py-3 flex flex-wrap justify-between items-center gap-3 border-b border-white/[0.06]">
           <Tooltip text="Klik untuk kembali ke Frontpage">
             <a href="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity select-none">
               <span className="font-serif font-normal text-xl tracking-tight text-[#FDFDFD] leading-none">{BRAND.logoText}</span>
@@ -48,32 +58,31 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
             </a>
           </Tooltip>
 
-          <div className="flex items-center gap-3 font-sans text-[11px]">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 font-sans text-[11px]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}>
+            <div className="flex items-center gap-2 bg-white/[0.06] backdrop-blur-xl px-3 py-1.5 rounded-full border border-white/[0.08]">
               <span className="relative flex w-1.5 h-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
                 <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500"></span>
               </span>
               <span className="text-stone-200 font-medium">{currentUser.name}</span>
               <span className="text-stone-600">·</span>
-              <span className="text-stone-500 uppercase tracking-wide">{currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor'}</span>
+              <span className="text-stone-500">{currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor'}</span>
             </div>
 
             {onUserSwitch && (
-              <div className="flex items-center gap-0.5 pl-3 border-l border-white/10">
+              <div className="flex items-center gap-0.5 bg-white/[0.06] backdrop-blur-xl p-0.5 rounded-full border border-white/[0.08]">
                 <button
                   onClick={() => onUserSwitch('KETUA_EDITOR')}
-                  className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                    currentUser.role === 'KETUA_EDITOR' ? 'text-[#c9737f]' : 'text-stone-600 hover:text-stone-400'
+                  className={`px-2.5 py-1 rounded-full font-medium transition-colors ${
+                    currentUser.role === 'KETUA_EDITOR' ? 'bg-white/[0.12] text-[#e8a4ac]' : 'text-stone-500 hover:text-stone-300'
                   }`}
                 >
                   Ketua Editor
                 </button>
-                <span className="text-stone-700">/</span>
                 <button
                   onClick={() => onUserSwitch('EDITOR')}
-                  className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                    currentUser.role === 'EDITOR' ? 'text-[#c9737f]' : 'text-stone-600 hover:text-stone-400'
+                  className={`px-2.5 py-1 rounded-full font-medium transition-colors ${
+                    currentUser.role === 'EDITOR' ? 'bg-white/[0.12] text-[#e8a4ac]' : 'text-stone-500 hover:text-stone-300'
                   }`}
                 >
                   Editor
@@ -83,34 +92,35 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           </div>
         </div>
 
-        {/* Baris 2: Navigasi -- ditengahkan, lapang, penunjuk underline (bukan pil) */}
-        <nav className="relative flex items-center justify-center gap-8 md:gap-10 px-4 py-4 overflow-x-auto">
-          {navItems.map(item => {
-            const isActive = currentTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`relative font-sans text-[13px] tracking-wide font-medium pb-2.5 whitespace-nowrap transition-colors ${
-                  isActive
-                    ? 'text-[#FDFDFD]'
-                    : item.restricted
-                    ? 'text-stone-700 cursor-not-allowed'
-                    : 'text-stone-500 hover:text-stone-200'
-                }`}
-              >
-                {item.label} {item.restricted ? '🔒' : ''}
-                {isActive && (
-                  <span className="absolute inset-x-0 -bottom-px h-[2px] bg-[#802334] rounded-full" />
-                )}
-              </button>
-            );
-          })}
-          <div
-            className="absolute inset-x-0 bottom-0 h-px"
-            style={{ backgroundImage: 'linear-gradient(to right, transparent, rgba(255,255,255,0.08) 15%, rgba(255,255,255,0.08) 85%, transparent)' }}
-          />
-        </nav>
+        {/* Baris 2: Navigasi -- kapsul kaca terapung ditengah, setiap tab ikon+label, tab aktif
+            dapat highlight kaca sendiri (lensing/material lapis-atas-lapis, bukan pil warna rata) */}
+        <div className="flex justify-center px-4 py-3.5 overflow-x-auto">
+          <nav
+            className="flex items-center gap-1 bg-white/[0.05] backdrop-blur-2xl p-1 rounded-full border border-white/[0.08] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]"
+            style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}
+          >
+            {navItems.map(item => {
+              const isActive = currentTab === item.id;
+              const { Icon } = item;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`relative flex items-center gap-1.5 text-[12.5px] font-medium px-3.5 py-2 rounded-full whitespace-nowrap transition-all duration-200 ${
+                    isActive
+                      ? 'bg-white/[0.14] text-white shadow-[0_1px_4px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-md'
+                      : item.restricted
+                      ? 'text-stone-600 cursor-not-allowed'
+                      : 'text-stone-400 hover:text-stone-100 hover:bg-white/[0.05]'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#e8a4ac]' : ''}`} strokeWidth={2.2} />
+                  {item.label} {item.restricted ? '🔒' : ''}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
       </header>
 
       {/* Main Content Workspace Area */}
