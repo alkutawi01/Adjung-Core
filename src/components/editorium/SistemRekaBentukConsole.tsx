@@ -125,6 +125,48 @@ export const SistemRekaBentukConsole: React.FC = () => {
             v1.0 (Mei 2025) -- <code className="not-italic bg-stone-100 px-1 py-0.5 rounded">public/adjung-symbol.svg</code>.
             Favicon dikemas kini guna simbol ni (bukan lagi segi empat rata tanpa reka bentuk).
           </p>
+
+          {/* Sistem Logo -- 4 versi dibenarkan ikut panduan v1.0 seksyen 12 (Logo System).
+              Disusun terus drpd aset sebenar (adjung-symbol.svg + BRAND.logoText), bukan gambar
+              statik -- kalau simbol/wordmark berubah, keempat-empat versi ni ikut berubah sekali. */}
+          <div className="mt-6 pt-5 border-t border-stone-150">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold block mb-3">
+              Sistem Logo -- 4 versi dibenarkan (Panduan v1.0, seksyen 12)
+            </span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="flex flex-col">
+                <div className="h-24 rounded-md border border-stone-200 bg-white flex items-center justify-center gap-2 p-3">
+                  <img src="/adjung-symbol.svg" alt="" className="h-6 w-auto" />
+                  <span className="font-serif text-xl text-[#802334]">{BRAND.logoText}</span>
+                </div>
+                <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Utama (Horizontal)</span>
+              </div>
+              <div className="flex flex-col">
+                <div className="h-24 rounded-md border border-stone-200 bg-white flex flex-col items-center justify-center gap-1 p-3">
+                  <img src="/adjung-symbol.svg" alt="" className="h-6 w-auto" />
+                  <span className="font-serif text-base text-[#802334]">{BRAND.logoText}</span>
+                </div>
+                <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Menegak</span>
+              </div>
+              <div className="flex flex-col">
+                <div className="h-24 rounded-md border border-stone-200 bg-white flex items-center justify-center p-3">
+                  <img src="/adjung-symbol.svg" alt="" className="h-10 w-auto" />
+                </div>
+                <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Ikon (Simbol)</span>
+              </div>
+              <div className="flex flex-col">
+                <div className="h-24 rounded-md border border-stone-200 bg-white flex items-center justify-center gap-2 p-3">
+                  <div className="h-6 w-3 bg-stone-900" />
+                  <span className="font-serif text-xl text-stone-900">{BRAND.logoText}</span>
+                </div>
+                <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Monokrom</span>
+              </div>
+            </div>
+            <p className="font-sans text-[10px] text-stone-500 mt-3 italic">
+              Senarai ini disusun drpd imej panduan yang dikongsi Izzat (bukan fail hidup boleh
+              dirujuk semula) -- sahkan label tepat kalau ada silap.
+            </p>
+          </div>
         </div>
       </div>
 
