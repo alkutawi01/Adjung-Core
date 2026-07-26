@@ -1,7 +1,80 @@
 import express from 'express';
 
-export function createAIRoutes(dbAll, dbRun) {
+export function createAIRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
+
+  // GET /api/ai/providers
+  router.get('/providers', async (req, res) => {
+    try {
+      const providers = await dbAll("SELECT id, name, secretName, model, monthlyBudget, dailyBudget, status, lastTest, enabled FROM ai_providers");
+      res.json(providers);
+    } catch (err) {
+      console.error('Fetch providers error:', err);
+      res.status(500).json({ error: 'Failed to fetch providers.' });
+    }
+  });
+
+  // POST /api/ai/providers
+  router.post('/providers', async (req, res) => {
+    try {
+      const p = req.body;
+      await dbRun(`
+        INSERT OR REPLACE INTO ai_providers (id, name, secretName, model, monthlyBudget, dailyBudget, status, lastTest, enabled)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [p.id, p.name, p.secretName, p.model, p.monthlyBudget, p.dailyBudget, p.status, p.lastTest, p.enabled ? 1 : 0]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Save provider error:', err);
+      res.status(500).json({ error: 'Failed to save provider.' });
+    }
+  });
+
+  // POST /api/ai/test-provider
+  router.post('/test-provider', async (req, res) => {
+    try {
+      const { id } = req.body;
+      const prov = await dbGet("SELECT * FROM ai_providers WHERE id = ?", [id]);
+      if (!prov) {
+        return res.status(404).json({ error: 'Provider not found' });
+      }
+      const apiKey = process.env[prov.secretName] || '';
+      const success = apiKey.length > 0;
+      const statusText = success ? 'Connected' : 'Missing API Key';
+      const lastTest = new Date().toISOString();
+
+      await dbRun("UPDATE ai_providers SET status = ?, lastTest = ? WHERE id = ?", [statusText, lastTest, id]);
+      res.json({ success, status: statusText, lastTest });
+    } catch (err) {
+      console.error('Test provider error:', err);
+      res.status(500).json({ error: 'Failed to test provider connection.' });
+    }
+  });
+
+  // GET /api/ai/prompts
+  router.get('/prompts', async (req, res) => {
+    try {
+      const prompts = await dbAll("SELECT * FROM prompt_templates");
+      res.json(prompts);
+    } catch (err) {
+      console.error('Fetch prompts error:', err);
+      res.status(500).json({ error: 'Failed to fetch prompt templates.' });
+    }
+  });
+
+  // POST /api/ai/prompts
+  router.post('/prompts', async (req, res) => {
+    try {
+      const p = req.body;
+      await dbRun(`
+        INSERT OR REPLACE INTO prompt_templates (id, name, templateText, version, updatedAt)
+        VALUES (?, ?, ?, ?, ?)
+      `, [p.id, p.name, p.templateText, p.version, new Date().toISOString()]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Save prompt error:', err);
+      res.status(500).json({ error: 'Failed to save prompt template.' });
+    }
+  });
 
   // GET /api/ai/logs
   router.get('/logs', async (req, res) => {

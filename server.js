@@ -2577,32 +2577,6 @@ app.get('/api/system/layout/active', async (req, res) => {
   }
 });
 
-// 2. GET /api/ai/providers
-app.get('/api/ai/providers', async (req, res) => {
-  try {
-    const providers = await dbAll("SELECT id, name, secretName, model, monthlyBudget, dailyBudget, status, lastTest, enabled FROM ai_providers");
-    res.json(providers);
-  } catch (err) {
-    console.error('Fetch providers error:', err);
-    res.status(500).json({ error: 'Failed to fetch providers.' });
-  }
-});
-
-// 3. POST /api/ai/providers
-app.post('/api/ai/providers', async (req, res) => {
-  try {
-    const p = req.body;
-    await dbRun(`
-      INSERT OR REPLACE INTO ai_providers (id, name, secretName, model, monthlyBudget, dailyBudget, status, lastTest, enabled)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [p.id, p.name, p.secretName, p.model, p.monthlyBudget, p.dailyBudget, p.status, p.lastTest, p.enabled ? 1 : 0]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Save provider error:', err);
-    res.status(500).json({ error: 'Failed to save provider.' });
-  }
-});
-
 // POST /api/media/upload
 app.post('/api/media/upload', async (req, res) => {
   try {
@@ -2630,55 +2604,6 @@ app.post('/api/media/upload', async (req, res) => {
   } catch (err) {
     console.error('File upload error:', err);
     res.status(500).json({ error: 'Failed to upload file.' });
-  }
-});
-
-// 4. POST /api/ai/test-provider
-app.post('/api/ai/test-provider', async (req, res) => {
-  try {
-    const { id } = req.body;
-    const prov = await dbGet("SELECT * FROM ai_providers WHERE id = ?", [id]);
-    if (!prov) {
-      return res.status(404).json({ error: 'Provider not found' });
-    }
-    const apiKey = process.env[prov.secretName] || '';
-    const success = apiKey.length > 0;
-    const statusText = success ? 'Connected' : 'Missing API Key';
-    const lastTest = new Date().toISOString();
-    
-    await dbRun("UPDATE ai_providers SET status = ?, lastTest = ? WHERE id = ?", [statusText, lastTest, id]);
-    res.json({ success, status: statusText, lastTest });
-  } catch (err) {
-    console.error('Test provider error:', err);
-    res.status(500).json({ error: 'Failed to test provider connection.' });
-  }
-});
-
-
-
-// 8. GET /api/ai/prompts
-app.get('/api/ai/prompts', async (req, res) => {
-  try {
-    const prompts = await dbAll("SELECT * FROM prompt_templates");
-    res.json(prompts);
-  } catch (err) {
-    console.error('Fetch prompts error:', err);
-    res.status(500).json({ error: 'Failed to fetch prompt templates.' });
-  }
-});
-
-// 9. POST /api/ai/prompts
-app.post('/api/ai/prompts', async (req, res) => {
-  try {
-    const p = req.body;
-    await dbRun(`
-      INSERT OR REPLACE INTO prompt_templates (id, name, templateText, version, updatedAt)
-      VALUES (?, ?, ?, ?, ?)
-    `, [p.id, p.name, p.templateText, p.version, new Date().toISOString()]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Save prompt error:', err);
-    res.status(500).json({ error: 'Failed to save prompt template.' });
   }
 });
 
@@ -3237,7 +3162,7 @@ app.post('/api/system/settings', async (req, res) => {
 });
 
 // Mount Modular Router Endpoints
-app.use('/api/ai', createAIRoutes(dbAll, dbRun));
+app.use('/api/ai', createAIRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createCategoryRoutes(db));
 app.use('/api', createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb));
 app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet));
