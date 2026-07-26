@@ -404,7 +404,6 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                 className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
               >
                 <option value="Manual">Manual</option>
-                <option value="AI Generated">AI Generated</option>
                 <option value="RSS Direct">RSS Direct</option>
               </select>
             </div>

@@ -5,36 +5,45 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
 
   // GET /api/system/weather-status (Live Health Check & Governance Status for Open-Meteo & Holiday APIs)
   router.get('/system/weather-status', async (req, res) => {
-    try {
-      const startTime = Date.now();
-      const openMeteoRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=3.1390&longitude=101.6869&current=temperature_2m,weather_code');
-      const latencyMs = Date.now() - startTime;
-      const isMeteoOk = openMeteoRes.ok;
+    const currentYear = new Date().getFullYear();
 
-      res.json({
-        success: true,
-        openMeteo: {
-          status: isMeteoOk ? 'ONLINE (200 OK)' : 'DEGRADED',
-          latencyMs,
-          endpoint: 'api.open-meteo.com/v1/forecast',
-          coveredCitiesCount: 15,
-          rateLimit: 'Uncapped Free Tier',
-          lastCheckedAt: new Date().toISOString()
-        },
-        holidayApi: {
-          status: 'ONLINE (200 OK)',
-          integratedStatesCount: 15,
-          calendarYear: 2026,
-          lastCheckedAt: new Date().toISOString()
-        }
-      });
+    const meteoStart = Date.now();
+    let openMeteo;
+    try {
+      const openMeteoRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=3.1390&longitude=101.6869&current=temperature_2m,weather_code');
+      openMeteo = {
+        status: openMeteoRes.ok ? 'ONLINE (200 OK)' : 'DEGRADED',
+        latencyMs: Date.now() - meteoStart,
+        endpoint: 'api.open-meteo.com/v1/forecast',
+        coveredCitiesCount: 15,
+        rateLimit: 'Uncapped Free Tier',
+        lastCheckedAt: new Date().toISOString()
+      };
     } catch (err) {
-      res.json({
-        success: false,
-        openMeteo: { status: 'OFFLINE', latencyMs: 0, error: err.message },
-        holidayApi: { status: 'ONLINE (200 OK)', integratedStatesCount: 15, calendarYear: 2026 }
-      });
+      openMeteo = { status: 'OFFLINE', latencyMs: Date.now() - meteoStart, endpoint: 'api.open-meteo.com/v1/forecast', error: err.message };
     }
+
+    // Same DyDxSoft public-holiday API core/routes/worldClockRoutes.js's /clock-holidays actually
+    // reads from -- this used to hardcode 'ONLINE (200 OK)' in every branch (even the catch block)
+    // without ever pinging anything, which is exactly the kind of fabricated status this "Live
+    // Health Check" panel exists to catch. Real fetch + real latency now, same pattern as Open-Meteo.
+    const holidayStart = Date.now();
+    let holidayApi;
+    try {
+      const holidayRes = await fetch(`https://malaysia-holiday.dydxsoft.my/api/v1/holidays?year=${currentYear}`);
+      holidayApi = {
+        status: holidayRes.ok ? 'ONLINE (200 OK)' : 'DEGRADED',
+        latencyMs: Date.now() - holidayStart,
+        endpoint: 'malaysia-holiday.dydxsoft.my/api/v1/holidays',
+        integratedStatesCount: 15,
+        calendarYear: currentYear,
+        lastCheckedAt: new Date().toISOString()
+      };
+    } catch (err) {
+      holidayApi = { status: 'OFFLINE', latencyMs: Date.now() - holidayStart, endpoint: 'malaysia-holiday.dydxsoft.my/api/v1/holidays', calendarYear: currentYear, error: err.message };
+    }
+
+    res.json({ success: true, openMeteo, holidayApi });
   });
 
   // GET /api/pages/:key — static/footer pages

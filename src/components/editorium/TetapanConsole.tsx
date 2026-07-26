@@ -148,6 +148,16 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const [apiHealthStatus, setApiHealthStatus] = useState<any>(null);
   const [isLoadingApiStatus, setIsLoadingApiStatus] = useState<boolean>(false);
 
+  // Badge colour must follow the REAL status, not default to green -- this panel used to hardcode
+  // a green "ONLINE" badge even before any check ran (and the Holiday API side never actually
+  // pinged anything at all). "Belum Disemak" (not yet checked) is the honest default state.
+  const apiStatusBadgeClass = (status: string | undefined): string => {
+    if (!status) return 'bg-stone-200 text-stone-600';
+    if (status.startsWith('ONLINE')) return 'bg-emerald-100 text-emerald-800';
+    if (status === 'DEGRADED') return 'bg-amber-100 text-amber-800';
+    return 'bg-red-100 text-red-800';
+  };
+
   const fetchApiStatus = async () => {
     setIsLoadingApiStatus(true);
     try {
@@ -763,13 +773,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-stone-800">Open-Meteo Weather API</span>
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold uppercase">
-                      {apiHealthStatus?.openMeteo?.status || 'ONLINE (200 OK)'}
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${apiStatusBadgeClass(apiHealthStatus?.openMeteo?.status)}`}>
+                      {apiHealthStatus?.openMeteo?.status || 'Belum Disemak'}
                     </span>
                   </div>
                   <div className="text-[10px] text-stone-500 space-y-0.5">
                     <div>Capaian Bandar: <strong className="text-stone-800">15 Bandar Ibu Negeri</strong></div>
-                    <div>Latensi Rangkaian: <strong className="text-emerald-700">{apiHealthStatus?.openMeteo?.latencyMs || 85} ms</strong></div>
+                    <div>Latensi Rangkaian: <strong className="text-emerald-700">{apiHealthStatus?.openMeteo?.latencyMs !== undefined ? `${apiHealthStatus.openMeteo.latencyMs} ms` : '—'}</strong></div>
                     <div>Had Kuota: <span className="text-stone-700">Percuma (Tanpa Had API Key)</span></div>
                     <div className="text-stone-400 truncate">Endpoint: {apiHealthStatus?.openMeteo?.endpoint || 'api.open-meteo.com/v1/forecast'}</div>
                   </div>
@@ -777,16 +787,16 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
                 <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-stone-800">Malaysia Holiday API 2026</span>
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold uppercase">
-                      {apiHealthStatus?.holidayApi?.status || 'ONLINE (200 OK)'}
+                    <span className="font-bold text-stone-800">Malaysia Holiday API</span>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${apiStatusBadgeClass(apiHealthStatus?.holidayApi?.status)}`}>
+                      {apiHealthStatus?.holidayApi?.status || 'Belum Disemak'}
                     </span>
                   </div>
                   <div className="text-[10px] text-stone-500 space-y-0.5">
                     <div>Liputan Negeri: <strong className="text-stone-800">15 Negeri & Wilayah</strong></div>
-                    <div>Tahun Kalendar: <strong className="text-stone-800">2026 (Group A & Group B)</strong></div>
-                    <div>Status Data: <span className="text-emerald-700">Disemak & Disepadukan</span></div>
-                    <div className="text-stone-400">Integrasi: Kalendar Cuti Umum & Cuti Sekolah</div>
+                    <div>Tahun Kalendar: <strong className="text-stone-800">{apiHealthStatus?.holidayApi?.calendarYear || new Date().getFullYear()} (Group A &amp; Group B)</strong></div>
+                    <div>Latensi Rangkaian: <strong className="text-emerald-700">{apiHealthStatus?.holidayApi?.latencyMs !== undefined ? `${apiHealthStatus.holidayApi.latencyMs} ms` : '—'}</strong></div>
+                    <div className="text-stone-400 truncate">Endpoint: {apiHealthStatus?.holidayApi?.endpoint || 'malaysia-holiday.dydxsoft.my/api/v1/holidays'}</div>
                   </div>
                 </div>
               </div>
@@ -808,6 +818,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {/* 5. INTERACTIVE RBAC PERMISSION TABLE MATRIX */}
       {subTab === 'RBAC' && (
         <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
+            <AlertTriangle className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Matriks ni disimpan betul-betul ke pangkalan data, tapi <strong>belum dikuatkuasakan</strong> di mana-mana bahagian sistem sebenar — semua semakan akses semasa (Indeks, Direktori, Tetapan sendiri) terus banding peranan dengan Ketua Editor secara tegar dalam kod, tanpa rujuk jadual ni langsung. Menanda/menyahtanda kebenaran di bawah <strong>tiada kesan</strong> pada apa yang seseorang benar-benar boleh buat buat masa ini.
+          </div>
           <div className="flex flex-wrap justify-between items-center border-b border-stone-200 pb-3 gap-2">
             <div>
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase tracking-wider">
@@ -817,9 +830,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 Ketua Editor boleh menanda atau membatalkan kebenaran peranan mengikut keperluan tadbir urus editorial.
               </p>
             </div>
-            <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded font-semibold text-xs border border-emerald-200 inline-flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" /> Mod Kelulusan Dinamik
-            </span>
           </div>
 
           {rbacSaveError && (

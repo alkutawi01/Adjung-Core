@@ -1,5 +1,14 @@
 [
   {
+    "time": "2026-07-26T16:37:23.794Z",
+    "summary": "RBAC: buang badge palsu 'Mod Kelulusan Dinamik', tambah notis jujur bahawa matriks belum dikuatkuasakan di mana-mana semakan akses sebenar. API Cuti: sambung check sebenar (dulu hardcode ONLINE walaupun gagal), tahun kalendar & badge status kini dinamik. Ticker: buang pilihan 'AI Generated' dari Mod Kandungan (tak digunakan lagi utk Ticker), betulkan nilai lapuk dalam DB.",
+    "files": [
+      "src/components/editorium/TetapanConsole.tsx",
+      "core/routes/systemRoutes.js",
+      "src/components/portal/TickerManagementModal.tsx"
+    ]
+  },
+  {
     "time": "2026-07-26T16:18:46.863Z",
     "summary": "Buang panel 'Uji Enjin Klasifikasi Desk' dari Tetapan -> Taksonomi -- pendua penuh alat ujian yang sama (sama endpoint /api/system/rss-desk-rules/test) yang sudah wujud di FrontpageView.tsx dengan UI lebih kaya (keyakinan/skor) & diletak sebelah jadual peraturan sebenar.",
     "files": [
