@@ -39,7 +39,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
       {/* Editorium Header -- bar identiti sahaja, maroon jelas (bukan hampir-hitam). Navigasi kini
           ELEMEN BERASINGAN di bawah, duduk atas latar cream badan halaman (gaya iOS: bar status
           bertona di atas, toolbar kaca lut sinar atas kandungan terang di bawah). */}
-      <header className="relative bg-gradient-to-b from-[#681c2a] to-[#44131c] text-[#FDFDFD] select-none overflow-hidden">
+      <header className="relative bg-Adjung-maroon-dark text-[#FDFDFD] select-none overflow-hidden">
         <div className="relative px-4 md:px-8 py-2 flex flex-wrap justify-between items-center gap-3">
           <Tooltip text="Klik untuk kembali ke Frontpage">
             <a href="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity select-none">
