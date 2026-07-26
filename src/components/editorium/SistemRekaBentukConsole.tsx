@@ -99,7 +99,10 @@ export const SistemRekaBentukConsole: React.FC = () => {
         </span>
         <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-xs">
           <div className="flex flex-col items-center text-center py-4 mb-5 border-b border-stone-150">
-            <h1 className="font-serif font-normal tracking-tight text-5xl text-[#802334]">{BRAND.logoText}</h1>
+            <div className="flex items-center gap-3 mb-1">
+              <img src="/adjung-symbol.svg" alt="Simbol Adjung" className="h-11 w-auto" />
+              <h1 className="font-serif font-normal tracking-tight text-5xl text-[#802334]">{BRAND.logoText}</h1>
+            </div>
             <div className="flex items-center justify-center gap-2.5 mt-2 mb-1">
               <div className="h-[1px] bg-[#b4b4b4] w-10"></div>
               <span className="font-sans text-[10px] tracking-[0.25em] font-semibold text-[#b4b4b4] uppercase">{BRAND.subLabel}</span>
@@ -118,8 +121,9 @@ export const SistemRekaBentukConsole: React.FC = () => {
             </tbody>
           </table>
           <p className="font-sans text-[10px] text-stone-500 mt-3 italic">
-            Tiada logo/simbol grafik direka lagi -- wordmark ialah teks sepenuhnya, dan favicon
-            semasa ialah segi empat warna maroon rata (placeholder, bukan reka bentuk akhir).
+            Simbol (segi empat tegak, nisbah 1:2, sudut 0px) ikut Sistem Identiti Visual Adjung
+            v1.0 (Mei 2025) -- <code className="not-italic bg-stone-100 px-1 py-0.5 rounded">public/adjung-symbol.svg</code>.
+            Favicon dikemas kini guna simbol ni (bukan lagi segi empat rata tanpa reka bentuk).
           </p>
         </div>
       </div>

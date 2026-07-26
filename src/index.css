@@ -3,7 +3,7 @@
 
 @theme {
   --font-serif: "Source Serif 4", ui-serif, Georgia, serif;
-  --font-sans: "Libre Franklin", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Libre Franklin", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-arabic: "Noto Naskh Arabic", serif;
   --font-signature: "Mrs Saint Delafield", "Birthstone", "Birthstone Bounce", "Pinyon Script", cursive;
