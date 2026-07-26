@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-07-26T16:18:46.863Z",
+    "summary": "Buang panel 'Uji Enjin Klasifikasi Desk' dari Tetapan -> Taksonomi -- pendua penuh alat ujian yang sama (sama endpoint /api/system/rss-desk-rules/test) yang sudah wujud di FrontpageView.tsx dengan UI lebih kaya (keyakinan/skor) & diletak sebelah jadual peraturan sebenar.",
+    "files": [
+      "src/components/editorium/TetapanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-07-26T16:10:35.382Z",
     "summary": "Buang penerangan kurungan hiasan (Disyorkan)/(Pantas)/(jika ada)/dll di borang Tetapan/Ticker/Slot; padankan Italic->Condong dgn nama semasa; terjemah label kata nama am Inggeris (Reset->Set Semula, Source Trust->Kepercayaan Sumber, dll) sambil kekalkan kata nama khas (RSS, URL, ACEF, nama sumber) dlm Bahasa Inggeris.",
     "files": [

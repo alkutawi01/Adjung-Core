@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Play, Globe, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import { Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import { EditorialIntelligencePlatform } from './EditorialIntelligencePlatform';
 
 // Bidang kini senarai tertutup kurasi Ketua Editor, disimpan di CategoryRegistry (jadual DB
@@ -296,35 +296,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       if (res.ok) setBlockedCategories(prev => prev.filter(c => c.id !== id));
     } catch (e) {
       console.error('Remove blocked category error:', e);
-    }
-  };
-
-  // Live Classifier Tester — exercises the real desk-classification engine
-  // (core/engines/DeskClassifierEngine.js via /api/system/rss-desk-rules/test).
-  const [testInputTitle, setTestInputTitle] = useState('PDRM tahan 3 suspek kes jenayah biometrik di KLIA');
-  const [testInputBrief, setTestInputBrief] = useState('Siasatan lanjut mendapati penglibatan sindiket antarabangsa.');
-  const [testInputCategory, setTestInputCategory] = useState('Jenayah');
-  const [testResult, setTestResult] = useState<any>(null);
-  const [testingClassifier, setTestingClassifier] = useState(false);
-
-  const handleRunClassifierTest = async () => {
-    setTestingClassifier(true);
-    try {
-      const res = await fetch('/api/system/rss-desk-rules/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testTitle: testInputTitle,
-          testBrief: testInputBrief,
-          testCategory: testInputCategory
-        })
-      });
-      const data = await res.json();
-      setTestResult(data);
-    } catch (e) {
-      console.error('Classifier test error:', e);
-    } finally {
-      setTestingClassifier(false);
     }
   };
 
@@ -645,46 +616,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   ))}
                 </tbody>
               </table>
-            )}
-          </div>
-
-          {/* Live Desk Classifier Tester — exercises the real rss-desk-rules/test endpoint */}
-          <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-            <div>
-              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-                Uji Enjin Klasifikasi Desk
-              </h3>
-              <p className="text-stone-500 text-xs">
-                Semak secara langsung bagaimana enjin klasifikasi automatik akan mengagihkan tajuk/brief kepada desk tertentu.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Tajuk Ujian</label>
-                <input type="text" value={testInputTitle} onChange={e => setTestInputTitle(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
-              </div>
-              <div>
-                <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Kategori Mentah RSS</label>
-                <input type="text" value={testInputCategory} onChange={e => setTestInputCategory(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Brief Ujian</label>
-                <textarea value={testInputBrief} onChange={e => setTestInputBrief(e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <button
-                onClick={handleRunClassifierTest}
-                disabled={testingClassifier}
-                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs disabled:opacity-50 inline-flex items-center gap-1.5"
-              >
-                {testingClassifier ? <><Hourglass className="w-3.5 h-3.5" /> Menguji...</> : <><Play className="w-3.5 h-3.5" /> Jalankan Ujian Klasifikasi</>}
-              </button>
-            </div>
-            {testResult && (
-              <pre className="bg-stone-900 text-emerald-300 text-[10px] p-3 rounded overflow-x-auto max-h-64">
-                {JSON.stringify(testResult, null, 2)}
-              </pre>
             )}
           </div>
         </div>
