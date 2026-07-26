@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, RefreshCw, Plus, Trash2, Check, AlertTriangle, ShieldCheck, Zap, Save, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, RefreshCw, Plus, Trash2, Check, AlertTriangle, ShieldCheck, Zap, Save, Settings, ChevronDown, ChevronUp, Tag, Ban } from 'lucide-react';
 import { SystemSettings } from '../../types';
 import { Tooltip } from '../common/Tooltip';
 
@@ -384,7 +384,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       }`}
                     >
                       <span className="font-extrabold">#{item.index}</span>
-                      <span>{item.isValid ? '✓' : '⚠️'}</span>
+                      <span>{item.isValid ? <Check className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}</span>
                       <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{item.titleSnippet}</span>
                     </button>
                   </Tooltip>
@@ -637,7 +637,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       <div className="flex justify-between items-center flex-wrap gap-2">
                         <div>
                           <h6 className="font-mono text-xs font-bold uppercase text-[#802334] tracking-wider flex items-center gap-1.5">
-                            🏷️ KAWALAN KATEGORI XML RSS TERSEKAT ({blockedCategories.length} TAG TERSEKAT)
+                            <Tag size={13} /> KAWALAN KATEGORI XML RSS TERSEKAT ({blockedCategories.length} TAG TERSEKAT)
                           </h6>
                           <p className="font-sans text-[10px] text-stone-500 mt-0.5">
                             Menyaring & menyekat berita mengikut tag kategori mentah daripada sumber RSS (cth: Hiburan, Sukan, Gosip).
@@ -671,14 +671,16 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                               key={cat.id}
                               className="px-2 py-1 bg-white border border-stone-300 text-stone-800 rounded font-mono text-[10px] font-bold flex items-center gap-1.5 shadow-2xs"
                             >
-                              <span className="text-[#802334]">🏷️ {cat.categoryName}</span>
+                              <span className="text-[#802334] flex items-center gap-1">
+                                <Tag className="w-3 h-3" /> {cat.categoryName}
+                              </span>
                               <Tooltip text="Buka Sekatan Tag Ini">
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteBlockedCategory(cat.id, cat.categoryName)}
                                   className="text-stone-400 hover:text-rose-700 cursor-pointer font-bold ml-1"
                                 >
-                                  ✕
+                                  <X className="w-3 h-3" />
                                 </button>
                               </Tooltip>
                             </span>
@@ -761,7 +763,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                                         onClick={() => handleAddBlockedCategory(rawTag)}
                                         className="font-mono text-[8px] font-bold uppercase px-1.5 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded transition cursor-pointer flex items-center gap-1 border border-rose-300"
                                       >
-                                        🚫 Sekat Tag '{rawTag}'
+                                        <Ban className="w-3 h-3" /> Sekat Tag '{rawTag}'
                                       </button>
                                     </Tooltip>
                                   )}

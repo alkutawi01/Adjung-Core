@@ -4,7 +4,7 @@ import { User, Entry, SystemSettings } from '../../types';
 import { BRAND } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays } from '../../utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Settings, Sun, CloudSun, CloudRain, CloudLightning, CloudFog, Cloud } from 'lucide-react';
+import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Settings, Sun, CloudSun, CloudRain, CloudLightning, CloudFog, Cloud, Lock, Trash2, Save, Search, PenLine, FlaskConical, Tag, Brain, Ban, PenTool, Building2, Zap, AlertTriangle } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
 import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRenderer';
@@ -2605,7 +2605,7 @@ URL: ${url}`;
                   onClick={(e) => e.stopPropagation()}
                   className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans font-bold cursor-pointer bg-[#802334] text-white border-[#802334] hover:bg-[#601824]"
                 >
-                  🏢 Editorium
+                  <Building2 className="w-3.5 h-3.5" /> Editorium
                 </a>
                 <a
                   href="/studio/semakan-kandungan"
@@ -3869,12 +3869,12 @@ URL: ${url}`;
 
                     <div className="flex items-center gap-2">
                       {failedCount > 0 ? (
-                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-[#802334]/10 text-[#802334] border border-[#802334]/30 uppercase tracking-wider animate-pulse">
-                          ⚠️ {failedCount} GAGAL HAD AKSARA
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-[#802334]/10 text-[#802334] border border-[#802334]/30 uppercase tracking-wider animate-pulse">
+                          <AlertTriangle className="w-3 h-3" /> {failedCount} GAGAL HAD AKSARA
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-stone-100 text-stone-800 border border-stone-300 uppercase tracking-wider">
-                          ✓ 100% MEMATUHI HAD
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-stone-100 text-stone-800 border border-stone-300 uppercase tracking-wider">
+                          <Check className="w-3 h-3" /> 100% MEMATUHI HAD
                         </span>
                       )}
                     </div>
@@ -3900,7 +3900,7 @@ URL: ${url}`;
                               }`}
                             >
                               <span className="font-extrabold">#{item.index}</span>
-                              <span>{item.isValid ? '✓' : '⚠️'}</span>
+                              <span>{item.isValid ? <Check className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}</span>
                               <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{item.titleSnippet}</span>
                             </button>
                           </Tooltip>
@@ -3945,9 +3945,9 @@ URL: ${url}`;
                           type="button"
                           onClick={handleFetchDirectRss}
                           disabled={isFetchingRss}
-                          className="px-4 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-mono font-bold uppercase tracking-wider transition cursor-pointer shadow-xs disabled:opacity-50"
+                          className="px-4 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-mono font-bold uppercase tracking-wider transition cursor-pointer shadow-xs disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                         >
-                          {isFetchingRss ? 'Menyerap RSS...' : '⚡ Serap RSS Sekarang'}
+                          {isFetchingRss ? 'Menyerap RSS...' : <><Zap className="w-3.5 h-3.5" /> Serap RSS Sekarang</>}
                         </button>
                       </div>
 
@@ -4044,9 +4044,9 @@ URL: ${url}`;
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteRssSource(src.id, src.sourceName)}
-                                    className="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[9px] font-bold uppercase cursor-pointer"
+                                    className="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[9px] font-bold uppercase cursor-pointer inline-flex items-center gap-1"
                                   >
-                                    🗑️ Buang
+                                    <Trash2 className="w-3 h-3" /> Buang
                                   </button>
                                 </div>
                               </div>
@@ -4058,7 +4058,7 @@ URL: ${url}`;
                       {/* Dynamic Editorial Settings Form */}
                       <div className="pt-3 border-t border-stone-200 space-y-3">
                         <h5 className="font-mono text-xs font-bold uppercase text-[#802334] tracking-wider flex items-center gap-1.5">
-                          ⚙️ TETAPAN & PERATURAN EDITORIAL RSS (DINAMIK / TANPA HARDCODE)
+                          <Settings className="w-3.5 h-3.5" /> TETAPAN & PERATURAN EDITORIAL RSS (DINAMIK / TANPA HARDCODE)
                         </h5>
                         <p className="font-sans text-[11px] text-stone-500 leading-normal">
                           Laras ambang skor automatik, senarai kata kunci keutamaan, dan kata kunci yang disekat mengikut kriteria meja editorial anda.
@@ -4134,9 +4134,9 @@ URL: ${url}`;
                           <button
                             type="button"
                             onClick={handleSaveRssEditorialSettings}
-                            className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer shadow-xs"
+                            className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer shadow-xs inline-flex items-center gap-1.5"
                           >
-                            💾 Simpan Tetapan Editorial Dinamik
+                            <Save className="w-3.5 h-3.5" /> Simpan Tetapan Editorial Dinamik
                           </button>
                         </div>
                       </div>
@@ -4230,9 +4230,9 @@ URL: ${url}`;
                                           addToast('success', 'Artikel diluluskan ke Ticker Live!');
                                           loadReviewQueue();
                                         }}
-                                        className="px-2.5 py-1 text-[9px] font-mono font-bold uppercase bg-emerald-600 hover:bg-emerald-700 text-white rounded cursor-pointer shadow-xs"
+                                        className="px-2.5 py-1 text-[9px] font-mono font-bold uppercase bg-emerald-600 hover:bg-emerald-700 text-white rounded cursor-pointer shadow-xs inline-flex items-center gap-1"
                                       >
-                                        ✓ Lulus
+                                        <Check className="w-3 h-3" /> Lulus
                                       </button>
                                       <button
                                         type="button"
@@ -4245,9 +4245,9 @@ URL: ${url}`;
                                           addToast('info', 'Artikel ditolak.');
                                           loadReviewQueue();
                                         }}
-                                        className="px-2.5 py-1 text-[9px] font-mono font-bold uppercase bg-rose-600 hover:bg-rose-700 text-white rounded cursor-pointer shadow-xs"
+                                        className="px-2.5 py-1 text-[9px] font-mono font-bold uppercase bg-rose-600 hover:bg-rose-700 text-white rounded cursor-pointer shadow-xs inline-flex items-center gap-1"
                                       >
-                                        ✕ Tolak
+                                        <X className="w-3 h-3" /> Tolak
                                       </button>
                                     </div>
 
@@ -4302,13 +4302,13 @@ URL: ${url}`;
                                   return (
                                     <div className="pt-2 border-t border-stone-200 font-mono text-[9px] bg-stone-900 text-stone-200 p-2.5 rounded space-y-1">
                                       <div className="flex justify-between items-center text-amber-300 font-bold uppercase">
-                                        <span>🔍 EXPLAIN CLASSIFICATION TRACE</span>
+                                        <span className="inline-flex items-center gap-1"><Search className="w-3 h-3" /> EXPLAIN CLASSIFICATION TRACE</span>
                                         <span>Keyakinan: {dbd.confidence} | Margin: +{dbd.margin || 0}</span>
                                       </div>
                                       <p className="text-[#E9D8A6] text-[10px] leading-snug">{dbd.explanation || dbd.reason}</p>
                                       {dbd.resolver && dbd.resolver !== 'STANDARD_WEIGHTED_MATCH' && (
-                                        <div className="text-emerald-400 font-bold">
-                                          ⚡ Resolusi Konflik Domain: {dbd.resolver}
+                                        <div className="text-emerald-400 font-bold inline-flex items-center gap-1">
+                                          <Zap className="w-3 h-3" /> Resolusi Konflik Domain: {dbd.resolver}
                                         </div>
                                       )}
                                     </div>
@@ -4330,7 +4330,7 @@ URL: ${url}`;
                     <div className="flex justify-between items-center border-b border-stone-200 pb-3">
                       <div>
                         <h4 className="font-mono text-xs uppercase font-bold text-[#802334] tracking-wider flex items-center gap-2">
-                          ✍️ Adjung Editorial Text Rules (Pembersihan Teks RSS)
+                          <PenLine className="w-3.5 h-3.5" /> Adjung Editorial Text Rules (Pembersihan Teks RSS)
                         </h4>
                         <p className="text-[10px] text-stone-500 font-sans mt-0.5">
                           Kawalan 100% di tangan Ketua Editor. Peraturan SUBSTITUTE, REGEXREPLACE, dan pembersihan dateline tanpa penulisan kod hardcoded.
@@ -4373,8 +4373,8 @@ URL: ${url}`;
                                   {rule.ruleName}
                                   {isLocked && (
                                     <Tooltip text="Peraturan Asas Sistem (Locked)">
-                                      <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[8px] font-mono font-bold rounded">
-                                        🔒 ASAS
+                                      <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[8px] font-mono font-bold rounded inline-flex items-center gap-0.5">
+                                        <Lock className="w-2.5 h-2.5" /> ASAS
                                       </span>
                                     </Tooltip>
                                   )}
@@ -4410,7 +4410,7 @@ URL: ${url}`;
                                         onClick={() => handleDeleteRssTextRule(rule.id, rule.ruleName)}
                                         className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
                                       >
-                                        🗑️
+                                        <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     </Tooltip>
                                   ) : (
@@ -4518,7 +4518,7 @@ URL: ${url}`;
                     <div className="p-3 bg-[#1F1F1F] text-stone-100 rounded-lg space-y-3">
                       <div className="flex justify-between items-center">
                         <h5 className="font-mono text-xs font-bold text-[#E9D8A6] uppercase tracking-wider flex items-center gap-2">
-                          🧪 Live Sandbox Tester (Preview Hasil Pembersihan)
+                          <FlaskConical className="w-3.5 h-3.5" /> Live Sandbox Tester (Preview Hasil Pembersihan)
                         </h5>
                         <button
                           type="button"
@@ -4574,7 +4574,7 @@ URL: ${url}`;
                     <div className="flex justify-between items-center border-b border-stone-200 pb-3">
                       <div>
                         <h4 className="font-mono text-xs uppercase font-bold text-[#802334] tracking-wider flex items-center gap-2">
-                          🏷️ Adjung Desk Classification Engine (Pemberat Kata Kunci & Confidence)
+                          <Tag className="w-3.5 h-3.5" /> Adjung Desk Classification Engine (Pemberat Kata Kunci & Confidence)
                         </h4>
                         <p className="text-[10px] text-stone-500 font-sans mt-0.5">
                           Mengelaskan berita ke dalam desk jurnal Adjung secara automatik mengikut markah pemberat kata kunci (Weighted Keywords) & skor keyakinan.
@@ -4627,7 +4627,7 @@ URL: ${url}`;
                                       onClick={() => handleDeleteAdjungDesk(d.id, d.deskName)}
                                       className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
                                     >
-                                      🗑️
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   </Tooltip>
                                 </td>
@@ -4717,7 +4717,7 @@ URL: ${url}`;
                                         onClick={() => handleDeleteRssDeskRule(rule.id, rule.keyword)}
                                         className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
                                       >
-                                        🗑️
+                                        <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     </Tooltip>
                                   </td>
@@ -4787,7 +4787,7 @@ URL: ${url}`;
                         <div className="space-y-2 pt-3 border-t border-stone-200">
                           <div className="flex justify-between items-center">
                             <h5 className="font-mono text-[10px] uppercase font-bold text-amber-800 tracking-wider flex items-center gap-1.5">
-                              🧠 Cadangan Memori Editorial ({editorialMemories.length} Cadangan Menunggu Kelulusan)
+                              <Brain className="w-3 h-3" /> Cadangan Memori Editorial ({editorialMemories.length} Cadangan Menunggu Kelulusan)
                             </h5>
                             <span className="text-[9px] font-mono text-stone-500">Hasil Override Manual Editor</span>
                           </div>
@@ -4815,7 +4815,7 @@ URL: ${url}`;
                       <div className="space-y-3 pt-3 border-t border-stone-200">
                         <div className="flex justify-between items-center">
                           <h5 className="font-mono text-[10px] uppercase font-bold text-red-800 tracking-wider flex items-center gap-1.5">
-                            🚫 Kategori XML RSS Tersekat (Blocked XML Categories - 100% Dinamik)
+                            <Ban className="w-3 h-3" /> Kategori XML RSS Tersekat (Blocked XML Categories - 100% Dinamik)
                           </h5>
                           <span className="text-[9px] font-mono text-stone-500">{rssBlockedCategories.length} Kategori Disekat</span>
                         </div>
@@ -4834,7 +4834,7 @@ URL: ${url}`;
                                     onClick={() => handleDeleteRssBlockedCategory(cat.id, cat.categoryName)}
                                     className="ml-1 text-red-600 hover:text-red-900 cursor-pointer font-extrabold"
                                   >
-                                    ✕
+                                    <X className="w-3 h-3" />
                                   </button>
                                 </Tooltip>
                               </span>
@@ -4866,7 +4866,7 @@ URL: ${url}`;
                         <div className="space-y-2 pt-3 border-t border-stone-200">
                           <div className="flex justify-between items-center">
                             <h5 className="font-mono text-[10px] uppercase font-bold text-red-900 tracking-wider flex items-center gap-1.5">
-                              🚫 Jejak Audit Berita Disekat ({blockedQueue.length} Berita Disekat)
+                              <Ban className="w-3 h-3" /> Jejak Audit Berita Disekat ({blockedQueue.length} Berita Disekat)
                             </h5>
                             <span className="text-[9px] font-mono text-stone-500 font-bold text-red-700">Ditolak di Pintu Masuk XML</span>
                           </div>
@@ -4896,7 +4896,7 @@ URL: ${url}`;
                                       <span className="px-2 py-0.5 bg-red-200/80 rounded border border-red-300">{item.category}</span>
                                     </td>
                                     <td className="p-2 text-center font-mono text-[10px] font-bold text-red-700 shrink-0">
-                                      🚫 DISEKAT
+                                      <span className="inline-flex items-center justify-center gap-1"><Ban className="w-3 h-3" /> DISEKAT</span>
                                     </td>
                                   </tr>
                                 ))}
@@ -4911,7 +4911,7 @@ URL: ${url}`;
                     <div className="p-3 bg-[#1F1F1F] text-stone-100 rounded-lg space-y-3 pt-3 border-t border-stone-700">
                       <div className="flex justify-between items-center">
                         <h5 className="font-mono text-xs font-bold text-[#E9D8A6] uppercase tracking-wider flex items-center gap-2">
-                          🧪 Live Desk Classifier Sandbox (Analisis Skor & Confidence)
+                          <FlaskConical className="w-3.5 h-3.5" /> Live Desk Classifier Sandbox (Analisis Skor & Confidence)
                         </h5>
                         <button
                           type="button"
@@ -4950,8 +4950,8 @@ URL: ${url}`;
                             {deskTestResult ? (
                               <>
                                 <div className="flex items-center justify-between border-b border-stone-800 pb-1">
-                                  <span className="text-emerald-400 font-bold text-sm">
-                                    ✓ DESK: {deskTestResult.winningDesk.toUpperCase()}
+                                  <span className="text-emerald-400 font-bold text-sm inline-flex items-center gap-1">
+                                    <Check className="w-4 h-4" /> DESK: {deskTestResult.winningDesk.toUpperCase()}
                                   </span>
                                   <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase ${
                                     deskTestResult.confidence === 'HIGH' ? 'bg-green-900 text-green-200' : deskTestResult.confidence === 'MEDIUM' ? 'bg-amber-900 text-amber-200' : 'bg-red-900 text-red-200'
@@ -4983,7 +4983,7 @@ URL: ${url}`;
                       <div className="p-3 bg-stone-50/70 border border-stone-200 rounded-lg space-y-3 pt-3">
                         <div className="flex justify-between items-center">
                           <h5 className="font-mono text-xs font-bold text-[#802334] uppercase tracking-wider flex items-center gap-2">
-                            ✒️ Adjung Typography Rules (v2.1 - Lapisan Gaya Penerbitan Global)
+                            <PenTool className="w-3.5 h-3.5" /> Adjung Typography Rules (v2.1 - Lapisan Gaya Penerbitan Global)
                           </h5>
                           <span className="text-[9px] font-mono text-stone-500">{adjungTypographyRules.length} Aturan Tipografi</span>
                         </div>
@@ -5055,7 +5055,7 @@ URL: ${url}`;
                                             onClick={() => handleDeleteAdjungTypographyRule(rule.id, rule.term)}
                                             className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition cursor-pointer"
                                           >
-                                            🗑️
+                                            <Trash2 className="w-3.5 h-3.5" />
                                           </button>
                                         </Tooltip>
                                       </td>
@@ -5288,8 +5288,8 @@ URL: ${url}`;
                                         Blok #{bIndex + 1}
                                       </span>
                                       <Tooltip text="UUID Kanonikal (Dikunci oleh Sistem)">
-                                        <span className="text-[10px] font-mono font-bold text-stone-600 truncate select-all">
-                                          🔒 UUID: <span className="text-stone-900">{item.uuid}</span>
+                                        <span className="text-[10px] font-mono font-bold text-stone-600 truncate select-all inline-flex items-center gap-1">
+                                          <Lock className="w-3 h-3 shrink-0" /> UUID: <span className="text-stone-900">{item.uuid}</span>
                                         </span>
                                       </Tooltip>
                                     </div>
@@ -5297,9 +5297,9 @@ URL: ${url}`;
                                       <button
                                         type="button"
                                         onClick={() => handleRemoveBlock(bIndex)}
-                                        className="text-[10px] font-mono text-rose-700 hover:text-rose-900 font-bold px-2 py-0.5 bg-rose-50 hover:bg-rose-100 rounded border border-rose-200 transition cursor-pointer shrink-0"
+                                        className="text-[10px] font-mono text-rose-700 hover:text-rose-900 font-bold px-2 py-0.5 bg-rose-50 hover:bg-rose-100 rounded border border-rose-200 transition cursor-pointer shrink-0 inline-flex items-center gap-1"
                                       >
-                                        🗑️ Hapus Blok
+                                        <Trash2 className="w-3 h-3" /> Hapus Blok
                                       </button>
                                     )}
                                   </div>
@@ -5857,8 +5857,8 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                           {isExecutingNow ? 'Menjalankan Penjanaan AI...' : 'Aktifkan Segera'}
                         </button>
                         {executingSuccessMessage && (
-                          <span className="text-[11px] text-green-600 font-sans font-semibold animate-pulse">
-                            ✓ {executingSuccessMessage}
+                          <span className="text-[11px] text-green-600 font-sans font-semibold animate-pulse inline-flex items-center gap-1">
+                            <Check className="w-3 h-3" /> {executingSuccessMessage}
                           </span>
                         )}
                       </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Search, Construction, FolderOpen, X, Pencil } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 
 const formatTitleCase = (str: string) => {
@@ -96,20 +97,24 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="text"
-            placeholder="🔍 Cari anggota, ID, atau desk..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 font-serif text-xs w-64"
-          />
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Cari anggota, ID, atau desk..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="bg-stone-50 border border-stone-300 rounded pl-8 pr-3 py-1.5 font-serif text-xs w-64"
+            />
+          </div>
 
           {currentUserRole === 'KETUA_EDITOR' && (
             <Tooltip text="Belum dibina -- tiada sistem akaun pengguna berbilang lagi">
               <span
-                className="bg-stone-100 text-stone-400 font-mono text-xs px-4 py-2 rounded font-bold border border-stone-200 cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-400 font-mono text-xs px-4 py-2 rounded font-bold border border-stone-200 cursor-not-allowed"
               >
-                🚧 + TAMBAH ANGGOTA
+                <Construction className="w-3.5 h-3.5" />
+                + TAMBAH ANGGOTA
               </span>
             </Tooltip>
           )}
@@ -134,7 +139,9 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
             {filteredStaff.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-12 text-center text-stone-500">
-                  <div className="text-2xl mb-2">🗂️</div>
+                  <div className="mb-2 flex justify-center">
+                    <FolderOpen className="w-6 h-6" />
+                  </div>
                   <div className="font-bold uppercase tracking-wider text-[11px] mb-1">Direktori Kosong</div>
                   <p className="text-xs max-w-sm mx-auto">
                     Belum ada anggota lain berdaftar -- sistem akaun pengguna berbilang belum dibina.
@@ -155,15 +162,15 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                   </span>
                 </td>
                 <td className="p-4">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${
                     staff.status === 'Aktif' ? 'bg-emerald-100 text-emerald-800 font-bold' :
                     staff.status === 'Cuti' ? 'bg-amber-100 text-amber-800 font-bold' :
                     staff.status === 'Tidak Aktif' ? 'bg-red-100 text-red-800 font-bold' : 'bg-stone-900 text-white font-bold'
                   }`}>
-                    {staff.status === 'Aktif' && '🟢 '}
-                    {staff.status === 'Cuti' && '🟡 '}
-                    {staff.status === 'Tidak Aktif' && '🔴 '}
-                    {staff.status === 'Ditamatkan' && '⚫ '}
+                    {staff.status === 'Aktif' && <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />}
+                    {staff.status === 'Cuti' && <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />}
+                    {staff.status === 'Tidak Aktif' && <span className="inline-block w-2 h-2 rounded-full bg-red-500" />}
+                    {staff.status === 'Ditamatkan' && <span className="inline-block w-2 h-2 rounded-full bg-stone-500" />}
                     {staff.status}
                   </span>
                 </td>
@@ -206,7 +213,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 onClick={() => setSelectedStaff(null)}
                 className="text-stone-400 hover:text-stone-800 text-lg font-bold px-2 py-1"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -237,9 +244,10 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 {currentUserRole === 'KETUA_EDITOR' && !editingMandat && (
                   <button
                     onClick={() => { setEditingMandat(true); setMandatInput(selectedStaff.slotMandat); }}
-                    className="text-[#802334] hover:underline font-semibold text-xs cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[#802334] hover:underline font-semibold text-xs cursor-pointer"
                   >
-                    ✏️ Ubah Mandat
+                    <Pencil className="w-3.5 h-3.5" />
+                    Ubah Mandat
                   </button>
                 )}
               </div>
@@ -319,21 +327,24 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleToggleStatus('Aktif')}
-                    className="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-md font-semibold text-xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-md font-semibold text-xs transition-colors cursor-pointer"
                   >
-                    🟢 Aktifkan
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                    Aktifkan
                   </button>
                   <button
                     onClick={() => handleToggleStatus('Cuti')}
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md font-semibold text-xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md font-semibold text-xs transition-colors cursor-pointer"
                   >
-                    🟡 Set Cuti
+                    <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
+                    Set Cuti
                   </button>
                   <button
                     onClick={() => handleToggleStatus('Tidak Aktif')}
-                    className="bg-red-700 hover:bg-red-800 text-white px-3 py-1.5 rounded-md font-semibold text-xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 bg-red-700 hover:bg-red-800 text-white px-3 py-1.5 rounded-md font-semibold text-xs transition-colors cursor-pointer"
                   >
-                    🔴 Nyahaktif
+                    <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                    Nyahaktif
                   </button>
                 </div>
               </div>

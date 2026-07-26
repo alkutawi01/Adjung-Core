@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { AlertTriangle, X, Search, Pin, Lock } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
 
@@ -251,19 +252,20 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
         {actionError && (
           <div className="bg-red-50 border border-red-200 text-red-800 text-xs font-sans px-3 py-2 rounded flex justify-between items-center">
-            <span>⚠️ {actionError}</span>
-            <button onClick={() => setActionError(null)} className="font-bold px-2">✕</button>
+            <span className="inline-flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {actionError}</span>
+            <button onClick={() => setActionError(null)} className="font-bold px-2"><X className="w-3.5 h-3.5" /></button>
           </div>
         )}
 
         {/* Search Input */}
-        <div className="w-full">
+        <div className="w-full relative">
+          <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
           <input
             type="text"
-            placeholder="🔍 Cari tajuk, ID, atau kata kunci brief..."
+            placeholder="Cari tajuk, ID, atau kata kunci brief..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-stone-50 border border-stone-300 rounded px-4 py-2.5 font-sans text-xs shadow-xs"
+            className="w-full bg-stone-50 border border-stone-300 rounded pl-10 pr-4 py-2.5 font-sans text-xs shadow-xs"
           />
         </div>
 
@@ -361,19 +363,19 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         <div className="flex bg-stone-100 p-1 rounded font-sans text-xs w-max border border-stone-200">
           <button
             onClick={() => setEditorViewMode('mine')}
-            className={`px-4 py-1.5 rounded font-bold transition-all ${
+            className={`px-4 py-1.5 rounded font-bold transition-all inline-flex items-center gap-1.5 ${
               editorViewMode === 'mine' ? 'bg-[#802334] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
-            📌 Kandungan Saya (Boleh Edit & Publish)
+            <Pin className="w-3.5 h-3.5" /> Kandungan Saya (Boleh Edit & Publish)
           </button>
           <button
             onClick={() => setEditorViewMode('all')}
-            className={`px-4 py-1.5 rounded font-bold transition-all ${
+            className={`px-4 py-1.5 rounded font-bold transition-all inline-flex items-center gap-1.5 ${
               editorViewMode === 'all' ? 'bg-[#802334] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
-            🔒 Semua Kandungan (Baca Sahaja)
+            <Lock className="w-3.5 h-3.5" /> Semua Kandungan (Baca Sahaja)
           </button>
         </div>
       )}
@@ -469,9 +471,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 rounded px-2.5 py-1 font-sans text-xs font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#802334]"
                         >
                           <option value="" disabled hidden>Tindakan ▾</option>
-                          {rec.status !== 'Live' && <option value="Live">🟢 Siar</option>}
-                          {rec.status !== 'Rejected' && <option value="Rejected">🔴 Tolak</option>}
-                          {rec.status !== 'Archive' && <option value="Archive">📦 Arkib</option>}
+                          {rec.status !== 'Live' && <option value="Live">Siar</option>}
+                          {rec.status !== 'Rejected' && <option value="Rejected">Tolak</option>}
+                          {rec.status !== 'Archive' && <option value="Archive">Arkib</option>}
                         </select>
                       ) : (
                         <span className="text-stone-400 text-[11px] font-sans">{rec.slot === 'Ticker' ? 'Ticker (uruskan di Tetapan)' : 'Baca Sahaja'}</span>
@@ -499,7 +501,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 </h3>
               </div>
               <button onClick={() => setActiveItemModal(null)} className="text-stone-400 hover:text-stone-800 font-bold text-lg">
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

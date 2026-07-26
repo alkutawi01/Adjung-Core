@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { List, FolderOpen, Settings, History, Landmark, Palette } from 'lucide-react';
+import { List, FolderOpen, Settings, History, Landmark, Palette, Lock } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
@@ -108,7 +108,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" strokeWidth={2.2} />
-                {item.label} {item.restricted ? '🔒' : ''}
+                {item.label} {item.restricted && <Lock className="w-3 h-3" strokeWidth={2.2} />}
               </button>
             );
           })}
@@ -125,8 +125,12 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
         <div>
           Adjung Brief Editorium • Editorial Control System
         </div>
-        <div>
-          Status Sistem: <span className="text-emerald-700 font-semibold">🟢 Dilindungi & Aktif</span>
+        <div className="flex items-center gap-1.5">
+          Status Sistem:
+          <span className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+            Dilindungi &amp; Aktif
+          </span>
         </div>
       </footer>
     </div>

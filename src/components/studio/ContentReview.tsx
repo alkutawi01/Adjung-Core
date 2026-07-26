@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, Save, Plus, Search, ChevronDown, ChevronUp, LayoutGrid, FileText } from 'lucide-react';
+import { Trash2, Save, Plus, Search, ChevronDown, ChevronUp, LayoutGrid, FileText, Check } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 
 interface ContentItem {
@@ -24,8 +24,9 @@ const LimitBadge = ({ length, limit }: { length: number; limit: number | null })
   if (!limit) return null;
   const over = length > limit;
   return (
-    <span className={`text-[9px] font-mono font-bold ${over ? 'text-red-600' : 'text-green-600'}`}>
-      {length}/{limit}{over ? ` (lebih ${length - limit})` : ' ✓'}
+    <span className={`inline-flex items-center gap-0.5 text-[9px] font-mono font-bold ${over ? 'text-red-600' : 'text-green-600'}`}>
+      {length}/{limit}{over ? ` (lebih ${length - limit})` : null}
+      {!over && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
     </span>
   );
 };

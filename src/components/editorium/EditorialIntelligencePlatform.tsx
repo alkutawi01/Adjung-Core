@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BarChart3, Folder, Settings, Search, Rocket, Upload, Check } from 'lucide-react';
 
 // ============================================================================
 // SPEC-042 AUTHORITATIVE DOMAIN MODEL INTERFACES (FROZEN v1.0)
@@ -204,7 +205,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
           <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
             <div className="border-b border-stone-100 pb-3 flex justify-between items-center">
               <h2 className="font-bold text-stone-900 uppercase tracking-wider text-[11px]">
-                📊 ENGINE HEALTH INDEX
+                <span className="inline-flex items-center gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> ENGINE HEALTH INDEX</span>
               </h2>
               <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">
                 EXCELLENT
@@ -243,7 +244,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
                 activePillar === 'project' ? 'bg-[#802334] text-white shadow-xs' : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
               }`}
             >
-              <span>📁</span> 1. PROJECT & DATASET MANAGER
+              <Folder className="w-3.5 h-3.5" /> 1. PROJECT & DATASET MANAGER
             </button>
 
             <button
@@ -252,7 +253,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
                 activePillar === 'engine' ? 'bg-[#802334] text-white shadow-xs' : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
               }`}
             >
-              <span>⚙️</span> 2. KNOWLEDGE PACKS & REASONER
+              <Settings className="w-3.5 h-3.5" /> 2. KNOWLEDGE PACKS & REASONER
             </button>
 
             <button
@@ -261,7 +262,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
                 activePillar === 'validation' ? 'bg-[#802334] text-white shadow-xs' : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
               }`}
             >
-              <span>🔍</span> 3. VALIDATION & REGRESSION
+              <Search className="w-3.5 h-3.5" /> 3. VALIDATION & REGRESSION
             </button>
 
             <button
@@ -270,7 +271,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
                 activePillar === 'release' ? 'bg-[#802334] text-white shadow-xs' : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
               }`}
             >
-              <span>🚀</span> 4. RELEASE MANAGER
+              <Rocket className="w-3.5 h-3.5" /> 4. RELEASE MANAGER
             </button>
           </div>
 
@@ -280,7 +281,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
               <div className="flex justify-between items-center border-b border-stone-100 pb-3">
                 <div>
                   <h2 className="font-bold text-stone-900 uppercase tracking-wider text-xs flex items-center gap-2">
-                    <span>📁</span> CALIBRATION PROJECTS & DATASETS REPOSITORY
+                    <Folder className="w-3.5 h-3.5" /> CALIBRATION PROJECTS & DATASETS REPOSITORY
                   </h2>
                   <p className="text-stone-500 text-xs mt-0.5">
                     Model SPEC-042: Penormalan Entiti Domain & Value Objects.
@@ -289,7 +290,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
 
                 <div className="flex gap-2">
                   <button className="bg-[#802334] hover:bg-[#962d42] text-white font-semibold px-3 py-1.5 rounded text-xs transition-colors shadow-2xs">
-                    📤 Export ACEF Dataset (.txt)
+                    <span className="inline-flex items-center gap-1.5"><Upload className="w-3.5 h-3.5" /> Export ACEF Dataset (.txt)</span>
                   </button>
                 </div>
               </div>
@@ -358,7 +359,7 @@ export const EditorialIntelligencePlatform: React.FC = () => {
             <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4">
               <h2 className="font-bold text-stone-900 text-xs uppercase">VALIDATION & REGRESSION CI/CD GATE</h2>
               <div className="bg-emerald-50 border border-emerald-300 p-4 rounded text-xs text-emerald-900 space-y-1">
-                <strong>✓ Regression Quality Gate Passed (100%)</strong>
+                <strong><span className="inline-flex items-center gap-1.5"><Check className="w-3.5 h-3.5" /> Regression Quality Gate Passed (100%)</span></strong>
                 <p className="text-[11px]">Ujian regresi automatik mengesahkan tiada sebarang degradasi klasifikasi pada dataset {selectedProject.name}.</p>
               </div>
             </div>

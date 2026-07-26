@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FlaskConical } from 'lucide-react';
 import { TypographyRenderer, TypographyRule } from './TypographyRenderer';
 
 export const TypographyPreview: React.FC<{
@@ -13,7 +14,8 @@ export const TypographyPreview: React.FC<{
     <div className="p-3 bg-amber-50/60 border border-amber-200 rounded space-y-2">
       <div className="flex justify-between items-center">
         <label className="font-mono text-[10px] uppercase font-bold text-amber-900 tracking-wider flex items-center gap-1.5">
-          <span>🧪 Pratonton Tipografi Langsung (Live Sandbox Preview)</span>
+          <FlaskConical className="w-3.5 h-3.5" strokeWidth={2} />
+          <span>Pratonton Tipografi Langsung (Live Sandbox Preview)</span>
         </label>
         <select
           value={targetScope}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Play, Globe } from 'lucide-react';
 import { EditorialIntelligencePlatform } from './EditorialIntelligencePlatform';
 
 function hslToHex(h: number, s: number, l: number): string {
@@ -461,7 +462,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   if (currentUserRole !== 'KETUA_EDITOR') {
     return (
       <div className="bg-white p-12 text-center rounded-lg border border-stone-200 shadow-sm space-y-3 font-serif">
-        <div className="text-3xl">🔒</div>
+        <div className="flex justify-center"><Lock className="w-8 h-8" /></div>
         <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
           Akses Terhad (Khusus Ketua Editor)
         </h3>
@@ -543,9 +544,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               </div>
               <button
                 onClick={() => setActiveConfigModal('italic')}
-                className="w-64 flex items-center justify-center bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold transition-colors"
+                className="w-64 flex items-center justify-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold transition-colors"
               >
-                ⚙️ Konfigurasi Kamus ({italicTerms.length} Perkataan)
+                <Settings className="w-3.5 h-3.5" /> Konfigurasi Kamus ({italicTerms.length} Perkataan)
               </button>
             </div>
 
@@ -559,8 +560,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   Enjin rujukan automatik bagi format sitasi jurnal dan dokumen sejarah.
                 </p>
               </div>
-              <span className="w-64 flex items-center justify-center bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
-                🚧 Belum Dibina
+              <span className="w-64 flex items-center justify-center gap-1.5 bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
+                <Construction className="w-3.5 h-3.5" /> Belum Dibina
               </span>
             </div>
 
@@ -574,8 +575,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   Penomboran nota kaki bawah halaman bagi istilah khusus akademik.
                 </p>
               </div>
-              <span className="w-64 flex items-center justify-center bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
-                🚧 Belum Dibina
+              <span className="w-64 flex items-center justify-center gap-1.5 bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
+                <Construction className="w-3.5 h-3.5" /> Belum Dibina
               </span>
             </div>
 
@@ -589,8 +590,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   Paparan baris selari glosarium bagi istilah dwibahasa dan teks klasik.
                 </p>
               </div>
-              <span className="w-64 flex items-center justify-center bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
-                🚧 Belum Dibina
+              <span className="w-64 flex items-center justify-center gap-1.5 bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
+                <Construction className="w-3.5 h-3.5" /> Belum Dibina
               </span>
             </div>
           </div>
@@ -611,7 +612,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </p>
               </div>
               <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
-                <span>⚡</span> Pendaftaran Automatik Live ({desks.length} Desk)
+                <Zap className="w-3.5 h-3.5" /> Pendaftaran Automatik Live ({desks.length} Desk)
               </span>
             </div>
 
@@ -668,9 +669,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <button
                 onClick={handleRunClassifierTest}
                 disabled={testingClassifier}
-                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs disabled:opacity-50"
+                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs disabled:opacity-50 inline-flex items-center gap-1.5"
               >
-                {testingClassifier ? '⏳ Menguji...' : '▶️ Jalankan Ujian Klasifikasi'}
+                {testingClassifier ? <><Hourglass className="w-3.5 h-3.5" /> Menguji...</> : <><Play className="w-3.5 h-3.5" /> Jalankan Ujian Klasifikasi</>}
               </button>
             </div>
             {testResult && (
@@ -686,7 +687,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {subTab === 'Operasi' && (
         <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-6 text-xs">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
-            🗞️ Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Frontpage → Urus Ticker</strong>, bukan di sini -- supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
+            <Newspaper className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Frontpage → Urus Ticker</strong>, bukan di sini -- supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
           </div>
 
           {/* Kategori RSS Tersekat -- shared with the Frontpage Ticker Management modal */}
@@ -703,7 +704,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               {blockedCategories.map(c => (
                 <span key={c.id} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
                   <span>{c.categoryName}</span>
-                  <button onClick={() => handleRemoveBlockedCategory(c.id)} className="text-stone-400 hover:text-red-700 font-bold">✕</button>
+                  <button onClick={() => handleRemoveBlockedCategory(c.id)} className="text-stone-400 hover:text-red-700 font-bold"><X className="w-3 h-3" /></button>
                 </span>
               ))}
               {blockedCategories.length === 0 && <span className="text-stone-400 italic">Tiada kategori disekat lagi.</span>}
@@ -745,7 +746,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
               <h4 className="font-sans text-xs uppercase tracking-wider text-[#802334] font-bold mb-0.5 flex items-center gap-1.5">
-                <span>🌐</span> TETAPAN JAM DUNIA, CUACA & API GOVERNANCE (15 BANDAR IBU NEGERI)
+                <Globe className="w-3.5 h-3.5" /> TETAPAN JAM DUNIA, CUACA & API GOVERNANCE (15 BANDAR IBU NEGERI)
               </h4>
               <p className="text-stone-500 text-[11px]">
                 Kawalan masa pertukaran slaid Jam Dunia, suis pemicu klik latar belakang, dan status kesihatan API Cuaca & Kalendar Cuti.
@@ -753,7 +754,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             </div>
 
             {worldClockSaveError && (
-              <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded">⚠️ {worldClockSaveError}</div>
+              <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {worldClockSaveError}</div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -799,9 +800,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <button
                 onClick={handleSaveWorldClockSettings}
                 disabled={savingWorldClock}
-                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
+                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
               >
-                {savingWorldClock ? '⏳ Menyimpan...' : '💾 Simpan Tetapan Jam Dunia'}
+                {savingWorldClock ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Jam Dunia</>}
               </button>
             </div>
 
@@ -814,9 +815,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   type="button"
                   onClick={fetchApiStatus}
                   disabled={isLoadingApiStatus}
-                  className="text-[10px] font-mono text-[#802334] hover:underline uppercase font-bold cursor-pointer disabled:opacity-50"
+                  className="text-[10px] font-mono text-[#802334] hover:underline uppercase font-bold cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
                 >
-                  {isLoadingApiStatus ? 'Menyemak API...' : '🔄 Semak Status API Live'}
+                  {isLoadingApiStatus ? 'Menyemak API...' : <><RefreshCw className="w-3 h-3" /> Semak Status API Live</>}
                 </button>
               </div>
 
@@ -860,7 +861,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {subTab === 'Komponen' && (
         <div className="space-y-4">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900 text-xs">
-            🚧 AEIP di bawah ini masih prototaip antara muka sahaja -- tiada enjin rule-pack/experiment/release sebenar di belakangnya lagi. Ia bukan sekadar salah wiring (macam bahagian lain Tetapan yang baru dibaiki), sebaliknya keseluruhan sistem baru perlu dibina dari kosong. Ditangguhkan buat masa ini memandangkan skopnya jauh lebih besar daripada pembaikan lain dalam laluan ini -- bincang dengan saya dahulu sebelum melabur masa membina backend penuh untuknya.
+            <Construction className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> AEIP di bawah ini masih prototaip antara muka sahaja -- tiada enjin rule-pack/experiment/release sebenar di belakangnya lagi. Ia bukan sekadar salah wiring (macam bahagian lain Tetapan yang baru dibaiki), sebaliknya keseluruhan sistem baru perlu dibina dari kosong. Ditangguhkan buat masa ini memandangkan skopnya jauh lebih besar daripada pembaikan lain dalam laluan ini -- bincang dengan saya dahulu sebelum melabur masa membina backend penuh untuknya.
           </div>
           <EditorialIntelligencePlatform />
         </div>
@@ -878,13 +879,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 Ketua Editor boleh menanda atau membatalkan kebenaran peranan mengikut keperluan tadbir urus editorial.
               </p>
             </div>
-            <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded font-semibold text-xs border border-emerald-200">
-              🟢 Mod Kelulusan Dinamik
+            <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded font-semibold text-xs border border-emerald-200 inline-flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" /> Mod Kelulusan Dinamik
             </span>
           </div>
 
           {rbacSaveError && (
-            <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded">⚠️ {rbacSaveError}</div>
+            <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {rbacSaveError}</div>
           )}
 
           <div className="overflow-x-auto">
@@ -944,9 +945,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             <button
               onClick={handleSaveRbac}
               disabled={savingRbac || !rbacDirty}
-              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
+              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
             >
-              {savingRbac ? '⏳ Menyimpan...' : rbacDirty ? '💾 Simpan Matriks RBAC' : '✓ Tersimpan'}
+              {savingRbac ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : rbacDirty ? <><Save className="w-3.5 h-3.5" /> Simpan Matriks RBAC</> : <><Check className="w-3.5 h-3.5" /> Tersimpan</>}
             </button>
           </div>
         </div>
@@ -960,7 +961,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
                 Polisi Italic & Kamus Istilah Asing
               </h3>
-              <button onClick={() => setActiveConfigModal(null)} className="text-stone-400 font-bold">✕</button>
+              <button onClick={() => setActiveConfigModal(null)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
             </div>
 
             <p className="text-stone-600 text-xs">
@@ -990,7 +991,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               {italicTerms.map(t => (
                 <span key={t.id} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
                   <span className="italic font-semibold">{t.term}</span>
-                  <button onClick={() => handleRemoveItalicTerm(t.id)} className="text-stone-400 hover:text-red-700 font-bold">✕</button>
+                  <button onClick={() => handleRemoveItalicTerm(t.id)} className="text-stone-400 hover:text-red-700 font-bold"><X className="w-3 h-3" /></button>
                 </span>
               ))}
             </div>
@@ -1012,7 +1013,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
                 + Tambah Desk Disiplin Ilmu Baharu
               </h3>
-              <button onClick={() => setActiveConfigModal(null)} className="text-stone-400 font-bold">✕</button>
+              <button onClick={() => setActiveConfigModal(null)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
             </div>
 
             <div className="space-y-3 font-sans">
