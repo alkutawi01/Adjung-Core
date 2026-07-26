@@ -196,33 +196,6 @@ export interface Entry {
   underReview?: boolean;
 }
 
-export interface BiographyItem {
-  id: string;
-  year: string;
-  title: string;
-  description: string;
-  category: 'Education' | 'Career' | 'Publication' | 'Award' | 'Personal' | 'Other';
-}
-
-export interface WriterProfile {
-  authorId: string;
-  heroTitle: string;
-  heroSubtitle: string;
-}
-
-export interface IdentityProfile {
-  identityId: string;
-  accountId: string;
-  username: string;
-  displayName: string;
-  penName: string;
-  biography: string;
-  lifeTimeline: BiographyItem[];
-  signatures: DigitalSignature[];
-  publicVisibility: 'Public' | 'Private';
-  affiliation?: string;
-}
-
 export interface SystemSettings {
   academicAffiliation: string;
   editorialPolicy: string;
