@@ -91,8 +91,22 @@ Uji dengan teliti (visual, bukan cuma tsc) selepas ubah struktur kad.
 - `editorial_objects`: metadata (id, type, categoryId, slotIndex) — TIADA title/summary.
 - `editorial_revisions`: title/summary sebenar (satu row per versi, `version` menaik).
 - `editorial_attribute_values`: field tambahan (desk, source, url, briefLong,
-  originalDate) — attributeId MESTI didaftar dulu dalam `editorial_attributes` (FK
-  constraint), jika tidak INSERT gagal senyap (`console.warn`, bukan crash).
+  originalDate, topik) — attributeId MESTI didaftar dulu dalam `editorial_attributes`
+  (FK constraint), jika tidak INSERT gagal senyap (`console.warn`, bukan crash).
+
+### Bidang & Topik
+Setiap slot (selain Ticker dan tier `BAR`) terkunci kepada SATU **Bidang** tetap
+(konsep "Kategori"/`desk` sedia ada) — semua kandungan dalam slot tu, termasuk semua
+item carousel, mesti dalam Bidang yang sama. **Topik** ialah medan bebas-had,
+per-kandungan, boleh berbeza-beza dalam slot yang sama asalkan masih dalam Bidang
+terkunci tu (cth: Bidang `Ekonomi` tetap, Topik `Kewangan`/`Perbankan`/dll). Warna
+Topik mewarisi warna Bidang induknya. Label kad: `Bidang | Topik` — kandungan lama
+tanpa Topik papar Bidang sahaja (tiada backfill). Topik wajib untuk kandungan
+baharu/diedit (bukan status-sahaja), disahkan oleh
+`validateBidangTopik()` di `core/editorial/ContentBudget.js`, dipanggil di setiap
+laluan simpan yang sama seperti `validateContentBudget()` di atas. Pertukaran Bidang
+slot tidak retroaktif — cuma mempengaruhi kandungan baharu selepas perubahan. Rujuk
+seksyen "03 -- Bidang & Topik" dalam Perlembagaan (Editorium) untuk butiran penuh.
 
 ## Bila teragak-agak
 

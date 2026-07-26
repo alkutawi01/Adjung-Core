@@ -272,6 +272,79 @@ export const PerlembagaanConsole: React.FC = () => {
         </div>
       </div>
 
+      {/* BIDANG & TOPIK -- rujuk core/editorial/ContentBudget.js validateBidangTopik(). Bidang
+          ialah konsep "Kategori"/desk sedia ada, kini terkunci kepada satu nilai tetap per slot;
+          Topik ialah medan bebas-had per-kandungan yang mewarisi warna Bidang induknya. */}
+      <div>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+          03 -- Bidang &amp; Topik
+        </span>
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Setiap slot (selain Ticker dan tier <TierLabel tier="BAR" />) terkunci kepada SATU
+              Bidang tetap -- semua kandungan dalam slot tu (termasuk semua item carousel) mesti
+              dalam Bidang yang sama. Topik ialah medan bebas-had, per-kandungan, yang boleh
+              berbeza-beza dalam slot yang sama asalkan masih dalam Bidang terkunci tu. Contoh:
+              Bidang <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Ekonomi</span> tetap
+              untuk seluruh slot, tapi Topik kandungan boleh{' '}
+              <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Kewangan</span>,{' '}
+              <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Perbankan</span>, dll --
+              tiada had. Warna Topik mewarisi warna Bidang induknya (tiada storan warna berasingan).
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Label kad</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Dipaparkan sebagai <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Bidang | Topik</span> (cth:{' '}
+              <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Ekonomi | Perbankan</span>).
+              Kandungan lama yang belum ada Topik papar Bidang sahaja -- tiada backfill automatik.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Format tampal-manual (9 medan standard)</h3>
+            <pre className="bg-stone-100 border border-stone-200 rounded p-3 font-mono text-[10px] text-stone-700 leading-relaxed overflow-x-auto">{`Tajuk:
+Huraian ringkas:
+Huraian panjang:
+Bidang:
+Topik:
+Jenis sumber:
+Tarikh:
+Sumber:
+URL:`}</pre>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Wajib untuk baharu/edit</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Topik diwajibkan untuk kandungan BAHARU atau kandungan sedia ada yang tajuk/huraiannya
+              diedit -- disahkan di peringkat simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">validateBidangTopik()</code>),
+              sama macam bajet aksara. Kandungan lama tanpa Topik kekal tidak disentuh, tiada
+              migrasi diperlukan; tindakan status-sahaja (Lulus/Tolak/Arkib) pada kandungan lama
+              TIDAK disekat oleh peraturan ni. Terpakai untuk mod Manual DAN AI Generated (prom AI
+              turut memaparkan baris <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Bidang:</span> /{' '}
+              <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Topik:</span> secara eksplisit).
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Pertukaran Bidang slot</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Bidang slot boleh ditukar bebas bila-bila masa dari Tetapan Slot -- tiada kunci keras.
+              Pertukaran ni HANYA mempengaruhi kandungan baharu yang diterbitkan selepas perubahan;
+              kandungan lama dalam slot tu kekal dengan Bidang yang dah tersimpan, tidak berubah
+              retroaktif.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Pengecualian</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Ticker dan tier <TierLabel tier="BAR" /> dikecualikan sepenuhnya daripada ciri ni --
+              tiada Bidang terkunci, tiada Topik, label kad tidak berubah.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* PERATURAN KHAS SLOT BAR -- diekstrak & disahkan terus daripada kod semasa (server.js,
           BarCard.tsx, EventDateValidator.js), bukan disalin buta daripada spesifikasi lama. Ditulis
           selepas siasatan mendalam mendapati beberapa medan (organizer/location/access) pernah
@@ -280,7 +353,7 @@ export const PerlembagaanConsole: React.FC = () => {
           padan dengan apa yang benar-benar berlaku, bukan spesifikasi angan-angan. */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          03 -- Peraturan Khas Slot Bar
+          04 -- Peraturan Khas Slot Bar
         </span>
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
           <div>
@@ -363,7 +436,7 @@ URL:`}</pre>
       {/* LIVE CHANGE LOG */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          04 -- Log Perubahan Peraturan (<em className="italic">Live</em>, Daripada Git)
+          05 -- Log Perubahan Peraturan (<em className="italic">Live</em>, Daripada Git)
         </span>
         <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
           {loadingLog ? (
@@ -409,7 +482,7 @@ URL:`}</pre>
           and carries a full jam:minit:saat timestamp, not just a date. */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          05 -- Log Perubahan UI/UX (<em className="italic">Live</em>, Masa Sebenar)
+          06 -- Log Perubahan UI/UX (<em className="italic">Live</em>, Masa Sebenar)
         </span>
         <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
           {loadingUiUxLog ? (
