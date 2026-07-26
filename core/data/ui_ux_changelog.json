@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-07-26T15:02:44.706Z",
+    "summary": "Buang Citation & Rujukan Akademik / Footnote & Nota Kaki Dinamik dari Polisi Kandungan (legasi Adjung Platform, bukan skop Adjung Brief); kekalkan Interlinear Gloss. Namakan semula 'Konfigurasi Kamus' jadi 'Kamus Istilah Auto-Italic', papar status aktif/belum aktif per istilah, betulkan kiraan supaya tak kira row pending sebagai aktif.",
+    "files": [
+      "src/components/editorium/TetapanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-07-25T13:51:08.225Z",
     "summary": "Bina komponen Tooltip tersuai (src/components/common/Tooltip.tsx) dan gantikan SEMUA 32 tooltip native title= merentasi 9 fail dengannya -- title= browser (kotak putih bersegi hitam) langsung tak boleh distailkan CSS. Rupa: tiada border, opacity+blur (bg-[#802334]/80 backdrop-blur-md), bucu bulat, teks 10px. Mengendalikan tooltip bersarang (cth ikon cuaca dalam bekas Jam Dunia) supaya hanya SATU (paling dalam) dipaparkan pada satu masa, sama macam title= asli. Tooltip cuaca dipendekkan kepada label sahaja (cth 'Redup', bukan 'Cuaca Kota Bharu: Redup (27C)') -- nama bandar/suhu dah dipaparkan pada kad. Tooltip 'Klik kawasan Jam Dunia...' dibuang 100% atas arahan.",
     "files": [

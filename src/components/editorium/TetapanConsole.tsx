@@ -17,6 +17,7 @@ interface TypographyTerm {
   id: string;
   term: string;
   style: string;
+  status: string;
 }
 
 interface BlockedCategory {
@@ -75,7 +76,10 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const [activeConfigModal, setActiveConfigModal] = useState<'italic' | 'add_desk' | null>(null);
 
   // Kamus Istilah Italic -- backed by the same adjung_typography_rules table the main
-  // frontpage settings drawer uses (core/routes/slotRoutes.js), not a separate local list.
+  // frontpage settings drawer uses (core/routes/slotRoutes.js), not a separate local list. That
+  // fuller drawer (Tetapan Slot) exposes scope/bahasa/keutamaan/exclude-terms + status toggle;
+  // modal ni sengaja kekal ringkas (tambah/buang sahaja) untuk akses pantas, tapi papar status
+  // (aktif/belum aktif) supaya tak sorok status yang diset di panel satu lagi.
   const [italicTerms, setItalicTerms] = useState<TypographyTerm[]>([]);
   const [loadingItalicTerms, setLoadingItalicTerms] = useState(false);
   const [newTermInput, setNewTermInput] = useState('');
@@ -89,7 +93,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         setItalicTerms(
           (rules || [])
             .filter((r: any) => r.style === 'italic')
-            .map((r: any) => ({ id: r.id, term: r.term, style: r.style }))
+            .map((r: any) => ({ id: r.id, term: r.term, style: r.style, status: r.status || 'active' }))
         );
       }
     } catch (e) {
@@ -490,45 +494,15 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   <span>Auto Italic Istilah Asing & Pinjaman</span>
                 </label>
                 <p className="text-stone-500 text-xs">
-                  Memformat secara automatik perkataan asing yang tersenarai dalam Kamus Istilah Italic.
+                  Memformat secara automatik perkataan asing yang tersenarai dalam Kamus Istilah Auto-Italic.
                 </p>
               </div>
               <button
                 onClick={() => setActiveConfigModal('italic')}
                 className="w-64 flex items-center justify-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold transition-colors"
               >
-                <Settings className="w-3.5 h-3.5" /> Konfigurasi Kamus ({italicTerms.length} Perkataan)
+                <Settings className="w-3.5 h-3.5" /> Kamus Istilah Auto-Italic ({italicTerms.filter(t => t.status === 'active').length} Aktif)
               </button>
-            </div>
-
-            <div className="pt-4 flex flex-wrap justify-between items-center gap-3">
-              <div className="space-y-1">
-                <label className="flex items-center gap-2 font-semibold text-stone-400 cursor-not-allowed">
-                  <input type="checkbox" disabled className="rounded border-stone-300" />
-                  <span>Citation & Rujukan Akademik</span>
-                </label>
-                <p className="text-stone-400 text-xs">
-                  Enjin rujukan automatik bagi format sitasi jurnal dan dokumen sejarah.
-                </p>
-              </div>
-              <span className="w-64 flex items-center justify-center gap-1.5 bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
-                <Construction className="w-3.5 h-3.5" /> Belum Dibina
-              </span>
-            </div>
-
-            <div className="pt-4 flex flex-wrap justify-between items-center gap-3">
-              <div className="space-y-1">
-                <label className="flex items-center gap-2 font-semibold text-stone-400 cursor-not-allowed">
-                  <input type="checkbox" disabled className="rounded border-stone-300" />
-                  <span>Footnote & Nota Kaki Dinamik</span>
-                </label>
-                <p className="text-stone-400 text-xs">
-                  Penomboran nota kaki bawah halaman bagi istilah khusus akademik.
-                </p>
-              </div>
-              <span className="w-64 flex items-center justify-center gap-1.5 bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
-                <Construction className="w-3.5 h-3.5" /> Belum Dibina
-              </span>
             </div>
 
             <div className="pt-4 flex flex-wrap justify-between items-center gap-3">
@@ -992,13 +966,16 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-lg w-full p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
-                Polisi Italic & Kamus Istilah Asing
+                Kamus Istilah Auto-Italic
               </h3>
               <button onClick={() => setActiveConfigModal(null)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
             </div>
 
             <p className="text-stone-600 text-xs">
-              Setiap perkataan dalam kamus ini akan di-italic-kan secara automatik oleh enjin tipografi semasa pembentukan Brief.
+              Setiap perkataan di sini di-italic-kan secara automatik oleh enjin tipografi Adjung semasa paparan
+              (data asal tak diubah kekal). Senarai ni sama dengan yang di panel Peraturan Tipografi penuh
+              (Tetapan Slot) -- tambah/buang pantas di sini sahaja; untuk skop, bahasa, keutamaan atau
+              kekecualian, guna panel penuh tu.
             </p>
 
             <div className="flex gap-2">
@@ -1024,6 +1001,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               {italicTerms.map(t => (
                 <span key={t.id} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
                   <span className="italic font-semibold">{t.term}</span>
+                  {t.status !== 'active' && (
+                    <span className="bg-amber-100 text-amber-800 border border-amber-200 px-1.5 rounded-sm text-[9px] font-mono uppercase">Belum Aktif</span>
+                  )}
                   <button onClick={() => handleRemoveItalicTerm(t.id)} className="text-stone-400 hover:text-red-700 font-bold"><X className="w-3 h-3" /></button>
                 </span>
               ))}
