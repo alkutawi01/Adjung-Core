@@ -40,10 +40,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           ELEMEN BERASINGAN di bawah, duduk atas latar cream badan halaman (gaya iOS: bar status
           bertona di atas, toolbar kaca lut sinar atas kandungan terang di bawah). */}
       <header className="relative bg-gradient-to-b from-[#340e15] to-[#20090d] text-[#FDFDFD] select-none overflow-hidden">
-        <div className="relative px-4 md:px-8 py-3 flex flex-wrap justify-between items-center gap-3">
+        <div className="relative px-4 md:px-8 py-2 flex flex-wrap justify-between items-center gap-3">
           <Tooltip text="Klik untuk kembali ke Frontpage">
             <a href="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity select-none">
-              <span className="font-serif font-normal text-xl tracking-tight text-[#FDFDFD] leading-none">{BRAND.logoText}</span>
+              <span className="font-serif font-normal text-lg tracking-tight text-[#FDFDFD] leading-none">{BRAND.logoText}</span>
               <span className="font-sans text-[9px] tracking-[0.22em] font-semibold text-[#c9929a] uppercase leading-none border-l border-white/15 pl-2.5">
                 {BRAND.subLabel} · Editorium
               </span>
@@ -51,7 +51,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           </Tooltip>
 
           <div className="flex items-center gap-2.5 font-sans text-[11px]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}>
-            <div className="flex items-center gap-2 bg-white/[0.08] backdrop-blur-xl px-3 py-1.5 rounded-full border border-white/[0.1]">
+            <div className="flex items-center gap-2 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1]">
               <span className="relative flex w-1.5 h-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
                 <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500"></span>
@@ -65,7 +65,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               <div className="flex items-center gap-0.5 bg-white/[0.08] backdrop-blur-xl p-0.5 rounded-full border border-white/[0.1]">
                 <button
                   onClick={() => onUserSwitch('KETUA_EDITOR')}
-                  className={`px-2.5 py-1 rounded-full font-medium transition-colors ${
+                  className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
                     currentUser.role === 'KETUA_EDITOR' ? 'bg-white/[0.15] text-white' : 'text-white/40 hover:text-white/70'
                   }`}
                 >
@@ -73,7 +73,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 </button>
                 <button
                   onClick={() => onUserSwitch('EDITOR')}
-                  className={`px-2.5 py-1 rounded-full font-medium transition-colors ${
+                  className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
                     currentUser.role === 'EDITOR' ? 'bg-white/[0.15] text-white' : 'text-white/40 hover:text-white/70'
                   }`}
                 >
@@ -88,7 +88,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
       {/* Navigasi -- elemen berasingan drpd header, kapsul kaca TERANG (bukan gelap) terapung
           atas latar cream badan halaman. Sedikit ditindih ke atas header (-mt) supaya jelas
           "terapung" merentasi sempadan dua bar, bukan sekadar disambung terus di bawahnya. */}
-      <div className="relative z-10 flex justify-center px-4 -mt-4 pb-2 overflow-x-auto">
+      <div className="relative z-10 flex justify-center px-4 -mt-3 pb-1.5 overflow-x-auto">
         <nav
           className="flex items-center gap-1 bg-white/70 backdrop-blur-2xl p-1 rounded-full border border-black/[0.06] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.06)]"
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}
@@ -100,7 +100,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`relative flex items-center gap-1.5 text-[12.5px] font-medium px-3.5 py-2 rounded-full whitespace-nowrap transition-all duration-200 ${
+                className={`relative flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-200 ${
                   isActive
                     ? 'bg-white text-[#802334] shadow-[0_1px_4px_rgba(0,0,0,0.12)]'
                     : item.restricted
