@@ -285,6 +285,23 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
 
           const dateStr = `${obj.day}/${obj.month}/${obj.year}`;
 
+          // Kedah/Terengganu/Kelantan (same 3 states as FRIDAY_SATURDAY_WEEKEND_CITIES) show a
+          // Hijri date instead of Gregorian, same DD/MM/YY display format. Only the display
+          // string changes -- dateStr/gregKey above stay Gregorian since holiday matching (both
+          // HOLIDAYS_2026 and custom-holiday text) is keyed to the Gregorian calendar.
+          let displayDateStr = dateStr;
+          if (FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name)) {
+            const hijriFormatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', {
+              timeZone: c.tz,
+              year: '2-digit',
+              month: '2-digit',
+              day: '2-digit'
+            });
+            const hijriParts: any = {};
+            hijriFormatter.formatToParts(new Date()).forEach(p => { hijriParts[p.type] = p.value; });
+            displayDateStr = `${hijriParts.day}/${hijriParts.month}/${hijriParts.year}`;
+          }
+
           // Parse custom holidays
           const { items: customHolidaysText } = parseWorldClockHolidays(systemSettings.worldClockHolidaysText || '');
           const { items: customHolidaysGoogle } = parseWorldClockHolidays(worldClockHolidaysGoogleDocText || '');
@@ -388,7 +405,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
             MON: 'ISN', TUE: 'SEL', WED: 'RAB', THU: 'KHA', FRI: 'JUM', SAT: 'SAB', SUN: 'AHD'
           };
           const dayLabel = DAY_LABEL_MS[day] || day;
-          const timeStr = `${dateStr} · ${dayLabel} · ${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
+          const timeStr = `${displayDateStr} · ${dayLabel} · ${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
 
           newTimesMap[c.name] = {
             timeStr,
