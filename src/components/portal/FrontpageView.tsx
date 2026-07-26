@@ -2493,10 +2493,10 @@ URL: ${url}`;
   };
 
   return (
-    <div className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen px-4 md:px-8 py-12 select-none animate-fade-in">
+    <div className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-12 select-none animate-fade-in">
 
-      <div className="max-w-5xl mx-auto">
-        
+      <div className="max-w-5xl mx-auto w-full flex-1">
+
         {/* Wordmark Hero */}
         <section className="text-center pt-8 pb-6 animate-fade-in">
           <h1 className="font-serif font-normal tracking-tight text-6xl md:text-7xl text-[#802334]">
@@ -3698,8 +3698,10 @@ URL: ${url}`;
 
           </div>
         </section>
-        {/* Footer Reka Bentuk Premium */}
-        <footer className="w-full mt-12 pt-10 pb-6 border-t border-stone-200">
+      </div>
+
+      {/* Footer Reka Bentuk Premium */}
+      <footer className="w-full max-w-5xl mx-auto mt-12 pt-10 pb-6 border-t border-stone-200">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 px-4">
             {/* Logo / Kiri */}
             <div className="flex flex-col justify-start">
@@ -3727,14 +3729,12 @@ URL: ${url}`;
             </div>
           </div>
 
-          <div className="border-t border-stone-150 pt-6 text-center">
+          <div className="pt-6 text-center">
             <p className="font-mono text-[9px] tracking-widest text-stone-400 uppercase font-bold">
               {BRAND.copyright}
             </p>
           </div>
         </footer>
-
-      </div>
 
       {/* Pop-up Modal Penyuntingan Ticker (Zero-Lag Isolated Component) */}
       <TickerManagementModal
