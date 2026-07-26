@@ -36,10 +36,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans flex flex-col antialiased">
-      {/* Editorium Header -- bar identiti sahaja (maroon gelap, bukan hitam). Navigasi kini
+      {/* Editorium Header -- bar identiti sahaja, maroon jelas (bukan hampir-hitam). Navigasi kini
           ELEMEN BERASINGAN di bawah, duduk atas latar cream badan halaman (gaya iOS: bar status
           bertona di atas, toolbar kaca lut sinar atas kandungan terang di bawah). */}
-      <header className="relative bg-gradient-to-b from-[#340e15] to-[#20090d] text-[#FDFDFD] select-none overflow-hidden">
+      <header className="relative bg-gradient-to-b from-[#681c2a] to-[#44131c] text-[#FDFDFD] select-none overflow-hidden">
         <div className="relative px-4 md:px-8 py-2 flex flex-wrap justify-between items-center gap-3">
           <Tooltip text="Klik untuk kembali ke Frontpage">
             <a href="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity select-none">
@@ -85,10 +85,9 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
         </div>
       </header>
 
-      {/* Navigasi -- elemen berasingan drpd header, kapsul kaca TERANG (bukan gelap) terapung
-          atas latar cream badan halaman. Sedikit ditindih ke atas header (-mt) supaya jelas
-          "terapung" merentasi sempadan dua bar, bukan sekadar disambung terus di bawahnya. */}
-      <div className="relative z-10 flex justify-center px-4 -mt-3 pb-1.5 overflow-x-auto">
+      {/* Navigasi -- elemen berasingan drpd header, kapsul kaca TERANG (bukan gelap) duduk atas
+          latar cream badan halaman. Jarak jelas drpd header (bukan bersentuh/bertindih). */}
+      <div className="relative z-10 flex justify-center px-4 pt-4 pb-2 overflow-x-auto">
         <nav
           className="flex items-center gap-1 bg-white/70 backdrop-blur-2xl p-1 rounded-full border border-black/[0.06] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.06)]"
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}
