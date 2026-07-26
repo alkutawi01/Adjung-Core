@@ -10,6 +10,7 @@ interface BriefRecord {
   desk: string;
   topik: string;
   status: 'Pending' | 'Live' | 'Rejected' | 'Archive';
+  source: string;
   creator: string;
   cardType: string;
   slot: string;
@@ -86,6 +87,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('Semua');
   const [selectedCardType, setSelectedCardType] = useState<string>('Semua');
+  const [selectedSource, setSelectedSource] = useState<string>('Semua');
   const [selectedCreator, setSelectedCreator] = useState<string>('Semua');
   const [selectedDesk, setSelectedDesk] = useState<string>('Semua');
   const [selectedSlot, setSelectedSlot] = useState<string>('Semua');
@@ -125,6 +127,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             desk: formatTitleCase(item.desk || 'Umum'),
             topik: item.topik || '',
             status: STATUS_TO_LABEL[item.status] || 'Live',
+            source: item.source || '',
             creator: formatCreatedBy(item.createdBy || ''),
             cardType: cardTypeForSlot(item.slotIndex),
             slot,
@@ -165,6 +168,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
   // Filter option lists derived from real loaded data, not hardcoded guesses.
   const deskOptions = useMemo(() => Array.from(new Set(items.map(i => i.desk))).sort(), [items]);
+  // Sumber sebenar (Astro Awani, Bernama, dll.) -- berasingan daripada creator/Kaedah di bawah.
+  // Ticker (source sentiasa kosong -- disimpan sebagai blob teks, bukan rekod berasingan) tak
+  // sumbang opsyen di sini.
+  const sourceOptions = useMemo(() => Array.from(new Set(items.map(i => i.source).filter(Boolean))).sort(), [items]);
   const creatorOptions = useMemo(() => Array.from(new Set(items.map(i => i.creator))).sort(), [items]);
   const slotOptions = useMemo(() => {
     const slots: string[] = Array.from(new Set(items.map(i => i.slot)));
@@ -178,10 +185,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // Smart Filtering Logic
   const filteredRecords = useMemo(() => {
     return items.filter(item => {
-      // Editor View Mode Filter
-      if (currentUserRole === 'EDITOR' && editorViewMode === 'mine') {
-        if (item.creator !== currentUserName) return false;
-      }
+      // Editor View Mode Filter -- NOT enforced: item.creator is a machine token (which save path
+      // wrote it -- Manual/AI Pipeline/Ticker/dll., see formatCreatedBy above), not a real per-account
+      // author, so it can never equal currentUserName. Without real multi-editor sign-in there is no
+      // way to know which content belongs to which editor, so "Kandungan Saya" intentionally shows
+      // the same set as "Semua Kandungan" for now (see the notice banner rendered when this mode is
+      // active) rather than silently filtering everything out.
 
       // Search Query
       if (searchQuery.trim()) {
@@ -190,6 +199,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           item.title.toLowerCase().includes(q) ||
           item.summary.toLowerCase().includes(q) ||
           item.id.toLowerCase().includes(q) ||
+          item.source.toLowerCase().includes(q) ||
           item.creator.toLowerCase().includes(q);
         if (!matches) return false;
       }
@@ -200,7 +210,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       // Filter: Jenis Kad
       if (selectedCardType !== 'Semua' && item.cardType !== selectedCardType) return false;
 
-      // Filter: Sumber/Pencipta
+      // Filter: Sumber (nama sumber sebenar, cth Astro Awani)
+      if (selectedSource !== 'Semua' && item.source !== selectedSource) return false;
+
+      // Filter: Kaedah (cara kandungan dicipta -- Manual/AI Pipeline/Ticker/dll.)
       if (selectedCreator !== 'Semua' && item.creator !== selectedCreator) return false;
 
       // Filter: Desk
@@ -211,7 +224,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
       return true;
     });
-  }, [items, currentUserRole, editorViewMode, currentUserName, searchQuery, selectedStatus, selectedCardType, selectedCreator, selectedDesk, selectedSlot]);
+  }, [items, currentUserRole, editorViewMode, currentUserName, searchQuery, selectedStatus, selectedCardType, selectedSource, selectedCreator, selectedDesk, selectedSlot]);
 
   const handleUpdateStatus = async (id: string, newStatus: BriefRecord['status']) => {
     setActionError(null);
@@ -281,6 +294,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     setSearchQuery('');
     setSelectedStatus('Semua');
     setSelectedCardType('Semua');
+    setSelectedSource('Semua');
     setSelectedCreator('Semua');
     setSelectedDesk('Semua');
     setSelectedSlot('Semua');
@@ -329,7 +343,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         </div>
 
         {/* 6 Dropdown Smart Filters */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 font-sans text-xs">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 font-sans text-xs">
           {/* 1. Status Filter */}
           <div>
             <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">STATUS</label>
@@ -366,15 +380,28 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </select>
           </div>
 
-          {/* 3. Sumber/Pencipta Filter */}
+          {/* 3. Sumber (nama sumber berita sebenar, cth Astro Awani) Filter */}
           <div>
             <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">SUMBER</label>
+            <select
+              value={selectedSource}
+              onChange={e => setSelectedSource(e.target.value)}
+              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+            >
+              <option value="Semua">Semua Sumber</option>
+              {sourceOptions.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          {/* 3b. Kaedah (cara kandungan dicipta -- Manual/AI Pipeline/Ticker/dll.) Filter */}
+          <div>
+            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">KAEDAH</label>
             <select
               value={selectedCreator}
               onChange={e => setSelectedCreator(e.target.value)}
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
-              <option value="Semua">Semua Sumber</option>
+              <option value="Semua">Semua Kaedah</option>
               {creatorOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -439,6 +466,21 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         </div>
       )}
 
+      {/* Jujur tentang had semasa: "Kandungan Saya" perlukan pengecaman siapa cipta apa mengikut
+          akaun sebenar -- sistem log masuk berbilang editor belum dibina (lihat formatCreatedBy di
+          atas), jadi tapisan ni tak dapat dikuatkuasakan lagi. Papar penjelasan terus dan bukan
+          senyap tunjuk 0 keputusan, yang lebih mengelirukan. */}
+      {currentUserRole === 'EDITOR' && editorViewMode === 'mine' && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs font-sans px-4 py-3 rounded flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>
+            Ciri "Kandungan Saya" memerlukan sistem log masuk berbilang editor yang belum dibina --
+            sistem semasa tak dapat kenal pasti kandungan mana milik akaun anda secara individu.
+            Buat masa ini, semua kandungan dipaparkan di bawah tab "Semua Kandungan".
+          </span>
+        </div>
+      )}
+
       {/* Filtering Results Summary */}
       <div className="flex justify-between items-center font-sans text-xs text-stone-500 px-1">
         <div>
@@ -466,6 +508,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 <th className="p-2.5 w-24">Desk</th>
                 <th className="p-2.5 w-24">Topik</th>
                 <th className="p-2.5 w-28">Sumber</th>
+                <th className="p-2.5 w-24">Kaedah</th>
                 <th className="p-2.5 w-24">Jenis Kad</th>
                 <th className="p-2.5 w-20">Slot</th>
                 <th className="p-2.5 w-24">Tarikh</th>
@@ -474,6 +517,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </thead>
             <tbody className="divide-y divide-stone-100 font-sans">
               {filteredRecords.map(rec => {
+                // Same caveat as the Editor View Mode filter above: rec.creator !== currentUserName
+                // is always true today (no real per-account authorship yet), so this always evaluates
+                // to read-only for an Editor browsing "Semua Kandungan" -- treated as an acceptable
+                // conservative default (better to under-permit than let an Editor edit content that
+                // might not be theirs) rather than something to "fix" until real ownership exists.
                 const isReadOnly = currentUserRole === 'EDITOR' && editorViewMode === 'all' && rec.creator !== currentUserName;
 
                 return (
@@ -512,7 +560,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     </td>
                     <td className="p-2.5 font-sans text-xs text-stone-700 font-semibold">{formatTitleCase(rec.desk)}</td>
                     <td className="p-2.5 font-sans text-xs text-stone-500">{rec.topik ? formatTitleCase(rec.topik) : '-'}</td>
-                    <td className="p-2.5 font-serif text-stone-800 text-xs">{rec.creator}</td>
+                    <td className="p-2.5 font-serif text-stone-800 text-xs">{rec.source || '-'}</td>
+                    <td className="p-2.5 font-sans text-[10px] text-stone-500">{rec.creator}</td>
                     <td className="p-2.5 font-sans text-[10px]">
                       {rec.cardType === '-' ? (
                         <span className="text-stone-400 font-mono text-xs font-bold px-2">-</span>
@@ -582,6 +631,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik ? formatTitleCase(activeItemModal.topik) : '-'}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">SUMBER</span><strong className="text-stone-900">{activeItemModal.source || '-'}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">KAEDAH</span><strong className="text-stone-900">{activeItemModal.creator}</strong></div>
             </div>
 
             {activeItemModal.status === 'Archive' && activeItemModal.slot !== 'Ticker' && (
@@ -639,7 +690,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             )}
 
             <div className="flex justify-between items-center pt-2 font-mono text-xs">
-              <span className="text-stone-500">Sumber: <strong>{activeItemModal.creator}</strong></span>
+              <span className="text-stone-500">Tarikh: <strong>{activeItemModal.date}</strong></span>
               {activeItemModal.slot !== 'Ticker' ? (
                 <div className="flex gap-2">
                   {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
