@@ -3,48 +3,6 @@ import express from 'express';
 export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   const router = express.Router();
 
-  // GET /api/db-state
-  router.get('/db-state', async (req, res) => {
-    try {
-      const users = await dbAll("SELECT id, name, username, email, role, avatarUrl, isOnline, desk, defaultView FROM users");
-      const entries = await dbAll("SELECT * FROM entries");
-      const settingsRow = await dbGet("SELECT * FROM system_settings WHERE id = 'settings-main'");
-
-      const systemSettings = settingsRow ? {
-        id: settingsRow.id,
-        frontpageTitle: settingsRow.frontpageTitle,
-        frontpageSubtitle: settingsRow.frontpageSubtitle,
-        rolePermissions: safeJsonParse(settingsRow.rolePermissions, {}),
-        inTheNewsText: settingsRow.inTheNewsText || '',
-        inTheNewsGoogleDocUrl: settingsRow.inTheNewsGoogleDocUrl || '',
-        featuredScholarId: settingsRow.featuredScholarId || '',
-        featuredEntryId: settingsRow.featuredEntryId || '',
-        editorialSelectionIds: safeJsonParse(settingsRow.editorialSelectionIds, []),
-        announcementBanner: settingsRow.announcementBanner || '',
-        enableArabicAccent: settingsRow.enableArabicAccent === 1,
-        layoutDensity: settingsRow.layoutDensity || 'Standard',
-        allowedSignatureFonts: safeJsonParse(settingsRow.allowedSignatureFonts, []),
-        featuredEssayIds: safeJsonParse(settingsRow.featuredEssayIds, []),
-        featuredNoteIds: safeJsonParse(settingsRow.featuredNoteIds, []),
-        worldClockHolidaysText: settingsRow.worldClockHolidaysText || '',
-        worldClockHolidaysGoogleDocUrl: settingsRow.worldClockHolidaysGoogleDocUrl || '',
-        worldClockIntervalSec: settingsRow.worldClockIntervalSec !== undefined ? settingsRow.worldClockIntervalSec : 60,
-        worldClockBgClickEnabled: settingsRow.worldClockBgClickEnabled !== undefined ? (settingsRow.worldClockBgClickEnabled === 1) : true
-      } : null;
-
-      res.json({
-        users,
-        entries,
-        systemSettings,
-        inTheNewsGoogleDocText: settingsRow ? (settingsRow.inTheNewsGoogleDocText || '') : '',
-        worldClockHolidaysGoogleDocText: settingsRow ? (settingsRow.worldClockHolidaysGoogleDocText || '') : ''
-      });
-    } catch (err) {
-      console.error('Fetch db-state error:', err);
-      res.status(500).json({ error: 'Failed to fetch database state.' });
-    }
-  });
-
   // GET /api/system/weather-status (Live Health Check & Governance Status for Open-Meteo & Holiday APIs)
   router.get('/system/weather-status', async (req, res) => {
     try {
@@ -76,64 +34,6 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         openMeteo: { status: 'OFFLINE', latencyMs: 0, error: err.message },
         holidayApi: { status: 'ONLINE (200 OK)', integratedStatesCount: 15, calendarYear: 2026 }
       });
-    }
-  });
-
-  // GET /api/pages/:key
-  router.get('/pages/:key', async (req, res) => {
-    try {
-      const { key } = req.params;
-      const page = await dbGet("SELECT * FROM static_pages WHERE pageKey = ?", [key]);
-      if (!page) {
-        return res.json({ key, title: key.toUpperCase(), content: 'Kandungan belum ditulis.', updatedAt: new Date().toISOString() });
-      }
-      res.json({ key: page.pageKey, title: page.title, content: page.content, updatedAt: page.updatedAt });
-    } catch (err) {
-      console.error('Fetch static page error:', err);
-      res.status(500).json({ error: 'Failed to fetch static page.' });
-    }
-  });
-
-  // POST /api/pages/:key
-  router.post('/pages/:key', async (req, res) => {
-    try {
-      const { key } = req.params;
-      const { title, content } = req.body;
-      const now = new Date().toISOString();
-      await dbRun(`
-        INSERT OR REPLACE INTO static_pages (pageKey, title, content, updatedAt)
-        VALUES (?, ?, ?, ?)
-      `, [key, title || key.toUpperCase(), content || '', now]);
-      res.json({ success: true, key, title, content, updatedAt: now });
-    } catch (err) {
-      console.error('Save static page error:', err);
-      res.status(500).json({ error: 'Failed to save static page.' });
-    }
-  });
-
-  // GET /api/system/clock-holidays
-  router.get('/system/clock-holidays', async (req, res) => {
-    try {
-      const settingsRow = await dbGet("SELECT worldClockHolidaysText, worldClockHolidaysGoogleDocUrl, worldClockHolidaysGoogleDocText FROM system_settings WHERE id = 'settings-main'");
-      res.json({
-        worldClockHolidaysText: settingsRow ? (settingsRow.worldClockHolidaysText || '') : '',
-        worldClockHolidaysGoogleDocUrl: settingsRow ? (settingsRow.worldClockHolidaysGoogleDocUrl || '') : '',
-        worldClockHolidaysGoogleDocText: settingsRow ? (settingsRow.worldClockHolidaysGoogleDocText || '') : ''
-      });
-    } catch (err) {
-      console.error('Fetch clock holidays error:', err);
-      res.status(500).json({ error: 'Failed to fetch world clock holidays.' });
-    }
-  });
-
-  // GET /api/translation/configs
-  router.get('/translation/configs', async (req, res) => {
-    try {
-      const configs = await dbAll("SELECT * FROM translation_configs");
-      res.json(configs);
-    } catch (err) {
-      console.error('Fetch translation configs error:', err);
-      res.status(500).json({ error: 'Failed to fetch translation configs.' });
     }
   });
 
