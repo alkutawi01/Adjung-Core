@@ -52,27 +52,34 @@ const LABEL_TO_STATUS: Record<BriefRecord['status'], string> = {
   Archive: 'archived',
 };
 
-// createdBy on editorial_revisions is a machine token (which save path wrote it), not a human
-// name -- there's no multi-editor sign-in system yet, so this labels *how* content was created
-// rather than *who by*. Once real accounts exist, the pipeline/manual paths should start writing
-// the actual authenticated username here instead.
+// "Kaedah" ni sepatutnya sama konsep dengan "Mod Kandungan" yang dah sedia ada & user-facing di
+// borang Urus Slot/Ticker (FrontpageView.tsx/TickerManagementModal.tsx): Manual / AI Generated /
+// RSS Direct (Ticker sahaja). createdBy ialah token mentah (laluan kod/skrin mana yang tulis baris
+// ni), BUKAN mod itu sendiri -- beberapa token berlainan sebenarnya sama mod:
+//   - manual-slot-save (Tetapan Slot), content-review (Semakan Kandungan, disahkan hanya ditulis
+//     semasa CIPTA oleh POST /content, tak pernah disentuh PATCH), migration-manual-blob (import
+//     dari sistem lama -- server.js:1873 "Exclude Manual-origin rows" sendiri kumpulkan ketiga-tiga
+//     token ni sebagai SATU kumpulan "Manual" untuk resolveSlotContent) -- kesemuanya "Manual".
+//   - pipeline-slot-* -- "AI Generated" (nama ditukar drpd "AI Pipeline" supaya sepadan istilah Mod
+//     Kandungan sebenar, bukan reka istilah baharu).
+// Migrasi/"content-review" bukan mod berasingan -- ia jawab soalan lain (asal-usul/skrin mana),
+// bukan "apa mod yang digunakan". Tiada sistem log masuk berbilang editor lagi, jadi medan ni
+// jawab *macam mana* dicipta, bukan *oleh siapa*.
 //
-// Ticker is deliberately NOT one of these -- it's not an alternative way of creating a slot card
-// (the way Manual/AI Pipeline/Migrasi are all different paths to the same kind of thing), it's a
-// completely different content type (a text blob in system_settings, no editorial_objects row at
-// all). Every Ticker item hits this same 'ticker' token by construction, so listing it as a
-// "Kaedah" choice next to Manual/AI Pipeline was a category error, not genuine metadata -- callers
-// should treat Ticker rows as having no Kaedah (see IndeksConsole's normalization step).
+// Ticker: contentRoutes.js kini hantar mod SEBENAR terus (Manual/AI Generated/RSS Direct, dihurai
+// dari baris "Mode:" dalam blok teks Ticker) -- bukan konstan 'ticker' tetap macam dulu. Nilai-nilai
+// tu dah sepadan istilah di bawah secara semula jadi, jatuh ke `return createdBy` di penghujung
+// tanpa perlu pemetaan khas. Blok Ticker lama (sebelum medan Mode: wujud) hantar '' -- jatuh ke
+// "Tidak diketahui", jujur tentang jurang data, bukan silap paparan.
 const formatCreatedBy = (createdBy: string): string => {
-  if (createdBy === 'ticker') return ''; // tak terpakai, lihat nota di atas -- bukan "tidak diketahui"
+  if (
+    createdBy === 'manual-user' ||
+    createdBy === 'manual-slot-save' ||
+    createdBy === 'content-review' ||
+    createdBy === 'migration-manual-blob'
+  ) return 'Manual';
+  if (createdBy.startsWith('pipeline-slot-')) return 'AI Generated';
   if (!createdBy) return 'Tidak diketahui'; // data sebenar hilang -- genuine gap, patut kelihatan
-  if (createdBy.startsWith('pipeline-slot-')) return 'AI Pipeline';
-  if (createdBy === 'manual-user' || createdBy === 'manual-slot-save') return 'Manual';
-  // 'content-review' is stamped only at creation time by POST /content (see contentRoutes.js) --
-  // never touched by PATCH edits -- so despite the raw token, this genuinely means "born via the
-  // Semakan Kandungan add-item form", not "was edited afterwards". Named to match that.
-  if (createdBy === 'content-review') return 'Ditambah (Semakan)';
-  if (createdBy === 'migration-manual-blob') return 'Migrasi';
   return createdBy;
 };
 
@@ -183,7 +190,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // sumbang opsyen di sini.
   const sourceOptions = useMemo(() => Array.from(new Set(items.map(i => i.source).filter(Boolean))).sort(), [items]);
   // Ticker rows carry an empty creator (see formatCreatedBy) since Ticker isn't a "Kaedah" choice
-  // among Manual/AI Pipeline/dll. -- filtered out here so it can't show up as a blank option.
+  // among Manual/AI Generated/dll. -- filtered out here so it can't show up as a blank option.
   const creatorOptions = useMemo(() => Array.from(new Set(items.map(i => i.creator).filter(Boolean))).sort(), [items]);
   const slotOptions = useMemo(() => {
     const slots: string[] = Array.from(new Set(items.map(i => i.slot)));
@@ -198,7 +205,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const filteredRecords = useMemo(() => {
     return items.filter(item => {
       // Editor View Mode Filter -- NOT enforced: item.creator is a machine token (which save path
-      // wrote it -- Manual/AI Pipeline/Ticker/dll., see formatCreatedBy above), not a real per-account
+      // wrote it -- Manual/AI Generated/RSS Direct/dll., see formatCreatedBy above), not a real per-account
       // author, so it can never equal currentUserName. Without real multi-editor sign-in there is no
       // way to know which content belongs to which editor, so "Kandungan Saya" intentionally shows
       // the same set as "Semua Kandungan" for now (see the notice banner rendered when this mode is
@@ -225,7 +232,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       // Filter: Sumber (nama sumber sebenar, cth Astro Awani)
       if (selectedSource !== 'Semua' && item.source !== selectedSource) return false;
 
-      // Filter: Kaedah (cara kandungan dicipta -- Manual/AI Pipeline/Ticker/dll.)
+      // Filter: Kaedah (cara kandungan dicipta -- Manual/AI Generated/RSS Direct/dll.)
       if (selectedCreator !== 'Semua' && item.creator !== selectedCreator) return false;
 
       // Filter: Desk
@@ -405,7 +412,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </select>
           </div>
 
-          {/* 3b. Kaedah (cara kandungan dicipta -- Manual/AI Pipeline/Ticker/dll.) Filter */}
+          {/* 3b. Kaedah (cara kandungan dicipta -- Manual/AI Generated/RSS Direct/dll.) Filter */}
           <div>
             <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">KAEDAH</label>
             <select

@@ -12,7 +12,7 @@ const parseTickerText = (text) => {
   const blocks = text.split(/\n?[-_—–―]{3,}\n?/);
   const items = [];
   for (const block of blocks) {
-    let desk = '', title = '', brief = '', source = '', url = '';
+    let desk = '', title = '', brief = '', source = '', url = '', mode = '';
     for (const line of block.split('\n')) {
       const trimmed = line.trim();
       if (!trimmed) continue;
@@ -32,15 +32,19 @@ const parseTickerText = (text) => {
       // mirrors the client-side parseInTheNews() in src/utils.tsx, which already tolerated this.
       else if (key === 'source' || key === 'sumber') source = val;
       else if (key === 'url') url = val;
+      // Mod Kandungan Ticker sebenar (Manual/AI Generated/RSS Direct) -- lihat setiap penulis di
+      // slotRoutes.js/slotsConfigRoutes.js/EditorialPipeline.js. Blok lama sebelum medan ni wujud
+      // kekal '' (tak diketahui), bukan andaian salah.
+      else if (key === 'mode') mode = val;
     }
-    if (title) items.push({ desk, title, brief, source, url });
+    if (title) items.push({ desk, title, brief, source, url, mode });
   }
   return items;
 };
 
 const serializeTickerText = (items) => {
   return items
-    .map(i => `Desk: ${i.desk || 'UMUM'}\nTitle: ${i.title}\nBrief: ${i.brief || ''}\nSource: ${i.source || ''}\nUrl: ${i.url || '#'}`)
+    .map(i => `Desk: ${i.desk || 'UMUM'}\nTitle: ${i.title}\nBrief: ${i.brief || ''}\nSource: ${i.source || ''}\nUrl: ${i.url || '#'}${i.mode ? `\nMode: ${i.mode}` : ''}`)
     .join('\n---\n');
 };
 
@@ -136,7 +140,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         maxBrief: tickerLimits.maxBrief !== undefined ? tickerLimits.maxBrief : null,
         slotCategory: tickerLimits.slotCategory || '',
         status: 'approved',
-        createdBy: 'ticker',
+        // Mod sebenar (Manual/AI Generated/RSS Direct) yang mencipta baris ni -- BUKAN konstan
+        // 'ticker' tetap macam dulu (tak bawa maklumat, lihat "Kaedah" audit di Indeks). Blok lama
+        // sebelum medan Mode: wujud kekal '', papar sebagai "Tidak diketahui" di UI, bukan silap.
+        createdBy: t.mode || '',
         createdAt: null,
         updatedAt: null
       }));

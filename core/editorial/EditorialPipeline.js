@@ -421,7 +421,7 @@ ${slot.sourcesList.trim()}
         } catch (e) {
           console.warn("Failed to register ticker category:", e.message);
         }
-        return `Desk: ${desk}\nTitle: ${title}\nBrief: ${brief}\nSource: ${source}\nUrl: ${url}`;
+        return `Desk: ${desk}\nTitle: ${title}\nBrief: ${brief}\nSource: ${source}\nUrl: ${url}\nMode: AI Generated`;
       }))).filter(Boolean);
       const formattedText = textItems.join('\n---\n');
 

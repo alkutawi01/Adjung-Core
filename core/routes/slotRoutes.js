@@ -163,7 +163,13 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
 
       // Re-generate live ticker string ordered by HIGHEST SCORE first!
       const newApproved = await dbAll(`SELECT * FROM rss_ticker_items WHERE status = 'approved' ORDER BY score DESC, publishedAt DESC LIMIT ${limitVal}`);
-      const blocks = newApproved.map(item => `Desk: SEMASA\nTajuk: ${item.title}\nHuraian ringkas: ${item.formattedBrief || item.description || ''}\nSource: ${item.source}\nUrl: ${item.originalUrl}`);
+      // Kunci Title:/Brief: (bukan Tajuk:/Huraian ringkas:) padan parseTickerText & laluan RSS-Direct
+      // yang lain (baris ~915 di fail ni) -- kunci Melayu lama diam-diam gugurkan tajuk/huraian bila
+      // dihurai. displayCategory padan pengiraan sama di laluan tu jugak (bukan Desk: SEMASA tegar).
+      const blocks = newApproved.map(item => {
+        const displayCategory = (item.category === 'BELUM DIKELASKAN' || !item.category) ? 'SEMASA' : item.category;
+        return `Desk: ${displayCategory}\nTitle: ${item.title}\nBrief: ${item.formattedBrief || item.description || ''}\nSource: ${item.source}\nUrl: ${item.originalUrl}\nMode: RSS Direct`;
+      });
       const formattedText = blocks.join('\n----\n');
       await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
 
@@ -910,7 +916,7 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   if (approvedItems.length > 0) {
     tickerBlocks = approvedItems.map((item) => {
       const displayCategory = (item.category === 'BELUM DIKELASKAN' || !item.category) ? 'SEMASA' : item.category;
-      return `desk: ${displayCategory}\ntitle: ${item.title}\nbrief: ${item.formattedBrief || item.title}\nsource: ${item.source}\nurl: ${item.originalUrl}`;
+      return `desk: ${displayCategory}\ntitle: ${item.title}\nbrief: ${item.formattedBrief || item.title}\nsource: ${item.source}\nurl: ${item.originalUrl}\nmode: RSS Direct`;
     });
   }
 

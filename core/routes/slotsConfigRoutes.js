@@ -3,6 +3,23 @@ import { ceilingForSlot as getGeometryCeilingForSlot } from '../editorial/Geomet
 import { detectSourceType } from '../editorial/SourceDetector.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 
+// Ticker Manual mode is genuinely freeform text (the Chief Editor types the whole
+// desk:/title:/brief:/source:/url: block directly into a plain textarea -- no client-side template
+// assembly to hook into, see TickerManagementModal.tsx). Stamping "Mode: Manual" per block here,
+// server-side, is the only reliable place: every block saved through THIS handler (contentMode ===
+// 'Manual') was, by construction, entered manually, so this is safe to add unconditionally rather
+// than needing to parse per-block intent. Mirrors parseTickerText's tolerant block-separator regex
+// (core/routes/contentRoutes.js) so re-serializing here can't desync from how it'll be re-parsed.
+const stampManualModeOnTickerBlocks = (rawText) => {
+  if (!rawText || !rawText.trim()) return rawText;
+  const blocks = rawText.split(/\n?[-_—–―]{3,}\n?/).map(b => b.trim()).filter(Boolean);
+  const stamped = blocks.map(block => {
+    const hasMode = block.split('\n').some(line => line.trim().toLowerCase().startsWith('mode:'));
+    return hasMode ? block : `${block}\nMode: Manual`;
+  });
+  return stamped.join('\n____\n');
+};
+
 // syncManualObjectsForSlot stays defined in server.js (it's a large function with its own SQL
 // transaction, see Phase 1 of this session's server.js cleanup) and is passed in here rather than
 // moved, since moving it would also require moving parseManualSummaryTemplate, which
@@ -100,7 +117,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         }
 
         if (slot.slotIndex === -1 && slot.contentMode === 'Manual') {
-          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [slot.manualSummary || '']);
+          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [stampManualModeOnTickerBlocks(slot.manualSummary || '')]);
         }
       }
       res.json({ success: true });
