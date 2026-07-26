@@ -150,7 +150,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   router.patch('/content/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const { title, summary, desk, source, url, status, topik } = req.body;
+      const { title, summary, desk, source, url, status, topik, slotIndex } = req.body;
       if (status !== undefined && !CONTENT_STATUSES.includes(status)) {
         return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${CONTENT_STATUSES.join(', ')}.` });
       }
@@ -194,19 +194,27 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // over its tier's budget, no matter which screen the edit came from.
       const objRow = await dbGet("SELECT slotIndex, categoryId FROM editorial_objects WHERE id = ?", [id]);
       if (objRow) {
+        // Sasaran slot: slot BAHARU kalau kandungan sedang dipindah (siar-semula kandungan
+        // archived ke slot lain), jika tidak slot sedia ada.
+        const targetSlotIndex = slotIndex !== undefined ? slotIndex : objRow.slotIndex;
+
         const nextTitle = title !== undefined ? title : rev.title;
         const nextSummary = summary !== undefined ? summary : rev.summary;
-        const budgetCheck = validateContentBudget(objRow.slotIndex, nextTitle, nextSummary);
+        const budgetCheck = validateContentBudget(targetSlotIndex, nextTitle, nextSummary);
         if (!budgetCheck.isValid) {
           return res.status(400).json({ error: budgetCheck.reason });
         }
 
-        // Bidang terkunci per-slot, Topik wajib -- tapi HANYA bila tajuk/huraian sedang diedit
-        // (bukan tindakan status-sahaja seperti Lulus/Tolak/Arkib pada kandungan lama). Kecuali
-        // slot BAR.
-        const requireTopik = title !== undefined || summary !== undefined;
-        if (requireTopik && !TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
-          const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [objRow.slotIndex]);
+        // Bidang terkunci per-slot, Topik wajib -- bila tajuk/huraian diedit, kandungan dipindah
+        // ke slot lain, ATAU kandungan sedang diaktifkan semula (archived/rejected -> approved/
+        // pending, cth "Siarkan Semula" di Indeks). Bukan tindakan status-sahaja lain (Tolak/
+        // Arkib pada kandungan lama tak perlu sepadan Bidang). Kecuali slot BAR.
+        const reactivating = status !== undefined
+          && ['approved', 'pending'].includes(status)
+          && ['archived', 'rejected'].includes(rev.status);
+        const mustValidateBidangTopik = title !== undefined || summary !== undefined || slotIndex !== undefined || reactivating;
+        if (mustValidateBidangTopik && !TIER_SLOTS.BAR.includes(targetSlotIndex)) {
+          const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [targetSlotIndex]);
           const existingAttrs = await dbGet(
             "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'desk'",
             [id, rev.id]
@@ -226,6 +234,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           if (!bidangTopikCheck.isValid) {
             return res.status(400).json({ error: bidangTopikCheck.reason });
           }
+        }
+
+        if (slotIndex !== undefined && slotIndex !== objRow.slotIndex) {
+          await dbRun("UPDATE editorial_objects SET slotIndex = ? WHERE id = ?", [slotIndex, id]);
         }
       }
 
