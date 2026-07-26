@@ -1,4 +1,4 @@
-export type UserRole = 'Chief Editor' | 'Editor' | 'Writer' | 'Visitor';
+export type UserRole = 'Chief Editor' | 'Editor';
 
 export interface VectorStroke {
   x: number;
@@ -37,7 +37,6 @@ export interface RolePermissions {
   viewIndex: boolean;
   viewDirectory: boolean;
   curateFrontpage: boolean;
-  inviteWriters: boolean;
   moderateReports: boolean;
   editOthersContent: boolean; // LOCKED FALSE
   manageSettings: boolean;    // LOCKED (TRUE for Chief Editor, FALSE for others)
@@ -241,8 +240,6 @@ export interface SystemSettings {
   rolePermissions?: {
     'Chief Editor': RolePermissions;
     'Editor': RolePermissions;
-    'Writer': RolePermissions;
-    'Visitor': RolePermissions;
   };
   inTheNewsText?: string;
   inTheNewsGoogleDocUrl?: string;

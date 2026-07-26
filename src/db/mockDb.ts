@@ -167,7 +167,7 @@ export const INITIAL_USERS: User[] = [
     id: 'user-zayd-ghazali',
     username: 'zayd.ghazali',
     email: 'zayd@adjung.com',
-    role: 'Writer',
+    role: 'Editor',
     penName: 'Al-Ghazali',
     signature: 'Zayd Al-Ghazali',
     avatarColor: 'bg-emerald-950 text-emerald-100',
@@ -178,7 +178,7 @@ export const INITIAL_USERS: User[] = [
     id: 'user-amina-masri',
     username: 'amina.masri',
     email: 'amina@adjung.com',
-    role: 'Writer',
+    role: 'Editor',
     penName: 'Al-Masri',
     signature: 'Amina Al-Masri',
     avatarColor: 'bg-blue-950 text-blue-100',
@@ -189,7 +189,7 @@ export const INITIAL_USERS: User[] = [
     id: 'user-sarah-henderson',
     username: 'sarah.henderson',
     email: 'sarah@adjung.com',
-    role: 'Writer',
+    role: 'Editor',
     penName: 'Henderson',
     signature: 'S. Henderson',
     avatarColor: 'bg-red-950 text-red-100',
@@ -1021,7 +1021,6 @@ Source: MIT Technology Review, 2024`,
       viewIndex: true,
       viewDirectory: true,
       curateFrontpage: true,
-      inviteWriters: true,
       moderateReports: true,
       editOthersContent: false,
       manageSettings: true,
@@ -1042,7 +1041,6 @@ Source: MIT Technology Review, 2024`,
       viewIndex: true,
       viewDirectory: true,
       curateFrontpage: true,
-      inviteWriters: false,
       moderateReports: true,
       editOthersContent: false,
       manageSettings: false,
@@ -1058,48 +1056,6 @@ Source: MIT Technology Review, 2024`,
       publishEditorNote: true,
       archiveEditorNote: true,
       deleteEditorNote: true
-    },
-    'Writer': {
-      viewIndex: false,
-      viewDirectory: false,
-      curateFrontpage: false,
-      inviteWriters: false,
-      moderateReports: false,
-      editOthersContent: false,
-      manageSettings: false,
-      manageRbac: false,
-      manageLogs: false,
-      createNotice: false,
-      editNotice: false,
-      publishNotice: false,
-      archiveNotice: false,
-      deleteNotice: false,
-      createEditorNote: false,
-      editEditorNote: false,
-      publishEditorNote: false,
-      archiveEditorNote: false,
-      deleteEditorNote: false
-    },
-    'Visitor': {
-      viewIndex: false,
-      viewDirectory: false,
-      curateFrontpage: false,
-      inviteWriters: false,
-      moderateReports: false,
-      editOthersContent: false,
-      manageSettings: false,
-      manageRbac: false,
-      manageLogs: false,
-      createNotice: false,
-      editNotice: false,
-      publishNotice: false,
-      archiveNotice: false,
-      deleteNotice: false,
-      createEditorNote: false,
-      editEditorNote: false,
-      publishEditorNote: false,
-      archiveEditorNote: false,
-      deleteEditorNote: false
     }
   }
 };
@@ -1313,7 +1269,7 @@ class AdjungDb {
         if (!this.systemSettings.rolePermissions) {
           this.systemSettings.rolePermissions = { ...INITIAL_SYSTEM_SETTINGS.rolePermissions };
         } else {
-          const roles: UserRole[] = ['Chief Editor', 'Editor', 'Writer', 'Visitor'];
+          const roles: UserRole[] = ['Chief Editor', 'Editor'];
           roles.forEach(role => {
             if (!this.systemSettings.rolePermissions[role]) {
               this.systemSettings.rolePermissions[role] = { ...INITIAL_SYSTEM_SETTINGS.rolePermissions[role] };
