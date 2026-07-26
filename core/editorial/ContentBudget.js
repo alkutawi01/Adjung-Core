@@ -68,4 +68,20 @@ const validateContentBudget = (slotIndex, title, summary) => {
   return { isValid: true };
 };
 
-export { GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, validateContentBudget };
+// Bidang (kategori/desk) is locked per-slot: every item saved into a slot must share that slot's
+// Bidang. Topik is a free-text per-item field, mandatory only for new/edited content (not for
+// status-only actions on legacy content that predates this rule -- pass requireTopik accordingly).
+const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik }) => {
+  if (slotBidang && itemBidang && slotBidang.trim().toUpperCase() !== itemBidang.trim().toUpperCase()) {
+    return {
+      isValid: false,
+      reason: `Bidang kandungan ("${itemBidang}") tidak sepadan dengan bidang slot ini ("${slotBidang}"). Kandungan tidak disiarkan.`,
+    };
+  }
+  if (requireTopik && !(topik && topik.trim())) {
+    return { isValid: false, reason: 'Topik diperlukan untuk kandungan baharu/diedit. Kandungan tidak disiarkan.' };
+  }
+  return { isValid: true };
+};
+
+export { GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, validateContentBudget, validateBidangTopik };

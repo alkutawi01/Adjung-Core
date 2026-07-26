@@ -9,7 +9,7 @@ import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
-import { validateContentBudget } from './core/editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik } from './core/editorial/ContentBudget.js';
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
@@ -1411,6 +1411,10 @@ const initEditorialOS = (dbConn) => {
           // tak pernah didaftar di sini -- setiap simpan slot manual gagal senyap dgn
           // SQLITE_CONSTRAINT (FK), DELETE+INSERT sebelumnya rolled back, kandungan slot kekal kosong.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('sourceType', 'Jenis Sumber', 'text')", () => {});
+          // topik: subbidang bebas-had per-kandungan (Bidang -- 'desk' -- terkunci per-slot; Topik
+          // boleh berbeza antara item dalam slot yang sama). Sama corak macam sourceType di atas --
+          // kena didaftar dulu di sini atau INSERT gagal senyap dgn FK constraint.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('topik', 'Topik', 'text')", () => {});
           // Slot BAR sahaja: Penganjur/Lokasi/Akses (lihat Perlembagaan seksyen "Peraturan Khas
           // Slot Bar"). Sama corak macam briefLong/originalDate di atas -- kena didaftar dulu di sini
           // sebelum syncManualObjectsForSlot() boleh simpannya, atau INSERT gagal senyap.
@@ -1604,6 +1608,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let brief = '';
     let briefLong = '';
     let desk = '';
+    let topik = '';
     let date = '';
     let source = '';
     let url = '';
@@ -1631,8 +1636,12 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         brief = trimmed.replace(/^Huraian ringkas:\s*/i, '').trim();
       } else if (trimmed.startsWith('Huraian:')) {
         brief = trimmed.replace(/^Huraian:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Bidang:')) {
+        desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
       } else if (trimmed.startsWith('Kategori:')) {
         desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Topik:')) {
+        topik = trimmed.replace(/^Topik:\s*/i, '').trim();
       } else if (trimmed.startsWith('Jenis sumber:')) {
         sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
       } else if (trimmed.startsWith('Tarikh:')) {
@@ -1683,6 +1692,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         summary: brief,
         briefLong,
         desk: desk || defaultSlot.manualDesk || 'general',
+        topik: topik.replace(/^\([^)]+\)\s*/g, '').trim(),
         sourceType: finalSourceType,
         organizer: organizer || source || '',
         location,
@@ -1737,6 +1747,21 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
       err.isValidationError = true;
       throw err;
     }
+    // Bidang (kategori) terkunci per-slot, Topik wajib untuk kandungan baharu/diedit -- kecuali
+    // slot BAR (Perlembagaan: Bidang/Topik tak terpakai untuk tier ni).
+    if (!TIER_SLOTS.BAR.includes(slotIndex)) {
+      const bidangTopikCheck = validateBidangTopik({
+        slotBidang: slotConfig.manualDesk,
+        itemBidang: item.desk,
+        topik: item.topik,
+        requireTopik: true,
+      });
+      if (!bidangTopikCheck.isValid) {
+        const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${bidangTopikCheck.reason}`);
+        err.isValidationError = true;
+        throw err;
+      }
+    }
   }
 
   // Wrap the DELETE + multi-item multi-table INSERT sequence in a real transaction so a failure
@@ -1781,6 +1806,8 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         { key: 'sourceType', val: item.sourceType || 'web' },
         { key: 'briefLong', val: item.briefLong || '' },
         { key: 'originalDate', val: item.originalDate || '' },
+        // Topik: kosong untuk slot BAR (tak terpakai di sana), diabaikan macam Penerangan berikut.
+        { key: 'topik', val: item.topik || '' },
         // Slot BAR sahaja (Peraturan Khas Slot Bar) -- diabaikan (string kosong) untuk tier lain.
         { key: 'organizer', val: item.organizer || '' },
         { key: 'location', val: item.location || '' },
@@ -1900,6 +1927,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
           publishedAt: approvedRevision.createdAt,
           originalDate: parsed.originalDate || '',
           desk: (renderToken.desk || parsed.desk || 'UMUM').toUpperCase(),
+          topik: parsed.topik || '',
           publisherName: renderToken.publisherName || parsed.source || 'Umum',
           source: renderToken.publisherName || parsed.source || 'Umum',
           url: renderToken.sourceUrl || renderToken.url || parsed.url || '#',
@@ -1958,6 +1986,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
 
       const aiProv = avs.find(a => a.attributeId === 'aiProvider');
       const origDateAv = avs.find(a => a.attributeId === 'originalDate');
+      const topikAv = avs.find(a => a.attributeId === 'topik');
       const organizerAv = avs.find(a => a.attributeId === 'organizer');
       const locationAv = avs.find(a => a.attributeId === 'location');
       const accessAv = avs.find(a => a.attributeId === 'access');
@@ -1969,6 +1998,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         publishedAt: approvedRevision.createdAt,
         originalDate: origDateAv ? origDateAv.valueText : '',
         desk: (renderToken.desk || 'UMUM').toUpperCase(),
+        topik: topikAv ? topikAv.valueText : '',
         publisherName: renderToken.publisherName || 'Umum',
         source: renderToken.publisherName || 'Umum',
         // PresentationComposer's token names this field sourceUrl, not url -- this fallback

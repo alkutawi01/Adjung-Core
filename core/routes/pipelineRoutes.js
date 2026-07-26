@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateContentBudget } from '../editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 
 // Thin route wrappers around runEditorialPipeline/runAllScheduledSlots -- those stay defined in
@@ -51,7 +51,14 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
 
             const titleMatch = artBlock.match(/(?:Tajuk)\s*[:=]?\s*([^\n]+)/i);
             const summaryMatch = artBlock.match(/(?:Summary|Brief|Ringkasan|Huraian)\s*[:=]?\s*([\s\S]*?)(?:\n\n|\nTajuk|\nKategori|\nPautan|$)/i);
-            const categoryMatch = artBlock.match(/(?:Category|Kategori|Desk|Topik)\s*[:=]?\s*([A-Za-z]+)/i);
+            // Kategori/Desk/Bidang are the same concept (locked category per slot); Topik is a
+            // separate, unrelated free-text field -- previously conflated as a synonym here.
+            const categoryMatch = artBlock.match(/(?:Category|Kategori|Desk|Bidang)\s*[:=]?\s*([A-Za-z]+)/i);
+            // Anchored to line-start with a required colon (unlike the other fields' looser
+            // \s*[:=]?\s* pattern) -- "Topik" is short enough to plausibly appear as an ordinary
+            // word inside a title, and \s* crosses newlines, so a looser match risks bleeding into
+            // the following line's content.
+            const topikMatch = artBlock.match(/^\s*Topik\s*[:=]\s*(.+)$/im);
             const urlMatch = artBlock.match(/(?:Source|URL|Pautan)\s*[:=]?\s*(https?:\/\/[^\s\n]+)/i);
 
             if (titleMatch && slotNum >= 0 && slotNum < 38) {
@@ -60,6 +67,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
                 title: titleMatch[1].trim(),
                 summary: summaryMatch ? summaryMatch[1].trim().replace(/\s+/g, ' ').trim() : '',
                 category: categoryMatch ? categoryMatch[1].trim().toUpperCase() : 'UMUM',
+                topik: topikMatch ? topikMatch[1].trim() : '',
                 source_url: urlMatch ? urlMatch[1].trim() : '#'
               });
             }
@@ -80,6 +88,19 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
         const budgetCheck = validateContentBudget(slotIdx, item.title, item.summary);
         if (!budgetCheck.isValid) {
           return res.status(400).json({ error: `Slot ${slotIdx + 1} -- "${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason}` });
+        }
+        // Bidang terkunci per-slot, Topik wajib untuk kandungan baharu -- kecuali slot BAR.
+        if (!TIER_SLOTS.BAR.includes(slotIdx)) {
+          const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIdx]);
+          const bidangTopikCheck = validateBidangTopik({
+            slotBidang: slotRow ? slotRow.manualDesk : null,
+            itemBidang: item.category,
+            topik: item.topik,
+            requireTopik: true,
+          });
+          if (!bidangTopikCheck.isValid) {
+            return res.status(400).json({ error: `Slot ${slotIdx + 1} -- "${(item.title || '').slice(0, 40)}...": ${bidangTopikCheck.reason}` });
+          }
         }
       }
 
@@ -123,7 +144,8 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
           const attributes = [
             { key: 'desk', val: finalCategory },
             { key: 'url', val: finalUrl },
-            { key: 'source', val: 'ChatGPT/Gemini Manual Paste' }
+            { key: 'source', val: 'ChatGPT/Gemini Manual Paste' },
+            { key: 'topik', val: item.topik || '' }
           ];
 
           for (const attr of attributes) {

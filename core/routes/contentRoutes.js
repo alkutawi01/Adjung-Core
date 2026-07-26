@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateContentBudget } from '../editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 
 // The Ticker (slotIndex -1) never writes to editorial_objects, in either Manual or AI Generated
@@ -100,6 +100,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           summaryLong: attrs.briefLong || '',
           originalDate: attrs.originalDate || '',
           desk: attrs.desk || r.categoryId || '',
+          topik: attrs.topik || '',
           source: attrs.source || '',
           url: attrs.url || '#',
           imageUrl: attrs.imageUrl || attrs.coverImageId || '',
@@ -149,7 +150,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   router.patch('/content/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const { title, summary, desk, source, url, status } = req.body;
+      const { title, summary, desk, source, url, status, topik } = req.body;
       if (status !== undefined && !CONTENT_STATUSES.includes(status)) {
         return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${CONTENT_STATUSES.join(', ')}.` });
       }
@@ -191,13 +192,40 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
       // Same hard-block as every other content path: an edit can never push a slot's title+brief
       // over its tier's budget, no matter which screen the edit came from.
-      const objRow = await dbGet("SELECT slotIndex FROM editorial_objects WHERE id = ?", [id]);
+      const objRow = await dbGet("SELECT slotIndex, categoryId FROM editorial_objects WHERE id = ?", [id]);
       if (objRow) {
         const nextTitle = title !== undefined ? title : rev.title;
         const nextSummary = summary !== undefined ? summary : rev.summary;
         const budgetCheck = validateContentBudget(objRow.slotIndex, nextTitle, nextSummary);
         if (!budgetCheck.isValid) {
           return res.status(400).json({ error: budgetCheck.reason });
+        }
+
+        // Bidang terkunci per-slot, Topik wajib -- tapi HANYA bila tajuk/huraian sedang diedit
+        // (bukan tindakan status-sahaja seperti Lulus/Tolak/Arkib pada kandungan lama). Kecuali
+        // slot BAR.
+        const requireTopik = title !== undefined || summary !== undefined;
+        if (requireTopik && !TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
+          const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [objRow.slotIndex]);
+          const existingAttrs = await dbGet(
+            "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'desk'",
+            [id, rev.id]
+          );
+          const nextDesk = desk !== undefined ? desk : (existingAttrs ? existingAttrs.valueText : objRow.categoryId);
+          const existingTopikRow = await dbGet(
+            "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'topik'",
+            [id, rev.id]
+          );
+          const nextTopik = topik !== undefined ? topik : (existingTopikRow ? existingTopikRow.valueText : '');
+          const bidangTopikCheck = validateBidangTopik({
+            slotBidang: slotRow ? slotRow.manualDesk : null,
+            itemBidang: nextDesk,
+            topik: nextTopik,
+            requireTopik: true,
+          });
+          if (!bidangTopikCheck.isValid) {
+            return res.status(400).json({ error: bidangTopikCheck.reason });
+          }
         }
       }
 
@@ -221,7 +249,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         }
       }
 
-      const attrCandidates = { desk, source, url, imageUrl };
+      const attrCandidates = { desk, source, url, imageUrl, topik };
       for (const [key, val] of Object.entries(attrCandidates)) {
         if (val === undefined) continue;
         const existing = await dbGet(
@@ -279,7 +307,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   // POST /api/system/content
   router.post('/content', async (req, res) => {
     try {
-      const { slotIndex, title, summary, desk, source, url, imageUrl } = req.body;
+      const { slotIndex, title, summary, desk, source, url, imageUrl, topik } = req.body;
       if (slotIndex === undefined || slotIndex === null) {
         return res.status(400).json({ error: 'Missing slotIndex.' });
       }
@@ -317,6 +345,22 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
       const timestamp = new Date().toISOString();
       const finalCategory = (desk || 'UMUM').trim().toUpperCase();
+
+      // Bidang terkunci per-slot, Topik wajib untuk kandungan baharu -- kecuali slot BAR. Checked
+      // against finalCategory (not raw desk) so an omitted desk -- which defaults to 'UMUM' -- still
+      // gets caught if the slot has a different locked Bidang, instead of silently bypassing the check.
+      if (!TIER_SLOTS.BAR.includes(slotIndex)) {
+        const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
+        const bidangTopikCheck = validateBidangTopik({
+          slotBidang: slotRow ? slotRow.manualDesk : null,
+          itemBidang: finalCategory,
+          topik,
+          requireTopik: true,
+        });
+        if (!bidangTopikCheck.isValid) {
+          return res.status(400).json({ error: bidangTopikCheck.reason });
+        }
+      }
       try {
         await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
       } catch (e) {
@@ -340,6 +384,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         { key: 'desk', val: finalCategory },
         { key: 'url', val: url || '#' },
         { key: 'source', val: source || '' },
+        { key: 'topik', val: topik || '' },
       ];
       if (imageUrl) attrs.push({ key: 'imageUrl', val: imageUrl });
       for (const a of attrs) {
