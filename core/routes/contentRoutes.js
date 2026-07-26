@@ -27,7 +27,10 @@ const parseTickerText = (text) => {
       if (key === 'desk') desk = val;
       else if (key === 'title') title = val;
       else if (key === 'brief' || key === 'summary') brief = val;
-      else if (key === 'source') source = val;
+      // 'sumber' accepted as an alias for legacy blocks written before the RSS-Direct fetch
+      // handler's `sumber:` key typo (core/routes/slotRoutes.js) was fixed to write `source:` --
+      // mirrors the client-side parseInTheNews() in src/utils.tsx, which already tolerated this.
+      else if (key === 'source' || key === 'sumber') source = val;
       else if (key === 'url') url = val;
     }
     if (title) items.push({ desk, title, brief, source, url });

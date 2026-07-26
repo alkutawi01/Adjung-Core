@@ -910,7 +910,7 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   if (approvedItems.length > 0) {
     tickerBlocks = approvedItems.map((item) => {
       const displayCategory = (item.category === 'BELUM DIKELASKAN' || !item.category) ? 'SEMASA' : item.category;
-      return `desk: ${displayCategory}\ntitle: ${item.title}\nbrief: ${item.formattedBrief || item.title}\nsumber: ${item.source}\nurl: ${item.originalUrl}`;
+      return `desk: ${displayCategory}\ntitle: ${item.title}\nbrief: ${item.formattedBrief || item.title}\nsource: ${item.source}\nurl: ${item.originalUrl}`;
     });
   }
 

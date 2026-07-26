@@ -56,12 +56,22 @@ const LABEL_TO_STATUS: Record<BriefRecord['status'], string> = {
 // name -- there's no multi-editor sign-in system yet, so this labels *how* content was created
 // rather than *who by*. Once real accounts exist, the pipeline/manual paths should start writing
 // the actual authenticated username here instead.
+//
+// Ticker is deliberately NOT one of these -- it's not an alternative way of creating a slot card
+// (the way Manual/AI Pipeline/Migrasi are all different paths to the same kind of thing), it's a
+// completely different content type (a text blob in system_settings, no editorial_objects row at
+// all). Every Ticker item hits this same 'ticker' token by construction, so listing it as a
+// "Kaedah" choice next to Manual/AI Pipeline was a category error, not genuine metadata -- callers
+// should treat Ticker rows as having no Kaedah (see IndeksConsole's normalization step).
 const formatCreatedBy = (createdBy: string): string => {
-  if (!createdBy) return 'Tidak diketahui';
-  if (createdBy === 'ticker') return 'Ticker';
+  if (createdBy === 'ticker') return ''; // tak terpakai, lihat nota di atas -- bukan "tidak diketahui"
+  if (!createdBy) return 'Tidak diketahui'; // data sebenar hilang -- genuine gap, patut kelihatan
   if (createdBy.startsWith('pipeline-slot-')) return 'AI Pipeline';
   if (createdBy === 'manual-user' || createdBy === 'manual-slot-save') return 'Manual';
-  if (createdBy === 'content-review') return 'Disunting (Indeks)';
+  // 'content-review' is stamped only at creation time by POST /content (see contentRoutes.js) --
+  // never touched by PATCH edits -- so despite the raw token, this genuinely means "born via the
+  // Semakan Kandungan add-item form", not "was edited afterwards". Named to match that.
+  if (createdBy === 'content-review') return 'Ditambah (Semakan)';
   if (createdBy === 'migration-manual-blob') return 'Migrasi';
   return createdBy;
 };
@@ -172,7 +182,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // Ticker (source sentiasa kosong -- disimpan sebagai blob teks, bukan rekod berasingan) tak
   // sumbang opsyen di sini.
   const sourceOptions = useMemo(() => Array.from(new Set(items.map(i => i.source).filter(Boolean))).sort(), [items]);
-  const creatorOptions = useMemo(() => Array.from(new Set(items.map(i => i.creator))).sort(), [items]);
+  // Ticker rows carry an empty creator (see formatCreatedBy) since Ticker isn't a "Kaedah" choice
+  // among Manual/AI Pipeline/dll. -- filtered out here so it can't show up as a blank option.
+  const creatorOptions = useMemo(() => Array.from(new Set(items.map(i => i.creator).filter(Boolean))).sort(), [items]);
   const slotOptions = useMemo(() => {
     const slots: string[] = Array.from(new Set(items.map(i => i.slot)));
     return slots.sort((a: string, b: string) => {
@@ -561,7 +573,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     <td className="p-2.5 font-sans text-xs text-stone-700 font-semibold">{formatTitleCase(rec.desk)}</td>
                     <td className="p-2.5 font-sans text-xs text-stone-500">{rec.topik ? formatTitleCase(rec.topik) : '-'}</td>
                     <td className="p-2.5 font-serif text-stone-800 text-xs">{rec.source || '-'}</td>
-                    <td className="p-2.5 font-sans text-[10px] text-stone-500">{rec.creator}</td>
+                    <td className="p-2.5 font-sans text-[10px] text-stone-500">{rec.creator || '-'}</td>
                     <td className="p-2.5 font-sans text-[10px]">
                       {rec.cardType === '-' ? (
                         <span className="text-stone-400 font-mono text-xs font-bold px-2">-</span>
@@ -632,7 +644,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SUMBER</span><strong className="text-stone-900">{activeItemModal.source || '-'}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">KAEDAH</span><strong className="text-stone-900">{activeItemModal.creator}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">KAEDAH</span><strong className="text-stone-900">{activeItemModal.creator || '-'}</strong></div>
             </div>
 
             {activeItemModal.status === 'Archive' && activeItemModal.slot !== 'Ticker' && (
