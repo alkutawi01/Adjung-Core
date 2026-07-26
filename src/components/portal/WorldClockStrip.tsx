@@ -13,6 +13,11 @@ interface ClockTime {
   isWeekend: boolean;
 }
 
+// States with an official Friday-Saturday weekend (and the matching KPM school-calendar
+// Kumpulan A). Johor observed this from 2014 but reverted to the standard Saturday-Sunday
+// weekend on 2025-01-01 -- do not add it back without checking current state policy first.
+const FRIDAY_SATURDAY_WEEKEND_CITIES = ['Kota Bharu', 'Kuala Terengganu', 'Alor Setar'];
+
 const CITY_SETS = [
   // Set 1 (Default)
   [
@@ -331,7 +336,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
             const dayStrVal = String(today.getDate()).padStart(2, '0');
             const todayISO = `${yearStr}-${monthStr}-${dayStrVal}`;
             
-            const isGroupA = ['Kota Bharu', 'Kuala Terengganu', 'Alor Setar', 'Johor Bahru'].includes(c.name);
+            const isGroupA = FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name);
             const schoolMatch = apiHolidaysData.schoolHolidays.find((sh: any) => {
               const groupMatch = isGroupA ? sh.group === 'A' : sh.group === 'B';
               return groupMatch && todayISO >= sh.start && todayISO <= sh.end;
@@ -341,7 +346,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
             }
           }
 
-          const isGroupAWeekend = ['Kota Bharu', 'Kuala Terengganu', 'Alor Setar', 'Johor Bahru'].includes(c.name);
+          const isGroupAWeekend = FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name);
           const isDefaultWeekend = isGroupAWeekend
             ? (day === 'FRI' || day === 'SAT')
             : (day === 'SAT' || day === 'SUN');
