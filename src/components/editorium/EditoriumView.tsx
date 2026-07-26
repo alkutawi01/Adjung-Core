@@ -5,6 +5,7 @@ import { DirektoriConsole } from './DirektoriConsole';
 import { TetapanConsole } from './TetapanConsole';
 import { LogAuditConsole } from './LogAuditConsole';
 import { PerlembagaanConsole } from './PerlembagaanConsole';
+import { SistemRekaBentukConsole } from './SistemRekaBentukConsole';
 
 export const EditoriumView: React.FC = () => {
   const [activeTab, setActiveTab] = useState('indeks');
@@ -49,6 +50,9 @@ export const EditoriumView: React.FC = () => {
       )}
       {activeTab === 'perlembagaan' && (
         <PerlembagaanConsole />
+      )}
+      {activeTab === 'reka_bentuk' && (
+        <SistemRekaBentukConsole />
       )}
     </EditoriumLayout>
   );
