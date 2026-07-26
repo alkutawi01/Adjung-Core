@@ -6211,7 +6211,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
       {/* Full-screen Reading Display Overlay */}
       {showNewsOverlay && overlayItem && (
         <div 
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-lg transition-all duration-300 animate-fade-in p-6 select-none"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/70 backdrop-blur-2xl transition-all duration-300 animate-fade-in p-6 select-none"
           onClick={() => setShowNewsOverlay(false)}
         >
           {/* Top Centered Logo */}
