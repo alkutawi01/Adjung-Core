@@ -4372,7 +4372,7 @@ URL: ${url}`;
                                 <td className="p-2 font-semibold text-stone-800 flex items-center gap-1.5">
                                   {rule.ruleName}
                                   {isLocked && (
-                                    <Tooltip text="Peraturan Asas Sistem (Locked)">
+                                    <Tooltip text="Peraturan Asas Sistem (Dikunci)">
                                       <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 text-[8px] font-mono font-bold rounded inline-flex items-center gap-0.5">
                                         <Lock className="w-2.5 h-2.5" /> ASAS
                                       </span>
@@ -6221,12 +6221,12 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
 
           {/* Top Right Instructions */}
           <div className="absolute top-6 right-6 font-mono text-[8px] uppercase tracking-widest text-stone-400 select-none">
-            ESC or Click to close
+            ESC atau Klik untuk Tutup
           </div>
 
           {/* Left Arrow */}
           {parsedTickerNewsItems.length > 1 && (
-            <Tooltip text="Previous News (Left Arrow)">
+            <Tooltip text="Berita Sebelum (Anak Panah Kiri)">
               <button
                 type="button"
                 onClick={handlePrevNewsItem}
@@ -6239,7 +6239,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
 
           {/* Right Arrow */}
           {parsedTickerNewsItems.length > 1 && (
-            <Tooltip text="Next News (Right Arrow)">
+            <Tooltip text="Berita Seterusnya (Anak Panah Kanan)">
               <button
                 type="button"
                 onClick={handleNextNewsItem}
