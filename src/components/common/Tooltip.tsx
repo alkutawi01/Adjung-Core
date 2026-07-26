@@ -83,7 +83,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ text, children, placement = 't
       {visible && text && createPortal(
         <div
           ref={bubbleRef}
-          className="fixed z-[9999] px-3 py-1.5 rounded-lg bg-[#802334]/80 backdrop-blur-md text-white text-[10px] font-sans leading-snug max-w-xs text-center pointer-events-none shadow-lg"
+          className="fixed z-[9999] px-3 py-1.5 rounded-lg bg-[#FDFDFD]/70 backdrop-blur-md text-black text-[10px] font-sans leading-snug max-w-xs text-center pointer-events-none shadow-lg"
           style={style}
         >
           {text}
