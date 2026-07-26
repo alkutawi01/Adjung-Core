@@ -45,23 +45,23 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.9 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className={`pointer-events-auto flex items-start justify-between gap-3 p-3.5 rounded-lg shadow-lg border text-xs leading-relaxed ${
+      className={`pointer-events-auto flex items-start justify-between gap-3 p-3.5 rounded-lg shadow-lg border border-l-4 bg-[#FDFDFD] text-[#292524] text-xs leading-relaxed ${
         isSuccess
-          ? 'bg-[#153428] text-emerald-100 border-emerald-700'
+          ? 'border-stone-200 border-l-[#3d6b4c]'
           : isError
-          ? 'bg-[#4a151b] text-rose-100 border-rose-700'
-          : 'bg-[#1c2430] text-slate-100 border-slate-700'
+          ? 'border-stone-200 border-l-[#a8241f]'
+          : 'border-stone-200 border-l-[#802334]'
       }`}
     >
       <div className="flex items-start gap-2.5">
-        {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />}
-        {isError && <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />}
-        {!isSuccess && !isError && <Info className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />}
+        {isSuccess && <CheckCircle2 className="w-4 h-4 text-[#3d6b4c] shrink-0 mt-0.5" />}
+        {isError && <AlertTriangle className="w-4 h-4 text-[#a8241f] shrink-0 mt-0.5" />}
+        {!isSuccess && !isError && <Info className="w-4 h-4 text-[#802334] shrink-0 mt-0.5" />}
         <span>{toast.message}</span>
       </div>
       <button
         onClick={() => onDismiss(toast.id)}
-        className="text-slate-400 hover:text-white transition-colors p-0.5 rounded shrink-0"
+        className="text-stone-400 hover:text-[#292524] transition-colors p-0.5 rounded shrink-0"
         aria-label="Tutup"
       >
         <X className="w-3.5 h-3.5" />
