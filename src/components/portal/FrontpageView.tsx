@@ -2504,7 +2504,7 @@ URL: ${url}`;
           </h1>
           <div className="flex items-center justify-center gap-3 mt-[8px] mb-1 max-w-xs mx-auto">
             <div className="h-[1px] bg-[#b4b4b4] w-12 md:w-16"></div>
-            <span className="font-sans text-[11px] md:text-xs tracking-[0.25em] font-semibold text-[#b4b4b4] uppercase">BRIEF</span>
+            <span className="font-sans text-[11px] md:text-xs tracking-[0.25em] font-semibold text-[#b4b4b4] uppercase">{BRAND.subLabel}</span>
             <div className="h-[1px] bg-[#b4b4b4] w-12 md:w-16"></div>
           </div>
           <p className="font-sans text-[9px] md:text-[11px] tracking-editorial uppercase text-[#555555] mt-2">
@@ -3729,7 +3729,7 @@ URL: ${url}`;
 
           <div className="border-t border-stone-150 pt-6 text-center">
             <p className="font-mono text-[9px] tracking-widest text-stone-400 uppercase font-bold">
-              &copy; 2026 Adjung Platform
+              {BRAND.copyright}
             </p>
           </div>
         </footer>

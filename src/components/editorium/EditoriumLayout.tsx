@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Tooltip } from '../common/Tooltip';
+import { BRAND } from '../../config/brand';
 
 interface EditoriumLayoutProps {
   activeTab?: string;
@@ -40,10 +41,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           {/* Logo Adjung Brief Baharu (Paling Kiri, BRIEF di bawah Adjung, Klik ke Frontpage) */}
           <Tooltip text="Klik untuk kembali ke Frontpage">
             <a href="/" className="flex flex-col items-center justify-center hover:opacity-90 transition-opacity select-none">
-              <span className="font-serif font-normal text-2xl tracking-tight text-[#FDFDFD] leading-none">Adjung</span>
+              <span className="font-serif font-normal text-2xl tracking-tight text-[#FDFDFD] leading-none">{BRAND.logoText}</span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="h-[1px] w-2.5 bg-[#b4b4b4]"></span>
-                <span className="font-sans text-[8px] tracking-[0.2em] font-semibold text-[#b4b4b4] uppercase leading-none">BRIEF</span>
+                <span className="font-sans text-[8px] tracking-[0.2em] font-semibold text-[#b4b4b4] uppercase leading-none">{BRAND.subLabel}</span>
                 <span className="h-[1px] w-2.5 bg-[#b4b4b4]"></span>
               </div>
             </a>
