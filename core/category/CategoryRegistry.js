@@ -227,10 +227,81 @@ class CategoryRegistry {
 
     // Update attribute values
     await this.dbRun(db, `
-      UPDATE editorial_attribute_values 
-      SET valueText = ? 
+      UPDATE editorial_attribute_values
+      SET valueText = ?
       WHERE attributeId = 'desk' AND (valueText = ? OR valueText = ?)
     `, [targetNameUpper, sourceCategory.trim().toUpperCase(), sourceReg.name.toUpperCase()]);
+  }
+
+  // Senarai Bidang tertutup (isActive=1) -- sumber untuk dropdown/Taksonomi. Baris isActive=0
+  // (sejarah auto-daftar lama) tetap wujud untuk warna kad lama (getAllCategories/GET /categories),
+  // cuma tak muncul di sini.
+  static async getActiveCategories(db) {
+    return await this.dbAll(db, "SELECT * FROM CategoryRegistry WHERE isActive = 1 ORDER BY name ASC");
+  }
+
+  // Cipta/guna-semula (ikut slug, sama corak macam registerCategory) + tetapkan warna PILIHAN
+  // eksplisit (bukan auto-palette) + isActive=1. Guna untuk "+ Tambah Bidang" di Taksonomi.
+  static async activateCategory(db, name, color) {
+    if (!name || name.trim() === '') throw new Error('Nama Bidang diperlukan.');
+    const trimmedName = name.trim();
+    const slug = this.getSlug(trimmedName);
+    const now = new Date().toISOString();
+
+    const existing = await this.dbGet(db, "SELECT * FROM CategoryRegistry WHERE slug = ?", [slug]);
+    if (existing) {
+      const finalColor = color || existing.color;
+      // Nama dipaksa ikut apa yang ditaip di sini (bukan kekal nama lama, cth "EKONOMI" huruf
+      // besar dari auto-daftar dulu) -- ini tindakan kurasi Ketua Editor yang sengaja, menang
+      // atas casing lama. Tak sentuh string 'desk' tersimpan pada kandungan sedia ada.
+      await this.dbRun(db, "UPDATE CategoryRegistry SET name = ?, isActive = 1, color = ?, updatedAt = ? WHERE slug = ?", [trimmedName, finalColor, now, slug]);
+      return { ...existing, name: trimmedName, color: finalColor, isActive: 1 };
+    }
+
+    const id = `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const finalColor = color || this.generateColorBeyondPalette(0);
+    await this.dbRun(db, `
+      INSERT INTO CategoryRegistry (id, slug, name, color, usageCount, isActive, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, 0, 1, ?, ?)
+    `, [id, slug, trimmedName, finalColor, now, now]);
+    return { id, slug, name: trimmedName, color: finalColor, usageCount: 0, isActive: 1, createdAt: now, updatedAt: now };
+  }
+
+  // Namakan-semula SATU baris Bidang taksonomi -- sengaja BUKAN renameCategory()/mergeCategories()
+  // di atas, sebab dua fungsi tu cascade-tulis-ganti string 'desk' dalam editorial_objects/
+  // editorial_attribute_values (melanggar peraturan "kandungan lama kekal"). Ni cuma ubah baris
+  // taksonomi tu sendiri.
+  static async renameActiveCategory(db, id, newName) {
+    if (!newName || newName.trim() === '') throw new Error('Nama Bidang diperlukan.');
+    const trimmedName = newName.trim();
+    const newSlug = this.getSlug(trimmedName);
+    const now = new Date().toISOString();
+    await this.dbRun(db, "UPDATE CategoryRegistry SET name = ?, slug = ?, updatedAt = ? WHERE id = ?", [trimmedName, newSlug, now, id]);
+  }
+
+  // Nombor slot (0-based) yang manualDesk-nya sepadan (case-insensitive) nama Bidang ni -- untuk
+  // paparan "Nombor Slot Diperuntukkan" di Taksonomi.
+  static async getSlotsForCategory(db, name) {
+    if (!name) return [];
+    const rows = await this.dbAll(db,
+      "SELECT slotIndex FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex >= 0 AND LOWER(manualDesk) = LOWER(?) ORDER BY slotIndex ASC",
+      [name]
+    );
+    return rows.map(r => r.slotIndex);
+  }
+
+  // Bila Bidang sesuatu slot berubah, kandungan yang sedang live/pending dalam slot tu tak lagi
+  // sepadan Bidang terkunci baharu -- diarkib (status flip sahaja, BUKAN padam row) supaya hilang
+  // dari paparan awam tapi ID/objectId kekal selama-lamanya, boleh disiar semula lepas ni (lihat
+  // PATCH /api/system/content/:id).
+  static async archiveLiveContentInSlot(db, slotIndex) {
+    const now = new Date().toISOString();
+    await this.dbRun(db, `
+      UPDATE editorial_revisions
+      SET status = 'archived', updatedAt = ?
+      WHERE status IN ('approved', 'pending')
+        AND objectId IN (SELECT id FROM editorial_objects WHERE slotIndex = ?)
+    `, [now, slotIndex]);
   }
 }
 

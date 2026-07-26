@@ -29,6 +29,19 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         const providerId = slot.providerId && typeof slot.providerId === 'string' && slot.providerId.trim() !== '' && slot.providerId !== 'undefined' && slot.providerId !== 'null' ? slot.providerId : null;
         console.log(`Slot ${slot.slotIndex}: raw providerId = "${slot.providerId}", mapped = ${providerId}`);
 
+        // Bidang kini senarai tertutup kurasi Ketua Editor -- sekatan keras sama macam bajet
+        // aksara, bukan cuma UI dropdown yang boleh dipintas terus dari API.
+        const nextDesk = (slot.manualDesk || '').trim();
+        if (nextDesk) {
+          const activeBidang = await CategoryRegistry.getActiveCategories(db);
+          const matchesActive = activeBidang.some(c => c.name.toLowerCase() === nextDesk.toLowerCase());
+          if (!matchesActive) {
+            return res.status(400).json({ error: `Bidang "${nextDesk}" bukan Bidang aktif. Pilih daripada senarai Taksonomi.` });
+          }
+        }
+        const prevRow = await dbAll("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slot.slotIndex]);
+        const prevDesk = (prevRow[0] && prevRow[0].manualDesk) || '';
+
         // Hard ceiling: a slot's own had aksara can never exceed what its card geometry can
         // physically show, regardless of what the client sends -- clamp before it ever reaches
         // storage, so an oversized value can't sneak in and later get copied around on re-save.
@@ -55,6 +68,17 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
             await CategoryRegistry.incrementCategoryUsage(db, slot.manualDesk);
           } catch (e) {
             console.warn("Failed to register category:", e.message);
+          }
+        }
+
+        // Bidang slot betul-betul berubah -- kandungan live/pending lama dalam slot ni tak lagi
+        // sepadan Bidang terkunci baharu, arkib (status flip, bukan padam -- lihat
+        // archiveLiveContentInSlot) supaya tak terus terpapar dengan Bidang yang tak sah.
+        if (prevDesk.toLowerCase() !== nextDesk.toLowerCase()) {
+          try {
+            await CategoryRegistry.archiveLiveContentInSlot(db, slot.slotIndex);
+          } catch (e) {
+            console.warn(`Failed to archive live content for slot ${slot.slotIndex}:`, e.message);
           }
         }
 

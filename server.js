@@ -1473,6 +1473,31 @@ const initEditorialOS = (dbConn) => {
                                                       updatedAt TEXT NOT NULL
                                                     )
                                                   `, () => {
+                                                    // isActive: Bidang kini senarai tertutup kurasi Ketua Editor (bukan lagi
+                                                    // auto-daftar bebas) -- 93 baris sedia ada kekal isActive=0 (tak dipadam,
+                                                    // cuma tak boleh dipilih/dipapar lagi). GET /categories (sumber warna kad
+                                                    // awam) terus baca SEMUA baris tanpa tapisan isActive -- tak disentuh.
+                                                    dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN isActive INTEGER NOT NULL DEFAULT 0", () => {
+                                                      const BIDANG_TERKURASI = [
+                                                        'Utama', 'Malaysiana', 'Geopolitik', 'Ekonomi', 'Bisnes', 'Teknologi',
+                                                        'Sains', 'Perubatan', 'Pendidikan', 'Perundangan', 'Al-Quran dan Sunnah',
+                                                        'Syariah', 'Falsafah', 'Psikologi', 'Bahasa', 'Sastera', 'Sejarah',
+                                                        'Geografi', 'Alam Sekitar', 'Angkasa', 'Seni Reka Bentuk', 'Budaya',
+                                                        'Sukan', 'Matematik'
+                                                      ];
+                                                      // Seed idempotent (activateCategory cari-atau-cipta ikut slug, paksa nama
+                                                      // & isActive=1) -- selamat jalan setiap kali server start, tak cipta
+                                                      // baris pendua, dan betulkan casing lama (cth "EKONOMI" -> "Ekonomi").
+                                                      (async () => {
+                                                        for (const name of BIDANG_TERKURASI) {
+                                                          try {
+                                                            await CategoryRegistry.activateCategory(dbConn, name, null);
+                                                          } catch (e) {
+                                                            console.warn(`Gagal seed Bidang "${name}":`, e.message);
+                                                          }
+                                                        }
+                                                      })();
+                                                    });
                                                     dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN promptText TEXT", () => {
                                                       dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN responseText TEXT", () => {
                                                         resolve();
