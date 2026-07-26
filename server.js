@@ -20,6 +20,7 @@ import { createCategoryRoutes } from './core/routes/categoryRoutes.js';
 import { createSystemRoutes } from './core/routes/systemRoutes.js';
 import { createSlotRoutes, executeDirectRssFetch } from './core/routes/slotRoutes.js';
 import { createAiCostRoutes } from './core/routes/aiCostRoutes.js';
+import { createTranslationRoutes } from './core/routes/translationRoutes.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -3093,40 +3094,6 @@ app.post('/api/system/slots/run-now', async (req, res) => {
   }
 });
 
-// Endpoints for static/footer pages
-app.get('/api/pages/:key', async (req, res) => {
-  const { key } = req.params;
-  try {
-    const page = await dbGet("SELECT * FROM static_pages WHERE key = ?", [key]);
-    if (!page) {
-      return res.status(404).json({ error: 'Page not found.' });
-    }
-    res.json(page);
-  } catch (err) {
-    console.error(`Get page ${key} error:`, err);
-    res.status(500).json({ error: 'Failed to fetch page. ' + err.message });
-  }
-});
-
-app.post('/api/pages/:key', async (req, res) => {
-  const { key } = req.params;
-  const { title, content } = req.body;
-  if (!title || !content) {
-    return res.status(400).json({ error: 'Missing title or content.' });
-  }
-  const timestamp = new Date().toISOString();
-  try {
-    await dbRun(`
-      INSERT OR REPLACE INTO static_pages (key, title, content, updatedAt)
-      VALUES (?, ?, ?, ?)
-    `, [key, title, content, timestamp]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(`Save page ${key} error:`, err);
-    res.status(500).json({ error: 'Failed to save page. ' + err.message });
-  }
-});
-
 // GET /api/system/clock-holidays
 app.get('/api/system/clock-holidays', async (req, res) => {
   try {
@@ -3269,70 +3236,13 @@ app.post('/api/system/settings', async (req, res) => {
   }
 });
 
-// 11c. GET /api/translation/configs
-app.get('/api/translation/configs', async (req, res) => {
-  try {
-    let configs = await dbAll("SELECT * FROM translation_configs");
-    if (configs.length === 0) {
-      const providers = await dbAll("SELECT id FROM ai_providers");
-      const defaultProviderId = providers.length > 0 ? providers[0].id : 'gemini-1';
-      
-      const defaultLangs = [
-        { code: 'zh', name: 'Cina', provider: defaultProviderId },
-        { code: 'ar', name: 'Arab', provider: defaultProviderId },
-        { code: 'en', name: 'Inggeris', provider: defaultProviderId }
-      ];
-      
-      for (const dl of defaultLangs) {
-        await dbRun(`
-          INSERT INTO translation_configs (languageCode, languageName, providerId, isEnabled, createdAt, updatedAt)
-          VALUES (?, ?, ?, 0, ?, ?)
-        `, [dl.code, dl.name, dl.provider, new Date().toISOString(), new Date().toISOString()]);
-      }
-      configs = await dbAll("SELECT * FROM translation_configs");
-    }
-    res.json(configs);
-  } catch (err) {
-    console.error('Fetch translation configs error:', err);
-    res.status(500).json({ error: 'Failed to fetch translation configurations.' });
-  }
-});
-
-// 11d. POST /api/translation/configs
-app.post('/api/translation/configs', async (req, res) => {
-  try {
-    const list = req.body;
-    for (const item of list) {
-      await dbRun(`
-        INSERT OR REPLACE INTO translation_configs (languageCode, languageName, providerId, isEnabled, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [item.languageCode, item.languageName, item.providerId, item.isEnabled ? 1 : 0, item.createdAt || new Date().toISOString(), new Date().toISOString()]);
-    }
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Save translation configs error:', err);
-    res.status(500).json({ error: 'Failed to save translation configurations.' });
-  }
-});
-
-// 11e. DELETE /api/translation/configs/:code [NEW]
-app.delete('/api/translation/configs/:code', async (req, res) => {
-  try {
-    const { code } = req.params;
-    await dbRun("DELETE FROM translation_configs WHERE languageCode = ?", [code]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Delete translation config error:', err);
-    res.status(500).json({ error: 'Failed to delete translation config.' });
-  }
-});
-
 // Mount Modular Router Endpoints
 app.use('/api/ai', createAIRoutes(dbAll, dbRun));
 app.use('/api/system', createCategoryRoutes(db));
 app.use('/api', createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb));
 app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system/ai', createAiCostRoutes(dbAll, dbGet, dbRun));
+app.use('/api/translation', createTranslationRoutes(dbAll, dbRun));
 
 // Start Express Server
 const PORT = 5000;

@@ -1,0 +1,65 @@
+import express from 'express';
+
+export function createTranslationRoutes(dbAll, dbRun) {
+  const router = express.Router();
+
+  // GET /api/translation/configs
+  router.get('/configs', async (req, res) => {
+    try {
+      let configs = await dbAll("SELECT * FROM translation_configs");
+      if (configs.length === 0) {
+        const providers = await dbAll("SELECT id FROM ai_providers");
+        const defaultProviderId = providers.length > 0 ? providers[0].id : 'gemini-1';
+
+        const defaultLangs = [
+          { code: 'zh', name: 'Cina', provider: defaultProviderId },
+          { code: 'ar', name: 'Arab', provider: defaultProviderId },
+          { code: 'en', name: 'Inggeris', provider: defaultProviderId }
+        ];
+
+        for (const dl of defaultLangs) {
+          await dbRun(`
+            INSERT INTO translation_configs (languageCode, languageName, providerId, isEnabled, createdAt, updatedAt)
+            VALUES (?, ?, ?, 0, ?, ?)
+          `, [dl.code, dl.name, dl.provider, new Date().toISOString(), new Date().toISOString()]);
+        }
+        configs = await dbAll("SELECT * FROM translation_configs");
+      }
+      res.json(configs);
+    } catch (err) {
+      console.error('Fetch translation configs error:', err);
+      res.status(500).json({ error: 'Failed to fetch translation configurations.' });
+    }
+  });
+
+  // POST /api/translation/configs
+  router.post('/configs', async (req, res) => {
+    try {
+      const list = req.body;
+      for (const item of list) {
+        await dbRun(`
+          INSERT OR REPLACE INTO translation_configs (languageCode, languageName, providerId, isEnabled, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [item.languageCode, item.languageName, item.providerId, item.isEnabled ? 1 : 0, item.createdAt || new Date().toISOString(), new Date().toISOString()]);
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Save translation configs error:', err);
+      res.status(500).json({ error: 'Failed to save translation configurations.' });
+    }
+  });
+
+  // DELETE /api/translation/configs/:code
+  router.delete('/configs/:code', async (req, res) => {
+    try {
+      const { code } = req.params;
+      await dbRun("DELETE FROM translation_configs WHERE languageCode = ?", [code]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Delete translation config error:', err);
+      res.status(500).json({ error: 'Failed to delete translation config.' });
+    }
+  });
+
+  return router;
+}

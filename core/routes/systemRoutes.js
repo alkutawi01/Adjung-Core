@@ -37,6 +37,41 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     }
   });
 
+  // GET /api/pages/:key -- static/footer pages
+  router.get('/pages/:key', async (req, res) => {
+    const { key } = req.params;
+    try {
+      const page = await dbGet("SELECT * FROM static_pages WHERE key = ?", [key]);
+      if (!page) {
+        return res.status(404).json({ error: 'Page not found.' });
+      }
+      res.json(page);
+    } catch (err) {
+      console.error(`Get page ${key} error:`, err);
+      res.status(500).json({ error: 'Failed to fetch page. ' + err.message });
+    }
+  });
+
+  // POST /api/pages/:key
+  router.post('/pages/:key', async (req, res) => {
+    const { key } = req.params;
+    const { title, content } = req.body;
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Missing title or content.' });
+    }
+    const timestamp = new Date().toISOString();
+    try {
+      await dbRun(`
+        INSERT OR REPLACE INTO static_pages (key, title, content, updatedAt)
+        VALUES (?, ?, ?, ?)
+      `, [key, title, content, timestamp]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error(`Save page ${key} error:`, err);
+      res.status(500).json({ error: 'Failed to save page. ' + err.message });
+    }
+  });
+
   // GET /api/system/health
   router.get('/system/health', async (req, res) => {
     try {
