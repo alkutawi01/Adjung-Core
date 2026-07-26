@@ -10,6 +10,7 @@ interface ContentItem {
   title: string;
   summary: string;
   desk: string;
+  topik: string;
   source: string;
   url: string;
   imageUrl: string;
@@ -19,6 +20,11 @@ interface ContentItem {
   createdAt: string;
   updatedAt: string;
 }
+
+const formatBidangTopik = (item: { desk?: string; topik?: string }) => {
+  if (!item.desk) return item.topik || '';
+  return item.topik ? `${item.desk} | ${item.topik}` : item.desk;
+};
 
 const LimitBadge = ({ length, limit }: { length: number; limit: number | null }) => {
   if (!limit) return null;
@@ -37,7 +43,7 @@ const buildBulkText = (items: ContentItem[]) => {
   return sorted
     .map(item => {
       const num = `#${item.slotIndex + 1}-${item.seriesIndex}`;
-      return `${num}\nTajuk: ${item.title}\nHuraian: ${item.summary}\nKategori: ${item.desk}\nSumber: ${item.source}\nURL: ${item.url}`;
+      return `${num}\nTajuk: ${item.title}\nHuraian: ${item.summary}\nBidang: ${item.desk}\nTopik: ${item.topik || ''}\nSumber: ${item.source}\nURL: ${item.url}`;
     })
     .join('\n\n');
 };
@@ -48,6 +54,7 @@ interface BulkParsedEntry {
   title: string;
   summary: string;
   desk: string;
+  topik: string;
   source: string;
   url: string;
 }
@@ -61,16 +68,18 @@ const parseBulkText = (text: string): BulkParsedEntry[] => {
     if (!headerMatch) continue;
     const slotNumber = parseInt(headerMatch[1], 10);
     const seriesNumber = parseInt(headerMatch[2], 10);
-    let title = '', summary = '', desk = '', source = '', url = '';
+    let title = '', summary = '', desk = '', topik = '', source = '', url = '';
     for (const line of block.split('\n')) {
       const trimmed = line.trim();
       if (trimmed.startsWith('Tajuk:')) title = trimmed.replace(/^Tajuk:\s*/i, '').trim();
       else if (trimmed.startsWith('Huraian:')) summary = trimmed.replace(/^Huraian:\s*/i, '').trim();
+      else if (trimmed.startsWith('Bidang:')) desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
       else if (trimmed.startsWith('Kategori:')) desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
+      else if (trimmed.startsWith('Topik:')) topik = trimmed.replace(/^Topik:\s*/i, '').trim();
       else if (trimmed.startsWith('Sumber:')) source = trimmed.replace(/^Sumber:\s*/i, '').trim();
       else if (trimmed.startsWith('URL:')) url = trimmed.replace(/^URL:\s*/i, '').trim();
     }
-    entries.push({ slotNumber, seriesNumber, title, summary, desk, source, url });
+    entries.push({ slotNumber, seriesNumber, title, summary, desk, topik, source, url });
   }
   return entries;
 };
@@ -84,7 +93,7 @@ export function ContentReview() {
   const [editDraft, setEditDraft] = useState<Partial<ContentItem>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [addingToSlot, setAddingToSlot] = useState<number | null>(null);
-  const [newItemDraft, setNewItemDraft] = useState({ title: '', summary: '', desk: '', source: '', url: '' });
+  const [newItemDraft, setNewItemDraft] = useState({ title: '', summary: '', desk: '', topik: '', source: '', url: '' });
 
   const [viewMode, setViewMode] = useState<'card' | 'bulk'>('card');
   const [bulkText, setBulkText] = useState('');
@@ -148,7 +157,7 @@ export function ContentReview() {
 
   const startEdit = (item: ContentItem) => {
     setEditingId(item.id);
-    setEditDraft({ title: item.title, summary: item.summary, desk: item.desk, source: item.source, url: item.url });
+    setEditDraft({ title: item.title, summary: item.summary, desk: item.desk, topik: item.topik, source: item.source, url: item.url });
   };
 
   const cancelEdit = () => {
@@ -200,7 +209,7 @@ export function ContentReview() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menambah item.');
       setAddingToSlot(null);
-      setNewItemDraft({ title: '', summary: '', desk: '', source: '', url: '' });
+      setNewItemDraft({ title: '', summary: '', desk: '', topik: '', source: '', url: '' });
       loadItems();
     } catch (err: any) {
       alert('Ralat menambah: ' + (err.message || ''));
@@ -224,6 +233,7 @@ export function ContentReview() {
           p.title !== original.title ||
           p.summary !== original.summary ||
           p.desk !== original.desk ||
+          p.topik !== (original.topik || '') ||
           p.source !== original.source ||
           p.url !== original.url
         )
@@ -243,7 +253,7 @@ export function ContentReview() {
         const res = await fetch(`/api/system/content/${original.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: p.title, summary: p.summary, desk: p.desk, source: p.source, url: p.url })
+          body: JSON.stringify({ title: p.title, summary: p.summary, desk: p.desk, topik: p.topik, source: p.source, url: p.url })
         });
         if (!res.ok) throw new Error();
         done++;
@@ -391,14 +401,23 @@ export function ContentReview() {
                                 rows={2}
                                 className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
                               />
-                              <div className="grid grid-cols-3 gap-2">
+                              <div className="grid grid-cols-2 gap-2">
                                 <input
                                   type="text"
                                   value={editDraft.desk || ''}
                                   onChange={(e) => setEditDraft({ ...editDraft, desk: e.target.value })}
-                                  placeholder="Kategori"
+                                  placeholder="Bidang"
                                   className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
                                 />
+                                <input
+                                  type="text"
+                                  value={editDraft.topik || ''}
+                                  onChange={(e) => setEditDraft({ ...editDraft, topik: e.target.value })}
+                                  placeholder="Topik"
+                                  className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
                                 <input
                                   type="text"
                                   value={editDraft.source || ''}
@@ -440,7 +459,7 @@ export function ContentReview() {
                                     #{item.slotIndex + 1}-{item.seriesIndex}
                                   </span>
                                   <span className="text-[9px] font-mono uppercase tracking-wider text-[#802334] font-bold">
-                                    {item.desk || 'UMUM'}
+                                    {formatBidangTopik(item) || 'UMUM'}
                                   </span>
                                   {item.source && <span className="text-[9px] text-stone-400">· {item.source}</span>}
                                 </div>
@@ -505,14 +524,23 @@ export function ContentReview() {
                               rows={2}
                               className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
                             />
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 gap-2">
                               <input
                                 type="text"
                                 value={newItemDraft.desk}
                                 onChange={(e) => setNewItemDraft({ ...newItemDraft, desk: e.target.value })}
-                                placeholder="Kategori"
+                                placeholder="Bidang"
                                 className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
                               />
+                              <input
+                                type="text"
+                                value={newItemDraft.topik}
+                                onChange={(e) => setNewItemDraft({ ...newItemDraft, topik: e.target.value })}
+                                placeholder="Topik"
+                                className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
                               <input
                                 type="text"
                                 value={newItemDraft.source}
@@ -533,7 +561,7 @@ export function ContentReview() {
                                 type="button"
                                 onClick={() => {
                                   setAddingToSlot(null);
-                                  setNewItemDraft({ title: '', summary: '', desk: '', source: '', url: '' });
+                                  setNewItemDraft({ title: '', summary: '', desk: '', topik: '', source: '', url: '' });
                                 }}
                                 className="px-3 py-1.5 text-[10px] font-bold text-stone-600 bg-white border border-stone-300 rounded hover:bg-stone-50 cursor-pointer"
                               >

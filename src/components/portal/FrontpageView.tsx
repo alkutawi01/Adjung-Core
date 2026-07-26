@@ -326,6 +326,12 @@ const getDisplayDate = (raw?: string): string => {
   return trimmed;
 };
 
+// Label kad awam: "Bidang | Topik". Kandungan lama tanpa Topik papar Bidang sahaja (tiada backfill).
+const formatBidangTopik = (item: { desk?: string; topik?: string }): string => {
+  if (!item.desk) return item.topik || '';
+  return item.topik ? `${item.desk} | ${item.topik}` : item.desk;
+};
+
 const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: string; children: React.ReactNode }> = ({ itemKey, className = '', aiProvider, children }) => {
   let providerName = aiProvider;
   if (providerName) {
@@ -374,7 +380,7 @@ const CarouselStableBlock: React.FC<{
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
   // Content fingerprint (not the array reference, which can churn on every poll even when the
   // underlying text hasn't changed) -- only remeasure when what's actually rendered could differ.
-  const contentKey = list.map((it) => `${it.title || ''}|${it.brief || ''}`).join(' ');
+  const contentKey = list.map((it) => `${it.title || ''}|${it.brief || ''}|${it.topik || ''}`).join(' ');
 
   // CSS Grid's "stack everything in one cell, size to the tallest" trick (col-start-1/row-start-1
   // + opacity toggle) is the ideal way to do this declaratively, but empirically the grid track's
@@ -2353,7 +2359,7 @@ URL: ${url}`;
 
         {editingSlotIndex !== -1 && (
           <div className="flex flex-col gap-1 col-span-2">
-            <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Kategori</label>
+            <label className="font-mono text-[9px] uppercase tracking-wider text-[#802334] font-bold">Bidang</label>
             <input
               type="text"
               value={formConfig.manualDesk}
@@ -2362,7 +2368,7 @@ URL: ${url}`;
               className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
             />
             <p className="text-[9px] text-stone-500 font-sans mt-0.5">
-              Dipaparkan pada tajuk "Urus Slot" di atas dan disegerakkan dengan Semakan Kandungan (Paparan Kad). Juga menyaring penjanaan kandungan AI.
+              Dipaparkan pada tajuk "Urus Slot" di atas dan disegerakkan dengan Semakan Kandungan (Paparan Kad). Juga menyaring penjanaan kandungan AI. Untuk slot bukan-BAR: Bidang terkunci untuk SEMUA kandungan slot ini (Manual + AI Generated); setiap kandungan mesti sepadan bidang ini, dan Topik diperlukan untuk kandungan baharu/diedit.
             </p>
           </div>
         )}
@@ -2676,7 +2682,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[0].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{it.desk}</div>
+                          <div className="font-mono text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{formatBidangTopik(it)}</div>
                           <h3 className="font-serif text-2xl md:text-3xl leading-tight font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[0]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -2707,7 +2713,7 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[1].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{it.desk}</div>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{formatBidangTopik(it)}</div>
                             <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                             <p className="font-serif text-xs text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[1]).briefStyle}>{safeParseInline(it.brief)}</p>
                           </>
@@ -2735,7 +2741,7 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[2].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{it.desk}</div>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{formatBidangTopik(it)}</div>
                             <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
                             <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[2]).briefStyle}>{safeParseInline(it.brief)}</p>
                           </>
@@ -2758,7 +2764,7 @@ URL: ${url}`;
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
                   <BentoInner itemKey="3" className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[3]).deskStyle}>{bentoNewsItems[3].desk}</div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[3]).deskStyle}>{formatBidangTopik(bentoNewsItems[3])}</div>
                       <CarouselStableBlock
                         items={bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]]}
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
@@ -2787,7 +2793,7 @@ URL: ${url}`;
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
-                        <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[4]).deskStyle}>{bentoNewsItems[4].desk}</div>
+                        <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[4]).deskStyle}>{formatBidangTopik(bentoNewsItems[4])}</div>
                         <CarouselStableBlock
                           items={bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]]}
                           activeIndex={bentoNewsItems[4].carouselIndex || 0}
@@ -2813,7 +2819,7 @@ URL: ${url}`;
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
                     <BentoInner itemKey="5" className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
-                        <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[5]).deskStyle}>{bentoNewsItems[5].desk}</div>
+                        <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[5]).deskStyle}>{formatBidangTopik(bentoNewsItems[5])}</div>
                         <CarouselStableBlock
                           items={bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]]}
                           activeIndex={bentoNewsItems[5].carouselIndex || 0}
@@ -2851,7 +2857,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[6].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[6]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -2883,7 +2889,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[12].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[12].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[12].publishedAt)}</span>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[12]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -2947,7 +2953,7 @@ URL: ${url}`;
                   className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[11], 'transparent').cardStyle, ...bar1SiblingLocks.idx11.lockStyle }} >
                   <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{bentoNewsItems[11].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{formatBidangTopik(bentoNewsItems[11])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
                     <CarouselStableBlock
                       items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
                       activeIndex={bentoNewsItems[11].carouselIndex || 0}
@@ -2982,7 +2988,7 @@ URL: ${url}`;
                   className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[13], 'transparent').cardStyle} >
                   <div className="space-y-2">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{bentoNewsItems[13].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[13].publishedAt)}</span>
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{formatBidangTopik(bentoNewsItems[13])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[13].publishedAt)}</span>
                     <CarouselStableBlock
                       items={bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]]}
                       activeIndex={bentoNewsItems[13].carouselIndex || 0}
@@ -3013,7 +3019,7 @@ URL: ${url}`;
                   className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[14], 'transparent').cardStyle} >
                   <div className="space-y-2">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{bentoNewsItems[14].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[14].publishedAt)}</span>
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{formatBidangTopik(bentoNewsItems[14])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[14].publishedAt)}</span>
                     <CarouselStableBlock
                       items={bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]]}
                       activeIndex={bentoNewsItems[14].carouselIndex || 0}
@@ -3054,7 +3060,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[15].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[15].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[15].publishedAt)}</span>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[15]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -3080,7 +3086,7 @@ URL: ${url}`;
                   className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[16], 'transparent').cardStyle} >
                   <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[16]).deskStyle}>{bentoNewsItems[16].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[16].publishedAt)}</span>
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[16]).deskStyle}>{formatBidangTopik(bentoNewsItems[16])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[16].publishedAt)}</span>
                     <CarouselStableBlock
                       items={bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]]}
                       activeIndex={bentoNewsItems[16].carouselIndex || 0}
@@ -3113,7 +3119,7 @@ URL: ${url}`;
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[17], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[17]).deskStyle}>{bentoNewsItems[17].desk}</div><span className="absolute top-4 right-4 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[17].publishedAt)}</span>
+                      <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[17]).deskStyle}>{formatBidangTopik(bentoNewsItems[17])}</div><span className="absolute top-4 right-4 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[17].publishedAt)}</span>
                       <CarouselStableBlock
                         items={bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]]}
                         activeIndex={bentoNewsItems[17].carouselIndex || 0}
@@ -3142,7 +3148,7 @@ URL: ${url}`;
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[18], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[18]).deskStyle}>{bentoNewsItems[18].desk}</div><span className="absolute top-4 right-4 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[18].publishedAt)}</span>
+                      <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[18]).deskStyle}>{formatBidangTopik(bentoNewsItems[18])}</div><span className="absolute top-4 right-4 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[18].publishedAt)}</span>
                       <CarouselStableBlock
                         items={bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]]}
                         activeIndex={bentoNewsItems[18].carouselIndex || 0}
@@ -3179,7 +3185,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[19].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[19].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[19].publishedAt)}</span>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[19]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -3216,7 +3222,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[26].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[26].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[26].publishedAt)}</span>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[26]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -3247,7 +3253,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[20].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[20].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[20].publishedAt)}</span>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[20]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -3274,7 +3280,7 @@ URL: ${url}`;
                   className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[25], 'transparent').cardStyle, ...bar2SiblingLocks.idx25.lockStyle }} >
                   <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{bentoNewsItems[25].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[25].publishedAt)}</span>
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{formatBidangTopik(bentoNewsItems[25])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[25].publishedAt)}</span>
                     <CarouselStableBlock
                       items={bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]]}
                       activeIndex={bentoNewsItems[25].carouselIndex || 0}
@@ -3346,7 +3352,7 @@ URL: ${url}`;
                   className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[27], 'transparent').cardStyle} >
                   <div className="space-y-2">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[27]).deskStyle}>{bentoNewsItems[27].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[27].publishedAt)}</span>
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[27]).deskStyle}>{formatBidangTopik(bentoNewsItems[27])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[27].publishedAt)}</span>
                     <CarouselStableBlock
                       items={bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]]}
                       activeIndex={bentoNewsItems[27].carouselIndex || 0}
@@ -3377,7 +3383,7 @@ URL: ${url}`;
                   className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[28], 'transparent').cardStyle} >
                   <div className="space-y-2">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[28]).deskStyle}>{bentoNewsItems[28].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[28].publishedAt)}</span>
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[28]).deskStyle}>{formatBidangTopik(bentoNewsItems[28])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[28].publishedAt)}</span>
                     <CarouselStableBlock
                       items={bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]]}
                       activeIndex={bentoNewsItems[28].carouselIndex || 0}
@@ -3418,7 +3424,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[29].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[29].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[29].publishedAt)}</span>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[29]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -3444,7 +3450,7 @@ URL: ${url}`;
                   className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[30], 'transparent').cardStyle} >
                   <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[30]).deskStyle}>{bentoNewsItems[30].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[30].publishedAt)}</span>
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[30]).deskStyle}>{formatBidangTopik(bentoNewsItems[30])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[30].publishedAt)}</span>
                     <CarouselStableBlock
                       items={bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]]}
                       activeIndex={bentoNewsItems[30].carouselIndex || 0}
@@ -3477,7 +3483,7 @@ URL: ${url}`;
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[31], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[31]).deskStyle}>{bentoNewsItems[31].desk}</div><span className="absolute top-4 right-4 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[31].publishedAt)}</span>
+                      <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[31]).deskStyle}>{formatBidangTopik(bentoNewsItems[31])}</div><span className="absolute top-4 right-4 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[31].publishedAt)}</span>
                       <CarouselStableBlock
                         items={bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]]}
                         activeIndex={bentoNewsItems[31].carouselIndex || 0}
@@ -3506,7 +3512,7 @@ URL: ${url}`;
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[32], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[32]).deskStyle}>{bentoNewsItems[32].desk}</div><span className="absolute top-4 right-4 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[32].publishedAt)}</span>
+                      <div className="font-mono text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[32]).deskStyle}>{formatBidangTopik(bentoNewsItems[32])}</div><span className="absolute top-4 right-4 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[32].publishedAt)}</span>
                       <CarouselStableBlock
                         items={bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]]}
                         activeIndex={bentoNewsItems[32].carouselIndex || 0}
@@ -3543,7 +3549,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[33].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[33].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[33].publishedAt)}</span>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[33]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -3579,7 +3585,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[34].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[34].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[34].publishedAt)}</span>
                           <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[34]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -3610,7 +3616,7 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[37].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{it.desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[37].publishedAt)}</span>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[37].publishedAt)}</span>
                           <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
                           <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[37]).briefStyle}>{safeParseInline(it.brief)}</p>
                         </>
@@ -3637,7 +3643,7 @@ URL: ${url}`;
                   className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[35], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{bentoNewsItems[35].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[35].publishedAt)}</span>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{formatBidangTopik(bentoNewsItems[35])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[35].publishedAt)}</span>
                       <CarouselStableBlock
                       items={bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]]}
                       activeIndex={bentoNewsItems[35].carouselIndex || 0}
@@ -3668,7 +3674,7 @@ URL: ${url}`;
                   className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[36], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{bentoNewsItems[36].desk}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[36].publishedAt)}</span>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{formatBidangTopik(bentoNewsItems[36])}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[36].publishedAt)}</span>
                       <CarouselStableBlock
                       items={bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]]}
                       activeIndex={bentoNewsItems[36].carouselIndex || 0}
@@ -5226,7 +5232,7 @@ URL: ${url}`;
                             const newUuid = `object-manual-slot${editingSlotIndex}-${Date.now()}-${parsedList.length}`;
                             const template = isEditingBarSlot
                               ? `Tarikh: \nEvent: (had ${formConfig.maxTitle || 95} aksara) \nPenganjur: \nLokasi: \nAkses: \nPenerangan: \nURL: `
-                              : `Tajuk: \nHuraian ringkas: \nHuraian panjang: \nKategori: \nJenis sumber: \nTarikh: \nSumber: \nURL: `;
+                              : `Tajuk: \nHuraian ringkas: \nHuraian panjang: \nBidang: \nTopik: \nJenis sumber: \nTarikh: \nSumber: \nURL: `;
                             const newList = [...parsedList, { uuid: newUuid, text: template }];
                             updateSummaryFromList(newList);
                           };
@@ -5436,7 +5442,8 @@ ${extraInstructions}`;
                               const exampleBlock = `Tajuk: [Tajuk kandungan di sini maksimum ${maxTitleVal} aksara]
 Huraian ringkas: [Huraian ringkas maksimum ${maxBriefVal} aksara dan tidak lebih dua (2) ayat di sini]
 Huraian panjang: [Huraian panjang maksimum ${maxBriefLongVal} aksara]
-Topik: [nama topik yang bersesuaian, misalnya: Teknologi Robotik, Sejarah Malaysia]
+Bidang: ${kategori} [WAJIB sama dengan bidang tetap slot ini -- jangan tukar]
+Topik: [nama topik/subbidang yang bersesuaian dalam bidang ${kategori}, misalnya: Teknologi Robotik, Sejarah Malaysia]
 Tarikh: [Tarikh sebenar penerbitan kandungan, cth: 20 Julai 2026]
 Sumber: [Nama sumber, contohnya: CNN, Bernama, Aljazeera]
 URL: [Pautan URL sumber rujukan]`;
@@ -5446,7 +5453,7 @@ URL: [Pautan URL sumber rujukan]`;
                                 : '';
 
                               textToCopy = `Sila jana kandungan ringkas untuk paparan kad ringkas di laman utama dalam bahasa Melayu berdasarkan ketetapan berikut:
-Kategori: ${kategori}
+Bidang: ${kategori}
 Topik: ${topik}
 Bilangan kandungan: ${count}
 Had usia kandungan: ${hadUsia}
@@ -5478,6 +5485,7 @@ ${exampleBlock}` : ''}`;
                               const maxBriefVal = formConfig.maxBrief || 0;
                               const maxBriefLongVal = formConfig.maxBriefLong || 0;
                               const peraturanAm = formConfig.masterPrompt || '';
+                              const bidangSlotIni = formConfig.manualDesk || '';
 
                               const textToCopy = `Sila baca dan analisis bahan yang diberikan, kemudian ekstrak kandungan utamanya ke dalam format berikut.
 
@@ -5488,8 +5496,10 @@ Huraian ringkas:
 [Huraian maksimum ${maxBriefVal} aksara dan tidak melebihi dua (2) ayat.]
 Huraian panjang:
 [Huraian maksimum ${maxBriefLongVal} aksara.]
+Bidang:
+${bidangSlotIni} [WAJIB sama dengan bidang tetap slot ini -- jangan tukar]
 Topik:
-[Nama topik yang paling sesuai, contohnya: Teknologi Robotik, Sejarah Malaysia, Kesusasteraan Arab.]
+[Nama topik/subbidang yang paling sesuai dalam bidang ${bidangSlotIni}, contohnya: Teknologi Robotik, Sejarah Malaysia, Kesusasteraan Arab.]
 Tarikh:
 [Tarikh sebenar penerbitan kandungan dalam format 20 Julai 2026. Jika tiada, tulis "Tidak dinyatakan".]
 Sumber:

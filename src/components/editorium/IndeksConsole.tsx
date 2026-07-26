@@ -8,6 +8,7 @@ interface BriefRecord {
   title: string;
   summary: string;
   desk: string;
+  topik: string;
   status: 'Pending' | 'Live' | 'Rejected' | 'Archive';
   creator: string;
   cardType: string;
@@ -112,6 +113,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             title: item.title || 'Kandungan Tanpa Tajuk',
             summary: item.summary || item.brief || '',
             desk: formatTitleCase(item.desk || 'Umum'),
+            topik: item.topik || '',
             status: STATUS_TO_LABEL[item.status] || 'Live',
             creator: formatCreatedBy(item.createdBy || ''),
             cardType: cardTypeForSlot(item.slotIndex),
@@ -405,6 +407,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 <th className="p-2.5">Tajuk Brief</th>
                 <th className="p-2.5 w-20">Status</th>
                 <th className="p-2.5 w-24">Desk</th>
+                <th className="p-2.5 w-24">Topik</th>
                 <th className="p-2.5 w-28">Sumber</th>
                 <th className="p-2.5 w-24">Jenis Kad</th>
                 <th className="p-2.5 w-20">Slot</th>
@@ -445,6 +448,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       </span>
                     </td>
                     <td className="p-2.5 font-sans text-xs text-stone-700 font-semibold">{formatTitleCase(rec.desk)}</td>
+                    <td className="p-2.5 font-sans text-xs text-stone-500">{rec.topik ? formatTitleCase(rec.topik) : '-'}</td>
                     <td className="p-2.5 font-serif text-stone-800 text-xs">{rec.creator}</td>
                     <td className="p-2.5 font-sans text-[10px]">
                       {rec.cardType === '-' ? (
@@ -512,6 +516,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs bg-stone-100 p-3 rounded border border-stone-200">
               <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{activeItemModal.status}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">DESK</span><strong className="text-stone-900">{formatTitleCase(activeItemModal.desk)}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik ? formatTitleCase(activeItemModal.topik) : '-'}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>
             </div>
