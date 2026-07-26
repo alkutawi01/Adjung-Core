@@ -668,7 +668,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <button
                 onClick={handleRunClassifierTest}
                 disabled={testingClassifier}
-                className="bg-[#802334] hover:bg-[#6c1d2c] text-white px-4 py-2 rounded font-semibold text-xs disabled:opacity-50"
+                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs disabled:opacity-50"
               >
                 {testingClassifier ? '⏳ Menguji...' : '▶️ Jalankan Ujian Klasifikasi'}
               </button>
@@ -799,7 +799,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <button
                 onClick={handleSaveWorldClockSettings}
                 disabled={savingWorldClock}
-                className="bg-[#802334] hover:bg-[#6c1d2c] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
+                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
               >
                 {savingWorldClock ? '⏳ Menyimpan...' : '💾 Simpan Tetapan Jam Dunia'}
               </button>
@@ -944,7 +944,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             <button
               onClick={handleSaveRbac}
               disabled={savingRbac || !rbacDirty}
-              className="bg-[#802334] hover:bg-[#6c1d2c] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
+              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50"
             >
               {savingRbac ? '⏳ Menyimpan...' : rbacDirty ? '💾 Simpan Matriks RBAC' : '✓ Tersimpan'}
             </button>

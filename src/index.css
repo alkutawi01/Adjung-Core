@@ -11,6 +11,11 @@
   --font-arabic-handwritten: "Playpen Sans Arabic", cursive;
 
   --color-Adjung-maroon: #802334;
+  /* Canonical dark/hover shade of Adjung-maroon: same hue/saturation, lightness -10 points
+     (HSL 349deg 57% 32% -> 349deg 57% 22%). Replaces 4 hand-guessed near-duplicates
+     (#6c1d2c, #6b1d2b, #611522, and an earlier copy of this exact value) that had drifted
+     across FrontpageView.tsx, TetapanConsole.tsx, ContentReview.tsx, and this file. */
+  --color-Adjung-maroon-dark: #601824;
   --color-Adjung-cream: #FDFDFD;
   --color-Adjung-dark: #111111;
   --color-Adjung-gray-light: #EAE8E3;
@@ -47,7 +52,7 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #611522;
+  background: #601824;
 }
 
 .maroon-scrollbar::-webkit-scrollbar-thumb {

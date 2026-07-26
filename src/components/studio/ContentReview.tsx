@@ -337,7 +337,7 @@ export function ContentReview() {
                   type="button"
                   onClick={saveBulk}
                   disabled={bulkSaving}
-                  className="px-4 py-2 text-xs font-bold text-white bg-[#802334] rounded hover:bg-[#6b1d2b] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#802334] rounded hover:bg-[#601824] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
                   <Save size={13} /> {bulkSaving ? 'Menyimpan...' : 'Simpan Pukal'}
                 </button>
@@ -425,7 +425,7 @@ export function ContentReview() {
                                   type="button"
                                   onClick={() => saveEdit(item.id)}
                                   disabled={savingId === item.id}
-                                  className="px-3 py-1.5 text-[10px] font-bold text-white bg-[#802334] rounded hover:bg-[#6b1d2b] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                                  className="px-3 py-1.5 text-[10px] font-bold text-white bg-[#802334] rounded hover:bg-[#601824] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
                                 >
                                   <Save size={11} /> {savingId === item.id ? 'Menyimpan...' : 'Simpan'}
                                 </button>
@@ -541,7 +541,7 @@ export function ContentReview() {
                               <button
                                 type="button"
                                 onClick={() => submitNewItem(slotIndex)}
-                                className="px-3 py-1.5 text-[10px] font-bold text-white bg-[#802334] rounded hover:bg-[#6b1d2b] transition-colors cursor-pointer flex items-center gap-1"
+                                className="px-3 py-1.5 text-[10px] font-bold text-white bg-[#802334] rounded hover:bg-[#601824] transition-colors cursor-pointer flex items-center gap-1"
                               >
                                 <Plus size={11} /> Tambah
                               </button>

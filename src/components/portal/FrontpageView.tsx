@@ -2603,7 +2603,7 @@ URL: ${url}`;
                 <a
                   href="/editorium"
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans font-bold cursor-pointer bg-[#802334] text-white border-[#802334] hover:bg-[#6c1d2c]"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans font-bold cursor-pointer bg-[#802334] text-white border-[#802334] hover:bg-[#601824]"
                 >
                   🏢 Editorium
                 </a>
@@ -4507,7 +4507,7 @@ URL: ${url}`;
                         <button
                           type="button"
                           onClick={handleAddRssTextRule}
-                          className="px-4 py-1.5 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm transition-all"
+                          className="px-4 py-1.5 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-semibold cursor-pointer shadow-sm transition-all"
                         >
                           + Tambah Peraturan Teks
                         </button>
@@ -4662,7 +4662,7 @@ URL: ${url}`;
                         <button
                           type="button"
                           onClick={handleAddAdjungDesk}
-                          className="px-3 py-1.5 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
+                          className="px-3 py-1.5 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
                         >
                           + Tambah Desk
                         </button>
@@ -4775,7 +4775,7 @@ URL: ${url}`;
                           <button
                             type="button"
                             onClick={handleAddRssDeskRule}
-                            className="ml-auto px-3 py-1.5 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
+                            className="ml-auto px-3 py-1.5 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
                           >
                             + Tambah Rule
                           </button>
@@ -5143,7 +5143,7 @@ URL: ${url}`;
                               <button
                                 type="button"
                                 onClick={handleAddAdjungTypographyRule}
-                                className="px-4 py-1.5 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs"
+                                className="px-4 py-1.5 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs"
                               >
                                 + Simpan Peraturan
                               </button>
@@ -5851,7 +5851,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                           onClick={handleRunSlotNow}
                           disabled={isExecutingNow}
                           className={`px-4 py-2 text-xs font-bold text-white rounded transition-colors ${
-                            isExecutingNow ? 'bg-stone-400 cursor-not-allowed' : 'bg-[#802334] hover:bg-[#6c1d2c]'
+                            isExecutingNow ? 'bg-stone-400 cursor-not-allowed' : 'bg-[#802334] hover:bg-[#601824]'
                           }`}
                         >
                           {isExecutingNow ? 'Menjalankan Penjanaan AI...' : 'Aktifkan Segera'}
@@ -6023,7 +6023,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                   <button
                     type="submit"
                     disabled={isSavingSlot}
-                    className="px-5 py-2 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm transition-all disabled:opacity-50"
+                    className="px-5 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-semibold cursor-pointer shadow-sm transition-all disabled:opacity-50"
                   >
                     {isSavingSlot ? 'Menyimpan...' : 'Simpan Perubahan'}
                   </button>
@@ -6135,7 +6135,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                   <button
                     type="submit"
                     disabled={isSavingFooterPage}
-                    className="px-5 py-2 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-semibold cursor-pointer disabled:opacity-50"
                   >
                     {isSavingFooterPage ? 'Menyimpan...' : 'Simpan Kandungan'}
                   </button>
@@ -6196,7 +6196,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
                         setActiveFooterPageKey(null);
                         setFooterPageData(null);
                       }}
-                      className="px-5 py-2 bg-[#802334] hover:bg-[#6c1d2c] text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
+                      className="px-5 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
                     >
                       Tutup
                     </button>
