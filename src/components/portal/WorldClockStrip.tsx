@@ -18,6 +18,13 @@ interface ClockTime {
 // weekend on 2025-01-01 -- do not add it back without checking current state policy first.
 const FRIDAY_SATURDAY_WEEKEND_CITIES = ['Kota Bharu', 'Kuala Terengganu', 'Alor Setar'];
 
+// JAKIM zone code per city, for Maghrib-adjusted Hijri date lookups -- same 3 cities as above.
+const HIJRI_ZONE_BY_CITY: Record<string, string> = {
+  'Alor Setar': 'KDH01',
+  'Kota Bharu': 'KTN01',
+  'Kuala Terengganu': 'TRG01',
+};
+
 const CITY_SETS = [
   // Set 1 (Default)
   [
@@ -166,19 +173,31 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   const [timesMap, setTimesMap] = useState<Record<string, ClockTime>>({});
   const [cityWeather, setCityWeather] = useState<Record<string, { temp: number; code: number }>>({});
 
-  // Official JAKIM Hijri date (fetched once -- it's a calendar day, not something that needs
-  // per-second polling like the clock). Falls back to a local islamic-umalqura estimate (computed
-  // in updateTime below) if this fetch fails; confirmed via direct comparison against JAKIM's own
-  // data that the local estimate can drift a day off the real one, so this is preferred whenever
-  // it's reachable.
-  const [jakimHijriDate, setJakimHijriDate] = useState<string | null>(null);
+  // Official JAKIM Hijri date, Maghrib-adjusted per state (the Islamic day begins at sunset, not
+  // midnight, and Maghrib time itself varies slightly by location -- so each of the 3 cities needs
+  // its own zone lookup, not one shared value). Fetched once per minute (not per-second like the
+  // clock -- a date-plus-Maghrib-cutover doesn't need finer resolution, and this keeps the request
+  // volume reasonable while still catching the Maghrib transition itself same-evening). Falls back
+  // to a local islamic-umalqura estimate (computed in updateTime below, no Maghrib adjustment) if
+  // the fetch fails -- confirmed via direct comparison against JAKIM's data that the local estimate
+  // can drift a day off the real one, so the API result is preferred whenever it's reachable.
+  const [jakimHijriByCity, setJakimHijriByCity] = useState<Record<string, string>>({});
   useEffect(() => {
-    fetch('/api/system/hijri-date')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.hijri) setJakimHijriDate(data.hijri); // "YYYY-MM-DD"
-      })
-      .catch(() => {});
+    const fetchAll = () => {
+      Object.entries(HIJRI_ZONE_BY_CITY).forEach(([cityName, zone]) => {
+        fetch(`/api/system/hijri-date?zone=${zone}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.hijri) {
+              setJakimHijriByCity(prev => (prev[cityName] === data.hijri ? prev : { ...prev, [cityName]: data.hijri }));
+            }
+          })
+          .catch(() => {});
+      });
+    };
+    fetchAll();
+    const interval = setInterval(fetchAll, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const triggerNextSet = () => {
@@ -306,9 +325,11 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           // HOLIDAYS_2026 and custom-holiday text) is keyed to the Gregorian calendar.
           let displayDateStr = dateStr;
           if (FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name)) {
-            if (jakimHijriDate) {
-              // "YYYY-MM-DD" (Hijri, from JAKIM) -> "DD/MM/YY" to match the Gregorian display format.
-              const [hy, hm, hd] = jakimHijriDate.split('-');
+            const cityHijriDate = jakimHijriByCity[c.name];
+            if (cityHijriDate) {
+              // "YYYY-MM-DD" (Hijri, Maghrib-adjusted per city, from JAKIM) -> "DD/MM/YY" to match
+              // the Gregorian display format.
+              const [hy, hm, hd] = cityHijriDate.split('-');
               displayDateStr = `${hd}/${hm}/${hy.slice(-2)}`;
             } else {
               // Fallback only: local islamic-umalqura estimate, used when the JAKIM proxy is
@@ -445,7 +466,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData, jakimHijriDate]);
+  }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData, jakimHijriByCity]);
 
   return (
     <div
