@@ -1,38 +1,5 @@
 export type UserRole = 'Chief Editor' | 'Editor';
 
-export interface VectorStroke {
-  x: number;
-  y: number;
-  pressure?: number;
-}
-
-export interface DigitalSignature {
-  id: string;
-  label: string; 
-  status: 'Archived' | 'Default';
-  strokes: VectorStroke[][]; 
-  type?: 'drawn' | 'typed';
-  typedText?: string;
-  fontFamily?: string;
-  createdAt: string;
-  penStyle?: {
-    nibAngle?: number;
-    inkFlowWeight?: number;
-    baselineY?: number;
-    canvasHeight?: number;
-    inkColor?: string;
-    paperTexture?: string;
-  };
-  typographyStyle?: {
-    letterSpacing?: number;
-    fontWeight?: number;
-    slantAngle?: number;
-    scale?: number;
-    yOffset?: number;
-  };
-}
-
-
 export interface RolePermissions {
   viewIndex: boolean;
   viewDirectory: boolean;
@@ -194,33 +161,6 @@ export interface Entry {
   isInstitutional?: boolean;
   discipline?: string;
   underReview?: boolean;
-}
-
-export interface BiographyItem {
-  id: string;
-  year: string;
-  title: string;
-  description: string;
-  category: 'Education' | 'Career' | 'Publication' | 'Award' | 'Personal' | 'Other';
-}
-
-export interface WriterProfile {
-  authorId: string;
-  heroTitle: string;
-  heroSubtitle: string;
-}
-
-export interface IdentityProfile {
-  identityId: string;
-  accountId: string;
-  username: string;
-  displayName: string;
-  penName: string;
-  biography: string;
-  lifeTimeline: BiographyItem[];
-  signatures: DigitalSignature[];
-  publicVisibility: 'Public' | 'Private';
-  affiliation?: string;
 }
 
 export interface SystemSettings {

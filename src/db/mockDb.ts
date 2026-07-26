@@ -1,4 +1,4 @@
-import { User, UserRole, Entry, WriterProfile, IdentityProfile, DigitalSignature, Citation, SystemSettings, BiographyItem, SystemLog, ReleaseLog, PolicyDocument } from '../types';
+import { User, UserRole, Entry, Citation, SystemSettings, SystemLog, ReleaseLog, PolicyDocument } from '../types';
 import { BRAND } from '../config/brand';
 
 export const INITIAL_RELEASE_LOGS: ReleaseLog[] = [
@@ -198,138 +198,6 @@ export const INITIAL_USERS: User[] = [
   }
 ];
 
-export const INITIAL_IDENTITIES: IdentityProfile[] = [
-  {
-    identityId: 'id-user-zayd-ghazali',
-    accountId: 'user-zayd-ghazali',
-    username: 'zayd.ghazali',
-    displayName: 'Zayd Al-Ghazali',
-    penName: 'Al-Ghazali',
-    biography: `Zayd Al-Ghazali is a reader and scribe of classical Islamic texts, currently investigating the formal connections between medieval Andalusian manuscript structures and Swiss typographic systems. His work frequently bridges Arabic and Jawi calligraphic disciplines with strict modular layout design. 
-
-He holds a doctorate in Comparative Semiotics and splits his academic research between Cairo and Cordoba. Adjung serves as his central repository of unfiltered research notes, complete essays, and formal articles.`,
-    publicVisibility: 'Public',
-    lifeTimeline: [
-      {
-        id: 'bio-zayd-1',
-        year: '2012',
-        title: 'Academic Foundations',
-        description: 'Completed Bachelor’s degree in Classical Arabic Philology with a thesis on the logical treatises of Averroes.',
-        category: 'Education'
-      },
-      {
-        id: 'bio-zayd-2',
-        year: '2015',
-        title: 'Andalusian Manuscripts Fellowship',
-        description: 'Appointed research fellow at the University of Cordoba, documenting ink chemistry and margin conventions in 12th-century manuscripts.',
-        category: 'Career'
-      },
-      {
-        id: 'bio-zayd-3',
-        year: '2019',
-        title: 'Doctoral Defense',
-        description: 'Successfully defended his dissertation titled "The Linear Scribe: Mathematical Order in Calligraphic Manuscripts."',
-        category: 'Education'
-      },
-      {
-        id: 'bio-zayd-4',
-        year: '2022',
-        title: 'Publication: The Silent Scribe',
-        description: 'Published his first full monograph, examining the typographic grids of the earliest printed Arabic treatises in Europe.',
-        category: 'Publication'
-      },
-      {
-        id: 'bio-zayd-5',
-        year: '2025',
-        title: 'Inaugural Scholar at Adjung',
-        description: 'Joined the Adjung scholarly board as a founding writer to establish a classical editorial folio.',
-        category: 'Personal'
-      }
-    ],
-    signatures: [],
-    affiliation: 'Cairo, Egypt'
-  },
-  {
-    identityId: 'id-user-amina-masri',
-    accountId: 'user-amina-masri',
-    username: 'amina.masri',
-    displayName: 'Amina Al-Masri',
-    penName: 'Al-Masri',
-    biography: `Amina Al-Masri is a maritime historian and field archaeologist. For over a decade, her research has focused on the maritime trade routes of the Indian Ocean and the Red Sea during late antiquity and the early Islamic period. 
-
-She acts as a consultant for maritime heritage preservation and teaches Economic History. Through her Adjung Folio, she hosts extensive articles complete with historical margin annotations, mapping trade registries onto modern geographic records.`,
-    publicVisibility: 'Public',
-    lifeTimeline: [
-      {
-        id: 'bio-amina-1',
-        year: '2010',
-        title: 'Archaeological Fieldwork at Quseir al-Qadim',
-        description: 'Participated in the excavation of Roman and medieval Islamic artifacts, specializing in ceramic shard classification.',
-        category: 'Career'
-      },
-      {
-        id: 'bio-amina-2',
-        year: '2014',
-        title: 'Master of Arts in Historical Geography',
-        description: 'Graduated from the School of Oriental and African Studies (SOAS) with distinction.',
-        category: 'Education'
-      },
-      {
-        id: 'bio-amina-3',
-        year: '2018',
-        title: 'The Levantine Exchange Prize',
-        description: 'Received the Mediterranean Historical Society prize for her paper on spice custom tariffs in medieval Alexandria.',
-        category: 'Award'
-      },
-      {
-        id: 'bio-amina-4',
-        year: '2021',
-        title: 'Appointment to the Levant Institute',
-        description: 'Appointed Senior Lecturer in Maritime Archaeology and Levantine History.',
-        category: 'Career'
-      }
-    ],
-    signatures: [],
-    affiliation: 'Alexandria, Egypt'
-  },
-  {
-    identityId: 'id-user-sarah-henderson',
-    accountId: 'user-sarah-henderson',
-    username: 'sarah.henderson',
-    displayName: 'Sarah Henderson',
-    penName: 'Henderson',
-    biography: `Sarah Henderson is an independent typographer, editorial designer, and visual scholar based in Zurich. Her work critiques the seamlessness of modern software UI, proposing instead an "architecturally honest" and tactile approach to reading online. 
-
-Her Adjung Folio features highly structured layout reflections and critical articles analyzing type design history and bookbinding philosophy.`,
-    publicVisibility: 'Public',
-    lifeTimeline: [
-      {
-        id: 'bio-sarah-1',
-        year: '2013',
-        title: 'Apprenticeship in Letterpress',
-        description: 'Completed a rigorous two-year practical training program at a traditional hot-metal letterpress workshop in Leipzig.',
-        category: 'Education'
-      },
-      {
-        id: 'bio-sarah-2',
-        year: '2017',
-        title: 'Studio Foundation',
-        description: 'Established "Studio Henderson", focusing on high-end book design and academic journal curation.',
-        category: 'Career'
-      },
-      {
-        id: 'bio-sarah-3',
-        year: '2023',
-        title: 'Exhibition: The Unread Page',
-        description: 'Curated a widely reviewed typographic exhibition at the Zurich Museum of Design, exploring margin aesthetics.',
-        category: 'Publication'
-      }
-    ],
-    signatures: [],
-    affiliation: 'Zurich, Switzerland'
-  }
-];
-
 export const INITIAL_CITATIONS: Citation[] = [
   {
     id: 'cit-tufte',
@@ -338,25 +206,6 @@ export const INITIAL_CITATIONS: Citation[] = [
     year: 2001,
     publisher: 'Graphics Press',
     url: 'https://edwardtufte.com'
-  }
-];
-
-// Pre-seeded Biographies and Profiles
-export const INITIAL_PROFILES: WriterProfile[] = [
-  {
-    authorId: 'user-zayd-ghazali',
-    heroTitle: 'On the Geometry of Reason',
-    heroSubtitle: 'A collection of thoughts, essays, and notes examining classical rationalism, Andalusian aesthetics, and contemporary typography.'
-  },
-  {
-    authorId: 'user-amina-masri',
-    heroTitle: 'Maritime Pathways & Levantine Shores',
-    heroSubtitle: 'Exploring the rich, forgotten commerce networks, port cities, and material cultures of the pre-modern Red Sea.'
-  },
-  {
-    authorId: 'user-sarah-henderson',
-    heroTitle: 'Form Follows Friction',
-    heroSubtitle: 'Essays on Swiss functionalism, high-contrast typography, and the preservation of tactile editorial hierarchies in digital spaces.'
   }
 ];
 
@@ -1062,8 +911,6 @@ Source: MIT Technology Review, 2024`,
 
 class AdjungDb {
   private users: User[] = [];
-  private profiles: WriterProfile[] = [];
-  private identities: IdentityProfile[] = [];
   private citations: Citation[] = [];
   private entries: Entry[] = [];
   private systemSettings: SystemSettings = INITIAL_SYSTEM_SETTINGS;
@@ -1078,8 +925,6 @@ class AdjungDb {
   private loadFromStorage() {
     if (typeof localStorage === 'undefined') {
       this.users = INITIAL_USERS;
-      this.profiles = INITIAL_PROFILES;
-      this.identities = INITIAL_IDENTITIES;
       this.citations = INITIAL_CITATIONS;
       this.entries = [...INITIAL_ENTRIES];
       this.entries.forEach((e: any) => {
@@ -1105,8 +950,6 @@ class AdjungDb {
     }
     try {
       const storedUsers = localStorage.getItem('adjung_users');
-      const storedProfiles = localStorage.getItem('adjung_profiles');
-      const storedIdentities = localStorage.getItem('adjung_identities');
       const storedCitations = localStorage.getItem('adjung_citations');
       const storedEntries = localStorage.getItem('adjung_entries');
       const storedSettings = localStorage.getItem('adjung_settings');
@@ -1124,20 +967,6 @@ class AdjungDb {
       } else {
         this.users = INITIAL_USERS;
         this.saveUsersToStorage();
-      }
-
-      if (storedProfiles) {
-        this.profiles = JSON.parse(storedProfiles);
-      } else {
-        this.profiles = INITIAL_PROFILES;
-        this.saveProfilesToStorage();
-      }
-
-      if (storedIdentities) {
-        this.identities = JSON.parse(storedIdentities);
-      } else {
-        this.identities = INITIAL_IDENTITIES;
-        this.saveIdentitiesToStorage();
       }
 
       if (storedCitations) {
@@ -1313,8 +1142,6 @@ class AdjungDb {
     } catch (e) {
       console.error('Error loading Adjung DB, fallback to initial data', e);
       this.users = INITIAL_USERS;
-      this.profiles = INITIAL_PROFILES;
-      this.identities = INITIAL_IDENTITIES;
       this.citations = INITIAL_CITATIONS;
       this.entries = [...INITIAL_ENTRIES];
       this.entries.forEach((e: any) => {
@@ -1343,16 +1170,6 @@ class AdjungDb {
   public saveUsersToStorage() {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('adjung_users', JSON.stringify(this.users));
-    }
-  }
-  private saveProfilesToStorage() {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('adjung_profiles', JSON.stringify(this.profiles));
-    }
-  }
-  private saveIdentitiesToStorage() {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('adjung_identities', JSON.stringify(this.identities));
     }
   }
   private saveCitationsToStorage() {
@@ -1439,137 +1256,13 @@ class AdjungDb {
   createUser(user: User) {
     this.users.push(user);
     this.saveUsersToStorage();
-
-    // Create associated empty profile
-    const newProfile: WriterProfile = {
-      authorId: user.id,
-      heroTitle: `${user.penName}’s Folio`,
-      heroSubtitle: 'A collection of writings and academic journals.'
-    };
-    this.profiles.push(newProfile);
-    this.saveProfilesToStorage();
-    
-    // Create associated identity
-    const newIdentity: IdentityProfile = {
-      identityId: `id-${user.id}`,
-      accountId: user.id,
-      username: user.username,
-      displayName: user.penName,
-      penName: user.penName,
-      biography: `Biography for ${user.penName}. Academic scholar on Adjung.`,
-      publicVisibility: 'Public',
-      lifeTimeline: [],
-      signatures: []
-    };
-    this.identities.push(newIdentity);
-    this.saveIdentitiesToStorage();
   }
 
   deleteUser(id: string) {
     this.users = this.users.filter(u => u.id !== id);
-    this.profiles = this.profiles.filter(p => p.authorId !== id);
-    this.identities = this.identities.filter(i => i.accountId !== id);
     this.entries = this.entries.filter(e => e.authorId !== id);
     this.saveUsersToStorage();
-    this.saveProfilesToStorage();
-    this.saveIdentitiesToStorage();
     this.saveEntriesToStorage();
-  }
-
-  getProfiles(): WriterProfile[] {
-    return this.profiles;
-  }
-
-  getProfileByAuthorId(authorId: string): WriterProfile {
-    const found = this.profiles.find(p => p.authorId === authorId);
-    if (found) return found;
-
-    // Fallback if none exists
-    const user = this.getUserById(authorId);
-    const newProfile: WriterProfile = {
-      authorId,
-      heroTitle: user ? `${user.penName}’s Folio` : 'Academic Folio',
-      heroSubtitle: 'A collection of writings and scholarly notes.'
-    };
-    this.profiles.push(newProfile);
-    this.saveProfilesToStorage();
-    return newProfile;
-  }
-
-  updateProfile(profile: WriterProfile) {
-    this.profiles = this.profiles.map(p => p.authorId === profile.authorId ? profile : p);
-    this.saveProfilesToStorage();
-  }
-
-  // --- IDENTITY STUDIO API ---
-  getIdentities(): IdentityProfile[] {
-    return this.identities;
-  }
-  
-  getIdentityById(id: string): IdentityProfile | undefined {
-    return this.identities.find(i => i.identityId === id);
-  }
-  
-  getIdentityByAccountId(accountId: string): IdentityProfile | undefined {
-    let identity = this.identities.find(i => i.accountId === accountId);
-    if (!identity) {
-      const user = this.getUserById(accountId);
-      if (user) {
-        identity = {
-          identityId: `id-${accountId}`,
-          accountId: accountId,
-          username: user.username,
-          displayName: user.penName || user.username,
-          penName: user.penName || user.username,
-          biography: user.bioSummary || '',
-          publicVisibility: 'Public',
-          lifeTimeline: [],
-          signatures: user.signature ? [{
-            id: `sig-${Date.now()}`,
-            label: user.signature,
-            type: 'typed',
-            typedText: user.signature,
-            fontFamily: 'Outfit',
-            status: 'Default',
-            strokes: [],
-            createdAt: new Date().toISOString()
-          }] : []
-        };
-        this.identities.push(identity);
-        this.saveIdentitiesToStorage();
-      }
-    }
-    return identity;
-  }
-  
-  updateIdentity(identity: IdentityProfile) {
-    const exists = this.identities.some(i => i.identityId === identity.identityId);
-    if (exists) {
-      this.identities = this.identities.map(i => i.identityId === identity.identityId ? identity : i);
-    } else {
-      this.identities.push(identity);
-    }
-    this.saveIdentitiesToStorage();
-  }
-  
-  saveSignature(accountId: string, signature: DigitalSignature) {
-    const identity = this.getIdentityByAccountId(accountId);
-    if (!identity) return;
-    
-    // Set all other signatures to non-default if this is default
-    let updatedSignatures = identity.signatures || [];
-    if (signature.status === 'Default') {
-      updatedSignatures = updatedSignatures.map(s => ({ ...s, status: s.status === 'Default' ? 'Archived' : s.status }));
-    }
-    
-    const existingIndex = updatedSignatures.findIndex(s => s.id === signature.id);
-    if (existingIndex >= 0) {
-      updatedSignatures[existingIndex] = signature;
-    } else {
-      updatedSignatures.push(signature);
-    }
-    
-    this.updateIdentity({ ...identity, signatures: updatedSignatures });
   }
 
   // --- CITATION LIBRARY API ---
@@ -1672,11 +1365,6 @@ class AdjungDb {
     this.saveUsersToStorage();
   }
 
-  setProfiles(profiles: WriterProfile[]) {
-    this.profiles = profiles;
-    this.saveProfilesToStorage();
-  }
-
   setEntries(entries: Entry[]) {
     this.entries = entries;
     this.saveEntriesToStorage();
@@ -1687,15 +1375,8 @@ class AdjungDb {
     this.saveSettingsToStorage();
   }
 
-  setIdentities(identities: IdentityProfile[]) {
-    this.identities = identities;
-    this.saveIdentitiesToStorage();
-  }
-
   resetToDefaults() {
     this.users = INITIAL_USERS;
-    this.profiles = INITIAL_PROFILES;
-    this.identities = INITIAL_IDENTITIES;
     this.citations = INITIAL_CITATIONS;
     this.entries = INITIAL_ENTRIES;
     this.systemSettings = INITIAL_SYSTEM_SETTINGS;
@@ -1703,8 +1384,6 @@ class AdjungDb {
     this.releaseLogs = INITIAL_RELEASE_LOGS;
     this.policies = INITIAL_POLICIES;
     this.saveUsersToStorage();
-    this.saveProfilesToStorage();
-    this.saveIdentitiesToStorage();
     this.saveCitationsToStorage();
     this.saveEntriesToStorage();
     this.saveSettingsToStorage();
