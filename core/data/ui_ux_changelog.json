@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-07-26T16:54:25.772Z",
+    "summary": "Perlembagaan: perhalusi bahasa (rujukan cadangan ChatGPT, disemak dulu satu-satu) -- betulkan adalah/ialah, bila/apabila (termasuk 2 lagi yg terlepas dari cadangan asal), buang '+' dalam prosa, Body->Isi kandungan, Live->Masa Nyata, condongkan istilah teknikal (pipeline/client/server/breakpoint/grid) konsisten dgn Peraturan 08 dokumen sendiri.",
+    "files": [
+      "src/components/editorium/PerlembagaanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-07-26T16:37:23.794Z",
     "summary": "RBAC: buang badge palsu 'Mod Kelulusan Dinamik', tambah notis jujur bahawa matriks belum dikuatkuasakan di mana-mana semakan akses sebenar. API Cuti: sambung check sebenar (dulu hardcode ONLINE walaupun gagal), tahun kalendar & badge status kini dinamik. Ticker: buang pilihan 'AI Generated' dari Mod Kandungan (tak digunakan lagi utk Ticker), betulkan nilai lapuk dalam DB.",
     "files": [

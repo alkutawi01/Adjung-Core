@@ -72,27 +72,27 @@ const UNIVERSAL_RULES = [
     body: 'Setiap slot ada saiz fizikal tetap ikut tier geometrinya. Kandungan mesti muat dalam saiz itu — ini dikuatkuasakan di peringkat SIMPAN (server menolak kandungan yang tak muat), bukan diselesaikan lepas fakta dengan CSS clipping atau memotong teks sedia ada.',
   },
   {
-    title: 'Tajuk + huraian kongsi SATU bajet ruang.',
-    body: 'Bukan dua had berasingan. Formula: tajuk/maxTajukSendiri + huraian/maxHuraianSendiri ≤ 1. Tajuk panjang + huraian pendek boleh muat, dan sebaliknya — tapi kedua-duanya panjang serentak tak boleh.',
+    title: 'Tajuk dan huraian berkongsi SATU bajet ruang.',
+    body: 'Bukan dua had berasingan. Formula: tajuk/maxTajukSendiri + huraian/maxHuraianSendiri ≤ 1. Tajuk panjang dan huraian pendek boleh muat, dan sebaliknya — tapi kedua-duanya panjang serentak tak boleh.',
   },
   {
-    title: 'Slot sejenis (tier) dilayan 100% sama rata.',
+    title: 'Semua slot dalam tier yang sama dilayan secara seragam.',
     body: 'Tiada pembaikan/pengecualian khusus untuk satu slot sahaja dalam sesuatu tier. Sebarang peraturan mesti terpakai pada SEMUA slot tier yang sama, termasuk Ticker.',
   },
   {
-    title: 'Semakan wajib untuk SETIAP laluan simpan.',
-    body: 'Manual paste, batch paste, pipeline AI, dan edit terus (PATCH/POST) semua dikenakan validateContentBudget yang sama — tiada laluan istimewa yang dikecualikan.',
+    title: 'Semakan diwajibkan bagi SEMUA laluan simpan.',
+    body: <>Manual paste, batch paste, <em className="italic">pipeline</em> AI, dan edit terus (PATCH/POST) semua dikenakan validateContentBudget yang sama — tiada laluan istimewa yang dikecualikan.</>,
   },
   {
-    title: 'Definisi tier disegerakkan client + server.',
+    title: <>Definisi tier disegerakkan antara <em className="italic">client</em> dan <em className="italic">server</em>.</>,
     body: 'GEOMETRY_RATIOS/TIER_SLOTS wujud di core/editorial/GeometryConfig.js dan diimport terus oleh kedua-dua server.js dan FrontpageView.tsx — satu sumber tunggal, bukan dua salinan berasingan.',
   },
   {
-    title: 'Body kandungan editorial ialah tulisan sebenar.',
+    title: 'Isi kandungan editorial ialah tulisan sebenar.',
     body: 'Jangan potong atau tulis-ganti secara mekanikal tanpa kelulusan eksplisit pemilik projek — itu vandalisme editorial, bukan "fix".',
   },
   {
-    title: 'Penomboran slot mula dari 1, bukan 0.',
+    title: 'Penomboran slot bermula daripada 1, bukan 0.',
     body: 'Manusia sentiasa nampak "Slot 1", "Slot 2" ... "Slot 38". TIADA "Slot 0" dipaparkan di mana-mana UI. Indeks dalaman kod (0-37) kekal tak berubah — ini peraturan PAPARAN sahaja, bukan skema data.',
   },
   {
@@ -101,11 +101,11 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Fon tajuk tak boleh lebih kecil daripada fon huraian.',
-    body: 'Saiz fon huraian TETAP (14px, inline style yang menewaskan class Tailwind apa pun) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier/breakpoint (class Tailwind sahaja, tiada paksaan). Sebab tajuk dinamik (panjang & saiz berubah ikut tier) tapi huraian statik, setiap kombinasi tier+breakpoint MESTI disemak: fon tajuk >= 14px pada semua saiz skrin. (Diketahui melanggar setakat ini: kad Kompak guna text-xs [12px] untuk tajuk di bawah breakpoint md — belum dibetulkan, tunggu arahan.)',
+    body: <>Saiz fon huraian adalah tetap (14px, inline style yang mengatasi mana-mana class Tailwind) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier dan <em className="italic">breakpoint</em> (class Tailwind sahaja, tiada paksaan). Oleh sebab tajuk bersifat dinamik (panjang & saiz berubah ikut tier) tapi huraian bersifat tetap, setiap kombinasi tier dan breakpoint MESTI disemak: fon tajuk {'>='} 14px pada semua saiz skrin. (Diketahui melanggar setakat ini: kad Kompak guna text-xs [12px] untuk tajuk di bawah breakpoint md — belum dibetulkan, tunggu arahan.)</>,
   },
   {
-    title: 'Akordion Bar: kad kekal statik, panel muncul berasingan di bawahnya.',
-    body: 'Klik kad Bar (maroon) di luar Mod Edit membuka/tutup panel Penerangan sebagai ELEMEN BAHARU selepas kad tu — kad Bar itu sendiri TIDAK diubah langsung (tiada saiz/rupa berbeza bila terbuka). Hanya SATU kad boleh terbuka pada satu masa PER KLUSTER (4 kad); klik kad lain dalam kluster yang sama tutup yang sebelum, buka yang baharu. Dua kad yang berkongsi baris grid dengan kluster Bar (row-span-2 menegak + satu lagi) WAJIB kekal statik (tinggi/kedudukan tak berubah) walaupun kluster Bar membesar — dikuatkuasakan melalui height-lock JS (ukur tinggi semula jadi sebelum terbuka, bekukan nilai tu semasa terbuka), BUKAN ubah struktur grid (lihat peraturan "jangan ubah grid bento"). Medan Penerangan dihadkan 460 aksara (core/editorial/GeometryConfig.js MAX_PENERANGAN_CHARS, dikuatkuasakan server.js syncManualObjectsForSlot) — diukur empirik daripada lebar panel sebenar.',
+    title: 'Akordion Bar: kad kekal statik, panel dipaparkan secara berasingan di bawahnya.',
+    body: <>Klik kad Bar (maroon) di luar Mod Edit membuka/tutup panel Penerangan sebagai ELEMEN BAHARU selepas kad tu — kad Bar itu sendiri TIDAK diubah langsung (tiada saiz/rupa berbeza apabila terbuka). Hanya SATU kad boleh terbuka pada satu masa PER KLUSTER (4 kad); klik kad lain dalam kluster yang sama tutup yang sebelum, buka yang baharu. Dua kad yang berkongsi baris <em className="italic">grid</em> dengan kluster Bar (row-span-2 menegak + satu lagi) WAJIB kekal statik (tinggi/kedudukan tak berubah) walaupun kluster Bar membesar — dikuatkuasakan melalui height-lock JS (ukur tinggi semula jadi sebelum terbuka, bekukan nilai tu semasa terbuka), BUKAN ubah struktur <em className="italic">grid</em> (lihat peraturan "jangan ubah grid bento"). Medan Penerangan dihadkan 460 aksara (core/editorial/GeometryConfig.js MAX_PENERANGAN_CHARS, dikuatkuasakan server.js syncManualObjectsForSlot) — diukur empirik daripada lebar panel sebenar.</>,
   },
 ];
 
@@ -156,10 +156,10 @@ export const PerlembagaanConsole: React.FC = () => {
           Perlembagaan Adjung Brief
         </h2>
         <p className="font-sans text-xs text-stone-600 max-w-2xl">
-          Rujukan tunggal peraturan kad bento dan sejarah perubahan padanya. Carta di bawah dibaca
-          terus daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">core/editorial/GeometryConfig.js</code> --
-          jika fail itu berubah, carta ini berubah sekali, automatik. Peraturan bertulis pula
-          dikemas kini oleh editor bila-bila seni bina sebenar berubah.
+          Rujukan tunggal bagi peraturan kad bento serta sejarah perubahannya. Carta di bawah dijana
+          terus daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">core/editorial/GeometryConfig.js</code> —
+          apabila fail itu berubah, carta ini turut dikemas kini secara automatik. Peraturan bertulis
+          pula dikemas kini oleh editor setiap kali seni bina sebenar berubah.
         </p>
       </div>
 
@@ -186,7 +186,7 @@ export const PerlembagaanConsole: React.FC = () => {
       {/* TIER CHART — live from GeometryConfig.js */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          02 — Carta Pembahagian Slot (<em className="italic">Live</em>)
+          02 — Carta Pembahagian Slot (Masa Nyata)
         </span>
 
         {/* Shape gallery: real MEASURED pixel proportions (getBoundingClientRect on the live page
@@ -195,7 +195,7 @@ export const PerlembagaanConsole: React.FC = () => {
             TIER_SHAPE_PX comment above for what happened and why). */}
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs mb-3">
           <div className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold mb-3">
-            Bentuk sebenar (diukur terus dari kad hidup, skala 1:{Math.round(1 / SHAPE_SCALE)})
+            Bentuk sebenar (diukur terus daripada kad sebenar, skala 1:{Math.round(1 / SHAPE_SCALE)})
           </div>
           <div className="flex flex-wrap items-end gap-6">
             {TIER_ORDER.map(tier => {
@@ -285,12 +285,12 @@ export const PerlembagaanConsole: React.FC = () => {
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Setiap slot (selain Ticker dan tier <TierLabel tier="BAR" />) terkunci kepada SATU
               Bidang tetap — semua kandungan dalam slot tu (termasuk semua item carousel) mesti
-              dalam Bidang yang sama. Topik ialah medan bebas-had, per-kandungan, yang boleh
+              dalam Bidang yang sama. Topik ialah medan tanpa had, per-kandungan, yang boleh
               berbeza-beza dalam slot yang sama asalkan masih dalam Bidang terkunci tu. Contoh:
               Bidang <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Ekonomi</span> tetap
               untuk seluruh slot, tapi Topik kandungan boleh{' '}
               <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Kewangan</span>,{' '}
-              <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Perbankan</span>, dll --
+              <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Perbankan</span>, dll —
               tiada had. Warna Topik mewarisi warna Bidang induknya (tiada storan warna berasingan).
             </p>
           </div>
@@ -299,7 +299,7 @@ export const PerlembagaanConsole: React.FC = () => {
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Dipaparkan sebagai <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Bidang | Topik</span> (cth:{' '}
               <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Ekonomi | Perbankan</span>).
-              Kandungan lama yang belum ada Topik papar Bidang sahaja — tiada backfill automatik.
+              Kandungan lama yang belum mempunyai Topik hanya memaparkan Bidang — tiada backfill automatik.
             </p>
           </div>
           <div>
@@ -329,7 +329,7 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Pertukaran Bidang slot</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Bidang slot boleh ditukar bebas bila-bila masa dari Tetapan Slot — tiada kunci keras.
+              Bidang slot boleh ditukar pada bila-bila masa dari Tetapan Slot — tiada kunci keras.
               Pertukaran ni HANYA mempengaruhi kandungan baharu yang diterbitkan selepas perubahan;
               kandungan lama dalam slot tu kekal dengan Bidang yang dah tersimpan, tidak berubah
               retroaktif.
@@ -338,7 +338,7 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Pengecualian</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Ticker dan tier <TierLabel tier="BAR" /> dikecualikan sepenuhnya daripada ciri ni --
+              Ticker dan tier <TierLabel tier="BAR" /> dikecualikan sepenuhnya daripada ciri ni —
               tiada Bidang terkunci, tiada Topik, label kad tidak berubah.
             </p>
           </div>
@@ -359,8 +359,8 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Slot Bar 100% untuk acara/program (seminar, pesta buku, majlis anugerah, dll.) --
-              BUKAN untuk berita. Pipeline AI (<code className="bg-stone-100 px-1 rounded text-[11px]">EditorialPipeline.js</code>) dihadkan kepada kandungan acara sahaja untuk tier ini.
+              Slot Bar 100% untuk acara/program (seminar, pesta buku, majlis anugerah, dll.) —
+              BUKAN untuk berita. <em className="italic">Pipeline</em> AI (<code className="bg-stone-100 px-1 rounded text-[11px]">EditorialPipeline.js</code>) dihadkan kepada kandungan acara sahaja untuk tier ini.
             </p>
           </div>
           <div>
@@ -374,29 +374,29 @@ Penerangan:
 URL:`}</pre>
           </div>
           <div>
-            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Pemetaan paparan pada kad (baris atas)</h3>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Pemetaan paparan kad (baris atas)</h3>
             <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
               <li><strong>Kiri atas</strong> (teks amber): medan <code className="bg-stone-100 px-1 rounded text-[11px]">Tarikh</code>. Jika kosong → nama desk (cth. "ADJUNG EDITORIAL") sebagai jatuh balik.</li>
-              <li><strong>Kanan atas</strong> (lencana): akronim daripada <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> SAHAJA bila medan itu diisi terus. Jika <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> kosong → jatuh balik kepada lencana status <code className="bg-stone-100 px-1 rounded text-[11px]">Akses</code>.</li>
+              <li><strong>Kanan atas</strong> (lencana): akronim daripada <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> SAHAJA apabila medan itu diisi terus. Jika <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> kosong → jatuh balik kepada lencana status <code className="bg-stone-100 px-1 rounded text-[11px]">Akses</code>.</li>
             </ul>
           </div>
           <div>
-            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Ekstrak akronim Penganjur</h3>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Penjanaan akronim Penganjur</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Ikut urutan: (1) teks dalam kurungan — cth. <em className="italic">"Dewan Bahasa dan Pustaka (DBP)"</em> → "DBP"; (2) kamus akronim rasmi (DBP, PPAS, PNM, KPM, DBKL, ITBM, MAIS, JAIS, JAKIM, UM, UKM, UPM, USM, UiTM, UIAM, YWI) bila nama penuh ditaip tanpa kurungan; (3) input yang sedia pendek (≤2 patah perkataan / ≤10 aksara) dikekalkan terus; (4) jika tiada padanan, bina akronim daripada huruf pertama setiap perkataan utama. Sebab: lencana terlalu kecil untuk nama penuh.
+              Ikut urutan: (1) teks dalam kurungan — cth. <em className="italic">"Dewan Bahasa dan Pustaka (DBP)"</em> → "DBP"; (2) kamus akronim rasmi (DBP, PPAS, PNM, KPM, DBKL, ITBM, MAIS, JAIS, JAKIM, UM, UKM, UPM, USM, UiTM, UIAM, YWI) apabila nama penuh ditaip tanpa kurungan; (3) input yang sedia pendek (≤2 patah perkataan / ≤10 aksara) dikekalkan terus; (4) jika tiada padanan, bina akronim daripada huruf pertama setiap perkataan utama. Sebab: lencana terlalu kecil untuk nama penuh.
             </p>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Medan Akses</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Hanya 2 nilai sah: <em className="italic">Terbuka</em> / <em className="italic">Tertutup</em>. Dipaparkan sebagai lencana jatuh balik SAHAJA bila <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> tiada — bukan dipaparkan serentak dengan lencana Penganjur.
+              Hanya 2 nilai sah: <em className="italic">Terbuka</em> / <em className="italic">Tertutup</em>. Dipaparkan sebagai lencana jatuh balik SAHAJA apabila <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> tiada — bukan dipaparkan serentak dengan lencana Penganjur.
             </p>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Medan Penerangan</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Huraian tambahan pilihan, disimpan penuh tapi <strong>TIDAK dipaparkan pada kad</strong> --
-              disediakan untuk ciri akordion (panel kembang) akan datang, belum dibina. Tiada had aksara
+              Huraian tambahan pilihan, disimpan sepenuhnya tetapi <strong>TIDAK dipaparkan pada kad</strong> —
+              disediakan untuk ciri akordion (panel boleh dikembangkan) akan datang, belum dibina. Tiada had aksara
               dikuatkuasakan setakat ini (tiada panel sebenar untuk diukur) — sama prinsip dengan
               <code className="bg-stone-100 px-1 rounded text-[11px] mx-1">briefLong</code>
               tier lain sebelum ciri spotlight dibina.
@@ -412,7 +412,7 @@ URL:`}</pre>
             </ul>
           </div>
           <div>
-            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Jaminan pipeline (wajib, setiap laluan simpan Bar)</h3>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Jaminan <em className="italic">Pipeline</em> (wajib, setiap laluan simpan Bar)</h3>
             <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
               <li>Kunci atribut <code className="bg-stone-100 px-1 rounded text-[11px]">organizer</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">location</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">access</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">penerangan</code> mesti didaftar dalam <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attributes</code> sebelum disimpan (FK constraint — kalau tidak, INSERT gagal senyap).</li>
               <li>Laluan simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">syncManualObjectsForSlot</code>) mesti tulis kesemua 4 medan ke <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attribute_values</code>.</li>
@@ -425,9 +425,9 @@ URL:`}</pre>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Label "PROGRAM-PROGRAM BERMANFAAT"</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Label menegak khas untuk kelompok slot Bar sahaja (bukan tier lain). Kedudukannya
-              (kiri/kanan) bergantung kepada lokasi fizikal kelompok slot Bar dalam grid — bukan
-              kedudukan tetap. Label ini sudah wujud dalam kod sedia ada dan diterima seadanya; tiada
-              perubahan kod diperlukan untuknya.
+              (kiri/kanan) bergantung kepada lokasi fizikal kelompok slot Bar dalam <em className="italic">grid</em>.
+              Kedudukan ini bukan tetap. Label ini sudah wujud dalam kod sedia ada dan diterima seadanya;
+              tiada perubahan kod diperlukan untuknya.
             </p>
           </div>
         </div>
@@ -436,7 +436,7 @@ URL:`}</pre>
       {/* LIVE CHANGE LOG */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          05 — Log Perubahan Peraturan (<em className="italic">Live</em>, Daripada Git)
+          05 — Log Perubahan Peraturan (Masa Nyata, Daripada Git)
         </span>
         <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
           {loadingLog ? (
@@ -482,7 +482,7 @@ URL:`}</pre>
           and carries a full jam:minit:saat timestamp, not just a date. */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          06 — Log Perubahan UI/UX (<em className="italic">Live</em>, Masa Sebenar)
+          06 — Log Perubahan UI/UX (Masa Nyata)
         </span>
         <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
           {loadingUiUxLog ? (
