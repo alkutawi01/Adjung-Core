@@ -26,6 +26,7 @@ import { createDbStateRoutes } from './core/routes/dbStateRoutes.js';
 import { createPipelineRoutes } from './core/routes/pipelineRoutes.js';
 import { createWorldClockRoutes } from './core/routes/worldClockRoutes.js';
 import { createSlotsConfigRoutes } from './core/routes/slotsConfigRoutes.js';
+import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2050,43 +2051,6 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
 };
 
 // 1. GET /api/system/layout/active
-app.get('/api/system/layout/active', async (req, res) => {
-  try {
-    const lang = req.query.lang || 'ms';
-    const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' ORDER BY slotIndex ASC");
-    const categories = await CategoryRegistry.getAllCategories(db);
-    const resolvedSlots = [];
-    
-    for (const slot of slots) {
-      const resolved = await resolveSlotContent(slot, lang);
-      if (resolved) {
-        // Map category colors & public category fallback to items
-        if (resolved.items && Array.isArray(resolved.items)) {
-          for (const item of resolved.items) {
-            if (item.desk === 'BELUM DIKELASKAN') item.desk = 'SEMASA';
-            const catSlug = CategoryRegistry.getSlug(item.desk || 'UMUM');
-            const matched = categories.find(c => c.slug === catSlug);
-            item.categoryColor = matched ? matched.color : '#802334';
-          }
-        }
-        // Also map for the main resolved object properties
-        if (resolved.desk === 'BELUM DIKELASKAN') resolved.desk = 'SEMASA';
-        const catSlug = CategoryRegistry.getSlug(resolved.desk || 'UMUM');
-        const matched = categories.find(c => c.slug === catSlug);
-        resolved.categoryColor = matched ? matched.color : '#802334';
-
-        resolvedSlots.push(resolved);
-      }
-    }
-    
-    res.json(resolvedSlots);
-  } catch (err) {
-    console.error('Resolve layout error:', err);
-    res.status(500).json({ error: 'Failed to resolve layout slots.' });
-  }
-});
-
-// 10. GET /api/system/slots
 // --- CONTENT REVIEW (aggregate cross-slot listing/editing over editorial_objects) ---
 
 app.get('/api/system/content/all', async (req, res) => {
@@ -2411,6 +2375,7 @@ app.use('/api/auth', createAuthRoutes(dbGet, dbRun));
 app.use('/api', createDbStateRoutes(dbAll, dbGet));
 app.use('/api/system', createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, runAllScheduledSlots));
 app.use('/api/system', createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot));
+app.use('/api/system', createLayoutRoutes(db, dbAll, resolveSlotContent));
 app.use('/api/system', createWorldClockRoutes());
 
 // Start Express Server
