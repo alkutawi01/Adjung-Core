@@ -1486,51 +1486,65 @@ app.post('/api/system/pipeline/batch_paste', async (req, res) => {
     const timestamp = new Date().toISOString();
     const results = [];
 
-    for (const item of parsedItems) {
-      const slotIdx = item.slotIndex !== undefined ? parseInt(item.slotIndex, 10) : -1;
-      if (slotIdx < 0 || slotIdx >= 38) continue;
+    // Same transaction wrapping as syncManualObjectsForSlot: a whole batch of pasted items is one
+    // multi-table write. If one item's INSERT throws partway through, roll back everything written
+    // so far in this request instead of leaving a partial batch committed.
+    await dbRun('BEGIN TRANSACTION');
+    try {
+      for (const item of parsedItems) {
+        const slotIdx = item.slotIndex !== undefined ? parseInt(item.slotIndex, 10) : -1;
+        if (slotIdx < 0 || slotIdx >= 38) continue;
 
-      const objectId = `object-manual-slot${slotIdx}-${Date.now()}`;
-      const finalTitle = item.title ? item.title.trim() : '';
-      const finalSummary = item.summary ? item.summary.trim() : '';
-      const finalCategory = item.category ? item.category.trim().toUpperCase() : 'UMUM';
-      const finalUrl = item.source_url || '#';
+        const objectId = `object-manual-slot${slotIdx}-${Date.now()}`;
+        const finalTitle = item.title ? item.title.trim() : '';
+        const finalSummary = item.summary ? item.summary.trim() : '';
+        const finalCategory = item.category ? item.category.trim().toUpperCase() : 'UMUM';
+        const finalUrl = item.source_url || '#';
 
-      if (!finalTitle) continue;
+        if (!finalTitle) continue;
 
-      try {
-        await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
-      } catch (e) {
-        console.warn("Failed to register category:", e.message);
-      }
+        try {
+          await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
+        } catch (e) {
+          console.warn("Failed to register category:", e.message);
+        }
 
-      await dbRun(`
-        INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
-        VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?)
-      `, [objectId, finalCategory, slotIdx, timestamp, timestamp]);
-
-      const revResult = await dbRun(`
-        INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-        VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'batch-paste', ?, ?)
-      `, [objectId, finalTitle, finalSummary, timestamp, timestamp]);
-      const revisionId = revResult.lastID || 1;
-
-      const attributes = [
-        { key: 'desk', val: finalCategory },
-        { key: 'url', val: finalUrl },
-        { key: 'source', val: 'ChatGPT/Gemini Manual Paste' }
-      ];
-
-      for (const attr of attributes) {
         await dbRun(`
-          INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText)
-          VALUES (?, ?, ?, ?)
-        `, [objectId, revisionId, attr.key, attr.val]);
-      }
+          INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
+          VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?)
+        `, [objectId, finalCategory, slotIdx, timestamp, timestamp]);
 
-      await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [objectId, slotIdx]);
-      
-      results.push({ slotIndex: slotIdx, title: finalTitle });
+        const revResult = await dbRun(`
+          INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+          VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'batch-paste', ?, ?)
+        `, [objectId, finalTitle, finalSummary, timestamp, timestamp]);
+        const revisionId = revResult.lastID || 1;
+
+        const attributes = [
+          { key: 'desk', val: finalCategory },
+          { key: 'url', val: finalUrl },
+          { key: 'source', val: 'ChatGPT/Gemini Manual Paste' }
+        ];
+
+        for (const attr of attributes) {
+          await dbRun(`
+            INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText)
+            VALUES (?, ?, ?, ?)
+          `, [objectId, revisionId, attr.key, attr.val]);
+        }
+
+        await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [objectId, slotIdx]);
+
+        results.push({ slotIndex: slotIdx, title: finalTitle });
+      }
+      await dbRun('COMMIT');
+    } catch (e) {
+      try {
+        await dbRun('ROLLBACK');
+      } catch (rollbackErr) {
+        console.error('Rollback failed after batch_paste error:', rollbackErr.message);
+      }
+      throw e;
     }
 
     res.json({ success: true, count: results.length, items: parsedItems });
@@ -1833,6 +1847,10 @@ const initEditorialOS = (dbConn) => {
           // aborts (caught + console.warn'd by the caller), dropping that slot's sync entirely.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('briefLong', 'Huraian Panjang', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('originalDate', 'Tarikh Asal', 'text')", () => {});
+          // sourceType: turut disimpan oleh syncManualObjectsForSlot() (attrs array) tapi sebelum ni
+          // tak pernah didaftar di sini -- setiap simpan slot manual gagal senyap dgn
+          // SQLITE_CONSTRAINT (FK), DELETE+INSERT sebelumnya rolled back, kandungan slot kekal kosong.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('sourceType', 'Jenis Sumber', 'text')", () => {});
           // Slot BAR sahaja: Penganjur/Lokasi/Akses (lihat Perlembagaan seksyen "Peraturan Khas
           // Slot Bar"). Sama corak macam briefLong/originalDate di atas -- kena didaftar dulu di sini
           // sebelum syncManualObjectsForSlot() boleh simpannya, atau INSERT gagal senyap.
@@ -2200,53 +2218,70 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
     }
   }
 
-  await dbRun('DELETE FROM editorial_objects WHERE slotIndex = ?', [slotIndex]);
-  if (items.length === 0) return;
-
-  const baseTs = Date.now();
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    const objectId = item.uuid || `object-manual-slot${slotIndex}-${baseTs}-${i}`;
-    const createdAt = new Date(baseTs + i).toISOString();
-    const finalCategory = (item.desk || 'UMUM').trim().toUpperCase();
-    try {
-      await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
-    } catch (e) {
-      console.warn("Failed to register category:", e.message);
+  // Wrap the DELETE + multi-item multi-table INSERT sequence in a real transaction so a failure
+  // partway through (e.g. one item's INSERT throws) rolls back everything already written in this
+  // call -- including the DELETE -- instead of leaving the slot with orphaned/partial rows.
+  await dbRun('BEGIN TRANSACTION');
+  try {
+    await dbRun('DELETE FROM editorial_objects WHERE slotIndex = ?', [slotIndex]);
+    if (items.length === 0) {
+      await dbRun('COMMIT');
+      return;
     }
 
-    await dbRun(
-      `INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, sourceType, createdAt, updatedAt)
-       VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?, ?)`,
-      [objectId, finalCategory, slotIndex, item.sourceType || 'web', createdAt, createdAt]
-    );
-    const rev = await dbRun(
-      `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-       VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'manual-slot-save', ?, ?)`,
-      [objectId, item.title, item.summary, createdAt, createdAt]
-    );
-    const revisionId = rev.lastID;
+    const baseTs = Date.now();
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const objectId = item.uuid || `object-manual-slot${slotIndex}-${baseTs}-${i}`;
+      const createdAt = new Date(baseTs + i).toISOString();
+      const finalCategory = (item.desk || 'UMUM').trim().toUpperCase();
+      try {
+        await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
+      } catch (e) {
+        console.warn("Failed to register category:", e.message);
+      }
 
-    const attrs = [
-      { key: 'desk', val: finalCategory },
-      { key: 'url', val: item.url || '#' },
-      { key: 'source', val: item.source || '' },
-      { key: 'sourceType', val: item.sourceType || 'web' },
-      { key: 'briefLong', val: item.briefLong || '' },
-      { key: 'originalDate', val: item.originalDate || '' },
-      // Slot BAR sahaja (Peraturan Khas Slot Bar) -- diabaikan (string kosong) untuk tier lain.
-      { key: 'organizer', val: item.organizer || '' },
-      { key: 'location', val: item.location || '' },
-      { key: 'access', val: item.access || '' },
-      { key: 'penerangan', val: item.penerangan || '' },
-    ];
-    for (const a of attrs) {
       await dbRun(
-        `INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText)
-         VALUES (?, ?, ?, ?)`,
-        [objectId, revisionId, a.key, a.val]
+        `INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, sourceType, createdAt, updatedAt)
+         VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?, ?)`,
+        [objectId, finalCategory, slotIndex, item.sourceType || 'web', createdAt, createdAt]
       );
+      const rev = await dbRun(
+        `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+         VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'manual-slot-save', ?, ?)`,
+        [objectId, item.title, item.summary, createdAt, createdAt]
+      );
+      const revisionId = rev.lastID;
+
+      const attrs = [
+        { key: 'desk', val: finalCategory },
+        { key: 'url', val: item.url || '#' },
+        { key: 'source', val: item.source || '' },
+        { key: 'sourceType', val: item.sourceType || 'web' },
+        { key: 'briefLong', val: item.briefLong || '' },
+        { key: 'originalDate', val: item.originalDate || '' },
+        // Slot BAR sahaja (Peraturan Khas Slot Bar) -- diabaikan (string kosong) untuk tier lain.
+        { key: 'organizer', val: item.organizer || '' },
+        { key: 'location', val: item.location || '' },
+        { key: 'access', val: item.access || '' },
+        { key: 'penerangan', val: item.penerangan || '' },
+      ];
+      for (const a of attrs) {
+        await dbRun(
+          `INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText)
+           VALUES (?, ?, ?, ?)`,
+          [objectId, revisionId, a.key, a.val]
+        );
+      }
     }
+    await dbRun('COMMIT');
+  } catch (e) {
+    try {
+      await dbRun('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('Rollback failed after syncManualObjectsForSlot error:', rollbackErr.message);
+    }
+    throw e;
   }
 };
 
