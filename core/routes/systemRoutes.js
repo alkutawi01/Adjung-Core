@@ -72,6 +72,42 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     }
   });
 
+  // POST /api/system/settings
+  router.post('/system/settings', async (req, res) => {
+    try {
+      const s = req.body;
+      await dbRun(`
+        INSERT OR REPLACE INTO system_settings (
+          id, frontpageTitle, frontpageSubtitle, rolePermissions,
+          inTheNewsText, inTheNewsGoogleDocUrl, featuredScholarId, featuredEntryId,
+          editorialSelectionIds, announcementBanner, enableArabicAccent, layoutDensity,
+          allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText,
+          worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl,
+          masterPrompt, worldClockIntervalSec, worldClockBgClickEnabled
+        ) VALUES (
+          'settings-main', ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?
+        )
+      `, [
+        s.frontpageTitle, s.frontpageSubtitle, JSON.stringify(s.rolePermissions || {}),
+        s.inTheNewsText, s.inTheNewsGoogleDocUrl, s.featuredScholarId, s.featuredEntryId,
+        JSON.stringify(s.editorialSelectionIds || []), s.announcementBanner, s.enableArabicAccent ? 1 : 0, s.layoutDensity,
+        JSON.stringify(s.allowedSignatureFonts || []), JSON.stringify(s.featuredEssayIds || []), JSON.stringify(s.featuredNoteIds || []), s.worldClockHolidaysText,
+        s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl, s.masterPrompt,
+        s.worldClockIntervalSec !== undefined ? Number(s.worldClockIntervalSec) : 60,
+        s.worldClockBgClickEnabled !== undefined ? (s.worldClockBgClickEnabled ? 1 : 0) : 1
+      ]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Save system settings error:', err);
+      res.status(500).json({ error: 'Failed to save system settings. ' + (err.message || '') });
+    }
+  });
+
   // GET /api/system/health
   router.get('/system/health', async (req, res) => {
     try {

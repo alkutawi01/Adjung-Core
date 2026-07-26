@@ -5,8 +5,6 @@ import crypto from 'crypto';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
 import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
@@ -21,6 +19,8 @@ import { createSystemRoutes } from './core/routes/systemRoutes.js';
 import { createSlotRoutes, executeDirectRssFetch } from './core/routes/slotRoutes.js';
 import { createAiCostRoutes } from './core/routes/aiCostRoutes.js';
 import { createTranslationRoutes } from './core/routes/translationRoutes.js';
+import { createChangelogRoutes } from './core/routes/changelogRoutes.js';
+import { createMediaRoutes } from './core/routes/mediaRoutes.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2493,53 +2493,6 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
   };
 };
 
-const execFileAsync = promisify(execFile);
-
-// GET /api/system/rules-changelog -- live history of changes to the editorial rule/validation
-// files (core/editorial/, server.js), read straight from git so it always reflects reality and
-// carries a real commit hash the chief editor can ask to have reverted. Read-only, never mutates
-// the repo. If git isn't available in this environment (e.g. a deploy without a .git directory),
-// fails soft with an empty list rather than breaking the page that renders it.
-app.get('/api/system/rules-changelog', async (req, res) => {
-  try {
-    const { stdout } = await execFileAsync('git', [
-      'log',
-      '--pretty=format:%H%x1f%ad%x1f%s',
-      '--date=format:%d %b %Y',
-      '-n', '40',
-      '--',
-      'core/editorial/',
-      'server.js'
-    ], { cwd: __dirname });
-
-    const commits = stdout.split('\n').filter(Boolean).map(line => {
-      const [hash, date, message] = line.split('\x1f');
-      return { hash: (hash || '').slice(0, 7), fullHash: hash || '', date: date || '', message: message || '' };
-    });
-    res.json({ commits });
-  } catch (err) {
-    console.warn('Failed to read git changelog:', err.message);
-    res.json({ commits: [], unavailable: true });
-  }
-});
-
-// GET /api/system/ui-ux-changelog -- live, millisecond-timestamped log of UI/UX-affecting changes,
-// written by scripts/log-ui-change.mjs the instant each change lands (not batched at commit time
-// like /api/system/rules-changelog above, which only carries git's per-second commit timestamp and
-// only updates when a commit happens). Read-only here; fails soft with an empty list if the log
-// file doesn't exist yet.
-app.get('/api/system/ui-ux-changelog', (req, res) => {
-  try {
-    const logPath = path.join(__dirname, 'core', 'data', 'ui_ux_changelog.json');
-    if (!fs.existsSync(logPath)) return res.json({ entries: [] });
-    const entries = JSON.parse(fs.readFileSync(logPath, 'utf-8'));
-    res.json({ entries });
-  } catch (err) {
-    console.warn('Failed to read UI/UX changelog:', err.message);
-    res.json({ entries: [], unavailable: true });
-  }
-});
-
 // 1. GET /api/system/layout/active
 app.get('/api/system/layout/active', async (req, res) => {
   try {
@@ -2574,36 +2527,6 @@ app.get('/api/system/layout/active', async (req, res) => {
   } catch (err) {
     console.error('Resolve layout error:', err);
     res.status(500).json({ error: 'Failed to resolve layout slots.' });
-  }
-});
-
-// POST /api/media/upload
-app.post('/api/media/upload', async (req, res) => {
-  try {
-    const { filename, fileData } = req.body;
-    if (!filename || !fileData) {
-      return res.status(400).json({ error: 'Filename and fileData (base64) are required.' });
-    }
-
-    // Pastikan folder public/uploads wujud
-    const uploadDir = path.join(__dirname, 'public', 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Bersihkan nama fail dan tambah timestamp untuk mengelakkan pertindihan
-    const cleanFilename = `${Date.now()}-${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const filePath = path.join(uploadDir, cleanFilename);
-
-    // Dapatkan data base64 tulen
-    const base64Data = fileData.split(';base64,').pop();
-    fs.writeFileSync(filePath, base64Data, { encoding: 'base64' });
-
-    const fileUrl = `/uploads/${cleanFilename}`;
-    res.json({ url: fileUrl });
-  } catch (err) {
-    console.error('File upload error:', err);
-    res.status(500).json({ error: 'Failed to upload file.' });
   }
 });
 
@@ -3125,42 +3048,6 @@ app.get('/api/system/hijri-date', async (req, res) => {
   }
 });
 
-// 11b. POST /api/system/settings
-app.post('/api/system/settings', async (req, res) => {
-  try {
-    const s = req.body;
-    await dbRun(`
-      INSERT OR REPLACE INTO system_settings (
-        id, frontpageTitle, frontpageSubtitle, rolePermissions, 
-        inTheNewsText, inTheNewsGoogleDocUrl, featuredScholarId, featuredEntryId, 
-        editorialSelectionIds, announcementBanner, enableArabicAccent, layoutDensity, 
-        allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText,
-        worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl,
-        masterPrompt, worldClockIntervalSec, worldClockBgClickEnabled
-      ) VALUES (
-        'settings-main', ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?
-      )
-    `, [
-      s.frontpageTitle, s.frontpageSubtitle, JSON.stringify(s.rolePermissions || {}),
-      s.inTheNewsText, s.inTheNewsGoogleDocUrl, s.featuredScholarId, s.featuredEntryId,
-      JSON.stringify(s.editorialSelectionIds || []), s.announcementBanner, s.enableArabicAccent ? 1 : 0, s.layoutDensity,
-      JSON.stringify(s.allowedSignatureFonts || []), JSON.stringify(s.featuredEssayIds || []), JSON.stringify(s.featuredNoteIds || []), s.worldClockHolidaysText,
-      s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl, s.masterPrompt,
-      s.worldClockIntervalSec !== undefined ? Number(s.worldClockIntervalSec) : 60,
-      s.worldClockBgClickEnabled !== undefined ? (s.worldClockBgClickEnabled ? 1 : 0) : 1
-    ]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Save system settings error:', err);
-    res.status(500).json({ error: 'Failed to save system settings. ' + (err.message || '') });
-  }
-});
-
 // Mount Modular Router Endpoints
 app.use('/api/ai', createAIRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createCategoryRoutes(db));
@@ -3168,6 +3055,8 @@ app.use('/api', createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb));
 app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system/ai', createAiCostRoutes(dbAll, dbGet, dbRun));
 app.use('/api/translation', createTranslationRoutes(dbAll, dbRun));
+app.use('/api/system', createChangelogRoutes(__dirname));
+app.use('/api/media', createMediaRoutes(__dirname));
 
 // Start Express Server
 const PORT = 5000;
