@@ -1,60 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Play, Globe } from 'lucide-react';
+import { Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Play, Globe, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import { EditorialIntelligencePlatform } from './EditorialIntelligencePlatform';
 
-function hslToHex(h: number, s: number, l: number): string {
-  l /= 100;
-  const a = (s * Math.min(l, 1 - l)) / 100;
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color).toString(16).padStart(2, '0');
-  };
-  return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
-}
-
-const DESK_UNIQUE_COLORS: Record<string, string> = {
-  'Kesusasteraan Melayu': '#E05638',
-  'Psikolinguistik': '#6366F1',
-  'Teknologi': '#0D9488',
-  'Warisan': '#A16207',
-  'Ujian': '#64748B',
-  'Sukan': '#059669',
-  'Semasa': '#B91C1C',
-  'Nasional': '#2563EB',
-  'Sains & Teknologi': '#0284C7',
-  'Sains': '#0891B2',
-  'Sejarah': '#854D0E',
-  'Falsafah': '#6B21A8',
-  'Ekonomi': '#1D4ED8',
-  'Diplomasi': '#312E81',
-  'Politik': '#3730A3',
-  'Gaya Hidup': '#DB2777',
-  'Hiburan': '#EA580C',
-  'Pendidikan': '#B55604',
-  'Masyarakat': '#166534',
-  'Teknologi Utama': '#0F766E',
-  'Sosiolinguistik': '#C05621',
-  'Linguistik Komputasional': '#0284C7',
-  'Fonologi Dan Morfologi': '#9D174D',
-};
-
-const formatTitleCase = (str: string) => {
-  if (!str) return '';
-  return str
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
-interface DeskItem {
+// Bidang kini senarai tertutup kurasi Ketua Editor, disimpan di CategoryRegistry (jadual DB
+// sebenar, bukan lagi dikira semula dari kandungan hidup) -- lihat GET /api/system/categories/active.
+interface ActiveBidang {
   id: string;
-  code: string;
+  slug: string;
   name: string;
-  displayLabel: string;
   color: string;
-  status: 'Aktif' | 'Tidak Aktif';
+  usageCount: number;
+  slots: number[];
 }
 
 interface TypographyTerm {
@@ -237,8 +193,59 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
-  // Taksonomi Desk List State (Auto-registered from Live content + Unique Hex Colors)
-  const [desks, setDesks] = useState<DeskItem[]>([]);
+  // Taksonomi Bidang -- senarai tertutup, dari CategoryRegistry (GET /categories/active).
+  const [desks, setDesks] = useState<ActiveBidang[]>([]);
+  const [desksLoading, setDesksLoading] = useState(true);
+  const [expandedBidangId, setExpandedBidangId] = useState<string | null>(null);
+  const [renamingBidangId, setRenamingBidangId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [savingSlotForBidang, setSavingSlotForBidang] = useState<number | null>(null);
+
+  const fetchActiveBidang = () => {
+    setDesksLoading(true);
+    fetch('/api/system/categories/active')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setDesks(data);
+      })
+      .catch(e => console.error('Error fetching active Bidang:', e))
+      .finally(() => setDesksLoading(false));
+  };
+
+  const handleAssignSlot = async (slotIndex: number, bidangName: string) => {
+    setSavingSlotForBidang(slotIndex);
+    try {
+      const res = await fetch('/api/system/categories/assign-slot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slotIndex, bidangName })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menetapkan slot.');
+      fetchActiveBidang();
+    } catch (e: any) {
+      alert('Ralat: ' + (e.message || ''));
+    } finally {
+      setSavingSlotForBidang(null);
+    }
+  };
+
+  const handleRenameBidang = async (id: string) => {
+    if (!renameValue.trim()) return;
+    try {
+      const res = await fetch('/api/system/categories/rename-active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, newName: renameValue.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menamakan semula Bidang.');
+      setRenamingBidangId(null);
+      fetchActiveBidang();
+    } catch (e: any) {
+      alert('Ralat: ' + (e.message || ''));
+    }
+  };
 
   // Blocked RSS categories -- real CRUD table (rss_blocked_categories), managed here AND in the
   // main frontpage's Ticker Management modal; both point at the same backend so they can never
@@ -333,72 +340,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       })
       .catch(e => console.error('Error fetching system settings:', e));
 
-    // Fetch live content items to extract actual live desks dynamically
-    fetch('/api/system/content/all')
-      .then(res => res.json())
-      .then(data => {
-        const rawItems = data.items || [];
-        const liveDeskSet = new Set<string>();
-
-        // Seed core desks
-        ['Kesusasteraan Melayu', 'Psikolinguistik', 'Teknologi', 'Warisan', 'Ujian', 'Sukan', 'Semasa', 'Nasional', 'Sains & Teknologi', 'Sejarah', 'Falsafah', 'Ekonomi', 'Diplomasi', 'Politik'].forEach(d => liveDeskSet.add(d));
-
-        // Add desks from live database items
-        rawItems.forEach((item: any) => {
-          if (item.desk && item.desk.trim()) {
-            liveDeskSet.add(formatTitleCase(item.desk.trim()));
-          }
-        });
-
-        const usedColors = new Set<string>();
-        const registeredDesks: DeskItem[] = Array.from(liveDeskSet).map((deskName, idx) => {
-          let chosenColor = DESK_UNIQUE_COLORS[deskName];
-
-          // Ensure zero duplicate colors across all desks and strictly in Hex format (#RRGGBB)
-          if (!chosenColor || usedColors.has(chosenColor)) {
-            let hue = (idx * 137.5) % 360;
-            chosenColor = hslToHex(Math.round(hue), 70, 40);
-            while (usedColors.has(chosenColor)) {
-              hue = (hue + 25) % 360;
-              chosenColor = hslToHex(Math.round(hue), 70, 40);
-            }
-          }
-
-          usedColors.add(chosenColor);
-
-          return {
-            id: `desk_${deskName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
-            code: deskName.toUpperCase().slice(0, 8),
-            name: deskName,
-            displayLabel: deskName,
-            color: chosenColor,
-            status: 'Aktif'
-          };
-        });
-
-        registeredDesks.sort((a, b) => a.name.localeCompare(b.name));
-        setDesks(registeredDesks);
-      })
-      .catch(() => {
-        const fallbackDesks = ['Kesusasteraan Melayu', 'Psikolinguistik', 'Teknologi', 'Warisan', 'Ujian', 'Sukan', 'Semasa', 'Nasional', 'Sains & Teknologi', 'Sejarah', 'Falsafah', 'Ekonomi', 'Diplomasi', 'Politik'];
-        const formattedFallback: DeskItem[] = fallbackDesks.map(name => ({
-          id: `desk_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
-          code: name.toUpperCase().slice(0, 8),
-          name,
-          displayLabel: name,
-          color: DESK_UNIQUE_COLORS[name] || '#802334',
-          status: 'Aktif'
-        }));
-        formattedFallback.sort((a, b) => a.name.localeCompare(b.name));
-        setDesks(formattedFallback);
-      });
+    fetchActiveBidang();
   }, []);
 
-  // New Desk Modal State
+  // Modal Tambah Bidang -- Nama + Warna sahaja (schema CategoryRegistry tiada "kod"/"label ticker").
   const [newDeskName, setNewDeskName] = useState('');
-  const [newDeskCode, setNewDeskCode] = useState('');
   const [newDeskColor, setNewDeskColor] = useState('#802334');
-  const [newDeskLabel, setNewDeskLabel] = useState('');
+  const [addingDesk, setAddingDesk] = useState(false);
 
   // Interactive RBAC Permission Matrix State -- backed by system_settings.rolePermissions.
   const [rbacMatrix, setRbacMatrix] = useState<RbacMatrixRow[]>(DEFAULT_RBAC_MATRIX);
@@ -440,22 +388,25 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
-  const handleAddDesk = () => {
-    if (newDeskName.trim()) {
-      const newD: DeskItem = {
-        id: `desk_${newDeskCode.toLowerCase() || Date.now()}`,
-        code: newDeskCode.toUpperCase() || 'DESK',
-        name: newDeskName,
-        displayLabel: newDeskLabel || newDeskName,
-        color: newDeskColor || '#802334',
-        status: 'Aktif'
-      };
-      setDesks(prev => [...prev, newD]);
+  const handleAddDesk = async () => {
+    if (!newDeskName.trim()) return;
+    setAddingDesk(true);
+    try {
+      const res = await fetch('/api/system/categories/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newDeskName.trim(), color: newDeskColor })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menambah Bidang.');
       setNewDeskName('');
-      setNewDeskCode('');
-      setNewDeskLabel('');
       setNewDeskColor('#802334');
       setActiveConfigModal(null);
+      fetchActiveBidang();
+    } catch (e: any) {
+      alert('Ralat: ' + (e.message || ''));
+    } finally {
+      setAddingDesk(false);
     }
   };
 
@@ -598,47 +549,129 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         </div>
       )}
 
-      {/* 2. TAKSONOMI (DESK MANAGEMENT) */}
+      {/* 2. TAKSONOMI (BIDANG -- SENARAI TERTUTUP) */}
       {subTab === 'Taksonomi' && (
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
             <div className="flex flex-wrap justify-between items-center gap-4">
               <div>
                 <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-                  Taksonomi Desk Disiplin Ilmu (Slot Spatial Frontpage)
+                  Taksonomi Bidang (Senarai Tertutup)
                 </h3>
                 <p className="text-stone-500 text-xs">
-                  Pendaftaran Desk dan Warna Unik Hex untuk slot-slot spatial (Hero, Feature, Brief, Compact, dll.) yang disunting oleh Editor atau AI. Ticker dijana automatik menerusi enjin rules berasingan.
+                  Senarai Bidang yang boleh dipilih untuk setiap slot (selain Ticker dan tier Bar) -- dikurasi Ketua Editor sahaja. Menukar Bidang sesuatu slot akan mengarkibkan kandungan live sedia ada dalam slot tu.
                 </p>
               </div>
-              <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5" /> Pendaftaran Automatik Live ({desks.length} Desk)
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5" /> {desks.length} Bidang Aktif
+                </span>
+                <button
+                  onClick={() => setActiveConfigModal('add_desk')}
+                  className="bg-[#802334] hover:bg-[#601824] text-white px-3 py-1.5 rounded font-semibold text-xs"
+                >
+                  + Tambah Bidang
+                </button>
+              </div>
             </div>
 
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
-                  <th className="p-3">Warna Unik Desk (Kod Hex)</th>
-                  <th className="p-3">Nama Desk</th>
-                  <th className="p-3">Peruntukan Disiplin Spatial</th>
-                  <th className="p-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {desks.map(d => (
-                  <tr key={d.name} className="hover:bg-stone-50">
-                    <td className="p-3 flex items-center gap-2">
-                      <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-xs" style={{ backgroundColor: d.color }}></span>
-                      <code className="font-mono text-[11px] text-stone-700 font-bold">{d.color}</code>
-                    </td>
-                    <td className="p-3 font-semibold text-stone-900">{d.name}</td>
-                    <td className="p-3 text-stone-600 font-sans text-[11px]">Slot Spatial Frontpage (Manual/AI)</td>
-                    <td className="p-3 text-emerald-800 font-semibold">{d.status}</td>
+            {desksLoading ? (
+              <div className="text-stone-400 text-xs py-6 text-center">Memuatkan Taksonomi...</div>
+            ) : (
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+                    <th className="p-3">Warna</th>
+                    <th className="p-3">Nama Bidang</th>
+                    <th className="p-3">Nombor Slot Diperuntukkan</th>
+                    <th className="p-3 text-right">Tindakan</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {desks.map(d => (
+                    <React.Fragment key={d.id}>
+                      <tr className="hover:bg-stone-50">
+                        <td className="p-3">
+                          <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-xs" style={{ backgroundColor: d.color }}></span>
+                        </td>
+                        <td className="p-3 font-semibold text-stone-900">
+                          {renamingBidangId === d.id ? (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={renameValue}
+                                onChange={e => setRenameValue(e.target.value)}
+                                className="bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs font-semibold"
+                                autoFocus
+                              />
+                              <button onClick={() => handleRenameBidang(d.id)} className="text-emerald-700"><Check className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => setRenamingBidangId(null)} className="text-stone-400"><X className="w-3.5 h-3.5" /></button>
+                            </div>
+                          ) : d.name}
+                        </td>
+                        <td className="p-3 text-stone-600 font-sans text-[11px]">
+                          {d.slots.length === 0 ? (
+                            <span className="text-stone-400">Tiada slot</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {d.slots.map(s => (
+                                <span key={s} className="bg-stone-100 text-stone-600 border border-stone-200 rounded px-1.5 py-0.5 font-mono text-[9px]">{s + 1}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => { setRenamingBidangId(d.id); setRenameValue(d.name); }}
+                              className="text-stone-500 hover:text-[#802334]"
+                              title="Tukar Nama"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setExpandedBidangId(expandedBidangId === d.id ? null : d.id)}
+                              className="text-stone-500 hover:text-[#802334] inline-flex items-center gap-1"
+                            >
+                              Urus Slot {expandedBidangId === d.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedBidangId === d.id && (
+                        <tr>
+                          <td colSpan={4} className="p-4 bg-stone-50">
+                            <div className="text-[9px] uppercase font-bold text-stone-500 mb-2">
+                              Tanda slot untuk peruntukkan Bidang "{d.name}" -- nyahtanda untuk kosongkan
+                            </div>
+                            <div className="grid grid-cols-6 md:grid-cols-10 gap-2">
+                              {Array.from({ length: 38 }, (_, i) => i).map(slotIndex => {
+                                const isAssigned = d.slots.includes(slotIndex);
+                                return (
+                                  <label
+                                    key={slotIndex}
+                                    className={`flex items-center justify-center gap-1 border rounded px-1.5 py-1 text-[10px] font-mono cursor-pointer ${isAssigned ? 'bg-[#802334] text-white border-[#802334]' : 'bg-white text-stone-600 border-stone-300'} ${savingSlotForBidang === slotIndex ? 'opacity-50' : ''}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isAssigned}
+                                      disabled={savingSlotForBidang === slotIndex}
+                                      onChange={() => handleAssignSlot(slotIndex, isAssigned ? '' : d.name)}
+                                      className="hidden"
+                                    />
+                                    {slotIndex + 1}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Live Desk Classifier Tester -- exercises the real rss-desk-rules/test endpoint */}
@@ -1005,42 +1038,36 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         </div>
       )}
 
-      {/* MODAL ADD NEW DESK */}
+      {/* MODAL TAMBAH BIDANG */}
       {activeConfigModal === 'add_desk' && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
-                + Tambah Desk Disiplin Ilmu Baharu
+                + Tambah Bidang Baharu
               </h3>
               <button onClick={() => setActiveConfigModal(null)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
             </div>
 
             <div className="space-y-3 font-sans">
               <div>
-                <label className="text-xs text-stone-500 font-semibold block mb-1">Nama Desk</label>
+                <label className="text-xs text-stone-500 font-semibold block mb-1">Nama Bidang</label>
                 <input type="text" placeholder="Astronomi" value={newDeskName} onChange={e => setNewDeskName(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-semibold" />
               </div>
               <div>
-                <label className="text-xs text-stone-500 font-semibold block mb-1">Kod Desk</label>
-                <input type="text" placeholder="ASTRO" value={newDeskCode} onChange={e => setNewDeskCode(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-semibold" />
-              </div>
-              <div>
-                <label className="text-xs text-stone-500 font-semibold block mb-1">Warna Unik Desk (Hex Color Tag)</label>
+                <label className="text-xs text-stone-500 font-semibold block mb-1">Warna Bidang (Hex)</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className="w-9 h-8 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
                   <input type="text" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-mono font-bold" />
                 </div>
               </div>
-              <div>
-                <label className="text-xs text-stone-500 font-semibold block mb-1">Label Paparan Ticker</label>
-                <input type="text" placeholder="Sains Astronomi" value={newDeskLabel} onChange={e => setNewDeskLabel(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-semibold" />
-              </div>
             </div>
 
             <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
               <button onClick={() => setActiveConfigModal(null)} className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs">Batal</button>
-              <button onClick={handleAddDesk} className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs">Tambah Desk</button>
+              <button onClick={handleAddDesk} disabled={addingDesk} className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50">
+                {addingDesk ? 'Menambah...' : 'Tambah Bidang'}
+              </button>
             </div>
           </div>
         </div>
