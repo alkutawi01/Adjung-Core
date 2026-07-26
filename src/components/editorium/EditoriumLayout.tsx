@@ -32,15 +32,15 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#1F1F1F] font-sans flex flex-col antialiased">
+    <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans flex flex-col antialiased">
       {/* Editorium Header */}
-      <header className="bg-[#1F1F1F] text-[#FAF9F6] border-b border-stone-800 px-4 md:px-8 py-3 flex flex-wrap justify-between items-center gap-4 select-none shadow-sm">
+      <header className="bg-[#1F1F1F] text-[#FDFDFD] border-b border-stone-800 px-4 md:px-8 py-3 flex flex-wrap justify-between items-center gap-4 select-none shadow-sm">
         {/* Left Side: Logo (Paling Kiri) -> Divider -> Badge Editorium -> Menu Navigasi */}
         <div className="flex flex-wrap items-center gap-4">
           {/* Logo Adjung Brief Baharu (Paling Kiri, BRIEF di bawah Adjung, Klik ke Frontpage) */}
           <Tooltip text="Klik untuk kembali ke Frontpage">
             <a href="/" className="flex flex-col items-center justify-center hover:opacity-90 transition-opacity select-none">
-              <span className="font-serif font-normal text-2xl tracking-tight text-[#FAF9F6] leading-none">Adjung</span>
+              <span className="font-serif font-normal text-2xl tracking-tight text-[#FDFDFD] leading-none">Adjung</span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="h-[1px] w-2.5 bg-[#b4b4b4]"></span>
                 <span className="font-sans text-[8px] tracking-[0.2em] font-semibold text-[#b4b4b4] uppercase leading-none">BRIEF</span>
@@ -69,7 +69,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                       ? 'bg-[#802334] text-white shadow-xs'
                       : item.restricted
                       ? 'text-stone-600 cursor-not-allowed'
-                      : 'text-stone-400 hover:text-[#FAF9F6] hover:bg-stone-800'
+                      : 'text-stone-400 hover:text-[#FDFDFD] hover:bg-stone-800'
                   }`}
                 >
                   {item.label} {item.restricted ? '🔒' : ''}
