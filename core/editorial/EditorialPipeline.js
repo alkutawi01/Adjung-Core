@@ -7,7 +7,7 @@ import GeminiProvider from '../ai/GeminiProvider.js';
 import ClaudeProvider from '../ai/ClaudeProvider.js';
 import EditorialValidator from './EditorialValidator.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
-import { validateContentBudget } from './ContentBudget.js';
+import { validateContentBudget, validateBidangTopik } from './ContentBudget.js';
 import { TIER_SLOTS } from './GeometryConfig.js';
 
 const CONTENT_POOL_MAX_ITEMS = 30; // Bound prompt token cost regardless of how many sources are configured.
@@ -257,8 +257,16 @@ ${masterPrompt}
 
     if (slot.manualDesk && slot.manualDesk.trim() !== '') {
       userPrompt += `
-Arahan Bidang/Kategori: Kandungan yang ditulis MESTILAH berkaitan dengan bidang/kategori: "${slot.manualDesk.trim().toUpperCase()}".
+Arahan Bidang: Kandungan yang ditulis MESTILAH berkaitan dengan bidang: "${slot.manualDesk.trim().toUpperCase()}".
 `;
+      // Topik (sub-fokus dalam Bidang di atas) hanya terpakai untuk kad "Standard" (bukan Ticker,
+      // bukan BAR -- dua-dua dikecualikan ciri Bidang/Topik). Diminta di sini, di bawah Bidang yang
+      // sudah diwajibkan, supaya Topik yang dijana kekal koheren dengan Bidang tersebut.
+      if (slotIndex !== -1 && !isBarSlot) {
+        userPrompt += `
+Arahan Topik: Sertakan juga 'topik' -- fokus khusus kandungan ni DALAM bidang "${slot.manualDesk.trim().toUpperCase()}" yang diwajibkan di atas (cth: dalam bidang Ekonomi -- Kewangan, Perbankan).
+`;
+      }
     }
 
     if (slot.eventExpiryFilter && slot.eventExpiryFilter !== '') {
@@ -319,6 +327,7 @@ Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
   "title": "Tajuk kandungan (Tidak melebihi ${maxTitleLen} aksara)",
   "summary": "Ringkasan kandungan (${limitDesc})",
   "category": "Kategori kandungan (Satu perkataan sahaja, cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA)",
+  "topik": "WAJIB — subbidang/fokus khusus kandungan ni (bebas teks, cth: Kewangan, Perbankan)",
   "source_url": "Pautan URL rujukan spesifik yang aktif — HANYA jika tiada sourceIndex"${sourceIndexInstruction}
 }
 Nothing more.`;
@@ -457,9 +466,26 @@ ${slot.sourcesList.trim()}
 
     const finalTitle = validation.cleanTitle;
     const finalSummary = validation.cleanSummary;
-    const finalCategory = (slot.manualDesk && slot.manualDesk.trim() !== '') 
-      ? slot.manualDesk.trim().toUpperCase() 
+    const finalCategory = (slot.manualDesk && slot.manualDesk.trim() !== '')
+      ? slot.manualDesk.trim().toUpperCase()
       : (parsedJson.category ? parsedJson.category.trim().toUpperCase() : 'UMUM');
+    const finalTopik = parsedJson.topik ? parsedJson.topik.trim() : '';
+
+    // Bidang terkunci per-slot (finalCategory already reflects the manualDesk override above),
+    // Topik wajib -- kecuali slot BAR (dikecualikan ciri Bidang/Topik sepenuhnya). If the AI failed
+    // to include a topik, treat the generation as failed, same as a budget-check failure above --
+    // don't silently save content missing the now-mandatory field.
+    if (!isBarSlot) {
+      const bidangTopikCheck = validateBidangTopik({
+        slotBidang: slot.manualDesk,
+        itemBidang: finalCategory,
+        topik: finalTopik,
+        requireTopik: true,
+      });
+      if (!bidangTopikCheck.isValid) {
+        throw new Error(`Validation failed: ${bidangTopikCheck.reason}`);
+      }
+    }
     // 1st choice: deterministic sourceIndex lookup into the already-fetched Content Pool — the
     // model only had to pick a number, so this can't be dropped/mistranscribed like a URL string
     // can. 2nd: real grounding citation. 3rd: the model's own free-text claim, verified reachable.
@@ -497,7 +523,9 @@ ${slot.sourcesList.trim()}
       { key: 'desk', val: finalCategory },
       { key: 'source', val: finalSource },
       { key: 'url', val: finalSourceUrl },
-      { key: 'aiProvider', val: provider.name }
+      { key: 'aiProvider', val: provider.name },
+      // Topik: kosong untuk slot BAR (tak terpakai di sana).
+      { key: 'topik', val: finalTopik }
     ];
 
     for (const attr of attributesToSave) {
