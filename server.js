@@ -3139,6 +3139,33 @@ app.get('/api/system/clock-holidays', async (req, res) => {
   }
 });
 
+// GET /api/system/hijri-date -- official JAKIM Hijri date (Imkanur Rukyah) via waktusolat.app's
+// public e-Solat proxy, NOT a client-side islamic-umalqura approximation (confirmed to drift up
+// to a day from JAKIM's actual calendar). The hijri value doesn't vary by zone within Malaysia --
+// any single JAKIM zone code works for the whole country, so only one call is needed.
+app.get('/api/system/hijri-date', async (req, res) => {
+  try {
+    const nowParts = {};
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kuala_Lumpur',
+      year: 'numeric', month: 'numeric', day: '2-digit'
+    }).formatToParts(new Date()).forEach(p => { nowParts[p.type] = p.value; });
+    const monthAbbr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kuala_Lumpur', month: 'short' }).format(new Date());
+    const todayStr = `${nowParts.day}-${monthAbbr}-${nowParts.year}`;
+
+    const response = await fetch(`https://api.waktusolat.app/solat/KTN01?year=${nowParts.year}&month=${nowParts.month}`);
+    if (!response.ok) throw new Error(`waktusolat.app returned ${response.status}`);
+    const data = await response.json();
+    const todayEntry = (data.prayerTime || []).find(p => p.date === todayStr);
+    if (!todayEntry) throw new Error(`No entry found for ${todayStr}`);
+
+    res.json({ hijri: todayEntry.hijri }); // "YYYY-MM-DD" Hijri
+  } catch (err) {
+    console.warn('Failed to fetch Hijri date from waktusolat.app:', err.message);
+    res.json({ hijri: null });
+  }
+});
+
 // 11b. POST /api/system/settings
 app.post('/api/system/settings', async (req, res) => {
   try {

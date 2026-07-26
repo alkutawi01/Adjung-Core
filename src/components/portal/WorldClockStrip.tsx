@@ -166,6 +166,21 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   const [timesMap, setTimesMap] = useState<Record<string, ClockTime>>({});
   const [cityWeather, setCityWeather] = useState<Record<string, { temp: number; code: number }>>({});
 
+  // Official JAKIM Hijri date (fetched once -- it's a calendar day, not something that needs
+  // per-second polling like the clock). Falls back to a local islamic-umalqura estimate (computed
+  // in updateTime below) if this fetch fails; confirmed via direct comparison against JAKIM's own
+  // data that the local estimate can drift a day off the real one, so this is preferred whenever
+  // it's reachable.
+  const [jakimHijriDate, setJakimHijriDate] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/system/hijri-date')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.hijri) setJakimHijriDate(data.hijri); // "YYYY-MM-DD"
+      })
+      .catch(() => {});
+  }, []);
+
   const triggerNextSet = () => {
     if (isAnimating) return;
     const nextIdx = (displaySetIndex + 1) % 3;
@@ -291,15 +306,23 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           // HOLIDAYS_2026 and custom-holiday text) is keyed to the Gregorian calendar.
           let displayDateStr = dateStr;
           if (FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name)) {
-            const hijriFormatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', {
-              timeZone: c.tz,
-              year: '2-digit',
-              month: '2-digit',
-              day: '2-digit'
-            });
-            const hijriParts: any = {};
-            hijriFormatter.formatToParts(new Date()).forEach(p => { hijriParts[p.type] = p.value; });
-            displayDateStr = `${hijriParts.day}/${hijriParts.month}/${hijriParts.year}`;
+            if (jakimHijriDate) {
+              // "YYYY-MM-DD" (Hijri, from JAKIM) -> "DD/MM/YY" to match the Gregorian display format.
+              const [hy, hm, hd] = jakimHijriDate.split('-');
+              displayDateStr = `${hd}/${hm}/${hy.slice(-2)}`;
+            } else {
+              // Fallback only: local islamic-umalqura estimate, used when the JAKIM proxy is
+              // unreachable. Confirmed to drift up to a day off JAKIM's actual calendar.
+              const hijriFormatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', {
+                timeZone: c.tz,
+                year: '2-digit',
+                month: '2-digit',
+                day: '2-digit'
+              });
+              const hijriParts: any = {};
+              hijriFormatter.formatToParts(new Date()).forEach(p => { hijriParts[p.type] = p.value; });
+              displayDateStr = `${hijriParts.day}/${hijriParts.month}/${hijriParts.year}`;
+            }
           }
 
           // Parse custom holidays
@@ -422,7 +445,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData]);
+  }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData, jakimHijriDate]);
 
   return (
     <div
