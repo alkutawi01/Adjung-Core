@@ -167,15 +167,13 @@ const renderCityCard = (
         </div>
       )}
       {/* Telefon: kolum hanya ±72px, jadi rentetan masa penuh (±111px) tidak muat dan akan
-          terpotong. Tarikh, hari dan masa berpindah ke baris meta dikongsi di bawah jalur; yang
-          tinggal dalam kad ialah tarikh Hijrah bandar Kumpulan A sahaja. */}
-      {isPhone ? (
-        timeData && timeData.hijriStr && FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name) ? (
-          <p className="font-mono text-[7px] leading-tight text-stone-500 whitespace-nowrap">
-            {timeData.hijriStr}
-          </p>
-        ) : null
-      ) : (
+          terpotong. Kesemua tarikh dan jam berpindah ke baris meta dikongsi di bawah jalur, jadi
+          kad bandar telefon membawa cuaca dan nama sahaja — kesemua 15 kad seragam.
+
+          Fail rekaan memapar tarikh Hijrah di dalam kad tiga bandar Kumpulan A. Itu ditinggalkan
+          atas arahan pemilik projek: baris meta sudah membawa tarikh Hijrah, jadi angka dalam kad
+          cuma mengulanginya dan menjadikan tiga kad berbeza bentuk daripada dua belas yang lain. */}
+      {!isPhone && (
         <p className="font-serif text-[10px] sm:text-[11px] md:text-xs text-[#1F1F1F] font-light tracking-tight whitespace-nowrap">
           {timeData ? timeData.timeStr : 'Loading...'}
         </p>
@@ -508,19 +506,15 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   // Asia/Kuala_Lumpur yang sama, jadi mana-mana bandar memberi jawapan yang sama; KL dipilih
   // kerana ia bukan bandar Kumpulan A, jadi dateStr-nya kekal Masihi.
   //
-  // Tarikh Hijrah — bandar Kumpulan A dalam set yang SEDANG dipapar. Kalendar Hijrah Adjung
-  // merujuk Kelantan, Terengganu dan Kedah (itulah tiga bandar yang memapar tarikh Hijrah pada
-  // versi desktop), dan setiap set kebetulan mengandungi tepat satu daripadanya:
-  //
-  //     Set 1 → Kota Bharu (KTN01)   Set 2 → Alor Setar (KDH01)   Set 3 → K. Terengganu (TRG01)
-  //
-  // Jadi ketiga-tiga negeri itu digunakan mengikut giliran, dan tarikh Hijrah baris meta sentiasa
-  // sepadan dengan bandar Kumpulan A yang sedang kelihatan di skrin. Ini juga mengelakkan
-  // persoalan "negeri mana yang menang" — ketiga-tiga zon itu diselaraskan Maghrib secara
-  // berasingan dan boleh berbeza sehari sekitar waktu Maghrib.
+  // Tarikh Hijrah — Kota Bharu (KTN01), TETAP. Kalendar Hijrah Adjung merujuk Kelantan,
+  // Terengganu dan Kedah; ketiga-tiganya diselaraskan Maghrib secara berasingan dan boleh berbeza
+  // sehari sekitar waktu Maghrib, jadi satu baris meta perlu memilih satu. Pemilik projek memilih
+  // Kota Bharu sebagai rujukan tunggal, dan sengaja TIDAK mahu ia bertukar setiap kali set jam
+  // berputar — tarikh yang berubah-ubah di sebelah jam yang tidak berubah akan mengelirukan
+  // pembaca. Zon KDH01 dan TRG01 masih diambil kerana versi desktop memerlukannya: di sana ketiga
+  // -tiga bandar itu memapar tarikh Hijrah menggantikan tarikh Masihi dalam kadnya sendiri.
   const metaClock = timesMap['Kuala Lumpur'];
-  const metaHijriCity = CITY_SETS[displaySetIndex].find(c => FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name));
-  const metaHijriStr = metaHijriCity ? (timesMap[metaHijriCity.name]?.hijriStr || '') : '';
+  const metaHijriStr = timesMap['Kota Bharu']?.hijriStr || '';
 
   return (
     <div
