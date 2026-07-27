@@ -699,10 +699,19 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                           <button
                             type="button"
                             onClick={() => setIconPickerBidangId(d.id)}
-                            className="hover:ring-2 hover:ring-offset-1 hover:ring-stone-300 rounded-full transition-shadow"
-                            title="Tukar ikon"
+                            className="hover:ring-2 hover:ring-offset-1 hover:ring-stone-300 rounded-full transition-shadow relative"
+                            title="Tukar ikon dan plat ilustrasi"
                           >
                             <BidangIcon iconName={d.icon} iconSvg={d.iconSvg} color={d.color} />
+                            {/* Titik marun kecil: tanda Bidang ini sudah ada plat ilustrasi. Tanpa
+                                ini tiada cara melihat Bidang mana yang sudah siap tanpa membuka
+                                setiap satu modal. */}
+                            {d.illustrationSvg && (
+                              <span
+                                className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#802334] border border-white"
+                                title="Ada plat ilustrasi"
+                              />
+                            )}
                           </button>
                         </td>
                         <td className="p-3">
@@ -1128,7 +1137,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <div className="flex justify-between items-center border-b border-stone-200 pb-2">
                 <h3 className="font-sans text-xs font-bold text-[#802334] uppercase flex items-center gap-2">
                   <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />
-                  Tukar Ikon — {target.name}
+                  Ikon &amp; Plat Ilustrasi — {target.name}
                 </h3>
                 <button onClick={closeIconPicker} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
               </div>
