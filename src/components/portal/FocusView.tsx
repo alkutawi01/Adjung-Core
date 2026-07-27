@@ -161,10 +161,25 @@ export const FocusView: React.FC<FocusViewProps> = ({
     fontFamily: 'var(--font-sans)', fontSize: 'var(--text-10)', textTransform: 'uppercase',
     letterSpacing: 'var(--tracking-editorial)', color: 'var(--stone-400)', fontWeight: 'var(--weight-semibold)' as any,
   };
-  const placeholder: React.CSSProperties = {
-    ...micro, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
-    color: 'var(--stone-300)', border: '1px dashed var(--border-default)', fontWeight: 'var(--weight-medium)' as any,
-  };
+  // MENGKHASKAN RUANG BUKAN MENGUMUMKAN KETIADAAN
+  //
+  // Handoff menetapkan bahagian pilihan yang kosong memapar pemegang tempat bergaris putus —
+  // "Ruang grafik", "Tiada kandungan berkaitan", "Tiada nota editor." — supaya komposisi tidak
+  // pernah beralih semasa melangkah antara kandungan dengan Sebelum/Seterusnya.
+  //
+  // Alasan itu bergantung pada satu andaian: medan tersebut kadang-kadang berisi. Ia tidak.
+  // FrontpageView memanggil FocusView tanpa prop `visual`, `visualCaption`, `related`, `note`,
+  // `editorName` atau `editorContact` langsung — medan itu belum ada sumber data. Jadi pemegang
+  // tempat tersebut muncul pada SETIAP kandungan, 100% masa, dan seluruh kolum kanan permukaan
+  // bacaan awam menjadi pengumuman ketiadaan. Tiada apa yang boleh beralih apabila tiada apa yang
+  // pernah ada.
+  //
+  // Keputusan pemilik projek: label dan kandungan dirender hanya apabila ada isi. RUANG masih
+  // dikhaskan — trek grid 9/span 4 kekal, jadi ukuran bacaan di kolum 1-8 tidak pernah berubah
+  // lebar. Yang dibuang cuma kotak putus-putus dan teks "Tiada ...".
+  //
+  // Apabila medan itu disambungkan kepada sumber data nanti, jaminan tanpa-reflow handoff boleh
+  // dihidupkan semula per medan dengan memulangkan pemegang tempat ini.
   // Chevron menyala marun pada hover DAN pada fokus papan kekunci — kedua-duanya, bukan hover
   // sahaja. Nilai motion ditulis terus (150ms, cubic-bezier(0.4,0,0.2,1)) kerana --duration-fast
   // dan --ease-standard tidak wujud dalam src/index.css; ia token projek Claude Design sahaja.
@@ -425,17 +440,21 @@ export const FocusView: React.FC<FocusViewProps> = ({
               <hr style={{ ...rule, marginTop: 'auto' }} />
             </div>
 
-            {/* BAND A KANAN — grafik, ditengahkan terhadap blok tajuk + huraian pendek */}
-            <figure style={{ gridColumn: '9 / span 4', gridRow: 1, minWidth: 0, minHeight: 0, margin: 0, alignSelf: 'center', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <div style={{
-                width: '100%', aspectRatio: '4 / 3', minHeight: 0, maxHeight: 'clamp(180px, 25vh, 240px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                ...(visual ? null : placeholder),
-              }}>
-                {plate || 'Ruang grafik'}
-              </div>
-              <figcaption style={{ ...micro, marginTop: '10px', textAlign: 'center', fontWeight: 'var(--weight-medium)' as any }}>{visualCaption || 'Lampiran visual'}</figcaption>
-            </figure>
+            {/* BAND A KANAN — grafik. Dirender HANYA apabila grafik benar-benar ada; lihat nota
+                "MENGKHASKAN RUANG BUKAN MENGUMUMKAN KETIADAAN" di bawah. */}
+            {visual && (
+              <figure style={{ gridColumn: '9 / span 4', gridRow: 1, minWidth: 0, minHeight: 0, margin: 0, alignSelf: 'center', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{
+                  width: '100%', aspectRatio: '4 / 3', minHeight: 0, maxHeight: 'clamp(180px, 25vh, 240px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                }}>
+                  {plate}
+                </div>
+                {visualCaption && (
+                  <figcaption style={{ ...micro, marginTop: '10px', textAlign: 'center', fontWeight: 'var(--weight-medium)' as any }}>{visualCaption}</figcaption>
+                )}
+              </figure>
+            )}
 
             {/* BAND B KIRI — huraian panjang, satu-satunya kawasan yang menatal */}
             <div style={{ gridColumn: '1 / span 8', gridRow: 2, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 'clamp(14px, 2.6vh, 28px)' }}>
@@ -471,9 +490,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 overflow: hidden di sini — limpahan ditolak keluar dari ATAS dan tajuk "Kandungan
                 berkaitan" lenyap senyap-senyap. */}
             <div style={{ gridColumn: '9 / span 4', gridRow: 2, minWidth: 0, minHeight: 0, display: 'grid', gridTemplateRows: 'minmax(0, 1fr) auto', gap: 'clamp(10px, 1.8vh, 18px)', paddingTop: 'clamp(14px, 2.6vh, 28px)' }}>
-              <div style={{ minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' }}>
-                <span style={{ ...micro, display: 'block', marginBottom: '6px' }}>Kandungan berkaitan</span>
-                {related.length > 0 ? (
+              {related.length > 0 && (
+                <div style={{ minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' }}>
+                  <span style={{ ...micro, display: 'block', marginBottom: '6px' }}>Kandungan berkaitan</span>
                   <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                     {related.slice(0, 2).map((r, i) => {
                       const item: FocusRelatedItem = typeof r === 'string' ? { title: r } : r;
@@ -485,14 +504,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
                       );
                     })}
                   </ol>
-                ) : (
-                  <div style={{ ...placeholder, minHeight: '56px' }}>Tiada kandungan berkaitan</div>
-                )}
-              </div>
+                </div>
+              )}
 
-              <p title={note || undefined} style={{ margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: note ? 'var(--stone-600)' : 'var(--stone-300)', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden' }}>
-                <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText || 'Tiada nota editor.'}
-              </p>
+              {/* Nota memegang trek `auto`. Bila kandungan berkaitan tiada, trek `minmax(0,1fr)` di
+                  atas kekal kosong, jadi nota tetap duduk di kedudukan yang sama seperti biasa. */}
+              {note && (
+                <p title={note} style={{ gridRow: 2, margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden' }}>
+                  <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText}
+                </p>
+              )}
             </div>
           </div>
 
@@ -508,17 +529,23 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 </span>
               </span>
               {/* alignItems: flex-end dalam lajur flex — text-align sahaja membiarkan tepi hanyut */}
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-                <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', color: 'var(--color-Adjung-maroon)' }}>{editorName || '—'}</span>
-                <a
-                  href={editorContact && editorContact.includes('@') ? 'mailto:' + editorContact : (editorContact ? 'https://' + editorContact : '#')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ ...micro, color: 'var(--stone-500)', textTransform: 'none', letterSpacing: 'var(--tracking-wide)', fontWeight: 'var(--weight-regular)' as any }}
-                >
-                  {editorContact}
-                </a>
-              </span>
+              {(editorName || editorContact) && (
+                <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+                  {editorName && (
+                    <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', color: 'var(--color-Adjung-maroon)' }}>{editorName}</span>
+                  )}
+                  {editorContact && (
+                    <a
+                      href={editorContact.includes('@') ? 'mailto:' + editorContact : 'https://' + editorContact}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ ...micro, color: 'var(--stone-500)', textTransform: 'none', letterSpacing: 'var(--tracking-wide)', fontWeight: 'var(--weight-regular)' as any }}
+                    >
+                      {editorContact}
+                    </a>
+                  )}
+                </span>
+              )}
             </div>
           </div>
         </div>
