@@ -155,9 +155,17 @@ const EyebrowKad: React.FC<{
   if (!bolehGunaIkon) return <>{formatBidangTopik(item)}</>;
 
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-      <BidangIcon iconName={bidang!.icon} iconSvg={bidang!.iconSvg} color="currentColor" variant="bare" size={saiz} />
-      <span aria-hidden="true" style={{ opacity: 0.5 }}>|</span>
+    // Tiada pemisah apabila ikon dipakai: pemisah wujud untuk memisahkan DUA perkataan. Ikon dan
+    // perkataan sudah terpisah secara visual, jadi "|" cuma bunyi bising.
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+      <BidangIcon
+        iconName={bidang!.icon}
+        iconSvg={bidang!.iconSvg}
+        color="currentColor"
+        variant="bare"
+        size={saiz}
+        title={item.desk || undefined}
+      />
       <span>{topik}</span>
       {/* Nama Bidang kekal untuk pembaca skrin: ikon sahaja tidak membawa maksud tanpa dilihat. */}
       <span className="sr-only">{item.desk}</span>

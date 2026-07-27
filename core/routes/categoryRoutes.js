@@ -345,6 +345,23 @@ export function createCategoryRoutes(db) {
     }
   });
 
+  // POST /api/system/categories/set-color — tukar warna identiti Bidang.
+  //
+  // Warna diberi automatik semasa Bidang dicipta dan sebelum ini tiada cara langsung untuk
+  // menukarnya — tiada rute, tiada UI. Warna ini muncul pada eyebrow kad, glif Bidang dan eyebrow
+  // Focus View, jadi Bidang yang mendapat warna tidak sesuai kekal begitu selama-lamanya.
+  router.post('/categories/set-color', async (req, res) => {
+    try {
+      const { id, color } = req.body;
+      if (!id || !color) return res.status(400).json({ error: 'id dan color diperlukan.' });
+      await CategoryRegistry.setColor(db, id, color);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Set colour error:', err);
+      res.status(400).json({ error: err.message || 'Gagal menetapkan warna.' });
+    }
+  });
+
   // POST /api/system/categories/set-illustration-svg — muat naik plat ilustrasi Bidang.
   // Disahkan ikut spec di atas (viewBox 256x256, currentColor sahaja) DAN ditapis dengan senarai
   // putih yang sama seperti ikon. Jangan skip mana-mana daripada dua langkah itu.

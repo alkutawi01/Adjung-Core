@@ -366,6 +366,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     setIllusPreview(null);
     setIllusError(null);
     setIllusNote(null);
+    setWarnaDraf(null);
+    setWarnaError(null);
     if (d.hasIllustration) {
       fetch('/api/system/categories/illustration?name=' + encodeURIComponent(d.name))
         .then(res => res.json())
@@ -382,6 +384,35 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     setIllusCurrent(null);
     setIllusError(null);
     setIllusNote(null);
+    setWarnaDraf(null);
+    setWarnaError(null);
+  };
+
+  // Warna Bidang — dipentaskan dalam state supaya pemilih warna boleh diseret tanpa menghantar
+  // satu permintaan bagi setiap piksel pergerakan.
+  const [warnaDraf, setWarnaDraf] = useState<string | null>(null);
+  const [simpanWarna, setSimpanWarna] = useState(false);
+  const [warnaError, setWarnaError] = useState<string | null>(null);
+
+  const handleSaveColor = async (id: string) => {
+    if (!warnaDraf) return;
+    setSimpanWarna(true);
+    setWarnaError(null);
+    try {
+      const res = await fetch('/api/system/categories/set-color', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, color: warnaDraf })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menetapkan warna.');
+      setWarnaDraf(null);
+      fetchActiveBidang();
+    } catch (e: any) {
+      setWarnaError(e.message || 'Gagal menetapkan warna.');
+    } finally {
+      setSimpanWarna(false);
+    }
   };
 
   const handleIllusFileSelected = (file: File | null) => {
@@ -1369,12 +1400,54 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <div className="flex justify-between items-center border-b border-stone-200 pb-2">
                 <h3 className="font-sans text-xs font-bold text-[#802334] uppercase flex items-center gap-2">
                   <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />
-                  Ikon &amp; Plat Ilustrasi — {target.name}
+                  Ikon, Warna &amp; Plat — {target.name}
                 </h3>
                 <button onClick={closeIconPicker} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
               </div>
 
               <div className="font-sans space-y-3">
+                <div className="pb-3 border-b border-stone-200">
+                  <label className="text-xs text-stone-500 font-semibold block mb-1">Warna Bidang</label>
+                  <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
+                    Dipakai pada eyebrow kad, glif Bidang, dan eyebrow Focus View — identiti visual Bidang ini
+                    merentas seluruh portal. Warna diberi automatik semasa Bidang dicipta; tukar di sini kalau ia
+                    tidak sesuai.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={warnaDraf || target.color || '#802334'}
+                      onChange={e => { setWarnaDraf(e.target.value.toUpperCase()); setWarnaError(null); }}
+                      className="w-10 h-8 rounded border border-stone-300 bg-white cursor-pointer p-0.5"
+                      title="Pilih warna"
+                    />
+                    <input
+                      type="text"
+                      value={warnaDraf || target.color || ''}
+                      onChange={e => { setWarnaDraf(e.target.value.toUpperCase()); setWarnaError(null); }}
+                      placeholder="#802334"
+                      className="w-24 px-2 py-1 border border-stone-300 rounded font-mono text-[11px] uppercase"
+                    />
+                    {/* Pratonton dalam bentuk sebenar ia akan dipakai */}
+                    <span
+                      className="font-mono text-[10px] uppercase tracking-widest font-bold"
+                      style={{ color: warnaDraf || target.color }}
+                    >
+                      {target.name}
+                    </span>
+                    {warnaDraf && warnaDraf.toUpperCase() !== (target.color || '').toUpperCase() && (
+                      <button
+                        onClick={() => handleSaveColor(target.id)}
+                        disabled={simpanWarna}
+                        className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                      >
+                        {simpanWarna ? 'Menyimpan...' : 'Guna Warna Ini'}
+                      </button>
+                    )}
+                  </div>
+                  {warnaError && <p className="text-red-600 text-[10px] mt-1">{warnaError}</p>}
+                </div>
+
                 <div>
                   <label className="text-xs text-stone-500 font-semibold block mb-2">Pilih Ikon Sedia Ada</label>
                   <div className="grid grid-cols-8 gap-1.5">

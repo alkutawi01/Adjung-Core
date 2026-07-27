@@ -290,6 +290,18 @@ class CategoryRegistry {
     await this.dbRun(db, "UPDATE CategoryRegistry SET iconSvg = ?, updatedAt = ? WHERE id = ?", [sanitizedSvg.trim(), now, id]);
   }
 
+  // Warna Bidang. Warna diberi AUTOMATIK semasa Bidang dicipta, dan sehingga kini tiada cara untuk
+  // menukarnya — jadi Bidang seperti "Malaysiana" boleh berakhir dengan warna yang tiada kaitan
+  // langsung dengan maksudnya. Warna ini dipakai pada eyebrow kad, glif Bidang, dan eyebrow Focus
+  // View, jadi ia identiti visual Bidang itu merentas seluruh portal.
+  static async setColor(db, id, hex) {
+    if (!id) throw new Error('id Bidang diperlukan.');
+    const warna = String(hex || '').trim();
+    if (!/^#[0-9a-f]{6}$/i.test(warna)) throw new Error('Warna mesti kod hex 6 digit, cth #802334.');
+    const now = new Date().toISOString();
+    await this.dbRun(db, "UPDATE CategoryRegistry SET color = ?, updatedAt = ? WHERE id = ?", [warna.toUpperCase(), now, id]);
+  }
+
   // Plat ilustrasi BESAR Bidang (markup dah disanitize + disahkan ikut spec di categoryRoutes.js).
   // Berasingan sepenuhnya daripada iconSvg: yang itu glif masthead 13px, ini plat bacaan ~240px
   // dalam kolum kanan Focus View. Menetapkan satu tidak menyentuh satu lagi.

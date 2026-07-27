@@ -27,9 +27,13 @@ interface BidangIconProps {
   variant?: 'badge' | 'bare';
   /** Saiz glif dalam px. Lencana sentiasa 28px; ni saiz ikon di dalamnya. */
   size?: number;
+  /** Tooltip. Lalai ialah label ADMIN (nama ikon lucide, cth "Flag") — berguna di Taksonomi semasa
+   *  memilih ikon, tetapi ia nama dalaman yang tidak sepatutnya bocor ke halaman awam. Permukaan
+   *  awam mesti menghantar sesuatu yang bermakna kepada pembaca, cth nama Bidang. */
+  title?: string;
 }
 
-export const BidangIcon: React.FC<BidangIconProps> = ({ iconName, iconSvg, color, variant = 'badge', size = 14 }) => {
+export const BidangIcon: React.FC<BidangIconProps> = ({ iconName, iconSvg, color, variant = 'badge', size = 14, title }) => {
   const isBadge = variant === 'badge';
   const wrapperClass = isBadge
     ? 'inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0'
@@ -43,7 +47,7 @@ export const BidangIcon: React.FC<BidangIconProps> = ({ iconName, iconSvg, color
       <span
         className={`${wrapperClass} bidang-icon-svg`}
         style={{ ...wrapperStyle, ['--bidang-icon-size' as any]: `${size}px` }}
-        title="Ikon custom (SVG dimuat naik)"
+        title={title ?? "Ikon custom (SVG dimuat naik)"}
         // eslint-disable-next-line react/no-danger -- markup ditapis ketat di server
         // (sanitizeSvgIcon di core/routes/categoryRoutes.js) sebelum sampai ke DB.
         dangerouslySetInnerHTML={{ __html: iconSvg }}
@@ -53,7 +57,7 @@ export const BidangIcon: React.FC<BidangIconProps> = ({ iconName, iconSvg, color
 
   const IconComponent = (iconName && BIDANG_ICON_MAP[iconName]) || Tag;
   return (
-    <span className={wrapperClass} style={wrapperStyle} title={iconName || 'Tiada ikon lagi'}>
+    <span className={wrapperClass} style={wrapperStyle} title={title ?? (iconName || 'Tiada ikon lagi')}>
       <IconComponent style={{ width: size, height: size }} />
     </span>
   );
