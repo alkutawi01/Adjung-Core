@@ -2204,18 +2204,7 @@ URL: ${url}`;
   /** Satu kedudukan kandungan: slot mana, item ke berapa dalam carousel slot tu. */
   type FocusLoc = { slotIndex: number; itemIndex: number };
 
-  /** Mod navigasi chevron: ikut urutan dalam slot sama, atau rawak merentas semua slot.
-   *  Reka bentuk muktamad Focus View tidak memaparkan suis mod (spesifikasinya menetapkan
-   *  chevron melangkah dalam slot semasa sahaja), jadi mod kekal 'urutan' buat masa ni dan
-   *  jentera 'rawak' di bawah tak dapat dicapai dari antara muka. Ia sengaja DIKEKALKAN,
-   *  bukan dibuang — menunggu keputusan pemilik projek sama ada suis itu patut kembali. */
-  type FocusMode = 'urutan' | 'rawak';
-
   const [focusLoc, setFocusLoc] = useState<FocusLoc | null>(null);
-  const [focusMode, setFocusMode] = useState<FocusMode>('urutan');
-  // Baldi rawak: dikocok SEKALI, tak berulang sampai habis, kemudian dikocok semula.
-  const [focusBag, setFocusBag] = useState<FocusLoc[]>([]);
-  const [focusBagPos, setFocusBagPos] = useState(0);
 
   /** Senarai item bagi satu slot — carousel penuh, atau slot itu sendiri kalau tunggal. */
   const focusItemsForSlot = React.useCallback((slotIndex: number): any[] => {
@@ -2235,15 +2224,6 @@ URL: ${url}`;
     });
     return out;
   }, [bentoNewsItems]);
-
-  const shuffleLocations = (list: FocusLoc[]): FocusLoc[] => {
-    const arr = [...list];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  };
 
   // Buka ikut RUJUKAN item, bukan nombor slot. Sengaja: pencetus klik ada di 33 tempat dalam
   // fail ni, dan kalau setiap satu kena taip nombor slot sendiri, satu salah taip = kad buka
@@ -2267,41 +2247,18 @@ URL: ${url}`;
 
   const closeFocus = () => setFocusLoc(null);
 
-  /** Gerak ±1. Mod urutan: dalam slot sama. Mod rawak: ikut baldi merentas semua slot. */
+  /** Gerak ±1 dalam slot yang sama, berkitar di hujungnya. Slot berkandungan tunggal tidak
+   *  bergerak langsung. Reka bentuk Focus View menetapkan chevron melangkah dalam slot semasa
+   *  sahaja — ia tidak melompat ke slot lain. */
   const stepFocus = React.useCallback((delta: number) => {
     setFocusLoc(current => {
       if (!current) return current;
-
-      if (focusMode === 'urutan') {
-        const list = focusItemsForSlot(current.slotIndex);
-        if (list.length <= 1) return current;
-        const next = (current.itemIndex + delta + list.length) % list.length;
-        return { ...current, itemIndex: next };
-      }
-
-      if (focusAllLocations.length === 0) return current;
-      let bag = focusBag;
-      let pos = focusBagPos + delta;
-      // Baldi habis (depan atau belakang) — kocok semula dan mula balik.
-      if (bag.length === 0 || pos < 0 || pos >= bag.length) {
-        bag = shuffleLocations(focusAllLocations);
-        pos = delta >= 0 ? 0 : bag.length - 1;
-        setFocusBag(bag);
-      }
-      setFocusBagPos(pos);
-      return bag[pos] || current;
+      const list = focusItemsForSlot(current.slotIndex);
+      if (list.length <= 1) return current;
+      const next = (current.itemIndex + delta + list.length) % list.length;
+      return { ...current, itemIndex: next };
     });
-  }, [focusMode, focusBag, focusBagPos, focusAllLocations, focusItemsForSlot]);
-
-  // Tukar ke mod rawak: kocok baldi baharu dan letak kandungan semasa di kepala baldi,
-  // supaya tekanan chevron pertama betul-betul melompat ke tempat lain.
-  const changeFocusMode = (mode: FocusMode) => {
-    setFocusMode(mode);
-    if (mode === 'rawak') {
-      setFocusBag(shuffleLocations(focusAllLocations));
-      setFocusBagPos(0);
-    }
-  };
+  }, [focusItemsForSlot]);
 
   // Kekunci: Esc tutup, kiri/kanan gerak — sama seperti paparan penuh Ticker.
   useEffect(() => {
