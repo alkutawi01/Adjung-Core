@@ -14,6 +14,8 @@ import { TickerManagementModal } from './TickerManagementModal';
 import { BarCard } from './cards/BarCard';
 import { BarCardExpandedPanel } from './cards/BarCardExpandedPanel';
 import { Tooltip } from '../common/Tooltip';
+import { FocusView, type FocusMode } from './FocusView';
+import { BidangIcon } from '../common/BidangIcon';
 
 // parseInlineFormatting is designed for hand-authored Note/Essay body text; applying it broadly to
 // every carousel item's title/brief (including years of accumulated AI-generated history per slot)
@@ -656,7 +658,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // Senarai Bidang tertutup (24 disiplin kurasi Ketua Editor) — sumber dropdown Bidang di
   // Tetapan Slot. Berasingan daripada categoryColors di atas (yang baca SEMUA baris
   // CategoryRegistry, termasuk 93 baris lama tak aktif, untuk warna kad).
-  const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string }[]>([]);
+  // icon/iconSvg dibawa sekali (bukan hanya name/color) sebab Focus View papar glif Bidang
+  // di sebelah label "Bidang Topik" — lihat openFocus() di bawah.
+  const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string; icon: string | null; iconSvg: string | null }[]>([]);
   const [activeLanguage, setActiveLanguage] = useState<'ms' | 'zh' | 'ar' | 'en'>('ms');
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -1548,7 +1552,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setActiveBidangList(data.map((c: any) => ({ name: c.name, color: c.color })));
+          setActiveBidangList(data.map((c: any) => ({
+            name: c.name,
+            color: c.color,
+            icon: c.icon ?? null,
+            iconSvg: c.iconSvg ?? null,
+          })));
         }
       })
       .catch(err => console.error('Failed to load active Bidang list:', err));
@@ -2177,6 +2186,134 @@ URL: ${url}`;
 
   const activeNewsItem = bentoNewsItems[0];
 
+  // ==========================================================================
+  // FOCUS VIEW — logik sahaja. Persembahan ada di src/components/portal/FocusView.tsx
+  // (satu fail, boleh diganti bulat-bulat bila reka bentuk baharu siap).
+  //
+  // Dibuka bila pengguna klik TAJUK atau HURAIAN pada kad. Dikecualikan: tier BAR
+  // (ada panel Penerangan sendiri) dan Ticker (ada paparan penuh sendiri).
+  // ==========================================================================
+
+  /** Satu kedudukan kandungan: slot mana, item ke berapa dalam carousel slot tu. */
+  type FocusLoc = { slotIndex: number; itemIndex: number };
+
+  const [focusLoc, setFocusLoc] = useState<FocusLoc | null>(null);
+  const [focusMode, setFocusMode] = useState<FocusMode>('urutan');
+  // Baldi rawak: dikocok SEKALI, tak berulang sampai habis, kemudian dikocok semula.
+  const [focusBag, setFocusBag] = useState<FocusLoc[]>([]);
+  const [focusBagPos, setFocusBagPos] = useState(0);
+
+  /** Senarai item bagi satu slot — carousel penuh, atau slot itu sendiri kalau tunggal. */
+  const focusItemsForSlot = React.useCallback((slotIndex: number): any[] => {
+    const slot = bentoNewsItems[slotIndex];
+    if (!slot) return [];
+    return slot.items && slot.items.length > 0 ? slot.items : [slot];
+  }, [bentoNewsItems]);
+
+  /** Semua kedudukan yang layak masuk Focus View (BAR & Ticker dikecualikan). */
+  const focusAllLocations = React.useMemo<FocusLoc[]>(() => {
+    const out: FocusLoc[] = [];
+    bentoNewsItems.forEach((slot: any, slotIndex: number) => {
+      if (!slot) return;
+      if (getGeometryTierForIndex(slotIndex) === 'BAR') return;
+      const list = slot.items && slot.items.length > 0 ? slot.items : [slot];
+      list.forEach((_: any, itemIndex: number) => out.push({ slotIndex, itemIndex }));
+    });
+    return out;
+  }, [bentoNewsItems]);
+
+  const shuffleLocations = (list: FocusLoc[]): FocusLoc[] => {
+    const arr = [...list];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  // Buka ikut RUJUKAN item, bukan nombor slot. Sengaja: pencetus klik ada di 33 tempat dalam
+  // fail ni, dan kalau setiap satu kena taip nombor slot sendiri, satu salah taip = kad buka
+  // kandungan slot lain — jenis pepijat senyap yang paling susah dikesan. Cara ni buat semua
+  // 33 suntingan jadi teks yang sama betul: onClick={focusClick(it)}.
+  const openFocus = (item: any) => {
+    if (isEditMode || !item) return;
+    const loc = focusAllLocations.find(
+      l => focusItemsForSlot(l.slotIndex)[l.itemIndex] === item
+    );
+    if (loc) setFocusLoc(loc);
+  };
+
+  /** Pengendali klik untuk tajuk/huraian pada kad. Dalam mod edit ia berdiam diri supaya
+   *  klik terus naik ke kad dan membuka borang edit seperti biasa. */
+  const focusClick = (item: any) => (e: React.MouseEvent) => {
+    if (isEditMode) return;
+    e.stopPropagation();
+    openFocus(item);
+  };
+
+  const closeFocus = () => setFocusLoc(null);
+
+  /** Gerak ±1. Mod urutan: dalam slot sama. Mod rawak: ikut baldi merentas semua slot. */
+  const stepFocus = React.useCallback((delta: number) => {
+    setFocusLoc(current => {
+      if (!current) return current;
+
+      if (focusMode === 'urutan') {
+        const list = focusItemsForSlot(current.slotIndex);
+        if (list.length <= 1) return current;
+        const next = (current.itemIndex + delta + list.length) % list.length;
+        return { ...current, itemIndex: next };
+      }
+
+      if (focusAllLocations.length === 0) return current;
+      let bag = focusBag;
+      let pos = focusBagPos + delta;
+      // Baldi habis (depan atau belakang) — kocok semula dan mula balik.
+      if (bag.length === 0 || pos < 0 || pos >= bag.length) {
+        bag = shuffleLocations(focusAllLocations);
+        pos = delta >= 0 ? 0 : bag.length - 1;
+        setFocusBag(bag);
+      }
+      setFocusBagPos(pos);
+      return bag[pos] || current;
+    });
+  }, [focusMode, focusBag, focusBagPos, focusAllLocations, focusItemsForSlot]);
+
+  // Tukar ke mod rawak: kocok baldi baharu dan letak kandungan semasa di kepala baldi,
+  // supaya tekanan chevron pertama betul-betul melompat ke tempat lain.
+  const changeFocusMode = (mode: FocusMode) => {
+    setFocusMode(mode);
+    if (mode === 'rawak') {
+      setFocusBag(shuffleLocations(focusAllLocations));
+      setFocusBagPos(0);
+    }
+  };
+
+  // Kekunci: Esc tutup, kiri/kanan gerak — sama seperti paparan penuh Ticker.
+  useEffect(() => {
+    if (!focusLoc) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeFocus();
+      else if (e.key === 'ArrowRight') stepFocus(1);
+      else if (e.key === 'ArrowLeft') stepFocus(-1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [focusLoc, stepFocus]);
+
+  /** Item mentah yang sedang dipapar, atau null. */
+  const focusItem = React.useMemo(() => {
+    if (!focusLoc) return null;
+    return focusItemsForSlot(focusLoc.slotIndex)[focusLoc.itemIndex] || null;
+  }, [focusLoc, focusItemsForSlot]);
+
+  // bentoNewsItems memarse title/brief jadi elemen React untuk dirender pada kad;
+  // .titleString/.briefString simpan teks mentah. Focus View mahu yang mentah.
+  const asPlainText = (v: any): string => (typeof v === 'string' ? v : '');
+  const focusBidang = focusItem
+    ? activeBidangList.find(b => b.name.toLowerCase() === (focusItem.desk || '').toLowerCase())
+    : undefined;
+
 
 
 
@@ -2715,8 +2852,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{formatBidangTopik(it)}</div>
-                          <h3 className="font-serif text-2xl md:text-3xl leading-tight font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[0]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-2xl md:text-3xl leading-tight font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[0]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2746,8 +2883,8 @@ URL: ${url}`;
                         renderItem={(it) => (
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{formatBidangTopik(it)}</div>
-                            <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[1]).briefStyle}>{safeParseInline(it.brief)}</p>
+                            <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                            <p className="font-serif text-xs text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[1]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                           </>
                         )}
                       />
@@ -2774,8 +2911,8 @@ URL: ${url}`;
                         renderItem={(it) => (
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{formatBidangTopik(it)}</div>
-                            <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[2]).briefStyle}>{safeParseInline(it.brief)}</p>
+                            <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[2]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                           </>
                         )}
                       />
@@ -2802,8 +2939,8 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                            <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[3]).briefStyle}>{safeParseInline(it.brief)}</p>
+                            <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[3]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                           </>
                         )}
                       />
@@ -2831,8 +2968,8 @@ URL: ${url}`;
                           activeIndex={bentoNewsItems[4].carouselIndex || 0}
                           renderItem={(it) => (
                             <>
-                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[4]).briefStyle}>{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[4]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                           )}
                         />
@@ -2857,8 +2994,8 @@ URL: ${url}`;
                           activeIndex={bentoNewsItems[5].carouselIndex || 0}
                           renderItem={(it) => (
                             <>
-                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[5]).briefStyle}>{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[5]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                           )}
                         />
@@ -2890,8 +3027,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[6]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[6]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2922,8 +3059,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[12].publishedAt)}</span>
-                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[12]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[12]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -2991,8 +3128,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[11].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[11]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[11]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3026,8 +3163,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[13].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[13]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[13]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3057,8 +3194,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[14].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[14]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[14]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3093,8 +3230,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[15].publishedAt)}</span>
-                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[15]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[15]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3124,8 +3261,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[16].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[16]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[16]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3157,8 +3294,8 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[17].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[17]).briefStyle}>{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[17]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
                       />
@@ -3186,8 +3323,8 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[18].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[18]).briefStyle}>{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[18]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
                       />
@@ -3218,8 +3355,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[19].publishedAt)}</span>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[19]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[19]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3255,8 +3392,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[26].publishedAt)}</span>
-                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[26]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[26]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3286,8 +3423,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[20].publishedAt)}</span>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[20]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[20]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3318,8 +3455,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[25].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[25]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[25]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3390,8 +3527,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[27].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[27]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[27]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3421,8 +3558,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[28].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[28]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[28]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3457,8 +3594,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[29].publishedAt)}</span>
-                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[29]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[29]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3488,8 +3625,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[30].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[30]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[30]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3521,8 +3658,8 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[31].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[31]).briefStyle}>{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[31]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
                       />
@@ -3550,8 +3687,8 @@ URL: ${url}`;
                         activeIndex={bentoNewsItems[32].carouselIndex || 0}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[32]).briefStyle}>{safeParseInline(it.brief)}</p>
+                              <h3 className="font-serif text-xs md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <p className="font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[32]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
                       />
@@ -3582,8 +3719,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[33].publishedAt)}</span>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[33]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[33]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3618,8 +3755,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[34].publishedAt)}</span>
-                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[34]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-lg md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[34]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3649,8 +3786,8 @@ URL: ${url}`;
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{formatBidangTopik(it)}</div><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[37].publishedAt)}</span>
-                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[37]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-xl md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-4" style={getCardTheme(bentoNewsItems[37]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3681,8 +3818,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[35].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[35]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[35]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -3712,8 +3849,8 @@ URL: ${url}`;
                       activeIndex={bentoNewsItems[36].carouselIndex || 0}
                       renderItem={(it) => (
                         <>
-                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-stone-300 transition-colors ">{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-300/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[36]).briefStyle}>{safeParseInline(it.brief)}</p>
+                          <h3 className="font-serif text-base md:text-lg leading-snug font-medium hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                          <p className="font-serif text-xs text-stone-300/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[36]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                         </>
                       )}
                     />
@@ -6251,8 +6388,38 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
       )}
 
       {/* Full-screen Reading Display Overlay */}
+      {/* FOCUS VIEW — paparan penuh kandungan kad. Medan `visual`, `related`, `note`,
+          `editorName`/`editorUrl` sengaja tidak dihantar: medannya belum wujud dalam DB,
+          jadi bahagian tu render kosong (itu yang reka bentuk arahkan), bukan diisi data palsu. */}
+      {focusLoc && focusItem && (
+        <FocusView
+          icon={focusBidang ? (
+            <BidangIcon
+              iconName={focusBidang.icon}
+              iconSvg={focusBidang.iconSvg}
+              color="currentColor"
+              variant="bare"
+              size={13}
+            />
+          ) : undefined}
+          desk={focusItem.desk}
+          topik={focusItem.topik}
+          title={asPlainText(focusItem.titleString) || asPlainText(focusItem.title)}
+          brief={asPlainText(focusItem.briefString) || asPlainText(focusItem.brief)}
+          body={asPlainText(focusItem.briefLong)}
+          source={focusItem.source}
+          sourceUrl={focusItem.url}
+          backdropImage={focusItem.imageUrl || undefined}
+          mode={focusMode}
+          onModeChange={changeFocusMode}
+          onPrev={() => stepFocus(-1)}
+          onNext={() => stepFocus(1)}
+          onClose={closeFocus}
+        />
+      )}
+
       {showNewsOverlay && overlayItem && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/48 backdrop-blur-xl transition-all duration-300 animate-fade-in p-6 select-none"
           onClick={() => setShowNewsOverlay(false)}
         >

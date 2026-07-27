@@ -19,6 +19,24 @@
   --color-Adjung-cream: #FDFDFD;
   --color-Adjung-dark: #111111;
   --color-Adjung-gray-light: #EAE8E3;
+
+  /* Focus View (paparan penuh kandungan) — nilai kanonik dari Adjung Brief Design System
+     (tokens/colors.css). Sengaja dipisahkan daripada palet kad/frontpage sebab Focus View
+     ialah satu-satunya permukaan berlatar gelap dalam produk ni. */
+  --focus-ground: #1F1B22;
+  --focus-ink: #FDFDFD;
+  --focus-ink-soft: rgba(253, 253, 253, 0.86);
+  --focus-ink-muted: rgba(253, 253, 253, 0.62);
+  --focus-ink-faint: rgba(253, 253, 253, 0.40);
+  --focus-accent: #E2733C;
+}
+
+/* Ikon Bidang custom (SVG dimuat naik admin) — markup disuntik apa adanya, jadi saiznya
+   dikawal dari sini. Saiz dinamik tak boleh guna kelas Tailwind arbitrary, sebab itu ia
+   CSS sebenar dan bukan utiliti. Lihat src/components/common/BidangIcon.tsx. */
+.bidang-icon-svg > svg {
+  width: var(--bidang-icon-size, 14px);
+  height: var(--bidang-icon-size, 14px);
 }
 
 /* Base resets & styles for Adjung scholarly magazine */

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe, Pencil, ChevronDown, ChevronUp,
-  Star, Flag, Globe2, TrendingUp, Briefcase, Cpu, FlaskConical, Stethoscope, GraduationCap, Scale, MoonStar, BookMarked, Lightbulb, Brain,
-  Languages, Feather, ScrollText, Map, Leaf, Rocket, Palette, Drama, Trophy, Sigma, Tag, type LucideIcon,
-  Landmark, Building2, Heart, Music, Film, Mic, Video, PenTool, Plane, Car, Compass, TreePine, Users, Shield, Coins, Upload
+  Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe, Pencil, ChevronDown, ChevronUp, Upload
 } from 'lucide-react';
 import { EditorialIntelligencePlatform } from './EditorialIntelligencePlatform';
+import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
 
 // Bidang kini senarai tertutup kurasi Ketua Editor, disimpan di CategoryRegistry (jadual DB
 // sebenar, bukan lagi dikira semula dari kandungan hidup) — lihat GET /api/system/categories/active.
@@ -20,41 +18,6 @@ interface ActiveBidang {
   slots: number[];
 }
 
-// Peta nama ikon (lucide-react, kes Pascal, cth "TrendingUp") tersimpan di CategoryRegistry.icon
-// -> komponen sebenar. Senarai pilihan pemilih ikon (Taksonomi) — lebih luas daripada 24 ikon
-// lalai terkurasi supaya admin ada pilihan sebenar bila tukar ikon, bukan cuma pilih semula apa
-// yang dah ada. Bidang tanpa ikon (lama/baharu-ditambah) jatuh ke Tag generik — bukan diagak.
-const BIDANG_ICON_MAP: Record<string, LucideIcon> = {
-  Star, Flag, Globe2, TrendingUp, Briefcase, Cpu, FlaskConical, Stethoscope, GraduationCap, Scale, MoonStar, BookMarked, Lightbulb, Brain,
-  Languages, Feather, ScrollText, Map, Leaf, Rocket, Palette, Drama, Trophy, Sigma,
-  Landmark, Building2, Heart, Music, Film, Mic, Video, PenTool, Plane, Car, Compass, TreePine, Users, Shield, Coins
-};
-const BIDANG_ICON_NAMES = Object.keys(BIDANG_ICON_MAP).sort();
-
-// SVG custom (iconSvg, markup dah disanitize server-side) menang atas ikon lucide (icon) bila
-// dua-dua ada — lihat setIconSvg() di CategoryRegistry.js.
-const BidangIcon: React.FC<{ iconName: string | null; iconSvg?: string | null; color: string }> = ({ iconName, iconSvg, color }) => {
-  if (iconSvg) {
-    return (
-      <span
-        className="inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0 [&_svg]:w-3.5 [&_svg]:h-3.5"
-        style={{ backgroundColor: `${color}1A`, color }}
-        title="Ikon custom (SVG dimuat naik)"
-        dangerouslySetInnerHTML={{ __html: iconSvg }}
-      />
-    );
-  }
-  const IconComponent = (iconName && BIDANG_ICON_MAP[iconName]) || Tag;
-  return (
-    <span
-      className="inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0"
-      style={{ backgroundColor: `${color}1A` }}
-      title={iconName || 'Tiada ikon lagi'}
-    >
-      <IconComponent className="w-3.5 h-3.5" style={{ color }} />
-    </span>
-  );
-};
 
 interface TypographyTerm {
   id: string;
