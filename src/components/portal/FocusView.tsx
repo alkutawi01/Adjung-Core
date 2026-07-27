@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 
 // ============================================================================
@@ -196,6 +197,39 @@ export const FocusView: React.FC<FocusViewProps> = ({
     onFocus: () => setHovered(key), onBlur: () => setHovered(null),
   });
 
+  // Papan kekunci: Esc menutup, anak panah melangkah — sama seperti overlay berita frontpage, yang
+  // sudah pun berkelakuan begini. Handoff tidak menyebut papan kekunci langsung, jadi ini mengisi
+  // jurang dan bukan menyimpang daripada kontrak.
+  //
+  // Sebelum ini Esc TIDAK berbuat apa-apa dalam Focus View, sedangkan ia menutup setiap overlay
+  // lain dalam aplikasi ini (overlay berita, modal editor slot, halaman footer) — pembaca yang
+  // sudah biasa dengan kelakuan itu akan tertahan di sini.
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose?.();
+      else if (e.key === 'ArrowLeft') onPrev?.();
+      else if (e.key === 'ArrowRight') onNext?.();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, onPrev, onNext]);
+
+  // Butang tutup: ikon X, sama seperti Toast, Direktori, Indeks, Tetapan dan modal editor slot.
+  // Handoff menetapkan perkataan "Tutup" bergaris bawah, tetapi Focus View satu-satunya permukaan
+  // dalam aplikasi ini yang berbuat begitu; keputusan pemilik projek ialah ikut aplikasi. Nama
+  // Melayu kekal melalui aria-label, corak yang sama dengan Toast.
+  //
+  // Warna mengikut chevron navigasi dalam komponen yang sama: stone-400 ketika rehat, marun pada
+  // hover dan fokus papan kekunci.
+  const [closeLit, setCloseLit] = React.useState(false);
+  const closeProps = {
+    type: 'button' as const,
+    onClick: onClose,
+    'aria-label': 'Tutup',
+    onMouseEnter: () => setCloseLit(true), onMouseLeave: () => setCloseLit(false),
+    onFocus: () => setCloseLit(true), onBlur: () => setCloseLit(false),
+  };
+
   // ==========================================================================================
   // SUSUN ATUR TELEFON
   //
@@ -242,13 +276,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
           borderBottom: '1px solid var(--stone-300)',
         }}>
           <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
+          {/* Sasaran sentuh 44x44 dikekalkan; pil itu kini memegang ikon, bukan perkataan. */}
           {onClose && (
-            <button type="button" onClick={onClose} aria-label="Tutup" style={{
+            <button {...closeProps} style={{
               appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
-              borderRadius: '999px', color: 'var(--stone-600)', fontFamily: 'var(--font-sans)',
-              fontSize: '11px', letterSpacing: 'var(--tracking-wide)', minWidth: '44px', minHeight: '44px',
-              padding: '0 14px', cursor: 'pointer',
-            }}>Tutup</button>
+              borderRadius: '999px', color: 'var(--stone-600)', display: 'inline-flex',
+              alignItems: 'center', justifyContent: 'center', minWidth: '44px', minHeight: '44px',
+              padding: 0, cursor: 'pointer',
+            }}>
+              <X size={18} strokeWidth={1.75} />
+            </button>
           )}
         </div>
 
@@ -411,7 +448,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
               </span>
               <span style={{ ...micro, justifySelf: 'end', display: 'inline-flex', alignItems: 'center', gap: '16px', whiteSpace: 'nowrap' }}>
                 <span>Siaran <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-600)' }}>{publishedDate || '—'}</span></span>
-                {onClose && <button type="button" onClick={onClose} style={{ ...micro, color: 'var(--color-Adjung-maroon)', background: 'none', border: 0, padding: 0, cursor: 'pointer', borderBottom: '1px solid var(--maroon-a25)' }}>Tutup</button>}
+                {onClose && (
+                  <button {...closeProps} style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'none', border: 0, padding: 0, cursor: 'pointer', lineHeight: 1,
+                    color: closeLit ? 'var(--color-Adjung-maroon)' : 'var(--stone-400)',
+                    transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}>
+                    <X size={16} strokeWidth={1.75} />
+                  </button>
+                )}
               </span>
             </div>
             <hr style={rule} />
