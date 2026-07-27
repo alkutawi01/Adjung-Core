@@ -193,6 +193,38 @@ export function createCategoryRoutes(db) {
     }
   });
 
+  // GET /api/system/categories/slot-usage — keadaan kesemua 38 slot frontpage dalam satu panggilan:
+  // Bidang mana yang memilikinya, dan BERAPA kandungan live/pending ada di dalamnya.
+  //
+  // Kiraan itu penting, bukan hiasan: menukar Bidang sesuatu slot mengarkibkan setiap kandungan
+  // approved/pending di dalamnya (archiveLiveContentInSlot). Tanpa kiraan ini, amaran sebelum
+  // menyimpan cuma boleh berkata "kandungan akan diarkibkan" secara umum — dengan ia, amaran boleh
+  // menyebut angka sebenar yang akan hilang daripada frontpage.
+  router.get('/categories/slot-usage', async (req, res) => {
+    try {
+      const rows = await CategoryRegistry.dbAll(db,
+        "SELECT slotIndex, manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage'");
+      const counts = await CategoryRegistry.dbAll(db, `
+        SELECT o.slotIndex AS slotIndex, COUNT(DISTINCT o.id) AS liveCount
+        FROM editorial_objects o
+        JOIN editorial_revisions r ON r.objectId = o.id AND r.status IN ('approved', 'pending')
+        WHERE o.slotIndex >= 0
+        GROUP BY o.slotIndex
+      `);
+      const bySlot = new Map(counts.map(c => [Number(c.slotIndex), Number(c.liveCount)]));
+      const deskBySlot = new Map(rows.map(r => [Number(r.slotIndex), (r.manualDesk || '').trim()]));
+
+      res.json(Array.from({ length: 38 }, (_, slotIndex) => ({
+        slotIndex,
+        bidang: deskBySlot.get(slotIndex) || '',
+        liveCount: bySlot.get(slotIndex) || 0
+      })));
+    } catch (err) {
+      console.error('Slot usage error:', err);
+      res.status(500).json({ error: 'Gagal membaca keadaan slot.' });
+    }
+  });
+
   // POST /api/system/categories/assign-slot — arah "pilih slot untuk Bidang" dari Taksonomi.
   // SENGAJA hanya UPDATE lajur manualDesk (bukan guna POST /slots yang INSERT OR REPLACE ~30
   // lajur sekali gus dan akan kosongkan medan slot lain). bidangName kosong = nyahtetapkan slot.

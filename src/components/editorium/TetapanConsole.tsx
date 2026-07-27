@@ -235,22 +235,108 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       .finally(() => setDesksLoading(false));
   };
 
-  const handleAssignSlot = async (slotIndex: number, bidangName: string) => {
-    setSavingSlotForBidang(slotIndex);
+  // ---------------------------------------------------------------------------------------------
+  // PERUNTUKAN SLOT — dipentaskan, bukan serta-merta.
+  //
+  // Sebelum ini setiap klik pada nombor slot terus memanggil assign-slot, dan kerana menukar Bidang
+  // sesuatu slot memanggil archiveLiveContentInSlot(), SATU klik tersilap mengarkibkan kesemua
+  // kandungan approved/pending dalam slot itu — sehingga 10 kandungan — tanpa pengesahan, tanpa
+  // amaran, dan tanpa jalan pulang dalam UI.
+  //
+  // Sekarang: klik cuma mengubah pilihan tempatan. Tiada apa disimpan sehingga "Sahkan Perubahan"
+  // ditekan, dan pengesahan itu menyenaraikan setiap slot yang terjejas dengan bilangan kandungan
+  // sebenar yang akan diarkibkan.
+  // ---------------------------------------------------------------------------------------------
+  const [slotUsage, setSlotUsage] = useState<{ slotIndex: number; bidang: string; liveCount: number }[]>([]);
+  const [pendingSlots, setPendingSlots] = useState<number[] | null>(null);
+  const [slotBlockedMsg, setSlotBlockedMsg] = useState<string | null>(null);
+  const [slotConfirmOpen, setSlotConfirmOpen] = useState(false);
+  const [applyingSlots, setApplyingSlots] = useState(false);
+
+  const fetchSlotUsage = () => {
+    fetch('/api/system/categories/slot-usage')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setSlotUsage(data); })
+      .catch(e => console.error('Error fetching slot usage:', e));
+  };
+
+  const usageFor = (slotIndex: number) => slotUsage.find(u => u.slotIndex === slotIndex);
+
+  // Buka/tutup panel slot bagi satu Bidang. Membuka memulakan pilihan dipentaskan daripada keadaan
+  // sebenar; menutup membuangnya, supaya pilihan yang tidak disahkan tidak pernah terbawa.
+  const toggleSlotPanel = (d: ActiveBidang) => {
+    if (expandedBidangId === d.id) {
+      setExpandedBidangId(null);
+      setPendingSlots(null);
+    } else {
+      setExpandedBidangId(d.id);
+      setPendingSlots([...d.slots]);
+      fetchSlotUsage();
+    }
+    setSlotBlockedMsg(null);
+    setSlotConfirmOpen(false);
+  };
+
+  const toggleSlot = (slotIndex: number, d: ActiveBidang) => {
+    setSlotBlockedMsg(null);
+    const owner = (usageFor(slotIndex)?.bidang || '').trim();
+    const milikBidangIni = owner.toLowerCase() === d.name.toLowerCase();
+
+    // Slot milik Bidang lain tidak boleh dirampas dari sini. Buang dari Bidang itu dahulu — supaya
+    // pemiliknya sedar slotnya hilang, dan bukan ia lenyap tanpa dia tahu.
+    if (owner && !milikBidangIni) {
+      setSlotBlockedMsg(`Slot ${slotIndex + 1} milik Bidang "${owner}". Buang slot itu daripada "${owner}" dahulu sebelum memberikannya kepada "${d.name}".`);
+      return;
+    }
+
+    setPendingSlots(prev => {
+      const cur = prev || [];
+      return cur.includes(slotIndex) ? cur.filter(s => s !== slotIndex) : [...cur, slotIndex].sort((a, b) => a - b);
+    });
+  };
+
+  // Apa yang benar-benar akan berubah, dan berapa kandungan yang akan diarkibkan.
+  // archiveLiveContentInSlot() berjalan setiap kali Bidang slot BERUBAH — jadi menambah DAN
+  // membuang sama-sama mengarkibkan kandungan slot itu. Kedua-duanya disenaraikan.
+  const slotDiff = (d: ActiveBidang) => {
+    const pending = pendingSlots || [];
+    const tambah = pending.filter(s => !d.slots.includes(s));
+    const buang = d.slots.filter(s => !pending.includes(s));
+    const kiraArkib = (list: number[]) => list.reduce((n, s) => n + (usageFor(s)?.liveCount || 0), 0);
+    return { tambah, buang, adaPerubahan: tambah.length > 0 || buang.length > 0, jumlahArkib: kiraArkib(tambah) + kiraArkib(buang) };
+  };
+
+  const applySlotChanges = async (d: ActiveBidang) => {
+    const { tambah, buang } = slotDiff(d);
+    setApplyingSlots(true);
     try {
-      const res = await fetch('/api/system/categories/assign-slot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slotIndex, bidangName })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menetapkan slot.');
+      // Berturutan, bukan serentak: setiap panggilan menulis slots_config dan mengarkibkan
+      // kandungan. Menjalankannya serentak bermakna satu kegagalan meninggalkan keadaan separuh
+      // siap yang sukar dibaca.
+      for (const s of buang) await postAssignSlot(s, '');
+      for (const s of tambah) await postAssignSlot(s, d.name);
+      setSlotConfirmOpen(false);
+      setExpandedBidangId(null);
+      setPendingSlots(null);
       fetchActiveBidang();
+      fetchSlotUsage();
     } catch (e: any) {
       alert('Ralat: ' + (e.message || ''));
+      fetchActiveBidang();
+      fetchSlotUsage();
     } finally {
-      setSavingSlotForBidang(null);
+      setApplyingSlots(false);
     }
+  };
+
+  const postAssignSlot = async (slotIndex: number, bidangName: string) => {
+    const res = await fetch('/api/system/categories/assign-slot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slotIndex, bidangName })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Gagal menetapkan slot ${slotIndex + 1}.`);
   };
 
   // Pemilih Ikon Bidang — klik badge ikon di Taksonomi buka modal ni (grid lucide + muat naik SVG).
@@ -753,7 +839,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
-                              onClick={() => setExpandedBidangId(expandedBidangId === d.id ? null : d.id)}
+                              onClick={() => toggleSlotPanel(d)}
                               className="text-stone-500 hover:text-[#802334] inline-flex items-center gap-1"
                             >
                               Urus Slot {expandedBidangId === d.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -761,35 +847,150 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                           </div>
                         </td>
                       </tr>
-                      {expandedBidangId === d.id && (
+                      {expandedBidangId === d.id && (() => {
+                        const pending = pendingSlots || [];
+                        const { tambah, buang, adaPerubahan, jumlahArkib } = slotDiff(d);
+                        return (
                         <tr>
                           <td colSpan={5} className="p-4 bg-stone-50">
-                            <div className="text-[9px] uppercase font-bold text-stone-500 mb-2">
-                              Tanda slot untuk peruntukkan Bidang "{d.name}" — nyahtanda untuk kosongkan
+                            <div className="text-[9px] uppercase font-bold text-stone-500 mb-1">
+                              Tanda slot untuk peruntukkan Bidang "{d.name}"
                             </div>
+                            <p className="text-[10px] text-stone-500 mb-2">
+                              Tiada apa disimpan sehingga anda tekan <strong className="font-semibold">Sahkan Perubahan</strong>.
+                            </p>
+
+                            {/* Petunjuk — tanpa ini slot milik Bidang lain nampak sama seperti slot kosong. */}
+                            <div className="flex flex-wrap items-center gap-3 mb-2 text-[10px] text-stone-500">
+                              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-xs bg-[#802334] border border-[#802334]" /> Bidang ini</span>
+                              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-xs bg-white border border-stone-300" /> Kosong</span>
+                              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-xs bg-stone-200 border border-stone-400" /> Milik Bidang lain</span>
+                              <span className="inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-amber-600" /> Ada kandungan live</span>
+                            </div>
+
                             <div className="grid grid-cols-6 md:grid-cols-10 gap-2">
                               {Array.from({ length: 38 }, (_, i) => i).map(slotIndex => {
-                                const isAssigned = d.slots.includes(slotIndex);
+                                const u = usageFor(slotIndex);
+                                const owner = (u?.bidang || '').trim();
+                                const milikBidangIni = owner.toLowerCase() === d.name.toLowerCase();
+                                const milikOrangLain = !!owner && !milikBidangIni;
+                                const dipilih = pending.includes(slotIndex);
+                                const live = u?.liveCount || 0;
+
+                                const gaya = dipilih
+                                  ? 'bg-[#802334] text-white border-[#802334]'
+                                  : milikOrangLain
+                                    ? 'bg-stone-200 text-stone-500 border-stone-400 cursor-not-allowed'
+                                    : 'bg-white text-stone-600 border-stone-300 hover:border-[#802334]';
+
                                 return (
-                                  <label
+                                  <button
                                     key={slotIndex}
-                                    className={`flex items-center justify-center gap-1 border rounded px-1.5 py-1 text-[10px] font-mono cursor-pointer ${isAssigned ? 'bg-[#802334] text-white border-[#802334]' : 'bg-white text-stone-600 border-stone-300'} ${savingSlotForBidang === slotIndex ? 'opacity-50' : ''}`}
+                                    type="button"
+                                    onClick={() => toggleSlot(slotIndex, d)}
+                                    title={milikOrangLain
+                                      ? `Milik Bidang "${owner}"${live ? ` — ${live} kandungan live` : ''}`
+                                      : live ? `${live} kandungan live dalam slot ini` : 'Slot kosong'}
+                                    className={`relative flex items-center justify-center border rounded px-1.5 py-1 text-[10px] font-mono transition-colors ${gaya}`}
                                   >
-                                    <input
-                                      type="checkbox"
-                                      checked={isAssigned}
-                                      disabled={savingSlotForBidang === slotIndex}
-                                      onChange={() => handleAssignSlot(slotIndex, isAssigned ? '' : d.name)}
-                                      className="hidden"
-                                    />
                                     {slotIndex + 1}
-                                  </label>
+                                    {live > 0 && (
+                                      <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold border ${dipilih ? 'bg-white text-[#802334] border-[#802334]' : 'bg-amber-100 text-amber-800 border-amber-400'}`}>
+                                        {live}
+                                      </span>
+                                    )}
+                                  </button>
                                 );
                               })}
                             </div>
+
+                            {slotBlockedMsg && (
+                              <p className="mt-2 text-[10px] text-amber-800 bg-amber-50 border border-amber-300 rounded px-2 py-1.5 flex items-start gap-1.5">
+                                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" /> {slotBlockedMsg}
+                              </p>
+                            )}
+
+                            {/* Ringkasan + pengesahan. Butang hanya hidup apabila ada perubahan sebenar. */}
+                            <div className="mt-3 pt-3 border-t border-stone-200 flex items-center gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                disabled={!adaPerubahan || applyingSlots}
+                                onClick={() => setSlotConfirmOpen(true)}
+                                className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                Sahkan Perubahan
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!adaPerubahan || applyingSlots}
+                                onClick={() => { setPendingSlots([...d.slots]); setSlotBlockedMsg(null); setSlotConfirmOpen(false); }}
+                                className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-40"
+                              >
+                                Set Semula
+                              </button>
+                              <span className="text-[10px] text-stone-500">
+                                {adaPerubahan
+                                  ? `${tambah.length} ditambah, ${buang.length} dibuang`
+                                  : 'Tiada perubahan'}
+                              </span>
+                            </div>
+
+                            {slotConfirmOpen && adaPerubahan && (
+                              <div className="mt-3 border border-amber-400 bg-amber-50 rounded p-3 space-y-2">
+                                <p className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+                                  <AlertTriangle className="w-4 h-4" /> Sahkan perubahan slot untuk "{d.name}"
+                                </p>
+
+                                {tambah.length > 0 && (
+                                  <div className="text-[10px] text-stone-700">
+                                    <span className="font-semibold">Diberikan kepada "{d.name}":</span>{' '}
+                                    {tambah.map(s => `Slot ${s + 1}${usageFor(s)?.liveCount ? ` (${usageFor(s)?.liveCount} kandungan)` : ''}`).join(', ')}
+                                  </div>
+                                )}
+
+                                {buang.length > 0 && (
+                                  <div className="text-[10px] text-stone-700">
+                                    <span className="font-semibold">Dikosongkan (slot jadi tiada Bidang):</span>{' '}
+                                    {buang.map(s => `Slot ${s + 1}${usageFor(s)?.liveCount ? ` (${usageFor(s)?.liveCount} kandungan)` : ''}`).join(', ')}
+                                  </div>
+                                )}
+
+                                <p className="text-[10px] text-amber-900 leading-relaxed border-t border-amber-300 pt-2">
+                                  {jumlahArkib > 0 ? (
+                                    <>
+                                      <strong className="font-bold">{jumlahArkib} kandungan akan diarkibkan</strong> dan hilang daripada frontpage.
+                                      Setiap slot yang bertukar Bidang akan dikosongkan — kandungan approved dan pending di dalamnya
+                                      ditukar kepada status <em>archived</em>. Ia tidak dipadam, tetapi tidak lagi terpapar.
+                                    </>
+                                  ) : (
+                                    <>Tiada kandungan live dalam slot yang terjejas — tiada apa akan diarkibkan.</>
+                                  )}
+                                </p>
+
+                                <div className="flex items-center gap-2 pt-1">
+                                  <button
+                                    type="button"
+                                    disabled={applyingSlots}
+                                    onClick={() => applySlotChanges(d)}
+                                    className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                                  >
+                                    {applyingSlots ? 'Menyimpan...' : (jumlahArkib > 0 ? `Teruskan dan arkibkan ${jumlahArkib} kandungan` : 'Teruskan')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={applyingSlots}
+                                    onClick={() => setSlotConfirmOpen(false)}
+                                    className="bg-white border border-stone-300 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                                  >
+                                    Batal
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </td>
                         </tr>
-                      )}
+                        );
+                      })()}
                     </React.Fragment>
                   ))}
                 </tbody>
