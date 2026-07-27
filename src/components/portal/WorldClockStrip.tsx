@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Sun, CloudSun, Cloud, CloudFog, CloudRain, CloudLightning } from 'lucide-react';
 import { SystemSettings } from '../../types';
 import { parseWorldClockHolidays } from '../../utils';
+import { findFixedHoliday } from '../../../core/worldclock/PublicHolidays.js';
 import { Tooltip } from '../common/Tooltip';
 
 interface ClockTime {
@@ -80,16 +81,10 @@ const getWeatherDetails = (code: number) => {
   return { icon: CloudSun, label: 'Berawan' };
 };
 
-const HOLIDAYS_2026: Record<string, Record<string, string>> = {
-  'Kuala Lumpur': {
-    '01/01': "Tahun Baharu",
-    '02/01': "Hari Wilayah Persekutuan",
-    '05/01': "Hari Pekerja",
-    '08/31': "Hari Kebangsaan",
-    '09/16': "Hari Malaysia",
-    '12/25': "Hari Krismas"
-  }
-};
+// Cuti umum bertarikh tetap berpindah ke core/worldclock/PublicHolidays.js, di mana setiap
+// cuti membawa skop negerinya sendiri. Jadual lama di sini dikunci mengikut nama bandar dan
+// hanya ada entri 'Kuala Lumpur', yang kemudiannya disalin kepada setiap bandar lain kerana
+// semuanya berkongsi zon waktu yang sama — lihat komen dalam modul itu.
 
 interface WorldClockStripProps {
   systemSettings: SystemSettings;
@@ -280,24 +275,10 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
 
   // 4. Update Time & Holiday Status locally
   useEffect(() => {
+    // Peta bandar->kod negeri yang berasingan dibuang di sini: CITY_SETS di atas sudah pun
+    // membawa `stateCode` bagi setiap bandar, jadi peta kedua itu cuma salinan yang boleh
+    // bercabang daripada sumber asalnya.
     const allCities = CITY_SETS.flat();
-    const stateMap: Record<string, string> = {
-      'Kangar': 'PLS',
-      'Kuala Lumpur': 'KUL',
-      'Kota Bharu': 'KTN',
-      'Johor Bahru': 'JHR',
-      'Kota Kinabalu': 'SBH',
-      'Alor Setar': 'KDH',
-      'Shah Alam': 'SGR',
-      'Seremban': 'NSN',
-      'Kuantan': 'PHG',
-      'Labuan': 'LBN',
-      'George Town': 'PNG',
-      'Ipoh': 'PRK',
-      'Bandaraya Melaka': 'MLK',
-      'Kuala Terengganu': 'TRG',
-      'Kuching': 'SWK'
-    };
 
     const updateTime = () => {
       const newTimesMap: Record<string, ClockTime> = {};
@@ -364,18 +345,17 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
 
           const day = obj.weekday.toUpperCase();
 
+          // Cuti bertarikh tetap, ditapis mengikut negeri bandar ini — bukan disalin bulat-bulat
+          // dari senarai Kuala Lumpur seperti dahulu.
           const gregKey = `${obj.month}/${obj.day}`;
-          let cityHolidays = HOLIDAYS_2026[c.name];
-          if (!cityHolidays && c.tz === 'Asia/Kuala_Lumpur') {
-            cityHolidays = HOLIDAYS_2026['Kuala Lumpur'] || {};
-          }
-          if (cityHolidays && cityHolidays[gregKey]) {
+          const fixedHoliday = findFixedHoliday(gregKey, c.stateCode);
+          if (fixedHoliday) {
             isHoliday = true;
-            holidayName = cityHolidays[gregKey];
+            holidayName = fixedHoliday.name;
           }
 
           if (apiHolidaysData && Array.isArray(apiHolidaysData.publicHolidays)) {
-            const targetStateCode = stateMap[c.name];
+            const targetStateCode = c.stateCode;
             const apiMatch = apiHolidaysData.publicHolidays.find((h: any) => {
               const [yr, mn, dy] = h.date.split('-');
               const matchDate = `${dy}/${mn}/${yr.slice(-2)}`;
