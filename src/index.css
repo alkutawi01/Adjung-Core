@@ -99,8 +99,8 @@
    menyebabkan halaman menatal — kolum kanan 557px tinggi pada 1440x900, jadi 440px selamat.
    vh disertakan untuk tetingkap pendek, di mana kolum itu sendiri mengecil. */
 .bidang-illustration > svg {
-  max-width: min(320px, 100%);
-  max-height: min(440px, 50vh);
+  max-width: 100%;
+  max-height: min(540px, 60vh);
   width: auto;
   height: auto;
   display: block;
