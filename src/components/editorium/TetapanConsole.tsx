@@ -1429,14 +1429,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     satu grafik atau satu nota sudah cukup untuk menyembunyikannya.
                   </p>
 
+                  <p className="text-stone-500 text-[10px] font-semibold mb-1">Tiga syarat:</p>
                   <ul className="text-stone-500 text-[10px] leading-relaxed mb-2 pl-3 list-disc marker:text-stone-300">
-                    <li><strong className="font-semibold">Kanvas wajib <code className="font-mono">viewBox="0 0 256 256"</code></strong> — segi empat sama. Saiz lain ditolak.</li>
+                    <li>SVG mesti ada <code className="font-mono">viewBox</code>. Nombornya bebas — <code className="font-mono">0 0 1024 1024</code> sama sah seperti <code className="font-mono">0 0 256 256</code>.</li>
                     <li>Guna <code className="font-mono">currentColor</code> untuk fill/stroke. Warna tetap (hex/rgb) ditolak — plat mesti mengikut marun Adjung.</li>
-                    <li>Jangan letak <code className="font-mono">width</code>/<code className="font-mono">height</code> pada <code className="font-mono">&lt;svg&gt;</code>; ia dibuang.</li>
-                    <li>Kekalkan karya dalam 224×224 di tengah (margin 16 unit) supaya ia tidak mencecah tepi.</li>
-                    <li>Garis halus, <code className="font-mono">stroke-width</code> 1.5–2 unit. Plat ini patut senyap, bukan menarik perhatian daripada tajuk.</li>
-                    <li>Had 256KB. Bukan ikon yang dibesarkan — ikon 24px jadi nipis dan generik pada saiz ini.</li>
+                    <li>Had 256KB.</li>
                   </ul>
+                  <p className="text-stone-400 text-[10px] leading-relaxed mb-2">
+                    Cadangan (tidak dikuatkuasakan): nisbah segi empat sama duduk paling baik dalam kolum;
+                    kekalkan karya sedikit dari tepi; garis halus supaya plat kekal senyap dan tidak menarik
+                    perhatian daripada tajuk. Bukan ikon yang dibesarkan — ikon 24px jadi nipis pada saiz ini.
+                  </p>
 
                   <div className="flex items-center gap-3">
                     <label className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold cursor-pointer">

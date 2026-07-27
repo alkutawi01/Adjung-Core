@@ -41,21 +41,25 @@ function sanitizeSvgIcon(raw) {
 // Berbeza sepenuhnya daripada ikon Bidang 13px — jangan muat naik ikon lucide yang dibesarkan;
 // stroke setebal 2px pada kanvas 24 unit jadi nipis dan generik pada saiz bacaan.
 //
-//   1. Kanvas          viewBox WAJIB "0 0 256 256" (segi empat sama). Ditolak kalau lain.
-//   2. Saiz akar       JANGAN letak width/height pada <svg> — CSS yang menyaiz. Kalau ada, dibuang.
-//   3. Warna           guna `currentColor` sahaja. Komponen menetapkan marun Adjung; warna yang
+// TIGA SYARAT sahaja dikuatkuasakan — sengaja sedikit, kerana setiap syarat bermakna satu fail
+// terpaksa disunting tangan:
+//
+//   1. viewBox WUJUD   nombornya bebas. "0 0 1024 1024" sama sah seperti "0 0 256 256"; CSS
+//                      menyaiz mengikut nisbah, jadi nombor itu tidak pernah kelihatan. Tanpa
+//                      viewBox pula, height:auto tiada nisbah untuk dikira dan plat runtuh.
+//   2. Warna           guna `currentColor` sahaja. Komponen menetapkan marun Adjung; warna yang
 //                      dikodkan tetap (hex/rgb) akan mengabaikannya, jadi ia ditolak.
-//   4. Kawasan selamat karya dalam 224x224 di tengah (margin 16 unit) supaya ia tidak mencecah tepi.
-//   5. Gaya garis      stroke-width 1.5-2 unit. Garis halus yang membuatkan plat itu senyap.
-//   6. Had fail        256KB. Karya garisan terperinci memang boleh ratusan kilobait; had ini tidak
-//                      membebankan muatan frontpage kerana plat TIDAK dihantar dalam senarai pukal
-//                      /categories/active — ia diambil satu per satu melalui
-//                      GET /categories/illustration.
+//   3. Had fail        256KB.
+//
+// width/height pada akar dibuang senyap-senyap (bukan ditolak) kerana CSS yang menyaiz.
+//
+// Selebihnya CADANGAN reka bentuk, bukan syarat: nisbah segi empat sama duduk paling baik dalam
+// kolum; kekalkan karya sedikit dari tepi supaya ia tidak tersepit; garis halus supaya plat kekal
+// senyap dan tidak menarik perhatian daripada tajuk.
 //
 // Tag/atribut yang dibenarkan sama seperti ikon (SVG_ALLOWED_TAGS/ATTR) — tiada <script>, tiada
 // pengendali on*, tiada rujukan luar.
 const ILLUSTRATION_MAX_BYTES = 256 * 1024;
-const ILLUSTRATION_VIEWBOX = '0 0 256 256';
 
 function sanitizeIllustrationSvg(raw) {
   if (typeof raw !== 'string' || !raw.trim()) throw new Error('SVG kosong.');
@@ -73,12 +77,20 @@ function sanitizeIllustrationSvg(raw) {
 
   if (!/^<svg[\s>]/i.test(cleaned)) throw new Error('Fail bukan SVG yang sah selepas ditapis.');
 
-  // Kanvas mesti tepat — plat dipaparkan pada saiz tetap, jadi viewBox lain bermakna karya keluar
-  // daripada kedudukan yang direka atau tergantung tidak seimbang dalam kolum.
+  // viewBox mesti ADA, tetapi nombornya bebas.
+  //
+  // Versi pertama semakan ini menuntut tepat "0 0 256 256". Itu salah: CSS menyaiz plat dengan
+  // width 240px dan height auto, jadi SVG berskala mengikut NISBAH sahaja — "0 0 1024 1024"
+  // dipapar sama persis seperti "0 0 256 256". Menuntut nombor tertentu cuma memaksa pereka
+  // menyunting tangan setiap fail untuk sifar perbezaan pada skrin.
+  //
+  // Yang benar-benar perlu ialah kewujudan viewBox: tanpanya, height:auto tiada nisbah untuk
+  // dikira dan plat runtuh. Nisbah bukan segi empat sama pun diterima — CSS mengandungkannya
+  // dalam kotak 240x240 (lihat .bidang-illustration di src/index.css).
   const vb = cleaned.match(/\sviewBox\s*=\s*"([^"]*)"/i);
-  const vbNorm = vb ? vb[1].trim().replace(/[\s,]+/g, ' ') : '';
-  if (vbNorm !== ILLUSTRATION_VIEWBOX) {
-    throw new Error(`viewBox mesti "${ILLUSTRATION_VIEWBOX}" (dapat "${vbNorm || 'tiada'}"). Lihat spec plat ilustrasi.`);
+  const vbNums = vb ? vb[1].trim().split(/[\s,]+/).map(Number) : [];
+  if (vbNums.length !== 4 || vbNums.some(n => !Number.isFinite(n)) || vbNums[2] <= 0 || vbNums[3] <= 0) {
+    throw new Error('SVG mesti ada viewBox yang sah, cth viewBox="0 0 1024 1024". Tanpanya plat tidak boleh diskalakan.');
   }
 
   // Warna tetap mengabaikan marun yang ditetapkan komponen — plat jadi warna lain daripada portal.

@@ -82,12 +82,18 @@
   height: var(--bidang-icon-size, 14px);
 }
 
-/* Plat ilustrasi Bidang dalam kolum kanan Focus View. SVG yang dimuat naik mesti berkanvas
-   256x256 (dikuatkuasakan di core/routes/categoryRoutes.js), jadi ia diskalakan di sini dan bukan
-   di dalam fail SVG itu sendiri — satu tempat untuk menala saiz plat bagi kesemua Bidang.
-   min() supaya ia mengecil bersama kolum pada tetingkap sempit, bukan melimpah. */
+/* Plat ilustrasi Bidang dalam kolum kanan Focus View. Saiz ditala DI SINI, bukan di dalam setiap
+   fail SVG — satu tempat untuk kesemua Bidang.
+
+   max-width + max-height (bukan width tetap) supaya sebarang nisbah viewBox terkandung dalam kotak
+   240x240: segi empat sama mengisi penuh, potret jadi 240 tinggi dan lebih kurus, lanskap jadi 240
+   lebar dan lebih rendah. Server cuma menuntut viewBox WUJUD, bukan nombor tertentu — jadi CSS di
+   sini yang bertanggungjawab mengandungkan apa sahaja nisbah yang datang.
+   100% supaya ia mengecil bersama kolum pada tetingkap sempit, bukan melimpah. */
 .bidang-illustration > svg {
-  width: min(240px, 100%);
+  max-width: min(240px, 100%);
+  max-height: 240px;
+  width: auto;
   height: auto;
   display: block;
 }
