@@ -179,12 +179,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
         <div style={{
           position: 'relative', flex: '0 0 auto', display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', gap: '12px', padding: '10px 16px',
-          borderBottom: '1px solid var(--border-strong)',
+          borderBottom: '1px solid var(--stone-300)',
         }}>
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-20)', color: 'var(--color-adjung-maroon)' }}>{wordmark}</span>
+          <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
           {onClose && (
             <button type="button" onClick={onClose} aria-label="Tutup" style={{
-              appearance: 'none', background: 'transparent', border: '1px solid var(--border-strong)',
+              appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
               borderRadius: '999px', color: 'var(--stone-600)', fontFamily: 'var(--font-sans)',
               fontSize: '11px', letterSpacing: 'var(--tracking-wide)', minWidth: '44px', minHeight: '44px',
               padding: '0 14px', cursor: 'pointer',
@@ -199,8 +199,8 @@ export const FocusView: React.FC<FocusViewProps> = ({
         }}>
           {(icon || label) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {icon && <span aria-hidden="true" style={{ display: 'inline-flex', lineHeight: 1, color: 'var(--color-adjung-maroon)' }}>{icon}</span>}
-              {icon && label && <span style={{ width: '1px', height: '11px', background: 'var(--border-strong)' }} />}
+              {icon && <span aria-hidden="true" style={{ display: 'inline-flex', lineHeight: 1, color: 'var(--color-Adjung-maroon)' }}>{icon}</span>}
+              {icon && label && <span style={{ width: '1px', height: '11px', background: 'var(--stone-300)' }} />}
               {label && (
                 <span style={{
                   fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
@@ -226,7 +226,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <hr style={{ ...rule, borderTopColor: 'var(--border-subtle)' }} />
               <div style={{
-                fontFamily: 'var(--font-serif)', fontSize: 'var(--text-14, 14px)', fontWeight: 300,
+                fontFamily: 'var(--font-serif)', fontSize: '14px', fontWeight: 300,
                 lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty',
               }}>
                 {text.split(/\n{2,}/).filter(Boolean).map((para, j) => (
@@ -254,7 +254,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               <span style={sectionLabel}>Lampiran visual</span>
               <div style={{
                 width: '100%', aspectRatio: '4 / 3', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
-                background: 'var(--surface-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--stone-150)', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>{visual}</div>
               {visualCaption && <figcaption style={{ ...sectionLabel, fontWeight: 500, color: 'var(--stone-500)' }}>{visualCaption}</figcaption>}
             </figure>
@@ -268,8 +268,8 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   const item: FocusRelatedItem = typeof r === 'string' ? { title: r } : r;
                   return (
                     <li key={i} style={{ display: 'flex', gap: '12px', padding: '10px 0', borderTop: '1px solid var(--border-subtle)' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', color: 'var(--color-adjung-maroon)', paddingTop: '3px' }}>{String(i + 1).padStart(2, '0')}</span>
-                      <a href={item.url || '#'} style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-14, 14px)', lineHeight: 'var(--leading-snug)', color: 'var(--text-heading)' }}>{item.title}</a>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', color: 'var(--color-Adjung-maroon)', paddingTop: '3px' }}>{String(i + 1).padStart(2, '0')}</span>
+                      <a href={item.url || '#'} style={{ fontFamily: 'var(--font-serif)', fontSize: '14px', lineHeight: 'var(--leading-snug)', color: 'var(--text-heading)' }}>{item.title}</a>
                     </li>
                   );
                 })}
@@ -285,7 +285,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 lineHeight: 'var(--leading-relaxed)', color: 'var(--stone-600)', textWrap: 'pretty',
               }}>{note}</p>
               {editorName && (
-                <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', lineHeight: 1, color: 'var(--color-adjung-maroon)', marginTop: '2px' }}>{editorName}</span>
+                <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', lineHeight: 1, color: 'var(--color-Adjung-maroon)', marginTop: '2px' }}>{editorName}</span>
               )}
               {editorContact && (
                 <a
