@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe, Pencil, ChevronDown, ChevronUp,
+  Star, Flag, Globe2, TrendingUp, Briefcase, Cpu, FlaskConical, Stethoscope, GraduationCap, Scale, MoonStar, BookMarked, Lightbulb, Brain,
+  Languages, Feather, ScrollText, Map, Leaf, Rocket, Palette, Drama, Trophy, Sigma, Tag, type LucideIcon
+} from 'lucide-react';
 import { EditorialIntelligencePlatform } from './EditorialIntelligencePlatform';
 
 // Bidang kini senarai tertutup kurasi Ketua Editor, disimpan di CategoryRegistry (jadual DB
@@ -9,9 +13,31 @@ interface ActiveBidang {
   slug: string;
   name: string;
   color: string;
+  icon: string | null;
   usageCount: number;
   slots: number[];
 }
+
+// Peta nama ikon (lucide-react, kes Pascal, cth "TrendingUp") tersimpan di CategoryRegistry.icon
+// -> komponen sebenar. Bidang tanpa ikon (lama/baharu-ditambah) jatuh ke Tag generik — bukan
+// diagak, memang belum ada ikon untuk Bidang tu sehingga fasa "muat naik SVG sendiri" dibina.
+const BIDANG_ICON_MAP: Record<string, LucideIcon> = {
+  Star, Flag, Globe2, TrendingUp, Briefcase, Cpu, FlaskConical, Stethoscope, GraduationCap, Scale, MoonStar, BookMarked, Lightbulb, Brain,
+  Languages, Feather, ScrollText, Map, Leaf, Rocket, Palette, Drama, Trophy, Sigma
+};
+
+const BidangIcon: React.FC<{ iconName: string | null; color: string }> = ({ iconName, color }) => {
+  const IconComponent = (iconName && BIDANG_ICON_MAP[iconName]) || Tag;
+  return (
+    <span
+      className="inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0"
+      style={{ backgroundColor: `${color}1A` }}
+      title={iconName || 'Tiada ikon lagi'}
+    >
+      <IconComponent className="w-3.5 h-3.5" style={{ color }} />
+    </span>
+  );
+};
 
 interface TypographyTerm {
   id: string;
@@ -536,6 +562,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+                    <th className="p-3">Ikon</th>
                     <th className="p-3">Warna</th>
                     <th className="p-3">Nama Bidang</th>
                     <th className="p-3">Nombor Slot Diperuntukkan</th>
@@ -546,6 +573,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   {desks.map(d => (
                     <React.Fragment key={d.id}>
                       <tr className="hover:bg-stone-50">
+                        <td className="p-3">
+                          <BidangIcon iconName={d.icon} color={d.color} />
+                        </td>
                         <td className="p-3">
                           <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-xs" style={{ backgroundColor: d.color }}></span>
                         </td>
@@ -595,7 +625,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                       </tr>
                       {expandedBidangId === d.id && (
                         <tr>
-                          <td colSpan={4} className="p-4 bg-stone-50">
+                          <td colSpan={5} className="p-4 bg-stone-50">
                             <div className="text-[9px] uppercase font-bold text-stone-500 mb-2">
                               Tanda slot untuk peruntukkan Bidang "{d.name}" — nyahtanda untuk kosongkan
                             </div>

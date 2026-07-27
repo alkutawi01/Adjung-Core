@@ -74,9 +74,9 @@ export function createCategoryRoutes(db) {
   // dikuatkuasakan di peringkat UI — lihat TetapanConsole.tsx).
   router.post('/categories/activate', async (req, res) => {
     try {
-      const { name, color } = req.body;
+      const { name, color, icon } = req.body;
       if (!name || !name.trim()) return res.status(400).json({ error: 'Nama Bidang diperlukan.' });
-      const reg = await CategoryRegistry.activateCategory(db, name, color);
+      const reg = await CategoryRegistry.activateCategory(db, name, color, icon);
       res.json({ success: true, category: reg });
     } catch (err) {
       console.error('Activate category error:', err);

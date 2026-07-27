@@ -1478,25 +1478,34 @@ const initEditorialOS = (dbConn) => {
                                                     // cuma tak boleh dipilih/dipapar lagi). GET /categories (sumber warna kad
                                                     // awam) terus baca SEMUA baris tanpa tapisan isActive — tak disentuh.
                                                     dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN isActive INTEGER NOT NULL DEFAULT 0", () => {
+                                                    dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN icon TEXT", () => {
+                                                      // Ikon lalai (nama komponen lucide-react, kes Pascal) — rujukan visual di
+                                                      // Taksonomi sahaja buat masa ini. Bidang baharu ditambah via "+ Tambah
+                                                      // Bidang" tiada ikon lagi (null, fallback ke ikon generik di UI) sehingga
+                                                      // ciri pilih/muat-naik ikon dibina.
                                                       const BIDANG_TERKURASI = [
-                                                        'Utama', 'Malaysiana', 'Geopolitik', 'Ekonomi', 'Bisnes', 'Teknologi',
-                                                        'Sains', 'Perubatan', 'Pendidikan', 'Perundangan', 'Al-Quran dan Sunnah',
-                                                        'Syariah', 'Falsafah', 'Psikologi', 'Bahasa', 'Sastera', 'Sejarah',
-                                                        'Geografi', 'Alam Sekitar', 'Angkasa', 'Seni Reka Bentuk', 'Budaya',
-                                                        'Sukan', 'Matematik'
+                                                        ['Utama', 'Star'], ['Malaysiana', 'Flag'], ['Geopolitik', 'Globe2'],
+                                                        ['Ekonomi', 'TrendingUp'], ['Bisnes', 'Briefcase'], ['Teknologi', 'Cpu'],
+                                                        ['Sains', 'FlaskConical'], ['Perubatan', 'Stethoscope'], ['Pendidikan', 'GraduationCap'],
+                                                        ['Perundangan', 'Scale'], ['Al-Quran dan Sunnah', 'MoonStar'], ['Syariah', 'BookMarked'],
+                                                        ['Falsafah', 'Lightbulb'], ['Psikologi', 'Brain'], ['Bahasa', 'Languages'],
+                                                        ['Sastera', 'Feather'], ['Sejarah', 'ScrollText'], ['Geografi', 'Map'],
+                                                        ['Alam Sekitar', 'Leaf'], ['Angkasa', 'Rocket'], ['Seni Reka Bentuk', 'Palette'],
+                                                        ['Budaya', 'Drama'], ['Sukan', 'Trophy'], ['Matematik', 'Sigma']
                                                       ];
                                                       // Seed idempotent (activateCategory cari-atau-cipta ikut slug, paksa nama
                                                       // & isActive=1) — selamat jalan setiap kali server start, tak cipta
                                                       // baris pendua, dan betulkan casing lama (cth "EKONOMI" -> "Ekonomi").
                                                       (async () => {
-                                                        for (const name of BIDANG_TERKURASI) {
+                                                        for (const [name, icon] of BIDANG_TERKURASI) {
                                                           try {
-                                                            await CategoryRegistry.activateCategory(dbConn, name, null);
+                                                            await CategoryRegistry.activateCategory(dbConn, name, null, icon);
                                                           } catch (e) {
                                                             console.warn(`Gagal seed Bidang "${name}":`, e.message);
                                                           }
                                                         }
                                                       })();
+                                                    });
                                                     });
                                                     dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN promptText TEXT", () => {
                                                       dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN responseText TEXT", () => {

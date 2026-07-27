@@ -242,7 +242,9 @@ class CategoryRegistry {
 
   // Cipta/guna-semula (ikut slug, sama corak macam registerCategory) + tetapkan warna PILIHAN
   // eksplisit (bukan auto-palette) + isActive=1. Guna untuk "+ Tambah Bidang" di Taksonomi.
-  static async activateCategory(db, name, color) {
+  // `icon` (nama komponen lucide-react, kes Pascal, cth "TrendingUp") pilihan — kosong/null
+  // dibiarkan kosong (fallback ikon generik di UI), bukan diagak.
+  static async activateCategory(db, name, color, icon) {
     if (!name || name.trim() === '') throw new Error('Nama Bidang diperlukan.');
     const trimmedName = name.trim();
     const slug = this.getSlug(trimmedName);
@@ -251,20 +253,22 @@ class CategoryRegistry {
     const existing = await this.dbGet(db, "SELECT * FROM CategoryRegistry WHERE slug = ?", [slug]);
     if (existing) {
       const finalColor = color || existing.color;
+      const finalIcon = icon || existing.icon;
       // Nama dipaksa ikut apa yang ditaip di sini (bukan kekal nama lama, cth "EKONOMI" huruf
       // besar dari auto-daftar dulu) — ini tindakan kurasi Ketua Editor yang sengaja, menang
       // atas casing lama. Tak sentuh string 'desk' tersimpan pada kandungan sedia ada.
-      await this.dbRun(db, "UPDATE CategoryRegistry SET name = ?, isActive = 1, color = ?, updatedAt = ? WHERE slug = ?", [trimmedName, finalColor, now, slug]);
-      return { ...existing, name: trimmedName, color: finalColor, isActive: 1 };
+      await this.dbRun(db, "UPDATE CategoryRegistry SET name = ?, isActive = 1, color = ?, icon = ?, updatedAt = ? WHERE slug = ?", [trimmedName, finalColor, finalIcon, now, slug]);
+      return { ...existing, name: trimmedName, color: finalColor, icon: finalIcon, isActive: 1 };
     }
 
     const id = `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const finalColor = color || this.generateColorBeyondPalette(0);
+    const finalIcon = icon || null;
     await this.dbRun(db, `
-      INSERT INTO CategoryRegistry (id, slug, name, color, usageCount, isActive, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, 0, 1, ?, ?)
-    `, [id, slug, trimmedName, finalColor, now, now]);
-    return { id, slug, name: trimmedName, color: finalColor, usageCount: 0, isActive: 1, createdAt: now, updatedAt: now };
+      INSERT INTO CategoryRegistry (id, slug, name, color, icon, usageCount, isActive, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?)
+    `, [id, slug, trimmedName, finalColor, finalIcon, now, now]);
+    return { id, slug, name: trimmedName, color: finalColor, icon: finalIcon, usageCount: 0, isActive: 1, createdAt: now, updatedAt: now };
   }
 
   // Namakan-semula SATU baris Bidang taksonomi — sengaja BUKAN renameCategory()/mergeCategories()
