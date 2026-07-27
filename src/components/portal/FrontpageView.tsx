@@ -2139,16 +2139,36 @@ URL: ${url}`;
   // plat boleh ratusan kilobait, dan menghantar kesemua 25 kepada setiap pelawat frontpage untuk
   // memaparkan sifar atau satu ialah pembaziran yang besar (25 x 138KB = 3.4MB setiap muat).
   //
-  // Dikosongkan dahulu setiap kali Bidang bertukar, supaya plat Bidang sebelumnya tidak sempat
-  // terpapar di bawah kandungan baharu sementara menunggu pengambilan.
+  // DI-CACHE mengikut Bidang. Tanpa cache, setiap kali Focus View dibuka — termasuk setiap langkah
+  // Sebelum/Seterusnya dalam slot yang sama — memuat turun semula plat yang sama (121KB pada plat
+  // sebenar pertama). Kolum kanan kekal kosong sepanjang tempoh itu, dan pemilik projek melaporkan
+  // platnya "hilang": ia sebenarnya belum sampai lagi.
+  //
+  // Dengan cache, cuma bukaan PERTAMA setiap Bidang menanggung kos rangkaian; selepas itu plat
+  // muncul serentak dengan Focus View.
+  const platCache = useRef<Record<string, string | null>>({});
   const focusBidangName = focusBidang?.name || '';
   useEffect(() => {
+    if (!focusBidangName) { setFocusIllustration(null); return; }
+
+    const kunci = focusBidangName.toLowerCase();
+    if (kunci in platCache.current) {
+      // Sudah ada — tetapkan terus tanpa mengosongkannya dahulu, jadi tiada kelipan.
+      setFocusIllustration(platCache.current[kunci]);
+      return;
+    }
+
+    // Belum pernah diambil: kosongkan dahulu supaya plat Bidang sebelumnya tidak terpapar di bawah
+    // kandungan baharu sementara menunggu.
     setFocusIllustration(null);
-    if (!focusBidangName) return;
     let dibatalkan = false;
     fetch('/api/system/categories/illustration?name=' + encodeURIComponent(focusBidangName))
       .then(res => res.json())
-      .then(data => { if (!dibatalkan) setFocusIllustration(data?.illustrationSvg || null); })
+      .then(data => {
+        const svg = data?.illustrationSvg || null;
+        platCache.current[kunci] = svg;
+        if (!dibatalkan) setFocusIllustration(svg);
+      })
       .catch(() => {});
     return () => { dibatalkan = true; };
   }, [focusBidangName]);
