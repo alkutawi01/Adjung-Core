@@ -20,6 +20,38 @@ import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 // Token warna/taip (--surface-page, --stone-*, --text-13 dll.) ada di src/index.css.
 // ============================================================================
 
+// Benar selagi kandungan elemen lebih tinggi daripada kotaknya. Memerhati elemen itu DAN tetingkap,
+// jadi jalur pudar muncul dan hilang mengikut susun atur sebenar, bukan tekaan kiraan aksara.
+//
+// Ini menggantikan ujian `text.length > 600` yang pernah dipakai: kiraan aksara meninggalkan
+// kawasan yang benar-benar terpotong tanpa sebarang jalur pudar. Ukur kotak, jangan agak.
+function useOverflowFade(): [React.RefObject<HTMLDivElement | null>, React.CSSProperties] {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [over, setOver] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => setOver(el.scrollHeight - el.clientHeight > 2);
+    read();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(read) : null;
+    if (ro) { ro.observe(el); if (el.firstElementChild) ro.observe(el.firstElementChild); }
+    window.addEventListener('resize', read);
+    return () => { if (ro) ro.disconnect(); window.removeEventListener('resize', read); };
+  });
+  const fade = over ? 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)' : 'none';
+  return [ref, { maskImage: fade, WebkitMaskImage: fade }];
+}
+
+/** Had nota — tiga baris pada 11px/1.6 dalam kolum luar. */
+export const NOTA_MAX = 180;
+
+function trimNota(note?: string): string {
+  const t = String(note || '').trim();
+  if (t.length <= NOTA_MAX) return t;
+  const cut = t.lastIndexOf(' ', NOTA_MAX);
+  return t.slice(0, cut > NOTA_MAX * 0.6 ? cut : NOTA_MAX).trim() + '…';
+}
+
 export interface FocusRelatedItem {
   title: string;
   url?: string;
@@ -73,53 +105,56 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const label = [desk, topik].filter(Boolean).join(' · ');
   const isPhone = usePhoneViewport();
 
-  // Dua ukuran eksplisit dan bukan multicol CSS (multicol berpecah dalam kotak berhad tinggi
-  // akan melukis limpahannya ATAS perenggan seterusnya). Ukuran KIRI diisi dahulu sampai
-  // kapasiti baris sebenarnya — diukur dari kotak hidup — dan cuma bakinya mengalir ke kanan.
-  const FADE = 28; // jalur pudar di kaki kotak badan; jangan sekali-kali isi teks ke dalamnya
-  const bodyRef = React.useRef<HTMLDivElement>(null);
-  const probeRef = React.useRef<HTMLDivElement>(null);
-  const [split, setSplit] = React.useState<number | null>(null);
-  const [overflowing, setOverflowing] = React.useState(false);
-
-  const paraHTML = React.useCallback((s: string) => String(s).split(/\n{2,}/).filter(Boolean)
-    .map((p, i) => '<p style="margin:' + (i === 0 ? '0' : '0.9em 0 0') + '">' + p.replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch] as string)) + '</p>').join(''), []);
-
-  React.useLayoutEffect(() => {
-    const box = bodyRef.current, probe = probeRef.current;
-    const text = String(body || '').trim();
-    if (!box || !probe || !text) { setSplit(null); return; }
-    const capacity = box.clientHeight - FADE;
-    probe.style.width = Math.floor(box.clientWidth / 2 - 20) + 'px';
-    probe.innerHTML = paraHTML(text);
-    if (probe.scrollHeight <= capacity) { setSplit(text.length); setOverflowing(false); return; }
-    // carian binari untuk awalan terpanjang yang masih muat dalam ukuran kiri
-    let lo = 0, hi = text.length, best = 0;
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1;
-      probe.innerHTML = paraHTML(text.slice(0, mid));
-      if (probe.scrollHeight <= capacity) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
-    }
-    const space = text.lastIndexOf(' ', best);
-    const cut = space > text.length * 0.2 ? space : best;
-    setSplit(cut);
-    // ukuran kanan ada kapasiti sama; apa-apa selepas dua ukuran penuh memang perlu menatal
-    probe.innerHTML = paraHTML(text.slice(cut));
-    setOverflowing(probe.scrollHeight > capacity);
-    probe.innerHTML = '';
-  }, [body, paraHTML]);
-
+  // Huraian panjang dibahagi kepada dua ukuran secara DETERMINISTIK — tiada pengukuran, tiada
+  // layout effect, tiada state. Versi terdahulu menjalankan carian binari terhadap kotak hidup
+  // yang diisinya sendiri; gelung ukur-lalu-laras begitu tidak dijamin menumpu. Ukuran KIRI
+  // mengambil bahagian lebih besar supaya ia terbaca sebagai diisi dahulu; titik potong dialihkan
+  // ke sempadan perenggan apabila ada satu berhampiran tengah, jika tidak ke sempadan perkataan
+  // terdekat.
   const text = String(body || '').trim();
-  const measures = split == null ? [text, ''] : [text.slice(0, split).trim(), text.slice(split).trim()];
+  const measures = React.useMemo(() => {
+    if (!text) return ['', ''];
+    const target = Math.ceil(text.length * 0.55);
+    let cut = -1;
+    const paras: number[] = [];
+    for (let i = text.indexOf('\n\n'); i > -1; i = text.indexOf('\n\n', i + 1)) paras.push(i);
+    for (const p of paras) {
+      if (Math.abs(p - target) < text.length * 0.22 && (cut < 0 || Math.abs(p - target) < Math.abs(cut - target))) cut = p;
+    }
+    if (cut < 0) { const w = text.lastIndexOf(' ', target); cut = w > text.length * 0.25 ? w : target; }
+    return [text.slice(0, cut).trim(), text.slice(cut).trim()];
+  }, [text]);
 
-  // Had tajuk ialah 168 aksara (MENEGAK). Saiz menurun mengikut panjang supaya blok tajuk
+  const [bodyRef, bodyFade] = useOverflowFade();
+
+  // Nota melebihi hadnya dipotong di sempadan perkataan; teks penuh kekal dalam atribut `title`,
+  // dan amaran konsol menamakan lebihannya supaya editor memendekkannya di Editorium.
+  const notaText = trimNota(note);
+  React.useEffect(() => {
+    const n = String(note || '').trim().length;
+    if (n > NOTA_MAX) console.warn(`FocusView: nota ${n}/${NOTA_MAX} aksara — pendekkan nota di Editorium.`);
+  }, [note]);
+
+  // Had tajuk ialah 168 aksara (MENEGAK). Saiz menurun mengikut kiraan aksara supaya blok tajuk
   // menduduki ukuran yang sama sama ada tajuk 40 aksara atau 168 aksara penuh.
+  //
+  // TETAP dalam px, TIADA terma viewport. Versi clamp(..., vh, ...) terdahulu memapar tajuk 168
+  // aksara pada 20.7px dan bukan 27px, kerana 2.3vh pada tinggi 900px ialah 20.7px — clamp itu
+  // memilih nilai tengah, bukan nilai maksimum. Jangan perkenalkan semula terma vh di sini.
   const n = String(title || '').length;
-  const titleSize =
-    n <= 60 ? 'clamp(26px, 3.8vh, 44px)' :
-    n <= 100 ? 'clamp(23px, 3.2vh, 37px)' :
-    n <= 140 ? 'clamp(21px, 2.7vh, 31px)' :
-      'clamp(19px, 2.3vh, 27px)';
+  const titleSize = n <= 60 ? '44px' : n <= 100 ? '37px' : n <= 140 ? '31px' : '27px';
+
+  // Karya seni DIMUATKAN, tidak pernah dipangkas: kekang nod yang dihantar itu sendiri, kerana
+  // kotak plat cuma mengerat. Anak bukan-elemen (teks, fragmen) lalu tanpa disentuh.
+  const plate = React.isValidElement(visual)
+    ? React.cloneElement(visual as React.ReactElement<any>, {
+        style: {
+          maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto',
+          objectFit: 'contain', display: 'block',
+          ...((visual as React.ReactElement<any>).props.style || {}),
+        },
+      })
+    : visual;
 
   const rule: React.CSSProperties = { border: 0, borderTop: '1px solid var(--border-default)', margin: 0, width: '100%' };
   const micro: React.CSSProperties = {
@@ -130,10 +165,20 @@ export const FocusView: React.FC<FocusViewProps> = ({
     ...micro, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
     color: 'var(--stone-300)', border: '1px dashed var(--border-default)', fontWeight: 'var(--weight-medium)' as any,
   };
-  const arrow = (side: 'left' | 'right'): React.CSSProperties => ({
+  // Chevron menyala marun pada hover DAN pada fokus papan kekunci — kedua-duanya, bukan hover
+  // sahaja. Nilai motion ditulis terus (150ms, cubic-bezier(0.4,0,0.2,1)) kerana --duration-fast
+  // dan --ease-standard tidak wujud dalam src/index.css; ia token projek Claude Design sahaja.
+  const arrow = (side: 'left' | 'right', on: boolean): React.CSSProperties => ({
     position: 'absolute', top: '50%', [side]: 'clamp(8px, 1.6vw, 26px)', transform: 'translateY(-50%)',
     background: 'none', border: 0, padding: '14px', cursor: 'pointer', lineHeight: 1,
-    color: 'var(--stone-300)', fontSize: 'clamp(15px, 1.3vw, 20px)', fontFamily: 'var(--font-serif)',
+    color: on ? 'var(--color-Adjung-maroon)' : 'var(--stone-300)',
+    fontSize: 'clamp(15px, 1.3vw, 20px)', fontFamily: 'var(--font-serif)',
+    transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+  });
+  const [hovered, setHovered] = React.useState<'prev' | 'next' | null>(null);
+  const navProps = (key: 'prev' | 'next') => ({
+    onMouseEnter: () => setHovered(key), onMouseLeave: () => setHovered(null),
+    onFocus: () => setHovered(key), onBlur: () => setHovered(null),
   });
 
   // ==========================================================================================
@@ -313,8 +358,17 @@ export const FocusView: React.FC<FocusViewProps> = ({
     );
   }
 
+  // ==========================================================================================
+  // SUSUN ATUR DESKTOP — direka pada 1440x900, dikunci oleh handoff "Adjung Brief — Focus View".
+  //
+  // Empat belas elemen, setiap satu ada tempat tetap. Komposisi ini TETAP: Band A tidak pernah
+  // menatal, dan ruang bagi Grafik serta Kandungan berkaitan sentiasa dikhaskan walaupun kosong,
+  // supaya susunan tidak beralih antara satu kandungan dengan kandungan lain.
+  //
+  // Huraian panjang ialah SATU-SATUNYA kawasan yang menatal.
+  // ==========================================================================================
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflowX: 'hidden', overflowY: 'auto', background: 'var(--surface-page)', color: 'var(--text-body)' }}>
       {backdropImage && (
         <div aria-hidden="true" style={{
           position: 'absolute', inset: 0, backgroundImage: 'url(' + backdropImage + ')',
@@ -322,9 +376,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
         }} />
       )}
 
-      <div style={{ position: 'relative', height: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.6vh, 18px) 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* minHeight 100% pada pembalut + minHeight 710px pada helaian: pada 1440x900 helaian
+          memenuhi skrin dan halaman tidak menatal. Di bawah 710px yang diperlukan komposisi,
+          HALAMAN yang menatal — tiada jalur dibenarkan mengerat kandungannya sebagai ganti. */}
+      <div style={{ position: 'relative', minHeight: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.6vh, 18px) 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{
-          width: 'min(86%, 1220px)', maxHeight: '100%', boxSizing: 'border-box',
+          width: 'min(86%, 1220px)', height: '100%', minHeight: '710px', boxSizing: 'border-box',
           display: 'flex', flexDirection: 'column',
         }}>
 
@@ -345,81 +402,97 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <hr style={rule} />
           </div>
 
-          {/* BADAN HALAMAN — ditengahkan antara masthead dan kolofon, tak pernah diregang */}
-          <div style={{ flex: '0 1 auto', minHeight: 0, display: 'flex', alignItems: 'stretch', overflow: 'hidden', padding: 'clamp(16px, 3.6vh, 40px) 0 clamp(18px, 4vh, 44px)' }}>
-            <div style={{ width: '100%', minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', columnGap: 'clamp(24px, 3.2vw, 52px)', alignItems: 'start' }}>
+          {/* HALAMAN — dua jalur berkongsi satu grid 12 kolum.
+              Band A: tajuk + huraian pendek (1-8) di sebelah grafik (9-12), yang ditengahkan
+              terhadap jalur itu, jadi garis tengah plat jatuh pada garis tengah blok tajuk +
+              huraian pendek secara BINAAN — tiada pengukuran, tiada hanyutan.
+              Band B: huraian panjang (1-8) di sebelah kandungan berkaitan + nota (9-12).
 
-              {/* KIRI — tajuk, huraian pendek, huraian panjang */}
-              <div style={{ gridColumn: '1 / span 8', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                <h1 style={{ flex: '0 0 auto', margin: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty' }}>{title}</h1>
+              Lantai 350px Band A dikira daripada kes terburuk sebenar: tajuk 168 aksara pada 27px
+              lebih kurang 4 baris, campur huraian pendek 429 aksara pada 15px/1.65 lebih kurang
+              166px, campur garis dan margin. Jalur tetap hanya selamat kalau ia DIJAMIN muat. */}
+          <div style={{ flex: '1 1 auto', minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gridTemplateRows: 'minmax(350px, auto) minmax(170px, 1fr)', columnGap: 'clamp(24px, 3.2vw, 52px)', overflow: 'hidden', padding: 'clamp(14px, 2.8vh, 30px) 0 clamp(14px, 2.8vh, 32px)' }}>
 
-                {/* huraian pendek — had 429 aksara, satu ukuran lebar */}
-                <p style={{ flex: '0 0 auto', margin: 'clamp(14px, 2.6vh, 26px) 0 0', fontFamily: 'var(--font-serif)', fontSize: 'var(--text-15, 15px)', fontWeight: 'var(--weight-light)' as any, lineHeight: 1.65, color: 'var(--stone-700)', textWrap: 'pretty' }}>{brief}</p>
+            {/* BAND A KIRI — tajuk + huraian pendek */}
+            <div style={{ gridColumn: '1 / span 8', gridRow: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <h1 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty' }}>{title}</h1>
 
-                <hr style={{ ...rule, flex: '0 0 auto', margin: 'clamp(14px, 2.6vh, 28px) 0' }} />
+              {/* huraian pendek — had 429 aksara, satu ukuran lebar di bawah tajuk */}
+              <p style={{ margin: 'clamp(14px, 2.6vh, 26px) 0 clamp(14px, 2.6vh, 28px)', fontFamily: 'var(--font-serif)', fontSize: 'var(--text-15)', fontWeight: 'var(--weight-light)' as any, lineHeight: 1.65, color: 'var(--stone-700)', textWrap: 'pretty' }}>{brief}</p>
 
-                {/* huraian panjang — had 600 aksara, dua ukuran; menatal cuma kalau dilebihi. */}
-                {/* Penatalan ada pada PEMBALUT; multicol di dalamnya kekal tinggi semula jadi,
-                    jadi limpahan berlaku menegak dan boleh ditatal, bukan tumpah ke lajur ghaib. */}
-                <div ref={bodyRef} style={{ flex: '0 1 auto', minHeight: 0, maxHeight: 'clamp(150px, 32vh, 280px)', overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', maskImage: overflowing ? 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)' : 'none', WebkitMaskImage: overflowing ? 'linear-gradient(to bottom, #000 calc(100% - 28px), transparent)' : 'none' }}>
-                  <div style={{
-                    display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 'clamp(22px, 2.6vw, 40px)',
-                    fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', fontWeight: 'var(--weight-light)' as any,
-                    lineHeight: 1.8, color: 'var(--stone-600)', textWrap: 'pretty',
-                  }}>
-                    <div ref={probeRef} aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: '-9999px', top: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', fontWeight: 'var(--weight-light)' as any, lineHeight: 1.8 }} />
-                    {measures.map((m, i) => (
-                      <div key={i} style={{
-                        minWidth: 0,
-                        paddingLeft: i === 1 ? 'clamp(22px, 2.6vw, 40px)' : 0,
-                        marginLeft: i === 1 ? 'calc(-1 * clamp(22px, 2.6vw, 40px))' : 0,
-                        borderLeft: i === 1 && m ? '1px solid var(--border-subtle)' : 'none',
-                      }}>
-                        {m.split(/\n{2,}/).filter(Boolean).map((para, j) => (
-                          <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{para}</p>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
+              {/* marginTop auto: garis penutup melekat di kaki jalur, jadi ia jatuh pada baris
+                  yang sama pada setiap kandungan */}
+              <hr style={{ ...rule, marginTop: 'auto' }} />
+            </div>
+
+            {/* BAND A KANAN — grafik, ditengahkan terhadap blok tajuk + huraian pendek */}
+            <figure style={{ gridColumn: '9 / span 4', gridRow: 1, minWidth: 0, minHeight: 0, margin: 0, alignSelf: 'center', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{
+                width: '100%', aspectRatio: '4 / 3', minHeight: 0, maxHeight: 'clamp(180px, 25vh, 240px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                ...(visual ? null : placeholder),
+              }}>
+                {plate || 'Ruang grafik'}
+              </div>
+              <figcaption style={{ ...micro, marginTop: '10px', textAlign: 'center', fontWeight: 'var(--weight-medium)' as any }}>{visualCaption || 'Lampiran visual'}</figcaption>
+            </figure>
+
+            {/* BAND B KIRI — huraian panjang, satu-satunya kawasan yang menatal */}
+            <div style={{ gridColumn: '1 / span 8', gridRow: 2, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 'clamp(14px, 2.6vh, 28px)' }}>
+              {/* Penatalan ada pada PEMBALUT; dua ukuran di dalamnya kekal tinggi semula jadi,
+                  jadi limpahan berlaku menegak dan boleh ditatal, bukan tumpah ke lajur ghaib.
+                  Jangan sekali-kali guna multicol CSS dalam kotak berhad tinggi — serpihannya
+                  melukis DI ATAS perenggan seterusnya. */}
+              <div ref={bodyRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', ...bodyFade }}>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 'clamp(22px, 2.6vw, 40px)',
+                  fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', fontWeight: 'var(--weight-light)' as any,
+                  lineHeight: 1.8, color: 'var(--stone-600)', textWrap: 'pretty',
+                }}>
+                  {measures.map((m, i) => (
+                    <div key={i} style={{
+                      minWidth: 0,
+                      paddingLeft: i === 1 ? 'clamp(22px, 2.6vw, 40px)' : 0,
+                      marginLeft: i === 1 ? 'calc(-1 * clamp(22px, 2.6vw, 40px))' : 0,
+                      borderLeft: i === 1 && m ? '1px solid var(--border-subtle)' : 'none',
+                    }}>
+                      {m.split(/\n{2,}/).filter(Boolean).map((para, j) => (
+                        <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{para}</p>
+                      ))}
+                    </div>
+                  ))}
                 </div>
               </div>
+            </div>
 
-              {/* KANAN — grafik, kandungan berkaitan, nota */}
-              <div style={{ gridColumn: '9 / span 4', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 2.2vh, 22px)', overflow: 'hidden' }}>
-                <figure style={{ margin: 0, flex: '0 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{
-                    width: '100%', aspectRatio: '4 / 3', flex: '0 1 auto', minHeight: 0, maxHeight: '32vh',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                    ...(visual ? null : placeholder),
-                  }}>
-                    {visual || 'Ruang grafik'}
-                  </div>
-                  <figcaption style={{ ...micro, marginTop: '10px', textAlign: 'center', fontWeight: 'var(--weight-medium)' as any }}>{visualCaption || 'Lampiran visual'}</figcaption>
-                </figure>
-
-                <div style={{ flex: '0 0 auto' }}>
-                  <span style={{ ...micro, display: 'block', marginBottom: '6px' }}>Kandungan berkaitan</span>
-                  {related.length > 0 ? (
-                    <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                      {related.slice(0, 2).map((r, i) => {
-                        const item: FocusRelatedItem = typeof r === 'string' ? { title: r } : r;
-                        return (
-                          <li key={i} style={{ display: 'flex', gap: '12px', padding: '9px 0', borderTop: '1px solid var(--border-subtle)' }}>
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', color: 'var(--color-Adjung-maroon)', paddingTop: '3px' }}>{String(i + 1).padStart(2, '0')}</span>
-                            <a href={item.url || '#'} style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{item.title}</a>
-                          </li>
-                        );
-                      })}
-                    </ol>
-                  ) : (
-                    <div style={{ ...placeholder, minHeight: '56px' }}>Tiada kandungan berkaitan</div>
-                  )}
-                </div>
-
-                <p style={{ flex: '0 0 auto', margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: note ? 'var(--stone-600)' : 'var(--stone-300)' }}>
-                  <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{note || 'Tiada nota editor.'}
-                </p>
+            {/* BAND B KANAN — kandungan berkaitan, nota.
+                Kandungan berkaitan memegang trek anjal dan menatal di dalamnya; nota memegang trek
+                auto, jadi ia tidak boleh disingkirkan. Jangan guna justify-content: flex-end dengan
+                overflow: hidden di sini — limpahan ditolak keluar dari ATAS dan tajuk "Kandungan
+                berkaitan" lenyap senyap-senyap. */}
+            <div style={{ gridColumn: '9 / span 4', gridRow: 2, minWidth: 0, minHeight: 0, display: 'grid', gridTemplateRows: 'minmax(0, 1fr) auto', gap: 'clamp(10px, 1.8vh, 18px)', paddingTop: 'clamp(14px, 2.6vh, 28px)' }}>
+              <div style={{ minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' }}>
+                <span style={{ ...micro, display: 'block', marginBottom: '6px' }}>Kandungan berkaitan</span>
+                {related.length > 0 ? (
+                  <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                    {related.slice(0, 2).map((r, i) => {
+                      const item: FocusRelatedItem = typeof r === 'string' ? { title: r } : r;
+                      return (
+                        <li key={i} style={{ display: 'flex', gap: '12px', padding: '9px 0', borderTop: '1px solid var(--border-subtle)' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', color: 'var(--color-Adjung-maroon)', paddingTop: '3px' }}>{String(i + 1).padStart(2, '0')}</span>
+                          <a href={item.url || '#'} style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{item.title}</a>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                ) : (
+                  <div style={{ ...placeholder, minHeight: '56px' }}>Tiada kandungan berkaitan</div>
+                )}
               </div>
+
+              <p title={note || undefined} style={{ margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: note ? 'var(--stone-600)' : 'var(--stone-300)', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden' }}>
+                <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText || 'Tiada nota editor.'}
+              </p>
             </div>
           </div>
 
@@ -434,8 +507,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
                 </span>
               </span>
-              <span style={{ textAlign: 'right', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-                <span style={{ display: 'block', fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', color: 'var(--color-Adjung-maroon)' }}>{editorName || '—'}</span>
+              {/* alignItems: flex-end dalam lajur flex — text-align sahaja membiarkan tepi hanyut */}
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', color: 'var(--color-Adjung-maroon)' }}>{editorName || '—'}</span>
                 <a
                   href={editorContact && editorContact.includes('@') ? 'mailto:' + editorContact : (editorContact ? 'https://' + editorContact : '#')}
                   target="_blank"
@@ -450,8 +524,8 @@ export const FocusView: React.FC<FocusViewProps> = ({
         </div>
       </div>
 
-      {onPrev && <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} style={arrow('left')}>◀</button>}
-      {onNext && <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} style={arrow('right')}>▶</button>}
+      {onPrev && <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} style={arrow('left', hovered === 'prev')} {...navProps('prev')}>◀</button>}
+      {onNext && <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} style={arrow('right', hovered === 'next')} {...navProps('next')}>▶</button>}
     </div>
   );
 };
