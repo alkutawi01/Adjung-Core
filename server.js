@@ -2051,6 +2051,11 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       const aiProv = avs.find(a => a.attributeId === 'aiProvider');
       const origDateAv = avs.find(a => a.attributeId === 'originalDate');
       const topikAv = avs.find(a => a.attributeId === 'topik');
+      // briefLong: dihurai daripada blok manual, disahkan terhadap had tier, dan disimpan ke
+      // editorial_attribute_values — tetapi TIDAK PERNAH dibaca semula di sini. Focus View membaca
+      // focusItem.briefLong, jadi Huraian panjang tidak pernah dipapar untuk mana-mana kandungan,
+      // walaupun ia tersimpan elok dalam pangkalan data.
+      const briefLongAv = avs.find(a => a.attributeId === 'briefLong');
       const organizerAv = avs.find(a => a.attributeId === 'organizer');
       const locationAv = avs.find(a => a.attributeId === 'location');
       const accessAv = avs.find(a => a.attributeId === 'access');
@@ -2061,6 +2066,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         brief: approvedRevision.summary,
         publishedAt: approvedRevision.createdAt,
         originalDate: origDateAv ? origDateAv.valueText : '',
+        briefLong: briefLongAv ? briefLongAv.valueText : '',
         desk: (renderToken.desk || 'UMUM').toUpperCase(),
         topik: topikAv ? topikAv.valueText : '',
         publisherName: renderToken.publisherName || 'Umum',
