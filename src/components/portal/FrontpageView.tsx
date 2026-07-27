@@ -14,7 +14,7 @@ import { TickerManagementModal } from './TickerManagementModal';
 import { BarCard } from './cards/BarCard';
 import { BarCardExpandedPanel } from './cards/BarCardExpandedPanel';
 import { Tooltip } from '../common/Tooltip';
-import { FocusView, type FocusMode } from './FocusView';
+import { FocusView } from './FocusView';
 import { BidangIcon } from '../common/BidangIcon';
 
 // parseInlineFormatting is designed for hand-authored Note/Essay body text; applying it broadly to
@@ -2203,6 +2203,13 @@ URL: ${url}`;
 
   /** Satu kedudukan kandungan: slot mana, item ke berapa dalam carousel slot tu. */
   type FocusLoc = { slotIndex: number; itemIndex: number };
+
+  /** Mod navigasi chevron: ikut urutan dalam slot sama, atau rawak merentas semua slot.
+   *  Reka bentuk muktamad Focus View tidak memaparkan suis mod (spesifikasinya menetapkan
+   *  chevron melangkah dalam slot semasa sahaja), jadi mod kekal 'urutan' buat masa ni dan
+   *  jentera 'rawak' di bawah tak dapat dicapai dari antara muka. Ia sengaja DIKEKALKAN,
+   *  bukan dibuang — menunggu keputusan pemilik projek sama ada suis itu patut kembali. */
+  type FocusMode = 'urutan' | 'rawak';
 
   const [focusLoc, setFocusLoc] = useState<FocusLoc | null>(null);
   const [focusMode, setFocusMode] = useState<FocusMode>('urutan');
@@ -6425,9 +6432,9 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           body={asPlainText(focusItem.briefLong)}
           source={focusItem.source}
           sourceUrl={focusItem.url}
+          sourceDate={getDisplayDate(focusItem.originalDate)}
+          publishedDate={formatSiaranDate(focusItem.publishedAt)}
           backdropImage={focusItem.imageUrl || undefined}
-          mode={focusMode}
-          onModeChange={changeFocusMode}
           onPrev={() => stepFocus(-1)}
           onNext={() => stepFocus(1)}
           onClose={closeFocus}

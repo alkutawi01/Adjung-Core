@@ -20,15 +20,58 @@
   --color-Adjung-dark: #111111;
   --color-Adjung-gray-light: #EAE8E3;
 
-  /* Focus View (paparan penuh kandungan) — nilai kanonik dari Adjung Brief Design System
-     (tokens/colors.css). Sengaja dipisahkan daripada palet kad/frontpage sebab Focus View
-     ialah satu-satunya permukaan berlatar gelap dalam produk ni. */
-  --focus-ground: #1F1B22;
-  --focus-ink: #FDFDFD;
-  --focus-ink-soft: rgba(253, 253, 253, 0.86);
-  --focus-ink-muted: rgba(253, 253, 253, 0.62);
-  --focus-ink-faint: rgba(253, 253, 253, 0.40);
-  --focus-accent: #E2733C;
+}
+
+/* Token semantik dari Adjung Brief Design System (tokens/colors.css + tokens/typography.css),
+   disalin PERSIS mengikut nilainya di sana. Dipakai oleh Focus View
+   (src/components/portal/FocusView.tsx), yang direka terus dalam sistem tu.
+
+   Sengaja diletak dalam :root biasa dan BUKAN dalam @theme di atas: nama seperti --text-13
+   dan --font-* tergolong dalam ruang nama Tailwind v4, jadi mengisytiharkannya dalam @theme
+   akan mengubah skala utiliti Tailwind untuk seluruh aplikasi. Di sini ia cuma pemboleh ubah
+   CSS biasa.
+
+   Nota: blok --focus-ground/--focus-ink (latar gelap) dibuang bersama shell Focus View lama —
+   reka bentuk muktamad memakai latar krim frontpage, dan tiada fail lain merujuk token itu. */
+:root {
+  /* Skala neutral stone — sama nilai dengan skala stone Tailwind yang dipakai di frontpage. */
+  --stone-150: #EFEDEB;
+  --stone-200: #E7E5E4;
+  --stone-300: #D6D3D1;
+  --stone-400: #A8A29E;
+  --stone-500: #78716C;
+  --stone-600: #57534E;
+  --stone-700: #44403C;
+  --stone-900: #1C1917;
+
+  /* Alias semantik */
+  --surface-page: var(--color-Adjung-cream);
+  --text-body: #1F1F1F;
+  --text-heading: var(--stone-900);
+  --border-default: var(--stone-200);
+  --border-subtle: var(--stone-150);
+  --maroon-a25: rgba(128, 35, 52, 0.25);
+
+  /* Tangga saiz taip */
+  --text-9: 9px;
+  --text-10: 10px;
+  --text-11: 11px;
+  --text-13: 13px;
+  --text-15: 15px;
+  --text-18: 18px;
+  --text-30: 30px;
+
+  /* Berat */
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Jarak huruf */
+  --tracking-tight: -0.015em;
+  --tracking-wide: 0.05em;
+  --tracking-editorial: 0.15em;
 }
 
 /* Ikon Bidang custom (SVG dimuat naik admin) — markup disuntik apa adanya, jadi saiznya
