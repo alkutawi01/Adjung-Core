@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
+import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
 
 // ============================================================================
 // FOCUS VIEW — permukaan bacaan skrin penuh yang dibuka bila kad bento diklik.
@@ -79,6 +80,10 @@ export interface FocusViewProps {
   icon?: React.ReactNode;
   desk?: string;
   topik?: string;
+  /** Warna Bidang (CategoryRegistry.color). Eyebrow kad guna warna ini, jadi Focus View mesti guna
+   *  yang sama — kandungan yang sama tidak sepatutnya bertukar warna identiti apabila dibuka.
+   *  Jatuh balik ke marun Adjung kalau Bidang tiada warna. */
+  deskColor?: string;
   title: string;
   /** Huraian pendek — had 429 aksara, satu ukuran lebar. */
   brief?: string;
@@ -114,13 +119,19 @@ export interface FocusViewProps {
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
-  wordmark = 'Adjung', icon, desk, topik, title, brief, body,
+  wordmark = 'Adjung', icon, desk, topik, deskColor, title, brief, body,
   visual, visualCaption, related = [], note, illustrationSvg,
   source, sourceUrl, sourceDate, publishedDate,
   editorName, editorContact, backdropImage, backdropOpacity = 0.06,
   onPrev, onNext, onClose,
 }) => {
-  const label = [desk, topik].filter(Boolean).join(' · ');
+  // Format label datang daripada eyebrowLabel() di GeometryConfig — sumber SAMA yang dipakai kad
+  // bento dan pengesahan simpan. Sebelum ini fail ini ada takrifannya sendiri (' · '), jadi Focus
+  // View memapar "MALAYSIANA · Percubaan" sementara kad memapar "MALAYSIANA | Percubaan" untuk
+  // kandungan yang sama. CLAUDE.md melarang menulis semula format ini secara khusus: kalau ia
+  // bercabang, had aksara mengesahkan string yang berlainan daripada yang benar-benar dirender.
+  const label = eyebrowLabel(desk, topik);
+  const warnaEyebrow = deskColor || 'var(--color-Adjung-maroon)';
   const isPhone = usePhoneViewport();
 
   // Huraian panjang dibahagi kepada dua ukuran secara DETERMINISTIK — tiada pengukuran, tiada
@@ -325,7 +336,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{
                 fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
-                letterSpacing: 'var(--tracking-editorial)', color: 'var(--stone-500)',
+                letterSpacing: 'var(--tracking-editorial)', color: warnaEyebrow,
               }}>{label}</span>
             </div>
           )}
@@ -466,7 +477,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '10px 0' }}>
               <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
               {/* Glif Bidang sengaja TIDAK dirender di sini — lihat nota `icon` dalam FocusViewProps. */}
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', ...micro, color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-bold)' as any, whiteSpace: 'nowrap' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any, whiteSpace: 'nowrap' }}>
                 {label}
               </span>
               <span style={{ ...micro, justifySelf: 'end', display: 'inline-flex', alignItems: 'center', gap: '16px', whiteSpace: 'nowrap' }}>
