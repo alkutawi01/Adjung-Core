@@ -126,6 +126,15 @@ export const eyebrowCeilingForSlot = (slotIndex) => {
   return MAX_EYEBROW_CHARS_BY_TIER[tier] ?? MAX_EYEBROW_CHARS_BY_TIER.DEFAULT;
 };
 
+// Berapa aksara yang TINGGAL untuk Topik pada slot ni, setelah Bidang terkunci slot dan
+// pemisah " | " mengambil bahagiannya. Ini nombor yang editor (dan prom AI) perlu nampak —
+// had eyebrow mentah tak berguna kepada mereka sebab mereka tak menaip bahagian Bidang.
+export const topikCeilingForSlot = (slotIndex, bidang) => {
+  const bidangLen = (bidang || '').trim().length;
+  const pemisah = bidangLen > 0 ? 3 : 0; // ' | '
+  return Math.max(0, eyebrowCeilingForSlot(slotIndex) - bidangLen - pemisah);
+};
+
 // Character budget for BAR's "Penerangan" field — the accordion detail panel body text (see
 // BarCardExpandedPanel.tsx). BAR-only field, not part of MAX_BRIEF_LONG_BY_TIER above (that's
 // keyed by tier for a field every tier could theoretically have; Penerangan only exists for BAR).

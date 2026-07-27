@@ -9,7 +9,7 @@
 // the fraction of that solo budget a field actually uses (length / soloMax) must sum to <= 1.
 import {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot,
-  MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot,
+  MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
 } from './GeometryConfig.js';
 
 // Every slot of the same tier gets the exact same rule — there is no per-slot special-casing.
@@ -106,6 +106,6 @@ const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik, slot
 
 export {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot,
-  MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot,
+  MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
   validateContentBudget, validateBidangTopik,
 };

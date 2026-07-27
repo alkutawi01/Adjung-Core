@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trash2, Save, Plus, Search, ChevronDown, ChevronUp, LayoutGrid, FileText, Check } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
+import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
 
 interface ContentItem {
   id: string;
@@ -21,10 +22,11 @@ interface ContentItem {
   updatedAt: string;
 }
 
-const formatBidangTopik = (item: { desk?: string; topik?: string }) => {
-  if (!item.desk) return item.topik || '';
-  return item.topik ? `${item.desk} | ${item.topik}` : item.desk;
-};
+// Format datang dari eyebrowLabel() di GeometryConfig.js — sumber yang SAMA digunakan oleh
+// pengesahan simpan dan oleh render kad frontpage. Sebelum ini fail ini menyimpan salinan
+// keduanya sendiri; kalau format bercabang, had aksara eyebrow akan mengesahkan string yang
+// berlainan daripada yang dipapar.
+const formatBidangTopik = (item: { desk?: string; topik?: string }) => eyebrowLabel(item.desk, item.topik);
 
 const LimitBadge = ({ length, limit }: { length: number; limit: number | null }) => {
   if (!limit) return null;
