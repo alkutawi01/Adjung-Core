@@ -97,6 +97,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
             itemBidang: item.category,
             topik: item.topik,
             requireTopik: true,
+            slotIndex: slotIdx,
           });
           if (!bidangTopikCheck.isValid) {
             return res.status(400).json({ error: `Slot ${slotIdx + 1} — "${(item.title || '').slice(0, 40)}...": ${bidangTopikCheck.reason}` });

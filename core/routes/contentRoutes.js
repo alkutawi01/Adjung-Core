@@ -240,6 +240,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
             itemBidang: nextDesk,
             topik: nextTopik,
             requireTopik: true,
+            slotIndex: targetSlotIndex,
           });
           if (!bidangTopikCheck.isValid) {
             return res.status(400).json({ error: bidangTopikCheck.reason });
@@ -378,6 +379,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           itemBidang: finalCategory,
           topik,
           requireTopik: true,
+          slotIndex,
         });
         if (!bidangTopikCheck.isValid) {
           return res.status(400).json({ error: bidangTopikCheck.reason });

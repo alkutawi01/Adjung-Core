@@ -481,6 +481,7 @@ ${slot.sourcesList.trim()}
         itemBidang: finalCategory,
         topik: finalTopik,
         requireTopik: true,
+        slotIndex,
       });
       if (!bidangTopikCheck.isValid) {
         throw new Error(`Validation failed: ${bidangTopikCheck.reason}`);

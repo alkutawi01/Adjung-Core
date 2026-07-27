@@ -1794,6 +1794,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         itemBidang: item.desk,
         topik: item.topik,
         requireTopik: true,
+        slotIndex,
       });
       if (!bidangTopikCheck.isValid) {
         const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${bidangTopikCheck.reason}`);

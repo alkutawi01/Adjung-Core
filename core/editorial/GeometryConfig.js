@@ -81,6 +81,51 @@ export const MAX_BRIEF_LONG_BY_TIER = {
   DEFAULT: 600,
 };
 
+// Had aksara label eyebrow kad — string "Bidang | Topik" yang dipapar di atas tajuk.
+//
+// KENAPA INI WUJUD: bajet tajuk+huraian (GEOMETRY_RATIOS) diukur dengan andaian eyebrow
+// mengambil SATU baris. Eyebrow sendiri tak pernah termasuk dalam bajet tu, dan tiada
+// truncate/line-clamp pada mana-mana 30 render eyebrow. Diukur hidup pada 2026-07-27:
+// eyebrow yang membalut menolak tajuk+huraian ke bawah 1:1 (eyebrow +94px -> kandungan
+// +94px) sementara kad TIDAK membesar. Jadi Topik panjang memakan ruang kad secara
+// senyap — tiada ralat, cuma huraian terkeluar/terpotong pada kad yang kandungannya padat.
+//
+// CARA NOMBOR INI DIPEROLEH: eyebrow guna JetBrains Mono (monospace), jadi muatan satu
+// baris = floor(lebar / lebar-aksara), diukur terus dari DOM setiap tier pada viewport
+// 1024px, ambil MINIMUM setiap tier (slot tersempit menetapkan had seluruh tier), tolak
+// ~10% margin untuk risiko font fallback kalau JetBrains Mono gagal dimuat dari Google Fonts.
+//
+// SKOP: bekas grid capped pada max-w-6xl (1152px), jadi >=1152px muatan tetap maksimum.
+// Antara 768-1024px eyebrow boleh membalut ke 2 baris — diterima, sebab kad sempit ada
+// 275-301px ruang menegak lebih (diukur) yang menyerapnya, dan susun atur skrin kecil
+// memang belum direka (lihat "Open work" dalam sistem reka bentuk).
+export const MAX_EYEBROW_CHARS_BY_TIER = {
+  HERO: 95,
+  MENEGAK: 36,
+  STANDARD: 54,
+  SEGI_EMPAT_MEDIUM: 59,
+  SEGI_EMPAT_SMALL: 36,
+  KOMPAK: 43,
+  BAR: 36,     // tier ni tak papar Bidang/Topik, had konservatif kalau-kalau berubah
+  TICKER: 36,  // sama
+  DEFAULT: 36,
+};
+
+// Label eyebrow kad — SATU definisi, diimport oleh pengesahan simpan (ContentBudget.js)
+// dan oleh render kad (FrontpageView.tsx). Kalau format ni bercabang dua, had aksara di
+// atas akan mengesahkan string yang berbeza daripada yang benar-benar dipapar.
+export const eyebrowLabel = (desk, topik) => {
+  const d = (desk || '').trim();
+  const t = (topik || '').trim();
+  if (!d) return t;
+  return t ? `${d} | ${t}` : d;
+};
+
+export const eyebrowCeilingForSlot = (slotIndex) => {
+  const tier = tierForSlot(slotIndex) || 'DEFAULT';
+  return MAX_EYEBROW_CHARS_BY_TIER[tier] ?? MAX_EYEBROW_CHARS_BY_TIER.DEFAULT;
+};
+
 // Character budget for BAR's "Penerangan" field — the accordion detail panel body text (see
 // BarCardExpandedPanel.tsx). BAR-only field, not part of MAX_BRIEF_LONG_BY_TIER above (that's
 // keyed by tier for a field every tier could theoretically have; Penerangan only exists for BAR).

@@ -7,7 +7,10 @@
 // a long title with a short brief, or a short title with a long brief, but not both maxed out at
 // once. maxTitleAlone/maxBriefAlone are each field's length limit when the OTHER field is empty;
 // the fraction of that solo budget a field actually uses (length / soloMax) must sum to <= 1.
-import { GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot } from './GeometryConfig.js';
+import {
+  GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot,
+  MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot,
+} from './GeometryConfig.js';
 
 // Every slot of the same tier gets the exact same rule — there is no per-slot special-casing.
 const validateContentBudget = (slotIndex, title, summary) => {
@@ -71,7 +74,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
 // Bidang (kategori/desk) is locked per-slot: every item saved into a slot must share that slot's
 // Bidang. Topik is a free-text per-item field, mandatory only for new/edited content (not for
 // status-only actions on legacy content that predates this rule — pass requireTopik accordingly).
-const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik }) => {
+const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik, slotIndex }) => {
   if (slotBidang && itemBidang && slotBidang.trim().toUpperCase() !== itemBidang.trim().toUpperCase()) {
     return {
       isValid: false,
@@ -81,7 +84,28 @@ const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik }) =>
   if (requireTopik && !(topik && topik.trim())) {
     return { isValid: false, reason: 'Topik diperlukan untuk kandungan baharu/diedit. Kandungan tidak disiarkan.' };
   }
+
+  // Had ruang eyebrow: label "Bidang | Topik" mesti muat SATU baris pada kad. Kalau ia
+  // membalut, ia menolak tajuk+huraian ke bawah tanpa kad membesar — kerosakan senyap
+  // yang tak ditangkap oleh bajet tajuk+huraian. Lihat MAX_EYEBROW_CHARS_BY_TIER.
+  if (slotIndex !== undefined && slotIndex !== null) {
+    const label = eyebrowLabel(itemBidang, topik);
+    const ceiling = eyebrowCeilingForSlot(slotIndex);
+    if (label.length > ceiling) {
+      const bidangLen = (itemBidang || '').trim().length;
+      const bakiTopik = Math.max(0, ceiling - bidangLen - 3); // 3 = ' | '
+      return {
+        isValid: false,
+        reason: `Label "Bidang | Topik" (${label.length} aksara) melebihi ruang eyebrow kad ini (${ceiling} aksara). Dengan Bidang "${(itemBidang || '').trim()}", Topik boleh sehingga ${bakiTopik} aksara. Kandungan tidak disiarkan.`,
+      };
+    }
+  }
+
   return { isValid: true };
 };
 
-export { GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, validateContentBudget, validateBidangTopik };
+export {
+  GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot,
+  MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot,
+  validateContentBudget, validateBidangTopik,
+};

@@ -333,10 +333,11 @@ const getDisplayDate = (raw?: string): string => {
 };
 
 // Label kad awam: "Bidang | Topik". Kandungan lama tanpa Topik papar Bidang sahaja (tiada backfill).
-const formatBidangTopik = (item: { desk?: string; topik?: string }): string => {
-  if (!item.desk) return item.topik || '';
-  return item.topik ? `${item.desk} | ${item.topik}` : item.desk;
-};
+// Format sebenar datang dari eyebrowLabel() di GeometryConfig.js — sumber yang SAMA digunakan oleh
+// validateBidangTopik() semasa simpan. Jangan tulis semula format ni di sini: kalau ia bercabang,
+// had aksara eyebrow akan mengesahkan string yang berlainan daripada yang benar-benar dirender.
+const formatBidangTopik = (item: { desk?: string; topik?: string }): string =>
+  eyebrowLabel(item.desk, item.topik);
 
 const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: string; children: React.ReactNode }> = ({ itemKey, className = '', aiProvider, children }) => {
   let providerName = aiProvider;
@@ -566,7 +567,7 @@ const updateLimitsInText = (text: string, maxTitle: number, maxBrief: number, ma
 // maxTitleAlone is how many brief characters one title character "costs" in shared vertical space.
 // Used both for the (maxTitle, maxBrief) defaults below and to auto-balance the two fields in
 // Mini Editorium (see handleMaxTitleChange/handleMaxBriefChange).
-import { GEOMETRY_RATIOS, tierForSlot as getGeometryTierForIndex, ceilingForSlot, TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
+import { GEOMETRY_RATIOS, tierForSlot as getGeometryTierForIndex, ceilingForSlot, TIER_SLOTS, eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
 
 // Fixed ruleset for the "Salin Templat Prom AI (Lampiran)" button — unlike Peraturan Am/Tambahan,
 // this is not admin-editable per slot; it's the same encyclopedia-style writing discipline every
