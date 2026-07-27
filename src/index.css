@@ -90,9 +90,17 @@
    lebar dan lebih rendah. Server cuma menuntut viewBox WUJUD, bukan nombor tertentu — jadi CSS di
    sini yang bertanggungjawab mengandungkan apa sahaja nisbah yang datang.
    100% supaya ia mengecil bersama kolum pada tetingkap sempit, bukan melimpah. */
+/* Dihadkan oleh LEBAR dahulu, bukan tinggi.
+   Plat pertama berbentuk segi empat sama, dan 320px lebar ialah berat visual yang diluluskan
+   pemilik projek. Plat akan datang berbentuk POTRET — kalau tinggi yang mengehadkan, potret 3:4
+   akan mengecil kepada 240px lebar dan kelihatan kurus berbanding yang segi empat sama. Menghadkan
+   lebar mengekalkan berat visual yang sama merentas kedua-dua bentuk.
+   Had tinggi cuma jaring keselamatan supaya potret yang sangat panjang tidak membesarkan sheet dan
+   menyebabkan halaman menatal — kolum kanan 557px tinggi pada 1440x900, jadi 440px selamat.
+   vh disertakan untuk tetingkap pendek, di mana kolum itu sendiri mengecil. */
 .bidang-illustration > svg {
-  max-width: 100%;
-  max-height: 320px;
+  max-width: min(320px, 100%);
+  max-height: min(440px, 50vh);
   width: auto;
   height: auto;
   display: block;
