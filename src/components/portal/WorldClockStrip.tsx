@@ -32,18 +32,15 @@ interface ClockTime {
 // weekend on 2025-01-01 — do not add it back without checking current state policy first.
 const FRIDAY_SATURDAY_WEEKEND_CITIES = ['Kota Bharu', 'Kuala Terengganu', 'Alor Setar'];
 
-// JAKIM zone code per city, for Maghrib-adjusted Hijri date lookups.
+// JAKIM zone code per city, for Maghrib-adjusted Hijri date lookups — same 3 cities as above.
 //
-// Tiga yang pertama ialah bandar Kumpulan A, yang memapar tarikh Hijrah menggantikan tarikh Masihi.
-// Kuala Lumpur (WLY01) ditambah untuk baris meta jalur telefon, yang memerlukan SATU tarikh Hijrah
-// mewakili keseluruhan jalur, bukan tarikh khusus sesebuah negeri. KL dipilih kerana ia sudah pun
-// bandar sauh set pertama. Menambah zon di sini TIDAK mengubah apa yang dipapar dalam kad bandar —
-// penggantian tarikh itu masih terhad kepada FRIDAY_SATURDAY_WEEKEND_CITIES.
+// Ketiga-tiga ini juga yang menjadi rujukan tarikh Hijrah baris meta jalur telefon. Tiada zon
+// keempat ditambah untuk baris itu: kalendar Hijrah Adjung merujuk negeri-negeri Kumpulan A,
+// jadi baris meta mesti merujuk sumber yang sama seperti versi desktop.
 const HIJRI_ZONE_BY_CITY: Record<string, string> = {
   'Alor Setar': 'KDH01',
   'Kota Bharu': 'KTN01',
   'Kuala Terengganu': 'TRG01',
-  'Kuala Lumpur': 'WLY01',
 };
 
 const CITY_SETS = [
@@ -505,10 +502,25 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
     return () => clearInterval(interval);
   }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData, jakimHijriByCity]);
 
-  // Baris meta telefon guna Kuala Lumpur sebagai bandar rujukan: kesemua 15 bandar berkongsi zon
-  // waktu yang sama, dan KL bukan bandar Kumpulan A — jadi dateStr-nya kekal Masihi (tarikh Hijrah
-  // dibawa berasingan dalam hijriStr), tepat seperti yang diperlukan baris meta.
+  // Baris meta telefon, dua sumber berasingan:
+  //
+  // Tarikh Masihi, hari dan jam — Kuala Lumpur. Kesemua 15 bandar berkongsi zon waktu
+  // Asia/Kuala_Lumpur yang sama, jadi mana-mana bandar memberi jawapan yang sama; KL dipilih
+  // kerana ia bukan bandar Kumpulan A, jadi dateStr-nya kekal Masihi.
+  //
+  // Tarikh Hijrah — bandar Kumpulan A dalam set yang SEDANG dipapar. Kalendar Hijrah Adjung
+  // merujuk Kelantan, Terengganu dan Kedah (itulah tiga bandar yang memapar tarikh Hijrah pada
+  // versi desktop), dan setiap set kebetulan mengandungi tepat satu daripadanya:
+  //
+  //     Set 1 → Kota Bharu (KTN01)   Set 2 → Alor Setar (KDH01)   Set 3 → K. Terengganu (TRG01)
+  //
+  // Jadi ketiga-tiga negeri itu digunakan mengikut giliran, dan tarikh Hijrah baris meta sentiasa
+  // sepadan dengan bandar Kumpulan A yang sedang kelihatan di skrin. Ini juga mengelakkan
+  // persoalan "negeri mana yang menang" — ketiga-tiga zon itu diselaraskan Maghrib secara
+  // berasingan dan boleh berbeza sehari sekitar waktu Maghrib.
   const metaClock = timesMap['Kuala Lumpur'];
+  const metaHijriCity = CITY_SETS[displaySetIndex].find(c => FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name));
+  const metaHijriStr = metaHijriCity ? (timesMap[metaHijriCity.name]?.hijriStr || '') : '';
 
   return (
     <div
@@ -574,11 +586,11 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap">
             {metaClock.dateStr} {metaClock.dayLabel}
           </span>
-          {metaClock.hijriStr && (
+          {metaHijriStr && (
             <>
               <span className="w-px h-[9px] bg-stone-300" />
               <span className="font-serif text-[11px] font-light tracking-[0.02em] text-stone-500 whitespace-nowrap">
-                {metaClock.hijriStr} {metaClock.dayLabel}
+                {metaHijriStr} {metaClock.dayLabel}
               </span>
             </>
           )}
