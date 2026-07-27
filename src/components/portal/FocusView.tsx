@@ -69,7 +69,13 @@ export interface FocusRelatedItem {
 export interface FocusViewProps {
   /** Logo Adjung, di kiri jalur masthead. */
   wordmark?: string;
-  /** Glif Bidang, dipapar sebelum label "Bidang · Topik". */
+  /** Glif Bidang. DITERIMA tetapi tidak dirender: memaparkan ikon bersebelahan perkataan yang ikon
+   *  itu wakili adalah berlebihan, dan pemilik projek memilih untuk mengekalkan perkataan — ia
+   *  memberitahu pembaca Bidang apa tanpa perlu mengenali 25 simbol dahulu.
+   *
+   *  Prop ini dikekalkan supaya pemanggil (FrontpageView) tidak perlu diubah, dan supaya keputusan
+   *  ini boleh dipatah balik dengan satu suntingan kalau ikon khas menggantikan ikon lucide generik
+   *  nanti. Ikon Bidang masih dipakai seperti biasa di Taksonomi Editorium. */
   icon?: React.ReactNode;
   desk?: string;
   topik?: string;
@@ -314,16 +320,13 @@ export const FocusView: React.FC<FocusViewProps> = ({
           position: 'relative', flex: '1 1 auto', minHeight: 0, overflowY: 'auto',
           padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: '18px',
         }}>
-          {(icon || label) && (
+          {/* Glif Bidang sengaja TIDAK dirender di sini — lihat nota `icon` dalam FocusViewProps. */}
+          {label && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {icon && <span aria-hidden="true" style={{ display: 'inline-flex', lineHeight: 1, color: 'var(--color-Adjung-maroon)' }}>{icon}</span>}
-              {icon && label && <span style={{ width: '1px', height: '11px', background: 'var(--stone-300)' }} />}
-              {label && (
-                <span style={{
-                  fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
-                  letterSpacing: 'var(--tracking-editorial)', color: 'var(--stone-500)',
-                }}>{label}</span>
-              )}
+              <span style={{
+                fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
+                letterSpacing: 'var(--tracking-editorial)', color: 'var(--stone-500)',
+              }}>{label}</span>
             </div>
           )}
 
@@ -462,8 +465,8 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <hr style={rule} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '10px 0' }}>
               <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
+              {/* Glif Bidang sengaja TIDAK dirender di sini — lihat nota `icon` dalam FocusViewProps. */}
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', ...micro, color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-bold)' as any, whiteSpace: 'nowrap' }}>
-                {icon && <span aria-hidden="true" style={{ display: 'inline-flex', lineHeight: 1 }}>{icon}</span>}
                 {label}
               </span>
               <span style={{ ...micro, justifySelf: 'end', display: 'inline-flex', alignItems: 'center', gap: '16px', whiteSpace: 'nowrap' }}>
