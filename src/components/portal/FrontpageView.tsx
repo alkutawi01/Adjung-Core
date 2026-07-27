@@ -462,7 +462,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // CategoryRegistry, termasuk 93 baris lama tak aktif, untuk warna kad).
   // icon/iconSvg dibawa sekali (bukan hanya name/color) sebab Focus View papar glif Bidang
   // di sebelah label "Bidang Topik" — lihat openFocus() di bawah.
-  const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string; icon: string | null; iconSvg: string | null }[]>([]);
+  const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string; icon: string | null; iconSvg: string | null; illustrationSvg: string | null }[]>([]);
   const [activeLanguage, setActiveLanguage] = useState<'ms' | 'zh' | 'ar' | 'en'>('ms');
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -1359,6 +1359,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             color: c.color,
             icon: c.icon ?? null,
             iconSvg: c.iconSvg ?? null,
+            illustrationSvg: c.illustrationSvg ?? null,
           })));
         }
       })
@@ -6226,6 +6227,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           ) : undefined}
           desk={focusItem.desk}
           topik={focusItem.topik}
+          illustrationSvg={focusBidang?.illustrationSvg ?? null}
           title={asPlainText(focusItem.titleString) || asPlainText(focusItem.title)}
           brief={asPlainText(focusItem.briefString) || asPlainText(focusItem.brief)}
           body={asPlainText(focusItem.briefLong)}

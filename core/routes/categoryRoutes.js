@@ -34,6 +34,68 @@ function sanitizeSvgIcon(raw) {
   return cleaned;
 }
 
+// ---------------------------------------------------------------------------------------------
+// SPEC PLAT ILUSTRASI BIDANG
+//
+// Plat besar yang dipapar dalam kolum kanan Focus View apabila kolum itu benar-benar kosong.
+// Berbeza sepenuhnya daripada ikon Bidang 13px — jangan muat naik ikon lucide yang dibesarkan;
+// stroke setebal 2px pada kanvas 24 unit jadi nipis dan generik pada saiz bacaan.
+//
+//   1. Kanvas          viewBox WAJIB "0 0 256 256" (segi empat sama). Ditolak kalau lain.
+//   2. Saiz akar       JANGAN letak width/height pada <svg> — CSS yang menyaiz. Kalau ada, dibuang.
+//   3. Warna           guna `currentColor` sahaja. Komponen menetapkan marun Adjung; warna yang
+//                      dikodkan tetap (hex/rgb) akan mengabaikannya, jadi ia ditolak.
+//   4. Kawasan selamat karya dalam 224x224 di tengah (margin 16 unit) supaya ia tidak mencecah tepi.
+//   5. Gaya garis      stroke-width 1.5-2 unit. Garis halus yang membuatkan plat itu senyap.
+//   6. Had fail        40KB. Plat garisan tidak sepatutnya lebih besar daripada itu.
+//
+// Tag/atribut yang dibenarkan sama seperti ikon (SVG_ALLOWED_TAGS/ATTR) — tiada <script>, tiada
+// pengendali on*, tiada rujukan luar.
+const ILLUSTRATION_MAX_BYTES = 40 * 1024;
+const ILLUSTRATION_VIEWBOX = '0 0 256 256';
+
+function sanitizeIllustrationSvg(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) throw new Error('SVG kosong.');
+  if (Buffer.byteLength(raw, 'utf8') > ILLUSTRATION_MAX_BYTES) {
+    throw new Error('Fail SVG terlalu besar (had 40KB untuk plat ilustrasi).');
+  }
+
+  let cleaned = sanitizeHtml(raw, {
+    allowedTags: SVG_ALLOWED_TAGS,
+    allowedAttributes: { '*': SVG_ALLOWED_ATTR },
+    allowedSchemes: [],
+    disallowedTagsMode: 'discard',
+    parser: { xmlMode: true }
+  }).trim();
+
+  if (!/^<svg[\s>]/i.test(cleaned)) throw new Error('Fail bukan SVG yang sah selepas ditapis.');
+
+  // Kanvas mesti tepat — plat dipaparkan pada saiz tetap, jadi viewBox lain bermakna karya keluar
+  // daripada kedudukan yang direka atau tergantung tidak seimbang dalam kolum.
+  const vb = cleaned.match(/\sviewBox\s*=\s*"([^"]*)"/i);
+  const vbNorm = vb ? vb[1].trim().replace(/[\s,]+/g, ' ') : '';
+  if (vbNorm !== ILLUSTRATION_VIEWBOX) {
+    throw new Error(`viewBox mesti "${ILLUSTRATION_VIEWBOX}" (dapat "${vbNorm || 'tiada'}"). Lihat spec plat ilustrasi.`);
+  }
+
+  // Warna tetap mengabaikan marun yang ditetapkan komponen — plat jadi warna lain daripada portal.
+  //
+  // Diperiksa pada SELURUH markup termasuk tag <svg> akar. Versi pertama semakan ini melangkau tag
+  // akar (sebab akar diproses berasingan untuk membuang width/height), sedangkan itulah tempat
+  // paling biasa orang meletakkan stroke="#802334" — jadi ia lulus tanpa disedari.
+  //
+  // `fill="none"`/`stroke="none"` tidak terjejas: ia bukan warna, jadi tidak sepadan #/rgb/hsl.
+  if (/(?:fill|stroke|stop-color)\s*=\s*["']?\s*(?:#|rgb|hsl)/i.test(cleaned)) {
+    throw new Error('Guna currentColor sahaja untuk fill/stroke — warna tetap mengabaikan marun Adjung.');
+  }
+
+  // width/height pada akar melawan penyaizan CSS; buang senyap-senyap, bukan tolak.
+  const rootTag = cleaned.slice(0, cleaned.indexOf('>') + 1);
+  cleaned = rootTag.replace(/\s(?:width|height)\s*=\s*"[^"]*"/gi, '') + cleaned.slice(rootTag.length);
+
+  return cleaned;
+}
+
 export function createCategoryRoutes(db) {
   const router = express.Router();
 
@@ -192,6 +254,35 @@ export function createCategoryRoutes(db) {
     } catch (err) {
       console.error('Set icon SVG error:', err);
       res.status(400).json({ error: err.message || 'Gagal memuat naik SVG.' });
+    }
+  });
+
+  // POST /api/system/categories/set-illustration-svg — muat naik plat ilustrasi Bidang.
+  // Disahkan ikut spec di atas (viewBox 256x256, currentColor sahaja) DAN ditapis dengan senarai
+  // putih yang sama seperti ikon. Jangan skip mana-mana daripada dua langkah itu.
+  router.post('/categories/set-illustration-svg', async (req, res) => {
+    try {
+      const { id, svg } = req.body;
+      if (!id || !svg) return res.status(400).json({ error: 'id dan svg diperlukan.' });
+      const cleaned = sanitizeIllustrationSvg(svg);
+      await CategoryRegistry.setIllustrationSvg(db, id, cleaned);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Set illustration SVG error:', err);
+      res.status(400).json({ error: err.message || 'Gagal memuat naik plat ilustrasi.' });
+    }
+  });
+
+  // POST /api/system/categories/clear-illustration-svg — buang plat ilustrasi Bidang.
+  router.post('/categories/clear-illustration-svg', async (req, res) => {
+    try {
+      const { id } = req.body;
+      if (!id) return res.status(400).json({ error: 'id diperlukan.' });
+      await CategoryRegistry.clearIllustrationSvg(db, id);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Clear illustration SVG error:', err);
+      res.status(400).json({ error: err.message || 'Gagal membuang plat ilustrasi.' });
     }
   });
 

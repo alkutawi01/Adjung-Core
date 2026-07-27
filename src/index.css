@@ -82,6 +82,16 @@
   height: var(--bidang-icon-size, 14px);
 }
 
+/* Plat ilustrasi Bidang dalam kolum kanan Focus View. SVG yang dimuat naik mesti berkanvas
+   256x256 (dikuatkuasakan di core/routes/categoryRoutes.js), jadi ia diskalakan di sini dan bukan
+   di dalam fail SVG itu sendiri — satu tempat untuk menala saiz plat bagi kesemua Bidang.
+   min() supaya ia mengecil bersama kolum pada tetingkap sempit, bukan melimpah. */
+.bidang-illustration > svg {
+  width: min(240px, 100%);
+  height: auto;
+  display: block;
+}
+
 /* Base resets & styles for Adjung scholarly magazine */
 html, body {
   background-color: #FDFDFD;

@@ -290,6 +290,24 @@ class CategoryRegistry {
     await this.dbRun(db, "UPDATE CategoryRegistry SET iconSvg = ?, updatedAt = ? WHERE id = ?", [sanitizedSvg.trim(), now, id]);
   }
 
+  // Plat ilustrasi BESAR Bidang (markup dah disanitize + disahkan ikut spec di categoryRoutes.js).
+  // Berasingan sepenuhnya daripada iconSvg: yang itu glif masthead 13px, ini plat bacaan ~240px
+  // dalam kolum kanan Focus View. Menetapkan satu tidak menyentuh satu lagi.
+  static async setIllustrationSvg(db, id, sanitizedSvg) {
+    if (!id) throw new Error('id Bidang diperlukan.');
+    if (!sanitizedSvg || !sanitizedSvg.trim()) throw new Error('SVG tidak sah.');
+    const now = new Date().toISOString();
+    await this.dbRun(db, "UPDATE CategoryRegistry SET illustrationSvg = ?, updatedAt = ? WHERE id = ?", [sanitizedSvg.trim(), now, id]);
+  }
+
+  // Buang plat ilustrasi. Bidang kembali tiada plat — kolum kanan Focus View jadi ruang lapang
+  // senyap, bukan pemegang tempat.
+  static async clearIllustrationSvg(db, id) {
+    if (!id) throw new Error('id Bidang diperlukan.');
+    const now = new Date().toISOString();
+    await this.dbRun(db, "UPDATE CategoryRegistry SET illustrationSvg = NULL, updatedAt = ? WHERE id = ?", [now, id]);
+  }
+
   // Namakan-semula SATU baris Bidang taksonomi — sengaja BUKAN renameCategory()/mergeCategories()
   // di atas, sebab dua fungsi tu cascade-tulis-ganti string 'desk' dalam editorial_objects/
   // editorial_attribute_values (melanggar peraturan "kandungan lama kekal"). Ni cuma ubah baris

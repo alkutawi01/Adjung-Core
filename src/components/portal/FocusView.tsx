@@ -85,6 +85,10 @@ export interface FocusViewProps {
   related?: Array<FocusRelatedItem | string>;
   /** Nota editor. Pilihan; dipotong pada NOTA_MAX aksara, tidak dirender bila tiada. */
   note?: string;
+  /** Markup SVG plat ilustrasi Bidang (sudah disanitize + disahkan ikut spec di server).
+   *  Dipapar HANYA apabila kolum kanan tiada grafik, tiada kandungan berkaitan dan tiada nota —
+   *  ia mengalah kepada kandungan sebenar, sentiasa. */
+  illustrationSvg?: string | null;
   /** Sumber (nama atau teks URL), dipapar di kolofon. */
   source?: string;
   sourceUrl?: string;
@@ -105,7 +109,7 @@ export interface FocusViewProps {
 
 export const FocusView: React.FC<FocusViewProps> = ({
   wordmark = 'Adjung', icon, desk, topik, title, brief, body,
-  visual, visualCaption, related = [], note,
+  visual, visualCaption, related = [], note, illustrationSvg,
   source, sourceUrl, sourceDate, publishedDate,
   editorName, editorContact, backdropImage, backdropOpacity = 0.06,
   onPrev, onNext, onClose,
@@ -134,6 +138,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
   }, [text]);
 
   const [bodyRef, bodyFade] = useOverflowFade();
+
+  // Plat ilustrasi Bidang menutup kolum kanan HANYA apabila kolum itu benar-benar kosong. Ia
+  // mengalah kepada kandungan sebenar tanpa kecuali: satu grafik, satu kandungan berkaitan atau
+  // satu nota sudah cukup untuk menyingkirkannya.
+  //
+  // Ia identiti Bidang, bukan kandungan — jadi ia tidak mendakwa apa-apa tentang rencana itu, dan
+  // ia tidak mengumumkan ketiadaan seperti pemegang tempat bergaris putus yang dibuang dahulu.
+  const kananKosong = !visual && related.length === 0 && !note;
+  const showIllustration = kananKosong && !!illustrationSvg;
 
   // Nota melebihi hadnya dipotong di sempadan perkataan; teks penuh kekal dalam atribut `title`,
   // dan amaran konsol menamakan lebihannya supaya editor memendekkannya di Editorium.
@@ -540,6 +553,24 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 kandungan berkaitan dan nota berlabuh di bawahnya. Semuanya statik: hanya kolum
                 kiri yang menatal. */}
             <div style={{ gridColumn: '9 / span 4', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.8vh, 18px)', overflow: 'hidden' }}>
+              {/* Plat ilustrasi Bidang — lihat `showIllustration`. Markup ditapis ketat di server
+                  (SVG_ALLOWED_TAGS/ATTR + spec viewBox 256x256) sebelum sampai ke DB. `color`
+                  menetapkan marun, dan spec mewajibkan currentColor, jadi plat sentiasa mengikut
+                  warna portal. aria-hidden: ia hiasan identiti, bukan kandungan yang perlu dibaca
+                  pembaca skrin. */}
+              {showIllustration && (
+                <div
+                  aria-hidden="true"
+                  className="bidang-illustration"
+                  style={{
+                    margin: 'auto 0', flex: '0 0 auto', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--color-Adjung-maroon)', opacity: 0.9, pointerEvents: 'none',
+                  }}
+                  dangerouslySetInnerHTML={{ __html: illustrationSvg as string }}
+                />
+              )}
+
               {visual && (
                 <figure style={{ margin: 'auto 0', flex: '0 0 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   <div style={{

@@ -13,7 +13,10 @@ interface ActiveBidang {
   name: string;
   color: string;
   icon: string | null;
+  /** Ikon SVG custom 13px bagi glif masthead. */
   iconSvg: string | null;
+  /** Plat ilustrasi besar bagi kolum kanan Focus View — medan BERASINGAN daripada iconSvg. */
+  illustrationSvg: string | null;
   usageCount: number;
   slots: number[];
 }
@@ -257,10 +260,78 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
   const [uploadingSvg, setUploadingSvg] = useState(false);
 
+  // Plat ilustrasi Bidang — SVG besar untuk kolum kanan Focus View. Berasingan daripada ikon di
+  // atas: ikon 13px di jalur masthead, plat ~240px di permukaan bacaan. Spec dikuatkuasakan di
+  // server (core/routes/categoryRoutes.js): viewBox 0 0 256 256, currentColor sahaja, had 40KB.
+  const [illusPreview, setIllusPreview] = useState<string | null>(null);
+  const [illusError, setIllusError] = useState<string | null>(null);
+  const [uploadingIllus, setUploadingIllus] = useState(false);
+
   const closeIconPicker = () => {
     setIconPickerBidangId(null);
     setSvgUploadPreview(null);
     setSvgUploadError(null);
+    setIllusPreview(null);
+    setIllusError(null);
+  };
+
+  const handleIllusFileSelected = (file: File | null) => {
+    setIllusError(null);
+    setIllusPreview(null);
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.svg')) {
+      setIllusError('Pilih fail .svg sahaja.');
+      return;
+    }
+    if (file.size > 40 * 1024) {
+      setIllusError('Fail terlalu besar (had 40KB untuk plat ilustrasi).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setIllusPreview(String(reader.result || ''));
+    reader.onerror = () => setIllusError('Gagal membaca fail.');
+    reader.readAsText(file);
+  };
+
+  const handleUploadIllustration = async (id: string) => {
+    if (!illusPreview) return;
+    setUploadingIllus(true);
+    setIllusError(null);
+    try {
+      const res = await fetch('/api/system/categories/set-illustration-svg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, svg: illusPreview })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal memuat naik plat ilustrasi.');
+      setIllusPreview(null);
+      fetchActiveBidang();
+    } catch (e: any) {
+      setIllusError(e.message || 'Gagal memuat naik plat ilustrasi.');
+    } finally {
+      setUploadingIllus(false);
+    }
+  };
+
+  const handleClearIllustration = async (id: string) => {
+    setUploadingIllus(true);
+    setIllusError(null);
+    try {
+      const res = await fetch('/api/system/categories/clear-illustration-svg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal membuang plat ilustrasi.');
+      setIllusPreview(null);
+      fetchActiveBidang();
+    } catch (e: any) {
+      setIllusError(e.message || 'Gagal membuang plat ilustrasi.');
+    } finally {
+      setUploadingIllus(false);
+    }
   };
 
   const handlePickLucideIcon = async (id: string, iconName: string) => {
@@ -1118,6 +1189,66 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                       {uploadingSvg ? 'Memuat naik...' : 'Guna SVG Ini'}
                     </button>
                   )}
+                </div>
+                <div className="pt-3 border-t border-stone-200">
+                  <label className="text-xs text-stone-500 font-semibold block mb-1">Plat Ilustrasi Bidang</label>
+                  <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
+                    Ilustrasi besar yang menutup kolum kanan Focus View apabila kandungan itu tiada grafik,
+                    tiada kandungan berkaitan dan tiada nota editor. Ia mengalah kepada kandungan sebenar —
+                    satu grafik atau satu nota sudah cukup untuk menyembunyikannya.
+                  </p>
+
+                  <ul className="text-stone-500 text-[10px] leading-relaxed mb-2 pl-3 list-disc marker:text-stone-300">
+                    <li><strong className="font-semibold">Kanvas wajib <code className="font-mono">viewBox="0 0 256 256"</code></strong> — segi empat sama. Saiz lain ditolak.</li>
+                    <li>Guna <code className="font-mono">currentColor</code> untuk fill/stroke. Warna tetap (hex/rgb) ditolak — plat mesti mengikut marun Adjung.</li>
+                    <li>Jangan letak <code className="font-mono">width</code>/<code className="font-mono">height</code> pada <code className="font-mono">&lt;svg&gt;</code>; ia dibuang.</li>
+                    <li>Kekalkan karya dalam 224×224 di tengah (margin 16 unit) supaya ia tidak mencecah tepi.</li>
+                    <li>Garis halus, <code className="font-mono">stroke-width</code> 1.5–2 unit. Plat ini patut senyap, bukan menarik perhatian daripada tajuk.</li>
+                    <li>Had 40KB. Bukan ikon yang dibesarkan — ikon 24px jadi nipis dan generik pada saiz ini.</li>
+                  </ul>
+
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold cursor-pointer">
+                      <Upload className="w-3.5 h-3.5" /> Pilih Plat .svg
+                      <input
+                        type="file"
+                        accept=".svg,image/svg+xml"
+                        className="hidden"
+                        onChange={e => handleIllusFileSelected(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                    {(illusPreview || target.illustrationSvg) && (
+                      <span
+                        className="inline-flex items-center justify-center w-16 h-16 rounded border border-stone-200 bg-[#FDFDFD] [&_svg]:w-14 [&_svg]:h-14"
+                        style={{ color: '#802334' }}
+                        title={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}
+                        dangerouslySetInnerHTML={{ __html: (illusPreview || target.illustrationSvg) as string }}
+                      />
+                    )}
+                  </div>
+
+                  {illusError && <p className="text-red-600 text-[10px] mt-1">{illusError}</p>}
+
+                  <div className="flex items-center gap-2 mt-2">
+                    {illusPreview && (
+                      <button
+                        onClick={() => handleUploadIllustration(target.id)}
+                        disabled={uploadingIllus}
+                        className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                      >
+                        {uploadingIllus ? 'Memuat naik...' : 'Guna Plat Ini'}
+                      </button>
+                    )}
+                    {target.illustrationSvg && !illusPreview && (
+                      <button
+                        onClick={() => handleClearIllustration(target.id)}
+                        disabled={uploadingIllus}
+                        className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                      >
+                        {uploadingIllus ? 'Membuang...' : 'Buang Plat'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
