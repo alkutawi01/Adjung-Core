@@ -41,17 +41,17 @@ function sanitizeSvgIcon(raw) {
 // Berbeza sepenuhnya daripada ikon Bidang 13px — jangan muat naik ikon lucide yang dibesarkan;
 // stroke setebal 2px pada kanvas 24 unit jadi nipis dan generik pada saiz bacaan.
 //
-// TIGA SYARAT sahaja dikuatkuasakan — sengaja sedikit, kerana setiap syarat bermakna satu fail
+// DUA SYARAT sahaja dikuatkuasakan — sengaja sedikit, kerana setiap syarat bermakna satu fail
 // terpaksa disunting tangan:
 //
 //   1. viewBox WUJUD   nombornya bebas. "0 0 1024 1024" sama sah seperti "0 0 256 256"; CSS
 //                      menyaiz mengikut nisbah, jadi nombor itu tidak pernah kelihatan. Tanpa
 //                      viewBox pula, height:auto tiada nisbah untuk dikira dan plat runtuh.
-//   2. Warna           guna `currentColor` sahaja. Komponen menetapkan marun Adjung; warna yang
-//                      dikodkan tetap (hex/rgb) akan mengabaikannya, jadi ia ditolak.
-//   3. Had fail        256KB.
+//   2. Had fail        256KB.
 //
-// width/height pada akar dibuang senyap-senyap (bukan ditolak) kerana CSS yang menyaiz.
+// Selebihnya DIBETULKAN sendiri, bukan ditolak: warna literal ditukar kepada currentColor, dan
+// width/height pada akar dibuang. Kalau sistem mampu membetulkannya, ia tidak patut menjadi syarat
+// yang memaksa manusia menyunting fail.
 //
 // Selebihnya CADANGAN reka bentuk, bukan syarat: nisbah segi empat sama duduk paling baik dalam
 // kolum; kekalkan karya sedikit dari tepi supaya ia tidak tersepit; garis halus supaya plat kekal
@@ -93,22 +93,33 @@ function sanitizeIllustrationSvg(raw) {
     throw new Error('SVG mesti ada viewBox yang sah, cth viewBox="0 0 1024 1024". Tanpanya plat tidak boleh diskalakan.');
   }
 
-  // Warna tetap mengabaikan marun yang ditetapkan komponen — plat jadi warna lain daripada portal.
+  // Warna tetap DITUKAR, bukan ditolak.
   //
-  // Diperiksa pada SELURUH markup termasuk tag <svg> akar. Versi pertama semakan ini melangkau tag
-  // akar (sebab akar diproses berasingan untuk membuang width/height), sedangkan itulah tempat
-  // paling biasa orang meletakkan stroke="#802334" — jadi ia lulus tanpa disedari.
+  // Versi terdahulu menolak sebarang fill/stroke berwarna tetap dan menyuruh pereka menyunting
+  // fail sendiri. Itu kerja yang sistem memang mampu buat: plat ini monokrom mengikut reka bentuk
+  // (marun Adjung, ditetapkan komponen melalui `color`), jadi setiap warna literal dalam fail
+  // memang sepatutnya menjadi currentColor. Menolak fail kerana ia hitam, sedangkan kita akan
+  // mewarnakannya semula, cuma memindahkan kerja mekanikal kepada manusia.
   //
-  // `fill="none"`/`stroke="none"` tidak terjejas: ia bukan warna, jadi tidak sepadan #/rgb/hsl.
-  if (/(?:fill|stroke|stop-color)\s*=\s*["']?\s*(?:#|rgb|hsl)/i.test(cleaned)) {
-    throw new Error('Guna currentColor sahaja untuk fill/stroke — warna tetap mengabaikan marun Adjung.');
-  }
+  // Yang DIKEKALKAN: `none` (bermaksud jangan isi — bukan warna), `transparent`, `inherit`,
+  // `currentColor` sendiri, dan rujukan `url(#...)` kepada kecerunan. Stop kecerunan yang berwarna
+  // tetap turut ditukar, jadi kecerunan menjadi rata currentColor — betul untuk plat monokrom.
+  //
+  // Nilai legap (opacity/fill-opacity/stroke-opacity) tidak disentuh, jadi variasi ton dalam karya
+  // asal masih kekal.
+  const KEKAL = /^(?:none|transparent|inherit|currentColor|url\()/i;
+  let warnaDitukar = 0;
+  cleaned = cleaned.replace(/\s(fill|stroke|stop-color)\s*=\s*"([^"]*)"/gi, (padanan, atribut, nilai) => {
+    if (KEKAL.test(nilai.trim())) return padanan;
+    warnaDitukar++;
+    return ` ${atribut}="currentColor"`;
+  });
 
   // width/height pada akar melawan penyaizan CSS; buang senyap-senyap, bukan tolak.
   const rootTag = cleaned.slice(0, cleaned.indexOf('>') + 1);
   cleaned = rootTag.replace(/\s(?:width|height)\s*=\s*"[^"]*"/gi, '') + cleaned.slice(rootTag.length);
 
-  return cleaned;
+  return { svg: cleaned, warnaDitukar };
 }
 
 export function createCategoryRoutes(db) {
@@ -341,9 +352,11 @@ export function createCategoryRoutes(db) {
     try {
       const { id, svg } = req.body;
       if (!id || !svg) return res.status(400).json({ error: 'id dan svg diperlukan.' });
-      const cleaned = sanitizeIllustrationSvg(svg);
+      const { svg: cleaned, warnaDitukar } = sanitizeIllustrationSvg(svg);
       await CategoryRegistry.setIllustrationSvg(db, id, cleaned);
-      res.json({ success: true });
+      // Markup yang BENAR-BENAR disimpan dipulangkan, supaya pratonton di Editorium memaparkan plat
+      // sebenar (sudah bermarun) dan bukan fail mentah yang dipilih pengguna.
+      res.json({ success: true, illustrationSvg: cleaned, warnaDitukar });
     } catch (err) {
       console.error('Set illustration SVG error:', err);
       res.status(400).json({ error: err.message || 'Gagal memuat naik plat ilustrasi.' });

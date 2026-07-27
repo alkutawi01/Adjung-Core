@@ -354,6 +354,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   /** Markup plat SEMASA bagi Bidang yang modalnya terbuka, diambil atas permintaan. */
   const [illusCurrent, setIllusCurrent] = useState<string | null>(null);
   const [illusError, setIllusError] = useState<string | null>(null);
+  /** Nota selepas muat naik, cth berapa nilai warna ditukar. Maklum, bukan ralat. */
+  const [illusNote, setIllusNote] = useState<string | null>(null);
   const [uploadingIllus, setUploadingIllus] = useState(false);
 
   // Markup plat diambil HANYA bila modal dibuka — ia tidak lagi dibawa dalam senarai Bidang, kerana
@@ -363,6 +365,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     setIllusCurrent(null);
     setIllusPreview(null);
     setIllusError(null);
+    setIllusNote(null);
     if (d.hasIllustration) {
       fetch('/api/system/categories/illustration?name=' + encodeURIComponent(d.name))
         .then(res => res.json())
@@ -378,10 +381,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     setIllusPreview(null);
     setIllusCurrent(null);
     setIllusError(null);
+    setIllusNote(null);
   };
 
   const handleIllusFileSelected = (file: File | null) => {
     setIllusError(null);
+    setIllusNote(null);
     setIllusPreview(null);
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.svg')) {
@@ -410,7 +415,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal memuat naik plat ilustrasi.');
-      setIllusCurrent(illusPreview);
+      // Guna markup yang server benar-benar simpan, bukan fail mentah: warna sudah ditukar kepada
+      // currentColor di sana, jadi pratonton menunjukkan plat sebenar (bermarun) dan bukan fail asal.
+      setIllusCurrent(data.illustrationSvg || illusPreview);
+      setIllusNote(data.warnaDitukar > 0
+        ? `${data.warnaDitukar} nilai warna ditukar kepada currentColor — plat kini mengikut marun Adjung.`
+        : null);
       setIllusPreview(null);
       fetchActiveBidang();
     } catch (e: any) {
@@ -1429,12 +1439,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     satu grafik atau satu nota sudah cukup untuk menyembunyikannya.
                   </p>
 
-                  <p className="text-stone-500 text-[10px] font-semibold mb-1">Tiga syarat:</p>
+                  <p className="text-stone-500 text-[10px] font-semibold mb-1">Dua syarat:</p>
                   <ul className="text-stone-500 text-[10px] leading-relaxed mb-2 pl-3 list-disc marker:text-stone-300">
                     <li>SVG mesti ada <code className="font-mono">viewBox</code>. Nombornya bebas — <code className="font-mono">0 0 1024 1024</code> sama sah seperti <code className="font-mono">0 0 256 256</code>.</li>
-                    <li>Guna <code className="font-mono">currentColor</code> untuk fill/stroke. Warna tetap (hex/rgb) ditolak — plat mesti mengikut marun Adjung.</li>
                     <li>Had 256KB.</li>
                   </ul>
+                  <p className="text-stone-400 text-[10px] leading-relaxed mb-2">
+                    Warna tidak perlu disediakan: sistem menukar setiap fill/stroke kepada
+                    <code className="font-mono"> currentColor</code> semasa simpan, jadi plat sentiasa mengikut
+                    marun Adjung. Fail hitam putih pun boleh terus dimuat naik. <code className="font-mono">none</code>,
+                    <code className="font-mono"> transparent</code> dan nilai legap dikekalkan.
+                  </p>
                   <p className="text-stone-400 text-[10px] leading-relaxed mb-2">
                     Cadangan (tidak dikuatkuasakan): nisbah segi empat sama duduk paling baik dalam kolum;
                     kekalkan karya sedikit dari tepi; garis halus supaya plat kekal senyap dan tidak menarik
@@ -1462,6 +1477,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   </div>
 
                   {illusError && <p className="text-red-600 text-[10px] mt-1">{illusError}</p>}
+                  {illusNote && <p className="text-emerald-700 text-[10px] mt-1">{illusNote}</p>}
 
                   <div className="flex items-center gap-2 mt-2">
                     {illusPreview && (
