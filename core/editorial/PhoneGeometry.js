@@ -80,6 +80,34 @@ export const PHONE_CARD_MIN = {
 //
 // `nisbah` direkod untuk mendokumentasikan niat rekaan sahaja — yang benar-benar dipancarkan ke
 // CSS ialah `minHeight`.
+// SAIZ TAJUK IKUT LEBAR KOLUM, BUKAN TIER
+//
+// Pada desktop, tajuk turun mengikut tangga tier: 24 / 20 / 18 / 16 / 12px. Tangga itu masuk akal
+// di sana kerana kad memang bersaiz fizikal berbeza dalam grid 6 kolum. Pada telefon perbezaan itu
+// lenyap — keenam-enam tier cuma ada DUA lebar sebenar:
+//
+//     penuh lebar   358px kad, 308px teks   (HERO, MENEGAK, STANDARD, KIUB KECIL)
+//     berpasangan   173px kad, 123–139px teks   (KOMPAK, KIUB BESAR)
+//
+// Jadi tangga lima saiz itu tidak lagi merujuk apa-apa yang fizikal; ia jadi hiasan. Saiz kini ikut
+// lebar kolum, dan dua lebar bermakna dua saiz.
+//
+// Ini juga membetulkan dua kecacatan tipografi sebenar yang diukur pada 390px:
+//
+//   KIUB BESAR  tajuk 18px dalam kolum 123px = 14 aksara sebaris. Perkataan pecah setiap baris dan
+//               tajuk jadi longgokan 4–6 baris. Itulah punca sebenar kad ini setinggi 291px —
+//               bukan nisbah 3:4 rekaan. Pada 14px ia jadi 18 aksara sebaris dan kad jatuh tepat
+//               ke 231px, iaitu nisbah 3:4 rekaan asal.
+//   KOMPAK      tajuk 12px terlalu halus untuk dibaca pada telefon. Naik ke 14px.
+//
+// Berita utama (HERO) TIDAK dikecualikan: pemilik projek memilih supaya kesemua kad penuh lebar
+// sama saiz. Ia dahulu 24px.
+export const PHONE_TITLE = {
+  penuh: '18px',
+  pasangan: '14px',
+  leading: '1.375',
+};
+
 // Nilai px ditulis TERUS ke dalam peraturan tier, bukan melalui `var(--card-min-*)`. Kedua-duanya
 // berfungsi; nombor langsung dipilih kerana nilai itu memang sudah pemalar JS di atas, jadi
 // melencongkannya melalui pemboleh ubah CSS cuma menambah satu lapisan yang boleh gagal senyap
@@ -118,7 +146,12 @@ export const phoneLayoutCss = () => {
       `    min-height: ${box.minHeight};`,
     ].join('\n');
     const nota = box.nisbah ? ` (bentuk direka ${box.nisbah}, sebagai lantai)` : '';
-    return `  /* ${tier} — ${box.pasangan ? 'berpasangan dua kolum' : 'penuh lebar'}${nota} */\n${selector} {\n${decls}\n  }`;
+    // Saiz tajuk ikut lebar kolum, diperoleh terus daripada `pasangan` — jadi ia tidak boleh
+    // tersasar daripada susun atur yang sebenarnya digunakan tier itu.
+    const saiz = box.pasangan ? PHONE_TITLE.pasangan : PHONE_TITLE.penuh;
+    const tajukSelector = slots.map((n) => `  #bento-news-grid [data-slot="${n}"] h3`).join(',\n');
+    const tajukRule = `${tajukSelector} {\n    font-size: ${saiz};\n    line-height: ${PHONE_TITLE.leading};\n  }`;
+    return `  /* ${tier} — ${box.pasangan ? 'berpasangan dua kolum' : 'penuh lebar'}${nota} */\n${selector} {\n${decls}\n  }\n\n${tajukRule}`;
   }).filter(Boolean).join('\n\n');
 
   return `@media (max-width: ${PHONE_MAX_WIDTH_PX}px) {
