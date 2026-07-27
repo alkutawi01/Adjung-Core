@@ -5,10 +5,19 @@
 // jadi Hari Wilayah Persekutuan (1 Februari) memaparkan status Cuti Umum di Kangar, Ipoh,
 // Kuching dan semua yang lain, sedangkan ia cuti untuk Wilayah Persekutuan sahaja.
 //
-// Cuti bergerak (Aidilfitri, Deepavali, Tahun Baharu Cina dan seumpamanya) TIDAK ada di sini:
-// tarikhnya berubah setiap tahun dan datang dari API cuti dalam createWorldClockRoutes().
-// Jadual ni sandaran untuk cuti bertarikh tetap sahaja, dipakai apabila API tidak dapat
-// dihubungi.
+// SANDARAN TULEN — bukan lapisan tambahan. Sumber sebenar cuti umum ialah API cuti yang
+// dipanggil createWorldClockRoutes(): ia membawa 49 cuti setahun lengkap dengan kod negeri,
+// termasuk cuti bergerak (Aidilfitri, Deepavali, Tahun Baharu Cina) dan cuti negeri (Gawai,
+// Kaamatan, hari lahir TYT). Jadual di sini cuma dipakai apabila API langsung tidak menjawab,
+// supaya jalur jam tidak kehilangan cuti utama ketika rangkaian gagal.
+//
+// Jangan jalankan jadual ni serentak dengan API. Sebelum ini itulah yang berlaku, dan ia punca
+// sebenar pepijat cuti: jadual boleh menandakan cuti yang API tahu tidak berlaku di negeri itu,
+// manakala API hanya MENAMBAH cuti dan tidak pernah mengosongkannya. Lihat susunan if/else
+// dalam WorldClockStrip.tsx.
+//
+// Sengaja pendek: cuti bertarikh tetap sahaja. Menyalin senarai penuh 49 cuti ke sini bermakna
+// ia perlu dikemas kini setiap tahun secara manual — itu yang API sudah selesaikan.
 
 /** Kod semua negeri dan Wilayah Persekutuan, sama seperti kod yang dipakai API cuti. */
 export const ALL_STATE_CODES = [

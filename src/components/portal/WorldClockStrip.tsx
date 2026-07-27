@@ -345,28 +345,39 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
 
           const day = obj.weekday.toUpperCase();
 
-          // Cuti bertarikh tetap, ditapis mengikut negeri bandar ini — bukan disalin bulat-bulat
-          // dari senarai Kuala Lumpur seperti dahulu.
+          // Cuti umum: API cuti ialah SUMBER TUNGGAL apabila ia menjawab. Ia membawa 49 cuti
+          // setahun lengkap dengan kod negeri, termasuk cuti bergerak (Aidilfitri, Deepavali,
+          // Tahun Baharu Cina) dan cuti negeri (Gawai, Kaamatan, hari lahir TYT) yang tidak
+          // mungkin ditulis tetap dalam kod tanpa menjadi basi setiap tahun.
+          //
+          // Jadual tetap dalam core/worldclock/PublicHolidays.js ialah sandaran TULEN — ia cuma
+          // dipakai apabila API langsung tidak menjawab. Dahulu kedua-duanya dijalankan serentak,
+          // dan itulah punca sebenar pepijat cuti: jadual tetap boleh menandakan cuti yang API
+          // tahu tidak berlaku di negeri itu, dan API tidak dapat membatalkannya kerana ia hanya
+          // MENAMBAH, tidak pernah mengosongkan. Susunan if/else di bawah yang menghalangnya.
           const gregKey = `${obj.month}/${obj.day}`;
-          const fixedHoliday = findFixedHoliday(gregKey, c.stateCode);
-          if (fixedHoliday) {
-            isHoliday = true;
-            holidayName = fixedHoliday.name;
-          }
+          const apiPublicHolidays = apiHolidaysData && Array.isArray(apiHolidaysData.publicHolidays)
+            ? apiHolidaysData.publicHolidays
+            : null;
 
-          if (apiHolidaysData && Array.isArray(apiHolidaysData.publicHolidays)) {
-            const targetStateCode = c.stateCode;
-            const apiMatch = apiHolidaysData.publicHolidays.find((h: any) => {
+          if (apiPublicHolidays && apiPublicHolidays.length > 0) {
+            const apiMatch = apiPublicHolidays.find((h: any) => {
               const [yr, mn, dy] = h.date.split('-');
               const matchDate = `${dy}/${mn}/${yr.slice(-2)}`;
               const isDateMatch = matchDate === dateStr;
-              const isStateMatch = !targetStateCode || (h.state_codes && h.state_codes.includes(targetStateCode));
+              const isStateMatch = Array.isArray(h.state_codes) && h.state_codes.includes(c.stateCode);
               return isDateMatch && isStateMatch;
             });
 
             if (apiMatch) {
               isHoliday = true;
               holidayName = apiMatch.name;
+            }
+          } else {
+            const fixedHoliday = findFixedHoliday(gregKey, c.stateCode);
+            if (fixedHoliday) {
+              isHoliday = true;
+              holidayName = fixedHoliday.name;
             }
           }
 
