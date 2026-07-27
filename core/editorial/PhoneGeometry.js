@@ -40,22 +40,37 @@ export const PHONE_MAX_WIDTH_PX = 767;
 // grid yang meregang. Ini juga selaras dengan cara rekaan itu sendiri menyatakan tier lain — HERO,
 // MENEGAK dan STANDARD semuanya min-height px tetap, bukan nisbah.
 //
-// Nilai px di bawah ialah nisbah rekaan dikira pada lebar rujukan telefon 390px:
-//   kolum berpasangan = (358 - 12 jurang) / 2 = 173px      penuh lebar = 358px
-const REF = { pasangan: 173, penuh: 358 };
-const px = (lebar, nisbah) => Math.round(lebar / nisbah) + 'px';
+// LANTAI DIRAPATKAN SUPAYA KAD TIDAK BERJURANG
+//
+// Kad telefon ialah kad tajuk sahaja, tetapi nombor rekaan (240/224/150) dan nisbah berpasangan
+// dipilih untuk kad yang MEMBAWA huraian. Tanpa huraian, lantai itu jadi terlalu murah hati dan
+// meninggalkan jalur kosong antara tajuk dan garis Sumber.
+//
+// Diukur pada 390px, tiga lantai sahaja yang benar-benar mengikat — kad dipaku tepat pada nilai
+// lantai sementara jurang dalamannya berbeza-beza, tanda pasti kotak itu dipaksa:
+//
+//   MENEGAK     ke-6-enam kad tepat 224px, jurang 34–75px
+//   KOMPAK      ke-6-enam kad tepat 173px, jurang 42–75px
+//   KIUB KECIL  6 daripada 7 kad tepat 179px, jurang 29–51px
+//
+// Tiga lantai itu dirapatkan ke tinggi semula jadi kandungan (diukur dengan lantai dilucutkan).
+// Tiga yang lain dibiarkan: lantainya memang tidak mengikat, tingginya sudah ditentukan kandungan,
+// dan jurangnya sihat (HERO 24px, MELINTANG 16–41px, KIUB BESAR ditentukan tajuk 4–6 baris).
+//
+// MENEGAK turun ke nilai yang SAMA dengan MELINTANG dengan sengaja: pada telefon kedua-duanya kad
+// penuh lebar bertajuk sahaja dengan peranan yang serupa sepenuhnya. "Menegak" ialah bentuk grid
+// 6-kolum desktop — bentuk itu tidak wujud pada telefon, jadi tingginya tidak patut diwarisi.
+const PENUH_LEBAR = '150px';
 
-/** Tinggi minimum telefon bagi setiap tier, sebagai pemboleh ubah CSS pada akar grid.
- *  Empat yang pertama datang terus daripada fail rekaan; tiga yang terakhir dikira daripada
- *  nisbah rekaan (lihat nota "NISBAH IALAH LANTAI" di atas). */
+/** Tinggi minimum telefon bagi setiap tier, sebagai pemboleh ubah CSS pada akar grid. */
 export const PHONE_CARD_MIN = {
-  '--card-min-melintang-penuh': '240px',              // HERO
-  '--card-min-menegak': '224px',                      // MENEGAK
-  '--card-min-melintang': '150px',                    // STANDARD
-  '--card-min-bar': '84px',                           // BAR (BarCard sudah ada min-h-[84px])
-  '--card-min-kiub-besar': px(REF.pasangan, 3 / 4),   // 3:4 → 231px
-  '--card-min-kiub-kecil': px(REF.penuh, 2 / 1),      // 2:1 → 179px
-  '--card-min-kompak': px(REF.pasangan, 1 / 1),       // 1:1 → 173px
+  '--card-min-melintang-penuh': '240px',      // HERO — lantai hampir tidak mengikat (semula jadi 242)
+  '--card-min-menegak': PENUH_LEBAR,          // MENEGAK — dahulu 224px
+  '--card-min-melintang': PENUH_LEBAR,        // STANDARD — tidak berubah
+  '--card-min-bar': '84px',                   // BAR (BarCard sudah ada min-h-[84px])
+  '--card-min-kiub-besar': '231px',           // KIUB BESAR — bentuk 3:4; tidak mengikat (semula jadi 280–291)
+  '--card-min-kiub-kecil': '145px',           // KIUB KECIL — dahulu 179px (2:1); semula jadi 139–183
+  '--card-min-kompak': '135px',               // KOMPAK — dahulu 173px (1:1); semula jadi 130–142
 };
 
 // Kotak setiap tier pada telefon.
