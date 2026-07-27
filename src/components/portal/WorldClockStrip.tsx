@@ -15,8 +15,10 @@ interface ClockTime {
   // masa berpindah keluar dari kad bandar ke satu baris meta yang dikongsi di bawah jalur.
   /** Tarikh yang dipapar: Masihi, atau Hijrah bagi bandar Kumpulan A. */
   dateStr: string;
-  /** Singkatan hari Melayu: ISN, SEL, RAB, KHA, JUM, SAB, AHD. */
+  /** Singkatan hari Melayu: ISN, SEL, RAB, KHA, JUM, SAB, AHD. Dipakai kad bandar desktop. */
   dayLabel: string;
+  /** Nama hari penuh: Isnin, Selasa, ... Ahad. Dipakai baris meta telefon. */
+  dayFull: string;
   /** Jam sahaja: "05:51 PM". */
   clockStr: string;
   /** Tarikh Hijrah bandar ini, kalau ada. Kosong bagi bandar tanpa zon JAKIM. */
@@ -475,7 +477,15 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           const DAY_LABEL_MS: Record<string, string> = {
             MON: 'ISN', TUE: 'SEL', WED: 'RAB', THU: 'KHA', FRI: 'JUM', SAT: 'SAB', SUN: 'AHD'
           };
+          // Nama hari penuh, untuk baris meta telefon sahaja. Kad bandar desktop kekal dengan
+          // singkatan tiga huruf di atas: kolumnya berkongsi baris dengan tarikh dan jam, jadi
+          // tiada ruang untuk "Jumaat". Baris meta telefon pula satu baris penuh selebar skrin.
+          const DAY_FULL_MS: Record<string, string> = {
+            MON: 'Isnin', TUE: 'Selasa', WED: 'Rabu', THU: 'Khamis',
+            FRI: 'Jumaat', SAT: 'Sabtu', SUN: 'Ahad'
+          };
           const dayLabel = DAY_LABEL_MS[day] || day;
+          const dayFull = DAY_FULL_MS[day] || day;
           const clockStr = `${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
           const timeStr = `${displayDateStr} · ${dayLabel} · ${clockStr}`;
 
@@ -483,6 +493,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
             timeStr,
             dateStr: displayDateStr,
             dayLabel,
+            dayFull,
             clockStr,
             hijriStr: hijriDisplayStr,
             status: finalStatus,
@@ -506,13 +517,17 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   // Asia/Kuala_Lumpur yang sama, jadi mana-mana bandar memberi jawapan yang sama; KL dipilih
   // kerana ia bukan bandar Kumpulan A, jadi dateStr-nya kekal Masihi.
   //
-  // Tarikh Hijrah — Kota Bharu (KTN01), TETAP. Kalendar Hijrah Adjung merujuk Kelantan,
-  // Terengganu dan Kedah; ketiga-tiganya diselaraskan Maghrib secara berasingan dan boleh berbeza
-  // sehari sekitar waktu Maghrib, jadi satu baris meta perlu memilih satu. Pemilik projek memilih
-  // Kota Bharu sebagai rujukan tunggal, dan sengaja TIDAK mahu ia bertukar setiap kali set jam
-  // berputar — tarikh yang berubah-ubah di sebelah jam yang tidak berubah akan mengelirukan
-  // pembaca. Zon KDH01 dan TRG01 masih diambil kerana versi desktop memerlukannya: di sana ketiga
-  // -tiga bandar itu memapar tarikh Hijrah menggantikan tarikh Masihi dalam kadnya sendiri.
+  // Tarikh Hijrah — Kota Bharu (KTN01), TETAP, kerana Kota Bharu ialah ibu pejabat Adjung. Itu
+  // sebab sebenar pilihan ini: tarikh Hijrah rasmi terbitan mengikut tempat penerbitnya berdiri.
+  //
+  // Ia juga menyelesaikan masalah teknikal. Kalendar Hijrah Adjung merujuk Kelantan, Terengganu
+  // dan Kedah; ketiga-tiga zon itu diselaraskan Maghrib secara berasingan dan boleh berbeza sehari
+  // sekitar waktu Maghrib, jadi satu baris meta memang perlu memilih satu. Ia sengaja TIDAK
+  // bertukar mengikut set jam yang berputar — tarikh yang berubah-ubah di sebelah jam yang tidak
+  // berubah akan kelihatan seperti pepijat.
+  //
+  // Zon KDH01 dan TRG01 masih diambil kerana versi desktop memerlukannya: di sana ketiga-tiga
+  // bandar itu memapar tarikh Hijrah menggantikan tarikh Masihi dalam kadnya sendiri.
   const metaClock = timesMap['Kuala Lumpur'];
   const metaHijriStr = timesMap['Kota Bharu']?.hijriStr || '';
 
@@ -574,23 +589,25 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
 
       {/* Baris meta telefon — tarikh Masihi, tarikh Hijrah dan jam, dikeluarkan daripada kad bandar
           kerana kolum telefon terlalu sempit untuk memuatkannya. Semua 15 bandar berkongsi zon waktu
-          Asia/Kuala_Lumpur yang sama, jadi satu baris memang mewakili keseluruhan jalur. */}
+          Asia/Kuala_Lumpur yang sama, jadi satu baris memang mewakili keseluruhan jalur.
+
+          Susunan: Hijrah · Masa · Masihi — jam di tengah, satu kalendar di setiap sisinya. */}
       {isPhone && metaClock && (
         <div className="flex items-baseline justify-center gap-2 pt-1.5 mt-1 border-t border-stone-200 w-full px-2">
-          <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap">
-            {metaClock.dateStr} {metaClock.dayLabel}
-          </span>
           {metaHijriStr && (
             <>
-              <span className="w-px h-[9px] bg-stone-300" />
               <span className="font-serif text-[11px] font-light tracking-[0.02em] text-stone-500 whitespace-nowrap">
-                {metaHijriStr} {metaClock.dayLabel}
+                {metaHijriStr} {metaClock.dayFull}
               </span>
+              <span className="w-px h-[9px] bg-stone-300" />
             </>
           )}
-          <span className="w-px h-[9px] bg-stone-300" />
           <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap">
             {metaClock.clockStr}
+          </span>
+          <span className="w-px h-[9px] bg-stone-300" />
+          <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap">
+            {metaClock.dateStr} {metaClock.dayFull}
           </span>
         </div>
       )}
