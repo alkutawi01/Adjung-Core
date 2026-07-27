@@ -462,7 +462,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // CategoryRegistry, termasuk 93 baris lama tak aktif, untuk warna kad).
   // icon/iconSvg dibawa sekali (bukan hanya name/color) sebab Focus View papar glif Bidang
   // di sebelah label "Bidang Topik" — lihat openFocus() di bawah.
-  const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string; icon: string | null; iconSvg: string | null; illustrationSvg: string | null }[]>([]);
+  const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string; icon: string | null; iconSvg: string | null }[]>([]);
+  // Plat ilustrasi Bidang diambil SATU per satu bila Focus View dibuka, bukan dibawa dalam senarai
+  // pukal di atas: plat boleh ratusan kilobait, dan menghantar kesemua 25 kepada setiap pelawat
+  // frontpage untuk memaparkan sifar atau satu ialah pembaziran yang besar.
+  const [focusIllustration, setFocusIllustration] = useState<string | null>(null);
   const [activeLanguage, setActiveLanguage] = useState<'ms' | 'zh' | 'ar' | 'en'>('ms');
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -1359,7 +1363,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             color: c.color,
             icon: c.icon ?? null,
             iconSvg: c.iconSvg ?? null,
-            illustrationSvg: c.illustrationSvg ?? null,
           })));
         }
       })
@@ -2080,6 +2083,24 @@ URL: ${url}`;
   const focusBidang = focusItem
     ? activeBidangList.find(b => b.name.toLowerCase() === (focusItem.desk || '').toLowerCase())
     : undefined;
+
+  // Plat ilustrasi Bidang diambil bila Focus View dibuka, bukan dibawa dalam senarai Bidang: satu
+  // plat boleh ratusan kilobait, dan menghantar kesemua 25 kepada setiap pelawat frontpage untuk
+  // memaparkan sifar atau satu ialah pembaziran yang besar (25 x 138KB = 3.4MB setiap muat).
+  //
+  // Dikosongkan dahulu setiap kali Bidang bertukar, supaya plat Bidang sebelumnya tidak sempat
+  // terpapar di bawah kandungan baharu sementara menunggu pengambilan.
+  const focusBidangName = focusBidang?.name || '';
+  useEffect(() => {
+    setFocusIllustration(null);
+    if (!focusBidangName) return;
+    let dibatalkan = false;
+    fetch('/api/system/categories/illustration?name=' + encodeURIComponent(focusBidangName))
+      .then(res => res.json())
+      .then(data => { if (!dibatalkan) setFocusIllustration(data?.illustrationSvg || null); })
+      .catch(() => {});
+    return () => { dibatalkan = true; };
+  }, [focusBidangName]);
 
 
 
@@ -6227,7 +6248,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           ) : undefined}
           desk={focusItem.desk}
           topik={focusItem.topik}
-          illustrationSvg={focusBidang?.illustrationSvg ?? null}
+          illustrationSvg={focusIllustration}
           title={asPlainText(focusItem.titleString) || asPlainText(focusItem.title)}
           brief={asPlainText(focusItem.briefString) || asPlainText(focusItem.brief)}
           body={asPlainText(focusItem.briefLong)}

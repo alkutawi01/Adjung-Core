@@ -15,8 +15,9 @@ interface ActiveBidang {
   icon: string | null;
   /** Ikon SVG custom 13px bagi glif masthead. */
   iconSvg: string | null;
-  /** Plat ilustrasi besar bagi kolum kanan Focus View — medan BERASINGAN daripada iconSvg. */
-  illustrationSvg: string | null;
+  /** Ada plat ilustrasi? Markup penuh TIDAK dihantar dalam senarai pukal — plat boleh ratusan
+   *  kilobait. Diambil melalui GET /categories/illustration bila modal dibuka. */
+  hasIllustration: boolean;
   usageCount: number;
   slots: number[];
 }
@@ -348,16 +349,34 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
   // Plat ilustrasi Bidang — SVG besar untuk kolum kanan Focus View. Berasingan daripada ikon di
   // atas: ikon 13px di jalur masthead, plat ~240px di permukaan bacaan. Spec dikuatkuasakan di
-  // server (core/routes/categoryRoutes.js): viewBox 0 0 256 256, currentColor sahaja, had 40KB.
+  // server (core/routes/categoryRoutes.js): viewBox 0 0 256 256, currentColor sahaja, had 256KB.
   const [illusPreview, setIllusPreview] = useState<string | null>(null);
+  /** Markup plat SEMASA bagi Bidang yang modalnya terbuka, diambil atas permintaan. */
+  const [illusCurrent, setIllusCurrent] = useState<string | null>(null);
   const [illusError, setIllusError] = useState<string | null>(null);
   const [uploadingIllus, setUploadingIllus] = useState(false);
+
+  // Markup plat diambil HANYA bila modal dibuka — ia tidak lagi dibawa dalam senarai Bidang, kerana
+  // satu plat boleh ratusan kilobait dan senarai itu dimuat oleh frontpage awam juga.
+  const openIconPicker = (d: ActiveBidang) => {
+    setIconPickerBidangId(d.id);
+    setIllusCurrent(null);
+    setIllusPreview(null);
+    setIllusError(null);
+    if (d.hasIllustration) {
+      fetch('/api/system/categories/illustration?name=' + encodeURIComponent(d.name))
+        .then(res => res.json())
+        .then(data => setIllusCurrent(data?.illustrationSvg || null))
+        .catch(e => console.error('Error fetching illustration:', e));
+    }
+  };
 
   const closeIconPicker = () => {
     setIconPickerBidangId(null);
     setSvgUploadPreview(null);
     setSvgUploadError(null);
     setIllusPreview(null);
+    setIllusCurrent(null);
     setIllusError(null);
   };
 
@@ -369,8 +388,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       setIllusError('Pilih fail .svg sahaja.');
       return;
     }
-    if (file.size > 40 * 1024) {
-      setIllusError('Fail terlalu besar (had 40KB untuk plat ilustrasi).');
+    if (file.size > 256 * 1024) {
+      setIllusError('Fail terlalu besar (had 256KB untuk plat ilustrasi).');
       return;
     }
     const reader = new FileReader();
@@ -391,6 +410,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal memuat naik plat ilustrasi.');
+      setIllusCurrent(illusPreview);
       setIllusPreview(null);
       fetchActiveBidang();
     } catch (e: any) {
@@ -411,6 +431,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal membuang plat ilustrasi.');
+      setIllusCurrent(null);
       setIllusPreview(null);
       fetchActiveBidang();
     } catch (e: any) {
@@ -784,7 +805,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                         <td className="p-3">
                           <button
                             type="button"
-                            onClick={() => setIconPickerBidangId(d.id)}
+                            onClick={() => openIconPicker(d)}
                             className="hover:ring-2 hover:ring-offset-1 hover:ring-stone-300 rounded-full transition-shadow relative"
                             title="Tukar ikon dan plat ilustrasi"
                           >
@@ -792,7 +813,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                             {/* Titik marun kecil: tanda Bidang ini sudah ada plat ilustrasi. Tanpa
                                 ini tiada cara melihat Bidang mana yang sudah siap tanpa membuka
                                 setiap satu modal. */}
-                            {d.illustrationSvg && (
+                            {d.hasIllustration && (
                               <span
                                 className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#802334] border border-white"
                                 title="Ada plat ilustrasi"
@@ -1414,7 +1435,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     <li>Jangan letak <code className="font-mono">width</code>/<code className="font-mono">height</code> pada <code className="font-mono">&lt;svg&gt;</code>; ia dibuang.</li>
                     <li>Kekalkan karya dalam 224×224 di tengah (margin 16 unit) supaya ia tidak mencecah tepi.</li>
                     <li>Garis halus, <code className="font-mono">stroke-width</code> 1.5–2 unit. Plat ini patut senyap, bukan menarik perhatian daripada tajuk.</li>
-                    <li>Had 40KB. Bukan ikon yang dibesarkan — ikon 24px jadi nipis dan generik pada saiz ini.</li>
+                    <li>Had 256KB. Bukan ikon yang dibesarkan — ikon 24px jadi nipis dan generik pada saiz ini.</li>
                   </ul>
 
                   <div className="flex items-center gap-3">
@@ -1427,12 +1448,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                         onChange={e => handleIllusFileSelected(e.target.files?.[0] || null)}
                       />
                     </label>
-                    {(illusPreview || target.illustrationSvg) && (
+                    {(illusPreview || illusCurrent) && (
                       <span
                         className="inline-flex items-center justify-center w-16 h-16 rounded border border-stone-200 bg-[#FDFDFD] [&_svg]:w-14 [&_svg]:h-14"
                         style={{ color: '#802334' }}
                         title={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}
-                        dangerouslySetInnerHTML={{ __html: (illusPreview || target.illustrationSvg) as string }}
+                        dangerouslySetInnerHTML={{ __html: (illusPreview || illusCurrent) as string }}
                       />
                     )}
                   </div>
@@ -1449,7 +1470,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                         {uploadingIllus ? 'Memuat naik...' : 'Guna Plat Ini'}
                       </button>
                     )}
-                    {target.illustrationSvg && !illusPreview && (
+                    {target.hasIllustration && !illusPreview && (
                       <button
                         onClick={() => handleClearIllustration(target.id)}
                         disabled={uploadingIllus}

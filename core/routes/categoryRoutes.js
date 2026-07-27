@@ -47,17 +47,20 @@ function sanitizeSvgIcon(raw) {
 //                      dikodkan tetap (hex/rgb) akan mengabaikannya, jadi ia ditolak.
 //   4. Kawasan selamat karya dalam 224x224 di tengah (margin 16 unit) supaya ia tidak mencecah tepi.
 //   5. Gaya garis      stroke-width 1.5-2 unit. Garis halus yang membuatkan plat itu senyap.
-//   6. Had fail        40KB. Plat garisan tidak sepatutnya lebih besar daripada itu.
+//   6. Had fail        256KB. Karya garisan terperinci memang boleh ratusan kilobait; had ini tidak
+//                      membebankan muatan frontpage kerana plat TIDAK dihantar dalam senarai pukal
+//                      /categories/active — ia diambil satu per satu melalui
+//                      GET /categories/illustration.
 //
 // Tag/atribut yang dibenarkan sama seperti ikon (SVG_ALLOWED_TAGS/ATTR) — tiada <script>, tiada
 // pengendali on*, tiada rujukan luar.
-const ILLUSTRATION_MAX_BYTES = 40 * 1024;
+const ILLUSTRATION_MAX_BYTES = 256 * 1024;
 const ILLUSTRATION_VIEWBOX = '0 0 256 256';
 
 function sanitizeIllustrationSvg(raw) {
   if (typeof raw !== 'string' || !raw.trim()) throw new Error('SVG kosong.');
   if (Buffer.byteLength(raw, 'utf8') > ILLUSTRATION_MAX_BYTES) {
-    throw new Error('Fail SVG terlalu besar (had 40KB untuk plat ilustrasi).');
+    throw new Error('Fail SVG terlalu besar (had 256KB untuk plat ilustrasi).');
   }
 
   let cleaned = sanitizeHtml(raw, {
@@ -154,10 +157,21 @@ export function createCategoryRoutes(db) {
   router.get('/categories/active', async (req, res) => {
     try {
       const active = await CategoryRegistry.getActiveCategories(db);
-      const withSlots = await Promise.all(active.map(async (cat) => ({
-        ...cat,
-        slots: await CategoryRegistry.getSlotsForCategory(db, cat.name)
-      })));
+      const withSlots = await Promise.all(active.map(async (cat) => {
+        // illustrationSvg SENGAJA tidak dihantar di sini. getActiveCategories buat SELECT *, dan
+        // senarai ini dimuat oleh frontpage awam pada setiap muat halaman — menghantar kesemua 25
+        // plat bermakna beberapa megabait markup dikirim kepada setiap pelawat sedangkan paling
+        // banyak SATU plat pernah dipapar, dan itu pun cuma di dalam Focus View.
+        //
+        // Yang tinggal ialah bendera boolean, cukup untuk Taksonomi menunjukkan Bidang mana sudah
+        // ada plat. Markup penuh diambil satu per satu melalui GET /categories/illustration/:id.
+        const { illustrationSvg, ...rest } = cat;
+        return {
+          ...rest,
+          hasIllustration: !!(illustrationSvg && String(illustrationSvg).trim()),
+          slots: await CategoryRegistry.getSlotsForCategory(db, cat.name)
+        };
+      }));
       res.json(withSlots);
     } catch (err) {
       console.error('Fetch active categories error:', err);
@@ -190,6 +204,25 @@ export function createCategoryRoutes(db) {
     } catch (err) {
       console.error('Rename active category error:', err);
       res.status(500).json({ error: err.message || 'Failed to rename category.' });
+    }
+  });
+
+  // GET /api/system/categories/illustration?name=<Bidang> — markup plat SATU Bidang.
+  //
+  // Berasingan daripada /categories/active dengan sengaja: plat boleh ratusan kilobait, dan hanya
+  // satu diperlukan pada satu-satu masa (Focus View memaparkan plat Bidang kandungan yang dibuka
+  // sahaja). Menghantarnya dalam senarai pukal bermakna setiap pelawat frontpage memuat turun
+  // kesemua 25 plat untuk memaparkan sifar atau satu.
+  router.get('/categories/illustration', async (req, res) => {
+    try {
+      const name = String(req.query.name || '').trim();
+      if (!name) return res.status(400).json({ error: 'name diperlukan.' });
+      const row = await CategoryRegistry.dbGet(db,
+        "SELECT illustrationSvg FROM CategoryRegistry WHERE LOWER(name) = LOWER(?) AND isActive = 1", [name]);
+      res.json({ illustrationSvg: (row && row.illustrationSvg) || null });
+    } catch (err) {
+      console.error('Fetch illustration error:', err);
+      res.status(500).json({ error: 'Gagal membaca plat ilustrasi.' });
     }
   });
 
