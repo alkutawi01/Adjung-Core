@@ -1479,6 +1479,10 @@ const initEditorialOS = (dbConn) => {
                                                     // awam) terus baca SEMUA baris tanpa tapisan isActive — tak disentuh.
                                                     dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN isActive INTEGER NOT NULL DEFAULT 0", () => {
                                                     dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN icon TEXT", () => {
+                                                    // iconSvg: markup SVG custom admin muat naik sendiri (disanitize di
+                                                    // POST /categories/set-icon-svg sebelum simpan) — bila diisi, menang
+                                                    // atas ikon lucide di `icon` (lihat BidangIcon di TetapanConsole.tsx).
+                                                    dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN iconSvg TEXT", () => {
                                                       // Ikon lalai (nama komponen lucide-react, kes Pascal) — rujukan visual di
                                                       // Taksonomi sahaja buat masa ini. Bidang baharu ditambah via "+ Tambah
                                                       // Bidang" tiada ikon lagi (null, fallback ke ikon generik di UI) sehingga
@@ -1505,6 +1509,7 @@ const initEditorialOS = (dbConn) => {
                                                           }
                                                         }
                                                       })();
+                                                    });
                                                     });
                                                     });
                                                     dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN promptText TEXT", () => {

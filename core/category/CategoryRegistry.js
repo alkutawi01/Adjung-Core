@@ -271,6 +271,25 @@ class CategoryRegistry {
     return { id, slug, name: trimmedName, color: finalColor, icon: finalIcon, usageCount: 0, isActive: 1, createdAt: now, updatedAt: now };
   }
 
+  // Tukar ikon SATU baris Bidang taksonomi ke ikon lucide-react terkurasi (Taksonomi -> klik badge
+  // ikon). Sengaja kosongkan iconSvg — pilih ikon lucide bermaksud tinggalkan SVG custom lama.
+  static async setIcon(db, id, iconName) {
+    if (!id) throw new Error('id Bidang diperlukan.');
+    if (!iconName || !iconName.trim()) throw new Error('Nama ikon diperlukan.');
+    const now = new Date().toISOString();
+    await this.dbRun(db, "UPDATE CategoryRegistry SET icon = ?, iconSvg = NULL, updatedAt = ? WHERE id = ?", [iconName.trim(), now, id]);
+  }
+
+  // Tetapkan SVG custom (markup dah disanitize di peringkat route sebelum sampai sini — lihat
+  // categoryRoutes.js) sebagai ikon Bidang. Menang atas `icon` lucide di UI (BidangIcon), tapi
+  // `icon` sendiri tak disentuh supaya ada fallback kalau iconSvg dibuang balik pada masa depan.
+  static async setIconSvg(db, id, sanitizedSvg) {
+    if (!id) throw new Error('id Bidang diperlukan.');
+    if (!sanitizedSvg || !sanitizedSvg.trim()) throw new Error('SVG tidak sah.');
+    const now = new Date().toISOString();
+    await this.dbRun(db, "UPDATE CategoryRegistry SET iconSvg = ?, updatedAt = ? WHERE id = ?", [sanitizedSvg.trim(), now, id]);
+  }
+
   // Namakan-semula SATU baris Bidang taksonomi — sengaja BUKAN renameCategory()/mergeCategories()
   // di atas, sebab dua fungsi tu cascade-tulis-ganti string 'desk' dalam editorial_objects/
   // editorial_attribute_values (melanggar peraturan "kandungan lama kekal"). Ni cuma ubah baris

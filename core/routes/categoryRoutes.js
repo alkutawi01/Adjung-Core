@@ -1,5 +1,38 @@
 import express from 'express';
+import sanitizeHtml from 'sanitize-html';
 import CategoryRegistry from '../category/CategoryRegistry.js';
+
+// Senarai putih ketat untuk ikon SVG custom Bidang (muat naik admin) — tiada <script>, tiada
+// pengendali on*, tiada href/xlink:href/style (jadi tiada laluan javascript:/url() tersembunyi).
+// Bukan cadangan, ni satu-satunya pertahanan XSS untuk laluan ni — jangan longgarkan tanpa sebab kukuh.
+const SVG_ALLOWED_TAGS = [
+  'svg', 'g', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse',
+  'defs', 'clipPath', 'linearGradient', 'radialGradient', 'stop', 'title', 'desc', 'text', 'tspan'
+];
+const SVG_ALLOWED_ATTR = [
+  'viewBox', 'width', 'height', 'xmlns', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+  'd', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'points', 'transform', 'offset',
+  'stop-color', 'stop-opacity', 'gradientUnits', 'gradientTransform', 'id', 'fill-rule', 'clip-rule',
+  'opacity', 'fill-opacity', 'stroke-opacity', 'stroke-dasharray'
+];
+const SVG_MAX_BYTES = 100 * 1024; // ikon patut kecil — had jana-jana penyalahgunaan/DB bloat
+
+function sanitizeSvgIcon(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) throw new Error('SVG kosong.');
+  if (Buffer.byteLength(raw, 'utf8') > SVG_MAX_BYTES) throw new Error('Fail SVG terlalu besar (had 100KB).');
+  const cleaned = sanitizeHtml(raw, {
+    allowedTags: SVG_ALLOWED_TAGS,
+    allowedAttributes: { '*': SVG_ALLOWED_ATTR },
+    allowedSchemes: [],
+    disallowedTagsMode: 'discard',
+    // xmlMode: SVG ialah XML sensitif huruf besar/kecil (cth "viewBox", "gradientTransform") — mod
+    // HTML lalai sanitize-html rata-ratakan semua nama atribut jadi huruf kecil, jadi tanpa ni
+    // viewBox terus tertapis (bukan sebab disekat, sebab dah tak sepadan nama dalam allowlist).
+    parser: { xmlMode: true }
+  }).trim();
+  if (!/^<svg[\s>]/i.test(cleaned)) throw new Error('Fail bukan SVG yang sah selepas ditapis.');
+  return cleaned;
+}
 
 export function createCategoryRoutes(db) {
   const router = express.Router();
@@ -131,6 +164,34 @@ export function createCategoryRoutes(db) {
     } catch (err) {
       console.error('Assign slot error:', err);
       res.status(500).json({ error: err.message || 'Failed to assign slot.' });
+    }
+  });
+
+  // POST /api/system/categories/set-icon — pilih ikon lucide-react daripada pemilih di Taksonomi.
+  router.post('/categories/set-icon', async (req, res) => {
+    try {
+      const { id, icon } = req.body;
+      if (!id || !icon) return res.status(400).json({ error: 'id dan icon diperlukan.' });
+      await CategoryRegistry.setIcon(db, id, icon);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Set icon error:', err);
+      res.status(400).json({ error: err.message || 'Gagal menetapkan ikon.' });
+    }
+  });
+
+  // POST /api/system/categories/set-icon-svg — muat naik ikon SVG custom (Taksonomi). Markup
+  // ditapis ketat (SVG_ALLOWED_TAGS/ATTR) sebelum disimpan — jangan skip langkah ni.
+  router.post('/categories/set-icon-svg', async (req, res) => {
+    try {
+      const { id, svg } = req.body;
+      if (!id || !svg) return res.status(400).json({ error: 'id dan svg diperlukan.' });
+      const cleaned = sanitizeSvgIcon(svg);
+      await CategoryRegistry.setIconSvg(db, id, cleaned);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Set icon SVG error:', err);
+      res.status(400).json({ error: err.message || 'Gagal memuat naik SVG.' });
     }
   });
 

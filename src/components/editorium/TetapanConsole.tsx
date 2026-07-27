@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Lock, Settings, Construction, Zap, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe, Pencil, ChevronDown, ChevronUp,
   Star, Flag, Globe2, TrendingUp, Briefcase, Cpu, FlaskConical, Stethoscope, GraduationCap, Scale, MoonStar, BookMarked, Lightbulb, Brain,
-  Languages, Feather, ScrollText, Map, Leaf, Rocket, Palette, Drama, Trophy, Sigma, Tag, type LucideIcon
+  Languages, Feather, ScrollText, Map, Leaf, Rocket, Palette, Drama, Trophy, Sigma, Tag, type LucideIcon,
+  Landmark, Building2, Heart, Music, Film, Mic, Video, PenTool, Plane, Car, Compass, TreePine, Users, Shield, Coins, Upload
 } from 'lucide-react';
 import { EditorialIntelligencePlatform } from './EditorialIntelligencePlatform';
 
@@ -14,19 +15,35 @@ interface ActiveBidang {
   name: string;
   color: string;
   icon: string | null;
+  iconSvg: string | null;
   usageCount: number;
   slots: number[];
 }
 
 // Peta nama ikon (lucide-react, kes Pascal, cth "TrendingUp") tersimpan di CategoryRegistry.icon
-// -> komponen sebenar. Bidang tanpa ikon (lama/baharu-ditambah) jatuh ke Tag generik — bukan
-// diagak, memang belum ada ikon untuk Bidang tu sehingga fasa "muat naik SVG sendiri" dibina.
+// -> komponen sebenar. Senarai pilihan pemilih ikon (Taksonomi) — lebih luas daripada 24 ikon
+// lalai terkurasi supaya admin ada pilihan sebenar bila tukar ikon, bukan cuma pilih semula apa
+// yang dah ada. Bidang tanpa ikon (lama/baharu-ditambah) jatuh ke Tag generik — bukan diagak.
 const BIDANG_ICON_MAP: Record<string, LucideIcon> = {
   Star, Flag, Globe2, TrendingUp, Briefcase, Cpu, FlaskConical, Stethoscope, GraduationCap, Scale, MoonStar, BookMarked, Lightbulb, Brain,
-  Languages, Feather, ScrollText, Map, Leaf, Rocket, Palette, Drama, Trophy, Sigma
+  Languages, Feather, ScrollText, Map, Leaf, Rocket, Palette, Drama, Trophy, Sigma,
+  Landmark, Building2, Heart, Music, Film, Mic, Video, PenTool, Plane, Car, Compass, TreePine, Users, Shield, Coins
 };
+const BIDANG_ICON_NAMES = Object.keys(BIDANG_ICON_MAP).sort();
 
-const BidangIcon: React.FC<{ iconName: string | null; color: string }> = ({ iconName, color }) => {
+// SVG custom (iconSvg, markup dah disanitize server-side) menang atas ikon lucide (icon) bila
+// dua-dua ada — lihat setIconSvg() di CategoryRegistry.js.
+const BidangIcon: React.FC<{ iconName: string | null; iconSvg?: string | null; color: string }> = ({ iconName, iconSvg, color }) => {
+  if (iconSvg) {
+    return (
+      <span
+        className="inline-flex items-center justify-center w-7 h-7 rounded-full shrink-0 [&_svg]:w-3.5 [&_svg]:h-3.5"
+        style={{ backgroundColor: `${color}1A`, color }}
+        title="Ikon custom (SVG dimuat naik)"
+        dangerouslySetInnerHTML={{ __html: iconSvg }}
+      />
+    );
+  }
   const IconComponent = (iconName && BIDANG_ICON_MAP[iconName]) || Tag;
   return (
     <span
@@ -267,6 +284,77 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       alert('Ralat: ' + (e.message || ''));
     } finally {
       setSavingSlotForBidang(null);
+    }
+  };
+
+  // Pemilih Ikon Bidang — klik badge ikon di Taksonomi buka modal ni (grid lucide + muat naik SVG).
+  const [iconPickerBidangId, setIconPickerBidangId] = useState<string | null>(null);
+  const [savingIconFor, setSavingIconFor] = useState<string | null>(null);
+  const [svgUploadPreview, setSvgUploadPreview] = useState<string | null>(null);
+  const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
+  const [uploadingSvg, setUploadingSvg] = useState(false);
+
+  const closeIconPicker = () => {
+    setIconPickerBidangId(null);
+    setSvgUploadPreview(null);
+    setSvgUploadError(null);
+  };
+
+  const handlePickLucideIcon = async (id: string, iconName: string) => {
+    setSavingIconFor(id);
+    try {
+      const res = await fetch('/api/system/categories/set-icon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, icon: iconName })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menetapkan ikon.');
+      closeIconPicker();
+      fetchActiveBidang();
+    } catch (e: any) {
+      alert('Ralat: ' + (e.message || ''));
+    } finally {
+      setSavingIconFor(null);
+    }
+  };
+
+  const handleSvgFileSelected = (file: File | null) => {
+    setSvgUploadError(null);
+    setSvgUploadPreview(null);
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.svg') && file.type !== 'image/svg+xml') {
+      setSvgUploadError('Pilih fail .svg sahaja.');
+      return;
+    }
+    if (file.size > 100 * 1024) {
+      setSvgUploadError('Fail terlalu besar (had 100KB).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setSvgUploadPreview(String(reader.result || ''));
+    reader.onerror = () => setSvgUploadError('Gagal membaca fail.');
+    reader.readAsText(file);
+  };
+
+  const handleUploadSvgIcon = async (id: string) => {
+    if (!svgUploadPreview) return;
+    setUploadingSvg(true);
+    setSvgUploadError(null);
+    try {
+      const res = await fetch('/api/system/categories/set-icon-svg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, svg: svgUploadPreview })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal memuat naik SVG.');
+      closeIconPicker();
+      fetchActiveBidang();
+    } catch (e: any) {
+      setSvgUploadError(e.message || 'Gagal memuat naik SVG.');
+    } finally {
+      setUploadingSvg(false);
     }
   };
 
@@ -574,7 +662,14 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     <React.Fragment key={d.id}>
                       <tr className="hover:bg-stone-50">
                         <td className="p-3">
-                          <BidangIcon iconName={d.icon} color={d.color} />
+                          <button
+                            type="button"
+                            onClick={() => setIconPickerBidangId(d.id)}
+                            className="hover:ring-2 hover:ring-offset-1 hover:ring-stone-300 rounded-full transition-shadow"
+                            title="Tukar ikon"
+                          >
+                            <BidangIcon iconName={d.icon} iconSvg={d.iconSvg} color={d.color} />
+                          </button>
                         </td>
                         <td className="p-3">
                           <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-xs" style={{ backgroundColor: d.color }}></span>
@@ -988,6 +1083,88 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </div>
         </div>
       )}
+
+      {/* MODAL PEMILIH IKON BIDANG */}
+      {iconPickerBidangId && (() => {
+        const target = desks.find(d => d.id === iconPickerBidangId);
+        if (!target) return null;
+        return (
+          <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-lg w-full p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto">
+              <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+                <h3 className="font-sans text-xs font-bold text-[#802334] uppercase flex items-center gap-2">
+                  <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />
+                  Tukar Ikon — {target.name}
+                </h3>
+                <button onClick={closeIconPicker} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
+              </div>
+
+              <div className="font-sans space-y-3">
+                <div>
+                  <label className="text-xs text-stone-500 font-semibold block mb-2">Pilih Ikon Sedia Ada</label>
+                  <div className="grid grid-cols-8 gap-1.5">
+                    {BIDANG_ICON_NAMES.map(name => {
+                      const Icon = BIDANG_ICON_MAP[name];
+                      const isCurrent = !target.iconSvg && target.icon === name;
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          title={name}
+                          disabled={savingIconFor === target.id}
+                          onClick={() => handlePickLucideIcon(target.id, name)}
+                          className={`flex items-center justify-center w-8 h-8 rounded border transition-colors disabled:opacity-40 ${
+                            isCurrent ? 'bg-[#802334] border-[#802334] text-white' : 'bg-stone-50 border-stone-200 text-stone-600 hover:border-[#802334] hover:text-[#802334]'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-stone-200">
+                  <label className="text-xs text-stone-500 font-semibold block mb-2">Atau Muat Naik SVG Sendiri</label>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold cursor-pointer">
+                      <Upload className="w-3.5 h-3.5" /> Pilih Fail .svg
+                      <input
+                        type="file"
+                        accept=".svg,image/svg+xml"
+                        className="hidden"
+                        onChange={e => handleSvgFileSelected(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                    {svgUploadPreview && (
+                      <span
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-stone-300 [&_svg]:w-4 [&_svg]:h-4"
+                        style={{ color: target.color }}
+                        dangerouslySetInnerHTML={{ __html: svgUploadPreview }}
+                      />
+                    )}
+                  </div>
+                  <p className="text-stone-400 text-[10px] mt-1.5">Had 100KB. Ditapis ketat di server sebelum disimpan (skrip/pengendali klik dibuang).</p>
+                  {svgUploadError && <p className="text-red-600 text-[10px] mt-1">{svgUploadError}</p>}
+                  {svgUploadPreview && (
+                    <button
+                      onClick={() => handleUploadSvgIcon(target.id)}
+                      disabled={uploadingSvg}
+                      className="mt-2 bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                    >
+                      {uploadingSvg ? 'Memuat naik...' : 'Guna SVG Ini'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-stone-200 flex justify-end">
+                <button onClick={closeIconPicker} className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs">Tutup</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MODAL TAMBAH BIDANG */}
       {activeConfigModal === 'add_desk' && (
