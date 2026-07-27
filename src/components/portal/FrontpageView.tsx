@@ -6412,8 +6412,16 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
 
       {/* Full-screen Reading Display Overlay */}
       {/* FOCUS VIEW — paparan penuh kandungan kad. Medan `visual`, `related`, `note`,
-          `editorName`/`editorUrl` sengaja tidak dihantar: medannya belum wujud dalam DB,
-          jadi bahagian tu render kosong (itu yang reka bentuk arahkan), bukan diisi data palsu. */}
+          `editorName`/`editorContact` sengaja tidak dihantar: medannya belum wujud dalam DB,
+          jadi bahagian tu render pemegang tempat (itu yang reka bentuk arahkan), bukan
+          diisi data palsu.
+
+          `backdropImage` juga sengaja tidak dihantar. `item.imageUrl` ialah imej LATAR KAD
+          (imej hiasan yang menggantikan seluruh paparan kad bento) — satu imej per SLOT,
+          dikongsi oleh semua kandungan dalam kad yang sama, dan cirinya masih KIV. Lampiran
+          visual Focus View pula berbeza bagi SETIAP kandungan. Dua benda berlainan, jadi
+          `imageUrl` tidak boleh dipinjam untuk mengisi ruang grafik di sini; ia menunggu
+          medan lampiran per-kandungan yang tersendiri. */}
       {focusLoc && focusItem && (
         <FocusView
           icon={focusBidang ? (
@@ -6434,7 +6442,6 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           sourceUrl={focusItem.url}
           sourceDate={getDisplayDate(focusItem.originalDate)}
           publishedDate={formatSiaranDate(focusItem.publishedAt)}
-          backdropImage={focusItem.imageUrl || undefined}
           onPrev={() => stepFocus(-1)}
           onNext={() => stepFocus(1)}
           onClose={closeFocus}
