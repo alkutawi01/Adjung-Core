@@ -9,14 +9,22 @@ import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 // Design System" (Claude Design), ditambah penaipan TypeScript. Latar krim, marun
 // sebagai satu-satunya aksen: perbendaharaan visual frontpage pada skala bacaan.
 //
-// Empat belas elemen, setiap satu ada tempat tetap. HANYA huraian panjang boleh
-// menatal; yang lain mesti muat dalam bingkai. Grafik dan Kandungan berkaitan ialah
-// kandungan PILIHAN — ruangnya sentiasa dikhaskan supaya komposisi tak beralih bila
-// ia tiada.
+// Dibina daripada handoff "Adjung Brief — Focus View", dengan dua penyimpangan yang
+// diputuskan pemilik projek selepas melihatnya berjalan dengan kandungan sebenar:
+//
+//  1. TAJUK sahaja yang statik. Huraian pendek dan huraian panjang menatal bersama
+//     sebagai satu aliran. Handoff mengunci tajuk + huraian pendek sebagai jalur tetap
+//     setinggi minimum 350px; diukur pada kandungan sebenar, 189px daripadanya (54%)
+//     lompang. Lihat nota panjang di kawasan BADAN.
+//
+//  2. Bahagian PILIHAN yang kosong tidak dirender langsung. Handoff mengkhaskan
+//     ruangnya dengan pemegang tempat bergaris putus supaya komposisi tak beralih —
+//     tetapi Grafik, Kandungan berkaitan, Nota dan nama editor belum ada sumber data
+//     langsung, jadi pemegang tempat itu muncul pada SETIAP kandungan. Lihat nota
+//     "MENGKHASKAN RUANG BUKAN MENGUMUMKAN KETIADAAN".
 //
 // Ukuran disaiz mengikut had aksara sebenar (GeometryConfig, kes terburuk MENEGAK):
-// tajuk 168, huraian pendek 429, huraian panjang 600. Menatal ialah jaring
-// keselamatan, bukan keadaan biasa.
+// tajuk 168, huraian pendek 429, huraian panjang 600.
 //
 // Token warna/taip (--surface-page, --stone-*, --text-13 dll.) ada di src/index.css.
 // ============================================================================
@@ -68,15 +76,14 @@ export interface FocusViewProps {
   title: string;
   /** Huraian pendek — had 429 aksara, satu ukuran lebar. */
   brief?: string;
-  /** Huraian panjang — satu-satunya kawasan yang menatal; baris baharu dikekalkan,
-   *  mengalir dalam dua ukuran. */
+  /** Huraian panjang — mengalir dalam dua ukuran, menatal bersama huraian pendek. */
   body?: string;
-  /** Grafik: nod imej, ilustrasi atau carta. Kandungan pilihan; ruangnya sentiasa dikhaskan. */
+  /** Grafik: nod imej, ilustrasi atau carta. Pilihan; tidak dirender langsung bila tiada. */
   visual?: React.ReactNode;
   visualCaption?: string;
-  /** Kandungan berkaitan. Kandungan pilihan; ruangnya sentiasa dikhaskan. */
+  /** Kandungan berkaitan. Pilihan; tidak dirender langsung bila tiada. */
   related?: Array<FocusRelatedItem | string>;
-  /** Nota editor. Sentiasa dirender; papar pemegang tempat senyap bila kosong. */
+  /** Nota editor. Pilihan; dipotong pada NOTA_MAX aksara, tidak dirender bila tiada. */
   note?: string;
   /** Sumber (nama atau teks URL), dipapar di kolofon. */
   source?: string;
@@ -463,81 +470,92 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <hr style={rule} />
           </div>
 
-          {/* HALAMAN — dua jalur berkongsi satu grid 12 kolum.
-              Band A: tajuk + huraian pendek (1-8) di sebelah grafik (9-12), yang ditengahkan
-              terhadap jalur itu, jadi garis tengah plat jatuh pada garis tengah blok tajuk +
-              huraian pendek secara BINAAN — tiada pengukuran, tiada hanyutan.
-              Band B: huraian panjang (1-8) di sebelah kandungan berkaitan + nota (9-12).
+          {/* BADAN — dua kolum. Kiri: tajuk STATIK di atas satu kawasan menatal yang membawa
+              huraian pendek DAN huraian panjang. Kanan: grafik ditengahkan terhadap ruang bacaan,
+              dengan kandungan berkaitan dan nota berlabuh di bawahnya.
 
-              Lantai 350px Band A dikira daripada kes terburuk sebenar: tajuk 168 aksara pada 27px
-              lebih kurang 4 baris, campur huraian pendek 429 aksara pada 15px/1.65 lebih kurang
-              166px, campur garis dan margin. Jalur tetap hanya selamat kalau ia DIJAMIN muat. */}
-          <div style={{ flex: '1 1 auto', minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gridTemplateRows: 'minmax(350px, auto) minmax(170px, 1fr)', columnGap: 'clamp(24px, 3.2vw, 52px)', overflow: 'hidden', padding: 'clamp(14px, 2.8vh, 30px) 0 clamp(14px, 2.8vh, 32px)' }}>
+              MENGAPA HANYA TAJUK YANG STATIK
 
-            {/* BAND A KIRI — tajuk + huraian pendek */}
-            <div style={{ gridColumn: '1 / span 8', gridRow: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <h1 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty' }}>{title}</h1>
+              Handoff asal mengunci Band A (tajuk + huraian pendek) sebagai jalur tetap setinggi
+              minimum 350px, dikira daripada kes terburuk: huraian pendek 429 aksara mesti muat
+              tanpa menatal. Huraian sebenar jauh lebih pendek daripada had itu, jadi lantai itu
+              mengkhaskan ruang yang hampir selalu kosong — diukur pada 1440x900, 189px daripada
+              350px itu lompang, iaitu 54% jalur.
 
-              {/* huraian pendek — had 429 aksara, satu ukuran lebar di bawah tajuk */}
-              <p style={{ margin: 'clamp(14px, 2.6vh, 26px) 0 clamp(14px, 2.6vh, 28px)', fontFamily: 'var(--font-serif)', fontSize: 'var(--text-15)', fontWeight: 'var(--weight-light)' as any, lineHeight: 1.65, color: 'var(--stone-700)', textWrap: 'pretty' }}>{brief}</p>
+              Membiarkan huraian pendek menatal bersama huraian panjang membuang lompang itu, dan
+              sekali gus membuang satu kelas risiko yang handoff itu sendiri namakan (kekangan
+              hard-won #2): jalur tetap hanya selamat kalau ia DIJAMIN muat, dan menyembunyikan
+              limpahan pada jalur yang tidak mampu memuatkan kandungannya menukar keratan yang
+              kelihatan menjadi keratan senyap. Kalau tiada jalur tetap yang boleh terlalu penuh,
+              risiko itu lenyap.
 
-              {/* marginTop auto: garis penutup melekat di kaki jalur, jadi ia jatuh pada baris
-                  yang sama pada setiap kandungan */}
-              <hr style={{ ...rule, marginTop: 'auto' }} />
-            </div>
+              Ia juga menepati logik rekaan itu sendiri: saiz tajuk melangkah 44/37/31/27 mengikut
+              kiraan aksara supaya blok tajuk menduduki ukuran yang sama sama ada tajuk 40 aksara
+              atau 168 aksara penuh. Jadi jalur yang mengandungi TAJUK SAHAJA memang hampir tetap
+              tingginya secara semula jadi — tepat sifat yang diperlukan sebuah bahagian statik. */}
+          <div style={{ flex: '1 1 auto', minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', columnGap: 'clamp(24px, 3.2vw, 52px)', overflow: 'hidden', padding: 'clamp(14px, 2.8vh, 30px) 0 clamp(14px, 2.8vh, 32px)' }}>
 
-            {/* BAND A KANAN — grafik. Dirender HANYA apabila grafik benar-benar ada; lihat nota
-                "MENGKHASKAN RUANG BUKAN MENGUMUMKAN KETIADAAN" di bawah. */}
-            {visual && (
-              <figure style={{ gridColumn: '9 / span 4', gridRow: 1, minWidth: 0, minHeight: 0, margin: 0, alignSelf: 'center', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{
-                  width: '100%', aspectRatio: '4 / 3', minHeight: 0, maxHeight: 'clamp(180px, 25vh, 240px)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                }}>
-                  {plate}
-                </div>
-                {visualCaption && (
-                  <figcaption style={{ ...micro, marginTop: '10px', textAlign: 'center', fontWeight: 'var(--weight-medium)' as any }}>{visualCaption}</figcaption>
+            {/* KIRI — tajuk statik, kemudian huraian pendek + panjang menatal bersama */}
+            <div style={{ gridColumn: '1 / span 8', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <h1 style={{ flex: '0 0 auto', margin: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty' }}>{title}</h1>
+
+              {/* Garis ini menandakan sempadan antara bahagian statik dan bahagian menatal */}
+              <hr style={{ ...rule, flex: '0 0 auto', margin: 'clamp(14px, 2.6vh, 26px) 0 0' }} />
+
+              {/* Penatalan ada pada PEMBALUT; dua ukuran huraian panjang di dalamnya kekal tinggi
+                  semula jadi, jadi limpahan berlaku menegak dan boleh ditatal, bukan tumpah ke
+                  lajur ghaib. Jangan sekali-kali guna multicol CSS dalam kotak berhad tinggi —
+                  serpihannya melukis DI ATAS perenggan seterusnya. */}
+              <div ref={bodyRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', paddingTop: 'clamp(14px, 2.6vh, 26px)', ...bodyFade }}>
+                {brief && (
+                  <p style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--text-15)', fontWeight: 'var(--weight-light)' as any, lineHeight: 1.65, color: 'var(--stone-700)', textWrap: 'pretty' }}>{brief}</p>
                 )}
-              </figure>
-            )}
 
-            {/* BAND B KIRI — huraian panjang, satu-satunya kawasan yang menatal */}
-            <div style={{ gridColumn: '1 / span 8', gridRow: 2, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', paddingTop: 'clamp(14px, 2.6vh, 28px)' }}>
-              {/* Penatalan ada pada PEMBALUT; dua ukuran di dalamnya kekal tinggi semula jadi,
-                  jadi limpahan berlaku menegak dan boleh ditatal, bukan tumpah ke lajur ghaib.
-                  Jangan sekali-kali guna multicol CSS dalam kotak berhad tinggi — serpihannya
-                  melukis DI ATAS perenggan seterusnya. */}
-              <div ref={bodyRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', ...bodyFade }}>
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 'clamp(22px, 2.6vw, 40px)',
-                  fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', fontWeight: 'var(--weight-light)' as any,
-                  lineHeight: 1.8, color: 'var(--stone-600)', textWrap: 'pretty',
-                }}>
-                  {measures.map((m, i) => (
-                    <div key={i} style={{
-                      minWidth: 0,
-                      paddingLeft: i === 1 ? 'clamp(22px, 2.6vw, 40px)' : 0,
-                      marginLeft: i === 1 ? 'calc(-1 * clamp(22px, 2.6vw, 40px))' : 0,
-                      borderLeft: i === 1 && m ? '1px solid var(--border-subtle)' : 'none',
-                    }}>
-                      {m.split(/\n{2,}/).filter(Boolean).map((para, j) => (
-                        <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{para}</p>
-                      ))}
-                    </div>
-                  ))}
-                </div>
+                {brief && text && <hr style={{ ...rule, margin: 'clamp(14px, 2.6vh, 28px) 0' }} />}
+
+                {text && (
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 'clamp(22px, 2.6vw, 40px)',
+                    fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', fontWeight: 'var(--weight-light)' as any,
+                    lineHeight: 1.8, color: 'var(--stone-600)', textWrap: 'pretty',
+                  }}>
+                    {measures.map((m, i) => (
+                      <div key={i} style={{
+                        minWidth: 0,
+                        paddingLeft: i === 1 ? 'clamp(22px, 2.6vw, 40px)' : 0,
+                        marginLeft: i === 1 ? 'calc(-1 * clamp(22px, 2.6vw, 40px))' : 0,
+                        borderLeft: i === 1 && m ? '1px solid var(--border-subtle)' : 'none',
+                      }}>
+                        {m.split(/\n{2,}/).filter(Boolean).map((para, j) => (
+                          <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{para}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* BAND B KANAN — kandungan berkaitan, nota.
-                Kandungan berkaitan memegang trek anjal dan menatal di dalamnya; nota memegang trek
-                auto, jadi ia tidak boleh disingkirkan. Jangan guna justify-content: flex-end dengan
-                overflow: hidden di sini — limpahan ditolak keluar dari ATAS dan tajuk "Kandungan
-                berkaitan" lenyap senyap-senyap. */}
-            <div style={{ gridColumn: '9 / span 4', gridRow: 2, minWidth: 0, minHeight: 0, display: 'grid', gridTemplateRows: 'minmax(0, 1fr) auto', gap: 'clamp(10px, 1.8vh, 18px)', paddingTop: 'clamp(14px, 2.6vh, 28px)' }}>
+            {/* KANAN — grafik ditengahkan terhadap ruang bacaan (margin auto atas dan bawah),
+                kandungan berkaitan dan nota berlabuh di bawahnya. Semuanya statik: hanya kolum
+                kiri yang menatal. */}
+            <div style={{ gridColumn: '9 / span 4', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.8vh, 18px)', overflow: 'hidden' }}>
+              {visual && (
+                <figure style={{ margin: 'auto 0', flex: '0 0 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <div style={{
+                    width: '100%', aspectRatio: '4 / 3', minHeight: 0, maxHeight: 'clamp(180px, 25vh, 240px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                  }}>
+                    {plate}
+                  </div>
+                  {visualCaption && (
+                    <figcaption style={{ ...micro, marginTop: '10px', textAlign: 'center', fontWeight: 'var(--weight-medium)' as any }}>{visualCaption}</figcaption>
+                  )}
+                </figure>
+              )}
+
               {related.length > 0 && (
-                <div style={{ minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' }}>
+                <div style={{ flex: '0 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' }}>
                   <span style={{ ...micro, display: 'block', marginBottom: '6px' }}>Kandungan berkaitan</span>
                   <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                     {related.slice(0, 2).map((r, i) => {
@@ -553,10 +571,8 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 </div>
               )}
 
-              {/* Nota memegang trek `auto`. Bila kandungan berkaitan tiada, trek `minmax(0,1fr)` di
-                  atas kekal kosong, jadi nota tetap duduk di kedudukan yang sama seperti biasa. */}
               {note && (
-                <p title={note} style={{ gridRow: 2, margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden' }}>
+                <p title={note} style={{ flex: '0 0 auto', margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden' }}>
                   <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText}
                 </p>
               )}
