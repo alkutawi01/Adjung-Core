@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 
 // ============================================================================
 // FOCUS VIEW — permukaan bacaan skrin penuh yang dibuka bila kad bento diklik.
@@ -70,6 +71,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   onPrev, onNext, onClose,
 }) => {
   const label = [desk, topik].filter(Boolean).join(' · ');
+  const isPhone = usePhoneViewport();
 
   // Dua ukuran eksplisit dan bukan multicol CSS (multicol berpecah dalam kotak berhad tinggi
   // akan melukis limpahannya ATAS perenggan seterusnya). Ukuran KIRI diisi dahulu sampai
@@ -133,6 +135,183 @@ export const FocusView: React.FC<FocusViewProps> = ({
     background: 'none', border: 0, padding: '14px', cursor: 'pointer', lineHeight: 1,
     color: 'var(--stone-300)', fontSize: 'clamp(15px, 1.3vw, 20px)', fontFamily: 'var(--font-serif)',
   });
+
+  // ==========================================================================================
+  // SUSUN ATUR TELEFON
+  //
+  // Susun atur desktop di bawah ialah grid 12 kolum setinggi skrin yang sengaja TIDAK menatal:
+  // segala-galanya mesti muat dalam bingkai, dan ruang bagi bahagian pilihan sentiasa dikhaskan
+  // supaya komposisi tidak beralih. Kedua-dua sifat itu mustahil pada 390px, jadi telefon dapat
+  // pokok tersendiri, bukan versi desktop yang dimampatkan:
+  //
+  //   - satu kolum yang menatal menegak, bukan grid berbingkai tetap
+  //   - bahagian pilihan yang kosong DISEMBUNYIKAN, bukan dikhaskan ruangnya — tiada komposisi
+  //     mengufuk untuk dipelihara apabila halaman memang menatal
+  //   - navigasi Sebelum/Seterusnya menjadi jalur melekat di kaki (sasaran sentuh 56px) kerana
+  //     anak panah tepi desktop terlalu kecil dan terlalu hampir dengan bucu skrin untuk ibu jari
+  //
+  // Semua medan dan sumber data adalah SAMA seperti desktop — cuma susunannya berbeza.
+  // ==========================================================================================
+  if (isPhone) {
+    const sectionLabel: React.CSSProperties = {
+      fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase',
+      letterSpacing: 'var(--tracking-widest)', color: 'var(--stone-400)',
+    };
+    const navBtn: React.CSSProperties = {
+      appearance: 'none', background: 'var(--surface-page)', border: 0, color: 'var(--stone-600)',
+      fontFamily: 'var(--font-sans)', fontSize: '11px', letterSpacing: 'var(--tracking-wide)',
+      minHeight: '56px', cursor: 'pointer',
+    };
+
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 200, background: 'var(--surface-page)',
+        color: 'var(--text-body)', display: 'flex', flexDirection: 'column',
+      }}>
+        {backdropImage && (
+          <div aria-hidden="true" style={{
+            position: 'absolute', inset: 0, backgroundImage: 'url(' + backdropImage + ')',
+            backgroundSize: 'cover', backgroundPosition: 'center', opacity: backdropOpacity, pointerEvents: 'none',
+          }} />
+        )}
+
+        {/* Jalur atas — logo dan Tutup */}
+        <div style={{
+          position: 'relative', flex: '0 0 auto', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: '12px', padding: '10px 16px',
+          borderBottom: '1px solid var(--border-strong)',
+        }}>
+          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-20)', color: 'var(--color-adjung-maroon)' }}>{wordmark}</span>
+          {onClose && (
+            <button type="button" onClick={onClose} aria-label="Tutup" style={{
+              appearance: 'none', background: 'transparent', border: '1px solid var(--border-strong)',
+              borderRadius: '999px', color: 'var(--stone-600)', fontFamily: 'var(--font-sans)',
+              fontSize: '11px', letterSpacing: 'var(--tracking-wide)', minWidth: '44px', minHeight: '44px',
+              padding: '0 14px', cursor: 'pointer',
+            }}>Tutup</button>
+          )}
+        </div>
+
+        {/* Badan yang menatal */}
+        <div style={{
+          position: 'relative', flex: '1 1 auto', minHeight: 0, overflowY: 'auto',
+          padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: '18px',
+        }}>
+          {(icon || label) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {icon && <span aria-hidden="true" style={{ display: 'inline-flex', lineHeight: 1, color: 'var(--color-adjung-maroon)' }}>{icon}</span>}
+              {icon && label && <span style={{ width: '1px', height: '11px', background: 'var(--border-strong)' }} />}
+              {label && (
+                <span style={{
+                  fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
+                  letterSpacing: 'var(--tracking-editorial)', color: 'var(--stone-500)',
+                }}>{label}</span>
+              )}
+            </div>
+          )}
+
+          <h1 style={{
+            margin: 0, fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 500,
+            lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty',
+          }}>{title}</h1>
+
+          {brief && (
+            <p style={{
+              margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--text-15, 15px)', fontWeight: 300,
+              lineHeight: 'var(--leading-relaxed)', color: 'var(--stone-600)', textWrap: 'pretty',
+            }}>{brief}</p>
+          )}
+
+          {text && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <hr style={{ ...rule, borderTopColor: 'var(--border-subtle)' }} />
+              <div style={{
+                fontFamily: 'var(--font-serif)', fontSize: 'var(--text-14, 14px)', fontWeight: 300,
+                lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty',
+              }}>
+                {text.split(/\n{2,}/).filter(Boolean).map((para, j) => (
+                  <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{para}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={sectionLabel}>Sumber</span>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5 }}>
+              <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
+              {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
+            </span>
+            {publishedDate && (
+              <span style={{ ...sectionLabel, fontWeight: 400, color: 'var(--stone-400)' }}>
+                Siaran <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}>{publishedDate}</span>
+              </span>
+            )}
+          </div>
+
+          {visual && (
+            <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={sectionLabel}>Lampiran visual</span>
+              <div style={{
+                width: '100%', aspectRatio: '4 / 3', borderRadius: 'var(--radius-lg)', overflow: 'hidden',
+                background: 'var(--surface-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{visual}</div>
+              {visualCaption && <figcaption style={{ ...sectionLabel, fontWeight: 500, color: 'var(--stone-500)' }}>{visualCaption}</figcaption>}
+            </figure>
+          )}
+
+          {related.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={sectionLabel}>Kandungan berkaitan</span>
+              <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {related.slice(0, 2).map((r, i) => {
+                  const item: FocusRelatedItem = typeof r === 'string' ? { title: r } : r;
+                  return (
+                    <li key={i} style={{ display: 'flex', gap: '12px', padding: '10px 0', borderTop: '1px solid var(--border-subtle)' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', color: 'var(--color-adjung-maroon)', paddingTop: '3px' }}>{String(i + 1).padStart(2, '0')}</span>
+                      <a href={item.url || '#'} style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-14, 14px)', lineHeight: 'var(--leading-snug)', color: 'var(--text-heading)' }}>{item.title}</a>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
+
+          {note && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
+              <span style={sectionLabel}>Nota editor</span>
+              <p style={{
+                margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', fontWeight: 300,
+                lineHeight: 'var(--leading-relaxed)', color: 'var(--stone-600)', textWrap: 'pretty',
+              }}>{note}</p>
+              {editorName && (
+                <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', lineHeight: 1, color: 'var(--color-adjung-maroon)', marginTop: '2px' }}>{editorName}</span>
+              )}
+              {editorContact && (
+                <a
+                  href={editorContact.includes('@') ? 'mailto:' + editorContact : 'https://' + editorContact}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ ...sectionLabel, fontWeight: 400, textTransform: 'none', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}
+                >{editorContact}</a>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Navigasi melekat di kaki */}
+        {(onPrev || onNext) && (
+          <div style={{
+            position: 'relative', flex: '0 0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr',
+            gap: '1px', background: 'var(--border-default)', borderTop: '1px solid var(--border-default)',
+          }}>
+            <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} disabled={!onPrev} style={navBtn}>‹ Sebelum</button>
+            <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} disabled={!onNext} style={navBtn}>Seterusnya ›</button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)' }}>

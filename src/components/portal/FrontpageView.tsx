@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Settings, Lock, Trash2, Save, Search, PenLine, FlaskConical, Tag, Brain, Ban, PenTool, Building2, Zap, AlertTriangle } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
+import { phoneLayoutCss } from '../../../core/editorial/PhoneGeometry.js';
 import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRenderer';
 import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
@@ -16,6 +17,11 @@ import { BarCardExpandedPanel } from './cards/BarCardExpandedPanel';
 import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
 import { BidangIcon } from '../common/BidangIcon';
+
+// Susun atur telefon bagi grid bento — dijana sekali daripada TIER_SLOTS (lihat PhoneGeometry.js),
+// bukan ditaip semula di sini. Dikira di peringkat modul kerana ia tidak pernah berubah sepanjang
+// hayat halaman.
+const PHONE_LAYOUT_CSS = phoneLayoutCss();
 
 // parseInlineFormatting is designed for hand-authored Note/Essay body text; applying it broadly to
 // every carousel item's title/brief (including years of accumulated AI-generated history per slot)
@@ -216,7 +222,10 @@ const CarouselStableBlock: React.FC<{
     return <>{renderItem(list[0] || {})}</>;
   }
   return (
-    <div className="grid" style={{ minHeight: maxHeight }}>
+    // data-carousel-stable: penanda supaya CSS telefon boleh melucutkan kunci tinggi ini. Kunci
+    // itu diukur pada lebar semasa dan tidak pernah mengecil semula, jadi tinggi desktop (dengan
+    // huraian) tidak boleh dibiarkan terbawa ke kad telefon yang bertajuk sahaja.
+    <div className="grid" data-carousel-stable="" style={{ minHeight: maxHeight }}>
       {list.map((it, i) => (
         <div
           key={i}
@@ -2590,6 +2599,7 @@ URL: ${url}`;
         <hr className="rule border-t border-stone-300 my-3" />
 
         {/* Bento Grid News Layout */}
+        <style>{PHONE_LAYOUT_CSS}</style>
         <section className="my-8" id="bento-news-grid">
 
 
@@ -2599,6 +2609,7 @@ URL: ${url}`;
             {bentoNewsItems[0] && (
                 <div 
                   onClick={() => handleCardClick(0)}
+                  data-slot={0}
                   className={`col-span-1 md:col-span-6 p-6 md:p-8 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
                 <BentoInner itemKey="0" className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
@@ -2630,6 +2641,7 @@ URL: ${url}`;
               {bentoNewsItems[1] && (
                 <div 
                   onClick={() => handleCardClick(1)}
+                  data-slot={1}
                   className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
                   <BentoInner itemKey="1" className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
@@ -2658,6 +2670,7 @@ URL: ${url}`;
               {bentoNewsItems[2] && (
                 <div 
                   onClick={() => handleCardClick(2)}
+                  data-slot={2}
                   className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
@@ -2686,6 +2699,7 @@ URL: ${url}`;
               {bentoNewsItems[3] && (
                 <div 
                   onClick={() => handleCardClick(3)}
+                  data-slot={3}
                   className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
                   <BentoInner itemKey="3" className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
@@ -2711,10 +2725,13 @@ URL: ${url}`;
               )}
 
               {/* Right/Bottom-Right: Two Stacked Compacts (Indices 4 & 5) */}
-              <div className="md:col-span-2 flex flex-col gap-4 h-full">
+              {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
+                  telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
+              <div className="md:col-span-2 grid grid-cols-2 gap-3 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[4] && (
                 <div 
                   onClick={() => handleCardClick(4)}
+                  data-slot={4}
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
@@ -2741,6 +2758,7 @@ URL: ${url}`;
                 {bentoNewsItems[5] && (
                 <div 
                   onClick={() => handleCardClick(5)}
+                  data-slot={5}
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
                     <BentoInner itemKey="5" className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
@@ -2775,6 +2793,7 @@ URL: ${url}`;
               {bentoNewsItems[6] && (
                 <div 
                   onClick={() => handleCardClick(6)}
+                  data-slot={6}
                   className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
                   <div className="flex-1">
@@ -2806,6 +2825,7 @@ URL: ${url}`;
               {bentoNewsItems[12] && (
                 <div
                   onClick={() => handleCardClick(12)}
+                  data-slot={12}
                   ref={bar1SiblingLocks.idx12.ref}
                   className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[12], 'transparent').cardStyle, ...bar1SiblingLocks.idx12.lockStyle }} >
@@ -2875,6 +2895,7 @@ URL: ${url}`;
               {bentoNewsItems[11] && (
                 <div
                   onClick={() => handleCardClick(11)}
+                  data-slot={11}
                   ref={bar1SiblingLocks.idx11.ref}
                   className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[11], 'transparent').cardStyle, ...bar1SiblingLocks.idx11.lockStyle }} >
@@ -2907,10 +2928,12 @@ URL: ${url}`;
             </div>
 
             {/* ROW 6: Two Half Horizontals Side-By-Side (Indices 13 & 14) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Pasangan SEGI_EMPAT_MEDIUM — dua kolum juga pada telefon (nisbah 3:4). */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
               {bentoNewsItems[13] && (
                 <div 
                   onClick={() => handleCardClick(13)}
+                  data-slot={13}
                   className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[13], 'transparent').cardStyle} >
                   <div className="space-y-2">
@@ -2942,6 +2965,7 @@ URL: ${url}`;
               {bentoNewsItems[14] && (
                 <div 
                   onClick={() => handleCardClick(14)}
+                  data-slot={14}
                   className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[14], 'transparent').cardStyle} >
                   <div className="space-y-2">
@@ -2978,6 +3002,7 @@ URL: ${url}`;
               {bentoNewsItems[15] && (
                 <div 
                   onClick={() => handleCardClick(15)}
+                  data-slot={15}
                   className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[15], 'transparent').cardStyle} >
                   <div className="space-y-4">
@@ -3009,6 +3034,7 @@ URL: ${url}`;
               {bentoNewsItems[16] && (
                 <div 
                   onClick={() => handleCardClick(16)}
+                  data-slot={16}
                   className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[16], 'transparent').cardStyle} >
                   <div>
@@ -3038,10 +3064,13 @@ URL: ${url}`;
               )}
 
               {/* Two Stacked Compacts (Indices 17 & 18) */}
-              <div className="md:col-span-2 flex flex-col gap-4 h-full">
+              {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
+                  telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
+              <div className="md:col-span-2 grid grid-cols-2 gap-3 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[17] && (
                 <div 
                   onClick={() => handleCardClick(17)}
+                  data-slot={17}
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[17], 'transparent').cardStyle} >
                     <div>
@@ -3071,6 +3100,7 @@ URL: ${url}`;
                 {bentoNewsItems[18] && (
                 <div 
                   onClick={() => handleCardClick(18)}
+                  data-slot={18}
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[18], 'transparent').cardStyle} >
                     <div>
@@ -3103,6 +3133,7 @@ URL: ${url}`;
               {bentoNewsItems[19] && (
                 <div 
                   onClick={() => handleCardClick(19)}
+                  data-slot={19}
                   className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[19], 'transparent').cardStyle} >
                   <div className="flex-1">
@@ -3139,6 +3170,7 @@ URL: ${url}`;
               {bentoNewsItems[26] && (
                 <div
                   onClick={() => handleCardClick(26)}
+                  data-slot={26}
                   ref={bar2SiblingLocks.idx26.ref}
                   className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[26], 'transparent').cardStyle, ...bar2SiblingLocks.idx26.lockStyle }} >
@@ -3171,6 +3203,7 @@ URL: ${url}`;
               {bentoNewsItems[20] && (
                 <div 
                   onClick={() => handleCardClick(20)}
+                  data-slot={20}
                   className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[20], 'transparent').cardStyle} >
                   <div className="flex-1">
@@ -3202,6 +3235,7 @@ URL: ${url}`;
               {bentoNewsItems[25] && (
                 <div
                   onClick={() => handleCardClick(25)}
+                  data-slot={25}
                   ref={bar2SiblingLocks.idx25.ref}
                   className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[25], 'transparent').cardStyle, ...bar2SiblingLocks.idx25.lockStyle }} >
@@ -3271,10 +3305,12 @@ URL: ${url}`;
             </div>
 
             {/* ROW 11: Two Half Horizontals Side-By-Side (Indices 27 & 28) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Pasangan SEGI_EMPAT_MEDIUM — dua kolum juga pada telefon (nisbah 3:4). */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
               {bentoNewsItems[27] && (
                 <div 
                   onClick={() => handleCardClick(27)}
+                  data-slot={27}
                   className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[27], 'transparent').cardStyle} >
                   <div className="space-y-2">
@@ -3306,6 +3342,7 @@ URL: ${url}`;
               {bentoNewsItems[28] && (
                 <div 
                   onClick={() => handleCardClick(28)}
+                  data-slot={28}
                   className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[28], 'transparent').cardStyle} >
                   <div className="space-y-2">
@@ -3342,6 +3379,7 @@ URL: ${url}`;
               {bentoNewsItems[29] && (
                 <div 
                   onClick={() => handleCardClick(29)}
+                  data-slot={29}
                   className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[29], 'transparent').cardStyle} >
                   <div className="space-y-4">
@@ -3373,6 +3411,7 @@ URL: ${url}`;
               {bentoNewsItems[30] && (
                 <div 
                   onClick={() => handleCardClick(30)}
+                  data-slot={30}
                   className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[30], 'transparent').cardStyle} >
                   <div>
@@ -3402,10 +3441,13 @@ URL: ${url}`;
               )}
 
               {/* Two Stacked Compacts (Indices 31 & 32) */}
-              <div className="md:col-span-2 flex flex-col gap-4 h-full">
+              {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
+                  telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
+              <div className="md:col-span-2 grid grid-cols-2 gap-3 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[31] && (
                 <div 
                   onClick={() => handleCardClick(31)}
+                  data-slot={31}
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[31], 'transparent').cardStyle} >
                     <div>
@@ -3435,6 +3477,7 @@ URL: ${url}`;
                 {bentoNewsItems[32] && (
                 <div 
                   onClick={() => handleCardClick(32)}
+                  data-slot={32}
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[32], 'transparent').cardStyle} >
                     <div>
@@ -3467,6 +3510,7 @@ URL: ${url}`;
               {bentoNewsItems[33] && (
                 <div 
                   onClick={() => handleCardClick(33)}
+                  data-slot={33}
                   className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[33], 'transparent').cardStyle} >
                   <div className="flex-1">
@@ -3503,6 +3547,7 @@ URL: ${url}`;
               {bentoNewsItems[34] && (
                 <div 
                   onClick={() => handleCardClick(34)}
+                  data-slot={34}
                   className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[34], 'transparent').cardStyle} >
                   <div className="flex-1">
@@ -3534,6 +3579,7 @@ URL: ${url}`;
               {bentoNewsItems[37] && (
                 <div 
                   onClick={() => handleCardClick(37)}
+                  data-slot={37}
                   className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[37], 'transparent').cardStyle} >
                   <div className="space-y-4">
@@ -3566,6 +3612,7 @@ URL: ${url}`;
                 {bentoNewsItems[35] && (
                 <div 
                   onClick={() => handleCardClick(35)}
+                  data-slot={35}
                   className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[35], 'transparent').cardStyle} >
                     <div>
@@ -3597,6 +3644,7 @@ URL: ${url}`;
                 {bentoNewsItems[36] && (
                 <div 
                   onClick={() => handleCardClick(36)}
+                  data-slot={36}
                   className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                    style={getCardTheme(bentoNewsItems[36], 'transparent').cardStyle} >
                     <div>

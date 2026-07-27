@@ -5,9 +5,22 @@ import { SystemSettings } from '../../types';
 import { parseWorldClockHolidays } from '../../utils';
 import { findFixedHoliday } from '../../../core/worldclock/PublicHolidays.js';
 import { Tooltip } from '../common/Tooltip';
+import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 
 interface ClockTime {
+  /** Rentetan penuh desktop: "27/07/26 · ISN · 05:51 PM". */
   timeStr: string;
+  // Medan yang sama, berasingan — susun atur telefon mengumpulkannya semula secara berlainan.
+  // Lebar kolum telefon hanya ±72px sedangkan timeStr penuh perlu ±111px, jadi tarikh, hari dan
+  // masa berpindah keluar dari kad bandar ke satu baris meta yang dikongsi di bawah jalur.
+  /** Tarikh yang dipapar: Masihi, atau Hijrah bagi bandar Kumpulan A. */
+  dateStr: string;
+  /** Singkatan hari Melayu: ISN, SEL, RAB, KHA, JUM, SAB, AHD. */
+  dayLabel: string;
+  /** Jam sahaja: "05:51 PM". */
+  clockStr: string;
+  /** Tarikh Hijrah bandar ini, kalau ada. Kosong bagi bandar tanpa zon JAKIM. */
+  hijriStr: string;
   status: 'Holiday' | 'Weekend' | 'SchoolHoliday' | 'Working';
   isHoliday: boolean;
   holidayName: string;
@@ -19,11 +32,18 @@ interface ClockTime {
 // weekend on 2025-01-01 — do not add it back without checking current state policy first.
 const FRIDAY_SATURDAY_WEEKEND_CITIES = ['Kota Bharu', 'Kuala Terengganu', 'Alor Setar'];
 
-// JAKIM zone code per city, for Maghrib-adjusted Hijri date lookups — same 3 cities as above.
+// JAKIM zone code per city, for Maghrib-adjusted Hijri date lookups.
+//
+// Tiga yang pertama ialah bandar Kumpulan A, yang memapar tarikh Hijrah menggantikan tarikh Masihi.
+// Kuala Lumpur (WLY01) ditambah untuk baris meta jalur telefon, yang memerlukan SATU tarikh Hijrah
+// mewakili keseluruhan jalur, bukan tarikh khusus sesebuah negeri. KL dipilih kerana ia sudah pun
+// bandar sauh set pertama. Menambah zon di sini TIDAK mengubah apa yang dipapar dalam kad bandar —
+// penggantian tarikh itu masih terhad kepada FRIDAY_SATURDAY_WEEKEND_CITIES.
 const HIJRI_ZONE_BY_CITY: Record<string, string> = {
   'Alor Setar': 'KDH01',
   'Kota Bharu': 'KTN01',
   'Kuala Terengganu': 'TRG01',
+  'Kuala Lumpur': 'WLY01',
 };
 
 const CITY_SETS = [
@@ -95,7 +115,8 @@ interface WorldClockStripProps {
 const renderCityCard = (
   c: { name: string; tz: string; stateCode: string },
   timesMap: Record<string, ClockTime>,
-  cityWeather: Record<string, { temp: number; code: number }>
+  cityWeather: Record<string, { temp: number; code: number }>,
+  isPhone: boolean = false
 ) => {
   const timeData = timesMap[c.name];
   const weather = cityWeather[c.name] || DEFAULT_CITY_WEATHER[c.name] || { temp: 30, code: 1, label: 'Berawan' };
@@ -148,9 +169,20 @@ const renderCityCard = (
           <span className="font-serif text-[11px] text-[#1F1F1F] font-medium tracking-tight">{holidayName}</span>
         </div>
       )}
-      <p className="font-serif text-[10px] sm:text-[11px] md:text-xs text-[#1F1F1F] font-light tracking-tight whitespace-nowrap">
-        {timeData ? timeData.timeStr : 'Loading...'}
-      </p>
+      {/* Telefon: kolum hanya ±72px, jadi rentetan masa penuh (±111px) tidak muat dan akan
+          terpotong. Tarikh, hari dan masa berpindah ke baris meta dikongsi di bawah jalur; yang
+          tinggal dalam kad ialah tarikh Hijrah bandar Kumpulan A sahaja. */}
+      {isPhone ? (
+        timeData && timeData.hijriStr && FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name) ? (
+          <p className="font-mono text-[7px] leading-tight text-stone-500 whitespace-nowrap">
+            {timeData.hijriStr}
+          </p>
+        ) : null
+      ) : (
+        <p className="font-serif text-[10px] sm:text-[11px] md:text-xs text-[#1F1F1F] font-light tracking-tight whitespace-nowrap">
+          {timeData ? timeData.timeStr : 'Loading...'}
+        </p>
+      )}
     </div>
   );
 };
@@ -160,6 +192,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   worldClockHolidaysGoogleDocText = '',
   apiHolidaysData
 }) => {
+  const isPhone = usePhoneViewport();
   const [worldClockSetIndex, setWorldClockSetIndex] = useState<number>(0);
   const [displaySetIndex, setDisplaySetIndex] = useState<number>(0);
   const [prevSetIndex, setPrevSetIndex] = useState<number>(0);
@@ -304,14 +337,17 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           // Hijri date instead of Gregorian, same DD/MM/YY display format. Only the display
           // string changes — dateStr/gregKey above stay Gregorian since holiday matching (both
           // HOLIDAYS_2026 and custom-holiday text) is keyed to the Gregorian calendar.
-          let displayDateStr = dateStr;
-          if (FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name)) {
+          // Tarikh Hijrah dikira bagi SETIAP bandar yang ada zon JAKIM, bukan hanya bandar Kumpulan
+          // A, kerana jalur telefon memaparkan tarikh Hijrah pada baris metanya sendiri. Yang masih
+          // terhad kepada Kumpulan A ialah PENGGANTIAN tarikh Masihi di bawah — itu tidak berubah.
+          let hijriDisplayStr = '';
+          if (HIJRI_ZONE_BY_CITY[c.name]) {
             const cityHijriDate = jakimHijriByCity[c.name];
             if (cityHijriDate) {
               // "YYYY-MM-DD" (Hijri, Maghrib-adjusted per city, from JAKIM) -> "DD/MM/YY" to match
               // the Gregorian display format.
               const [hy, hm, hd] = cityHijriDate.split('-');
-              displayDateStr = `${hd}/${hm}/${hy.slice(-2)}`;
+              hijriDisplayStr = `${hd}/${hm}/${hy.slice(-2)}`;
             } else {
               // Fallback only: local islamic-umalqura estimate, used when the JAKIM proxy is
               // unreachable. Confirmed to drift up to a day off JAKIM's actual calendar.
@@ -323,8 +359,13 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
               });
               const hijriParts: any = {};
               hijriFormatter.formatToParts(new Date()).forEach(p => { hijriParts[p.type] = p.value; });
-              displayDateStr = `${hijriParts.day}/${hijriParts.month}/${hijriParts.year}`;
+              hijriDisplayStr = `${hijriParts.day}/${hijriParts.month}/${hijriParts.year}`;
             }
+          }
+
+          let displayDateStr = dateStr;
+          if (FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name) && hijriDisplayStr) {
+            displayDateStr = hijriDisplayStr;
           }
 
           // Parse custom holidays
@@ -440,10 +481,15 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
             MON: 'ISN', TUE: 'SEL', WED: 'RAB', THU: 'KHA', FRI: 'JUM', SAT: 'SAB', SUN: 'AHD'
           };
           const dayLabel = DAY_LABEL_MS[day] || day;
-          const timeStr = `${displayDateStr} · ${dayLabel} · ${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
+          const clockStr = `${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
+          const timeStr = `${displayDateStr} · ${dayLabel} · ${clockStr}`;
 
           newTimesMap[c.name] = {
             timeStr,
+            dateStr: displayDateStr,
+            dayLabel,
+            clockStr,
+            hijriStr: hijriDisplayStr,
             status: finalStatus,
             holidayName,
             isHoliday,
@@ -459,9 +505,14 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
     return () => clearInterval(interval);
   }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData, jakimHijriByCity]);
 
+  // Baris meta telefon guna Kuala Lumpur sebagai bandar rujukan: kesemua 15 bandar berkongsi zon
+  // waktu yang sama, dan KL bukan bandar Kumpulan A — jadi dateStr-nya kekal Masihi (tarikh Hijrah
+  // dibawa berasingan dalam hijriStr), tepat seperti yang diperlukan baris meta.
+  const metaClock = timesMap['Kuala Lumpur'];
+
   return (
     <div
-      className="relative w-full overflow-hidden min-h-[68px] py-1 flex justify-center items-center text-center cursor-pointer select-none"
+      className={`relative w-full min-h-[68px] py-1 flex flex-col justify-center items-center text-center cursor-pointer select-none ${isPhone ? '' : 'overflow-hidden'}`}
       id="world-clock"
       onClick={(e) => {
         const bgClickEnabled = systemSettings.worldClockBgClickEnabled !== false;
@@ -495,25 +546,48 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
                 >
                   {isEvenCol ? (
                     <>
-                      {renderCityCard(targetCity, timesMap, cityWeather)}
-                      {renderCityCard(currentCity, timesMap, cityWeather)}
+                      {renderCityCard(targetCity, timesMap, cityWeather, isPhone)}
+                      {renderCityCard(currentCity, timesMap, cityWeather, isPhone)}
                     </>
                   ) : (
                     <>
-                      {renderCityCard(currentCity, timesMap, cityWeather)}
-                      {renderCityCard(targetCity, timesMap, cityWeather)}
+                      {renderCityCard(currentCity, timesMap, cityWeather, isPhone)}
+                      {renderCityCard(targetCity, timesMap, cityWeather, isPhone)}
                     </>
                   )}
                 </motion.div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  {renderCityCard(currentCity, timesMap, cityWeather)}
+                  {renderCityCard(currentCity, timesMap, cityWeather, isPhone)}
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* Baris meta telefon — tarikh Masihi, tarikh Hijrah dan jam, dikeluarkan daripada kad bandar
+          kerana kolum telefon terlalu sempit untuk memuatkannya. Semua 15 bandar berkongsi zon waktu
+          Asia/Kuala_Lumpur yang sama, jadi satu baris memang mewakili keseluruhan jalur. */}
+      {isPhone && metaClock && (
+        <div className="flex items-baseline justify-center gap-2 pt-1.5 mt-1 border-t border-stone-200 w-full px-2">
+          <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap">
+            {metaClock.dateStr} {metaClock.dayLabel}
+          </span>
+          {metaClock.hijriStr && (
+            <>
+              <span className="w-px h-[9px] bg-stone-300" />
+              <span className="font-serif text-[11px] font-light tracking-[0.02em] text-stone-500 whitespace-nowrap">
+                {metaClock.hijriStr} {metaClock.dayLabel}
+              </span>
+            </>
+          )}
+          <span className="w-px h-[9px] bg-stone-300" />
+          <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap">
+            {metaClock.clockStr}
+          </span>
+        </div>
+      )}
     </div>
   );
 });
