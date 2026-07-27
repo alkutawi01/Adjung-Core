@@ -1667,28 +1667,44 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let access = '';
     let penerangan = '';
 
+    // Blok kandungan manual membawa petunjuk had aksara dalam teksnya sendiri, cth
+    // "Tajuk: (had 168 aksara) ..." — ditulis dan dikemas kini oleh updateLimitsInText() di
+    // FrontpageView.tsx. Petunjuk itu alat bantu penyunting, BUKAN kandungan editorial.
+    //
+    // Penghurai dahulu cuma membuang label di hadapan (^Tajuk:\s*), jadi petunjuk itu terus masuk
+    // ke dalam nilai. Editor yang menaip selepas petunjuk mendapat tajuk berbunyi
+    // "(had 168 aksara) Percubaan Sahaja"; yang menaip sebelumnya mendapat
+    // "Percubaan (had 23 aksara)". Kedua-duanya tersimpan dan tersiar sebagai teks sebenar.
+    //
+    // Dibuang di mana-mana dalam baris, bukan di hadapan sahaja, kerana penyunting menaip pada
+    // kedua-dua belah petunjuk itu.
+    const buangPetunjukHad = (s) => s
+      .replace(/\(\s*had\s*\d+\s*aksara\s*\)/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
     for (const line of lines) {
       const trimmed = line.trim();
       if (trimmed.startsWith('UUID:')) {
         uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
       } else if (trimmed.startsWith('Tajuk:')) {
-        title = trimmed.replace(/^Tajuk:\s*/i, '').trim();
+        title = buangPetunjukHad(trimmed.replace(/^Tajuk:\s*/i, ''));
       } else if (trimmed.startsWith('Event:')) {
         title = trimmed.replace(/^Event:\s*/i, '').trim();
         desk = 'ACARA'; // Default desk untuk event
         isEventBlock = true;
       } else if (trimmed.startsWith('Huraian panjang:')) {
-        briefLong = trimmed.replace(/^Huraian panjang:\s*/i, '').trim();
+        briefLong = buangPetunjukHad(trimmed.replace(/^Huraian panjang:\s*/i, ''));
       } else if (trimmed.startsWith('Huraian ringkas:')) {
-        brief = trimmed.replace(/^Huraian ringkas:\s*/i, '').trim();
+        brief = buangPetunjukHad(trimmed.replace(/^Huraian ringkas:\s*/i, ''));
       } else if (trimmed.startsWith('Huraian:')) {
-        brief = trimmed.replace(/^Huraian:\s*/i, '').trim();
+        brief = buangPetunjukHad(trimmed.replace(/^Huraian:\s*/i, ''));
       } else if (trimmed.startsWith('Bidang:')) {
         desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
       } else if (trimmed.startsWith('Kategori:')) {
         desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
       } else if (trimmed.startsWith('Topik:')) {
-        topik = trimmed.replace(/^Topik:\s*/i, '').trim();
+        topik = buangPetunjukHad(trimmed.replace(/^Topik:\s*/i, ''));
       } else if (trimmed.startsWith('Jenis sumber:')) {
         sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
       } else if (trimmed.startsWith('Tarikh:')) {
