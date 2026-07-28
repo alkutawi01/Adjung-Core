@@ -30,7 +30,7 @@ function buildAiPrompt(fc: any, ceiling: { maxTitle: number; maxBrief: number; m
   const lines = [
     '[Peraturan am — sistem/global]', fc.masterPrompt || '-', '',
     '[Arahan khas — slot ini]', fc.promptText || '-', '',
-    '[Topik/Tema]', fc.aiPromptTopic || '-', '',
+    '[Tema/Fokus AI]', fc.aiPromptTopic || '-', '',
     '[Had aksara]',
     `Tajuk: maksimum ${ceiling.maxTitle} aksara`,
     `Huraian ringkas: maksimum ${ceiling.maxBrief} aksara`,
@@ -140,19 +140,31 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     setActive(items.length);
   };
 
+  // AI luaran boleh pulangkan SATU kandungan (tampal ke medan aktif) atau BERBILANG kandungan
+  // dipisah "____"/"----"/"====" (ikut [Jumlah kandungan] dalam prompt Arahan AI) — kes kedua
+  // mesti dipisah dulu sebelum dihurai, atau setiap label ("Tajuk:", dll) yang berulang akan
+  // saling timpa dan cuma blok TERAKHIR selamat. Guna parseManualSummaryBlocks (pemisah penuh),
+  // bukan parseManualBlockFields (satu blok), untuk elak kehilangan data senyap ni.
   const paste = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      const { parseManualBlockFields } = await import('../../../core/editorial/ManualBlockFormat.js');
-      const parsed: any = parseManualBlockFields(text);
-      const patchable: Record<string, string> = {};
-      ['title', 'topik', 'brief', 'briefLong', 'source', 'url', 'date', 'note', 'image'].forEach((k) => {
-        if (parsed[k]) patchable[k] = parsed[k];
-      });
-      if (Object.keys(patchable).length === 0) { setPasteNote('Format tidak dikenali'); }
-      else {
-        commit(items.map((it, n) => (n === activeIndex ? { ...it, ...patchable } : it)));
-        setPasteNote('Ditampal ke medan berkaitan');
+      const { parseManualSummaryBlocks } = await import('../../../core/editorial/ManualBlockFormat.js');
+      const parsedBlocks = parseManualSummaryBlocks(text);
+      if (parsedBlocks.length === 0) {
+        setPasteNote('Format tidak dikenali');
+      } else {
+        // Gantikan kandungan aktif dengan blok pertama, dan sisipkan baki blok selepasnya —
+        // sama corak macam auto-split tampal pukal borang lama (handleBlockChange).
+        const replacement = parsedBlocks.map((b, i) => ({
+          uuid: b.uuid || `object-manual-slot${editingSlotIndex}-${Date.now()}-${i}`,
+          title: b.title, topik: b.topik, brief: b.brief, briefLong: b.briefLong,
+          source: b.source, url: b.url, date: b.date, note: b.note, image: b.image,
+        }));
+        const next = items.slice();
+        next.splice(activeIndex, 1, ...replacement);
+        commit(next);
+        setActive(activeIndex);
+        setPasteNote(parsedBlocks.length > 1 ? `${parsedBlocks.length} kandungan ditampal` : 'Ditampal ke medan berkaitan');
       }
     } catch (e) { setPasteNote('Akses papan klip ditolak'); }
     setTimeout(() => setPasteNote(''), 2400);
@@ -329,7 +341,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 </div>
 
                 <Field label="Arahan khas (slot ini)" rows={3} value={formConfig.promptText || ''} placeholder="Arahan tambahan untuk penjanaan AI ini sahaja…" onChange={(v) => setFormConfig((prev: any) => ({ ...prev, promptText: v }))} />
-                <Field label="Topik/Tema" value={formConfig.aiPromptTopic || ''} placeholder="Cth. Sukan, ekonomi separuh tahun, sastera tempatan…" onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptTopic: v }))} />
+                <Field label="Tema/Fokus AI" value={formConfig.aiPromptTopic || ''} placeholder="Cth. Sukan, ekonomi separuh tahun, sastera tempatan…" onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptTopic: v }))} />
 
                 <div className="grid grid-cols-2 gap-5">
                   <Field label="Had usia sumber" value={formConfig.aiPromptRecency || ''} placeholder="Cth. 24 jam, 1 minggu" onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRecency: v }))} />
