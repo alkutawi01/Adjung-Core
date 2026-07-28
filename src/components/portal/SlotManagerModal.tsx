@@ -69,14 +69,30 @@ function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: number; 
         {ceiling.maxBrief > 0 && <> · Huraian <span className="font-mono tabular-nums">{brief.length}</span>/<span className="font-mono tabular-nums">{ceiling.maxBrief}</span></>}
         {!check.isValid && <span className="text-[#a8241f]"> · pendekkan kandungan</span>}
       </span>
+      {/* Tajuk dan Huraian KONGSI satu bajet ruang, bukan dua had berasingan — tajuk 90/115 nampak
+          "bawah had" sendiri, tapi Huraian yang turut hadir memakan baki ruang yang sama. Papar
+          baki Huraian SEBENAR untuk panjang tajuk ni (bukan had 350 statik) supaya tak keliru
+          macam had itu tetap tanpa mengira tajuk — lihat ContentBudget.js's remainingBrief. */}
+      {!check.isValid && ceiling.maxBrief > 0 && (
+        <span className="font-sans text-[10px] text-stone-400">
+          Tajuk dan huraian kongsi satu bajet ruang kad — dengan tajuk {title.length} aksara ini, baki huraian sebenar ialah{' '}
+          <span className="font-mono tabular-nums text-[#a8241f]">{Math.max(0, Math.round((1 - title.length / ceiling.maxTitle) * ceiling.maxBrief))}</span> aksara.
+        </span>
+      )}
     </div>
   );
 }
 
-function Field({ label, value, onChange, rows, placeholder }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string }) {
+function Field({ label, value, onChange, rows, placeholder, maxLen }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number }) {
+  const over = typeof maxLen === 'number' && value.length > maxLen;
   return (
     <label className="flex flex-col gap-1">
-      <span className={labelCls}>{label}</span>
+      <span className="flex items-baseline justify-between gap-3">
+        <span className={labelCls}>{label}</span>
+        {typeof maxLen === 'number' && (
+          <span className={`font-mono text-[9px] tabular-nums ${over ? 'text-[#a8241f]' : 'text-stone-400'}`}>{value.length}/{maxLen}</span>
+        )}
+      </span>
       {rows ? (
         <textarea
           rows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
@@ -273,7 +289,19 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   {currentEditoriumRole === 'KETUA_EDITOR' ? (
                     <select
                       value={activeBidangList.find((b) => b.name.toLowerCase() === desk.toLowerCase())?.name || ''}
-                      onChange={(e) => setFormConfig((prev: any) => ({ ...prev, manualDesk: e.target.value }))}
+                      onChange={(e) => {
+                        const nextDesk = e.target.value;
+                        // Menukar Bidang mengarkibkan SEMUA kandungan live sedia ada dalam slot ini
+                        // (server.js archiveLiveContentInSlot) — kesan senyap yang mudah tersalah
+                        // klik pada dropdown, jadi wajib disahkan dulu bila queue tak kosong.
+                        if (items.length > 0 && nextDesk.toLowerCase() !== desk.toLowerCase()) {
+                          const ok = window.confirm(
+                            `Menukar Bidang daripada "${desk || '(belum ditetapkan)'}" kepada "${nextDesk}" akan mengarkibkan ${items.length} kandungan live sedia ada dalam slot ini apabila disimpan. Teruskan?`
+                          );
+                          if (!ok) return;
+                        }
+                        setFormConfig((prev: any) => ({ ...prev, manualDesk: nextDesk }));
+                      }}
                       className="w-full max-w-xs border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5"
                     >
                       <option value="">— Pilih Bidang —</option>
@@ -300,7 +328,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 </div>
 
                 <Field label="Tajuk" value={current.title || ''} placeholder="Tajuk kandungan…" onChange={(v) => patch(activeIndex, 'title', v)} />
-                <Field label="Topik" value={current.topik || ''} placeholder="Topik kandungan…" onChange={(v) => patch(activeIndex, 'topik', v)} />
+                <Field label="Topik" value={current.topik || ''} placeholder="Topik kandungan…" maxLen={hadTopik} onChange={(v) => patch(activeIndex, 'topik', v)} />
                 {ceiling.maxBrief > 0 && (
                   <Field label="Huraian ringkas" rows={3} value={current.brief || ''} placeholder="Huraian pendek…" onChange={(v) => patch(activeIndex, 'brief', v)} />
                 )}
@@ -313,7 +341,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   <Field label="URL" value={current.url || ''} placeholder="https://…" onChange={(v) => patch(activeIndex, 'url', v)} />
                   <Field label="Tarikh sumber" value={current.date || ''} placeholder="21.07.26" onChange={(v) => patch(activeIndex, 'date', v)} />
                 </div>
-                <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota dalaman, tidak disiarkan…" onChange={(v) => patch(activeIndex, 'note', v)} />
+                <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor — dipaparkan di Focus View…" onChange={(v) => patch(activeIndex, 'note', v)} />
 
                 <hr className="border-stone-150" />
                 <ReadOnlyField label="UUID" value={current.uuid || ''} />

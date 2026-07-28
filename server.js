@@ -2008,6 +2008,9 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       const locationAv = avs.find(a => a.attributeId === 'location');
       const accessAv = avs.find(a => a.attributeId === 'access');
       const peneranganAv = avs.find(a => a.attributeId === 'penerangan');
+      // note: medan "Nota" Urus Slot — nota editor yang DISIARKAN di Focus View (FocusView.tsx
+      // memaparkannya, dipotong pada NOTA_MAX), bukan medan dalaman/tak disiarkan.
+      const noteAv = avs.find(a => a.attributeId === 'note');
 
       subItems.push({
         title: approvedRevision.title,
@@ -2032,7 +2035,8 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         organizer: organizerAv ? organizerAv.valueText : '',
         location: locationAv ? locationAv.valueText : '',
         access: accessAv ? accessAv.valueText : '',
-        penerangan: peneranganAv ? peneranganAv.valueText : ''
+        penerangan: peneranganAv ? peneranganAv.valueText : '',
+        note: noteAv ? noteAv.valueText : ''
       });
     }
   }

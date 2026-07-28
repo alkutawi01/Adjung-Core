@@ -105,6 +105,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           title: r.title,
           summary: r.summary,
           summaryLong: attrs.briefLong || '',
+          note: attrs.note || '',
           originalDate: attrs.originalDate || '',
           desk: attrs.desk || r.categoryId || '',
           topik: attrs.topik || '',

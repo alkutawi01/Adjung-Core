@@ -6316,17 +6316,18 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
       )}
 
       {/* Full-screen Reading Display Overlay */}
-      {/* FOCUS VIEW — paparan penuh kandungan kad. Medan `visual`, `related`, `note`,
-          `editorName`/`editorContact` sengaja tidak dihantar: medannya belum wujud dalam DB,
-          jadi bahagian tu render pemegang tempat (itu yang reka bentuk arahkan), bukan
-          diisi data palsu.
+      {/* FOCUS VIEW — paparan penuh kandungan kad. `note` kini dihantar (medan "Nota" Urus Slot,
+          disiarkan — lihat FocusView.tsx). `visual`, `related`, `editorName`/`editorContact`
+          masih sengaja tidak dihantar: medannya belum wujud dalam DB, jadi bahagian tu render
+          pemegang tempat (itu yang reka bentuk arahkan), bukan diisi data palsu.
 
           `backdropImage` juga sengaja tidak dihantar. `item.imageUrl` ialah imej LATAR KAD
           (imej hiasan yang menggantikan seluruh paparan kad bento) — satu imej per SLOT,
           dikongsi oleh semua kandungan dalam kad yang sama, dan cirinya masih KIV. Lampiran
-          visual Focus View pula berbeza bagi SETIAP kandungan. Dua benda berlainan, jadi
-          `imageUrl` tidak boleh dipinjam untuk mengisi ruang grafik di sini; ia menunggu
-          medan lampiran per-kandungan yang tersendiri. */}
+          visual Focus View pula berbeza bagi SETIAP kandungan. Medan "Imej" Urus Slot (nama
+          fail sahaja, tiada transport muat naik) belum boleh dipetakan ke `visual` (nod React,
+          bukan URL) atas sebab yang sama — masih menunggu saluran lampiran per-kandungan
+          sebenar. */}
       {focusLoc && focusItem && (
         <FocusView
           icon={focusBidang ? (
@@ -6345,6 +6346,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           title={asPlainText(focusItem.titleString) || asPlainText(focusItem.title)}
           brief={asPlainText(focusItem.briefString) || asPlainText(focusItem.brief)}
           body={asPlainText(focusItem.briefLong)}
+          note={focusItem.note}
           source={focusItem.source}
           sourceUrl={focusItem.url}
           sourceDate={getDisplayDate(focusItem.originalDate)}
