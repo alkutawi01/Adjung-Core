@@ -1,13 +1,26 @@
 // Single source of truth for card geometry tiers, ratios, and slot mappings across Adjung Core.
 // Used by both backend (ContentBudget.js) and frontend (FrontpageView.tsx).
 
+// 2026-07-28 remeasurement: the numbers below (except HERO/BAR/TICKER, untouched) replace values
+// that had never been empirically measured against real rendered cards -- comparing them to real
+// published content exposed the gap (see git history for the prior numbers). Measured by cloning
+// each tier's actual card markup (exact classNames/width from a live [data-slot] element) into an
+// off-screen harness at its real rendered pixel width, then binary-searching the max character
+// count of title-alone (brief empty) and brief-alone (title empty) that keeps the harness's
+// natural content height within the tier's real min-h CSS target -- not guessed, not carried over
+// from an earlier undocumented source. A 10% safety margin is baked into each number below (same
+// practice as MAX_EYEBROW_CHARS_BY_TIER) to absorb line-wrap rounding and font-fallback risk.
+// MENEGAK/STANDARD/SEGI_EMPAT_MEDIUM/SEGI_EMPAT_SMALL/KOMPAK all confirmed against real min-h
+// targets (380/180/180/180/120px respectively). HERO has NO CSS min-h/max-h at all (it's alone in
+// its grid row, full-width -- nothing to misalign with), so 115/350 stays as an editorial choice,
+// not a technical ceiling; revisit only if the owner wants a different HERO target.
 export const GEOMETRY_RATIOS = {
   HERO: { maxTitleAlone: 115, maxBriefAlone: 350, ratio: 3.043 },
-  MENEGAK: { maxTitleAlone: 168, maxBriefAlone: 429, ratio: 2.554 },
-  STANDARD: { maxTitleAlone: 110, maxBriefAlone: 280, ratio: 2.545 },
-  SEGI_EMPAT_MEDIUM: { maxTitleAlone: 94, maxBriefAlone: 126, ratio: 1.340 },
-  SEGI_EMPAT_SMALL: { maxTitleAlone: 62, maxBriefAlone: 78, ratio: 1.258 },
-  KOMPAK: { maxTitleAlone: 80, maxBriefAlone: 41, ratio: 0.512 },
+  MENEGAK: { maxTitleAlone: 102, maxBriefAlone: 379, ratio: 3.716 },
+  STANDARD: { maxTitleAlone: 135, maxBriefAlone: 352, ratio: 2.607 },
+  SEGI_EMPAT_MEDIUM: { maxTitleAlone: 68, maxBriefAlone: 158, ratio: 2.324 },
+  SEGI_EMPAT_SMALL: { maxTitleAlone: 35, maxBriefAlone: 96, ratio: 2.743 },
+  KOMPAK: { maxTitleAlone: 54, maxBriefAlone: 68, ratio: 1.259 },
   BAR: { maxTitleAlone: 95, maxBriefAlone: 0, ratio: 0 }, // BAR has no brief field at all — 0/95 = 0, not the stale 0.850 this used to read.
   TICKER: { maxTitleAlone: 80, maxBriefAlone: 220, ratio: 2.750 },
 };

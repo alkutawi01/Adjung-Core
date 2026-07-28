@@ -12,13 +12,15 @@ test('ContentBudget - HERO tier validation (Slot 0)', () => {
 });
 
 test('ContentBudget - MENEGAK tier validation (Slot 1)', () => {
-  // MENEGAK solo max: title 168, brief 429 — shared budget: 100/168 + 150/429 = 0.945 <= 1
-  const valid = validateContentBudget(1, 'A'.repeat(100), 'B'.repeat(150));
+  // MENEGAK solo max (2026-07-28 remeasurement): title 102, brief 379 — shared budget:
+  // 50/102 + 189/379 = 0.490 + 0.499 = 0.989 <= 1
+  const valid = validateContentBudget(1, 'A'.repeat(50), 'B'.repeat(189));
   assert.equal(valid.isValid, true);
 });
 
 test('ContentBudget - STANDARD tier validation (Slot 2)', () => {
-  // STANDARD solo max: title 110, brief 280 — shared budget: 60/110 + 100/280 = 0.902 <= 1
+  // STANDARD solo max (2026-07-28 remeasurement): title 135, brief 352 — shared budget:
+  // 60/135 + 100/352 = 0.444 + 0.284 = 0.728 <= 1
   const valid = validateContentBudget(2, 'A'.repeat(60), 'B'.repeat(100));
   assert.equal(valid.isValid, true);
 
@@ -27,14 +29,16 @@ test('ContentBudget - STANDARD tier validation (Slot 2)', () => {
 });
 
 test('ContentBudget - SEGI_EMPAT_MEDIUM tier validation (Slot 13)', () => {
-  // SEGI_EMPAT_MEDIUM solo max: title 94, brief 126 — shared budget: 40/94 + 60/126 = 0.902 <= 1
-  const valid = validateContentBudget(13, 'A'.repeat(40), 'B'.repeat(60));
+  // SEGI_EMPAT_MEDIUM solo max (2026-07-28 remeasurement): title 68, brief 158 — shared budget:
+  // 30/68 + 60/158 = 0.441 + 0.380 = 0.821 <= 1
+  const valid = validateContentBudget(13, 'A'.repeat(30), 'B'.repeat(60));
   assert.equal(valid.isValid, true);
 });
 
 test('ContentBudget - SEGI_EMPAT_SMALL tier validation (Slot 3)', () => {
-  // SEGI_EMPAT_SMALL solo max: title 62, brief 78 — shared budget: 30/62 + 35/78 = 0.933 <= 1
-  const valid = validateContentBudget(3, 'A'.repeat(30), 'B'.repeat(35));
+  // SEGI_EMPAT_SMALL solo max (2026-07-28 remeasurement): title 35, brief 96 — shared budget:
+  // 17/35 + 48/96 = 0.486 + 0.500 = 0.986 <= 1
+  const valid = validateContentBudget(3, 'A'.repeat(17), 'B'.repeat(48));
   assert.equal(valid.isValid, true);
 });
 
