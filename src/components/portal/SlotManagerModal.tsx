@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { X, ChevronUp, ChevronDown, Trash2, Lock } from 'lucide-react';
-import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik } from '../../../core/editorial/ContentBudget.js';
 import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
@@ -48,11 +48,20 @@ function buildAiPrompt(fc: any, ceiling: { maxTitle: number; maxBrief: number; m
   return lines.join('\n');
 }
 
+// Tajuk dan huraian KONGSI satu bajet ruang kad, bukan dua had berasingan — tajuk pendek
+// membebaskan ruang untuk huraian lebih panjang, dan sebaliknya. Kedua-dua denominator di bawah
+// mesti SIMETRI (baki sebenar selepas ambil kira medan SATU LAGI punya panjang semasa), bukan
+// cuma huraian — sebelum ni tajuk papar had solo statik (cth "8/168") walaupun huraian dah
+// hampir menghabiskan seluruh bajet, jadi nampak tak konsisten dengan peratusan >90%/100% (baki
+// tajuk sepatutnya nampak MENGECIL bila huraian panjang, sama macam baki huraian mengecil bila
+// tajuk panjang). Lihat ContentBudget.js untuk formula sebenar.
 function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: number; ceiling: { maxTitle: number; maxBrief: number }; title: string; brief: string }) {
   const check = validateContentBudget(slotIndex, title || '', brief || '');
   const usedTitle = ceiling.maxTitle ? title.length / ceiling.maxTitle : 0;
   const usedBrief = ceiling.maxBrief ? brief.length / ceiling.maxBrief : 0;
   const used = usedTitle + usedBrief;
+  const remainingBrief = ceiling.maxTitle ? Math.max(0, Math.round((1 - title.length / ceiling.maxTitle) * ceiling.maxBrief)) : ceiling.maxBrief;
+  const remainingTitle = ceiling.maxBrief ? Math.max(0, Math.round((1 - brief.length / ceiling.maxBrief) * ceiling.maxTitle)) : ceiling.maxTitle;
   const tone = !check.isValid ? 'text-[#a8241f]' : used > 0.9 ? 'text-amber-700' : 'text-emerald-700';
   const barTone = !check.isValid ? 'bg-[#a8241f]' : used > 0.9 ? 'bg-amber-600' : 'bg-emerald-600';
   return (
@@ -65,19 +74,14 @@ function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: number; 
         <div className={`h-full transition-all duration-200 ${barTone}`} style={{ width: `${Math.min(used, 1) * 100}%` }} />
       </div>
       <span className="font-sans text-[10px] text-stone-400">
-        Tajuk <span className="font-mono tabular-nums">{title.length}</span>/<span className="font-mono tabular-nums">{ceiling.maxTitle}</span>
-        {ceiling.maxBrief > 0 && <> · Huraian <span className="font-mono tabular-nums">{brief.length}</span>/<span className="font-mono tabular-nums">{ceiling.maxBrief}</span></>}
+        Tajuk <span className={`font-mono tabular-nums ${!check.isValid ? 'text-[#a8241f]' : ''}`}>{title.length}</span>/<span className="font-mono tabular-nums">{ceiling.maxBrief > 0 ? remainingTitle : ceiling.maxTitle}</span>
+        {ceiling.maxBrief > 0 && (
+          <> · Huraian <span className={`font-mono tabular-nums ${!check.isValid ? 'text-[#a8241f]' : ''}`}>{brief.length}</span>/<span className="font-mono tabular-nums">{remainingBrief}</span></>
+        )}
         {!check.isValid && <span className="text-[#a8241f]"> · pendekkan kandungan</span>}
       </span>
-      {/* Tajuk dan Huraian KONGSI satu bajet ruang, bukan dua had berasingan — tajuk 90/115 nampak
-          "bawah had" sendiri, tapi Huraian yang turut hadir memakan baki ruang yang sama. Papar
-          baki Huraian SEBENAR untuk panjang tajuk ni (bukan had 350 statik) supaya tak keliru
-          macam had itu tetap tanpa mengira tajuk — lihat ContentBudget.js's remainingBrief. */}
-      {!check.isValid && ceiling.maxBrief > 0 && (
-        <span className="font-sans text-[10px] text-stone-400">
-          Tajuk dan huraian kongsi satu bajet ruang kad — dengan tajuk {title.length} aksara ini, baki huraian sebenar ialah{' '}
-          <span className="font-mono tabular-nums text-[#a8241f]">{Math.max(0, Math.round((1 - title.length / ceiling.maxTitle) * ceiling.maxBrief))}</span> aksara.
-        </span>
+      {ceiling.maxBrief > 0 && (
+        <span className="font-sans text-[9px] text-stone-400">Tajuk dan huraian kongsi satu bajet ruang kad — had di atas ikut panjang medan SATU LAGI semasa, bukan nombor tetap.</span>
       )}
     </div>
   );
@@ -115,6 +119,16 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
       <span className="font-serif text-sm text-stone-500 border-b border-stone-150 py-1.5">{value || '—'}</span>
     </div>
   );
+}
+
+// "Lulus" mesti gabung DUA pengesahan — bajet tajuk+huraian DAN had ruang eyebrow "Bidang | Topik"
+// (validateBidangTopik) — bukan bajet sahaja. Sebelum ni queue/Simpan Slot cuma semak bajet, jadi
+// Topik yang terlalu panjang boleh nampak "lulus" di sini tapi ditolak server semasa simpan
+// (syncManualObjectsForSlot memanggil dua-dua pengesahan), tanpa amaran awal dalam borang.
+function itemFits(slotIndex: number, desk: string, item: { title?: string; brief?: string; topik?: string }) {
+  const budget = validateContentBudget(slotIndex, item.title || '', item.brief || '');
+  if (!budget.isValid) return budget;
+  return validateBidangTopik({ slotBidang: desk, itemBidang: desk, topik: item.topik || '', requireTopik: true, slotIndex });
 }
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
@@ -194,7 +208,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     setTimeout(() => setAiNote(''), 2400);
   };
 
-  const passing = items.filter((it) => validateContentBudget(editingSlotIndex, it.title || '', it.brief || '').isValid).length;
+  const passing = items.filter((it) => itemFits(editingSlotIndex, desk, it).isValid).length;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
@@ -231,7 +245,8 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
             </div>
             <ol className="flex-1 min-h-0 overflow-y-auto list-none m-0 p-0 border-t border-stone-150">
               {items.map((it, i) => {
-                const check = validateContentBudget(editingSlotIndex, it.title || '', it.brief || '');
+                const budgetCheck = validateContentBudget(editingSlotIndex, it.title || '', it.brief || '');
+                const check = budgetCheck.isValid ? itemFits(editingSlotIndex, desk, it) : budgetCheck;
                 const isActive = i === activeIndex;
                 return (
                   <li
@@ -250,8 +265,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                         <button type="button" aria-label="Turun" onClick={(e) => { e.stopPropagation(); move(i, 1); }} className="text-stone-500 hover:text-[#802334] px-0.5"><ChevronDown size={13} /></button>
                         <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); remove(i); }} className="text-[#a8241f] px-0.5"><Trash2 size={12} /></button>
                       </span>
-                      <span className={`group-hover:hidden font-mono text-[9px] ${check.isValid ? 'text-emerald-700' : 'text-[#a8241f]'}`}>
-                        {check.isValid ? '✓' : `${Math.round(((ceiling.maxTitle ? (it.title || '').length / ceiling.maxTitle : 0) + (ceiling.maxBrief ? (it.brief || '').length / ceiling.maxBrief : 0)) * 100)}%`}
+                      <span className={`group-hover:hidden font-mono text-[9px] ${check.isValid ? 'text-emerald-700' : 'text-[#a8241f]'}`} title={check.isValid ? undefined : check.reason}>
+                        {check.isValid
+                          ? '✓'
+                          : budgetCheck.isValid
+                            ? '✕ Topik'
+                            : `${Math.round(((ceiling.maxTitle ? (it.title || '').length / ceiling.maxTitle : 0) + (ceiling.maxBrief ? (it.brief || '').length / ceiling.maxBrief : 0)) * 100)}%`}
                       </span>
                     </span>
                   </li>
