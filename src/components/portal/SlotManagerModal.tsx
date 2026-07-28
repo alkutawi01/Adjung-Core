@@ -150,23 +150,35 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const activeIndex = Math.max(0, Math.min(active, items.length - 1));
   const current = items[activeIndex] || { uuid: '', title: '', brief: '', briefLong: '', topik: '', source: '', url: '', date: '', note: '', image: '' };
 
-  const commit = (next: any[]) => setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(next) }));
-  const patch = (i: number, key: string, value: string) => commit(items.map((it, n) => (n === i ? { ...it, [key]: value } : it)));
+  // commit() re-derives the CURRENT item list from prev.manualSummary inside the updater, rather
+  // than mutating a `next` array closed over the outer `items` (render-time) value — keeps every
+  // mutation correct if this component ever re-renders between the click and the state actually
+  // applying (e.g. React batching multiple updates in one tick), instead of silently reverting to
+  // a stale base. See ManualBlockFormat.js's parseManualSummaryBlocks for the real bug this
+  // uncovered (a phantom empty block from the separator regex double-matching).
+  const commit = (mutator: (prevItems: any[]) => any[]) =>
+    setFormConfig((prev: any) => {
+      const prevItems = parseManualSummaryBlocks(prev.manualSummary || '');
+      return { ...prev, manualSummary: serializeManualBentoQueue(mutator(prevItems)) };
+    });
+  const patch = (i: number, key: string, value: string) => commit((prevItems) => prevItems.map((it, n) => (n === i ? { ...it, [key]: value } : it)));
   const move = (i: number, d: number) => {
     const j = i + d;
     if (j < 0 || j >= items.length) return;
-    const next = items.slice();
-    [next[i], next[j]] = [next[j], next[i]];
-    commit(next);
+    commit((prevItems) => {
+      const next = prevItems.slice();
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
     setActive(j);
   };
   const remove = (i: number) => {
-    commit(items.filter((_, n) => n !== i));
+    commit((prevItems) => prevItems.filter((_, n) => n !== i));
     setActive((a) => Math.max(0, Math.min(a, items.length - 2)));
   };
   const insert = () => {
     const uuid = `object-manual-slot${editingSlotIndex}-${Date.now()}`;
-    commit([...items, { uuid, title: '', brief: '', briefLong: '', topik: '', source: '', url: '', date: '', note: '', image: '' }]);
+    commit((prevItems) => [...prevItems, { uuid, title: '', brief: '', briefLong: '', topik: '', source: '', url: '', date: '', note: '', image: '' }]);
     setActive(items.length);
   };
 
@@ -190,9 +202,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           title: b.title, topik: b.topik, brief: b.brief, briefLong: b.briefLong,
           source: b.source, url: b.url, date: b.date, note: b.note, image: b.image,
         }));
-        const next = items.slice();
-        next.splice(activeIndex, 1, ...replacement);
-        commit(next);
+        commit((prevItems) => {
+          const next = prevItems.slice();
+          next.splice(activeIndex, 1, ...replacement);
+          return next;
+        });
         setActive(activeIndex);
         setPasteNote(parsedBlocks.length > 1 ? `${parsedBlocks.length} kandungan ditampal` : 'Ditampal ke medan berkaitan');
       }

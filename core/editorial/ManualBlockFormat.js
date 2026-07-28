@@ -85,14 +85,26 @@ export function parseManualBlockFields(block) {
   return fields;
 }
 
-// Splits + parses a full manualSummary blob into an ordered list of block field-sets. Blocks with
-// no title are dropped (matches server.js's existing "only push items with a title" rule).
+// Splits + parses a full manualSummary blob into an ordered list of block field-sets, for the
+// CLIENT's live queue editor (SlotManagerModal) — unlike server.js's parseManualSummaryTemplate
+// (which drops title-less blocks since it's building the PUBLISHED carousel), this keeps every
+// block including blank drafts. A freshly "+ Tambah kandungan"-ed item has no title yet; dropping
+// it here would make it vanish from the editor the instant it's added (silently discarding
+// anything typed into it, since patch() targets an index that no longer exists after re-derive).
+// The "must have a title to publish" rule still applies server-side at actual save time.
 export function parseManualSummaryBlocks(summaryText) {
   if (!summaryText || (!summaryText.includes('Tajuk:') && !summaryText.includes('Event:'))) return [];
   return (summaryText || '')
     .split(MANUAL_BLOCK_SPLIT_REGEX)
-    .map(parseManualBlockFields)
-    .filter((f) => f.title);
+    // MANUAL_BLOCK_SPLIT_REGEX's alternatives overlap on the standard "\n\n____...____\n\n"
+    // separator: the underscore run matches `___+` AND the blank line immediately before the
+    // next block's "UUID:" independently matches the lookahead alternative, so split() finds TWO
+    // adjacent delimiters back-to-back and emits a genuinely empty string as the "content" between
+    // them. That empty fragment is not a block — it never contained a UUID:/Tajuk: line at all —
+    // so it must be dropped here, distinct from a legitimate blank DRAFT item (which still has
+    // real "UUID: ...\nTajuk: \n..." lines, just empty values, and must be kept — see below).
+    .filter((block) => block.trim().length > 0)
+    .map(parseManualBlockFields);
 }
 
 // Serializes one bento (non-BAR) item back into the Label: value block format, including a UUID:
