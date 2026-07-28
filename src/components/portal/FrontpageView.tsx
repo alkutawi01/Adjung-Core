@@ -12,6 +12,7 @@ import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRende
 import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
 import { TickerManagementModal } from './TickerManagementModal';
+import { SlotManagerModal } from './SlotManagerModal';
 import { BarCard } from './cards/BarCard';
 import { BarCardExpandedPanel } from './cards/BarCardExpandedPanel';
 import { Tooltip } from '../common/Tooltip';
@@ -1605,7 +1606,8 @@ URL: ${url}`;
       aiPromptRecency: config?.aiPromptRecency || '1 minggu terkini',
       aiPromptLanguage: config?.aiPromptLanguage || 'Bahasa Melayu',
       aiPromptRegion: config?.aiPromptRegion || 'Global, Malaysia',
-      aiPromptSource: config?.aiPromptSource || ''
+      aiPromptSource: config?.aiPromptSource || '',
+      genMode: config?.genMode || 'bebas'
     });
     setEditingSlotIndex(idx);
     setShowResetMenu(false);
@@ -3833,7 +3835,9 @@ URL: ${url}`;
       />
 
       {/* Pop-up Modal Penyuntingan Slot Bento */}
-      {editingSlotIndex !== null && editingSlotIndex !== -1 && formConfig && (
+      {/* Slot BAR sahaja guna borang penuh lama di bawah — slot bento lain (bukan BAR) guna
+          SlotManagerModal baharu, lihat blok selepas penutup blok ini. */}
+      {editingSlotIndex !== null && editingSlotIndex !== -1 && formConfig && TIER_SLOTS.BAR.includes(editingSlotIndex) && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white rounded-lg border border-stone-200 max-w-xl w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl animate-fade-in">
             <header className="px-6 py-4 border-b border-stone-150 flex justify-between items-center bg-stone-50">
@@ -6118,6 +6122,23 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
             </form>
           </div>
         </div>
+      )}
+
+      {editingSlotIndex !== null && editingSlotIndex !== -1 && formConfig && !TIER_SLOTS.BAR.includes(editingSlotIndex) && (
+        <SlotManagerModal
+          editingSlotIndex={editingSlotIndex}
+          formConfig={formConfig}
+          setFormConfig={setFormConfig}
+          activeBidangList={activeBidangList}
+          currentEditoriumRole={currentEditoriumRole}
+          isSavingSlot={isSavingSlot}
+          onClose={() => {
+            setEditingSlotIndex(null);
+            setFormConfig(null);
+            setShowResetMenu(false);
+          }}
+          onSave={handleSaveSlot}
+        />
       )}
 
       {/* Pop-up Modal untuk Melihat Prompt / Respons AI (AI Payload Auditor) */}

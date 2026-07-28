@@ -13,6 +13,7 @@ import { validateContentBudget, validateBidangTopik } from './core/editorial/Con
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
+import { parseManualBlockFields, MANUAL_BLOCK_SPLIT_REGEX } from './core/editorial/ManualBlockFormat.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
 import { createCategoryRoutes } from './core/routes/categoryRoutes.js';
 import { createSystemRoutes } from './core/routes/systemRoutes.js';
@@ -1425,6 +1426,12 @@ const initEditorialOS = (dbConn) => {
           // ciri akordion akan datang) — tiada had aksara dikuatkuasakan setakat ini sebab tiada
           // panel sebenar untuk diukur, sama macam briefLong sebelum ciri spotlight dibina.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('penerangan', 'Penerangan', 'text')", () => {});
+          // note/image: medan baharu Urus Slot (modal bento bukan-BAR) — nota dalaman (tak
+          // disiarkan) dan nama fail imej per-kandungan (pilih fail sahaja, tiada transport muat
+          // naik). Sama corak macam attribute lain di atas — kena didaftar dulu di sini atau
+          // syncManualObjectsForSlot() gagal senyap dgn FK constraint.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('note', 'Nota', 'text')", () => {});
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('image', 'Imej', 'text')", () => {});
           dbConn.run("ALTER TABLE slots_config ADD COLUMN manualDesk TEXT", () => {
             dbConn.run("ALTER TABLE slots_config ADD COLUMN nextRunAt INTEGER", () => {
               dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshInterval INTEGER", () => {
@@ -1452,6 +1459,10 @@ const initEditorialOS = (dbConn) => {
                                               dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptRegion TEXT DEFAULT ''", () => {
                                               dbConn.run("ALTER TABLE slots_config ADD COLUMN aiPromptSource TEXT DEFAULT ''", () => {
                                                 dbConn.run("ALTER TABLE slots_config ADD COLUMN sourceType TEXT DEFAULT 'web'", () => {});
+                                                // genMode: tab "Arahan AI" (Urus Slot) — 'bebas' atau 'dengan_rujukan', memberitahu
+                                                // AI luaran sama ada jana bebas atau berdasarkan sumber rujukan. arahanKhas guna
+                                                // semula lajur promptText sedia ada (bukan lajur baharu — sudah wujud & bermaksud sama).
+                                                dbConn.run("ALTER TABLE slots_config ADD COLUMN genMode TEXT DEFAULT 'bebas'", () => {});
                                                 dbConn.run("ALTER TABLE editorial_objects ADD COLUMN sourceType TEXT DEFAULT 'web'", () => {});
                                                 dbConn.run("CREATE INDEX IF NOT EXISTS idx_editorial_objects_source_type ON editorial_objects(sourceType)", () => {});
                                                 dbConn.run(`
@@ -1646,83 +1657,18 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
   }
 
   // Robust multi-boundary block splitting: splits on ____, ---, ===, full underscore lines, or new UUID/Tajuk/Event lines
-  const blocks = summaryText.split(/(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i);
+  const blocks = summaryText.split(MANUAL_BLOCK_SPLIT_REGEX);
   const items = [];
   for (const block of blocks) {
-    const lines = block.split('\n');
-    let uuid = '';
-    let title = '';
-    let brief = '';
-    let briefLong = '';
-    let desk = '';
-    let topik = '';
-    let date = '';
-    let source = '';
-    let url = '';
-    let sourceType = '';
-    let isEventBlock = false;
-
-    let organizer = '';
-    let location = '';
-    let access = '';
-    let penerangan = '';
-
-    // Blok kandungan manual membawa petunjuk had aksara dalam teksnya sendiri, cth
-    // "Tajuk: (had 168 aksara) ..." — ditulis dan dikemas kini oleh updateLimitsInText() di
-    // FrontpageView.tsx. Petunjuk itu alat bantu penyunting, BUKAN kandungan editorial.
-    //
-    // Penghurai dahulu cuma membuang label di hadapan (^Tajuk:\s*), jadi petunjuk itu terus masuk
-    // ke dalam nilai. Editor yang menaip selepas petunjuk mendapat tajuk berbunyi
-    // "(had 168 aksara) Percubaan Sahaja"; yang menaip sebelumnya mendapat
-    // "Percubaan (had 23 aksara)". Kedua-duanya tersimpan dan tersiar sebagai teks sebenar.
-    //
-    // Dibuang di mana-mana dalam baris, bukan di hadapan sahaja, kerana penyunting menaip pada
-    // kedua-dua belah petunjuk itu.
-    const buangPetunjukHad = (s) => s
-      .replace(/\(\s*had\s*\d+\s*aksara\s*\)/gi, '')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('UUID:')) {
-        uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
-      } else if (trimmed.startsWith('Tajuk:')) {
-        title = buangPetunjukHad(trimmed.replace(/^Tajuk:\s*/i, ''));
-      } else if (trimmed.startsWith('Event:')) {
-        title = trimmed.replace(/^Event:\s*/i, '').trim();
-        desk = 'ACARA'; // Default desk untuk event
-        isEventBlock = true;
-      } else if (trimmed.startsWith('Huraian panjang:')) {
-        briefLong = buangPetunjukHad(trimmed.replace(/^Huraian panjang:\s*/i, ''));
-      } else if (trimmed.startsWith('Huraian ringkas:')) {
-        brief = buangPetunjukHad(trimmed.replace(/^Huraian ringkas:\s*/i, ''));
-      } else if (trimmed.startsWith('Huraian:')) {
-        brief = buangPetunjukHad(trimmed.replace(/^Huraian:\s*/i, ''));
-      } else if (trimmed.startsWith('Bidang:')) {
-        desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
-      } else if (trimmed.startsWith('Kategori:')) {
-        desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
-      } else if (trimmed.startsWith('Topik:')) {
-        topik = buangPetunjukHad(trimmed.replace(/^Topik:\s*/i, ''));
-      } else if (trimmed.startsWith('Jenis sumber:')) {
-        sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
-      } else if (trimmed.startsWith('Tarikh:')) {
-        date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
-      } else if (trimmed.startsWith('Penganjur:')) {
-        organizer = trimmed.replace(/^Penganjur:\s*/i, '').trim();
-      } else if (trimmed.startsWith('Lokasi:')) {
-        location = trimmed.replace(/^Lokasi:\s*/i, '').trim();
-      } else if (trimmed.startsWith('Akses:')) {
-        access = trimmed.replace(/^Akses:\s*/i, '').trim();
-      } else if (trimmed.startsWith('Penerangan:')) {
-        penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
-      } else if (trimmed.startsWith('Sumber:')) {
-        source = trimmed.replace(/^Sumber:\s*/i, '').trim();
-      } else if (trimmed.startsWith('URL:')) {
-        url = trimmed.replace(/^URL:\s*/i, '').trim();
-      }
-    }
+    // Field extraction lives in core/editorial/ManualBlockFormat.js, shared with the client Urus
+    // Slot editor (SlotManagerModal.tsx) — see that module's header for why. Applies the same
+    // "(had N aksara)" template-hint stripping buangPetunjukHad used to do inline, to title/brief/
+    // briefLong/topik as they're read.
+    const {
+      uuid, title, brief, briefLong, desk, topik, date, source, url, sourceType,
+      organizer: rawOrganizer, location, access, penerangan, note, image, isEventBlock,
+    } = parseManualBlockFields(block);
+    let organizer = rawOrganizer;
 
     // Resolve sourceType from text or fallback to auto-detection
     let finalSourceType = 'web';
@@ -1743,11 +1689,9 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       source = organizer || date; // Utama penganjur, jika tiada baru gunakan tarikh
     }
 
-    // Buang notasi had aksara template seperti (max 70 aksara)
-    title = title.replace(/^\([^)]+\)\s*/g, '').trim();
-    brief = brief.replace(/^\([^)]+\)\s*/g, '').trim();
-    briefLong = briefLong.replace(/^\([^)]+\)\s*/g, '').trim();
-    organizer = organizer.replace(/^\([^)]+\)\s*/g, '').trim();
+    // Notasi had aksara template ("(had N aksara)") dan tanda kurung petunjuk lain sudah dibuang
+    // oleh parseManualBlockFields() (stripLimitHint) di atas untuk title/brief/briefLong/topik.
+    // organizer bukan medan yang ada petunjuk had — kekal seperti dihurai.
 
     if (title) {
       items.push({
@@ -1755,12 +1699,14 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         summary: brief,
         briefLong,
         desk: desk || defaultSlot.manualDesk || 'general',
-        topik: topik.replace(/^\([^)]+\)\s*/g, '').trim(),
+        topik,
         sourceType: finalSourceType,
         organizer: organizer || source || '',
         location,
         access,
         penerangan,
+        note,
+        image,
         source: organizer || source || defaultSlot.manualSource || '',
         url: url || defaultSlot.manualUrl || '#',
         originalDate: date || '',
@@ -1877,6 +1823,8 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         { key: 'location', val: item.location || '' },
         { key: 'access', val: item.access || '' },
         { key: 'penerangan', val: item.penerangan || '' },
+        { key: 'note', val: item.note || '' },
+        { key: 'image', val: item.image || '' },
       ];
       for (const a of attrs) {
         await dbRun(
