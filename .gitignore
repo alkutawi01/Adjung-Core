@@ -12,3 +12,4 @@ adjung.db
 *.sqlite3
 *.db.backup-*
 .claude/
+public/uploads/

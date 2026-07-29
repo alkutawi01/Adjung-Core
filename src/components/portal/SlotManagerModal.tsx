@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { X, ChevronUp, ChevronDown, Trash2, Lock } from 'lucide-react';
+import React, { useCallback, useRef, useState } from 'react';
+import { X, ChevronUp, ChevronDown, Trash2, Lock, Upload } from 'lucide-react';
 import { validateContentBudget, validateBidangTopik } from '../../../core/editorial/ContentBudget.js';
 import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
@@ -114,6 +114,40 @@ function Field({ label, value, onChange, rows, placeholder, maxLen }: { label: s
   );
 }
 
+// Medan boleh taip (URL/nama fail sedia ada) DAN muat naik terus — butang panggil
+// /api/media/upload (base64 di badan JSON, lihat core/routes/mediaRoutes.js), tukar respons
+// { url } jadi nilai medan. Tidak buang keupayaan taip terus, sebab kandungan sedia ada mungkin
+// sudah rujuk fail/URL yang bukan hasil muat naik baharu.
+function ImageField({ label, value, onChange, onUploadFile, uploading, note }: {
+  label: string; value: string; onChange: (v: string) => void; onUploadFile: (file: File) => void; uploading?: boolean; note?: string;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="flex items-baseline justify-between gap-3">
+        <span className={labelCls}>{label}</span>
+        {note && <span className="font-sans text-[9px] text-stone-400">{note}</span>}
+      </span>
+      <span className="flex items-center gap-2">
+        <input
+          type="text" value={value} placeholder="Nama fail / URL imej…" onChange={(e) => onChange(e.target.value)}
+          className="w-0 flex-1 border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+        />
+        <button
+          type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-1 px-2.5 py-1 border border-stone-300 rounded text-[11px] font-sans font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-wait"
+        >
+          <Upload className="w-3 h-3" />{uploading ? 'Memuat naik…' : 'Muat naik'}
+        </button>
+      </span>
+      <input
+        ref={fileInputRef} type="file" accept="image/*" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onUploadFile(f); e.target.value = ''; }}
+      />
+    </label>
+  );
+}
+
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
@@ -177,6 +211,8 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const [tab, setTab] = useState<'borang' | 'maklumat' | 'ai'>('borang');
   const [pasteNote, setPasteNote] = useState('');
   const [aiNote, setAiNote] = useState('');
+  const [imageNote, setImageNote] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const tier = tierForSlot(editingSlotIndex) || 'STANDARD';
   const ceiling = ceilingForSlot(editingSlotIndex);
@@ -286,6 +322,44 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       setAiNote('Disalin');
     } catch (e) { setAiNote('Akses papan klip ditolak'); }
     setTimeout(() => setAiNote(''), 2400);
+  };
+
+  const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+  const uploadImage = async (i: number, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setImageNote('Fail mesti imej');
+      setTimeout(() => setImageNote(''), 2400);
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageNote('Fail terlalu besar (had 5MB)');
+      setTimeout(() => setImageNote(''), 2400);
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const fileData: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Gagal baca fail'));
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/media/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, fileData }),
+      });
+      if (!res.ok) throw new Error('Muat naik gagal');
+      const data = await res.json();
+      patch(i, 'image', data.url);
+      setImageNote('Dimuat naik');
+    } catch (e) {
+      setImageNote('Muat naik gagal — cuba lagi');
+    } finally {
+      setUploadingImage(false);
+      setTimeout(() => setImageNote(''), 2400);
+    }
   };
 
   const passing = items.filter((it) => itemFits(editingSlotIndex, desk, it).isValid).length;
@@ -404,7 +478,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   <Field label="Sumber" value={current.source || ''} placeholder="Adjung Editorial" onChange={(v) => patch(activeIndex, 'source', v)} />
                   <Field label="URL" value={current.url || ''} placeholder="https://…" onChange={(v) => patch(activeIndex, 'url', v)} />
                   <Field label="Tarikh sumber" value={current.date || ''} placeholder="21.07.26" onChange={(v) => patch(activeIndex, 'date', v)} />
-                  <Field label="Imej" value={current.image || ''} placeholder="Nama fail imej…" onChange={(v) => patch(activeIndex, 'image', v)} />
+                  <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
                 </div>
                 <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor — dipaparkan di Focus View…" onChange={(v) => patch(activeIndex, 'note', v)} />
                 <ReadOnlyField label="Editor" value={EDITOR_PLACEHOLDER} />
