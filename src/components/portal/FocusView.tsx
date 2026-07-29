@@ -464,7 +464,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
       {/* MASTHEAD — merentasi lebar PENUH viewport (bukan dihadkan lebar helaian sempit di bawah).
           Logo DI TENGAH-TENGAH bar ni (bukan kiri) — grid 3-lajur (1fr/auto/1fr) supaya logo
           benar-benar tengah tanpa terjejas oleh kehadiran/ketiadaan butang tutup di sisi (flex
-          space-between cuma tolak ke tepi, tak pusatkan). Tutup kekal bucu kanan. */}
+          space-between cuma tolak ke tepi, tak pusatkan). Tutup kekal bucu kanan. Garisan halus
+          dikembalikan (2026-07-29, permintaan pemilik projek selepas cuba tanpa garisan). */}
+      <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
         <span />
         <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
@@ -479,6 +481,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           </button>
         )}
       </div>
+      <hr style={{ ...rule, flex: '0 0 auto' }} />
 
       <div style={{ position: 'relative', flex: '1 1 auto', minHeight: 0, boxSizing: 'border-box', padding: 'clamp(10px, 1.6vh, 18px) 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Helaian dipersempit (86%→64%, 2026-07-29) — lajur lebar penuh tidak tinggalkan margin
@@ -487,7 +490,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             viewport, margin kiri/kanan cukup luas untuk preview + anak panah. */}
         <div style={{
           width: 'min(64%, 900px)', height: '100%', maxHeight: '100%', boxSizing: 'border-box',
-          display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) auto',
+          display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) minmax(140px, auto)',
         }}>
 
           {/* EYEBROW + TARIKH SIARAN — terus atas tajuk. Tanpa label "Siaran" (dibuang
@@ -519,13 +522,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
           </div>
 
           {/* IMEJ + KANDUNGAN BERKAITAN — jalur di bawah huraian panjang, dua sub-lajur. Tinggi
-              jalur ni SEMULA JADI (auto, bukan tinggi tetap 2026-07-29) — tumbuh ikut kandungan
-              sebenar (imej/berkaitan/nota), supaya TIADA kotak scroll sendiri di sini. Baris
-              huraian panjang (minmax(0,1fr)) di atas yang menyerap sisa ruang dan membawa
-              SATU-SATUNYA kotak scroll di seluruh Focus View (permintaan eksplisit pemilik
-              projek). Plat ilustrasi Bidang — lihat `showIllustration` — mengalah kepada
-              grafik/berkaitan/nota sebenar secara automatik, tiada perubahan logik. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 9fr)', columnGap: 'clamp(20px, 2.8vw, 40px)', alignItems: 'center', paddingTop: 'clamp(10px, 1.8vh, 18px)' }}>
+              jalur ni minmax(140px, auto) (bukan tinggi tetap 2026-07-29) — SEKURANG-KURANGNYA
+              140px dikhaskan supaya sentiasa ada ruang kelihatan untuk grafik/berkaitan walau
+              kandungan tu tiada lagi (jawapan kepada "mana ruang utk kandungan berkaitan?"), tapi
+              tumbuh melebihi 140px bila kandungan sebenar (2 item berkaitan + nota) perlukan lebih
+              — supaya TIADA kotak scroll sendiri di sini. Baris huraian panjang (minmax(0,1fr)) di
+              atas yang menyerap sisa ruang dan membawa SATU-SATUNYA kotak scroll di seluruh Focus
+              View (permintaan eksplisit pemilik projek). Plat ilustrasi Bidang — lihat
+              `showIllustration` — mengalah kepada grafik/berkaitan/nota sebenar secara automatik,
+              tiada perubahan logik. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 9fr)', columnGap: 'clamp(20px, 2.8vw, 40px)', alignItems: 'center', paddingTop: 'clamp(10px, 1.8vh, 18px)', borderTop: '1px solid var(--border-subtle)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showIllustration && (
                 <div
@@ -561,7 +567,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                     {related.slice(0, 2).map((r, i) => {
                       const item: FocusRelatedItem = typeof r === 'string' ? { title: r } : r;
                       return (
-                        <li key={i} style={{ display: 'flex', gap: '12px', padding: '9px 0' }}>
+                        <li key={i} style={{ display: 'flex', gap: '12px', padding: '9px 0', borderTop: '1px solid var(--border-subtle)' }}>
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', color: 'var(--color-Adjung-maroon)', paddingTop: '3px' }}>{String(i + 1).padStart(2, '0')}</span>
                           <a href={item.url || '#'} style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{item.title}</a>
                         </li>
@@ -586,7 +592,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
           lebar PENUH viewport, sama corak macam MASTHEAD (2026-07-29) — bukan lagi dihadkan
           lebar helaian bacaan sempit. `sourceDate` diterima di sini sudah dalam format Melayu
           panjang ("29 Julai 26") — pemanggil yang uruskan format, fail ni cuma papar apa yang
-          diterima. Garisan `<hr>` dibuang (permintaan pemilik projek: buang semua garisan). */}
+          diterima. Garisan halus dikembalikan (permintaan pemilik projek selepas cuba tanpa
+          garisan). */}
+      <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '32px' }}>
         <span style={{ maxWidth: '48%', lineHeight: 1.5 }}>
           <span style={micro}>Sumber</span>
