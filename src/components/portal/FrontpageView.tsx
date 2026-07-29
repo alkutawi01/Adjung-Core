@@ -12,11 +12,11 @@ import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRende
 import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
 import { TickerManagementModal } from './TickerManagementModal';
-import { SlotManagerModal } from './SlotManagerModal';
 import { BarCard } from './cards/BarCard';
 import { BarCardExpandedPanel } from './cards/BarCardExpandedPanel';
 import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
+import { SlotManagerModal } from './SlotManagerModal';
 import { BidangIcon } from '../common/BidangIcon';
 
 // Susun atur telefon bagi grid bento — dijana sekali daripada TIER_SLOTS (lihat PhoneGeometry.js),
@@ -1613,12 +1613,22 @@ URL: ${url}`;
     setShowResetMenu(false);
   };
 
-  const handleSaveSlot = async (e: React.FormEvent) => {
+  // manualSummaryOverride: SlotManagerModal.tsx holds its content queue as LOCAL state (for
+  // performance — see that file's notes) and passes the freshly-serialized text blob straight
+  // through here as an argument, rather than relying on `formConfig` (this closure's own state)
+  // already reflecting the modal's latest edits. It never reliably does: this handler is captured
+  // as a prop when SlotManagerModal last rendered, so even if the modal updates parent state
+  // right before calling onSave, THIS closure still reads the `formConfig` from before that
+  // update. Trust the argument over `formConfig.manualSummary` whenever it's provided.
+  const handleSaveSlot = async (e: React.FormEvent, manualSummaryOverride?: string) => {
     e.preventDefault();
     if (!formConfig) return;
     setIsSavingSlot(true);
 
     const finalFormConfig = { ...formConfig };
+    if (typeof manualSummaryOverride === 'string') {
+      finalFormConfig.manualSummary = manualSummaryOverride;
+    }
     if (TIER_SLOTS.BAR.includes(formConfig.slotIndex)) {
       finalFormConfig.allowedContentTypes = 'Event';
     }
@@ -2141,36 +2151,16 @@ URL: ${url}`;
   // plat boleh ratusan kilobait, dan menghantar kesemua 25 kepada setiap pelawat frontpage untuk
   // memaparkan sifar atau satu ialah pembaziran yang besar (25 x 138KB = 3.4MB setiap muat).
   //
-  // DI-CACHE mengikut Bidang. Tanpa cache, setiap kali Focus View dibuka — termasuk setiap langkah
-  // Sebelum/Seterusnya dalam slot yang sama — memuat turun semula plat yang sama (121KB pada plat
-  // sebenar pertama). Kolum kanan kekal kosong sepanjang tempoh itu, dan pemilik projek melaporkan
-  // platnya "hilang": ia sebenarnya belum sampai lagi.
-  //
-  // Dengan cache, cuma bukaan PERTAMA setiap Bidang menanggung kos rangkaian; selepas itu plat
-  // muncul serentak dengan Focus View.
-  const platCache = useRef<Record<string, string | null>>({});
+  // Dikosongkan dahulu setiap kali Bidang bertukar, supaya plat Bidang sebelumnya tidak sempat
+  // terpapar di bawah kandungan baharu sementara menunggu pengambilan.
   const focusBidangName = focusBidang?.name || '';
   useEffect(() => {
-    if (!focusBidangName) { setFocusIllustration(null); return; }
-
-    const kunci = focusBidangName.toLowerCase();
-    if (kunci in platCache.current) {
-      // Sudah ada — tetapkan terus tanpa mengosongkannya dahulu, jadi tiada kelipan.
-      setFocusIllustration(platCache.current[kunci]);
-      return;
-    }
-
-    // Belum pernah diambil: kosongkan dahulu supaya plat Bidang sebelumnya tidak terpapar di bawah
-    // kandungan baharu sementara menunggu.
     setFocusIllustration(null);
+    if (!focusBidangName) return;
     let dibatalkan = false;
     fetch('/api/system/categories/illustration?name=' + encodeURIComponent(focusBidangName))
       .then(res => res.json())
-      .then(data => {
-        const svg = data?.illustrationSvg || null;
-        platCache.current[kunci] = svg;
-        if (!dibatalkan) setFocusIllustration(svg);
-      })
+      .then(data => { if (!dibatalkan) setFocusIllustration(data?.illustrationSvg || null); })
       .catch(() => {});
     return () => { dibatalkan = true; };
   }, [focusBidangName]);
@@ -3834,9 +3824,28 @@ URL: ${url}`;
         handleOverrideTickerDesk={handleOverrideTickerDesk}
       />
 
-      {/* Pop-up Modal Penyuntingan Slot Bento */}
-      {/* Slot BAR sahaja guna borang penuh lama di bawah — slot bento lain (bukan BAR) guna
-          SlotManagerModal baharu, lihat blok selepas penutup blok ini. */}
+      {/* Modal Urus Slot — bento (bukan BAR, bukan Ticker). BAR (mode/medan agak berbeza —
+          Event/Penganjur/Lokasi/Akses/Penerangan, panel akordion, bukan carousel Tajuk/Huraian
+          biasa) kekal guna modal generik di bawah; bento guna komponen berstruktur ni. */}
+      {editingSlotIndex !== null && editingSlotIndex !== -1 && formConfig && !TIER_SLOTS.BAR.includes(editingSlotIndex) && (
+        <SlotManagerModal
+          key={editingSlotIndex}
+          editingSlotIndex={editingSlotIndex}
+          formConfig={formConfig}
+          setFormConfig={setFormConfig}
+          activeBidangList={activeBidangList}
+          currentEditoriumRole={currentEditoriumRole}
+          isSavingSlot={isSavingSlot}
+          onClose={() => {
+            setEditingSlotIndex(null);
+            setFormConfig(null);
+            setShowResetMenu(false);
+          }}
+          onSave={handleSaveSlot}
+        />
+      )}
+
+      {/* Pop-up Modal Penyuntingan Slot Bento (BAR sahaja kini — lihat nota di atas) */}
       {editingSlotIndex !== null && editingSlotIndex !== -1 && formConfig && TIER_SLOTS.BAR.includes(editingSlotIndex) && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
           <div className="bg-white rounded-lg border border-stone-200 max-w-xl w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl animate-fade-in">
@@ -6122,23 +6131,6 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
             </form>
           </div>
         </div>
-      )}
-
-      {editingSlotIndex !== null && editingSlotIndex !== -1 && formConfig && !TIER_SLOTS.BAR.includes(editingSlotIndex) && (
-        <SlotManagerModal
-          editingSlotIndex={editingSlotIndex}
-          formConfig={formConfig}
-          setFormConfig={setFormConfig}
-          activeBidangList={activeBidangList}
-          currentEditoriumRole={currentEditoriumRole}
-          isSavingSlot={isSavingSlot}
-          onClose={() => {
-            setEditingSlotIndex(null);
-            setFormConfig(null);
-            setShowResetMenu(false);
-          }}
-          onSave={handleSaveSlot}
-        />
       )}
 
       {/* Pop-up Modal untuk Melihat Prompt / Respons AI (AI Payload Auditor) */}

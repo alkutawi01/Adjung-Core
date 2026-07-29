@@ -3,8 +3,8 @@
 // Label: value fields, and serializing structured items back into that same text format.
 // Imported by both server.js (syncManualObjectsForSlot/resolveSlotContent, the read/write path
 // for ALL bento tiers including BAR) and the client Urus Slot editor (SlotManagerModal.tsx, bento
-// tiers other than BAR — see CLAUDE.md). Ticker (slotIndex -1) uses its own separate format
-// (parseTickerText in core/routes/contentRoutes.js) and does not go through this module.
+// tiers other than BAR). Ticker (slotIndex -1) uses its own separate format (parseTickerText in
+// core/routes/contentRoutes.js) and does not go through this module.
 
 // Splits a manualSummary blob into per-item blocks. Tolerates several separator conventions the
 // UI has used over time (____, ----, ====, or a blank-line boundary right before a new UUID:/
@@ -14,10 +14,9 @@ export const MANUAL_BLOCK_SPLIT_REGEX = /(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|__
 // Canonical separator used when serializing a fresh block list back into one text blob.
 export const MANUAL_BLOCK_SEPARATOR = '\n\n________________________________________\n\n';
 
-// Editors see inline "(had N aksara)" hints baked into template placeholders (see
-// FrontpageView.tsx's handleAddBlock) as a budget reminder while typing directly into the raw
-// textarea. The structured field editor (SlotManagerModal) shows a live budget meter instead and
-// never inserts these hints, but this stays as a defensive strip for legacy/raw-textarea blocks.
+// Editors see inline "(had N aksara)" hints baked into template placeholders as a budget
+// reminder while typing directly into the raw textarea. This strips them wherever they land in
+// the line (editors type on both sides of the hint, not just after it).
 export const stripLimitHint = (s) =>
   (s || '')
     .replace(/\(\s*had\s*\d+\s*aksara\s*\)/gi, '')
@@ -28,6 +27,14 @@ export const stripLimitHint = (s) =>
 // Extracts every recognized Label: value line from one block into a flat fields object. Mirrors
 // the field set syncManualObjectsForSlot() persists to editorial_attribute_values, plus UUID
 // (identity) and isEventBlock (BAR's Event: header sets a different default desk).
+//
+// Huraian ada DUA medan berasingan — "Huraian ringkas" (brief, dipapar pada kad) dan "Huraian
+// panjang" (briefLong, hanya untuk mod spotlight akan datang, tidak dipapar pada kad). "Huraian:"
+// tanpa kelayakan ringkas/panjang masih dikenali sebagai alias LEGASI untuk "Huraian ringkas:"
+// supaya templat lama terus dihurai.
+//
+// "Tarikh sumber:" ialah label KANONIKAL untuk tarikh bahan asal (originalDate) — "Tarikh:" masih
+// dikenali sebagai alias legasi.
 export function parseManualBlockFields(block) {
   const lines = (block || '').split('\n');
   const fields = {
@@ -61,8 +68,14 @@ export function parseManualBlockFields(block) {
       fields.topik = stripLimitHint(trimmed.replace(/^Topik:\s*/i, ''));
     } else if (trimmed.startsWith('Jenis sumber:')) {
       fields.sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
+    } else if (trimmed.startsWith('Tarikh sumber:')) {
+      fields.date = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
     } else if (trimmed.startsWith('Tarikh:')) {
       fields.date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
+    } else if (trimmed.startsWith('Nota:')) {
+      fields.note = trimmed.replace(/^Nota:\s*/i, '').trim();
+    } else if (trimmed.startsWith('Imej:')) {
+      fields.image = trimmed.replace(/^Imej:\s*/i, '').trim();
     } else if (trimmed.startsWith('Penganjur:')) {
       fields.organizer = trimmed.replace(/^Penganjur:\s*/i, '').trim();
     } else if (trimmed.startsWith('Lokasi:')) {
@@ -71,10 +84,6 @@ export function parseManualBlockFields(block) {
       fields.access = trimmed.replace(/^Akses:\s*/i, '').trim();
     } else if (trimmed.startsWith('Penerangan:')) {
       fields.penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
-    } else if (trimmed.startsWith('Nota:')) {
-      fields.note = trimmed.replace(/^Nota:\s*/i, '').trim();
-    } else if (trimmed.startsWith('Imej:')) {
-      fields.image = trimmed.replace(/^Imej:\s*/i, '').trim();
     } else if (trimmed.startsWith('Sumber:')) {
       fields.source = trimmed.replace(/^Sumber:\s*/i, '').trim();
     } else if (trimmed.startsWith('URL:')) {
@@ -108,8 +117,9 @@ export function parseManualSummaryBlocks(summaryText) {
 }
 
 // Serializes one bento (non-BAR) item back into the Label: value block format, including a UUID:
-// header line so re-parsing recovers the same identity. Field order matches the template
-// handleAddBlock() already writes, so round-tripping through this doesn't reshuffle blocks.
+// header line so re-parsing recovers the same identity. Uses the CANONICAL labels (Huraian
+// ringkas/panjang, Tarikh sumber) — parseManualBlockFields still accepts the legacy aliases on
+// the way IN, but everything written back out uses the unambiguous form.
 export function serializeManualBentoItem(item) {
   const uuid = item.uuid || '';
   return [
@@ -120,9 +130,9 @@ export function serializeManualBentoItem(item) {
     `Huraian panjang: ${item.briefLong || ''}`,
     `Sumber: ${item.source || ''}`,
     `URL: ${item.url || ''}`,
-    `Tarikh: ${item.date || ''}`,
-    `Nota: ${item.note || ''}`,
+    `Tarikh sumber: ${item.date || ''}`,
     `Imej: ${item.image || ''}`,
+    `Nota: ${item.note || ''}`,
   ].join('\n');
 }
 

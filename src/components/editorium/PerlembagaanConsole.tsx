@@ -285,13 +285,16 @@ export const PerlembagaanConsole: React.FC = () => {
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Setiap slot (selain Ticker dan tier <TierLabel tier="BAR" />) terkunci kepada SATU
               Bidang tetap — semua kandungan dalam slot tu (termasuk semua item carousel) mesti
-              dalam Bidang yang sama. Topik ialah medan tanpa had, per-kandungan, yang boleh
-              berbeza-beza dalam slot yang sama asalkan masih dalam Bidang terkunci tu. Contoh:
+              dalam Bidang yang sama. Topik ialah medan per-kandungan yang boleh berbeza-beza
+              dalam slot yang sama asalkan masih dalam Bidang terkunci tu. Contoh:
               Bidang <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Ekonomi</span> tetap
               untuk seluruh slot, tapi Topik kandungan boleh{' '}
               <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Kewangan</span>,{' '}
-              <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Perbankan</span>, dll —
-              tiada had. Warna Topik mewarisi warna Bidang induknya (tiada storan warna berasingan).
+              <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Perbankan</span>, dll.
+              Warna Topik mewarisi warna Bidang induknya (tiada storan warna berasingan). Topik
+              tiada had aksara tetap sendiri, tapi berkongsi SATU baris eyebrow kad dengan
+              Bidang ("Bidang | Topik", lihat "Label kad" di bawah) — gabungan yang terlalu
+              panjang untuk tier kad itu ditolak semasa simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">validateBidangTopik()</code>).
             </p>
           </div>
           <div>
@@ -303,16 +306,22 @@ export const PerlembagaanConsole: React.FC = () => {
             </p>
           </div>
           <div>
-            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Format tampal-manual (9 medan standard)</h3>
-            <pre className="bg-stone-100 border border-stone-200 rounded p-3 font-mono text-[10px] text-stone-700 leading-relaxed overflow-x-auto">{`Tajuk:
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Format tampal-manual (10 medan standard)</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed mb-2">
+              Format kanonikal yang dijana/dihurai oleh <code className="bg-stone-100 px-1 rounded text-[11px]">core/editorial/ManualBlockFormat.js</code> —
+              digunakan oleh butang "Tampal"/"Masukkan" di Urus Slot. <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">UUID:</span> pilihan
+              (dijana automatik jika kosong); baki medan boleh dibiar kosong tapi baris labelnya kekal.
+            </p>
+            <pre className="bg-stone-100 border border-stone-200 rounded p-3 font-mono text-[10px] text-stone-700 leading-relaxed overflow-x-auto">{`UUID:
+Tajuk:
+Topik:
 Huraian ringkas:
 Huraian panjang:
-Bidang:
-Topik:
-Jenis sumber:
-Tarikh:
 Sumber:
-URL:`}</pre>
+URL:
+Tarikh sumber:
+Imej:
+Nota:`}</pre>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Wajib untuk baharu/edit</h3>
