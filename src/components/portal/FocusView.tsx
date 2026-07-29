@@ -224,11 +224,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // Terapung penjuru (2026-07-29, gantikan chevron sisi mendatar lama): atas-kiri "sebelum",
   // bawah-kanan "seterusnya" — padan susun atur mockup rujukan. Lebar dihadkan supaya preview
   // tajuk panjang tidak melimpah ke tengah skrin.
+  // Jarak dari bucu skrin dinaikkan ke 16% (bukan clamp(14-28px)) 2026-07-29 — nombor asal
+  // terlalu dekat bucu, preview jadi sesak dengan masthead (atas) dan kolofon (bawah). Padan
+  // mockup rujukan: preview "sebelum" sejajar kasar dengan zon eyebrow/tajuk, "seterusnya"
+  // sejajar kasar dengan zon imej/berkaitan — bukan melekat di bucu mutlak.
   const cornerNav = (corner: 'top-left' | 'bottom-right', on: boolean): React.CSSProperties => ({
     position: 'absolute',
     ...(corner === 'top-left'
-      ? { top: 'clamp(14px, 2.4vh, 28px)', left: 'clamp(14px, 2.4vw, 28px)', alignItems: 'flex-start' as const }
-      : { bottom: 'clamp(14px, 2.4vh, 28px)', right: 'clamp(14px, 2.4vw, 28px)', alignItems: 'flex-end' as const }),
+      ? { top: '16%', left: 'clamp(14px, 2.4vw, 28px)', alignItems: 'flex-start' as const }
+      : { bottom: '16%', right: 'clamp(14px, 2.4vw, 28px)', alignItems: 'flex-end' as const }),
     display: 'flex', flexDirection: 'column' as const, gap: '4px',
     maxWidth: 'clamp(130px, 16vw, 240px)',
     background: 'none', border: 0, padding: '6px', margin: 0, cursor: 'pointer',
@@ -446,7 +450,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // dengan kandungan lain semasa navigasi.
   // ==========================================================================================
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)', display: 'flex', flexDirection: 'column' }}>
       {backdropImage && (
         <div aria-hidden="true" style={{
           position: 'absolute', inset: 0, backgroundImage: 'url(' + backdropImage + ')',
@@ -454,34 +458,34 @@ export const FocusView: React.FC<FocusViewProps> = ({
         }} />
       )}
 
-      <div style={{ position: 'relative', height: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.6vh, 18px) 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* MASTHEAD — merentasi lebar PENUH viewport (bukan dihadkan lebar helaian sempit di bawah),
+          logo di bucu kiri sebenar, tutup di bucu kanan sebenar. 2026-07-29: dipisahkan daripada
+          helaian sempit selepas pemilik projek tunjuk logo kelihatan "di tengah-tengah" — punca:
+          logo/tutup rujukan di bucu VIEWPORT, bukan bucu lajur bacaan yang kini sengaja sempit
+          (64%) untuk beri ruang nav penjuru. */}
+      <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
+        {onClose && (
+          <button {...closeProps} style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            background: 'none', border: 0, padding: 0, cursor: 'pointer', lineHeight: 1,
+            color: closeLit ? 'var(--color-Adjung-maroon)' : 'var(--stone-400)',
+            transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          }}>
+            <X size={16} strokeWidth={1.75} />
+          </button>
+        )}
+      </div>
+
+      <div style={{ position: 'relative', flex: '1 1 auto', minHeight: 0, boxSizing: 'border-box', padding: 'clamp(10px, 1.6vh, 18px) 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Helaian dipersempit (86%→64%, 2026-07-29) — lajur lebar penuh tidak tinggalkan margin
             cukup untuk nav penjuru (preview kandungan sebelum/selepas) duduk selesa tanpa sesak
             dengan kandungan utama. Disahkan terhadap mockup rujukan: helaian ~51-65% lebar
             viewport, margin kiri/kanan cukup luas untuk preview + anak panah. */}
         <div style={{
           width: 'min(64%, 900px)', height: '100%', maxHeight: '100%', boxSizing: 'border-box',
-          display: 'grid', gridTemplateRows: 'auto auto auto minmax(0, 1fr) clamp(140px, 22vh, 200px) auto',
+          display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) clamp(140px, 22vh, 200px) auto',
         }}>
-
-          {/* MASTHEAD — logo + tutup sahaja. Bidang/Topik/tarikh siaran dipindah ke baris eyebrow
-              di bawah, terus atas tajuk (bukan di sini lagi). */}
-          <div>
-            <hr style={rule} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
-              {onClose && (
-                <button {...closeProps} style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'none', border: 0, padding: 0, cursor: 'pointer', lineHeight: 1,
-                  color: closeLit ? 'var(--color-Adjung-maroon)' : 'var(--stone-400)',
-                  transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-                }}>
-                  <X size={16} strokeWidth={1.75} />
-                </button>
-              )}
-            </div>
-          </div>
 
           {/* EYEBROW + TARIKH SIARAN — terus atas tajuk. Tanpa label "Siaran" (dibuang
               2026-07-29); format nombor tarikh siaran tidak berubah, cuma kedudukan/label. Jurang
@@ -517,7 +521,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               kandungan lain (sama falsafah "mengkhaskan ruang" seperti sebelum ini). Plat
               ilustrasi Bidang — lihat `showIllustration` — mengalah kepada grafik/berkaitan/nota
               sebenar secara automatik, tiada perubahan logik. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 9fr)', columnGap: 'clamp(20px, 2.8vw, 40px)', alignItems: 'center', paddingTop: 'clamp(10px, 1.8vh, 18px)', borderTop: '1px solid var(--border-subtle)', minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 9fr)', columnGap: 'clamp(20px, 2.8vw, 40px)', alignItems: 'center', paddingTop: 'clamp(10px, 1.8vh, 18px)', minHeight: 0, overflow: 'hidden' }}>
             <div style={{ height: '100%', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showIllustration && (
                 <div
@@ -551,7 +555,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                     {related.slice(0, 2).map((r, i) => {
                       const item: FocusRelatedItem = typeof r === 'string' ? { title: r } : r;
                       return (
-                        <li key={i} style={{ display: 'flex', gap: '12px', padding: '9px 0', borderTop: '1px solid var(--border-subtle)' }}>
+                        <li key={i} style={{ display: 'flex', gap: '12px', padding: '9px 0' }}>
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', color: 'var(--color-Adjung-maroon)', paddingTop: '3px' }}>{String(i + 1).padStart(2, '0')}</span>
                           <a href={item.url || '#'} style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{item.title}</a>
                         </li>
@@ -571,10 +575,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
 
           {/* KOLOFON — sumber + tarikh sumber · editor + hubungan. `sourceDate` diterima di sini
               sudah dalam format Melayu panjang ("29 Julai 26") — pemanggil yang uruskan format,
-              fail ni cuma papar apa yang diterima, falsafah sedia ada dikekalkan. */}
+              fail ni cuma papar apa yang diterima, falsafah sedia ada dikekalkan. Garisan `<hr>`
+              dibuang 2026-07-29 (permintaan pemilik projek: buang semua garisan). */}
           <div>
-            <hr style={rule} />
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '32px', paddingTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '32px', paddingTop: 'clamp(16px, 2.6vh, 26px)' }}>
               <span style={{ maxWidth: '62%', lineHeight: 1.5 }}>
                 <span style={micro}>Sumber</span>
                 <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
@@ -614,7 +618,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
         <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} style={cornerNav('top-left', hovered === 'prev')} {...navProps('prev')}>
           <span style={{ fontSize: 'clamp(13px, 1.1vw, 16px)', lineHeight: 1 }}>▲</span>
           {prevPreviewTitle && (
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.4, textAlign: 'left', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.4, textAlign: 'left' }}>
               {prevPreviewTitle}
             </span>
           )}
@@ -623,7 +627,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
       {onNext && (
         <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} style={cornerNav('bottom-right', hovered === 'next')} {...navProps('next')}>
           {nextPreviewTitle && (
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.4, textAlign: 'right', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.4, textAlign: 'right' }}>
               {nextPreviewTitle}
             </span>
           )}
