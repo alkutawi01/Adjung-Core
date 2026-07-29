@@ -217,37 +217,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
   //
   // Apabila medan itu disambungkan kepada sumber data nanti, jaminan tanpa-reflow handoff boleh
   // dihidupkan semula per medan dengan memulangkan pemegang tempat ini.
-  // Nav penjuru menyala marun pada hover DAN pada fokus papan kekunci — kedua-duanya, bukan hover
-  // sahaja (kekal daripada versi chevron kiri/kanan terdahulu). Nilai motion ditulis terus (150ms,
-  // cubic-bezier(0.4,0,0.2,1)) kerana --duration-fast dan --ease-standard tidak wujud dalam
-  // src/index.css; ia token projek Claude Design sahaja.
   //
-  // Terapung penjuru (2026-07-29, gantikan chevron sisi mendatar lama): atas-kiri "sebelum",
-  // bawah-kanan "seterusnya" — padan susun atur mockup rujukan. Lebar dihadkan supaya preview
-  // tajuk panjang tidak melimpah ke tengah skrin.
-  // Jarak dari bucu skrin dinaikkan ke 16% (bukan clamp(14-28px)) 2026-07-29 — nombor asal
-  // terlalu dekat bucu, preview jadi sesak dengan masthead (atas) dan kolofon (bawah). Padan
-  // mockup rujukan: preview "sebelum" sejajar kasar dengan zon eyebrow/tajuk, "seterusnya"
-  // sejajar kasar dengan zon imej/berkaitan — bukan melekat di bucu mutlak.
-  const cornerNav = (corner: 'top-left' | 'bottom-right', on: boolean): React.CSSProperties => ({
-    position: 'absolute',
-    ...(corner === 'top-left'
-      ? { top: '16%', left: 'clamp(14px, 2.4vw, 28px)', alignItems: 'flex-start' as const }
-      : { bottom: '16%', right: 'clamp(14px, 2.4vw, 28px)', alignItems: 'flex-end' as const }),
-    display: 'flex', flexDirection: 'column' as const, gap: '4px',
-    maxWidth: 'clamp(130px, 16vw, 240px)',
-    background: 'none', border: 0, padding: '6px', margin: 0, cursor: 'pointer',
-    color: on ? 'var(--color-Adjung-maroon)' : 'var(--stone-400)',
-    // Samar secara lalai (permintaan pemilik projek 2026-07-29) — cuma nampak jelas bila
-    // hover/fokus, supaya tak bersaing tumpuan dengan kandungan utama.
-    opacity: on ? 1 : 0.45,
-    transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-  });
-  const [hovered, setHovered] = React.useState<'prev' | 'next' | null>(null);
-  const navProps = (key: 'prev' | 'next') => ({
-    onMouseEnter: () => setHovered(key), onMouseLeave: () => setHovered(null),
-    onFocus: () => setHovered(key), onBlur: () => setHovered(null),
-  });
+  // Nav penjuru terapung (chevron/anak panah bucu skrin) DIBUANG SEPENUHNYA 2026-07-29 —
+  // permintaan pemilik projek selepas ia jadi lebihan: preview Sebelum/Selepas di kandungan
+  // utama (guna prevPreviewTitle/nextPreviewTitle terus, klik untuk navigasi) sudah cukup
+  // sebagai sasaran klik + isyarat visual, tiada keperluan salinan kedua di penjuru.
 
   // Papan kekunci (Esc/ArrowUp/ArrowDown) dikendalikan SATU tempat sahaja: FrontpageView.tsx
   // (pemanggil tunggal fail ni). Versi terdahulu ada listener kedua di sini juga — kedua-dua
@@ -494,32 +468,30 @@ export const FocusView: React.FC<FocusViewProps> = ({
           display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) minmax(140px, auto)',
         }}>
 
-          {/* EYEBROW + TARIKH SIARAN — terus atas tajuk. Tanpa label "Siaran" (dibuang
-              2026-07-29); format nombor tarikh siaran tidak berubah, cuma kedudukan/label. Jurang
+          {/* EYEBROW — terus atas tajuk. Tanpa label "Siaran" (dibuang 2026-07-29). Jurang
               atas lebih lapang (2026-07-29, disahkan terhadap mockup rujukan) — versi pertama
               terlalu rapat dengan masthead berbanding rujukan. */}
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '16px', padding: 'clamp(28px, 5vh, 56px) 0 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: 'clamp(28px, 5vh, 56px) 0 0' }}>
             {label && (
               <span style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any, whiteSpace: 'nowrap' }}>{label}</span>
-            )}
-            {publishedDate && (
-              <span style={{ ...micro, fontFamily: 'var(--font-mono)', color: 'var(--stone-500)', letterSpacing: 'var(--tracking-wide)', whiteSpace: 'nowrap' }}>{publishedDate}</span>
             )}
           </div>
 
           {/* TAJUK — statik, tiada scroll. Saiz melangkah 44/37/31/27 mengikut kiraan aksara. */}
-          <h1 style={{ margin: 'clamp(8px, 1.4vh, 14px) 0 0', fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty' }}>{title}</h1>
+          <h1 style={{ margin: 'clamp(8px, 1.4vh, 14px) 0 0', fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'center' }}>{title}</h1>
 
           {/* HURAIAN PANJANG — SATU-SATUNYA bahagian Focus View yang menatal. Satu lajur,
               perenggan berturutan (pembahagian dua-ukuran lama dibuang bersama huraian pendek). */}
-          <div ref={bodyRef} style={{ minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', padding: 'clamp(16px, 2.6vh, 26px) 0', ...bodyFade }}>
-            {paragraphs.length > 0 && (
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-15)', fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty' }}>
-                {paragraphs.map((para, j) => (
-                  <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{para}</p>
-                ))}
-              </div>
-            )}
+          <div style={{ minHeight: 0, margin: 'clamp(10px, 1.6vh, 18px) 0', overflow: 'hidden', display: 'flex' }}>
+            <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', padding: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
+              {paragraphs.length > 0 && (
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-15)', fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'center' }}>
+                  {paragraphs.map((para, j) => (
+                    <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{para}</p>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* IMEJ + KANDUNGAN BERKAITAN — jalur di bawah huraian panjang, dua sub-lajur. Tinggi
@@ -564,24 +536,27 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 dianggap hodoh, dan medan `related` tiada sumber data sebenar buat masa ni
                 lagipun). Digantikan preview kandungan Sebelum/Selepas (mod navigasi rawak) —
                 data sama yang dipakai nav penjuru terapung, jadi tiada plumbing baharu. */}
-            <div style={{ minWidth: 0, maxWidth: '85%', display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.6vh, 16px)' }}>
+            {/* maxWidth 85% dibuang 2026-07-29 — sisa dari zaman "Kandungan Berkaitan"; preview
+                Sebelum/Selepas kini sampai ke tepi kanan penuh kolum grid, sejajar tepi kanan
+                tajuk/huraian panjang di atas (permintaan pemilik projek). */}
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.6vh, 16px)' }}>
               {(prevPreviewTitle || nextPreviewTitle) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.4vh, 14px)' }}>
                   {prevPreviewTitle && (
                     <button
                       type="button" onClick={onPrev}
-                      style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onPrev ? 'pointer' : 'default' }}
+                      style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: '8px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onPrev ? 'pointer' : 'default' }}
                     >
-                      <span style={micro}>Sebelum</span>
+                      <span style={{ ...micro, textTransform: 'none' as any, fontSize: 'var(--text-11)', flex: '0 0 auto' }} aria-hidden="true">▲</span>
                       <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{prevPreviewTitle}</span>
                     </button>
                   )}
                   {nextPreviewTitle && (
                     <button
                       type="button" onClick={onNext}
-                      style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onNext ? 'pointer' : 'default' }}
+                      style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: '8px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onNext ? 'pointer' : 'default' }}
                     >
-                      <span style={micro}>Selepas</span>
+                      <span style={{ ...micro, textTransform: 'none' as any, fontSize: 'var(--text-11)', flex: '0 0 auto' }} aria-hidden="true">▼</span>
                       <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{nextPreviewTitle}</span>
                     </button>
                   )}
@@ -599,24 +574,30 @@ export const FocusView: React.FC<FocusViewProps> = ({
         </div>
       </div>
 
-      {/* KOLOFON — sumber + tarikh sumber (bucu kiri) · editor + hubungan (bucu kanan). Merentasi
-          lebar PENUH viewport, sama corak macam MASTHEAD (2026-07-29) — bukan lagi dihadkan
-          lebar helaian bacaan sempit. `sourceDate` diterima di sini sudah dalam format Melayu
-          panjang ("29 Julai 26") — pemanggil yang uruskan format, fail ni cuma papar apa yang
-          diterima. Garisan halus dikembalikan (permintaan pemilik projek selepas cuba tanpa
-          garisan). */}
+      {/* KOLOFON — sumber + tarikh sumber, editor + hubungan. Merentasi lebar PENUH viewport
+          (sama corak macam MASTHEAD), TAPI "Sumber" sendiri dijajarkan dengan tepi kiri TAJUK
+          (2026-07-29, permintaan pemilik projek) — bukan tepi kiri viewport. Dicapai dengan
+          pembalut dalaman width:min(64%,900px) DIPUSATKAN, formula SAMA seperti helaian bacaan
+          di atas, supaya kedua-duanya kekal sejajar pada sebarang lebar skrin tanpa perlu kira
+          jidar secara manual. Editor kekal bucu kanan sebenar (posisi mutlak, tidak disentuh).
+          `sourceDate` diterima di sini sudah dalam format Melayu panjang ("29 Julai 26") —
+          pemanggil yang uruskan format, fail ni cuma papar apa yang diterima. */}
       <hr style={{ ...rule, flex: '0 0 auto' }} />
-      <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '32px' }}>
-        <span style={{ maxWidth: '48%', lineHeight: 1.5 }}>
-          <span style={micro}>Sumber</span>
-          <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
-            <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
-            {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
+      <div style={{ position: 'relative', flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) 0', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: 'min(64%, 900px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px' }}>
+          <span style={{ maxWidth: '70%', lineHeight: 1.5 }}>
+            <span style={micro}>Sumber</span>
+            <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
+              <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
+              {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
+            </span>
           </span>
-        </span>
-        {/* alignItems: flex-end dalam lajur flex — text-align sahaja membiarkan tepi hanyut */}
+          {publishedDate && (
+            <span style={{ ...micro, fontFamily: 'var(--font-mono)', color: 'var(--stone-500)', letterSpacing: 'var(--tracking-wide)', whiteSpace: 'nowrap' }}>{publishedDate}</span>
+          )}
+        </div>
         {(editorName || editorContact) && (
-          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+          <span style={{ position: 'absolute', right: 'clamp(16px, 3vw, 40px)', bottom: 'clamp(10px, 1.8vh, 18px)', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
             {editorName && (
               <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', color: 'var(--color-Adjung-maroon)' }}>{editorName}</span>
             )}
@@ -634,22 +615,6 @@ export const FocusView: React.FC<FocusViewProps> = ({
         )}
       </div>
 
-      {/* NAV PENJURU — mod rawak: atas-kiri "sebelum" (undur sejarah), bawah-kanan "seterusnya"
-          (lompat rawak). HANYA anak panah, TIADA teks preview di sini lagi (2026-07-29) — preview
-          tajuk kini di jalur Sebelum/Selepas dalam kandungan utama, teks di sini jadi berganda
-          dengan itu (pemilik projek tunjuk pangkah). Anak panah ni kekal sebagai sasaran klik +
-          isyarat visual sahaja. Terapung di penjuru viewport (position:absolute pada pembalut
-          fixed terluar, BUKAN di dalam helaian dipusatkan). */}
-      {onPrev && (
-        <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} style={cornerNav('top-left', hovered === 'prev')} {...navProps('prev')}>
-          <span style={{ fontSize: 'clamp(13px, 1.1vw, 16px)', lineHeight: 1 }}>▲</span>
-        </button>
-      )}
-      {onNext && (
-        <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} style={cornerNav('bottom-right', hovered === 'next')} {...navProps('next')}>
-          <span style={{ fontSize: 'clamp(13px, 1.1vw, 16px)', lineHeight: 1 }}>▼</span>
-        </button>
-      )}
     </div>
   );
 };

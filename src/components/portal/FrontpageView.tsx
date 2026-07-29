@@ -386,7 +386,7 @@ const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
       position: 'relative' as const,
     },
     deskStyle: {
-      color: item.categoryColor || (finalIsDark ? '#E9D8A6' : '#802334')
+      color: finalIsDark ? '#E9D8A6' : '#802334'
     },
     titleStyle: {
       color: finalTextColor
@@ -6419,7 +6419,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           ) : undefined}
           desk={focusItem.desk}
           topik={focusItem.topik}
-          deskColor={focusBidang?.color || categoryColors[(focusItem.desk||"").toLowerCase()] || undefined}
+          deskColor={undefined}
           illustrationSvg={focusIllustration}
           title={asPlainText(focusItem.titleString) || asPlainText(focusItem.title)}
           body={asPlainText(focusItem.briefLong)}
