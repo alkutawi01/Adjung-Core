@@ -484,7 +484,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             viewport, margin kiri/kanan cukup luas untuk preview + anak panah. */}
         <div style={{
           width: 'min(64%, 900px)', height: '100%', maxHeight: '100%', boxSizing: 'border-box',
-          display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) clamp(140px, 22vh, 200px) auto',
+          display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) clamp(140px, 22vh, 200px)',
         }}>
 
           {/* EYEBROW + TARIKH SIARAN — terus atas tajuk. Tanpa label "Siaran" (dibuang
@@ -547,7 +547,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
               )}
             </div>
 
-            <div style={{ minWidth: 0, maxHeight: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.6vh, 16px)' }}>
+            {/* maxWidth 85% (bukan 100% kolum grid) 2026-07-29 — pemilik projek minta kolum
+                nota/berkaitan dikecilkan sikit; kolum imej sebelah tidak disentuh. */}
+            <div style={{ minWidth: 0, maxWidth: '85%', maxHeight: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.6vh, 16px)' }}>
               {related.length > 0 && (
                 <div style={{ flex: '0 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' }}>
                   <span style={{ ...micro, display: 'block', marginBottom: '6px' }}>Kandungan berkaitan</span>
@@ -573,40 +575,40 @@ export const FocusView: React.FC<FocusViewProps> = ({
             </div>
           </div>
 
-          {/* KOLOFON — sumber + tarikh sumber · editor + hubungan. `sourceDate` diterima di sini
-              sudah dalam format Melayu panjang ("29 Julai 26") — pemanggil yang uruskan format,
-              fail ni cuma papar apa yang diterima, falsafah sedia ada dikekalkan. Garisan `<hr>`
-              dibuang 2026-07-29 (permintaan pemilik projek: buang semua garisan). */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '32px', paddingTop: 'clamp(16px, 2.6vh, 26px)' }}>
-              <span style={{ maxWidth: '62%', lineHeight: 1.5 }}>
-                <span style={micro}>Sumber</span>
-                <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
-                  <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
-                  {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
-                </span>
-              </span>
-              {/* alignItems: flex-end dalam lajur flex — text-align sahaja membiarkan tepi hanyut */}
-              {(editorName || editorContact) && (
-                <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-                  {editorName && (
-                    <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', color: 'var(--color-Adjung-maroon)' }}>{editorName}</span>
-                  )}
-                  {editorContact && (
-                    <a
-                      href={editorContact.includes('@') ? 'mailto:' + editorContact : 'https://' + editorContact}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ ...micro, color: 'var(--stone-500)', textTransform: 'none', letterSpacing: 'var(--tracking-wide)', fontWeight: 'var(--weight-regular)' as any }}
-                    >
-                      {editorContact}
-                    </a>
-                  )}
-                </span>
-              )}
-            </div>
-          </div>
         </div>
+      </div>
+
+      {/* KOLOFON — sumber + tarikh sumber (bucu kiri) · editor + hubungan (bucu kanan). Merentasi
+          lebar PENUH viewport, sama corak macam MASTHEAD (2026-07-29) — bukan lagi dihadkan
+          lebar helaian bacaan sempit. `sourceDate` diterima di sini sudah dalam format Melayu
+          panjang ("29 Julai 26") — pemanggil yang uruskan format, fail ni cuma papar apa yang
+          diterima. Garisan `<hr>` dibuang (permintaan pemilik projek: buang semua garisan). */}
+      <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '32px' }}>
+        <span style={{ maxWidth: '48%', lineHeight: 1.5 }}>
+          <span style={micro}>Sumber</span>
+          <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
+            <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
+            {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
+          </span>
+        </span>
+        {/* alignItems: flex-end dalam lajur flex — text-align sahaja membiarkan tepi hanyut */}
+        {(editorName || editorContact) && (
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+            {editorName && (
+              <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', color: 'var(--color-Adjung-maroon)' }}>{editorName}</span>
+            )}
+            {editorContact && (
+              <a
+                href={editorContact.includes('@') ? 'mailto:' + editorContact : 'https://' + editorContact}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ ...micro, color: 'var(--stone-500)', textTransform: 'none', letterSpacing: 'var(--tracking-wide)', fontWeight: 'var(--weight-regular)' as any }}
+              >
+                {editorContact}
+              </a>
+            )}
+          </span>
+        )}
       </div>
 
       {/* NAV PENJURU — mod rawak: atas-kiri "sebelum" (undur sejarah), bawah-kanan "seterusnya"
