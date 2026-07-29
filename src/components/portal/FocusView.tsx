@@ -458,17 +458,17 @@ export const FocusView: React.FC<FocusViewProps> = ({
         }} />
       )}
 
-      {/* MASTHEAD — merentasi lebar PENUH viewport (bukan dihadkan lebar helaian sempit di bawah),
-          logo di bucu kiri sebenar, tutup di bucu kanan sebenar. 2026-07-29: dipisahkan daripada
-          helaian sempit selepas pemilik projek tunjuk logo kelihatan "di tengah-tengah" — punca:
-          logo/tutup rujukan di bucu VIEWPORT, bukan bucu lajur bacaan yang kini sengaja sempit
-          (64%) untuk beri ruang nav penjuru. */}
-      <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
+      {/* MASTHEAD — merentasi lebar PENUH viewport (bukan dihadkan lebar helaian sempit di bawah).
+          Logo DI TENGAH-TENGAH bar ni (bukan kiri) — grid 3-lajur (1fr/auto/1fr) supaya logo
+          benar-benar tengah tanpa terjejas oleh kehadiran/ketiadaan butang tutup di sisi (flex
+          space-between cuma tolak ke tepi, tak pusatkan). Tutup kekal bucu kanan. */}
+      <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
+        <span />
+        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
         {onClose && (
           <button {...closeProps} style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background: 'none', border: 0, padding: 0, cursor: 'pointer', lineHeight: 1,
+            justifySelf: 'end', background: 'none', border: 0, padding: 0, cursor: 'pointer', lineHeight: 1,
             color: closeLit ? 'var(--color-Adjung-maroon)' : 'var(--stone-400)',
             transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
@@ -484,7 +484,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             viewport, margin kiri/kanan cukup luas untuk preview + anak panah. */}
         <div style={{
           width: 'min(64%, 900px)', height: '100%', maxHeight: '100%', boxSizing: 'border-box',
-          display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) clamp(140px, 22vh, 200px)',
+          display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) auto',
         }}>
 
           {/* EYEBROW + TARIKH SIARAN — terus atas tajuk. Tanpa label "Siaran" (dibuang
@@ -515,27 +515,28 @@ export const FocusView: React.FC<FocusViewProps> = ({
             )}
           </div>
 
-          {/* IMEJ + KANDUNGAN BERKAITAN — jalur statik di bawah huraian panjang, dua sub-lajur.
-              Tinggi jalur ni TETAP (baris grid clamp di atas) sama ada berisi atau kosong, supaya
-              baris huraian panjang di atas tidak berkembang/mengecut antara satu kandungan dengan
-              kandungan lain (sama falsafah "mengkhaskan ruang" seperti sebelum ini). Plat
-              ilustrasi Bidang — lihat `showIllustration` — mengalah kepada grafik/berkaitan/nota
-              sebenar secara automatik, tiada perubahan logik. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 9fr)', columnGap: 'clamp(20px, 2.8vw, 40px)', alignItems: 'center', paddingTop: 'clamp(10px, 1.8vh, 18px)', minHeight: 0, overflow: 'hidden' }}>
-            <div style={{ height: '100%', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* IMEJ + KANDUNGAN BERKAITAN — jalur di bawah huraian panjang, dua sub-lajur. Tinggi
+              jalur ni SEMULA JADI (auto, bukan tinggi tetap 2026-07-29) — tumbuh ikut kandungan
+              sebenar (imej/berkaitan/nota), supaya TIADA kotak scroll sendiri di sini. Baris
+              huraian panjang (minmax(0,1fr)) di atas yang menyerap sisa ruang dan membawa
+              SATU-SATUNYA kotak scroll di seluruh Focus View (permintaan eksplisit pemilik
+              projek). Plat ilustrasi Bidang — lihat `showIllustration` — mengalah kepada
+              grafik/berkaitan/nota sebenar secara automatik, tiada perubahan logik. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 9fr)', columnGap: 'clamp(20px, 2.8vw, 40px)', alignItems: 'center', paddingTop: 'clamp(10px, 1.8vh, 18px)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showIllustration && (
                 <div
                   aria-hidden="true"
                   className="bidang-illustration"
-                  style={{ height: '100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-Adjung-maroon)', opacity: 0.9, pointerEvents: 'none' }}
+                  style={{ height: '180px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-Adjung-maroon)', opacity: 0.9, pointerEvents: 'none' }}
                   dangerouslySetInnerHTML={{ __html: illustrationSvg as string }}
                 />
               )}
 
               {visual && (
-                <figure style={{ margin: 0, width: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <figure style={{ margin: 0, width: '100%', display: 'flex', flexDirection: 'column' }}>
                   <div style={{
-                    width: '100%', aspectRatio: '4 / 3', minHeight: 0, maxHeight: '100%',
+                    width: '100%', aspectRatio: '4 / 3', maxHeight: 'clamp(140px, 20vh, 220px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
                   }}>
                     {plate}
@@ -549,9 +550,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
 
             {/* maxWidth 85% (bukan 100% kolum grid) 2026-07-29 — pemilik projek minta kolum
                 nota/berkaitan dikecilkan sikit; kolum imej sebelah tidak disentuh. */}
-            <div style={{ minWidth: 0, maxWidth: '85%', maxHeight: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.6vh, 16px)' }}>
+            <div style={{ minWidth: 0, maxWidth: '85%', display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.6vh, 16px)' }}>
               {related.length > 0 && (
-                <div style={{ flex: '0 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none' }}>
+                <div>
                   <span style={{ ...micro, display: 'block', marginBottom: '6px' }}>Kandungan berkaitan</span>
                   <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                     {related.slice(0, 2).map((r, i) => {
@@ -568,7 +569,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               )}
 
               {note && (
-                <p title={note} style={{ flex: '0 0 auto', margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden' }}>
+                <p title={note} style={{ margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)' }}>
                   <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText}
                 </p>
               )}
