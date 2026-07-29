@@ -125,6 +125,26 @@ const getDisplayDate = (raw?: string): string => {
   return trimmed;
 };
 
+const MALAY_MONTHS = [
+  'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun',
+  'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember',
+];
+
+// Focus View sahaja: tarikh sumber gaya Melayu panjang ("29 Julai 26") bukan "29.07.26" biasa.
+// Hanya menukar bila raw padan TEPAT corak DD.MM.YY (konvensyen sebenar medan "Tarikh sumber" di
+// seluruh apl ni) — kalau tidak padan (tahun sahaja, teks bebas lama dll.), jatuh balik ke
+// getDisplayDate() tidak disentuh, ikut falsafah sama: jangan hilangkan/rosakkan tarikh separa.
+const formatTarikhSumberPanjang = (raw?: string): string => {
+  const trimmed = getDisplayDate(raw);
+  if (!trimmed) return '';
+  const m = trimmed.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+  if (!m) return trimmed;
+  const [, dd, mm, yy] = m;
+  const monthName = MALAY_MONTHS[parseInt(mm, 10) - 1];
+  if (!monthName) return trimmed;
+  return `${parseInt(dd, 10)} ${monthName} ${yy}`;
+};
+
 // Label kad awam: "Bidang | Topik". Kandungan lama tanpa Topik papar Bidang sahaja (tiada backfill).
 // Format sebenar datang dari eyebrowLabel() di GeometryConfig.js — sumber yang SAMA digunakan oleh
 // validateBidangTopik() semasa simpan. Jangan tulis semula format ni di sini: kalau ia bercabang,
@@ -2058,6 +2078,13 @@ URL: ${url}`;
   type FocusLoc = { slotIndex: number; itemIndex: number };
 
   const [focusLoc, setFocusLoc] = useState<FocusLoc | null>(null);
+  /** Tindanan lokasi dilawati (mod navigasi rawak) — entri terakhir ialah `focusLoc` semasa.
+   *  "Sebelum" ialah UNDUR sejarah ni, BUKAN lompat rawak baharu — padan corak "Rawak" Wikipedia +
+   *  butang undur pelayar, bukan carousel dua-hala. */
+  const [focusHistory, setFocusHistory] = useState<FocusLoc[]>([]);
+  /** Sasaran "seterusnya" rawak, DIGULUNG SEBELUM diklik (bukan pada saat klik) — supaya teks
+   *  preview di sebelah anak panah bawah sepadan TEPAT dengan destinasi sebenar bila ditekan. */
+  const [nextRandomLoc, setNextRandomLoc] = useState<FocusLoc | null>(null);
 
   /** Senarai item bagi satu slot — carousel penuh, atau slot itu sendiri kalau tunggal. */
   const focusItemsForSlot = React.useCallback((slotIndex: number): any[] => {
@@ -2087,7 +2114,7 @@ URL: ${url}`;
     const loc = focusAllLocations.find(
       l => focusItemsForSlot(l.slotIndex)[l.itemIndex] === item
     );
-    if (loc) setFocusLoc(loc);
+    if (loc) { setFocusLoc(loc); setFocusHistory([loc]); }
   };
 
   /** Pengendali klik untuk tajuk/huraian pada kad. Dalam mod edit ia berdiam diri supaya
@@ -2100,30 +2127,58 @@ URL: ${url}`;
 
   const closeFocus = () => setFocusLoc(null);
 
-  /** Gerak ±1 dalam slot yang sama, berkitar di hujungnya. Slot berkandungan tunggal tidak
-   *  bergerak langsung. Reka bentuk Focus View menetapkan chevron melangkah dalam slot semasa
-   *  sahaja — ia tidak melompat ke slot lain. */
-  const stepFocus = React.useCallback((delta: number) => {
-    setFocusLoc(current => {
-      if (!current) return current;
-      const list = focusItemsForSlot(current.slotIndex);
-      if (list.length <= 1) return current;
-      const next = (current.itemIndex + delta + list.length) % list.length;
-      return { ...current, itemIndex: next };
-    });
-  }, [focusItemsForSlot]);
+  // Gulung SATU sasaran rawak baharu setiap kali focusLoc berubah (buka baharu ATAU navigasi) —
+  // bukan pada saat klik — supaya preview tajuk anak panah bawah sepadan destinasi sebenar.
+  // Elak sasaran = kedudukan semasa bila > 1 pilihan wujud (loop cuma ulang sekali, senarai ni
+  // biasanya puluhan item, peluang perlu ulang sangat rendah).
+  //
+  // SENGAJA cuma `focusLoc` dalam dependency — BUKAN `focusAllLocations` juga. bentoNewsItems (dan
+  // jadi focusAllLocations) recompute setiap kitaran carousel automatik (carouselIndices berubah),
+  // jadi kalau focusAllLocations turut jadi dependency, effect ni tercetus semula setiap kitaran
+  // (rujukan array baharu tiap kali) → setState → render semula → gelung tanpa henti, apl blank
+  // (pepijat sebenar ditemui semasa ujian browser 2026-07-29). focusAllLocations dibaca via
+  // closure (nilai render SEMASA bila effect tercetus daripada focusLoc berubah) — cukup, sebab
+  // kita cuma perlu senarai calon SEMASA navigasi berlaku, bukan pantau perubahannya berterusan.
+  useEffect(() => {
+    if (!focusLoc || focusAllLocations.length === 0) { setNextRandomLoc(null); return; }
+    if (focusAllLocations.length === 1) { setNextRandomLoc(null); return; }
+    let candidate: FocusLoc;
+    do {
+      candidate = focusAllLocations[Math.floor(Math.random() * focusAllLocations.length)];
+    } while (candidate.slotIndex === focusLoc.slotIndex && candidate.itemIndex === focusLoc.itemIndex);
+    setNextRandomLoc(candidate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusLoc]);
 
-  // Kekunci: Esc tutup, kiri/kanan gerak — sama seperti paparan penuh Ticker.
+  /** Lompat ke sasaran rawak pra-gulung (`nextRandomLoc`), tolak kedudukan semasa ke sejarah. */
+  const focusNext = React.useCallback(() => {
+    if (!nextRandomLoc) return;
+    setFocusHistory(h => [...h, nextRandomLoc]);
+    setFocusLoc(nextRandomLoc);
+  }, [nextRandomLoc]);
+
+  /** Undur satu langkah dalam sejarah dilawati — BUKAN lompat rawak baharu. No-op kalau tiada
+   *  sejarah untuk diundur (kandungan pertama dibuka). */
+  const focusPrev = React.useCallback(() => {
+    setFocusHistory(h => {
+      if (h.length <= 1) return h;
+      const next = h.slice(0, -1);
+      setFocusLoc(next[next.length - 1]);
+      return next;
+    });
+  }, []);
+
+  // Kekunci: Esc tutup, atas/bawah gerak (mod rawak) — sama seperti paparan penuh Ticker.
   useEffect(() => {
     if (!focusLoc) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeFocus();
-      else if (e.key === 'ArrowRight') stepFocus(1);
-      else if (e.key === 'ArrowLeft') stepFocus(-1);
+      else if (e.key === 'ArrowDown') focusNext();
+      else if (e.key === 'ArrowUp') focusPrev();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [focusLoc, stepFocus]);
+  }, [focusLoc, focusNext, focusPrev]);
 
   /** Item mentah yang sedang dipapar, atau null. */
   const focusItem = React.useMemo(() => {
@@ -2134,6 +2189,26 @@ URL: ${url}`;
   // bentoNewsItems memarse title/brief jadi elemen React untuk dirender pada kad;
   // .titleString/.briefString simpan teks mentah. Focus View mahu yang mentah.
   const asPlainText = (v: any): string => (typeof v === 'string' ? v : '');
+
+  /** Tajuk kandungan SEBELUM (sejarah) dan SETERUSNYA (sasaran rawak pra-gulung), untuk preview
+   *  di sebelah anak panah atas/bawah Focus View. MESTI selepas `asPlainText` (bukan sebelum) —
+   *  useMemo panggil callback SEGERA semasa render semasa, jadi rujuk `const` yang belum sampai
+   *  baris ikrarnya lagi (asPlainText di bawah ni) kena ReferenceError zon-mati-sementara (TDZ),
+   *  bukan ralat kompil — tsc tak kesan ini sebab ia rujukan dalam closure, bukan guna terus.
+   *  Ditemui semasa ujian browser 2026-07-29 (skrin kosong, "Cannot access 'asPlainText' before
+   *  initialization"). */
+  const focusPrevTitle = React.useMemo(() => {
+    if (focusHistory.length < 2) return undefined;
+    const loc = focusHistory[focusHistory.length - 2];
+    const it = focusItemsForSlot(loc.slotIndex)[loc.itemIndex];
+    return it ? (asPlainText(it.titleString) || asPlainText(it.title)) : undefined;
+  }, [focusHistory, focusItemsForSlot]);
+
+  const focusNextTitle = React.useMemo(() => {
+    if (!nextRandomLoc) return undefined;
+    const it = focusItemsForSlot(nextRandomLoc.slotIndex)[nextRandomLoc.itemIndex];
+    return it ? (asPlainText(it.titleString) || asPlainText(it.title)) : undefined;
+  }, [nextRandomLoc, focusItemsForSlot]);
   // Peta nama Bidang (huruf kecil) -> rekod Bidang, untuk eyebrow kad mendapatkan glifnya tanpa
   // mencari senarai penuh 30 kali setiap render.
   const bidangByName = React.useMemo(() => {
@@ -6308,14 +6383,23 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
       )}
 
       {/* Full-screen Reading Display Overlay */}
-      {/* FOCUS VIEW — paparan penuh kandungan kad. `note` dan kini `visual` (medan "Imej" Urus
-          Slot, dimuat naik ke /api/media/upload — lihat SlotManagerModal.tsx) dihantar. `visual`
-          expects nod React (bukan URL mentah), jadi item.image dibalut jadi <img> di sini; kotak
-          "Lampiran visual" FocusView.tsx sendiri yang uruskan saiz (objectFit contain, 4:3) dan
-          ia mengalah kepada plat ilustrasi Bidang secara automatik (lihat showIllustration).
-          `related`, `editorName`/`editorContact` masih sengaja tidak dihantar: medannya belum
-          wujud dalam DB, jadi bahagian tu render pemegang tempat (itu yang reka bentuk arahkan),
-          bukan diisi data palsu.
+      {/* FOCUS VIEW — paparan penuh kandungan kad. Huraian PENDEK sengaja tidak dihantar (dan
+          tidak lagi diterima sebagai prop) sejak 2026-07-29 — hanya huraian panjang dipapar,
+          keputusan pemilik projek. `note` dan `visual` (medan "Imej" Urus Slot, dimuat naik ke
+          /api/media/upload — lihat SlotManagerModal.tsx) dihantar. `visual` expects nod React
+          (bukan URL mentah), jadi item.image dibalut jadi <img> di sini; kotak "Lampiran visual"
+          FocusView.tsx sendiri yang uruskan saiz (objectFit contain, 4:3) dan ia mengalah kepada
+          plat ilustrasi Bidang secara automatik (lihat showIllustration). `related`,
+          `editorName`/`editorContact` masih sengaja tidak dihantar: medannya belum wujud dalam
+          DB, jadi bahagian tu render pemegang tempat (itu yang reka bentuk arahkan), bukan diisi
+          data palsu.
+
+          Navigasi (`onPrev`/`onNext`/`prevPreviewTitle`/`nextPreviewTitle`) mod RAWAK sejak
+          2026-07-29: `onNext` lompat ke `nextRandomLoc` pra-gulung (merentasi SELURUH laman, guna
+          `focusAllLocations`, bukan dalam satu slot sahaja lagi), `onPrev` UNDUR `focusHistory`
+          (sejarah dilawati) bukan rawak baharu — corak sama "Rawak" Wikipedia + butang undur.
+          Keduanya `undefined` (bukan chevron dilumpuhkan) bila tiada sasaran/sejarah, ikut pola
+          render-hanya-bila-ada-isi FocusView.tsx sedia ada.
 
           `backdropImage` juga sengaja tidak dihantar. `item.imageUrl` ialah imej LATAR KAD
           (imej hiasan yang menggantikan seluruh paparan kad bento) — satu imej per SLOT,
@@ -6338,16 +6422,17 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           deskColor={focusBidang?.color || categoryColors[(focusItem.desk||"").toLowerCase()] || undefined}
           illustrationSvg={focusIllustration}
           title={asPlainText(focusItem.titleString) || asPlainText(focusItem.title)}
-          brief={asPlainText(focusItem.briefString) || asPlainText(focusItem.brief)}
           body={asPlainText(focusItem.briefLong)}
           visual={focusItem.image ? <img src={focusItem.image} alt={asPlainText(focusItem.titleString) || asPlainText(focusItem.title) || ''} /> : undefined}
           note={focusItem.note}
           source={focusItem.source}
           sourceUrl={focusItem.url}
-          sourceDate={getDisplayDate(focusItem.originalDate)}
+          sourceDate={formatTarikhSumberPanjang(focusItem.originalDate)}
           publishedDate={formatSiaranDate(focusItem.publishedAt)}
-          onPrev={() => stepFocus(-1)}
-          onNext={() => stepFocus(1)}
+          onPrev={focusHistory.length > 1 ? focusPrev : undefined}
+          onNext={nextRandomLoc ? focusNext : undefined}
+          prevPreviewTitle={focusPrevTitle}
+          nextPreviewTitle={focusNextTitle}
           onClose={closeFocus}
         />
       )}

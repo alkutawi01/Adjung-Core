@@ -90,19 +90,19 @@
    lebar dan lebih rendah. Server cuma menuntut viewBox WUJUD, bukan nombor tertentu — jadi CSS di
    sini yang bertanggungjawab mengandungkan apa sahaja nisbah yang datang.
    100% supaya ia mengecil bersama kolum pada tetingkap sempit, bukan melimpah. */
-/* Dihadkan oleh LEBAR dahulu, bukan tinggi.
-   Plat pertama berbentuk segi empat sama, dan 320px lebar ialah berat visual yang diluluskan
-   pemilik projek. Plat akan datang berbentuk POTRET — kalau tinggi yang mengehadkan, potret 3:4
-   akan mengecil kepada 240px lebar dan kelihatan kurus berbanding yang segi empat sama. Menghadkan
-   lebar mengekalkan berat visual yang sama merentas kedua-dua bentuk.
-   Had tinggi cuma jaring keselamatan supaya potret yang sangat panjang tidak membesarkan sheet dan
-   menyebabkan halaman menatal — kolum kanan 557px tinggi pada 1440x900, jadi 440px selamat.
-   vh disertakan untuk tetingkap pendek, di mana kolum itu sendiri mengecil. */
+/* 2026-07-29: kolum "imej" Focus View kini jalur STATIK bertinggi tetap (bukan lagi kolum kanan
+   tinggi-penuh 557px seperti reka bentuk lama — lihat FocusView.tsx). Pembalut .bidang-illustration
+   sendiri diberi height:100% eksplisit (definite, bukan vh), jadi plat dengar terus tinggi
+   pembalut tu — width:auto kekalkan nisbah asal, max-width jaring keselamatan sekiranya nisbah
+   plat sangat lebar berbanding tinggi jalur.
+   Nombor tetap (540px/60vh) lama dibuang: ia dikira khas untuk kolum ~557px yang tak lagi wujud;
+   guna nombor itu di jalur baharu yang jauh lebih rendah akan buat plat melimpah lalu terpotong
+   senyap oleh overflow:hidden induknya (pepijat sebenar ditemui semasa ujian browser). */
 .bidang-illustration > svg {
   max-width: 100%;
-  max-height: min(540px, 60vh);
+  max-height: 100%;
   width: auto;
-  height: auto;
+  height: 100%;
   display: block;
 }
 
