@@ -155,12 +155,13 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const [bodyRef, bodyFade] = useOverflowFade();
 
   // Plat ilustrasi Bidang menutup kolum kanan HANYA apabila kolum itu benar-benar kosong. Ia
-  // mengalah kepada kandungan sebenar tanpa kecuali: satu grafik, satu kandungan berkaitan atau
-  // satu nota sudah cukup untuk menyingkirkannya.
+  // mengalah kepada kandungan sebenar tanpa kecuali: satu grafik, satu preview Sebelum/Selepas
+  // atau satu nota sudah cukup untuk menyingkirkannya. (2026-07-29: "kandungan berkaitan"
+  // dibuang daripada semakan ni — digantikan preview Sebelum/Selepas di susun atur desktop.)
   //
   // Ia identiti Bidang, bukan kandungan — jadi ia tidak mendakwa apa-apa tentang rencana itu, dan
   // ia tidak mengumumkan ketiadaan seperti pemegang tempat bergaris putus yang dibuang dahulu.
-  const kananKosong = !visual && related.length === 0 && !note;
+  const kananKosong = !visual && !note && !prevPreviewTitle && !nextPreviewTitle;
   const showIllustration = kananKosong && !!illustrationSvg;
 
   // Nota melebihi hadnya dipotong di sempadan perkataan; teks penuh kekal dalam atribut `title`,
@@ -558,22 +559,32 @@ export const FocusView: React.FC<FocusViewProps> = ({
             </div>
 
             {/* maxWidth 85% (bukan 100% kolum grid) 2026-07-29 — pemilik projek minta kolum
-                nota/berkaitan dikecilkan sikit; kolum imej sebelah tidak disentuh. */}
+                nota/berkaitan dikecilkan sikit; kolum imej sebelah tidak disentuh.
+                "Kandungan berkaitan" DIBUANG 2026-07-29 (permintaan pemilik projek — paparan
+                dianggap hodoh, dan medan `related` tiada sumber data sebenar buat masa ni
+                lagipun). Digantikan preview kandungan Sebelum/Selepas (mod navigasi rawak) —
+                data sama yang dipakai nav penjuru terapung, jadi tiada plumbing baharu. */}
             <div style={{ minWidth: 0, maxWidth: '85%', display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.6vh, 16px)' }}>
-              {related.length > 0 && (
-                <div>
-                  <span style={{ ...micro, display: 'block', marginBottom: '6px' }}>Kandungan berkaitan</span>
-                  <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                    {related.slice(0, 2).map((r, i) => {
-                      const item: FocusRelatedItem = typeof r === 'string' ? { title: r } : r;
-                      return (
-                        <li key={i} style={{ display: 'flex', gap: '12px', padding: '9px 0', borderTop: '1px solid var(--border-subtle)' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', color: 'var(--color-Adjung-maroon)', paddingTop: '3px' }}>{String(i + 1).padStart(2, '0')}</span>
-                          <a href={item.url || '#'} style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{item.title}</a>
-                        </li>
-                      );
-                    })}
-                  </ol>
+              {(prevPreviewTitle || nextPreviewTitle) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.4vh, 14px)' }}>
+                  {prevPreviewTitle && (
+                    <button
+                      type="button" onClick={onPrev}
+                      style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onPrev ? 'pointer' : 'default' }}
+                    >
+                      <span style={micro}>Sebelum</span>
+                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{prevPreviewTitle}</span>
+                    </button>
+                  )}
+                  {nextPreviewTitle && (
+                    <button
+                      type="button" onClick={onNext}
+                      style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onNext ? 'pointer' : 'default' }}
+                    >
+                      <span style={micro}>Selepas</span>
+                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{nextPreviewTitle}</span>
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -624,27 +635,18 @@ export const FocusView: React.FC<FocusViewProps> = ({
       </div>
 
       {/* NAV PENJURU — mod rawak: atas-kiri "sebelum" (undur sejarah), bawah-kanan "seterusnya"
-          (lompat rawak). Preview tajuk kandungan destinasi di sebelah anak panah, dipotong 2
-          baris. Terapung di penjuru viewport (position:absolute pada pembalut fixed terluar,
-          BUKAN di dalam helaian dipusatkan) — luar bidang lebar helaian (min(86%,1220px)) pada
-          skrin biasa, jadi tiada bertindih dengan kandungan utama. */}
+          (lompat rawak). HANYA anak panah, TIADA teks preview di sini lagi (2026-07-29) — preview
+          tajuk kini di jalur Sebelum/Selepas dalam kandungan utama, teks di sini jadi berganda
+          dengan itu (pemilik projek tunjuk pangkah). Anak panah ni kekal sebagai sasaran klik +
+          isyarat visual sahaja. Terapung di penjuru viewport (position:absolute pada pembalut
+          fixed terluar, BUKAN di dalam helaian dipusatkan). */}
       {onPrev && (
         <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} style={cornerNav('top-left', hovered === 'prev')} {...navProps('prev')}>
           <span style={{ fontSize: 'clamp(13px, 1.1vw, 16px)', lineHeight: 1 }}>▲</span>
-          {prevPreviewTitle && (
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.4, textAlign: 'left' }}>
-              {prevPreviewTitle}
-            </span>
-          )}
         </button>
       )}
       {onNext && (
         <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} style={cornerNav('bottom-right', hovered === 'next')} {...navProps('next')}>
-          {nextPreviewTitle && (
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.4, textAlign: 'right' }}>
-              {nextPreviewTitle}
-            </span>
-          )}
           <span style={{ fontSize: 'clamp(13px, 1.1vw, 16px)', lineHeight: 1 }}>▼</span>
         </button>
       )}
