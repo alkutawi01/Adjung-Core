@@ -237,7 +237,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
     maxWidth: 'clamp(130px, 16vw, 240px)',
     background: 'none', border: 0, padding: '6px', margin: 0, cursor: 'pointer',
     color: on ? 'var(--color-Adjung-maroon)' : 'var(--stone-400)',
-    transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+    // Samar secara lalai (permintaan pemilik projek 2026-07-29) — cuma nampak jelas bila
+    // hover/fokus, supaya tak bersaing tumpuan dengan kandungan utama.
+    opacity: on ? 1 : 0.45,
+    transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1)',
   });
   const [hovered, setHovered] = React.useState<'prev' | 'next' | null>(null);
   const navProps = (key: 'prev' | 'next') => ({
