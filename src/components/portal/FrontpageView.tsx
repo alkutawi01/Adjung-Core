@@ -6308,18 +6308,20 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
       )}
 
       {/* Full-screen Reading Display Overlay */}
-      {/* FOCUS VIEW — paparan penuh kandungan kad. `note` kini dihantar (medan "Nota" Urus Slot,
-          disiarkan — lihat FocusView.tsx). `visual`, `related`, `editorName`/`editorContact`
-          masih sengaja tidak dihantar: medannya belum wujud dalam DB, jadi bahagian tu render
-          pemegang tempat (itu yang reka bentuk arahkan), bukan diisi data palsu.
+      {/* FOCUS VIEW — paparan penuh kandungan kad. `note` dan kini `visual` (medan "Imej" Urus
+          Slot, dimuat naik ke /api/media/upload — lihat SlotManagerModal.tsx) dihantar. `visual`
+          expects nod React (bukan URL mentah), jadi item.image dibalut jadi <img> di sini; kotak
+          "Lampiran visual" FocusView.tsx sendiri yang uruskan saiz (objectFit contain, 4:3) dan
+          ia mengalah kepada plat ilustrasi Bidang secara automatik (lihat showIllustration).
+          `related`, `editorName`/`editorContact` masih sengaja tidak dihantar: medannya belum
+          wujud dalam DB, jadi bahagian tu render pemegang tempat (itu yang reka bentuk arahkan),
+          bukan diisi data palsu.
 
           `backdropImage` juga sengaja tidak dihantar. `item.imageUrl` ialah imej LATAR KAD
           (imej hiasan yang menggantikan seluruh paparan kad bento) — satu imej per SLOT,
           dikongsi oleh semua kandungan dalam kad yang sama, dan cirinya masih KIV. Lampiran
-          visual Focus View pula berbeza bagi SETIAP kandungan. Medan "Imej" Urus Slot (nama
-          fail sahaja, tiada transport muat naik) belum boleh dipetakan ke `visual` (nod React,
-          bukan URL) atas sebab yang sama — masih menunggu saluran lampiran per-kandungan
-          sebenar. */}
+          visual Focus View (`item.image`) pula berbeza bagi SETIAP kandungan — dua medan
+          berlainan, jangan pinjam salah satu untuk yang lain. */}
       {focusLoc && focusItem && (
         <FocusView
           icon={focusBidang ? (
@@ -6338,6 +6340,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           title={asPlainText(focusItem.titleString) || asPlainText(focusItem.title)}
           brief={asPlainText(focusItem.briefString) || asPlainText(focusItem.brief)}
           body={asPlainText(focusItem.briefLong)}
+          visual={focusItem.image ? <img src={focusItem.image} alt={asPlainText(focusItem.titleString) || asPlainText(focusItem.title) || ''} /> : undefined}
           note={focusItem.note}
           source={focusItem.source}
           sourceUrl={focusItem.url}
