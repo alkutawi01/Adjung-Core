@@ -230,7 +230,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
       ? { top: 'clamp(14px, 2.4vh, 28px)', left: 'clamp(14px, 2.4vw, 28px)', alignItems: 'flex-start' as const }
       : { bottom: 'clamp(14px, 2.4vh, 28px)', right: 'clamp(14px, 2.4vw, 28px)', alignItems: 'flex-end' as const }),
     display: 'flex', flexDirection: 'column' as const, gap: '4px',
-    maxWidth: 'clamp(110px, 15vw, 200px)',
+    maxWidth: 'clamp(130px, 16vw, 240px)',
     background: 'none', border: 0, padding: '6px', margin: 0, cursor: 'pointer',
     color: on ? 'var(--color-Adjung-maroon)' : 'var(--stone-400)',
     transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -455,8 +455,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
       )}
 
       <div style={{ position: 'relative', height: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.6vh, 18px) 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Helaian dipersempit (86%→64%, 2026-07-29) — lajur lebar penuh tidak tinggalkan margin
+            cukup untuk nav penjuru (preview kandungan sebelum/selepas) duduk selesa tanpa sesak
+            dengan kandungan utama. Disahkan terhadap mockup rujukan: helaian ~51-65% lebar
+            viewport, margin kiri/kanan cukup luas untuk preview + anak panah. */}
         <div style={{
-          width: 'min(86%, 1220px)', height: '100%', maxHeight: '100%', boxSizing: 'border-box',
+          width: 'min(64%, 900px)', height: '100%', maxHeight: '100%', boxSizing: 'border-box',
           display: 'grid', gridTemplateRows: 'auto auto auto minmax(0, 1fr) clamp(140px, 22vh, 200px) auto',
         }}>
 
@@ -480,8 +484,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
           </div>
 
           {/* EYEBROW + TARIKH SIARAN — terus atas tajuk. Tanpa label "Siaran" (dibuang
-              2026-07-29); format nombor tarikh siaran tidak berubah, cuma kedudukan/label. */}
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '16px', padding: 'clamp(16px, 2.6vh, 26px) 0 0' }}>
+              2026-07-29); format nombor tarikh siaran tidak berubah, cuma kedudukan/label. Jurang
+              atas lebih lapang (2026-07-29, disahkan terhadap mockup rujukan) — versi pertama
+              terlalu rapat dengan masthead berbanding rujukan. */}
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '16px', padding: 'clamp(28px, 5vh, 56px) 0 0' }}>
             {label && (
               <span style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any, whiteSpace: 'nowrap' }}>{label}</span>
             )}
@@ -511,7 +517,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               kandungan lain (sama falsafah "mengkhaskan ruang" seperti sebelum ini). Plat
               ilustrasi Bidang — lihat `showIllustration` — mengalah kepada grafik/berkaitan/nota
               sebenar secara automatik, tiada perubahan logik. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 4fr) minmax(0, 8fr)', columnGap: 'clamp(20px, 2.8vw, 40px)', alignItems: 'center', paddingTop: 'clamp(10px, 1.8vh, 18px)', borderTop: '1px solid var(--border-subtle)', minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 9fr)', columnGap: 'clamp(20px, 2.8vw, 40px)', alignItems: 'center', paddingTop: 'clamp(10px, 1.8vh, 18px)', borderTop: '1px solid var(--border-subtle)', minHeight: 0, overflow: 'hidden' }}>
             <div style={{ height: '100%', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showIllustration && (
                 <div
