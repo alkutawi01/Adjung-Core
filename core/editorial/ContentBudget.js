@@ -131,7 +131,17 @@ const validateMedanTambahan = ({ summaryLong, source, topik, note } = {}) => {
 // Bidang (kategori/desk) is locked per-slot: every item saved into a slot must share that slot's
 // Bidang. Topik is a free-text per-item field, mandatory only for new/edited content (not for
 // status-only actions on legacy content that predates this rule — pass requireTopik accordingly).
-const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik, slotIndex }) => {
+export const validateBidangTopik = (arg1, arg2, arg3, arg4, arg5) => {
+  let slotBidang, itemBidang, topik, requireTopik, slotIndex;
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    ({ slotBidang, itemBidang, topik, requireTopik, slotIndex } = arg1);
+  } else {
+    slotBidang = arg1;
+    itemBidang = arg2;
+    topik = arg3;
+    requireTopik = arg4;
+    slotIndex = arg5;
+  }
   if (slotBidang && itemBidang && slotBidang.trim().toUpperCase() !== itemBidang.trim().toUpperCase()) {
     return {
       isValid: false,
@@ -164,6 +174,6 @@ const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik, slot
 export {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
-  validateContentBudget, validateBidangTopik,
+  validateContentBudget,
   setMedanLimits, getMedanLimits, validateMedanTambahan,
 };

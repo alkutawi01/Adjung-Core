@@ -31,6 +31,7 @@ import { createSlotEditorRoutes } from './core/routes/slotEditorRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
+import { createEditorNotesRoutes } from './core/routes/editorNotesRoutes.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -78,6 +79,23 @@ const initializeSchema = () => {
           lifeTimeline TEXT,
           createdAt TEXT,
           updatedAt TEXT
+        )
+      `);
+
+      // 1b. Editor Notes Table
+      db.run(`
+        CREATE TABLE IF NOT EXISTS editor_notes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          type TEXT CHECK(type IN ('awam', 'dalaman')) NOT NULL DEFAULT 'dalaman',
+          category TEXT CHECK(category IN ('notis', 'am', 'khas')) NOT NULL DEFAULT 'khas',
+          status TEXT CHECK(status IN ('aktif', 'arkib')) NOT NULL DEFAULT 'aktif',
+          author_id TEXT NOT NULL,
+          author_name TEXT NOT NULL,
+          is_pinned INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
 
@@ -2339,6 +2357,7 @@ app.use('/api/system', createWorldClockRoutes());
 app.use('/api/system', createTierSettingsRoutes(dbAll, dbRun));
 app.use('/api/system', createSlotEditorRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
+app.use('/api', createEditorNotesRoutes(dbAll, dbRun, dbGet));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
 // disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache
