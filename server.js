@@ -9,7 +9,7 @@ import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
-import { validateContentBudget, validateBidangTopik } from './core/editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan } from './core/editorial/ContentBudget.js';
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
@@ -28,6 +28,7 @@ import { createWorldClockRoutes } from './core/routes/worldClockRoutes.js';
 import { createSlotsConfigRoutes } from './core/routes/slotsConfigRoutes.js';
 import { createTierSettingsRoutes, loadTierOverrides } from './core/routes/tierSettingsRoutes.js';
 import { createSlotEditorRoutes } from './core/routes/slotEditorRoutes.js';
+import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
 const mockDb = {};
@@ -183,6 +184,23 @@ const initializeSchema = () => {
               )
             `, () => {});
             
+            // Tetapan Am Slot (2026-07-30) — terpakai pada SEMUA slot bento (bukan Ticker/Bar).
+            // Had aksara 0 bermakna "tiada had" supaya tiada apa berubah sehingga Ketua Editor
+            // benar-benar menetapkan nombor. Lihat core/routes/slotAmRoutes.js.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS slot_am_settings (
+                id TEXT PRIMARY KEY,
+                mulaIkutMasa INTEGER DEFAULT 1,
+                hadKandunganSlot INTEGER DEFAULT 0,
+                jenisAnimasi TEXT DEFAULT 'pudar',
+                hadHuraianPanjang INTEGER DEFAULT 0,
+                hadSumber INTEGER DEFAULT 0,
+                hadTopik INTEGER DEFAULT 0,
+                hadNotaEditor INTEGER DEFAULT 0,
+                updatedAt TEXT
+              )
+            `, () => {});
+
             // Penugasan editor kepada slot (2026-07-30). Banyak-ke-banyak: satu slot boleh
             // beberapa editor, satu editor boleh beberapa slot. Editor bagi sesuatu Bidang DIKIRA
             // daripada jadual ni (ikut slot milik Bidang tu), tidak disimpan berasingan.
@@ -1924,6 +1942,17 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
       err.isValidationError = true;
       throw err;
     }
+    // Had aksara medan bukan-kad (Tetapan Am Slot) — huraian panjang, sumber, topik, nota.
+    // Berasingan daripada had per-slot maxBriefLong di bawah: yang mana lebih ketat, itu yang
+    // menahan dahulu.
+    const medanCheck = validateMedanTambahan({
+      summaryLong: item.briefLong, source: item.source, topik: item.topik, note: item.note,
+    });
+    if (!medanCheck.isValid) {
+      const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${medanCheck.reason}`);
+      err.isValidationError = true;
+      throw err;
+    }
     if (effectiveMaxBriefLong && item.briefLong && item.briefLong.length > effectiveMaxBriefLong) {
       const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan — pendekkan huraian dahulu.`);
       err.isValidationError = true;
@@ -2309,10 +2338,13 @@ app.use('/api/system', createContentRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api/system', createWorldClockRoutes());
 app.use('/api/system', createTierSettingsRoutes(dbAll, dbRun));
 app.use('/api/system', createSlotEditorRoutes(dbAll, dbRun, dbGet));
+app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
 // disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache
 // dalam-memori ni, bukan pangkalan data pada setiap pengesahan.
+loadAmSettings(dbGet);
+
 loadTierOverrides(dbAll).then(map => {
   const bil = Object.keys(map).length;
   if (bil) console.log(`Pindaan had aksara tier dimuatkan: ${bil} tier.`);

@@ -1,5 +1,6 @@
 import express from 'express';
-import { validateContentBudget, validateBidangTopik, TIER_SLOTS } from '../editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan, TIER_SLOTS } from '../editorial/ContentBudget.js';
+import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 
 // The Ticker (slotIndex -1) never writes to editorial_objects, in either Manual or AI Generated
@@ -217,6 +218,13 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           return res.status(400).json({ error: budgetCheck.reason });
         }
 
+        // Had aksara medan bukan-kad (Tetapan Am Slot). Hanya medan yang benar-benar dihantar
+        // disemak — kemas kini separa tak boleh ditolak kerana medan yang tak disentuh.
+        const medanCheck = validateMedanTambahan({ summaryLong: briefLong, source, topik, note });
+        if (!medanCheck.isValid) {
+          return res.status(400).json({ error: medanCheck.reason });
+        }
+
         // Bidang terkunci per-slot, Topik wajib — bila tajuk/huraian diedit, kandungan dipindah
         // ke slot lain, ATAU kandungan sedang diaktifkan semula (archived/rejected -> approved/
         // pending, cth "Siarkan Semula" di Indeks). Bukan tindakan status-sahaja lain (Tolak/
@@ -426,6 +434,28 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const budgetCheck = validateContentBudget(slotIndex, title.trim(), (summary || '').trim());
       if (!budgetCheck.isValid) {
         return res.status(400).json({ error: budgetCheck.reason });
+      }
+
+      const medanCheck = validateMedanTambahan({ source, topik });
+      if (!medanCheck.isValid) {
+        return res.status(400).json({ error: medanCheck.reason });
+      }
+
+      // Had bilangan kandungan seslot (Tetapan Am Slot; 0 = tiada had). Dikira daripada kandungan
+      // yang masih hidup sahaja — kandungan arkib tidak mengambil ruang slot.
+      const { hadKandunganSlot } = getAmSettings();
+      if (hadKandunganSlot > 0) {
+        const kiraan = await dbGet(`
+          SELECT COUNT(*) AS n FROM editorial_objects o
+          JOIN editorial_revisions r ON r.objectId = o.id
+          WHERE o.slotIndex = ? AND r.status IN ('approved', 'pending')
+            AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+        `, [slotIndex]);
+        if (kiraan && kiraan.n >= hadKandunganSlot) {
+          return res.status(400).json({
+            error: `Slot ${slotIndex + 1} sudah ada ${kiraan.n} kandungan — had maksimum ialah ${hadKandunganSlot} (Tetapan Am Slot). Arkibkan kandungan sedia ada dahulu.`,
+          });
+        }
       }
 
       const timestamp = new Date().toISOString();

@@ -82,6 +82,52 @@ const validateContentBudget = (slotIndex, title, summary) => {
   return { isValid: true };
 };
 
+// ---------------------------------------------------------------------------------------------
+// HAD AKSARA MEDAN TAMBAHAN (2026-07-30, permintaan pemilik projek)
+//
+// Tajuk dan huraian ringkas dikawal oleh bajet ruang kad di atas (ikut tier). Medan ni pula tidak
+// dipaparkan pada muka kad, jadi hadnya bukan soal geometri — ia dasar editorial, satu nombor
+// untuk semua slot, ditetapkan di Editorium → Slot → Tetapan Am.
+//
+// 0 = TIADA HAD. Nilai dimuatkan ke cache dalam-memori oleh server semasa boot dan setiap kali
+// disimpan (core/routes/slotAmRoutes.js) kerana pengesahan ni sync.
+let MEDAN_LIMITS = { hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0 };
+
+const setMedanLimits = (nilai) => {
+  MEDAN_LIMITS = {
+    hadHuraianPanjang: Number(nilai?.hadHuraianPanjang) || 0,
+    hadSumber: Number(nilai?.hadSumber) || 0,
+    hadTopik: Number(nilai?.hadTopik) || 0,
+    hadNotaEditor: Number(nilai?.hadNotaEditor) || 0,
+  };
+};
+
+const getMedanLimits = () => ({ ...MEDAN_LIMITS });
+
+/**
+ * Semak had aksara bagi medan yang tiada kaitan dengan saiz kad. Medan yang tak dihantar
+ * (undefined) tidak disemak — supaya kemas kini separa tidak menolak medan yang tak disentuh.
+ */
+const validateMedanTambahan = ({ summaryLong, source, topik, note } = {}) => {
+  const semakan = [
+    ['Huraian panjang', summaryLong, MEDAN_LIMITS.hadHuraianPanjang],
+    ['Sumber', source, MEDAN_LIMITS.hadSumber],
+    ['Topik', topik, MEDAN_LIMITS.hadTopik],
+    ['Nota editor', note, MEDAN_LIMITS.hadNotaEditor],
+  ];
+  for (const [nama, nilai, had] of semakan) {
+    if (!had) continue; // 0 = tiada had
+    if (typeof nilai !== 'string') continue;
+    if (nilai.length > had) {
+      return {
+        isValid: false,
+        reason: `${nama} (${nilai.length} aksara) melebihi had ${had} aksara yang ditetapkan di Tetapan Am Slot. Kandungan tidak disiarkan.`,
+      };
+    }
+  }
+  return { isValid: true };
+};
+
 // Bidang (kategori/desk) is locked per-slot: every item saved into a slot must share that slot's
 // Bidang. Topik is a free-text per-item field, mandatory only for new/edited content (not for
 // status-only actions on legacy content that predates this rule — pass requireTopik accordingly).
@@ -119,4 +165,5 @@ export {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
   validateContentBudget, validateBidangTopik,
+  setMedanLimits, getMedanLimits, validateMedanTambahan,
 };

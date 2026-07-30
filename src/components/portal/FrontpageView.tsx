@@ -2021,6 +2021,16 @@ URL: ${url}`;
 
   const [carouselIndices, setCarouselIndices] = useState<{[key: number]: number}>({});
 
+  // Tetapan Am Slot (Editorium → Slot → Tetapan Am). Lalai `true` supaya kelakuan sedia ada kekal
+  // sekiranya panggilan gagal — bukan senyap-senyap tukar kepada "sentiasa mula di kandungan 1".
+  const [mulaIkutMasa, setMulaIkutMasa] = useState(true);
+  useEffect(() => {
+    fetch('/api/system/slot-am-settings')
+      .then(r => r.json())
+      .then(d => { if (d && d.mulaIkutMasa !== undefined) setMulaIkutMasa(!!d.mulaIkutMasa); })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const activeTimers: { timeoutId?: any; intervalId?: any }[] = [];
 
@@ -2040,9 +2050,13 @@ URL: ${url}`;
       // whichever item "would be showing" right now; visits within the same interval window still see
       // the same item, which is consistent rather than random. Only set once per slot per mount — this
       // effect can re-run when rawBentoNewsItems recomputes, and must not reset an in-progress rotation.
+      // Boleh dimatikan (2026-07-30) — Editorium → Slot → Tetapan Am, "Mula carousel ikut masa
+      // akses". Bila dimatikan, setiap lawatan bermula pada kandungan pertama.
       setCarouselIndices(prev => {
         if (prev[actualSlotIdx] !== undefined) return prev;
-        const timeBasedStart = Math.floor(Date.now() / 1000 / intervalSecs) % items.length;
+        const timeBasedStart = mulaIkutMasa
+          ? Math.floor(Date.now() / 1000 / intervalSecs) % items.length
+          : 0;
         return { ...prev, [actualSlotIdx]: timeBasedStart };
       });
 
@@ -2082,7 +2096,7 @@ URL: ${url}`;
         if (t.intervalId) clearInterval(t.intervalId);
       });
     };
-  }, [rawBentoNewsItems]);
+  }, [rawBentoNewsItems, mulaIkutMasa]);
 
   const bentoNewsItems = React.useMemo(() => {
     return rawBentoNewsItems.map((item) => {
