@@ -186,7 +186,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
       const res = await fetch('/api/system/ticker/fetch-direct', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        addToast('success', `RSS Direct berjaya diserap! (${data.autoLiveCount} Auto Live, ${data.pendingReviewCount} Menunggu Review)`);
+        addToast('success', `Suapan RSS berjaya diserap! (${data.autoLiveCount} Auto Aktif, ${data.pendingReviewCount} Menunggu Semakan)`);
         loadReviewQueue();
       } else {
         addToast('error', data.error || 'Gagal menyerap RSS Direct.');
@@ -288,7 +288,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
       });
       const data = await res.json();
       if (data.success) {
-        addToast(action === 'approve' ? 'success' : 'info', action === 'approve' ? 'Artikel diluluskan ke Ticker Live!' : 'Artikel ditolak.');
+        addToast(action === 'approve' ? 'success' : 'info', action === 'approve' ? 'Artikel diluluskan ke Ticker!' : 'Artikel ditolak.');
         loadReviewQueue();
       } else {
         addToast('error', data.error || 'Gagal memproses keputusan.');
@@ -404,7 +404,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                 className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
               >
                 <option value="Manual">Manual</option>
-                <option value="RSS Direct">RSS Direct</option>
+                <option value="RSS Direct">Suapan RSS</option>
               </select>
             </div>
 
@@ -445,7 +445,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       <div className="text-sm font-bold text-stone-800">{rssStatus.totalFetchedCount || 0}</div>
                     </div>
                     <div className="bg-white p-2.5 rounded border border-stone-200">
-                      <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Auto Live</div>
+                      <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Auto Aktif</div>
                       <div className="text-sm font-bold text-emerald-700">{rssStatus.autoLiveCount || 0}</div>
                     </div>
                     <div className="bg-white p-2.5 rounded border border-stone-200">
@@ -552,7 +552,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
                       <div className="flex flex-col gap-1">
-                        <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Ambang Skor Auto Live (Min. Skor)</label>
+                        <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Ambang Skor Auto Aktif (Min. Skor)</label>
                         <input
                           type="number"
                           min="0"

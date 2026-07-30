@@ -1213,13 +1213,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       const data = await res.json();
       if (data.success) {
         setRssStatus(data);
-        addToast('success', `RSS Direct berjaya diserap! (${data.autoLiveCount} Auto Live, ${data.pendingReviewCount} Menunggu Review)`);
+        addToast('success', `Suapan RSS berjaya diserap! (${data.autoLiveCount} Auto Aktif, ${data.pendingReviewCount} Menunggu Semakan)`);
         loadReviewQueue();
       } else {
-        addToast('error', data.error || 'Gagal menyerap RSS Direct.');
+        addToast('error', data.error || 'Gagal menyerap Suapan RSS.');
       }
     } catch (err) {
-      addToast('error', 'Gagal menyambung ke pelayan RSS Direct.');
+      addToast('error', 'Gagal menyambung ke pelayan Suapan RSS.');
     } finally {
       setIsFetchingRss(false);
     }
@@ -2528,7 +2528,7 @@ URL: ${url}`;
             <p className="text-[9px] text-stone-500 font-sans mt-0.5">
               {currentEditoriumRole !== 'KETUA_EDITOR'
                 ? 'Hanya Ketua Editor boleh menetapkan/meminda Bidang slot.'
-                : 'Dipaparkan pada tajuk "Urus Slot" di atas dan disegerakkan dengan Semakan Kandungan (Paparan Kad). Juga menyaring penjanaan kandungan AI. Bidang terkunci untuk SEMUA kandungan slot ini (Manual + AI Generated); setiap kandungan mesti sepadan bidang ini, dan Topik diperlukan untuk kandungan baharu/diedit. Menukar Bidang akan mengarkibkan kandungan live sedia ada dalam slot ini.'}
+                : 'Dipaparkan pada tajuk "Urus Slot" di atas dan disegerakkan dengan Semakan Kandungan (Paparan Kad). Juga menyaring penjanaan kandungan AI. Bidang terkunci untuk SEMUA kandungan slot ini (Manual + AI Generated); setiap kandungan mesti sepadan bidang ini, dan Topik diperlukan untuk kandungan baharu/diedit. Menukar Bidang akan mengarkibkan kandungan aktif sedia ada dalam slot ini.'}
             </p>
           </div>
         )}
@@ -4148,7 +4148,7 @@ URL: ${url}`;
                     className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
                   >
                     <option value="Manual">Manual</option>
-                    <option value="AI Generated">AI Generated</option>
+                    <option value="AI Generated">Jana AI</option>
                   </select>
                 </div>
 
@@ -4186,7 +4186,7 @@ URL: ${url}`;
                           <div className="text-sm font-bold text-stone-800">{rssStatus.totalFetchedCount || 0}</div>
                         </div>
                         <div className="bg-white p-2.5 rounded border border-stone-200">
-                          <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Auto Live</div>
+                          <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Auto Aktif</div>
                           <div className="text-sm font-bold text-emerald-700">{rssStatus.autoLiveCount || 0}</div>
                         </div>
                         <div className="bg-white p-2.5 rounded border border-stone-200">
@@ -4290,7 +4290,7 @@ URL: ${url}`;
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
                           <div className="flex flex-col gap-1">
-                            <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Ambang Skor Auto Live (Min. Skor)</label>
+                            <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Ambang Skor Auto Aktif (Min. Skor)</label>
                             <input
                               type="number"
                               min="0"

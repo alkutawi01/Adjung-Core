@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { X, ChevronUp, ChevronDown, Trash2, Lock, Upload } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, Trash2, Lock, Upload, AlertCircle } from 'lucide-react';
 import { validateContentBudget, validateBidangTopik } from '../../../core/editorial/ContentBudget.js';
 import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
@@ -13,15 +13,23 @@ interface SlotManagerModalProps {
   setFormConfig: (updater: any) => void;
   activeBidangList: Bidang[];
   currentEditoriumRole: string;
+  // Nama sebenar editor yang log masuk (2026-07-29) — papar di medan "Editor" (Maklumat slot +
+  // Borang kandungan), lihat-sahaja. Kosong = belum log masuk (papar EDITOR_PLACEHOLDER).
+  currentEditoriumName?: string;
   isSavingSlot: boolean;
   onClose: () => void;
+  // Tukar slot terus dalam modal ni (2026-07-29, permintaan pemilik projek) — sebelum ni satu-
+  // satunya cara tukar slot ialah Batal + buka pemilih semula. Pilihan (semua slot KECUALI Bar,
+  // sama senarai macam pemilih asal) + panggilan balik ke openSlotEditor(idx) di App/Editorium.
+  slotOptions?: { index: number; label: string }[];
+  onSwitchSlot?: (idx: number) => void;
   // manualSummaryOverride: items (giliran kandungan) hidup sebagai state TEMPATAN modal ni (lihat
   // nota di useState items di bawah), bukan diterbitkan semula daripada formConfig.manualSummary
   // pada setiap keystroke. handleSubmit hantar serialize(items) TERUS sebagai argumen kedua di
   // sini — `onSave` ialah closure yang sudah tetap sejak render SEBELUM ia dipanggil, jadi ia
   // tetap membaca formConfig LAMA dari parent walau apa pun setFormConfig() buat pada render akan
   // datang. Hantar terus sebagai argumen elak kebergantungan pada timing React state sama sekali.
-  onSave: (e: React.FormEvent, manualSummaryOverride?: string) => void;
+  onSave: (e: React.FormEvent, manualSummaryOverride?: string, opts?: { closeOnSuccess?: boolean }) => Promise<boolean | void> | void;
 }
 
 const TAB_LABEL: Record<string, string> = { borang: 'Borang kandungan', maklumat: 'Maklumat slot', ai: 'Arahan AI' };
@@ -29,9 +37,8 @@ const GEN_MODE_LABEL: Record<string, string> = { bebas: 'Bebas', dengan_rujukan:
 
 const labelCls = 'font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500';
 
-// "Editor" (Maklumat slot dan Borang kandungan) belum ada sumber data sebenar — tiada sistem
-// log masuk/pengguna berautentik lagi (KIV pra-MVP, lihat CLAUDE.md). Papar placeholder yang
-// jujur ("—") dan bukan nama palsu, sehingga saluran data sebenar wujud.
+// Placeholder jujur untuk medan "Editor" bila `currentEditoriumName` tak dihantar (cth. sesi
+// belum log masuk) — papar "—", bukan nama palsu.
 const EDITOR_PLACEHOLDER = '—';
 
 // Assembles a copy-pasteable prompt for an external AI chatbox — same source fields used
@@ -89,12 +96,15 @@ function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: number; 
   );
 }
 
-function Field({ label, value, onChange, rows, placeholder, maxLen }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number }) {
+function Field({ label, value, onChange, rows, placeholder, maxLen, hint }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; hint?: string }) {
   const over = typeof maxLen === 'number' && value.length > maxLen;
   return (
     <label className="flex flex-col gap-1">
       <span className="flex items-baseline justify-between gap-3">
-        <span className={labelCls}>{label}</span>
+        <span className={`${labelCls} flex items-baseline gap-1.5`}>
+          {label}
+          {hint && <span className="font-sans normal-case tracking-normal font-normal text-stone-400">{hint}</span>}
+        </span>
         {typeof maxLen === 'number' && (
           <span className={`font-mono text-[9px] tabular-nums ${over ? 'text-[#a8241f]' : 'text-stone-400'}`}>{value.length}/{maxLen}</span>
         )}
@@ -179,6 +189,9 @@ const SidebarItem = React.memo(function SidebarItem({
   item: any; index: number; isActive: boolean; slotIndex: number; desk: string;
   onSelect: (i: number) => void; onMoveUp: (i: number) => void; onMoveDown: (i: number) => void; onRemove: (i: number) => void;
 }) {
+  // Senarai ni HANYA draf (2026-07-29, permintaan pemilik projek) — ✓/✕ di sini sekadar
+  // pratonton sama ada kandungan SUDAH sedia untuk ditekan Terbit (bajet+Topik lulus), bukan
+  // status sebenar (tiada lagi "Tunggu"/"Live" — kesemuanya draf sehingga Terbit ditekan).
   const check = itemFits(slotIndex, desk, item);
   return (
     <li
@@ -196,7 +209,7 @@ const SidebarItem = React.memo(function SidebarItem({
           <button type="button" aria-label="Turun" onClick={(e) => { e.stopPropagation(); onMoveDown(index); }} className="text-stone-500 hover:text-[#802334] px-0.5"><ChevronDown size={13} /></button>
           <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); onRemove(index); }} className="text-[#a8241f] px-0.5"><Trash2 size={12} /></button>
         </span>
-        <span className={`group-hover:hidden font-mono text-[9px] ${check.isValid ? 'text-emerald-700' : 'text-[#a8241f]'}`} title={check.isValid ? undefined : check.reason}>
+        <span className={`group-hover:hidden font-mono text-[9px] ${check.isValid ? 'text-emerald-700' : 'text-[#a8241f]'}`} title={check.isValid ? 'Sedia untuk Terbit' : check.reason}>
           {check.isValid ? '✓' : '✕'}
         </span>
       </span>
@@ -205,8 +218,10 @@ const SidebarItem = React.memo(function SidebarItem({
 });
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
-  editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, isSavingSlot, onClose, onSave,
+  editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, onClose, onSave,
+  slotOptions, onSwitchSlot,
 }) => {
+  const editorName = currentEditoriumName || EDITOR_PLACEHOLDER;
   const [active, setActive] = useState(0);
   const [tab, setTab] = useState<'borang' | 'maklumat' | 'ai'>('borang');
   const [pasteNote, setPasteNote] = useState('');
@@ -234,6 +249,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const blankItem = (suffix: string | number = '') => ({
     uuid: `object-manual-slot${editingSlotIndex}-${Date.now()}${suffix}`,
     title: '', brief: '', briefLong: '', topik: '', source: '', url: '', date: '', note: '', image: '',
+    // Alur kerja Draf/Terbit (2026-07-29, permintaan pemilik projek) — lalai DRAF untuk
+    // kandungan BAHARU: tak sesekali live sehingga editor sedar-sedar tekan "Terbit". Kandungan
+    // sedia ada yang dihurai daripada manualSummary (lihat parseManualSummaryBlocks) bawa status
+    // sebenar tersimpan (lalai 'approved' kalau tiada baris Status: — blok lama sebelum ciri ni
+    // wujud, memang live).
+    status: 'draft',
   });
 
   // Bekalkan SEKURANG-KURANGNYA satu blok kosong bila slot benar-benar kosong (bukan senarai
@@ -276,7 +297,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // mesej khusus nama kandungan — remove() perlu kekal stabil merentasi keystroke, lihat nota
   // useCallback di atas, jadi ia sengaja tidak bergantung pada `items` penuh untuk baca tajuk).
   const remove = useCallback((i: number) => {
-    if (!window.confirm('Padam kandungan ini daripada giliran? Tindakan ini tidak boleh dibuat asal selepas Simpan Slot.')) return;
+    if (!window.confirm('Padam kandungan ini daripada giliran? Tindakan ini tidak boleh dibuat asal selepas disimpan.')) return;
     commit((prevItems) => prevItems.filter((_, n) => n !== i));
     setActive((a) => Math.max(0, Math.min(a, items.length - 2)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -301,6 +322,10 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       } else {
         const replacement = parsedBlocks.map((b, i) => ({
           uuid: b.uuid || `object-manual-slot${editingSlotIndex}-${Date.now()}-${i}`,
+          // Modal ni ruang draf sahaja (2026-07-29, permintaan pemilik projek) — apa jua ditampal
+          // masuk sebagai draf, editor tekan Terbit sendiri bila sedia (tiada lagi status
+          // "pending" separa-terbit tersembunyi sebelum Terbit ditekan).
+          status: 'draft',
           title: b.title, topik: b.topik, brief: b.brief, briefLong: b.briefLong,
           source: b.source, url: b.url, date: b.date, note: b.note, image: b.image,
         }));
@@ -362,22 +387,65 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     }
   };
 
-  const passing = items.filter((it) => itemFits(editingSlotIndex, desk, it).isValid).length;
+  // Butang "Terbit" (2026-07-29, permintaan pemilik projek) — AKSI SEGERA, bukan togol status.
+  // Klik Terbit hantar SATU kandungan terus ke server (status='pending' utk permintaan ni
+  // sahaja, tak diubah pada state tempatan), server cipta rekod Indeks rasmi & pulangkan
+  // manualSummary draf-sahaja. Bila berjaya, kandungan tu terus BUANG daripada senarai draf
+  // tempatan — modal ni kekal terbuka, ruang draf peribadi sahaja (tiada lagi kumpulan "Akan
+  // Diterbitkan" — kandungan sama ada Draf DI SINI, atau sudah Pending DI Indeks, tiada keadaan
+  // pertengahan yang kelihatan).
+  const [publishingIndex, setPublishingIndex] = useState<number | null>(null);
+  const [publishError, setPublishError] = useState('');
+  const publishOne = async (i: number) => {
+    const item = items[i];
+    const check = itemFits(editingSlotIndex, desk, item);
+    if (!check.isValid) {
+      setPublishError(check.reason || 'Kandungan ini tidak lulus bajet ruang kad atau Topik.');
+      setTimeout(() => setPublishError(''), 3600);
+      return;
+    }
+    setPublishingIndex(i);
+    const outgoing = items.map((it, n) => (n === i ? { ...it, status: 'pending' } : it));
+    const remainingDrafts = items.filter((_, n) => n !== i);
+    const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, serializeManualBentoQueue(outgoing), { closeOnSuccess: false });
+    setPublishingIndex(null);
+    if (ok) {
+      commit(() => remainingDrafts);
+      setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
+      setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
+    }
+  };
 
-  // items (state tempatan) ialah sumber kebenaran semasa borang dibuka. Hantar serialize(items)
-  // TERUS sebagai argumen kedua kepada onSave (lihat nota manualSummaryOverride di
-  // SlotManagerModalProps untuk kenapa BUKAN sekadar setFormConfig()). setFormConfig() di bawah
-  // kekal untuk pengguna formConfig.manualSummary LAIN yang mungkin baca nilai terkini.
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // "Simpan sebagai draf" (2026-07-29, permintaan pemilik projek) — butang Batal/Simpan
+  // keseluruhan modal di footer DIBUANG terus (tiada fungsi lagi selepas Terbit jadi aksai
+  // segera per-kandungan). Ganti dengan aksi eksplisit di bawah borang, sama tempat macam
+  // Terbit: hantar SELURUH giliran draf semasa ke server (persist), modal KEKAL terbuka.
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftNote, setDraftNote] = useState('');
+  const saveDraft = async () => {
+    setSavingDraft(true);
     const manualSummary = serializeManualBentoQueue(items);
+    const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary, { closeOnSuccess: false });
+    setSavingDraft(false);
     setFormConfig((prev: any) => ({ ...prev, manualSummary }));
-    onSave(e, manualSummary);
+    setDraftNote(ok ? 'Draf disimpan' : 'Gagal simpan draf');
+    setTimeout(() => setDraftNote(''), 2400);
+  };
+
+  // Tukar slot terus dari sini (2026-07-29) — modal ni REMOUNT penuh bila editingSlotIndex ibu
+  // bapa berubah (key={editingSlotIndex} di pemanggil), jadi `items` tempatan hilang tak
+  // disimpan. Amaran dulu kalau ada apa-apa benar-benar ditaip (bukan cuma baris kosong "+
+  // Masukkan" belum disentuh), sama falsafah macam amaran padam kandungan di atas.
+  const handleSwitchSlot = (idx: number) => {
+    if (idx === editingSlotIndex) return;
+    const hasUnsavedWork = items.some((it) => (it.title || '').trim() || (it.brief || '').trim());
+    if (hasUnsavedWork && !window.confirm('Tukar slot akan buang draf belum diterbitkan/disimpan dalam slot ni. Teruskan?')) return;
+    onSwitchSlot?.(idx);
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in">
+      <div className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in">
 
         <header className="flex-none px-6 md:px-8 pt-5 pb-3.5">
           <div className="flex items-start justify-between gap-6">
@@ -392,33 +460,78 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <span className="font-sans text-[11px] text-stone-500">{TIER_LABELS[tier] || tier}</span>
               </p>
             </div>
-            <button type="button" aria-label="Tutup" onClick={onClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Tukar slot (2026-07-29) — dropdown terus di sini gantikan kena Batal + buka
+                  pemilih semula setiap kali nak tukar slot lain. */}
+              {slotOptions && slotOptions.length > 0 && (
+                <select
+                  value={editingSlotIndex}
+                  onChange={(e) => handleSwitchSlot(parseInt(e.target.value, 10))}
+                  className="border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold text-stone-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#802334]"
+                >
+                  {slotOptions.map((opt) => (
+                    <option key={opt.index} value={opt.index}>{opt.label}</option>
+                  ))}
+                </select>
+              )}
+              <button type="button" aria-label="Tutup" onClick={onClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
+                <X size={18} />
+              </button>
+            </div>
           </div>
+          {/* UUID + bajet kandungan (2026-07-29, permintaan pemilik projek) — dipindah dari
+              tengah borang ke header supaya editor sedar bajet sepanjang masa menaip, tanpa
+              tatal. Hanya relevan untuk tab "Borang kandungan" (kandungan aktif semasa), tapi
+              kekal kelihatan tanpa mengira tab supaya tak hilang bila beralih ke tab lain. */}
+          {ceiling.maxBrief > 0 && (
+            <div className="mt-3 flex items-end justify-between gap-6">
+              <span className="font-mono text-[10px] text-stone-400">UUID <span className="text-stone-500">{current.uuid || '—'}</span></span>
+              <div className="w-full max-w-[360px]">
+                <BudgetMeter slotIndex={editingSlotIndex} ceiling={ceiling} title={current.title || ''} brief={current.brief || ''} />
+              </div>
+            </div>
+          )}
         </header>
         <hr className="border-stone-150" />
+
+        {/* Amaran kandungan demo (2026-07-29) — slot ni kosong sebenar, borang di bawah disintesis
+            daripada kandungan demo "Tentang Adjung" (bukan simpanan sebenar). Insiden sebenar:
+            tanpa amaran ni, teks demo tak dapat dibezakan langsung daripada kandungan tersimpan —
+            hampir tersiar sebagai kandungan sebenar semasa audit UI/UX 2026-07-29. */}
+        {formConfig.isDemoContent && (
+          <div className="flex-none bg-amber-50 border-b border-amber-200 px-6 md:px-8 py-2 flex items-center gap-2 text-amber-900 font-sans text-[11px]">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <span><strong>Kandungan contoh</strong> — slot ni belum ada kandungan tersimpan. Medan di bawah diisi teks demo "Tentang Adjung" sebagai templat sahaja; gantikan sebelum Simpan.</span>
+          </div>
+        )}
 
         <div className="flex-1 min-h-0 grid" style={{ gridTemplateColumns: 'minmax(240px, 32%) 1fr' }}>
 
           <section className="min-h-0 flex flex-col border-r border-stone-150">
             <div className="flex-none flex items-baseline justify-between px-3 pt-3 pb-2">
-              <span className={labelCls}>Giliran carousel</span>
-              <span className={`font-mono text-[10px] ${passing === items.length ? 'text-emerald-700' : 'text-amber-700'}`}>{passing}/{items.length} lulus</span>
+              <span className={labelCls}>Draf</span>
+              <span className="font-mono text-[10px] text-stone-400">{items.length}</span>
             </div>
-            <ol className="flex-1 min-h-0 overflow-y-auto list-none m-0 p-0 border-t border-stone-150">
-              {items.map((it, i) => (
-                <SidebarItem
-                  key={it.uuid || i}
-                  item={it} index={i} isActive={i === activeIndex}
-                  slotIndex={editingSlotIndex} desk={desk}
-                  onSelect={setActive} onMoveUp={moveUp} onMoveDown={moveDown} onRemove={remove}
-                />
-              ))}
-            </ol>
+            {/* Modal ni RUANG DRAF PERIBADI SAHAJA (2026-07-29, permintaan pemilik projek) —
+                senarai FLAT, satu kumpulan "Draf" sahaja. Tiada lagi kumpulan "Akan Diterbitkan":
+                Terbit (butang publishOne di atas) ialah AKSI SEGERA, bukan status yang ditogol —
+                sebaik sahaja ditekan & berjaya, kandungan terus KELUAR daripada senarai ni (jadi
+                rekod Indeks rasmi berstatus Pending), tiada keadaan pertengahan kelihatan di sini. */}
+            <div className="flex-1 min-h-0 overflow-y-auto border-t border-stone-150">
+              <ol className="list-none m-0 p-0">
+                {items.map((it, i) => (
+                  <SidebarItem
+                    key={it.uuid || i}
+                    item={it} index={i} isActive={i === activeIndex}
+                    slotIndex={editingSlotIndex} desk={desk}
+                    onSelect={setActive} onMoveUp={moveUp} onMoveDown={moveDown} onRemove={remove}
+                  />
+                ))}
+              </ol>
+            </div>
             <div className="flex-none border-t border-stone-150 p-2">
               <button type="button" onClick={insert} className="w-full text-center py-1.5 rounded font-sans text-[11px] font-semibold text-stone-600 hover:text-[#802334] hover:bg-[#802334]/[0.08] transition-colors cursor-pointer">
-                + Masukkan
+                + Tambah Kandungan Baharu
               </button>
             </div>
           </section>
@@ -442,8 +555,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <ReadOnlyField label="Nombor" value={String(editingSlotIndex + 1)} />
                 <ReadOnlyField label="Jenis" value={TIER_LABELS[tier] || tier} />
                 <ReadOnlyField label="Bidang" value={desk} />
-                <ReadOnlyField label="Editor" value={EDITOR_PLACEHOLDER} />
+                <ReadOnlyField label="Editor" value={editorName} />
                 <ReadOnlyField label="Bilangan kandungan" value={String(items.length)} />
+                {/* Kadar putaran carousel (2026-07-29) — dipindah dari footer ke sini: tetapan
+                    berkaitan SLOT (ditetapkan Ketua Editor), bukan urusan editor menulis kandungan. */}
+                <ReadOnlyField label="Kadar putaran carousel" value={`${formConfig.carouselInterval || 10}s`} />
                 <span className="col-span-2 font-sans text-[10px] text-stone-400 -mt-2">
                   Bidang ditetapkan di Tetapan Slot (bukan di sini). Tetapan warna slot hanya boleh dibuat oleh Ketua Editor.
                 </span>
@@ -457,31 +573,61 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   <span className={labelCls}>Kandungan <span className="font-mono">{String(activeIndex + 1).padStart(2, '0')}</span></span>
                   <span className="flex items-center gap-2.5">
                     {pasteNote && <span className="font-sans text-[10px] text-stone-400">{pasteNote}</span>}
+                    {/* Butang "Masukkan" berlebihan dibuang (2026-07-29) — sama fungsi persis
+                        dengan "+ Masukkan" di bawah senarai Giliran carousel (kedua-duanya
+                        panggil insert()); dua tempat untuk satu kelakuan cuma mengelirukan. */}
                     <button type="button" onClick={paste} className="px-2.5 py-1 border border-stone-300 rounded text-[11px] font-sans font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer">Tampal</button>
-                    <button type="button" onClick={insert} className="px-2.5 py-1 rounded text-[11px] font-sans font-semibold text-stone-500 hover:text-[#802334] cursor-pointer">Masukkan</button>
                   </span>
                 </div>
 
-                <ReadOnlyField label="UUID" value={current.uuid || ''} />
-                <Field label="Tajuk" value={current.title || ''} placeholder="Tajuk kandungan…" onChange={(v) => patch(activeIndex, 'title', v)} />
                 <Field label="Topik" value={current.topik || ''} placeholder="Topik kandungan…" maxLen={hadTopik} onChange={(v) => patch(activeIndex, 'topik', v)} />
+                <Field label="Tajuk" value={current.title || ''} placeholder="Tajuk kandungan…" onChange={(v) => patch(activeIndex, 'title', v)} />
                 {ceiling.maxBrief > 0 && (
                   <>
                     <Field label="Huraian ringkas" rows={4} value={current.brief || ''} placeholder="Huraian ringkas, dipapar pada kad…" onChange={(v) => patch(activeIndex, 'brief', v)} />
-                    <BudgetMeter slotIndex={editingSlotIndex} ceiling={ceiling} title={current.title || ''} brief={current.brief || ''} />
-                    <Field label="Huraian panjang" rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh…" maxLen={ceiling.maxBriefLong} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
+                    <Field label="Huraian panjang" rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh — hanya di Focus View…" maxLen={ceiling.maxBriefLong} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
                   </>
                 )}
 
                 <hr className="border-stone-150" />
                 <div className="grid grid-cols-2 gap-5">
-                  <Field label="Sumber" value={current.source || ''} placeholder="Adjung Editorial" onChange={(v) => patch(activeIndex, 'source', v)} />
+                  <Field label="Sumber" value={current.source || ''} placeholder="Adjung Editorial" maxLen={60} onChange={(v) => patch(activeIndex, 'source', v)} />
                   <Field label="URL" value={current.url || ''} placeholder="https://…" onChange={(v) => patch(activeIndex, 'url', v)} />
                   <Field label="Tarikh sumber" value={current.date || ''} placeholder="21.07.26" onChange={(v) => patch(activeIndex, 'date', v)} />
                   <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
                 </div>
-                <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor — dipaparkan di Focus View…" onChange={(v) => patch(activeIndex, 'note', v)} />
-                <ReadOnlyField label="Editor" value={EDITOR_PLACEHOLDER} />
+                <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor (pilihan) — hanya di Focus View…" maxLen={280} onChange={(v) => patch(activeIndex, 'note', v)} />
+                <ReadOnlyField label="Editor" value={editorName} />
+
+                <hr className="border-stone-150" />
+                {/* Butang Terbit (2026-07-29, permintaan pemilik projek) — AKSI SEGERA, bukan
+                    togol status. Kandungan dalam modal ni SENTIASA draf sehingga butang ni
+                    ditekan; klik terus hantar SATU kandungan ni ke Indeks (status Pending) dan
+                    buang daripada senarai draf — jelas berasingan daripada butang Simpan
+                    keseluruhan modal di footer (Simpan cuma simpan baki draf, tak terbitkan apa-
+                    apa). */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="flex flex-col gap-0.5">
+                    <span className={labelCls}>Kandungan ini masih draf</span>
+                    {(publishError || draftNote) && (
+                      <span className={`font-sans text-[10px] ${publishError ? 'text-[#a8241f]' : 'text-stone-500'}`}>{publishError || draftNote}</span>
+                    )}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <button
+                      type="button" onClick={saveDraft} disabled={savingDraft || publishingIndex !== null}
+                      className="px-4 py-1.5 border border-stone-300 text-stone-600 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-wait rounded text-[11px] font-sans font-semibold cursor-pointer transition-colors"
+                    >
+                      {savingDraft ? 'Menyimpan…' : 'Simpan sebagai draf'}
+                    </button>
+                    <button
+                      type="button" onClick={() => publishOne(activeIndex)} disabled={publishingIndex !== null || savingDraft}
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-wait text-white rounded text-[11px] font-sans font-semibold cursor-pointer transition-colors"
+                    >
+                      {publishingIndex === activeIndex ? 'Menerbitkan…' : 'Terbit sekarang'}
+                    </button>
+                  </span>
+                </div>
               </>
             )}
 
@@ -551,34 +697,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
             )}
           </section>
         </div>
-
-        <hr className="border-stone-150" />
-        {/* Amaran kekal kelihatan di footer (bukan hanya di dalam borang yang boleh ditatal) bila
-            ada kandungan tak lulus — sebelum ni butang Simpan Slot cuma jadi kelabu tanpa sebarang
-            penjelasan berhampiran butang tu sendiri; editor yang sedang menyunting medan lain (Nota,
-            Imej, dll., jauh di bawah borang) boleh klik berulang kali tanpa nampak KENAPA ia gagal. */}
-        {items.length > 0 && passing !== items.length && (
-          <div className="flex-none px-6 md:px-8 py-2 bg-[#a8241f]/[0.06] border-t border-[#a8241f]/20">
-            <span className="font-sans text-[11px] text-[#a8241f] font-semibold">
-              {items.length - passing} daripada {items.length} kandungan tidak lulus (bajet ruang kad atau Topik) — betulkan di senarai "Giliran carousel" sebelum boleh Simpan Slot.
-            </span>
-          </div>
-        )}
-        <footer className="flex-none flex items-center justify-between gap-5 px-6 md:px-8 py-3 bg-stone-50">
-          <span className="font-sans text-[11px] text-stone-500">
-            Berputar setiap <span className="font-mono text-stone-700">{formConfig.carouselInterval || 10}s</span> · <span className="font-mono">{items.length}</span> kandungan dalam giliran
-          </span>
-          <span className="flex gap-2.5">
-            <button type="button" onClick={onClose} className="px-4 py-2 border border-stone-300 text-stone-700 hover:bg-stone-50 rounded text-xs font-semibold cursor-pointer">Batal</button>
-            <button
-              type="submit" disabled={isSavingSlot || (items.length > 0 && passing !== items.length)}
-              className="px-5 py-2 bg-[#802334] hover:bg-[#601824] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-xs font-semibold cursor-pointer shadow-sm"
-            >
-              {isSavingSlot ? 'Menyimpan…' : 'Simpan Slot'}
-            </button>
-          </span>
-        </footer>
-      </form>
+      </div>
     </div>
   );
 };

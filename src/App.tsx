@@ -4,6 +4,7 @@ import { db } from './db/mockDb';
 import { FrontpageView } from './components/portal/FrontpageView';
 import { ContentReview } from './components/studio/ContentReview';
 import { EditoriumView } from './components/editorium/EditoriumView';
+import { LoginModal } from './components/editorium/LoginModal';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -12,25 +13,61 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
-  // Peranan Editorium (Ketua Editor / Editor) — kongsi di sini (bukan local state dalam
-  // EditoriumView) supaya FrontpageView (borang Tetapan Slot Bidang) turut boleh kunci ikut
-  // peranan yang sama. Toggle kosmetik sahaja (auth backend sebenar memang KIV, pra-MVP).
-  // Disimpan ke localStorage sebab navigasi antara "/" dan "/editorium" guna <a href> biasa
-  // (bukan React Router Link) — setiap pertukaran laman reload penuh & reset semua state App
-  // ni; tanpa localStorage, pilihan peranan akan sentiasa jatuh balik ke lalai setiap kali
-  // pindah laman, menjadikan kunci Bidang tak bermakna dalam praktik.
-  const ROLE_STORAGE_KEY = 'adjung-editorium-role';
-  const [currentEditoriumUser, setCurrentEditoriumUser] = useState<{ name: string; role: 'KETUA_EDITOR' | 'EDITOR' }>(() => {
-    const stored = typeof window !== 'undefined' ? window.localStorage.getItem(ROLE_STORAGE_KEY) : null;
-    return stored === 'EDITOR' ? { name: 'Editor Ahmad', role: 'EDITOR' } : { name: 'Izzat Anas', role: 'KETUA_EDITOR' };
-  });
-  const handleEditoriumRoleSwitch = (role: 'KETUA_EDITOR' | 'EDITOR') => {
-    window.localStorage.setItem(ROLE_STORAGE_KEY, role);
-    if (role === 'KETUA_EDITOR') {
-      setCurrentEditoriumUser({ name: 'Izzat Anas', role: 'KETUA_EDITOR' });
-    } else {
-      setCurrentEditoriumUser({ name: 'Editor Ahmad', role: 'EDITOR' });
+  // Log masuk sebenar (2026-07-29) — SATU-SATUNYA punca kebenaran edit. Tiada lagi persona
+  // tetamu "Editor Ahmad"/togol kosmetik: setiap orang yang nak edit kandungan (frontpage
+  // ATAU Editorium) MESTI log masuk dulu (/api/auth/login, core/routes/authRoutes.js, jadual
+  // `users`, password di-hash scrypt). Peranan (KETUA_EDITOR/EDITOR) datang terus daripada
+  // akaun yang log masuk itu sendiri, bukan pilihan manual.
+  //
+  // "Ingat saya": localStorage (kekal selepas browser ditutup) bila ditanda, sessionStorage
+  // (hilang bila tab/browser ditutup) bila tidak. Kedua-dua disemak semasa mula — localStorage
+  // diutamakan.
+  const AUTH_STORAGE_KEY = 'adjung-auth-user';
+  const readStoredAuth = (): { username: string; penName: string; email: string; role: string } | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = window.localStorage.getItem(AUTH_STORAGE_KEY) || window.sessionStorage.getItem(AUTH_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
     }
+  };
+  const [authUser, setAuthUser] = useState<{ username: string; penName: string; email: string; role: string } | null>(readStoredAuth);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  // Dijalankan lepas log masuk berjaya (cth terus buka mod edit di frontpage) — bukan cuma
+  // menutup modal sahaja.
+  const [pendingLoginSuccess, setPendingLoginSuccess] = useState<(() => void) | null>(null);
+
+  const currentEditoriumUser: { name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null =
+    authUser && (authUser.role === 'KETUA_EDITOR' || authUser.role === 'EDITOR')
+      ? { name: authUser.penName, role: authUser.role as 'KETUA_EDITOR' | 'EDITOR' }
+      : null;
+
+  // Titik masuk tunggal untuk buka borang log masuk — dari mana-mana (butang "Edit Kandungan"
+  // di frontpage, butang "Log Masuk" di Editorium). `onSuccess` pilihan dipanggil lepas log
+  // masuk berjaya (cth terus aktifkan mod edit).
+  const requestLogin = (onSuccess?: () => void) => {
+    setPendingLoginSuccess(() => onSuccess || null);
+    setShowLoginModal(true);
+  };
+
+  const handleLoginSuccess = (user: { username: string; penName: string; email: string; role: string }, rememberMe: boolean) => {
+    setAuthUser(user);
+    const target = rememberMe ? window.localStorage : window.sessionStorage;
+    const other = rememberMe ? window.sessionStorage : window.localStorage;
+    target.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+    other.removeItem(AUTH_STORAGE_KEY);
+    setShowLoginModal(false);
+    if (pendingLoginSuccess) {
+      pendingLoginSuccess();
+      setPendingLoginSuccess(null);
+    }
+  };
+
+  const handleLogout = () => {
+    setAuthUser(null);
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
   };
   const [inTheNewsGoogleDocText, setInTheNewsGoogleDocText] = useState('');
   const [worldClockHolidaysGoogleDocText, setWorldClockHolidaysGoogleDocText] = useState('');
@@ -141,7 +178,11 @@ export default function App() {
                   setSelectedAuthorId={() => {}}
                   setActiveTab={() => {}}
                   currentUser={null}
-                  currentEditoriumRole={currentEditoriumUser.role}
+                  currentEditoriumRole={currentEditoriumUser?.role}
+                  currentEditoriumName={authUser?.role === 'KETUA_EDITOR' ? authUser.penName : undefined}
+                  currentEditoriumContact={authUser?.role === 'KETUA_EDITOR' ? authUser.email : undefined}
+                  onRequestEditLogin={requestLogin}
+                  onLogout={handleLogout}
                   inTheNewsGoogleDocText={inTheNewsGoogleDocText}
                   worldClockHolidaysGoogleDocText={worldClockHolidaysGoogleDocText}
                   setIndexSearchQuery={() => {}}
@@ -166,7 +207,11 @@ export default function App() {
                   setSelectedAuthorId={() => {}}
                   setActiveTab={() => {}}
                   currentUser={null}
-                  currentEditoriumRole={currentEditoriumUser.role}
+                  currentEditoriumRole={currentEditoriumUser?.role}
+                  currentEditoriumName={authUser?.role === 'KETUA_EDITOR' ? authUser.penName : undefined}
+                  currentEditoriumContact={authUser?.role === 'KETUA_EDITOR' ? authUser.email : undefined}
+                  onRequestEditLogin={requestLogin}
+                  onLogout={handleLogout}
                   inTheNewsGoogleDocText={inTheNewsGoogleDocText}
                   worldClockHolidaysGoogleDocText={worldClockHolidaysGoogleDocText}
                   setIndexSearchQuery={() => {}}
@@ -195,13 +240,17 @@ export default function App() {
             >
               <EditoriumView
                 currentUser={currentEditoriumUser}
-                onUserSwitch={handleEditoriumRoleSwitch}
+                onRequestLogin={() => requestLogin()}
+                onLogout={handleLogout}
               />
             </motion.div>
           } />
 
         </Routes>
       </AnimatePresence>
+      {showLoginModal && (
+        <LoginModal onClose={() => setShowLoginModal(false)} onSuccess={handleLoginSuccess} />
+      )}
     </BrowserRouter>
   );
 }

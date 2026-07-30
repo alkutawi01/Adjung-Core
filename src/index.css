@@ -420,6 +420,17 @@ input[type="range"].adjung-range::-moz-range-thumb:active {
   transform: scale(1.4);
 }
 
+/* Kad tak boleh overflow — peraturan keras projek ni (CLAUDE.md Falsafah #1). Perkataan tunggal
+   yang sangat panjang tanpa ruang (cth ujian editor "Percubaaaaaaaaaaaan...") secara lalai TAK
+   PERNAH patah baris walaupun ada line-clamp/overflow-hidden — ia melintasi terus keluar kad,
+   sebab pemutus baris biasa perlukan ruang/sempadan perkataan. Ditemui 2026-07-29 semasa ujian
+   editor. Diterapkan GLOBAL (bukan diselak ke setiap ~30 tapak kad bento) supaya terpakai sama
+   rata pada semua tier tanpa risiko terlepas satu tapak. */
+h1, h2, h3, h4, h5, h6, p {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
 /* Newspaper/Frontpage layout classes */
 .rule {
   border-color: #E0DDD8;

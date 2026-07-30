@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AlertTriangle, X, Search, Pin, Lock } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
+import { labelMod, labelStatus } from '../../config/istilah';
 
 interface BriefRecord {
   id: string;
@@ -79,20 +80,15 @@ const LABEL_TO_STATUS: Record<BriefRecord['status'], string> = {
   Archive: 'archived',
 };
 
-// Label dipapar kepada editor — 100% Bahasa Melayu (Peraturan Perlembagaan). Kunci dalaman
-// (Live/Pending/Archive) sengaja TIDAK ditukar: ia dipadankan dengan nilai status pangkalan data
-// di banyak tempat, jadi terjemahan dibuat pada saat memapar sahaja, satu tempat di sini.
+// Label yang DIPAPAR kepada editor tinggal di src/config/istilah.ts (labelStatus/labelMod) — satu
+// tempat untuk semua skrin. Kunci dalaman (Live/Pending/Archive) di atas sengaja TIDAK ditukar:
+// ia dipadankan dengan nilai status pangkalan data di banyak tempat.
 //
 // Status "Rejected" DIBUANG (2026-07-30): "Tolak" memulangkan kandungan jadi draf peribadi editor
 // dan menandakan rekod lama sebagai arkib — tiada laluan dalam sistem yang menghasilkan status
 // rejected, jadi menawarkannya sebagai penapis hanya menjanjikan sesuatu yang tak boleh wujud.
 // (Ticker ada dunia berasingan: rss_ticker_items ada status 'rejected' sendiri, diuruskan di
 // Modul Khas → Urus Ticker.)
-export const STATUS_DISPLAY: Record<BriefRecord['status'], string> = {
-  Live: 'Tersiar',
-  Pending: 'Menunggu',
-  Archive: 'Arkib',
-};
 
 // "Kaedah" ni sepatutnya sama konsep dengan "Mod Kandungan" yang dah sedia ada & user-facing di
 // borang Urus Slot/Ticker (FrontpageView.tsx/TickerManagementModal.tsx): Manual / AI Generated /
@@ -490,7 +486,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           {/* Quick Counter Badges */}
           <div className="flex items-center gap-2 font-sans text-[10px]">
             <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded font-bold">Menunggu: <span className="font-mono">{statusCounts.Pending}</span></span>
-            <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-bold">Tersiar: <span className="font-mono">{statusCounts.Live}</span></span>
+            <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-bold">Aktif: <span className="font-mono">{statusCounts.Live}</span></span>
             <span className="bg-stone-200 text-stone-700 px-2 py-1 rounded font-bold">Arkib: <span className="font-mono">{statusCounts.Archive}</span></span>
           </div>
         </div>
@@ -531,7 +527,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             >
               <option value="Semua">Semua Status</option>
               <option value="Pending">Menunggu</option>
-              <option value="Live">Tersiar</option>
+              <option value="Live">Aktif</option>
               <option value="Archive">Arkib</option>
             </select>
           </div>
@@ -584,7 +580,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
               <option value="Semua">Semua Kaedah</option>
-              {creatorOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              {creatorOptions.map(c => <option key={c} value={c}>{labelMod(c)}</option>)}
             </select>
           </div>
 
@@ -797,7 +793,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         rec.status === 'Pending' ? 'bg-amber-100 text-amber-800' :
                         'bg-stone-200 text-stone-700'
                       }`}>
-                        {STATUS_DISPLAY[rec.status]}
+                        {labelStatus(rec.status)}
                       </span>
                     </td>
                     <td
@@ -925,13 +921,13 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs bg-stone-100 p-3 rounded border border-stone-200">
-              <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{STATUS_DISPLAY[activeItemModal.status]}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{labelStatus(activeItemModal.status)}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">BIDANG</span><strong className="text-stone-900">{formatTitleCase(activeItemModal.desk)}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik ? formatTitleCase(activeItemModal.topik) : '-'}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SUMBER</span><strong className="text-stone-900">{activeItemModal.source || '-'}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">KAEDAH</span><strong className="text-stone-900">{activeItemModal.creator || '-'}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">KAEDAH</span><strong className="text-stone-900">{labelMod(activeItemModal.creator) || '-'}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">EDITOR</span><strong className="text-stone-900">{activeItemModal.editorName || 'Tidak diketahui'}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">TARIKH SUMBER</span><strong className="text-stone-900">{activeItemModal.originalDate || '-'}</strong></div>
               <div className="col-span-2 md:col-span-3 min-w-0">

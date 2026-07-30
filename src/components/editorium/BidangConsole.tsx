@@ -432,7 +432,7 @@ export const BidangConsole: React.FC = () => {
               Bidang (Senarai Tertutup)
             </h3>
             <p className="text-stone-500 text-xs">
-              Senarai Bidang yang boleh dipilih untuk setiap slot (selain Ticker dan tier Bar) — dikurasi Ketua Editor sahaja. Menukar Bidang sesuatu slot akan mengarkibkan kandungan live sedia ada dalam slot tu.
+              Senarai Bidang yang boleh dipilih untuk setiap slot (selain Ticker dan tier Bar) — dikurasi Ketua Editor sahaja. Menukar Bidang sesuatu slot akan mengarkibkan kandungan aktif sedia ada dalam slot tu.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -579,7 +579,7 @@ export const BidangConsole: React.FC = () => {
                           <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-xs bg-[#802334] border border-[#802334]" /> Bidang ini</span>
                           <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-xs bg-white border border-stone-300" /> Kosong</span>
                           <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-xs bg-stone-200 border border-stone-400" /> Milik Bidang lain</span>
-                          <span className="inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-amber-600" /> Ada kandungan live</span>
+                          <span className="inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-amber-600" /> Ada kandungan aktif</span>
                         </div>
 
                         <div className="grid grid-cols-6 md:grid-cols-10 gap-2">
@@ -604,8 +604,8 @@ export const BidangConsole: React.FC = () => {
                                 type="button"
                                 onClick={() => toggleSlot(slotIndex, d)}
                                 title={milikOrangLain
-                                  ? `Milik Bidang "${owner}"${live ? ` — ${live} kandungan live` : ''}`
-                                  : live ? `${live} kandungan live dalam slot ini` : 'Slot kosong'}
+                                  ? `Milik Bidang "${owner}"${live ? ` — ${live} kandungan aktif` : ''}`
+                                  : live ? `${live} kandungan aktif dalam slot ini` : 'Slot kosong'}
                                 className={`relative flex items-center justify-center border rounded px-1.5 py-1 text-[10px] font-mono transition-colors ${gaya}`}
                               >
                                 {slotIndex + 1}
@@ -678,7 +678,7 @@ export const BidangConsole: React.FC = () => {
                                   ditukar kepada status <em>archived</em>. Ia tidak dipadam, tetapi tidak lagi terpapar.
                                 </>
                               ) : (
-                                <>Tiada kandungan live dalam slot yang terjejas — tiada apa akan diarkibkan.</>
+                                <>Tiada kandungan aktif dalam slot yang terjejas — tiada apa akan diarkibkan.</>
                               )}
                             </p>
 

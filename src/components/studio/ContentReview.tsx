@@ -427,7 +427,7 @@ export function ContentReview({ paparan = 'pukal' }: { paparan?: 'slot' | 'pukal
             >
               <option value="Semua">Semua Status</option>
               <option value="pending">Menunggu</option>
-              <option value="approved">Tersiar</option>
+              <option value="approved">Aktif</option>
               <option value="archived">Arkib</option>
             </select>
             <select
