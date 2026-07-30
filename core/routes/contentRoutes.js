@@ -389,13 +389,23 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         return res.json({ success: true });
       }
 
-      await dbRun("DELETE FROM editorial_attribute_values WHERE objectId = ?", [id]);
-      await dbRun("DELETE FROM editorial_revisions WHERE objectId = ?", [id]);
-      const result = await dbRun("DELETE FROM editorial_objects WHERE id = ?", [id]);
-      if (!result.changes) {
+      // PERATURAN EDITORIAL (2026-07-30, pemilik projek): kandungan yang sudah DITERBITKAN tidak
+      // boleh dipadam — termasuk yang sudah diarkibkan. Yang boleh dipadam hanyalah DRAF, iaitu
+      // editor membatalkan rancangan menerbitkan sesuatu.
+      //
+      // Draf tidak pernah punya baris editorial_objects: ia hidup sebagai teks dalam
+      // slots_config.manualSummary dan dipadam terus di modal Tulis Kandungan. Jadi setiap id yang
+      // sampai ke sini SUDAH diterbitkan, dan laluan ni tiada kes sah yang tinggal.
+      //
+      // Untuk mengeluarkan kandungan daripada frontpage, gunakan Arkib (PATCH status) — rekodnya
+      // kekal untuk jejak audit.
+      const wujud = await dbGet("SELECT id FROM editorial_objects WHERE id = ?", [id]);
+      if (!wujud) {
         return res.status(404).json({ error: 'Item tidak dijumpai.' });
       }
-      res.json({ success: true });
+      return res.status(400).json({
+        error: 'Kandungan yang sudah diterbitkan tidak boleh dipadam — arkibkannya sebaliknya. Hanya draf (dalam modal Tulis Kandungan) boleh dipadam.',
+      });
     } catch (err) {
       console.error('Delete content item error:', err);
       res.status(500).json({ error: 'Failed to delete item. ' + (err.message || '') });
