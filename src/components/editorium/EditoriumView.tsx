@@ -28,9 +28,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const [activeTab, setActiveTab] = useState('indeks');
   // Log keluar = keluar terus ke frontpage. Editorium bukan tempat untuk sesiapa yang tak log
   // masuk — dulu pengguna ditinggalkan di /editorium (skrin pagar) selepas log keluar.
+  //
+  // `sedangKeluar` wujud sebab peralihan laman ni beransur (AnimatePresence, 0.4s): sebaik sesi
+  // dikosongkan, laman lama masih di skrin sepanjang animasi keluar tu — dan tanpa sesi ia
+  // melukis skrin pagar "Log Masuk" untuk seketika sebelum frontpage muncul. Sepanjang kita
+  // sedang beredar, jangan lukis skrin pagar langsung.
+  const [sedangKeluar, setSedangKeluar] = useState(false);
   const handleLogoutAndLeave = () => {
-    onLogout();
+    setSedangKeluar(true);
     navigate('/');
+    onLogout();
   };
   // Sub-menu tab "Indeks" (2026-07-29, permintaan pemilik projek) — corak sama macam sub-tab
   // Tetapan. "Semakan Kandungan" (dulu laman berasingan /studio/semakan-kandungan) kini dibenam
@@ -40,6 +47,10 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
+
+  // Sedang beredar ke frontpage selepas log keluar — biarkan kosong sepanjang animasi keluar,
+  // jangan sesekali kelipkan skrin pagar.
+  if (sedangKeluar) return null;
 
   if (!currentUser) {
     // Sengaja TIADA onRequestLogin ke Layout di sini — kalau tidak, satu skrin papar dua butang
