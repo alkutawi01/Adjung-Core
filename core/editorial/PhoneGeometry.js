@@ -40,9 +40,11 @@ export const PHONE_MAX_WIDTH_PX = 767;
 // grid yang meregang. Ini juga selaras dengan cara rekaan itu sendiri menyatakan tier lain — HERO,
 // MENEGAK dan STANDARD semuanya min-height px tetap, bukan nisbah.
 //
-// LANTAI DIRAPATKAN SUPAYA KAD TIDAK BERJURANG
+// LANTAI DIRAPATKAN SUPAYA KAD TIDAK BERJURANG (SEJARAH — era kad tajuk sahaja, lihat
+// "HURAIAN DIKEMBALIKAN" di bawah untuk nombor semasa. Nombor 224/173/179 dalam seksyen ni sudah
+// digantikan; kekal di sini sebagai rekod sebab lantai era tajuk-sahaja dipilih macam itu.)
 //
-// Kad telefon ialah kad tajuk sahaja, tetapi nombor rekaan (240/224/150) dan nisbah berpasangan
+// Kad telefon dahulu kad tajuk sahaja, tetapi nombor rekaan (240/224/150) dan nisbah berpasangan
 // dipilih untuk kad yang MEMBAWA huraian. Tanpa huraian, lantai itu jadi terlalu murah hati dan
 // meninggalkan jalur kosong antara tajuk dan garis Sumber.
 //
@@ -60,17 +62,26 @@ export const PHONE_MAX_WIDTH_PX = 767;
 // MENEGAK turun ke nilai yang SAMA dengan MELINTANG dengan sengaja: pada telefon kedua-duanya kad
 // penuh lebar bertajuk sahaja dengan peranan yang serupa sepenuhnya. "Menegak" ialah bentuk grid
 // 6-kolum desktop — bentuk itu tidak wujud pada telefon, jadi tingginya tidak patut diwarisi.
-const PENUH_LEBAR = '150px';
+// ---------------------------------------------------------------------------------------------
+// HURAIAN DIKEMBALIKAN (2026-07-31, permintaan pemilik projek)
+//
+// Nombor PHONE_CARD_MIN di bawah pada asalnya diukur untuk kad TAJUK SAHAJA — huraian
+// disembunyikan (`display:none`) kerana bimbang tak muat. Pemilik projek kemudian minta huraian
+// dikembalikan; lantai di bawah diukur SEMULA hidup (klon kad sebenar, lebar sebenar 358px/173px,
+// bajet aksara maksimum tier — GEOMETRY_RATIOS maxTitleAlone/maxBriefAlone — diuji pada 4 titik
+// sepanjang sempadan bajet kongsi: 100/0, 50/50, 25/75, 0/100 tajuk/huraian, teks realistik
+// berjarak (bukan aksara berulang tanpa jarak — itu memberi bacaan lilitan baris yang tak tepat),
+// ambil kes TERTINGGI + baki kecil. BAR tidak disentuh (tiada medan huraian langsung).
 
 /** Tinggi minimum telefon bagi setiap tier, sebagai pemboleh ubah CSS pada akar grid. */
 export const PHONE_CARD_MIN = {
-  '--card-min-melintang-penuh': '240px',      // HERO — lantai hampir tidak mengikat (semula jadi 242)
-  '--card-min-menegak': PENUH_LEBAR,          // MENEGAK — dahulu 224px
-  '--card-min-melintang': PENUH_LEBAR,        // STANDARD — tidak berubah
-  '--card-min-bar': '84px',                   // BAR (BarCard sudah ada min-h-[84px])
-  '--card-min-kiub-besar': '231px',           // KIUB BESAR — bentuk 3:4; tidak mengikat (semula jadi 280–291)
-  '--card-min-kiub-kecil': '145px',           // KIUB KECIL — dahulu 179px (2:1); semula jadi 139–183
-  '--card-min-kompak': '135px',               // KOMPAK — dahulu 173px (1:1); semula jadi 130–142
+  '--card-min-melintang-penuh': '335px',      // HERO — kes terburuk terukur 330px
+  '--card-min-menegak': '385px',              // MENEGAK — kes terburuk terukur 380px
+  '--card-min-melintang': '270px',            // STANDARD — kes terburuk terukur 268px
+  '--card-min-bar': '84px',                   // BAR (BarCard sudah ada min-h-[84px]) — tiada huraian, tak berubah
+  '--card-min-kiub-besar': '335px',           // KIUB BESAR — kes terburuk terukur 333px
+  '--card-min-kiub-kecil': '200px',           // KIUB KECIL — kes terburuk terukur 195px
+  '--card-min-kompak': '170px',               // KOMPAK — kes terburuk terukur 166px
 };
 
 // Kotak setiap tier pada telefon.
@@ -106,6 +117,15 @@ export const PHONE_TITLE = {
   penuh: '18px',
   pasangan: '14px',
   leading: '1.375',
+};
+
+// Huraian ikut prinsip lebar-kolum yang sama seperti tajuk di atas — dua lebar, dua saiz. Satu
+// tangga di bawah tajuknya (18→14, 14→12) supaya hierarki tajuk/huraian kekal jelas pada kedua-dua
+// lebar. Diukur bersama lantai PHONE_CARD_MIN di atas — lihat nota "HURAIAN DIKEMBALIKAN".
+export const PHONE_BRIEF = {
+  penuh: '14px',
+  pasangan: '12px',
+  leading: '1.5',
 };
 
 // Nilai px ditulis TERUS ke dalam peraturan tier, bukan melalui `var(--card-min-*)`. Kedua-duanya
@@ -148,10 +168,17 @@ export const phoneLayoutCss = () => {
     const nota = box.nisbah ? ` (bentuk direka ${box.nisbah}, sebagai lantai)` : '';
     // Saiz tajuk ikut lebar kolum, diperoleh terus daripada `pasangan` — jadi ia tidak boleh
     // tersasar daripada susun atur yang sebenarnya digunakan tier itu.
-    const saiz = box.pasangan ? PHONE_TITLE.pasangan : PHONE_TITLE.penuh;
+    const saizTajuk = box.pasangan ? PHONE_TITLE.pasangan : PHONE_TITLE.penuh;
     const tajukSelector = slots.map((n) => `  #bento-news-grid [data-slot="${n}"] h3`).join(',\n');
-    const tajukRule = `${tajukSelector} {\n    font-size: ${saiz};\n    line-height: ${PHONE_TITLE.leading};\n  }`;
-    return `  /* ${tier} — ${box.pasangan ? 'berpasangan dua kolum' : 'penuh lebar'}${nota} */\n${selector} {\n${decls}\n  }\n\n${tajukRule}`;
+    const tajukRule = `${tajukSelector} {\n    font-size: ${saizTajuk};\n    line-height: ${PHONE_TITLE.leading};\n  }`;
+    // !important WAJIB di sini: getCardTheme().briefStyle (FrontpageView.tsx) menetapkan
+    // fontSize:'14px' terus sebagai gaya INLINE pada setiap <p> huraian (untuk desktop) — gaya
+    // inline sentiasa menewaskan mana-mana peraturan luar tanpa !important, tak kira spesifikasi.
+    // Sama sebab seperti nota [data-carousel-stable] di bawah.
+    const saizHuraian = box.pasangan ? PHONE_BRIEF.pasangan : PHONE_BRIEF.penuh;
+    const huraianSelector = slots.map((n) => `  #bento-news-grid [data-slot="${n}"] p`).join(',\n');
+    const huraianRule = `${huraianSelector} {\n    font-size: ${saizHuraian} !important;\n    line-height: ${PHONE_BRIEF.leading};\n  }`;
+    return `  /* ${tier} — ${box.pasangan ? 'berpasangan dua kolum' : 'penuh lebar'}${nota} */\n${selector} {\n${decls}\n  }\n\n${tajukRule}\n\n${huraianRule}`;
   }).filter(Boolean).join('\n\n');
 
   return `@media (max-width: ${PHONE_MAX_WIDTH_PX}px) {
@@ -159,19 +186,13 @@ export const phoneLayoutCss = () => {
 ${vars}
   }
 
-  /* Kad telefon ialah kad TAJUK SAHAJA. Huraian disembunyikan, bukan dipotong — teks editorial
-     sebenar kekal utuh dalam pangkalan data dan dipapar penuh dalam Focus View telefon.
-     Satu-satunya <p> di dalam kad bento ialah huraian; Bidang ialah <div>, Sumber <a>,
-     tarikh siaran <span>. */
-  #bento-news-grid [data-slot] p {
-    display: none;
-  }
-
-  /* CarouselStableBlock mengunci min-height pada tinggi item TERTINGGI yang pernah diukur, dan
-     nilai itu tidak pernah mengecil semula. Kalau halaman dibuka pada lebar desktop dahulu
-     kemudian dikecilkan ke telefon, kunci desktop (dengan huraian) akan terbawa ke sini dan
-     memecahkan kotak tier. Pada telefon kandungan kad ialah tajuk sahaja, jadi kunci itu memang
-     tidak diperlukan. Ia gaya inline, jadi ini satu-satunya tempat !important benar-benar perlu. */
+  /* CarouselStableBlock mengunci min-height pada tinggi item TERTINGGI yang pernah diukur PADA
+     LEBAR DESKTOP, dan nilai itu tidak pernah mengecil semula. Kalau halaman dibuka pada lebar
+     desktop dahulu kemudian dikecilkan ke telefon, kunci desktop (diukur pada kad yang jauh lebih
+     lebar, jadi teks melilit lebih sedikit) akan terbawa ke sini dan jadi TERLALU RENDAH untuk
+     lilitan baris telefon yang lebih sempit — punca berbeza daripada lantai PHONE_CARD_MIN di
+     atas (yang diukur khusus untuk lebar telefon), tapi kesan sama: kotak tier pecah. Ia gaya
+     inline, jadi !important wajib di sini — sama sebab seperti peraturan huraian di atas. */
   #bento-news-grid [data-carousel-stable] {
     min-height: 0 !important;
   }
