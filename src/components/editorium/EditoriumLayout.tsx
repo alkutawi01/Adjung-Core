@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { List, FolderOpen, Settings, History, Landmark, Palette, LogOut, LogIn, Lock, Zap, PenLine } from 'lucide-react';
+import { List, LayoutGrid, FolderOpen, Settings, History, Landmark, Palette, LogOut, LogIn, Lock, Zap, PenLine } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
@@ -39,6 +39,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
   const navItems = [
     { id: 'indeks', label: 'Kandungan', Icon: List },
+    // Slot (2026-07-30, permintaan pemilik projek) — senarai kandungan ikut slot (sunting/tambah/
+    // padam item). Dulu ia paparan togol dalam "Semakan Kandungan"; kini destinasi sendiri, dan
+    // Semakan Kandungan tinggal paparan teks pukal sahaja.
+    { id: 'slot', label: 'Slot', Icon: LayoutGrid },
     { id: 'direktori', label: 'Direktori', Icon: FolderOpen },
     // Modul Khas (2026-07-29, permintaan pemilik projek) — rumah baharu "Urus Ticker" (dipindah
     // daripada frontpage, dulu butang gear kecil yang cuma muncul dalam mod edit inline).

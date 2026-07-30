@@ -107,9 +107,12 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               currentUserName={currentUser.name}
             />
           )}
-          {indeksSubTab === 'semakan' && <ContentReview />}
+          {indeksSubTab === 'semakan' && <ContentReview paparan="pukal" />}
         </div>
       )}
+      {/* Slot (2026-07-30) — senarai kandungan ikut slot, dulu paparan togol dalam Semakan
+          Kandungan. Lihat nota di atas ContentReview. */}
+      {activeTab === 'slot' && <ContentReview paparan="slot" />}
       {activeTab === 'modul_khas' && (
         <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 font-sans">
           <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Modul Khas</h3>
