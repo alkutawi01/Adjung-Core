@@ -377,6 +377,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
     try {
       const { id } = req.params;
 
+      // TICKER DIKECUALIKAN daripada peraturan "arkib, jangan padam" di bawah (2026-07-30,
+      // keputusan pemilik projek). Sebabnya: item Ticker datang daripada suapan RSS, bukan
+      // ditulis editor dalam modal Tulis Kandungan. Mengarkibkan setiap satunya akan
+      // menenggelamkan arkib dengan ratusan baris yang bukan karya editorial — arkib itu untuk
+      // menjejaki keputusan editor, bukan menyimpan segala yang pernah melintas jalur.
       if (id.startsWith('ticker-')) {
         const idx = parseInt(id.slice('ticker-'.length), 10);
         const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
