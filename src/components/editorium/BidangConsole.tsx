@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
+import { Zap, X, AlertTriangle, Check, Pencil, Palette, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 
@@ -49,9 +49,26 @@ export const BidangConsole: React.FC = () => {
       .finally(() => setDesksLoading(false));
   };
 
+  // Editor sesuatu Bidang TIDAK disimpan berasingan — ia dikira daripada penugasan slot (lihat
+  // core/routes/slotEditorRoutes.js). Editor yang diamanahkan urus slot 1 dengan sendirinya
+  // bertanggungjawab ke atas Bidang slot 1; dua senarai berasingan hanya akan bercanggah.
+  const [penugasan, setPenugasan] = useState<{ slotIndex: number; editorId: string; nama: string }[]>([]);
+
   useEffect(() => {
     fetchActiveBidang();
+    fetch('/api/system/slot-editors')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setPenugasan(d); })
+      .catch(e => console.error('Error fetching slot editors:', e));
   }, []);
+
+  const editorBagiBidang = (slots: number[]) => {
+    const nama = new Map<string, string>();
+    for (const p of penugasan) {
+      if (slots.includes(p.slotIndex)) nama.set(p.editorId, p.nama);
+    }
+    return [...nama.values()];
+  };
 
   // ---------------------------------------------------------------------------------------------
   // PERUNTUKAN SLOT — dipentaskan, bukan serta-merta.
@@ -441,6 +458,7 @@ export const BidangConsole: React.FC = () => {
                 <th className="p-3">Warna</th>
                 <th className="p-3">Nama Bidang</th>
                 <th className="p-3">Nombor Slot Diperuntukkan</th>
+                <th className="p-3">Editor</th>
                 <th className="p-3 text-right">Tindakan</th>
               </tr>
             </thead>
@@ -467,8 +485,19 @@ export const BidangConsole: React.FC = () => {
                         )}
                       </button>
                     </td>
+                    {/* Petak warna ini pintu kedua ke modal yang sama seperti ikon — dulu
+                        satu-satunya jalan masuk ialah klik bulatan ikon, tanpa sebarang tanda ia
+                        boleh diklik langsung. */}
                     <td className="p-3">
-                      <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-xs" style={{ backgroundColor: d.color }}></span>
+                      <button
+                        type="button"
+                        onClick={() => openIconPicker(d)}
+                        title="Tukar warna Bidang"
+                        className="inline-flex items-center gap-1.5 group cursor-pointer"
+                      >
+                        <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-xs group-hover:ring-2 group-hover:ring-offset-1 group-hover:ring-stone-300 transition-shadow" style={{ backgroundColor: d.color }}></span>
+                        <span className="font-mono text-[10px] uppercase text-stone-400 group-hover:text-[#802334]">{d.color}</span>
+                      </button>
                     </td>
                     <td className="p-3 font-semibold text-stone-900">
                       {renamingBidangId === d.id ? (
@@ -496,14 +525,31 @@ export const BidangConsole: React.FC = () => {
                         </div>
                       )}
                     </td>
+                    <td className="p-3 text-stone-600 text-[11px]">
+                      {(() => {
+                        const senarai = editorBagiBidang(d.slots);
+                        return senarai.length === 0
+                          ? <span className="text-stone-400 italic">Belum ditugaskan</span>
+                          : senarai.join(', ');
+                      })()}
+                    </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => { setRenamingBidangId(d.id); setRenameValue(d.name); }}
-                          className="text-stone-500 hover:text-[#802334]"
-                          title="Tukar Nama"
+                          className="text-stone-500 hover:text-[#802334] inline-flex items-center gap-1"
+                          title="Tukar nama Bidang"
                         >
-                          <Pencil className="w-3.5 h-3.5" />
+                          <Pencil className="w-3.5 h-3.5" /> Nama
+                        </button>
+                        {/* Butang bertulis, bukan hanya ikon boleh klik dalam jadual — tanpa ini
+                            tiada apa-apa memberitahu warna/ikon/plat boleh disunting langsung. */}
+                        <button
+                          onClick={() => openIconPicker(d)}
+                          className="text-stone-500 hover:text-[#802334] inline-flex items-center gap-1"
+                          title="Tukar warna, ikon dan plat ilustrasi"
+                        >
+                          <Palette className="w-3.5 h-3.5" /> Rupa
                         </button>
                         <button
                           onClick={() => toggleSlotPanel(d)}
@@ -519,7 +565,7 @@ export const BidangConsole: React.FC = () => {
                     const { tambah, buang, adaPerubahan, jumlahArkib } = slotDiff(d);
                     return (
                     <tr>
-                      <td colSpan={5} className="p-4 bg-stone-50">
+                      <td colSpan={6} className="p-4 bg-stone-50">
                         <div className="text-[9px] uppercase font-bold text-stone-500 mb-1">
                           Tanda slot untuk peruntukkan Bidang "{d.name}"
                         </div>

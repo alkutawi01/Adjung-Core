@@ -27,6 +27,7 @@ import { createPipelineRoutes } from './core/routes/pipelineRoutes.js';
 import { createWorldClockRoutes } from './core/routes/worldClockRoutes.js';
 import { createSlotsConfigRoutes } from './core/routes/slotsConfigRoutes.js';
 import { createTierSettingsRoutes, loadTierOverrides } from './core/routes/tierSettingsRoutes.js';
+import { createSlotEditorRoutes } from './core/routes/slotEditorRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
 const mockDb = {};
@@ -182,6 +183,18 @@ const initializeSchema = () => {
               )
             `, () => {});
             
+            // Penugasan editor kepada slot (2026-07-30). Banyak-ke-banyak: satu slot boleh
+            // beberapa editor, satu editor boleh beberapa slot. Editor bagi sesuatu Bidang DIKIRA
+            // daripada jadual ni (ikut slot milik Bidang tu), tidak disimpan berasingan.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS slot_editors (
+                slotIndex INTEGER NOT NULL,
+                editorId TEXT NOT NULL,
+                createdAt TEXT,
+                PRIMARY KEY (slotIndex, editorId)
+              )
+            `, () => {});
+
             // Pindaan had aksara per-tier (2026-07-30). Menyimpan PINDAAN sahaja — tier tanpa
             // baris di sini guna nilai lalai GeometryConfig.js. Lihat core/routes/tierSettingsRoutes.js.
             db.run(`
@@ -2295,6 +2308,7 @@ app.use('/api/system', createLayoutRoutes(db, dbAll, resolveSlotContent));
 app.use('/api/system', createContentRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api/system', createWorldClockRoutes());
 app.use('/api/system', createTierSettingsRoutes(dbAll, dbRun));
+app.use('/api/system', createSlotEditorRoutes(dbAll, dbRun, dbGet));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
 // disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache
