@@ -34,11 +34,6 @@ interface ContentItem {
   originalDate?: string;
 }
 
-// Label paparan untuk status mentah — sama pemetaan macam IndeksConsole.tsx (STATUS_TO_LABEL).
-const CR_STATUS_TO_LABEL: Record<string, string> = {
-  approved: 'Live', pending: 'Pending', rejected: 'Rejected', archived: 'Archive',
-};
-
 // Format datang dari eyebrowLabel() di GeometryConfig.js — sumber yang SAMA digunakan oleh
 // pengesahan simpan dan oleh render kad frontpage. Sebelum ini fail ini menyimpan salinan
 // keduanya sendiri; kalau format bercabang, had aksara eyebrow akan mengesahkan string yang
@@ -431,10 +426,9 @@ export function ContentReview({ paparan = 'pukal' }: { paparan?: 'slot' | 'pukal
               className="bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold"
             >
               <option value="Semua">Semua Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Live</option>
-              <option value="rejected">Rejected</option>
-              <option value="archived">Archive</option>
+              <option value="pending">Menunggu</option>
+              <option value="approved">Tersiar</option>
+              <option value="archived">Arkib</option>
             </select>
             <select
               value={deskFilter}

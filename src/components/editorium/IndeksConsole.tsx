@@ -12,7 +12,7 @@ interface BriefRecord {
   // Draf SENGAJA tiada di sini (2026-07-29) — draf ialah ruang peribadi editor dalam modal Tulis
   // Kandungan sahaja (slots_config.manualSummary), tak pernah punya baris editorial_objects,
   // jadi tak sesekali muncul dalam Indeks. Lihat nota alur kerja di server.js.
-  status: 'Pending' | 'Live' | 'Rejected' | 'Archive';
+  status: 'Pending' | 'Live' | 'Archive';
   source: string;
   creator: string;
   cardType: string;
@@ -71,14 +71,27 @@ const formatTitleCase = (str: string) => {
 const STATUS_TO_LABEL: Record<string, BriefRecord['status']> = {
   approved: 'Live',
   pending: 'Pending',
-  rejected: 'Rejected',
   archived: 'Archive',
 };
 const LABEL_TO_STATUS: Record<BriefRecord['status'], string> = {
   Live: 'approved',
   Pending: 'pending',
-  Rejected: 'rejected',
   Archive: 'archived',
+};
+
+// Label dipapar kepada editor — 100% Bahasa Melayu (Peraturan Perlembagaan). Kunci dalaman
+// (Live/Pending/Archive) sengaja TIDAK ditukar: ia dipadankan dengan nilai status pangkalan data
+// di banyak tempat, jadi terjemahan dibuat pada saat memapar sahaja, satu tempat di sini.
+//
+// Status "Rejected" DIBUANG (2026-07-30): "Tolak" memulangkan kandungan jadi draf peribadi editor
+// dan menandakan rekod lama sebagai arkib — tiada laluan dalam sistem yang menghasilkan status
+// rejected, jadi menawarkannya sebagai penapis hanya menjanjikan sesuatu yang tak boleh wujud.
+// (Ticker ada dunia berasingan: rss_ticker_items ada status 'rejected' sendiri, diuruskan di
+// Modul Khas → Urus Ticker.)
+export const STATUS_DISPLAY: Record<BriefRecord['status'], string> = {
+  Live: 'Tersiar',
+  Pending: 'Menunggu',
+  Archive: 'Arkib',
 };
 
 // "Kaedah" ni sepatutnya sama konsep dengan "Mod Kandungan" yang dah sedia ada & user-facing di
@@ -248,7 +261,6 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     return {
       Pending: items.filter(i => i.status === 'Pending').length,
       Live: items.filter(i => i.status === 'Live').length,
-      Rejected: items.filter(i => i.status === 'Rejected').length,
       Archive: items.filter(i => i.status === 'Archive').length,
       Total: items.length
     };
@@ -477,10 +489,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         <div className="flex flex-wrap justify-end items-center gap-4">
           {/* Quick Counter Badges */}
           <div className="flex items-center gap-2 font-sans text-[10px]">
-            <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded font-bold">Pending: <span className="font-mono">{statusCounts.Pending}</span></span>
-            <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-bold">Live: <span className="font-mono">{statusCounts.Live}</span></span>
-            <span className="bg-red-100 text-red-800 px-2 py-1 rounded font-bold">Rejected: <span className="font-mono">{statusCounts.Rejected}</span></span>
-            <span className="bg-stone-200 text-stone-700 px-2 py-1 rounded font-bold">Archive: <span className="font-mono">{statusCounts.Archive}</span></span>
+            <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded font-bold">Menunggu: <span className="font-mono">{statusCounts.Pending}</span></span>
+            <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-bold">Tersiar: <span className="font-mono">{statusCounts.Live}</span></span>
+            <span className="bg-stone-200 text-stone-700 px-2 py-1 rounded font-bold">Arkib: <span className="font-mono">{statusCounts.Archive}</span></span>
           </div>
         </div>
 
@@ -519,10 +530,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
               <option value="Semua">Semua Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Live">Live</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Archive">Archive</option>
+              <option value="Pending">Menunggu</option>
+              <option value="Live">Tersiar</option>
+              <option value="Archive">Arkib</option>
             </select>
           </div>
 
@@ -785,9 +795,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                         rec.status === 'Live' ? 'bg-emerald-100 text-emerald-800' :
                         rec.status === 'Pending' ? 'bg-amber-100 text-amber-800' :
-                        rec.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-stone-200 text-stone-700'
+                        'bg-stone-200 text-stone-700'
                       }`}>
-                        {rec.status}
+                        {STATUS_DISPLAY[rec.status]}
                       </span>
                     </td>
                     <td
@@ -824,7 +834,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           {rec.status !== 'Archive' && <option value="Archive">Arkib</option>}
                         </select>
                       ) : (
-                        <span className="text-stone-400 text-[11px] font-sans">{rec.slot === 'Ticker' ? 'Ticker (uruskan di Tetapan)' : 'Baca Sahaja'}</span>
+                        <span className="text-stone-400 text-[11px] font-sans">{rec.slot === 'Ticker' ? 'Ticker — urus di Modul Khas' : 'Baca Sahaja'}</span>
                       )}
                     </td>
                   </tr>
@@ -915,7 +925,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs bg-stone-100 p-3 rounded border border-stone-200">
-              <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{activeItemModal.status}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{STATUS_DISPLAY[activeItemModal.status]}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">BIDANG</span><strong className="text-stone-900">{formatTitleCase(activeItemModal.desk)}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik ? formatTitleCase(activeItemModal.topik) : '-'}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
