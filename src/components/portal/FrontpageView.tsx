@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { User, Entry, SystemSettings } from '../../types';
 import { BRAND } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays } from '../../utils';
@@ -60,7 +60,18 @@ interface FrontpageViewProps {
   // Peranan Editorium (Ketua Editor / Editor), diangkat naik dari App.tsx — berasingan
   // daripada currentUser di atas (yang memang dead-code/KIV, lihat canCurate). Guna khusus
   // untuk kunci medan Bidang di Tetapan Slot kepada Ketua Editor sahaja.
+  // undefined = belum log masuk (tiada sesi). Peraturan keras baharu (2026-07-29): tiada log
+  // masuk = tiada akses edit langsung, termasuk butang "Edit Kandungan" di bawah.
   currentEditoriumRole?: 'KETUA_EDITOR' | 'EDITOR';
+  // Identiti akaun yang LOG MASUK sebenar — cuma dihantar bila currentEditoriumRole ===
+  // 'KETUA_EDITOR' DAN pengesahan sebenar berjaya. Dipaparkan sebagai tandatangan editor di
+  // Focus View (kolofon bawah).
+  currentEditoriumName?: string;
+  currentEditoriumContact?: string;
+  // Buka borang log masuk (dikongsi dengan Editorium, dimiliki App.tsx). `onSuccess` pilihan
+  // dipanggil lepas log masuk berjaya (di sini: terus aktifkan mod edit).
+  onRequestEditLogin?: (onSuccess?: () => void) => void;
+  onLogout?: () => void;
   inTheNewsGoogleDocText?: string;
   worldClockHolidaysGoogleDocText?: string;
 }
@@ -505,11 +516,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   setSelectedAuthorId,
   setActiveTab,
   currentUser,
-  currentEditoriumRole = 'KETUA_EDITOR',
+  currentEditoriumRole,
+  currentEditoriumName,
+  currentEditoriumContact,
+  onRequestEditLogin,
+  onLogout,
   inTheNewsGoogleDocText = '',
   worldClockHolidaysGoogleDocText = '',
   setIndexSearchQuery,
 }) => {
+  const navigate = useNavigate();
   const [parsedNewsItems, setParsedNewsItems] = useState<any[]>([]);
   // Distinguishes "haven't fetched real content yet" from "fetched, and this slot is genuinely
   // unconfigured" — without this, every fresh page load briefly renders the character-limit
@@ -1445,8 +1461,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     loadSlotsConfig();
   }, [systemSettings.inTheNewsText, activeLanguage, refreshKey]);
 
-  const handleCardClick = (idx: number) => {
-    if (!isEditMode) return;
+  // `force`: benarkan panggilan program (cth pautan Editorium ?openTicker=1, lihat useEffect di
+  // bawah) memintas pengawal isEditMode — sumber panggilan tu bukan klik kad UI langsung, jadi
+  // tiada mod edit untuk disemak pun.
+  const handleCardClick = (idx: number, force = false) => {
+    if (!isEditMode && !force) return;
     // Guard against a race where slotsConfig hasn't finished loading yet: without this, `config`
     // below silently resolves to undefined for every slot, and the modal falls back to synthesizing
     // its "Kandungan Manual" textarea from demo/placeholder content — which looks like real content
@@ -1516,7 +1535,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       });
     }
 
-    if (!manualSummaryText.includes('Tajuk:') && !manualSummaryText.includes('Event:')) {
+    // Giliran slot ni betul-betul kosong (tiada "Tajuk:"/"Event:" tersimpan) — borang akan
+    // disintesis daripada kandungan demo "Tentang Adjung" di bawah, BUKAN data tersimpan sebenar.
+    // Ditandakan pada formConfig (lihat setFormConfig di bawah) supaya SlotManagerModal boleh
+    // papar amaran jelas — insiden sebenar 2026-07-29: tanpa penanda ni, teks demo tak dapat
+    // dibezakan langsung daripada kandungan tersimpan, hampir tersiar sebagai kandungan sebenar.
+    const isDemoContent = !manualSummaryText.includes('Tajuk:') && !manualSummaryText.includes('Event:');
+    if (isDemoContent) {
       const itemsList = item?.items || [];
       if (isBarSlot) {
         if (itemsList.length > 0) {
@@ -1535,13 +1560,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             return `Tarikh: ${eventDate}\nEvent: (had ${limits.maxTitle} aksara) ${itm.title || ''}\nPenganjur: ${organizer}\nLokasi: ${location}\nAkses: ${access}\nPenerangan: ${penerangan}\nURL: ${url}`;
           }).join('\n\n____\n\n');
         } else {
-          const title = config?.manualTitle || item?.titleString || '';
-          const organizer = config?.manualSource || item?.organizer || item?.penganjur || '';
+          // manualTitle/manualSource/manualUrl tak dibaca di sini juga — sama sebab macam
+          // cawangan bukan-BAR di bawah (lihat nota di situ).
+          const title = item?.titleString || '';
+          const organizer = item?.organizer || item?.penganjur || '';
           const location = item?.location || '';
           const access = item?.access || '';
           const penerangan = item?.penerangan || '';
           const eventDate = item?.originalDate || item?.date || item?.publishedAt || '';
-          const rawUrl = config?.manualUrl || item?.url || '';
+          const rawUrl = item?.url || '';
           const url = rawUrl === '#' ? '' : rawUrl;
 
           manualSummaryText = `Tarikh: ${eventDate}
@@ -1566,13 +1593,20 @@ URL: ${url}`;
           }).join('\n\n________________________________________\n\n');
         } else {
           const uuid = item?.id || `object-manual-slot${idx}-${Date.now()}-0`;
-          const title = config?.manualTitle || item?.titleString || '';
+          // manualTitle/manualSource/manualUrl TIDAK dibaca di sini (2026-07-29) — tiga lajur
+          // legasi ni peninggalan reka bentuk lama sebelum sistem giliran (manualSummary) wujud,
+          // tak pernah dikemas kini oleh UI semasa, dan boleh simpan nilai demo/dev-reference
+          // lapuk (cth "Had Tajuk Kad... Maksimum 85 Aksara", "19 Jul 2026", URL "/about/..."
+          // ditemui sebenar dalam DB serata 15+ slot) yang muncul macam nilai SEBENAR (bukan
+          // placeholder kelabu) bila giliran kosong, mengelirukan penyunting. `item` (kumpulan
+          // demo "Tentang Adjung" bersih) satu-satunya sumber sedia bila giliran kosong.
+          const title = item?.titleString || '';
           const brief = config?.manualSummary || item?.briefString || '';
           const briefLong = item?.briefLong || '';
           const desk = config?.manualDesk || item?.desk || '';
-          const rawSource = config?.manualSource || item?.source || '';
+          const rawSource = item?.source || '';
           const source = rawSource === 'ChatGPT/Gemini Manual Paste' ? '' : rawSource;
-          const rawUrl = config?.manualUrl || item?.url || '';
+          const rawUrl = item?.url || '';
           const url = rawUrl === '#' ? '' : rawUrl;
           const date = item?.originalDate || '';
           const st = item?.sourceType === 'print' ? 'Bahan Bercetak' : item?.sourceType === 'audio' ? 'Audio' : item?.sourceType === 'video' ? 'Video' : (item?.sourceType || '');
@@ -1604,10 +1638,19 @@ URL: ${url}`;
       bgColor: config?.bgColor || 'transparent',
       borderColor: config?.borderColor || '',
       textColor: config?.textColor || '#1F1F1F',
-      manualTitle: config?.manualTitle || item?.titleString || '',
+      // manualTitle/manualSource/manualUrl SENGAJA tidak diwarisi daripada config (2026-07-29) —
+      // lajur legasi single-item ni tak dibaca langsung oleh laluan terbit sebenar untuk slot
+      // Manual (kandungan sebenar datang daripada manualSummary), tapi setiap simpan menulis
+      // BALIK apa sahaja nilai yang ada di sini — jadi mewarisi config.manualTitle dsb hanya
+      // mengekalkan nilai lapuk selama-lamanya (punca sebenar bug slot 4/5 papar teks
+      // dev-reference "Had Tajuk Kad..."/"19 Jul 2026" macam nilai sebenar). Derive terus
+      // daripada `item` (kandungan terkini/demo bersih) setiap kali supaya nilai lapuk tak boleh
+      // berputar semula.
+      manualTitle: item?.titleString || '',
       manualSummary: manualSummaryText,
-      manualSource: config?.manualSource || item?.source || '',
-      manualUrl: config?.manualUrl || item?.url || '#',
+      isDemoContent,
+      manualSource: item?.source || '',
+      manualUrl: item?.url || '#',
       manualImageUrl: config?.manualImageUrl || item?.imageUrl || '',
       manualDesk: config?.manualDesk || item?.desk || '',
       activeObjectId: config?.activeObjectId || '',
@@ -1632,6 +1675,28 @@ URL: ${url}`;
     setEditingSlotIndex(idx);
     setShowResetMenu(false);
   };
+
+  // Sambungan rentas-laman "buka modal ni terus" (2026-07-29) — Editorium dan Frontpage kini
+  // dipisah 100% untuk Tulis Kandungan (modal render terus di Editorium sendiri, lihat
+  // useSlotEditor.ts/EditoriumView.tsx — tiada lagi navigasi/parameter URL untuk tu). Ticker
+  // KEKAL guna sambungan URL sementara (TickerManagementModal + seluruh state sokongannya jauh
+  // lebih besar/kompleks — pemindahan penuh kerja berasingan akan datang). Butang "Urus Ticker"
+  // di Editorium pautkan ke "/?openTicker=1"; effect ni baca parameter tu SEKALI selepas
+  // slotsConfig termuat dan buka TickerManagementModal secara program (force=true memintas
+  // pengawal isEditMode — panggilan ni bukan klik kad UI). URL dibersihkan lepas tu.
+  const openedFromUrlRef = React.useRef(false);
+  React.useEffect(() => {
+    if (openedFromUrlRef.current) return;
+    if (slotsConfig.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('openTicker')) {
+      openedFromUrlRef.current = true;
+      setIsEditMode(true);
+      handleCardClick(-1, true);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotsConfig]);
 
   // manualSummaryOverride: SlotManagerModal.tsx holds its content queue as LOCAL state (for
   // performance — see that file's notes) and passes the freshly-serialized text blob straight
@@ -2594,12 +2659,42 @@ URL: ${url}`;
   };
 
   return (
-    <div className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-12 select-none animate-fade-in">
+    <div className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-4 select-none animate-fade-in">
 
       <div className="max-w-5xl mx-auto w-full flex-1">
 
+        {/* Jalur utiliti editorial — bucu kanan masthead, sejajar logo. Dikemas (2026-07-29,
+            permintaan pemilik projek) — frontpage TIADA butang editorial langsung lagi (Edit
+            Kandungan/Tulis Kandungan/Log Keluar semua dibuang dari sini), cuma SATU pautan ke
+            Editorium. Tulis Kandungan kini render TERUS di Editorium sendiri (mandiri, lihat
+            useSlotEditor.ts) — tiada lagi navigasi/parameter URL untuk tu. Ticker SAHAJA masih
+            guna sambungan URL sementara (?openTicker=1, lihat useEffect di bawah) — pemindahan
+            penuhnya kerja berasingan akan datang (TickerManagementModal jauh lebih besar).
+            isEditMode/editingSlotIndex/handleCardClick dsb. kekal wujud dalam fail ni (114
+            rujukan, terlalu berisiko dicabut sesi ni) tapi kini tak boleh dicapai terus daripada
+            UI frontpage kecuali laluan Ticker tu. */}
+        <div className="flex justify-end pt-2">
+          {/* Belum log masuk: butang ni buka borang log masuk TERUS di atas frontpage (modal),
+              bukan bawa ke skrin pagar "log masuk diperlukan" di Editorium — dulu pengguna kena
+              klik "Log Masuk" DUA kali untuk sampai borang yang sama. Lepas berjaya, barulah
+              masuk Editorium. Skrin pagar tu kekal untuk sesiapa yang taip /editorium terus.
+              Sudah log masuk: pautan biasa ke Editorium. */}
+          <button
+            onClick={() => {
+              if (currentEditoriumRole) {
+                navigate('/editorium');
+                return;
+              }
+              onRequestEditLogin?.(() => navigate('/editorium'));
+            }}
+            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334]"
+          >
+            <Lock size={12} /> {currentEditoriumRole ? 'Editorium' : 'Log Masuk'}
+          </button>
+        </div>
+
         {/* Wordmark Hero */}
-        <section className="text-center pt-8 pb-6 animate-fade-in">
+        <section className="text-center pt-2 pb-6 animate-fade-in">
           <h1 className="font-serif font-normal tracking-tight text-6xl md:text-7xl text-[#802334]">
             <HoverWords text={BRAND.logoText} />
           </h1>
@@ -2684,38 +2779,6 @@ URL: ${url}`;
               <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200 mr-1 hidden sm:inline">
                 &bull; Baca Paparan Penuh
               </span>
-            )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditMode(!isEditMode);
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer ${
-                isEditMode
-                  ? 'bg-[#802334] text-white border-[#802334] shadow-sm font-semibold'
-                  : 'bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334]'
-              }`}
-            >
-              <Info size={12} className={isEditMode ? "animate-pulse" : ""} />
-              {isEditMode ? 'Tutup Edit' : 'Edit Kandungan'}
-            </button>
-            {isEditMode && (
-              <>
-                <a
-                  href="/editorium"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans font-bold cursor-pointer bg-[#802334] text-white border-[#802334] hover:bg-[#601824]"
-                >
-                  <Building2 className="w-3.5 h-3.5" /> Editorium
-                </a>
-                <a
-                  href="/studio/semakan-kandungan"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334]"
-                >
-                  Semakan Kandungan
-                </a>
-              </>
             )}
             {enabledLanguages.length > 0 && (
               <div 
@@ -6389,10 +6452,15 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           /api/media/upload — lihat SlotManagerModal.tsx) dihantar. `visual` expects nod React
           (bukan URL mentah), jadi item.image dibalut jadi <img> di sini; kotak "Lampiran visual"
           FocusView.tsx sendiri yang uruskan saiz (objectFit contain, 4:3) dan ia mengalah kepada
-          plat ilustrasi Bidang secara automatik (lihat showIllustration). `related`,
-          `editorName`/`editorContact` masih sengaja tidak dihantar: medannya belum wujud dalam
-          DB, jadi bahagian tu render pemegang tempat (itu yang reka bentuk arahkan), bukan diisi
-          data palsu.
+          plat ilustrasi Bidang secara automatik (lihat showIllustration). `related` masih sengaja
+          tidak dihantar (tiada punca data lagi).
+
+          `editorName`/`editorContact` (2026-07-29): identiti EDITORIUM semasa yang log masuk
+          sebenar (`currentEditoriumName`/`currentEditoriumContact`, dari App.tsx selepas
+          pengesahan /api/auth/login), BUKAN atribusi per-kandungan — operasi ni satu-Ketua-Editor
+          (Izzat), jadi tandatangan editor global memadai buat masa ini. Kosong/undefined bila
+          tiada sesiapa log masuk sebagai Ketua Editor (pelawat awam) — kolofon render pemegang
+          tempat, bukan nama palsu.
 
           Navigasi (`onPrev`/`onNext`/`prevPreviewTitle`/`nextPreviewTitle`) mod RAWAK sejak
           2026-07-29: `onNext` lompat ke `nextRandomLoc` pra-gulung (merentasi SELURUH laman, guna
@@ -6433,6 +6501,8 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           onNext={nextRandomLoc ? focusNext : undefined}
           prevPreviewTitle={focusPrevTitle}
           nextPreviewTitle={focusNextTitle}
+          editorName={currentEditoriumRole === 'KETUA_EDITOR' ? currentEditoriumName : undefined}
+          editorContact={currentEditoriumRole === 'KETUA_EDITOR' ? currentEditoriumContact : undefined}
           onClose={closeFocus}
         />
       )}
