@@ -159,14 +159,80 @@ export const eyebrowCeilingForSlot = (slotIndex) => {
   return MAX_EYEBROW_CHARS_BY_TIER[tier] ?? MAX_EYEBROW_CHARS_BY_TIER.DEFAULT;
 };
 
-// Berapa aksara yang TINGGAL untuk Topik pada slot ni, setelah Bidang terkunci slot dan
-// pemisah " | " mengambil bahagiannya. Ini nombor yang editor (dan prom AI) perlu nampak —
-// had eyebrow mentah tak berguna kepada mereka sebab mereka tak menaip bahagian Bidang.
-export const topikCeilingForSlot = (slotIndex, bidang) => {
-  const bidangLen = (bidang || '').trim().length;
-  const pemisah = bidangLen > 0 ? 3 : 0; // ' | '
-  return Math.max(0, eyebrowCeilingForSlot(slotIndex) - bidangLen - pemisah);
+// ---------------------------------------------------------------------------------------------
+// HAD TOPIK SEDAR-IKON (2026-07-31, membetulkan bug diketahui sejak 2026-07-28)
+//
+// KENAPA INI WUJUD: eyebrow kad kini papar IKON Bidang + Topik (EYEBROW_GUNA_IKON di
+// FrontpageView.tsx, EyebrowKad) — bukan lagi teks "Bidang | Topik". Tapi had di atas
+// (MAX_EYEBROW_CHARS_BY_TIER) diukur untuk label GABUNGAN teks penuh, dan topikCeilingForSlot()
+// dulu mengira baki Topik dengan menolak PANJANG NAMA BIDANG daripada had itu — nombor yang tak
+// releven lagi sebab nama Bidang tak dipapar sebagai teks pada kad. Kesannya: Bidang bernama
+// panjang ("Kesusasteraan Melayu") menyempitkan had Topik walaupun kad cuma papar ikon kecil
+// untuknya. Slot MENEGAK yang patut punya ~34 aksara untuk Topik cuma dapat ~13.
+//
+// CARA NOMBOR INI DIPEROLEH (diukur hidup, bukan ditolak secara teori): pada setiap tier, ukur
+// lebar sebenar bekas eyebrow (getBoundingClientRect) pada viewport 1024px dari kad SEBENAR;
+// setiap slot dalam satu tier memberi lebar IDENTIK (disahkan hidup 2026-07-31, tiada keperluan
+// ambil minimum merentasi slot). Ikon (variant="bare", saiz={11} — nilai LALAI EyebrowKad, tiada
+// pemanggil override) sentiasa 11px x 11px tak kira tier; jarak antara ikon & Topik tetap 6px
+// (inline style EyebrowKad) — jumlah overhead tetap 17px, ditolak daripada lebar bekas. Lebar
+// aksara JetBrains Mono (uppercase, bold, tracking-widest) diukur terus dari DOM setiap saiz fon
+// tier (bukan dikira daripada metrik fon teori) via elemen ujian span disisipkan sementara,
+// kecerunan (60 aksara - 20 aksara)/40 supaya sebarang offset tetap fon dibatalkan. Baki dibulat
+// ke bawah, tolak 10% margin sama seperti MAX_EYEBROW_CHARS_BY_TIER di atas (risiko fon fallback).
+//
+// BAR/TICKER/DEFAULT: eyebrow tak dipapar untuk tier ni (EyebrowKad tak dipanggil) — nilai
+// konservatif "kalau-kalau berubah", sama falsafah seperti MAX_EYEBROW_CHARS_BY_TIER.
+//
+// Kandungan LAMA tanpa Topik (topik kosong, requireTopik=false) tidak guna had ni — kad jatuh
+// balik kepada label teks "Bidang" sahaja (tiada ikon tanpa Topik, lihat EyebrowKad), disahkan
+// terus terhadap MAX_EYEBROW_CHARS_BY_TIER/eyebrowCeilingForSlot() seperti biasa (lihat
+// validateBidangTopik() di ContentBudget.js).
+export const MAX_EYEBROW_TOPIK_CHARS_BY_TIER = {
+  HERO: 90,
+  MENEGAK: 34,
+  STANDARD: 59,
+  SEGI_EMPAT_MEDIUM: 57,
+  SEGI_EMPAT_SMALL: 34,
+  KOMPAK: 40,
+  BAR: 34,
+  TICKER: 34,
+  DEFAULT: 34,
 };
+
+// Berapa aksara Topik yang muat pada slot ni bila laluan ikon aktif (lihat nota di atas). Ini
+// nombor yang editor (dan prom AI) perlu nampak — had eyebrow mentah/label gabungan tak berguna
+// kepada mereka sebab mereka tak menaip bahagian Bidang, dan Bidang tak lagi dipapar sebagai teks.
+export const topikCeilingForSlot = (slotIndex) => {
+  const tier = tierForSlot(slotIndex) || 'DEFAULT';
+  return MAX_EYEBROW_TOPIK_CHARS_BY_TIER[tier] ?? MAX_EYEBROW_TOPIK_CHARS_BY_TIER.DEFAULT;
+};
+
+// ---------------------------------------------------------------------------------------------
+// HAD EYEBROW FOCUS VIEW (2026-07-31)
+//
+// Focus View (FocusView.tsx, susun atur desktop) papar label PENUH "Bidang | Topik" — bukan ikon
+// — dalam <span> `whiteSpace:'nowrap'` di lajur "helaian" (`width: min(64%, 900px)`, dipusatkan).
+// Tiada had lebar/ellipsis pada span ni; kalau teks melebihi lajur, ia melimpah keluar bingkai
+// helaian tanpa jaring (tak seperti kad — Focus View tak dapat manfaat daripada
+// BentoInner.kad-limpah). Ini SATU had sejagat (bukan per-tier): sumber kandungan boleh datang
+// daripada mana-mana tier, tapi helaian Focus View lebar SAMA tak kira tier asal.
+//
+// HAD DIKIRA PADA LEBAR HELAIAN PALING SEMPIT: `min(64vw, 900px)` bermakna semakin sempit
+// viewport, semakin sempit helaian — sehingga usePhoneViewport() menukar ke Susun Atur Telefon
+// pada PHONE_MAX_WIDTH_PX (767px; lihat PhoneGeometry.js), yang mana eyebrow TAK guna nowrap
+// (selamat, boleh membalut). Jadi 768px (viewport desktop paling sempit) ialah kes TERBURUK
+// sebenar, bukan 1024px — diukur hidup pada 768px: lajur helaian ~485px, fon Inter 10px/700/
+// letter-spacing 1.5px (var(--font-sans)/var(--text-10)/var(--tracking-editorial), lihat `micro`
+// di FocusView.tsx). Lebar aksara diukur sama kaedah kecerunan (80 aksara - 20 aksara)/60 macam
+// MAX_EYEBROW_TOPIK_CHARS_BY_TIER; baki dibulat ke bawah, tolak 10% margin fon fallback.
+//
+// NOTA: bahkan had GABUNGAN lama (95 aksara HERO) sudah melebihi ruang sebenar (~49) pada
+// viewport sempit — risiko ni WUJUD sebelum pembetulan had Topik sedar-ikon di atas, cuma tak
+// disedari sebab tiada siapa sampai had penuh 95 aksara lagi. Pembetulan had Topik di atas
+// membuka lagi risiko ni (Bidang kini tak dihadkan langsung oleh pengesahan eyebrow kad), jadi
+// had sejagat ni WAJIB disemak serentak — lihat validateBidangTopik() di ContentBudget.js.
+export const FOCUS_VIEW_EYEBROW_MAX_CHARS = 49;
 
 // Character budget for BAR's "Penerangan" field — the accordion detail panel body text (see
 // BarCardExpandedPanel.tsx). BAR-only field, not part of MAX_BRIEF_LONG_BY_TIER above (that's

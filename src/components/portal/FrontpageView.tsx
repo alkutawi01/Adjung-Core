@@ -452,9 +452,9 @@ const padToLimit = (text: string, maxLen: number): string => {
   return text || '';
 };
 
-// maxTopik: baki ruang eyebrow selepas Bidang terkunci slot — dikira oleh pemanggil melalui
-// topikCeilingForSlot(). Dibiarkan undefined bermakna baris Topik tak disentuh (cth slot BAR,
-// yang tiada Bidang/Topik langsung).
+// maxTopik: had Topik laluan ikon (kad papar ikon Bidang + Topik, bukan nama Bidang sebagai
+// teks) — dikira oleh pemanggil melalui topikCeilingForSlot(). Dibiarkan undefined bermakna
+// baris Topik tak disentuh (cth slot BAR, yang tiada Bidang/Topik langsung).
 const updateLimitsInText = (text: string, maxTitle: number, maxBrief: number, maxBriefLong?: number, maxTopik?: number) => {
   if (!text) return '';
   let updated = text;
@@ -2606,7 +2606,7 @@ URL: ${url}`;
                 ...formConfig,
                 maxTitle: newMaxTitle,
                 maxBrief: newMaxBrief,
-                manualSummary: updateLimitsInText(formConfig.manualSummary, newMaxTitle, newMaxBrief, formConfig.maxBriefLong, topikCeilingForSlot(formConfig.slotIndex, formConfig.manualDesk))
+                manualSummary: updateLimitsInText(formConfig.manualSummary, newMaxTitle, newMaxBrief, formConfig.maxBriefLong, topikCeilingForSlot(formConfig.slotIndex))
               });
             }}
             placeholder="Contoh: 70"
@@ -2640,7 +2640,7 @@ URL: ${url}`;
                 ...formConfig,
                 maxBrief: newMaxBrief,
                 maxTitle: newMaxTitle,
-                manualSummary: updateLimitsInText(formConfig.manualSummary, newMaxTitle, newMaxBrief, formConfig.maxBriefLong, topikCeilingForSlot(formConfig.slotIndex, formConfig.manualDesk))
+                manualSummary: updateLimitsInText(formConfig.manualSummary, newMaxTitle, newMaxBrief, formConfig.maxBriefLong, topikCeilingForSlot(formConfig.slotIndex))
               });
             }}
             placeholder="Contoh: 150 (0 jika tiada)"
@@ -2659,7 +2659,7 @@ URL: ${url}`;
                 setFormConfig({
                   ...formConfig,
                   maxBriefLong: newMaxBriefLong,
-                  manualSummary: updateLimitsInText(formConfig.manualSummary, formConfig.maxTitle, formConfig.maxBrief, newMaxBriefLong, topikCeilingForSlot(formConfig.slotIndex, formConfig.manualDesk))
+                  manualSummary: updateLimitsInText(formConfig.manualSummary, formConfig.maxTitle, formConfig.maxBrief, newMaxBriefLong, topikCeilingForSlot(formConfig.slotIndex))
                 });
               }}
               placeholder="Contoh: 600 (0 jika tiada)"
@@ -5503,9 +5503,9 @@ URL: ${url}`;
                             const newUuid = `object-manual-slot${editingSlotIndex}-${Date.now()}-${parsedList.length}`;
                             // Had disenaraikan inline pada setiap medan supaya editor nampak ruang
                             // sebenar SEBELUM menaip, bukan selepas simpan ditolak. Nombor Topik
-                            // ialah baki selepas Bidang terkunci slot mengambil bahagiannya —
-                            // lihat topikCeilingForSlot() di GeometryConfig.js.
-                            const hadTopik = topikCeilingForSlot(editingSlotIndex, formConfig.manualDesk);
+                            // ialah had laluan ikon (kad papar ikon Bidang, bukan nama Bidang
+                            // sebagai teks) — lihat topikCeilingForSlot() di GeometryConfig.js.
+                            const hadTopik = topikCeilingForSlot(editingSlotIndex);
                             const template = isEditingBarSlot
                               ? `Tarikh: \nEvent: (had ${formConfig.maxTitle || 95} aksara) \nPenganjur: \nLokasi: \nAkses: \nPenerangan: \nURL: `
                               : `Tajuk: (had ${formConfig.maxTitle || 0} aksara) \nHuraian ringkas: (had ${formConfig.maxBrief || 0} aksara) \nHuraian panjang: (had ${formConfig.maxBriefLong || 0} aksara) \nBidang: \nTopik: (had ${hadTopik} aksara) \nJenis sumber: \nTarikh: \nSumber: \nURL: `;
@@ -5718,7 +5718,7 @@ ${extraInstructions}`;
                               // Had Topik mesti dinyatakan kepada AI juga. Tanpa ini AI menjana Topik
                               // sepanjang mana-mana, dan setiap satu ditolak semasa simpan oleh
                               // validateBidangTopik() — satu penjanaan penuh terbuang.
-                              const maxTopikVal = topikCeilingForSlot(formConfig.slotIndex, kategori);
+                              const maxTopikVal = topikCeilingForSlot(formConfig.slotIndex);
                               const exampleBlock = `Tajuk: [Tajuk kandungan di sini maksimum ${maxTitleVal} aksara]
 Huraian ringkas: [Huraian ringkas maksimum ${maxBriefVal} aksara dan tidak lebih dua (2) ayat di sini]
 Huraian panjang: [Huraian panjang maksimum ${maxBriefLongVal} aksara]

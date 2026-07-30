@@ -10,6 +10,7 @@
 import {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
+  FOCUS_VIEW_EYEBROW_MAX_CHARS,
 } from './GeometryConfig.js';
 
 // Every slot of the same tier gets the exact same rule — there is no per-slot special-casing.
@@ -142,18 +143,50 @@ const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik, slot
     return { isValid: false, reason: 'Topik diperlukan untuk kandungan baharu/diedit. Kandungan tidak disiarkan.' };
   }
 
-  // Had ruang eyebrow: label "Bidang | Topik" mesti muat SATU baris pada kad. Kalau ia
-  // membalut, ia menolak tajuk+huraian ke bawah tanpa kad membesar — kerosakan senyap
-  // yang tak ditangkap oleh bajet tajuk+huraian. Lihat MAX_EYEBROW_CHARS_BY_TIER.
+  // Had ruang eyebrow: kandungan yang dipapar pada kad mesti muat SATU baris. Kalau ia membalut,
+  // ia menolak tajuk+huraian ke bawah tanpa kad membesar — kerosakan senyap yang tak ditangkap
+  // oleh bajet tajuk+huraian.
+  //
+  // DUA laluan render berbeza (EyebrowKad, FrontpageView.tsx), DUA pengesahan berbeza — pengesahan
+  // MESTI ikut apa yang benar-benar dipapar (Peraturan Perlembagaan), bukan satu formula sejagat:
+  //   - Topik wujud (laluan biasa untuk kandungan baharu/diedit): kad papar IKON Bidang + Topik,
+  //     BUKAN nama Bidang sebagai teks. Sahkan Topik SAHAJA terhadap had yang sudah kira lebar
+  //     ikon+jarak (MAX_EYEBROW_TOPIK_CHARS_BY_TIER) — panjang nama Bidang tak lagi relevan.
+  //   - Topik kosong (kandungan lama, requireTopik=false): tiada ikon tanpa Topik — kad jatuh
+  //     balik papar nama Bidang SAHAJA sebagai teks. Sahkan panjang nama Bidang itu terhadap had
+  //     teks penuh (MAX_EYEBROW_CHARS_BY_TIER), sama seperti sebelum ni.
   if (slotIndex !== undefined && slotIndex !== null) {
-    const label = eyebrowLabel(itemBidang, topik);
-    const ceiling = eyebrowCeilingForSlot(slotIndex);
-    if (label.length > ceiling) {
+    const topikTrimmed = (topik || '').trim();
+    if (topikTrimmed) {
+      const ceiling = topikCeilingForSlot(slotIndex);
+      if (topikTrimmed.length > ceiling) {
+        return {
+          isValid: false,
+          reason: `Topik (${topikTrimmed.length} aksara) melebihi ruang eyebrow kad ini (${ceiling} aksara). Kandungan tidak disiarkan.`,
+        };
+      }
+    } else {
       const bidangLen = (itemBidang || '').trim().length;
-      const bakiTopik = Math.max(0, ceiling - bidangLen - 3); // 3 = ' | '
+      const ceiling = eyebrowCeilingForSlot(slotIndex);
+      if (bidangLen > ceiling) {
+        return {
+          isValid: false,
+          reason: `Nama Bidang ("${(itemBidang || '').trim()}", ${bidangLen} aksara) melebihi ruang eyebrow kad ini (${ceiling} aksara). Kandungan tidak disiarkan.`,
+        };
+      }
+    }
+
+    // Focus View SENTIASA papar label PENUH "Bidang | Topik" (tiada ikon di situ — lihat
+    // FocusView.tsx), tak kira tier asal kandungan atau laluan mana yang lulus di atas. Lajur
+    // "helaian" Focus View lebar TETAP (min(64vw,900px)) tak kira tier — jadi ini SATU had
+    // sejagat berasingan daripada had kad di atas, bukan pengganti. Tanpa semakan ni, Topik yang
+    // lulus had kad (cth 90 aksara HERO) boleh melimpah keluar bingkai Focus View pada viewport
+    // sempit (~49 aksara ruang sebenar, diukur pada 768px — lihat FOCUS_VIEW_EYEBROW_MAX_CHARS).
+    const labelPenuh = eyebrowLabel(itemBidang, topik);
+    if (labelPenuh.length > FOCUS_VIEW_EYEBROW_MAX_CHARS) {
       return {
         isValid: false,
-        reason: `Label "Bidang | Topik" (${label.length} aksara) melebihi ruang eyebrow kad ini (${ceiling} aksara). Dengan Bidang "${(itemBidang || '').trim()}", Topik boleh sehingga ${bakiTopik} aksara. Kandungan tidak disiarkan.`,
+        reason: `Label "Bidang | Topik" (${labelPenuh.length} aksara) melebihi ruang eyebrow Focus View (${FOCUS_VIEW_EYEBROW_MAX_CHARS} aksara pada viewport sempit). Kandungan tidak disiarkan.`,
       };
     }
   }

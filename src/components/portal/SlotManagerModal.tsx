@@ -234,7 +234,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const desk = formConfig.manualDesk || '';
   const bidang = activeBidangList.find((b) => b.name.toLowerCase() === desk.toLowerCase());
   const accent = bidang?.color || '#802334';
-  const hadTopik = topikCeilingForSlot(editingSlotIndex, desk);
+  const hadTopik = topikCeilingForSlot(editingSlotIndex);
 
   // Giliran kandungan (items) hidup sebagai STATE TEMPATAN modal ni, BUKAN diterbitkan semula
   // daripada formConfig.manualSummary (rentetan teks) pada setiap keystroke. Menghurai SELURUH
