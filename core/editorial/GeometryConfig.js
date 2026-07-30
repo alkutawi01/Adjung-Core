@@ -12,6 +12,39 @@ export const GEOMETRY_RATIOS = {
   TICKER: { maxTitleAlone: 80, maxBriefAlone: 220, ratio: 2.750 },
 };
 
+// ---------------------------------------------------------------------------------------------
+// PINDAAN HAD AKSARA TIER (2026-07-30, permintaan pemilik projek)
+//
+// GEOMETRY_RATIOS di atas kekal sebagai nilai LALAI — diukur daripada saiz fizikal kad. Ketua
+// Editor boleh menindihnya per-tier melalui Editorium → Slot → Tier Kad (disimpan dalam jadual
+// `tier_settings`; server memuatkannya semasa boot dan memanggil setTierOverrides()).
+//
+// Peraturan tak berubah: pindaan dibuat pada peringkat TIER, tidak pernah per-slot. Semua slot
+// yang sebentuk sentiasa berkongsi had yang sama.
+//
+// Guna ratiosForTier(tier) — BUKAN GEOMETRY_RATIOS[tier] terus — di mana-mana kod yang
+// mengesahkan atau memaparkan had, supaya pindaan Ketua Editor benar-benar berkuat kuasa.
+const TIER_OVERRIDES = {};
+
+export const setTierOverrides = (map) => {
+  for (const key of Object.keys(TIER_OVERRIDES)) delete TIER_OVERRIDES[key];
+  for (const [tier, nilai] of Object.entries(map || {})) {
+    if (!GEOMETRY_RATIOS[tier] || !nilai) continue;
+    const pindaan = {};
+    if (Number.isFinite(nilai.maxTitleAlone)) pindaan.maxTitleAlone = nilai.maxTitleAlone;
+    if (Number.isFinite(nilai.maxBriefAlone)) pindaan.maxBriefAlone = nilai.maxBriefAlone;
+    if (Object.keys(pindaan).length) TIER_OVERRIDES[tier] = pindaan;
+  }
+};
+
+export const getTierOverrides = () => ({ ...TIER_OVERRIDES });
+
+export const ratiosForTier = (tier) => {
+  const asas = GEOMETRY_RATIOS[tier];
+  if (!asas) return null;
+  return { ...asas, ...(TIER_OVERRIDES[tier] || {}) };
+};
+
 export const TIER_SLOTS = {
   HERO: [0],
   MENEGAK: [1, 12, 15, 26, 29, 37],

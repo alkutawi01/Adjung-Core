@@ -299,7 +299,7 @@ export function createCategoryRoutes(db) {
         }
       }
 
-      const currentRow = await CategoryRegistry.dbGet(db, "SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
+      const currentRow = await CategoryRegistry.dbGet(db, "SELECT manualDesk, contentMode FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
       const oldDesk = (currentRow && currentRow.manualDesk) || '';
 
       await CategoryRegistry.dbRun(db, "UPDATE slots_config SET manualDesk = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [trimmed, slotIndex]);
@@ -308,6 +308,15 @@ export function createCategoryRoutes(db) {
       // sepadan, arkib supaya tak terus terpapar dengan Bidang yang tak sah.
       if (oldDesk.toLowerCase() !== trimmed.toLowerCase()) {
         await CategoryRegistry.archiveLiveContentInSlot(db, slotIndex);
+        // Slot Manual: giliran SEBENAR yang dibaca modal Urus Slot ialah teks mentah
+        // manualSummary — archiveLiveContentInSlot() di atas cuma tanda status baris
+        // editorial_revisions (untuk paparan Semakan Kandungan), TIDAK sentuh teks tu. Tanpa
+        // baris ni, kandungan "diarkib" muncul semula setiap kali modal dibuka (dihurai balik
+        // daripada teks lama yang tak berubah), dan disiar semula sebagai 'approved' bila
+        // disimpan. Kosongkan sekali supaya kedua-dua sumber data selari.
+        if (currentRow && currentRow.contentMode === 'Manual') {
+          await CategoryRegistry.dbRun(db, "UPDATE slots_config SET manualSummary = '' WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
+        }
       }
 
       res.json({ success: true });

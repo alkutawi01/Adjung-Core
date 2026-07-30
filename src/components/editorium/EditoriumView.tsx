@@ -6,6 +6,7 @@ import { IndeksConsole } from './IndeksConsole';
 import { DirektoriConsole } from './DirektoriConsole';
 import { TetapanConsole } from './TetapanConsole';
 import { SenaraiSlotConsole } from './SenaraiSlotConsole';
+import { TierKadConsole } from './TierKadConsole';
 import { BidangConsole } from './BidangConsole';
 import { TetapanAmSlotConsole } from './TetapanAmSlotConsole';
 import { LogAuditConsole } from './LogAuditConsole';
@@ -48,7 +49,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // togol dalaman "Paparan Kad"/"Paparan Teks Pukal" (a/b dalam permintaan pemilik projek).
   const [indeksSubTab, setIndeksSubTab] = useState<'senarai' | 'semakan'>('senarai');
   // Sub-menu tab "Slot" (2026-07-30, permintaan pemilik projek).
-  const [slotSubTab, setSlotSubTab] = useState<'senarai' | 'bidang' | 'tetapan_am'>('senarai');
+  const [slotSubTab, setSlotSubTab] = useState<'senarai' | 'tier' | 'bidang' | 'tetapan_am'>('senarai');
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
@@ -125,8 +126,9 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs">
             {([
               ['senarai', '1. Senarai Slot'],
-              ['bidang', '2. Bidang'],
-              ['tetapan_am', '3. Tetapan Am'],
+              ['tier', '2. Tier Kad'],
+              ['bidang', '3. Bidang'],
+              ['tetapan_am', '4. Tetapan Am'],
             ] as const).map(([id, label]) => (
               <button
                 key={id}
@@ -140,6 +142,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             ))}
           </div>
           {slotSubTab === 'senarai' && <SenaraiSlotConsole />}
+          {slotSubTab === 'tier' && <TierKadConsole />}
           {slotSubTab === 'bidang' && <BidangConsole />}
           {slotSubTab === 'tetapan_am' && <TetapanAmSlotConsole />}
         </div>

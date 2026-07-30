@@ -68,6 +68,26 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         if (typeof slot.maxBriefLong === 'number' && slot.maxBriefLong > ceiling.maxBriefLong) slot.maxBriefLong = ceiling.maxBriefLong;
         const resolvedSourceType = slot.sourceType || detectSourceType(slot.manualUrl, `${slot.manualTitle || ''} ${slot.manualSummary || ''}`);
 
+        // syncManualObjectsForSlot dipanggil DULU (sebelum INSERT slots_config, 2026-07-29) —
+        // dua sebab: (1) ia pulangkan teks manualSummary yang PATUT disimpan (draf sahaja, item
+        // "Terbitkan" dikeluarkan — lihat nota alur kerja Draf/Terbit di server.js), dan (2)
+        // membetulkan pepijat sedia ada di mana kegagalan pengesahan (validation) dulu berlaku
+        // SELEPAS slots_config dah ditulis — simpanan tak sah sempat tersimpan walaupun save
+        // ditolak. Sekarang pengesahan berlaku dulu; simpanan gagal tak sentuh DB langsung.
+        let persistedManualSummary = slot.manualSummary;
+        if (slot.contentMode === 'Manual' && slot.slotIndex >= 0) {
+          try {
+            persistedManualSummary = await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot);
+          } catch (e) {
+            if (e.isValidationError) {
+              // Hard-block: abort the whole save (not just this slot) so the admin sees exactly
+              // why nothing was published, instead of a silent partial save.
+              return res.status(400).json({ error: e.message });
+            }
+            console.warn(`Failed to sync editorial_objects for slot ${slot.slotIndex}:`, e.message);
+          }
+        }
+
         await dbRun(`
           INSERT OR REPLACE INTO slots_config (
             layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
@@ -76,7 +96,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
           ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
-          slot.manualTitle, slot.manualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
+          slot.manualTitle, persistedManualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
           slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas'
         ]);
 
@@ -96,19 +116,6 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
             await CategoryRegistry.archiveLiveContentInSlot(db, slot.slotIndex);
           } catch (e) {
             console.warn(`Failed to archive live content for slot ${slot.slotIndex}:`, e.message);
-          }
-        }
-
-        if (slot.contentMode === 'Manual' && slot.slotIndex >= 0) {
-          try {
-            await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot);
-          } catch (e) {
-            if (e.isValidationError) {
-              // Hard-block: abort the whole save (not just this slot) so the admin sees exactly
-              // why nothing was published, instead of a silent partial save.
-              return res.status(400).json({ error: e.message });
-            }
-            console.warn(`Failed to sync editorial_objects for slot ${slot.slotIndex}:`, e.message);
           }
         }
 

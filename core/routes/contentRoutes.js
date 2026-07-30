@@ -118,6 +118,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           slotCategory: limits.slotCategory || '',
           status: r.status || 'approved',
           createdBy: r.createdBy || '',
+          editorName: attrs.editorName || '',
           createdAt: r.revisionCreatedAt,
           updatedAt: r.revisionUpdatedAt
         };
@@ -161,7 +162,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   router.patch('/content/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const { title, summary, desk, source, url, status, topik, slotIndex } = req.body;
+      const { title, summary, desk, source, url, status, topik, slotIndex, briefLong, originalDate, note } = req.body;
       if (status !== undefined && !CONTENT_STATUSES.includes(status)) {
         return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${CONTENT_STATUSES.join(', ')}.` });
       }
@@ -273,7 +274,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         }
       }
 
-      const attrCandidates = { desk, source, url, imageUrl, topik };
+      const attrCandidates = { desk, source, url, imageUrl, topik, briefLong, originalDate, note };
       for (const [key, val] of Object.entries(attrCandidates)) {
         if (val === undefined) continue;
         const existing = await dbGet(
@@ -295,6 +296,66 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
     } catch (err) {
       console.error('Patch content item error:', err);
       res.status(500).json({ error: 'Failed to update item. ' + (err.message || '') });
+    }
+  });
+
+  // POST /api/system/content/:id/reject-to-draft — "Tolak" di Indeks (2026-07-29, permintaan
+  // pemilik projek). Alur kerja Draf/Terbit: kandungan "Terbitkan" masuk Indeks sebagai Pending,
+  // menunggu Ketua Editor. Tolak BUKAN sekadar tanda status='rejected' — ia betul-betul
+  // PULANGKAN kandungan tu jadi draf peribadi semula (rekod editorial_objects diarkib untuk
+  // jejak audit, kandungan penuh disalin balik jadi blok draf dalam slots_config.manualSummary
+  // slot asal supaya editor boleh sambung sunting dalam modal Tulis Kandungan). Draf tak pernah
+  // muncul di Indeks — lihat nota di server.js/ManualBlockFormat.js.
+  router.post('/content/:id/reject-to-draft', async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (id.startsWith('ticker-')) {
+        return res.status(400).json({ error: 'Ticker tidak menyokong Tolak-ke-Draf.' });
+      }
+
+      const objRow = await dbGet("SELECT slotIndex, categoryId FROM editorial_objects WHERE id = ?", [id]);
+      if (!objRow) {
+        return res.status(404).json({ error: 'Item tidak dijumpai.' });
+      }
+      if (TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
+        return res.status(400).json({ error: 'Slot Bar belum menyokong alur kerja Draf/Terbit.' });
+      }
+
+      const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1", [id]);
+      if (!rev) {
+        return res.status(404).json({ error: 'Item tidak dijumpai.' });
+      }
+
+      const attrRows = await dbAll("SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?", [id, rev.id]);
+      const attrs = {};
+      for (const a of attrRows) attrs[a.attributeId] = a.valueText;
+
+      const draftBlock = [
+        `UUID: object-manual-slot${objRow.slotIndex}-${Date.now()}-reject`,
+        `Status: draf`,
+        `Tajuk: ${rev.title || ''}`,
+        `Topik: ${attrs.topik || ''}`,
+        `Huraian ringkas: ${rev.summary || ''}`,
+        `Huraian panjang: ${attrs.briefLong || ''}`,
+        `Sumber: ${attrs.source || ''}`,
+        `URL: ${attrs.url || ''}`,
+        `Tarikh sumber: ${attrs.originalDate || ''}`,
+        `Imej: ${attrs.image || ''}`,
+        `Nota: ${attrs.note || ''}`,
+      ].join('\n');
+      const DRAFT_SEPARATOR = '\n\n________________________________________\n\n';
+
+      const slotRow = await dbGet("SELECT manualSummary FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [objRow.slotIndex]);
+      const existingSummary = (slotRow && slotRow.manualSummary) || '';
+      const nextSummary = existingSummary.trim() ? `${existingSummary}${DRAFT_SEPARATOR}${draftBlock}` : draftBlock;
+
+      await dbRun("UPDATE slots_config SET manualSummary = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [nextSummary, objRow.slotIndex]);
+      await dbRun("UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ?", [new Date().toISOString(), rev.id]);
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Reject-to-draft error:', err);
+      res.status(500).json({ error: 'Failed to reject to draft. ' + (err.message || '') });
     }
   });
 

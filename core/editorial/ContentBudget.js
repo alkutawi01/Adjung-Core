@@ -8,7 +8,7 @@
 // once. maxTitleAlone/maxBriefAlone are each field's length limit when the OTHER field is empty;
 // the fraction of that solo budget a field actually uses (length / soloMax) must sum to <= 1.
 import {
-  GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot,
+  GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
 } from './GeometryConfig.js';
 
@@ -17,7 +17,9 @@ const validateContentBudget = (slotIndex, title, summary) => {
   const tier = tierForSlot(slotIndex);
   const titleLen = (title || '').length;
   const briefLen = (summary || '').length;
-  const ratioDef = tier ? GEOMETRY_RATIOS[tier] : null;
+  // ratiosForTier(), bukan GEOMETRY_RATIOS[tier] — supaya pindaan had aksara yang dibuat Ketua
+  // Editor di Editorium → Slot → Tier Kad benar-benar berkuat kuasa semasa pengesahan simpan.
+  const ratioDef = tier ? ratiosForTier(tier) : null;
 
   if (ratioDef) {
     const { maxTitleAlone, maxBriefAlone } = ratioDef;
@@ -47,6 +49,15 @@ const validateContentBudget = (slotIndex, title, summary) => {
     // (and this file's own header comment) and rejecting legitimate short-title/long-brief content.
     const usedFraction = (maxTitleAlone ? titleLen / maxTitleAlone : 0) + (maxBriefAlone ? briefLen / maxBriefAlone : 0);
     if (usedFraction > 1) {
+      // Huraian kosong tapi masih gagal = tajuk sendiri yang melebihi ruang kad. Mesej "Huraian
+      // (0 aksara) melebihi had" dalam keadaan tu mengarahkan editor memendekkan medan yang
+      // memang sudah kosong.
+      if (briefLen === 0) {
+        return {
+          isValid: false,
+          reason: `Tajuk (${titleLen} aksara) melebihi ruang kad ${tier} (had tajuk: ${maxTitleAlone} aksara). Kandungan tidak disiarkan.`,
+        };
+      }
       // Report the ACTUAL remaining huraian budget this specific title length leaves behind, not
       // the two static solo-max numbers side by side — those are only the ceiling when the OTHER
       // field is empty, and stating them unqualified reads as "huraian limit is always 78" when a
@@ -105,7 +116,7 @@ const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik, slot
 };
 
 export {
-  GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot,
+  GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
   validateContentBudget, validateBidangTopik,
 };

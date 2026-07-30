@@ -10,9 +10,10 @@ import {
 // Ticker (slot -1) dan tier BAR sengaja TIADA di sini: kedua-duanya ada rumah sendiri di Modul
 // Khas dan peraturannya berbeza (Bar untuk event, tiada medan huraian; Ticker RSS).
 //
-// HAD AKSARA dibaca TERUS daripada GeometryConfig — bukan daripada lajur maxTitle/maxBrief dalam
-// slots_config. Lajur DB itu salinan lama yang sudah terpesong: 12 slot simpan nombor yang salah
-// dan 20 lagi kosong. Jangan sekali-kali papar nombor had daripada DB di sini.
+// HAD AKSARA diambil daripada GET /api/system/tier-settings — iaitu nilai lalai GeometryConfig
+// DITAMBAH sebarang pindaan Ketua Editor di sub-menu "Tier Kad". Jangan sekali-kali papar nombor
+// had daripada lajur maxTitle/maxBrief dalam slots_config: lajur DB itu salinan lama yang sudah
+// terpesong (12 slot simpan nombor salah, 20 lagi kosong) dan tidak menghormati pindaan tier.
 const BAR_SLOTS = new Set(TIER_SLOTS.BAR);
 const SLOT_INDEXES = Array.from({ length: 38 }, (_, i) => i).filter(i => !BAR_SLOTS.has(i));
 
@@ -34,6 +35,7 @@ export const SenaraiSlotConsole: React.FC = () => {
   const [slots, setSlots] = useState<SlotRow[]>([]);
   const [bidangList, setBidangList] = useState<BidangRow[]>([]);
   const [usage, setUsage] = useState<{ slotIndex: number; bidang: string; liveCount: number }[]>([]);
+  const [hadTier, setHadTier] = useState<Record<string, { maxTitleAlone: number; maxBriefAlone: number; dipinda: boolean }>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,11 +43,17 @@ export const SenaraiSlotConsole: React.FC = () => {
       fetch('/api/system/slots').then(r => r.json()).catch(() => []),
       fetch('/api/system/categories/active').then(r => r.json()).catch(() => []),
       fetch('/api/system/categories/slot-usage').then(r => r.json()).catch(() => []),
+      fetch('/api/system/tier-settings').then(r => r.json()).catch(() => []),
     ])
-      .then(([slotRows, bidangRows, usageRows]) => {
+      .then(([slotRows, bidangRows, usageRows, tierRows]) => {
         if (Array.isArray(slotRows)) setSlots(slotRows);
         if (Array.isArray(bidangRows)) setBidangList(bidangRows);
         if (Array.isArray(usageRows)) setUsage(usageRows);
+        if (Array.isArray(tierRows)) {
+          setHadTier(Object.fromEntries(tierRows.map((t: any) => [t.tierKey, {
+            maxTitleAlone: t.maxTitleAlone, maxBriefAlone: t.maxBriefAlone, dipinda: !!t.dipinda,
+          }])));
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -93,7 +101,10 @@ export const SenaraiSlotConsole: React.FC = () => {
               <tbody className="divide-y divide-stone-100">
                 {SLOT_INDEXES.map(i => {
                   const tier = tierForSlot(i) as keyof typeof GEOMETRY_RATIOS;
-                  const had = GEOMETRY_RATIOS[tier];
+                  // Nilai berkuat kuasa (termasuk pindaan Tier Kad); GEOMETRY_RATIOS cuma sandaran
+                  // sekiranya panggilan API gagal.
+                  const had = hadTier[tier] || GEOMETRY_RATIOS[tier];
+                  const dipinda = !!hadTier[tier]?.dipinda;
                   const cfg = slots.find(s => s.slotIndex === i);
                   const namaBidang = (usage.find(u => u.slotIndex === i)?.bidang || cfg?.manualDesk || '').trim();
                   const bidang = bidangFor(namaBidang);
@@ -126,8 +137,8 @@ export const SenaraiSlotConsole: React.FC = () => {
                           <span className="text-stone-400">—</span>
                         )}
                       </td>
-                      <td className="p-2.5 text-right font-mono text-stone-700">{had.maxTitleAlone}</td>
-                      <td className="p-2.5 text-right font-mono text-stone-700">{had.maxBriefAlone}</td>
+                      <td className={`p-2.5 text-right font-mono ${dipinda ? 'text-amber-700 font-bold' : 'text-stone-700'}`} title={dipinda ? 'Had dipinda di Tier Kad' : undefined}>{had.maxTitleAlone}</td>
+                      <td className={`p-2.5 text-right font-mono ${dipinda ? 'text-amber-700 font-bold' : 'text-stone-700'}`} title={dipinda ? 'Had dipinda di Tier Kad' : undefined}>{had.maxBriefAlone}</td>
                       <td className="p-2.5 text-stone-600">
                         {selang ? (
                           <span className="font-mono text-[10px]">
@@ -152,7 +163,9 @@ export const SenaraiSlotConsole: React.FC = () => {
             <strong className="font-semibold text-stone-700">Had aksara ikut bentuk, bukan ikut slot.</strong>{' '}
             Semua slot yang sama bentuk berkongsi had yang sama — ia datang daripada saiz fizikal kad itu sendiri.
             Tajuk dan huraian pula berkongsi SATU bajet ruang: tajuk panjang mengecilkan ruang huraian, dan sebaliknya.
-            Nombor di atas ialah had setiap medan apabila medan satu lagi kosong.
+            Nombor di atas ialah had setiap medan apabila medan satu lagi kosong. Untuk meminda, pergi ke
+            sub-menu <strong className="font-semibold text-stone-700">Tier Kad</strong> — nilai yang dipinda dipapar
+            berwarna kuning air di sini.
           </p>
           <p>
             <strong className="font-semibold text-stone-700">Lajur Editor masih kosong.</strong>{' '}

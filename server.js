@@ -26,6 +26,7 @@ import { createDbStateRoutes } from './core/routes/dbStateRoutes.js';
 import { createPipelineRoutes } from './core/routes/pipelineRoutes.js';
 import { createWorldClockRoutes } from './core/routes/worldClockRoutes.js';
 import { createSlotsConfigRoutes } from './core/routes/slotsConfigRoutes.js';
+import { createTierSettingsRoutes, loadTierOverrides } from './core/routes/tierSettingsRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
 const mockDb = {};
@@ -181,6 +182,17 @@ const initializeSchema = () => {
               )
             `, () => {});
             
+            // Pindaan had aksara per-tier (2026-07-30). Menyimpan PINDAAN sahaja — tier tanpa
+            // baris di sini guna nilai lalai GeometryConfig.js. Lihat core/routes/tierSettingsRoutes.js.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS tier_settings (
+                tierKey TEXT PRIMARY KEY,
+                maxTitleAlone INTEGER,
+                maxBriefAlone INTEGER,
+                updatedAt TEXT
+              )
+            `, () => {});
+
             db.run(`
               CREATE TABLE IF NOT EXISTS rss_text_rules (
                 id TEXT PRIMARY KEY,
@@ -1433,6 +1445,12 @@ const initEditorialOS = (dbConn) => {
           // konsep yang sama (tarikh bahan ASAL, bukan tarikh disiarkan Adjung).
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('note', 'Nota', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('image', 'Imej', 'text')", () => {});
+          // editorName: nama editor SEBENAR yang log masuk semasa Terbit (2026-07-29, permintaan
+          // pemilik projek) — berasingan daripada createdBy (token laluan-kod cth "manual-slot-save",
+          // jawab *macam mana* dicipta, bukan *siapa*). Kandungan sedia ada sebelum ciri ni wujud
+          // kekal kosong (papar "Tidak diketahui" di UI, bukan reka nama) — sama corak macam
+          // sourceType/topik di atas, kena didaftar dulu di sini atau INSERT gagal senyap.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('editorName', 'Nama Editor', 'text')", () => {});
           dbConn.run("ALTER TABLE slots_config ADD COLUMN manualDesk TEXT", () => {
             dbConn.run("ALTER TABLE slots_config ADD COLUMN nextRunAt INTEGER", () => {
               dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshInterval INTEGER", () => {
@@ -1646,7 +1664,26 @@ const fetchSourceWithCache = async (sourceUri) => {
 
 // Helper function to resolve active layout slots
 const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
-  if (!summaryText || (!summaryText.includes('Tajuk:') && !summaryText.includes('Event:'))) {
+  // Rentetan kosong ('') bermaksud pengedit (SlotManagerModal, giliran berasaskan `items`) sengaja
+  // mengosongkan SEMUA kandungan — mesti dilayan sebagai kosong sebenar (0 item), bukan jatuh
+  // balik ke format lama guna manualTitle/manualSummary usang slot (nilai yang mungkin dah lapuk
+  // sejak borang dibuka, menyebabkan kandungan "dipadam" muncul semula pada simpan). Fallback
+  // format-lama hanya sah bila medan tu langsung tiada (undefined/null) — cth laluan lama yang
+  // tak pernah hantar manualSummary sama sekali.
+  if (summaryText === undefined || summaryText === null) {
+    return [{
+      title: defaultSlot.manualTitle || '',
+      summary: defaultSlot.manualSummary || '',
+      url: defaultSlot.manualUrl || '#',
+      desk: defaultSlot.manualDesk || 'general',
+      source: defaultSlot.manualSource || '',
+      publishedAt: defaultSlot.lastAttemptAt || new Date().toISOString()
+    }];
+  }
+  if (!summaryText.trim()) {
+    return [];
+  }
+  if (!summaryText.includes('Tajuk:') && !summaryText.includes('Event:')) {
     return [{
       title: defaultSlot.manualTitle || '',
       summary: defaultSlot.manualSummary || '',
@@ -1673,6 +1710,12 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let url = '';
     let sourceType = '';
     let isEventBlock = false;
+    // LALAI 'approved' (BUKAN 'draft') bila tiada baris "Status:" — blok lama yang disimpan
+    // sebelum ciri Draf/Terbit wujud memang live, tiada satu pun ada label ni. Lihat nota sama
+    // di ManualBlockFormat.js parseManualBlockFields — DUA salinan penghurai (server.js ni +
+    // ManualBlockFormat.js untuk client) mesti kekal selari, sengaja tak disatukan sesi ni
+    // (risiko lebih tinggi daripada faedah dalam skop kerja semasa).
+    let status = 'approved';
 
     let organizer = '';
     let location = '';
@@ -1701,6 +1744,11 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       const trimmed = line.trim();
       if (trimmed.startsWith('UUID:')) {
         uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Status:')) {
+        const raw = trimmed.replace(/^Status:\s*/i, '').trim().toLowerCase();
+        if (raw === 'draf' || raw === 'draft') status = 'draft';
+        else if (raw === 'pending' || raw === 'menunggu') status = 'pending';
+        else status = 'approved';
       } else if (trimmed.startsWith('Tajuk:')) {
         title = buangPetunjukHad(trimmed.replace(/^Tajuk:\s*/i, ''));
       } else if (trimmed.startsWith('Event:')) {
@@ -1771,6 +1819,8 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
 
     if (title) {
       items.push({
+        uuid,
+        status,
         title,
         summary: brief,
         briefLong,
@@ -1784,7 +1834,13 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         note,
         image,
         source: organizer || source || defaultSlot.manualSource || '',
-        url: url || defaultSlot.manualUrl || '#',
+        // TIADA fallback ke defaultSlot.manualUrl/'#' di sini lagi (2026-07-29) — defaultSlot.manualUrl
+        // ialah medan LEGASI peringkat SLOT yang useSlotEditor.ts set lalai '#' setiap kali modal
+        // dibuka, jadi fallback ke situ mencemari URL kosong SETIAP kandungan (termasuk draf yang
+        // tak pernah disentuh) dengan "#" secara senyap, kekal dalam DB walaupun sebelum Terbit.
+        // Pengguna hiliran (attrs Indeks di baris ~1992, renderToken di baris ~2128) sudah ada
+        // fallback '#' sendiri untuk paparan/pautan kad — cukup, tak perlu diulang di sini.
+        url: url || '',
         originalDate: date || '',
         publishedAt: date || ''
       });
@@ -1801,10 +1857,41 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
   }];
 };
 
+// Serializes ONE draft item back into the Label: value block format — mirrors
+// ManualBlockFormat.js's serializeManualBentoItem (client copy), kept in sync manually (same
+// existing duplication pattern as parseManualSummaryTemplate above). Only used for items staying
+// in slots_config.manualSummary as drafts; published items never round-trip through this.
+const serializeDraftBlock = (item) => [
+  `UUID: ${item.uuid || ''}`,
+  `Status: draf`,
+  `Tajuk: ${item.title || ''}`,
+  `Topik: ${item.topik || ''}`,
+  `Huraian ringkas: ${item.summary || ''}`,
+  `Huraian panjang: ${item.briefLong || ''}`,
+  `Sumber: ${item.source || ''}`,
+  `URL: ${item.url || ''}`,
+  `Tarikh sumber: ${item.originalDate || ''}`,
+  `Imej: ${item.image || ''}`,
+  `Nota: ${item.note || ''}`,
+].join('\n');
+const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n';
+
 // Keeps editorial_objects/editorial_revisions/editorial_attribute_values in sync with a Manual-mode
-// and slots_config.manualSummary.
+// slot's manualSummary, AND returns the manualSummary text that should actually be PERSISTED back
+// to slots_config (the caller, POST /api/system/slots, must use this return value instead of the
+// raw submitted text — see nota di situ).
+//
+// Alur kerja Draf/Terbit (2026-07-29, permintaan pemilik projek) — manualSummary kini ruang DRAF
+// PERIBADI SAHAJA, bukan tempat kandungan live/pending "tersangkut" selama-lamanya:
+//   - status='draft': TIADA baris editorial_objects/editorial_revisions dicipta langsung — kekal
+//     hidup HANYA sebagai teks dalam manualSummary (draf peribadi, tak pernah muncul di Indeks).
+//   - status lain (Terbitkan diklik, 'pending'/'approved'): disahkan penuh macam sebelum ni,
+//     dicipta/dikemas kini sebagai baris rasmi editorial_objects/editorial_revisions, dan
+//     DIKELUARKAN daripada manualSummary — ia sekarang rekod Indeks rasmi, bukan draf lagi.
+//   - Slot Bar dikecualikan (belum disokong ciri ni — kekal 100% tingkah laku lama).
 const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) => {
   const items = parseManualSummaryTemplate(manualSummary || '', slotConfig);
+  const isBar = TIER_SLOTS.BAR.includes(slotIndex);
 
   // Hard-block: content that exceeds its card's shared title+brief space budget must never be
   // published, since it breaks the card's size/legibility. Every slot of the same geometry tier
@@ -1813,7 +1900,11 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
   // DELETE ever runs on failure).
   const ceiling = getGeometryCeilingForSlot(slotIndex);
   const effectiveMaxBriefLong = typeof slotConfig.maxBriefLong === 'number' ? slotConfig.maxBriefLong : ceiling.maxBriefLong;
+  const isDraft = (item) => !isBar && item.status === 'draft';
   for (const item of items) {
+    // Draf sengaja TIDAK disahkan — kerja belum siap, tak sesekali live, jadi tiada sebab sekat
+    // simpan draf tak lengkap.
+    if (isDraft(item)) continue;
     const budgetCheck = validateContentBudget(slotIndex, item.title, item.summary);
     if (!budgetCheck.isValid) {
       const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason} Kandungan tidak disiarkan.`);
@@ -1827,14 +1918,14 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
     }
     // Peraturan Khas Slot Bar — Penerangan diisi ke panel akordion (BarCardExpandedPanel.tsx),
     // jadi perlu had ruang sebenar sama macam Huraian Panjang di atas.
-    if (TIER_SLOTS.BAR.includes(slotIndex) && item.penerangan && item.penerangan.length > MAX_PENERANGAN_CHARS) {
+    if (isBar && item.penerangan && item.penerangan.length > MAX_PENERANGAN_CHARS) {
       const err = new Error(`Penerangan bagi "${(item.title || '').slice(0, 40)}..." melebihi had ${MAX_PENERANGAN_CHARS} aksara (semasa: ${item.penerangan.length}). Kandungan tidak disiarkan — pendekkan penerangan dahulu.`);
       err.isValidationError = true;
       throw err;
     }
     // Bidang (kategori) terkunci per-slot, Topik wajib untuk kandungan baharu/diedit — kecuali
     // slot BAR (Perlembagaan: Bidang/Topik tak terpakai untuk tier ni).
-    if (!TIER_SLOTS.BAR.includes(slotIndex)) {
+    if (!isBar) {
       const bidangTopikCheck = validateBidangTopik({
         slotBidang: slotConfig.manualDesk,
         itemBidang: item.desk,
@@ -1850,21 +1941,52 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
     }
   }
 
+  // Slot Bar: tingkah laku LAMA tidak disentuh langsung (semua item, DELETE-semua-INSERT-semula
+  // macam sebelum ni, tiada pemisahan draf/terbit). Draf/Terbit belum disokong untuk tier ni.
+  const publishItems = isBar ? items : items.filter((it) => !isDraft(it));
+  const draftItems = isBar ? [] : items.filter(isDraft);
+
+  // Bukan Bar: publishItems ialah draf yang BARU SAHAJA diterbitkan sesi simpan ni — SETIAP
+  // satu MESTI jadi baris editorial_objects BAHARU, tak boleh sentuh/arkib rekod SEDIA ADA
+  // dalam slot (kandungan live/pending lain diurus sepenuhnya oleh Indeks, bukan modal Tulis
+  // Kandungan — manualSummary/modal ni cuma pernah nampak DRAF, jadi ketiadaan sesuatu item
+  // rasmi dalam giliran draf TAK PERNAH bermaksud "dibuang editor", ia cuma tak pernah tergolong
+  // draf pun. Pepijat sebenar ditemui semasa ujian 2026-07-29: "arkib item dibuang" (logik lama,
+  // sah untuk Bar) tersalah guna di sini, terus mengarkibkan SEMUA kandungan live sedia ada
+  // dalam slot setiap kali SATU draf baharu diterbitkan.
+  const isBarLikeRemoval = isBar;
+  const submittedIds = new Set(items.filter((it) => it.uuid).map((it) => it.uuid));
+  const existingRows = isBarLikeRemoval ? await dbAll('SELECT id FROM editorial_objects WHERE slotIndex = ?', [slotIndex]) : [];
+  const removedIds = isBarLikeRemoval ? existingRows.map((r) => r.id).filter((id) => !submittedIds.has(id)) : [];
+
   // Wrap the DELETE + multi-item multi-table INSERT sequence in a real transaction so a failure
   // partway through (e.g. one item's INSERT throws) rolls back everything already written in this
   // call — including the DELETE — instead of leaving the slot with orphaned/partial rows.
   await dbRun('BEGIN TRANSACTION');
   try {
-    await dbRun('DELETE FROM editorial_objects WHERE slotIndex = ?', [slotIndex]);
-    if (items.length === 0) {
-      await dbRun('COMMIT');
-      return;
+    const nowIso = new Date().toISOString();
+    if (isBarLikeRemoval) {
+      for (const id of removedIds) {
+        await dbRun(
+          `UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE objectId = ? AND status IN ('approved', 'pending')`,
+          [nowIso, id]
+        );
+      }
+      if (removedIds.length > 0) {
+        const placeholders = removedIds.map(() => '?').join(',');
+        await dbRun(`DELETE FROM editorial_objects WHERE slotIndex = ? AND id NOT IN (${placeholders})`, [slotIndex, ...removedIds]);
+      } else {
+        await dbRun('DELETE FROM editorial_objects WHERE slotIndex = ?', [slotIndex]);
+      }
     }
 
+    // Bukan Bar: objectId SENTIASA baharu (bukan item.uuid, yang cuma identiti sementara dalam
+    // teks draf) — draf tak pernah punya baris editorial_objects sedia ada untuk "dikemas kini",
+    // setiap "Terbitkan" ialah rekod Indeks BAHARU.
     const baseTs = Date.now();
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const objectId = item.uuid || `object-manual-slot${slotIndex}-${baseTs}-${i}`;
+    for (let i = 0; i < publishItems.length; i++) {
+      const item = publishItems[i];
+      const objectId = isBar ? (item.uuid || `object-manual-slot${slotIndex}-${baseTs}-${i}`) : `object-manual-slot${slotIndex}-${baseTs}-${i}`;
       const createdAt = new Date(baseTs + i).toISOString();
       const finalCategory = (item.desk || 'UMUM').trim().toUpperCase();
       try {
@@ -1878,10 +2000,14 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
          VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?, ?)`,
         [objectId, finalCategory, slotIndex, item.sourceType || 'web', createdAt, createdAt]
       );
+      // Bukan Bar: tiada lagi 'approved' terus daripada laluan ni — "Terbitkan" sentiasa
+      // mendarat sebagai 'pending', menunggu kelulusan Ketua Editor di Indeks (atau auto-terbit,
+      // sistem tu belum wujud). Slot Bar kekal guna status yang dihurai terus (lama).
+      const finalStatus = isBar ? (item.status || 'approved') : 'pending';
       const rev = await dbRun(
         `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-         VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'manual-slot-save', ?, ?)`,
-        [objectId, item.title, item.summary, createdAt, createdAt]
+         VALUES (?, 1.0, 'ms', ?, ?, ?, 'manual-slot-save', ?, ?)`,
+        [objectId, item.title, item.summary, finalStatus, createdAt, createdAt]
       );
       const revisionId = rev.lastID;
 
@@ -1894,6 +2020,10 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         { key: 'originalDate', val: item.originalDate || '' },
         // Topik: kosong untuk slot BAR (tak terpakai di sana), diabaikan macam Penerangan berikut.
         { key: 'topik', val: item.topik || '' },
+        // Nama editor SEBENAR yang log masuk semasa Terbit (2026-07-29) — dihantar dari klien
+        // sebagai slotConfig.editorName (lihat useSlotEditor.ts handleSaveSlot), BUKAN per-item
+        // (satu sesi Simpan/Terbit = satu editor log masuk sahaja).
+        { key: 'editorName', val: slotConfig.editorName || '' },
         // Slot BAR sahaja (Peraturan Khas Slot Bar) — diabaikan (string kosong) untuk tier lain.
         { key: 'organizer', val: item.organizer || '' },
         { key: 'location', val: item.location || '' },
@@ -1919,6 +2049,11 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
     }
     throw e;
   }
+
+  // Slot Bar: manualSummary kekal sama macam dihantar (tiada pemisahan draf). Bukan Bar:
+  // manualSummary yang PATUT disimpan balik ke slots_config ialah draf SAHAJA — item publishItems
+  // dah jadi rekod Indeks rasmi, tak patut tersangkut dalam teks giliran modal lagi.
+  return isBar ? (manualSummary || '') : draftItems.map(serializeDraftBlock).join(DRAFT_BLOCK_SEPARATOR);
 };
 
 const resolveSlotContent = async (slot, lang = 'ms') => {
@@ -2159,6 +2294,15 @@ app.use('/api/system', createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjec
 app.use('/api/system', createLayoutRoutes(db, dbAll, resolveSlotContent));
 app.use('/api/system', createContentRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api/system', createWorldClockRoutes());
+app.use('/api/system', createTierSettingsRoutes(dbAll, dbRun));
+
+// Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
+// disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache
+// dalam-memori ni, bukan pangkalan data pada setiap pengesahan.
+loadTierOverrides(dbAll).then(map => {
+  const bil = Object.keys(map).length;
+  if (bil) console.log(`Pindaan had aksara tier dimuatkan: ${bil} tier.`);
+});
 
 // Start Express Server
 const PORT = 5000;

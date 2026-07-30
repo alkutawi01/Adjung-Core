@@ -42,12 +42,26 @@ export function parseManualBlockFields(block) {
     date: '', source: '', url: '', sourceType: '',
     organizer: '', location: '', access: '', penerangan: '',
     note: '', image: '', isEventBlock: false,
+    // Alur kerja Draf/Terbit (2026-07-29) — 'draft' (kerja belum siap, tak sesekali live),
+    // 'pending' (dah "Terbit" tapi tersekat, cth had slot penuh — sistem had belum wujud lagi,
+    // ni ruang untuknya nanti), 'approved' (live). LALAI 'approved' (BUKAN 'draft') bila medan
+    // Status: tiada langsung — kritikal: setiap blok lama yang disimpan SEBELUM ciri ni wujud
+    // memang live (status 'approved' dikunci keras dalam kod lama), tiada satu pun ada baris
+    // "Status:". Lalai 'draft' di sini akan nyahterbitkan SEMUA kandungan sedia ada secara senyap
+    // pada simpan seterusnya — 'draft' cuma jadi lalai eksplisit untuk item BAHARU (blankItem()
+    // di SlotManagerModal.tsx), bukan tafsiran blok lama yang tiada label ni.
+    status: 'approved',
   };
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed.startsWith('UUID:')) {
       fields.uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
+    } else if (trimmed.startsWith('Status:')) {
+      const raw = trimmed.replace(/^Status:\s*/i, '').trim().toLowerCase();
+      if (raw === 'draf' || raw === 'draft') fields.status = 'draft';
+      else if (raw === 'pending' || raw === 'menunggu') fields.status = 'pending';
+      else fields.status = 'approved';
     } else if (trimmed.startsWith('Tajuk:')) {
       fields.title = stripLimitHint(trimmed.replace(/^Tajuk:\s*/i, ''));
     } else if (trimmed.startsWith('Event:')) {
@@ -122,8 +136,10 @@ export function parseManualSummaryBlocks(summaryText) {
 // the way IN, but everything written back out uses the unambiguous form.
 export function serializeManualBentoItem(item) {
   const uuid = item.uuid || '';
+  const status = item.status === 'draft' ? 'draf' : item.status === 'pending' ? 'pending' : 'terbit';
   return [
     `UUID: ${uuid}`,
+    `Status: ${status}`,
     `Tajuk: ${item.title || ''}`,
     `Topik: ${item.topik || item.topic || ''}`,
     `Huraian ringkas: ${item.brief || ''}`,
