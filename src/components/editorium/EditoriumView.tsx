@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Lock, Radio, X } from 'lucide-react';
 import { EditoriumLayout } from './EditoriumLayout';
 import { IndeksConsole } from './IndeksConsole';
@@ -23,7 +24,14 @@ interface EditoriumViewProps {
 // Sesi log masuk (currentUser) kini state kongsi diangkat naik ke App.tsx — supaya FrontpageView
 // (borang Tetapan Slot Bidang, butang "Edit Kandungan") turut boleh baca sesi yang sama.
 export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onRequestLogin, onLogout }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('indeks');
+  // Log keluar = keluar terus ke frontpage. Editorium bukan tempat untuk sesiapa yang tak log
+  // masuk — dulu pengguna ditinggalkan di /editorium (skrin pagar) selepas log keluar.
+  const handleLogoutAndLeave = () => {
+    onLogout();
+    navigate('/');
+  };
   // Sub-menu tab "Indeks" (2026-07-29, permintaan pemilik projek) — corak sama macam sub-tab
   // Tetapan. "Semakan Kandungan" (dulu laman berasingan /studio/semakan-kandungan) kini dibenam
   // terus di sini sebagai sub-menu kedua, bukan pautan keluar. ContentReview sendiri sudah ada
@@ -38,7 +46,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     // "Log Masuk" (masthead + tengah) yang buat benda sama. Butang tengah dikekalkan sebab
     // dialah tumpuan skrin pagar ni.
     return (
-      <EditoriumLayout activeTab={activeTab} onTabChange={setActiveTab} currentUser={null} onLogout={onLogout}>
+      <EditoriumLayout activeTab={activeTab} onTabChange={setActiveTab} currentUser={null} onLogout={handleLogoutAndLeave}>
         <div className="flex flex-col items-center justify-center gap-3 py-24 text-stone-500 font-sans">
           <Lock className="w-8 h-8 text-stone-300" />
           <p className="text-sm">Log masuk diperlukan untuk mengakses Editorium.</p>
@@ -59,7 +67,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       onTabChange={setActiveTab}
       currentUser={currentUser}
       onRequestLogin={onRequestLogin}
-      onLogout={onLogout}
+      onLogout={handleLogoutAndLeave}
       onOpenSlotPicker={() => slotEditor.setShowSlotPicker(true)}
     >
       {activeTab === 'indeks' && (
