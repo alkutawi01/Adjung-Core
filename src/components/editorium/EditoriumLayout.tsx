@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
-import { List, FolderOpen, Settings, History, Landmark, Palette, Lock } from 'lucide-react';
+import { List, FolderOpen, Settings, History, Landmark, Palette, LogOut, LogIn, Lock, Zap, PenLine } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
 interface EditoriumLayoutProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
-  currentUser?: { name: string; role: 'KETUA_EDITOR' | 'EDITOR' };
-  onUserSwitch?: (role: 'KETUA_EDITOR' | 'EDITOR') => void;
+  // null = belum log masuk.
+  currentUser?: { name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null;
+  onRequestLogin?: () => void;
+  onLogout?: () => void;
+  // Buka pemilih slot "Tulis Kandungan" — dipunyai & dirender oleh EditoriumView sendiri
+  // (2026-07-29, useSlotEditor — Editorium dan Frontpage dipisah 100%, tiada navigasi/
+  // parameter URL merentas laman lagi).
+  onOpenSlotPicker?: () => void;
   children?: React.ReactNode;
 }
 
 export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   activeTab = 'indeks',
   onTabChange,
-  currentUser = { name: 'Izzat Anas', role: 'KETUA_EDITOR' },
-  onUserSwitch,
+  currentUser = null,
+  onRequestLogin,
+  onLogout,
+  onOpenSlotPicker,
   children
 }) => {
   const [currentTab, setCurrentTab] = useState(activeTab);
@@ -25,10 +33,17 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
     if (onTabChange) onTabChange(tabId);
   };
 
+  // Belum log masuk = TIADA tab boleh dibuka. Dulu semua tab masih boleh diklik: tab bertukar
+  // aktif tapi kandungan kekal skrin pagar, jadi nav nampak macam rosak.
+  const loggedOut = !currentUser;
+
   const navItems = [
-    { id: 'indeks', label: 'Indeks', Icon: List },
+    { id: 'indeks', label: 'Kandungan', Icon: List },
     { id: 'direktori', label: 'Direktori', Icon: FolderOpen },
-    { id: 'tetapan', label: 'Tetapan', Icon: Settings, restricted: currentUser.role !== 'KETUA_EDITOR' },
+    // Modul Khas (2026-07-29, permintaan pemilik projek) — rumah baharu "Urus Ticker" (dipindah
+    // daripada frontpage, dulu butang gear kecil yang cuma muncul dalam mod edit inline).
+    { id: 'modul_khas', label: 'Modul Khas', Icon: Zap },
+    { id: 'tetapan', label: 'Tetapan', Icon: Settings, restricted: currentUser?.role !== 'KETUA_EDITOR' },
     { id: 'log_audit', label: 'Log Audit', Icon: History },
     { id: 'perlembagaan', label: 'Perlembagaan', Icon: Landmark },
     { id: 'reka_bentuk', label: 'Reka Bentuk', Icon: Palette }
@@ -51,35 +66,48 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           </Tooltip>
 
           <div className="flex items-center gap-2.5 font-sans text-[11px]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}>
-            <div className="flex items-center gap-2 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1]">
-              <span className="relative flex w-1.5 h-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
-                <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-stone-100 font-medium">{currentUser.name}</span>
-              <span className="text-white/30">·</span>
-              <span className="text-[#e0b7bd]">{currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor'}</span>
-            </div>
-
-            {onUserSwitch && (
-              <div className="flex items-center gap-0.5 bg-white/[0.08] backdrop-blur-xl p-0.5 rounded-full border border-white/[0.1]">
+            {currentUser ? (
+              <>
+                {/* "+ Tulis Kandungan" (2026-07-29, permintaan pemilik projek) — Editorium dan
+                    Frontpage dipisah 100% sekarang; modal (pemilih slot + borang) render TERUS
+                    dalam EditoriumView sendiri (useSlotEditor, mandiri, tiada pergantungan pada
+                    FrontpageView), tiada navigasi/parameter URL lagi. */}
+                {onOpenSlotPicker && (
+                  <button
+                    type="button"
+                    onClick={onOpenSlotPicker}
+                    className="flex items-center gap-1.5 bg-white text-[#802334] px-2.5 py-1 rounded-full font-bold hover:bg-stone-100 transition-colors cursor-pointer"
+                  >
+                    <PenLine className="w-3 h-3" /> Tulis Kandungan
+                  </button>
+                )}
+                <div className="flex items-center gap-2 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1]">
+                  <span className="relative flex w-1.5 h-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                    <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-stone-100 font-medium">{currentUser.name}</span>
+                  <span className="text-white/30">·</span>
+                  <span className="text-[#e0b7bd]">{currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor'}</span>
+                </div>
+                {onLogout && (
+                  <button
+                    onClick={onLogout}
+                    className="flex items-center gap-1 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1] text-white/70 hover:text-white transition-colors"
+                  >
+                    <LogOut className="w-3 h-3" /> Log Keluar
+                  </button>
+                )}
+              </>
+            ) : (
+              onRequestLogin && (
                 <button
-                  onClick={() => onUserSwitch('KETUA_EDITOR')}
-                  className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
-                    currentUser.role === 'KETUA_EDITOR' ? 'bg-white/[0.15] text-white' : 'text-white/40 hover:text-white/70'
-                  }`}
+                  onClick={onRequestLogin}
+                  className="flex items-center gap-1.5 bg-white/[0.08] backdrop-blur-xl px-3 py-1 rounded-full border border-white/[0.1] text-white hover:bg-white/[0.15] transition-colors font-medium"
                 >
-                  Ketua Editor
+                  <LogIn className="w-3.5 h-3.5" /> Log Masuk
                 </button>
-                <button
-                  onClick={() => onUserSwitch('EDITOR')}
-                  className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
-                    currentUser.role === 'EDITOR' ? 'bg-white/[0.15] text-white' : 'text-white/40 hover:text-white/70'
-                  }`}
-                >
-                  Editor
-                </button>
-              </div>
+              )
             )}
           </div>
         </div>
@@ -87,28 +115,41 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
       {/* Navigasi — elemen berasingan drpd header, kapsul kaca TERANG (bukan gelap) duduk atas
           latar cream badan halaman. Jarak jelas drpd header (bukan bersentuh/bertindih). */}
-      <div className="relative z-10 flex justify-center px-4 pt-4 pb-2 overflow-x-auto">
+      {/* Bila tetingkap sempit, nav BALUT ke baris seterusnya — bukan skrol mendatar. Dulu
+          `overflow-x-auto` di sini melukis skrolbar Windows yang memotong kapsul kaca nav. */}
+      <div className="relative z-10 flex justify-center px-4 pt-4 pb-2">
         <nav
-          className="flex items-center gap-1 bg-white/70 backdrop-blur-2xl p-1 rounded-full border border-black/[0.06] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.06)]"
+          className="flex flex-wrap justify-center items-center gap-1 bg-white/70 backdrop-blur-2xl p-1 rounded-[1.5rem] border border-black/[0.06] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.06)]"
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}
         >
           {navItems.map(item => {
-            const isActive = currentTab === item.id;
+            const isActive = currentTab === item.id && !loggedOut;
             const { Icon } = item;
+            // Tab terkunci: belum log masuk (semua tab), atau peranan tak cukup (cth Tetapan
+            // untuk Editor). Kunci ni SEBENAR — butang di-disable, bukan sekadar dikelabukan
+            // sambil klik masih menukar tab macam dulu.
+            const isLocked = loggedOut || item.restricted;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
+                disabled={isLocked}
+                aria-disabled={isLocked}
+                title={loggedOut ? 'Log masuk dahulu untuk membuka tab ini' : undefined}
                 className={`relative flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-200 ${
                   isActive
                     ? 'bg-white text-[#802334] shadow-[0_1px_4px_rgba(0,0,0,0.12)]'
-                    : item.restricted
+                    : isLocked
                     ? 'text-stone-400 cursor-not-allowed'
                     : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.03]'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" strokeWidth={2.2} />
-                {item.label} {item.restricted && <Lock className="w-3 h-3" strokeWidth={2.2} />}
+                {item.label}
+                {/* Ikon kunci kecil hanya untuk sekatan peranan. Sebelum log masuk SEMUA tab
+                    terkunci, jadi 7 ikon kunci berturut cuma jadi bising — skrin pagar di tengah
+                    sudah pun menerangkan sebabnya. */}
+                {!loggedOut && item.restricted && <Lock className="w-3 h-3" strokeWidth={2.2} />}
               </button>
             );
           })}
