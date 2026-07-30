@@ -216,6 +216,11 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
   // Ia TIDAK mengubah kandungan tersimpan dan TIDAK memotong teks secara mekanikal — ia cuma
   // mengelip paparan dan menandakan ada teks tersembunyi. Limpahan dikesan dengan UKURAN sebenar
   // (scrollHeight lawan clientHeight), bukan diteka daripada kiraan aksara.
+  //
+  // KEPUTUSAN PEMILIK PROJEK (2026-07-31): pada kelompok yang barisan gridnya bersaiz AUTO, kad
+  // membesar sedikit mengikut kandungan dan bukannya mengelip — jaring ni tidak menyala di situ.
+  // Itu DITERIMA sebagai kes khas untuk limpahan yang tak sengaja. JANGAN "baiki" dengan mengunci
+  // max-height per-tier: kad yang mengembang sedikit lebih baik daripada ayat editor yang hilang.
   const rujukKotak = useRef<HTMLDivElement | null>(null);
   const [terlimpah, setTerlimpah] = useState(false);
 
