@@ -69,7 +69,7 @@ const formatLogTime = (iso: string) => {
 const UNIVERSAL_RULES = [
   {
     title: 'Saiz kad tetap. Tiada pengecualian.',
-    body: 'Setiap slot ada saiz fizikal tetap ikut tier geometrinya. Kandungan mesti muat dalam saiz itu — ini dikuatkuasakan di peringkat SIMPAN (server menolak kandungan yang tak muat), bukan diselesaikan lepas fakta dengan CSS clipping atau memotong teks sedia ada.',
+    body: <>Setiap slot ada saiz fizikal tetap ikut tier geometrinya. Kandungan mesti muat dalam saiz itu — ini dikuatkuasakan di peringkat SIMPAN (server menolak kandungan yang tak muat), bukan diselesaikan lepas fakta dengan CSS <em className="italic">clipping</em> atau memotong teks sedia ada.</>,
   },
   {
     title: 'Tajuk dan huraian berkongsi SATU bajet ruang.',
@@ -89,7 +89,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Isi kandungan editorial ialah tulisan sebenar.',
-    body: 'Jangan potong atau tulis-ganti secara mekanikal tanpa kelulusan eksplisit pemilik projek — itu vandalisme editorial, bukan "fix".',
+    body: <>Jangan potong atau tulis-ganti secara mekanikal tanpa kelulusan eksplisit pemilik projek — itu vandalisme editorial, bukan <em className="italic">"fix"</em>.</>,
   },
   {
     title: 'Penomboran slot bermula daripada 1, bukan 0.',
@@ -97,7 +97,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Label mesti 100% Bahasa Melayu.',
-    body: 'Kalau terpaksa guna Bahasa Inggeris (tiada padanan Melayu yang diluluskan lagi), tulis dengan huruf condong (italic). Lihat carta tier di bawah — Bar dan Ticker kini bertulis condong kerana sebab ini.',
+    body: <>Kalau terpaksa guna Bahasa Inggeris (tiada padanan Melayu yang diluluskan lagi), tulis dengan huruf condong (<em className="italic">italic</em>). Lihat carta tier di bawah — Bar dan Ticker kini bertulis condong kerana sebab ini.</>,
   },
   {
     title: 'Fon tajuk tak boleh lebih kecil daripada fon huraian.',
@@ -106,6 +106,10 @@ const UNIVERSAL_RULES = [
   {
     title: 'Akordion Bar: kad kekal statik, panel dipaparkan secara berasingan di bawahnya.',
     body: <>Klik kad Bar (maroon) di luar Mod Edit membuka/tutup panel Penerangan sebagai ELEMEN BAHARU selepas kad tu — kad Bar itu sendiri TIDAK diubah langsung (tiada saiz/rupa berbeza apabila terbuka). Hanya SATU kad boleh terbuka pada satu masa PER KLUSTER (4 kad); klik kad lain dalam kluster yang sama tutup yang sebelum, buka yang baharu. Dua kad yang berkongsi baris <em className="italic">grid</em> dengan kluster Bar (row-span-2 menegak + satu lagi) WAJIB kekal statik (tinggi/kedudukan tak berubah) walaupun kluster Bar membesar — dikuatkuasakan melalui height-lock JS (ukur tinggi semula jadi sebelum terbuka, bekukan nilai tu semasa terbuka), BUKAN ubah struktur <em className="italic">grid</em> (lihat peraturan "jangan ubah grid bento"). Medan Penerangan dihadkan 460 aksara (core/editorial/GeometryConfig.js MAX_PENERANGAN_CHARS, dikuatkuasakan server.js syncManualObjectsForSlot) — diukur empirik daripada lebar panel sebenar.</>,
+  },
+  {
+    title: 'Senarai kandungan berskala besar wajib berkelompok (dipaginasi).',
+    body: 'Mana-mana paparan yang berpotensi memuatkan kandungan dalam jumlah besar (Indeks, Semakan Kandungan) mesti menghadkan bilangan rekod yang diproses/dipaparkan serentak pada satu had tetap (100 rekod sehalaman) — bukan memuatkan dan me-render kesemua rekod sekali gus tanpa had, tidak kira berapa banyak kandungan wujud dalam sistem.',
   },
 ];
 
@@ -302,7 +306,7 @@ export const PerlembagaanConsole: React.FC = () => {
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Dipaparkan sebagai <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Bidang | Topik</span> (cth:{' '}
               <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Ekonomi | Perbankan</span>).
-              Kandungan lama yang belum mempunyai Topik hanya memaparkan Bidang — tiada backfill automatik.
+              Kandungan lama yang belum mempunyai Topik hanya memaparkan Bidang — tiada <em className="italic">backfill</em> automatik.
             </p>
           </div>
           <div>
@@ -330,7 +334,7 @@ Nota:`}</pre>
               diedit — disahkan di peringkat simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">validateBidangTopik()</code>),
               sama macam bajet aksara. Kandungan lama tanpa Topik kekal tidak disentuh, tiada
               migrasi diperlukan; tindakan status-sahaja (Lulus/Tolak/Arkib) pada kandungan lama
-              TIDAK disekat oleh peraturan ni. Terpakai untuk mod Manual DAN AI Generated (prom AI
+              TIDAK disekat oleh peraturan ni. Terpakai untuk mod Manual DAN AI Generated (<em className="italic">prompt</em> AI
               turut memaparkan baris <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Bidang:</span> /{' '}
               <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Topik:</span> secara eksplisit).
             </p>
@@ -412,9 +416,9 @@ URL:`}</pre>
             </p>
           </div>
           <div>
-            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Skim warna (Adjung theme sahaja)</h3>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Skim warna (<em className="italic">theme</em> Adjung sahaja)</h3>
             <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
-              <li>Lencana <strong>Penganjur</strong>: putih krim glassmorphism — <code className="bg-stone-100 px-1 rounded text-[11px]">bg-white/15 text-white border-white/30</code>.</li>
+              <li>Lencana <strong>Penganjur</strong>: putih krim <em className="italic">glassmorphism</em> — <code className="bg-stone-100 px-1 rounded text-[11px]">bg-white/15 text-white border-white/30</code>.</li>
               <li>Lencana <strong>Akses: Terbuka</strong>: emas Adjung — <code className="bg-stone-100 px-1 rounded text-[11px]">bg-amber-400/20 text-amber-300 border-amber-300/30</code>.</li>
               <li>Lencana <strong>Akses: Tertutup</strong>: marun gelap — <code className="bg-stone-100 px-1 rounded text-[11px]">bg-rose-950/60 text-rose-300 border-rose-500/40</code>.</li>
               <li>Prinsip am: lencana Penganjur dan lencana Akses TIDAK BOLEH kongsi warna — fungsi semantik berbeza (entiti vs status).</li>
@@ -442,10 +446,100 @@ URL:`}</pre>
         </div>
       </div>
 
+      {/* ALUR KERJA DRAF/TERBIT — diekstrak & disahkan terus daripada kod semasa (SlotManagerModal.tsx,
+          useSlotEditor.ts, server.js syncManualObjectsForSlot, IndeksConsole.tsx). */}
+      <div>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+          05 — Alur Kerja Draf/Terbit
+        </span>
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Modal "Tulis Kandungan" ialah ruang draf peribadi sahaja</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Draf disimpan sebagai teks dalam <code className="bg-stone-100 px-1 rounded text-[11px]">slots_config.manualSummary</code> —
+              TIDAK pernah wujud sebagai baris <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_objects</code> sehingga
+              diterbitkan. Modal ni tidak sesekali memaparkan kandungan Live/Pending sedia ada — hanya draf yang belum diterbitkan.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Dua tindakan berasingan bagi setiap kandungan draf</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              <strong>"Simpan sebagai draf"</strong> — simpan senarai draf semasa ke pangkalan data,
+              modal kekal terbuka, tiada pengesahan bajet/Topik dikuatkuasakan (kerja belum siap).{' '}
+              <strong>"Terbit sekarang"</strong> — aksi segera (bukan togol status): kandungan disahkan
+              penuh (bajet ruang kad dan Bidang/Topik), terus dicipta sebagai rekod Indeks rasmi, dan
+              serta-merta keluar daripada senarai draf modal.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Kandungan diterbitkan mendarat sebagai Pending, bukan Live</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Menunggu kelulusan Ketua Editor di Indeks (atau auto-terbit, sistem itu belum wujud) —
+              KECUALI slot Bar, yang kekal guna status yang dihurai terus daripada teks (lihat "04 —
+              Peraturan Khas Slot Bar", tidak terjejas oleh alur kerja ni).
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">"Tolak" di Indeks memulangkan kandungan jadi draf semula</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              BUKAN sekadar menukar status kepada Rejected. Rekod Indeks lama diarkibkan (jejak audit),
+              dan kandungan penuh disalin balik sebagai blok draf ke slot asal — kandungan tu hilang
+              terus daripada Indeks dan muncul semula, boleh disunting, dalam modal Tulis Kandungan.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Indeks tidak pernah memaparkan status "Draf"</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Draf ialah ruang kerja peribadi editor sahaja — tak pernah punya baris rekod editorial,
+              jadi tak sesekali muncul dalam senarai/tapisan Indeks walau apa jua keadaan.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* NAMA EDITOR & KAWALAN AKSES — diekstrak & disahkan terus daripada kod semasa
+          (useSlotEditor.ts, server.js, IndeksConsole.tsx, TetapanConsole.tsx). */}
+      <div>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+          06 — Nama Editor &amp; Kawalan Akses
+        </span>
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Nama editor sebenar dicatat semasa Terbit</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Setiap kandungan yang diterbitkan mencatat nama editor yang log masuk semasa itu
+              (atribut <code className="bg-stone-100 px-1 rounded text-[11px]">editorName</code>) — berasingan
+              daripada Kaedah (cara kandungan dicipta: Manual/AI Generated/RSS Direct, yang jawab
+              "macam mana dicipta", bukan "siapa"). Kandungan sedia ada sebelum ciri ni wujud kekal
+              kosong (papar "Tidak diketahui" — jujur tentang jurang data, bukan nama direka).
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Empat peranan editorial</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Pentadbir, Ketua Editor, Penolong Ketua Editor, dan Editor — dikawal melalui matriks
+              "Kawalan Akses" di Tetapan (Ketua Editor sahaja boleh menanda/membatalkan kebenaran).
+              Ketua Editor ialah peranan pentadbir tak boleh diubah suai (<em className="italic">immutable</em>) —
+              kuasa tadbir urus utamanya (lihat semua/sunting semua/urus tetapan/urus Kawalan Akses)
+              tidak boleh ditarik semula daripada akaun sendiri.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Matriks disimpan, belum dikuatkuasakan</h3>
+            <p className="font-sans text-xs text-stone-600 leading-relaxed">
+              Kebenaran yang ditanda di Kawalan Akses disimpan betul-betul ke pangkalan data, tapi
+              BELUM dikuatkuasakan di mana-mana bahagian sistem sebenar — semua semakan akses semasa
+              (Indeks, Direktori, Tetapan sendiri) terus banding peranan dengan Ketua Editor secara
+              tegar dalam kod, tanpa rujuk matriks ni langsung. Ini KIV sehingga arahan lanjut.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* LIVE CHANGE LOG */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          05 — Log Perubahan Peraturan (Masa Nyata, Daripada Git)
+          07 — Log Perubahan Peraturan (Masa Nyata, Daripada Git)
         </span>
         <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
           {loadingLog ? (
@@ -491,7 +585,7 @@ URL:`}</pre>
           and carries a full jam:minit:saat timestamp, not just a date. */}
       <div>
         <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          06 — Log Perubahan UI/UX (Masa Nyata)
+          08 — Log Perubahan UI/UX (Masa Nyata)
         </span>
         <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
           {loadingUiUxLog ? (

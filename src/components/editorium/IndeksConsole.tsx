@@ -9,6 +9,9 @@ interface BriefRecord {
   summary: string;
   desk: string;
   topik: string;
+  // Draf SENGAJA tiada di sini (2026-07-29) — draf ialah ruang peribadi editor dalam modal Tulis
+  // Kandungan sahaja (slots_config.manualSummary), tak pernah punya baris editorial_objects,
+  // jadi tak sesekali muncul dalam Indeks. Lihat nota alur kerja di server.js.
   status: 'Pending' | 'Live' | 'Rejected' | 'Archive';
   source: string;
   creator: string;
@@ -16,6 +19,20 @@ interface BriefRecord {
   slot: string;
   slotIndex: number;
   date: string;
+  // Cap masa mentah (ISO, bukan diformat) — khusus untuk penyusunan "Paling Baharu"/"Paling Lama".
+  // `date` di atas sudah diformat ms-MY untuk paparan, tak sesuai untuk susun kronologi.
+  createdAtRaw: string;
+  // Nama editor SEBENAR yang log masuk semasa Terbit (2026-07-29) — kosong untuk kandungan
+  // sedia ada sebelum ciri ni wujud (papar "Tidak diketahui", bukan reka nama).
+  editorName: string;
+  // Maklumat penuh (2026-07-29, permintaan pemilik projek) — modal Detail Kandungan sebelum ni
+  // cuma papar medan ringkas (Status/Bidang/Topik/dll.), senyap buang Huraian Panjang/Nota/Tarikh
+  // Sumber/URL walaupun /api/system/content/all sentiasa pulangkan kesemuanya (lihat
+  // contentRoutes.js — sama medan yang dah dibetulkan di ContentReview.tsx punya paparan pukal).
+  summaryLong: string;
+  note: string;
+  originalDate: string;
+  url: string;
 }
 
 // Renders a tier label, condong (italic) whenever GeometryConfig flags it as an unapproved
@@ -27,6 +44,18 @@ interface IndeksConsoleProps {
   currentUserRole?: 'KETUA_EDITOR' | 'EDITOR';
   currentUserName?: string;
 }
+
+// Format ringkas DD/MM/YY untuk jadual Indeks (2026-07-29, permintaan pemilik projek) — jimat
+// ruang lajur berbanding toLocaleDateString('ms-MY') (yang keluarkan "29 Julai 2026" penuh).
+const formatDateShort = (iso: string | null): string => {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '-';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${yy}`;
+};
 
 const formatTitleCase = (str: string) => {
   if (!str) return '';
@@ -101,13 +130,49 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const [actionError, setActionError] = useState<string | null>(null);
 
   // Smart Filter Bar States
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('Semua');
-  const [selectedCardType, setSelectedCardType] = useState<string>('Semua');
-  const [selectedSource, setSelectedSource] = useState<string>('Semua');
-  const [selectedCreator, setSelectedCreator] = useState<string>('Semua');
-  const [selectedDesk, setSelectedDesk] = useState<string>('Semua');
-  const [selectedSlot, setSelectedSlot] = useState<string>('Semua');
+  // Tapis-on-demand (2026-07-29, permintaan pemilik projek): penapis TIDAK terpakai serta-merta
+  // bila editor tukar mana-mana kawalan — semua kawalan (carian, 6 dropdown, susunan) menulis ke
+  // `draftFilters` sahaja; `appliedFilters` (dibaca oleh filteredRecords/sortedRecords di bawah)
+  // hanya dikemas kini bila butang "Tapis" ditekan. Ni sengaja walaupun penapisan semasa 100%
+  // client-side (senarai `items` sudah dimuat penuh dalam memori) — bersedia untuk seni bina
+  // masa depan (paginasi/carian sisi-pelayan bila rekod cecah 10,000+), dan kurangkan bilangan
+  // recompute filteredRecords/sortedRecords semasa editor tukar >1 kawalan sekali gus. "Set
+  // Semula Penapis" terus kesan (bukan tunggu Tapis) — ia tindakan "kosongkan", bukan "tambah
+  // beban carian baharu".
+  interface FilterState {
+    search: string;
+    status: string;
+    cardType: string;
+    source: string;
+    creator: string;
+    desk: string;
+    slot: string;
+    editor: string;
+    sort: 'newest' | 'oldest' | 'az' | 'za';
+  }
+  // "SemuaKecualiTicker" ialah pilihan BERASINGAN daripada "Semua" (yang kekal bermaksud literal
+  // semua slot + Ticker) — Ticker papar kandungan RSS automatik, bukan kandungan yang dihasilkan
+  // editor, jadi ia mengelirukan bercampur dalam senarai kerja editorial lalai. Editor masih boleh
+  // pilih "Semua" secara eksplisit bila perlu nampak Ticker sekali.
+  //
+  // Tetapan lalai ikut peranan (2026-07-29, permintaan pemilik projek):
+  //   - EDITOR log masuk → Indeks lalai papar KANDUNGAN DIA SENDIRI sahaja ("Editor" = nama dia),
+  //     susunan Paling Baharu — meja kerja peribadi, bukan semua kandungan sistem sekali gus.
+  //   - KETUA_EDITOR log masuk → Indeks lalai papar SEMUA editor tapi Status=Pending, susunan
+  //     Paling Baharu — baris giliran kelulusan (apa yang perlu tindakan dia), bukan semua status.
+  const DEFAULT_FILTERS: FilterState = currentUserRole === 'EDITOR'
+    ? {
+        search: '', status: 'Semua', cardType: 'Semua', source: '', creator: 'Semua', desk: 'Semua',
+        slot: 'SemuaKecualiTicker', editor: currentUserName, sort: 'newest',
+      }
+    : {
+        search: '', status: 'Pending', cardType: 'Semua', source: '', creator: 'Semua', desk: 'Semua',
+        slot: 'SemuaKecualiTicker', editor: 'Semua', sort: 'newest',
+      };
+  const [draftFilters, setDraftFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const patchDraft = (patch: Partial<FilterState>) => setDraftFilters(f => ({ ...f, ...patch }));
+  const filtersDirty = JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
 
   // Editor View Filter: Saya vs Semua (Read Only) — only meaningful once real EDITOR accounts
   // exist; KETUA_EDITOR always sees and can act on everything.
@@ -149,7 +214,13 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             cardType: cardTypeForSlot(item.slotIndex),
             slot,
             slotIndex: item.slotIndex,
-            date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('ms-MY') : '-',
+            date: formatDateShort(item.createdAt),
+            createdAtRaw: item.createdAt || '',
+            editorName: item.editorName || '',
+            summaryLong: item.summaryLong || '',
+            note: item.note || '',
+            originalDate: item.originalDate || '',
+            url: item.url || '',
           };
         });
 
@@ -183,15 +254,32 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     };
   }, [items]);
 
-  // Filter option lists derived from real loaded data, not hardcoded guesses.
-  const deskOptions = useMemo(() => Array.from(new Set(items.map(i => i.desk))).sort(), [items]);
+  // Bidang dropdown (2026-07-29, permintaan pemilik projek): HANYA bidang berdaftar aktif
+  // (activeBidangList, terus daripada CategoryRegistry) — bukan disenaraikan daripada kandungan
+  // sedia ada, supaya bidang yang dah dimansuhkan tak muncul sebagai pilihan biasa lagi.
+  // Mekanisme khas untuk cari kandungan lama guna bidang mansuh: kumpulan KEDUA "orphanDeskOptions"
+  // — bidang yang muncul dalam kandungan SEBENAR tapi tak lagi wujud dalam activeBidangList —
+  // dipaparkan berasingan (<optgroup> "Bidang Tidak Berdaftar (Mansuh)") supaya kekal boleh
+  // dicari tanpa bercampur dengan senarai bidang aktif biasa.
+  const registeredDeskNames = useMemo(() => new Set(activeBidangList.map(b => b.name.toLowerCase())), [activeBidangList]);
+  const deskOptions = useMemo(() => activeBidangList.map(b => b.name).sort(), [activeBidangList]);
+  const orphanDeskOptions = useMemo(() => {
+    const allDesks: string[] = Array.from(new Set(items.map(i => i.desk).filter(Boolean)));
+    return allDesks.filter(d => !registeredDeskNames.has(d.toLowerCase())).sort();
+  }, [items, registeredDeskNames]);
   // Sumber sebenar (Astro Awani, Bernama, dll.) — berasingan daripada creator/Kaedah di bawah.
   // Ticker (source sentiasa kosong — disimpan sebagai blob teks, bukan rekod berasingan) tak
-  // sumbang opsyen di sini.
+  // sumbang opsyen di sini. Guna sebagai senarai cadangan <datalist> (medan carian/autocomplete,
+  // 2026-07-29) — BUKAN dropdown terpilih tetap, sebab senarai sumber sebenar boleh cecah ratusan/
+  // ribuan bila sistem berkembang, dropdown biasa tak lagi praktikal pada skala tu.
   const sourceOptions = useMemo(() => Array.from(new Set(items.map(i => i.source).filter(Boolean))).sort(), [items]);
   // Ticker rows carry an empty creator (see formatCreatedBy) since Ticker isn't a "Kaedah" choice
   // among Manual/AI Generated/dll. — filtered out here so it can't show up as a blank option.
   const creatorOptions = useMemo(() => Array.from(new Set(items.map(i => i.creator).filter(Boolean))).sort(), [items]);
+  // Editor (2026-07-29) — nama editor sebenar yang log masuk semasa Terbit, kosong untuk
+  // kandungan sedia ada sebelum ciri ni wujud (tak sumbang opsyen di sini, sama corak macam
+  // creator/source di atas).
+  const editorNameOptions = useMemo(() => Array.from(new Set(items.map(i => i.editorName).filter(Boolean))).sort(), [items]);
   const slotOptions = useMemo(() => {
     const slots: string[] = Array.from(new Set(items.map(i => i.slot)));
     return slots.sort((a: string, b: string) => {
@@ -212,8 +300,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       // active) rather than silently filtering everything out.
 
       // Search Query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
+      if (appliedFilters.search.trim()) {
+        const q = appliedFilters.search.toLowerCase();
         const matches =
           item.title.toLowerCase().includes(q) ||
           item.summary.toLowerCase().includes(q) ||
@@ -224,26 +312,70 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       }
 
       // Filter: Status
-      if (selectedStatus !== 'Semua' && item.status !== selectedStatus) return false;
+      if (appliedFilters.status !== 'Semua' && item.status !== appliedFilters.status) return false;
 
       // Filter: Jenis Kad
-      if (selectedCardType !== 'Semua' && item.cardType !== selectedCardType) return false;
+      if (appliedFilters.cardType !== 'Semua' && item.cardType !== appliedFilters.cardType) return false;
 
-      // Filter: Sumber (nama sumber sebenar, cth Astro Awani)
-      if (selectedSource !== 'Semua' && item.source !== selectedSource) return false;
+      // Filter: Sumber (medan carian/autocomplete, 2026-07-29 — padanan separa/tidak sensitif huruf
+      // besar-kecil, bukan sepadan-tepat, sebab editor mungkin belum siap menaip nama penuh persis).
+      if (appliedFilters.source.trim() && !item.source.toLowerCase().includes(appliedFilters.source.trim().toLowerCase())) return false;
 
       // Filter: Kaedah (cara kandungan dicipta — Manual/AI Generated/RSS Direct/dll.)
-      if (selectedCreator !== 'Semua' && item.creator !== selectedCreator) return false;
+      if (appliedFilters.creator !== 'Semua' && item.creator !== appliedFilters.creator) return false;
+
+      // Filter: Editor (nama editor sebenar yang log masuk semasa Terbit — 2026-07-29)
+      if (appliedFilters.editor !== 'Semua' && item.editorName !== appliedFilters.editor) return false;
 
       // Filter: Desk
-      if (selectedDesk !== 'Semua' && item.desk.toLowerCase() !== selectedDesk.toLowerCase()) return false;
+      if (appliedFilters.desk !== 'Semua' && item.desk.toLowerCase() !== appliedFilters.desk.toLowerCase()) return false;
 
       // Filter: Slot
-      if (selectedSlot !== 'Semua' && item.slot !== selectedSlot) return false;
+      if (appliedFilters.slot === 'SemuaKecualiTicker') {
+        if (item.slot === 'Ticker') return false;
+      } else if (appliedFilters.slot !== 'Semua' && item.slot !== appliedFilters.slot) {
+        return false;
+      }
 
       return true;
     });
-  }, [items, currentUserRole, editorViewMode, currentUserName, searchQuery, selectedStatus, selectedCardType, selectedSource, selectedCreator, selectedDesk, selectedSlot]);
+  }, [items, currentUserRole, editorViewMode, currentUserName, appliedFilters]);
+
+  // Susunan (2026-07-29) — dipisahkan daripada penapisan di atas supaya urutan pilihan penapis
+  // tak jejas kestabilan susunan; guna createdAtRaw untuk kronologi, title untuk abjad.
+  const sortedRecords = useMemo(() => {
+    const arr = filteredRecords.slice();
+    switch (appliedFilters.sort) {
+      case 'newest':
+        return arr.sort((a, b) => (b.createdAtRaw || '').localeCompare(a.createdAtRaw || ''));
+      case 'oldest':
+        return arr.sort((a, b) => (a.createdAtRaw || '').localeCompare(b.createdAtRaw || ''));
+      case 'az':
+        return arr.sort((a, b) => a.title.localeCompare(b.title, 'ms'));
+      case 'za':
+        return arr.sort((a, b) => b.title.localeCompare(a.title, 'ms'));
+      default:
+        return arr;
+    }
+  }, [filteredRecords, appliedFilters.sort]);
+
+  // Pagination (2026-07-29, permintaan pemilik projek) — 100 rekod setiap paparan, supaya jadual
+  // tak pernah render lebih 100 baris DOM sekali gus tanpa mengira berapa banyak kandungan lepas
+  // tapisan. Ni pagination CLIENT-SIDE sahaja (senarai penuh masih dimuat dalam memori — tetap
+  // sepadan seni bina semasa `/api/system/content/all`); pindah ke pagination SISI-PELAYAN
+  // sebenar (had+ofset dalam query DB) ialah kerja BERASINGAN, perlu bila kandungan sebenar cecah
+  // skala yang menjadikan muat-semua-sekali sendiri satu masalah (lihat cadangan sebelum ni).
+  const PAGE_SIZE = 100;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(sortedRecords.length / PAGE_SIZE));
+  // Reset ke halaman 1 bila-bila senarai terhasil berubah (penapis baharu ditapis, susunan
+  // ditukar) — kalau tidak, editor boleh terkandas di halaman 5 walhal keputusan tapisan baharu
+  // cuma ada 2 halaman, jadual nampak "kosong" tanpa penjelasan.
+  useEffect(() => { setCurrentPage(1); }, [sortedRecords]);
+  const pagedRecords = useMemo(
+    () => sortedRecords.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [sortedRecords, currentPage]
+  );
 
   const handleUpdateStatus = async (id: string, newStatus: BriefRecord['status']) => {
     setActionError(null);
@@ -270,6 +402,28 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         setActiveItemModal(previous.find(i => i.id === id) || null);
       }
       setActionError(err.message || 'Gagal kemas kini status.');
+    }
+  };
+
+  // Tolak (2026-07-29, alur kerja Draf/Terbit) — BUKAN sekadar tanda status='rejected'. Item
+  // betul-betul PULANG jadi draf peribadi semula (server salin kandungan penuh balik ke
+  // slots_config.manualSummary slot asal, arkib rekod Indeks lama) — hilang terus daripada
+  // senarai Indeks (draf tak pernah terpapar di sini), muncul semula dalam modal Tulis Kandungan.
+  const handleRejectToDraft = async (id: string) => {
+    if (!window.confirm('Tolak kandungan ini? Ia akan kembali jadi draf dalam modal Tulis Kandungan dan hilang daripada Indeks.')) return;
+    setActionError(null);
+    const previous = items;
+    setItems(prev => prev.filter(i => i.id !== id));
+    if (activeItemModal && activeItemModal.id === id) setActiveItemModal(null);
+    try {
+      const res = await fetch(`/api/system/content/${encodeURIComponent(id)}/reject-to-draft`, { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Gagal tolak kandungan (${res.status}).`);
+      }
+    } catch (err: any) {
+      setItems(previous);
+      setActionError(err.message || 'Gagal tolak kandungan.');
     }
   };
 
@@ -309,30 +463,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     }
   };
 
+  // Reset kesan SERTA-MERTA (bukan tunggu Tapis) — ia tindakan "kosongkan", bukan carian baharu.
   const handleResetFilters = () => {
-    setSearchQuery('');
-    setSelectedStatus('Semua');
-    setSelectedCardType('Semua');
-    setSelectedSource('Semua');
-    setSelectedCreator('Semua');
-    setSelectedDesk('Semua');
-    setSelectedSlot('Semua');
+    setDraftFilters(DEFAULT_FILTERS);
+    setAppliedFilters(DEFAULT_FILTERS);
   };
+  const handleApplyFilters = () => setAppliedFilters(draftFilters);
 
   return (
     <div className="space-y-6">
       {/* MEJA KERJA EDITORIAL - SMART FILTER BAR */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200 space-y-4">
-        <div className="flex flex-wrap justify-between items-center gap-4">
-          <div>
-            <h2 className="font-serif text-base uppercase tracking-wider text-[#802334] font-bold mb-1">
-              Indeks Kandungan Adjung Brief (Meja Kerja Editorial)
-            </h2>
-            <p className="font-sans text-xs text-stone-600">
-              Pusat pencarian dan penapisan pintar bagi kesemua {statusCounts.Total} kandungan Adjung Brief.
-            </p>
-          </div>
-
+        <div className="flex flex-wrap justify-end items-center gap-4">
           {/* Quick Counter Badges */}
           <div className="flex items-center gap-2 font-sans text-[10px]">
             <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded font-bold">Pending: <span className="font-mono">{statusCounts.Pending}</span></span>
@@ -349,26 +491,31 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           </div>
         )}
 
-        {/* Search Input */}
+        {/* Search Input — draf sahaja, ditapis bila "Tapis" ditekan (lihat nota FilterState). */}
         <div className="w-full relative">
           <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
           <input
             type="text"
             placeholder="Cari tajuk, ID, atau kata kunci brief..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            value={draftFilters.search}
+            onChange={e => patchDraft({ search: e.target.value })}
+            onKeyDown={e => { if (e.key === 'Enter') handleApplyFilters(); }}
             className="w-full bg-stone-50 border border-stone-300 rounded pl-10 pr-4 py-2.5 font-sans text-xs shadow-xs"
           />
         </div>
 
-        {/* 6 Dropdown Smart Filters */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 font-sans text-xs">
+        {/* 7 Dropdown Smart Filters + Susunan */}
+        {/* lg:grid-cols-5 (bukan 9) — 2026-07-29, permintaan pemilik projek: paksa kesemua 9
+            kawalan dalam SATU baris buat setiap kotak terlalu sempit/kecil pada lebar skrin
+            biasa. 5 lajur bermakna 9 kawalan lipat jadi DUA baris (5+4) — lebih selesa dibaca
+            tanpa mengira lebar tetingkap. */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 font-sans text-xs">
           {/* 1. Status Filter */}
           <div>
             <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">STATUS</label>
             <select
-              value={selectedStatus}
-              onChange={e => setSelectedStatus(e.target.value)}
+              value={draftFilters.status}
+              onChange={e => patchDraft({ status: e.target.value })}
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
               <option value="Semua">Semua Status</option>
@@ -383,8 +530,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <div>
             <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">JENIS KAD</label>
             <select
-              value={selectedCardType}
-              onChange={e => setSelectedCardType(e.target.value)}
+              value={draftFilters.cardType}
+              onChange={e => patchDraft({ cardType: e.target.value })}
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
               <option value="Semua">Semua Kad</option>
@@ -399,25 +546,31 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </select>
           </div>
 
-          {/* 3. Sumber (nama sumber berita sebenar, cth Astro Awani) Filter */}
+          {/* 3. Sumber — medan carian/autocomplete (2026-07-29), BUKAN dropdown terpilih tetap.
+              <datalist> beri cadangan daripada sourceOptions sambil editor menaip, tapi nilai
+              akhir teks bebas (padanan separa, lihat filteredRecords) — senarai sumber sebenar
+              boleh cecah ratusan/ribuan bila sistem berkembang, dropdown biasa tak lagi praktikal. */}
           <div>
             <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">SUMBER</label>
-            <select
-              value={selectedSource}
-              onChange={e => setSelectedSource(e.target.value)}
+            <input
+              type="text"
+              list="sumber-datalist"
+              placeholder="Cari sumber…"
+              value={draftFilters.source}
+              onChange={e => patchDraft({ source: e.target.value })}
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
-            >
-              <option value="Semua">Semua Sumber</option>
-              {sourceOptions.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            />
+            <datalist id="sumber-datalist">
+              {sourceOptions.map(s => <option key={s} value={s} />)}
+            </datalist>
           </div>
 
           {/* 3b. Kaedah (cara kandungan dicipta — Manual/AI Generated/RSS Direct/dll.) Filter */}
           <div>
             <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">KAEDAH</label>
             <select
-              value={selectedCreator}
-              onChange={e => setSelectedCreator(e.target.value)}
+              value={draftFilters.creator}
+              onChange={e => patchDraft({ creator: e.target.value })}
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
               <option value="Semua">Semua Kaedah</option>
@@ -425,16 +578,40 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </select>
           </div>
 
-          {/* 4. Desk Filter */}
+          {/* 3c. Editor — nama editor SEBENAR yang log masuk semasa Terbit (2026-07-29). Kosong
+              untuk kandungan sedia ada sebelum ciri ni wujud (papar "Tidak diketahui", bukan reka
+              nama) — sebab tu editorNameOptions tak sumbang opsyen kosong. */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">DESK DISIPLIN</label>
+            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">EDITOR</label>
             <select
-              value={selectedDesk}
-              onChange={e => setSelectedDesk(e.target.value)}
+              value={draftFilters.editor}
+              onChange={e => patchDraft({ editor: e.target.value })}
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
-              <option value="Semua">Semua Desk</option>
-              {deskOptions.map(d => <option key={d} value={d}>{d}</option>)}
+              <option value="Semua">Semua Editor</option>
+              {editorNameOptions.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+          </div>
+
+          {/* 4. Desk Filter — HANYA bidang berdaftar aktif secara lalai; kumpulan "Mansuh"
+              berasingan (lihat nota deskOptions/orphanDeskOptions di atas) untuk cari kandungan
+              lama yang masih guna bidang yang dah dimansuhkan. */}
+          <div>
+            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">BIDANG</label>
+            <select
+              value={draftFilters.desk}
+              onChange={e => patchDraft({ desk: e.target.value })}
+              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+            >
+              <option value="Semua">Semua Bidang</option>
+              <optgroup label="Bidang Berdaftar">
+                {deskOptions.map(d => <option key={d} value={d}>{d}</option>)}
+              </optgroup>
+              {orphanDeskOptions.length > 0 && (
+                <optgroup label="Bidang Tidak Berdaftar (Mansuh)">
+                  {orphanDeskOptions.map(d => <option key={d} value={d}>{d}</option>)}
+                </optgroup>
+              )}
             </select>
           </div>
 
@@ -442,22 +619,46 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <div>
             <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">SLOT</label>
             <select
-              value={selectedSlot}
-              onChange={e => setSelectedSlot(e.target.value)}
+              value={draftFilters.slot}
+              onChange={e => patchDraft({ slot: e.target.value })}
               className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
             >
-              <option value="Semua">Semua Slot</option>
+              <option value="SemuaKecualiTicker">Semua Slot (kecuali Ticker)</option>
+              <option value="Semua">Semua Slot (termasuk Ticker)</option>
               {slotOptions.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
-          {/* Reset Filters Button */}
-          <div className="flex items-end">
+          {/* 6. Susunan */}
+          <div>
+            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">SUSUNAN</label>
+            <select
+              value={draftFilters.sort}
+              onChange={e => patchDraft({ sort: e.target.value as FilterState['sort'] })}
+              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+            >
+              <option value="newest">Paling Baharu</option>
+              <option value="oldest">Paling Lama</option>
+              <option value="az">Abjad (A–Z)</option>
+              <option value="za">Abjad (Z–A)</option>
+            </select>
+          </div>
+
+          {/* Tapis + Reset — penapis TIDAK terpakai sehingga "Tapis" ditekan (lihat nota
+              FilterState di atas); "Set Semula Penapis" kekal serta-merta. */}
+          <div className="flex items-end gap-2">
+            <button
+              onClick={handleApplyFilters}
+              className="flex-1 bg-[#802334] hover:bg-[#601824] text-white font-semibold px-3 py-1.5 rounded transition-colors text-[11px] relative"
+            >
+              Tapis
+              {filtersDirty && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-white" title="Ada penapis belum ditapis" />}
+            </button>
             <button
               onClick={handleResetFilters}
-              className="w-full bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold px-3 py-1.5 rounded transition-colors text-[11px]"
+              className="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold px-3 py-1.5 rounded transition-colors text-[11px]"
             >
-              Set Semula Penapis
+              Set Semula
             </button>
           </div>
         </div>
@@ -500,10 +701,17 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         </div>
       )}
 
-      {/* Filtering Results Summary */}
+      {/* Filtering Results Summary — julat halaman semasa (cth "1–100"), bukan sekadar jumlah
+          keputusan tapisan, supaya editor tahu tepat baris mana sedang dipaparkan. */}
       <div className="flex justify-between items-center font-sans text-xs text-stone-500 px-1">
         <div>
-          Menampilkan <strong className="font-mono font-bold">{filteredRecords.length}</strong> daripada <span className="font-mono font-semibold">{items.length}</span> jumlah kandungan
+          {sortedRecords.length === 0 ? (
+            <>Menampilkan <strong className="font-mono font-bold">0</strong> daripada <span className="font-mono font-semibold">{items.length}</span> jumlah kandungan</>
+          ) : (
+            <>
+              Menampilkan <strong className="font-mono font-bold">{(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, sortedRecords.length)}</strong> daripada <strong className="font-mono font-bold">{sortedRecords.length}</strong> keputusan tapisan (<span className="font-mono font-semibold">{items.length}</span> jumlah kandungan)
+            </>
+          )}
         </div>
       </div>
 
@@ -512,30 +720,33 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         <div className="bg-white p-12 text-center rounded-lg border border-stone-200 font-sans text-xs text-stone-500">
           ⏳ Memuatkan meja kerja kandungan...
         </div>
-      ) : filteredRecords.length === 0 ? (
+      ) : sortedRecords.length === 0 ? (
         <div className="bg-white p-12 text-center rounded-lg border border-stone-200 font-serif text-stone-500 text-xs">
           Tiada kandungan yang sepadan dengan kriteria filter pilihan anda.
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-stone-200 overflow-x-auto">
-          <table className="w-full text-left border-collapse font-sans text-xs min-w-[850px]">
+          <table className="w-full text-left border-collapse font-sans text-xs min-w-[850px] table-fixed">
             <thead>
               <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
-                <th className="p-2.5 w-24">ID</th>
-                <th className="p-2.5">Tajuk Brief</th>
+                <th className="p-2.5 w-16">ID</th>
+                {/* Tajuk dikecilkan lagi + Editor (2026-07-29, permintaan pemilik projek) — Topik/
+                    Kaedah/Jenis Kad dibuang terus daripada jadual (kekal di penapis + modal
+                    perincian) supaya jadual tak lebar sampai sembunyikan lajur Tindakan. Tajuk
+                    penuh (dipotong di sini) boleh dibaca melalui tooltip bila hover, sama corak
+                    macam lajur ID. */}
+                <th className="p-2.5 w-40">Tajuk Brief</th>
                 <th className="p-2.5 w-20">Status</th>
-                <th className="p-2.5 w-24">Desk</th>
-                <th className="p-2.5 w-24">Topik</th>
+                <th className="p-2.5 w-24">Bidang</th>
                 <th className="p-2.5 w-28">Sumber</th>
-                <th className="p-2.5 w-24">Kaedah</th>
-                <th className="p-2.5 w-24">Jenis Kad</th>
-                <th className="p-2.5 w-20">Slot</th>
-                <th className="p-2.5 w-24">Tarikh</th>
-                <th className="p-2.5 w-32 text-right">Tindakan</th>
+                <th className="p-2.5 w-24">Editor</th>
+                <th className="p-2.5 w-16">Slot</th>
+                <th className="p-2.5 w-16">Tarikh</th>
+                <th className="p-2.5 w-20 text-right">Tindakan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 font-sans">
-              {filteredRecords.map(rec => {
+              {pagedRecords.map(rec => {
                 // Same caveat as the Editor View Mode filter above: rec.creator !== currentUserName
                 // is always true today (no real per-account authorship yet), so this always evaluates
                 // to read-only for an Editor browsing "Semua Kandungan" — treated as an acceptable
@@ -560,14 +771,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         {rec.id}
                       </td>
                     </Tooltip>
-                    <td className="p-2.5">
-                      <div className="font-serif font-medium text-stone-900 leading-snug line-clamp-1">
-                        {rec.title}
-                      </div>
-                      <div className="font-serif text-[11px] text-stone-500 line-clamp-1">
-                        {rec.summary}
-                      </div>
-                    </td>
+                    <Tooltip text={rec.title}>
+                      <td className="p-2.5">
+                        <div className="font-serif font-medium text-stone-900 leading-snug truncate">
+                          {rec.title}
+                        </div>
+                        <div className="font-serif text-[11px] text-stone-500 truncate">
+                          {rec.summary}
+                        </div>
+                      </td>
+                    </Tooltip>
                     <td className="p-2.5">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                         rec.status === 'Live' ? 'bg-emerald-100 text-emerald-800' :
@@ -577,19 +790,17 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         {rec.status}
                       </span>
                     </td>
-                    <td className="p-2.5 font-sans text-xs text-stone-700 font-semibold">{formatTitleCase(rec.desk)}</td>
-                    <td className="p-2.5 font-sans text-xs text-stone-500">{rec.topik ? formatTitleCase(rec.topik) : '-'}</td>
-                    <td className="p-2.5 font-serif text-stone-800 text-xs">{rec.source || '-'}</td>
-                    <td className="p-2.5 font-sans text-[10px] text-stone-500">{rec.creator || '-'}</td>
-                    <td className="p-2.5 font-sans text-[10px]">
-                      {rec.cardType === '-' ? (
-                        <span className="text-stone-400 font-mono text-xs font-bold px-2">-</span>
-                      ) : (
-                        <span className="bg-stone-100 text-stone-800 px-2 py-0.5 rounded font-semibold border border-stone-200">
-                          <TierLabel tier={rec.cardType} />
-                        </span>
-                      )}
+                    <td
+                      className="p-2.5 font-sans text-xs font-semibold"
+                      // Warna terus daripada activeBidangList (dimuat hidup daripada
+                      // CategoryRegistry) — bukan nilai tetap disalin ke sini, jadi tukar warna
+                      // di Taksonomi automatik terpapar di sini juga tanpa kerja tambahan.
+                      style={{ color: activeBidangList.find(b => b.name.toLowerCase() === rec.desk.toLowerCase())?.color || '#44403c' }}
+                    >
+                      {formatTitleCase(rec.desk)}
                     </td>
+                    <td className="p-2.5 font-serif text-stone-800 text-xs truncate">{rec.source || '-'}</td>
+                    <td className="p-2.5 font-sans text-[10px] text-stone-500 truncate">{rec.editorName || 'Tidak diketahui'}</td>
                     <td className="p-2.5 font-sans text-xs font-semibold text-stone-700">{rec.slot}</td>
                     <td className="p-2.5 font-sans text-stone-500 text-[10px] whitespace-nowrap">{rec.date}</td>
                     <td className="p-2.5 text-right font-sans text-xs whitespace-nowrap" onClick={e => e.stopPropagation()}>
@@ -598,16 +809,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           value=""
                           onChange={(e) => {
                             const val = e.target.value;
-                            if (val === 'Live' || val === 'Rejected' || val === 'Archive') {
+                            if (val === 'Live' || val === 'Archive') {
                               handleUpdateStatus(rec.id, val as any);
+                            } else if (val === 'Tolak') {
+                              handleRejectToDraft(rec.id);
                             }
                             e.target.value = '';
                           }}
-                          className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 rounded px-2.5 py-1 font-sans text-xs font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#802334]"
+                          className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 rounded px-1.5 py-1 font-sans text-[10px] font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#802334] max-w-full"
                         >
                           <option value="" disabled hidden>Tindakan ▾</option>
                           {rec.status !== 'Live' && <option value="Live">Siar</option>}
-                          {rec.status !== 'Rejected' && <option value="Rejected">Tolak</option>}
+                          <option value="Tolak">Tolak (kembali jadi draf)</option>
                           {rec.status !== 'Archive' && <option value="Archive">Arkib</option>}
                         </select>
                       ) : (
@@ -619,39 +832,106 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               })}
             </tbody>
           </table>
+          {/* Kawalan pagination (2026-07-29, permintaan pemilik projek) — 100 rekod setiap
+              paparan, lihat nota PAGE_SIZE/pagedRecords di atas. Papar hanya bila lebih 1
+              halaman — satu halaman sahaja tak perlu sebarang kawalan. */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-stone-200 font-sans text-xs">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 border border-stone-300 rounded font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                ← Sebelum
+              </button>
+              <span className="text-stone-500">
+                Halaman <strong className="font-mono font-bold text-stone-800">{currentPage}</strong> daripada <strong className="font-mono font-bold text-stone-800">{totalPages}</strong>
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 border border-stone-300 rounded font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Seterusnya →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* BRIEF DETAIL MODAL */}
+      {/* Tinggi tetap + tajuk/footer melekat (2026-07-29) — sebelum ni modal ni membesar ikut
+          kandungan tanpa had (space-y-5 mudah, tiada overflow/tinggi maksimum), jadi bila
+          Huraian Panjang/Nota panjang, butang tutup (✕) di header tertolak jauh ke atas luar
+          skrin dan editor terpaksa tatal SELURUH HALAMAN belakang modal (bukan modal sendiri)
+          untuk kembali ke atas dan jumpa ia — corak sama macam SlotManagerModal.tsx
+          (flex-col + header/footer flex-none, badan sahaja overflow-y-auto). Butang "Tutup" di
+          footer sentiasa jadi laluan kedua yang sedia ada. */}
       {activeItemModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full p-6 space-y-5">
-            <div className="flex justify-between items-start border-b border-stone-200 pb-3">
+          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden">
+            <div className="flex-none flex justify-between items-start border-b border-stone-200 px-6 pt-6 pb-3">
               <div>
                 <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-bold block mb-1">
-                  DETUL KANDUNGAN BRIEF • {activeItemModal.id}
+                  DETAIL KANDUNGAN • {activeItemModal.id}
                 </span>
                 <h3 className="font-serif text-xl font-bold text-stone-900">
                   {activeItemModal.title}
                 </h3>
               </div>
-              <button onClick={() => setActiveItemModal(null)} className="text-stone-400 hover:text-stone-800 font-bold text-lg">
+              <button onClick={() => setActiveItemModal(null)} className="text-stone-400 hover:text-stone-800 font-bold text-lg shrink-0">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200">
-              {activeItemModal.summary}
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
+            <div className="flex flex-col gap-1">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Huraian Ringkas</span>
+              <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200">
+                {activeItemModal.summary}
+              </div>
             </div>
+
+            {/* Huraian Panjang/Nota (2026-07-29, permintaan pemilik projek) — sebelum ni senyap
+                dibuang daripada modal ni walaupun /api/system/content/all sentiasa pulangkannya.
+                Papar hanya bila ada nilai (kebanyakan kandungan lama tiada) supaya modal tak
+                bertambah panjang tanpa faedah untuk kandungan yang tak pernah isi medan ni. */}
+            {activeItemModal.summaryLong.trim() && (
+              <div className="flex flex-col gap-1">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Huraian Panjang</span>
+                <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200">
+                  {activeItemModal.summaryLong}
+                </div>
+              </div>
+            )}
+
+            {activeItemModal.note.trim() && (
+              <div className="flex flex-col gap-1">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Nota Editor</span>
+                <div className="font-serif text-sm text-stone-700 leading-relaxed bg-amber-50 p-4 rounded border border-amber-200">
+                  {activeItemModal.note}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs bg-stone-100 p-3 rounded border border-stone-200">
               <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{activeItemModal.status}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">DESK</span><strong className="text-stone-900">{formatTitleCase(activeItemModal.desk)}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">BIDANG</span><strong className="text-stone-900">{formatTitleCase(activeItemModal.desk)}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik ? formatTitleCase(activeItemModal.topik) : '-'}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SUMBER</span><strong className="text-stone-900">{activeItemModal.source || '-'}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">KAEDAH</span><strong className="text-stone-900">{activeItemModal.creator || '-'}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">EDITOR</span><strong className="text-stone-900">{activeItemModal.editorName || 'Tidak diketahui'}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">TARIKH SUMBER</span><strong className="text-stone-900">{activeItemModal.originalDate || '-'}</strong></div>
+              <div className="col-span-2 md:col-span-3 min-w-0">
+                <span className="text-stone-500 text-[9px] block">URL</span>
+                {activeItemModal.url && activeItemModal.url !== '#' ? (
+                  <a href={activeItemModal.url} target="_blank" rel="noopener noreferrer" className="text-[#802334] underline break-all font-semibold">{activeItemModal.url}</a>
+                ) : (
+                  <strong className="text-stone-900">-</strong>
+                )}
+              </div>
             </div>
 
             {activeItemModal.status === 'Archive' && activeItemModal.slot !== 'Ticker' && (
@@ -707,8 +987,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 </button>
               </div>
             )}
+            </div>
 
-            <div className="flex justify-between items-center pt-2 font-mono text-xs">
+            <div className="flex-none flex justify-between items-center border-t border-stone-200 px-6 py-4 font-mono text-xs">
               <span className="text-stone-500">Tarikh: <strong>{activeItemModal.date}</strong></span>
               {activeItemModal.slot !== 'Ticker' ? (
                 <div className="flex gap-2">
@@ -720,14 +1001,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       Publish Brief
                     </button>
                   )}
-                  {activeItemModal.status !== 'Rejected' && (
-                    <button
-                      onClick={() => handleUpdateStatus(activeItemModal.id, 'Rejected')}
-                      className="bg-[#c00000] hover:bg-red-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
-                    >
-                      Reject Brief
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleRejectToDraft(activeItemModal.id)}
+                    className="bg-[#c00000] hover:bg-red-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                  >
+                    Tolak (kembali jadi draf)
+                  </button>
                   <button
                     onClick={() => setActiveItemModal(null)}
                     className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"

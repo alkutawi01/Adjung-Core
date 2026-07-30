@@ -5,6 +5,9 @@ import { EditoriumLayout } from './EditoriumLayout';
 import { IndeksConsole } from './IndeksConsole';
 import { DirektoriConsole } from './DirektoriConsole';
 import { TetapanConsole } from './TetapanConsole';
+import { SenaraiSlotConsole } from './SenaraiSlotConsole';
+import { BidangConsole } from './BidangConsole';
+import { TetapanAmSlotConsole } from './TetapanAmSlotConsole';
 import { LogAuditConsole } from './LogAuditConsole';
 import { PerlembagaanConsole } from './PerlembagaanConsole';
 import { SistemRekaBentukConsole } from './SistemRekaBentukConsole';
@@ -44,6 +47,8 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // terus di sini sebagai sub-menu kedua, bukan pautan keluar. ContentReview sendiri sudah ada
   // togol dalaman "Paparan Kad"/"Paparan Teks Pukal" (a/b dalam permintaan pemilik projek).
   const [indeksSubTab, setIndeksSubTab] = useState<'senarai' | 'semakan'>('senarai');
+  // Sub-menu tab "Slot" (2026-07-30, permintaan pemilik projek).
+  const [slotSubTab, setSlotSubTab] = useState<'senarai' | 'bidang' | 'tetapan_am'>('senarai');
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
@@ -110,9 +115,35 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           {indeksSubTab === 'semakan' && <ContentReview paparan="pukal" />}
         </div>
       )}
-      {/* Slot (2026-07-30) — senarai kandungan ikut slot, dulu paparan togol dalam Semakan
-          Kandungan. Lihat nota di atas ContentReview. */}
-      {activeTab === 'slot' && <ContentReview paparan="slot" />}
+      {/* Slot (2026-07-30, permintaan pemilik projek) — segala yang MENTAKRIFKAN slot duduk di
+          sini: bentuk, Bidang, warna, had aksara, animasi. Rasionalnya: slot ialah kad, kad ialah
+          slot. Senarai KANDUNGAN dalam slot sengaja tiada di sini — Ketua Editor menyunting
+          kandungan di Kandungan → Semakan Kandungan. Ticker dan tier Bar juga tiada di sini;
+          kedua-duanya ada rumah sendiri di Modul Khas. */}
+      {activeTab === 'slot' && (
+        <div className="space-y-4 font-sans">
+          <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs">
+            {([
+              ['senarai', '1. Senarai Slot'],
+              ['bidang', '2. Bidang'],
+              ['tetapan_am', '3. Tetapan Am'],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setSlotSubTab(id)}
+                className={`px-4 py-2 font-semibold transition-all border-b-2 ${
+                  slotSubTab === id ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {slotSubTab === 'senarai' && <SenaraiSlotConsole />}
+          {slotSubTab === 'bidang' && <BidangConsole />}
+          {slotSubTab === 'tetapan_am' && <TetapanAmSlotConsole />}
+        </div>
+      )}
       {activeTab === 'modul_khas' && (
         <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 font-sans">
           <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Modul Khas</h3>
