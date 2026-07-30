@@ -478,3 +478,34 @@ h1, h2, h3, h4, h5, h6, p {
   animation: bentoTextFadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
+
+/* ---------------------------------------------------------------------------------------------
+   JARING KECEMASAN LIMPAHAN KAD (2026-07-31, permintaan pemilik projek)
+
+   Dipasang oleh BentoInner (FrontpageView.tsx) HANYA apabila limpahan benar-benar DIUKUR
+   (scrollHeight > clientHeight). Ia bukan pengganti pengesahan simpan — had aksara setiap tier
+   tetap menahan kandungan yang tak muat di peringkat simpan. Ini lapisan terakhir supaya teks
+   tidak terkeluar merosakkan susun atur bento, dan supaya editor NAMPAK ada teks tersembunyi
+   (elipsis di bucu bawah kanan) dan bukannya tertipu oleh teks yang terpotong senyap.
+
+   Kandungan tersimpan tidak pernah diubah oleh peraturan ini.
+--------------------------------------------------------------------------------------------- */
+.kad-limpah {
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent 100%);
+}
+
+.kad-limpah::after {
+  content: '…';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding-left: 0.5rem;
+  font-family: 'Source Serif 4', serif;
+  font-size: 1rem;
+  line-height: 1;
+  color: currentColor;
+  opacity: 0.85;
+  pointer-events: none;
+}

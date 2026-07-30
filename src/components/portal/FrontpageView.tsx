@@ -206,13 +206,43 @@ const EyebrowKad: React.FC<{
 };
 
 const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: string; children: React.ReactNode }> = ({ itemKey, className = '', aiProvider, children }) => {
+  // JARING KECEMASAN LIMPAHAN (2026-07-31, permintaan pemilik projek).
+  //
+  // Pertahanan utama kekal di peringkat SIMPAN — validateContentBudget() menolak kandungan yang
+  // tak muat, dan had tiernya diukur pada kad sebenar. Ini lapisan terakhir sahaja: kalau sesuatu
+  // tetap melimpah (fon belum dimuat turun sepenuhnya, pindaan had terlalu longgar, kandungan
+  // lama sebelum had diketatkan), teks tidak dibiarkan terkeluar merosakkan susun atur bento.
+  //
+  // Ia TIDAK mengubah kandungan tersimpan dan TIDAK memotong teks secara mekanikal — ia cuma
+  // mengelip paparan dan menandakan ada teks tersembunyi. Limpahan dikesan dengan UKURAN sebenar
+  // (scrollHeight lawan clientHeight), bukan diteka daripada kiraan aksara.
+  const rujukKotak = useRef<HTMLDivElement | null>(null);
+  const [terlimpah, setTerlimpah] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = rujukKotak.current;
+    if (!el) return;
+    // Ambang 8px, bukan 1px: pembundaran susun atur kerap menghasilkan lebihan 1-3px pada kad
+    // yang sebenarnya elok. Limpahan SEBENAR bermakna sekurang-kurangnya satu baris teks tambahan
+    // (~18px ke atas), jadi ambang ini menapis positif palsu tanpa terlepas limpahan sebenar.
+    const semak = () => setTerlimpah(el.scrollHeight > el.clientHeight + 8);
+    semak();
+    const pemerhati = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(semak) : null;
+    pemerhati?.observe(el);
+    window.addEventListener('resize', semak);
+    return () => { pemerhati?.disconnect(); window.removeEventListener('resize', semak); };
+  }, [itemKey, children]);
+
   let providerName = aiProvider;
   if (providerName) {
     if (providerName.startsWith('Google ')) providerName = providerName.replace('Google ', '');
     if (providerName.includes(' (')) providerName = providerName.split(' (')[0];
   }
   return (
-    <div className="w-full flex-1 min-h-0 relative flex flex-col justify-between">
+    <div
+      ref={rujukKotak}
+      className={`w-full flex-1 min-h-0 relative flex flex-col justify-between overflow-hidden${terlimpah ? ' kad-limpah' : ''}`}
+    >
       <AnimatePresence mode="sync">
         <motion.div
           key={itemKey}
