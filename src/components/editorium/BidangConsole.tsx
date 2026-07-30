@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, X, AlertTriangle, Check, Pencil, Palette, ChevronDown, ChevronUp, Upload } from 'lucide-react';
+import { Zap, X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 
@@ -459,7 +459,6 @@ export const BidangConsole: React.FC = () => {
                 <th className="p-3">Nama Bidang</th>
                 <th className="p-3">Nombor Slot Diperuntukkan</th>
                 <th className="p-3">Editor</th>
-                <th className="p-3 text-right">Tindakan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -499,6 +498,10 @@ export const BidangConsole: React.FC = () => {
                         <span className="font-mono text-[10px] uppercase text-stone-400 group-hover:text-[#802334]">{d.color}</span>
                       </button>
                     </td>
+                    {/* Nama diklik terus untuk menamakan semula — corak sama seperti Senarai Slot
+                        (klik nilai) dan Tier Kad (nilai itu sendiri medan). Tiada lajur "Tindakan"
+                        berasingan; ia satu-satunya jadual dalam tab Slot yang pernah ada lajur
+                        begitu, dan mengulang tiga arahan bertulis 26 kali cuma jadi bising. */}
                     <td className="p-3 font-semibold text-stone-900">
                       {renamingBidangId === d.id ? (
                         <div className="flex items-center gap-1.5">
@@ -506,24 +509,48 @@ export const BidangConsole: React.FC = () => {
                             type="text"
                             value={renameValue}
                             onChange={e => setRenameValue(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') handleRenameBidang(d.id);
+                              if (e.key === 'Escape') setRenamingBidangId(null);
+                            }}
                             className="bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs font-semibold"
                             autoFocus
                           />
-                          <button onClick={() => handleRenameBidang(d.id)} className="text-emerald-700"><Check className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setRenamingBidangId(null)} className="text-stone-400"><X className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleRenameBidang(d.id)} className="text-emerald-700" title="Simpan"><Check className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setRenamingBidangId(null)} className="text-stone-400" title="Batal"><X className="w-3.5 h-3.5" /></button>
                         </div>
-                      ) : d.name}
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setRenamingBidangId(d.id); setRenameValue(d.name); }}
+                          title="Klik untuk menamakan semula"
+                          className="inline-flex items-center gap-1.5 group cursor-pointer text-left"
+                        >
+                          {d.name}
+                          <Pencil className="w-3 h-3 text-stone-300 group-hover:text-[#802334]" />
+                        </button>
+                      )}
                     </td>
                     <td className="p-3 text-stone-600 font-sans text-[11px]">
-                      {d.slots.length === 0 ? (
-                        <span className="text-stone-400">Tiada slot</span>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
-                          {d.slots.map(s => (
-                            <span key={s} className="bg-stone-100 text-stone-600 border border-stone-200 rounded px-1.5 py-0.5 font-mono text-[9px]">{s + 1}</span>
-                          ))}
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => toggleSlotPanel(d)}
+                        title="Klik untuk menetapkan slot bagi Bidang ini"
+                        className="inline-flex items-center gap-1.5 group cursor-pointer text-left"
+                      >
+                        {d.slots.length === 0 ? (
+                          <span className="text-stone-400 italic group-hover:text-[#802334]">Tiada slot</span>
+                        ) : (
+                          <span className="flex flex-wrap gap-1">
+                            {d.slots.map(s => (
+                              <span key={s} className="bg-stone-100 text-stone-600 border border-stone-200 rounded px-1.5 py-0.5 font-mono text-[9px] group-hover:border-[#802334] group-hover:text-[#802334]">{s + 1}</span>
+                            ))}
+                          </span>
+                        )}
+                        {expandedBidangId === d.id
+                          ? <ChevronUp className="w-3 h-3 text-stone-400 shrink-0" />
+                          : <ChevronDown className="w-3 h-3 text-stone-300 group-hover:text-[#802334] shrink-0" />}
+                      </button>
                     </td>
                     <td className="p-3 text-stone-600 text-[11px]">
                       {(() => {
@@ -533,39 +560,13 @@ export const BidangConsole: React.FC = () => {
                           : senarai.join(', ');
                       })()}
                     </td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => { setRenamingBidangId(d.id); setRenameValue(d.name); }}
-                          className="text-stone-500 hover:text-[#802334] inline-flex items-center gap-1"
-                          title="Tukar nama Bidang"
-                        >
-                          <Pencil className="w-3.5 h-3.5" /> Nama
-                        </button>
-                        {/* Butang bertulis, bukan hanya ikon boleh klik dalam jadual — tanpa ini
-                            tiada apa-apa memberitahu warna/ikon/plat boleh disunting langsung. */}
-                        <button
-                          onClick={() => openIconPicker(d)}
-                          className="text-stone-500 hover:text-[#802334] inline-flex items-center gap-1"
-                          title="Tukar warna, ikon dan plat ilustrasi"
-                        >
-                          <Palette className="w-3.5 h-3.5" /> Rupa
-                        </button>
-                        <button
-                          onClick={() => toggleSlotPanel(d)}
-                          className="text-stone-500 hover:text-[#802334] inline-flex items-center gap-1"
-                        >
-                          Urus Slot {expandedBidangId === d.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </td>
                   </tr>
                   {expandedBidangId === d.id && (() => {
                     const pending = pendingSlots || [];
                     const { tambah, buang, adaPerubahan, jumlahArkib } = slotDiff(d);
                     return (
                     <tr>
-                      <td colSpan={6} className="p-4 bg-stone-50">
+                      <td colSpan={5} className="p-4 bg-stone-50">
                         <div className="text-[9px] uppercase font-bold text-stone-500 mb-1">
                           Tanda slot untuk peruntukkan Bidang "{d.name}"
                         </div>
