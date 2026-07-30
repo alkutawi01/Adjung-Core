@@ -5,6 +5,7 @@ import { FrontpageView } from './components/portal/FrontpageView';
 import { ContentReview } from './components/studio/ContentReview';
 import { EditoriumView } from './components/editorium/EditoriumView';
 import { LoginModal } from './components/editorium/LoginModal';
+import { muatPindaanTier } from './config/tierOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -124,6 +125,10 @@ export default function App() {
 
   useEffect(() => {
     fetchDbState();
+    // Pindaan had aksara tier — WAJIB dimuatkan ke salinan browser juga, kalau tidak setiap meter
+    // had dalam borang penulisan mengesahkan ikut nilai lalai sedangkan server sudah pakai nilai
+    // yang dipinda. Lihat src/config/tierOverrides.ts.
+    muatPindaanTier();
   }, []);
 
   if (initializing || !systemSettings) {

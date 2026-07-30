@@ -183,7 +183,9 @@ export const MAX_PENERANGAN_CHARS = 460;
 // copy of these numbers, which drifted out of sync for 4 of 8 tiers.
 export const ceilingForSlot = (slotIndex) => {
   const tier = tierForSlot(slotIndex) || 'DEFAULT';
-  const ratioDef = GEOMETRY_RATIOS[tier];
+  // ratiosForTier, bukan GEOMETRY_RATIOS terus — supaya pindaan Tier Kad turut menular ke setiap
+  // meter/paparan had yang memanggil fungsi ni.
+  const ratioDef = ratiosForTier(tier);
   return {
     maxTitle: ratioDef ? ratioDef.maxTitleAlone : FALLBACK_CEILINGS.DEFAULT.maxTitle,
     maxBrief: ratioDef ? ratioDef.maxBriefAlone : FALLBACK_CEILINGS.DEFAULT.maxBrief,

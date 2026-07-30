@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
+import { GEOMETRY_RATIOS, ratiosForTier, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
 
 // Everything under CHART DATA below is read directly from core/editorial/GeometryConfig.js --
@@ -149,7 +149,8 @@ export const PerlembagaanConsole: React.FC = () => {
   }, []);
 
   const maxBudget = Math.max(...TIER_ORDER.map(t => {
-    const r = GEOMETRY_RATIOS[t as keyof typeof GEOMETRY_RATIOS];
+    // ratiosForTier: papar had yang BERKUAT KUASA (termasuk pindaan Tier Kad), bukan lalai.
+    const r = ratiosForTier(t);
     return (r?.maxTitleAlone || 0) + (r?.maxBriefAlone || 0);
   }));
 
@@ -237,7 +238,7 @@ export const PerlembagaanConsole: React.FC = () => {
 
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
           {TIER_ORDER.map(tier => {
-            const ratio = GEOMETRY_RATIOS[tier as keyof typeof GEOMETRY_RATIOS];
+            const ratio = ratiosForTier(tier);
             const slots = tier === 'TICKER' ? null : (TIER_SLOTS as any)[tier];
             const budget = (ratio?.maxTitleAlone || 0) + (ratio?.maxBriefAlone || 0);
             const pct = maxBudget > 0 ? Math.max(6, Math.round((budget / maxBudget) * 100)) : 0;

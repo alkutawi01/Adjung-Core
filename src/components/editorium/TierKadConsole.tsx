@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, RotateCcw, Save } from 'lucide-react';
+import { muatPindaanTier } from '../../config/tierOverrides';
 
 // Tier Kad (2026-07-30, permintaan pemilik projek) — tetapan yang dikongsi SEMUA slot yang sebentuk.
 // Buat masa ini: had aksara tajuk dan huraian ringkas.
@@ -72,6 +73,7 @@ export const TierKadConsole: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
       setBerjaya(`Had ${t.label} dikemas kini — berkuat kuasa pada ${t.slots.length} slot.`);
       muat();
+      muatPindaanTier();
     } catch (e: any) {
       setRalat(e.message || 'Gagal menyimpan.');
     } finally {
@@ -93,6 +95,7 @@ export const TierKadConsole: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Gagal mengembalikan nilai lalai.');
       setBerjaya(`Had ${t.label} dikembalikan kepada nilai lalai.`);
       muat();
+      muatPindaanTier();
     } catch (e: any) {
       setRalat(e.message || 'Gagal mengembalikan nilai lalai.');
     } finally {
