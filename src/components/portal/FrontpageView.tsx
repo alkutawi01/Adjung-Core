@@ -3130,7 +3130,7 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full">
+              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full" data-bar-cluster="">
                 <div className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 -translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
                     PROGRAM-PROGRAM BERMANFAAT
@@ -3141,7 +3141,7 @@ URL: ${url}`;
                   if (!barItem) return null;
                   const isExpanded = expandedBarCluster1 === idx;
                   return (
-                    <div key={idx}>
+                    <div key={idx} data-slot={idx}>
                       <BarCard
                         item={barItem}
                         onClick={() => {
@@ -3541,7 +3541,7 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full">
+              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full" data-bar-cluster="">
                 <div className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-0 whitespace-nowrap">
                     PROGRAM-PROGRAM BERMANFAAT
@@ -3552,7 +3552,7 @@ URL: ${url}`;
                   if (!barItem) return null;
                   const isExpanded = expandedBarCluster2 === idx;
                   return (
-                    <div key={idx}>
+                    <div key={idx} data-slot={idx}>
                       <BarCard
                         item={barItem}
                         onClick={() => {

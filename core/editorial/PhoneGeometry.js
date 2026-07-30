@@ -202,6 +202,19 @@ ${vars}
     min-height: 0 !important;
   }
 
+  /* BAR (2026-07-31, permintaan pemilik projek). Pada desktop, BAR ialah tier PALING KECIL —
+     satu lajur sempit (1/3 lebar, md:col-span-2 drpd 6) ditindan menegak, hierarki paling rendah.
+     Tanpa peraturan ni, BAR jatuh balik kepada lebar PENUH pada telefon (sama seperti kad lain) —
+     bercanggah dengan identiti "paling kecil" tu. 2 lajur padan hierarki desktop dengan lebih
+     dekat, dan BarCard sendiri sudah reka untuk teks terpotong/2-baris (truncate/line-clamp),
+     bukan tumbuh bebas macam h3/p tier lain — jadi lajur sempit selamat di sini (tak sama risiko
+     dengan cuba letak MENEGAK/HERO dalam lajur sempit). */
+  #bento-news-grid [data-bar-cluster] {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
 ${tierRules}
 }`;
 };
