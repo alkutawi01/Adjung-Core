@@ -128,19 +128,19 @@ export const SenaraiSlotConsole: React.FC = () => {
   );
 
   return (
-    <div className="space-y-4 font-sans">
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-        <div className="flex flex-wrap justify-between items-end gap-4">
-          <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-              Senarai Slot
-            </h3>
-            <p className="text-stone-500 text-xs">
-              {SLOT_INDEXES.length} slot bento — tidak termasuk Ticker dan tier <em>Bar</em>, yang diuruskan di Modul Khas.
-              Jumlah {jumlahKandungan} kandungan aktif.
-            </p>
-          </div>
+    <div className="space-y-6 font-sans bg-[#FDFDFD] text-[#1F1F1F]">
+      <div className="pb-4 border-b border-stone-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-serif font-bold text-stone-900">
+            Senarai Slot Bento
+          </h2>
+          <p className="text-xs text-stone-500 font-sans mt-0.5">
+            {SLOT_INDEXES.length} slot bento rasmi — tidak termasuk Ticker dan tier <span className="font-serif italic text-stone-700">Bar</span> yang diuruskan di Modul Khas. Jumlah {jumlahKandungan} kandungan aktif.
+          </p>
         </div>
+      </div>
+
+      <div className="space-y-4 text-xs">
 
         {loading ? (
           <div className="text-stone-400 text-xs py-6 text-center">Memuatkan senarai slot...</div>
@@ -176,8 +176,15 @@ export const SenaraiSlotConsole: React.FC = () => {
                   return (
                     <tr key={i} className="hover:bg-stone-50">
                       <td className="p-2.5 font-mono font-bold text-stone-800">{i + 1}</td>
-                      <td className="p-2.5 text-stone-600">
-                        {TIER_LABEL_IS_ENGLISH[tier] ? <em>{TIER_LABELS[tier]}</em> : TIER_LABELS[tier]}
+                      <td className="p-2.5 font-semibold text-stone-900">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                          tier === 'HERO' ? 'bg-[#802334] text-white' :
+                          tier === 'MENEGAK' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                          tier === 'STANDARD' ? 'bg-blue-100 text-blue-900 border border-blue-300' :
+                          'bg-stone-100 text-stone-700 border border-stone-300'
+                        }`}>
+                          {TIER_LABELS[tier]}
+                        </span>
                       </td>
                       <td className="p-2.5">
                         {namaBidang ? (
@@ -210,7 +217,15 @@ export const SenaraiSlotConsole: React.FC = () => {
                           <span className="text-stone-400">—</span>
                         )}
                       </td>
-                      <td className="p-2.5 text-right font-mono font-bold text-stone-800">{live}</td>
+                      <td className="p-2.5 text-right font-mono font-bold text-stone-800">
+                        {live === 0 ? (
+                          <span className="bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                            ⚠️ 0 Kosong
+                          </span>
+                        ) : (
+                          <span>{live}</span>
+                        )}
+                      </td>
                       <td className="p-2.5">
                         <button
                           type="button"

@@ -12,6 +12,11 @@ import { TetapanAmSlotConsole } from './TetapanAmSlotConsole';
 import { LogAuditConsole } from './LogAuditConsole';
 import { PerlembagaanConsole } from './PerlembagaanConsole';
 import { SistemRekaBentukConsole } from './SistemRekaBentukConsole';
+import { DrafSayaConsole } from './DrafSayaConsole';
+import { ModulKhasConsole } from './ModulKhasConsole';
+import { EditorialConsole } from './EditorialConsole';
+import { NotaKetuaEditorConsole } from './NotaKetuaEditorConsole';
+import { DokumentasiRujukanConsole } from './DokumentasiRujukanConsole';
 import { ContentReview } from '../studio/ContentReview';
 import { SlotManagerModal } from '../portal/SlotManagerModal';
 import { useSlotEditor } from '../../hooks/useSlotEditor';
@@ -29,7 +34,16 @@ interface EditoriumViewProps {
 // (borang Tetapan Slot Bidang, butang "Edit Kandungan") turut boleh baca sesi yang sama.
 export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onRequestLogin, onLogout }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('indeks');
+  const getInitialTab = () => {
+    const hash = window.location.hash.replace('#', '').trim();
+    return hash || 'indeks';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    window.location.hash = tabId;
+  };
   // Log keluar = keluar terus ke frontpage. Editorium bukan tempat untuk sesiapa yang tak log
   // masuk — dulu pengguna ditinggalkan di /editorium (skrin pagar) selepas log keluar.
   //
@@ -81,7 +95,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   return (
     <EditoriumLayout
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={handleTabChange}
       currentUser={currentUser}
       onRequestLogin={onRequestLogin}
       onLogout={handleLogoutAndLeave}
@@ -116,6 +130,12 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           {indeksSubTab === 'semakan' && <ContentReview />}
         </div>
       )}
+      {activeTab === 'draf_saya' && (
+        <DrafSayaConsole
+          onOpenSlotEditor={(idx) => slotEditor.openSlotEditor(idx)}
+          currentEditorName={currentUser?.name}
+        />
+      )}
       {/* Slot (2026-07-30, permintaan pemilik projek) — segala yang MENTAKRIFKAN slot duduk di
           sini: bentuk, Bidang, warna, had aksara, animasi. Rasionalnya: slot ialah kad, kad ialah
           slot. Senarai KANDUNGAN dalam slot sengaja tiada di sini — Ketua Editor menyunting
@@ -148,73 +168,37 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         </div>
       )}
       {activeTab === 'modul_khas' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 font-sans">
-          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Modul Khas</h3>
-          <p className="text-xs text-stone-500">
-            Jam, Ticker, dan Slot Bar ada peraturan penyuntingan tersendiri, berasingan daripada kad bento biasa.
-          </p>
-          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <Radio className="w-4 h-4 text-[#802334]" />
-              <div>
-                <div className="text-sm font-semibold text-stone-800">Ticker (Berita Semasa)</div>
-                <div className="text-[11px] text-stone-500">RSS, animasi, status, tetapan penyuntingan khas.</div>
-              </div>
-            </div>
-            {/* Modal Ticker sebenar (TickerManagementModal) masih hidup di FrontpageView.tsx —
-                lihat nota "+ Tulis Kandungan" di EditoriumLayout.tsx untuk sebab yang sama. */}
-            <a
-              href="/?openTicker=1"
-              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0"
-            >
-              Urus Ticker
-            </a>
-          </div>
-          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4 opacity-50">
-            <div>
-              <div className="text-sm font-semibold text-stone-800">Jam Dunia</div>
-              <div className="text-[11px] text-stone-500">Belum disambungkan ke Editorium.</div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4 opacity-50">
-            <div>
-              <div className="text-sm font-semibold text-stone-800">Slot Bar</div>
-              <div className="text-[11px] text-stone-500">Belum disambungkan ke Editorium (kekal guna laluan sedia ada di frontpage).</div>
-            </div>
-          </div>
-        </div>
+        <ModulKhasConsole />
+      )}
+      {activeTab === 'editorial' && (
+        <EditorialConsole />
       )}
       {activeTab === 'direktori' && (
         <DirektoriConsole
           currentUserRole={currentUser.role}
         />
       )}
+      {activeTab === 'nota_ketua_editor' && (
+        <NotaKetuaEditorConsole />
+      )}
       {activeTab === 'tetapan' && (
         <TetapanConsole
           currentUserRole={currentUser.role}
         />
       )}
-      {activeTab === 'log_audit' && (
-        <LogAuditConsole />
-      )}
-      {activeTab === 'perlembagaan' && (
-        <PerlembagaanConsole />
-      )}
-      {activeTab === 'reka_bentuk' && (
-        <SistemRekaBentukConsole />
+      {activeTab === 'dokumentasi' && (
+        <DokumentasiRujukanConsole />
       )}
 
-      {/* Pemilih slot "Tulis Kandungan" (2026-07-29) — senarai 38 slot KECUALI Bar (bentuk
-          borangnya belum sepadan, kerja berasingan akan datang) dan Ticker (Modul Khas, laluan
-          sendiri). Render TERUS di sini (bukan Frontpage) — Editorium mandiri sepenuhnya. */}
+      {/* Pemilih slot "Tulis Kandungan" */}
       {slotEditor.showSlotPicker && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md" onClick={() => slotEditor.setShowSlotPicker(false)}>
-          <div className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-fade-in" onClick={(e) => e.stopPropagation()}>
-            <div className="flex-none px-5 py-4 border-b border-stone-150 flex items-center justify-between">
-              <h2 className="font-serif text-lg font-medium text-stone-900">Pilih Slot</h2>
-              <button type="button" onClick={() => slotEditor.setShowSlotPicker(false)} className="text-stone-400 hover:text-stone-600 cursor-pointer"><X size={18} /></button>
+        <div className="fixed inset-0 z-50 bg-stone-950/60 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => slotEditor.setShowSlotPicker(false)}>
+          <div className="bg-[#FDFDFD] rounded-xl border border-stone-300 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden font-sans" onClick={(e) => e.stopPropagation()}>
+            <div className="flex-none px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-white">
+              <h2 className="font-serif text-base font-bold text-stone-900">Pilih Slot Untuk Disunting</h2>
+              <button type="button" onClick={() => slotEditor.setShowSlotPicker(false)} className="text-stone-400 hover:text-[#802334] cursor-pointer"><X size={18} /></button>
             </div>
-            <ol className="flex-1 min-h-0 overflow-y-auto list-none m-0 p-0">
+            <ol className="flex-1 min-h-0 overflow-y-auto list-none m-0 p-0 divide-y divide-stone-100">
               {Array.from({ length: 38 }, (_, i) => i).filter((i) => !TIER_SLOTS.BAR.includes(i)).map((i) => {
                 const cfg = slotEditor.slotsConfig.find((s: any) => s.slotIndex === i);
                 return (
@@ -222,10 +206,10 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                     <button
                       type="button"
                       onClick={() => slotEditor.openSlotEditor(i)}
-                      className="w-full flex items-center justify-between gap-3 px-5 py-2.5 text-left hover:bg-stone-50 border-b border-stone-100 last:border-b-0 cursor-pointer"
+                      className="w-full flex items-center justify-between gap-3 px-5 py-2.5 text-left hover:bg-stone-100/60 transition-colors cursor-pointer"
                     >
-                      <span className="font-mono text-xs font-bold text-stone-400 shrink-0">Slot {i + 1}</span>
-                      <span className="font-sans text-xs text-stone-700 flex-1 truncate">{cfg?.manualDesk || <span className="text-stone-400 italic">— Belum ditetapkan —</span>}</span>
+                      <span className="font-mono text-xs font-bold text-stone-900 bg-stone-100 px-1.5 py-0.5 rounded shrink-0">Slot {i + 1}</span>
+                      <span className="font-sans text-xs text-stone-700 font-semibold flex-1 truncate">{cfg?.manualDesk || <span className="text-stone-400 font-normal">— Belum ditetapkan —</span>}</span>
                     </button>
                   </li>
                 );

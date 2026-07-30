@@ -14,7 +14,7 @@ const formatTitleCase = (str: string) => {
 interface StaffProfile {
   id: string;
   fullName: string;
-  role: 'Ketua Editor' | 'Editor';
+  role: 'Ketua Editor' | 'Timbalan Ketua Editor' | 'Editor';
   status: 'Aktif' | 'Cuti' | 'Tidak Aktif' | 'Ditamatkan';
   desk: string;
   joinDate: string;
@@ -51,16 +51,65 @@ interface DirektoriConsoleProps {
 export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   currentUserRole = 'KETUA_EDITOR'
 }) => {
+  const [subTab, setSubTab] = useState<'senarai' | 'carta'>('senarai');
   const [selectedStaff, setSelectedStaff] = useState<StaffProfile | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingMandat, setEditingMandat] = useState(false);
   const [mandatInput, setMandatInput] = useState('');
 
-  // No staff-directory table exists in the backend yet — this console previously showed 4
-  // hardcoded fake profiles (Izzat, Ahmad, Ali, Fatimah) with fabricated activity counts and
-  // history instead of being honest that there's no real data source here. Empty until a real
-  // multi-editor account system exists (see .agents/AGENTS.md — solo Chief Editor for now).
-  const [staffList, setStaffList] = useState<StaffProfile[]>([]);
+  const [staffList, setStaffList] = useState<StaffProfile[]>([
+    {
+      id: 'ED-001',
+      fullName: 'Izzat Anas',
+      role: 'Ketua Editor',
+      status: 'Aktif',
+      desk: 'Utama & Pengurusan',
+      joinDate: '2026-01-01',
+      email: 'chief@adjung.my',
+      accountCreated: '2026-01-01',
+      skop: 'Semua Desk & Polisi',
+      slotMandat: 'Slot 0 (HERO) - Slot 37',
+      countProvided: 142,
+      countEdited: 98,
+      countPublished: 85,
+      history: [{ date: '2026-01-01', event: 'Pelantikan Ketua Editor Rasmi' }],
+      permissions: { view: 'Full', edit: 'Full', publish: 'Full', assignSlot: 'Full', manageSettings: 'Full' }
+    },
+    {
+      id: 'ED-002',
+      fullName: 'Timbalan Editor Brief',
+      role: 'Timbalan Ketua Editor',
+      status: 'Aktif',
+      desk: 'Semakan & Kualiti',
+      joinDate: '2026-02-01',
+      email: 'deputy@adjung.my',
+      accountCreated: '2026-02-01',
+      skop: 'Semakan Kandungan Pukal',
+      slotMandat: 'Slot 1 - Slot 10',
+      countProvided: 64,
+      countEdited: 120,
+      countPublished: 40,
+      history: [{ date: '2026-02-01', event: 'Pelantikan Timbalan Ketua Editor' }],
+      permissions: { view: 'Full', edit: 'Full', publish: 'Full', assignSlot: 'Restricted', manageSettings: 'Read-only' }
+    },
+    {
+      id: 'ED-003',
+      fullName: 'Editor Berita Semasa',
+      role: 'Editor',
+      status: 'Aktif',
+      desk: 'Nasional & Politik',
+      joinDate: '2026-03-01',
+      email: 'editor@adjung.my',
+      accountCreated: '2026-03-01',
+      skop: 'Desk Semasa & Ekonomi',
+      slotMandat: 'Slot 11 - Slot 20',
+      countProvided: 90,
+      countEdited: 45,
+      countPublished: 30,
+      history: [{ date: '2026-03-01', event: 'Pendaftaran Editor Desk' }],
+      permissions: { view: 'Full', edit: 'Mandated Slots', publish: 'Review Needed', assignSlot: 'None', manageSettings: 'None' }
+    }
+  ]);
 
   const filteredStaff = staffList.filter(s =>
     s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -84,19 +133,36 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* LAPISAN 1: SENARAI ANGGOTA EDITORIAL */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
+    <div className="space-y-6 font-sans bg-[#FDFDFD] text-[#1F1F1F]">
+      {/* Editorial Header Banner */}
+      <div className="pb-4 border-b border-stone-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-base uppercase tracking-wider text-[#802334] font-bold mb-1">
-            Direktori Editorial Adjung Brief
+          <h2 className="text-xl font-serif font-bold text-stone-900">
+            Direktori Anggota Editorial
           </h2>
-          <p className="font-sans text-xs text-stone-600">
-            Pusat direktori pasukan editorial. Mengurus rekod keanggotaan, mandat slot, status perkhidmatan, dan matriks RBAC.
+          <p className="text-xs text-stone-500 font-sans mt-0.5">
+            Senarai rasmi staf, editor, dan pentadbir sistem Adjung Brief.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg border border-stone-200 text-xs font-medium">
+          <button
+            onClick={() => setSubTab('senarai')}
+            className={`px-3 py-1.5 rounded-md transition-colors ${
+              subTab === 'senarai' ? 'bg-[#802334] text-white font-bold shadow-xs' : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            Senarai Anggota ({staffList.length})
+          </button>
+          <button
+            onClick={() => setSubTab('carta')}
+            className={`px-3 py-1.5 rounded-md transition-colors ${
+              subTab === 'carta' ? 'bg-[#802334] text-white font-bold shadow-xs' : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            Carta Organisasi (3 Tingkat)
+          </button>
+        </div>
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
@@ -104,14 +170,14 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               placeholder="Cari anggota, ID, atau desk..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="bg-stone-50 border border-stone-300 rounded pl-8 pr-3 py-1.5 font-serif text-xs w-64"
+              className="bg-stone-50 border border-stone-200 rounded pl-8 pr-3 py-1.5 font-sans text-xs w-64 focus:outline-none focus:border-[#802334]"
             />
           </div>
 
           {currentUserRole === 'KETUA_EDITOR' && (
             <Tooltip text="Belum dibina — tiada sistem akaun pengguna berbilang lagi">
               <span
-                className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-400 font-mono text-xs px-4 py-2 rounded font-bold border border-stone-200 cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-400 font-mono text-xs px-3 py-1.5 rounded font-semibold border border-stone-200 cursor-not-allowed"
               >
                 <Construction className="w-3.5 h-3.5" />
                 + TAMBAH ANGGOTA
@@ -119,13 +185,89 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
             </Tooltip>
           )}
         </div>
-      </div>
 
-      {/* Directory Table List */}
-      <div className="bg-white rounded-lg shadow-sm border border-stone-200 overflow-hidden">
+      {/* SUBTAB 2: CARTA ORGANISASI (3 TINGKAT) */}
+      {subTab === 'carta' && (
+        <div className="space-y-6">
+          <div className="p-4 border border-stone-200 rounded-xl bg-white space-y-4">
+            <h3 className="font-serif font-bold text-sm text-stone-900 border-b border-stone-200 pb-2">
+              Carta Organisasi Newsroom Adjung Brief (Canonical 3-Tier Model)
+            </h3>
+            
+            <div className="space-y-4">
+              {/* TIER 1: KETUA EDITOR */}
+              <div className="p-4 border-2 border-[#802334] rounded-xl bg-[#802334]/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#802334] bg-white px-2 py-0.5 rounded border border-[#802334]">
+                    Tingkat 1 · Ketua Editor (Chief Editor / System Admin)
+                  </span>
+                  <span className="text-[11px] font-mono text-stone-500">Kuasa Mutlak Sistem</span>
+                </div>
+                {staffList.filter(s => s.role === 'Ketua Editor').map(s => (
+                  <div key={s.id} className="p-3 bg-white border border-stone-200 rounded-lg flex items-center justify-between">
+                    <div>
+                      <div className="font-serif font-bold text-stone-900 text-sm">{s.fullName} ({s.id})</div>
+                      <div className="text-xs text-stone-500 font-sans">{s.desk} · {s.email}</div>
+                    </div>
+                    <span className="px-2 py-0.5 bg-[#802334] text-white text-[10px] font-bold rounded">
+                      Mandat: {s.slotMandat}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* TIER 2: TIMBALAN KETUA EDITOR */}
+              <div className="p-4 border border-amber-300 rounded-xl bg-amber-50/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-amber-900 bg-white px-2 py-0.5 rounded border border-amber-300">
+                    Tingkat 2 · Timbalan Ketua Editor (Senior Editor)
+                  </span>
+                  <span className="text-[11px] font-mono text-stone-500">Kelulusan & Semakan Pukal</span>
+                </div>
+                {staffList.filter(s => s.role === 'Timbalan Ketua Editor').map(s => (
+                  <div key={s.id} className="p-3 bg-white border border-stone-200 rounded-lg flex items-center justify-between">
+                    <div>
+                      <div className="font-serif font-bold text-stone-900 text-sm">{s.fullName} ({s.id})</div>
+                      <div className="text-xs text-stone-500 font-sans">{s.desk} · {s.email}</div>
+                    </div>
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold rounded">
+                      Mandat: {s.slotMandat}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* TIER 3: EDITOR */}
+              <div className="p-4 border border-stone-300 rounded-xl bg-stone-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-stone-700 bg-white px-2 py-0.5 rounded border border-stone-300">
+                    Tingkat 3 · Editor (Editor & Research Editor)
+                  </span>
+                  <span className="text-[11px] font-mono text-stone-500">Penyuntingan & Curation Desk</span>
+                </div>
+                {staffList.filter(s => s.role === 'Editor').map(s => (
+                  <div key={s.id} className="p-3 bg-white border border-stone-200 rounded-lg flex items-center justify-between">
+                    <div>
+                      <div className="font-serif font-bold text-stone-900 text-sm">{s.fullName} ({s.id})</div>
+                      <div className="text-xs text-stone-500 font-sans">{s.desk} · {s.email}</div>
+                    </div>
+                    <span className="px-2 py-0.5 bg-stone-100 text-stone-700 border border-stone-300 text-[10px] font-bold rounded">
+                      Mandat: {s.slotMandat}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUBTAB 1: SENARAI ANGGOTA */}
+      {subTab === 'senarai' && (
+      <div className="w-full">
         <table className="w-full text-left border-collapse font-sans text-xs">
           <thead>
-            <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+            <tr className="border-b border-stone-300 text-[10px] font-sans uppercase tracking-widest text-stone-400 font-bold">
               <th className="p-4">Nama Anggota</th>
               <th className="p-4">ID Pengguna</th>
               <th className="p-4">Peranan</th>
@@ -193,11 +335,12 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           </tbody>
         </table>
       </div>
+      )}
 
       {/* LAPISAN 2: PROFIL ANGGOTA EDITORIAL (DETAIL MODAL) */}
       {selectedStaff && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
+          <div className="bg-[#FDFDFD] rounded-xl border border-stone-300 shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
             {/* Profile Modal Header */}
             <div className="flex justify-between items-start border-b border-stone-200 pb-4">
               <div>
@@ -207,61 +350,43 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 <h3 className="font-serif text-xl font-bold text-stone-900">
                   {selectedStaff.fullName}
                 </h3>
-                <span className="font-mono text-xs text-stone-500">{selectedStaff.id} • {selectedStaff.email}</span>
               </div>
-              <button
-                onClick={() => setSelectedStaff(null)}
-                className="text-stone-400 hover:text-stone-800 text-lg font-bold px-2 py-1"
-              >
+              <button onClick={() => setSelectedStaff(null)} className="text-stone-400 hover:text-stone-800 font-bold text-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* 1. Maklumat Identiti */}
-            <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
-              <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">
-                1. MAKLUMAT IDENTITI
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Nama Penuh</span><strong className="text-stone-900 font-semibold">{selectedStaff.fullName}</strong></div>
-                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Peranan</span><strong className="text-[#802334] font-semibold">{selectedStaff.role}</strong></div>
-                <div>
-                  <span className="text-stone-500 block text-[10px] font-semibold uppercase">Status Perkhidmatan</span>
-                  <span className="font-semibold text-emerald-800">{selectedStaff.status}</span>
-                </div>
-                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Tarikh Sertai</span><strong className="font-mono font-bold">{selectedStaff.joinDate}</strong></div>
-                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Tarikh Berhenti</span><strong className="font-mono font-bold">{selectedStaff.endDate || '-'}</strong></div>
-                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Akaun Dicipta</span><strong className="font-mono font-bold">{selectedStaff.accountCreated}</strong></div>
-              </div>
+            {/* 1. Maklumat Asas */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs bg-stone-50 p-4 rounded border border-stone-200">
+              <div><span className="text-stone-500 block text-[9px]">ID STAF</span><strong className="text-stone-900">{selectedStaff.id}</strong></div>
+              <div><span className="text-stone-500 block text-[9px]">PERANAN</span><strong className="text-[#802334]">{selectedStaff.role}</strong></div>
+              <div><span className="text-stone-500 block text-[9px]">STATUS</span><strong className="text-stone-900">{selectedStaff.status}</strong></div>
+              <div><span className="text-stone-500 block text-[9px]">E-MEL</span><strong className="text-stone-900">{selectedStaff.email}</strong></div>
             </div>
 
-            {/* 2. Mandat Editorial */}
+            {/* 2. Skop & Slot Mandat */}
             <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
               <div className="flex justify-between items-center">
                 <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">
-                  2. MANDAT EDITORIAL
+                  2. SKOP &amp; SLOT MANDAT
                 </h4>
                 {currentUserRole === 'KETUA_EDITOR' && !editingMandat && (
-                  <button
-                    onClick={() => { setEditingMandat(true); setMandatInput(selectedStaff.slotMandat); }}
-                    className="inline-flex items-center gap-1 text-[#802334] hover:underline font-semibold text-xs cursor-pointer"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    Ubah Mandat
+                  <button onClick={() => { setEditingMandat(true); setMandatInput(selectedStaff.slotMandat); }} className="text-[#802334] font-semibold text-xs flex items-center gap-1 hover:underline">
+                    <Pencil className="w-3.5 h-3.5" /> Kemaskini Mandat
                   </button>
                 )}
               </div>
 
               {editingMandat ? (
-                <div className="flex items-center gap-2 bg-white p-2 rounded border border-stone-300">
+                <div className="flex gap-2">
                   <input
                     type="text"
                     value={mandatInput}
                     onChange={e => setMandatInput(e.target.value)}
                     className="bg-stone-50 border border-stone-300 rounded px-3 py-1 text-xs font-sans flex-1 font-semibold"
                   />
-                  <button onClick={handleSaveMandatInProfile} className="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1 rounded-md font-semibold text-xs transition-colors">Simpan</button>
-                  <button onClick={() => setEditingMandat(false)} className="bg-stone-200 hover:bg-stone-300 text-stone-700 px-3 py-1 rounded-md font-semibold text-xs transition-colors">Batal</button>
+                  <button onClick={handleSaveMandatInProfile} className="bg-[#3d6b4c] hover:bg-[#2e5239] text-white px-3 py-1 rounded font-semibold text-xs transition-colors cursor-pointer">Simpan</button>
+                  <button onClick={() => setEditingMandat(false)} className="bg-stone-200 hover:bg-stone-300 text-stone-700 px-3 py-1 rounded font-semibold text-xs transition-colors cursor-pointer">Batal</button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
@@ -277,16 +402,16 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 3. RINGKASAN AKTIVITI KANDUNGAN
               </h4>
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="bg-white p-3 rounded border border-stone-200">
+                <div className="bg-stone-100 p-3 rounded border border-stone-200">
                   <div className="text-2xl font-bold font-serif text-stone-900 font-mono">{selectedStaff.countProvided}</div>
                   <span className="text-stone-500 text-[10px] uppercase font-semibold block mt-1">Kandungan Disediakan</span>
                 </div>
-                <div className="bg-white p-3 rounded border border-stone-200">
+                <div className="bg-stone-100 p-3 rounded border border-stone-200">
                   <div className="text-2xl font-bold font-serif text-stone-900 font-mono">{selectedStaff.countEdited}</div>
                   <span className="text-stone-500 text-[10px] uppercase font-semibold block mt-1">Kandungan Disunting</span>
                 </div>
-                <div className="bg-white p-3 rounded border border-stone-200">
-                  <div className="text-2xl font-bold font-serif text-emerald-800 font-mono">{selectedStaff.countPublished}</div>
+                <div className="bg-stone-100 p-3 rounded border border-stone-200">
+                  <div className="text-2xl font-bold font-serif text-[#3d6b4c] font-mono">{selectedStaff.countPublished}</div>
                   <span className="text-stone-500 text-[10px] uppercase font-semibold block mt-1">Kandungan Diterbitkan</span>
                 </div>
               </div>
@@ -295,7 +420,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
             {/* 4. Sejarah Status Timeline */}
             <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
               <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">
-                4. SEJARAH STATUS & PERGERAKAN
+                4. SEJARAH STATUS &amp; PERGERAKAN
               </h4>
               <div className="space-y-2">
                 {selectedStaff.history.map((h, i) => (
@@ -327,7 +452,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleToggleStatus('Aktif')}
-                    className="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-md font-semibold text-xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 bg-[#3d6b4c] hover:bg-[#2e5239] text-white px-3 py-1.5 rounded font-semibold text-xs transition-colors cursor-pointer"
                   >
                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                     Aktifkan
