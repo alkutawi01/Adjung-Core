@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, Save, Plus, Search, ChevronDown, ChevronUp, Check } from 'lucide-react';
-import { Tooltip } from '../common/Tooltip';
-import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
+import { Save, Search } from 'lucide-react';
 
 interface ContentItem {
   id: string;
@@ -15,8 +13,6 @@ interface ContentItem {
   source: string;
   url: string;
   imageUrl: string;
-  maxTitle: number | null;
-  maxBrief: number | null;
   slotCategory: string;
   createdAt: string;
   updatedAt: string;
@@ -33,23 +29,6 @@ interface ContentItem {
   note?: string;
   originalDate?: string;
 }
-
-// Format datang dari eyebrowLabel() di GeometryConfig.js — sumber yang SAMA digunakan oleh
-// pengesahan simpan dan oleh render kad frontpage. Sebelum ini fail ini menyimpan salinan
-// keduanya sendiri; kalau format bercabang, had aksara eyebrow akan mengesahkan string yang
-// berlainan daripada yang dipapar.
-const formatBidangTopik = (item: { desk?: string; topik?: string }) => eyebrowLabel(item.desk, item.topik);
-
-const LimitBadge = ({ length, limit }: { length: number; limit: number | null }) => {
-  if (!limit) return null;
-  const over = length > limit;
-  return (
-    <span className={`inline-flex items-center gap-0.5 text-[9px] font-mono font-bold ${over ? 'text-red-600' : 'text-green-600'}`}>
-      {length}/{limit}{over ? ` (lebih ${length - limit})` : null}
-      {!over && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
-    </span>
-  );
-};
 
 // Serializes all items into the numbered "#slot-series" bulk-text format, editable in one textarea.
 // Medan penuh (2026-07-29, permintaan pemilik projek) — sebelum ni cuma Tajuk/Huraian ringkas/
@@ -128,18 +107,11 @@ const parseBulkText = (text: string): BulkParsedEntry[] => {
 //   - paparan="slot"  → tab "Slot" (senarai ikut slot: sunting/tambah/padam item)
 //   - paparan="pukal" → sub-tab "Semakan Kandungan" (satu kotak teks besar, Ketua Editor sunting
 //                        terus semua kandungan sekali gus)
-export function ContentReview({ paparan = 'pukal' }: { paparan?: 'slot' | 'pukal' }) {
+export function ContentReview() {
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedSlots, setExpandedSlots] = useState<Set<number>>(new Set());
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<Partial<ContentItem>>({});
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [addingToSlot, setAddingToSlot] = useState<number | null>(null);
-  const [newItemDraft, setNewItemDraft] = useState({ title: '', summary: '', desk: '', topik: '', source: '', url: '' });
 
-  const viewMode: 'card' | 'bulk' = paparan === 'slot' ? 'card' : 'bulk';
   const [bulkText, setBulkText] = useState('');
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkStatus, setBulkStatus] = useState('');
@@ -226,15 +198,8 @@ export function ContentReview({ paparan = 'pukal' }: { paparan?: 'slot' | 'pukal
   // BILANGAN SLOT dipaparkan (unit semula jadi paparan tu — setiap slot dah kumpulan tersendiri);
   // Teks Pukal dihadkan ikut BILANGAN KANDUNGAN (unit paparan tu — satu senarai rata bernombor).
   const PAGE_SIZE = 100;
-  const [cardPage, setCardPage] = useState(1);
   const [bulkPage, setBulkPage] = useState(1);
-  useEffect(() => { setCardPage(1); setBulkPage(1); }, [filteredItems]);
-
-  const cardTotalPages = Math.max(1, Math.ceil(slotIndexes.length / PAGE_SIZE));
-  const pagedSlotIndexes = useMemo(
-    () => slotIndexes.slice((cardPage - 1) * PAGE_SIZE, cardPage * PAGE_SIZE),
-    [slotIndexes, cardPage]
-  );
+  useEffect(() => { setBulkPage(1); }, [filteredItems]);
 
   const sortedFilteredItems = useMemo(
     () => [...filteredItems].sort((a, b) => a.slotIndex - b.slotIndex || a.seriesIndex - b.seriesIndex),
@@ -251,80 +216,9 @@ export function ContentReview({ paparan = 'pukal' }: { paparan?: 'slot' | 'pukal
   // a filter change, or a page change. `pagedBulkItems` (bukan `items` penuh, 2026-07-29) — lihat
   // nota PAGE_SIZE di atas.
   useEffect(() => {
-    if (viewMode === 'bulk') {
-      setBulkText(buildBulkText(pagedBulkItems));
-      setBulkStatus('');
-    }
-  }, [viewMode, pagedBulkItems]);
-
-  const toggleSlot = (slotIndex: number) => {
-    setExpandedSlots(prev => {
-      const next = new Set(prev);
-      if (next.has(slotIndex)) next.delete(slotIndex); else next.add(slotIndex);
-      return next;
-    });
-  };
-
-  const startEdit = (item: ContentItem) => {
-    setEditingId(item.id);
-    setEditDraft({ title: item.title, summary: item.summary, desk: item.desk, topik: item.topik, source: item.source, url: item.url });
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditDraft({});
-  };
-
-  const saveEdit = async (id: string) => {
-    setSavingId(id);
-    try {
-      const res = await fetch(`/api/system/content/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editDraft)
-      });
-      if (!res.ok) throw new Error('Gagal menyimpan.');
-      setItems(prev => prev.map(i => (i.id === id ? { ...i, ...editDraft } as ContentItem : i)));
-      setEditingId(null);
-      setEditDraft({});
-    } catch (err: any) {
-      alert('Ralat menyimpan: ' + (err.message || ''));
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const deleteItem = async (id: string, title: string) => {
-    if (!window.confirm(`Padam item "${title}"? Tindakan ini tidak boleh dibuat asal.`)) return;
-    try {
-      const res = await fetch(`/api/system/content/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Gagal memadam.');
-      setItems(prev => prev.filter(i => i.id !== id));
-    } catch (err: any) {
-      alert('Ralat memadam: ' + (err.message || ''));
-    }
-  };
-
-  const submitNewItem = async (slotIndex: number) => {
-    if (!newItemDraft.title.trim()) {
-      alert('Tajuk diperlukan.');
-      return;
-    }
-    try {
-      const res = await fetch('/api/system/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slotIndex, ...newItemDraft })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menambah item.');
-      setAddingToSlot(null);
-      setNewItemDraft({ title: '', summary: '', desk: '', topik: '', source: '', url: '' });
-      loadItems();
-    } catch (err: any) {
-      alert('Ralat menambah: ' + (err.message || ''));
-    }
-  };
+    setBulkText(buildBulkText(pagedBulkItems));
+    setBulkStatus('');
+  }, [pagedBulkItems]);
 
   // Bulk save: edit-only. Matches each "#slot-series" block back to its original item, and PATCHes
   // only the ones whose fields actually changed. Numbers with no matching original item are ignored
@@ -385,21 +279,13 @@ export function ContentReview({ paparan = 'pukal' }: { paparan?: 'slot' | 'pukal
     setBulkSaving(false);
   };
 
-  const slotLabel = (slotIndex: number) => {
-    if (slotIndex === -1) return 'Ticker: Terkini di Malaysia';
-    const category = groupedBySlot[slotIndex]?.[0]?.slotCategory;
-    return category ? `Slot ${slotIndex + 1}: ${category}` : `Slot ${slotIndex + 1}`;
-  };
-
   return (
     <div className="min-h-screen bg-[#FDFDFD] font-sans">
       <header className="border-b border-stone-200 bg-white sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-4 flex justify-between items-center">
-          {/* Tiada lagi togol Senarai Slot/Teks Pukal di sini — kedua-dua paparan sudah jadi
-              destinasi berasingan dalam Editorium (lihat nota di atas ContentReview). */}
           <div>
             <h1 className="font-serif text-lg font-bold text-[#802334]">
-              {paparan === 'slot' ? 'Slot' : 'Semakan Kandungan'}
+              Semakan Kandungan
             </h1>
             <p className="text-[10px] text-stone-500 font-sans uppercase tracking-wider font-bold mt-0.5">
               {filteredItems.length} daripada {items.length} item · {slotIndexes.length} slot lepas tapisan
@@ -465,7 +351,6 @@ export function ContentReview({ paparan = 'pukal' }: { paparan?: 'slot' | 'pukal
         </div>
       </header>
 
-      {viewMode === 'bulk' ? (
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-6">
           <p className="text-[10px] text-stone-500 font-sans leading-normal mb-2">
             Setiap entri bermula dengan nombor <code className="font-mono bg-stone-100 px-1 rounded">#Slot-Siri</code> (cth <code className="font-mono bg-stone-100 px-1 rounded">#1-1</code> = Slot 1, siri 1).
@@ -514,264 +399,6 @@ export function ContentReview({ paparan = 'pukal' }: { paparan?: 'slot' | 'pukal
             </>
           )}
         </main>
-      ) : (
-        <main className="max-w-5xl mx-auto px-4 md:px-8 py-6">
-          {loading && <p className="text-xs text-stone-500 text-center py-12">Memuatkan...</p>}
-          {!loading && slotIndexes.length === 0 && (
-            <p className="text-xs text-stone-500 text-center py-12">
-              Tiada kandungan dijumpai{searchQuery ? ' untuk carian ini.' : '.'}
-            </p>
-          )}
-          <div className="flex flex-col gap-3">
-            {pagedSlotIndexes.map(slotIndex => {
-              const slotItems = groupedBySlot[slotIndex];
-              const isExpanded = expandedSlots.has(slotIndex) || !!searchQuery;
-              return (
-                <div key={slotIndex} className="border border-stone-200 rounded bg-white">
-                  <button
-                    type="button"
-                    onClick={() => toggleSlot(slotIndex)}
-                    className="w-full flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-stone-50 transition-colors"
-                  >
-                    <span className="font-mono text-[10px] uppercase tracking-wider font-bold text-[#802334]">
-                      {slotLabel(slotIndex)} <span className="text-stone-400 font-normal">({slotItems.length} item)</span>
-                    </span>
-                    {isExpanded ? <ChevronUp size={14} className="text-stone-400" /> : <ChevronDown size={14} className="text-stone-400" />}
-                  </button>
-
-                  {isExpanded && (
-                    <div className="border-t border-stone-150 divide-y divide-stone-100">
-                      {slotItems.map(item => (
-                        <div key={item.id} className="px-4 py-3">
-                          {editingId === item.id ? (
-                            <div className="flex flex-col gap-2">
-                              <input
-                                type="text"
-                                value={editDraft.title || ''}
-                                onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })}
-                                placeholder="Tajuk"
-                                className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold focus:outline-none focus:border-[#802334]"
-                              />
-                              <textarea
-                                value={editDraft.summary || ''}
-                                onChange={(e) => setEditDraft({ ...editDraft, summary: e.target.value })}
-                                placeholder="Huraian"
-                                rows={2}
-                                className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
-                              />
-                              <div className="grid grid-cols-2 gap-2">
-                                <div
-                                  className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-100 text-stone-500 flex items-center"
-                                  title="Bidang terkunci ikut slot — tukar di Tetapan Slot (Ketua Editor sahaja)"
-                                >
-                                  {editDraft.desk || 'Bidang'}
-                                </div>
-                                <input
-                                  type="text"
-                                  value={editDraft.topik || ''}
-                                  onChange={(e) => setEditDraft({ ...editDraft, topik: e.target.value })}
-                                  placeholder="Topik"
-                                  className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
-                                />
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <input
-                                  type="text"
-                                  value={editDraft.source || ''}
-                                  onChange={(e) => setEditDraft({ ...editDraft, source: e.target.value })}
-                                  placeholder="Sumber"
-                                  className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
-                                />
-                                <input
-                                  type="text"
-                                  value={editDraft.url || ''}
-                                  onChange={(e) => setEditDraft({ ...editDraft, url: e.target.value })}
-                                  placeholder="URL"
-                                  className="px-2 py-1.5 border border-stone-300 rounded text-xs font-mono focus:outline-none focus:border-[#802334]"
-                                />
-                              </div>
-                              <div className="flex gap-2 justify-end pt-1">
-                                <button
-                                  type="button"
-                                  onClick={cancelEdit}
-                                  className="px-3 py-1.5 text-[10px] font-bold text-stone-600 bg-white border border-stone-300 rounded hover:bg-stone-50 cursor-pointer"
-                                >
-                                  Batal
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => saveEdit(item.id)}
-                                  disabled={savingId === item.id}
-                                  className="px-3 py-1.5 text-[10px] font-bold text-white bg-[#802334] rounded hover:bg-[#601824] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
-                                >
-                                  <Save size={11} /> {savingId === item.id ? 'Menyimpan...' : 'Simpan'}
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex justify-between items-start gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-[9px] font-mono uppercase tracking-wider text-stone-400 font-bold">
-                                    #{item.slotIndex + 1}-{item.seriesIndex}
-                                  </span>
-                                  <span className="text-[9px] font-mono uppercase tracking-wider text-[#802334] font-bold">
-                                    {formatBidangTopik(item) || 'UMUM'}
-                                  </span>
-                                  {item.source && <span className="text-[9px] text-stone-400">· {item.source}</span>}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium text-[#1F1F1F] leading-snug">{item.title}</p>
-                                  <LimitBadge length={item.title?.length || 0} limit={item.maxTitle} />
-                                </div>
-                                {item.summary && (
-                                  <div className="flex items-start gap-2 mt-1">
-                                    <p className="text-xs text-stone-500 leading-relaxed">{item.summary}</p>
-                                    <LimitBadge length={item.summary?.length || 0} limit={item.maxBrief} />
-                                  </div>
-                                )}
-                                {item.url && item.url !== '#' && (
-                                  <a
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[10px] text-stone-400 hover:text-[#802334] underline break-all mt-1 inline-block"
-                                  >
-                                    {item.url}
-                                  </a>
-                                )}
-                              </div>
-                              <div className="flex gap-1.5 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => startEdit(item)}
-                                  className="px-2 py-1 text-[9px] font-bold text-[#802334] bg-white border border-[#802334] rounded hover:bg-stone-50 transition-colors cursor-pointer"
-                                >
-                                  Sunting
-                                </button>
-                                <Tooltip text="Padam">
-                                  <button
-                                    type="button"
-                                    onClick={() => deleteItem(item.id, item.title)}
-                                    className="p-1.5 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </Tooltip>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      <div className="px-4 py-3">
-                        {addingToSlot === slotIndex ? (
-                          <div className="flex flex-col gap-2 bg-stone-50 p-3 rounded border border-stone-200">
-                            <input
-                              type="text"
-                              value={newItemDraft.title}
-                              onChange={(e) => setNewItemDraft({ ...newItemDraft, title: e.target.value })}
-                              placeholder="Tajuk item baharu"
-                              className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs font-semibold focus:outline-none focus:border-[#802334]"
-                            />
-                            <textarea
-                              value={newItemDraft.summary}
-                              onChange={(e) => setNewItemDraft({ ...newItemDraft, summary: e.target.value })}
-                              placeholder="Huraian"
-                              rows={2}
-                              className="w-full px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
-                            />
-                            <div className="grid grid-cols-2 gap-2">
-                              <div
-                                className="px-2 py-1.5 border border-stone-200 rounded text-xs bg-stone-100 text-stone-500 flex items-center"
-                                title="Bidang terkunci ikut slot — tukar di Tetapan Slot (Ketua Editor sahaja)"
-                              >
-                                {newItemDraft.desk || 'Bidang'}
-                              </div>
-                              <input
-                                type="text"
-                                value={newItemDraft.topik}
-                                onChange={(e) => setNewItemDraft({ ...newItemDraft, topik: e.target.value })}
-                                placeholder="Topik"
-                                className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <input
-                                type="text"
-                                value={newItemDraft.source}
-                                onChange={(e) => setNewItemDraft({ ...newItemDraft, source: e.target.value })}
-                                placeholder="Sumber"
-                                className="px-2 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
-                              />
-                              <input
-                                type="text"
-                                value={newItemDraft.url}
-                                onChange={(e) => setNewItemDraft({ ...newItemDraft, url: e.target.value })}
-                                placeholder="URL"
-                                className="px-2 py-1.5 border border-stone-300 rounded text-xs font-mono focus:outline-none focus:border-[#802334]"
-                              />
-                            </div>
-                            <div className="flex gap-2 justify-end pt-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAddingToSlot(null);
-                                  setNewItemDraft({ title: '', summary: '', desk: '', topik: '', source: '', url: '' });
-                                }}
-                                className="px-3 py-1.5 text-[10px] font-bold text-stone-600 bg-white border border-stone-300 rounded hover:bg-stone-50 cursor-pointer"
-                              >
-                                Batal
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => submitNewItem(slotIndex)}
-                                className="px-3 py-1.5 text-[10px] font-bold text-white bg-[#802334] rounded hover:bg-[#601824] transition-colors cursor-pointer flex items-center gap-1"
-                              >
-                                <Plus size={11} /> Tambah
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAddingToSlot(slotIndex);
-                              // Bidang terkunci ikut slot — item baharu warisi Bidang item sedia
-                              // ada dalam slot yang sama (bukan taip bebas lagi).
-                              setNewItemDraft(prev => ({ ...prev, desk: groupedBySlot[slotIndex]?.[0]?.slotCategory || groupedBySlot[slotIndex]?.[0]?.desk || '' }));
-                            }}
-                            className="text-[10px] font-bold text-[#802334] flex items-center gap-1 cursor-pointer hover:underline"
-                          >
-                            <Plus size={11} /> Tambah item baharu
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          {cardTotalPages > 1 && (
-            <div className="flex items-center justify-between gap-3 pt-4 font-sans text-xs">
-              <button
-                type="button" onClick={() => setCardPage(p => Math.max(1, p - 1))} disabled={cardPage === 1}
-                className="px-3 py-1.5 border border-stone-300 rounded font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                ← Sebelum
-              </button>
-              <span className="text-stone-500">Halaman <strong className="font-mono font-bold text-stone-800">{cardPage}</strong> daripada <strong className="font-mono font-bold text-stone-800">{cardTotalPages}</strong> ({slotIndexes.length} slot lepas tapisan)</span>
-              <button
-                type="button" onClick={() => setCardPage(p => Math.min(cardTotalPages, p + 1))} disabled={cardPage === cardTotalPages}
-                className="px-3 py-1.5 border border-stone-300 rounded font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Seterusnya →
-              </button>
-            </div>
-          )}
-        </main>
-      )}
     </div>
   );
 }

@@ -490,8 +490,12 @@ Perkembangan bahasa Arab dipengaruhi oleh perubahan sosial, politik dan kesusast
 Anggap semua medan "Huraian" akan dipaparkan terus kepada pembaca sebagai metadata kandungan dalam pangkalan data digital. Oleh itu, setiap huraian mestilah boleh difahami tanpa perlu merujuk bahan asal.`;
 
 const getLimitsForIndex = (idx: number, config?: any) => {
-  const customTitle = config?.maxTitle;
-  const customBrief = config?.maxBrief;
+  // maxTitle/maxBrief per-slot daripada slots_config SENGAJA DIABAIKAN (2026-07-30). Dua lajur tu
+  // salinan lama yang tak pernah dikemas kini (12 slot simpan nilai salah, 20 kosong) — dan lebih
+  // buruk, ia dulu MENGATASI nilai tier, jadi pindaan had yang dibuat Ketua Editor di Tier Kad
+  // boleh ditelan senyap oleh nombor lapuk satu slot. Had ialah sifat TIER, tidak pernah per-slot
+  // (peraturan teras projek). maxBriefLong kekal boleh diubah per-slot — ia medan luar kad,
+  // bukan sebahagian bajet ruang kad.
   const customBriefLong = config?.maxBriefLong;
 
   // maxBriefLong: had aksara "Huraian Panjang" — kandungan tambahan yang tidak dipaparkan pada kad,
@@ -502,8 +506,8 @@ const getLimitsForIndex = (idx: number, config?: any) => {
   const defaults = ceilingForSlot(idx);
 
   return {
-    maxTitle: (typeof customTitle === 'number' && customTitle > 0) ? customTitle : (config?.manualTitle === undefined && typeof customTitle === 'string' && parseInt(customTitle) > 0 ? parseInt(customTitle) : defaults.maxTitle),
-    maxBrief: (typeof customBrief === 'number' && customBrief >= 0) ? customBrief : (config?.manualTitle === undefined && typeof customBrief === 'string' && parseInt(customBrief) >= 0 ? parseInt(customBrief) : defaults.maxBrief),
+    maxTitle: defaults.maxTitle,
+    maxBrief: defaults.maxBrief,
     maxBriefLong: (typeof customBriefLong === 'number' && customBriefLong >= 0) ? customBriefLong : defaults.maxBriefLong
   };
 };

@@ -85,10 +85,17 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         }
       }
 
-      const slotRows = await dbAll("SELECT slotIndex, maxTitle, maxBrief, maxBriefLong, manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage'");
+      // Lajur maxTitle/maxBrief dalam slots_config SENGAJA TIDAK dibaca lagi (2026-07-30). Dua
+      // lajur tu salinan lama nombor had yang tak pernah dikemas kini — 12 slot simpan nilai yang
+      // salah, 20 lagi kosong. Had sebenar datang daripada TIER (GeometryConfig + pindaan Ketua
+      // Editor di Editorium → Slot → Tier Kad, lihat tierSettingsRoutes.js). Menghantar salinan
+      // lama tu cuma menjemput skrin seterusnya mempercayai nombor yang salah. Lajurnya dibiarkan
+      // tidur dalam pangkalan data — membina semula jadual slots_config demi lajur yang tak dibaca
+      // ialah risiko tanpa faedah.
+      const slotRows = await dbAll("SELECT slotIndex, maxBriefLong, manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage'");
       const limitsBySlot = {};
       for (const s of slotRows) {
-        limitsBySlot[s.slotIndex] = { maxTitle: s.maxTitle, maxBrief: s.maxBrief, maxBriefLong: s.maxBriefLong, slotCategory: s.manualDesk || '' };
+        limitsBySlot[s.slotIndex] = { maxBriefLong: s.maxBriefLong, slotCategory: s.manualDesk || '' };
       }
 
       // seriesIndex: 1-based position within its own slot, in the same createdAt-ASC order used to
@@ -113,8 +120,6 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           source: attrs.source || '',
           url: attrs.url || '#',
           imageUrl: attrs.imageUrl || attrs.coverImageId || '',
-          maxTitle: limits.maxTitle !== undefined ? limits.maxTitle : null,
-          maxBrief: limits.maxBrief !== undefined ? limits.maxBrief : null,
           maxBriefLong: limits.maxBriefLong !== undefined ? limits.maxBriefLong : null,
           slotCategory: limits.slotCategory || '',
           status: r.status || 'approved',

@@ -113,7 +113,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               currentUserName={currentUser.name}
             />
           )}
-          {indeksSubTab === 'semakan' && <ContentReview paparan="pukal" />}
+          {indeksSubTab === 'semakan' && <ContentReview />}
         </div>
       )}
       {/* Slot (2026-07-30, permintaan pemilik projek) — segala yang MENTAKRIFKAN slot duduk di
