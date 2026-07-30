@@ -216,5 +216,23 @@ ${vars}
   }
 
 ${tierRules}
+
+  /* Slot 11 (2026-07-31): disusun semula ke dalam komposisi 2-lajur khusus (Menegak 12 + Bar
+     7-10 + slot 11), jadi lebar sebenarnya sekarang ~171px — sama sempit dengan lajur
+     "pasangan" (Kompak/Kiub Besar), bukan lebar "penuh" 358px yang diandaikan oleh had tier
+     SEGI_EMPAT_SMALL di atas. Tanpa ni, tajuk/huraian pada saiz "penuh" melimpah kotak sebenar
+     (disahkan hidup: scrollHeight 395px vs clientHeight 282px). Ditindih di sini (kemudian dalam
+     fail = keutamaan sama menang) dengan saiz & lantai gaya "pasangan". */
+  #bento-news-grid [data-slot="11"] {
+    min-height: 340px;
+  }
+  #bento-news-grid [data-slot="11"] h3 {
+    font-size: ${PHONE_TITLE.pasangan};
+    line-height: ${PHONE_TITLE.leading};
+  }
+  #bento-news-grid [data-slot="11"] p {
+    font-size: ${PHONE_BRIEF.pasangan} !important;
+    line-height: ${PHONE_BRIEF.leading};
+  }
 }`;
 };

@@ -2911,8 +2911,17 @@ URL: ${url}`;
             )}
 
             {/* ROW 2 & 3: Vertical, Horizontal, Square, 2 Compact (Indices 1 to 5) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              
+            {/* Susun atur telefon (2026-07-31, permintaan pemilik projek, contoh pertama): lajur
+                kiri = Menegak (slot 1) tinggi penuh, lajur kanan = tindanan Melintang+Kiub Kecil+
+                Kompak — padan susunan blok desktop yang sama (bukan susunan rawak, ikut peta baris
+                sebenar). `md:contents` pada bekas dalaman menjadikannya "lut sinar" pada desktop —
+                kanak-kanaknya kembali jadi anak terus grid 6-lajur, susun atur desktop tidak
+                tersentuh langsung. Jurang tinggi antara lajur kiri/kanan (kandungan sebenar tak
+                semestinya padan tepat) diterima, bukan bug — lumrah reka bentuk bento/masonry.
+                NOTA: percubaan 3-lajur (padan nisbah desktop) dicuba dan ditolak — nampak lebih
+                sesak pada skrin lebar sederhana, 2 lajur dikekalkan. */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+
               {/* Left Column: Vertical (Index 1) */}
               {bentoNewsItems[1] && (
                 <div 
@@ -2941,6 +2950,9 @@ URL: ${url}`;
                   </BentoInner><span className="absolute top-6 right-6 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[1].publishedAt)}</span>
                 </div>
               )}
+
+              {/* Lajur kanan telefon (lut sinar di desktop — lihat nota di atas) */}
+              <div className="flex flex-col gap-4 md:contents">
 
               {/* Right/Top: Horizontal (Index 2) */}
               {bentoNewsItems[2] && (
@@ -3001,9 +3013,11 @@ URL: ${url}`;
               )}
 
               {/* Right/Bottom-Right: Two Stacked Compacts (Indices 4 & 5) */}
-              {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
-                  telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="md:col-span-2 grid grid-cols-2 gap-3 md:flex md:flex-col md:gap-4 h-full">
+              {/* Pasangan KOMPAK: bertindan menegak SENTIASA di sini (bukan 2 sub-kolum pasangan
+                  biasa — lihat PHONE_TIER_BOX.KOMPAK untuk kes lain) — slot ni dah berada dalam
+                  lajur kanan komposisi 2-lajur (Menegak 1 | tindanan 2,3,4,5); sub-kolum kompak
+                  sendiri akan jadikan komposisi ni nampak 3 lajur, bukan 2. */}
+              <div className="md:col-span-2 flex flex-col gap-3 md:gap-4 h-full">
                 {bentoNewsItems[4] && (
                 <div 
                   onClick={() => handleCardClick(4)}
@@ -3060,17 +3074,24 @@ URL: ${url}`;
                 )}
               </div>
 
+              </div>
             </div>
 
             {/* ROW 4 & 5: Horizontal, Vertical, Bars, Square (Indices 6 to 12) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 animate-fade-in">
+            {/* Susun atur telefon (2026-07-31, mockup #2 pemilik projek): Menegak (12) + Bar
+                (7-10) + Kiub Kecil (11) jadi baris 2-lajur dahulu, Melintang (6) turun ke bawah
+                sebagai baris lebar-penuh — bukan ikut turutan DOM (6 dahulu), tapi `order-*`
+                (mobile sahaja, `md:order-none` set semula untuk desktop) supaya DOM/susun atur
+                desktop tidak disentuh. Corak "kumpul item kecil, biar item besar lebar penuh"
+                — bukan formula tegar ikut tier, ikut apa yang sesuai baris tu. */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 animate-fade-in">
 
-              {/* Left Top: Horizontal (Index 6) */}
+              {/* Left Top: Horizontal (Index 6) — turun ke bawah baris ni pada telefon (order-3) */}
               {bentoNewsItems[6] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(6)}
                   data-slot={6}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-2 order-3 md:order-none md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3103,7 +3124,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(12)}
                   data-slot={12}
                   ref={bar1SiblingLocks.idx12.ref}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                  className={`order-1 md:order-none md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[12], 'transparent').cardStyle, ...bar1SiblingLocks.idx12.lockStyle }} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -3130,7 +3151,13 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full" data-bar-cluster="">
+              {/* Lajur kanan telefon (lut sinar di desktop) — Bar (7-10) + Kiub Kecil (11) ditindan.
+                  SENGAJA TIADA data-bar-cluster di sini (tak macam kluster 21-24 yang berdiri
+                  sendiri) — peraturan CSS "Bar 2 lajur" global akan buat sub-2-lajur SENDIRI di
+                  dalam lajur kanan ni, jadi 3 lajur keseluruhan (Menegak | Bar-A | Bar-B), bukan
+                  2. Di sini Bar cuma tindan menegak biasa (flex-col sedia ada pada kelas). */}
+              <div className="flex flex-col gap-4 order-2 md:contents">
+              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full">
                 <div className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 -translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
                     PROGRAM-PROGRAM BERMANFAAT
@@ -3201,6 +3228,7 @@ URL: ${url}`;
                   )}</div>
               )}
 
+              </div>
             </div>
 
             {/* ROW 6: Two Half Horizontals Side-By-Side (Indices 13 & 14) */}
