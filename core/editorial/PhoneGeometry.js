@@ -67,21 +67,26 @@ export const PHONE_MAX_WIDTH_PX = 767;
 //
 // Nombor PHONE_CARD_MIN di bawah pada asalnya diukur untuk kad TAJUK SAHAJA — huraian
 // disembunyikan (`display:none`) kerana bimbang tak muat. Pemilik projek kemudian minta huraian
-// dikembalikan; lantai di bawah diukur SEMULA hidup (klon kad sebenar, lebar sebenar 358px/173px,
-// bajet aksara maksimum tier — GEOMETRY_RATIOS maxTitleAlone/maxBriefAlone — diuji pada 4 titik
-// sepanjang sempadan bajet kongsi: 100/0, 50/50, 25/75, 0/100 tajuk/huraian, teks realistik
-// berjarak (bukan aksara berulang tanpa jarak — itu memberi bacaan lilitan baris yang tak tepat),
-// ambil kes TERTINGGI + baki kecil. BAR tidak disentuh (tiada medan huraian langsung).
-
-/** Tinggi minimum telefon bagi setiap tier, sebagai pemboleh ubah CSS pada akar grid. */
+// dikembalikan.
+//
+// PENTING — `min-height` ialah LANTAI selesa, BUKAN tinggi kes-terburuk dipaksa. `height: auto`
+// (lihat phoneLayoutCss()) bermakna kad SENTIASA tumbuh mengikut kandungan sebenar — tiada siling,
+// tiada potongan, jadi tiada keperluan "menjamin" ruang kes terburuk melalui min-height. Percubaan
+// pertama (2026-07-31) tersilap guna nombor kes TERBURUK (335-385px) sebagai min-height — kesannya
+// SETIAP kad, walau kandungan pendek/tiada huraian, dipaksa setinggi itu, meninggalkan ruang kosong
+// besar tanpa sebab (disahkan hidup: slot 4 tanpa huraian tetap 170px tepat). Dibetulkan sama hari:
+// lantai kini diukur daripada kandungan MINIMUM (tajuk pendek, tiada huraian) supaya kad pendek
+// kekal pendek, kad panjang tumbuh bebas mengikut keperluan sebenarnya (diukur sehingga ~335-385px
+// pada kes terburuk sebenar — nombor itu bukan lagi ditaip di sini, cuma pengesahan yang kad boleh
+// tumbuh sebegitu tanpa limpahan, sebab tiada siling langsung).
 export const PHONE_CARD_MIN = {
-  '--card-min-melintang-penuh': '335px',      // HERO — kes terburuk terukur 330px
-  '--card-min-menegak': '385px',              // MENEGAK — kes terburuk terukur 380px
-  '--card-min-melintang': '270px',            // STANDARD — kes terburuk terukur 268px
+  '--card-min-melintang-penuh': '160px',      // HERO
+  '--card-min-menegak': '170px',              // MENEGAK
+  '--card-min-melintang': '135px',            // STANDARD
   '--card-min-bar': '84px',                   // BAR (BarCard sudah ada min-h-[84px]) — tiada huraian, tak berubah
-  '--card-min-kiub-besar': '335px',           // KIUB BESAR — kes terburuk terukur 333px
-  '--card-min-kiub-kecil': '200px',           // KIUB KECIL — kes terburuk terukur 195px
-  '--card-min-kompak': '170px',               // KOMPAK — kes terburuk terukur 166px
+  '--card-min-kiub-besar': '140px',           // KIUB BESAR
+  '--card-min-kiub-kecil': '175px',           // KIUB KECIL
+  '--card-min-kompak': '105px',               // KOMPAK
 };
 
 // Kotak setiap tier pada telefon.
