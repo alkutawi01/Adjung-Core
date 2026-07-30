@@ -1,7 +1,7 @@
 // RssDirectEngine.js - High performance RSS 2.0 / Atom XML Parser, Link Extractor, and Language Filter.
 // Pure JS XML parser operating WITHOUT any AI API calls.
 
-import { sanitizeHtmlText } from './SourceSanitizer.js';
+import { sanitizeHtmlText, stripLocationDateline } from './SourceSanitizer.js';
 
 export function parseRssXml(xmlString) {
   if (!xmlString || typeof xmlString !== 'string') return [];
@@ -25,7 +25,7 @@ export function parseRssXml(xmlString) {
     let link = '';
     const linkMatch = block.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
     if (linkMatch && linkMatch[1].trim()) {
-      link = sanitizeHtmlText(linkMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1'));
+      link = linkMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1').trim();
     } else {
       // Atom link format: <link href="url" />
       const atomLinkMatch = block.match(/<link[^>]+href=["']([^"']+)["']/i);
@@ -71,7 +71,7 @@ export function formatRssBrief(rawDescription) {
   if (!rawDescription) return '';
 
   // Clean HTML tags and entities
-  let cleanText = sanitizeHtmlText(rawDescription);
+  let cleanText = stripLocationDateline(sanitizeHtmlText(rawDescription));
 
   // Remove common RSS boilerplate prefixes
   cleanText = cleanText.replace(/^[A-Z\s]+,\s*\d+\s+[A-Za-z]+\s*–\s*/, '');

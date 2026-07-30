@@ -254,6 +254,8 @@ export function ContentReview() {
 
     let done = 0;
     let failed = 0;
+    let lastErrorMsg = '';
+
     for (const { p, original } of changed) {
       setBulkStatus(`Menyimpan ${done + failed + 1}/${changed.length}...`);
       try {
@@ -261,20 +263,26 @@ export function ContentReview() {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            // Nama medan API ialah 'briefLong' (attributeId sebenar, lihat contentRoutes.js) —
-            // p.summaryLong ialah nama medan client-side sahaja.
             title: p.title, summary: p.summary, briefLong: p.summaryLong, desk: p.desk, topik: p.topik,
             source: p.source, url: p.url, originalDate: p.originalDate, note: p.note,
           })
         });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.error || `Ralat menyimpan entri #${p.slotNumber}-${p.seriesNumber}`);
+        }
         done++;
-      } catch {
+      } catch (err: any) {
         failed++;
+        lastErrorMsg = err.message || `Ralat pada entri #${p.slotNumber}-${p.seriesNumber}`;
       }
     }
 
-    setBulkStatus(`Selesai: ${done} disimpan${failed > 0 ? `, ${failed} gagal` : ''}.`);
+    if (failed > 0) {
+      setBulkStatus(`Penyimpanan selesai sebahagian: ${done} disimpan, ${failed} gagal. Ralat: ${lastErrorMsg}`);
+    } else {
+      setBulkStatus(`Selesai: ${done} kandungan berjaya dikemas kini.`);
+    }
     loadItems();
     setBulkSaving(false);
   };

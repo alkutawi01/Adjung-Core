@@ -2,48 +2,55 @@ import React, { useState, useEffect } from 'react';
 import { BRAND } from '../../config/brand';
 import { Tooltip } from '../common/Tooltip';
 
-// Rujukan visual tunggal (warna, tipografi, komponen kongsi). Geometri kad (saiz, had aksara)
-// didokumentasikan berasingan di Perlembagaan — muka ni tak ulang kandungan tu.
-//
-// Nilai warna & fon TIDAK ditaip semula di sini — dibaca terus daripada CSS custom properties
-// hidup (getComputedStyle atas :root) supaya muka ni automatik betul bila src/index.css berubah,
-// sama falsafah dengan Perlembagaan yang import terus daripada GeometryConfig.js. Cuma NAMA
-// token (bukan nilai) yang perlu disenaraikan tangan di bawah — JS tak boleh "temui" nama custom
-// property tanpa menghurai CSS mentah.
+// Sistem Reka Bentuk Adjung Brief (Design System Console)
+// Pure Cream Surface (#FDFDFD), Hairline Sectioning (1px stone-200), Serif Titles, Inter Labels, Mono for Data Only.
 
 const COLOR_TOKENS = [
-  { varName: '--color-Adjung-maroon', tw: 'bg-Adjung-maroon', usage: 'Aksen jenama utama — butang, pautan, wordmark, sempadan aktif.' },
-  { varName: '--color-Adjung-maroon-dark', tw: 'bg-Adjung-maroon-dark', usage: 'State hover/tekan bagi elemen maroon. Terbitan HSL -10 lightness drpd maroon utama (349deg 57% 32% -> 22%), bukan tekaan tangan.' },
-  { varName: '--color-Adjung-cream', tw: 'bg-Adjung-cream', usage: 'Latar halaman (portal awam & Editorium, diselaraskan 2026-07-26).' },
-  { varName: '--color-Adjung-dark', tw: 'bg-Adjung-dark', usage: 'Warna teks/ink utama.' },
-  { varName: '--color-Adjung-gray-light', tw: 'bg-Adjung-gray-light', usage: 'Neutral cair — sempadan, latar sekunder.' },
+  { varName: '--color-Adjung-maroon', tw: 'bg-Adjung-maroon', usage: 'Aksen jenama utama (#802334) — butang, pautan, wordmark, sempadan aktif.' },
+  { varName: '--color-Adjung-maroon-dark', tw: 'bg-Adjung-maroon-dark', usage: 'State hover/tekan (#601824). Terbitan HSL lightness -10 daripada maroon utama, bukan tekaan.' },
+  { varName: '--color-Adjung-cream', tw: 'bg-Adjung-cream', usage: 'Latar cream halaman (#FDFDFD) — portal awam Frontpage & Editorium.' },
+  { varName: '--color-Adjung-dark', tw: 'bg-Adjung-dark', usage: 'Warna teks/ink utama (#111111 / #1F1F1F).' },
+  { varName: '--color-Adjung-gray-light', tw: 'bg-Adjung-gray-light', usage: 'Neutral cair — sempadan 1px hairline stone-200, latar sekunder.' },
 ];
 
-// Belum jadi token @theme rasmi — hex terus dlm komponen berkenaan. Disenaraikan di sini supaya
-// kelihatan (bukan bersembunyi), bukan dakwaan yang ia dah "diselaraskan".
-const SEMANTIC_COLORS_UNTOKENIZED = [
-  { hex: '#b8934a', label: 'Emas/Ochre — label seksyen dokumentasi', where: 'PerlembagaanConsole.tsx sahaja' },
-  { hex: '#3d6b4c', label: 'Hijau — Toast berjaya (success)', where: 'Toast.tsx' },
-  { hex: '#a8241f', label: 'Merah karat — Toast ralat (error)', where: 'Toast.tsx' },
+const SEMANTIC_COLORS = [
+  { hex: '#b8934a', label: 'Emas/Ochre — nombor & label seksyen dokumentasi', where: 'Perlembagaan & Reka Bentuk' },
+  { hex: '#3d6b4c', label: 'Hijau — status kejayaan (success) & Toast', where: 'Toast.tsx / Status badges' },
+  { hex: '#a8241f', label: 'Merah karat — status ralat (error) & Toast', where: 'Toast.tsx / Warning badges' },
+  { hex: '#E9D8A6', label: 'Parchment — aksen teks di atas latar maroon', where: 'BarCard & Masthead' },
 ];
 
 const FONT_TOKENS = [
-  { varName: '--font-serif', twClass: 'font-serif', role: 'Tajuk, wordmark, badan artikel', sample: 'Membina Semula Peradaban' },
-  { varName: '--font-sans', twClass: 'font-sans', role: 'UI, butang, teks badan Editorium', sample: 'Membina Semula Peradaban' },
-  { varName: '--font-mono', twClass: 'font-mono', role: 'Label UPPERCASE bertanda, data, eyebrow seksyen, sitasi', sample: 'MEMBINA SEMULA PERADABAN' },
-  { varName: '--font-arabic', twClass: 'font-arabic', role: 'Kandungan skrip Arab', sample: 'بناء الحضارة من جديد' },
-  { varName: '--font-signature', twClass: 'font-signature', role: 'Tandatangan penulis', sample: 'Membina Semula Peradaban' },
-  { varName: '--font-handwritten', twClass: 'font-handwritten', role: 'Gloss interlinear / nota margin', sample: 'membina semula peradaban' },
-  { varName: '--font-arabic-handwritten', twClass: 'font-arabic-handwritten', role: 'Nota margin skrip Arab', sample: 'بناء الحضارة من جديد' },
+  { varName: '--font-serif', twClass: 'font-serif', role: 'Source Serif 4 — Suara jenama: wordmark, tajuk utama, dan teks artikel', sample: 'Membina Semula Peradaban' },
+  { varName: '--font-sans', twClass: 'font-sans', role: 'Inter — Antaramuka: butang, navigasi, dan eyebrow bertanda uppercase', sample: 'MEMBINA SEMULA PERADABAN' },
+  { varName: '--font-mono', twClass: 'font-mono', role: 'JetBrains Mono — Data sahaja: nombor slot, tarikh, had aksara, ID rekod', sample: '2026-07-30 · SLOT 01' },
+  { varName: '--font-arabic', twClass: 'font-arabic', role: 'Noto Naskh Arabic — Kandungan skrip Arab rasmi', sample: 'بناء الحضارة من جديد' },
+  { varName: '--font-signature', twClass: 'font-signature', role: 'Mrs Saint Delafield — Tandatangan penulis / editor', sample: 'Membina Semula Peradaban' },
+  { varName: '--font-handwritten', twClass: 'font-handwritten', role: 'Caveat — Gloss interlinear / nota margin', sample: 'membina semula peradaban' },
+  { varName: '--font-arabic-handwritten', twClass: 'font-arabic-handwritten', role: 'Playpen Sans Arabic — Nota margin skrip Arab', sample: 'بناء الحضارة من جديد' },
 ];
 
-const BRAND_FIELDS: Array<{ key: keyof typeof BRAND; label: string }> = [
-  { key: 'name', label: 'Nama produk' },
-  { key: 'shortName', label: 'Nama pendek' },
-  { key: 'logoText', label: 'Teks wordmark' },
-  { key: 'subLabel', label: 'Label bawah wordmark' },
-  { key: 'tagline', label: 'Tagline' },
-  { key: 'copyright', label: 'Hak cipta' },
+const DESIGN_RULES = [
+  {
+    num: '01',
+    title: 'Nisbah & Sempadan (Space Over Boxes)',
+    desc: 'Pemisahan seksyen diuruskan oleh garisan 1px hairline stone-300 dan ruang saksama — bukan kad berkotak berasingan atau bayang tebal.'
+  },
+  {
+    num: '02',
+    title: 'Istilah Adalah Undang-Undang (SPEC-021)',
+    desc: 'Satu konsep, satu istilah. Bidang (terkunci per slot) dan Topik (bebas per item) tidak boleh dipanggil "kategori" atau "tag".'
+  },
+  {
+    num: '03',
+    title: 'Nisbah Warna Berjimat (Single Maroon Accent)',
+    desc: 'Warna maroon #802334 digunakan sebagai aksen tunggal. Aksesori lain menggunakan rona stone dan cream page #FDFDFD.'
+  },
+  {
+    num: '04',
+    title: 'Hujung Lengkung Berstruktur (Radius Contract)',
+    desc: '2px untuk lencana, 4px untuk butang/input, 8px untuk kad biasa dan Toast, 12px untuk HERO/MENEGAK.'
+  }
 ];
 
 function readCssVar(name: string): string {
@@ -78,151 +85,103 @@ export const SistemRekaBentukConsole: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
-        <h2 className="font-serif text-base uppercase tracking-wider text-[#802334] font-bold mb-1">
-          Sistem Reka Bentuk Adjung Brief
-        </h2>
-        <p className="font-sans text-xs text-stone-600 max-w-2xl">
-          Rujukan tunggal identiti visual — jenama, warna, tipografi, komponen kongsi. Nilai di
-          bawah dibaca TERUS daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/index.css</code> dan{' '}
-          <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/config/brand.ts</code> semasa
-          muka ni dimuatkan — bukan salinan tangan. Peraturan geometri kad (saiz slot, had aksara)
-          kekal di <span className="font-semibold text-stone-800">Perlembagaan</span>, tak diulang di sini.
-        </p>
+    <div className="space-y-6 font-sans bg-[#FDFDFD] text-[#1F1F1F]">
+      {/* Editorial Header Banner — Flat Cream, Hairline Divider (Matching DrafSayaConsole) */}
+      <div className="pb-4 border-b border-stone-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-serif font-bold text-stone-900">
+            Sistem Reka Bentuk Adjung Brief
+          </h2>
+          <p className="text-xs text-stone-500 font-sans mt-0.5 max-w-2xl">
+            Spesifikasi rasmi identiti visual portal majalah akademik Adjung Brief. Rujukan tunggal warna, tipografi, peraturan istilah, dan komponen antaramuka Editorium.
+          </p>
+        </div>
+        <span className="font-mono text-[10px] text-stone-500 bg-stone-100 px-2.5 py-1 rounded border border-stone-200 shrink-0">
+          v1.2 Canonical
+        </span>
       </div>
 
-      {/* 01 — BRAND IDENTITY */}
-      <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          01 — Identiti Jenama
-        </span>
-        <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-xs">
-          <div className="flex flex-col items-center text-center py-4 mb-5 border-b border-stone-150">
-            <div className="flex items-center gap-3 mb-1">
-              <img src="/adjung-symbol.svg" alt="Simbol Adjung" className="h-11 w-auto" />
-              <h1 className="font-serif font-normal tracking-tight text-5xl text-[#802334]">{BRAND.logoText}</h1>
-            </div>
-            <div className="flex items-center justify-center gap-2.5 mt-2 mb-1">
-              <div className="h-[1px] bg-[#b4b4b4] w-10"></div>
-              <span className="font-sans text-[10px] tracking-[0.25em] font-semibold text-[#b4b4b4] uppercase">{BRAND.subLabel}</span>
-              <div className="h-[1px] bg-[#b4b4b4] w-10"></div>
-            </div>
-            <p className="font-sans text-[9px] tracking-editorial uppercase text-[#555555] mt-1">{BRAND.tagline}</p>
-          </div>
-          <table className="w-full text-xs">
-            <tbody>
-              {BRAND_FIELDS.map(f => (
-                <tr key={f.key} className="border-b border-stone-100 last:border-0">
-                  <td className="py-1.5 pr-4 font-mono text-[10px] uppercase tracking-wide text-stone-400 w-40">{f.label}</td>
-                  <td className="py-1.5 font-sans text-stone-800">{String(BRAND[f.key])}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="font-sans text-[10px] text-stone-500 mt-3 italic">
-            Simbol (segi empat tegak, nisbah 1:2, sudut 0px) ikut Sistem Identiti Visual Adjung
-            v1.0 (Mei 2025) — <code className="not-italic bg-stone-100 px-1 py-0.5 rounded">public/adjung-symbol.svg</code>.
-            Favicon dikemas kini guna simbol ni (bukan lagi segi empat rata tanpa reka bentuk).
-          </p>
+      {/* 01 — BRAND IDENTITY & MASTHEAD LOCK-UP */}
+      <div className="space-y-4 pb-6 border-b border-stone-200">
 
-          {/* Sistem Logo — 4 versi dibenarkan ikut panduan v1.0 seksyen 12 (Logo System).
-              Disusun terus drpd aset sebenar (adjung-symbol.svg + BRAND.logoText), bukan gambar
-              statik — kalau simbol/wordmark berubah, keempat-empat versi ni ikut berubah sekali. */}
-          <div className="mt-6 pt-5 border-t border-stone-150">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold block mb-3">
-              Sistem Logo — 4 versi dibenarkan (Panduan v1.0, seksyen 12)
-            </span>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="flex flex-col">
-                <div className="h-24 rounded-md border border-stone-200 bg-white flex items-center justify-center gap-2 p-3">
-                  <img src="/adjung-symbol.svg" alt="" className="h-6 w-auto" />
-                  <span className="font-serif text-xl text-[#802334]">{BRAND.logoText}</span>
-                </div>
-                <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Utama (Horizontal)</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="h-24 rounded-md border border-stone-200 bg-white flex flex-col items-center justify-center gap-1 p-3">
-                  <img src="/adjung-symbol.svg" alt="" className="h-6 w-auto" />
-                  <span className="font-serif text-base text-[#802334]">{BRAND.logoText}</span>
-                </div>
-                <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Menegak</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="h-24 rounded-md border border-stone-200 bg-white flex items-center justify-center p-3">
-                  <img src="/adjung-symbol.svg" alt="" className="h-10 w-auto" />
-                </div>
-                <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Ikon (Simbol)</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="h-24 rounded-md border border-stone-200 bg-white flex items-center justify-center gap-2 p-3">
-                  <div className="h-6 w-3 bg-stone-900" />
-                  <span className="font-serif text-xl text-stone-900">{BRAND.logoText}</span>
-                </div>
-                <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Monokrom</span>
-              </div>
-            </div>
-            <p className="font-sans text-[10px] text-stone-500 mt-3 italic">
-              Senarai ini disusun drpd imej panduan yang dikongsi Izzat (bukan fail hidup boleh
-              dirujuk semula) — sahkan label tepat kalau ada silap.
+        {/* Masthead Lock-Up Demonstration */}
+        <div className="flex flex-col items-center text-center py-6 border-y border-stone-200 bg-stone-50/40">
+          <div className="flex items-center gap-3 mb-1">
+            <img src="/adjung-symbol.svg" alt="Simbol Adjung" className="h-10 w-auto" />
+            <h1 className="font-serif font-normal tracking-tight text-5xl text-[#802334]">{BRAND.logoText}</h1>
+          </div>
+          <div className="flex items-center justify-center gap-2.5 mt-2 mb-1">
+            <div className="h-[1px] bg-[#b4b4b4] w-12"></div>
+            <span className="font-sans text-[10px] tracking-[0.25em] font-semibold text-[#b4b4b4] uppercase">{BRAND.subLabel}</span>
+            <div className="h-[1px] bg-[#b4b4b4] w-12"></div>
+          </div>
+          <p className="font-sans text-[9px] tracking-widest uppercase text-stone-600 font-semibold mt-1">{BRAND.tagline}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs pt-2">
+          <div className="space-y-1 font-sans text-stone-800">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-stone-400 font-bold block mb-1.5">Syarikat Induk & Produk</span>
+            <div><strong>Syarikat:</strong> Adjung Corporation</div>
+            <div><strong>Portal Utama:</strong> Adjung Brief</div>
+            <div><strong>Produk Sampingan:</strong> Adjung Platform</div>
+            <div><strong>Hak Cipta:</strong> {BRAND.copyright}</div>
+          </div>
+
+          <div className="space-y-1 font-sans text-stone-800">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-stone-400 font-bold block mb-1.5">Temperamen Reka Bentuk</span>
+            <p className="text-stone-700 leading-relaxed text-[11px]">
+              Akademik, elegan, teratur, tenang, dan premium. Latar cream page (#FDFDFD), garisan hairline 1px, dan aksen maroon tunggal. Tiada elemen kasual, bising, atau mengikut gaya perhiasan trend sementara.
             </p>
           </div>
         </div>
       </div>
 
-      {/* 02 — COLORS */}
-      <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          02 — Warna
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
-            {COLOR_TOKENS.map(t => (
-              <Tooltip key={t.varName} text={t.usage}>
-                <div className="flex flex-col gap-1.5 cursor-help">
-                  <div className="h-14 rounded-md border border-stone-200" style={{ background: `var(${t.varName})` }} />
-                  <span className="font-mono text-[9px] text-stone-700 font-bold">{t.varName}</span>
-                  <span className="font-mono text-[9px] text-stone-400 uppercase">{colorValues[t.varName] || '...'}</span>
-                </div>
-              </Tooltip>
-            ))}
-          </div>
+      {/* 02 — COLOUR PALETTE */}
+      <div className="space-y-4 pb-6 border-b border-stone-200">
 
-          <div className="pt-4 border-t border-stone-150">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold block mb-2.5">
-              Warna semantik — belum jadi token @theme, hex terus dlm komponen
-            </span>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {SEMANTIC_COLORS_UNTOKENIZED.map(c => (
-                <div key={c.hex} className="flex items-start gap-2.5">
-                  <div className="h-8 w-8 rounded shrink-0 border border-stone-200" style={{ background: c.hex }} />
-                  <div>
-                    <div className="font-mono text-[9px] text-stone-700 font-bold">{c.hex}</div>
-                    <div className="font-sans text-[10px] text-stone-500 leading-tight">{c.label}</div>
-                    <div className="font-mono text-[8px] text-stone-400 mt-0.5">{c.where}</div>
-                  </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {COLOR_TOKENS.map(t => (
+            <Tooltip key={t.varName} text={t.usage}>
+              <div className="flex flex-col gap-1.5 cursor-help">
+                <div className="h-14 rounded border border-stone-200 shadow-xs" style={{ background: `var(${t.varName})` }} />
+                <span className="font-mono text-[9px] text-stone-700 font-bold">{t.varName}</span>
+                <span className="font-mono text-[9px] text-stone-400 uppercase">{colorValues[t.varName] || '...'}</span>
+              </div>
+            </Tooltip>
+          ))}
+        </div>
+
+        <div className="pt-3">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold block mb-2.5">
+            Warna Semantik Rasmi (Semantic Colors)
+          </span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {SEMANTIC_COLORS.map(c => (
+              <div key={c.hex} className="flex items-start gap-2.5 p-2 rounded border border-stone-200 bg-stone-50/50">
+                <div className="h-7 w-7 rounded shrink-0 border border-stone-300 shadow-xs" style={{ background: c.hex }} />
+                <div>
+                  <div className="font-mono text-[9px] text-stone-900 font-bold">{c.hex}</div>
+                  <div className="font-sans text-[10px] text-stone-600 leading-tight mt-0.5">{c.label}</div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* 03 — TYPOGRAPHY */}
-      <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          03 — Tipografi
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+      <div className="space-y-4 pb-6 border-b border-stone-200">
+
+        <div className="space-y-4">
           {FONT_TOKENS.map(f => (
-            <div key={f.varName} className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-2 md:gap-4 items-start pb-4 border-b border-stone-100 last:border-0 last:pb-0">
+            <div key={f.varName} className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-2 md:gap-4 items-start pb-3 border-b border-stone-150 last:border-0 last:pb-0">
               <div>
-                <div className="font-mono text-[10px] text-stone-700 font-bold">{f.varName}</div>
+                <div className="font-mono text-[10px] text-stone-800 font-bold">{f.varName}</div>
                 <div className="font-sans text-[10px] text-stone-500 mt-0.5">{f.role}</div>
               </div>
               <div>
                 <p className={`${f.twClass} text-lg text-stone-900`}>{f.sample}</p>
-                <p className="font-mono text-[9px] text-stone-400 mt-1 truncate" title={fontStacks[f.varName]}>
+                <p className="font-mono text-[9px] text-stone-400 mt-0.5 truncate" title={fontStacks[f.varName]}>
                   {fontStacks[f.varName] || '...'}
                 </p>
               </div>
@@ -231,43 +190,23 @@ export const SistemRekaBentukConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 04 — COMPONENTS */}
-      <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          04 — Komponen Kongsi
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-6">
-          <div>
-            <div className="font-serif text-sm font-bold text-stone-900 mb-1">Tooltip</div>
-            <p className="font-sans text-xs text-stone-600 mb-2.5">
-              Ganti sepenuhnya atribut <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">title=</code> native
-              (32 tempat, digantikan 2026-07-25). Halaman ni sendiri guna Tooltip — hover atas swatch warna di atas.
-            </p>
-            <Tooltip text="Contoh tooltip Adjung — opacity+blur, maroon, tiada border">
-              <button className="px-3 py-1.5 bg-[#802334] hover:bg-Adjung-maroon-dark text-white rounded text-xs font-semibold cursor-pointer shadow-sm">
-                Hover Saya
-              </button>
-            </Tooltip>
-          </div>
+      {/* 04 — DESIGN SYSTEM PRINCIPLES */}
+      <div className="space-y-4">
 
-          <div className="pt-5 border-t border-stone-100">
-            <div className="font-serif text-sm font-bold text-stone-900 mb-1">Toast</div>
-            <p className="font-sans text-xs text-stone-600 mb-2.5">
-              Notifikasi transien (3 saat). Digubah semula 2026-07-26 drpd palet gelap generik
-              kepada latar cream + jalur warna kiri, selari identiti Adjung.
-            </p>
-            <div className="flex flex-col gap-2 max-w-sm">
-              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-sm border border-l-4 bg-[#FDFDFD] text-[#292524] text-xs leading-relaxed border-stone-200 border-l-[#3d6b4c]">
-                <span>Peraturan berjaya ditambah!</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {DESIGN_RULES.map(r => (
+            <div key={r.num} className="p-4 rounded-lg border border-stone-200 bg-stone-50/40 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] text-[#802334] font-bold bg-[#802334]/10 px-1.5 py-0.5 rounded">
+                  {r.num}
+                </span>
+                <h4 className="font-serif text-sm font-bold text-stone-900">{r.title}</h4>
               </div>
-              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-sm border border-l-4 bg-[#FDFDFD] text-[#292524] text-xs leading-relaxed border-stone-200 border-l-[#a8241f]">
-                <span>Sila masukkan Nama Peraturan.</span>
-              </div>
-              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-sm border border-l-4 bg-[#FDFDFD] text-[#292524] text-xs leading-relaxed border-stone-200 border-l-[#802334]">
-                <span>Peraturan telah dibuang.</span>
-              </div>
+              <p className="font-sans text-xs text-stone-600 leading-relaxed">
+                {r.desc}
+              </p>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

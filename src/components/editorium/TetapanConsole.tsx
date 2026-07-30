@@ -355,7 +355,19 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   }
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans bg-[#FDFDFD] text-[#1F1F1F]">
+      {/* Editorial Header Banner */}
+      <div className="pb-4 border-b border-stone-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-serif font-bold text-stone-900">
+            Tetapan Sistem & Polisi Editorial
+          </h2>
+          <p className="text-xs text-stone-500 font-sans mt-0.5">
+            Pusat konfigurasi polisi teks global, operasi waktu, dan kawalan akses peranan RBAC.
+          </p>
+        </div>
+      </div>
+
       {/* Submodule Navigation Bar */}
       <div className="flex flex-wrap justify-between items-center border-b border-stone-200 pb-3 text-xs gap-2">
         <div className="flex flex-wrap gap-1">
@@ -390,8 +402,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
       {/* 1. POLISI KANDUNGAN */}
       {subTab === 'PolisiKandungan' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
+        <div className="space-y-4 text-xs">
+          <h3 className="font-serif text-sm font-bold text-stone-900">
             Polisi Teks & Format Global
           </h3>
           <div className="space-y-4 divide-y divide-stone-100">
@@ -407,9 +419,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               </div>
               <button
                 onClick={() => setActiveConfigModal('italic')}
-                className="w-64 flex items-center justify-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold transition-colors"
+                className="w-64 flex items-center justify-center gap-1.5 bg-[#802334] hover:bg-[#601824] text-white font-sans text-xs px-3 py-1.5 rounded font-semibold transition-colors shadow-xs cursor-pointer"
               >
-                <Settings className="w-3.5 h-3.5" /> Senarai Istilah Autocondong ({italicTerms.filter(t => t.status === 'active').length} Aktif)
+                <Settings className="w-3.5 h-3.5" /> Senarai istilah autocondong ({italicTerms.filter(t => t.status === 'active').length} aktif)
               </button>
             </div>
 
@@ -424,7 +436,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </p>
               </div>
               <span className="w-64 flex items-center justify-center gap-1.5 bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
-                <Construction className="w-3.5 h-3.5" /> Belum Dibina
+                <Construction className="w-3.5 h-3.5" /> Belum dibina
               </span>
             </div>
           </div>
@@ -434,7 +446,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {/* 2. TAKSONOMI (BIDANG — SENARAI TERTUTUP) */}
       {/* 2. OPERASI & GOVERNANCE */}
       {subTab === 'Operasi' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-6 text-xs">
+        <div className="space-y-6 text-xs border-t border-stone-200 pt-4">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
             <Newspaper className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Frontpage → Urus Ticker</strong>, bukan di sini — supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
           </div>
@@ -549,9 +561,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <button
                 onClick={handleSaveWorldClockSettings}
                 disabled={savingWorldClock}
-                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer font-sans"
               >
-                {savingWorldClock ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Jam Dunia</>}
+                {savingWorldClock ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan tetapan jam dunia</>}
               </button>
             </div>
 
@@ -608,7 +620,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
       {/* 4. INTERACTIVE RBAC PERMISSION TABLE MATRIX */}
       {subTab === 'RBAC' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+        <div className="space-y-4 text-xs border-t border-stone-200 pt-4">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
             <AlertTriangle className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Matriks ni disimpan betul-betul ke pangkalan data, tapi <strong>belum dikuatkuasakan</strong> di mana-mana bahagian sistem sebenar — semua semakan akses semasa (Indeks, Direktori, Tetapan sendiri) terus banding peranan dengan Ketua Editor secara tegar dalam kod, tanpa rujuk jadual ni langsung. Menanda/menyahtanda kebenaran di bawah <strong>tiada kesan</strong> pada apa yang seseorang benar-benar boleh buat buat masa ini.
           </div>
@@ -630,7 +642,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs font-semibold text-stone-700">
+                <tr className="border-b border-stone-300 font-mono text-[10px] uppercase tracking-widest text-stone-400 font-bold">
                   <th className="p-3 min-w-36">Peranan Editorial</th>
                   <th className="p-3 text-center">Lihat Semua</th>
                   <th className="p-3 text-center">Sunting Saya</th>
@@ -684,9 +696,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             <button
               onClick={handleSaveRbac}
               disabled={savingRbac || !rbacDirty}
-              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer font-sans"
             >
-              {savingRbac ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : rbacDirty ? <><Save className="w-3.5 h-3.5" /> Simpan Kawalan Akses</> : <><Check className="w-3.5 h-3.5" /> Tersimpan</>}
+              {savingRbac ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : rbacDirty ? <><Save className="w-3.5 h-3.5" /> Simpan kawalan akses</> : <><Check className="w-3.5 h-3.5" /> Tersimpan</>}
             </button>
           </div>
         </div>
@@ -695,7 +707,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {/* MODAL CONFIGURATION DRAWER: SENARAI ISTILAH AUTOCONDONG */}
       {activeConfigModal === 'italic' && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-lg w-full p-6 space-y-4 text-xs">
+          <div className="bg-[#FDFDFD] rounded-xl border border-stone-300 shadow-2xl max-w-lg w-full p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
                 Senarai Istilah Autocondong

@@ -481,7 +481,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   return (
     <div className="space-y-6">
       {/* MEJA KERJA EDITORIAL - SMART FILTER BAR */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200 space-y-4">
+      <div className="py-2 space-y-4">
         <div className="flex flex-wrap justify-end items-center gap-4">
           {/* Quick Counter Badges */}
           <div className="flex items-center gap-2 font-sans text-[10px]">
@@ -723,18 +723,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
       {/* Content List Table */}
       {loading ? (
-        <div className="bg-white p-12 text-center rounded-lg border border-stone-200 font-sans text-xs text-stone-500">
+        <div className="py-12 text-center font-sans text-xs text-stone-500">
           ⏳ Memuatkan meja kerja kandungan...
         </div>
       ) : sortedRecords.length === 0 ? (
-        <div className="bg-white p-12 text-center rounded-lg border border-stone-200 font-serif text-stone-500 text-xs">
+        <div className="py-12 text-center font-serif text-stone-500 text-xs border-t border-b border-stone-200">
           Tiada kandungan yang sepadan dengan kriteria filter pilihan anda.
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-stone-200 overflow-x-auto">
+        <div className="border-t border-stone-200 overflow-x-auto">
           <table className="w-full text-left border-collapse font-sans text-xs min-w-[850px] table-fixed">
             <thead>
-              <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+              <tr className="border-b border-stone-300 font-mono text-[10px] uppercase tracking-widest text-stone-400 font-bold">
                 <th className="p-2.5 w-16">ID</th>
                 {/* Tajuk dikecilkan lagi + Editor (2026-07-29, permintaan pemilik projek) — Topik/
                     Kaedah/Jenis Kad dibuang terus daripada jadual (kekal di penapis + modal
@@ -875,7 +875,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           footer sentiasa jadi laluan kedua yang sedia ada. */}
       {activeItemModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden">
+          <div className="bg-[#FDFDFD] rounded-xl border border-stone-300 shadow-2xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden">
             <div className="flex-none flex justify-between items-start border-b border-stone-200 px-6 pt-6 pb-3">
               <div>
                 <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-bold block mb-1">
@@ -987,9 +987,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 <button
                   onClick={handleReactivate}
                   disabled={reactivating || !reactivateDesk || !reactivateTopik.trim() || reactivateSlotIndex === ''}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  className="bg-[#3d6b4c] hover:bg-[#2e5239] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {reactivating ? 'Menyiarkan...' : 'Siarkan Semula'}
+                  {reactivating ? 'Menyiarkan...' : 'Siarkan semula'}
                 </button>
               </div>
             )}
@@ -1002,20 +1002,20 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                   {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
                     <button
                       onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}
-                      className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                      className="bg-[#3d6b4c] hover:bg-[#2e5239] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                     >
-                      Publish Brief
+                      Terbitkan kandungan
                     </button>
                   )}
                   <button
                     onClick={() => handleRejectToDraft(activeItemModal.id)}
-                    className="bg-[#c00000] hover:bg-red-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                    className="bg-[#a8241f] hover:bg-[#851c18] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                   >
-                    Tolak (kembali jadi draf)
+                    Tolak (kembali draf)
                   </button>
                   <button
                     onClick={() => setActiveItemModal(null)}
-                    className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                    className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                   >
                     Tutup
                   </button>

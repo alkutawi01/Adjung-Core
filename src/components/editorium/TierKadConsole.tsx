@@ -104,20 +104,22 @@ export const TierKadConsole: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 font-sans">
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+    <div className="space-y-6 font-sans bg-[#FDFDFD] text-[#1F1F1F]">
+      <div className="pb-4 border-b border-stone-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Tier Kad</h3>
-          <p className="text-stone-500 text-xs">
-            Tetapan yang dikongsi semua slot yang sama bentuk. Menukar had di sini berkuat kuasa serentak
-            pada setiap slot dalam tier itu — tiada pengecualian per-slot.
+          <h2 className="text-xl font-serif font-bold text-stone-900">
+            Tier Kad & Had Aksara Geometri
+          </h2>
+          <p className="text-xs text-stone-500 font-sans mt-0.5">
+            Tetapan yang dikongsi semua slot yang sama bentuk. Menukar had di sini berkuat kuasa serentak pada setiap slot dalam tier itu.
           </p>
         </div>
+      </div>
 
-        <div className="p-3 bg-stone-50 border border-stone-200 rounded text-[11px] text-stone-600 leading-relaxed">
-          Tajuk dan huraian berkongsi <strong className="font-semibold">satu</strong> bajet ruang, bukan dua had berasingan.
-          Nombor di bawah ialah had setiap medan apabila medan satu lagi kosong; tajuk yang panjang mengecilkan
-          ruang huraian secara berkadar, dan sebaliknya.
+      <div className="space-y-4 text-xs">
+        <div className="p-3 bg-stone-100/60 border border-stone-200 rounded text-[11px] text-stone-600 leading-relaxed">
+          Tajuk dan huraian berkongsi <strong className="font-semibold text-stone-900">satu</strong> bajet ruang, bukan dua had berasingan.
+          Nombor di bawah ialah had setiap medan apabila medan satu lagi kosong.
         </div>
 
         {ralat && (

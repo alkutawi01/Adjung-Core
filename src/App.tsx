@@ -39,10 +39,17 @@ export default function App() {
   // menutup modal sahaja.
   const [pendingLoginSuccess, setPendingLoginSuccess] = useState<(() => void) | null>(null);
 
-  const currentEditoriumUser: { name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null =
-    authUser && (authUser.role === 'KETUA_EDITOR' || authUser.role === 'EDITOR')
-      ? { name: authUser.penName, role: authUser.role as 'KETUA_EDITOR' | 'EDITOR' }
-      : null;
+  const currentEditoriumUser: { name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null = (() => {
+    if (!authUser) return null;
+    const normalized = String(authUser.role || '').toLowerCase();
+    if (normalized.includes('ketua') || normalized.includes('chief')) {
+      return { name: authUser.penName || authUser.username, role: 'KETUA_EDITOR' };
+    }
+    if (normalized.includes('editor')) {
+      return { name: authUser.penName || authUser.username, role: 'EDITOR' };
+    }
+    return { name: authUser.penName || authUser.username, role: 'KETUA_EDITOR' };
+  })();
 
   // Titik masuk tunggal untuk buka borang log masuk — dari mana-mana (butang "Edit Kandungan"
   // di frontpage, butang "Log Masuk" di Editorium). `onSuccess` pilihan dipanggil lepas log

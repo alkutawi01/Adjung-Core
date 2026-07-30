@@ -424,41 +424,43 @@ export const BidangConsole: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-        <div className="flex flex-wrap justify-between items-center gap-4">
-          <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-              Bidang (Senarai Tertutup)
-            </h3>
-            <p className="text-stone-500 text-xs">
-              Senarai Bidang yang boleh dipilih untuk setiap slot (selain Ticker dan tier Bar) — dikurasi Ketua Editor sahaja. Menukar Bidang sesuatu slot akan mengarkibkan kandungan aktif sedia ada dalam slot tu.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5" /> {desks.length} Bidang Aktif
-            </span>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-[#802334] hover:bg-[#601824] text-white px-3 py-1.5 rounded font-semibold text-xs"
-            >
-              + Tambah Bidang
-            </button>
-          </div>
+    <div className="space-y-6 font-sans bg-[#FDFDFD] text-[#1F1F1F]">
+      <div className="pb-4 border-b border-stone-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-serif font-bold text-stone-900">
+            Bidang (Senarai Tertutup Kurasi)
+          </h2>
+          <p className="text-xs text-stone-500 font-sans mt-0.5">
+            Senarai Bidang yang boleh dipilih untuk setiap slot bento — dikurasi Ketua Editor sahaja.
+          </p>
         </div>
+        <div className="flex items-center gap-2">
+          <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5" /> {desks.length} Bidang Aktif
+          </span>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-[#802334] hover:bg-[#601824] text-white px-3 py-1.5 rounded font-semibold text-xs shadow-xs"
+          >
+            + Tambah Bidang
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4 text-xs">
 
         {desksLoading ? (
           <div className="text-stone-400 text-xs py-6 text-center">Memuatkan Bidang...</div>
         ) : (
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+              <tr className="border-b border-stone-300 font-mono text-[10px] uppercase tracking-widest text-stone-400 font-bold">
                 <th className="p-3">Ikon</th>
                 <th className="p-3">Warna</th>
                 <th className="p-3">Nama Bidang</th>
                 <th className="p-3">Nombor Slot Diperuntukkan</th>
                 <th className="p-3">Editor</th>
+                <th className="p-3 text-right">Tindakan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -718,7 +720,7 @@ export const BidangConsole: React.FC = () => {
         if (!target) return null;
         return (
           <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-lg w-full p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto">
+            <div className="bg-[#FDFDFD] rounded-xl border border-stone-300 shadow-2xl max-w-lg w-full p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto">
               <div className="flex justify-between items-center border-b border-stone-200 pb-2">
                 <h3 className="font-sans text-xs font-bold text-[#802334] uppercase flex items-center gap-2">
                   <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />

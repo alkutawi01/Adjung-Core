@@ -24,9 +24,19 @@ const MEDAN_HAD: { kunci: keyof TetapanAm; label: string; nota: string }[] = [
   { kunci: 'hadNotaEditor', label: 'Nota editor', nota: 'Nota dalaman, tidak dipapar pada kad.' },
 ];
 
+const DEFAULT_SETTINGS: TetapanAm = {
+  mulaIkutMasa: 1,
+  hadKandunganSlot: 0,
+  jenisAnimasi: 'fade',
+  hadHuraianPanjang: 0,
+  hadSumber: 0,
+  hadTopik: 0,
+  hadNotaEditor: 0
+};
+
 export const TetapanAmSlotConsole: React.FC = () => {
-  const [draf, setDraf] = useState<TetapanAm | null>(null);
-  const [asal, setAsal] = useState<TetapanAm | null>(null);
+  const [draf, setDraf] = useState<TetapanAm>(DEFAULT_SETTINGS);
+  const [asal, setAsal] = useState<TetapanAm>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState<string | null>(null);
@@ -36,8 +46,16 @@ export const TetapanAmSlotConsole: React.FC = () => {
     setLoading(true);
     fetch('/api/system/slot-am-settings')
       .then(r => r.json())
-      .then(d => { setDraf(d); setAsal(d); })
-      .catch(e => setRalat('Gagal memuatkan tetapan: ' + (e.message || '')))
+      .then(d => {
+        const clean = d && typeof d === 'object' && !d.error ? { ...DEFAULT_SETTINGS, ...d } : DEFAULT_SETTINGS;
+        setDraf(clean);
+        setAsal(clean);
+      })
+      .catch(e => {
+        setRalat('Gagal memuatkan tetapan: ' + (e.message || ''));
+        setDraf(DEFAULT_SETTINGS);
+        setAsal(DEFAULT_SETTINGS);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -77,19 +95,20 @@ export const TetapanAmSlotConsole: React.FC = () => {
     />
   );
 
-  if (loading || !draf) {
-    return <div className="bg-white p-6 rounded-lg border border-stone-200 text-xs text-stone-400 text-center font-sans">Memuatkan tetapan...</div>;
-  }
-
   return (
-    <div className="space-y-4 font-sans">
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-5 text-xs">
+    <div className="space-y-6 font-sans bg-[#FDFDFD] text-[#1F1F1F]">
+      <div className="pb-4 border-b border-stone-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Tetapan Am Slot</h3>
-          <p className="text-stone-500 text-xs">
-            Terpakai pada SEMUA slot bento sekali gus — tidak termasuk Ticker dan tier <em>Bar</em>.
+          <h2 className="text-xl font-serif font-bold text-stone-900">
+            Tetapan Am Slot Bento
+          </h2>
+          <p className="text-xs text-stone-500 font-sans mt-0.5">
+            Terpakai pada SEMUA slot bento sekali gus — tidak termasuk Ticker dan tier <span className="font-serif italic text-stone-700">Bar</span>.
           </p>
         </div>
+      </div>
+
+      <div className="space-y-5 text-xs">
 
         {ralat && (
           <div className="p-3 bg-red-50 border border-red-200 rounded text-red-800 text-[11px] flex items-start gap-1.5">

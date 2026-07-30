@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Calculator, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { GEOMETRY_RATIOS, ratiosForTier, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
 
@@ -113,6 +114,86 @@ const UNIVERSAL_RULES = [
   },
 ];
 
+const KalkulatorWidget: React.FC = () => {
+  const [selectedTier, setSelectedTier] = useState('STANDARD');
+  const [testTitle, setTestTitle] = useState('');
+  const [testBrief, setTestBrief] = useState('');
+
+  const ratio = ratiosForTier(selectedTier);
+  const maxTitle = ratio?.maxTitleAlone || 100;
+  const maxBrief = ratio?.maxBriefAlone || 200;
+
+  const titleRatio = testTitle.length / maxTitle;
+  const briefRatio = maxBrief > 0 ? testBrief.length / maxBrief : 0;
+  const totalRatio = titleRatio + briefRatio;
+
+  const isValid = totalRatio <= 1.0;
+  const pct = Math.min(100, Math.round(totalRatio * 100));
+
+  return (
+    <div className="space-y-4 font-sans text-xs">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label className="text-[10px] font-mono uppercase tracking-wider text-stone-500 font-bold block mb-1">Pilih Tier Kad:</label>
+          <select
+            value={selectedTier}
+            onChange={e => setSelectedTier(e.target.value)}
+            className="w-full px-3 py-1.5 border border-stone-300 rounded text-xs font-semibold text-stone-800 bg-white"
+          >
+            {TIER_ORDER.map(t => (
+              <option key={t} value={t}>{TIER_LABELS[t] || t}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[10px] font-mono uppercase tracking-wider text-stone-500 font-bold block mb-1">
+            Tajuk Ujian ({testTitle.length} / max {maxTitle}):
+          </label>
+          <input
+            type="text"
+            value={testTitle}
+            onChange={e => setTestTitle(e.target.value)}
+            placeholder="Taip sampel tajuk draf..."
+            className="w-full px-3 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334]"
+          />
+        </div>
+
+        <div>
+          <label className="text-[10px] font-mono uppercase tracking-wider text-stone-500 font-bold block mb-1">
+            Huraian Ujian ({testBrief.length} / max {maxBrief}):
+          </label>
+          <input
+            type="text"
+            value={testBrief}
+            disabled={maxBrief === 0}
+            onChange={e => setTestBrief(e.target.value)}
+            placeholder={maxBrief === 0 ? 'Tier BAR tiada huraian ringkas' : 'Taip sampel huraian...'}
+            className="w-full px-3 py-1.5 border border-stone-300 rounded text-xs focus:outline-none focus:border-[#802334] disabled:bg-stone-100"
+          />
+        </div>
+      </div>
+
+      <div className="bg-white p-3 rounded-lg border border-stone-200 space-y-1.5">
+        <div className="flex items-center justify-between font-mono text-[11px]">
+          <span>Penggunaan Ruang Shared Budget: <strong>{pct}%</strong></span>
+          <span className={`font-bold uppercase tracking-wider px-2 py-0.5 rounded text-[10px] ${
+            isValid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+          }`}>
+            {isValid ? 'LULUS BAJET' : 'LEBIH HAD BAJET'}
+          </span>
+        </div>
+        <div className="h-2.5 bg-stone-100 rounded-full overflow-hidden border border-stone-200">
+          <div
+            className={`h-full transition-all duration-200 ${isValid ? 'bg-emerald-600' : 'bg-rose-600'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const PerlembagaanConsole: React.FC = () => {
   const [commits, setCommits] = useState<ChangelogCommit[]>([]);
   const [changelogUnavailable, setChangelogUnavailable] = useState(false);
@@ -149,33 +230,28 @@ export const PerlembagaanConsole: React.FC = () => {
   }, []);
 
   const maxBudget = Math.max(...TIER_ORDER.map(t => {
-    // ratiosForTier: papar had yang BERKUAT KUASA (termasuk pindaan Tier Kad), bukan lalai.
     const r = ratiosForTier(t);
     return (r?.maxTitleAlone || 0) + (r?.maxBriefAlone || 0);
   }));
 
   return (
-    <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
-        <h2 className="font-serif text-base uppercase tracking-wider text-[#802334] font-bold mb-1">
+    <div className="space-y-8 bg-[#FDFDFD] text-[#1F1F1F] font-sans">
+      <div className="pb-4 border-b border-stone-200">
+        <h2 className="font-serif text-xl font-bold text-stone-900">
           Perlembagaan Adjung Brief
         </h2>
-        <p className="font-sans text-xs text-stone-600 max-w-2xl">
+        <p className="font-sans text-xs text-stone-500 mt-0.5 max-w-2xl">
           Rujukan tunggal bagi peraturan kad bento serta sejarah perubahannya. Carta di bawah dijana
           terus daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">core/editorial/GeometryConfig.js</code> —
-          apabila fail itu berubah, carta ini turut dikemas kini secara automatik. Peraturan bertulis
-          pula dikemas kini oleh editor setiap kali seni bina sebenar berubah.
+          apabila fail itu berubah, carta ini turut dikemas kini secara automatik.
         </p>
       </div>
 
       {/* UNIVERSAL RULES */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          01 — Peraturan Sejagat (Semua Slot, Termasuk Ticker)
-        </span>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {UNIVERSAL_RULES.map((rule, i) => (
-            <div key={i} className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
+            <div key={i} className="py-3 px-4 rounded border border-stone-200 bg-stone-50/50 space-y-1">
               <div className="flex items-start gap-2">
                 <span className="font-mono text-[10px] text-stone-400 font-bold pt-0.5">{String(i + 1).padStart(2, '0')}</span>
                 <div>
@@ -190,15 +266,12 @@ export const PerlembagaanConsole: React.FC = () => {
 
       {/* TIER CHART — live from GeometryConfig.js */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          02 — Carta Pembahagian Slot (Masa Nyata)
-        </span>
 
         {/* Shape gallery: real MEASURED pixel proportions (getBoundingClientRect on the live page
             at 1280px width), to scale, side by side — not derived from grid units (that
             approach was tried first and produced a wrong, near-square MENEGAK box; see the
             TIER_SHAPE_PX comment above for what happened and why). */}
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs mb-3">
+        <div className="py-4 border-t border-b border-stone-200 mb-3">
           <div className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold mb-3">
             Bentuk sebenar (diukur terus daripada kad sebenar, skala 1:{Math.round(1 / SHAPE_SCALE)})
           </div>
@@ -236,7 +309,7 @@ export const PerlembagaanConsole: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+        <div className="space-y-4 pt-2 border-t border-stone-200">
           {TIER_ORDER.map(tier => {
             const ratio = ratiosForTier(tier);
             const slots = tier === 'TICKER' ? null : (TIER_SLOTS as any)[tier];
@@ -275,15 +348,25 @@ export const PerlembagaanConsole: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Kalkulator Bajet Geometri Interaktif */}
+        <div className="bg-[#802334]/5 border border-[#802334]/20 rounded-xl p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-[#802334]" />
+            <h4 className="font-serif font-bold text-sm text-[#802334]">Kalkulator Bajet Ruang Kad Interaktif</h4>
+          </div>
+          <p className="text-xs text-stone-600">
+            Uji nisbah perkongsian ruang tajuk dan huraian secara spontan untuk mengelakkan ralat limpahan kad pada sebarang tier.
+          </p>
+
+          <KalkulatorWidget />
+        </div>
       </div>
 
       {/* BIDANG & TOPIK — rujuk core/editorial/ContentBudget.js validateBidangTopik(). Bidang
           ialah konsep "Kategori"/desk sedia ada, kini terkunci kepada satu nilai tetap per slot;
           Topik ialah medan bebas-had per-kandungan yang mewarisi warna Bidang induknya. */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          03 — Bidang &amp; Topik
-        </span>
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
@@ -366,9 +449,6 @@ Nota:`}</pre>
           dibetulkan dulu sebelum peraturan ini ditulis, supaya apa yang tertulis di sini sentiasa
           padan dengan apa yang benar-benar berlaku, bukan spesifikasi angan-angan. */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          04 — Peraturan Khas Slot Bar
-        </span>
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
@@ -450,9 +530,6 @@ URL:`}</pre>
       {/* ALUR KERJA DRAF/TERBIT — diekstrak & disahkan terus daripada kod semasa (SlotManagerModal.tsx,
           useSlotEditor.ts, server.js syncManualObjectsForSlot, IndeksConsole.tsx). */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          05 — Alur Kerja Draf/Terbit
-        </span>
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Modal "Tulis Kandungan" ialah ruang draf peribadi sahaja</h3>
@@ -501,9 +578,6 @@ URL:`}</pre>
       {/* NAMA EDITOR & KAWALAN AKSES — diekstrak & disahkan terus daripada kod semasa
           (useSlotEditor.ts, server.js, IndeksConsole.tsx, TetapanConsole.tsx). */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          06 — Nama Editor &amp; Kawalan Akses
-        </span>
         <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Nama editor sebenar dicatat semasa Terbit</h3>
@@ -539,10 +613,7 @@ URL:`}</pre>
 
       {/* LIVE CHANGE LOG */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          07 — Log Perubahan Peraturan (Masa Nyata, Daripada Git)
-        </span>
-        <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
+        <div className="border-t border-b border-stone-200 overflow-hidden">
           {loadingLog ? (
             <div className="p-8 text-center font-serif text-stone-500 text-xs">Memuatkan sejarah...</div>
           ) : changelogUnavailable ? (
@@ -585,10 +656,7 @@ URL:`}</pre>
           UI/UX-affecting change lands (scripts/log-ui-change.mjs), not deferred to commit time,
           and carries a full jam:minit:saat timestamp, not just a date. */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
-          08 — Log Perubahan UI/UX (Masa Nyata)
-        </span>
-        <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
+        <div className="border-t border-b border-stone-200 overflow-hidden">
           {loadingUiUxLog ? (
             <div className="p-8 text-center font-serif text-stone-500 text-xs">Memuatkan log...</div>
           ) : uiUxUnavailable ? (
