@@ -177,24 +177,34 @@ const EyebrowKad: React.FC<{
 }> = ({ item, bidang, saiz = 11 }) => {
   const topik = (item.topik || '').trim();
   const bolehGunaIkon = EYEBROW_GUNA_IKON && !!bidang && !!topik;
+  const label = bolehGunaIkon ? topik : formatBidangTopik(item);
 
-  if (!bolehGunaIkon) return <>{formatBidangTopik(item)}</>;
-
+  // Struktur SATU bentuk untuk kedua-dua kes (ada ikon / tiada ikon) supaya CSS telefon boleh
+  // susun semula tanpa perlu tahu kes mana — desktop kekal baris sebaris (ikon + topik
+  // bersebelahan, slot ikon kosong disembunyikan supaya rupa lama tak berubah langsung),
+  // telefon tindan menegak (ikon atas, topik bawah) dengan slot ikon SENTIASA mengambil ruang
+  // walau kosong (permintaan Izzat: "yang belum ada ikon, reservekan ruang untuk icon") supaya
+  // baris topik semua kad sejajar sama tinggi.
+  //
+  // Tiada pemisah "|" apabila ikon dipakai: pemisah wujud untuk memisahkan DUA perkataan. Ikon
+  // dan perkataan sudah terpisah secara visual, jadi "|" cuma bunyi bising.
   return (
-    // Tiada pemisah apabila ikon dipakai: pemisah wujud untuk memisahkan DUA perkataan. Ikon dan
-    // perkataan sudah terpisah secara visual, jadi "|" cuma bunyi bising.
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-      <BidangIcon
-        iconName={bidang!.icon}
-        iconSvg={bidang!.iconSvg}
-        color="currentColor"
-        variant="bare"
-        size={saiz}
-        title={item.desk || undefined}
-      />
-      <span>{topik}</span>
+    <span className="eyebrow-kad" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+      <span className="eyebrow-ikon" style={{ display: 'inline-flex', alignItems: 'center', width: saiz, height: saiz, flexShrink: 0 }}>
+        {bolehGunaIkon && (
+          <BidangIcon
+            iconName={bidang!.icon}
+            iconSvg={bidang!.iconSvg}
+            color="currentColor"
+            variant="bare"
+            size={saiz}
+            title={item.desk || undefined}
+          />
+        )}
+      </span>
+      <span className="eyebrow-topik">{label}</span>
       {/* Nama Bidang kekal untuk pembaca skrin: ikon sahaja tidak membawa maksud tanpa dilihat. */}
-      <span className="sr-only">{item.desk}</span>
+      {bolehGunaIkon && <span className="sr-only">{item.desk}</span>}
     </span>
   );
 };
@@ -2884,7 +2894,37 @@ URL: ${url}`;
             !important wajib: kelas Tailwind (rounded-lg) & gaya inline getCardTheme() (borderColor
             per-kandungan) kedua-duanya perlu ditewaskan untuk sudut tajam + sempadan hitam seragam. */}
         <style>{`
+          /* DESKTOP (lalai, di luar media query) — eyebrow kekal SATU baris seperti asal:
+             ikon + topik bersebelahan. Slot ikon yang KOSONG (kandungan tanpa ikon Bidang)
+             disembunyikan sepenuhnya supaya tiada ruang terpelawa & tiada gap tertinggal —
+             rupa desktop 100% sama seperti sebelum penstrukturan semula EyebrowKad. */
+          #bento-news-grid .eyebrow-ikon:empty {
+            display: none !important;
+          }
+
           @media (max-width: 767px) {
+            /* TELEFON — eyebrow ditindan menegak (permintaan Izzat): baris ATAS ikon (kiri) +
+               tarikh (kanan, .tarikh-siaran-badge yang sedia ada diposisi mutlak di sudut
+               atas-kanan kad), baris BAWAH barulah topik. Slot ikon SENTIASA ambil ruang walau
+               kosong supaya baris topik semua kad sejajar sama tinggi. */
+            #bento-news-grid .eyebrow-kad {
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 4px;
+            }
+            #bento-news-grid .eyebrow-ikon:empty {
+              display: inline-flex !important;
+            }
+            /* Tarikh diselaraskan dengan BARIS IKON: lencana tarikh diposisi mutlak guna kelas
+               Tailwind top-6/right-6 (24px) atau top-8/right-8 (32px, HERO) yang dipilih untuk
+               padding LAMA (24px/32px). Padding telefon kini 16px (p-4), jadi tanpa pembetulan
+               ni lencana terapung 8-16px lebih rendah daripada ikon — bukan sebaris seperti
+               dikehendaki (ikon kiri, tarikh kanan pada baris yang SAMA). */
+            #bento-news-grid .tarikh-siaran-badge {
+              top: 16px !important;
+              right: 16px !important;
+            }
+
             /* Grid TUNGGAL merentasi HERO + kesemua slot — jamin garisan sejajar sepenuhnya
                (lihat nota "Jadual telefon TUNGGAL" di atas). Tepi KANAN + BAWAH jadual
                keseluruhan ditutup di sini, bukan oleh kad individu. */
