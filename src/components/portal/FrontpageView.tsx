@@ -7,8 +7,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Settings, Lock, Trash2, Save, Search, PenLine, FlaskConical, Tag, Brain, Ban, PenTool, Building2, Zap, AlertTriangle } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
-import { phoneLayoutCss } from '../../../core/editorial/PhoneGeometry.js';
-import { usePhoneMasonry } from '../../hooks/usePhoneMasonry';
 import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRenderer';
 import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
@@ -19,11 +17,6 @@ import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
 import { SlotManagerModal } from './SlotManagerModal';
 import { BidangIcon } from '../common/BidangIcon';
-
-// Susun atur telefon bagi grid bento — dijana sekali daripada TIER_SLOTS (lihat PhoneGeometry.js),
-// bukan ditaip semula di sini. Dikira di peringkat modul kerana ia tidak pernah berubah sepanjang
-// hayat halaman.
-const PHONE_LAYOUT_CSS = phoneLayoutCss();
 
 // parseInlineFormatting is designed for hand-authored Note/Essay body text; applying it broadly to
 // every carousel item's title/brief (including years of accumulated AI-generated history per slot)
@@ -566,18 +559,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   setIndexSearchQuery,
 }) => {
   const navigate = useNavigate();
-  // Susun atur masonry telefon (2026-07-31) — lihat usePhoneMasonry.ts untuk sebab CSS
-  // columns/Grid dua-dua gagal (jurang kosong tak jamin 0 walaupun dijangka). STANDARD
-  // (Melintang) sahaja "lebar penuh" dalam aliran, ikut TIER_SLOTS.STANDARD terus.
-  const masonryRef = useRef<HTMLDivElement>(null);
-  // Kluster Bar (7-10 & 21-24) dikekalkan bersebelahan dalam masonry — Izzat: "jgn pisahkan
-  // slot bar, nampak hodoh". TIER_SLOTS.BAR ialah satu senarai leper 8 slot; belah dua ikut
-  // kluster (setiap kluster 4 slot berturutan) supaya setiap kluster jadi SATU unit peletakan.
-  const barGroups = React.useMemo(() => {
-    const half = TIER_SLOTS.BAR.length / 2;
-    return [TIER_SLOTS.BAR.slice(0, half), TIER_SLOTS.BAR.slice(half)];
-  }, []);
-  usePhoneMasonry(masonryRef, TIER_SLOTS.STANDARD, barGroups);
+  // Susun atur telefon (2026-07-31, permintaan pemilik projek — pusingan KELIMA): struktur
+  // SAMA macam desktop (grid 6-lajur), skala bawah ke grid 3-lajur (setiap col-span dibahagi
+  // 2) — bukan lagi masonry JS berasingan. Lihat ROW demi ROW di bawah untuk kelas col-span
+  // telefon (base, tanpa md:) yang ditambah bersebelahan kelas md:col-span-* desktop sedia
+  // ada. Empat percubaan JS masonry sebelum ini (columns, Grid dense, position:absolute
+  // custom) semuanya timbulkan pepijat berulang (jurang, footer, transition) — pendekatan
+  // ni elak kelas pepijat tu sepenuhnya dengan guna semula MEKANISME CSS Grid desktop terus,
+  // bukan cuba tiru kesannya via JS.
   const [parsedNewsItems, setParsedNewsItems] = useState<any[]>([]);
   // Distinguishes "haven't fetched real content yet" from "fetched, and this slot is genuinely
   // unconfigured" — without this, every fresh page load briefly renders the character-limit
@@ -2887,19 +2876,61 @@ URL: ${url}`;
 
         <hr className="rule border-t border-stone-300 my-3" />
 
+        {/* Susun atur "jadual" — TELEFON SAHAJA (permintaan Izzat, lukisan tangan: semua kad,
+            TERMASUK HERO, bersambung terus dengan garisan hitam, macam jadual/spreadsheet — bukan
+            kad terapung berjurang/bersudut bulat). Jurang antara baris (space-y-3) DAN antara kad
+            dalam satu baris (.telefon-row gap) dikosongkan; setiap kad diberi sempadan hitam 1px
+            + sudut tajam — sempadan kad bersebelahan bersentuhan terus jadi satu garisan jadual.
+            !important wajib: kelas Tailwind (rounded-lg) & gaya inline getCardTheme() (borderColor
+            per-kandungan) kedua-duanya perlu ditewaskan untuk sudut tajam + sempadan hitam seragam. */}
+        <style>{`
+          @media (max-width: 767px) {
+            /* Grid TUNGGAL merentasi HERO + kesemua slot — jamin garisan sejajar sepenuhnya
+               (lihat nota "Jadual telefon TUNGGAL" di atas). Tepi KANAN + BAWAH jadual
+               keseluruhan ditutup di sini, bukan oleh kad individu. */
+            #bento-news-grid .telefon-table {
+              gap: 0 !important;
+              border-right: 1px solid #000;
+              border-bottom: 1px solid #000;
+            }
+            /* Border-collapse tanpa <table> sebenar: setiap kad lukis sempadan ATAS+KIRI SAHAJA
+               (bukan kesemua 4 sisi) — sempadan ANTARA dua kad jadi SATU garisan (dilukis oleh
+               kad "pemilik" sisi bawah/kanan sahaja), bukan dua garisan 1px bertindih jadi tebal
+               2px (Izzat tangkap: "table hanya pakai 1 garisan"). Tepi KANAN + BAWAH jadual
+               keseluruhan ditutup oleh bekas luar (.mb-4 utk HERO, .space-y-3 utk baki baris) di
+               atas, bukan oleh kad individu. */
+            #bento-news-grid [data-slot] {
+              border-width: 1px 0 0 1px !important;
+              border-style: solid !important;
+              border-color: #000 !important;
+              border-radius: 0 !important;
+              background-color: #fff !important;
+            }
+            /* Bekas kluster Bar (justify-between, jurang dalaman berbeza daripada gap grid) —
+               tampal putih supaya tiada jurang telus menembusi latar apa-apa di belakangnya. */
+            #bento-news-grid [data-bar-cluster] {
+              background-color: #fff !important;
+            }
+          }
+        `}</style>
+
         {/* Bento Grid News Layout */}
-        <style>{PHONE_LAYOUT_CSS}</style>
         <section className="my-8" id="bento-news-grid">
 
-          {/* HERO (slot 0) — SATU-SATUNYA kad di luar aliran masonry telefon (lihat bekas
-              .telefon-masonry di bawah). Kad utama, lebar penuh sentiasa, tak kira lebar skrin. */}
-          <div className="mb-4">
-            {/* ROW 1: Full horizontal (Index 0) */}
+          {/* Jadual telefon TUNGGAL (2026-07-31, pusingan KEENAM): HERO + kesemua 8 blok ROW kini
+              SATU grid CSS berterusan pada telefon (grid-cols-3), supaya garisan jadual sejajar
+              merentasi SELURUH halaman, bukan 8 jadual berasingan bertindan (Izzat tangkap garisan
+              tak sejajar antara blok). Desktop tak berubah langsung — setiap blok ROW kekal
+              "md:grid md:grid-cols-6" sendiri (kelas "contents" pada telefon larutkan blok tu ke
+              dalam grid tunggal induk, "block" pada desktop pulihkan susunan asal bertindan). */}
+          <div className="telefon-table grid grid-cols-3 md:block">
+            {/* ROW 1: Full horizontal (Index 0) — HERO, kini SEBAHAGIAN grid tunggal (col-span-3
+                penuh lebar), bukan bekas berasingan lagi. */}
             {bentoNewsItems[0] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(0)}
                   data-slot={0}
-                  className={`col-span-1 md:col-span-6 p-6 md:p-8 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-3 md:col-span-6 p-6 md:p-8 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 group md:mb-4 ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
                 <BentoInner itemKey="0" className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">
@@ -2922,28 +2953,16 @@ URL: ${url}`;
                 </BentoInner><span className="absolute top-8 right-8 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[0].publishedAt)}</span>
               </div>
             )}
-          </div>
-
-          {/* Masonry telefon (2026-07-31): SEMUA slot lain (1-37) mengalir bebas ikut algoritma
-              lajur-terpendek-dahulu (usePhoneMasonry, JS — CSS columns/Grid dua-dua gagal, lihat
-              nota panjang di PhoneGeometry.js dan usePhoneMasonry.ts); desktop kekal flex-col gap-4
-              seperti asal (bekas blok masing-masing "contents" mendedahkan grid 6-lajur asal, susun
-              atur desktop tidak tersentuh — hook ni buang semua gaya inline pada desktop). */}
-          <div ref={masonryRef} className="telefon-masonry md:flex md:flex-col md:gap-4">
 
             {/* ROW 2 & 3: Vertical, Horizontal, Square, 2 Compact (Indices 1 to 5) */}
-            {/* Masonry telefon (2026-07-31): bekas ini "lut sinar" (contents) pada telefon supaya
-                kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
-                bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
-                6-lajur seperti biasa, tidak tersentuh. */}
-            <div className="contents md:grid md:grid-cols-6 md:gap-4">
-              
+            <div className="telefon-row contents md:grid md:grid-cols-6 md:gap-4 md:mb-4">
+
               {/* Left Column: Vertical (Index 1) */}
               {bentoNewsItems[1] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(1)}
                   data-slot={1}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 row-span-2 md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
                   <BentoInner itemKey="1" className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
                     <div className="space-y-4">
@@ -2969,10 +2988,10 @@ URL: ${url}`;
 
               {/* Right/Top: Horizontal (Index 2) */}
               {bentoNewsItems[2] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(2)}
                   data-slot={2}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-2 md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="flex-1">
@@ -2998,10 +3017,10 @@ URL: ${url}`;
 
               {/* Right/Bottom-Left: Square (Index 3) */}
               {bentoNewsItems[3] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(3)}
                   data-slot={3}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
                   <BentoInner itemKey="3" className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
@@ -3028,7 +3047,7 @@ URL: ${url}`;
               {/* Right/Bottom-Right: Two Stacked Compacts (Indices 4 & 5) */}
               {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
                   telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="contents md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
+              <div className="col-span-1 flex flex-col md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[4] && (
                 <div 
                   onClick={() => handleCardClick(4)}
@@ -3088,14 +3107,14 @@ URL: ${url}`;
             </div>
 
             {/* ROW 4 & 5: Horizontal, Vertical, Bars, Square (Indices 6 to 12) */}
-            <div className="contents md:grid md:grid-cols-6 md:gap-4 md:animate-fade-in">
+            <div className="telefon-row contents md:grid md:grid-cols-6 md:gap-4 md:animate-fade-in md:mb-4">
 
               {/* Left Top: Horizontal (Index 6) */}
               {bentoNewsItems[6] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(6)}
                   data-slot={6}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-2 md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3128,7 +3147,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(12)}
                   data-slot={12}
                   ref={bar1SiblingLocks.idx12.ref}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                  className={`col-span-1 row-span-2 md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[12], 'transparent').cardStyle, ...bar1SiblingLocks.idx12.lockStyle }} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -3155,7 +3174,7 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="contents md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2 h-full" data-bar-cluster="">
+              <div className="col-span-1 flex flex-col h-full md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2" data-bar-cluster="">
                 <div className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 -translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
                     PROGRAM-PROGRAM BERMANFAAT
@@ -3198,7 +3217,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(11)}
                   data-slot={11}
                   ref={bar1SiblingLocks.idx11.ref}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                  className={`col-span-1 md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[11], 'transparent').cardStyle, ...bar1SiblingLocks.idx11.lockStyle }} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{<EyebrowKad item={bentoNewsItems[11]} bidang={bidangUntuk(bentoNewsItems[11])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
@@ -3229,13 +3248,15 @@ URL: ${url}`;
             </div>
 
             {/* ROW 6: Two Half Horizontals Side-By-Side (Indices 13 & 14) */}
-            {/* Pasangan SEGI_EMPAT_MEDIUM — dua kolum juga pada telefon (nisbah 3:4). */}
-            <div className="contents md:grid md:grid-cols-6 md:gap-4">
+            {/* Pasangan SEGI_EMPAT_MEDIUM — col-span-3 desktop (separuh drpd 6) tak boleh
+                dibahagi genap dalam grid 3-lajur (1.5), jadi baris ni guna grid 2-lajur SENDIRI
+                supaya pasangan kekal 50/50 tepat, macam desktop. */}
+            <div className="telefon-row contents md:grid md:grid-cols-6 md:gap-4 md:mb-4">
               {bentoNewsItems[13] && (
                 <div 
                   onClick={() => handleCardClick(13)}
                   data-slot={13}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-3 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[13], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{<EyebrowKad item={bentoNewsItems[13]} bidang={bidangUntuk(bentoNewsItems[13])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[13].publishedAt)}</span>
@@ -3267,7 +3288,7 @@ URL: ${url}`;
                 <div 
                   onClick={() => handleCardClick(14)}
                   data-slot={14}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-3 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[14], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{<EyebrowKad item={bentoNewsItems[14]} bidang={bidangUntuk(bentoNewsItems[14])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[14].publishedAt)}</span>
@@ -3301,14 +3322,14 @@ URL: ${url}`;
                 kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
                 bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
                 6-lajur seperti biasa, tidak tersentuh. */}
-            <div className="contents md:grid md:grid-cols-6 md:gap-4">
-              
+            <div className="telefon-row contents md:grid md:grid-cols-6 md:gap-4 md:mb-4">
+
               {/* Left Column: Vertical (Index 15) */}
               {bentoNewsItems[15] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(15)}
                   data-slot={15}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 row-span-2 md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[15], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -3340,7 +3361,7 @@ URL: ${url}`;
                 <div 
                   onClick={() => handleCardClick(16)}
                   data-slot={16}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[16], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[16]).deskStyle}>{<EyebrowKad item={bentoNewsItems[16]} bidang={bidangUntuk(bentoNewsItems[16])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[16].publishedAt)}</span>
@@ -3371,7 +3392,7 @@ URL: ${url}`;
               {/* Two Stacked Compacts (Indices 17 & 18) */}
               {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
                   telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="contents md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
+              <div className="col-span-1 flex flex-col md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[17] && (
                 <div 
                   onClick={() => handleCardClick(17)}
@@ -3439,7 +3460,7 @@ URL: ${url}`;
                 <div 
                   onClick={() => handleCardClick(19)}
                   data-slot={19}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-2 md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[19], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3473,15 +3494,15 @@ URL: ${url}`;
                 kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
                 bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
                 6-lajur seperti biasa, tidak tersentuh. */}
-            <div className="contents md:grid md:grid-cols-6 md:gap-4">
-              
+            <div className="telefon-row contents md:grid md:grid-cols-6 md:gap-4 md:mb-4">
+
               {/* Left Column: Vertical (Index 26) */}
               {bentoNewsItems[26] && (
                 <div
                   onClick={() => handleCardClick(26)}
                   data-slot={26}
                   ref={bar2SiblingLocks.idx26.ref}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                  className={`col-span-1 row-span-2 md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[26], 'transparent').cardStyle, ...bar2SiblingLocks.idx26.lockStyle }} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -3513,7 +3534,7 @@ URL: ${url}`;
                 <div 
                   onClick={() => handleCardClick(20)}
                   data-slot={20}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-2 md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[20], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3546,7 +3567,7 @@ URL: ${url}`;
                   onClick={() => handleCardClick(25)}
                   data-slot={25}
                   ref={bar2SiblingLocks.idx25.ref}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
+                  className={`col-span-1 md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={{ ...getCardTheme(bentoNewsItems[25], 'transparent').cardStyle, ...bar2SiblingLocks.idx25.lockStyle }} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{<EyebrowKad item={bentoNewsItems[25]} bidang={bidangUntuk(bentoNewsItems[25])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[25].publishedAt)}</span>
@@ -3574,7 +3595,7 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="contents md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2 h-full" data-bar-cluster="">
+              <div className="col-span-1 flex flex-col h-full md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2" data-bar-cluster="">
                 <div className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-0 whitespace-nowrap">
                     PROGRAM-PROGRAM BERMANFAAT
@@ -3614,13 +3635,13 @@ URL: ${url}`;
             </div>
 
             {/* ROW 11: Two Half Horizontals Side-By-Side (Indices 27 & 28) */}
-            {/* Pasangan SEGI_EMPAT_MEDIUM — dua kolum juga pada telefon (nisbah 3:4). */}
-            <div className="contents md:grid md:grid-cols-6 md:gap-4">
+            {/* Pasangan SEGI_EMPAT_MEDIUM — grid 2-lajur sendiri (lihat nota ROW 6). */}
+            <div className="telefon-row contents md:grid md:grid-cols-6 md:gap-4 md:mb-4">
               {bentoNewsItems[27] && (
                 <div 
                   onClick={() => handleCardClick(27)}
                   data-slot={27}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-3 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[27], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[27]).deskStyle}>{<EyebrowKad item={bentoNewsItems[27]} bidang={bidangUntuk(bentoNewsItems[27])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[27].publishedAt)}</span>
@@ -3652,7 +3673,7 @@ URL: ${url}`;
                 <div 
                   onClick={() => handleCardClick(28)}
                   data-slot={28}
-                  className={`col-span-1 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-3 md:col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
                  style={getCardTheme(bentoNewsItems[28], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[28]).deskStyle}>{<EyebrowKad item={bentoNewsItems[28]} bidang={bidangUntuk(bentoNewsItems[28])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[28].publishedAt)}</span>
@@ -3686,14 +3707,14 @@ URL: ${url}`;
                 kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
                 bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
                 6-lajur seperti biasa, tidak tersentuh. */}
-            <div className="contents md:grid md:grid-cols-6 md:gap-4">
-              
+            <div className="telefon-row contents md:grid md:grid-cols-6 md:gap-4 md:mb-4">
+
               {/* Left Column: Vertical (Index 29) */}
               {bentoNewsItems[29] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(29)}
                   data-slot={29}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 row-span-2 md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[29], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -3725,7 +3746,7 @@ URL: ${url}`;
                 <div 
                   onClick={() => handleCardClick(30)}
                   data-slot={30}
-                  className={`md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 md:col-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[30], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[30]).deskStyle}>{<EyebrowKad item={bentoNewsItems[30]} bidang={bidangUntuk(bentoNewsItems[30])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[30].publishedAt)}</span>
@@ -3756,7 +3777,7 @@ URL: ${url}`;
               {/* Two Stacked Compacts (Indices 31 & 32) */}
               {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
                   telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="contents md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
+              <div className="col-span-1 flex flex-col md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[31] && (
                 <div 
                   onClick={() => handleCardClick(31)}
@@ -3824,7 +3845,7 @@ URL: ${url}`;
                 <div 
                   onClick={() => handleCardClick(33)}
                   data-slot={33}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-2 md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[33], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3858,14 +3879,14 @@ URL: ${url}`;
                 kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
                 bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
                 6-lajur seperti biasa, tidak tersentuh. */}
-            <div className="contents md:grid md:grid-cols-6 md:gap-4">
-              
+            <div className="telefon-row contents md:grid md:grid-cols-6 md:gap-4">
+
               {/* Left Top: Horizontal spanning across Col 1-4 (Index 34) */}
               {bentoNewsItems[34] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(34)}
                   data-slot={34}
-                  className={`md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-2 md:col-span-4 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[34], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3897,7 +3918,7 @@ URL: ${url}`;
                 <div 
                   onClick={() => handleCardClick(37)}
                   data-slot={37}
-                  className={`md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-1 row-span-2 md:col-span-2 md:row-span-2 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                  style={getCardTheme(bentoNewsItems[37], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -3925,12 +3946,12 @@ URL: ${url}`;
               )}
 
               {/* Left Bottom: Two Side-by-Side elements in Col 1-4 */}
-              <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="telefon-row contents md:col-span-4 md:grid md:grid-cols-2 md:gap-4">
                 {bentoNewsItems[35] && (
-                <div 
+                <div
                   onClick={() => handleCardClick(35)}
                   data-slot={35}
-                  className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                    style={getCardTheme(bentoNewsItems[35], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{<EyebrowKad item={bentoNewsItems[35]} bidang={bidangUntuk(bentoNewsItems[35])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[35].publishedAt)}</span>
@@ -3962,7 +3983,7 @@ URL: ${url}`;
                 <div 
                   onClick={() => handleCardClick(36)}
                   data-slot={36}
-                  className={`p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`} 
+                  className={`col-span-3 p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden ${isEditMode ? 'ring-2 ring-dashed ring-[#802334] cursor-pointer hover:scale-[1.02]' : ''}`}
                    style={getCardTheme(bentoNewsItems[36], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{<EyebrowKad item={bentoNewsItems[36]} bidang={bidangUntuk(bentoNewsItems[36])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[36].publishedAt)}</span>
