@@ -256,7 +256,7 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, position: 'absolute' }}
           transition={{ duration: 1.0, ease: 'easeInOut' }}
-          className={`w-full h-full flex flex-col ${className}`}
+          className={`w-full h-full flex-1 flex flex-col ${className}`}
         >
           {children}
         </motion.div>
