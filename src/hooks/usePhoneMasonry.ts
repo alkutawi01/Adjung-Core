@@ -136,37 +136,45 @@ export function usePhoneMasonry(
       // permulaan halaman atau item lebar-penuh terakhir). Bila segmen tamat (item lebar-penuh
       // seterusnya diletak, atau hujung halaman), baki jurang lajur PENDEK diagih sama rata
       // merentasi kad dalam segmen tu (ubah `top`, bukan tinggi) — lihat nota "SEBALIKNYA" di atas.
-      // Setiap entri dalam segmen ialah SATU unit peletakan (kad tunggal, ATAU semua elemen
-      // dalam satu kluster Bar bersama — supaya bila diagih, seluruh kluster beralih SAMA jumlah
-      // dan kekal tersusun rapat sesama sendiri, bukan cuma elemen pertama kluster).
-      // "space-evenly": bahagikan baki jurang kepada (n+1) SLOT sama besar — sebelum kad
-      // PERTAMA, antara SETIAP pasang kad, DAN selepas kad TERAKHIR — supaya jurang atas dan
-      // bawah SETIAP kad (bukan cuma kad pertama/terakhir) sama besar. Bahagi ikut `n` (bilangan
-      // kad) sahaja tersilap — tinggalkan jurang sebelum kad pertama lebih kecil daripada jurang
-      // antara kad (Izzat tangkap terus: kad "Pelancongan Kelantan" jurang atas ≠ jurang bawah).
-      const segmen: [HTMLElement[][], HTMLElement[][]] = [[], []];
+      // Setiap entri dalam segmen ialah SATU unit peletakan: {units: elemen (kad tunggal ATAU
+      // semua elemen kluster Bar bersama, supaya kluster beralih sebagai satu blok tegar), h:
+      // tinggi SEBENAR unit tu (tanpa sebarang GAP_PX)}.
+      //
+      // PEMBETULAN KRITIKAL (Izzat tangkap dengan tepat, tunjuk lukisan gap A vs gap B pada kad
+      // yang sama): percubaan PERTAMA formula ni ("tambah bahagian sama rata pada kedudukan sedia
+      // ada") tersilap — slot ANTARA dua kad SUDAH ada asas GAP_PX terbina (daripada peletakan
+      // asal), tapi slot SEBELUM kad pertama/SELEPAS kad terakhir TIADA asas itu. Tambah bahagian
+      // "extra" yang SAMA pada kedua-dua jenis slot still tinggalkan JUMLAH akhir tak sama (satu
+      // ada +GAP_PX berlebihan). Fix sekarang: kira SEMULA kedudukan setiap unit dari kedudukan
+      // MULA segmen (`segMula`), guna satu saiz jurang X SERAGAM (>= GAP_PX) untuk KESEMUA (n+1)
+      // slot, bukan tokok-tambah kedudukan sedia ada.
+      const segmen: [{ units: HTMLElement[]; h: number }[], { units: HTMLElement[]; h: number }[]] = [[], []];
+      const segMula: [number, number] = [0, 0];
       const agihSamaRata = () => {
         const shortSide: 0 | 1 = colH[0] <= colH[1] ? 0 : 1;
         const longSide: 0 | 1 = shortSide === 0 ? 1 : 0;
-        const n = segmen[shortSide].length;
+        const senarai = segmen[shortSide];
+        const n = senarai.length;
         if (n > 0) {
-          // colH sentiasa +GAP_PX selepas setiap kad diletak (termasuk kad TERAKHIR dalam
-          // segmen) — itu jurang "maya" lepas kad terakhir, BUKAN jurang sebenar (kad terakhir
-          // punya jurang bawah SEPATUTNYA satu SLOT space-evenly, bukan GAP_PX+slot). Buang
-          // GAP_PX maya tu dulu supaya jurang bawah kad terakhir kekal SAMA besar dengan jurang
-          // atas kad pertama (Izzat tangkap: dua-dua tak sepadan tanpa pembetulan ni).
-          const dasarSebenar = colH[shortSide] - GAP_PX;
-          const jumlahJurang = colH[longSide] - dasarSebenar;
-          const perSlot = jumlahJurang > 0 ? jumlahJurang / (n + 1) : 0;
-          segmen[shortSide].forEach((unit, i) => {
-            const shift = perSlot * (i + 1);
-            unit.forEach((el) => {
-              const semasa = parseFloat(el.style.top || '0');
-              el.style.top = `${semasa + shift}px`;
-            });
+          const dasarMula = segMula[shortSide];
+          const targetAkhir = colH[longSide];
+          const jumlahTinggiUnit = senarai.reduce((sum, u) => sum + u.h, 0);
+          // Ruang kosong SEBENAR dalam segmen (tanpa sebarang GAP_PX dikira) yang perlu diisi
+          // oleh (n+1) jurang seragam.
+          const ruangKosong = targetAkhir - dasarMula - jumlahTinggiUnit;
+          const minDiperlukan = (n + 1) * GAP_PX;
+          const lebihan = Math.max(0, ruangKosong - minDiperlukan);
+          const X = GAP_PX + lebihan / (n + 1); // saiz jurang SERAGAM — >= GAP_PX sentiasa
+          let y = dasarMula;
+          senarai.forEach((unit) => {
+            y += X;
+            unit.units.forEach((el) => { el.style.top = `${y}px`; });
+            y += unit.h;
           });
         }
         colH[shortSide] = colH[longSide];
+        segMula[0] = colH[0];
+        segMula[1] = colH[1];
         segmen[0] = [];
         segmen[1] = [];
       };
@@ -196,6 +204,15 @@ export function usePhoneMasonry(
           m.el.style.left = '0px';
           m.el.style.top = `${y}px`;
           colH[0] = colH[1] = y + m.h + GAP_PX;
+          // Segmen SETERUSNYA (selepas item lebar-penuh ni) bermula di sini — bukan di titik
+          // penyegerakan SEBELUM item lebar-penuh (itu yang agihSamaRata() baru sahaja tetapkan).
+          // TOLAK GAP_PX: colH sertakan jurang "maya" +GAP_PX selepas item lebar-penuh (macam
+          // selepas SETIAP peletakan) — kalau segMula guna colH terus, jurang PERTAMA segmen
+          // baharu jadi GAP_PX+X (bukan X tulen), tak sepadan dengan jurang dalaman/akhir segmen
+          // yang X sahaja. `segMula` mesti wakili KEDUDUKAN SEBENAR (bawah item lebar-penuh),
+          // bukan colH (yang sudah termasuk jurang maya tu) — Izzat tangkap dgn lukisan gap A/B.
+          segMula[0] = colH[0] - GAP_PX;
+          segMula[1] = colH[1] - GAP_PX;
         } else if (m.group) {
           const side = colH[0] <= colH[1] ? 0 : 1;
           const x = side === 0 ? 0 : colWidth + GAP_PX;
@@ -206,13 +223,13 @@ export function usePhoneMasonry(
             y += g.h + GAP_PX;
           });
           colH[side] = colH[side] + m.h + GAP_PX;
-          segmen[side].push(m.group.map((g) => g.el));
+          segmen[side].push({ units: m.group.map((g) => g.el), h: m.h });
         } else {
           const side = colH[0] <= colH[1] ? 0 : 1;
           m.el.style.left = `${side === 0 ? 0 : colWidth + GAP_PX}px`;
           m.el.style.top = `${colH[side]}px`;
           colH[side] = colH[side] + m.h + GAP_PX;
-          segmen[side].push([m.el]);
+          segmen[side].push({ units: [m.el], h: m.h });
         }
       }
       // Hujung halaman — titik penyegerakan terakhir, agih baki jurang lajur pendek sama rata.
