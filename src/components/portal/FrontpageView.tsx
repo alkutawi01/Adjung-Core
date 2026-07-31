@@ -2836,9 +2836,25 @@ URL: ${url}`;
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.4, ease: 'easeInOut' }}
-                    className="font-serif text-[#1F1F1F] text-[14px] md:text-lg leading-snug tracking-tight font-medium flex items-baseline truncate flex-1 min-w-0"
+                    className="font-serif text-[#1F1F1F] text-[14px] md:text-lg leading-snug tracking-tight font-medium flex items-center min-h-[2lh] flex-1 min-w-0 md:items-baseline md:min-h-0 md:truncate"
                   >
-                    <span className="truncate"><TypographyRenderer text={activeTickerNewsItem.title} rules={adjungTypographyRules} scope="title" /></span>
+                    {/* Telefon: tajuk ticker membalut kepada DUA baris (line-clamp-2) — pada lebar
+                        telefon satu baris hampir sentiasa terpotong. Desktop kekal satu baris
+                        terpotong (md:truncate) seperti asal.
+
+                        min-h-[2lh] + items-center pada <h4> di atas MENSTABILKAN halaman: tajuk
+                        ticker berputar, jadi tanpa tinggi tetap baris ini mengecut/mengembang
+                        setiap kali tajuk bertukar antara satu dan dua baris — dan SEMUA kandungan
+                        di bawahnya teranjak naik turun. Unit `lh` = tinggi baris elemen itu
+                        sendiri, jadi ruang dua baris kekal betul walaupun saiz fon atau leading
+                        diubah kemudian (tidak seperti nilai px tetap yang akan senyap tersasar).
+
+                        Tinggi tetap itu diletak pada <h4> (bukan pada <span> ini) supaya teks
+                        boleh DITENGAHKAN dalam ruang dua baris tersebut. Dengan begitu tajuk
+                        satu baris duduk sebaris dengan label "BERITA SEMASA", dan tajuk dua baris
+                        mengapitnya di tengah — kalau tinggi diletak pada span, teks satu baris
+                        akan melekat di ATAS kotak dan label nampak tersasar ke bawah. */}
+                    <span className="line-clamp-2 md:truncate"><TypographyRenderer text={activeTickerNewsItem.title} rules={adjungTypographyRules} scope="title" /></span>
                   </motion.h4>
                 </AnimatePresence>
               </div>
@@ -2848,7 +2864,13 @@ URL: ${url}`;
           </div>
 
           {/* RIGHT: CONTROLS & LANGUAGE TOGGLES */}
-          <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
+          {/* Baris kawalan ini KOSONG pada telefon apabila tiada bahasa didayakan: satu-satunya
+              kandungan lainnya ("Baca Paparan Penuh") sudah `hidden sm:inline`. Div kosong itu
+              tinggi 0px, TETAPI bekas induk ialah flex-col dengan gap-3 — jadi `gap` 12px masih
+              dikenakan di bawah ticker, menjadikan baris ticker tersasar ke atas antara dua
+              garisan (diukur: jurang atas 17px lawan bawah 28px). Disembunyikan sepenuhnya bila
+              tiada apa-apa untuk dipapar supaya gap hantu itu hilang. */}
+          <div className={`items-center gap-3 shrink-0 self-end md:self-auto ${enabledLanguages.length > 0 ? 'flex' : 'hidden sm:flex'}`}>
             {parsedTickerNewsItems.length > 0 && (
               <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200 mr-1 hidden sm:inline">
                 &bull; Baca Paparan Penuh
@@ -2970,8 +2992,8 @@ URL: ${url}`;
                keseluruhan ditutup di sini, bukan oleh kad individu. */
             #bento-news-grid .telefon-table {
               gap: 0 !important;
-              border-right: 1px solid #000;
-              border-bottom: 1px solid #000;
+              border-right: 1px solid transparent;
+              border-bottom: 1px solid transparent;
             }
             /* Border-collapse tanpa <table> sebenar: setiap kad lukis sempadan ATAS+KIRI SAHAJA
                (bukan kesemua 4 sisi) — sempadan ANTARA dua kad jadi SATU garisan (dilukis oleh
@@ -2982,7 +3004,7 @@ URL: ${url}`;
             #bento-news-grid [data-slot] {
               border-width: 1px 0 0 1px !important;
               border-style: solid !important;
-              border-color: #000 !important;
+              border-color: transparent !important;
               border-radius: 0 !important;
               background-color: #fff !important;
             }

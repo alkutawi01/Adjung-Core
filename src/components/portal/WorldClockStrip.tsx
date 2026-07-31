@@ -634,7 +634,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
         <div className="flex items-baseline justify-center gap-2 pt-1.5 mt-1 border-t border-stone-200 w-full px-2">
           {metaHijriStr && (
             <>
-              <span className="font-serif text-[11px] font-light tracking-[0.02em] text-stone-500 whitespace-nowrap">
+              <span className="font-serif text-[11px] font-light tracking-[0.02em] text-stone-500 whitespace-nowrap uppercase">
                 {metaHijriStr} {metaClock.dayFull}
               </span>
               <span className="w-px h-[9px] bg-stone-300" />
@@ -644,7 +644,9 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
             {metaClock.clockStr}
           </span>
           <span className="w-px h-[9px] bg-stone-300" />
-          <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap">
+          {/* Nama hari huruf besar semua (permintaan pemilik projek) — dipakai pada kedua-dua sisi
+              supaya baris meta kekal seragam. `uppercase` sahaja, teks sumber tidak diubah. */}
+          <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap uppercase">
             {metaClock.dateStr} {metaClock.dayFull}
           </span>
         </div>
