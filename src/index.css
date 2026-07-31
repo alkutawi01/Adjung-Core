@@ -509,3 +509,38 @@ h1, h2, h3, h4, h5, h6, p {
   opacity: 0.85;
   pointer-events: none;
 }
+
+/* ---------------------------------------------------------------------------------------------
+   PENGECUALIAN: nama bandar jalur Jam Dunia dikecualikan daripada peraturan pecah-perkataan
+   global di atas (h1..h6, p).
+
+   Peraturan global itu wujud untuk menghalang perkataan panjang tanpa ruang daripada melimpah
+   KELUAR kad bento. Pada jalur Jam Dunia ia memberi kesan bertentangan: lajur telefon hanya 65px,
+   jadi nama bandar dua-perkataan dipecahkan di tengah perkataan — "BANDARAY/A MELAKA",
+   "KUALA/TERENGGA/NU". Nama tempat mesti membalut pada RUANG sahaja.
+
+   Ditulis di sini (CSS tanpa lapisan) dan bukan sebagai kelas Tailwind `break-normal` kerana
+   utiliti Tailwind berada dalam @layer, dan CSS tanpa lapisan SENTIASA mengatasi CSS berlapis
+   tanpa mengira kekhususan — jadi kelas Tailwind itu tidak akan pernah berkesan di sini
+   (disahkan hidup: computed word-break kekal break-word walaupun kelas break-normal dipasang).
+--------------------------------------------------------------------------------------------- */
+#world-clock p {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* Saiz nama bandar pada TELEFON. Diletak di sini (CSS tanpa lapisan) dan bukan sebagai kelas
+   Tailwind kerana kedua-dua susunan dicuba GAGAL: dengan md: sebagai penimpa, desktop tersasar
+   ke 0.72px; dengan max-md: sebagai penimpa, telefon tersasar ke 1.2px. Puncanya turutan antara
+   nilai tema bernama (tracking-editorial) dan nilai arbitrari (tracking-[...]) dalam stylesheet
+   terjana tidak dijamin. CSS tanpa lapisan mengatasi kedua-duanya, jadi nilai ini muktamad.
+
+   Kenapa 8px/0.08em: lajur telefon hanya 65px sedangkan "TERENGGANU" perlu 76px pada tetapan
+   desktop (9px/0.15em). Jarak huruf menyumbang 13.5px daripada lebar itu — jadi mengecilkannya
+   memulihkan lebih banyak ruang daripada mengecilkan fon. Pada 8px/0.08em ia jadi 62px. */
+@media (max-width: 767px) {
+  #world-clock p {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+}

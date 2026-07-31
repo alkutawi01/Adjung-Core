@@ -5,6 +5,7 @@ import { Sun, CloudSun, Cloud, CloudFog, CloudRain, CloudLightning } from 'lucid
 import { SystemSettings } from '../../types';
 import { parseWorldClockHolidays } from '../../utils';
 import { findFixedHoliday } from '../../../core/worldclock/PublicHolidays.js';
+import { masaMelayu, masa24 } from '../../../core/worldclock/WaktuMelayu.js';
 import { Tooltip } from '../common/Tooltip';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 
@@ -20,8 +21,12 @@ interface ClockTime {
   dayLabel: string;
   /** Nama hari penuh: Isnin, Selasa, ... Ahad. Dipakai baris meta telefon. */
   dayFull: string;
-  /** Jam sahaja: "05:51 PM". */
+  /** Jam sahaja: "05:51 PM". Kad bandar DESKTOP. */
   clockStr: string;
+  /** Masa gaya Melayu untuk baris meta telefon: "5:51 PETANG" (angka 12 jam + istilah waktu). */
+  masaMelayuStr: string;
+  /** Masa sistem 24 jam untuk baris meta telefon: "17:51". */
+  masa24Str: string;
   /** Tarikh Hijrah bandar ini, kalau ada. Kosong bagi bandar tanpa zon JAKIM. */
   hijriStr: string;
   status: 'Holiday' | 'Weekend' | 'SchoolHoliday' | 'Working';
@@ -192,7 +197,22 @@ const KadBandar: React.FC<{
       </Tooltip>
 
       {/* Tiada cursor-help pada bandar bercuti: pemilik projek mahu kursor biasa walaupun ada
-          tooltip — kursor tanda tanya menyarankan "bantuan", bukan maklumat cuti. */}
+          tooltip — kursor tanda tanya menyarankan "bantuan", bukan maklumat cuti.
+
+          TELEFON: 8px + jarak huruf 0.08em (desktop kekal 9px + tracking-editorial).
+          Lajur telefon hanya 65px, sedangkan "TERENGGANU" perlu 76px pada tetapan desktop —
+          jadi nama panjang pecah di tengah perkataan: "BANDARAY/A MELAKA", "KUALA/TERENGGA/NU".
+          Diukur: sebahagian besar lebar itu datang daripada JARAK HURUF (1.35px x 10 huruf
+          = 13.5px), bukan saiz fon — jadi mengecilkan jarak huruf memulihkan lebih banyak ruang
+          daripada mengecilkan fon. Pada 8px/0.08em "TERENGGANU" jadi 62px, muat dengan baki 3px.
+
+          Kelas di sini membawa nilai DESKTOP sahaja (9px + tracking-editorial). Penyesuaian
+          telefon — 8px, jarak huruf 0.08em, dan larangan pecah tengah-perkataan — semuanya
+          hidup dalam peraturan `#world-clock p` di src/index.css, BUKAN sebagai kelas Tailwind.
+          Sebabnya: utiliti Tailwind berada dalam @layer, dan CSS tanpa lapisan sentiasa
+          mengatasinya tanpa mengira kekhususan. Kedua-dua susunan kelas dicuba dan GAGAL
+          (disahkan hidup): `md:` sebagai penimpa menyasarkan desktop ke 0.72px, `max-md:`
+          sebagai penimpa menyasarkan telefon ke 1.2px. */}
       <p className={`font-sans text-[9px] tracking-editorial uppercase mb-0.5 inline-block select-none transition-colors duration-200 ${cityColor}`}>
         {c.name}
       </p>
@@ -527,12 +547,23 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           const clockStr = `${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
           const timeStr = `${displayDateStr} · ${dayLabel} · ${clockStr}`;
 
+          // Jam 24 jam diterbitkan daripada jam 12 jam + AM/PM (formatter di atas guna
+          // hour12: true kerana kad bandar DESKTOP masih memerlukannya). 12 AM -> 0, 12 PM -> 12.
+          // Dua rentetan di bawah dipakai baris meta TELEFON sahaja; desktop kekal clockStr asal.
+          const jam24 = obj.dayPeriod === 'PM'
+            ? (parseInt(obj.hour, 10) % 12) + 12
+            : (parseInt(obj.hour, 10) % 12);
+          const masaMelayuStr = masaMelayu(jam24, obj.minute);
+          const masa24Str = masa24(jam24, obj.minute);
+
           newTimesMap[c.name] = {
             timeStr,
             dateStr: displayDateStr,
             dayLabel,
             dayFull,
             clockStr,
+            masaMelayuStr,
+            masa24Str,
             hijriStr: hijriDisplayStr,
             status: finalStatus,
             holidayName,
@@ -632,22 +663,25 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           Susunan: Hijrah · Masa · Masihi — jam di tengah, satu kalendar di setiap sisinya. */}
       {isPhone && metaClock && (
         <div className="flex items-baseline justify-center gap-2 pt-1.5 mt-1 border-t border-stone-200 w-full px-2">
+          {/* SETIAP kalendar membawa jamnya SENDIRI (permintaan pemilik projek), bukan satu jam
+              berkongsi di tengah seperti dahulu:
+                kiri  — Hijrah + masa gaya Melayu   ("16/02/48 JUMAAT 5:37 PETANG")
+                kanan — Masihi + masa sistem 24 jam ("31/07/26 JUMAAT 17:37")
+              Istilah waktu Melayu (PAGI/TENGAH HARI/PETANG/MALAM/TENGAH MALAM) menggantikan
+              AM/PM sepenuhnya — AM/PM ialah singkatan Latin, tiada tempat dalam antara muka
+              100% Bahasa Melayu. Julatnya ditakrifkan dalam core/worldclock/WaktuMelayu.js
+              mengikut poster rasmi DBP, berserta ujian yang mengunci setiap sempadan.
+              Nama hari huruf besar pada kedua-dua belah supaya baris kekal seragam. */}
           {metaHijriStr && (
             <>
               <span className="font-serif text-[11px] font-light tracking-[0.02em] text-stone-500 whitespace-nowrap uppercase">
-                {metaHijriStr} {metaClock.dayFull}
+                {metaHijriStr} {metaClock.dayFull} {metaClock.masaMelayuStr}
               </span>
               <span className="w-px h-[9px] bg-stone-300" />
             </>
           )}
-          <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap">
-            {metaClock.clockStr}
-          </span>
-          <span className="w-px h-[9px] bg-stone-300" />
-          {/* Nama hari huruf besar semua (permintaan pemilik projek) — dipakai pada kedua-dua sisi
-              supaya baris meta kekal seragam. `uppercase` sahaja, teks sumber tidak diubah. */}
           <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap uppercase">
-            {metaClock.dateStr} {metaClock.dayFull}
+            {metaClock.dateStr} {metaClock.dayFull} {metaClock.masa24Str}
           </span>
         </div>
       )}
