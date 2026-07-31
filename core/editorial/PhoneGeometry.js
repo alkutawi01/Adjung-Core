@@ -145,18 +145,22 @@ export const PHONE_BRIEF = {
 // Pemboleh ubah itu masih diisytiharkan pada akar grid supaya nilainya boleh dilihat dan dicuba
 // ubah dalam devtools.
 // ---------------------------------------------------------------------------------------------
-// MASONRY 2-LAJUR — GRID PADAT (2026-07-31, permintaan pemilik projek)
+// MASONRY 2-LAJUR (2026-07-31, permintaan pemilik projek — TIGA percubaan sebelum ini stabil)
 //
-// Susun atur "kumpul ikut blok desktop" (Menegak tinggi + tindanan satelit) DIBUANG — Izzat nampak
-// hasilnya "kurang kreatif". Percubaan pertama guna CSS multi-column (`columns:2`) — tapi Izzat
-// perasan SEMUA kad jadi bentuk sama (menegak/segi-empat), sebab multi-column TIADA cara letak
-// item lebar-2-lajur di tengah aliran (cuma boleh sempit SATU lajur, atau pecah keluar sepenuhnya
-// macam HERO). Digantikan CSS GRID (`grid-template-columns: repeat(2,1fr); grid-auto-flow: dense`)
-// — ini benarkan STANDARD (Melintang) ambil `grid-column: span 2` (lebar penuh) SAMBIL kekal
-// dalam aliran bersama kad sempit lain; `dense` padatkan lubang secara automatik.
+// #1 Susun atur "kumpul ikut blok desktop" (Menegak tinggi + tindanan satelit) — Izzat: "kurang
+//    kreatif" (jurang kosong bila kandungan tak padan).
+// #2 CSS multi-column (columns:2) — Izzat perasan SEMUA kad jadi bentuk sama, sebab multi-column
+//    tiada cara letak item lebar-2-lajur di tengah aliran.
+// #3 CSS Grid (grid-auto-flow:dense, grid-column:span 2 untuk STANDARD) — betulkan #2, tapi Izzat
+//    tangkap jurang kosong besar (990px) — Grid ialah struktur baris-lajur TEGAR, `dense` cuma isi
+//    lubang untuk kad akan datang, tak susun semula baris sedia ada. Grid BUKAN masonry sebenar.
 //
-// Kesan: HERO kekal "penuh" (luar grid, kad utama). STANDARD kini JUGA "penuh" (govern oleh
-// `lebarPenuh`, span 2 lajur DALAM grid). Tier lain (Menegak, Kiub Kecil, Kiub Besar, Kompak)
+// PENYELESAIAN SEBENAR: kembali ke `columns:2` (jamin 0 jurang, aliran tulen) + `column-span: all`
+// pada STANDARD sahaja (ciri CSS asli — pecah keluar lebar penuh SATU SAAT dalam aliran, dua lajur
+// sambung semula bersih selepasnya, TANPA jurang). Lihat nota penuh di phoneLayoutCss() di bawah.
+//
+// Kesan: HERO kekal "penuh" (luar bekas masonry sepenuhnya, kad utama). STANDARD kini JUGA "penuh"
+// (govern oleh `lebarPenuh` → column-span:all). Tier lain (Menegak, Kiub Kecil, Kiub Besar, Kompak)
 // kekal `pasangan: true` (satu lajur sempit ~171px).
 export const PHONE_TIER_BOX = {
   HERO: { pasangan: false, minHeight: PHONE_CARD_MIN['--card-min-melintang-penuh'] },
@@ -185,12 +189,12 @@ export const phoneLayoutCss = () => {
     const selector = slots.map((n) => `  #bento-news-grid [data-slot="${n}"]`).join(',\n');
     // `height: auto` melucutkan `h-full` desktop; min-height tier kemudian menjadi lantai sebenar.
     // Sengaja TIADA aspect-ratio dipancarkan — lihat nota "NISBAH IALAH LANTAI" di atas.
-    // `lebarPenuh`: tier ambil KEDUA-DUA lajur grid (span 2) — kekal dalam aliran .telefon-masonry
-    // (bukan keluar macam HERO), tapi lebar penuh. Lihat nota "GRID PADAT" di PHONE_TIER_BOX.
+    // `lebarPenuh`: tier PECAH KELUAR lebar penuh SATU SAAT dalam aliran columns (column-span:all)
+    // — dua lajur sambung semula selepasnya, tiada jurang (lihat nota "MASONRY" di bawah).
     const decls = [
       '    height: auto;',
       `    min-height: ${box.minHeight};`,
-      ...(box.lebarPenuh ? ['    grid-column: span 2;'] : []),
+      ...(box.lebarPenuh ? ['    column-span: all;'] : []),
     ].join('\n');
     const nota = box.nisbah ? ` (bentuk direka ${box.nisbah}, sebagai lantai)` : '';
     // Saiz tajuk ikut lebar kolum, diperoleh terus daripada `pasangan` — jadi ia tidak boleh
@@ -224,27 +228,26 @@ ${vars}
     min-height: 0 !important;
   }
 
-  /* MASONRY 2-LAJUR — GRID PADAT (2026-07-31) — lihat nota panjang di PHONE_TIER_BOX di atas.
-     Bekas induk .telefon-masonry (pembalut ROW 2-15, lihat FrontpageView.tsx; HERO tinggal di
-     luar bekas ni) jadi grid 2-lajur, grid-auto-flow:dense — kad lebarPenuh (STANDARD) ambil
-     grid-column:span 2 (ditetapkan per-tier di bawah), kad lain 1 lajur; dense padatkan lubang
-     secara automatik (kad kemudian boleh isi ruang kosong di atas kalau muat, bukan tunggu
-     turutan tegar). Gantian CSS multi-column (columns:2) percubaan pertama — multi-column TIADA
-     cara letak item span-2 di tengah aliran, punca "semua kad jadi bentuk sama" yang Izzat
-     perasan. Grid ada gap sebenar (tak macam columns, yang cuma ada jurang MENDATAR).
+  /* MASONRY 2-LAJUR (2026-07-31, versi KETIGA — kembali ke columns, kali ni betul-betul).
+     Percubaan #2 (grid-auto-flow:dense) DIBUANG — Izzat tangkap jurang kosong besar (disahkan
+     hidup: 990px jurang dalam satu lajur). Sebab: CSS Grid ialah struktur baris-lajur TEGAR — bila
+     kad pendek berkongsi baris dengan kad tinggi, lajur pendek tinggalkan lubang, dan dense cuma
+     isi lubang untuk kad AKAN DATANG, bukan susun semula baris yang dah wujud. Grid BUKAN masonry
+     sebenar walaupun nampak macam patut boleh.
 
-     align-items:start WAJIB — lalai grid ialah stretch, yang paksa SETIAP kad dalam satu baris
-     grid meregang setinggi kad TERTINGGI baris itu (disahkan hidup: slot 3 berkongsi baris dengan
-     jiran tinggi, jadi diregang 533px walhal kandungan sebenar cuma perlukan ~180px — jurang besar
-     terbentuk sebelum footer sumber, nampak macam sumber "terapung" jauh dari kandungan). Bukan
-     tingkah laku sepatutnya — setiap kad patut kekal tinggi semula jadi sendiri (falsafah sama
-     seperti "NISBAH IALAH LANTAI" — lihat nota di atas fail ni), bukan meregang ikut jiran. */
+     Kembali kepada columns:2 (percubaan #1) — ini JAMIN 0 jurang (aliran tulen atas-ke-bawah,
+     bukan matriks baris-lajur). Untuk selesaikan sebab asal #1 ditukar (STANDARD tak boleh lebar
+     dalam columns biasa), guna column-span:all (lihat decls tier di atas) — ciri CSS asli untuk
+     TEPAT situasi ni: satu item pecah keluar lebar penuh SATU SAAT dalam aliran columns, dua lajur
+     sambung semula bersih selepasnya, TANPA jurang (column-span:all bukan grid, tiada isu baris
+     tegar). break-inside:avoid + margin-bottom kembali diperlukan (columns tiada row-gap). */
   #bento-news-grid .telefon-masonry {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-auto-flow: dense;
-    align-items: start;
-    gap: 1rem;
+    columns: 2;
+    column-gap: 1rem;
+  }
+  #bento-news-grid [data-slot] {
+    break-inside: avoid;
+    margin-bottom: 1rem;
   }
 
   /* Lencana tarikh siaran (2026-07-31) — sudut atas-kanan setiap kad, diposisi mutlak (top-N
