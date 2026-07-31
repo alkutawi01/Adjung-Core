@@ -26,13 +26,19 @@ import { PHONE_MAX_WIDTH_PX } from '../../core/editorial/PhoneGeometry.js';
 // `groupSlots` (kluster Bar 7-10 dan 21-24) dicantum jadi SATU unit peletakan (tindanan menegak
 // dalam satu lajur, macam sebelum masonry wujud), bukan diagih individu merentasi dua lajur.
 //
-// NOTA (2026-07-31): dua percubaan berasingan "regangkan kad terakhir setiap lajur" untuk tutup
-// baki jurang di titik penyegerakan DIBUANG selepas gagal berulang kali dalam pengujian sebenar
-// (kadangkala footer/sumber nampak terapung dengan jurang kosong di bawahnya — punca tepat tak
-// pernah disahkan sepenuhnya, dan pepijat itu tak konsisten timbul, jadi tak boleh dipercayai
-// walau selepas cuba beberapa pembetulan). Jurang KECIL (biasanya 20-140px) antara kad dibiarkan
-// sebagai had semula jadi reka bentuk masonry 2-lajur dengan kandungan teks tak seragam tinggi —
-// lebih selamat dan boleh diramal berbanding teknik regangan yang terbukti tak stabil.
+// NOTA (2026-07-31): dua percubaan berasingan "regangkan kad terakhir setiap lajur" (ubah TINGGI
+// kad, guna style.height) untuk tutup baki jurang di titik penyegerakan DIBUANG selepas gagal
+// berulang kali dalam pengujian sebenar (footer/sumber nampak terapung, ruang kosong di bawahnya).
+// Punca sebenar isu footer itu telah ditemui & dibetulkan berasingan (BentoInner di
+// FrontpageView.tsx kurang `flex-1`) — TAPI teknik regang-tinggi kekal dibuang, sebab ada risiko
+// lain (gelung ResizeObserver) yang tak berbaloi sekarang punca footer dah selesai betul-betul.
+//
+// SEBALIKNYA (permintaan Izzat): jurang baki di setiap titik penyegerakan diagihkan SAMA RATA
+// merentasi jurang ANTARA kad dalam segmen lajur pendek tu (bukan bertimbun sekali di penghujung
+// sahaja) — lihat "agihSamaRata" di bawah. Ni cuma UBAH KEDUDUKAN (top) kad yang dah diletakkan,
+// TAK SENTUH tinggi/CSS dalaman kad langsung — jadi tiada risiko bug footer berulang (itu punca
+// SEMUA kegagalan regangan sebelum ni: mengubah tinggi kad mendedahkan struktur dalaman kad yang
+// rapuh; mengubah kedudukan sahaja tak sentuh struktur dalaman langsung).
 const GAP_PX = 16; // 1rem — padan column-gap/gap sedia ada dalam reka bentuk lain
 
 type QueueItem = { el: HTMLElement; isWide: boolean; h: number; group?: { el: HTMLElement; h: number }[] };
@@ -126,6 +132,33 @@ export function usePhoneMasonry(
       const AMBANG_IMBANGAN_PX = 60;
       const PENYEIMBANG_HUJUNG = 8;
       const colH: [number, number] = [0, 0];
+      // Kad yang diletakkan dalam SEGMEN semasa setiap lajur (sejak titik penyegerakan lepas —
+      // permulaan halaman atau item lebar-penuh terakhir). Bila segmen tamat (item lebar-penuh
+      // seterusnya diletak, atau hujung halaman), baki jurang lajur PENDEK diagih sama rata
+      // merentasi kad dalam segmen tu (ubah `top`, bukan tinggi) — lihat nota "SEBALIKNYA" di atas.
+      // Setiap entri dalam segmen ialah SATU unit peletakan (kad tunggal, ATAU semua elemen
+      // dalam satu kluster Bar bersama — supaya bila diagih, seluruh kluster beralih SAMA jumlah
+      // dan kekal tersusun rapat sesama sendiri, bukan cuma elemen pertama kluster).
+      const segmen: [HTMLElement[][], HTMLElement[][]] = [[], []];
+      const agihSamaRata = () => {
+        const shortSide: 0 | 1 = colH[0] <= colH[1] ? 0 : 1;
+        const longSide: 0 | 1 = shortSide === 0 ? 1 : 0;
+        const extra = colH[longSide] - colH[shortSide];
+        const n = segmen[shortSide].length;
+        if (extra > 0 && n > 0) {
+          const perKad = extra / n;
+          segmen[shortSide].forEach((unit, i) => {
+            const shift = perKad * (i + 1);
+            unit.forEach((el) => {
+              const semasa = parseFloat(el.style.top || '0');
+              el.style.top = `${semasa + shift}px`;
+            });
+          });
+        }
+        colH[shortSide] = colH[longSide];
+        segmen[0] = [];
+        segmen[1] = [];
+      };
       while (queue.length > 0) {
         let idx = 0;
         if (queue.length <= PENYEIMBANG_HUJUNG) {
@@ -145,6 +178,9 @@ export function usePhoneMasonry(
         }
         const m = queue.splice(idx, 1)[0];
         if (m.isWide) {
+          // Titik penyegerakan — agih baki jurang lajur pendek sama rata DAHULU (lihat
+          // "agihSamaRata"), supaya item lebar-penuh bermula tepat di lantai lajur panjang.
+          agihSamaRata();
           const y = Math.max(colH[0], colH[1]);
           m.el.style.left = '0px';
           m.el.style.top = `${y}px`;
@@ -159,13 +195,17 @@ export function usePhoneMasonry(
             y += g.h + GAP_PX;
           });
           colH[side] = colH[side] + m.h + GAP_PX;
+          segmen[side].push(m.group.map((g) => g.el));
         } else {
           const side = colH[0] <= colH[1] ? 0 : 1;
           m.el.style.left = `${side === 0 ? 0 : colWidth + GAP_PX}px`;
           m.el.style.top = `${colH[side]}px`;
           colH[side] = colH[side] + m.h + GAP_PX;
+          segmen[side].push([m.el]);
         }
       }
+      // Hujung halaman — titik penyegerakan terakhir, agih baki jurang lajur pendek sama rata.
+      agihSamaRata();
       container.style.position = 'relative';
       container.style.height = `${Math.max(0, Math.max(colH[0], colH[1]) - GAP_PX)}px`;
       // Dedahkan kad selepas kedudukan dikira — elak kelipan kad bertindih sekejap (top/left
