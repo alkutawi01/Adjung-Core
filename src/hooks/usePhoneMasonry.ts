@@ -139,16 +139,27 @@ export function usePhoneMasonry(
       // Setiap entri dalam segmen ialah SATU unit peletakan (kad tunggal, ATAU semua elemen
       // dalam satu kluster Bar bersama — supaya bila diagih, seluruh kluster beralih SAMA jumlah
       // dan kekal tersusun rapat sesama sendiri, bukan cuma elemen pertama kluster).
+      // "space-evenly": bahagikan baki jurang kepada (n+1) SLOT sama besar — sebelum kad
+      // PERTAMA, antara SETIAP pasang kad, DAN selepas kad TERAKHIR — supaya jurang atas dan
+      // bawah SETIAP kad (bukan cuma kad pertama/terakhir) sama besar. Bahagi ikut `n` (bilangan
+      // kad) sahaja tersilap — tinggalkan jurang sebelum kad pertama lebih kecil daripada jurang
+      // antara kad (Izzat tangkap terus: kad "Pelancongan Kelantan" jurang atas ≠ jurang bawah).
       const segmen: [HTMLElement[][], HTMLElement[][]] = [[], []];
       const agihSamaRata = () => {
         const shortSide: 0 | 1 = colH[0] <= colH[1] ? 0 : 1;
         const longSide: 0 | 1 = shortSide === 0 ? 1 : 0;
-        const extra = colH[longSide] - colH[shortSide];
         const n = segmen[shortSide].length;
-        if (extra > 0 && n > 0) {
-          const perKad = extra / n;
+        if (n > 0) {
+          // colH sentiasa +GAP_PX selepas setiap kad diletak (termasuk kad TERAKHIR dalam
+          // segmen) — itu jurang "maya" lepas kad terakhir, BUKAN jurang sebenar (kad terakhir
+          // punya jurang bawah SEPATUTNYA satu SLOT space-evenly, bukan GAP_PX+slot). Buang
+          // GAP_PX maya tu dulu supaya jurang bawah kad terakhir kekal SAMA besar dengan jurang
+          // atas kad pertama (Izzat tangkap: dua-dua tak sepadan tanpa pembetulan ni).
+          const dasarSebenar = colH[shortSide] - GAP_PX;
+          const jumlahJurang = colH[longSide] - dasarSebenar;
+          const perSlot = jumlahJurang > 0 ? jumlahJurang / (n + 1) : 0;
           segmen[shortSide].forEach((unit, i) => {
-            const shift = perKad * (i + 1);
+            const shift = perSlot * (i + 1);
             unit.forEach((el) => {
               const semasa = parseFloat(el.style.top || '0');
               el.style.top = `${semasa + shift}px`;
