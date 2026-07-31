@@ -49,6 +49,8 @@ export function usePhoneMasonry(
         el.style.left = '';
         el.style.top = '';
         el.style.width = '';
+        el.style.height = '';
+        el.style.visibility = '';
       });
     };
 
@@ -65,11 +67,14 @@ export function usePhoneMasonry(
       const colWidth = (containerWidth - GAP_PX) / 2;
 
       // Fasa 1: tetapkan LEBAR sahaja (position:absolute, tiada top/left lagi) — supaya teks
-      // melilit ikut lebar sebenar sebelum diukur.
+      // melilit ikut lebar sebenar sebelum diukur. `height` dikosongkan dulu supaya regangan
+      // dinamik pusingan SEBELUM ni (lihat "regangkan" di bawah) tak ikut terukur sebagai
+      // "tinggi semula jadi" pusingan ni.
       const meta = items.map((el) => {
         const slot = Number(el.getAttribute('data-slot'));
         const isWide = wideSet.has(slot);
         el.style.position = 'absolute';
+        el.style.height = '';
         el.style.width = (isWide ? containerWidth : colWidth) + 'px';
         return { el, slot, isWide };
       });
@@ -117,6 +122,23 @@ export function usePhoneMasonry(
       const AMBANG_IMBANGAN_PX = 60;
       const PENYEIMBANG_HUJUNG = 8;
       const colH: [number, number] = [0, 0];
+      // Kad TERAKHIR diletakkan setiap lajur — direntang secara dinamik (tambah tinggi) untuk
+      // tutup baki jurang di setiap TITIK PENYEGERAKAN (sebelum item lebar-penuh memaksa kedua-
+      // dua lajur sama tinggi, & di hujung halaman) supaya tiada jurang kosong tergantung. Ni
+      // TIDAK ubah turutan peletakan (STANDARD kekal tersebar ikut algoritma sedia ada di atas)
+      // — cuma tutup lantai kosong yang tinggal selepas turutan tu selesai. Izzat: "boleh je
+      // saiz kad2 tu jadi dinamik" — kelonggaran eksplisit untuk teknik ni.
+      const lastEl: [HTMLElement | null, HTMLElement | null] = [null, null];
+      const regangkanKeSama = () => {
+        const shortSide: 0 | 1 = colH[0] <= colH[1] ? 0 : 1;
+        const longSide: 0 | 1 = shortSide === 0 ? 1 : 0;
+        const diff = colH[longSide] - colH[shortSide];
+        if (diff > 0 && lastEl[shortSide]) {
+          const semasa = lastEl[shortSide]!.getBoundingClientRect().height;
+          lastEl[shortSide]!.style.height = `${semasa + diff}px`;
+        }
+        colH[shortSide] = colH[longSide];
+      };
       while (queue.length > 0) {
         let idx = 0;
         if (queue.length <= PENYEIMBANG_HUJUNG) {
@@ -136,10 +158,14 @@ export function usePhoneMasonry(
         }
         const m = queue.splice(idx, 1)[0];
         if (m.isWide) {
-          const y = Math.max(colH[0], colH[1]);
+          // Titik penyegerakan — tutup baki jurang lajur pendek DAHULU supaya item lebar-penuh
+          // bermula tepat di lantai lajur panjang, bukan tinggalkan lubang di lajur pendek.
+          regangkanKeSama();
+          const y = colH[0];
           m.el.style.left = '0px';
           m.el.style.top = `${y}px`;
           colH[0] = colH[1] = y + m.h + GAP_PX;
+          lastEl[0] = lastEl[1] = null;
         } else if (m.group) {
           const side = colH[0] <= colH[1] ? 0 : 1;
           const x = side === 0 ? 0 : colWidth + GAP_PX;
@@ -150,17 +176,25 @@ export function usePhoneMasonry(
             y += g.h + GAP_PX;
           });
           colH[side] = colH[side] + m.h + GAP_PX;
+          lastEl[side] = m.group[m.group.length - 1].el;
         } else {
           const side = colH[0] <= colH[1] ? 0 : 1;
           m.el.style.left = `${side === 0 ? 0 : colWidth + GAP_PX}px`;
           m.el.style.top = `${colH[side]}px`;
           colH[side] = colH[side] + m.h + GAP_PX;
+          lastEl[side] = m.el;
         }
       }
+      // Hujung halaman — titik penyegerakan terakhir, tutup baki jurang di lajur pendek.
+      regangkanKeSama();
       container.style.position = 'relative';
       container.style.height = `${Math.max(0, Math.max(colH[0], colH[1]) - GAP_PX)}px`;
+      // Dedahkan kad selepas kedudukan dikira — elak kelipan kad bertindih sekejap (top/left
+      // lalai 0,0 sebelum Fasa 3 selesai) yang ternampak pada muat halaman pertama.
+      items.forEach((el) => { el.style.visibility = 'visible'; });
     };
 
+    (Array.from(container.querySelectorAll('[data-slot]')) as HTMLElement[]).forEach((el) => { el.style.visibility = 'hidden'; });
     layout();
 
     // ResizeObserver pada bekas (lebar berubah — resize tetingkap/putaran) DAN setiap kad (tinggi
