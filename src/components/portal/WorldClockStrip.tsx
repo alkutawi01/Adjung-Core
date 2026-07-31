@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { Sun, CloudSun, Cloud, CloudFog, CloudRain, CloudLightning } from 'lucide-react';
 import { SystemSettings } from '../../types';
@@ -111,12 +112,38 @@ interface WorldClockStripProps {
   apiHolidaysData?: any;
 }
 
-const renderCityCard = (
-  c: { name: string; tz: string; stateCode: string },
-  timesMap: Record<string, ClockTime>,
-  cityWeather: Record<string, { temp: number; code: number }>,
-  isPhone: boolean = false
-) => {
+// Dijadikan KOMPONEN (bukan lagi fungsi biasa) semata-mata supaya ia boleh menyimpan state hover
+// untuk tooltip cuti umum. Lihat nota "TOOLTIP CUTI UMUM" di bawah untuk sebabnya.
+const KadBandar: React.FC<{
+  c: { name: string; tz: string; stateCode: string };
+  timesMap: Record<string, ClockTime>;
+  cityWeather: Record<string, { temp: number; code: number }>;
+  isPhone?: boolean;
+}> = ({ c, timesMap, cityWeather, isPhone = false }) => {
+  // TOOLTIP CUTI UMUM — dipaparkan melalui PORTAL ke document.body, bukan sebagai anak kad.
+  //
+  // PEPIJAT ASAL: tooltip tidak pernah keluar semasa hover; ia hanya berkelip setengah saat
+  // selepas diklik. Puncanya BUKAN hover langsung — tooltip itu diposisi `absolute top-full`
+  // iaitu DI BAWAH kad, sedangkan dua bekas induknya membawa `overflow-hidden` (bekas gulungan
+  // setinggi 60px, dan bekas jalur pada desktop). Jadi ia sentiasa TERPOTONG. Kilasan sewaktu
+  // klik berlaku kerana animasi tukar-set mengubah kedudukan kandungan gulungan seketika,
+  // membenarkan tooltip terlepas keluar sebelum set bertukar.
+  //
+  // Portal menyelesaikannya kerana ia mengeluarkan tooltip daripada rantaian overflow tersebut
+  // sepenuhnya — mekanisme SAMA yang digunakan komponen <Tooltip> (tooltip cuaca), yang memang
+  // sudah berfungsi dengan hover pada mesin pemilik projek. Kedudukan dikira daripada kotak
+  // sempadan kad yang hidup, jadi ia kekal tepat walau jalur bergulung atau bersaiz semula.
+  const [tunjukCuti, setTunjukCuti] = useState(false);
+  const [posisiTip, setPosisiTip] = useState<{ top: number; left: number } | null>(null);
+  const kadRef = useRef<HTMLDivElement | null>(null);
+
+  const bukaTooltipCuti = () => {
+    const kotak = kadRef.current?.getBoundingClientRect();
+    if (!kotak) return;
+    setPosisiTip({ top: kotak.bottom + 6, left: kotak.left + kotak.width / 2 });
+    setTunjukCuti(true);
+  };
+
   const timeData = timesMap[c.name];
   const weather = cityWeather[c.name] || DEFAULT_CITY_WEATHER[c.name] || { temp: 30, code: 1, label: 'Berawan' };
   const { icon: WeatherIcon, label: weatherLabel } = getWeatherDetails(weather.code);
@@ -146,7 +173,12 @@ const renderCityCard = (
   }
 
   return (
-    <div className="h-[60px] w-full flex flex-col items-center justify-center select-none py-1 group relative">
+    <div
+      ref={kadRef}
+      className="h-[60px] w-full flex flex-col items-center justify-center select-none py-1 group relative"
+      onMouseEnter={isHoliday && holidayName ? bukaTooltipCuti : undefined}
+      onMouseLeave={isHoliday && holidayName ? () => setTunjukCuti(false) : undefined}
+    >
       {/* Weather Icon & Temp synced with City Status Color */}
       <Tooltip text={weatherLabel}>
         <div
@@ -159,14 +191,20 @@ const renderCityCard = (
         </div>
       </Tooltip>
 
-      <p className={`font-sans text-[9px] tracking-editorial uppercase mb-0.5 inline-block select-none transition-colors duration-200 ${cityColor} ${isHoliday ? 'cursor-help' : ''}`}>
+      {/* Tiada cursor-help pada bandar bercuti: pemilik projek mahu kursor biasa walaupun ada
+          tooltip — kursor tanda tanya menyarankan "bantuan", bukan maklumat cuti. */}
+      <p className={`font-sans text-[9px] tracking-editorial uppercase mb-0.5 inline-block select-none transition-colors duration-200 ${cityColor}`}>
         {c.name}
       </p>
-      {isHoliday && holidayName && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 hidden group-hover:flex flex-col items-center bg-[#FAF7F0] text-[#1F1F1F] px-3 py-1.5 rounded-sm shadow-md whitespace-nowrap z-[100] pointer-events-none border border-[#802334]/30 text-center animate-fade-in">
+      {isHoliday && holidayName && tunjukCuti && posisiTip && createPortal(
+        <div
+          className="fixed -translate-x-1/2 flex flex-col items-center bg-[#FAF7F0] text-[#1F1F1F] px-3 py-1.5 rounded-sm shadow-md whitespace-nowrap z-[9999] pointer-events-none border border-[#802334]/30 text-center animate-fade-in"
+          style={{ top: posisiTip.top, left: posisiTip.left }}
+        >
           <span className="font-sans text-[8px] uppercase tracking-widest text-[#802334] font-bold">Cuti Umum</span>
           <span className="font-serif text-[11px] text-[#1F1F1F] font-medium tracking-tight">{holidayName}</span>
-        </div>
+        </div>,
+        document.body
       )}
       {/* Telefon: kolum hanya ±72px, jadi rentetan masa penuh (±111px) tidak muat dan akan
           terpotong. Kesemua tarikh dan jam berpindah ke baris meta dikongsi di bawah jalur, jadi
@@ -567,19 +605,19 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
                 >
                   {isEvenCol ? (
                     <>
-                      {renderCityCard(targetCity, timesMap, cityWeather, isPhone)}
-                      {renderCityCard(currentCity, timesMap, cityWeather, isPhone)}
+                      <KadBandar c={targetCity} timesMap={timesMap} cityWeather={cityWeather} isPhone={isPhone} />
+                      <KadBandar c={currentCity} timesMap={timesMap} cityWeather={cityWeather} isPhone={isPhone} />
                     </>
                   ) : (
                     <>
-                      {renderCityCard(currentCity, timesMap, cityWeather, isPhone)}
-                      {renderCityCard(targetCity, timesMap, cityWeather, isPhone)}
+                      <KadBandar c={currentCity} timesMap={timesMap} cityWeather={cityWeather} isPhone={isPhone} />
+                      <KadBandar c={targetCity} timesMap={timesMap} cityWeather={cityWeather} isPhone={isPhone} />
                     </>
                   )}
                 </motion.div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  {renderCityCard(currentCity, timesMap, cityWeather, isPhone)}
+                  <KadBandar c={currentCity} timesMap={timesMap} cityWeather={cityWeather} isPhone={isPhone} />
                 </div>
               )}
             </div>
