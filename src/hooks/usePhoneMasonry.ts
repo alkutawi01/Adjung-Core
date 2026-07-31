@@ -123,21 +123,29 @@ export function usePhoneMasonry(
       const PENYEIMBANG_HUJUNG = 8;
       const colH: [number, number] = [0, 0];
       // Kad TERAKHIR diletakkan setiap lajur — direntang secara dinamik (tambah tinggi) untuk
-      // tutup baki jurang di setiap TITIK PENYEGERAKAN (sebelum item lebar-penuh memaksa kedua-
-      // dua lajur sama tinggi, & di hujung halaman) supaya tiada jurang kosong tergantung. Ni
-      // TIDAK ubah turutan peletakan (STANDARD kekal tersebar ikut algoritma sedia ada di atas)
-      // — cuma tutup lantai kosong yang tinggal selepas turutan tu selesai. Izzat: "boleh je
-      // saiz kad2 tu jadi dinamik" — kelonggaran eksplisit untuk teknik ni.
+      // tutup baki jurang KECIL di setiap TITIK PENYEGERAKAN (sebelum item lebar-penuh memaksa
+      // kedua-dua lajur sama tinggi, & di hujung halaman). Ni TIDAK ubah turutan peletakan
+      // (STANDARD kekal tersebar ikut algoritma sedia ada di atas) — cuma tutup lantai kosong
+      // yang tinggal selepas turutan tu selesai. Izzat: "boleh je saiz kad2 tu jadi dinamik" —
+      // kelonggaran eksplisit untuk teknik ni.
+      //
+      // BERHAD (REGANGAN_MAKS_PX): tanpa had, imbangan BESAR (cth ~140px, jarang tapi berlaku
+      // pada kombinasi kandungan tertentu) jadi satu lubang KOSONG BESAR terkumpul dalam SATU
+      // kad sahaja (nampak rosak/pelik — kad itu ada ruang kosong ketara sebelum footer) —
+      // ditangkap Izzat dalam tangkapan layar. Lebih baik tinggalkan sebagai jurang ANTARA kad
+      // (kecil, biasa dalam reka bentuk masonry) berbanding satu kad direntang jauh melebihi
+      // saiz semula jadinya.
+      const REGANGAN_MAKS_PX = 80;
       const lastEl: [HTMLElement | null, HTMLElement | null] = [null, null];
       const regangkanKeSama = () => {
         const shortSide: 0 | 1 = colH[0] <= colH[1] ? 0 : 1;
         const longSide: 0 | 1 = shortSide === 0 ? 1 : 0;
         const diff = colH[longSide] - colH[shortSide];
-        if (diff > 0 && lastEl[shortSide]) {
+        if (diff > 0 && diff <= REGANGAN_MAKS_PX && lastEl[shortSide]) {
           const semasa = lastEl[shortSide]!.getBoundingClientRect().height;
           lastEl[shortSide]!.style.height = `${semasa + diff}px`;
+          colH[shortSide] = colH[longSide];
         }
-        colH[shortSide] = colH[longSide];
       };
       while (queue.length > 0) {
         let idx = 0;
@@ -161,7 +169,7 @@ export function usePhoneMasonry(
           // Titik penyegerakan — tutup baki jurang lajur pendek DAHULU supaya item lebar-penuh
           // bermula tepat di lantai lajur panjang, bukan tinggalkan lubang di lajur pendek.
           regangkanKeSama();
-          const y = colH[0];
+          const y = Math.max(colH[0], colH[1]);
           m.el.style.left = '0px';
           m.el.style.top = `${y}px`;
           colH[0] = colH[1] = y + m.h + GAP_PX;
