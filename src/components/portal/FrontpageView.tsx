@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Settings, Lock, Trash2, Save, Search, PenLine, FlaskConical, Tag, Brain, Ban, PenTool, Building2, Zap, AlertTriangle } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
+import { penggalSukuKata } from '../../../core/editorial/PemenggalSukuKata.js';
 import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRenderer';
 import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
@@ -25,7 +26,7 @@ import { BidangIcon } from '../common/BidangIcon';
 const safeParseInline = (text: string): React.ReactNode => {
   if (typeof text !== 'string' || text === '') return text;
   try {
-    return parseInlineFormatting(text);
+    return parseInlineFormatting(penggalSukuKata(text));
   } catch (e) {
     console.warn('parseInlineFormatting failed, falling back to plain text:', e, text);
     return text;
@@ -2172,11 +2173,19 @@ URL: ${url}`;
       const limits = getLimitsForIndex(actualSlotIdx, resolvedItem);
       const originalTitle = resolvedItem.title || '';
       const originalBrief = resolvedItem.brief || '';
+      // penggalSukuKata() disisipkan DI SINI — satu titik pusat yang melindungi SEMUA pengguna
+      // `item.title`/`item.brief` (termasuk BarCard) sekali gus. Ia mesti berjalan SEBELUM
+      // parseInlineFormatting, kerana selepas itu nilainya bukan lagi rentetan tetapi elemen
+      // React — dan penggalSukuKata memulangkan bukan-rentetan tanpa diubah, jadi memanggilnya
+      // selepas ini akan gagal SENYAP (inilah yang berlaku pada percubaan pertama: kad Bar
+      // langsung tiada sempang sedangkan modulnya berfungsi sempurna dalam ujian).
+      // `titleString`/`briefString` di bawah kekal teks MENTAH tanpa soft hyphen — Focus View
+      // dan borang penyuntingan bergantung padanya.
       if (resolvedItem.title) {
-        resolvedItem.title = parseInlineFormatting(padToLimit(resolvedItem.title, limits.maxTitle));
+        resolvedItem.title = parseInlineFormatting(penggalSukuKata(padToLimit(resolvedItem.title, limits.maxTitle)));
       }
       if (resolvedItem.brief && limits.maxBrief > 0) {
-        resolvedItem.brief = parseInlineFormatting(padToLimit(resolvedItem.brief, limits.maxBrief));
+        resolvedItem.brief = parseInlineFormatting(penggalSukuKata(padToLimit(resolvedItem.brief, limits.maxBrief)));
       }
       resolvedItem.titleString = originalTitle;
       resolvedItem.briefString = originalBrief;
@@ -2894,6 +2903,20 @@ URL: ${url}`;
             !important wajib: kelas Tailwind (rounded-lg) & gaya inline getCardTheme() (borderColor
             per-kandungan) kedua-duanya perlu ditewaskan untuk sudut tajam + sempadan hitam seragam. */}
         <style>{`
+          /* DESKTOP (lalai) — soft hyphen DIMATIKAN sepenuhnya. Pemenggal suku kata menyisip
+             U+00AD ke dalam teks untuk KESEMUA saiz skrin (ia dikira sekali di peringkat data,
+             bukan per-breakpoint), tetapi desktop tidak sepatutnya berubah langsung. Peraturan
+             hyphens:none mengarahkan pelayar MENGABAIKAN setiap soft hyphen — jadi tiada sempang
+             dan pembalutan baris desktop kekal sama seperti sebelum pemenggal ini wujud.
+             Disahkan hidup: tanpa peraturan ni, desktop mula memaparkan "Wari-san", "memba-ca",
+             "Pem-bungkusan" — perubahan yang tidak diminta. */
+          #bento-news-grid [data-slot] h3,
+          #bento-news-grid [data-slot] h4,
+          #bento-news-grid [data-slot] p {
+            hyphens: none;
+            -webkit-hyphens: none;
+          }
+
           /* DESKTOP (lalai, di luar media query) — eyebrow kekal SATU baris seperti asal:
              ikon + topik bersebelahan. Slot ikon yang KOSONG (kandungan tanpa ikon Bidang)
              disembunyikan sepenuhnya supaya tiada ruang terpelawa & tiada gap tertinggal —
@@ -2903,6 +2926,18 @@ URL: ${url}`;
           }
 
           @media (max-width: 767px) {
+            /* TELEFON — hidupkan semula soft hyphen. Nilai manual bermakna: pecah HANYA pada titik
+               yang kita tetapkan sendiri (U+00AD daripada PemenggalSukuKata.js), tidak pernah
+               meneka sendiri. Inilah yang menukar pemecahan buruk di tengah perkataan
+               ("Didahulukan"/"n") kepada sempang yang betul ("Didahulu-"/"kan") pada lajur
+               sempit. Tidak bergantung pada kamus hyphenation pelayar — yang diuji TIADA. */
+            #bento-news-grid [data-slot] h3,
+            #bento-news-grid [data-slot] h4,
+            #bento-news-grid [data-slot] p {
+              hyphens: manual;
+              -webkit-hyphens: manual;
+            }
+
             /* TELEFON — eyebrow ditindan menegak (permintaan Izzat): baris ATAS ikon (kiri) +
                tarikh (kanan, .tarikh-siaran-badge yang sedia ada diposisi mutlak di sudut
                atas-kanan kad), baris BAWAH barulah topik. Slot ikon SENTIASA ambil ruang walau

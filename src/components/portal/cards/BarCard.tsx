@@ -76,6 +76,9 @@ export const BarCard: React.FC<BarCardProps> = ({ item, onClick, isEditMode, onE
           Falsafah teras #1; pada lebar telefon yang sempit, had 2 baris memang kerap terkena.
           Desktop kekal line-clamp-2 seperti asal (md: = 768px, breakpoint telefon projek ini). */}
       <h4 className="font-serif text-[10px] md:text-sm text-white leading-snug font-medium line-clamp-none md:line-clamp-2 group-hover:text-[#E9D8A6] transition-colors duration-200 mt-1">
+        {/* Tiada penggalSukuKata() di sini dengan sengaja: `item.title` sampai ke sini sudah
+            menjadi elemen React (diproses di FrontpageView, lihat nota "penggalSukuKata()
+            disisipkan DI SINI"). Soft hyphen sudah pun tersisip di titik pusat itu. */}
         {item.title}
       </h4>
     </div>
