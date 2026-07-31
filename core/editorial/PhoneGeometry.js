@@ -129,12 +129,11 @@ export const PHONE_TITLE = {
   leading: '1.375',
 };
 
-// Huraian ikut prinsip lebar-kolum yang sama seperti tajuk di atas — dua lebar, dua saiz. Satu
-// tangga di bawah tajuknya (18→14, 14→12) supaya hierarki tajuk/huraian kekal jelas pada kedua-dua
-// lebar. Diukur bersama lantai PHONE_CARD_MIN di atas — lihat nota "HURAIAN DIKEMBALIKAN".
+// Huraian TETAP satu saiz merentasi SEMUA kad (tak ikut lebar kolum macam tajuk) — keputusan
+// eksplisit pemilik projek (2026-07-31): "saiz tajuk dinamik, saiz huraian fixed". Tajuk terus
+// ikut lebar (PHONE_TITLE di atas); huraian tidak.
 export const PHONE_BRIEF = {
-  penuh: '14px',
-  pasangan: '12px',
+  fixed: '12px',
   leading: '1.5',
 };
 
@@ -205,7 +204,7 @@ export const phoneLayoutCss = () => {
     // fontSize:'14px' terus sebagai gaya INLINE pada setiap <p> huraian (untuk desktop) — gaya
     // inline sentiasa menewaskan mana-mana peraturan luar tanpa !important, tak kira spesifikasi.
     // Sama sebab seperti nota [data-carousel-stable] di bawah.
-    const saizHuraian = box.pasangan ? PHONE_BRIEF.pasangan : PHONE_BRIEF.penuh;
+    const saizHuraian = PHONE_BRIEF.fixed;
     const huraianSelector = slots.map((n) => `  #bento-news-grid [data-slot="${n}"] p`).join(',\n');
     const huraianRule = `${huraianSelector} {\n    font-size: ${saizHuraian} !important;\n    line-height: ${PHONE_BRIEF.leading};\n  }`;
     return `  /* ${tier} — ${box.pasangan ? 'berpasangan dua kolum' : 'penuh lebar'}${nota} */\n${selector} {\n${decls}\n  }\n\n${tajukRule}\n\n${huraianRule}`;
