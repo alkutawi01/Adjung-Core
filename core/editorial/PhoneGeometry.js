@@ -79,14 +79,19 @@ export const PHONE_MAX_WIDTH_PX = 767;
 // kekal pendek, kad panjang tumbuh bebas mengikut keperluan sebenarnya (diukur sehingga ~335-385px
 // pada kes terburuk sebenar — nombor itu bukan lagi ditaip di sini, cuma pengesahan yang kad boleh
 // tumbuh sebegitu tanpa limpahan, sebab tiada siling langsung).
+// Diukur SEMULA 2026-07-31 (lepas peralihan ke masonry columns-2) — MENEGAK/MELINTANG/KIUB KECIL
+// dulu diukur pada lebar "penuh" 358px; kini SEMUA lajur masonry ~171px sahaja (disahkan hidup:
+// getBoundingClientRect di semua tier = 171px tepat), jadi lantai lama dah tak releven. Kaedah
+// sama seperti sebelum ni: klon kad sebenar pada 171px, kandungan MINIMUM (tajuk pendek ~20
+// aksara, tiada huraian) — bukan kes terburuk, lihat nota "HURAIAN DIKEMBALIKAN" di bawah.
 export const PHONE_CARD_MIN = {
-  '--card-min-melintang-penuh': '160px',      // HERO
-  '--card-min-menegak': '170px',              // MENEGAK
-  '--card-min-melintang': '135px',            // STANDARD
+  '--card-min-melintang-penuh': '160px',      // HERO — tak berubah, kekal 358px (luar masonry)
+  '--card-min-menegak': '205px',              // MENEGAK — lantai terukur 203px
+  '--card-min-melintang': '175px',            // STANDARD — lantai terukur 170px
   '--card-min-bar': '84px',                   // BAR (BarCard sudah ada min-h-[84px]) — tiada huraian, tak berubah
-  '--card-min-kiub-besar': '140px',           // KIUB BESAR
-  '--card-min-kiub-kecil': '175px',           // KIUB KECIL
-  '--card-min-kompak': '105px',               // KOMPAK
+  '--card-min-kiub-besar': '165px',           // KIUB BESAR — lantai terukur 160px
+  '--card-min-kiub-kecil': '255px',           // KIUB KECIL — lantai terukur 249px
+  '--card-min-kompak': '105px',               // KOMPAK — lantai terukur 100px, tak berubah
 };
 
 // Kotak setiap tier pada telefon.
@@ -228,6 +233,16 @@ ${vars}
   #bento-news-grid [data-slot] {
     break-inside: avoid;
     margin-bottom: 1rem;
+  }
+
+  /* Lencana tarikh siaran (2026-07-31) — sudut atas-kanan setiap kad, diposisi mutlak (top-N
+     right-N), tak kira lebar kad. Pada lajur masonry sempit (~171px), label eyebrow yang panjang
+     boleh melanggarnya (disahkan hidup: eyebrow "Pelancongan Kelantan" x25-146px bertindih
+     lencana tarikh x108-146px pada slot MENEGAK). Disembunyikan HANYA dalam masonry (bukan HERO,
+     yang kekal lebar penuh 358px tanpa risiko sama) — tarikh tak hilang, footer sumber setiap kad
+     (Bidang/Sumber + tarikh) sudah papar maklumat sama, lencana ni sekadar berlebihan di sini. */
+  #bento-news-grid .telefon-masonry .tarikh-siaran-badge {
+    display: none;
   }
 
 ${tierRules}
