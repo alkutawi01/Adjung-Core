@@ -2878,9 +2878,9 @@ URL: ${url}`;
         <style>{PHONE_LAYOUT_CSS}</style>
         <section className="my-8" id="bento-news-grid">
 
-
-          <div className="flex flex-col gap-4">
-            
+          {/* HERO (slot 0) — SATU-SATUNYA kad di luar aliran masonry telefon (lihat bekas
+              .telefon-masonry di bawah). Kad utama, lebar penuh sentiasa, tak kira lebar skrin. */}
+          <div className="mb-4">
             {/* ROW 1: Full horizontal (Index 0) */}
             {bentoNewsItems[0] && (
                 <div 
@@ -2909,9 +2909,19 @@ URL: ${url}`;
                 </BentoInner><span className="absolute top-8 right-8 font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[0].publishedAt)}</span>
               </div>
             )}
+          </div>
+
+          {/* Masonry telefon (2026-07-31): SEMUA slot lain (1-37) mengalir bebas ke columns-2 pada
+              telefon; desktop kekal flex-col gap-4 seperti asal (bekas blok masing-masing "contents"
+              mendedahkan grid 6-lajur asal, susun atur desktop tidak tersentuh). */}
+          <div className="telefon-masonry md:flex md:flex-col md:gap-4">
 
             {/* ROW 2 & 3: Vertical, Horizontal, Square, 2 Compact (Indices 1 to 5) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Masonry telefon (2026-07-31): bekas ini "lut sinar" (contents) pada telefon supaya
+                kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
+                bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
+                6-lajur seperti biasa, tidak tersentuh. */}
+            <div className="contents md:grid md:grid-cols-6 md:gap-4">
               
               {/* Left Column: Vertical (Index 1) */}
               {bentoNewsItems[1] && (
@@ -3003,7 +3013,7 @@ URL: ${url}`;
               {/* Right/Bottom-Right: Two Stacked Compacts (Indices 4 & 5) */}
               {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
                   telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="md:col-span-2 grid grid-cols-2 gap-3 md:flex md:flex-col md:gap-4 h-full">
+              <div className="contents md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[4] && (
                 <div 
                   onClick={() => handleCardClick(4)}
@@ -3063,7 +3073,7 @@ URL: ${url}`;
             </div>
 
             {/* ROW 4 & 5: Horizontal, Vertical, Bars, Square (Indices 6 to 12) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 animate-fade-in">
+            <div className="contents md:grid md:grid-cols-6 md:gap-4 md:animate-fade-in">
 
               {/* Left Top: Horizontal (Index 6) */}
               {bentoNewsItems[6] && (
@@ -3130,7 +3140,7 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full" data-bar-cluster="">
+              <div className="contents md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2 h-full" data-bar-cluster="">
                 <div className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 -translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
                     PROGRAM-PROGRAM BERMANFAAT
@@ -3205,7 +3215,7 @@ URL: ${url}`;
 
             {/* ROW 6: Two Half Horizontals Side-By-Side (Indices 13 & 14) */}
             {/* Pasangan SEGI_EMPAT_MEDIUM — dua kolum juga pada telefon (nisbah 3:4). */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
+            <div className="contents md:grid md:grid-cols-6 md:gap-4">
               {bentoNewsItems[13] && (
                 <div 
                   onClick={() => handleCardClick(13)}
@@ -3272,7 +3282,11 @@ URL: ${url}`;
             </div>
 
             {/* ROW 7 & 8: Vertical, Square, Stacked Compacts, Horizontal (Indices 15 to 19) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Masonry telefon (2026-07-31): bekas ini "lut sinar" (contents) pada telefon supaya
+                kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
+                bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
+                6-lajur seperti biasa, tidak tersentuh. */}
+            <div className="contents md:grid md:grid-cols-6 md:gap-4">
               
               {/* Left Column: Vertical (Index 15) */}
               {bentoNewsItems[15] && (
@@ -3342,7 +3356,7 @@ URL: ${url}`;
               {/* Two Stacked Compacts (Indices 17 & 18) */}
               {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
                   telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="md:col-span-2 grid grid-cols-2 gap-3 md:flex md:flex-col md:gap-4 h-full">
+              <div className="contents md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[17] && (
                 <div 
                   onClick={() => handleCardClick(17)}
@@ -3440,7 +3454,11 @@ URL: ${url}`;
             </div>
 
             {/* ROW 9 & 10: Horizontal, 4 Stacked Bars, Square, Vertical (Indices 20 to 26) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Masonry telefon (2026-07-31): bekas ini "lut sinar" (contents) pada telefon supaya
+                kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
+                bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
+                6-lajur seperti biasa, tidak tersentuh. */}
+            <div className="contents md:grid md:grid-cols-6 md:gap-4">
               
               {/* Left Column: Vertical (Index 26) */}
               {bentoNewsItems[26] && (
@@ -3541,7 +3559,7 @@ URL: ${url}`;
                   )}</div>
               )}
 
-              <div className="md:col-span-2 relative flex flex-col justify-between gap-2 h-full" data-bar-cluster="">
+              <div className="contents md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2 h-full" data-bar-cluster="">
                 <div className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-0 whitespace-nowrap">
                     PROGRAM-PROGRAM BERMANFAAT
@@ -3582,7 +3600,7 @@ URL: ${url}`;
 
             {/* ROW 11: Two Half Horizontals Side-By-Side (Indices 27 & 28) */}
             {/* Pasangan SEGI_EMPAT_MEDIUM — dua kolum juga pada telefon (nisbah 3:4). */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
+            <div className="contents md:grid md:grid-cols-6 md:gap-4">
               {bentoNewsItems[27] && (
                 <div 
                   onClick={() => handleCardClick(27)}
@@ -3649,7 +3667,11 @@ URL: ${url}`;
             </div>
 
             {/* ROW 12 & 13: Vertical, Square, Stacked Compacts, Horizontal (Indices 29 to 33) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Masonry telefon (2026-07-31): bekas ini "lut sinar" (contents) pada telefon supaya
+                kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
+                bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
+                6-lajur seperti biasa, tidak tersentuh. */}
+            <div className="contents md:grid md:grid-cols-6 md:gap-4">
               
               {/* Left Column: Vertical (Index 29) */}
               {bentoNewsItems[29] && (
@@ -3719,7 +3741,7 @@ URL: ${url}`;
               {/* Two Stacked Compacts (Indices 31 & 32) */}
               {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
                   telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="md:col-span-2 grid grid-cols-2 gap-3 md:flex md:flex-col md:gap-4 h-full">
+              <div className="contents md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[31] && (
                 <div 
                   onClick={() => handleCardClick(31)}
@@ -3817,7 +3839,11 @@ URL: ${url}`;
             </div>
 
             {/* ROW 14 & 15: Horizontal, Two Half-Horizontals, Vertical (Indices 34 to 37) */}
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Masonry telefon (2026-07-31): bekas ini "lut sinar" (contents) pada telefon supaya
+                kad di dalamnya mengalir terus ke bekas columns-2 induk (lihat #bento-news-grid),
+                bukan terperangkap dalam kumpulan blok desktop asal. Desktop (md:) kekal grid
+                6-lajur seperti biasa, tidak tersentuh. */}
+            <div className="contents md:grid md:grid-cols-6 md:gap-4">
               
               {/* Left Top: Horizontal spanning across Col 1-4 (Index 34) */}
               {bentoNewsItems[34] && (

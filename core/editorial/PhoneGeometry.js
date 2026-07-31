@@ -139,15 +139,28 @@ export const PHONE_BRIEF = {
 // (var() yang tidak sepadan menjadikan min-height `auto`, iaitu 0px, tanpa sebarang amaran).
 // Pemboleh ubah itu masih diisytiharkan pada akar grid supaya nilainya boleh dilihat dan dicuba
 // ubah dalam devtools.
+// ---------------------------------------------------------------------------------------------
+// MASONRY 2-LAJUR (2026-07-31, permintaan pemilik projek)
+//
+// Susun atur "kumpul ikut blok desktop" (Menegak tinggi + tindanan satelit) DIBUANG — Izzat
+// nampak hasilnya "kurang kreatif": satu lajur diregangkan sepanjang-panjangnya, lepas tu bahagi
+// lain diisi apa sahaja yang ada, jurang kosong besar bila kandungan tak padan. Digantikan CSS
+// multi-column (`columns-2` pada #bento-news-grid, lihat FrontpageView.tsx) — SEMUA 37 slot
+// (bukan HERO) mengalir bebas sebagai item individu, browser sendiri seimbangkan tinggi kedua-dua
+// lajur (macam Pinterest), bukan dikumpulkan ikut blok/tier asal.
+//
+// Kesan: SEMUA tier (bukan cuma Kompak/Kiub Besar) kini dirender pada lebar lajur sempit ~171px,
+// bukan lebar "penuh" 358px seperti dulu — `pasangan: true` untuk semua tier bawah ni.
+// HERO KEKAL "penuh" — ia satu-satunya di luar aliran masonry (kad utama, lebar penuh sentiasa).
 export const PHONE_TIER_BOX = {
   HERO: { pasangan: false, minHeight: PHONE_CARD_MIN['--card-min-melintang-penuh'] },
-  MENEGAK: { pasangan: false, minHeight: PHONE_CARD_MIN['--card-min-menegak'] },
-  STANDARD: { pasangan: false, minHeight: PHONE_CARD_MIN['--card-min-melintang'] },
-  SEGI_EMPAT_SMALL: { pasangan: false, nisbah: '2 / 1', minHeight: PHONE_CARD_MIN['--card-min-kiub-kecil'] },
+  MENEGAK: { pasangan: true, minHeight: PHONE_CARD_MIN['--card-min-menegak'] },
+  STANDARD: { pasangan: true, minHeight: PHONE_CARD_MIN['--card-min-melintang'] },
+  SEGI_EMPAT_SMALL: { pasangan: true, nisbah: '2 / 1', minHeight: PHONE_CARD_MIN['--card-min-kiub-kecil'] },
   SEGI_EMPAT_MEDIUM: { pasangan: true, nisbah: '3 / 4', minHeight: PHONE_CARD_MIN['--card-min-kiub-besar'] },
   KOMPAK: { pasangan: true, nisbah: '1 / 1', minHeight: PHONE_CARD_MIN['--card-min-kompak'] },
-  // BAR tiada entri: BarCard sudah pun penuh lebar, bertindan, dengan min-h-[84px] yang sama
-  // dengan --card-min-bar. Tiada apa-apa untuk ditindih.
+  // BAR tiada entri: BarCard sudah pun reka bentuk lebar-fleksibel (w-full, teks
+  // terpotong/line-clamp), jadi ia selesa pada mana-mana lebar lajur tanpa peraturan tambahan.
 };
 
 /**
@@ -202,17 +215,19 @@ ${vars}
     min-height: 0 !important;
   }
 
-  /* BAR (2026-07-31, permintaan pemilik projek). Pada desktop, BAR ialah tier PALING KECIL —
-     satu lajur sempit (1/3 lebar, md:col-span-2 drpd 6) ditindan menegak, hierarki paling rendah.
-     Tanpa peraturan ni, BAR jatuh balik kepada lebar PENUH pada telefon (sama seperti kad lain) —
-     bercanggah dengan identiti "paling kecil" tu. 2 lajur padan hierarki desktop dengan lebih
-     dekat, dan BarCard sendiri sudah reka untuk teks terpotong/2-baris (truncate/line-clamp),
-     bukan tumbuh bebas macam h3/p tier lain — jadi lajur sempit selamat di sini (tak sama risiko
-     dengan cuba letak MENEGAK/HERO dalam lajur sempit). */
-  #bento-news-grid [data-bar-cluster] {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+  /* MASONRY 2-LAJUR (2026-07-31) — lihat nota panjang di PHONE_TIER_BOX di atas. Bekas induk
+     .telefon-masonry (pembalut ROW 2-15, lihat FrontpageView.tsx; HERO tinggal di luar bekas ni)
+     jadi columns:2; setiap kad ialah satu "item" yang mengalir bebas. break-inside:avoid — WAJIB
+     — tanpanya browser boleh belah SATU kad merentasi sempadan lajur (separuh tajuk di lajur 1,
+     baki di lajur 2). margin-bottom menggantikan gap — susun atur CSS columns tiada konsep jurang
+     menegak dalam lajur yang sama, cuma jurang MENDATAR antara lajur (column-gap, bekas induk). */
+  #bento-news-grid .telefon-masonry {
+    columns: 2;
+    column-gap: 1rem;
+  }
+  #bento-news-grid [data-slot] {
+    break-inside: avoid;
+    margin-bottom: 1rem;
   }
 
 ${tierRules}
