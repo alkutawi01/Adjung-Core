@@ -189,12 +189,11 @@ export const phoneLayoutCss = () => {
     const selector = slots.map((n) => `  #bento-news-grid [data-slot="${n}"]`).join(',\n');
     // `height: auto` melucutkan `h-full` desktop; min-height tier kemudian menjadi lantai sebenar.
     // Sengaja TIADA aspect-ratio dipancarkan — lihat nota "NISBAH IALAH LANTAI" di atas.
-    // `lebarPenuh`: tier PECAH KELUAR lebar penuh SATU SAAT dalam aliran columns (column-span:all)
-    // — dua lajur sambung semula selepasnya, tiada jurang (lihat nota "MASONRY" di bawah).
+    // `lebarPenuh` tak pancarkan CSS di sini lagi — susun atur masonry telefon kini JavaScript
+    // (usePhoneMasonry.ts), yang baca TIER_SLOTS.STANDARD terus. Lihat nota "MASONRY" di bawah.
     const decls = [
       '    height: auto;',
       `    min-height: ${box.minHeight};`,
-      ...(box.lebarPenuh ? ['    column-span: all;'] : []),
     ].join('\n');
     const nota = box.nisbah ? ` (bentuk direka ${box.nisbah}, sebagai lantai)` : '';
     // Saiz tajuk ikut lebar kolum, diperoleh terus daripada `pasangan` — jadi ia tidak boleh
@@ -228,27 +227,17 @@ ${vars}
     min-height: 0 !important;
   }
 
-  /* MASONRY 2-LAJUR (2026-07-31, versi KETIGA — kembali ke columns, kali ni betul-betul).
-     Percubaan #2 (grid-auto-flow:dense) DIBUANG — Izzat tangkap jurang kosong besar (disahkan
-     hidup: 990px jurang dalam satu lajur). Sebab: CSS Grid ialah struktur baris-lajur TEGAR — bila
-     kad pendek berkongsi baris dengan kad tinggi, lajur pendek tinggalkan lubang, dan dense cuma
-     isi lubang untuk kad AKAN DATANG, bukan susun semula baris yang dah wujud. Grid BUKAN masonry
-     sebenar walaupun nampak macam patut boleh.
-
-     Kembali kepada columns:2 (percubaan #1) — ini JAMIN 0 jurang (aliran tulen atas-ke-bawah,
-     bukan matriks baris-lajur). Untuk selesaikan sebab asal #1 ditukar (STANDARD tak boleh lebar
-     dalam columns biasa), guna column-span:all (lihat decls tier di atas) — ciri CSS asli untuk
-     TEPAT situasi ni: satu item pecah keluar lebar penuh SATU SAAT dalam aliran columns, dua lajur
-     sambung semula bersih selepasnya, TANPA jurang (column-span:all bukan grid, tiada isu baris
-     tegar). break-inside:avoid + margin-bottom kembali diperlukan (columns tiada row-gap). */
-  #bento-news-grid .telefon-masonry {
-    columns: 2;
-    column-gap: 1rem;
-  }
-  #bento-news-grid [data-slot] {
-    break-inside: avoid;
-    margin-bottom: 1rem;
-  }
+  /* MASONRY 2-LAJUR — kini JAVASCRIPT, bukan CSS (2026-07-31, versi KEEMPAT).
+     Dua percubaan CSS tulen sebelum ni GAGAL, disahkan hidup dengan geometri sebenar:
+       #2 Grid (grid-auto-flow:dense) — struktur baris-lajur TEGAR, jurang sehingga 990px.
+       #3 columns:2 + column-span:all — dijangka "jamin 0 jurang", SALAH: mod balance browser
+          masih boleh tinggalkan jurang bila kad tinggi tak boleh dipecah + saiz sangat berbeza
+          (disahkan hidup pada 600px: 320px + beberapa lagi jurang merentasi 4727px halaman).
+     CSS TIADA cara jamin 0 jurang bila kandungan pelbagai tinggi + item lebar-penuh bercampur.
+     Digantikan usePhoneMasonry (src/hooks/usePhoneMasonry.ts) — ukur tinggi SEBENAR setiap kad
+     (offsetHeight), letak dalam lajur PALING PENDEK setakat itu (algoritma masonry tulen), pancar
+     position:absolute terus via JS. Tiada peraturan CSS untuk .telefon-masonry di sini lagi —
+     hook itu urus semuanya (termasuk pulih semula ke aliran biasa pada desktop). */
 
   /* Lencana tarikh siaran (2026-07-31) — sudut atas-kanan setiap kad, diposisi mutlak (top-N
      right-N), tak kira lebar kad. Pada lajur masonry sempit (~171px), label eyebrow yang panjang

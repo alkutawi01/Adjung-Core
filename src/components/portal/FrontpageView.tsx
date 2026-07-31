@@ -8,6 +8,7 @@ import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Sett
 import { ToastContainer, ToastMessage } from '../common/Toast';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
 import { phoneLayoutCss } from '../../../core/editorial/PhoneGeometry.js';
+import { usePhoneMasonry } from '../../hooks/usePhoneMasonry';
 import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRenderer';
 import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
@@ -565,6 +566,18 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   setIndexSearchQuery,
 }) => {
   const navigate = useNavigate();
+  // Susun atur masonry telefon (2026-07-31) — lihat usePhoneMasonry.ts untuk sebab CSS
+  // columns/Grid dua-dua gagal (jurang kosong tak jamin 0 walaupun dijangka). STANDARD
+  // (Melintang) sahaja "lebar penuh" dalam aliran, ikut TIER_SLOTS.STANDARD terus.
+  const masonryRef = useRef<HTMLDivElement>(null);
+  // Kluster Bar (7-10 & 21-24) dikekalkan bersebelahan dalam masonry — Izzat: "jgn pisahkan
+  // slot bar, nampak hodoh". TIER_SLOTS.BAR ialah satu senarai leper 8 slot; belah dua ikut
+  // kluster (setiap kluster 4 slot berturutan) supaya setiap kluster jadi SATU unit peletakan.
+  const barGroups = React.useMemo(() => {
+    const half = TIER_SLOTS.BAR.length / 2;
+    return [TIER_SLOTS.BAR.slice(0, half), TIER_SLOTS.BAR.slice(half)];
+  }, []);
+  usePhoneMasonry(masonryRef, TIER_SLOTS.STANDARD, barGroups);
   const [parsedNewsItems, setParsedNewsItems] = useState<any[]>([]);
   // Distinguishes "haven't fetched real content yet" from "fetched, and this slot is genuinely
   // unconfigured" — without this, every fresh page load briefly renders the character-limit
@@ -2911,10 +2924,12 @@ URL: ${url}`;
             )}
           </div>
 
-          {/* Masonry telefon (2026-07-31): SEMUA slot lain (1-37) mengalir bebas ke columns-2 pada
-              telefon; desktop kekal flex-col gap-4 seperti asal (bekas blok masing-masing "contents"
-              mendedahkan grid 6-lajur asal, susun atur desktop tidak tersentuh). */}
-          <div className="telefon-masonry md:flex md:flex-col md:gap-4">
+          {/* Masonry telefon (2026-07-31): SEMUA slot lain (1-37) mengalir bebas ikut algoritma
+              lajur-terpendek-dahulu (usePhoneMasonry, JS — CSS columns/Grid dua-dua gagal, lihat
+              nota panjang di PhoneGeometry.js dan usePhoneMasonry.ts); desktop kekal flex-col gap-4
+              seperti asal (bekas blok masing-masing "contents" mendedahkan grid 6-lajur asal, susun
+              atur desktop tidak tersentuh — hook ni buang semua gaya inline pada desktop). */}
+          <div ref={masonryRef} className="telefon-masonry md:flex md:flex-col md:gap-4">
 
             {/* ROW 2 & 3: Vertical, Horizontal, Square, 2 Compact (Indices 1 to 5) */}
             {/* Masonry telefon (2026-07-31): bekas ini "lut sinar" (contents) pada telefon supaya
