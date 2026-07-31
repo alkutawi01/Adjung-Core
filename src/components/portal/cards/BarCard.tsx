@@ -40,7 +40,7 @@ export const BarCard: React.FC<BarCardProps> = ({ item, onClick, isEditMode, onE
   return (
     <div
       onClick={onClick}
-      className={`group relative bg-[#802334] border border-amber-300/40 rounded-lg p-3 sm:px-3.5 sm:py-2.5 hover:brightness-110 transition-all duration-200 cursor-pointer flex flex-col justify-start gap-1.5 min-h-[84px] w-full overflow-hidden shadow-sm ${
+      className={`group relative bg-[#802334] border border-amber-300/40 rounded-lg p-3 sm:px-3.5 sm:py-2.5 hover:brightness-110 transition-all duration-200 cursor-pointer flex flex-col justify-start gap-1.5 min-h-[84px] flex-1 w-full overflow-hidden shadow-sm ${
         isEditMode ? 'ring-2 ring-dashed ring-amber-300 cursor-pointer' : ''
       }`}
     >

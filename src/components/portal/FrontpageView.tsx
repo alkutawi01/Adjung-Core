@@ -3185,7 +3185,7 @@ URL: ${url}`;
                   if (!barItem) return null;
                   const isExpanded = expandedBarCluster1 === idx;
                   return (
-                    <div key={idx} data-slot={idx}>
+                    <div key={idx} data-slot={idx} className="flex-1 md:flex-none flex flex-col">
                       <BarCard
                         item={barItem}
                         onClick={() => {
@@ -3606,7 +3606,7 @@ URL: ${url}`;
                   if (!barItem) return null;
                   const isExpanded = expandedBarCluster2 === idx;
                   return (
-                    <div key={idx} data-slot={idx}>
+                    <div key={idx} data-slot={idx} className="flex-1 md:flex-none flex flex-col">
                       <BarCard
                         item={barItem}
                         onClick={() => {
