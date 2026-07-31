@@ -87,7 +87,7 @@ export const PHONE_MAX_WIDTH_PX = 767;
 export const PHONE_CARD_MIN = {
   '--card-min-melintang-penuh': '160px',      // HERO — tak berubah, kekal 358px (luar masonry)
   '--card-min-menegak': '205px',              // MENEGAK — lantai terukur 203px
-  '--card-min-melintang': '175px',            // STANDARD — lantai terukur 170px
+  '--card-min-melintang': '135px',            // STANDARD — lebar PENUH (2 lajur grid, lihat nota lebarPenuh), lantai terukur pada 358px
   '--card-min-bar': '84px',                   // BAR (BarCard sudah ada min-h-[84px]) — tiada huraian, tak berubah
   '--card-min-kiub-besar': '165px',           // KIUB BESAR — lantai terukur 160px
   '--card-min-kiub-kecil': '255px',           // KIUB KECIL — lantai terukur 249px
@@ -145,22 +145,23 @@ export const PHONE_BRIEF = {
 // Pemboleh ubah itu masih diisytiharkan pada akar grid supaya nilainya boleh dilihat dan dicuba
 // ubah dalam devtools.
 // ---------------------------------------------------------------------------------------------
-// MASONRY 2-LAJUR (2026-07-31, permintaan pemilik projek)
+// MASONRY 2-LAJUR — GRID PADAT (2026-07-31, permintaan pemilik projek)
 //
-// Susun atur "kumpul ikut blok desktop" (Menegak tinggi + tindanan satelit) DIBUANG — Izzat
-// nampak hasilnya "kurang kreatif": satu lajur diregangkan sepanjang-panjangnya, lepas tu bahagi
-// lain diisi apa sahaja yang ada, jurang kosong besar bila kandungan tak padan. Digantikan CSS
-// multi-column (`columns-2` pada #bento-news-grid, lihat FrontpageView.tsx) — SEMUA 37 slot
-// (bukan HERO) mengalir bebas sebagai item individu, browser sendiri seimbangkan tinggi kedua-dua
-// lajur (macam Pinterest), bukan dikumpulkan ikut blok/tier asal.
+// Susun atur "kumpul ikut blok desktop" (Menegak tinggi + tindanan satelit) DIBUANG — Izzat nampak
+// hasilnya "kurang kreatif". Percubaan pertama guna CSS multi-column (`columns:2`) — tapi Izzat
+// perasan SEMUA kad jadi bentuk sama (menegak/segi-empat), sebab multi-column TIADA cara letak
+// item lebar-2-lajur di tengah aliran (cuma boleh sempit SATU lajur, atau pecah keluar sepenuhnya
+// macam HERO). Digantikan CSS GRID (`grid-template-columns: repeat(2,1fr); grid-auto-flow: dense`)
+// — ini benarkan STANDARD (Melintang) ambil `grid-column: span 2` (lebar penuh) SAMBIL kekal
+// dalam aliran bersama kad sempit lain; `dense` padatkan lubang secara automatik.
 //
-// Kesan: SEMUA tier (bukan cuma Kompak/Kiub Besar) kini dirender pada lebar lajur sempit ~171px,
-// bukan lebar "penuh" 358px seperti dulu — `pasangan: true` untuk semua tier bawah ni.
-// HERO KEKAL "penuh" — ia satu-satunya di luar aliran masonry (kad utama, lebar penuh sentiasa).
+// Kesan: HERO kekal "penuh" (luar grid, kad utama). STANDARD kini JUGA "penuh" (govern oleh
+// `lebarPenuh`, span 2 lajur DALAM grid). Tier lain (Menegak, Kiub Kecil, Kiub Besar, Kompak)
+// kekal `pasangan: true` (satu lajur sempit ~171px).
 export const PHONE_TIER_BOX = {
   HERO: { pasangan: false, minHeight: PHONE_CARD_MIN['--card-min-melintang-penuh'] },
   MENEGAK: { pasangan: true, minHeight: PHONE_CARD_MIN['--card-min-menegak'] },
-  STANDARD: { pasangan: true, minHeight: PHONE_CARD_MIN['--card-min-melintang'] },
+  STANDARD: { pasangan: false, lebarPenuh: true, minHeight: PHONE_CARD_MIN['--card-min-melintang'] },
   SEGI_EMPAT_SMALL: { pasangan: true, nisbah: '2 / 1', minHeight: PHONE_CARD_MIN['--card-min-kiub-kecil'] },
   SEGI_EMPAT_MEDIUM: { pasangan: true, nisbah: '3 / 4', minHeight: PHONE_CARD_MIN['--card-min-kiub-besar'] },
   KOMPAK: { pasangan: true, nisbah: '1 / 1', minHeight: PHONE_CARD_MIN['--card-min-kompak'] },
@@ -184,9 +185,12 @@ export const phoneLayoutCss = () => {
     const selector = slots.map((n) => `  #bento-news-grid [data-slot="${n}"]`).join(',\n');
     // `height: auto` melucutkan `h-full` desktop; min-height tier kemudian menjadi lantai sebenar.
     // Sengaja TIADA aspect-ratio dipancarkan — lihat nota "NISBAH IALAH LANTAI" di atas.
+    // `lebarPenuh`: tier ambil KEDUA-DUA lajur grid (span 2) — kekal dalam aliran .telefon-masonry
+    // (bukan keluar macam HERO), tapi lebar penuh. Lihat nota "GRID PADAT" di PHONE_TIER_BOX.
     const decls = [
       '    height: auto;',
       `    min-height: ${box.minHeight};`,
+      ...(box.lebarPenuh ? ['    grid-column: span 2;'] : []),
     ].join('\n');
     const nota = box.nisbah ? ` (bentuk direka ${box.nisbah}, sebagai lantai)` : '';
     // Saiz tajuk ikut lebar kolum, diperoleh terus daripada `pasangan` — jadi ia tidak boleh
@@ -220,19 +224,27 @@ ${vars}
     min-height: 0 !important;
   }
 
-  /* MASONRY 2-LAJUR (2026-07-31) — lihat nota panjang di PHONE_TIER_BOX di atas. Bekas induk
-     .telefon-masonry (pembalut ROW 2-15, lihat FrontpageView.tsx; HERO tinggal di luar bekas ni)
-     jadi columns:2; setiap kad ialah satu "item" yang mengalir bebas. break-inside:avoid — WAJIB
-     — tanpanya browser boleh belah SATU kad merentasi sempadan lajur (separuh tajuk di lajur 1,
-     baki di lajur 2). margin-bottom menggantikan gap — susun atur CSS columns tiada konsep jurang
-     menegak dalam lajur yang sama, cuma jurang MENDATAR antara lajur (column-gap, bekas induk). */
+  /* MASONRY 2-LAJUR — GRID PADAT (2026-07-31) — lihat nota panjang di PHONE_TIER_BOX di atas.
+     Bekas induk .telefon-masonry (pembalut ROW 2-15, lihat FrontpageView.tsx; HERO tinggal di
+     luar bekas ni) jadi grid 2-lajur, grid-auto-flow:dense — kad lebarPenuh (STANDARD) ambil
+     grid-column:span 2 (ditetapkan per-tier di bawah), kad lain 1 lajur; dense padatkan lubang
+     secara automatik (kad kemudian boleh isi ruang kosong di atas kalau muat, bukan tunggu
+     turutan tegar). Gantian CSS multi-column (columns:2) percubaan pertama — multi-column TIADA
+     cara letak item span-2 di tengah aliran, punca "semua kad jadi bentuk sama" yang Izzat
+     perasan. Grid ada gap sebenar (tak macam columns, yang cuma ada jurang MENDATAR).
+
+     align-items:start WAJIB — lalai grid ialah stretch, yang paksa SETIAP kad dalam satu baris
+     grid meregang setinggi kad TERTINGGI baris itu (disahkan hidup: slot 3 berkongsi baris dengan
+     jiran tinggi, jadi diregang 533px walhal kandungan sebenar cuma perlukan ~180px — jurang besar
+     terbentuk sebelum footer sumber, nampak macam sumber "terapung" jauh dari kandungan). Bukan
+     tingkah laku sepatutnya — setiap kad patut kekal tinggi semula jadi sendiri (falsafah sama
+     seperti "NISBAH IALAH LANTAI" — lihat nota di atas fail ni), bukan meregang ikut jiran. */
   #bento-news-grid .telefon-masonry {
-    columns: 2;
-    column-gap: 1rem;
-  }
-  #bento-news-grid [data-slot] {
-    break-inside: avoid;
-    margin-bottom: 1rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-flow: dense;
+    align-items: start;
+    gap: 1rem;
   }
 
   /* Lencana tarikh siaran (2026-07-31) — sudut atas-kanan setiap kad, diposisi mutlak (top-N
