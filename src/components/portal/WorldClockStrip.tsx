@@ -302,15 +302,40 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   }, [isAnimating, worldClockSetIndex]);
 
   // 1. Live Weather Fetcher for All 15 Cities
+  //
+  // KEKERAPAN KEMAS KINI — kenapa 5 minit + ambil semula bila tab diaktifkan semula:
+  //
+  // Open-Meteo mengemas kini nilai `current` setiap 15 MINIT (medan `interval: 900` dalam
+  // responsnya sendiri). Versi terdahulu meninjau setiap 15 minit juga — tetapi tinjauan itu
+  // TIDAK diselaraskan dengan kitaran pelayan, jadi jurang terburuk ialah 15 minit menunggu
+  // tinjauan + 15 minit umur data = paparan boleh setua ~30 MINIT. Itulah puncanya pemilik
+  // projek nampak ikon hujan sedangkan API sudah pun bertukar (disahkan hidup: kod 51 pada
+  // 18:00 bertukar kepada 95 pada 18:15, sedangkan jalur masih memapar yang lama).
+  //
+  // Meninjau setiap 5 minit mengehadkan jurang tinjauan kepada 5 minit. Ia TIDAK menghasilkan
+  // data lebih kerap daripada 15 minit — pelayan tiada nilai baharu — tetapi ia memastikan
+  // nilai baharu itu diambil dalam masa 5 minit selepas ia wujud.
+  //
+  // Pencetus keterlihatan lebih penting daripada tinjauan itu sendiri: kes sebenar ialah
+  // seseorang kembali ke tab selepas lama, dan mahu melihat cuaca SEKARANG. Tinjauan berkala
+  // tidak membantu di situ kerana pelayar memperlahankan pemasa dalam tab latar. Pendikit 60
+  // saat menghalang capaian bertalu-talu apabila tab ditukar berulang kali.
   useEffect(() => {
+    let masaAmbilTerakhir = 0;
+
     const fetchWeather = async () => {
+      masaAmbilTerakhir = Date.now();
       try {
         const allCities = CITY_SETS.flat();
         const lats = allCities.map(c => c.lat).join(',');
         const lons = allCities.map(c => c.lon).join(',');
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,weather_code`;
         const res = await fetch(url);
-        if (!res.ok) return;
+        // Kegagalan dilog, bukan ditelan senyap: apabila panggilan ini gagal, jalur diam-diam
+        // jatuh balik ke DEFAULT_CITY_WEATHER — jadual nilai TETAP dalam kod. Tanpa log, tiada
+        // cara membezakan cuaca sebenar daripada nilai sandaran hanya dengan melihat paparan
+        // (Kota Bharu, contohnya, bersandarkan "hujan" — jadi kegagalan pun nampak munasabah).
+        if (!res.ok) { console.warn("[Jam Dunia] Cuaca gagal diambil: HTTP", res.status, "— jalur kekal pada nilai sandaran."); return; }
         const data = await res.json();
         if (Array.isArray(data)) {
           const weatherMap: Record<string, { temp: number; code: number }> = {};
@@ -324,12 +349,30 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           });
           setCityWeather(weatherMap);
         }
-      } catch (err) {}
+      } catch (err) {
+        console.warn("[Jam Dunia] Cuaca gagal diambil:", err, "— jalur kekal pada nilai sandaran.");
+      }
     };
 
     fetchWeather();
-    const interval = setInterval(fetchWeather, 15 * 60 * 1000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchWeather, 5 * 60 * 1000);
+
+    // Ambil semula apabila pengguna kembali ke tab — tetapi tidak lebih kerap daripada sekali
+    // seminit, supaya bertukar tab berulang kali tidak membebani API.
+    const PENDIKIT_MS = 60 * 1000;
+    const ambilJikaBasi = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - masaAmbilTerakhir < PENDIKIT_MS) return;
+      fetchWeather();
+    };
+    document.addEventListener('visibilitychange', ambilJikaBasi);
+    window.addEventListener('focus', ambilJikaBasi);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', ambilJikaBasi);
+      window.removeEventListener('focus', ambilJikaBasi);
+    };
   }, []);
 
   // 2. Auto-rotate World Clock Set (default 60s / 1 min)
