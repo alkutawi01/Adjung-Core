@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { List, LayoutGrid, Settings, Landmark, LogOut, LogIn, PenLine } from 'lucide-react';
+import { List, LayoutGrid, Settings, Landmark, LogOut, LogIn, PenLine, Mail } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
@@ -14,6 +14,11 @@ interface EditoriumLayoutProps {
   // (2026-07-29, useSlotEditor — Editorium dan Frontpage dipisah 100%, tiada navigasi/
   // parameter URL merentas laman lagi).
   onOpenSlotPicker?: () => void;
+  // Peti Makluman (2026-08-01) — laci nota Ketua Editor. Kiraan datang daripada EditoriumView
+  // (pemilik data nota), bukan diambil sendiri di sini, supaya laci dan lencana sentiasa membaca
+  // senarai yang SAMA — bukan dua panggilan berasingan yang boleh terpesong.
+  onOpenMakluman?: () => void;
+  jumlahMakluman?: number;
   children?: React.ReactNode;
 }
 
@@ -24,6 +29,8 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   onRequestLogin,
   onLogout,
   onOpenSlotPicker,
+  onOpenMakluman,
+  jumlahMakluman = 0,
   children
 }) => {
   const [currentTab, setCurrentTab] = useState(activeTab);
@@ -72,6 +79,24 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                     Frontpage dipisah 100% sekarang; modal (pemilih slot + borang) render TERUS
                     dalam EditoriumView sendiri (useSlotEditor, mandiri, tiada pergantungan pada
                     FrontpageView), tiada navigasi/parameter URL lagi. */}
+                {/* Peti Makluman (2026-08-01, spesifikasi pemilik projek) — nota Ketua Editor
+                    dicapai dari mana-mana halaman, tanpa meninggalkan kerja yang sedang dibuat.
+                    Lencana kiraan hanya muncul apabila benar-benar ada nota. */}
+                {onOpenMakluman && (
+                  <button
+                    type="button"
+                    onClick={onOpenMakluman}
+                    title="Peti Makluman — nota Ketua Editor"
+                    className="relative flex items-center gap-1.5 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1] text-white/80 hover:text-white hover:bg-white/[0.14] transition-colors cursor-pointer"
+                  >
+                    <Mail className="w-3 h-3" /> Makluman
+                    {jumlahMakluman > 0 && (
+                      <span className="font-mono text-[9px] font-bold bg-[#e0b7bd] text-[#5c1624] rounded-full px-1.5 leading-[1.35]">
+                        {jumlahMakluman}
+                      </span>
+                    )}
+                  </button>
+                )}
                 {onOpenSlotPicker && (
                   <button
                     type="button"

@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Lock, Settings, Construction, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
+  Lock, Construction, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
 } from 'lucide-react';
 
-
-interface TypographyTerm {
-  id: string;
-  term: string;
-  style: string;
-  status: string;
-}
 
 interface BlockedCategory {
   id: string;
@@ -87,70 +80,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   currentUserRole = 'KETUA_EDITOR'
 }) => {
   const [subTab, setSubTab] = useState<'PolisiKandungan' | 'Operasi' | 'RBAC'>('PolisiKandungan');
-
-  // Interactive Configuration Drawer Modal State
-  const [activeConfigModal, setActiveConfigModal] = useState<'italic' | null>(null);
-
-  // Senarai Istilah Autocondong — backed by the same adjung_typography_rules table the main
-  // frontpage settings drawer uses (core/routes/slotRoutes.js), not a separate local list. That
-  // fuller drawer (Tetapan Slot) exposes scope/bahasa/keutamaan/exclude-terms + status toggle;
-  // modal ni sengaja kekal ringkas (tambah/buang sahaja) untuk akses pantas, tapi papar status
-  // (aktif/belum aktif) supaya tak sorok status yang diset di panel satu lagi.
-  const [italicTerms, setItalicTerms] = useState<TypographyTerm[]>([]);
-  const [loadingItalicTerms, setLoadingItalicTerms] = useState(false);
-  const [newTermInput, setNewTermInput] = useState('');
-
-  const fetchItalicTerms = async () => {
-    setLoadingItalicTerms(true);
-    try {
-      const res = await fetch('/api/system/adjung-typography-rules');
-      if (res.ok) {
-        const rules = await res.json();
-        setItalicTerms(
-          (rules || [])
-            .filter((r: any) => r.style === 'italic')
-            .map((r: any) => ({ id: r.id, term: r.term, style: r.style, status: r.status || 'active' }))
-        );
-      }
-    } catch (e) {
-      console.error('Error fetching italic terms:', e);
-    } finally {
-      setLoadingItalicTerms(false);
-    }
-  };
-
-  const handleAddItalicTerm = async () => {
-    const term = newTermInput.trim().toLowerCase();
-    if (!term || italicTerms.some(t => t.term === term)) return;
-    try {
-      const res = await fetch('/api/system/adjung-typography-rules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ term, style: 'italic', category: 'foreign_term' })
-      });
-      if (res.ok) {
-        setNewTermInput('');
-        fetchItalicTerms();
-      } else {
-        const body = await res.json().catch(() => ({}));
-        alert(body.error || 'Gagal menambah istilah.');
-      }
-    } catch (e) {
-      console.error('Add italic term error:', e);
-      alert('Ralat menambah istilah.');
-    }
-  };
-
-  const handleRemoveItalicTerm = async (id: string) => {
-    try {
-      const res = await fetch(`/api/system/adjung-typography-rules/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setItalicTerms(prev => prev.filter(t => t.id !== id));
-      }
-    } catch (e) {
-      console.error('Remove italic term error:', e);
-    }
-  };
 
   // Governance Jam Dunia (World Clock) — these were previously local-only state with no
   // backing DB columns at all (WorldClockStrip.tsx has read systemSettings.worldClockIntervalSec
@@ -272,7 +201,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   };
 
   useEffect(() => {
-    fetchItalicTerms();
     fetchBlockedCategories();
 
     fetch('/api/db-state')
@@ -395,29 +323,14 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             Polisi Teks & Format Global
           </h3>
           <div className="space-y-4 divide-y divide-stone-100">
+            {/* Autocondong Istilah Asing & Pinjaman (2026-08-01) — DIPINDAHKAN ke Pentadbiran →
+                Editorial → Autocondong, sebahagian daripada spesifikasi konsol Editorial pemilik
+                projek. Bukan dibuang; jangan cipta semula di sini. */}
             <div className="pt-3 flex flex-wrap justify-between items-center gap-3">
-              <div className="space-y-1">
-                <label className="flex items-center gap-2 font-semibold text-stone-900 cursor-pointer">
-                  <input type="checkbox" checked readOnly className="rounded border-stone-300 text-[#802334]" />
-                  <span>Autocondong Istilah Asing & Pinjaman</span>
-                </label>
-                <p className="text-stone-500 text-xs">
-                  Memformat secara automatik perkataan asing yang tersenarai dalam Senarai Istilah Autocondong.
-                </p>
-              </div>
-              <button
-                onClick={() => setActiveConfigModal('italic')}
-                className="w-64 flex items-center justify-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold transition-colors"
-              >
-                <Settings className="w-3.5 h-3.5" /> Senarai Istilah Autocondong ({italicTerms.filter(t => t.status === 'active').length} Aktif)
-              </button>
-            </div>
-
-            <div className="pt-4 flex flex-wrap justify-between items-center gap-3">
               <div className="space-y-1">
                 <label className="flex items-center gap-2 font-semibold text-stone-400 cursor-not-allowed">
                   <input type="checkbox" disabled className="rounded border-stone-300" />
-                  <span>Interlinear Gloss (Teks Dwibahasa / Arab-Melayu)</span>
+                  <span>Glos Selari (Teks Dwibahasa / Arab-Melayu)</span>
                 </label>
                 <p className="text-stone-400 text-xs">
                   Paparan baris selari glosarium bagi istilah dwibahasa dan teks klasik.
@@ -688,64 +601,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             >
               {savingRbac ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : rbacDirty ? <><Save className="w-3.5 h-3.5" /> Simpan Kawalan Akses</> : <><Check className="w-3.5 h-3.5" /> Tersimpan</>}
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CONFIGURATION DRAWER: SENARAI ISTILAH AUTOCONDONG */}
-      {activeConfigModal === 'italic' && (
-        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-lg w-full p-6 space-y-4 text-xs">
-            <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
-                Senarai Istilah Autocondong
-              </h3>
-              <button onClick={() => setActiveConfigModal(null)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
-            </div>
-
-            <p className="text-stone-600 text-xs">
-              Setiap perkataan di sini dicondongkan secara automatik oleh enjin tipografi Adjung semasa paparan
-              (data asal tak diubah kekal). Senarai ni sama dengan yang di panel Peraturan Tipografi penuh
-              (Tetapan Slot) — tambah/buang pantas di sini sahaja; untuk skop, bahasa, keutamaan atau
-              kekecualian, guna panel penuh tu.
-            </p>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Tambah perkataan (e.g. machine learning)..."
-                value={newTermInput}
-                onChange={e => setNewTermInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleAddItalicTerm(); }}
-                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs flex-1"
-              />
-              <button
-                onClick={handleAddItalicTerm}
-                className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs"
-              >
-                + Tambah
-              </button>
-            </div>
-
-            <div className="flex flex-wrap gap-2 pt-2 max-h-48 overflow-y-auto">
-              {loadingItalicTerms && <span className="text-stone-400">Memuatkan...</span>}
-              {!loadingItalicTerms && italicTerms.length === 0 && <span className="text-stone-400 italic">Senarai masih kosong.</span>}
-              {italicTerms.map(t => (
-                <span key={t.id} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
-                  <span className="italic font-semibold">{t.term}</span>
-                  {t.status !== 'active' && (
-                    <span className="bg-amber-100 text-amber-800 border border-amber-200 px-1.5 rounded-sm text-[9px] font-mono uppercase">Belum Aktif</span>
-                  )}
-                  <button onClick={() => handleRemoveItalicTerm(t.id)} className="text-stone-400 hover:text-red-700 font-bold"><X className="w-3 h-3" /></button>
-                </span>
-              ))}
-            </div>
-
-            <div className="pt-2 border-t border-stone-200 flex justify-end">
-              <button onClick={() => setActiveConfigModal(null)} className="bg-stone-800 text-white text-xs px-4 py-1.5 rounded font-semibold">
-                Tutup
-              </button>
-            </div>
           </div>
         </div>
       )}

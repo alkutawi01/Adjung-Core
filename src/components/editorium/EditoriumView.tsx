@@ -4,8 +4,11 @@ import { Lock, Radio, X } from 'lucide-react';
 import { EditoriumLayout } from './EditoriumLayout';
 import { IndeksConsole } from './IndeksConsole';
 import { DrafSayaConsole } from './DrafSayaConsole';
+import { NotaKetuaEditorConsole } from './NotaKetuaEditorConsole';
+import { MaklumanDrawer } from './MaklumanDrawer';
 import { DirektoriConsole } from './DirektoriConsole';
 import { TetapanConsole } from './TetapanConsole';
+import { EditorialConsole } from './EditorialConsole';
 import { SenaraiSlotConsole } from './SenaraiSlotConsole';
 import { TierKadConsole } from './TierKadConsole';
 import { BidangConsole } from './BidangConsole';
@@ -88,13 +91,13 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // MENGURUS kandungan editorial. "Semakan Kandungan" (dulu laman berasingan
   // /studio/semakan-kandungan) kekal paparan teks pukal — ContentReview sudah ada togol dalaman
   // sendiri "Paparan Kad"/"Paparan Teks Pukal".
-  const [kandunganSubTab, setKandunganSubTab] = useState<'draf_saya' | 'indeks' | 'semakan' | 'modul_khas'>('indeks');
+  const [kandunganSubTab, setKandunganSubTab] = useState<'draf_saya' | 'indeks' | 'semakan' | 'nota' | 'modul_khas'>('indeks');
   // Sub-tab kategori "Slot" (2026-07-30, permintaan pemilik projek) — tidak berubah struktur,
   // cuma kini bersarang bawah kategori "Slot" bukan terus di nav peringkat atas.
   const [slotSubTab, setSlotSubTab] = useState<'senarai' | 'tier' | 'bidang' | 'tetapan_am'>('senarai');
   // Sub-tab kategori "Pentadbiran" (2026-08-01) — Direktori (kakitangan), Tetapan (sistem, Ketua
   // Editor sahaja), Log Audit: tiga fungsi mentadbir Editorium, dulu tab peringkat atas berasingan.
-  const [pentadbiranSubTab, setPentadbiranSubTab] = useState<'direktori' | 'tetapan' | 'log_audit'>('direktori');
+  const [pentadbiranSubTab, setPentadbiranSubTab] = useState<'direktori' | 'editorial' | 'tetapan' | 'log_audit'>('direktori');
   // Sub-tab kategori "Rujukan" (2026-08-01) — Perlembagaan dan Reka Bentuk: dokumen rujukan yang
   // dibaca, bukan diubah setiap hari.
   const [rujukanSubTab, setRujukanSubTab] = useState<'perlembagaan' | 'reka_bentuk'>('perlembagaan');
@@ -114,6 +117,26 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     setDrafDibuka(uuid);
     slotEditor.openSlotEditor(slotIndex);
   };
+
+  // Peti Makluman (2026-08-01, spesifikasi pemilik projek) — senarai nota dimiliki di SINI, bukan
+  // dalam EditoriumLayout, supaya lencana kiraan di header dan laci gelongsor membaca senarai yang
+  // SAMA. Kalau setiap satu mengambil sendiri, kiraan boleh menunjukkan nombor yang tidak sepadan
+  // dengan apa yang sebenarnya terpapar bila dibuka.
+  const [notaMakluman, setNotaMakluman] = useState<any[]>([]);
+  const [memuatMakluman, setMemuatMakluman] = useState(true);
+  const [makluanTerbuka, setMaklumanTerbuka] = useState(false);
+  // Dinaikkan selepas konsol Nota menyimpan sesuatu, supaya lencana header tak kekal lapuk.
+  const [maklumanVersi, setMaklumanVersi] = useState(0);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    setMemuatMakluman(true);
+    fetch('/api/system/editor-notes?status=aktif')
+      .then((r) => r.json())
+      .then((d) => setNotaMakluman(Array.isArray(d) ? d : []))
+      .catch(() => setNotaMakluman([]))
+      .finally(() => setMemuatMakluman(false));
+  }, [currentUser, maklumanVersi]);
 
   // Tetapkan editor terus daripada pemilih slot "Tulis Kandungan" (2026-08-01, permintaan pemilik
   // projek) — sebelum ni satu-satunya tempat menetapkan editor slot ialah Editorium → Slot →
@@ -186,6 +209,8 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       onRequestLogin={onRequestLogin}
       onLogout={handleLogoutAndLeave}
       onOpenSlotPicker={() => slotEditor.setShowSlotPicker(true)}
+      onOpenMakluman={() => setMaklumanTerbuka(true)}
+      jumlahMakluman={notaMakluman.length}
     >
       {/* Kandungan (2026-08-01, permintaan pemilik projek) — segala tentang MENULIS/MENGURUS
           kandungan editorial: draf peribadi, Indeks rasmi, semakan pukal, dan modul khas
@@ -198,7 +223,8 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               { id: 'draf_saya', label: '1. Draf Saya' },
               { id: 'indeks', label: '2. Indeks' },
               { id: 'semakan', label: '3. Semakan Kandungan' },
-              { id: 'modul_khas', label: '4. Modul Khas' },
+              { id: 'nota', label: '4. Nota Ketua Editor' },
+              { id: 'modul_khas', label: '5. Modul Khas' },
             ]}
             active={kandunganSubTab}
             onChange={setKandunganSubTab}
@@ -218,6 +244,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             />
           )}
           {kandunganSubTab === 'semakan' && <ContentReview />}
+          {/* Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — Notis, Nota Am, Nota
+              Khas, dengan skop Dalaman vs Awam. Ketua Editor menerbitkan; Editor membaca. */}
+          {kandunganSubTab === 'nota' && (
+            <NotaKetuaEditorConsole
+              editorId={currentUser.id}
+              editorName={currentUser.name}
+              bolehUrus={currentUser.role === 'KETUA_EDITOR'}
+              onBerubah={() => setMaklumanVersi((v) => v + 1)}
+            />
+          )}
           {kandunganSubTab === 'modul_khas' && (
             <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4">
               <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Modul Khas</h3>
@@ -289,16 +325,25 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             items={[
               { id: 'direktori', label: '1. Direktori' },
               {
-                id: 'tetapan', label: '2. Tetapan',
+                id: 'editorial', label: '2. Editorial',
+                locked: currentUser.role !== 'KETUA_EDITOR',
+                lockedTitle: 'Hanya Ketua Editor boleh mengubah peraturan bahasa dan templat AI.',
+              },
+              {
+                id: 'tetapan', label: '3. Tetapan',
                 locked: currentUser.role !== 'KETUA_EDITOR',
                 lockedTitle: 'Hanya Ketua Editor boleh mengakses Tetapan.',
               },
-              { id: 'log_audit', label: '3. Log Audit' },
+              { id: 'log_audit', label: '4. Log Audit' },
             ]}
             active={pentadbiranSubTab}
             onChange={setPentadbiranSubTab}
           />
           {pentadbiranSubTab === 'direktori' && <DirektoriConsole currentUserRole={currentUser.role} />}
+          {/* Editorial (2026-08-01, spesifikasi pemilik projek) — peraturan BAHASA: autocondong,
+              glosari/penyelarasan ejaan, templat penjanaan AI. Berasingan daripada Tetapan
+              (tetapan sistem) dan Slot (geometri kad). */}
+          {pentadbiranSubTab === 'editorial' && currentUser.role === 'KETUA_EDITOR' && <EditorialConsole />}
           {pentadbiranSubTab === 'tetapan' && currentUser.role === 'KETUA_EDITOR' && (
             <TetapanConsole currentUserRole={currentUser.role} />
           )}
@@ -320,6 +365,14 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           {rujukanSubTab === 'perlembagaan' && <PerlembagaanConsole />}
           {rujukanSubTab === 'reka_bentuk' && <SistemRekaBentukConsole />}
         </div>
+      )}
+
+      {makluanTerbuka && (
+        <MaklumanDrawer
+          nota={notaMakluman}
+          memuat={memuatMakluman}
+          onTutup={() => setMaklumanTerbuka(false)}
+        />
       )}
 
       {/* Pemilih slot "Tulis Kandungan" (2026-07-29) — senarai 38 slot KECUALI Bar (bentuk

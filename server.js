@@ -29,6 +29,8 @@ import { createSlotsConfigRoutes } from './core/routes/slotsConfigRoutes.js';
 import { createTierSettingsRoutes, loadTierOverrides } from './core/routes/tierSettingsRoutes.js';
 import { createSlotEditorRoutes } from './core/routes/slotEditorRoutes.js';
 import { createDraftRoutes } from './core/routes/draftRoutes.js';
+import { createEditorNotesRoutes } from './core/routes/editorNotesRoutes.js';
+import { createGlosariRoutes } from './core/routes/glosariRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
@@ -211,6 +213,39 @@ const initializeSchema = () => {
                 editorId TEXT NOT NULL,
                 createdAt TEXT,
                 PRIMARY KEY (slotIndex, editorId)
+              )
+            `, () => {});
+
+            // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — notis/nota am/nota khas
+            // yang Ketua Editor terbitkan kepada pasukan. `type` ialah SKOP: 'dalaman' (Editorium
+            // sahaja) atau 'awam' (boleh dipapar di portal awam). Pengasingan tu dikuatkuasakan
+            // dalam SQL laluan awam, bukan di klien — lihat core/routes/editorNotesRoutes.js.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS editor_notes (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'am',
+                type TEXT NOT NULL DEFAULT 'dalaman',
+                status TEXT NOT NULL DEFAULT 'aktif',
+                is_pinned INTEGER DEFAULT 0,
+                author_id TEXT,
+                author_name TEXT,
+                created_at TEXT,
+                updated_at TEXT
+              )
+            `, () => {});
+
+            // Glosari & Penyelarasan Ejaan (2026-08-01, spesifikasi pemilik projek) — senarai
+            // rujukan istilah pilihan vs bentuk yang dielakkan. RUJUKAN sahaja: ia tidak pernah
+            // menulis-ganti kandungan editorial secara automatik. Lihat core/routes/glosariRoutes.js.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS glosari_istilah (
+                id TEXT PRIMARY KEY,
+                istilah TEXT NOT NULL,
+                elakkan TEXT,
+                maksud TEXT,
+                createdAt TEXT
               )
             `, () => {});
 
@@ -1494,6 +1529,10 @@ const initEditorialOS = (dbConn) => {
                           dbConn.run("ALTER TABLE pipeline_logs ADD COLUMN runId TEXT", () => {
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN worldClockIntervalSec INTEGER DEFAULT 60", () => {});
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN worldClockBgClickEnabled INTEGER DEFAULT 1", () => {});
+                            // reviewPrompt (2026-08-01, spesifikasi pemilik projek) — templat AI
+                            // untuk SEMAKAN (ejaan, tatabahasa, gaya bahasa, format), berasingan
+                            // daripada masterPrompt yang mengarah penjanaan KANDUNGAN.
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN reviewPrompt TEXT", () => {});
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN masterPrompt TEXT", () => {
                               dbConn.run("ALTER TABLE editorial_objects ADD COLUMN slotIndex INTEGER", () => {
                                 dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselInterval INTEGER DEFAULT 10", () => {
@@ -2348,6 +2387,10 @@ app.use('/api/system', createWorldClockRoutes());
 app.use('/api/system', createTierSettingsRoutes(dbAll, dbRun));
 app.use('/api/system', createSlotEditorRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createDraftRoutes(dbAll));
+// Dilekap pada /api (bukan /api/system) sebab modul ni ada DUA laluan berlainan skop:
+// /api/system/editor-notes (Editorium) dan /api/public/editor-notes (portal awam).
+app.use('/api', createEditorNotesRoutes(dbAll, dbRun, dbGet));
+app.use('/api/system', createGlosariRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali

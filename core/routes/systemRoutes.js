@@ -92,14 +92,14 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
           editorialSelectionIds, announcementBanner, enableArabicAccent, layoutDensity,
           allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText,
           worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl,
-          masterPrompt, worldClockIntervalSec, worldClockBgClickEnabled
+          masterPrompt, worldClockIntervalSec, worldClockBgClickEnabled, reviewPrompt
         ) VALUES (
           'settings-main', ?, ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?, ?,
-          ?, ?
+          ?, ?, ?
         )
       `, [
         s.frontpageTitle, s.frontpageSubtitle, JSON.stringify(s.rolePermissions || {}),
@@ -108,7 +108,8 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         JSON.stringify(s.allowedSignatureFonts || []), JSON.stringify(s.featuredEssayIds || []), JSON.stringify(s.featuredNoteIds || []), s.worldClockHolidaysText,
         s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl, s.masterPrompt,
         s.worldClockIntervalSec !== undefined ? Number(s.worldClockIntervalSec) : 60,
-        s.worldClockBgClickEnabled !== undefined ? (s.worldClockBgClickEnabled ? 1 : 0) : 1
+        s.worldClockBgClickEnabled !== undefined ? (s.worldClockBgClickEnabled ? 1 : 0) : 1,
+        s.reviewPrompt
       ]);
       res.json({ success: true });
     } catch (err) {

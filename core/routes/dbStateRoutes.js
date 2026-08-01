@@ -115,6 +115,11 @@ export function createDbStateRoutes(dbAll, dbGet) {
         researchFindingsText: settingsRow.researchFindingsText || '',
         researchFindingsGoogleDocUrl: settingsRow.researchFindingsGoogleDocUrl || '',
         masterPrompt: settingsRow.masterPrompt || '',
+        // reviewPrompt (2026-08-01) — templat semakan AI, konsol Editorial. WAJIB disenaraikan di
+        // sini: pemetaan ni eksplisit medan demi medan, jadi lajur baharu yang tak ditambah akan
+        // tersimpan dalam DB tapi tak pernah sampai ke klien — dan penyimpanan seterusnya
+        // (INSERT OR REPLACE penuh, digabung daripada objek ni) akan memadamnya semula.
+        reviewPrompt: settingsRow.reviewPrompt || '',
         worldClockIntervalSec: settingsRow.worldClockIntervalSec !== undefined && settingsRow.worldClockIntervalSec !== null ? settingsRow.worldClockIntervalSec : 60,
         worldClockBgClickEnabled: settingsRow.worldClockBgClickEnabled !== undefined && settingsRow.worldClockBgClickEnabled !== null ? settingsRow.worldClockBgClickEnabled === 1 : true
       } : {};
