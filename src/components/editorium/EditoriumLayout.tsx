@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings, History, Landmark, Palette,
-  LogOut, LogIn, PenLine, Mail, Lock,
+  LogOut, LogIn, PenLine, Mail, Lock, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
@@ -66,6 +66,20 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   children
 }) => {
   const [currentTab, setCurrentTab] = useState(activeTab);
+  // Sidebar boleh dilipat jadi rel ikon sahaja (2026-08-01, permintaan pemilik projek) — jadual
+  // panjang macam Indeks perlukan lebar penuh, editor tak sepatutnya terpaksa skrol mendatar
+  // untuk lihat lajur Tindakan hanya sebab sidebar sentiasa ambil 240px. Keadaan disimpan supaya
+  // kekal antara sesi (bukan reset setiap kali buka Editorium).
+  const [dilipat, setDilipat] = useState(() => {
+    try { return localStorage.getItem('adjung-editorium-sidebar-lipat') === '1'; } catch { return false; }
+  });
+  const togolLipat = () => {
+    setDilipat((v) => {
+      const next = !v;
+      try { localStorage.setItem('adjung-editorium-sidebar-lipat', next ? '1' : '0'); } catch { /* localStorage tak tersedia — tak kritikal */ }
+      return next;
+    });
+  };
 
   const handleNavClick = (tabId: string) => {
     setCurrentTab(tabId);
@@ -83,23 +97,31 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
   const renderKumpulan = (tajuk: string, items: NavItem[]) => (
     <div className="space-y-1">
-      <div className="px-3 font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1.5">
-        {tajuk}
-      </div>
+      {!dilipat && (
+        <div className="px-3 font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1.5">
+          {tajuk}
+        </div>
+      )}
       <div className="space-y-0.5">
         {items.map((item) => {
           const isActive = currentTab === item.id && !loggedOut;
           const isLocked = loggedOut || restricted(item.id);
           const { Icon } = item;
-          return (
+          const butang = (
             <button
               key={item.id}
               type="button"
               onClick={() => handleNavClick(item.id)}
               disabled={isLocked}
               aria-disabled={isLocked}
-              title={loggedOut ? 'Log masuk dahulu untuk membuka destinasi ini' : (restricted(item.id) ? 'Hanya Ketua Editor' : undefined)}
-              className={`w-full flex items-center justify-between gap-2 text-xs font-medium px-3 py-2 rounded-lg transition-colors duration-150 ${
+              title={
+                loggedOut ? 'Log masuk dahulu untuk membuka destinasi ini'
+                : restricted(item.id) ? 'Hanya Ketua Editor'
+                : dilipat ? item.label : undefined
+              }
+              className={`w-full flex items-center gap-2 text-xs font-medium py-2 rounded-lg transition-colors duration-150 ${
+                dilipat ? 'justify-center px-2' : 'justify-between px-3'
+              } ${
                 isActive
                   ? 'bg-[#802334] text-white font-semibold'
                   : isLocked
@@ -107,13 +129,14 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                   : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.04] cursor-pointer'
               }`}
             >
-              <span className="flex items-center gap-2.5 min-w-0">
+              <span className={`flex items-center gap-2.5 min-w-0 ${dilipat ? 'justify-center' : ''}`}>
                 <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-stone-400'}`} strokeWidth={2.2} />
-                <span className="truncate">{item.label}</span>
+                {!dilipat && <span className="truncate">{item.label}</span>}
               </span>
-              {!loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
+              {!dilipat && !loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
             </button>
           );
+          return butang;
         })}
       </div>
     </div>
@@ -199,13 +222,34 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
         </div>
       </header>
 
-      {/* Badan halaman: sidebar menegak kiri (tetap) + kandungan (skrol sendiri). */}
-      <div className="flex items-start">
-        <aside className="hidden md:block w-60 shrink-0 sticky top-0 h-screen overflow-y-auto bg-[#F6F4EF] border-r border-stone-200 p-4 space-y-6">
-          {renderKumpulan('Operasi Harian', OPERASI_HARIAN)}
-          <div className="border-t border-stone-200 pt-4">
-            {renderKumpulan('Tata Kelola & Rujukan', TATA_KELOLA)}
+      {/* Badan halaman: sidebar OVERLAY terapung (2026-08-01) — kembangkan sidebar TIDAK
+          menolak/mengengsotkan kandungan ke kanan. `main` sentiasa kekal pada margin rel-ikon
+          (72px, w-[4.5rem]) tak kira sidebar dilipat atau dikembang; lebar tambahan bila
+          dikembangkan (240px - 72px) melayang ATAS kandungan (bayang jelas jadi petanda ia
+          terapung), bukan tolak kandungan. Ini jugalah sebabnya jadual lebar macam Indeks tak
+          perlu skrol mendatar sekadar sebab sidebar terbuka. */}
+      <div className="relative flex flex-col">
+        <aside
+          className={`hidden md:flex md:flex-col fixed left-0 top-[42px] h-[calc(100vh-42px)] z-30 overflow-y-auto bg-[#F6F4EF] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
+            dilipat ? 'w-[4.5rem]' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
+          }`}
+        >
+          <div className="flex-1 space-y-6">
+            {renderKumpulan('Operasi Harian', OPERASI_HARIAN)}
+            <div className="border-t border-stone-200 pt-4">
+              {renderKumpulan('Tata Kelola & Rujukan', TATA_KELOLA)}
+            </div>
           </div>
+          {/* Togol lipat (2026-08-01) — jadual lebar macam Indeks perlukan ruang penuh; sidebar
+              240px sentiasa terbuka memaksa skrol mendatar untuk lihat lajur Tindakan. */}
+          <button
+            type="button"
+            onClick={togolLipat}
+            title={dilipat ? 'Kembangkan sidebar' : 'Lipatkan sidebar'}
+            className="flex items-center justify-center gap-2 text-stone-400 hover:text-stone-700 hover:bg-black/[0.04] rounded-lg py-2 transition-colors cursor-pointer"
+          >
+            {dilipat ? <ChevronsRight className="w-4 h-4" /> : <><ChevronsLeft className="w-4 h-4" /><span className="text-[11px] font-medium">Lipatkan</span></>}
+          </button>
         </aside>
 
         {/* Sidebar dibalut jadi bar mendatar boleh skrol pada skrin sempit (< md) — bukan
@@ -232,7 +276,9 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           })}
         </nav>
 
-        <main className="flex-1 min-w-0 p-4 md:p-8">
+        {/* pl-[4.5rem] tetap (SAMA seperti lebar rel ikon) tak kira dilipat atau dikembang —
+            itulah yang menghalang kandungan daripada bergerak bila togol ditekan. */}
+        <main className="min-w-0 p-4 md:py-8 md:pr-8 md:pl-[4.5rem]">
           {children}
         </main>
       </div>
