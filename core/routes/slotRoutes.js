@@ -7,6 +7,7 @@ import { calculateDeskScores, classifyDesk } from '../sources/DeskClassifier.js'
 import { parseTypographyTokens } from '../sources/TypographyRulesEngine.js';
 import { requirePermission } from '../middleware/auth.js';
 import { gantiBlokModTicker } from './contentRoutes.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // NOTE: this router used to also define GET/POST /slots and POST /slots/run-now, plus a whole
 // "Slot Governance" section (SlotGovernanceService + 4 routes at /api/slot-governance*,
@@ -896,7 +897,15 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
         }
       }
     } catch (fetchErr) {
-      // Gracefully skip slow or failing RSS sources
+      // 2026-08-02 (Fasa 4) — dahulu ralat ambilan RSS ditelan senyap sepenuhnya (komen "Gracefully
+      // skip" di atas) — feed yang MATI tak dapat dibezakan langsung dengan feed yang memang
+      // SUNYI (tiada berita baharu). Catat ke Log Audit supaya kegagalan berterusan kelihatan.
+      await logAudit(dbRun, {
+        action: 'ralat-ambilan-rss',
+        targetType: 'rss_source',
+        targetId: source.id,
+        detail: `${source.sourceName}: ${fetchErr.message || fetchErr.name || 'ralat tidak diketahui'}`,
+      });
     }
   }));
 
@@ -930,6 +939,16 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   }
 
   const lastFetchedAt = new Date().toISOString();
+
+  // Log Audit (Fasa 4) — satu baris ringkasan setiap larian, di atas kegagalan per-sumber yang
+  // dicatat individu di atas — supaya "berapa sumber aktif, berapa item ditemui" boleh disemak
+  // dari sejarah, bukan cuma keadaan semasa.
+  await logAudit(dbRun, {
+    action: 'ambilan-rss-selesai',
+    targetType: 'rss',
+    detail: `${activeSources.length} sumber aktif, ${totalFetchedCount} item ditemui, ${autoLiveCount} auto-live, ${pendingReviewCount} menunggu semakan`,
+  });
+
   return {
     success: true,
     activeSourcesCount: activeSources.length,

@@ -3,6 +3,7 @@ import { validateContentBudget, validateBidangTopik, validateMedanTambahan, TIER
 import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // The Ticker (slotIndex -1) never writes to editorial_objects, in either Manual or AI Generated
 // mode — it always lives as a single "---"-delimited text blob in system_settings.inTheNewsText
@@ -325,6 +326,21 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       }
 
       await dbRun("UPDATE editorial_objects SET updatedAt = ? WHERE id = ?", [new Date().toISOString(), id]);
+
+      // Log Audit (Fasa 4) — cuma catat bila STATUS berubah (terbit/tolak/arkib/siar-semula),
+      // sebab itulah tindakan editorial yang bermakna untuk jejak; edit teks semata-mata
+      // (tajuk/huraian) tak perlu satu baris log setiap ketikan.
+      if (status !== undefined && status !== rev.status) {
+        await logAudit(dbRun, {
+          actorId: req.session?.user?.id,
+          actorName: req.session?.user?.penName || req.session?.user?.username,
+          action: `status:${rev.status}->${status}`,
+          targetType: 'kandungan',
+          targetId: id,
+          detail: (title !== undefined ? title : rev.title || '').slice(0, 100),
+        });
+      }
+
       res.json({ success: true });
     } catch (err) {
       console.error('Patch content item error:', err);
@@ -390,6 +406,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       await dbRun("UPDATE slots_config SET manualSummary = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [nextSummary, objRow.slotIndex]);
       await dbRun("UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ?", [new Date().toISOString(), rev.id]);
 
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'tolak-ke-draf',
+        targetType: 'kandungan',
+        targetId: id,
+        detail: (rev.title || '').slice(0, 100),
+      });
+
       res.json({ success: true });
     } catch (err) {
       console.error('Reject-to-draft error:', err);
@@ -414,8 +439,17 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         if (idx < 0 || idx >= tickerItems.length) {
           return res.status(404).json({ error: 'Item ticker tidak dijumpai.' });
         }
+        const dipadam = tickerItems[idx];
         tickerItems.splice(idx, 1);
         await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
+        await logAudit(dbRun, {
+          actorId: req.session?.user?.id,
+          actorName: req.session?.user?.penName || req.session?.user?.username,
+          action: 'padam-ticker',
+          targetType: 'ticker',
+          targetId: id,
+          detail: (dipadam?.title || '').slice(0, 100),
+        });
         return res.json({ success: true });
       }
 

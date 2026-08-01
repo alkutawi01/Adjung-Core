@@ -1,5 +1,6 @@
 import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — tiga jenis nota yang Ketua Editor
 // terbitkan kepada pasukan editorial, dan dalam satu kes, kepada pembaca awam:
@@ -134,6 +135,7 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
         [id, t, k, kategori, skop, (penulisId || '').trim(), (penulis || '').trim(), kini, kini]
       );
       const baris = await dbGet('SELECT * FROM editor_notes WHERE id = ?', [id]);
+      await logAudit(dbRun, { actorId: req.session?.user?.id, actorName: req.session?.user?.penName || req.session?.user?.username, action: 'cipta-nota', targetType: 'nota_ketua_editor', targetId: id, detail: t });
       res.json({ success: true, nota: barisKepadaNota(baris) });
     } catch (err) {
       console.error('POST editor-notes error:', err);
@@ -191,6 +193,9 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
       await dbRun(`UPDATE editor_notes SET ${set.join(', ')} WHERE id = ?`, params);
 
       const baris = await dbGet('SELECT * FROM editor_notes WHERE id = ?', [id]);
+      if (status !== undefined) {
+        await logAudit(dbRun, { actorId: req.session?.user?.id, actorName: req.session?.user?.penName || req.session?.user?.username, action: `status-nota:${status}`, targetType: 'nota_ketua_editor', targetId: id });
+      }
       res.json({ success: true, nota: barisKepadaNota(baris) });
     } catch (err) {
       console.error('PATCH editor-notes error:', err);
@@ -210,6 +215,7 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
         return res.status(400).json({ error: 'Hanya nota yang sudah diarkibkan boleh dipadam. Arkibkan nota ini dahulu.' });
       }
       await dbRun('DELETE FROM editor_notes WHERE id = ?', [id]);
+      await logAudit(dbRun, { actorId: req.session?.user?.id, actorName: req.session?.user?.penName || req.session?.user?.username, action: 'padam-nota', targetType: 'nota_ketua_editor', targetId: id });
       res.json({ success: true });
     } catch (err) {
       console.error('DELETE editor-notes error:', err);

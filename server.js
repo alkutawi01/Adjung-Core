@@ -36,9 +36,11 @@ import { createGlosariRoutes } from './core/routes/glosariRoutes.js';
 import { createProfileRoutes } from './core/routes/profileRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createUserAdminRoutes } from './core/routes/userAdminRoutes.js';
+import { createAuditLogRoutes } from './core/routes/auditLogRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
+import { logAudit } from './core/audit/AuditLog.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -149,6 +151,23 @@ const initializeSchema = () => {
       // cuma `isSuspended` boolean, tak cukup nuansa untuk "Cuti" vs "Ditamatkan". `isSuspended`
       // dikekalkan (log masuk masih semaknya) dan diselaraskan bila `status` berubah.
       db.run("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'Aktif';", () => {});
+
+      // 2026-08-02 (Fasa 4) — Log Audit: dahulu SIFAR jejak, tiada jadual langsung. Rekod
+      // tindakan editorial/pentadbiran penting (terbit/tolak/arkib kandungan, urus akaun,
+      // Bidang, ambilan RSS, ralat pelayan) — lihat core/audit/AuditLog.js.
+      db.run(`
+        CREATE TABLE IF NOT EXISTS audit_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          actorId TEXT,
+          actorName TEXT,
+          action TEXT NOT NULL,
+          targetType TEXT,
+          targetId TEXT,
+          detail TEXT,
+          createdAt TEXT
+        )
+      `);
+      db.run("CREATE INDEX IF NOT EXISTS idx_audit_log_createdAt ON audit_log(createdAt DESC)");
 
       // 2. System Settings Table
       db.run(`
@@ -2565,6 +2584,7 @@ app.use('/api/system', createGlosariRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createProfileRoutes(dbGet, dbRun));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));
+app.use('/api/system', createAuditLogRoutes(dbAll));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
 // disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache
@@ -2589,6 +2609,15 @@ loadRolePermissions(dbGet).then(() => {
 // 4-argumen ini bila diletak paling akhir).
 app.use((err, req, res, next) => {
   console.error('Ralat tidak dijangka pada', req.method, req.originalUrl, ':', err);
+  // Log Audit (Fasa 4) — catat ralat pelayan yang tak ditangkap supaya boleh disemak dari Log
+  // Sistem, bukan cuma konsol proses (yang hilang bila server dimulakan semula/PM2 pusing log).
+  logAudit(dbRun, {
+    actorId: req.session?.user?.id,
+    actorName: req.session?.user?.penName || req.session?.user?.username,
+    action: 'ralat-pelayan',
+    targetType: 'server',
+    detail: `${req.method} ${req.originalUrl}: ${err.message || err}`,
+  }).catch(() => {});
   if (res.headersSent) return next(err);
   res.status(500).json({ error: 'Ralat pelayan dalaman.' });
 });

@@ -2,6 +2,7 @@ import express from 'express';
 import sanitizeHtml from 'sanitize-html';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requirePermission } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Senarai putih ketat untuk ikon SVG custom Bidang (muat naik admin) — tiada <script>, tiada
 // pengendali on*, tiada href/xlink:href/style (jadi tiada laluan javascript:/url() tersembunyi).
@@ -125,6 +126,9 @@ function sanitizeIllustrationSvg(raw) {
 
 export function createCategoryRoutes(db) {
   const router = express.Router();
+  // Log Audit (Fasa 4) — CategoryRegistry sendiri hanya terima `db` mentah (bukan dbRun
+  // terbalut), jadi bina penyesuai ringkas ke bentuk (query, params) yang logAudit jangkakan.
+  const dbRunAdapter = (query, params) => CategoryRegistry.dbRun(db, query, params);
 
   // GET /api/system/categories
   router.get('/categories', async (req, res) => {
@@ -143,6 +147,7 @@ export function createCategoryRoutes(db) {
       const { name } = req.body;
       if (!name) return res.status(400).json({ error: 'Missing name parameter.' });
       const reg = await CategoryRegistry.registerCategory(db, name);
+      await logAudit(dbRunAdapter, { actorId: req.session?.user?.id, actorName: req.session?.user?.penName || req.session?.user?.username, action: 'daftar-bidang', targetType: 'bidang', targetId: reg?.id, detail: name });
       res.json({ success: true, category: reg });
     } catch (err) {
       console.error('Register category error:', err);
@@ -156,6 +161,7 @@ export function createCategoryRoutes(db) {
       const { oldName, newName } = req.body;
       if (!oldName || !newName) return res.status(400).json({ error: 'Missing oldName or newName parameter.' });
       await CategoryRegistry.renameCategory(db, oldName, newName);
+      await logAudit(dbRunAdapter, { actorId: req.session?.user?.id, actorName: req.session?.user?.penName || req.session?.user?.username, action: 'namakan-semula-bidang', targetType: 'bidang', detail: `${oldName} -> ${newName}` });
       res.json({ success: true });
     } catch (err) {
       console.error('Rename category error:', err);
@@ -169,6 +175,7 @@ export function createCategoryRoutes(db) {
       const { sourceCategory, targetCategory } = req.body;
       if (!sourceCategory || !targetCategory) return res.status(400).json({ error: 'Missing sourceCategory or targetCategory parameter.' });
       await CategoryRegistry.mergeCategories(db, sourceCategory, targetCategory);
+      await logAudit(dbRunAdapter, { actorId: req.session?.user?.id, actorName: req.session?.user?.penName || req.session?.user?.username, action: 'gabung-bidang', targetType: 'bidang', detail: `${sourceCategory} -> ${targetCategory}` });
       res.json({ success: true });
     } catch (err) {
       console.error('Merge categories error:', err);
@@ -256,6 +263,7 @@ export function createCategoryRoutes(db) {
       const { id, isActive } = req.body;
       if (!id) return res.status(400).json({ error: 'id Bidang diperlukan.' });
       await CategoryRegistry.setActiveStatus(db, id, !!isActive);
+      await logAudit(dbRunAdapter, { actorId: req.session?.user?.id, actorName: req.session?.user?.penName || req.session?.user?.username, action: isActive ? 'aktifkan-bidang' : 'arkib-bidang', targetType: 'bidang', targetId: id });
       res.json({ success: true });
     } catch (err) {
       console.error('Set active category error:', err);

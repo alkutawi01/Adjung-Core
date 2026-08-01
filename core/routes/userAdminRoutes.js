@@ -1,6 +1,7 @@
 import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
 import { hashPassword } from './authRoutes.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Direktori (2026-08-02, Fasa 3) — dahulu `staffList` konsol client array kosong berkod keras,
 // "+ Tambah Anggota" hiasan, tindakan status hanya state React (hilang bila muat semula). Laluan
@@ -92,6 +93,15 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         await dbRun('INSERT OR IGNORE INTO user_roles (userId, roleId) VALUES (?, ?)', [id, roleId]);
       }
 
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cipta-akaun',
+        targetType: 'akaun',
+        targetId: id,
+        detail: `${pn} (${u}) — peranan: ${rolesToAssign.join(', ')}`,
+      });
+
       res.json({ success: true, id });
     } catch (err) {
       console.error('POST users error:', err);
@@ -114,6 +124,15 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // Aktif/Ditamatkan menyekat log masuk, Aktif/Cuti tidak.
       const isSuspended = (status === 'Tidak Aktif' || status === 'Ditamatkan') ? 1 : 0;
       await dbRun('UPDATE users SET status = ?, isSuspended = ?, updatedAt = ? WHERE id = ?', [status, isSuspended, new Date().toISOString(), id]);
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: `status-akaun:${status}`,
+        targetType: 'akaun',
+        targetId: id,
+      });
+
       res.json({ success: true });
     } catch (err) {
       console.error('PATCH user status error:', err);
@@ -143,6 +162,16 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // `role` legasi diselaraskan sekali untuk paparan lama (Indeks dsb.) — bukan sumber
       // kebenaran, cuma elak label ketinggalan zaman.
       await dbRun('UPDATE users SET role = ?, updatedAt = ? WHERE id = ?', [roles.includes('ketua_editor') ? 'KETUA_EDITOR' : 'EDITOR', new Date().toISOString(), id]);
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'ubah-peranan',
+        targetType: 'akaun',
+        targetId: id,
+        detail: `peranan baharu: ${roles.join(', ')}`,
+      });
+
       res.json({ success: true });
     } catch (err) {
       console.error('PATCH user roles error:', err);
