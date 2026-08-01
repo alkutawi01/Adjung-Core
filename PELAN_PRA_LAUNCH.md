@@ -197,16 +197,22 @@ test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
 
 ### [ ] Fasa 6 — Tetapan & aliran kerja teras · `L` · ~5 hari
 - [ ] Editor label & tooltip (UI atas `src/config/istilah.ts`)
-- [ ] Maklumat/halaman polisi (sumber untuk halaman awam Fasa 11)
-- [ ] Hidupkan atau buang "Glos Selari" (kini dimatikan)
+- [x] Maklumat/halaman polisi (sumber untuk halaman awam Fasa 11) — ruang edit "Halaman
+      Awam" di Tetapan (Tentang/Hubungi/Polisi & Penafian), guna `static_pages`+`/api/pages/:key`
+      sedia ada
+- [x] Hidupkan atau buang "Glos Selari" — disahkan ciri sebenar (interlinear gloss legasi
+      Adjung Platform), disambung ke togol sebenar di Tetapan (`glosSelariEnabled`)
 - [ ] **Auto-simpan / penjaga dirty pada modal tulis** — kini tutup modal = kerja hilang
       senyap; penjaga sedia ada cuma semak tajuk/huraian
-- [ ] **Kawalan serentak** — dua editor buka slot sama: simpan kedua memadam simpanan
-      pertama tanpa amaran. Perlu token versi / semakan `updatedAt`
+- [x] **Kawalan serentak** — dua editor buka slot sama: simpan kedua memadam simpanan
+      pertama tanpa amaran. Token `updatedAt` di `slots_config`, disemak sebelum tulis
+      (409 + mesej Malay bila konflik); turut baiki `saveError` yang sebelum ni tak pernah
+      terpapar langsung di modal
 - [ ] **Sejarah versi sebenar** — kini `editorial_revisions` SENTIASA 1 baris (edit =
       UPDATE atas tempat, versi berkekalan 1.0); jadikan revisi terkumpul + UI lihat/
       pulih versi
-- [ ] Sebab penolakan — `Tolak` kini pulangkan draf TANPA sebarang catatan kepada penulis
+- [x] Sebab penolakan — `Tolak` kini minta sebab (pilihan) via prompt, disuntik ke `Nota:`
+      draf
 
 ### [~] Fasa 6b — Profil editor lengkap & sistem notifikasi sebenar · `M` · ~5 hari
 Ditambah 2026-08-02 selepas semakan Izzat mendapati dua jurang: profil editor tak lengkap,
