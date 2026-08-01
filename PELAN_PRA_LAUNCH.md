@@ -96,26 +96,38 @@ sama seperti garis dasar, tiada regresi.
       dijana setiap kali server bermula — semua sesi terputus setiap kali restart; amaran
       dipaparkan di log server sehingga ditetapkan)
 
-### [ ] Fasa 2 — Pepijat kritikal sedia ada + hutang ujian · `M` · ~3 hari
-Semua ditemui Fasa 0, semuanya menjejaskan data sebenar HARI INI:
-- [ ] **Simpan slot BAR memadam terbitan secara kekal** — laluan lama `DELETE FROM
-      editorial_objects` + CASCADE memusnahkan revisi (`server.js:2056-2079`). Peraturan
-      "terbitan tak boleh padam" dipintas oleh butang simpan biasa
-- [ ] **URL RSS tercantas** — pembersih boilerplate memakan hostname (`bernama.com`,
-      `kosmo.com.my`) → `originalUrl` rosak dalam ticker sebenar. Ini punca ujian gagal
-      #1; baiki KOD, bukan ujian (`SourceSanitizer.js:42`)
-- [ ] Ujian gagal #2 = ujian lapuk (`REJECT` → `BLOCKED_KEYWORD`) — baiki UJIAN
-- [ ] **Imej tak sampai** — modal tulis simpan atribut `image`, laluan lain baca
-      `imageUrl`; imej yang dilampirkan editor tak pernah muncul di Indeks
-- [ ] **Simpan pukal Semakan silap sasaran** — dikunci ikut ordinal siri, bukan UUID;
-      perubahan serentak boleh tulis ke artikel yang salah secara senyap
-- [ ] **Dua penulis satu ticker** — RSS direct dan pipeline AI tulis-ganti
-      `inTheNewsText` sesama sendiri tanpa peraturan pemilikan
-- [ ] Enjin tipografi berganda client/server dengan perbezaan tapisan sebenar
-      (peraturan `enabled=0` masih terpakai di server) — satukan
-- [ ] `PRAGMA` WAL + `busy_timeout` — kini simpanan serentak dua editor gagal senyap
-- [ ] Skrip `clean` memadam `adjung.db` tanpa amaran — buang/betulkan
-- [ ] Sahkan `npm test` hijau sepenuhnya selepas semua di atas
+### [x] Fasa 2 — Pepijat kritikal sedia ada + hutang ujian · SIAP 2026-08-02 (commit `9fabbf9`)
+Semua ditemui Fasa 0, semuanya menjejaskan data sebenar. `npm test` 84/84 lulus (garis
+dasar bersih pertama kali — dahulu 82/84).
+- [x] **Simpan slot BAR memadam terbitan secara kekal** — dahulu `DELETE FROM
+      editorial_objects` + CASCADE memusnahkan revisi setiap kali SATU item diedit. Kini
+      item sedia ada di-UPDATE di tempat (id + sejarah kekal), item baharu sahaja dicipta
+      segar. "Terbitan tak boleh padam" tak lagi dipintas oleh butang simpan biasa
+- [x] **URL RSS tercantas** — pembersih boilerplate prosa (buang nama penerbit di hujung
+      ayat) tersalah guna atas URL, memakan hostname `bernama.com`/`kosmo.com.my`. URL/GUID
+      kini guna `sanitizeUrlText` baharu (nyahkod entiti sahaja), bukan `sanitizeHtmlText`
+- [x] Ujian gagal #2 dibetulkan — nama decision `EditorialScoreEngine` bertukar ke
+      `BLOCKED_KEYWORD`, ujian ketinggalan zaman (bukan pepijat kod)
+- [x] **Dateline RSS tak terbuang** (ditemui semasa uji pembetulan URL) — `formatRssBrief`
+      guna dua regex sendiri yang terlepas corak "LOKASI - " biasa; disatukan guna
+      `stripLocationDateline` sedia ada
+- [x] **Imej tak sampai ke Indeks/Semakan** — tambah fallback baca `attrs.image`
+      (lampiran Focus View, atribut `imageUrl`/`image` ialah DUA konsep tulen berlainan,
+      bukan salah eja — lihat nota FrontpageView.tsx)
+- [x] **Simpan pukal Semakan silap sasaran** — dahulu dikunci ikut ordinal siri (`#Slot-
+      Siri`), kini padan guna UUID (sudah dipaparkan dalam teks, cuma tak digunakan)
+- [x] **Dua/tiga penulis satu ticker** — RSS Direct, AI Generated, Manual tulis-ganti
+      `inTheNewsText` sesama sendiri. RSS Direct & AI Generated kini kekalkan blok mod
+      satu sama lain (`gantiBlokModTicker`); Manual kekal tulis-ganti sengaja (override
+      editorial eksplisit Ketua Editor — itu memang fungsi dia)
+- [x] Enjin tipografi pelayan terima peraturan `enabled=0` sebagai masih aktif (AND
+      patut OR dalam syarat tapisan) — disamakan dengan logik client yang betul
+- [x] `PRAGMA journal_mode = WAL` + `busy_timeout = 5000` ditambah
+- [x] Skrip `clean` package.json tak lagi padam `adjung.db`
+- [ ] Enjin `stripLocationDateline` masih diduplikasi (SourceSanitizer.js DAN
+      EditorialTextNormalizer.js, byte-for-byte sama) — bukan pepijat aktif, tapi risiko
+      hanyut kalau salah satu diubah tanpa yang lain. Belum disatukan (skop lebih besar
+      daripada Fasa 2, sentuh sistem peraturan editorial berasingan)
 
 ### [ ] Fasa 3 — Direktori hidup · `M` · ~3 hari
 - [ ] `staffList` dari jadual `users` sebenar (kini array kosong; butang tambah = hiasan)
