@@ -28,6 +28,7 @@ import { createWorldClockRoutes } from './core/routes/worldClockRoutes.js';
 import { createSlotsConfigRoutes } from './core/routes/slotsConfigRoutes.js';
 import { createTierSettingsRoutes, loadTierOverrides } from './core/routes/tierSettingsRoutes.js';
 import { createSlotEditorRoutes } from './core/routes/slotEditorRoutes.js';
+import { createDraftRoutes } from './core/routes/draftRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
@@ -1754,6 +1755,10 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let penerangan = '';
     let note = '';
     let image = '';
+    // Penulis blok draf — lihat nota penuh di ManualBlockFormat.js. Mesti dihurai DAN ditulis
+    // semula (serializeDraftBlock di bawah), kalau tidak setiap simpan seterusnya akan memadam
+    // cap nama tu secara senyap dan draf jadi yatim dalam "Draf Saya".
+    let penulis = '';
 
     // Blok kandungan manual membawa petunjuk had aksara dalam teksnya sendiri, cth
     // "Tajuk: (had 168 aksara) ..." — ditulis dan dikemas kini oleh updateLimitsInText() di
@@ -1804,6 +1809,8 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         date = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
       } else if (trimmed.startsWith('Tarikh:')) {
         date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Penulis:')) {
+        penulis = trimmed.replace(/^Penulis:\s*/i, '').trim();
       } else if (trimmed.startsWith('Nota:')) {
         note = trimmed.replace(/^Nota:\s*/i, '').trim();
       } else if (trimmed.startsWith('Imej:')) {
@@ -1864,6 +1871,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         penerangan,
         note,
         image,
+        penulis,
         source: organizer || source || defaultSlot.manualSource || '',
         // TIADA fallback ke defaultSlot.manualUrl/'#' di sini lagi (2026-07-29) — defaultSlot.manualUrl
         // ialah medan LEGASI peringkat SLOT yang useSlotEditor.ts set lalai '#' setiap kali modal
@@ -1904,6 +1912,7 @@ const serializeDraftBlock = (item) => [
   `Tarikh sumber: ${item.originalDate || ''}`,
   `Imej: ${item.image || ''}`,
   `Nota: ${item.note || ''}`,
+  `Penulis: ${item.penulis || ''}`,
 ].join('\n');
 const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n';
 
@@ -2338,6 +2347,7 @@ app.use('/api/system', createContentRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api/system', createWorldClockRoutes());
 app.use('/api/system', createTierSettingsRoutes(dbAll, dbRun));
 app.use('/api/system', createSlotEditorRoutes(dbAll, dbRun, dbGet));
+app.use('/api/system', createDraftRoutes(dbAll));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali

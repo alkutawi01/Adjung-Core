@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { List, LayoutGrid, FolderOpen, Settings, History, Landmark, Palette, LogOut, LogIn, Lock, Zap, PenLine } from 'lucide-react';
+import { List, LayoutGrid, FolderOpen, Settings, History, Landmark, Palette, LogOut, LogIn, Lock, Zap, PenLine, FileEdit } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
@@ -39,6 +39,11 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
   const navItems = [
     { id: 'indeks', label: 'Kandungan', Icon: List },
+    // Draf Saya (2026-08-01, permintaan pemilik projek) — modul BERASINGAN, bukan penapis dalam
+    // Kandungan: draf tidak pernah masuk Indeks langsung (ia teks dalam slot masing-masing), jadi
+    // ia bukan subset paparan Kandungan. Susunan tab ni akan dikumpulkan semula ikut kategori
+    // dalam kerja berasingan nanti.
+    { id: 'draf_saya', label: 'Draf Saya', Icon: FileEdit },
     // Slot (2026-07-30, permintaan pemilik projek) — senarai kandungan ikut slot (sunting/tambah/
     // padam item). Dulu ia paparan togol dalam "Semakan Kandungan"; kini destinasi sendiri, dan
     // Semakan Kandungan tinggal paparan teks pukal sahaja.

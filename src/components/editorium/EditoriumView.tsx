@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Radio, X } from 'lucide-react';
 import { EditoriumLayout } from './EditoriumLayout';
 import { IndeksConsole } from './IndeksConsole';
+import { DrafSayaConsole } from './DrafSayaConsole';
 import { DirektoriConsole } from './DirektoriConsole';
 import { TetapanConsole } from './TetapanConsole';
 import { SenaraiSlotConsole } from './SenaraiSlotConsole';
@@ -20,7 +21,7 @@ import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 interface EditoriumViewProps {
   // null = belum log masuk. Peranan (KETUA_EDITOR/EDITOR) datang terus daripada akaun yang log
   // masuk — bukan lagi togol manual.
-  currentUser: { name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null;
+  currentUser: { id: string; name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null;
   onRequestLogin: () => void;
   onLogout: () => void;
 }
@@ -53,6 +54,19 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
+  // Draf yang diklik di "Draf Saya" (2026-08-01) — dihantar ke SlotManagerModal supaya modal
+  // terbuka betul-betul pada draf itu, bukan pada kandungan pertama slot. Dikosongkan setiap kali
+  // modal dibuka melalui laluan lain (pemilih slot, tukar slot dalam modal).
+  const [drafDibuka, setDrafDibuka] = useState<string>('');
+  const [drafVersi, setDrafVersi] = useState(0);
+  const tutupRuangMenulis = () => {
+    slotEditor.closeSlotEditor();
+    setDrafVersi((v) => v + 1);
+  };
+  const bukaDraf = (slotIndex: number, uuid: string) => {
+    setDrafDibuka(uuid);
+    slotEditor.openSlotEditor(slotIndex);
+  };
 
   // Sedang beredar ke frontpage selepas log keluar — biarkan kosong sepanjang animasi keluar,
   // jangan sesekali kelipkan skrin pagar.
@@ -184,6 +198,17 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           </div>
         </div>
       )}
+      {/* Draf Saya (2026-08-01, permintaan pemilik projek) — ruang kerja peribadi editor: semua
+          draf dia sendiri merentasi semua slot, tanpa perlu membuka slot satu per satu. Ketua
+          Editor pun melihat draf dia sendiri sahaja di sini (keputusan pemilik projek). */}
+      {activeTab === 'draf_saya' && (
+        <DrafSayaConsole
+          editorId={currentUser.id}
+          editorName={currentUser.name}
+          onBukaDraf={bukaDraf}
+          versi={drafVersi}
+        />
+      )}
       {activeTab === 'direktori' && (
         <DirektoriConsole
           currentUserRole={currentUser.role}
@@ -221,7 +246,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                   <li key={i}>
                     <button
                       type="button"
-                      onClick={() => slotEditor.openSlotEditor(i)}
+                      onClick={() => { setDrafDibuka(''); slotEditor.openSlotEditor(i); }}
                       className="w-full flex items-center justify-between gap-3 px-5 py-2.5 text-left hover:bg-stone-50 border-b border-stone-100 last:border-b-0 cursor-pointer"
                     >
                       <span className="font-mono text-xs font-bold text-stone-400 shrink-0">Slot {i + 1}</span>
@@ -245,7 +270,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           currentEditoriumRole={currentUser.role}
           currentEditoriumName={currentUser.name}
           isSavingSlot={slotEditor.isSavingSlot}
-          onClose={slotEditor.closeSlotEditor}
+          onClose={tutupRuangMenulis}
           onSave={slotEditor.handleSaveSlot}
           slotOptions={Array.from({ length: 38 }, (_, i) => i)
             .filter((i) => !TIER_SLOTS.BAR.includes(i))
@@ -253,7 +278,8 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               index: i,
               label: `Slot ${i + 1} — ${slotEditor.slotsConfig.find((s: any) => s.slotIndex === i)?.manualDesk || 'Belum ditetapkan'}`,
             }))}
-          onSwitchSlot={slotEditor.openSlotEditor}
+          onSwitchSlot={(i) => { setDrafDibuka(''); slotEditor.openSlotEditor(i); }}
+          initialUuid={drafDibuka}
         />
       )}
       {slotEditor.saveError && (

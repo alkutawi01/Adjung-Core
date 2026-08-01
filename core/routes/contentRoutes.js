@@ -355,6 +355,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         `Tarikh sumber: ${attrs.originalDate || ''}`,
         `Imej: ${attrs.image || ''}`,
         `Nota: ${attrs.note || ''}`,
+        // Dipulangkan kepada editor yang MENERBITKANnya dulu (attribute 'editorName'), supaya draf
+        // yang ditolak muncul semula dalam "Draf Saya" orang yang sama — bukan hilang dalam slot
+        // sehingga dia membelek satu-satu. Kandungan lama tanpa editorName kekal kosong: "Draf
+        // Saya" jatuh balik pada penugasan slot untuk blok tanpa nama.
+        `Penulis: ${attrs.editorName || ''}`,
       ].join('\n');
       const DRAFT_SEPARATOR = '\n\n________________________________________\n\n';
 

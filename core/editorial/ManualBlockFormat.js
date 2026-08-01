@@ -42,6 +42,13 @@ export function parseManualBlockFields(block) {
     date: '', source: '', url: '', sourceType: '',
     organizer: '', location: '', access: '', penerangan: '',
     note: '', image: '', isEventBlock: false,
+    // Penulis (2026-08-01, permintaan pemilik projek — modul "Draf Saya"): nama pena editor yang
+    // MENCIPTA blok ni. Dicap sekali sahaja semasa blok baharu dibuat, tak berubah bila orang lain
+    // menyuntingnya kemudian. Berasingan daripada attribute 'editorName' (dicap semasa TERBIT,
+    // menjawab siapa menerbitkan) — draf tak pernah sampai ke editorial_objects, jadi ia perlukan
+    // capnya sendiri di dalam blok teks ni. Blok lama tiada baris ni; "Draf Saya" jatuh balik pada
+    // penugasan slot (jadual slot_editors) untuk blok tanpa nama, bukan menekanya kepada sesiapa.
+    penulis: '',
     // Alur kerja Draf/Terbit (2026-07-29) — 'draft' (kerja belum siap, tak sesekali live),
     // 'pending' (dah "Terbit" tapi tersekat, cth had slot penuh — sistem had belum wujud lagi,
     // ni ruang untuknya nanti), 'approved' (live). LALAI 'approved' (BUKAN 'draft') bila medan
@@ -86,6 +93,8 @@ export function parseManualBlockFields(block) {
       fields.date = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
     } else if (trimmed.startsWith('Tarikh:')) {
       fields.date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
+    } else if (trimmed.startsWith('Penulis:')) {
+      fields.penulis = trimmed.replace(/^Penulis:\s*/i, '').trim();
     } else if (trimmed.startsWith('Nota:')) {
       fields.note = trimmed.replace(/^Nota:\s*/i, '').trim();
     } else if (trimmed.startsWith('Imej:')) {
@@ -149,6 +158,7 @@ export function serializeManualBentoItem(item) {
     `Tarikh sumber: ${item.date || ''}`,
     `Imej: ${item.image || ''}`,
     `Nota: ${item.note || ''}`,
+    `Penulis: ${item.penulis || ''}`,
   ].join('\n');
 }
 

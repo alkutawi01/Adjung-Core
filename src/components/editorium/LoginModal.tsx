@@ -3,7 +3,9 @@ import { X, Lock } from 'lucide-react';
 
 interface LoginModalProps {
   onClose: () => void;
-  onSuccess: (user: { username: string; penName: string; email: string; role: string }, rememberMe: boolean) => void;
+  // id dibawa sekali (2026-08-01) — "Draf Saya" perlukannya untuk mencari slot yang ditugaskan
+  // kepada editor ni (jadual slot_editors berkunci pada users.id, bukan nama pena).
+  onSuccess: (user: { id: string; username: string; penName: string; email: string; role: string }, rememberMe: boolean) => void;
 }
 
 // Log masuk Editorium (2026-07-29) — panggil /api/auth/login (core/routes/authRoutes.js,
@@ -47,6 +49,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         return;
       }
       onSuccess({
+        id: data.user.id,
         username: data.user.username,
         penName: data.user.penName || data.user.username,
         email: data.user.email || '',

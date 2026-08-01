@@ -62,8 +62,24 @@ export function useSlotEditor(editorName?: string) {
 
   // Buka borang kosong/sedia ada untuk SATU slot (dipanggil selepas editor pilih daripada
   // pemilih slot). Tiada sintesis demo — slot kosong terus tunjuk medan kosong sebenar.
-  const openSlotEditor = useCallback((idx: number) => {
-    const config = slotsConfig.find((s) => s.slotIndex === idx);
+  const openSlotEditor = useCallback(async (idx: number) => {
+    // Ambil konfigurasi TERKINI slot ni dahulu, bukan terus guna `slotsConfig` dalam ingatan:
+    // senarai itu dimuatkan sekali sahaja semasa Editorium dibuka, jadi draf yang disimpan
+    // selepas itu (oleh tab lain, atau oleh editor lain yang berkongsi slot) tidak akan kelihatan
+    // dan boleh ditimpa semula pada simpan berikutnya. Kalau panggilan gagal, jatuh balik pada
+    // salinan dalam ingatan — lebih baik borang lama daripada borang kosong.
+    let segar: any = null;
+    try {
+      const res = await fetch('/api/system/slots');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setSlotsConfig(data);
+        segar = data.find((s: any) => s.slotIndex === idx) || null;
+      }
+    } catch (e) {
+      console.error('Failed to refresh slot config before opening editor:', e);
+    }
+    const config = segar || slotsConfig.find((s) => s.slotIndex === idx);
     const limits = getLimitsForIndex(idx, config);
     setFormConfig({
       slotIndex: idx,

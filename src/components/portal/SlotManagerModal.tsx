@@ -23,6 +23,10 @@ interface SlotManagerModalProps {
   // sama senarai macam pemilih asal) + panggilan balik ke openSlotEditor(idx) di App/Editorium.
   slotOptions?: { index: number; label: string }[];
   onSwitchSlot?: (idx: number) => void;
+  // Buka terus pada SATU kandungan dalam giliran slot (2026-08-01) — dihantar oleh "Draf Saya",
+  // supaya klik pada draf mendarat betul-betul pada draf itu, bukan pada kandungan pertama slot.
+  // Kosong/tak dijumpai = kelakuan asal (kandungan pertama).
+  initialUuid?: string;
   // manualSummaryOverride: items (giliran kandungan) hidup sebagai state TEMPATAN modal ni (lihat
   // nota di useState items di bawah), bukan diterbitkan semula daripada formConfig.manualSummary
   // pada setiap keystroke. handleSubmit hantar serialize(items) TERUS sebagai argumen kedua di
@@ -219,10 +223,18 @@ const SidebarItem = React.memo(function SidebarItem({
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, onClose, onSave,
-  slotOptions, onSwitchSlot,
+  slotOptions, onSwitchSlot, initialUuid,
 }) => {
   const editorName = currentEditoriumName || EDITOR_PLACEHOLDER;
-  const [active, setActive] = useState(0);
+  // Kandungan mana yang terbuka dahulu. Lalai yang pertama; bila dibuka daripada "Draf Saya"
+  // (initialUuid), terus mendarat pada draf yang diklik. Sengaja dikira dalam initializer useState
+  // (dijalankan SEKALI semasa mount, sama macam `items` di bawah) dan bukan useEffect selepas
+  // render — kalau tidak, kandungan pertama sempat terpapar sekelip mata sebelum bertukar.
+  const [active, setActive] = useState(() => {
+    if (!initialUuid) return 0;
+    const i = parseManualSummaryBlocks(formConfig.manualSummary || '').findIndex((b: any) => b.uuid === initialUuid);
+    return i >= 0 ? i : 0;
+  });
   const [tab, setTab] = useState<'borang' | 'maklumat' | 'ai'>('borang');
   const [pasteNote, setPasteNote] = useState('');
   const [aiNote, setAiNote] = useState('');
@@ -255,6 +267,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     // sebenar tersimpan (lalai 'approved' kalau tiada baris Status: — blok lama sebelum ciri ni
     // wujud, memang live).
     status: 'draft',
+    // Penulis (2026-08-01, permintaan pemilik projek — modul "Draf Saya"): dicap SEKALI semasa
+    // blok dicipta, bukan pada setiap simpan — draf kekal milik orang yang memulakannya walaupun
+    // editor lain dalam slot yang sama menyuntingnya kemudian. Kosong bila tiada sesi log masuk
+    // (JANGAN cap EDITOR_PLACEHOLDER "—" di sini; itu simbol paparan, bukan nama orang).
+    penulis: currentEditoriumName || '',
   });
 
   // Bekalkan SEKURANG-KURANGNYA satu blok kosong bila slot benar-benar kosong (bukan senarai
@@ -328,6 +345,10 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           status: 'draft',
           title: b.title, topik: b.topik, brief: b.brief, briefLong: b.briefLong,
           source: b.source, url: b.url, date: b.date, note: b.note, image: b.image,
+          // Blok yang ditampal biasanya datang daripada AI luaran (tiada baris Penulis:) — yang
+          // menampal itulah penulisnya. Kalau teks yang ditampal MEMANG sudah membawa nama
+          // (cth. draf disalin daripada slot lain), nama asal itu dikekalkan.
+          penulis: b.penulis || currentEditoriumName || '',
         }));
         commit((prevItems) => {
           const next = prevItems.slice();
