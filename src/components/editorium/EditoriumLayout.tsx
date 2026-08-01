@@ -86,8 +86,9 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   const handleNavClick = (tabId: string) => {
     setCurrentTab(tabId);
     if (onTabChange) onTabChange(tabId);
-    // Pilih destinasi = tugas sidebar selesai, tutup semula supaya kandungan tak terlindung.
-    setDilipat(true);
+    // SENGAJA tak tutup sidebar di sini — cuma DUA cara ia tutup: klik <aside> sendiri (bila
+    // sudah terbuka, tiada kesan — lihat onClick <aside>) atau klik backdrop di luar. Memilih
+    // destinasi bukan salah satu daripada dua tu.
   };
 
   // Belum log masuk = TIADA destinasi boleh dibuka. Dulu semua tab masih boleh diklik: tab
@@ -173,25 +174,9 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           <div className="flex items-center gap-2.5 font-sans text-[11px]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}>
             {currentUser ? (
               <>
-                {/* Susunan header (2026-08-01, turutan tepat pemilik projek): nama+peranan editor
-                    -> butang tambah kandungan -> peti masuk -> log keluar. */}
-                {/* Profil Editor — badge nama/peranan boleh diklik, buka modal lihat/sunting
-                    identiti sendiri. */}
-                <button
-                  type="button"
-                  onClick={onOpenProfil}
-                  title="Profil Editor"
-                  disabled={!onOpenProfil}
-                  className="flex items-center gap-2 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1] hover:bg-white/[0.14] transition-colors cursor-pointer disabled:cursor-default"
-                >
-                  <span className="relative flex w-1.5 h-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
-                    <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500"></span>
-                  </span>
-                  <span className="text-stone-100 font-medium">{currentUser.name}</span>
-                  <span className="text-white/30">·</span>
-                  <span className="text-[#e0b7bd]">{currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor'}</span>
-                </button>
+                {/* Susunan header (2026-08-01) — nama/peranan editor diletak DEKAT HUJUNG KANAN
+                    (bersebelahan Log Keluar), bukan di hadapan ikon-ikon tindakan. Ikon (tambah
+                    kandungan, Makluman) datang dahulu, badge profil + Log Keluar menutup di hujung. */}
                 {/* Butang tambah kandungan — ikon sahaja (spesifikasi asal pemilik projek: "+"
                     sebagai simbol, bukan label teks). */}
                 {onOpenSlotPicker && (
@@ -220,6 +205,23 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                     )}
                   </button>
                 )}
+                {/* Profil Editor — badge nama/peranan boleh diklik, buka modal lihat/sunting
+                    identiti sendiri. Diletak dekat hujung kanan, bersebelahan Log Keluar. */}
+                <button
+                  type="button"
+                  onClick={onOpenProfil}
+                  title="Profil Editor"
+                  disabled={!onOpenProfil}
+                  className="flex items-center gap-2 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1] hover:bg-white/[0.14] transition-colors cursor-pointer disabled:cursor-default"
+                >
+                  <span className="relative flex w-1.5 h-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                    <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-stone-100 font-medium">{currentUser.name}</span>
+                  <span className="text-white/30">·</span>
+                  <span className="text-[#e0b7bd]">{currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor'}</span>
+                </button>
                 {onLogout && (
                   <button
                     onClick={onLogout}
