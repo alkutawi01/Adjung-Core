@@ -1,8 +1,9 @@
 # Pelan Pelaksanaan Pra-Launch — Adjung Brief
 
-Ditetapkan 2026-08-01 (Izzat, Ketua Editor). Disemak semula selepas kritikan Antigravity
-dan audit keselamatan. Matlamat: semua fungsi asas/standard portal siap dan boleh dikawal
-dalam Editorium SEBELUM launch — "tak nak kena ubah banyak benda selepas launch nanti."
+Ditetapkan 2026-08-01 (Izzat, Ketua Editor). Disemak selepas kritikan Antigravity, audit
+keselamatan, dan **audit menyeluruh Fasa 0 (empat audit selari, siap 2026-08-01)**.
+Matlamat: semua fungsi asas/standard portal siap dan boleh dikawal dalam Editorium
+SEBELUM launch — "tak nak kena ubah banyak benda selepas launch nanti."
 
 > Nota: folder `specification/` menerangkan produk LAIN (Folio/Biography) — pelan ini
 > sahaja rujukan pelaksanaan untuk Adjung Brief.
@@ -12,251 +13,255 @@ dalam Editorium SEBELUM launch — "tak nak kena ubah banyak benda selepas launc
 ## Keputusan sedia dibuat
 
 - **Paparan Utama (dashboard)**: item pertama sidebar, di atas kumpulan Penerbitan,
-  destinasi lalai selepas log masuk. Kandungan: status kandungan (Menunggu/Aktif/Arkib),
-  draf saya, makluman terbaru, slot bermasalah, pintasan, bilangan pengunjung, kandungan
-  paling diminati, status RSS, status API, keaktifan editor.
-- **Jejak pengunjung**: dibina sendiri dalam sistem — tiada pihak ketiga (bukan Google
-  Analytics), tiada cookie, tiada data peribadi pengunjung; kiraan harian sahaja dalam
-  `adjung.db`.
+  destinasi lalai selepas log masuk.
+- **Jejak pengunjung**: dibina sendiri — tiada pihak ketiga, tiada cookie; kiraan harian
+  sahaja dalam `adjung.db`.
 - Kumpulan sidebar ketiga bernama **"Rujukan"** (dulu "Sistem").
 
 ## Cara membaca anggaran
 
-Anggaran hari ialah **hari kerja penuh**, bukan tarikh kalendar. Ia anggaran kasar untuk
-merancang jujukan, bukan janji. Saiz relatif lebih dipercayai daripada nombor:
-`S` (kecil, ≤1 hari) · `M` (sederhana, 2–3 hari) · `L` (besar, 4–6 hari) · `XL` (perlu
-dipecah lagi sebelum dimulakan).
-
-**Jumlah kasar: ~48–62 hari kerja.** Fasa 0 akan menajamkan angka ini.
+Hari = hari kerja penuh, anggaran kasar. `S` ≤1 hari · `M` 2–3 hari · `L` 4–6 hari ·
+`XL` perlu dipecah dahulu. **Jumlah kasar selepas Fasa 0: ~55–70 hari kerja.**
 
 ---
 
 ## Graf kebergantungan
 
 ```
-Fasa 0 (audit)  ─────────────────────────────► mengesahkan/mengubah semua fasa di bawah
+Fasa 0 (audit) ✔ ────────────────────────────► selesai — skop semua fasa di bawah dikunci
 Fasa 1 (keselamatan) ─┬──────────────────────► PENGHALANG LAUNCH mutlak
                       └─► Fasa 3 (Direktori) perlukan akaun & peranan sebenar
-Fasa 2 (hutang ujian) ───────────────────────► bebas, buat awal supaya ujian jadi isyarat benar
+Fasa 2 (pepijat kritikal + hutang ujian) ────► awal, bebas — boleh selari dengan Fasa 1
 Fasa 3 (Direktori) ──► Fasa 4 (Log Sistem) perlu tahu siapa buat apa
 Fasa 4 (Log Sistem) ──► Fasa 5 (Dashboard) panel keaktifan editor baca log yang sama
-Fasa 6 (Tetapan) ────► Fasa 7 (Modul Khas) kawalan Jam/Ticker duduk atas tetapan operasi
-Fasa 8 (Editorial) ── bebas, tetapi skopnya ditetapkan oleh Fasa 0
-Fasa 9-12 ───────────► Fasa 13 (reka bentuk) sentuh SEMUA skrin, mesti selepas UI stabil
-Fasa 13 ─────────────► Fasa 14 (prestasi) ukur produk siap, bukan separuh siap
-Fasa 14 ─────────────► Fasa 15 (deploy)
+Fasa 6 (Tetapan) ────► Fasa 7 (Modul Khas & kawalan slot)
+Fasa 8 (Editorial) ── bebas; skop kini ditetapkan (lihat fasa)
+Fasa 9–12 ───────────► Fasa 13 (reka bentuk) selepas UI stabil
+Fasa 13 ─────────────► Fasa 14 (jejak pengunjung) ► Fasa 15 (prestasi) ► Fasa 16–17
 ```
-
-Kerja selari yang selamat: Fasa 2 boleh berjalan serentak dengan mana-mana fasa lain.
-Fasa 8 boleh berjalan serentak dengan Fasa 6–7.
 
 ---
 
 ## FASA
 
-### [ ] Fasa 0 — Audit kelengkapan menyeluruh · `M` · ~2 hari
-Sebelum bina apa-apa: senarai lengkap "apa yang portal berita sebenar perlukan" berbanding
-apa yang ada, modul demi modul. Audit terdahulu cuma semak senarai pemilik projek
-("ada/tiada"), bukan kedalaman. Yang sudah dikesan cetek setakat ini:
-- [ ] Semakan Kandungan = editor teks pukal, bukan aliran semakan (tiada terima/tolak/komen)
-- [ ] Draf Saya tiada auto-simpan — editor boleh hilang kerja
-- [ ] Tiada UI sejarah versi (data `editorial_revisions` wujud, paparan tiada)
-- [ ] Tiada jadual terbit (terbit kemudian pada masa ditetapkan)
-- [ ] Nota Ketua Editor tiada bukti sudah dibaca siapa
-- [ ] Semak baki modul dengan kaedah yang sama; kemas kini fasa di bawah dengan penemuan
-
-**Hasil:** senarai jurang muktamad + skop Fasa 8 ditetapkan (lihat kritikan #8).
+### [x] Fasa 0 — Audit kelengkapan menyeluruh · SIAP 2026-08-01
+Empat audit selari dengan bukti `fail:baris`. Penemuan penuh dalam **Lampiran A** di
+bawah. Kesimpulan satu ayat: *separuh penerbitan (validasi bajet, Bidang/Topik, arkib-
+bukan-padam) dibina dengan teliti; separuh pengawasan (auth, sejarah, audit, penjadualan,
+serentak) dan lapisan infrastruktur (deploy, ralat, backup) hampir tiada.*
 
 ---
 
-### [ ] Fasa 1 — Keselamatan & log masuk · `L` · ~5 hari · **PENGHALANG LAUNCH**
-Audit 2026-08-01 menemui empat lubang. Portal awam TIDAK BOLEH naik sebelum ditutup:
-- [ ] `GET /api/db-state` menghantar lajur `password` kepada pemanggil tanpa log masuk
-- [ ] Tiada satu pun API dilindungi — sesiapa boleh terbit/padam/ubah tetapan
-- [ ] Sesi hanya di browser (localStorage) — sesiapa boleh tukar `role` sendiri jadi
-      `KETUA_EDITOR` dan dapat kuasa penuh
-- [ ] `POST /api/auth/reset-password` terbuka — tahu emel = boleh tukar kata laluan sesiapa
-- [ ] Lajur `password TEXT DEFAULT 'password'` + laluan kembali teks biasa masih hidup
-- [ ] Token sesi sebenar di server (bukan blob localStorage), tempoh luput, log keluar sah
-- [ ] Middleware auth + semakan peranan di SETIAP laluan API
-- [ ] Ujian penjelakan peranan: Editor cuba capai laluan Ketua Editor, mesti ditolak server
-- [ ] Ujian XSS/CSRF pada borang input
-Kemudian barulah pengurusan akaun sebenar:
-- [ ] Cipta akaun editor (kini tiada langsung — kena masuk DB dengan tangan)
-- [ ] Jemputan editor baharu melalui emel + set kata laluan pertama
-- [ ] Set semula kata laluan melalui emel bertoken (bukan laluan terbuka sedia ada)
+### [ ] Fasa 1 — Keselamatan & log masuk · `L` · ~6 hari · **PENGHALANG LAUNCH**
+- [ ] Tutup: `GET /api/db-state` bocorkan lajur `password` kepada sesiapa
+- [ ] Middleware auth + semakan peranan di SETIAP laluan API (kini SIFAR laluan dilindungi
+      — semua kunci "Ketua Editor sahaja" hanyalah teater UI atas API terbuka)
+- [ ] Token sesi sebenar di server + tempoh luput (kini blob localStorage boleh diubah
+      sendiri jadi `KETUA_EDITOR`)
+- [ ] `POST /api/auth/reset-password` — token melalui emel, bukan terbuka
+- [ ] Buang lalai `password TEXT DEFAULT 'password'` + laluan kembali teks biasa
+- [ ] Had kadar (rate limit) pada log masuk — kini brute force tanpa had
+- [ ] `POST /api/media/upload` tanpa auth menulis fail ke folder awam — kunci
+- [ ] Pengendali ralat global Express (kini stack trace HTML terus ke pelanggan)
+- [ ] Ujian penjelakan peranan + XSS/CSRF
+- [ ] Cipta akaun editor (kini: INSERT ke DB dengan tangan sahaja)
+- [ ] Jemputan editor baharu + set semula kata laluan melalui emel
+- [ ] Kuatkuasakan matriks RBAC dari Tetapan → Kawalan Akses di server (kini disimpan
+      tetapi tidak dibaca oleh sesiapa)
 
----
-
-### [ ] Fasa 2 — Hutang ujian sedia ada · `S` · ~1 hari
-- [ ] Betulkan 2 ujian gagal dalam `tests/rssDirectScore.test.js` (`parseRssXml` URL
-      terpotong; `EditorialScoreEngine` pulang `BLOCKED_KEYWORD` bukan `REJECT`)
-- [ ] Sahkan `npm test` hijau sepenuhnya
-**Sebab awal:** selagi 2 ujian gagal jadi "normal", ujian berhenti jadi isyarat berguna —
-kegagalan baharu akan hilang dalam bunyi latar.
-
----
+### [ ] Fasa 2 — Pepijat kritikal sedia ada + hutang ujian · `M` · ~3 hari
+Semua ditemui Fasa 0, semuanya menjejaskan data sebenar HARI INI:
+- [ ] **Simpan slot BAR memadam terbitan secara kekal** — laluan lama `DELETE FROM
+      editorial_objects` + CASCADE memusnahkan revisi (`server.js:2056-2079`). Peraturan
+      "terbitan tak boleh padam" dipintas oleh butang simpan biasa
+- [ ] **URL RSS tercantas** — pembersih boilerplate memakan hostname (`bernama.com`,
+      `kosmo.com.my`) → `originalUrl` rosak dalam ticker sebenar. Ini punca ujian gagal
+      #1; baiki KOD, bukan ujian (`SourceSanitizer.js:42`)
+- [ ] Ujian gagal #2 = ujian lapuk (`REJECT` → `BLOCKED_KEYWORD`) — baiki UJIAN
+- [ ] **Imej tak sampai** — modal tulis simpan atribut `image`, laluan lain baca
+      `imageUrl`; imej yang dilampirkan editor tak pernah muncul di Indeks
+- [ ] **Simpan pukal Semakan silap sasaran** — dikunci ikut ordinal siri, bukan UUID;
+      perubahan serentak boleh tulis ke artikel yang salah secara senyap
+- [ ] **Dua penulis satu ticker** — RSS direct dan pipeline AI tulis-ganti
+      `inTheNewsText` sesama sendiri tanpa peraturan pemilikan
+- [ ] Enjin tipografi berganda client/server dengan perbezaan tapisan sebenar
+      (peraturan `enabled=0` masih terpakai di server) — satukan
+- [ ] `PRAGMA` WAL + `busy_timeout` — kini simpanan serentak dua editor gagal senyap
+- [ ] Skrip `clean` memadam `adjung.db` tanpa amaran — buang/betulkan
+- [ ] Sahkan `npm test` hijau sepenuhnya selepas semua di atas
 
 ### [ ] Fasa 3 — Direktori hidup · `M` · ~3 hari
-- [ ] `staffList` daripada DB sebenar (kini array kosong berkod keras)
-- [ ] "+ Tambah Anggota" berfungsi (Ketua Editor sahaja) — bersambung dengan Fasa 1
-- [ ] Peranan & kawalan akses boleh diurus
+- [ ] `staffList` dari jadual `users` sebenar (kini array kosong; butang tambah = hiasan)
+- [ ] Tindakan status (aktif/cuti/nyahaktif) simpan ke server (kini state lokal sahaja,
+      hilang bila muat semula)
+- [ ] "+ Tambah Anggota" berfungsi — bersambung Fasa 1
 - [ ] Carta organisasi ringkas
 
----
-
 ### [ ] Fasa 4 — Log Sistem · `M` · ~3 hari
-- [ ] Jadual audit sebenar: siapa terbit/edit/arkib apa, bila
-- [ ] Paparan di Rujukan → Log Sistem (kini placeholder "Belum Dibina")
-- [ ] Log ralat server boleh dilihat di sini juga
-**Dinaikkan awal** kerana panel "keaktifan editor" dashboard (Fasa 5) membaca log yang sama.
-
----
+- [ ] Jadual audit: siapa terbit/edit/arkib/tolak apa, bila (kini SIFAR jejak — tiada
+      log tindakan langsung, `logs: []` berkod keras)
+- [ ] Paparan di Rujukan → Log Sistem
+- [ ] Log ralat server + log kesihatan ambilan RSS (kini ralat feed ditelan senyap —
+      feed mati tak dapat dibezakan dengan feed sunyi)
 
 ### [ ] Fasa 5 — Paparan Utama (dashboard) · `M` · ~3 hari
-- [ ] Status kandungan (Menunggu/Aktif/Arkib)
-- [ ] Draf saya + makluman terbaru
-- [ ] Slot kosong/bermasalah
-- [ ] Status RSS Ticker & status API cuaca (rekod ambilan terakhir + berjaya/gagal di
-      server — kini tidak direkod langsung)
-- [ ] Keaktifan editor (baca log Fasa 4)
-- [ ] Pintasan; jadikan destinasi lalai selepas log masuk
+- [ ] Status kandungan · draf saya · makluman terbaru · slot kosong/bermasalah
+- [ ] Status RSS & API cuaca (baca rekod kesihatan Fasa 4)
+- [ ] Keaktifan editor (baca log audit Fasa 4)
+- [ ] Destinasi lalai selepas log masuk
 
----
-
-### [ ] Fasa 6 — Tetapan dilengkapkan · `M` · ~3 hari
+### [ ] Fasa 6 — Tetapan & aliran kerja teras · `L` · ~5 hari
 - [ ] Editor label & tooltip (UI atas `src/config/istilah.ts`)
-- [ ] Maklumat/halaman polisi (sumber kandungan untuk halaman awam Fasa 11)
-- [ ] Hidupkan atau buang "Glos Selari" yang kini dimatikan
-- [ ] Pindahkan kawalan Jam Dunia yang tersorok di sini ke Modul Khas (Fasa 7)
+- [ ] Maklumat/halaman polisi (sumber untuk halaman awam Fasa 11)
+- [ ] Hidupkan atau buang "Glos Selari" (kini dimatikan)
+- [ ] **Auto-simpan / penjaga dirty pada modal tulis** — kini tutup modal = kerja hilang
+      senyap; penjaga sedia ada cuma semak tajuk/huraian
+- [ ] **Kawalan serentak** — dua editor buka slot sama: simpan kedua memadam simpanan
+      pertama tanpa amaran. Perlu token versi / semakan `updatedAt`
+- [ ] **Sejarah versi sebenar** — kini `editorial_revisions` SENTIASA 1 baris (edit =
+      UPDATE atas tempat, versi berkekalan 1.0); jadikan revisi terkumpul + UI lihat/
+      pulih versi
+- [ ] Sebab penolakan — `Tolak` kini pulangkan draf TANPA sebarang catatan kepada penulis
+- [ ] Notifikasi kepada editor bila kandungannya disiar/ditolak (kini kena pergi semak
+      sendiri)
 
----
+### [ ] Fasa 7 — Modul Khas & kawalan slot · `L` · ~6 hari
+Penemuan besar Fasa 0: satu-satunya jalan ubah Bidang/warna/selang carousel slot ialah
+kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari Editorium.
+- [ ] Pintu masuk sah dalam Editorium untuk tetapan per-slot (Bidang, warna kad, selang/
+      lengah carousel) — kini medan wujud di DB & dibaca frontpage, tiada UI sah
+- [ ] Betulkan lajur "Animasi Transisi" Senarai Slot (kini papar selang carousel,
+      bukan animasi — label mengelirukan)
+- [ ] Buang atau sambungkan tetapan mati "Jenis animasi transisi" (kini ditulis ke DB,
+      tak pernah dibaca sesiapa)
+- [ ] Ticker: bawa kawalan ke Editorium (kini ~90% dalam modal frontpage) + UI kelajuan
+      pusingan ticker (kini TIADA UI langsung, hanya edit DB)
+- [ ] Jam Dunia: satukan kawalan sedia ada (kini tersorok di Tetapan → Operasi, kad
+      Modul Khas kata "belum disambungkan" — mengelirukan); tarikh cuti sekolah berkod
+      keras 2026/27 akan basi senyap — jadikan boleh edit
+- [ ] Slot Bar: borang kandungan BAR dalam Editorium (medan Acara/Penganjur/Akses/
+      Penerangan) — kini dikecualikan dari semua permukaan Editorium
+- [ ] Focus View: tetapan animasi/mod turutan/had aksara (kini sifar tetapan di
+      mana-mana)
 
-### [ ] Fasa 7 — Modul Khas disambungkan · `L` · ~5 hari
-- [ ] Jam (RSS, animasi, status) — kini kad mati "Belum disambungkan"
-- [ ] Ticker — kawalan DALAM Editorium, bukan pautan keluar ke frontpage
-- [ ] Slot Bar (animasi, tetapan) — kini kad mati
-- [ ] Focus View (animasi, mod turutan, had aksara) — kini tiada langsung dalam senarai
-
----
-
-### [ ] Fasa 8 — Editorial dilengkapkan · `XL` · skop ditetapkan Fasa 0
-Antigravity betul: fasa ini terlalu kabur untuk dimulakan. Skop setiap sub-item MESTI
-ditetapkan dalam Fasa 0 sebelum kerja bermula.
-- [ ] 4 sub-templat semakan (ejaan / tatabahasa / gaya bahasa / format) — kini satu kotak
-- [ ] Sambung `reviewPrompt` yang tergantung ke butang semakan sebenar
-- [ ] Pengurusan limpahan teks
-- [ ] Medan "tempoh minimum paparan" sebenar — rujukan sedia ada ke Tetapan Am adalah
-      PALSU, medan itu tidak wujud
-- [ ] Asingkan glosari daripada penyelarasan ejaan (kini bergabung)
-- [ ] **Format sumber** — dipisahkan jadi Fasa 8b, jangan campur dengan yang di atas
+### [ ] Fasa 8 — Editorial dilengkapkan · `L` · ~6 hari (skop dikunci oleh Fasa 0)
+- [ ] **Autocondong terpakai pada kad frontpage** — kini hanya tajuk ticker + sandbox;
+      kad bento & Focus View langsung tak guna `TypographyRenderer` (keputusan reka
+      bentuk: sahkan dengan Ketua Editor dulu)
+- [ ] 4 sub-templat semakan (ejaan/tatabahasa/gaya bahasa/format) + sambung `reviewPrompt`
+      tergantung ke butang semakan sebenar
+- [ ] Suntik glosari/ejaan ke dalam prompt AI (kini AI langsung tak nampak gaya rumah)
+- [ ] Limpahan teks: satu polisi seragam — kini 3 kelakuan berbeza (tolak dengan mesej /
+      langkau senyap di ticker AI / cantas senyap `...` di RSS — yang terakhir melanggar
+      perlembagaan)
+- [ ] AI: semakan bajet SEBELUM panggil (kini bajet kos disimpan tapi tak disemak);
+      baiki lalai `gemini-3.5-flash` (model tak wujud) & `max_tokens: 1000` Claude;
+      "Semak Sambungan" jujur (kini kata "Connected" untuk kunci sampah)
+- [ ] **Gate manusia untuk AI & RSS** — kini AI terus `approved` dan RSS ≥80 terus siar
+      TANPA manusia. KEPUTUSAN KETUA EDITOR: kekalkan auto-siar atau paksa Menunggu?
+- [ ] Medan "tempoh minimum paparan" sebenar + buang rujukan palsu dalam EditorialConsole
+- [ ] Asingkan glosari daripada penyelarasan ejaan
+- [ ] `validateMedanTambahan` pada laluan AI (kini laluan manual sahaja)
 
 ### [ ] Fasa 8b — Format sumber · `L` · ~5 hari
-Kerja besar tersendiri (pernah di-KIV: "nak enjin lengkap dulu"). Boleh ditangguh ke
-pasca-launch jika jadual ketat — tetapi keputusan itu milik pemilik projek.
+Enjin petikan berstruktur (penulis/penerbit/tarikh/jenis), validasi URL, semakan pautan
+mati. Sedia ada: medan bebas + auto-kesan jenis sahaja. Boleh tangguh pasca-launch —
+keputusan pemilik projek.
 
 ---
 
-### [ ] Fasa 9 — SEO & penemuan · `M` · ~2 hari
-- [ ] Meta / Open Graph per kandungan
-- [ ] Favicon
-- [ ] `sitemap.xml`
-- [ ] `robots.txt`
+### [ ] Fasa 9 — SEO & penemuan · `M` · ~3 hari
+Fasa 0 sahkan: portal ini **halimunan kepada enjin carian & pratonton sosial** (SPA tanpa
+SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
+- [ ] `lang="ms"` + meta description + OG/Twitter tags + JSON-LD NewsArticle
+- [ ] Tajuk/meta dinamik per kandungan · favicon semak · `sitemap.xml` · `robots.txt`
+- [ ] Prarender/SSR ringan untuk crawler — siasat pilihan paling ringkas
 
 ### [ ] Fasa 10 — Suapan RSS keluar · `S` · ~1 hari
-- [ ] Adjung Brief mensindiket kandungan sendiri (berbeza daripada RSS masuk Ticker)
 
 ### [ ] Fasa 11 — Halaman awam · `M` · ~3 hari
-- [ ] Halaman 404 bergaya Adjung
-- [ ] Tentang / Hubungi / Polisi & Penafian (kandungan diurus dari Editorium, Fasa 6)
-- [ ] Perkongsian sosial — **keputusan UI, tanya dahulu**
-- [ ] Carian pengunjung di frontpage — belum pasti sesuai dengan konsep bento,
-      **tanya dahulu**
+- [ ] 404 bergaya Adjung (kini URL salah = halaman kosong; laluan `*` tiada)
+- [ ] Tentang / Hubungi / Polisi & Penafian (kandungan dari Fasa 6)
+- [ ] Perkongsian sosial — **tanya dahulu** · Carian pengunjung — **tanya dahulu**
 
 ### [ ] Fasa 12 — Halaman Penaja · `M` · ~3 hari
-- [ ] Konsol urus penaja dalam Editorium (logo, nama, pautan, susunan)
-- [ ] Halaman awam penaja
-- [ ] Reka bentuk & penempatan pautan di frontpage — **keputusan Ketua Editor, tanya
-      dahulu**; jangan sentuh grid bento
-> Antigravity cadang tangguh ke pasca-launch. **Ditolak** — pemilik projek arah masukkan
-> pra-launch secara eksplisit, dan matlamat keseluruhan ialah tidak mengubah banyak selepas
-> launch. Tetapi ia diletak SELEPAS SEO/RSS/404 supaya keutamaan tetap betul.
-
----
+Konsol urus + halaman awam. Reka bentuk & penempatan — **keputusan Ketua Editor**;
+jangan sentuh grid bento.
 
 ### [ ] Fasa 13 — Penghalusan reka bentuk Editorium · `L` · ~5 hari
-Banyak konsol dibina untuk berfungsi dahulu dan belum diselaraskan dengan bahasa visual
-Adjung (maroon #802334, serif, label mono huruf besar, neutral batu suam).
-- [ ] Audit setiap skrin Editorium berbanding bahasa visual frontpage
-- [ ] Selaraskan konsol yang paling terkebelakang (Direktori, Tetapan, Modul Khas)
-- [ ] Keadaan kosong, keadaan memuat, mesej ralat — konsisten seluruh Editorium
-- [ ] Kelakuan telefon/tablet untuk setiap konsol
-**Diletak lewat** kerana ia menyentuh SEMUA skrin — buat awal bermakna buat dua kali.
-
----
+Audit visual setiap skrin vs bahasa frontpage; keadaan kosong/memuat/ralat konsisten;
+telefon/tablet.
 
 ### [ ] Fasa 14 — Jejak pengunjung & populariti · `M` · ~3 hari
-- [ ] Beacon frontpage → server sendiri
-- [ ] Jadual kiraan harian: lawatan halaman + buka-kandungan (Focus View / klik kad)
-- [ ] Sambung ke panel dashboard Fasa 5
-**Dipindah dari awal ke sini** (Antigravity betul): tiada pengunjung untuk dijejak sebelum
-launch, jadi membinanya awal tidak memberi apa-apa maklumat. Kiraan bermula 0 pada hari
-dipasang, jadi ia perlu ada SEBELUM deploy — tetapi tidak lebih awal daripada itu.
 
----
-
-### [ ] Fasa 15 — Prestasi · `M` · ~2 hari
-- [ ] Masa muat Frontpage dengan 38 slot penuh
-- [ ] Masa tindak balas API di bawah beban
-- [ ] Saiz bundle JavaScript
-- [ ] Backup automatik `adjung.db` berjadual (kini manual sahaja)
-
----
+### [ ] Fasa 15 — Prestasi & kesediaan produksi · `M` · ~3 hari
+- [ ] **Laluan serve produksi** — kini TIADA: tiada skrip `start`, Express tak hidangkan
+      `dist/` mahupun `/uploads`, port berkod keras 5000. Perlu: `PORT` dari env,
+      `express.static`, fallback SPA, skrip mula, pengurus proses
+- [ ] `db-state` god-endpoint: kini menyekat sehingga 15s pada 3 ambilan Google Doc
+      setiap panggilan — cache
+- [ ] Masa muat frontpage 38 slot · masa API di bawah beban · saiz bundle
+- [ ] Backup automatik `adjung.db` berjadual + keluarkan ~35 MB backup manual dari
+      pokok kerja
+- [ ] Namakan semula pakej `react-example` → nama sebenar
 
 ### [ ] Fasa 16 — Panduan & Dokumentasi · `S` · ~1 hari
-- [ ] Panduan: kandungan langkah demi langkah sebenar (kini placeholder)
-- [ ] Semak Dokumentasi terkini dengan keadaan sistem sebenar
-
----
 
 ### [ ] Fasa 17 — Ujian menyeluruh & deploy · `M` · ~3 hari
-- [ ] Setiap modul di browser sebenar
-- [ ] Dua peranan (KETUA_EDITOR + EDITOR)
-- [ ] Dua saiz skrin (desktop + telefon)
-- [ ] `npm test` + `tsc` bersih sepenuhnya
-- [ ] Bersihkan SEMUA data ujian
-- [ ] Backup `adjung.db`
-- [ ] Deploy
-- [ ] Sahkan selepas deploy: log masuk, terbit satu kandungan, semak log
+Setiap modul · dua peranan · dua saiz skrin · ujian & tsc bersih · bersih data ujian ·
+backup · deploy · sahkan pasca-deploy.
 
 ---
 
-## Peraturan kerja sepanjang pelan
+## Peraturan kerja
 
 1. Setiap fasa: bina → sahkan visual di browser sebenar → uji → commit + push → tanda `[x]`.
-2. Keputusan UI/estetika/label: perlu arahan/kelulusan Ketua Editor, bukan direka sendiri.
-3. Operasi destruktif pada data: backup `adjung.db` dahulu, tiada pengecualian.
-4. **Mesej commit**: Bahasa Melayu, format `jenis(skop): penerangan` (contoh
-   `fix(editorium): badge profil di kanan header`).
-5. **Sebelum tanda `[x]`**: `npx tsc --noEmit` bersih DAN `npm test` tiada kegagalan baharu.
-6. **Prosedur rollback**: setiap fasa dikomit berasingan supaya `git revert <commit>` boleh
-   memulihkan satu fasa tanpa menyentuh fasa lain. Selepas deploy gagal: revert commit
-   deploy, pulihkan backup `adjung.db` yang diambil di Fasa 17.
-7. **Skop membengkak**: jika satu fasa jadi ≥2× anggaran, berhenti dan lapor — jangan
-   teruskan diam-diam.
+2. Keputusan UI/estetika/label: arahan/kelulusan Ketua Editor, bukan direka sendiri.
+3. Operasi destruktif pada data: backup `adjung.db` dahulu.
+4. Mesej commit: Bahasa Melayu, `jenis(skop): penerangan`.
+5. Sebelum tanda `[x]`: `npx tsc --noEmit` bersih + `npm test` tiada kegagalan baharu.
+6. Rollback: satu fasa satu commit; deploy gagal → revert + pulih backup.
+7. Skop membengkak ≥2× anggaran: berhenti dan lapor.
 
 ---
 
-## Kritikan Antigravity — keputusan
+## Lampiran A — Penemuan Audit Fasa 0 (2026-08-01, ringkasan)
 
-Diterima (9): tiada anggaran masa (#1) · Fasa 8 terlalu besar (#2) · tiada fasa hutang
-ujian (#3) · kebergantungan tidak dinyatakan (#4) · jejak pengunjung terlalu awal (#5) ·
-tiada fasa keselamatan (#6) · Fasa Editorial terlalu kabur (#8) · petak semak bersarang
-(#9) · tiada ujian prestasi (#11).
+**Kitaran hayat kandungan.** Tiada auto-simpan/penjaga dirty (tutup modal = kerja hilang).
+Sejarah versi tak wujud dalam kelakuan — semua insert `version 1.0`, edit = UPDATE atas
+tempat, teks lama musnah. "Semakan Kandungan" = editor teks pukal, bukan aliran semakan;
+mesin status tak kawal transisi (arkib→siar pun diterima). Tolak tanpa sebab. Tiada
+jadual terbit/embargo/auto-luput (`expiresAt` = lajur mati). BAR: simpan biasa memadam
+terbitan+revisi secara kekal. Atribusi: `Penulis` hilang ketika terbit, `editorName`
+dibekal pelanggan (boleh dipalsukan) dan per-sesi bukan per-item. Serentak: last-write-
+wins senyap atas `manualSummary`. Imej: pecah nama atribut `image`/`imageUrl`, tiada
+pustaka media/alt/kredit. Tiada notis pembetulan ("berita ini dikemas kini"). Tiada
+pratonton kad sebelum terbit — ironi terbesar untuk CMS bento-geometri.
 
-Ditolak (2):
-- **#7 (tangguh Halaman Penaja ke pasca-launch)** — bercanggah dengan arahan eksplisit
-  pemilik projek. Diletak lewat dalam jujukan, tetapi kekal pra-launch.
-- **#10 sebahagian (proses semakan kod sebelum merge)** — tiada pasukan pemaju; semakan
-  kod formal antara dua orang tidak memberi apa-apa di sini. Konvensyen commit dan
-  prosedur rollback daripada kritikan yang sama diterima.
+**Tadbir urus & infra.** Peti Makluman: kiraan global bukan per-editor, tiada resit baca.
+Direktori: kosong berkod keras, modal RBAC & tindakan sensitif = hiasan (state lokal).
+Matriks RBAC Tetapan disimpan tapi tak dikuatkuasakan. Log: SIFAR — tiada jadual, tiada
+tulis, `logs: []` berkod keras. Server: tiada pengendali ralat/log permintaan/rate limit/
+CORS/graceful shutdown; SQLite tanpa WAL (simpan serentak gagal senyap). Tiada backup
+automatik. Deploy: tiada skrip start/Docker/PM2, Express tak hidangkan frontend, port
+berkod keras. SEO: `lang="en"`, tiada meta/OG/sitemap/robots, SPA halimunan kepada
+crawler. Tiada 404.
+
+**Slot & Modul Khas.** Senarai Slot = laporan baca-sahaja + 1 sel boleh edit (Editor);
+lajur "Animasi Transisi" mislabel (papar selang). Tetapan per-slot (Bidang/warna/selang)
+hanya boleh capai melalui kebocoran `?openTicker=1`. "Jenis animasi transisi" = tetapan
+tulis-sahaja (frontpage berkod keras `opacity 1s`). Ticker: ~90% kawalan dalam modal
+frontpage; kelajuan pusingan tiada UI langsung. Jam Dunia: 2 kawalan wujud (tersorok di
+Tetapan→Operasi) tapi kad kata "belum disambungkan"; 15 bandar/cuaca/warna status/cuti
+sekolah 2026-27 semuanya berkod keras. Slot Bar & Focus View: sifar kehadiran Editorium.
+Siling tak boleh edit: briefLong, eyebrow, topik, penerangan (hanya tajuk/huraian dalam
+Tier Kad).
+
+**Editorial & AI.** Autocondong hanya pada tajuk ticker + sandbox — BUKAN kad frontpage;
+enjin berganda client/server dengan perbezaan sebenar. Glosari pasif — tak dikuatkuasa,
+tak disuntik ke prompt AI. `reviewPrompt` tergantung (disahkan). "Semak Sambungan" AI
+palsu (kunci sampah pun "Connected"); lalai `gemini-3.5-flash` tak wujud. **AI terus
+`approved` & RSS ≥80 terus siar — tiada gate manusia.** Limpahan: 3 kelakuan tak seragam,
+RSS mencantas senyap (melanggar perlembagaan). URL RSS tercantas oleh pembersih (pepijat
+produksi — Bernama/Kosmo). `blockedPenalty` tetapan mati. Tiada semak ejaan Melayu.
+Tiada semakan bajet kos AI sebelum panggil. Dua penulis bertindih atas `inTheNewsText`.
