@@ -93,7 +93,7 @@ interface TetapanConsoleProps {
 export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   isPentadbir = true
 }) => {
-  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'Operasi' | 'RBAC'>('PolisiKandungan');
+  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC'>('PolisiKandungan');
 
   // Governance Jam Dunia (World Clock) — these were previously local-only state with no
   // backing DB columns at all (WorldClockStrip.tsx has read systemSettings.worldClockIntervalSec
@@ -347,12 +347,21 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </button>
 
           <button
+            onClick={() => setSubTab('HalamanAwam')}
+            className={`px-4 py-2 font-semibold transition-all border-b-2 ${
+              subTab === 'HalamanAwam' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            2. Halaman Awam
+          </button>
+
+          <button
             onClick={() => setSubTab('Operasi')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
               subTab === 'Operasi' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
-            2. Operasi & Governance
+            3. Operasi & Governance
           </button>
 
           <button
@@ -361,10 +370,16 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               subTab === 'RBAC' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
-            3. Kawalan Akses
+            4. Kawalan Akses
           </button>
         </div>
       </div>
+
+      {/* 2. HALAMAN AWAM (2026-08-02, Fasa 6) — ruang edit kandungan Tentang/Hubungi/Polisi
+          disediakan SEKARANG (Izzat: "sedia ruang edit sekarang"), papar di frontpage bila
+          halaman awam sendiri dibina (Fasa 11). Guna static_pages sedia ada
+          (GET/POST /api/pages/:key, systemRoutes.js). */}
+      {subTab === 'HalamanAwam' && <HalamanAwamPanel />}
 
       {/* 1. POLISI KANDUNGAN */}
       {subTab === 'PolisiKandungan' && (
@@ -687,5 +702,130 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     </div>
   );
 };
+
+// Halaman Awam (2026-08-02, Fasa 6) — ruang edit Tentang/Hubungi/Polisi & Penafian. Guna
+// static_pages sedia ada (GET/POST /api/pages/:key). Sengaja TIDAK papar apa-apa halaman awam
+// sebenar di sini — itu Fasa 11; ini cuma tempat isi kandungan supaya tak tertangguh sepenuhnya.
+const HALAMAN_AWAM_SENARAI: { key: string; label: string }[] = [
+  { key: 'tentang', label: 'Tentang' },
+  { key: 'hubungi', label: 'Hubungi' },
+  { key: 'polisi-penafian', label: 'Polisi & Penafian' },
+];
+
+function HalamanAwamPanel() {
+  const [halamanAktif, setHalamanAktif] = useState(HALAMAN_AWAM_SENARAI[0].key);
+  const [tajuk, setTajuk] = useState('');
+  const [kandungan, setKandungan] = useState('');
+  const [memuat, setMemuat] = useState(true);
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [ralat, setRalat] = useState('');
+  const [mesej, setMesej] = useState('');
+
+  useEffect(() => {
+    setMemuat(true);
+    setRalat('');
+    fetch(`/api/pages/${halamanAktif}`)
+      .then(async (r) => {
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error('Gagal memuatkan halaman.');
+        return r.json();
+      })
+      .then((data) => {
+        setTajuk(data?.title || HALAMAN_AWAM_SENARAI.find(h => h.key === halamanAktif)?.label || '');
+        setKandungan(data?.content || '');
+      })
+      .catch((e) => setRalat(e.message || 'Gagal memuatkan halaman.'))
+      .finally(() => setMemuat(false));
+  }, [halamanAktif]);
+
+  const simpan = async () => {
+    setMenyimpan(true);
+    setRalat('');
+    try {
+      const res = await fetch(`/api/pages/${halamanAktif}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: tajuk, content: kandungan }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Gagal menyimpan halaman.');
+      }
+      setMesej('Disimpan');
+      setTimeout(() => setMesej(''), 2000);
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal menyimpan halaman.');
+    } finally {
+      setMenyimpan(false);
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+      <div>
+        <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
+          Kandungan Halaman Awam
+        </h3>
+        <p className="text-stone-500 text-xs mt-1">
+          Ruang isi kandungan sahaja — halaman awam sebenar (URL, reka bentuk, pautan footer) belum
+          dibina (Fasa 11). Kandungan yang disimpan di sini akan dipaparkan bila halaman tu siap.
+        </p>
+      </div>
+
+      <div className="flex gap-1.5 border-b border-stone-200 pb-2">
+        {HALAMAN_AWAM_SENARAI.map(h => (
+          <button
+            key={h.key}
+            onClick={() => setHalamanAktif(h.key)}
+            className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors ${
+              halamanAktif === h.key ? 'bg-[#802334] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            {h.label}
+          </button>
+        ))}
+      </div>
+
+      {memuat ? (
+        <p className="text-stone-400">Memuatkan...</p>
+      ) : (
+        <div className="space-y-3">
+          <label className="flex flex-col gap-1">
+            <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Tajuk Halaman</span>
+            <input
+              type="text"
+              value={tajuk}
+              onChange={(e) => setTajuk(e.target.value)}
+              className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-sans"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Kandungan</span>
+            <textarea
+              value={kandungan}
+              onChange={(e) => setKandungan(e.target.value)}
+              rows={10}
+              className="bg-stone-50 border border-stone-300 rounded px-3 py-2 text-xs font-sans resize-y"
+              placeholder="Taip kandungan halaman di sini..."
+            />
+          </label>
+
+          {ralat && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>}
+
+          <div className="flex items-center justify-end gap-3">
+            {mesej && <span className="text-emerald-700 text-[11px] font-semibold">{mesej}</span>}
+            <button
+              onClick={simpan}
+              disabled={menyimpan || !tajuk.trim()}
+              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {menyimpan ? 'Menyimpan...' : 'Simpan Halaman'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default TetapanConsole;

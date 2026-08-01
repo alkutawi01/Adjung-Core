@@ -270,7 +270,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     >
       {/* Paparan Utama (Fasa 5) — destinasi lalai selepas log masuk. */}
       {activeTab === 'paparan_utama' && (
-        <DashboardConsole currentUser={{ id: currentUser.id, name: currentUser.name, roles }} onTukarTab={setActiveTab} />
+        <DashboardConsole onTukarTab={setActiveTab} />
       )}
 
       {/* OPERASI HARIAN — destinasi kerja editorial setiap hari. */}

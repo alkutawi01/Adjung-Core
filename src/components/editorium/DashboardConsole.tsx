@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { FileEdit, Bell, LayoutGrid, Radio, Cloud, Users, Hourglass } from 'lucide-react';
+import { Bell, LayoutGrid, Radio, Cloud, Users, Hourglass } from 'lucide-react';
 
-// Paparan Utama (2026-08-02, Fasa 5) — destinasi lalai selepas log masuk. Digabung daripada
-// laluan SEDIA ADA sahaja (content/all, drafts, editor-notes, categories/slot-usage,
-// audit-log, weather-status) — tiada laluan agregat baharu, semua ni sudah wujud dan diuji
-// (Fasa 1-4). Dua item yang Izzat minta (bilangan pengunjung, kandungan paling diminati)
-// SENGAJA tiada di sini — belum ada sumber data (jejak pengunjung, Fasa 14, frontpage belum
-// kira lawatan langsung) — placeholder jujur, bukan angka rekaan.
+// Paparan Utama (2026-08-02, Fasa 5) — destinasi lalai selepas log masuk.
+//
+// 2026-08-02 (dibetulkan sama hari, teguran Izzat: "dashboard ni umum... bukan utk
+// sorang2 editor la... dia mcm dashboard syarikat, dashboard production") — versi pertama
+// silap letak "Draf Saya" (skop PERIBADI seorang editor sahaja) dan sapaan bernama di
+// dashboard yang sepatutnya gambaran OPERASI KESELURUHAN organisasi. Draf Saya kekal
+// destinasi sendiri di sidebar (skop peribadi tu memang tempatnya), dashboard ni cuma
+// papar apa yang benar bagi SEMUA orang — status kandungan, kesihatan sistem, keaktifan
+// pasukan keseluruhan.
+//
+// Digabung daripada laluan SEDIA ADA sahaja (content/all, editor-notes, categories/
+// slot-usage, audit-log, weather-status) — tiada laluan agregat baharu. Dua item yang
+// Izzat minta (bilangan pengunjung, kandungan paling diminati) SENGAJA tiada — belum ada
+// sumber data (jejak pengunjung, Fasa 14) — placeholder jujur, bukan angka rekaan.
 interface DashboardConsoleProps {
-  currentUser: { id: string; name: string; roles: string[] };
   onTukarTab: (tabId: string) => void;
 }
 
@@ -16,10 +23,77 @@ interface SlotUsage { slotIndex: number; bidang: string; liveCount: number; }
 interface EntriLog { id: number; actorName: string | null; action: string; createdAt: string; }
 interface Nota { id: string; tajuk: string; kategori: string; dibuatPada: string; }
 
-export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ currentUser, onTukarTab }) => {
+// Carta ringkas (2026-08-02) — SVG tulen, tiada pustaka luar (tiada recharts/chart.js dalam
+// projek ni). Teguran Izzat: "dashboard sepatutnya ada carta, graf... awak takde langsung."
+function CartaDonut({ data }: { data: { label: string; nilai: number; warna: string }[] }) {
+  const jumlah = data.reduce((s, d) => s + d.nilai, 0);
+  const R = 44, STROKE = 16, C = 2 * Math.PI * R;
+  let offsetTerkumpul = 0;
+
+  return (
+    <div className="flex items-center gap-5">
+      <svg width="112" height="112" viewBox="0 0 112 112" className="shrink-0">
+        <g transform="translate(56,56) rotate(-90)">
+          {jumlah === 0 ? (
+            <circle r={R} fill="none" stroke="#E7E5E4" strokeWidth={STROKE} />
+          ) : data.filter(d => d.nilai > 0).map((d) => {
+            const bahagian = (d.nilai / jumlah) * C;
+            const dashoffset = C - offsetTerkumpul;
+            offsetTerkumpul += bahagian;
+            return (
+              <circle
+                key={d.label}
+                r={R}
+                fill="none"
+                stroke={d.warna}
+                strokeWidth={STROKE}
+                strokeDasharray={`${bahagian} ${C - bahagian}`}
+                strokeDashoffset={dashoffset}
+                strokeLinecap="butt"
+              />
+            );
+          })}
+        </g>
+        <text x="56" y="52" textAnchor="middle" className="font-mono font-bold" style={{ fontSize: 20, fill: '#1F1F1F' }}>{jumlah}</text>
+        <text x="56" y="68" textAnchor="middle" className="font-mono uppercase" style={{ fontSize: 8, fill: '#78716C', letterSpacing: '0.05em' }}>Jumlah</text>
+      </svg>
+      <div className="space-y-1.5">
+        {data.map(d => (
+          <div key={d.label} className="flex items-center gap-2 text-xs">
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: d.warna }} />
+            <span className="text-stone-600">{d.label}</span>
+            <span className="font-mono font-bold text-stone-800">{d.nilai}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Carta bar mendatar — Keaktifan Editor.
+function CartaBar({ data }: { data: { label: string; nilai: number }[] }) {
+  const maksimum = Math.max(1, ...data.map(d => d.nilai));
+  return (
+    <div className="space-y-2.5">
+      {data.map(d => (
+        <div key={d.label} className="flex items-center gap-2.5 text-xs">
+          <span className="w-24 shrink-0 truncate text-stone-700 font-semibold">{d.label}</span>
+          <div className="flex-1 bg-stone-100 rounded h-4 overflow-hidden">
+            <div
+              className="bg-[#802334] h-full rounded transition-all"
+              style={{ width: `${Math.max(4, (d.nilai / maksimum) * 100)}%` }}
+            />
+          </div>
+          <span className="w-6 shrink-0 text-right font-mono text-stone-500">{d.nilai}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }) => {
   const [memuat, setMemuat] = useState(true);
   const [statusKandungan, setStatusKandungan] = useState({ menunggu: 0, aktif: 0, arkib: 0 });
-  const [bilanganDraf, setBilanganDraf] = useState(0);
   const [maklumanTerbaru, setMaklumanTerbaru] = useState<Nota[]>([]);
   const [slotBermasalah, setSlotBermasalah] = useState<SlotUsage[]>([]);
   const [statusRss, setStatusRss] = useState<{ masa: string; butiran: string; ralat: boolean } | null>(null);
@@ -32,12 +106,11 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ currentUser,
 
     Promise.all([
       fetch('/api/system/content/all').then(r => r.json()).catch(() => ({ items: [] })),
-      fetch(`/api/system/drafts?editorId=${encodeURIComponent(currentUser.id)}&penulis=${encodeURIComponent(currentUser.name)}`).then(r => r.json()).catch(() => []),
       fetch('/api/system/editor-notes?status=aktif').then(r => r.json()).catch(() => []),
       fetch('/api/system/categories/slot-usage').then(r => r.json()).catch(() => []),
       fetch('/api/system/audit-log?limit=200').then(r => r.json()).catch(() => []),
       fetch('/api/system/weather-status').then(r => r.json()).catch(() => null),
-    ]).then(([kandungan, draf, nota, slotUsage, logAudit, cuaca]) => {
+    ]).then(([kandungan, nota, slotUsage, logAudit, cuaca]) => {
       if (batal) return;
 
       const items = kandungan?.items || [];
@@ -46,8 +119,6 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ currentUser,
         aktif: items.filter((i: any) => i.status === 'approved').length,
         arkib: items.filter((i: any) => i.status === 'archived').length,
       });
-
-      setBilanganDraf(Array.isArray(draf) ? draf.length : 0);
 
       setMaklumanTerbaru(Array.isArray(nota) ? nota.slice(0, 3) : []);
 
@@ -80,7 +151,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ currentUser,
     }).finally(() => { if (!batal) setMemuat(false); });
 
     return () => { batal = true; };
-  }, [currentUser.id, currentUser.name]);
+  }, []);
 
   if (memuat) {
     return (
@@ -98,54 +169,50 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ currentUser,
           Paparan Utama
         </h2>
         <p className="font-sans text-xs text-stone-600">
-          Ringkasan operasi editorial harian, {currentUser.name}.
+          Ringkasan operasi editorial Adjung Brief — kandungan, kesihatan sistem, dan keaktifan pasukan.
         </p>
       </div>
 
-      {/* Status kandungan */}
+      {/* Status kandungan — carta donut + kad angka boleh klik terus ke Indeks. */}
       <div className="bg-white p-5 rounded-lg shadow-sm border border-stone-200">
         <h3 className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500 mb-3">Status Kandungan</h3>
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <button onClick={() => onTukarTab('kandungan')} className="bg-amber-50 border border-amber-200 rounded-lg p-3 cursor-pointer hover:bg-amber-100 transition-colors">
-            <div className="text-2xl font-bold font-mono text-amber-800">{statusKandungan.menunggu}</div>
-            <div className="text-[10px] uppercase font-semibold text-amber-700 mt-1">Menunggu</div>
-          </button>
-          <button onClick={() => onTukarTab('kandungan')} className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 cursor-pointer hover:bg-emerald-100 transition-colors">
-            <div className="text-2xl font-bold font-mono text-emerald-800">{statusKandungan.aktif}</div>
-            <div className="text-[10px] uppercase font-semibold text-emerald-700 mt-1">Aktif</div>
-          </button>
-          <button onClick={() => onTukarTab('kandungan')} className="bg-stone-100 border border-stone-200 rounded-lg p-3 cursor-pointer hover:bg-stone-200 transition-colors">
-            <div className="text-2xl font-bold font-mono text-stone-700">{statusKandungan.arkib}</div>
-            <div className="text-[10px] uppercase font-semibold text-stone-600 mt-1">Arkib</div>
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+          <CartaDonut data={[
+            { label: 'Menunggu', nilai: statusKandungan.menunggu, warna: '#D97706' },
+            { label: 'Aktif', nilai: statusKandungan.aktif, warna: '#059669' },
+            { label: 'Arkib', nilai: statusKandungan.arkib, warna: '#A8A29E' },
+          ]} />
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <button onClick={() => onTukarTab('kandungan')} className="bg-amber-50 border border-amber-200 rounded-lg p-3 cursor-pointer hover:bg-amber-100 transition-colors">
+              <div className="text-2xl font-bold font-mono text-amber-800">{statusKandungan.menunggu}</div>
+              <div className="text-[10px] uppercase font-semibold text-amber-700 mt-1">Menunggu</div>
+            </button>
+            <button onClick={() => onTukarTab('kandungan')} className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 cursor-pointer hover:bg-emerald-100 transition-colors">
+              <div className="text-2xl font-bold font-mono text-emerald-800">{statusKandungan.aktif}</div>
+              <div className="text-[10px] uppercase font-semibold text-emerald-700 mt-1">Aktif</div>
+            </button>
+            <button onClick={() => onTukarTab('kandungan')} className="bg-stone-100 border border-stone-200 rounded-lg p-3 cursor-pointer hover:bg-stone-200 transition-colors">
+              <div className="text-2xl font-bold font-mono text-stone-700">{statusKandungan.arkib}</div>
+              <div className="text-[10px] uppercase font-semibold text-stone-600 mt-1">Arkib</div>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Draf saya */}
-        <button onClick={() => onTukarTab('draf_saya')} className="bg-white p-5 rounded-lg shadow-sm border border-stone-200 flex items-center gap-4 cursor-pointer hover:border-[#802334] transition-colors text-left">
-          <FileEdit className="w-8 h-8 text-[#802334] shrink-0" />
-          <div>
-            <div className="text-2xl font-bold font-mono text-stone-900">{bilanganDraf}</div>
-            <div className="text-[10px] uppercase font-semibold text-stone-500">Draf Saya</div>
-          </div>
-        </button>
-
-        {/* Makluman terbaru */}
-        <div className="bg-white p-5 rounded-lg shadow-sm border border-stone-200">
-          <h3 className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500 mb-2 flex items-center gap-1.5">
-            <Bell className="w-3.5 h-3.5" /> Makluman Terbaru
-          </h3>
-          {maklumanTerbaru.length === 0 ? (
-            <p className="text-xs text-stone-400">Tiada makluman aktif.</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {maklumanTerbaru.map(n => (
-                <li key={n.id} className="text-xs text-stone-700 truncate">{n.tajuk}</li>
-              ))}
-            </ul>
-          )}
-        </div>
+      {/* Makluman terbaru — nota organisasi (Nota Ketua Editor), bukan skop peribadi. */}
+      <div className="bg-white p-5 rounded-lg shadow-sm border border-stone-200">
+        <h3 className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500 mb-2 flex items-center gap-1.5">
+          <Bell className="w-3.5 h-3.5" /> Makluman Terbaru
+        </h3>
+        {maklumanTerbaru.length === 0 ? (
+          <p className="text-xs text-stone-400">Tiada makluman aktif.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {maklumanTerbaru.map(n => (
+              <li key={n.id} className="text-xs text-stone-700 truncate">{n.tajuk}</li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Slot bermasalah */}
@@ -210,14 +277,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ currentUser,
         {keaktifanEditor.length === 0 ? (
           <p className="text-xs text-stone-400">Tiada tindakan direkod lagi.</p>
         ) : (
-          <ul className="space-y-1.5">
-            {keaktifanEditor.map(k => (
-              <li key={k.nama} className="flex justify-between text-xs">
-                <span className="text-stone-700 font-semibold">{k.nama}</span>
-                <span className="text-stone-500 font-mono">{k.bilangan}</span>
-              </li>
-            ))}
-          </ul>
+          <CartaBar data={keaktifanEditor.map(k => ({ label: k.nama, nilai: k.bilangan }))} />
         )}
       </div>
 
