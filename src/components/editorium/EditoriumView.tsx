@@ -97,9 +97,9 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const [kandunganSubTab, setKandunganSubTab] = useState<'indeks' | 'semakan'>('indeks');
   // Sub-tab DALAMAN destinasi "Slot" (2026-07-30) — tidak berubah struktur.
   const [slotSubTab, setSlotSubTab] = useState<'senarai' | 'tier' | 'bidang' | 'tetapan_am'>('senarai');
-  // Sub-tab DALAMAN destinasi "Rujukan" (2026-08-01) — Perlembagaan/Reka Bentuk/Log Audit
-  // digabung satu destinasi, dipisahkan semula sebagai sub-tab di sini.
-  const [rujukanSubTab, setRujukanSubTab] = useState<'peraturan_am' | 'reka_bentuk' | 'log_sistem'>('peraturan_am');
+  // Sub-tab DALAMAN destinasi "Dokumentasi" (2026-08-01) — Peraturan Am (Perlembagaan) + Reka
+  // Bentuk. Log Sistem kini destinasi sendiri, tak lagi sub-tab sini.
+  const [rujukanSubTab, setRujukanSubTab] = useState<'peraturan_am' | 'reka_bentuk'>('peraturan_am');
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
@@ -360,25 +360,35 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         <TetapanConsole currentUserRole={currentUser.role} />
       )}
 
-      {/* Rujukan (2026-08-01, permintaan pemilik projek — padatkan 7 destinasi Tata Kelola &
-          Rujukan jadi 5) — Perlembagaan, Reka Bentuk, Log Audit digabung SATU destinasi: ketiga-
-          tiganya "tengok/rujuk", bukan "ubah" keadaan sistem, jadi wajar sebumbung. */}
-      {activeTab === 'rujukan' && (
+      {/* Panduan (2026-08-01) — panduan penggunaan Editorium. Belum dibina; papar status jujur
+          bukan reka kandungan kosong seolah-olah siap. */}
+      {activeTab === 'panduan' && (
+        <div className="bg-white p-6 rounded-lg border border-stone-200 text-center py-16 font-sans">
+          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider mb-2">Panduan Belum Dibina</h3>
+          <p className="text-xs text-stone-500 max-w-md mx-auto">
+            Panduan penggunaan Editorium — cara menulis, terbit, dan urus kandungan langkah demi langkah — akan diletak di sini.
+          </p>
+        </div>
+      )}
+
+      {/* Dokumentasi (2026-08-01) — Peraturan Am (Perlembagaan) dan Reka Bentuk, dua-duanya
+          rujukan sistem sebenar. Log Sistem kini destinasi SENDIRI, tak lagi sub-tab di sini. */}
+      {activeTab === 'dokumentasi' && (
         <div className="space-y-4 font-sans">
           <SubTabBar
             items={[
               { id: 'peraturan_am', label: '1. Peraturan Am' },
               { id: 'reka_bentuk', label: '2. Reka Bentuk' },
-              { id: 'log_sistem', label: '3. Log Sistem' },
             ]}
             active={rujukanSubTab}
             onChange={setRujukanSubTab}
           />
           {rujukanSubTab === 'peraturan_am' && <PerlembagaanConsole />}
           {rujukanSubTab === 'reka_bentuk' && <SistemRekaBentukConsole />}
-          {rujukanSubTab === 'log_sistem' && <LogAuditConsole />}
         </div>
       )}
+
+      {activeTab === 'log_sistem' && <LogAuditConsole />}
 
       {makluanTerbuka && (
         <MaklumanDrawer

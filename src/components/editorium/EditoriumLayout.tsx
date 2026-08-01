@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-  List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings, Landmark,
-  LogOut, LogIn, PenLine, Mail, Lock, ChevronsLeft, ChevronsRight,
+  List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings,
+  LogOut, LogIn, PenLine, Mail, Lock, BookMarked, FileText, History,
 } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
@@ -34,33 +34,31 @@ interface NavItem {
   restricted?: boolean;
 }
 
-// Sidebar menegak dua kumpulan (2026-08-01, permintaan pemilik projek — susun macam contoh yang
-// ditunjuk, bukan salinan terus cabang antigravity/simulasi) — setiap destinasi SATU klik, tiada
-// lagi lapisan kategori-lepas-sub-tab. Kandungan dan Slot kekal ada sub-tab SENDIRI dalam
-// EditoriumView.tsx (Indeks/Semakan, Senarai/Tier/Bidang/Tetapan Am) — itu keperluan sebenar bagi
-// dua destinasi tu, bukan lapisan navigasi tambahan.
-const OPERASI_HARIAN: NavItem[] = [
-  { id: 'kandungan', label: 'Kandungan', Icon: List },
+// Sidebar menegak TIGA kumpulan (2026-08-01, susunan tepat ditetapkan pemilik projek) — setiap
+// destinasi SATU klik. Kandungan dan Slot kekal ada sub-tab SENDIRI dalam EditoriumView.tsx
+// (Indeks/Semakan, Senarai/Tier/Bidang/Tetapan Am) — itu keperluan sebenar bagi dua destinasi tu,
+// bukan lapisan navigasi tambahan.
+const PENERBITAN: NavItem[] = [
   { id: 'draf_saya', label: 'Draf Saya', Icon: FileEdit },
-  { id: 'modul_khas', label: 'Modul Khas', Icon: Zap },
+  { id: 'kandungan', label: 'Kandungan', Icon: List },
   { id: 'slot', label: 'Slot', Icon: LayoutGrid },
+  { id: 'modul_khas', label: 'Modul Khas', Icon: Zap },
+  { id: 'editorial', label: 'Editorial', Icon: BookOpen },
 ];
 
-// Nota Ketua Editor (2026-08-01) — dipindah ke sini daripada Operasi Harian: ia tempat Ketua
-// Editor MENULIS nota (Ketua Editor sahaja, terkunci untuk Editor — lihat restricted() di bawah),
-// bukan kerja editorial harian yang dikongsi pasukan. Sebaris dengan Editorial/Tetapan yang sama
-// sifatnya (tindakan pentadbiran Ketua Editor).
-// Rujukan (2026-08-01, permintaan pemilik projek — padatkan 7 destinasi jadi 5) — Perlembagaan,
-// Reka Bentuk, dan Log Audit digabung jadi SATU destinasi. Logik gabungan: ketiga-tiganya destinasi
-// "tengok/rujuk", bukan "ubah" — berbeza sifat daripada Editorial/Tetapan/Direktori yang mengubah
-// keadaan sebenar sistem. Nota Ketua Editor pula TIDAK digabung ke sini walaupun ia juga
-// pentadbiran — ia satu-satunya destinasi yang MENULIS (terbitkan nota), bukan sekadar rujuk.
-const TATA_KELOLA: NavItem[] = [
+const PENGURUSAN: NavItem[] = [
   { id: 'nota_ketua_editor', label: 'Nota Ketua Editor', Icon: Bell },
-  { id: 'editorial', label: 'Editorial', Icon: BookOpen },
   { id: 'direktori', label: 'Direktori', Icon: FolderOpen },
   { id: 'tetapan', label: 'Tetapan', Icon: Settings },
-  { id: 'rujukan', label: 'Rujukan', Icon: Landmark },
+];
+
+// Sistem (2026-08-01) — Panduan (panduan penggunaan Editorium, belum dibina), Dokumentasi
+// (Peraturan Am + Reka Bentuk, dulu digabung sebagai "Rujukan"), Log Sistem (kini berdiri
+// sendiri, bukan sub-tab Dokumentasi lagi — pemilik projek nak ia destinasi tersendiri).
+const SISTEM: NavItem[] = [
+  { id: 'panduan', label: 'Panduan', Icon: BookMarked },
+  { id: 'dokumentasi', label: 'Dokumentasi', Icon: FileText },
+  { id: 'log_sistem', label: 'Log Sistem', Icon: History },
 ];
 
 export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
@@ -76,18 +74,20 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   children
 }) => {
   const [currentTab, setCurrentTab] = useState(activeTab);
-  // Sidebar: SATU sahaja cara tukar keadaan — klik butang "Lipatkan"/"Kembangkan" di bawah.
-  // (2026-08-01) Percubaan lebih awal (kembang atas hover + tutup automatik bila klik destinasi/
-  // di luar) dibuang — dua sebab: (1) hover buat sidebar rasa tak stabil (label kumpulan
-  // "OPERASI HARIAN" muncul/hilang menolak kedudukan ikon), (2) kelakuan "automatik" bercanggah
-  // dengan kewujudan butang lipat eksplisit — kalau ia dah buka/tutup sendiri, buat apa ada
-  // butang? Kini predictable: klik untuk kembang, klik lagi untuk lipat, tiada apa lain ubah ia.
+  // Sidebar berkelakuan sebagai FLYOUT ringkas (2026-08-01, arahan tepat pemilik projek):
+  //   tertutup (rel ikon 72px) secara lalai
+  //   klik sidebar          -> terbuka
+  //   klik di tempat lain   -> tertutup
+  // Tiada butang "Lipatkan" langsung — butang tu redundan sebaik kelakuan buka/tutup jadi
+  // automatik, dan ia buat editor rasa terpaksa cari butang dulu sebelum boleh guna Editorium.
+  // (Sejarah: hover-untuk-kembang pernah dicuba dan ditolak — ia buat sidebar rasa tak stabil.)
   const [dilipat, setDilipat] = useState(true);
-  const togolLipat = () => setDilipat((v) => !v);
 
   const handleNavClick = (tabId: string) => {
     setCurrentTab(tabId);
     if (onTabChange) onTabChange(tabId);
+    // Pilih destinasi = tugas sidebar selesai, tutup semula supaya kandungan tak terlindung.
+    setDilipat(true);
   };
 
   // Belum log masuk = TIADA destinasi boleh dibuka. Dulu semua tab masih boleh diklik: tab
@@ -118,7 +118,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
             <button
               key={item.id}
               type="button"
-              onClick={() => handleNavClick(item.id)}
+              // Sidebar tertutup: klik ikon TIDAK terus melompat destinasi — ia dibiarkan naik
+              // (bubble) ke <aside> yang membukanya dahulu, supaya editor nampak label sebelum
+              // memilih. Sebaik terbuka, klik yang sama barulah menavigasi.
+              onClick={() => { if (!dilipat) handleNavClick(item.id); }}
               disabled={isLocked}
               aria-disabled={isLocked}
               title={
@@ -170,37 +173,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           <div className="flex items-center gap-2.5 font-sans text-[11px]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}>
             {currentUser ? (
               <>
-                {/* Peti Makluman & "+ Kandungan Baharu" (2026-08-01, spesifikasi asal pemilik
-                    projek — ✉️ dan + sebagai simbol, bukan label teks) — ikon sahaja, tooltip
-                    nama penuh bila ditunjuk. Padan dengan header yang sudah minimalis, dan sidebar
-                    lipat (rel ikon sahaja) yang sama falsafahnya. */}
-                {onOpenMakluman && (
-                  <button
-                    type="button"
-                    onClick={onOpenMakluman}
-                    title="Peti Makluman — nota Ketua Editor"
-                    className="relative flex items-center justify-center w-7 h-7 bg-white/[0.08] backdrop-blur-xl rounded-full border border-white/[0.1] text-white/80 hover:text-white hover:bg-white/[0.14] transition-colors cursor-pointer"
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    {jumlahMakluman > 0 && (
-                      <span className="absolute -top-1 -right-1 font-mono text-[9px] font-bold bg-[#e0b7bd] text-[#5c1624] rounded-full min-w-[16px] px-1 leading-4 text-center">
-                        {jumlahMakluman}
-                      </span>
-                    )}
-                  </button>
-                )}
-                {onOpenSlotPicker && (
-                  <button
-                    type="button"
-                    onClick={onOpenSlotPicker}
-                    title="Tulis Kandungan Baharu"
-                    className="flex items-center justify-center w-7 h-7 bg-white text-[#802334] rounded-full font-bold hover:bg-stone-100 transition-colors cursor-pointer"
-                  >
-                    <PenLine className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                {/* Profil Editor (2026-08-01, spesifikasi pemilik projek) — badge nama/peranan
-                    kini boleh diklik, buka modal lihat/sunting identiti sendiri. */}
+                {/* Susunan header (2026-08-01, turutan tepat pemilik projek): nama+peranan editor
+                    -> butang tambah kandungan -> peti masuk -> log keluar. */}
+                {/* Profil Editor — badge nama/peranan boleh diklik, buka modal lihat/sunting
+                    identiti sendiri. */}
                 <button
                   type="button"
                   onClick={onOpenProfil}
@@ -216,6 +192,34 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                   <span className="text-white/30">·</span>
                   <span className="text-[#e0b7bd]">{currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor'}</span>
                 </button>
+                {/* Butang tambah kandungan — ikon sahaja (spesifikasi asal pemilik projek: "+"
+                    sebagai simbol, bukan label teks). */}
+                {onOpenSlotPicker && (
+                  <button
+                    type="button"
+                    onClick={onOpenSlotPicker}
+                    title="Tulis Kandungan Baharu"
+                    className="flex items-center justify-center w-7 h-7 bg-white text-[#802334] rounded-full font-bold hover:bg-stone-100 transition-colors cursor-pointer"
+                  >
+                    <PenLine className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {/* Peti Makluman — ikon sahaja ("✉️" sebagai simbol). */}
+                {onOpenMakluman && (
+                  <button
+                    type="button"
+                    onClick={onOpenMakluman}
+                    title="Peti Makluman — nota Ketua Editor"
+                    className="relative flex items-center justify-center w-7 h-7 bg-white/[0.08] backdrop-blur-xl rounded-full border border-white/[0.1] text-white/80 hover:text-white hover:bg-white/[0.14] transition-colors cursor-pointer"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    {jumlahMakluman > 0 && (
+                      <span className="absolute -top-1 -right-1 font-mono text-[9px] font-bold bg-[#e0b7bd] text-[#5c1624] rounded-full min-w-[16px] px-1 leading-4 text-center">
+                        {jumlahMakluman}
+                      </span>
+                    )}
+                  </button>
+                )}
                 {onLogout && (
                   <button
                     onClick={onLogout}
@@ -246,33 +250,35 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           terapung), bukan tolak kandungan. Ini jugalah sebabnya jadual lebar macam Indeks tak
           perlu skrol mendatar sekadar sebab sidebar terbuka. */}
       <div className="relative flex flex-col flex-1">
+        {/* Backdrop tak kelihatan — hanya wujud bila sidebar TERBUKA. Klik di mana-mana pada
+            halaman (kandungan, header, ruang kosong) menutupnya semula. Inilah "klik tempat
+            lain, ia tertutup". */}
+        {!dilipat && (
+          <div className="hidden md:block fixed inset-0 z-20" onClick={() => setDilipat(true)} />
+        )}
         <aside
+          // Klik mana-mana pada sidebar tertutup = buka. Bila sudah terbuka, klik di sini tak
+          // buat apa-apa; butang destinasi di dalamnya yang mengambil alih.
+          onClick={() => { if (dilipat) setDilipat(false); }}
           className={`hidden md:flex md:flex-col fixed left-0 top-[42px] h-[calc(100vh-42px)] z-30 overflow-y-auto bg-[#F6F4EF] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
-            dilipat ? 'w-[4.5rem]' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
+            dilipat ? 'w-[4.5rem] cursor-pointer' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
           }`}
         >
           <div className="flex-1 space-y-6">
-            {renderKumpulan('Operasi Harian', OPERASI_HARIAN)}
+            {renderKumpulan('Penerbitan', PENERBITAN)}
             <div className="border-t border-stone-200 pt-4">
-              {renderKumpulan('Tata Kelola & Rujukan', TATA_KELOLA)}
+              {renderKumpulan('Pengurusan', PENGURUSAN)}
+            </div>
+            <div className="border-t border-stone-200 pt-4">
+              {renderKumpulan('Sistem', SISTEM)}
             </div>
           </div>
-          {/* Togol lipat (2026-08-01) — jadual lebar macam Indeks perlukan ruang penuh; sidebar
-              240px sentiasa terbuka memaksa skrol mendatar untuk lihat lajur Tindakan. */}
-          <button
-            type="button"
-            onClick={togolLipat}
-            title={dilipat ? 'Kembangkan sidebar' : 'Lipatkan sidebar'}
-            className="flex items-center justify-center gap-2 text-stone-400 hover:text-stone-700 hover:bg-black/[0.04] rounded-lg py-2 transition-colors cursor-pointer"
-          >
-            {dilipat ? <ChevronsRight className="w-4 h-4" /> : <><ChevronsLeft className="w-4 h-4" /><span className="text-[11px] font-medium">Lipatkan</span></>}
-          </button>
         </aside>
 
         {/* Sidebar dibalut jadi bar mendatar boleh skrol pada skrin sempit (< md) — bukan
             disembunyikan terus, atau Editorium jadi tak boleh dinavigasi pada telefon/tablet. */}
         <nav className="md:hidden w-full overflow-x-auto flex gap-1 px-3 py-2 border-b border-stone-200 bg-[#F6F4EF]">
-          {[...OPERASI_HARIAN, ...TATA_KELOLA].map((item) => {
+          {[...PENERBITAN, ...PENGURUSAN, ...SISTEM].map((item) => {
             const isActive = currentTab === item.id && !loggedOut;
             const isLocked = loggedOut || restricted(item.id);
             const { Icon } = item;
