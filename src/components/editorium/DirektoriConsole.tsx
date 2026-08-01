@@ -142,7 +142,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           <thead>
             <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
               <th className="p-4">Nama Anggota</th>
-              <th className="p-4">Username</th>
+              <th className="p-4">ID Pengguna</th>
               <th className="p-4">Peranan</th>
               <th className="p-4">Status</th>
               <th className="p-4">Kandungan Diterbitkan</th>
@@ -327,7 +327,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
           <input type="text" value={penName} onChange={e => setPenName(e.target.value)} required className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Username</span>
+          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">ID Pengguna</span>
           <input type="text" value={username} onChange={e => setUsername(e.target.value)} required className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
         </label>
         <label className="flex flex-col gap-1">

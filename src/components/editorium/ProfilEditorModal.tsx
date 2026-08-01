@@ -5,8 +5,8 @@ import { X } from 'lucide-react';
 // bukan destinasi sidebar). 2026-08-02: dipermudah atas arahan Izzat — "ni bukan medsos, hanya
 // utk rujukan dalaman". Avatar/tandatangan/bio DIBUANG (bukan disorok — medan tu tak bermakna
 // untuk portal editorial dalaman, bukan produk sosial). Nama Pena SAHAJA yang kekal, sebab
-// itulah satu-satunya identiti yang pernah terpapar di luar Editorium (byline kandungan). Tukar
-// username/emel/kata laluan sendiri dirancang berasingan (lihat PELAN_PRA_LAUNCH.md Fasa 6b),
+// itulah satu-satunya identiti yang pernah terpapar di luar Editorium (kolofon kandungan). Tukar
+// ID pengguna/emel/kata laluan sendiri dirancang berasingan (lihat PELAN_PRA_LAUNCH.md Fasa 6b),
 // belum dibina di sini lagi.
 interface ProfilEditor {
   id: string;
@@ -72,7 +72,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
             type="text"
             value={penName}
             onChange={(e) => setPenName(e.target.value)}
-            placeholder="Dipaparkan sebagai byline kandungan"
+            placeholder="Dipaparkan pada kolofon kandungan"
             className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
           />
         </label>

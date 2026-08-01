@@ -677,7 +677,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               editorViewMode === 'mine' ? 'bg-[#802334] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
-            <Pin className="w-3.5 h-3.5" /> Kandungan Saya (Boleh Edit & Publish)
+            <Pin className="w-3.5 h-3.5" /> Kandungan Saya (Boleh Sunting & Siar)
           </button>
           <button
             onClick={() => setEditorViewMode('all')}
@@ -1002,7 +1002,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}
                       className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                     >
-                      Publish Brief
+                      Siar Brief
                     </button>
                   )}
                   <button
