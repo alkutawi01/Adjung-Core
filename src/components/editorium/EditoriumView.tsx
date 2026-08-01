@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Radio, X } from 'lucide-react';
 import { EditoriumLayout } from './EditoriumLayout';
@@ -15,6 +15,7 @@ import { PerlembagaanConsole } from './PerlembagaanConsole';
 import { SistemRekaBentukConsole } from './SistemRekaBentukConsole';
 import { ContentReview } from '../studio/ContentReview';
 import { SlotManagerModal } from '../portal/SlotManagerModal';
+import { PenugasanEditorPopover } from './PenugasanEditorPopover';
 import { useSlotEditor } from '../../hooks/useSlotEditor';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 
@@ -66,6 +67,45 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const bukaDraf = (slotIndex: number, uuid: string) => {
     setDrafDibuka(uuid);
     slotEditor.openSlotEditor(slotIndex);
+  };
+
+  // Tetapkan editor terus daripada pemilih slot "Tulis Kandungan" (2026-08-01, permintaan pemilik
+  // projek) — sebelum ni satu-satunya tempat menetapkan editor slot ialah Editorium → Slot →
+  // Senarai Slot, jauh daripada tempat sebenar editor mula menulis. Dimuatkan lazily (hanya bila
+  // pemilih dibuka) supaya Editorium tak menghantar panggilan API yang tak diperlukan setiap kali
+  // dibuka, sebelum "Tulis Kandungan" pun diklik.
+  const [pengguna, setPengguna] = useState<{ id: string; penName?: string; username?: string; isSuspended?: boolean }[]>([]);
+  const [penugasanSlot, setPenugasanSlot] = useState<{ slotIndex: number; editorId: string; nama: string }[]>([]);
+  const [popoverEditorSlot, setPopoverEditorSlot] = useState<number | null>(null);
+
+  const muatPenugasanSlot = () =>
+    fetch('/api/system/slot-editors').then((r) => r.json()).then((d) => { if (Array.isArray(d)) setPenugasanSlot(d); }).catch(() => {});
+
+  useEffect(() => {
+    if (!slotEditor.showSlotPicker) return;
+    muatPenugasanSlot();
+    fetch('/api/db-state').then((r) => r.json())
+      .then((d) => { if (Array.isArray(d?.users)) setPengguna(d.users.filter((u: any) => !u.isSuspended)); })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotEditor.showSlotPicker]);
+
+  const editorBagiSlot = (i: number) => penugasanSlot.filter((p) => p.slotIndex === i);
+
+  const simpanEditorSlot = async (i: number, editorIds: string[]) => {
+    try {
+      const res = await fetch('/api/system/slot-editors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slotIndex: i, editorIds }),
+      });
+      if (!res.ok) return false;
+      await muatPenugasanSlot();
+      setPopoverEditorSlot(null);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   // Sedang beredar ke frontpage selepas log keluar — biarkan kosong sepanjang animasi keluar,
@@ -239,19 +279,49 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               <h2 className="font-serif text-lg font-medium text-stone-900">Pilih Slot</h2>
               <button type="button" onClick={() => slotEditor.setShowSlotPicker(false)} className="text-stone-400 hover:text-stone-600 cursor-pointer"><X size={18} /></button>
             </div>
-            <ol className="flex-1 min-h-0 overflow-y-auto list-none m-0 p-0">
+            <ol
+              className="flex-1 min-h-0 overflow-y-auto list-none m-0 p-0"
+              onClick={() => setPopoverEditorSlot(null)}
+            >
               {Array.from({ length: 38 }, (_, i) => i).filter((i) => !TIER_SLOTS.BAR.includes(i)).map((i) => {
                 const cfg = slotEditor.slotsConfig.find((s: any) => s.slotIndex === i);
+                const editorSlot = editorBagiSlot(i);
                 return (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      onClick={() => { setDrafDibuka(''); slotEditor.openSlotEditor(i); }}
-                      className="w-full flex items-center justify-between gap-3 px-5 py-2.5 text-left hover:bg-stone-50 border-b border-stone-100 last:border-b-0 cursor-pointer"
-                    >
-                      <span className="font-mono text-xs font-bold text-stone-400 shrink-0">Slot {i + 1}</span>
-                      <span className="font-sans text-xs text-stone-700 flex-1 truncate">{cfg?.manualDesk || <span className="text-stone-400 italic">— Belum ditetapkan —</span>}</span>
-                    </button>
+                  <li key={i} className="relative border-b border-stone-100 last:border-b-0">
+                    <div className="w-full flex items-center gap-2 pl-5 pr-2 py-2.5 hover:bg-stone-50">
+                      <button
+                        type="button"
+                        onClick={() => { setDrafDibuka(''); slotEditor.openSlotEditor(i); }}
+                        className="flex-1 min-w-0 flex items-center gap-3 text-left cursor-pointer"
+                      >
+                        <span className="font-mono text-xs font-bold text-stone-400 shrink-0">Slot {i + 1}</span>
+                        <span className="font-sans text-xs text-stone-700 flex-1 truncate">{cfg?.manualDesk || <span className="text-stone-400 italic">— Belum ditetapkan —</span>}</span>
+                      </button>
+                      {/* Tetapkan editor terus dari sini (2026-08-01) — sama data/peraturan macam
+                          Editorium → Slot → Senarai Slot, cuma dibawa ke tempat editor sebenarnya
+                          mula menulis, supaya tak perlu keluar konteks pemilih slot ni. */}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setPopoverEditorSlot((prev) => (prev === i ? null : i)); }}
+                        title="Tetapkan editor yang menguruskan slot ini"
+                        className="shrink-0 max-w-[7.5rem] truncate font-sans text-[10px] text-right cursor-pointer hover:text-[#802334]"
+                      >
+                        {editorSlot.length === 0 ? (
+                          <span className="text-stone-400 italic">+ Editor</span>
+                        ) : (
+                          <span className="text-stone-500">{editorSlot.map((p) => p.nama).join(', ')}</span>
+                        )}
+                      </button>
+                    </div>
+                    {popoverEditorSlot === i && (
+                      <PenugasanEditorPopover
+                        slotIndex={i}
+                        pengguna={pengguna}
+                        editorIdsSemasa={editorSlot.map((p) => p.editorId)}
+                        onBatal={() => setPopoverEditorSlot(null)}
+                        onSimpan={(editorIds) => simpanEditorSlot(i, editorIds)}
+                      />
+                    )}
                   </li>
                 );
               })}
