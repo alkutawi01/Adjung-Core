@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, hasPermission } from '../middleware/auth.js';
 
 // Profil Editor (2026-08-01, spesifikasi pemilik projek — aksesori header, bukan destinasi
 // sidebar) — editor yang log masuk boleh sunting IDENTITI DIA SENDIRI. Dipermudah 2026-08-02
@@ -19,7 +19,8 @@ export function createProfileRoutes(dbGet, dbRun) {
   router.patch('/profile/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      if (req.session.user.id !== id && req.session.user.role !== 'KETUA_EDITOR') {
+      const isSelf = req.session.user.id === id;
+      if (!isSelf && !hasPermission(req.session.user.roles, 'manageAccounts')) {
         return res.status(403).json({ error: 'Hanya boleh sunting profil sendiri.' });
       }
       const sedia = await dbGet('SELECT id FROM users WHERE id = ?', [id]);

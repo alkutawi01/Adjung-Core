@@ -24,7 +24,7 @@ export default function App() {
   // (hilang bila tab/browser ditutup) bila tidak. Kedua-dua disemak semasa mula — localStorage
   // diutamakan.
   const AUTH_STORAGE_KEY = 'adjung-auth-user';
-  const readStoredAuth = (): { id: string; username: string; penName: string; email: string; role: string } | null => {
+  const readStoredAuth = (): { id: string; username: string; penName: string; email: string; role: string; roles?: string[] } | null => {
     if (typeof window === 'undefined') return null;
     try {
       const stored = window.localStorage.getItem(AUTH_STORAGE_KEY) || window.sessionStorage.getItem(AUTH_STORAGE_KEY);
@@ -33,20 +33,23 @@ export default function App() {
       return null;
     }
   };
-  const [authUser, setAuthUser] = useState<{ id: string; username: string; penName: string; email: string; role: string } | null>(readStoredAuth);
+  const [authUser, setAuthUser] = useState<{ id: string; username: string; penName: string; email: string; role: string; roles?: string[] } | null>(readStoredAuth);
   const [showLoginModal, setShowLoginModal] = useState(false);
   // Dijalankan lepas log masuk berjaya (cth terus buka mod edit di frontpage) — bukan cuma
   // menutup modal sahaja.
   const [pendingLoginSuccess, setPendingLoginSuccess] = useState<(() => void) | null>(null);
 
   // id dibawa sekali (2026-08-01) — "Draf Saya" perlukannya untuk membaca slot yang ditugaskan
-  // kepada editor ni (jadual slot_editors berkunci pada users.id, bukan nama pena).
-  const currentEditoriumUser: { id: string; name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null =
+  // kepada editor ni (jadual slot_editors berkunci pada users.id, bukan nama pena). `roles`
+  // (2026-08-02, Fasa 3) — senarai BERBILANG peranan sebenar (pentadbir/ketua_editor/
+  // penolong_ketua_editor/editor); `role` legasi ('KETUA_EDITOR'/'EDITOR') dikekalkan sebagai
+  // label paparan sahaja — SEMUA kawalan akses sebenar (client MAHUPUN server) mesti guna `roles`.
+  const currentEditoriumUser: { id: string; name: string; role: 'KETUA_EDITOR' | 'EDITOR'; roles: string[] } | null =
     authUser && (authUser.role === 'KETUA_EDITOR' || authUser.role === 'EDITOR')
       // Sesi yang tersimpan SEBELUM id mula dibawa (2026-08-01) tiada medan `id` — dibiar kosong,
       // bukan direka. Kesannya terhad: draf bercap nama tetap muncul dalam "Draf Saya", cuma
       // sandaran "ikut slot" untuk draf lama tanpa nama tidak berfungsi sehingga log masuk semula.
-      ? { id: authUser.id || '', name: authUser.penName, role: authUser.role as 'KETUA_EDITOR' | 'EDITOR' }
+      ? { id: authUser.id || '', name: authUser.penName, role: authUser.role as 'KETUA_EDITOR' | 'EDITOR', roles: authUser.roles || [] }
       : null;
 
   // Titik masuk tunggal untuk buka borang log masuk — dari mana-mana (butang "Edit Kandungan"
@@ -57,7 +60,7 @@ export default function App() {
     setShowLoginModal(true);
   };
 
-  const handleLoginSuccess = (user: { id: string; username: string; penName: string; email: string; role: string }, rememberMe: boolean) => {
+  const handleLoginSuccess = (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[] }, rememberMe: boolean) => {
     setAuthUser(user);
     const target = rememberMe ? window.localStorage : window.sessionStorage;
     const other = rememberMe ? window.sessionStorage : window.localStorage;

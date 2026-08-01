@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireRole } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/auth.js';
 
 export function createAiCostRoutes(dbAll, dbGet, dbRun) {
   const router = express.Router();
@@ -167,7 +167,7 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
   });
 
   // POST /api/system/ai/pricing
-  router.post('/pricing', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/pricing', requirePermission('manageSettings'), async (req, res) => {
     try {
       const items = req.body;
       const list = Array.isArray(items) ? items : [items];

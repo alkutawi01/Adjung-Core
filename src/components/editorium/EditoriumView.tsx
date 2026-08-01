@@ -24,6 +24,19 @@ import { PenugasanEditorPopover } from './PenugasanEditorPopover';
 import { useSlotEditor } from '../../hooks/useSlotEditor';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 
+// 2026-08-02 (Fasa 3) — mesej kunci akses seragam. Nav sidebar (EditoriumLayout.tsx) dah pun
+// sorok destinasi yang tak dibenarkan, jadi ni jaring keselamatan (URL terus, sidebar lapuk
+// belum dimuat semula) — bukan laluan biasa, tapi tak patut papar skrin kosong bila berlaku.
+function AksesDitolak({ mesej }: { mesej: string }) {
+  return (
+    <div className="bg-white p-6 rounded-lg border border-stone-200 text-center py-16 font-sans">
+      <div className="mb-2 flex justify-center"><Lock className="w-6 h-6 text-stone-400" /></div>
+      <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider mb-2">Tiada Kebenaran</h3>
+      <p className="text-xs text-stone-500 max-w-sm mx-auto">{mesej}</p>
+    </div>
+  );
+}
+
 // Baris sub-tab kongsi (2026-08-01, permintaan pemilik projek — susun semula nav Editorium ikut
 // kategori) — satu komponen untuk keempat-empat kategori (Kandungan, Slot, Pentadbiran, Rujukan),
 // gantikan 2 salinan JSX serupa yang terpisah sebelum ni. `locked` untuk sub-tab bersekat peranan
@@ -62,8 +75,10 @@ function SubTabBar<T extends string>({ items, active, onChange }: {
 
 interface EditoriumViewProps {
   // null = belum log masuk. Peranan (KETUA_EDITOR/EDITOR) datang terus daripada akaun yang log
-  // masuk — bukan lagi togol manual.
-  currentUser: { id: string; name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null;
+  // masuk — bukan lagi togol manual. `roles` (2026-08-02, Fasa 3) — senarai BERBILANG peranan
+  // sebenar (pentadbir/ketua_editor/penolong_ketua_editor/editor), satu akaun boleh pegang lebih
+  // daripada satu serentak. `role` legasi kekal sebagai label paparan sahaja.
+  currentUser: { id: string; name: string; role: 'KETUA_EDITOR' | 'EDITOR'; roles: string[] } | null;
   onRequestLogin: () => void;
   onLogout: () => void;
   // Profil Editor (2026-08-01) — kemas kini nama pena serta-merta di sesi App.tsx (header/
@@ -75,6 +90,20 @@ interface EditoriumViewProps {
 // (borang Tetapan Slot Bidang, butang "Edit Kandungan") turut boleh baca sesi yang sama.
 export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onRequestLogin, onLogout, onProfilKemasKini }) => {
   const navigate = useNavigate();
+  // Kebenaran berbilang peranan (2026-08-02, Fasa 3) — lihat DEFAULT_RBAC_MATRIX di
+  // TetapanConsole.tsx / DEFAULT_ROLE_PERMISSIONS di core/middleware/auth.js untuk padanan
+  // penuh. Ini cuma bayang RINGKAS di client untuk sorok/tunjuk nav — kawalan SEBENAR tetap di
+  // server (requirePermission). isKetuaEditor = Nota Ketua Editor (tulis) sahaja; isEditorialAdmin
+  // = Bidang/Editorial/RSS/Jam Dunia (Ketua Editor + Penolong/Timbalan); isPentadbir = Direktori/
+  // Tetapan Sistem/Kawalan Akses.
+  const roles = currentUser?.roles || [];
+  const isKetuaEditor = roles.includes('ketua_editor');
+  const isEditorialAdmin = isKetuaEditor || roles.includes('penolong_ketua_editor');
+  const isPentadbir = roles.includes('pentadbir');
+  // Konsol daun (IndeksConsole dll.) masih terima prop `currentUserRole` binari lama — Penolong/
+  // Timbalan Ketua Editor patut berkelakuan SAMA macam Ketua Editor di skrin ni (bukan disempitkan
+  // macam Editor biasa), jadi dipadankan ke sini sekali sahaja.
+  const effectiveEditorialRole: 'KETUA_EDITOR' | 'EDITOR' = isEditorialAdmin ? 'KETUA_EDITOR' : 'EDITOR';
   // Destinasi peringkat atas (2026-08-01, permintaan pemilik projek — sidebar dua kumpulan, satu
   // klik terus). Lihat EditoriumLayout.tsx untuk susunan Operasi Harian / Tata Kelola & Rujukan.
   const [activeTab, setActiveTab] = useState('kandungan');
@@ -253,7 +282,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           />
           {kandunganSubTab === 'indeks' && (
             <IndeksConsole
-              currentUserRole={currentUser.role}
+              currentUserRole={effectiveEditorialRole}
               currentUserName={currentUser.name}
             />
           )}
@@ -274,7 +303,10 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           nota, bukan destinasi Editor lain membaca. Ketua Editor sahaja (dikunci di
           EditoriumLayout.tsx sidebar); Editor terima nota yang diterbitkan melalui Peti
           Makluman, bukan dengan membuka destinasi ni. */}
-      {activeTab === 'nota_ketua_editor' && currentUser.role === 'KETUA_EDITOR' && (
+      {activeTab === 'nota_ketua_editor' && !isKetuaEditor && (
+        <AksesDitolak mesej="Nota Ketua Editor khusus untuk Ketua Editor." />
+      )}
+      {activeTab === 'nota_ketua_editor' && isKetuaEditor && (
         <NotaKetuaEditorConsole
           editorId={currentUser.id}
           editorName={currentUser.name}
@@ -346,13 +378,28 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       {/* TATA KELOLA & RUJUKAN — pentadbiran dan dokumen rujukan, bukan kerja editorial harian. */}
 
       {/* Editorial (2026-08-01, spesifikasi pemilik projek) — peraturan BAHASA: autocondong,
-          glosari/penyelarasan ejaan, templat penjanaan AI. Ketua Editor sahaja. */}
-      {activeTab === 'editorial' && currentUser.role === 'KETUA_EDITOR' && <EditorialConsole />}
+          glosari/penyelarasan ejaan, templat penjanaan AI. 2026-08-02 (Fasa 3): Ketua Editor
+          DAN Penolong/Timbalan Ketua Editor (kuasa manageEditorial dikongsi) — bukan Ketua
+          Editor sahaja lagi. */}
+      {activeTab === 'editorial' && (
+        isEditorialAdmin
+          ? <EditorialConsole />
+          : <AksesDitolak mesej="Editorial khusus untuk Ketua Editor / Penolong Ketua Editor." />
+      )}
 
-      {activeTab === 'direktori' && <DirektoriConsole currentUserRole={currentUser.role} />}
+      {/* Direktori & Tetapan (2026-08-02, Fasa 3) — domain Pentadbir (teknikal), BUKAN Ketua
+          Editor lagi kecuali dia turut dilantik Pentadbir. Dahulu terbuka untuk sesiapa log
+          masuk (Direktori) atau Ketua Editor (Tetapan) — kini dikunci betul-betul. */}
+      {activeTab === 'direktori' && (
+        isPentadbir
+          ? <DirektoriConsole isPentadbir={isPentadbir} />
+          : <AksesDitolak mesej="Direktori khusus untuk Pentadbir." />
+      )}
 
-      {activeTab === 'tetapan' && currentUser.role === 'KETUA_EDITOR' && (
-        <TetapanConsole currentUserRole={currentUser.role} />
+      {activeTab === 'tetapan' && (
+        isPentadbir
+          ? <TetapanConsole isPentadbir={isPentadbir} />
+          : <AksesDitolak mesej="Tetapan Sistem khusus untuk Pentadbir." />
       )}
 
       {/* Panduan (2026-08-01) — panduan penggunaan Editorium. Belum dibina; papar status jujur
@@ -471,7 +518,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           formConfig={slotEditor.formConfig}
           setFormConfig={slotEditor.setFormConfig}
           activeBidangList={slotEditor.activeBidangList}
-          currentEditoriumRole={currentUser.role}
+          currentEditoriumRole={effectiveEditorialRole}
           currentEditoriumName={currentUser.name}
           isSavingSlot={slotEditor.isSavingSlot}
           onClose={tutupRuangMenulis}

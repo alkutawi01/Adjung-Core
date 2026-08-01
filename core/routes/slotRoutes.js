@@ -5,7 +5,7 @@ import { calculateEditorialScore } from '../sources/EditorialScoreEngine.js';
 import { processTextWithTrace, normalizeEditorialText } from '../sources/EditorialTextNormalizer.js';
 import { calculateDeskScores, classifyDesk } from '../sources/DeskClassifier.js';
 import { parseTypographyTokens } from '../sources/TypographyRulesEngine.js';
-import { requireRole } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/auth.js';
 import { gantiBlokModTicker } from './contentRoutes.js';
 
 // NOTE: this router used to also define GET/POST /slots and POST /slots/run-now, plus a whole
@@ -31,7 +31,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/rss-sources
-  router.post('/rss-sources', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/rss-sources', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id, sourceName, rssUrl, language, trustScore, edition, categoryMapping, enabled } = req.body;
       const sourceId = id || `rss-${Date.now()}`;
@@ -47,7 +47,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // DELETE /api/system/rss-sources/:id
-  router.delete('/rss-sources/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.delete('/rss-sources/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       await dbRun("DELETE FROM rss_sources_registry WHERE id = ?", [id]);
@@ -91,7 +91,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/ticker/review-action
-  router.post('/ticker/review-action', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/ticker/review-action', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { itemId, action } = req.body; // action: 'approve' | 'reject'
       if (!itemId || !action) return res.status(400).json({ error: 'Missing itemId or action' });
@@ -128,7 +128,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/rss-settings
-  router.post('/rss-settings', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/rss-settings', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { autoLiveThreshold, reviewThreshold, priorityKeywords, blockedKeywords, priorityBonus, blockedPenalty, maxNewsAgeHours, tickerMaxItems } = req.body;
       const updatedAt = new Date().toISOString();
@@ -195,7 +195,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/rss-text-rules
-  router.post('/rss-text-rules', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/rss-text-rules', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { ruleName, ruleType, scope, sourceId, pattern, replacement, enabled, orderIndex } = req.body;
       const id = `rule-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
@@ -226,7 +226,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // PUT /api/system/rss-text-rules/:id
-  router.put('/rss-text-rules/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.put('/rss-text-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       const { ruleName, ruleType, scope, sourceId, pattern, replacement, enabled, orderIndex } = req.body;
@@ -268,7 +268,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // DELETE /api/system/rss-text-rules/:id
-  router.delete('/rss-text-rules/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.delete('/rss-text-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       const existing = await dbGet("SELECT * FROM rss_text_rules WHERE id = ?", [id]);
@@ -286,7 +286,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/rss-text-rules/test (Transformation Trace Tester!)
-  router.post('/rss-text-rules/test', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/rss-text-rules/test', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { testText, scope, sourceId, customRule } = req.body;
       let rules = await dbAll("SELECT * FROM rss_text_rules ORDER BY orderIndex ASC, createdAt ASC");
@@ -317,7 +317,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/adjung-desks
-  router.post('/adjung-desks', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/adjung-desks', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { deskName, description, displayOrder } = req.body;
       if (!deskName || !deskName.trim()) {
@@ -339,7 +339,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // PUT /api/system/adjung-desks/:id
-  router.put('/adjung-desks/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.put('/adjung-desks/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       const { deskName, description, displayOrder, enabled } = req.body;
@@ -369,7 +369,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // DELETE /api/system/adjung-desks/:id
-  router.delete('/adjung-desks/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.delete('/adjung-desks/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       const existing = await dbGet("SELECT * FROM adjung_desks WHERE id = ?", [id]);
@@ -399,7 +399,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/rss-desk-rules
-  router.post('/rss-desk-rules', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/rss-desk-rules', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { deskId, keyword, weight, isNegative, enabled, orderIndex } = req.body;
       if (!deskId || !keyword || !keyword.trim()) {
@@ -430,7 +430,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // PUT /api/system/rss-desk-rules/:id
-  router.put('/rss-desk-rules/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.put('/rss-desk-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       const { deskId, keyword, weight, isNegative, enabled, orderIndex } = req.body;
@@ -464,7 +464,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // DELETE /api/system/rss-desk-rules/:id
-  router.delete('/rss-desk-rules/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.delete('/rss-desk-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       await dbRun("DELETE FROM rss_desk_rules WHERE id = ?", [id]);
@@ -476,7 +476,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/rss-desk-rules/test (Desk Classifier Live Tester!)
-  router.post('/rss-desk-rules/test', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/rss-desk-rules/test', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { testTitle, testBrief, testCategory } = req.body;
       const desks = await dbAll("SELECT * FROM adjung_desks WHERE enabled = 1 ORDER BY displayOrder ASC");
@@ -492,7 +492,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // PUT /api/system/ticker/override-desk/:id (Manual Editor Override with Passive Editorial Memory)
-  router.put('/ticker/override-desk/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.put('/ticker/override-desk/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       const { newDesk } = req.body;
@@ -541,7 +541,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/editorial-memory/promote
-  router.post('/editorial-memory/promote', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/editorial-memory/promote', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { memoryId, deskName, phrase } = req.body;
       if (!memoryId || !deskName || !phrase) {
@@ -582,7 +582,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/rss-blocked-categories
-  router.post('/rss-blocked-categories', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/rss-blocked-categories', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { categoryName } = req.body;
       if (!categoryName || !categoryName.trim()) {
@@ -604,7 +604,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // DELETE /api/system/rss-blocked-categories/:id
-  router.delete('/rss-blocked-categories/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.delete('/rss-blocked-categories/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       await dbRun("DELETE FROM rss_blocked_categories WHERE id = ?", [id]);
@@ -638,7 +638,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/adjung-typography-rules
-  router.post('/adjung-typography-rules', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/adjung-typography-rules', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { term, style, category, matchType, scope, language, caseSensitive, priority, status, excludeTerms } = req.body;
       if (!term || !term.trim()) {
@@ -669,7 +669,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // PUT /api/system/adjung-typography-rules/:id
-  router.put('/adjung-typography-rules/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.put('/adjung-typography-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       const { term, style, category, matchType, scope, language, caseSensitive, priority, status, enabled, excludeTerms } = req.body;
@@ -709,7 +709,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // DELETE /api/system/adjung-typography-rules/:id
-  router.delete('/adjung-typography-rules/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.delete('/adjung-typography-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
       await dbRun("DELETE FROM adjung_typography_rules WHERE id = ?", [id]);
@@ -721,7 +721,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/adjung-typography-rules/preview (Live Typography Sandbox Preview)
-  router.post('/adjung-typography-rules/preview', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/adjung-typography-rules/preview', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { testText, scope, language } = req.body;
       const rules = await dbAll("SELECT * FROM adjung_typography_rules WHERE enabled = 1 AND status = 'active' ORDER BY priority DESC");
@@ -734,7 +734,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/ticker/fetch-direct
-  router.post('/ticker/fetch-direct', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/ticker/fetch-direct', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const result = await executeDirectRssFetch(dbAll, dbGet, dbRun);
       res.json(result);

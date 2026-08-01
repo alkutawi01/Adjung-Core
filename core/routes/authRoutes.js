@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
 
 // Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
 // Existing rows predate this and still hold plaintext; verifyPassword falls back to a direct
@@ -25,15 +25,7 @@ const verifyPassword = (plain, stored) => {
   return plain === stored;
 };
 
-const toSessionUser = (userRow) => ({
-  id: userRow.id,
-  username: userRow.username,
-  email: userRow.email,
-  role: userRow.role,
-  penName: userRow.penName,
-});
-
-export function createAuthRoutes(dbGet, dbRun) {
+export function createAuthRoutes(dbGet, dbRun, dbAll) {
   const router = express.Router();
 
   // POST /api/auth/login
@@ -70,9 +62,17 @@ export function createAuthRoutes(dbGet, dbRun) {
         userRow.password = upgraded;
       }
 
+      // 2026-08-02 (Fasa 3) — peranan SEBENAR ialah senarai daripada `user_roles` (satu akaun
+      // boleh pegang berbilang), bukan lajur `role` tunggal lagi (dikekalkan untuk paparan lama
+      // sahaja). Akaun tanpa baris user_roles langsung (tak patut berlaku selepas migrasi boot,
+      // tapi jaring keselamatan) jatuh balik kepada senarai kosong — tiada kebenaran istimewa.
+      const roleRows = await dbAll("SELECT roleId FROM user_roles WHERE userId = ?", [userRow.id]);
+      const roles = (roleRows || []).map((r) => r.roleId);
+
       const { password: _omit, ...userWithoutPassword } = userRow;
       const authenticatedUser = {
         ...userWithoutPassword,
+        roles,
         suspended: userRow.isSuspended === 1
       };
 
@@ -84,7 +84,14 @@ export function createAuthRoutes(dbGet, dbRun) {
           console.error('Session regenerate error:', err);
           return res.status(500).json({ error: 'Login pipeline failed' });
         }
-        req.session.user = toSessionUser(userRow);
+        req.session.user = {
+          id: userRow.id,
+          username: userRow.username,
+          email: userRow.email,
+          role: userRow.role,
+          roles,
+          penName: userRow.penName,
+        };
         res.json({ user: authenticatedUser });
       });
     } catch (err) {
@@ -139,11 +146,12 @@ export function createAuthRoutes(dbGet, dbRun) {
 
   // POST /api/auth/reset-password — DAHULU terbuka sepenuhnya (emel sahaja, tiada token,
   // tiada bukti pemilikan akaun — sesiapa yang tahu emel editor boleh tukar kata laluan
-  // editor itu). Kini KETUA_EDITOR SAHAJA boleh guna, untuk set semula kata laluan editor
-  // lain (akaun terkunci, editor lupa kata laluan). Ini penyelesaian interim: penghantaran
-  // emel bertoken (jemputan/reset sebenar) belum ada infrastruktur SMTP — lihat
+  // editor itu). Kini perlu kebenaran `manageAccounts` (domain Pentadbir, 2026-08-02 Fasa 3 —
+  // urus akaun editor lain bukan lagi disamakan dengan identiti Ketua Editor), untuk set semula
+  // kata laluan editor lain (akaun terkunci, editor lupa kata laluan). Ini penyelesaian interim:
+  // penghantaran emel bertoken (jemputan/reset sebenar) belum ada infrastruktur SMTP — lihat
   // PELAN_PRA_LAUNCH.md Fasa 1.
-  router.post('/reset-password', requireRole('KETUA_EDITOR'), async (req, res) => {
+  router.post('/reset-password', requirePermission('manageAccounts'), async (req, res) => {
     try {
       const { email, password } = req.body;
       if (!email || !password) {

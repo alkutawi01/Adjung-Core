@@ -9,8 +9,9 @@ import { BRAND } from '../../config/brand';
 interface EditoriumLayoutProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
-  // null = belum log masuk.
-  currentUser?: { name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null;
+  // null = belum log masuk. `roles` (2026-08-02, Fasa 3) — senarai BERBILANG peranan sebenar
+  // (pentadbir/ketua_editor/penolong_ketua_editor/editor); `role` legasi kekal untuk label lama.
+  currentUser?: { name: string; role: 'KETUA_EDITOR' | 'EDITOR'; roles: string[] } | null;
   onRequestLogin?: () => void;
   onLogout?: () => void;
   // Buka pemilih slot "Tulis Kandungan" — dipunyai & dirender oleh EditoriumView sendiri
@@ -33,6 +34,15 @@ interface NavItem {
   Icon: any;
   restricted?: boolean;
 }
+
+// 2026-08-02 (Fasa 3) — label paparan penuh setiap roleId, dipadankan ROLE_META di
+// DirektoriConsole.tsx / DEFAULT_RBAC_MATRIX di TetapanConsole.tsx.
+const ROLE_LABELS: Record<string, string> = {
+  pentadbir: 'Pentadbir',
+  ketua_editor: 'Ketua Editor',
+  penolong_ketua_editor: 'Penolong Ketua Editor',
+  editor: 'Editor',
+};
 
 // Sidebar menegak TIGA kumpulan (2026-08-01, susunan tepat ditetapkan pemilik projek) — setiap
 // destinasi SATU klik. Kandungan dan Slot kekal ada sub-tab SENDIRI dalam EditoriumView.tsx
@@ -95,12 +105,27 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   // bertukar aktif tapi kandungan kekal skrin pagar, jadi nav nampak macam rosak.
   const loggedOut = !currentUser;
 
-  // Editorial, Tetapan, DAN Nota Ketua Editor (2026-08-01) — ketiga-tiganya Ketua Editor sahaja.
+  // Kebenaran berbilang peranan (2026-08-02, Fasa 3) — lihat DEFAULT_RBAC_MATRIX di
+  // TetapanConsole.tsx / DEFAULT_ROLE_PERMISSIONS di core/middleware/auth.js untuk padanan
+  // penuh. Ini cuma bayang RINGKAS di client untuk sorok/tunjuk nav — kawalan SEBENAR tetap di
+  // server (requirePermission).
+  const roles = currentUser?.roles || [];
+  const isKetuaEditor = roles.includes('ketua_editor');
+  const isEditorialAdmin = isKetuaEditor || roles.includes('penolong_ketua_editor');
+  const isPentadbir = roles.includes('pentadbir');
+
   // Nota Ketua Editor ialah tempat Ketua Editor MENULIS nota, bukan destinasi Editor lain
   // membaca — nota yang diterbitkan sampai kepada Editor lain melalui Peti Makluman (ikon
-  // Makluman di header), bukan dengan membuka destinasi tulis ni sendiri.
-  const restricted = (id: string) =>
-    (id === 'editorial' || id === 'tetapan' || id === 'nota_ketua_editor') && currentUser?.role !== 'KETUA_EDITOR';
+  // Makluman di header), bukan dengan membuka destinasi tulis ni sendiri. Editorial (Bidang/
+  // tipografi/glosari) dikongsi Ketua Editor + Penolong/Timbalan Ketua Editor. Direktori &
+  // Tetapan Sistem domain Pentadbir sahaja (2026-08-02 — dahulu Direktori terbuka untuk
+  // sesiapa log masuk, Tetapan Ketua-Editor-sahaja; kedua-duanya kini Pentadbir).
+  const restricted = (id: string) => {
+    if (id === 'nota_ketua_editor') return !isKetuaEditor;
+    if (id === 'editorial') return !isEditorialAdmin;
+    if (id === 'tetapan' || id === 'direktori') return !isPentadbir;
+    return false;
+  };
 
   const renderKumpulan = (tajuk: string, items: NavItem[]) => (
     <div className="space-y-1">
@@ -220,7 +245,13 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                   </span>
                   <span className="text-stone-100 font-medium">{currentUser.name}</span>
                   <span className="text-white/30">·</span>
-                  <span className="text-[#e0b7bd]">{currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor'}</span>
+                  <span className="text-[#e0b7bd]">{
+                    // 2026-08-02 (Fasa 3) — label peranan SEBENAR (boleh berbilang, cth "Pentadbir,
+                    // Ketua Editor"), bukan label binari lama.
+                    roles.length > 0
+                      ? roles.map(r => ROLE_LABELS[r] || r).join(', ')
+                      : (currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor')
+                  }</span>
                 </button>
                 {onLogout && (
                   <button

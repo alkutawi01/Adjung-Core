@@ -35,9 +35,10 @@ import { createEditorNotesRoutes } from './core/routes/editorNotesRoutes.js';
 import { createGlosariRoutes } from './core/routes/glosariRoutes.js';
 import { createProfileRoutes } from './core/routes/profileRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
+import { createUserAdminRoutes } from './core/routes/userAdminRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
-import { requireAuthForWrites } from './core/middleware/auth.js';
+import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -127,6 +128,27 @@ const initializeSchema = () => {
           updatedAt TEXT
         )
       `);
+
+      // 2026-08-02 (Fasa 3, RBAC berbilang peranan) — `users.role` (satu nilai) DAHULU satu-
+      // satunya sumber kebenaran, hanya 'KETUA_EDITOR'/'EDITOR'. Izzat kini nak EMPAT peranan
+      // (Pentadbir, Ketua Editor, Penolong/Timbalan Ketua Editor, Editor) dan SATU akaun boleh
+      // pegang BERBILANG peranan serentak (cth Izzat = Pentadbir + Ketua Editor). `role` lajur
+      // asal DIKEKALKAN (peranan "utama" untuk paparan ringkas/troli lama), tapi sumber kebenaran
+      // SEBENAR bagi pemeriksaan kebenaran ialah jadual ni — lihat requirePermission() di
+      // core/middleware/auth.js. roleId sepadan roleId dalam DEFAULT_RBAC_MATRIX
+      // (TetapanConsole.tsx): 'pentadbir' | 'ketua_editor' | 'penolong_ketua_editor' | 'editor'.
+      db.run(`
+        CREATE TABLE IF NOT EXISTS user_roles (
+          userId TEXT NOT NULL,
+          roleId TEXT NOT NULL,
+          PRIMARY KEY (userId, roleId),
+          FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `);
+      // Status keahlian 4-keadaan (Aktif/Cuti/Tidak Aktif/Ditamatkan) untuk Direktori — dahulu
+      // cuma `isSuspended` boolean, tak cukup nuansa untuk "Cuti" vs "Ditamatkan". `isSuspended`
+      // dikekalkan (log masuk masih semaknya) dan diselaraskan bila `status` berubah.
+      db.run("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'Aktif';", () => {});
 
       // 2. System Settings Table
       db.run(`
@@ -662,11 +684,11 @@ const seedDatabase = async () => {
     // process on first run against any empty/fresh database file.
     await new Promise((resolve, reject) => {
       db.run(`
-        INSERT INTO users (id, username, email, role, penName, signature, avatarColor, bioSummary, isSuspended, password, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+        INSERT INTO users (id, username, email, role, penName, signature, avatarColor, bioSummary, isSuspended, status, password, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
       `, [
         'user-chief-editor', 'izzat', 'izzat@adjung.local', 'KETUA_EDITOR',
-        'Izzat Anas', '', '#802334', 'Chief Editor, Adjung Brief', 0,
+        'Izzat Anas', '', '#802334', 'Chief Editor, Adjung Brief', 0, 'Aktif',
         hashPassword(defaultUserSeedPassword)
       ], (err) => {
         if (err) { console.error('Failed to seed Chief Editor account:', err.message); reject(err); return; }
@@ -674,9 +696,35 @@ const seedDatabase = async () => {
         resolve();
       });
     });
+    // Izzat pegang DUA peranan serentak (Pentadbir + Ketua Editor, disahkan 2026-08-02) — akaun
+    // pertama sistem disemai dengan kedua-duanya, bukan cuma satu.
+    await new Promise((resolve) => {
+      db.run(`INSERT OR IGNORE INTO user_roles (userId, roleId) VALUES ('user-chief-editor', 'pentadbir')`, () => {
+        db.run(`INSERT OR IGNORE INTO user_roles (userId, roleId) VALUES ('user-chief-editor', 'ketua_editor')`, () => resolve());
+      });
+    });
   } else {
     console.log(`Users table already has ${usersCount} row(s). Skipping user seed.`);
   }
+
+  // Migrasi berbilang peranan (2026-08-02) — akaun SEDIA ADA (dari sebelum user_roles wujud)
+  // tak punya baris di jadual baharu tu langsung. Isi SEKALI sahaja daripada lajur `role` lama
+  // (KETUA_EDITOR→ketua_editor, selainnya→editor) — hanya untuk userId yang MASIH tiada
+  // langsung dalam user_roles, supaya peranan yang Izzat dah tetapkan sendiri melalui UI tak
+  // ditimpa setiap kali server dimulakan semula.
+  await new Promise((resolve) => {
+    db.all(`SELECT id, role FROM users WHERE id NOT IN (SELECT DISTINCT userId FROM user_roles)`, [], (err, rows) => {
+      if (err || !rows || rows.length === 0) return resolve();
+      let pending = rows.length;
+      rows.forEach((u) => {
+        const roleId = u.role === 'KETUA_EDITOR' ? 'ketua_editor' : 'editor';
+        db.run(`INSERT OR IGNORE INTO user_roles (userId, roleId) VALUES (?, ?)`, [u.id, roleId], () => {
+          pending--;
+          if (pending === 0) resolve();
+        });
+      });
+    });
+  });
 
   if (settingsCount === 0) {
     await new Promise((resolve, reject) => {
@@ -2499,7 +2547,7 @@ app.use('/api/system/ai', createAiCostRoutes(dbAll, dbGet, dbRun));
 app.use('/api/translation', requireAuthForWrites, createTranslationRoutes(dbAll, dbRun));
 app.use('/api/system', createChangelogRoutes(__dirname));
 app.use('/api/media', requireAuthForWrites, createMediaRoutes(__dirname));
-app.use('/api/auth', createAuthRoutes(dbGet, dbRun));
+app.use('/api/auth', createAuthRoutes(dbGet, dbRun, dbAll));
 app.use('/api', createDbStateRoutes(dbAll, dbGet));
 app.use('/api/system', createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, runAllScheduledSlots));
 app.use('/api/system', createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot));
@@ -2516,6 +2564,7 @@ app.use('/api', createEditorNotesRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createGlosariRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createProfileRoutes(dbGet, dbRun));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
+app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
 // disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache
@@ -2525,6 +2574,13 @@ loadAmSettings(dbGet);
 loadTierOverrides(dbAll).then(map => {
   const bil = Object.keys(map).length;
   if (bil) console.log(`Pindaan had aksara tier dimuatkan: ${bil} tier.`);
+});
+
+// Matriks kebenaran RBAC (2026-08-02, Fasa 3) dimuatkan SEKALI semasa boot, disegarkan semula
+// setiap kali disimpan (lihat systemRoutes.js POST /system/settings) — requirePermission() baca
+// cache dalam-memori ni segerak, sama corak seperti loadAmSettings/loadTierOverrides di atas.
+loadRolePermissions(dbGet).then(() => {
+  console.log('Matriks kebenaran peranan (Kawalan Akses) dimuatkan.');
 });
 
 // Pengendali ralat global Express (2026-08-02, Fasa 1) — dahulu SIFAR: sebarang throw segerak

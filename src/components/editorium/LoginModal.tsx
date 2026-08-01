@@ -4,8 +4,10 @@ import { X, Lock } from 'lucide-react';
 interface LoginModalProps {
   onClose: () => void;
   // id dibawa sekali (2026-08-01) — "Draf Saya" perlukannya untuk mencari slot yang ditugaskan
-  // kepada editor ni (jadual slot_editors berkunci pada users.id, bukan nama pena).
-  onSuccess: (user: { id: string; username: string; penName: string; email: string; role: string }, rememberMe: boolean) => void;
+  // kepada editor ni (jadual slot_editors berkunci pada users.id, bukan nama pena). `roles`
+  // (2026-08-02, Fasa 3) — senarai BERBILANG peranan (pentadbir/ketua_editor/
+  // penolong_ketua_editor/editor); `role` legasi dikekalkan untuk paparan sahaja.
+  onSuccess: (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[] }, rememberMe: boolean) => void;
 }
 
 // Log masuk Editorium (2026-07-29) — panggil /api/auth/login (core/routes/authRoutes.js,
@@ -54,6 +56,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         penName: data.user.penName || data.user.username,
         email: data.user.email || '',
         role: data.user.role,
+        roles: Array.isArray(data.user.roles) ? data.user.roles : [],
       }, rememberMe);
     } catch (err: any) {
       setError('Ralat sambungan: ' + (err.message || ''));

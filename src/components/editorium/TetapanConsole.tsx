@@ -23,24 +23,32 @@ interface RbacMatrixRow {
     assignSlot: boolean;
     manageSettings: boolean;
     manageRbac: boolean;
+    // 2026-08-02 (Fasa 3) — tiga kunci baharu, disahkan sebagai sumber kebenaran SEBENAR
+    // (bukan hiasan lagi — lihat requirePermission() di core/middleware/auth.js). Sepadan
+    // EXACT dengan DEFAULT_ROLE_PERMISSIONS di core/middleware/auth.js; ubah satu, ubah dua-dua.
+    manageEditorial: boolean; // Bidang, Editorial (tipografi/glosari), RSS admin, Jam Dunia admin
+    manageAccounts: boolean;  // Direktori — urus akaun/status/peranan editor lain
+    manageEditorNotes: boolean; // Nota Ketua Editor (tulis) — Ketua Editor sahaja secara lalai
   };
 }
 
 // Empat peranan (2026-07-29, permintaan pemilik projek): Pentadbir, Ketua Editor, Penolong Ketua
-// Editor, Editor — turutan ni juga ROLE_ORDER di bawah (susunan paparan jadual). Pentadbir dan
-// Penolong Ketua Editor BAHARU ditambah dengan SEMUA kebenaran tak ditanda (isImmutableAdmin:
-// false, permissions semua false) — pemilik projek akan tanda sendiri akses yang dibenarkan bagi
-// kedua-dua peranan ni, jadi sengaja tiada andaian dibuat di sini tentang apa mereka patut boleh
-// buat.
-const ROLE_ORDER = ['pentadbir', 'ketua_editor', 'penolong_ketua_editor', 'editor'];
+// Editor, Editor — turutan ni juga ROLE_ORDER di bawah (susunan paparan jadual).
+//
+// 2026-08-02 — disahkan Izzat sebagai sumber kebenaran SEBENAR (bukan hiasan): Pentadbir =
+// teknikal sahaja (tetapan sistem, Direktori/akaun, Kawalan Akses) BUKAN editorial; Ketua Editor
+// & Penolong/Timbalan Ketua Editor kongsi kuasa editorial PENUH kecuali Nota Ketua Editor
+// (Ketua Editor sahaja) dan urus akaun (Pentadbir sahaja); SATU akaun (cth Izzat) boleh pegang
+// BERBILANG peranan serentak — lihat jadual user_roles di server.js.
 const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
   {
     roleId: 'pentadbir',
     roleName: 'Pentadbir',
     isImmutableAdmin: false,
     permissions: {
-      viewAll: false, editOwn: false, editAll: false, publish: false,
-      reject: false, assignSlot: false, manageSettings: false, manageRbac: false
+      viewAll: true, editOwn: false, editAll: false, publish: false,
+      reject: false, assignSlot: false, manageSettings: true, manageRbac: true,
+      manageEditorial: false, manageAccounts: true, manageEditorNotes: false
     }
   },
   {
@@ -49,7 +57,8 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     isImmutableAdmin: true,
     permissions: {
       viewAll: true, editOwn: true, editAll: true, publish: true,
-      reject: true, assignSlot: true, manageSettings: true, manageRbac: true
+      reject: true, assignSlot: true, manageSettings: false, manageRbac: false,
+      manageEditorial: true, manageAccounts: false, manageEditorNotes: true
     }
   },
   {
@@ -57,8 +66,9 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     roleName: 'Penolong Ketua Editor',
     isImmutableAdmin: false,
     permissions: {
-      viewAll: false, editOwn: false, editAll: false, publish: false,
-      reject: false, assignSlot: false, manageSettings: false, manageRbac: false
+      viewAll: true, editOwn: true, editAll: true, publish: true,
+      reject: true, assignSlot: true, manageSettings: false, manageRbac: false,
+      manageEditorial: true, manageAccounts: false, manageEditorNotes: false
     }
   },
   {
@@ -67,17 +77,21 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     isImmutableAdmin: false,
     permissions: {
       viewAll: true, editOwn: true, editAll: false, publish: true,
-      reject: false, assignSlot: false, manageSettings: false, manageRbac: false
+      reject: false, assignSlot: false, manageSettings: false, manageRbac: false,
+      manageEditorial: false, manageAccounts: false, manageEditorNotes: false
     }
   }
 ];
 
 interface TetapanConsoleProps {
-  currentUserRole?: 'KETUA_EDITOR' | 'EDITOR';
+  // 2026-08-02 (Fasa 3) — Tetapan Sistem domain Pentadbir sahaja (dahulu currentUserRole
+  // 'KETUA_EDITOR', tapi Ketua Editor tak automatik dapat akses ni lagi kecuali dia turut
+  // dilantik Pentadbir — lihat EditoriumView.tsx pemanggil komponen ni).
+  isPentadbir?: boolean;
 }
 
 export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
-  currentUserRole = 'KETUA_EDITOR'
+  isPentadbir = true
 }) => {
   const [subTab, setSubTab] = useState<'PolisiKandungan' | 'Operasi' | 'RBAC'>('PolisiKandungan');
 
@@ -215,11 +229,18 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           // DEFAULT_RBAC_MATRIX yang roleId-nya belum ada dalam simpanan ditambah, bukan hilang
           // senyap kerana simpanan lama "menang" wholesale. Disusun ikut ROLE_ORDER supaya jadual
           // sentiasa papar turutan sama tak kira campuran simpanan lama/baharu.
-          const savedIds = new Set(s.rolePermissions.map((r: RbacMatrixRow) => r.roleId));
-          const merged = [
-            ...s.rolePermissions,
-            ...DEFAULT_RBAC_MATRIX.filter(r => !savedIds.has(r.roleId)),
-          ].sort((a, b) => ROLE_ORDER.indexOf(a.roleId) - ROLE_ORDER.indexOf(b.roleId));
+          //
+          // 2026-08-02 (Fasa 3) — pepijat sebenar ditemui semasa ujian: baris SEDIA ADA (cth
+          // ketua_editor) boleh juga tiada KUNCI baharu (manageEditorial/manageAccounts/
+          // manageEditorNotes, ditambah selepas matriks lama disimpan kali terakhir), bukan
+          // sekadar BARIS peranan yang hilang. Gabung KUNCI di dalam setiap baris juga — kalau
+          // tidak checkbox baharu papar tak bertanda walaupun server anggap lalainya true.
+          const byId = new Map(s.rolePermissions.map((r: RbacMatrixRow) => [r.roleId, r]));
+          const merged = DEFAULT_RBAC_MATRIX.map(defRow => {
+            const saved = byId.get(defRow.roleId) as RbacMatrixRow | undefined;
+            if (!saved) return defRow;
+            return { ...saved, permissions: { ...defRow.permissions, ...saved.permissions } };
+          });
           setRbacMatrix(merged);
         }
       })
@@ -238,9 +259,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     setRbacMatrix(prev =>
       prev.map(row => {
         if (row.roleId !== roleId) return row;
-        // Safeguard: Ketua Editor cannot uncheck core self-admin power (kecuali memecat dirinya sendiri)
-        if (row.isImmutableAdmin && (permKey === 'manageRbac' || permKey === 'manageSettings' || permKey === 'viewAll')) {
-          alert('Ketua Editor tidak dibenarkan menarik semula kuasa tadbir urus utama daripada akaun sendiri.');
+        // Kunci keselamatan: Ketua Editor tak boleh nyahtanda kuasa EDITORIAL teras sendiri
+        // (2026-08-02, disemak semula — manageSettings/manageRbac BUKAN lagi domain Ketua Editor
+        // secara lalai, itu Pentadbir; kunci "tak boleh dibuang" yang bermakna sekarang ialah
+        // kuasa editorial supaya Ketua Editor tak sesekali terkunci keluar daripada kerja
+        // editorial sendiri melalui klik tersilap).
+        if (row.isImmutableAdmin && (permKey === 'viewAll' || permKey === 'editAll' || permKey === 'publish' || permKey === 'reject')) {
+          alert('Ketua Editor tidak dibenarkan menarik semula kuasa editorial teras daripada akaun sendiri.');
           return row;
         }
         return {
@@ -268,7 +293,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
-  if (currentUserRole !== 'KETUA_EDITOR') {
+  if (!isPentadbir) {
     return (
       <div className="bg-white p-12 text-center rounded-lg border border-stone-200 shadow-sm space-y-3 font-serif">
         <div className="flex justify-center"><Lock className="w-8 h-8" /></div>
@@ -522,8 +547,15 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {/* 4. INTERACTIVE RBAC PERMISSION TABLE MATRIX */}
       {subTab === 'RBAC' && (
         <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
-            <AlertTriangle className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Matriks ni disimpan betul-betul ke pangkalan data, tapi <strong>belum dikuatkuasakan</strong> di mana-mana bahagian sistem sebenar — semua semakan akses semasa (Indeks, Direktori, Tetapan sendiri) terus banding peranan dengan Ketua Editor secara tegar dalam kod, tanpa rujuk jadual ni langsung. Menanda/menyahtanda kebenaran di bawah <strong>tiada kesan</strong> pada apa yang seseorang benar-benar boleh buat buat masa ini.
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded text-emerald-900">
+            {/* 2026-08-02 (Fasa 3) — matriks ni kini SUMBER KEBENARAN SEBENAR (bukan hiasan lagi).
+                Setiap laluan API tulis semak matriks ni secara langsung (requirePermission,
+                core/middleware/auth.js), disegarkan serta-merta selepas simpan — tiada perlu
+                mulakan semula server. Menanda/menyahtanda kebenaran DI BAWAH mengubah apa
+                setiap peranan BENAR-BENAR boleh buat, serta-merta selepas "Simpan Kawalan Akses". */}
+            Matriks ni <strong>sumber kebenaran sebenar</strong> — setiap laluan API tulis semak
+            terus daripada sini, berkuat kuasa serta-merta selepas disimpan. Berhati-hati menanda/
+            menyahtanda: kesannya nyata pada apa setiap peranan boleh buat.
           </div>
           <div className="flex flex-wrap justify-between items-center border-b border-stone-200 pb-3 gap-2">
             <div>
@@ -531,7 +563,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 KAWALAN AKSES — MATRIKS KEBENARAN PERANAN
               </h3>
               <p className="text-stone-500 text-xs mt-0.5">
-                Ketua Editor boleh menanda atau membatalkan kebenaran peranan mengikut keperluan tadbir urus editorial.
+                Pentadbir boleh menanda atau membatalkan kebenaran peranan mengikut keperluan tadbir urus sistem. Perubahan berkuat kuasa serta-merta selepas disimpan.
               </p>
             </div>
           </div>
@@ -551,12 +583,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   <th className="p-3 text-center">Publish</th>
                   <th className="p-3 text-center">Tolak</th>
                   <th className="p-3 text-center">Agihan Slot</th>
+                  <th className="p-3 text-center">Bidang & Editorial</th>
+                  <th className="p-3 text-center">Nota Ketua Editor</th>
+                  <th className="p-3 text-center">Direktori & Akaun</th>
                   <th className="p-3 text-center">Polisi & Tetapan</th>
                   <th className="p-3 text-center">Tadbir RBAC</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 font-sans">
-                {rbacMatrix.map(row => (
+                {rbacMatrix.map(row => {
+                  const kunciEditorial = row.isImmutableAdmin;
+                  return (
                   <tr key={row.roleId} className="hover:bg-stone-50 transition-colors">
                     <td className="p-3 font-bold text-stone-900 flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${row.roleId === 'ketua_editor' ? 'bg-[#802334]' : 'bg-stone-500'}`} />
@@ -564,31 +601,41 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     </td>
 
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.viewAll} onChange={() => handleTogglePermission(row.roleId, 'viewAll')} disabled={row.isImmutableAdmin} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.viewAll} onChange={() => handleTogglePermission(row.roleId, 'viewAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
                       <input type="checkbox" checked={row.permissions.editOwn} onChange={() => handleTogglePermission(row.roleId, 'editOwn')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.editAll} onChange={() => handleTogglePermission(row.roleId, 'editAll')} disabled={row.isImmutableAdmin} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.editAll} onChange={() => handleTogglePermission(row.roleId, 'editAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.publish} onChange={() => handleTogglePermission(row.roleId, 'publish')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.publish} onChange={() => handleTogglePermission(row.roleId, 'publish')} disabled={kunciEditorial} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.reject} onChange={() => handleTogglePermission(row.roleId, 'reject')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.reject} onChange={() => handleTogglePermission(row.roleId, 'reject')} disabled={kunciEditorial} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
                       <input type="checkbox" checked={row.permissions.assignSlot} onChange={() => handleTogglePermission(row.roleId, 'assignSlot')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageSettings} onChange={() => handleTogglePermission(row.roleId, 'manageSettings')} disabled={row.isImmutableAdmin} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.manageEditorial} onChange={() => handleTogglePermission(row.roleId, 'manageEditorial')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageRbac} onChange={() => handleTogglePermission(row.roleId, 'manageRbac')} disabled={row.isImmutableAdmin} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.manageEditorNotes} onChange={() => handleTogglePermission(row.roleId, 'manageEditorNotes')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                    </td>
+                    <td className="p-3 text-center">
+                      <input type="checkbox" checked={row.permissions.manageAccounts} onChange={() => handleTogglePermission(row.roleId, 'manageAccounts')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                    </td>
+                    <td className="p-3 text-center">
+                      <input type="checkbox" checked={row.permissions.manageSettings} onChange={() => handleTogglePermission(row.roleId, 'manageSettings')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                    </td>
+                    <td className="p-3 text-center">
+                      <input type="checkbox" checked={row.permissions.manageRbac} onChange={() => handleTogglePermission(row.roleId, 'manageRbac')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
