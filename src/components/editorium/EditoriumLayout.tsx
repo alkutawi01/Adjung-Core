@@ -76,20 +76,18 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   children
 }) => {
   const [currentTab, setCurrentTab] = useState(activeTab);
-  // Sidebar: rel ikon (72px) ialah KEADAAN ASAL tetap. Panel penuh (240px, label) KEMBANG
-  // SENDIRI bila tetikus lalu atasnya (onMouseEnter) dan LIPAT SEMULA bila tetikus beredar
-  // (onMouseLeave) — macam dock/activity bar biasa, tiada klik langsung diperlukan untuk
-  // sekadar melihat label sebelum pilih. Butang bawah dikekalkan sebagai kawalan eksplisit
-  // (skrin sentuh/tanpa tetikus tak boleh "hover").
+  // Sidebar: SATU sahaja cara tukar keadaan — klik butang "Lipatkan"/"Kembangkan" di bawah.
+  // (2026-08-01) Percubaan lebih awal (kembang atas hover + tutup automatik bila klik destinasi/
+  // di luar) dibuang — dua sebab: (1) hover buat sidebar rasa tak stabil (label kumpulan
+  // "OPERASI HARIAN" muncul/hilang menolak kedudukan ikon), (2) kelakuan "automatik" bercanggah
+  // dengan kewujudan butang lipat eksplisit — kalau ia dah buka/tutup sendiri, buat apa ada
+  // butang? Kini predictable: klik untuk kembang, klik lagi untuk lipat, tiada apa lain ubah ia.
   const [dilipat, setDilipat] = useState(true);
   const togolLipat = () => setDilipat((v) => !v);
 
   const handleNavClick = (tabId: string) => {
     setCurrentTab(tabId);
     if (onTabChange) onTabChange(tabId);
-    // Pilih destinasi = tutup panel terus, sama seperti klik di luar. Editor sengaja buka panel
-    // untuk PILIH satu benda; sebaik dipilih tiada sebab ia kekal terbuka menutup kandungan.
-    setDilipat(true);
   };
 
   // Belum log masuk = TIADA destinasi boleh dibuka. Dulu semua tab masih boleh diklik: tab
@@ -105,11 +103,12 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
   const renderKumpulan = (tajuk: string, items: NavItem[]) => (
     <div className="space-y-1">
-      {!dilipat && (
-        <div className="px-3 font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1.5">
-          {tajuk}
-        </div>
-      )}
+      {/* Label kumpulan SENTIASA dirender (tinggi tetap) — teks cuma disorok (opacity-0) bila
+          dilipat, bukan dibuang terus. Dulu label langsung tiada dalam DOM bila dilipat, jadi
+          tinggi keseluruhan berubah dan baris ikon "melompat" kedudukan setiap kali togol. */}
+      <div className={`px-3 font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1.5 truncate transition-opacity ${dilipat ? 'opacity-0' : 'opacity-100'}`}>
+        {tajuk}
+      </div>
       <div className="space-y-0.5">
         {items.map((item) => {
           const isActive = currentTab === item.id && !loggedOut;
@@ -151,7 +150,11 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans antialiased">
+    // flex flex-col + badan flex-1 (2026-08-01) — footer dulu ikut aliran dokumen biasa: kalau
+    // kandungan pendek (cth Indeks dengan 2 baris tapisan), footer terapung di tengah halaman
+    // dengan ruang kosong terbiar di bawahnya sehingga hujung skrin. Kini footer SENTIASA di
+    // bawah — melekat di hujung viewport bila kandungan pendek, turun ikut skrol bila panjang.
+    <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans antialiased flex flex-col">
       {/* Editorium Header — bar identiti sahaja, maroon jelas. */}
       <header className="relative bg-Adjung-maroon-dark text-[#FDFDFD] select-none overflow-hidden">
         <div className="relative px-4 md:px-8 py-2 flex flex-wrap justify-between items-center gap-3">
@@ -242,19 +245,8 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           dikembangkan (240px - 72px) melayang ATAS kandungan (bayang jelas jadi petanda ia
           terapung), bukan tolak kandungan. Ini jugalah sebabnya jadual lebar macam Indeks tak
           perlu skrol mendatar sekadar sebab sidebar terbuka. */}
-      <div className="relative flex flex-col">
-        {/* Backdrop lut sinar (2026-08-01) — hanya wujud bila panel DIKEMBANG. Klik di
-            mana-mana pun (header, kandungan) tutup panel terus, macam menu dropdown biasa —
-            tiada butang "Lipatkan" eksplisit diperlukan untuk kes biasa. */}
-        {!dilipat && (
-          <div
-            className="hidden md:block fixed inset-0 z-20"
-            onClick={() => setDilipat(true)}
-          />
-        )}
+      <div className="relative flex flex-col flex-1">
         <aside
-          onMouseEnter={() => setDilipat(false)}
-          onMouseLeave={() => setDilipat(true)}
           className={`hidden md:flex md:flex-col fixed left-0 top-[42px] h-[calc(100vh-42px)] z-30 overflow-y-auto bg-[#F6F4EF] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
             dilipat ? 'w-[4.5rem]' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
           }`}
