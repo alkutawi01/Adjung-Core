@@ -120,6 +120,10 @@ export function useSlotEditor(editorName?: string) {
       aiPromptRegion: config?.aiPromptRegion || 'Global, Malaysia',
       aiPromptSource: config?.aiPromptSource || '',
       genMode: config?.genMode || 'bebas',
+      // Kawalan serentak (Fasa 6) — token versi ringkas: nilai `updatedAt` yang DIBACA semasa
+      // buka slot ni, dihantar semula bila simpan supaya server boleh kesan jika seseorang lain
+      // sudah simpan slot yang sama sejak itu (lihat slotsConfigRoutes.js POST /slots).
+      updatedAt: config?.updatedAt || null,
     });
     setEditingSlotIndex(idx);
     setShowSlotPicker(false);

@@ -528,6 +528,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           currentEditoriumRole={effectiveEditorialRole}
           currentEditoriumName={currentUser.name}
           isSavingSlot={slotEditor.isSavingSlot}
+          saveError={slotEditor.saveError}
           onClose={tutupRuangMenulis}
           onSave={slotEditor.handleSaveSlot}
           slotOptions={Array.from({ length: 38 }, (_, i) => i)

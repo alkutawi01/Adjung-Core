@@ -1670,6 +1670,12 @@ const initEditorialOS = (dbConn) => {
                                                 // AI luaran sama ada jana bebas atau berdasarkan sumber rujukan. arahanKhas guna
                                                 // semula lajur promptText sedia ada (bukan lajur baharu — sudah wujud & bermaksud sama).
                                                 dbConn.run("ALTER TABLE slots_config ADD COLUMN genMode TEXT DEFAULT 'bebas'", () => {});
+                                                // Kawalan serentak (2026-08-02, Fasa 6) — dahulu dua editor buka slot sama, simpanan
+                                                // KEDUA menulis-ganti simpanan PERTAMA tanpa amaran (last-write-wins senyap). `updatedAt`
+                                                // sini ialah token versi ringkas: pelanggan hantar semula nilai yang dia BACA semasa
+                                                // buka slot; kalau tak sepadan nilai SEMASA di DB, seseorang lain dah simpan dulu —
+                                                // POST /api/system/slots (slotsConfigRoutes.js) tolak dengan 409, bukan tulis-ganti.
+                                                dbConn.run("ALTER TABLE slots_config ADD COLUMN updatedAt TEXT", () => {});
                                                 dbConn.run("ALTER TABLE editorial_objects ADD COLUMN sourceType TEXT DEFAULT 'web'", () => {});
                                                 dbConn.run("CREATE INDEX IF NOT EXISTS idx_editorial_objects_source_type ON editorial_objects(sourceType)", () => {});
                                                 dbConn.run(`

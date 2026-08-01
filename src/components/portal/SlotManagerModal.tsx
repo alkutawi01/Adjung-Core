@@ -17,6 +17,10 @@ interface SlotManagerModalProps {
   // Borang kandungan), lihat-sahaja. Kosong = belum log masuk (papar EDITOR_PLACEHOLDER).
   currentEditoriumName?: string;
   isSavingSlot: boolean;
+  // Mesej ralat simpan terkini daripada useSlotEditor (2026-08-02) — sebelum ni `onSave` cuma
+  // pulangkan boolean `ok`, jadi sebab kegagalan sebenar (termasuk konflik serentak Fasa 6) tak
+  // pernah sampai ke UI langsung. Dibaca oleh publishOne/saveDraft di bawah bila `ok` palsu.
+  saveError?: string;
   onClose: () => void;
   // Tukar slot terus dalam modal ni (2026-07-29, permintaan pemilik projek) — sebelum ni satu-
   // satunya cara tukar slot ialah Batal + buka pemilih semula. Pilihan (semua slot KECUALI Bar,
@@ -223,7 +227,7 @@ const SidebarItem = React.memo(function SidebarItem({
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, onClose, onSave,
-  slotOptions, onSwitchSlot, initialUuid,
+  slotOptions, onSwitchSlot, initialUuid, saveError,
 }) => {
   // Kandungan mana yang terbuka dahulu. Lalai yang pertama; bila dibuka daripada "Draf Saya"
   // (initialUuid), terus mendarat pada draf yang diklik. Sengaja dikira dalam initializer useState
@@ -451,6 +455,9 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       commit(() => remainingDrafts);
       setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
       setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
+    } else {
+      setPublishError(saveError || 'Gagal menerbitkan kandungan.');
+      setTimeout(() => setPublishError(''), 5000);
     }
   };
 
@@ -465,9 +472,14 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     const manualSummary = serializeManualBentoQueue(items);
     const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary, { closeOnSuccess: false });
     setSavingDraft(false);
-    setFormConfig((prev: any) => ({ ...prev, manualSummary }));
-    setDraftNote(ok ? 'Draf disimpan' : 'Gagal simpan draf');
-    setTimeout(() => setDraftNote(''), 2400);
+    if (ok) {
+      setFormConfig((prev: any) => ({ ...prev, manualSummary }));
+      setDraftNote('Draf disimpan');
+      setTimeout(() => setDraftNote(''), 2400);
+    } else {
+      setPublishError(saveError || 'Gagal simpan draf.');
+      setTimeout(() => setPublishError(''), 5000);
+    }
   };
 
   // Tukar slot terus dari sini (2026-07-29) — modal ni REMOUNT penuh bila editingSlotIndex ibu

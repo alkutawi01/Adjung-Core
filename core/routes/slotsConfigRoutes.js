@@ -43,6 +43,30 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
   router.post('/slots', requireAuth, async (req, res) => {
     try {
       const slots = Array.isArray(req.body) ? req.body : [req.body];
+
+      // Kawalan serentak (2026-08-02, Fasa 6) — SEMAK SEMUA slot dahulu sebelum tulis MANA-MANA
+      // satu (sama corak seperti batch_paste — semua-atau-tiada, bukan simpanan separa). Dua
+      // editor buka slot sama: yang kedua simpan mesti tahu orang lain dah ubah dulu, bukan
+      // menulis-ganti senyap. `slot.updatedAt` yang client hantar ialah nilai yang dia BACA
+      // semasa buka slot (GET /slots pulangkan lajur ni terus, tiada laluan berasingan
+      // diperlukan) — kalau tak sepadan nilai SEMASA di DB, seseorang lain dah simpan dulu.
+      for (const slot of slots) {
+        if (slot.updatedAt) {
+          const semasaRow = await dbAll(
+            "SELECT updatedAt FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?",
+            [slot.slotIndex]
+          );
+          const updatedAtSemasa = semasaRow[0]?.updatedAt || null;
+          if (updatedAtSemasa && updatedAtSemasa !== slot.updatedAt) {
+            // Format ralat sepadan konvensyen sedia ada di seluruh laluan ni (`error` ialah
+            // mesej terus dipapar, bukan kod) — client (useSlotEditor.ts) cuma baca `data.error`.
+            return res.status(409).json({
+              error: `Slot ${slot.slotIndex + 1} telah disimpan oleh orang lain sejak anda membukanya. Muat semula slot ini dahulu supaya perubahan anda tidak menimpa kerja orang lain.`,
+            });
+          }
+        }
+      }
+
       for (const slot of slots) {
         const providerId = slot.providerId && typeof slot.providerId === 'string' && slot.providerId.trim() !== '' && slot.providerId !== 'undefined' && slot.providerId !== 'null' ? slot.providerId : null;
         console.log(`Slot ${slot.slotIndex}: raw providerId = "${slot.providerId}", mapped = ${providerId}`);
@@ -93,12 +117,12 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
           INSERT OR REPLACE INTO slots_config (
             layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
             manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, maxBriefLong, refreshHour, refreshDay, eventExpiryFilter,
-            aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType, genMode
-          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType, genMode, updatedAt
+          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
           slot.manualTitle, persistedManualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
-          slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas'
+          slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas', new Date().toISOString()
         ]);
 
         if (slot.manualDesk && slot.manualDesk.trim() !== '') {
