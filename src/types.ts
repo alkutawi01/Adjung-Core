@@ -187,6 +187,7 @@ export interface SystemSettings {
   worldClockHolidaysGoogleDocUrl?: string;
   worldClockIntervalSec?: number;
   worldClockBgClickEnabled?: boolean;
+  glosSelariEnabled?: boolean;
   researchFindingsText?: string;
   researchFindingsGoogleDocUrl?: string;
 }

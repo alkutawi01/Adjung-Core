@@ -1640,6 +1640,12 @@ const initEditorialOS = (dbConn) => {
                           dbConn.run("ALTER TABLE pipeline_logs ADD COLUMN runId TEXT", () => {
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN worldClockIntervalSec INTEGER DEFAULT 60", () => {});
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN worldClockBgClickEnabled INTEGER DEFAULT 1", () => {});
+                            // Glos Selari (2026-08-02, Fasa 6) — dahulu checkbox hiasan ("Belum
+                            // Dibina") yang langsung tak kawal apa-apa; ciri anotasi interlinear
+                            // (`[kata](gloss:makna)`, utils.tsx parseInlineFormatting) SUDAH aktif
+                            // tanpa syarat pada setiap tajuk/huraian kad. Togol ni kini SEBENAR —
+                            // FrontpageView.tsx semak nilai ni sebelum membenar sintaks gloss.
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN glosSelariEnabled INTEGER DEFAULT 0", () => {});
                             // reviewPrompt (2026-08-01, spesifikasi pemilik projek) — templat AI
                             // untuk SEMAKAN (ejaan, tatabahasa, gaya bahasa, format), berasingan
                             // daripada masterPrompt yang mengarah penjanaan KANDUNGAN.

@@ -23,10 +23,21 @@ import { BidangIcon } from '../common/BidangIcon';
 // every carousel item's title/brief (including years of accumulated AI-generated history per slot)
 // exposes it to content it was never vetted against. One malformed string (unbalanced markdown,
 // unexpected characters) must never take down the whole frontpage — fall back to the plain text.
+//
+// Glos Selari (2026-08-02, Fasa 6) — sintaks `[kata](gloss:makna)` dalam parseInlineFormatting
+// DAHULU sentiasa aktif tanpa syarat (togol di Tetapan cuma hiasan). Kini dikawal togol sebenar
+// (systemSettings.glosSelariEnabled) — ~60 tapak render kad di fail ni semua panggil satu fungsi
+// safeParseInline, jadi bendera dalam-modul ni cukup untuk kawal kesemuanya tanpa ubah setiap
+// tapak. Diselaraskan sekali dalam useEffect (lihat berhampiran systemSettings di bawah).
+let glosSelariAktif = false;
+const GLOSS_SYNTAX_RE = /\[([^\]]+)\]\(gloss:[^)]*\)/g;
+const stripGlossSyntax = (text: string): string => text.replace(GLOSS_SYNTAX_RE, '$1');
+
 const safeParseInline = (text: string): React.ReactNode => {
   if (typeof text !== 'string' || text === '') return text;
   try {
-    return parseInlineFormatting(penggalSukuKata(text));
+    const sumber = glosSelariAktif ? text : stripGlossSyntax(text);
+    return parseInlineFormatting(penggalSukuKata(sumber));
   } catch (e) {
     console.warn('parseInlineFormatting failed, falling back to plain text:', e, text);
     return text;
@@ -1434,6 +1445,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       setMasterPrompt(systemSettings.masterPrompt);
     }
   }, [systemSettings]);
+
+  // Glos Selari (Fasa 6) — selaraskan bendera dalam-modul yang dibaca safeParseInline setiap
+  // kali systemSettings berubah (cth Ketua Editor togol tetapan tanpa muat semula halaman).
+  useEffect(() => {
+    glosSelariAktif = !!systemSettings?.glosSelariEnabled;
+  }, [systemSettings?.glosSelariEnabled]);
 
   const loadSlotsConfig = () => {
     fetch('/api/system/slots')

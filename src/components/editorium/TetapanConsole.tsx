@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Lock, Construction, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
+  Lock, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
 } from 'lucide-react';
 
 
@@ -104,6 +104,15 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const [savingWorldClock, setSavingWorldClock] = useState(false);
   const [worldClockSaveError, setWorldClockSaveError] = useState<string | null>(null);
 
+  // Glos Selari (2026-08-02, Fasa 6) — dahulu checkbox hiasan tanpa kesan. Ciri anotasi
+  // interlinear (`[kata](gloss:makna)`, utils.tsx parseInlineFormatting) SUDAH aktif tanpa
+  // syarat pada setiap tajuk/huraian kad — togol ni kini benar-benar kawal ia (FrontpageView.tsx
+  // semak glosSelariEnabled sebelum membenarkan sintaks gloss; jika dimatikan, sintaks dipapar
+  // sebagai label biasa sahaja, anotasi diabaikan).
+  const [glosSelariEnabled, setGlosSelariEnabled] = useState<boolean>(false);
+  const [savingGlosSelari, setSavingGlosSelari] = useState(false);
+  const [glosSelariSaveError, setGlosSelariSaveError] = useState<string | null>(null);
+
   const [apiHealthStatus, setApiHealthStatus] = useState<any>(null);
   const [isLoadingApiStatus, setIsLoadingApiStatus] = useState<boolean>(false);
 
@@ -149,6 +158,21 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       throw new Error(body.error || 'Gagal menyimpan tetapan.');
     }
     return merged;
+  };
+
+  const handleToggleGlosSelari = async () => {
+    const next = !glosSelariEnabled;
+    setGlosSelariEnabled(next);
+    setSavingGlosSelari(true);
+    setGlosSelariSaveError(null);
+    try {
+      await saveSystemSettingsPatch({ glosSelariEnabled: next });
+    } catch (e: any) {
+      setGlosSelariEnabled(!next);
+      setGlosSelariSaveError(e.message || 'Gagal menyimpan tetapan Glos Selari.');
+    } finally {
+      setSavingGlosSelari(false);
+    }
   };
 
   const handleSaveWorldClockSettings = async () => {
@@ -223,6 +247,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         const s = data.systemSettings || {};
         if (s.worldClockIntervalSec !== undefined) setWorldClockIntervalSec(Number(s.worldClockIntervalSec));
         if (s.worldClockBgClickEnabled !== undefined) setWorldClockBgClickEnabled(!!s.worldClockBgClickEnabled);
+        if (s.glosSelariEnabled !== undefined) setGlosSelariEnabled(!!s.glosSelariEnabled);
         if (s.rolePermissions && Array.isArray(s.rolePermissions) && s.rolePermissions.length > 0) {
           // Gabung (bukan ganti terus, 2026-07-29) — matriks tersimpan di DB mungkin masih 2 baris
           // lama (dari sebelum Pentadbir/Penolong Ketua Editor wujud). Baris baharu dalam
@@ -353,17 +378,23 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 projek. Bukan dibuang; jangan cipta semula di sini. */}
             <div className="pt-3 flex flex-wrap justify-between items-center gap-3">
               <div className="space-y-1">
-                <label className="flex items-center gap-2 font-semibold text-stone-400 cursor-not-allowed">
-                  <input type="checkbox" disabled className="rounded border-stone-300" />
-                  <span>Glos Selari (Teks Dwibahasa / Arab-Melayu)</span>
+                <label className="flex items-center gap-2 font-semibold text-stone-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={glosSelariEnabled}
+                    onChange={handleToggleGlosSelari}
+                    disabled={savingGlosSelari}
+                    className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50"
+                  />
+                  <span>Glos Selari (Anotasi Interlinear Dwibahasa / Arab-Melayu)</span>
                 </label>
-                <p className="text-stone-400 text-xs">
-                  Paparan baris selari glosarium bagi istilah dwibahasa dan teks klasik.
+                <p className="text-stone-500 text-xs">
+                  Benarkan editor guna sintaks <code className="bg-stone-100 px-1 rounded">[kata](gloss:makna)</code> dalam
+                  tajuk/huraian — makna terpapar sebagai anotasi kecil di atas kata pada frontpage. Dimatikan lalai;
+                  sintaks yang wujud dipapar sebagai teks biasa (anotasi diabaikan) selagi togol ni tak dihidupkan.
                 </p>
+                {glosSelariSaveError && <p className="text-red-700 text-xs">{glosSelariSaveError}</p>}
               </div>
-              <span className="w-64 flex items-center justify-center gap-1.5 bg-stone-100 text-stone-400 font-sans text-xs px-3 py-1.5 rounded font-semibold border border-stone-200">
-                <Construction className="w-3.5 h-3.5" /> Belum Dibina
-              </span>
             </div>
           </div>
         </div>

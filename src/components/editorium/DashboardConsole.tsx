@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FileEdit, Bell, LayoutGrid, Radio, Cloud, Users, PenLine, ListChecks, Hourglass } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { FileEdit, Bell, LayoutGrid, Radio, Cloud, Users, Hourglass } from 'lucide-react';
 
 // Paparan Utama (2026-08-02, Fasa 5) — destinasi lalai selepas log masuk. Digabung daripada
 // laluan SEDIA ADA sahaja (content/all, drafts, editor-notes, categories/slot-usage,
@@ -18,7 +17,6 @@ interface EntriLog { id: number; actorName: string | null; action: string; creat
 interface Nota { id: string; tajuk: string; kategori: string; dibuatPada: string; }
 
 export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ currentUser, onTukarTab }) => {
-  const navigate = useNavigate();
   const [memuat, setMemuat] = useState(true);
   const [statusKandungan, setStatusKandungan] = useState({ menunggu: 0, aktif: 0, arkib: 0 });
   const [bilanganDraf, setBilanganDraf] = useState(0);
@@ -102,30 +100,6 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ currentUser,
         <p className="font-sans text-xs text-stone-600">
           Ringkasan operasi editorial harian, {currentUser.name}.
         </p>
-      </div>
-
-      {/* Pintasan */}
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={() => navigate('/?openSlotPicker=1')}
-          className="bg-[#802334] hover:bg-[#601824] text-white p-4 rounded-lg flex items-center gap-3 transition-colors cursor-pointer text-left"
-        >
-          <PenLine className="w-5 h-5 shrink-0" />
-          <div>
-            <div className="font-bold text-xs uppercase tracking-wider">Tulis Kandungan</div>
-            <div className="text-[10px] text-white/70">Buka pemilih slot</div>
-          </div>
-        </button>
-        <button
-          onClick={() => onTukarTab('kandungan')}
-          className="bg-stone-100 hover:bg-stone-200 text-stone-800 p-4 rounded-lg flex items-center gap-3 transition-colors cursor-pointer text-left"
-        >
-          <ListChecks className="w-5 h-5 shrink-0 text-[#802334]" />
-          <div>
-            <div className="font-bold text-xs uppercase tracking-wider">Semakan Kandungan</div>
-            <div className="text-[10px] text-stone-500">Buka Indeks</div>
-          </div>
-        </button>
       </div>
 
       {/* Status kandungan */}

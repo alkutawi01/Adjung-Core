@@ -124,7 +124,8 @@ export function createDbStateRoutes(dbAll, dbGet) {
         // (INSERT OR REPLACE penuh, digabung daripada objek ni) akan memadamnya semula.
         reviewPrompt: settingsRow.reviewPrompt || '',
         worldClockIntervalSec: settingsRow.worldClockIntervalSec !== undefined && settingsRow.worldClockIntervalSec !== null ? settingsRow.worldClockIntervalSec : 60,
-        worldClockBgClickEnabled: settingsRow.worldClockBgClickEnabled !== undefined && settingsRow.worldClockBgClickEnabled !== null ? settingsRow.worldClockBgClickEnabled === 1 : true
+        worldClockBgClickEnabled: settingsRow.worldClockBgClickEnabled !== undefined && settingsRow.worldClockBgClickEnabled !== null ? settingsRow.worldClockBgClickEnabled === 1 : true,
+        glosSelariEnabled: settingsRow.glosSelariEnabled === 1
       } : {};
 
       let currentUser = null;
