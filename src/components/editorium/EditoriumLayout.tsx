@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { List, LayoutGrid, FolderOpen, Settings, History, Landmark, Palette, LogOut, LogIn, Lock, Zap, PenLine, FileEdit } from 'lucide-react';
+import { List, LayoutGrid, Settings, Landmark, LogOut, LogIn, PenLine } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
@@ -18,7 +18,7 @@ interface EditoriumLayoutProps {
 }
 
 export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
-  activeTab = 'indeks',
+  activeTab = 'kandungan',
   onTabChange,
   currentUser = null,
   onRequestLogin,
@@ -37,25 +37,16 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   // aktif tapi kandungan kekal skrin pagar, jadi nav nampak macam rosak.
   const loggedOut = !currentUser;
 
+  // Nav peringkat kategori (2026-08-01, permintaan pemilik projek) — 9 tab mendatar disusun
+  // semula jadi 4 kategori. Setiap kategori buka baris sub-tab sendiri (EditoriumView.tsx), corak
+  // sama yang sudah wujud untuk Kandungan/Slot sebelum ni — kini terpakai serata Editorium, bukan
+  // dua tempat sahaja. Tiada satu pun kategori disekat peringkat ni; sekatan peranan (Tetapan)
+  // kekal di peringkat SUB-tab dalam Pentadbiran.
   const navItems = [
-    { id: 'indeks', label: 'Kandungan', Icon: List },
-    // Draf Saya (2026-08-01, permintaan pemilik projek) — modul BERASINGAN, bukan penapis dalam
-    // Kandungan: draf tidak pernah masuk Indeks langsung (ia teks dalam slot masing-masing), jadi
-    // ia bukan subset paparan Kandungan. Susunan tab ni akan dikumpulkan semula ikut kategori
-    // dalam kerja berasingan nanti.
-    { id: 'draf_saya', label: 'Draf Saya', Icon: FileEdit },
-    // Slot (2026-07-30, permintaan pemilik projek) — senarai kandungan ikut slot (sunting/tambah/
-    // padam item). Dulu ia paparan togol dalam "Semakan Kandungan"; kini destinasi sendiri, dan
-    // Semakan Kandungan tinggal paparan teks pukal sahaja.
+    { id: 'kandungan', label: 'Kandungan', Icon: List },
     { id: 'slot', label: 'Slot', Icon: LayoutGrid },
-    { id: 'direktori', label: 'Direktori', Icon: FolderOpen },
-    // Modul Khas (2026-07-29, permintaan pemilik projek) — rumah baharu "Urus Ticker" (dipindah
-    // daripada frontpage, dulu butang gear kecil yang cuma muncul dalam mod edit inline).
-    { id: 'modul_khas', label: 'Modul Khas', Icon: Zap },
-    { id: 'tetapan', label: 'Tetapan', Icon: Settings, restricted: currentUser?.role !== 'KETUA_EDITOR' },
-    { id: 'log_audit', label: 'Log Audit', Icon: History },
-    { id: 'perlembagaan', label: 'Perlembagaan', Icon: Landmark },
-    { id: 'reka_bentuk', label: 'Reka Bentuk', Icon: Palette }
+    { id: 'pentadbiran', label: 'Pentadbiran', Icon: Settings },
+    { id: 'rujukan', label: 'Rujukan', Icon: Landmark },
   ];
 
   return (
@@ -134,10 +125,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           {navItems.map(item => {
             const isActive = currentTab === item.id && !loggedOut;
             const { Icon } = item;
-            // Tab terkunci: belum log masuk (semua tab), atau peranan tak cukup (cth Tetapan
-            // untuk Editor). Kunci ni SEBENAR — butang di-disable, bukan sekadar dikelabukan
-            // sambil klik masih menukar tab macam dulu.
-            const isLocked = loggedOut || item.restricted;
+            // Belum log masuk = SEMUA kategori terkunci (skrin pagar di tengah sudah menerangkan
+            // sebabnya). Sekatan peranan (Tetapan) tidak lagi wujud di peringkat kategori ni sejak
+            // ia dipindah jadi sub-tab dalam Pentadbiran — lihat EditoriumView.tsx.
+            const isLocked = loggedOut;
             return (
               <button
                 key={item.id}
@@ -145,7 +136,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 disabled={isLocked}
                 aria-disabled={isLocked}
                 title={loggedOut ? 'Log masuk dahulu untuk membuka tab ini' : undefined}
-                className={`relative flex items-center gap-1.5 text-[12.5px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-200 ${
+                className={`relative flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 ${
                   isActive
                     ? 'bg-white text-[#802334] shadow-[0_1px_4px_rgba(0,0,0,0.12)]'
                     : isLocked
@@ -155,10 +146,6 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               >
                 <Icon className="w-3.5 h-3.5" strokeWidth={2.2} />
                 {item.label}
-                {/* Ikon kunci kecil hanya untuk sekatan peranan. Sebelum log masuk SEMUA tab
-                    terkunci, jadi 7 ikon kunci berturut cuma jadi bising — skrin pagar di tengah
-                    sudah pun menerangkan sebabnya. */}
-                {!loggedOut && item.restricted && <Lock className="w-3 h-3" strokeWidth={2.2} />}
               </button>
             );
           })}
