@@ -131,11 +131,11 @@ class CategoryRegistry {
     const now = new Date().toISOString();
 
     await this.dbRun(db, `
-      INSERT INTO CategoryRegistry (id, slug, name, color, usageCount, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, 0, ?, ?)
-    `, [id, slug, name, chosenColor, now, now]);
+      INSERT INTO CategoryRegistry (id, slug, name, color, usageCount, originalName, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+    `, [id, slug, name, chosenColor, name, now, now]);
 
-    return { id, slug, name, color: chosenColor, usageCount: 0, createdAt: now, updatedAt: now };
+    return { id, slug, name, color: chosenColor, usageCount: 0, originalName: name, createdAt: now, updatedAt: now };
   }
 
   static async getCategoryColor(db, category) {
@@ -265,10 +265,21 @@ class CategoryRegistry {
     const finalColor = color || this.generateColorBeyondPalette(0);
     const finalIcon = icon || null;
     await this.dbRun(db, `
-      INSERT INTO CategoryRegistry (id, slug, name, color, icon, usageCount, isActive, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?)
-    `, [id, slug, trimmedName, finalColor, finalIcon, now, now]);
-    return { id, slug, name: trimmedName, color: finalColor, icon: finalIcon, usageCount: 0, isActive: 1, createdAt: now, updatedAt: now };
+      INSERT INTO CategoryRegistry (id, slug, name, color, icon, usageCount, isActive, originalName, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?, ?)
+    `, [id, slug, trimmedName, finalColor, finalIcon, trimmedName, now, now]);
+    return { id, slug, name: trimmedName, color: finalColor, icon: finalIcon, usageCount: 0, isActive: 1, originalName: trimmedName, createdAt: now, updatedAt: now };
+  }
+
+  // Arkib/pulih SATU Bidang taksonomi (2026-08-01, spesifikasi pemilik projek). Arkib TIDAK
+  // mengarkibkan kandungan sedia ada dalam slot yang guna Bidang tu — itu peraturan berasingan
+  // (lihat archiveLiveContentInSlot, dipanggil eksplisit apabila TUKAR Bidang satu slot, bukan
+  // apabila Bidang itu sendiri diarkibkan). Bidang diarkib cuma hilang daripada senarai boleh
+  // pilih untuk kandungan BAHARU — kandungan sedia ada yang sudah guna Bidang tu terus hidup.
+  static async setActiveStatus(db, id, isActive) {
+    if (!id) throw new Error('id Bidang diperlukan.');
+    const now = new Date().toISOString();
+    await this.dbRun(db, "UPDATE CategoryRegistry SET isActive = ?, updatedAt = ? WHERE id = ?", [isActive ? 1 : 0, now, id]);
   }
 
   // Tukar ikon SATU baris Bidang taksonomi ke ikon lucide-react terkurasi (Taksonomi -> klik badge

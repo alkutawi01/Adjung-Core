@@ -230,6 +230,38 @@ export function createCategoryRoutes(db) {
     }
   });
 
+  // GET /api/system/categories/taksonomi — senarai PENUH Bidang (aktif DAN arkib) untuk konsol
+  // Bidang Editorium. Berasingan daripada /categories/active (yang cuma aktif, untuk dropdown
+  // awam/borang kandungan) — di sini Ketua Editor perlu nampak dua-dua status untuk boleh
+  // pulihkan yang diarkib.
+  router.get('/categories/taksonomi', async (req, res) => {
+    try {
+      const semua = await CategoryRegistry.getAllCategories(db);
+      const withSlots = await Promise.all(semua.map(async (cat) => ({
+        ...cat,
+        slots: await CategoryRegistry.getSlotsForCategory(db, cat.name),
+      })));
+      res.json(withSlots);
+    } catch (err) {
+      console.error('Fetch taksonomi categories error:', err);
+      res.status(500).json({ error: 'Failed to fetch taksonomi categories.' });
+    }
+  });
+
+  // POST /api/system/categories/set-active — arkib/pulih SATU Bidang (Ketua Editor sahaja,
+  // dikuatkuasakan di peringkat UI — lihat BidangConsole.tsx).
+  router.post('/categories/set-active', async (req, res) => {
+    try {
+      const { id, isActive } = req.body;
+      if (!id) return res.status(400).json({ error: 'id Bidang diperlukan.' });
+      await CategoryRegistry.setActiveStatus(db, id, !!isActive);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Set active category error:', err);
+      res.status(500).json({ error: err.message || 'Failed to update category status.' });
+    }
+  });
+
   // GET /api/system/categories/illustration?name=<Bidang> — markup plat SATU Bidang.
   //
   // Berasingan daripada /categories/active dengan sengaja: plat boleh ratusan kilobait, dan hanya

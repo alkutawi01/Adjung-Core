@@ -28,6 +28,12 @@ interface ActiveBidang {
   hasIllustration: boolean;
   usageCount: number;
   slots: number[];
+  /** Status arkib (2026-08-01, spesifikasi pemilik projek) — 1 aktif (boleh dipilih untuk
+   *  kandungan baharu), 0 arkib (tak boleh dipilih baharu, tapi kandungan sedia ada terus hidup). */
+  isActive: number;
+  /** Nama asal (2026-08-01) — dicap sekali semasa Bidang dicipta, tak berubah bila dinamakan
+   *  semula. Sama dengan `name` bermaksud tak pernah dinamakan semula sejak medan ni wujud. */
+  originalName: string;
 }
 
 export const BidangConsole: React.FC = () => {
@@ -38,15 +44,44 @@ export const BidangConsole: React.FC = () => {
   const [renameValue, setRenameValue] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // /categories/taksonomi (bukan /categories/active) — konsol ni perlukan DUA-DUA status
+  // (aktif+arkib) supaya Ketua Editor boleh nampak dan pulihkan yang diarkib. /categories/active
+  // (aktif sahaja) masih dipakai di tempat lain (dropdown borang kandungan, dll).
   const fetchActiveBidang = () => {
     setDesksLoading(true);
-    fetch('/api/system/categories/active')
+    fetch('/api/system/categories/taksonomi')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setDesks(data);
       })
-      .catch(e => console.error('Error fetching active Bidang:', e))
+      .catch(e => console.error('Error fetching Bidang:', e))
       .finally(() => setDesksLoading(false));
+  };
+
+  // Papar Aktif sahaja secara lalai (sama kelakuan seperti dulu) — Arkib/Semua ditogol bila
+  // benar-benar perlu, bukan membanjiri jadual utama dengan Bidang yang dah tak dipakai.
+  const [paparanStatus, setPaparanStatus] = useState<'aktif' | 'arkib' | 'semua'>('aktif');
+  const desksTertapis = desks.filter(d =>
+    paparanStatus === 'semua' ? true : paparanStatus === 'aktif' ? d.isActive === 1 : d.isActive !== 1
+  );
+  const [menukarStatusId, setMenukarStatusId] = useState<string | null>(null);
+
+  const togolStatusBidang = async (d: ActiveBidang) => {
+    setMenukarStatusId(d.id);
+    try {
+      const res = await fetch('/api/system/categories/set-active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: d.id, isActive: d.isActive !== 1 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini status Bidang.');
+      fetchActiveBidang();
+    } catch (e: any) {
+      alert('Ralat: ' + (e.message || ''));
+    } finally {
+      setMenukarStatusId(null);
+    }
   };
 
   // Editor sesuatu Bidang TIDAK disimpan berasingan — ia dikira daripada penugasan slot (lihat
@@ -117,11 +152,12 @@ export const BidangConsole: React.FC = () => {
     if (BAR_SLOT_SET.has(slotIndex)) return; // Slot Bar untuk event sahaja, tak boleh diperuntukkan.
     const owner = (usageFor(slotIndex)?.bidang || '').trim();
     const milikBidangIni = owner.toLowerCase() === d.name.toLowerCase();
-    // Cuma Bidang AKTIF/berdaftar (senarai `desks`) yang layak "memiliki" slot dan menyekat
-    // pengagihan semula. Nilai manualDesk lama/anak yatim (cth "GENERAL") yang tak lagi wujud
-    // dalam senarai Bidang tak ada panel sendiri untuk "dibuang dahulu" — sekat di sini jadi
-    // deadlock mustahil diikuti. Rawat macam slot kosong sebaliknya.
-    const ownerAktif = owner && desks.some(x => x.name.toLowerCase() === owner.toLowerCase());
+    // Cuma Bidang AKTIF (bukan diarkib, `desks` kini pegang kedua-dua status sejak togol
+    // Aktif/Arkib/Semua ditambah) yang layak "memiliki" slot dan menyekat pengagihan semula.
+    // Nilai manualDesk lama/anak yatim (cth "GENERAL") atau Bidang yang sudah diarkib tak ada
+    // panel sendiri untuk "dibuang dahulu" — sekat di sini jadi deadlock mustahil diikuti. Rawat
+    // macam slot kosong sebaliknya.
+    const ownerAktif = owner && desks.some(x => x.isActive === 1 && x.name.toLowerCase() === owner.toLowerCase());
 
     // Slot milik Bidang lain (berdaftar) tidak boleh dirampas dari sini. Buang dari Bidang itu
     // dahulu — supaya pemiliknya sedar slotnya hilang, dan bukan ia lenyap tanpa dia tahu.
@@ -437,7 +473,7 @@ export const BidangConsole: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5" /> {desks.length} Bidang Aktif
+              <Zap className="w-3.5 h-3.5" /> {desks.filter(d => d.isActive === 1).length} Bidang Aktif
             </span>
             <button
               onClick={() => setShowAddModal(true)}
@@ -448,8 +484,26 @@ export const BidangConsole: React.FC = () => {
           </div>
         </div>
 
+        {/* Togol paparan status (2026-08-01) — lalai Aktif sahaja, sama kelakuan seperti dulu. */}
+        <div className="flex items-center bg-stone-100 p-0.5 rounded border border-stone-200 text-xs w-max">
+          {(['aktif', 'arkib', 'semua'] as const).map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setPaparanStatus(s)}
+              className={`px-3 py-1 rounded font-semibold transition-all capitalize cursor-pointer ${
+                paparanStatus === s ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
         {desksLoading ? (
           <div className="text-stone-400 text-xs py-6 text-center">Memuatkan Bidang...</div>
+        ) : desksTertapis.length === 0 ? (
+          <div className="text-stone-400 text-xs py-10 text-center">Tiada Bidang dalam paparan ini.</div>
         ) : (
           <table className="w-full text-left border-collapse text-xs">
             <thead>
@@ -457,12 +511,14 @@ export const BidangConsole: React.FC = () => {
                 <th className="p-3">Ikon</th>
                 <th className="p-3">Warna</th>
                 <th className="p-3">Nama Bidang</th>
+                <th className="p-3">Nama Asal</th>
+                <th className="p-3">Status</th>
                 <th className="p-3">Nombor Slot Diperuntukkan</th>
                 <th className="p-3">Editor</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {desks.map(d => (
+              {desksTertapis.map(d => (
                 <React.Fragment key={d.id}>
                   <tr className="hover:bg-stone-50">
                     <td className="p-3">
@@ -531,6 +587,24 @@ export const BidangConsole: React.FC = () => {
                         </button>
                       )}
                     </td>
+                    <td className="p-3 text-stone-500 text-[11px]">
+                      {d.originalName && d.originalName !== d.name ? d.originalName : <span className="text-stone-300">—</span>}
+                    </td>
+                    <td className="p-3">
+                      <button
+                        type="button"
+                        onClick={() => togolStatusBidang(d)}
+                        disabled={menukarStatusId === d.id}
+                        title={d.isActive === 1 ? 'Klik untuk arkibkan' : 'Klik untuk pulihkan'}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 ${
+                          d.isActive === 1
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                            : 'bg-stone-100 text-stone-500 border border-stone-300 hover:bg-stone-200'
+                        }`}
+                      >
+                        {d.isActive === 1 ? 'Aktif' : 'Arkib'}
+                      </button>
+                    </td>
                     <td className="p-3 text-stone-600 font-sans text-[11px]">
                       <button
                         type="button"
@@ -566,7 +640,7 @@ export const BidangConsole: React.FC = () => {
                     const { tambah, buang, adaPerubahan, jumlahArkib } = slotDiff(d);
                     return (
                     <tr>
-                      <td colSpan={5} className="p-4 bg-stone-50">
+                      <td colSpan={7} className="p-4 bg-stone-50">
                         <div className="text-[9px] uppercase font-bold text-stone-500 mb-1">
                           Tanda slot untuk peruntukkan Bidang "{d.name}"
                         </div>
@@ -587,7 +661,7 @@ export const BidangConsole: React.FC = () => {
                             const u = usageFor(slotIndex);
                             const owner = (u?.bidang || '').trim();
                             const milikBidangIni = owner.toLowerCase() === d.name.toLowerCase();
-                            const ownerAktif = !!owner && desks.some(x => x.name.toLowerCase() === owner.toLowerCase());
+                            const ownerAktif = !!owner && desks.some(x => x.isActive === 1 && x.name.toLowerCase() === owner.toLowerCase());
                             const milikOrangLain = ownerAktif && !milikBidangIni;
                             const dipilih = pending.includes(slotIndex);
                             const live = u?.liveCount || 0;

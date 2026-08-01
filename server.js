@@ -31,6 +31,7 @@ import { createSlotEditorRoutes } from './core/routes/slotEditorRoutes.js';
 import { createDraftRoutes } from './core/routes/draftRoutes.js';
 import { createEditorNotesRoutes } from './core/routes/editorNotesRoutes.js';
 import { createGlosariRoutes } from './core/routes/glosariRoutes.js';
+import { createProfileRoutes } from './core/routes/profileRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
@@ -1579,6 +1580,14 @@ const initEditorialOS = (dbConn) => {
                                                     // cuma tak boleh dipilih/dipapar lagi). GET /categories (sumber warna kad
                                                     // awam) terus baca SEMUA baris tanpa tapisan isActive — tak disentuh.
                                                     dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN isActive INTEGER NOT NULL DEFAULT 0", () => {
+                                                    // originalName (2026-08-01, spesifikasi pemilik projek — "nama asal") — dicap
+                                                    // SEKALI semasa Bidang dicipta, tak pernah disentuh oleh rename kemudian.
+                                                    // Backfill baris sedia ada dengan nama SEMASA sebagai "asal" — nama asal
+                                                    // sebenar sebelum rename pertama tak dapat dipulihkan (tak pernah dicatat),
+                                                    // jadi ini titik mula paling jujur, bukan reka nilai.
+                                                    dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN originalName TEXT", () => {
+                                                      dbConn.run("UPDATE CategoryRegistry SET originalName = name WHERE originalName IS NULL", () => {});
+                                                    });
                                                     dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN icon TEXT", () => {
                                                     // iconSvg: markup SVG custom admin muat naik sendiri (disanitize di
                                                     // POST /categories/set-icon-svg sebelum simpan) — bila diisi, menang
@@ -2391,6 +2400,7 @@ app.use('/api/system', createDraftRoutes(dbAll));
 // /api/system/editor-notes (Editorium) dan /api/public/editor-notes (portal awam).
 app.use('/api', createEditorNotesRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createGlosariRoutes(dbAll, dbRun, dbGet));
+app.use('/api/system', createProfileRoutes(dbGet, dbRun));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali

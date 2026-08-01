@@ -6,6 +6,7 @@ import { IndeksConsole } from './IndeksConsole';
 import { DrafSayaConsole } from './DrafSayaConsole';
 import { NotaKetuaEditorConsole } from './NotaKetuaEditorConsole';
 import { MaklumanDrawer } from './MaklumanDrawer';
+import { ProfilEditorModal } from './ProfilEditorModal';
 import { DirektoriConsole } from './DirektoriConsole';
 import { TetapanConsole } from './TetapanConsole';
 import { EditorialConsole } from './EditorialConsole';
@@ -64,11 +65,14 @@ interface EditoriumViewProps {
   currentUser: { id: string; name: string; role: 'KETUA_EDITOR' | 'EDITOR' } | null;
   onRequestLogin: () => void;
   onLogout: () => void;
+  // Profil Editor (2026-08-01) — kemas kini nama pena serta-merta di sesi App.tsx (header/
+  // Editorium papar nama tu) tanpa perlu log keluar-masuk semula.
+  onProfilKemasKini: (patch: { penName?: string }) => void;
 }
 
 // Sesi log masuk (currentUser) kini state kongsi diangkat naik ke App.tsx — supaya FrontpageView
 // (borang Tetapan Slot Bidang, butang "Edit Kandungan") turut boleh baca sesi yang sama.
-export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onRequestLogin, onLogout }) => {
+export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onRequestLogin, onLogout, onProfilKemasKini }) => {
   const navigate = useNavigate();
   // Destinasi peringkat atas (2026-08-01, permintaan pemilik projek — sidebar dua kumpulan, satu
   // klik terus). Lihat EditoriumLayout.tsx untuk susunan Operasi Harian / Tata Kelola & Rujukan.
@@ -118,6 +122,31 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const [makluanTerbuka, setMaklumanTerbuka] = useState(false);
   // Dinaikkan selepas konsol Nota menyimpan sesuatu, supaya lencana header tak kekal lapuk.
   const [maklumanVersi, setMaklumanVersi] = useState(0);
+
+  // Profil Editor (2026-08-01, spesifikasi pemilik projek — aksesori header). Data penuh (nama
+  // pena, tandatangan, warna avatar, bio) diambil dari /api/db-state bila modal dibuka — prop
+  // `currentUser` cuma bawa id/name/role, tak cukup untuk borang profil.
+  const [profilTerbuka, setProfilTerbuka] = useState(false);
+  const [profilData, setProfilData] = useState<{ id: string; penName: string; signature: string; avatarColor: string; bioSummary: string } | null>(null);
+  const bukaProfil = () => {
+    fetch('/api/db-state')
+      .then((r) => r.json())
+      .then((d) => {
+        const u = (d.users || []).find((x: any) => x.id === currentUser?.id);
+        setProfilData({
+          id: currentUser!.id,
+          penName: u?.penName || currentUser!.name,
+          signature: u?.signature || '',
+          avatarColor: u?.avatarColor || '#802334',
+          bioSummary: u?.bioSummary || '',
+        });
+        setProfilTerbuka(true);
+      })
+      .catch(() => {
+        setProfilData({ id: currentUser!.id, penName: currentUser!.name, signature: '', avatarColor: '#802334', bioSummary: '' });
+        setProfilTerbuka(true);
+      });
+  };
 
   useEffect(() => {
     if (!currentUser) return;
@@ -202,6 +231,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       onOpenSlotPicker={() => slotEditor.setShowSlotPicker(true)}
       onOpenMakluman={() => setMaklumanTerbuka(true)}
       jumlahMakluman={notaMakluman.length}
+      onOpenProfil={bukaProfil}
     >
       {/* OPERASI HARIAN — destinasi kerja editorial setiap hari. */}
 
@@ -330,6 +360,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           nota={notaMakluman}
           memuat={memuatMakluman}
           onTutup={() => setMaklumanTerbuka(false)}
+        />
+      )}
+
+      {profilTerbuka && profilData && (
+        <ProfilEditorModal
+          profil={profilData}
+          onTutup={() => setProfilTerbuka(false)}
+          onKemasKini={(patch) => {
+            if (patch.penName) onProfilKemasKini({ penName: patch.penName });
+          }}
         />
       )}
 

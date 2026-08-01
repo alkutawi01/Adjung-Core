@@ -70,6 +70,18 @@ export default function App() {
     }
   };
 
+  // Profil Editor (2026-08-01, spesifikasi pemilik projek) — kemas kini nama pena serta-merta di
+  // sesi log masuk (header/Editorium papar nama tu), tanpa perlu log keluar-masuk semula.
+  // Kekalkan storan (local/session) yang sama yang sedia digunakan — jangan tukar pilihan
+  // "Ingat saya" sekadar sebab profil disunting.
+  const handleProfilKemasKini = (patch: { penName?: string }) => {
+    if (!authUser) return;
+    const updated = { ...authUser, ...patch };
+    setAuthUser(updated);
+    const target = window.localStorage.getItem(AUTH_STORAGE_KEY) ? window.localStorage : window.sessionStorage;
+    target.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+  };
+
   const handleLogout = () => {
     setAuthUser(null);
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -252,6 +264,7 @@ export default function App() {
                 currentUser={currentEditoriumUser}
                 onRequestLogin={() => requestLogin()}
                 onLogout={handleLogout}
+                onProfilKemasKini={handleProfilKemasKini}
               />
             </motion.div>
           } />
