@@ -67,6 +67,10 @@ export const createDraftRoutes = (dbAll) => {
             tajuk: b.title || '',
             topik: b.topik || '',
             huraian: b.brief || '',
+            // huraianPanjang (2026-08-01) — semata-mata untuk penunjuk "kelengkapan" di UI (ada/
+            // tiada Huraian Panjang). Isi penuh tak dihantar dalam senarai ringkas mana-mana medan
+            // lain sebab tu; ni satu-satunya pengecualian, dan cuma dibaca untuk semak !!string.
+            huraianPanjang: b.briefLong || '',
             penulis: b.penulis || '',
             milik,
           });

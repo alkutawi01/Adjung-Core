@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ShieldCheck, ShieldAlert, Check, AlignLeft } from 'lucide-react';
 import { TIER_LABELS, tierForSlot } from '../../../core/editorial/GeometryConfig.js';
+import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
 import { BidangIcon } from '../common/BidangIcon';
 
 // "Draf Saya" (2026-08-01, permintaan pemilik projek) — sebelum ni seorang editor terpaksa membuka
@@ -10,6 +12,14 @@ import { BidangIcon } from '../common/BidangIcon';
 //
 // Ketua Editor melihat draf DIA SENDIRI sahaja di sini (keputusan pemilik projek) — ini ruang
 // kerja peribadi, bukan papan pemantau kerja orang lain.
+//
+// Metrik, carian/penapis, dan lajur Kelengkapan/Bajet Ruang (2026-08-01) — semak sebelum buka:
+// editor boleh nampak SEBELUM klik sama ada draf tu dah cukup lengkap dan akan lulus semakan bajet
+// ruang kad, tanpa perlu buka setiap satu. Sengaja TIADA butang Terbit/Padam terus di sini —
+// tindakan tu tetap berlaku dalam ruang menulis sebenar (SlotManagerModal), yang satu-satunya
+// tempat tahu SEMUA draf lain dalam slot yang sama dan boleh kekalkannya bila menulis-ganti.
+// Meniru tindakan tu terus di sini bermakna menulis semula logik multi-draf yang sama — risiko
+// tinggi (padam draf lain dalam slot yang sama secara tak sengaja) untuk penjimatan satu klik.
 interface Draf {
   slotIndex: number;
   urutan: number;
@@ -20,6 +30,7 @@ interface Draf {
   tajuk: string;
   topik: string;
   huraian: string;
+  huraianPanjang: string;
   penulis: string;
   milik: 'nama' | 'slot';
 }
@@ -46,6 +57,8 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
   const [bidangList, setBidangList] = useState<Bidang[]>([]);
   const [memuat, setMemuat] = useState(true);
   const [ralat, setRalat] = useState('');
+  const [carian, setCarian] = useState('');
+  const [bidangDipilih, setBidangDipilih] = useState('Semua');
 
   const muatDraf = useCallback(() => {
     setMemuat(true);
@@ -77,6 +90,29 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
 
   const jumlahIkutSlot = draf.filter((d) => d.milik === 'slot').length;
 
+  const senaraiBidang = useMemo(
+    () => ['Semua', ...Array.from(new Set(draf.map((d) => d.bidang).filter(Boolean)))],
+    [draf]
+  );
+
+  const drafTertapis = useMemo(() => {
+    const q = carian.trim().toLowerCase();
+    return draf.filter((d) => {
+      const cocokBidang = bidangDipilih === 'Semua' || d.bidang === bidangDipilih;
+      const cocokCarian = !q
+        || d.tajuk.toLowerCase().includes(q)
+        || d.huraian.toLowerCase().includes(q)
+        || d.topik.toLowerCase().includes(q);
+      return cocokBidang && cocokCarian;
+    });
+  }, [draf, carian, bidangDipilih]);
+
+  const jumlahSlotBerbeza = useMemo(() => new Set(draf.map((d) => d.slotIndex)).size, [draf]);
+  const jumlahLulusBajet = useMemo(
+    () => draf.filter((d) => validateContentBudget(d.slotIndex, d.tajuk, d.huraian).isValid).length,
+    [draf]
+  );
+
   return (
     <div className="space-y-4 font-sans">
       <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
@@ -96,8 +132,49 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
           </button>
         </div>
 
+        {/* Metrik ringkas — gambaran keseluruhan sebelum menatal senarai. */}
+        {!memuat && draf.length > 0 && (
+          <div className="grid grid-cols-3 gap-4 py-3 border-y border-stone-100">
+            <div>
+              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 block">Jumlah draf</span>
+              <span className="font-serif text-xl font-bold text-stone-900">{draf.length}</span>
+            </div>
+            <div>
+              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 block">Slot terlibat</span>
+              <span className="font-serif text-xl font-bold text-stone-900">{jumlahSlotBerbeza}</span>
+            </div>
+            <div>
+              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 block">Lulus bajet ruang</span>
+              <span className="font-serif text-xl font-bold text-stone-900">{jumlahLulusBajet}/{draf.length}</span>
+            </div>
+          </div>
+        )}
+
         {ralat && (
           <div className="border border-red-200 bg-red-50 text-red-800 rounded px-3 py-2 text-[11px]">{ralat}</div>
+        )}
+
+        {/* Carian + penapis Bidang — hanya berguna bila senarai dah mula panjang, jadi sengaja
+            tersembunyi sehingga ada sesuatu untuk ditapis. */}
+        {!memuat && draf.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              type="text"
+              value={carian}
+              onChange={(e) => setCarian(e.target.value)}
+              placeholder="Cari tajuk, huraian, atau topik…"
+              className="flex-1 min-w-[200px] bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+            />
+            {senaraiBidang.length > 2 && (
+              <select
+                value={bidangDipilih}
+                onChange={(e) => setBidangDipilih(e.target.value)}
+                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs cursor-pointer"
+              >
+                {senaraiBidang.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+            )}
+          </div>
         )}
 
         {memuat ? (
@@ -105,6 +182,10 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         ) : draf.length === 0 ? (
           <div className="text-stone-400 text-xs py-10 text-center">
             Tiada draf. Draf baharu muncul di sini sebaik anda menyimpannya dalam mana-mana slot.
+          </div>
+        ) : drafTertapis.length === 0 ? (
+          <div className="text-stone-400 text-xs py-10 text-center">
+            Tiada draf sepadan dengan carian/penapis semasa.
           </div>
         ) : (
           <>
@@ -117,14 +198,17 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                     <th className="p-2.5">Bidang</th>
                     <th className="p-2.5">Topik</th>
                     <th className="p-2.5">Tajuk</th>
+                    <th className="p-2.5">Kelengkapan</th>
+                    <th className="p-2.5">Bajet Ruang</th>
                     <th className="p-2.5"><span className="sr-only">Tindakan</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {draf.map((d) => {
+                  {drafTertapis.map((d) => {
                     const bidang = bidangFor(d.bidang);
                     const tier = d.tier || (tierForSlot(d.slotIndex) as string);
                     const label = d.tierLabel || TIER_LABELS[tier] || tier;
+                    const bajet = validateContentBudget(d.slotIndex, d.tajuk, d.huraian);
                     return (
                       <tr
                         key={`${d.slotIndex}-${d.uuid || d.urutan}`}
@@ -155,6 +239,38 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                           {d.milik === 'slot' && (
                             <span className="ml-2 align-middle font-sans text-[9px] uppercase tracking-wider text-stone-400 border border-stone-200 rounded px-1.5 py-0.5">
                               Ikut slot
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-2.5">
+                          <div className="flex flex-col gap-0.5">
+                            {d.topik ? (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-stone-700">
+                                <Check className="w-2.5 h-2.5 text-emerald-600 shrink-0" /> Ada topik
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-stone-400">Tiada topik</span>
+                            )}
+                            {d.huraianPanjang ? (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-800">
+                                <AlignLeft className="w-2.5 h-2.5 text-emerald-600 shrink-0" /> Ada huraian panjang
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-stone-400">Ringkas sahaja</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-2.5">
+                          {bajet.isValid ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800">
+                              <ShieldCheck className="w-3 h-3" /> Lulus
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-red-800 cursor-help"
+                              title={bajet.reason}
+                            >
+                              <ShieldAlert className="w-3 h-3" /> Lebih had
                             </span>
                           )}
                         </td>
