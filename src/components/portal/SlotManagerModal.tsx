@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, ChevronUp, ChevronDown, Trash2, Lock, Upload, AlertCircle } from 'lucide-react';
 import { validateContentBudget, validateBidangTopik } from '../../../core/editorial/ContentBudget.js';
 import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot } from '../../../core/editorial/GeometryConfig.js';
@@ -225,7 +225,6 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, onClose, onSave,
   slotOptions, onSwitchSlot, initialUuid,
 }) => {
-  const editorName = currentEditoriumName || EDITOR_PLACEHOLDER;
   // Kandungan mana yang terbuka dahulu. Lalai yang pertama; bila dibuka daripada "Draf Saya"
   // (initialUuid), terus mendarat pada draf yang diklik. Sengaja dikira dalam initializer useState
   // (dijalankan SEKALI semasa mount, sama macam `items` di bawah) dan bukan useEffect selepas
@@ -240,6 +239,24 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const [aiNote, setAiNote] = useState('');
   const [imageNote, setImageNote] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Editor(s) DITUGASKAN kepada slot ni (2026-08-01, permintaan pemilik projek) — maklumat
+  // PERINGKAT SLOT (ditetapkan di Senarai Slot), berasingan daripada `editorName`/Penulis blok
+  // (siapa MENULIS satu kandungan). Satu slot boleh ada lebih seorang editor, jadi ini senarai,
+  // bukan satu nama. Dimuatkan sekali sahaja bila slot dibuka (key={editingSlotIndex} di
+  // EditoriumView memaksa remount setiap tukar slot, sama corak macam `items` di atas).
+  const [editorSlot, setEditorSlot] = useState<{ nama: string }[] | null>(null);
+  useEffect(() => {
+    let batal = false;
+    fetch('/api/system/slot-editors')
+      .then((res) => res.json())
+      .then((rows) => {
+        if (batal || !Array.isArray(rows)) return;
+        setEditorSlot(rows.filter((r: any) => r.slotIndex === editingSlotIndex));
+      })
+      .catch(() => { if (!batal) setEditorSlot([]); });
+    return () => { batal = true; };
+  }, [editingSlotIndex]);
 
   const tier = tierForSlot(editingSlotIndex) || 'STANDARD';
   const ceiling = ceilingForSlot(editingSlotIndex);
@@ -576,7 +593,19 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <ReadOnlyField label="Nombor" value={String(editingSlotIndex + 1)} />
                 <ReadOnlyField label="Jenis" value={TIER_LABELS[tier] || tier} />
                 <ReadOnlyField label="Bidang" value={desk} />
-                <ReadOnlyField label="Editor" value={editorName} />
+                {/* Editor DITUGASKAN kepada slot (2026-08-01) — bukan lagi orang yang sedang log
+                    masuk. Ditetapkan di Editorium → Slot → Senarai Slot, bukan di sini (lihat nota
+                    warna di bawah). Kosong = belum ditugaskan sesiapa. */}
+                <ReadOnlyField
+                  label="Editor"
+                  value={
+                    editorSlot === null
+                      ? 'Memuatkan…'
+                      : editorSlot.length > 0
+                        ? editorSlot.map((e) => e.nama).join(', ')
+                        : 'Belum ditugaskan'
+                  }
+                />
                 <ReadOnlyField label="Bilangan kandungan" value={String(items.length)} />
                 {/* Kadar putaran carousel (2026-07-29) — dipindah dari footer ke sini: tetapan
                     berkaitan SLOT (ditetapkan Ketua Editor), bukan urusan editor menulis kandungan. */}
