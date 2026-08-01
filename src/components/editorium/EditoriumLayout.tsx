@@ -52,10 +52,10 @@ const PENGURUSAN: NavItem[] = [
   { id: 'tetapan', label: 'Tetapan', Icon: Settings },
 ];
 
-// Sistem (2026-08-01) — Panduan (panduan penggunaan Editorium, belum dibina), Dokumentasi
-// (Peraturan Am + Reka Bentuk, dulu digabung sebagai "Rujukan"), Log Sistem (kini berdiri
-// sendiri, bukan sub-tab Dokumentasi lagi — pemilik projek nak ia destinasi tersendiri).
-const SISTEM: NavItem[] = [
+// Rujukan (2026-08-01) — Panduan (panduan penggunaan Editorium, belum dibina), Dokumentasi
+// (Peraturan Am + Reka Bentuk), Log Sistem (berdiri sendiri, bukan sub-tab Dokumentasi lagi).
+// Nama kumpulan ditukar daripada "Sistem" kepada "Rujukan" atas arahan pemilik projek.
+const RUJUKAN: NavItem[] = [
   { id: 'panduan', label: 'Panduan', Icon: BookMarked },
   { id: 'dokumentasi', label: 'Dokumentasi', Icon: FileText },
   { id: 'log_sistem', label: 'Log Sistem', Icon: History },
@@ -272,7 +272,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               {renderKumpulan('Pengurusan', PENGURUSAN)}
             </div>
             <div className="border-t border-stone-200 pt-4">
-              {renderKumpulan('Sistem', SISTEM)}
+              {renderKumpulan('Rujukan', RUJUKAN)}
             </div>
           </div>
         </aside>
@@ -280,7 +280,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
         {/* Sidebar dibalut jadi bar mendatar boleh skrol pada skrin sempit (< md) — bukan
             disembunyikan terus, atau Editorium jadi tak boleh dinavigasi pada telefon/tablet. */}
         <nav className="md:hidden w-full overflow-x-auto flex gap-1 px-3 py-2 border-b border-stone-200 bg-[#F6F4EF]">
-          {[...PENERBITAN, ...PENGURUSAN, ...SISTEM].map((item) => {
+          {[...PENERBITAN, ...PENGURUSAN, ...RUJUKAN].map((item) => {
             const isActive = currentTab === item.id && !loggedOut;
             const isLocked = loggedOut || restricted(item.id);
             const { Icon } = item;
