@@ -10,6 +10,8 @@ adjung.db
 *.db
 *.sqlite
 *.sqlite3
+*.db.backup
 *.db.backup-*
+scratch/
 .claude/
 public/uploads/
