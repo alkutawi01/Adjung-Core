@@ -42,12 +42,16 @@ interface NavItem {
 const OPERASI_HARIAN: NavItem[] = [
   { id: 'kandungan', label: 'Kandungan', Icon: List },
   { id: 'draf_saya', label: 'Draf Saya', Icon: FileEdit },
-  { id: 'nota_ketua_editor', label: 'Nota Ketua Editor', Icon: Bell },
   { id: 'modul_khas', label: 'Modul Khas', Icon: Zap },
   { id: 'slot', label: 'Slot', Icon: LayoutGrid },
 ];
 
+// Nota Ketua Editor (2026-08-01) — dipindah ke sini daripada Operasi Harian: ia tempat Ketua
+// Editor MENULIS nota (Ketua Editor sahaja, terkunci untuk Editor — lihat restricted() di bawah),
+// bukan kerja editorial harian yang dikongsi pasukan. Sebaris dengan Editorial/Tetapan yang sama
+// sifatnya (tindakan pentadbiran Ketua Editor).
 const TATA_KELOLA: NavItem[] = [
+  { id: 'nota_ketua_editor', label: 'Nota Ketua Editor', Icon: Bell },
   { id: 'editorial', label: 'Editorial', Icon: BookOpen },
   { id: 'direktori', label: 'Direktori', Icon: FolderOpen },
   { id: 'tetapan', label: 'Tetapan', Icon: Settings },
