@@ -163,11 +163,15 @@ dasar bersih pertama kali — dahulu 82/84).
       pulih versi
 - [ ] Sebab penolakan — `Tolak` kini pulangkan draf TANPA sebarang catatan kepada penulis
 
-### [ ] Fasa 6b — Profil editor lengkap & sistem notifikasi sebenar · `L` · ~6 hari
+### [~] Fasa 6b — Profil editor lengkap & sistem notifikasi sebenar · `M` · ~5 hari
 Ditambah 2026-08-02 selepas semakan Izzat mendapati dua jurang: profil editor tak lengkap,
 dan Peti Makluman cuma Nota Ketua Editor — bukan sistem notifikasi.
 
-**Profil Editor (kini: nama pena/tandatangan/warna/bio sahaja boleh disunting):**
+**Profil Editor** — DIPERMUDAH 2026-08-02 (commit `75c41d4`) sebelum kerja bermula: Izzat
+"ni bukan medsos, hanya utk rujukan dalaman, kalau ada pun di kad/focus view, nama pena."
+Avatar/tandatangan/bio **DIBUANG** (bukan skop, bukan sekadar belum dibina — disahkan
+tak pernah terpapar di byline Focus View pun, itu guna atribut `editorName` kandungan,
+bukan medan profil). Profil kini Nama Pena sahaja + baki di bawah:
 - [ ] Tukar kata laluan sendiri — laluan backend `POST /api/auth/change-password` SUDAH
       wujud (Fasa 1) tapi TIADA UI langsung; tambah borang dalam `ProfilEditorModal.tsx`
 - [ ] Tukar username sendiri — TIADA laluan, TIADA UI. Keputusan Izzat: editor boleh

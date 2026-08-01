@@ -288,14 +288,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // kandungan sedia ada sebelum ciri ni wujud (tak sumbang opsyen di sini, sama corak macam
   // creator/source di atas).
   const editorNameOptions = useMemo(() => Array.from(new Set(items.map(i => i.editorName).filter(Boolean))).sort(), [items]);
-  const slotOptions = useMemo(() => {
-    const slots: string[] = Array.from(new Set(items.map(i => i.slot)));
-    return slots.sort((a: string, b: string) => {
-      if (a === 'Ticker') return -1;
-      if (b === 'Ticker') return 1;
-      return parseInt(a.replace('Slot ', ''), 10) - parseInt(b.replace('Slot ', ''), 10);
-    });
-  }, [items]);
+  // 2026-08-02 — DAHULU terbitan daripada `items` (slot yang wujud dalam kandungan sedia ada
+  // sahaja), jadi mana-mana slot yang langsung tiada kandungan (cth Slot 1/Hero, ditemui semasa
+  // ujian: sifar rekod editorial_objects) terus HILANG daripada senarai penapis — editor tak
+  // dapat pilih slot tu langsung untuk sahkan ia memang kosong. Kini senarai TETAP (Ticker +
+  // Slot 1-38), tak kira ada kandungan atau tidak — penapis patut benarkan pilih mana-mana slot.
+  const slotOptions = useMemo(() => ['Ticker', ...Array.from({ length: 38 }, (_, i) => `Slot ${i + 1}`)], []);
 
   // Smart Filtering Logic
   const filteredRecords = useMemo(() => {
