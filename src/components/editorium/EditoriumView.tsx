@@ -96,6 +96,9 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const [kandunganSubTab, setKandunganSubTab] = useState<'indeks' | 'semakan'>('indeks');
   // Sub-tab DALAMAN destinasi "Slot" (2026-07-30) — tidak berubah struktur.
   const [slotSubTab, setSlotSubTab] = useState<'senarai' | 'tier' | 'bidang' | 'tetapan_am'>('senarai');
+  // Sub-tab DALAMAN destinasi "Rujukan" (2026-08-01) — Perlembagaan/Reka Bentuk/Log Audit
+  // digabung satu destinasi, dipisahkan semula sebagai sub-tab di sini.
+  const [rujukanSubTab, setRujukanSubTab] = useState<'peraturan_am' | 'reka_bentuk' | 'log_sistem'>('peraturan_am');
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
@@ -351,11 +354,25 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         <TetapanConsole currentUserRole={currentUser.role} />
       )}
 
-      {activeTab === 'log_audit' && <LogAuditConsole />}
-
-      {activeTab === 'perlembagaan' && <PerlembagaanConsole />}
-
-      {activeTab === 'reka_bentuk' && <SistemRekaBentukConsole />}
+      {/* Rujukan (2026-08-01, permintaan pemilik projek — padatkan 7 destinasi Tata Kelola &
+          Rujukan jadi 5) — Perlembagaan, Reka Bentuk, Log Audit digabung SATU destinasi: ketiga-
+          tiganya "tengok/rujuk", bukan "ubah" keadaan sistem, jadi wajar sebumbung. */}
+      {activeTab === 'rujukan' && (
+        <div className="space-y-4 font-sans">
+          <SubTabBar
+            items={[
+              { id: 'peraturan_am', label: '1. Peraturan Am' },
+              { id: 'reka_bentuk', label: '2. Reka Bentuk' },
+              { id: 'log_sistem', label: '3. Log Sistem' },
+            ]}
+            active={rujukanSubTab}
+            onChange={setRujukanSubTab}
+          />
+          {rujukanSubTab === 'peraturan_am' && <PerlembagaanConsole />}
+          {rujukanSubTab === 'reka_bentuk' && <SistemRekaBentukConsole />}
+          {rujukanSubTab === 'log_sistem' && <LogAuditConsole />}
+        </div>
+      )}
 
       {makluanTerbuka && (
         <MaklumanDrawer

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings, History, Landmark, Palette,
+  List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings, Landmark,
   LogOut, LogIn, PenLine, Mail, Lock, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
@@ -50,14 +50,17 @@ const OPERASI_HARIAN: NavItem[] = [
 // Editor MENULIS nota (Ketua Editor sahaja, terkunci untuk Editor — lihat restricted() di bawah),
 // bukan kerja editorial harian yang dikongsi pasukan. Sebaris dengan Editorial/Tetapan yang sama
 // sifatnya (tindakan pentadbiran Ketua Editor).
+// Rujukan (2026-08-01, permintaan pemilik projek — padatkan 7 destinasi jadi 5) — Perlembagaan,
+// Reka Bentuk, dan Log Audit digabung jadi SATU destinasi. Logik gabungan: ketiga-tiganya destinasi
+// "tengok/rujuk", bukan "ubah" — berbeza sifat daripada Editorial/Tetapan/Direktori yang mengubah
+// keadaan sebenar sistem. Nota Ketua Editor pula TIDAK digabung ke sini walaupun ia juga
+// pentadbiran — ia satu-satunya destinasi yang MENULIS (terbitkan nota), bukan sekadar rujuk.
 const TATA_KELOLA: NavItem[] = [
   { id: 'nota_ketua_editor', label: 'Nota Ketua Editor', Icon: Bell },
   { id: 'editorial', label: 'Editorial', Icon: BookOpen },
   { id: 'direktori', label: 'Direktori', Icon: FolderOpen },
   { id: 'tetapan', label: 'Tetapan', Icon: Settings },
-  { id: 'log_audit', label: 'Log Audit', Icon: History },
-  { id: 'perlembagaan', label: 'Perlembagaan', Icon: Landmark },
-  { id: 'reka_bentuk', label: 'Reka Bentuk', Icon: Palette },
+  { id: 'rujukan', label: 'Rujukan', Icon: Landmark },
 ];
 
 export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
