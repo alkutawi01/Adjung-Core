@@ -76,10 +76,11 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   children
 }) => {
   const [currentTab, setCurrentTab] = useState(activeTab);
-  // Sidebar: rel ikon (72px) ialah KEADAAN ASAL tetap — bukan pilihan yang perlu diingat antara
-  // sesi. Panel penuh (240px, label) ialah PANGGILAN SEKEJAP: muncul bila diklik, dan tertutup
-  // SENDIRI bila diklik di luar (backdrop) atau bila satu destinasi dipilih — macam menu
-  // dropdown/flyout biasa, bukan togol yang perlu ditutup semula secara eksplisit setiap kali.
+  // Sidebar: rel ikon (72px) ialah KEADAAN ASAL tetap. Panel penuh (240px, label) KEMBANG
+  // SENDIRI bila tetikus lalu atasnya (onMouseEnter) dan LIPAT SEMULA bila tetikus beredar
+  // (onMouseLeave) — macam dock/activity bar biasa, tiada klik langsung diperlukan untuk
+  // sekadar melihat label sebelum pilih. Butang bawah dikekalkan sebagai kawalan eksplisit
+  // (skrin sentuh/tanpa tetikus tak boleh "hover").
   const [dilipat, setDilipat] = useState(true);
   const togolLipat = () => setDilipat((v) => !v);
 
@@ -252,6 +253,8 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           />
         )}
         <aside
+          onMouseEnter={() => setDilipat(false)}
+          onMouseLeave={() => setDilipat(true)}
           className={`hidden md:flex md:flex-col fixed left-0 top-[42px] h-[calc(100vh-42px)] z-30 overflow-y-auto bg-[#F6F4EF] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
             dilipat ? 'w-[4.5rem]' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
           }`}

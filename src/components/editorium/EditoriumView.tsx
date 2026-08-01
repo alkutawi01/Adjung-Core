@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Radio, X } from 'lucide-react';
+import { BRAND } from '../../config/brand';
 import { EditoriumLayout } from './EditoriumLayout';
 import { IndeksConsole } from './IndeksConsole';
 import { DrafSayaConsole } from './DrafSayaConsole';
@@ -200,27 +201,32 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     }
   };
 
+  // Buka borang log masuk SENDIRI sebaik /editorium dilawati tanpa sesi (2026-08-01, maklum
+  // balas pemilik projek) — bukan tunggu pengguna klik satu butang dulu untuk "minta" borang.
+  useEffect(() => {
+    if (!currentUser && !sedangKeluar) onRequestLogin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, sedangKeluar]);
+
   // Sedang beredar ke frontpage selepas log keluar — biarkan kosong sepanjang animasi keluar,
   // jangan sesekali kelipkan skrin pagar.
   if (sedangKeluar) return null;
 
   if (!currentUser) {
-    // Sengaja TIADA onRequestLogin ke Layout di sini — kalau tidak, satu skrin papar dua butang
-    // "Log Masuk" (masthead + tengah) yang buat benda sama. Butang tengah dikekalkan sebab
-    // dialah tumpuan skrin pagar ni.
+    // Skrin pagar (2026-08-01, maklum balas pemilik projek — "view sebegini tidak patut wujud
+    // sama sekali") — dulu skrin ni membalut EditoriumLayout PENUH: sidebar/header dengan
+    // sebelas destinasi kelabu terkunci, cuma untuk papar SATU mesej + SATU butang di tengah.
+    // Chrome penuh tu langsung tak berguna sebelum log masuk — tiada apa boleh diklik pun.
+    // Kini TIADA EditoriumLayout langsung: skrin kosong minimum, dan borang log masuk dibuka
+    // SENDIRI (useEffect di bawah) — pengguna nampak borang terus, tanpa perlu klik dulu untuk
+    // "minta" borang yang sepatutnya sudah tersedia.
     return (
-      <EditoriumLayout activeTab={activeTab} onTabChange={setActiveTab} currentUser={null} onLogout={handleLogoutAndLeave}>
-        <div className="flex flex-col items-center justify-center gap-3 py-24 text-stone-500 font-sans">
-          <Lock className="w-8 h-8 text-stone-300" />
-          <p className="text-sm">Log masuk diperlukan untuk mengakses Editorium.</p>
-          <button
-            onClick={onRequestLogin}
-            className="bg-[#802334] text-white text-xs font-semibold px-4 py-2 rounded hover:bg-[#6a1c2a] transition-colors"
-          >
-            Log Masuk
-          </button>
+      <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-2 text-stone-400">
+          <span className="font-serif text-2xl text-stone-300">{BRAND.logoText}</span>
+          <p className="text-xs">Log masuk diperlukan untuk mengakses Editorium.</p>
         </div>
-      </EditoriumLayout>
+      </div>
     );
   }
 
