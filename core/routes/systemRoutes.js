@@ -1,4 +1,5 @@
 import express from 'express';
+import { requireRole } from '../middleware/auth.js';
 
 export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   const router = express.Router();
@@ -62,7 +63,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   });
 
   // POST /api/pages/:key
-  router.post('/pages/:key', async (req, res) => {
+  router.post('/pages/:key', requireRole('KETUA_EDITOR'), async (req, res) => {
     const { key } = req.params;
     const { title, content } = req.body;
     if (!title || !content) {
@@ -82,7 +83,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   });
 
   // POST /api/system/settings
-  router.post('/system/settings', async (req, res) => {
+  router.post('/system/settings', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const s = req.body;
       await dbRun(`

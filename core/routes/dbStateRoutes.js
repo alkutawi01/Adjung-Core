@@ -82,7 +82,10 @@ export function createDbStateRoutes(dbAll, dbGet) {
       const usersRows = await dbAll("SELECT * FROM users");
       const settingsRow = await dbGet("SELECT * FROM system_settings WHERE id = 'settings-main'");
 
-      const users = usersRows.map((u) => ({
+      // 2026-08-02 (Fasa 1 keselamatan) — JANGAN sebarkan lajur `password` (hash scrypt atau
+      // baris lama teks biasa) ke laluan ini. `db-state` dibaca oleh pelbagai konsol Editorium
+      // dan sebelum ini `...u` menyalin SEMUA lajur users terus ke respons awam.
+      const users = usersRows.map(({ password: _omit, ...u }) => ({
         ...u,
         suspended: u.isSuspended === 1
       }));

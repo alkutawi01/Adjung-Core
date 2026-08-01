@@ -1,4 +1,5 @@
 import express from 'express';
+import { requireAuth } from '../middleware/auth.js';
 import {
   GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, setTierOverrides, ratiosForTier,
 } from '../editorial/GeometryConfig.js';
@@ -61,7 +62,7 @@ export const createTierSettingsRoutes = (dbAll, dbRun) => {
     }
   });
 
-  router.post('/tier-settings', async (req, res) => {
+  router.post('/tier-settings', requireAuth, async (req, res) => {
     try {
       const { tierKey, maxTitleAlone, maxBriefAlone } = req.body || {};
       if (!TIER_KEYS.includes(tierKey)) {
@@ -100,7 +101,7 @@ export const createTierSettingsRoutes = (dbAll, dbRun) => {
 
   // Kembalikan satu tier kepada nilai lalai (buang barisnya, bukan tulis nombor lalai —
   // supaya lalai kekal satu sumber sahaja: GeometryConfig.js).
-  router.post('/tier-settings/reset', async (req, res) => {
+  router.post('/tier-settings/reset', requireAuth, async (req, res) => {
     try {
       const { tierKey } = req.body || {};
       if (!TIER_KEYS.includes(tierKey)) {

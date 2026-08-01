@@ -1,6 +1,7 @@
 import express from 'express';
 import sanitizeHtml from 'sanitize-html';
 import CategoryRegistry from '../category/CategoryRegistry.js';
+import { requireRole } from '../middleware/auth.js';
 
 // Senarai putih ketat untuk ikon SVG custom Bidang (muat naik admin) — tiada <script>, tiada
 // pengendali on*, tiada href/xlink:href/style (jadi tiada laluan javascript:/url() tersembunyi).
@@ -137,7 +138,7 @@ export function createCategoryRoutes(db) {
   });
 
   // POST /api/system/categories/register
-  router.post('/categories/register', async (req, res) => {
+  router.post('/categories/register', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { name } = req.body;
       if (!name) return res.status(400).json({ error: 'Missing name parameter.' });
@@ -150,7 +151,7 @@ export function createCategoryRoutes(db) {
   });
 
   // POST /api/system/categories/rename
-  router.post('/categories/rename', async (req, res) => {
+  router.post('/categories/rename', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { oldName, newName } = req.body;
       if (!oldName || !newName) return res.status(400).json({ error: 'Missing oldName or newName parameter.' });
@@ -163,7 +164,7 @@ export function createCategoryRoutes(db) {
   });
 
   // POST /api/system/categories/merge
-  router.post('/categories/merge', async (req, res) => {
+  router.post('/categories/merge', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { sourceCategory, targetCategory } = req.body;
       if (!sourceCategory || !targetCategory) return res.status(400).json({ error: 'Missing sourceCategory or targetCategory parameter.' });
@@ -204,7 +205,7 @@ export function createCategoryRoutes(db) {
 
   // POST /api/system/categories/activate — "+ Tambah Bidang" di Taksonomi (Ketua Editor sahaja,
   // dikuatkuasakan di peringkat UI — lihat TetapanConsole.tsx).
-  router.post('/categories/activate', async (req, res) => {
+  router.post('/categories/activate', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { name, color, icon } = req.body;
       if (!name || !name.trim()) return res.status(400).json({ error: 'Nama Bidang diperlukan.' });
@@ -218,7 +219,7 @@ export function createCategoryRoutes(db) {
 
   // POST /api/system/categories/rename-active — tukar nama SATU baris Bidang taksonomi (tak
   // cascade ke kandungan sedia ada — lihat nota di renameActiveCategory()).
-  router.post('/categories/rename-active', async (req, res) => {
+  router.post('/categories/rename-active', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { id, newName } = req.body;
       if (!id || !newName || !newName.trim()) return res.status(400).json({ error: 'id dan newName diperlukan.' });
@@ -250,7 +251,7 @@ export function createCategoryRoutes(db) {
 
   // POST /api/system/categories/set-active — arkib/pulih SATU Bidang (Ketua Editor sahaja,
   // dikuatkuasakan di peringkat UI — lihat BidangConsole.tsx).
-  router.post('/categories/set-active', async (req, res) => {
+  router.post('/categories/set-active', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { id, isActive } = req.body;
       if (!id) return res.status(400).json({ error: 'id Bidang diperlukan.' });
@@ -316,7 +317,7 @@ export function createCategoryRoutes(db) {
   // POST /api/system/categories/assign-slot — arah "pilih slot untuk Bidang" dari Taksonomi.
   // SENGAJA hanya UPDATE lajur manualDesk (bukan guna POST /slots yang INSERT OR REPLACE ~30
   // lajur sekali gus dan akan kosongkan medan slot lain). bidangName kosong = nyahtetapkan slot.
-  router.post('/categories/assign-slot', async (req, res) => {
+  router.post('/categories/assign-slot', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { slotIndex, bidangName } = req.body;
       if (slotIndex === undefined || slotIndex === null || Number(slotIndex) < 0) {
@@ -359,7 +360,7 @@ export function createCategoryRoutes(db) {
   });
 
   // POST /api/system/categories/set-icon — pilih ikon lucide-react daripada pemilih di Taksonomi.
-  router.post('/categories/set-icon', async (req, res) => {
+  router.post('/categories/set-icon', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { id, icon } = req.body;
       if (!id || !icon) return res.status(400).json({ error: 'id dan icon diperlukan.' });
@@ -373,7 +374,7 @@ export function createCategoryRoutes(db) {
 
   // POST /api/system/categories/set-icon-svg — muat naik ikon SVG custom (Taksonomi). Markup
   // ditapis ketat (SVG_ALLOWED_TAGS/ATTR) sebelum disimpan — jangan skip langkah ni.
-  router.post('/categories/set-icon-svg', async (req, res) => {
+  router.post('/categories/set-icon-svg', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { id, svg } = req.body;
       if (!id || !svg) return res.status(400).json({ error: 'id dan svg diperlukan.' });
@@ -391,7 +392,7 @@ export function createCategoryRoutes(db) {
   // Warna diberi automatik semasa Bidang dicipta dan sebelum ini tiada cara langsung untuk
   // menukarnya — tiada rute, tiada UI. Warna ini muncul pada eyebrow kad, glif Bidang dan eyebrow
   // Focus View, jadi Bidang yang mendapat warna tidak sesuai kekal begitu selama-lamanya.
-  router.post('/categories/set-color', async (req, res) => {
+  router.post('/categories/set-color', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { id, color } = req.body;
       if (!id || !color) return res.status(400).json({ error: 'id dan color diperlukan.' });
@@ -406,7 +407,7 @@ export function createCategoryRoutes(db) {
   // POST /api/system/categories/set-illustration-svg — muat naik plat ilustrasi Bidang.
   // Disahkan ikut spec di atas (viewBox 256x256, currentColor sahaja) DAN ditapis dengan senarai
   // putih yang sama seperti ikon. Jangan skip mana-mana daripada dua langkah itu.
-  router.post('/categories/set-illustration-svg', async (req, res) => {
+  router.post('/categories/set-illustration-svg', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { id, svg } = req.body;
       if (!id || !svg) return res.status(400).json({ error: 'id dan svg diperlukan.' });
@@ -422,7 +423,7 @@ export function createCategoryRoutes(db) {
   });
 
   // POST /api/system/categories/clear-illustration-svg — buang plat ilustrasi Bidang.
-  router.post('/categories/clear-illustration-svg', async (req, res) => {
+  router.post('/categories/clear-illustration-svg', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { id } = req.body;
       if (!id) return res.status(400).json({ error: 'id diperlukan.' });

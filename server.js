@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import fs from 'fs';
 import express from 'express';
+import session from 'express-session';
+import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import sqlite3 from 'sqlite3';
 import path from 'path';
@@ -35,6 +37,7 @@ import { createProfileRoutes } from './core/routes/profileRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
+import { requireAuthForWrites } from './core/middleware/auth.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -42,6 +45,38 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
+
+// Sesi sesi editor (2026-08-02, Fasa 1 keselamatan) — sebelum ini sesi hanya wujud sebagai
+// blob JSON dalam localStorage pelanggan (boleh diubah sendiri jadi role: 'KETUA_EDITOR').
+// SESSION_SECRET mesti ditetapkan di .env untuk deploy sebenar; nilai rawak dijana setiap kali
+// server bermula sebagai jaring keselamatan dev SAHAJA — ini bermakna semua sesi terputus setiap
+// kali server dimulakan semula tanpa SESSION_SECRET tetap, sengaja, supaya kelalaian tak senyap.
+if (!process.env.SESSION_SECRET) {
+  console.warn('AMARAN: SESSION_SECRET tiada dalam .env — guna rahsia rawak sementara (sesi akan hilang setiap kali server dimulakan semula). Tetapkan SESSION_SECRET sebelum deploy.');
+}
+const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+app.use(session({
+  name: 'adjung.sid',
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 12 * 60 * 60 * 1000, // 12 jam
+  },
+}));
+
+// Had kadar log masuk (2026-08-02) — dahulu tiada had langsung, cubaan kata laluan tanpa had.
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak cubaan log masuk. Cuba lagi selepas beberapa minit.' },
+});
+app.use('/api/auth/login', loginRateLimiter);
 
 const dbPath = path.join(__dirname, 'adjung.db');
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -2378,14 +2413,28 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
 // --- CONTENT REVIEW (aggregate cross-slot listing/editing over editorial_objects) ---
 
 // Mount Modular Router Endpoints
-app.use('/api/ai', createAIRoutes(dbAll, dbRun, dbGet));
+//
+// Gerbang sesi (2026-08-02, Fasa 1) — SEBELUM ini SIFAR laluan dilindungi. Gerbang HANYA
+// diletak di sini (peringkat app.use) untuk TIGA awalan yang benar-benar EKSKLUSIF (tiada
+// router lain berkongsi '/api/ai', '/api/media', '/api/translation') — Express menyemak
+// setiap app.use ikut awalan laluan (prefix match) dalam turutan didaftar, BUKAN ikut router
+// mana yang "sepatutnya" mengendalikannya. Meletakkan gerbang pada awalan yang DIKONGSI
+// (bare '/api' atau '/api/system' — hampir SEMUA laluan di bawah kongsi salah satu ini) akan
+// menyekat SETIAP laluan lain yang berkongsi awalan sama, termasuk /api/auth/login itu
+// sendiri — pepijat sebenar yang berlaku semasa versi pertama pelaksanaan ni (2026-08-02,
+// disahkan: log masuk pulangkan 401 sebab mount '/api' createSystemRoutes menyekat dahulu).
+// Untuk semua laluan yang berkongsi awalan, gerbang diletak DI DALAM fail router itu sendiri,
+// pada setiap laluan (`router.post('/x', requireAuth, ...)`), bukan `router.use(...)` —
+// sebab yang sama: `.use()` tanpa laluan khusus turut menyekat laluan router lain yang
+// singgah melaluinya semasa Express menyemak susunan mount.
+app.use('/api/ai', requireAuthForWrites, createAIRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createCategoryRoutes(db));
 app.use('/api', createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb));
 app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system/ai', createAiCostRoutes(dbAll, dbGet, dbRun));
-app.use('/api/translation', createTranslationRoutes(dbAll, dbRun));
+app.use('/api/translation', requireAuthForWrites, createTranslationRoutes(dbAll, dbRun));
 app.use('/api/system', createChangelogRoutes(__dirname));
-app.use('/api/media', createMediaRoutes(__dirname));
+app.use('/api/media', requireAuthForWrites, createMediaRoutes(__dirname));
 app.use('/api/auth', createAuthRoutes(dbGet, dbRun));
 app.use('/api', createDbStateRoutes(dbAll, dbGet));
 app.use('/api/system', createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, runAllScheduledSlots));
@@ -2397,7 +2446,8 @@ app.use('/api/system', createTierSettingsRoutes(dbAll, dbRun));
 app.use('/api/system', createSlotEditorRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createDraftRoutes(dbAll));
 // Dilekap pada /api (bukan /api/system) sebab modul ni ada DUA laluan berlainan skop:
-// /api/system/editor-notes (Editorium) dan /api/public/editor-notes (portal awam).
+// /api/system/editor-notes (Editorium) dan /api/public/editor-notes (portal awam). Gerbang
+// peranan diletak DALAM editorNotesRoutes.js sendiri, pada setiap laluan.
 app.use('/api', createEditorNotesRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createGlosariRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createProfileRoutes(dbGet, dbRun));
@@ -2413,8 +2463,42 @@ loadTierOverrides(dbAll).then(map => {
   if (bil) console.log(`Pindaan had aksara tier dimuatkan: ${bil} tier.`);
 });
 
+// Pengendali ralat global Express (2026-08-02, Fasa 1) — dahulu SIFAR: sebarang throw segerak
+// yang tak ditangkap dalam satu handler pulangkan stack trace HTML lalai Express terus kepada
+// pelanggan. MESTI diletak SELEPAS semua app.use/mount di atas (Express hanya panggil handler
+// 4-argumen ini bila diletak paling akhir).
+app.use((err, req, res, next) => {
+  console.error('Ralat tidak dijangka pada', req.method, req.originalUrl, ':', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Ralat pelayan dalaman.' });
+});
+
+// Kegagalan proses yang tak ditangkap (2026-08-02) — dahulu tiada langsung; crash senyap tanpa
+// jejak. Log dahulu supaya sebab kegagalan dapat disemak, kemudian keluar (proses pengurus
+// seperti PM2 patut mulakan semula) — meneruskan proses selepas keadaan tak diketahui lebih
+// berbahaya daripada gagal bersih.
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandledRejection:', reason);
+});
+
+// Penutupan bersih (2026-08-02) — pastikan pemegang SQLite ditutup dengan kemas supaya jurnal
+// panas tidak tertinggal bila proses dihentikan (cth semasa deploy semula).
+const gracefulShutdown = (signal) => {
+  console.log(`${signal} diterima — menutup pelayan...`);
+  db.close((err) => {
+    if (err) console.error('Ralat menutup pangkalan data:', err);
+    process.exit(err ? 1 : 0);
+  });
+};
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 // Start Express Server
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend API server running on http://localhost:${PORT}`);
 

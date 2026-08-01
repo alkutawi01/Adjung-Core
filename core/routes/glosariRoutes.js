@@ -1,4 +1,5 @@
 import express from 'express';
+import { requireRole } from '../middleware/auth.js';
 
 // Glosari & Penyelarasan Ejaan (2026-08-01, spesifikasi pemilik projek) — senarai rujukan istilah
 // untuk pasukan editorial: bentuk yang DIPILIH bagi sesuatu istilah, berbanding bentuk yang kerap
@@ -37,7 +38,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  router.post('/glosari', async (req, res) => {
+  router.post('/glosari', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const istilah = (req.body?.istilah || '').trim();
       const elakkan = (req.body?.elakkan || '').trim();
@@ -66,7 +67,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  router.delete('/glosari/:id', async (req, res) => {
+  router.delete('/glosari/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const sedia = await dbGet('SELECT id FROM glosari_istilah WHERE id = ?', [req.params.id]);
       if (!sedia) return res.status(404).json({ error: 'Istilah tidak dijumpai.' });

@@ -1,4 +1,5 @@
 import express from 'express';
+import { requireRole } from '../middleware/auth.js';
 
 // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — tiga jenis nota yang Ketua Editor
 // terbitkan kepada pasukan editorial, dan dalam satu kes, kepada pembaca awam:
@@ -103,7 +104,7 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/editor-notes — cipta nota baharu.
-  router.post('/system/editor-notes', async (req, res) => {
+  router.post('/system/editor-notes', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { tajuk, kandungan, kategori = 'am', skop = 'dalaman', penulis, penulisId } = req.body || {};
 
@@ -143,7 +144,7 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
   // PATCH /api/system/editor-notes/:id — sunting kandungan, tukar status (arkib/pulih), semat.
   // Satu laluan untuk ketiga-tiganya sebab semuanya kemas kini separa pada baris yang sama; medan
   // yang tidak dihantar tidak disentuh.
-  router.patch('/system/editor-notes/:id', async (req, res) => {
+  router.patch('/system/editor-notes/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { id } = req.params;
       const sedia = await dbGet('SELECT * FROM editor_notes WHERE id = ?', [id]);
@@ -200,7 +201,7 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
   // DELETE /api/system/editor-notes/:id — hanya nota ARKIB boleh dipadam terus. Nota aktif mesti
   // diarkibkan dahulu, corak sama macam peraturan padam/arkib kandungan editorial: sesuatu yang
   // pernah terbit tidak lenyap dengan satu klik.
-  router.delete('/system/editor-notes/:id', async (req, res) => {
+  router.delete('/system/editor-notes/:id', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { id } = req.params;
       const sedia = await dbGet('SELECT status FROM editor_notes WHERE id = ?', [id]);

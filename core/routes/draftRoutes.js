@@ -1,6 +1,7 @@
 import express from 'express';
 import { TIER_SLOTS, tierForSlot, TIER_LABELS } from '../editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks } from '../editorial/ManualBlockFormat.js';
+import { requireAuth } from '../middleware/auth.js';
 
 // "Draf Saya" (2026-08-01, permintaan pemilik projek) — satu tempat untuk seorang editor melihat
 // SEMUA draf dia sendiri, tanpa perlu membuka slot satu per satu untuk mencarinya.
@@ -24,7 +25,9 @@ const samaNama = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().t
 export const createDraftRoutes = (dbAll) => {
   const router = express.Router();
 
-  router.get('/drafts', async (req, res) => {
+  // 2026-08-02 (Fasa 1): draf belum terbit ialah dalaman — laluan ni dahulu tanpa auth
+  // langsung, sesiapa yang tahu ?penulis=<nama editor lain> boleh baca draf orang lain.
+  router.get('/drafts', requireAuth, async (req, res) => {
     try {
       const penulis = (req.query.penulis || '').toString().trim();
       const editorId = (req.query.editorId || '').toString().trim();

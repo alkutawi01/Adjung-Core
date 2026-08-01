@@ -2,6 +2,7 @@ import express from 'express';
 import { validateContentBudget, validateBidangTopik, validateMedanTambahan, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
+import { requireAuth } from '../middleware/auth.js';
 
 // The Ticker (slotIndex -1) never writes to editorial_objects, in either Manual or AI Generated
 // mode — it always lives as a single "---"-delimited text blob in system_settings.inTheNewsText
@@ -165,7 +166,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   });
 
   // PATCH /api/system/content/:id
-  router.patch('/content/:id', async (req, res) => {
+  router.patch('/content/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { title, summary, desk, source, url, status, topik, slotIndex, briefLong, originalDate, note } = req.body;
@@ -319,7 +320,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   // jejak audit, kandungan penuh disalin balik jadi blok draf dalam slots_config.manualSummary
   // slot asal supaya editor boleh sambung sunting dalam modal Tulis Kandungan). Draf tak pernah
   // muncul di Indeks — lihat nota di server.js/ManualBlockFormat.js.
-  router.post('/content/:id/reject-to-draft', async (req, res) => {
+  router.post('/content/:id/reject-to-draft', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       if (id.startsWith('ticker-')) {
@@ -378,7 +379,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   });
 
   // DELETE /api/system/content/:id
-  router.delete('/content/:id', async (req, res) => {
+  router.delete('/content/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
 
@@ -423,7 +424,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   });
 
   // POST /api/system/content
-  router.post('/content', async (req, res) => {
+  router.post('/content', requireAuth, async (req, res) => {
     try {
       const { slotIndex, title, summary, desk, source, url, imageUrl, topik } = req.body;
       if (slotIndex === undefined || slotIndex === null) {

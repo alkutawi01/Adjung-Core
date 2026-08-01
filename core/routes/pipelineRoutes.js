@@ -1,6 +1,7 @@
 import express from 'express';
 import { validateContentBudget, validateBidangTopik, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
+import { requireAuth } from '../middleware/auth.js';
 
 // Thin route wrappers around runEditorialPipeline/runAllScheduledSlots — those stay defined in
 // server.js since the internal 5-minute scheduler also calls them directly, so they're passed in
@@ -9,7 +10,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
   const router = express.Router();
 
   // POST /api/system/pipeline/batch_paste
-  router.post('/pipeline/batch_paste', async (req, res) => {
+  router.post('/pipeline/batch_paste', requireAuth, async (req, res) => {
     try {
       const { text } = req.body;
       if (!text || !text.trim()) {
@@ -178,7 +179,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
   });
 
   // POST /api/system/pipeline/run
-  router.post('/pipeline/run', async (req, res) => {
+  router.post('/pipeline/run', requireAuth, async (req, res) => {
     const currentRunId = `run-${Date.now()}`;
 
     try {
@@ -208,7 +209,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
   });
 
   // POST /api/system/slots/run-now
-  router.post('/slots/run-now', async (req, res) => {
+  router.post('/slots/run-now', requireAuth, async (req, res) => {
     const { slotIndex } = req.body;
     if (slotIndex === undefined || slotIndex === null) {
       return res.status(400).json({ error: 'Missing slotIndex parameter.' });

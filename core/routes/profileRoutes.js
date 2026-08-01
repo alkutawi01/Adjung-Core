@@ -1,4 +1,5 @@
 import express from 'express';
+import { requireAuth } from '../middleware/auth.js';
 
 // Profil Editor (2026-08-01, spesifikasi pemilik projek — aksesori header, bukan destinasi
 // sidebar) — editor yang log masuk boleh lihat/sunting IDENTITI DIA SENDIRI: nama pena,
@@ -11,10 +12,15 @@ const HAD_BIO = 500;
 export function createProfileRoutes(dbGet, dbRun) {
   const router = express.Router();
 
-  // PATCH /api/system/profile/:id
-  router.patch('/profile/:id', async (req, res) => {
+  // PATCH /api/system/profile/:id — 2026-08-02 (Fasa 1): dahulu sesiapa boleh tulis profil
+  // MANA-MANA id dalam URL, tanpa semak siapa yang memanggil. Kini perlu sesi sah, dan hanya
+  // pemilik akaun sendiri ATAU Ketua Editor boleh menyunting.
+  router.patch('/profile/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
+      if (req.session.user.id !== id && req.session.user.role !== 'KETUA_EDITOR') {
+        return res.status(403).json({ error: 'Hanya boleh sunting profil sendiri.' });
+      }
       const sedia = await dbGet('SELECT id FROM users WHERE id = ?', [id]);
       if (!sedia) return res.status(404).json({ error: 'Akaun tidak dijumpai.' });
 

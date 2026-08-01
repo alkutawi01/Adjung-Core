@@ -1,5 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 // Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
 // Existing rows predate this and still hold plaintext; verifyPassword falls back to a direct
@@ -23,6 +24,14 @@ const verifyPassword = (plain, stored) => {
   // Legacy plaintext row.
   return plain === stored;
 };
+
+const toSessionUser = (userRow) => ({
+  id: userRow.id,
+  username: userRow.username,
+  email: userRow.email,
+  role: userRow.role,
+  penName: userRow.penName,
+});
 
 export function createAuthRoutes(dbGet, dbRun) {
   const router = express.Router();
@@ -67,19 +76,81 @@ export function createAuthRoutes(dbGet, dbRun) {
         suspended: userRow.isSuspended === 1
       };
 
-      res.json({ user: authenticatedUser });
+      // Sesi sebenar di SERVER (2026-08-02) — bukan sekadar blob localStorage yang boleh
+      // diubah sendiri oleh pelanggan. Regenerate dahulu supaya ID sesi lama (sebelum log
+      // masuk, mungkin sudah diketahui penyerang) tidak diwarisi (session fixation).
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Session regenerate error:', err);
+          return res.status(500).json({ error: 'Login pipeline failed' });
+        }
+        req.session.user = toSessionUser(userRow);
+        res.json({ user: authenticatedUser });
+      });
     } catch (err) {
       console.error('Login error:', err);
       res.status(500).json({ error: 'Login pipeline failed' });
     }
   });
 
-  // POST /api/auth/reset-password
-  router.post('/reset-password', async (req, res) => {
+  // GET /api/auth/me — bolehkan pelanggan sahkan sesi server MASIH hidup (localStorage sahaja
+  // tak boleh dipercayai — ia boleh tersasar daripada sesi sebenar bila kuki luput).
+  router.get('/me', (req, res) => {
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    res.json({ user: req.session.user });
+  });
+
+  // POST /api/auth/logout
+  router.post('/logout', (req, res) => {
+    if (!req.session) return res.json({ success: true });
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.clearCookie('adjung.sid');
+      res.json({ success: true });
+    });
+  });
+
+  // POST /api/auth/change-password — tukar kata laluan SENDIRI, perlu tahu kata laluan lama.
+  router.post('/change-password', requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Kata laluan semasa dan baharu diperlukan.' });
+      }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'Kata laluan baharu mesti sekurang-kurangnya 8 aksara.' });
+      }
+      const userRow = await dbGet("SELECT * FROM users WHERE id = ?", [req.session.user.id]);
+      if (!userRow || !verifyPassword(currentPassword, userRow.password)) {
+        return res.status(401).json({ error: 'Kata laluan semasa tidak tepat.' });
+      }
+      await dbRun("UPDATE users SET password = ? WHERE id = ?", [hashPassword(newPassword), userRow.id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Change password error:', err);
+      res.status(500).json({ error: 'Gagal menukar kata laluan.' });
+    }
+  });
+
+  // POST /api/auth/reset-password — DAHULU terbuka sepenuhnya (emel sahaja, tiada token,
+  // tiada bukti pemilikan akaun — sesiapa yang tahu emel editor boleh tukar kata laluan
+  // editor itu). Kini KETUA_EDITOR SAHAJA boleh guna, untuk set semula kata laluan editor
+  // lain (akaun terkunci, editor lupa kata laluan). Ini penyelesaian interim: penghantaran
+  // emel bertoken (jemputan/reset sebenar) belum ada infrastruktur SMTP — lihat
+  // PELAN_PRA_LAUNCH.md Fasa 1.
+  router.post('/reset-password', requireRole('KETUA_EDITOR'), async (req, res) => {
     try {
       const { email, password } = req.body;
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required.' });
+      }
+      if (password.length < 8) {
+        return res.status(400).json({ error: 'Kata laluan mesti sekurang-kurangnya 8 aksara.' });
       }
 
       const normalized = email.trim().toLowerCase();

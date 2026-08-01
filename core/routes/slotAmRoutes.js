@@ -1,5 +1,6 @@
 import express from 'express';
 import { setMedanLimits } from '../editorial/ContentBudget.js';
+import { requireAuth } from '../middleware/auth.js';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
 // bento sekali gus, bukan per-slot dan bukan per-tier. Ticker dan tier Bar tiada di sini; kedua-dua
@@ -65,7 +66,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
     }
   });
 
-  router.post('/slot-am-settings', async (req, res) => {
+  router.post('/slot-am-settings', requireAuth, async (req, res) => {
     try {
       const b = req.body || {};
       const nombor = (nilai, nama) => {

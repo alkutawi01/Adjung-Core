@@ -1,5 +1,6 @@
 import express from 'express';
 import { TIER_SLOTS, tierForSlot } from '../editorial/GeometryConfig.js';
+import { requireAuth } from '../middleware/auth.js';
 
 // Penugasan editor kepada slot (2026-07-30, permintaan pemilik projek).
 //
@@ -42,7 +43,7 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
   // Ganti SELURUH senarai editor bagi satu slot sekali gus — bukan tambah/buang satu-satu.
   // Borangnya menghantar keadaan akhir yang dikehendaki, jadi tiada keadaan separuh siap kalau
   // satu daripada beberapa panggilan gagal di tengah jalan.
-  router.post('/slot-editors', async (req, res) => {
+  router.post('/slot-editors', requireAuth, async (req, res) => {
     try {
       const { slotIndex, editorIds } = req.body || {};
       const slot = Number(slotIndex);

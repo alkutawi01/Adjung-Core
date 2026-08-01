@@ -2,6 +2,7 @@ import express from 'express';
 import { ceilingForSlot as getGeometryCeilingForSlot } from '../editorial/GeometryConfig.js';
 import { detectSourceType } from '../editorial/SourceDetector.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
+import { requireAuth } from '../middleware/auth.js';
 
 // Ticker Manual mode is genuinely freeform text (the Chief Editor types the whole
 // desk:/title:/brief:/source:/url: block directly into a plain textarea — no client-side template
@@ -39,7 +40,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
   });
 
   // POST /api/system/slots
-  router.post('/slots', async (req, res) => {
+  router.post('/slots', requireAuth, async (req, res) => {
     try {
       const slots = Array.isArray(req.body) ? req.body : [req.body];
       for (const slot of slots) {
