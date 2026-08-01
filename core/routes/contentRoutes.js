@@ -9,7 +9,7 @@ import { requireAuth } from '../middleware/auth.js';
 // (see EditorialPipeline.js's slotIndex===-1 branch, and the ticker save path in POST
 // /api/system/slots). These mirror the client-side parseInTheNews()/serialization convention
 // (Desk:/Title:/Brief:/Source:/Url: fields) so the content-review endpoints can read/write it too.
-const parseTickerText = (text) => {
+export const parseTickerText = (text) => {
   if (!text) return [];
   const blocks = text.split(/\n?[-_—–―]{3,}\n?/);
   const items = [];
@@ -44,10 +44,22 @@ const parseTickerText = (text) => {
   return items;
 };
 
-const serializeTickerText = (items) => {
+export const serializeTickerText = (items) => {
   return items
     .map(i => `Desk: ${i.desk || 'UMUM'}\nTitle: ${i.title}\nBrief: ${i.brief || ''}\nSource: ${i.source || ''}\nUrl: ${i.url || '#'}${i.mode ? `\nMode: ${i.mode}` : ''}`)
     .join('\n---\n');
+};
+
+// 2026-08-02 (Fasa 2, pepijat kritikal) — inTheNewsText (ticker) ada BERBILANG penulis (RSS
+// Direct — slotRoutes.js dua tapak, AI Generated — EditorialPipeline.js, Manual —
+// slotsConfigRoutes.js), setiap satu DAHULU tulis-ganti SELURUH teks dengan blok dia sahaja —
+// siapa jalan terakhir memusnahkan sumbangan penulis lain sepenuhnya (tiada gabungan langsung).
+// Helper kongsi ni baca teks semasa, buang HANYA blok bertanda `modSendiri` (yang akan
+// digantikan versi baharu), kekalkan blok mod lain, gabung semula. Setiap penulis kini "milik"
+// satu mod sahaja dan tak sentuh mod orang lain.
+export const gantiBlokModTicker = (teksSemasa, modSendiri, blokBaharu) => {
+  const dikekalkan = parseTickerText(teksSemasa || '').filter((i) => i.mode !== modSendiri);
+  return serializeTickerText([...dikekalkan.map((i) => i), ...blokBaharu]);
 };
 
 const CONTENT_STATUSES = ['approved', 'pending', 'rejected', 'archived'];
@@ -120,7 +132,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           topik: attrs.topik || '',
           source: attrs.source || '',
           url: attrs.url || '#',
-          imageUrl: attrs.imageUrl || attrs.coverImageId || '',
+          // `attrs.image` (2026-08-02, Fasa 2) — medan "Imej" dalam modal Tulis Kandungan simpan
+          // di bawah kunci atribut 'image' (lampiran Focus View, lihat FrontpageView.tsx nota
+          // berhampiran item.image vs item.imageUrl — dua konsep tulen berlainan, BUKAN salah
+          // eja). Sebelum ini Indeks/Semakan cuma baca imageUrl/coverImageId, jadi imej yang
+          // dilampirkan editor semasa menulis langsung tak kelihatan di kedua-dua skrin semakan
+          // tu walaupun ia BETUL terpapar di Focus View sebenar. Fallback ni bukan gantikan
+          // imageUrl — ia cuma pastikan sesuatu imej (yang mana pun ada) sampai ke pratonton.
+          imageUrl: attrs.imageUrl || attrs.coverImageId || attrs.image || '',
           maxBriefLong: limits.maxBriefLong !== undefined ? limits.maxBriefLong : null,
           slotCategory: limits.slotCategory || '',
           status: r.status || 'approved',

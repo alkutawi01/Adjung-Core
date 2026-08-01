@@ -9,6 +9,7 @@ import EditorialValidator from './EditorialValidator.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { validateContentBudget, validateBidangTopik } from './ContentBudget.js';
 import { TIER_SLOTS } from './GeometryConfig.js';
+import { gantiBlokModTicker } from '../routes/contentRoutes.js';
 
 const CONTENT_POOL_MAX_ITEMS = 30; // Bound prompt token cost regardless of how many sources are configured.
 const CONTENT_POOL_MAX_CONTENT_CHARS = 400; // Per-item content cap — enough for editorial judgment, not full article reprint.
@@ -421,9 +422,11 @@ ${slot.sourcesList.trim()}
         } catch (e) {
           console.warn("Failed to register ticker category:", e.message);
         }
-        return `Desk: ${desk}\nTitle: ${title}\nBrief: ${brief}\nSource: ${source}\nUrl: ${url}\nMode: AI Generated`;
+        return { desk, title, brief, source, url, mode: 'AI Generated' };
       }))).filter(Boolean);
-      const formattedText = textItems.join('\n---\n');
+
+      const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+      const formattedText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'AI Generated', textItems);
 
       await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
 

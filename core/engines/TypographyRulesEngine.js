@@ -20,8 +20,17 @@ export function parseTypographyTokens(text, rules = [], scope = 'all', language 
   if (!Array.isArray(rules) || rules.length === 0) return [{ text, style: 'normal' }];
 
   // 1. Filter active & applicable rules for scope and language
+  //
+  // 2026-08-02 (Fasa 2, pepijat kritikal) — syarat asal `!r.enabled && r.status !== 'active'`
+  // guna AND, bukan OR. Kesannya: peraturan yang DIMATIKAN (enabled=0) tapi status masih
+  // 'active' (cth ditogol tak aktif di FrontpageView.tsx:862-881) LULUS penapis ni sebab
+  // separuh syarat je benar — peraturan "dimatikan" terus terpakai di pratonton pelayan
+  // walaupun editor dah togolkannya tak aktif. Client (TypographyRenderer.tsx) sentiasa
+  // betul (`!isEn || !isAct`, OR). Disamakan di sini.
   const applicableRules = rules.filter(r => {
-    if (!r.enabled && r.status !== 'active') return false;
+    const isEn = r.enabled === 1 || r.enabled === true;
+    const isAct = !r.status || r.status === 'active';
+    if (!isEn || !isAct) return false;
     const matchScope = !r.scope || r.scope === 'all' || r.scope === scope;
     const matchLang = !r.language || r.language === 'all' || r.language === language;
     return matchScope && matchLang && r.term && r.term.trim() !== '';

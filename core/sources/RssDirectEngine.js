@@ -1,7 +1,7 @@
 // RssDirectEngine.js - High performance RSS 2.0 / Atom XML Parser, Link Extractor, and Language Filter.
 // Pure JS XML parser operating WITHOUT any AI API calls.
 
-import { sanitizeHtmlText } from './SourceSanitizer.js';
+import { sanitizeHtmlText, sanitizeUrlText, stripLocationDateline } from './SourceSanitizer.js';
 
 export function parseRssXml(xmlString) {
   if (!xmlString || typeof xmlString !== 'string') return [];
@@ -21,21 +21,23 @@ export function parseRssXml(xmlString) {
     const rawDesc = descMatch ? descMatch[1] : '';
     const description = sanitizeHtmlText(rawDesc.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1'));
 
-    // Extract link
+    // Extract link — sanitizeUrlText SAHAJA (bukan sanitizeHtmlText), sebab pembersih prosa
+    // memadam segala-galanya selepas nama penerbit (cth "bernama") yang terkandung dalam
+    // hostname URL itu sendiri. Lihat nota di SourceSanitizer.js.
     let link = '';
     const linkMatch = block.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
     if (linkMatch && linkMatch[1].trim()) {
-      link = sanitizeHtmlText(linkMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1'));
+      link = sanitizeUrlText(linkMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1'));
     } else {
       // Atom link format: <link href="url" />
       const atomLinkMatch = block.match(/<link[^>]+href=["']([^"']+)["']/i);
       if (atomLinkMatch) link = atomLinkMatch[1].trim();
     }
 
-    // Extract guid / id
+    // Extract guid / id — guid selalunya URL artikel juga, sama risiko macam link di atas.
     const guidMatch = block.match(/<(?:guid|id)[^>]*>([\s\S]*?)<\/(?:guid|id)>/i);
     const rawGuid = guidMatch ? guidMatch[1] : link;
-    const rssGuid = sanitizeHtmlText(rawGuid.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')) || link;
+    const rssGuid = sanitizeUrlText(rawGuid.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')) || link;
 
     // Extract pubDate / updated
     const dateMatch = block.match(/<(?:pubDate|published|updated)[^>]*>([\s\S]*?)<\/(?:pubDate|published|updated)>/i);
@@ -73,9 +75,13 @@ export function formatRssBrief(rawDescription) {
   // Clean HTML tags and entities
   let cleanText = sanitizeHtmlText(rawDescription);
 
-  // Remove common RSS boilerplate prefixes
-  cleanText = cleanText.replace(/^[A-Z\s]+,\s*\d+\s+[A-Za-z]+\s*–\s*/, '');
-  cleanText = cleanText.replace(/^([A-Z\s]+:)\s*/, '');
+  // Buang dateline lokasi ("KUALA LUMPUR - ", "PUTRAJAYA: ", dll) — 2026-08-02 (Fasa 2):
+  // dua regex asal di sini cuma tangani corak ", DD Bulan –" dan "LOKASI:", terlepas corak
+  // paling biasa "LOKASI - " (sempang biasa, bukan en dash, tiada tarikh) — punca ujian
+  // gagal `parseRssXml` (formattedBrief tak pernah dibuang dateline-nya). stripLocationDateline
+  // (SourceSanitizer.js) sudah tangani ketiga-tiga corak dengan satu regex; guna yang sedia
+  // ada, jangan kekalkan dua implementasi berlainan untuk kerja yang sama.
+  cleanText = stripLocationDateline(cleanText);
 
   // Strip a trailing ellipsis already present in the raw source (many RSS feeds truncate
   // their own descriptions with "..."). Truncation below re-adds "..." only when this

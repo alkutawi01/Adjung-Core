@@ -87,6 +87,10 @@ test('EditorialScoreEngine - rejects sensational clickbait content (Score < 60)'
 
   const evalResult = calculateEditorialScore(sensationalItem, source, settings);
   assert.ok(evalResult.score < 60);
-  assert.equal(evalResult.decision, 'REJECT');
+  // 2026-08-02 (Fasa 2) — EditorialScoreEngine sengaja pulangkan decision khusus
+  // 'BLOCKED_KEYWORD' (bukan 'REJECT' generik) apabila kata kunci disekat ditemui, supaya
+  // sebab penolakan boleh dibezakan daripada skor rendah biasa. Ujian ni ketinggalan zaman
+  // (nama decision bertukar, tingkah laku sebenar betul) — lihat EditorialScoreEngine.js.
+  assert.equal(evalResult.decision, 'BLOCKED_KEYWORD');
   assert.equal(evalResult.status, 'rejected');
 });

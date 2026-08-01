@@ -33,9 +33,9 @@ interface ContentItem {
 // Serializes all items into the numbered "#slot-series" bulk-text format, editable in one textarea.
 // Medan penuh (2026-07-29, permintaan pemilik projek) — sebelum ni cuma Tajuk/Huraian ringkas/
 // Bidang/Topik/Sumber/URL, senyap buang Huraian Panjang/Nota/Tarikh Sumber terus daripada paparan
-// ni (editor yang guna Paparan Teks Pukal tak pernah nampak medan tu wujud pun). UUID dipaparkan
-// untuk konteks/audit sahaja — baris tu diabaikan semasa parse balik (identiti kandungan kekal
-// ditentukan oleh nombor #Slot-Siri, bukan UUID, sama macam sebelum ni).
+// ni (editor yang guna Paparan Teks Pukal tak pernah nampak medan tu wujud pun). Nombor #Slot-Siri
+// kekal sebagai LABEL paparan (mudah diimbas manusia); UUID (2026-08-02, Fasa 2) kini kunci
+// PADANAN sebenar semasa simpan — lihat nota di parseBulkText/saveBulk.
 const buildBulkText = (items: ContentItem[]) => {
   const sorted = [...items].sort((a, b) => a.slotIndex - b.slotIndex || a.seriesIndex - b.seriesIndex);
   return sorted
@@ -61,6 +61,7 @@ const buildBulkText = (items: ContentItem[]) => {
 interface BulkParsedEntry {
   slotNumber: number;
   seriesNumber: number;
+  uuid: string;
   title: string;
   summary: string;
   summaryLong: string;
@@ -73,8 +74,12 @@ interface BulkParsedEntry {
 }
 
 // Parses the bulk text back into per-entry fields, anchored on the "#slot-series" header line.
-// "UUID:" sengaja TAK dihurai balik ke mana-mana — baris tu konteks/audit sahaja (lihat nota
-// buildBulkText di atas), padanan semula ke item asal tetap guna nombor #Slot-Siri.
+// 2026-08-02 (Fasa 2, pepijat kritikal) — "UUID:" DAHULU sengaja tak dihurai balik, padanan
+// semula ke item asal guna nombor #Slot-Siri (kedudukan ordinal) SAHAJA. Kalau kandungan lain
+// dalam slot yang sama diarkib/ditambah oleh SESIAPA SAHAJA antara masa teks ni dimuat dan
+// disimpan, nombor siri bergeser — dan simpan pukal akan menampal perubahan pada ARTIKEL YANG
+// SALAH tanpa amaran. UUID (dah pun dipaparkan, cuma tak digunakan) ialah identiti STABIL yang
+// betul-betul patut jadi kunci padanan; nombor #Slot-Siri kekal sebagai label paparan sahaja.
 const parseBulkText = (text: string): BulkParsedEntry[] => {
   const blocks = text.split(/\n(?=#\d+-\d+\s*$)/m);
   const entries: BulkParsedEntry[] = [];
@@ -83,10 +88,11 @@ const parseBulkText = (text: string): BulkParsedEntry[] => {
     if (!headerMatch) continue;
     const slotNumber = parseInt(headerMatch[1], 10);
     const seriesNumber = parseInt(headerMatch[2], 10);
-    let title = '', summary = '', summaryLong = '', desk = '', topik = '', source = '', url = '', originalDate = '', note = '';
+    let uuid = '', title = '', summary = '', summaryLong = '', desk = '', topik = '', source = '', url = '', originalDate = '', note = '';
     for (const line of block.split('\n')) {
       const trimmed = line.trim();
-      if (trimmed.startsWith('Tajuk:')) title = trimmed.replace(/^Tajuk:\s*/i, '').trim();
+      if (trimmed.startsWith('UUID:')) uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
+      else if (trimmed.startsWith('Tajuk:')) title = trimmed.replace(/^Tajuk:\s*/i, '').trim();
       else if (trimmed.startsWith('Huraian Panjang:')) summaryLong = trimmed.replace(/^Huraian Panjang:\s*/i, '').trim();
       else if (trimmed.startsWith('Huraian:')) summary = trimmed.replace(/^Huraian:\s*/i, '').trim();
       else if (trimmed.startsWith('Bidang:')) desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
@@ -97,7 +103,7 @@ const parseBulkText = (text: string): BulkParsedEntry[] => {
       else if (trimmed.startsWith('Tarikh Sumber:')) originalDate = trimmed.replace(/^Tarikh Sumber:\s*/i, '').trim();
       else if (trimmed.startsWith('Nota:')) note = trimmed.replace(/^Nota:\s*/i, '').trim();
     }
-    entries.push({ slotNumber, seriesNumber, title, summary, summaryLong, desk, topik, source, url, originalDate, note });
+    entries.push({ slotNumber, seriesNumber, uuid, title, summary, summaryLong, desk, topik, source, url, originalDate, note });
   }
   return entries;
 };
@@ -220,18 +226,20 @@ export function ContentReview() {
     setBulkStatus('');
   }, [pagedBulkItems]);
 
-  // Bulk save: edit-only. Matches each "#slot-series" block back to its original item, and PATCHes
-  // only the ones whose fields actually changed. Numbers with no matching original item are ignored
-  // (adding/removing items is intentionally left to the card view, where slot targeting is explicit).
+  // Bulk save: edit-only. Matches each block back to its original item VIA UUID (identiti stabil
+  // — lihat nota di parseBulkText), bukan lagi nombor #Slot-Siri ordinal. Blok yang UUID-nya tak
+  // sepadan mana-mana item semasa (baris UUID dipadam tanpa sengaja, atau item tu dah diarkib oleh
+  // orang lain) diabaikan senyap — lebih selamat daripada meneka guna kedudukan dan menyimpan ke
+  // artikel yang salah.
   const saveBulk = async () => {
     setBulkSaving(true);
     setBulkStatus('Menghurai teks...');
     const parsed = parseBulkText(bulkText);
-    const byKey: Record<string, ContentItem> = {};
-    items.forEach(i => { byKey[`${i.slotIndex + 1}-${i.seriesIndex}`] = i; });
+    const byId: Record<string, ContentItem> = {};
+    items.forEach(i => { byId[i.id] = i; });
 
     const changed = parsed
-      .map(p => ({ p, original: byKey[`${p.slotNumber}-${p.seriesNumber}`] }))
+      .map(p => ({ p, original: byId[p.uuid] }))
       .filter(({ p, original }) =>
         original && (
           p.title !== original.title ||

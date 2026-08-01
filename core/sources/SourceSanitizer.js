@@ -51,6 +51,29 @@ export function sanitizeHtmlText(rawText) {
   return clean;
 }
 
+// 2026-08-02 (Fasa 2, pepijat kritikal) — dahulu URL/GUID RSS turut ditapis melalui
+// sanitizeHtmlText(), yang termasuk regex membuang nama penerbit ("bernama", "kosmo(
+// digital)?", dll) di HUJUNG teks prosa (BRIEF_FORMATTER_RULE_006). Regex tu tak sedar ia
+// sedang memproses URL, bukan ayat — "https://www.bernama.com/bm/news.php?id=21001"
+// mengandungi "bernama" sebagai SEBAHAGIAN HOSTNAME, jadi segala-galanya SELEPAS perkataan
+// itu (kandungan laluan penuh URL) turut terpadam, tinggal "https://www." sahaja. Dua
+// daripada empat sumber RSS disemai (bernama.com, kosmo.com.my) terjejas — setiap item
+// ticker daripada sumber tu simpan originalUrl yang rosak/tak boleh diklik.
+//
+// Fungsi ni sengaja HANYA nyahkod entiti HTML + buang tag + potong ruang — URL/GUID tak
+// pernah perlu pembersihan prosa (nama penerbit/hakcipta/dsb) sebab ia bukan teks bacaan.
+export function sanitizeUrlText(rawText) {
+  if (!rawText || typeof rawText !== 'string') return '';
+  return rawText
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&#(\d+);/g, (_, dec) => {
+      const code = parseInt(dec, 10);
+      return code ? String.fromCharCode(code) : '';
+    })
+    .trim();
+}
+
 export function truncateWords(text, maxWords = 100) {
   if (!text) return '';
   const words = text.split(/\s+/);

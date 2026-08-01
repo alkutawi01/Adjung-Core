@@ -90,6 +90,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
 // Enable Foreign Key support in SQLite
 db.serialize(() => {
   db.run("PRAGMA foreign_keys = ON;");
+  // 2026-08-02 (Fasa 2, pepijat kritikal) — dahulu tiada WAL/busy_timeout langsung. Mod jurnal
+  // lalai SQLite (rollback journal) mengunci SELURUH DB semasa satu penulisan; dua editor
+  // menyimpan hampir serentak akan buat SATU permintaan terus gagal SQLITE_BUSY dalam SAAT,
+  // dan sebab tiada pengendali ralat/log permintaan (dulu), kegagalan tu senyap sepenuhnya.
+  // WAL benarkan pembaca+penulis serentak (tak saling sekat), busy_timeout beri writer kedua
+  // masa tunggu automatik dahulu sebelum SQLITE_BUSY, bukan gagal serta-merta.
+  db.run("PRAGMA journal_mode = WAL;");
+  db.run("PRAGMA busy_timeout = 5000;");
 });
 
 // Initialize database schema
@@ -2091,11 +2099,22 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
   const isBarLikeRemoval = isBar;
   const submittedIds = new Set(items.filter((it) => it.uuid).map((it) => it.uuid));
   const existingRows = isBarLikeRemoval ? await dbAll('SELECT id FROM editorial_objects WHERE slotIndex = ?', [slotIndex]) : [];
+  const existingIdSet = new Set(existingRows.map((r) => r.id));
   const removedIds = isBarLikeRemoval ? existingRows.map((r) => r.id).filter((id) => !submittedIds.has(id)) : [];
 
-  // Wrap the DELETE + multi-item multi-table INSERT sequence in a real transaction so a failure
-  // partway through (e.g. one item's INSERT throws) rolls back everything already written in this
-  // call — including the DELETE — instead of leaving the slot with orphaned/partial rows.
+  // 2026-08-02 (Fasa 2, pepijat kritikal) — laluan Bar DAHULU memadam SEMUA baris
+  // editorial_objects setiap kali disimpan (DELETE ... WHERE id NOT IN removedIds — iaitu
+  // memadam item yang DIKEKALKAN, bukan yang dibuang!) lalu mencipta semula baris + revisi
+  // BAHARU untuk setiap item, walaupun item itu sekadar diedit sikit. Sebab
+  // editorial_revisions.objectId ada ON DELETE CASCADE, ini memusnahkan sejarah revisi secara
+  // KEKAL setiap kali — "terbitan tak boleh padam" dipintas oleh butang simpan biasa.
+  //
+  // Betul sekarang: item yang WUJUD sedia ada (uuid sepadan baris editorial_objects semasa)
+  // di-UPDATE di tempat (objek + revisi + atribut disegarkan, id KEKAL) — tiada DELETE
+  // langsung pada baris tu. Item yang dibuang editor daripada penghantaran (removedIds)
+  // diarkibkan (status revisi='archived'), baris editorial_objects-nya turut KEKAL, bukan
+  // dipadam — selaras peraturan padam/arkib projek. Item baharu (tiada uuid sepadan) dicipta
+  // segar seperti biasa.
   await dbRun('BEGIN TRANSACTION');
   try {
     const nowIso = new Date().toISOString();
@@ -2106,12 +2125,6 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
           [nowIso, id]
         );
       }
-      if (removedIds.length > 0) {
-        const placeholders = removedIds.map(() => '?').join(',');
-        await dbRun(`DELETE FROM editorial_objects WHERE slotIndex = ? AND id NOT IN (${placeholders})`, [slotIndex, ...removedIds]);
-      } else {
-        await dbRun('DELETE FROM editorial_objects WHERE slotIndex = ?', [slotIndex]);
-      }
     }
 
     // Bukan Bar: objectId SENTIASA baharu (bukan item.uuid, yang cuma identiti sementara dalam
@@ -2120,9 +2133,60 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
     const baseTs = Date.now();
     for (let i = 0; i < publishItems.length; i++) {
       const item = publishItems[i];
+      const finalCategory = (item.desk || 'UMUM').trim().toUpperCase();
+      const isBarUpdate = isBar && item.uuid && existingIdSet.has(item.uuid);
+
+      if (isBarUpdate) {
+        // Item Bar SEDIA ADA — kemas kini di tempat, objectId & sejarah revisi KEKAL.
+        const objectId = item.uuid;
+        const updatedAt = new Date(baseTs + i).toISOString();
+        try {
+          await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
+        } catch (e) {
+          console.warn("Failed to register category:", e.message);
+        }
+        await dbRun(
+          `UPDATE editorial_objects SET categoryId = ?, sourceType = ?, updatedAt = ? WHERE id = ?`,
+          [finalCategory, item.sourceType || 'web', updatedAt, objectId]
+        );
+        await dbRun(
+          `UPDATE editorial_revisions SET title = ?, summary = ?, status = ?, updatedAt = ? WHERE objectId = ?`,
+          [item.title, item.summary, item.status || 'approved', updatedAt, objectId]
+        );
+        // Baris atribut mesti kekal terikat pada revisionId SEBENAR — laluan baca
+        // (resolveSlotContent) tapis `WHERE objectId = ? AND revisionId = ?` guna id revisi
+        // semasa, jadi atribut baharu MESTI guna id yang sama, bukan NULL/rambang.
+        const currentRev = await dbGet('SELECT id FROM editorial_revisions WHERE objectId = ?', [objectId]);
+        const currentRevId = currentRev ? currentRev.id : null;
+        await dbRun(`DELETE FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?`, [objectId, currentRevId]);
+        const attrs = [
+          { key: 'desk', val: finalCategory },
+          { key: 'url', val: item.url || '#' },
+          { key: 'source', val: item.source || '' },
+          { key: 'sourceType', val: item.sourceType || 'web' },
+          { key: 'briefLong', val: item.briefLong || '' },
+          { key: 'originalDate', val: item.originalDate || '' },
+          { key: 'topik', val: item.topik || '' },
+          { key: 'editorName', val: slotConfig.editorName || '' },
+          { key: 'organizer', val: item.organizer || '' },
+          { key: 'location', val: item.location || '' },
+          { key: 'access', val: item.access || '' },
+          { key: 'penerangan', val: item.penerangan || '' },
+          { key: 'note', val: item.note || '' },
+          { key: 'image', val: item.image || '' },
+        ];
+        for (const a of attrs) {
+          await dbRun(
+            `INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText)
+             VALUES (?, ?, ?, ?)`,
+            [objectId, currentRevId, a.key, a.val]
+          );
+        }
+        continue;
+      }
+
       const objectId = isBar ? (item.uuid || `object-manual-slot${slotIndex}-${baseTs}-${i}`) : `object-manual-slot${slotIndex}-${baseTs}-${i}`;
       const createdAt = new Date(baseTs + i).toISOString();
-      const finalCategory = (item.desk || 'UMUM').trim().toUpperCase();
       try {
         await CategoryRegistry.incrementCategoryUsage(db, finalCategory);
       } catch (e) {

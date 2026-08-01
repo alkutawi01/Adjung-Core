@@ -6,6 +6,7 @@ import { processTextWithTrace, normalizeEditorialText } from '../sources/Editori
 import { calculateDeskScores, classifyDesk } from '../sources/DeskClassifier.js';
 import { parseTypographyTokens } from '../sources/TypographyRulesEngine.js';
 import { requireRole } from '../middleware/auth.js';
+import { gantiBlokModTicker } from './contentRoutes.js';
 
 // NOTE: this router used to also define GET/POST /slots and POST /slots/run-now, plus a whole
 // "Slot Governance" section (SlotGovernanceService + 4 routes at /api/slot-governance*,
@@ -169,9 +170,10 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       // dihurai. displayCategory padan pengiraan sama di laluan tu jugak (bukan Desk: SEMASA tegar).
       const blocks = newApproved.map(item => {
         const displayCategory = (item.category === 'BELUM DIKELASKAN' || !item.category) ? 'SEMASA' : item.category;
-        return `Desk: ${displayCategory}\nTitle: ${item.title}\nBrief: ${item.formattedBrief || item.description || ''}\nSource: ${item.source}\nUrl: ${item.originalUrl}\nMode: RSS Direct`;
+        return { desk: displayCategory, title: item.title, brief: item.formattedBrief || item.description || '', source: item.source, url: item.originalUrl, mode: 'RSS Direct' };
       });
-      const formattedText = blocks.join('\n----\n');
+      const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+      const formattedText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'RSS Direct', blocks);
       await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
 
       res.json({ success: true });
@@ -917,12 +919,13 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   if (approvedItems.length > 0) {
     tickerBlocks = approvedItems.map((item) => {
       const displayCategory = (item.category === 'BELUM DIKELASKAN' || !item.category) ? 'SEMASA' : item.category;
-      return `desk: ${displayCategory}\ntitle: ${item.title}\nbrief: ${item.formattedBrief || item.title}\nsource: ${item.source}\nurl: ${item.originalUrl}\nmode: RSS Direct`;
+      return { desk: displayCategory, title: item.title, brief: item.formattedBrief || item.title, source: item.source, url: item.originalUrl, mode: 'RSS Direct' };
     });
   }
 
-  const formattedTickerText = tickerBlocks.join('\n----\n');
-  if (formattedTickerText) {
+  if (tickerBlocks.length > 0) {
+    const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+    const formattedTickerText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'RSS Direct', tickerBlocks);
     await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedTickerText]);
   }
 
