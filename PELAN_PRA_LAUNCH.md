@@ -171,12 +171,22 @@ Ketua Editor sahaja, Timbalan sahaja, Editor sahaja), sahkan sidebar/nav ikut pe
 Direktori papar data sebenar, tambah anggota sebenar, tukar peranan berbilang + status. `npm
 test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
 
-### [ ] Fasa 4 — Log Sistem · `M` · ~3 hari
-- [ ] Jadual audit: siapa terbit/edit/arkib/tolak apa, bila (kini SIFAR jejak — tiada
-      log tindakan langsung, `logs: []` berkod keras)
-- [ ] Paparan di Rujukan → Log Sistem
-- [ ] Log ralat server + log kesihatan ambilan RSS (kini ralat feed ditelan senyap —
-      feed mati tak dapat dibezakan dengan feed sunyi)
+### [x] Fasa 4 — Log Sistem · SIAP 2026-08-02 (commit `ec67c38`)
+- [x] Jadual `audit_log` sebenar + `core/audit/AuditLog.js` (helper `logAudit()` kongsi)
+- [x] Dicatat: status kandungan (terbit/tolak/arkib/siar-semula), tolak-ke-draf, padam
+      ticker, cipta akaun + tukar peranan + tukar status (Direktori), Bidang (daftar/
+      namakan semula/gabung/aktif/arkib), Nota Ketua Editor (cipta/padam), ralat ambilan
+      RSS per-sumber (dahulu ditelan senyap — "Gracefully skip") + ringkasan setiap
+      larian, ralat pelayan tak ditangkap (pengendali ralat global Fasa 1)
+- [x] Paparan di Rujukan → Log Sistem — jadual sebenar (Masa/Pelaku/Tindakan/Sasaran/
+      Butiran), label Melayu untuk setiap kod tindakan
+- [ ] **Bukan audit 100% menyeluruh** — fokus pada tindakan editorial/pentadbiran paling
+      bermakna (status kandungan, akaun, Bidang, Nota, RSS, ralat pelayan). Mutasi lain
+      (cth `POST /content` penuh, tetapan sistem am, tier/slot-am) TIDAK direkod — boleh
+      ditambah kemudian kalau perlu, bukan halangan launch
+- [ ] Log Sistem tiada gerbang peranan khusus (mana-mana editor log masuk boleh baca
+      jejak SEMUA orang) — sama seperti Panduan/Dokumentasi (destinasi rujukan terbuka).
+      Keputusan reka bentuk kalau nak dikhususkan Pentadbir/Ketua Editor sahaja kemudian
 
 ### [ ] Fasa 5 — Paparan Utama (dashboard) · `M` · ~3 hari
 - [ ] Status kandungan · draf saya · makluman terbaru · slot kosong/bermasalah
