@@ -76,28 +76,19 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   children
 }) => {
   const [currentTab, setCurrentTab] = useState(activeTab);
-  // Sidebar boleh dilipat jadi rel ikon sahaja (2026-08-01, permintaan pemilik projek) — jadual
-  // panjang macam Indeks perlukan lebar penuh, editor tak sepatutnya terpaksa skrol mendatar
-  // untuk lihat lajur Tindakan hanya sebab sidebar sentiasa ambil 240px. LALAI terlipat (rel ikon)
-  // — kembang ialah tindakan sengaja bila editor betul-betul nak lihat label, bukan keadaan permula
-  // yang perlu ditutup setiap kali. Keadaan disimpan supaya kekal antara sesi.
-  const [dilipat, setDilipat] = useState(() => {
-    try {
-      const sedia = localStorage.getItem('adjung-editorium-sidebar-lipat');
-      return sedia === null ? true : sedia === '1';
-    } catch { return true; }
-  });
-  const togolLipat = () => {
-    setDilipat((v) => {
-      const next = !v;
-      try { localStorage.setItem('adjung-editorium-sidebar-lipat', next ? '1' : '0'); } catch { /* localStorage tak tersedia — tak kritikal */ }
-      return next;
-    });
-  };
+  // Sidebar: rel ikon (72px) ialah KEADAAN ASAL tetap — bukan pilihan yang perlu diingat antara
+  // sesi. Panel penuh (240px, label) ialah PANGGILAN SEKEJAP: muncul bila diklik, dan tertutup
+  // SENDIRI bila diklik di luar (backdrop) atau bila satu destinasi dipilih — macam menu
+  // dropdown/flyout biasa, bukan togol yang perlu ditutup semula secara eksplisit setiap kali.
+  const [dilipat, setDilipat] = useState(true);
+  const togolLipat = () => setDilipat((v) => !v);
 
   const handleNavClick = (tabId: string) => {
     setCurrentTab(tabId);
     if (onTabChange) onTabChange(tabId);
+    // Pilih destinasi = tutup panel terus, sama seperti klik di luar. Editor sengaja buka panel
+    // untuk PILIH satu benda; sebaik dipilih tiada sebab ia kekal terbuka menutup kandungan.
+    setDilipat(true);
   };
 
   // Belum log masuk = TIADA destinasi boleh dibuka. Dulu semua tab masih boleh diklik: tab
@@ -251,6 +242,15 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           terapung), bukan tolak kandungan. Ini jugalah sebabnya jadual lebar macam Indeks tak
           perlu skrol mendatar sekadar sebab sidebar terbuka. */}
       <div className="relative flex flex-col">
+        {/* Backdrop lut sinar (2026-08-01) — hanya wujud bila panel DIKEMBANG. Klik di
+            mana-mana pun (header, kandungan) tutup panel terus, macam menu dropdown biasa —
+            tiada butang "Lipatkan" eksplisit diperlukan untuk kes biasa. */}
+        {!dilipat && (
+          <div
+            className="hidden md:block fixed inset-0 z-20"
+            onClick={() => setDilipat(true)}
+          />
+        )}
         <aside
           className={`hidden md:flex md:flex-col fixed left-0 top-[42px] h-[calc(100vh-42px)] z-30 overflow-y-auto bg-[#F6F4EF] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
             dilipat ? 'w-[4.5rem]' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
