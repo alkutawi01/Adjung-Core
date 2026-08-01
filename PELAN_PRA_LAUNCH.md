@@ -188,11 +188,12 @@ test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
       jejak SEMUA orang) — sama seperti Panduan/Dokumentasi (destinasi rujukan terbuka).
       Keputusan reka bentuk kalau nak dikhususkan Pentadbir/Ketua Editor sahaja kemudian
 
-### [ ] Fasa 5 — Paparan Utama (dashboard) · `M` · ~3 hari
-- [ ] Status kandungan · draf saya · makluman terbaru · slot kosong/bermasalah
-- [ ] Status RSS & API cuaca (baca rekod kesihatan Fasa 4)
-- [ ] Keaktifan editor (baca log audit Fasa 4)
-- [ ] Destinasi lalai selepas log masuk
+### [x] Fasa 5 — Paparan Utama (dashboard) · SIAP 2026-08-02 (commit `fec841c`)
+- [x] Status kandungan · draf saya · makluman terbaru · slot kosong/bermasalah
+- [x] Status RSS & API cuaca (baca `audit_log` Fasa 4)
+- [x] Keaktifan editor (kiraan ringkas drpd 200 log terkini)
+- [x] Destinasi lalai selepas log masuk (kumpulan sidebar "Utama" baharu, di atas Penerbitan)
+- [ ] Bilangan pengunjung & kandungan paling diminati — placeholder jujur, tunggu Fasa 14
 
 ### [ ] Fasa 6 — Tetapan & aliran kerja teras · `L` · ~5 hari
 - [ ] Editor label & tooltip (UI atas `src/config/istilah.ts`)
