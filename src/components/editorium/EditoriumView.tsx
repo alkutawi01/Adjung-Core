@@ -266,13 +266,15 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         />
       )}
 
-      {/* Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — Notis, Nota Am, Nota Khas,
-          dengan skop Dalaman vs Awam. Ketua Editor menerbitkan; Editor membaca. */}
-      {activeTab === 'nota_ketua_editor' && (
+      {/* Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — tempat Ketua Editor MENULIS
+          nota, bukan destinasi Editor lain membaca. Ketua Editor sahaja (dikunci di
+          EditoriumLayout.tsx sidebar); Editor terima nota yang diterbitkan melalui Peti
+          Makluman, bukan dengan membuka destinasi ni. */}
+      {activeTab === 'nota_ketua_editor' && currentUser.role === 'KETUA_EDITOR' && (
         <NotaKetuaEditorConsole
           editorId={currentUser.id}
           editorName={currentUser.name}
-          bolehUrus={currentUser.role === 'KETUA_EDITOR'}
+          bolehUrus
           onBerubah={() => setMaklumanVersi((v) => v + 1)}
         />
       )}

@@ -71,10 +71,14 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   const [currentTab, setCurrentTab] = useState(activeTab);
   // Sidebar boleh dilipat jadi rel ikon sahaja (2026-08-01, permintaan pemilik projek) — jadual
   // panjang macam Indeks perlukan lebar penuh, editor tak sepatutnya terpaksa skrol mendatar
-  // untuk lihat lajur Tindakan hanya sebab sidebar sentiasa ambil 240px. Keadaan disimpan supaya
-  // kekal antara sesi (bukan reset setiap kali buka Editorium).
+  // untuk lihat lajur Tindakan hanya sebab sidebar sentiasa ambil 240px. LALAI terlipat (rel ikon)
+  // — kembang ialah tindakan sengaja bila editor betul-betul nak lihat label, bukan keadaan permula
+  // yang perlu ditutup setiap kali. Keadaan disimpan supaya kekal antara sesi.
   const [dilipat, setDilipat] = useState(() => {
-    try { return localStorage.getItem('adjung-editorium-sidebar-lipat') === '1'; } catch { return false; }
+    try {
+      const sedia = localStorage.getItem('adjung-editorium-sidebar-lipat');
+      return sedia === null ? true : sedia === '1';
+    } catch { return true; }
   });
   const togolLipat = () => {
     setDilipat((v) => {
@@ -93,10 +97,12 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   // bertukar aktif tapi kandungan kekal skrin pagar, jadi nav nampak macam rosak.
   const loggedOut = !currentUser;
 
-  // Editorial DAN Tetapan (2026-08-01) — dua-dua Ketua Editor sahaja. Editorial ubah peraturan
-  // bahasa/templat AI sistem-lebar; Tetapan ubah tetapan sistem. Kedua-duanya bukan kerja editor
-  // biasa.
-  const restricted = (id: string) => (id === 'editorial' || id === 'tetapan') && currentUser?.role !== 'KETUA_EDITOR';
+  // Editorial, Tetapan, DAN Nota Ketua Editor (2026-08-01) — ketiga-tiganya Ketua Editor sahaja.
+  // Nota Ketua Editor ialah tempat Ketua Editor MENULIS nota, bukan destinasi Editor lain
+  // membaca — nota yang diterbitkan sampai kepada Editor lain melalui Peti Makluman (ikon
+  // Makluman di header), bukan dengan membuka destinasi tulis ni sendiri.
+  const restricted = (id: string) =>
+    (id === 'editorial' || id === 'tetapan' || id === 'nota_ketua_editor') && currentUser?.role !== 'KETUA_EDITOR';
 
   const renderKumpulan = (tajuk: string, items: NavItem[]) => (
     <div className="space-y-1">
@@ -162,35 +168,33 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           <div className="flex items-center gap-2.5 font-sans text-[11px]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}>
             {currentUser ? (
               <>
-                {/* Peti Makluman (2026-08-01, spesifikasi pemilik projek) — nota Ketua Editor
-                    dicapai dari mana-mana halaman, tanpa meninggalkan kerja yang sedang dibuat.
-                    Lencana kiraan hanya muncul apabila benar-benar ada nota. */}
+                {/* Peti Makluman & "+ Kandungan Baharu" (2026-08-01, spesifikasi asal pemilik
+                    projek — ✉️ dan + sebagai simbol, bukan label teks) — ikon sahaja, tooltip
+                    nama penuh bila ditunjuk. Padan dengan header yang sudah minimalis, dan sidebar
+                    lipat (rel ikon sahaja) yang sama falsafahnya. */}
                 {onOpenMakluman && (
                   <button
                     type="button"
                     onClick={onOpenMakluman}
                     title="Peti Makluman — nota Ketua Editor"
-                    className="relative flex items-center gap-1.5 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1] text-white/80 hover:text-white hover:bg-white/[0.14] transition-colors cursor-pointer"
+                    className="relative flex items-center justify-center w-7 h-7 bg-white/[0.08] backdrop-blur-xl rounded-full border border-white/[0.1] text-white/80 hover:text-white hover:bg-white/[0.14] transition-colors cursor-pointer"
                   >
-                    <Mail className="w-3 h-3" /> Makluman
+                    <Mail className="w-3.5 h-3.5" />
                     {jumlahMakluman > 0 && (
-                      <span className="font-mono text-[9px] font-bold bg-[#e0b7bd] text-[#5c1624] rounded-full px-1.5 leading-[1.35]">
+                      <span className="absolute -top-1 -right-1 font-mono text-[9px] font-bold bg-[#e0b7bd] text-[#5c1624] rounded-full min-w-[16px] px-1 leading-4 text-center">
                         {jumlahMakluman}
                       </span>
                     )}
                   </button>
                 )}
-                {/* "+ Tulis Kandungan" (2026-07-29, permintaan pemilik projek) — Editorium dan
-                    Frontpage dipisah 100% sekarang; modal (pemilih slot + borang) render TERUS
-                    dalam EditoriumView sendiri (useSlotEditor, mandiri, tiada pergantungan pada
-                    FrontpageView), tiada navigasi/parameter URL lagi. */}
                 {onOpenSlotPicker && (
                   <button
                     type="button"
                     onClick={onOpenSlotPicker}
-                    className="flex items-center gap-1.5 bg-white text-[#802334] px-2.5 py-1 rounded-full font-bold hover:bg-stone-100 transition-colors cursor-pointer"
+                    title="Tulis Kandungan Baharu"
+                    className="flex items-center justify-center w-7 h-7 bg-white text-[#802334] rounded-full font-bold hover:bg-stone-100 transition-colors cursor-pointer"
                   >
-                    <PenLine className="w-3 h-3" /> Tulis Kandungan
+                    <PenLine className="w-3.5 h-3.5" />
                   </button>
                 )}
                 {/* Profil Editor (2026-08-01, spesifikasi pemilik projek) — badge nama/peranan
