@@ -2566,19 +2566,20 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend API server running on http://localhost:${PORT}`);
 
-  // Scheduler dalaman: server ni proses Node yang berjalan berterusan (bukan serverless), jadi
-  // ini yang benar-benar mencetuskan "Kadar Segar Semula" (Daily/Weekly + jam) yang Izzat tetapkan
-  // di Mini Editorium. Semak setiap 5 minit — cukup halus utk jam yang ditetapkan (cth 07:00) tanpa
-  // membebankan pangkalan data. Server MESTI kekal berjalan (dev server / PM2 / dsb) utk ini berfungsi.
+  // Scheduler dalaman: server ni proses Node yang berjalan berterusan (bukan serverless).
+  //
+  // 2026-08-02 — Izzat putuskan tak nak guna saluran penjanaan AI automatik lagi (saluran
+  // kandungan sah kini: Manual, API luar bukan-AI, RSS; AI hanya sebagai alat bantu manual
+  // dalam chatbox editor, bukan pipeline automatik). `runAllScheduledSlots` (jana AI ikut
+  // "Kadar Segar Semula" yang ditetapkan di Mini Editorium) DIMATIKAN di sini SENGAJA —
+  // fungsi & laluan pipeline (`runEditorialPipeline`, `POST /api/system/slots/run-now`)
+  // kekal wujud dalam kod, cuma tak dipanggil automatik lagi. Jangan aktifkan semula tanpa
+  // arahan eksplisit.
   const SCHEDULER_INTERVAL_MS = 5 * 60 * 1000;
   let lastRssAutoFetchTime = 0;
   const RSS_AUTO_FETCH_INTERVAL_MS = 3 * 60 * 60 * 1000; // Auto-refresh RSS every 3 hours (8x a day / 4 target windows)
 
   setInterval(() => {
-    runAllScheduledSlots(false).catch((err) => {
-      console.error('Internal scheduler run failed:', err);
-    });
-
     const now = Date.now();
     if (now - lastRssAutoFetchTime >= RSS_AUTO_FETCH_INTERVAL_MS) {
       lastRssAutoFetchTime = now;
@@ -2588,5 +2589,5 @@ app.listen(PORT, '0.0.0.0', () => {
         .catch((err) => console.error('[RSS Auto Scheduler] Error:', err.message));
     }
   }, SCHEDULER_INTERVAL_MS);
-  console.log(`Internal AI pipeline & RSS Direct scheduler active (checks every ${SCHEDULER_INTERVAL_MS / 60000} min).`);
+  console.log(`Internal RSS Direct scheduler active (checks every ${SCHEDULER_INTERVAL_MS / 60000} min). Scheduler penjanaan AI automatik DIMATIKAN sengaja.`);
 });
