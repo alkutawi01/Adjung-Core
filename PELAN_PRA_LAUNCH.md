@@ -130,12 +130,46 @@ dasar bersih pertama kali — dahulu 82/84).
       hanyut kalau salah satu diubah tanpa yang lain. Belum disatukan (skop lebih besar
       daripada Fasa 2, sentuh sistem peraturan editorial berasingan)
 
-### [ ] Fasa 3 — Direktori hidup · `M` · ~3 hari
-- [ ] `staffList` dari jadual `users` sebenar (kini array kosong; butang tambah = hiasan)
-- [ ] Tindakan status (aktif/cuti/nyahaktif) simpan ke server (kini state lokal sahaja,
-      hilang bila muat semula)
-- [ ] "+ Tambah Anggota" berfungsi — bersambung Fasa 1
-- [ ] Carta organisasi ringkas
+### [x] Fasa 3 — Direktori hidup + RBAC 4-peranan berbilang · SIAP 2026-08-02 (commit `ec86338`)
+**Skop berkembang besar daripada rancangan asal** — Izzat maklumkan peranan sebenar ADA
+EMPAT (Pentadbir, Ketua Editor, Penolong/Timbalan Ketua Editor, Editor), satu akaun boleh
+pegang BERBILANG peranan serentak (Izzat sendiri = Pentadbir + Ketua Editor), dan kebenaran
+setiap peranan mesti boleh diubah melalui klik (bukan hardcode). Jadi Fasa 3 jadi reka
+bentuk semula RBAC penuh, bukan sekadar Direktori.
+- [x] Jadual `user_roles` (berbilang peranan) + migrasi akaun sedia ada; lajur `users.status`
+      (Aktif/Cuti/Tidak Aktif/Ditamatkan) baharu
+- [x] Jadual "Kawalan Akses" di Tetapan (wujud sejak 2026-07-29, tak pernah disambung) kini
+      **sumber kebenaran sebenar** — `requirePermission()` baca terus, segar semula serta-merta
+      selepas simpan, tiada perlu mulakan semula server (disahkan hidup: tanda kotak → simpan
+      → kebenaran berkuat kuasa serta-merta, diuji dengan curl semasa UI masih terbuka)
+- [x] 3 kunci kebenaran baharu: `manageEditorial` (Bidang/Editorial/RSS/Jam Dunia — Ketua
+      Editor + Timbalan), `manageAccounts` (Direktori — Pentadbir sahaja), `manageEditorNotes`
+      (Nota Ketua Editor — Ketua Editor sahaja)
+- [x] Semua ~40 gerbang `requireRole('KETUA_EDITOR')` Fasa 1 digantikan `requirePermission(kunci)`
+- [x] `staffList` dari jadual `users` sebenar; "+ Tambah Anggota" berfungsi penuh (borang →
+      akaun sebenar); tukar peranan (berbilang, checkbox); tukar status — semua tersimpan DB
+- [x] Direktori & Tetapan Sistem kini domain **Pentadbir sahaja** (dahulu Direktori terbuka
+      semua log masuk, Tetapan Ketua-Editor-sahaja); Editorial kini Ketua Editor + Timbalan
+- [x] Medan Direktori tanpa sumber data sebenar (skop desk per-anggota, "slot mandat" bebas
+      teks, sejarah pergerakan timeline) **dibuang**, bukan disorok — kiraan kandungan
+      diterbitkan pakai anggaran sebenar daripada atribut `editorName`
+- [x] Akaun sebenar Izzat diberi peranan `pentadbir` tambahan secara manual (migrasi automatik
+      cuma baca `role` lama satu nilai, tak tahu bilangan peranan sepatutnya — jalan buntu
+      dielakkan: tanpa ini tiada siapa boleh sampai Direktori untuk lantik Pentadbir pertama)
+- [x] Pepijat sebenar ditemui & dibetulkan semasa ujian: matriks tersimpan LAMA (2 baris, 8
+      kunci) gagal gabung KUNCI baharu dalam baris sedia ada (cuma isi baris yang hilang) —
+      Ketua Editor tersekat `manageEditorial`/`manageEditorNotes` walaupun lalai patut `true`.
+      Dibetulkan client (`TetapanConsole.tsx`) dan server (`auth.js`) serentak
+- [ ] Carta organisasi ringkas — **belum dibina**, ditangguh (bukan keutamaan, struktur
+      4-peranan baharu sahaja belum stabil digunakan)
+- [ ] `SenaraiSlotConsole.tsx` masih papar label peranan binari lama (KETUA_EDITOR/EDITOR)
+      untuk penugasan editor→slot — kosmetik sahaja, bukan gerbang keselamatan, tak
+      dikemas kini (skop rendah, boleh buat bila-bila)
+
+Diuji PENUH di browser sebelum commit: log masuk 4 kombinasi peranan ujian (Pentadbir sahaja,
+Ketua Editor sahaja, Timbalan sahaja, Editor sahaja), sahkan sidebar/nav ikut peranan betul,
+Direktori papar data sebenar, tambah anggota sebenar, tukar peranan berbilang + status. `npm
+test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
 
 ### [ ] Fasa 4 — Log Sistem · `M` · ~3 hari
 - [ ] Jadual audit: siapa terbit/edit/arkib/tolak apa, bila (kini SIFAR jejak — tiada
