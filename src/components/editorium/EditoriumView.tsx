@@ -5,6 +5,7 @@ import { BRAND } from '../../config/brand';
 import { EditoriumLayout } from './EditoriumLayout';
 import { IndeksConsole } from './IndeksConsole';
 import { DrafSayaConsole } from './DrafSayaConsole';
+import { DashboardConsole } from './DashboardConsole';
 import { NotaKetuaEditorConsole } from './NotaKetuaEditorConsole';
 import { MaklumanDrawer } from './MaklumanDrawer';
 import { ProfilEditorModal } from './ProfilEditorModal';
@@ -106,7 +107,8 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const effectiveEditorialRole: 'KETUA_EDITOR' | 'EDITOR' = isEditorialAdmin ? 'KETUA_EDITOR' : 'EDITOR';
   // Destinasi peringkat atas (2026-08-01, permintaan pemilik projek — sidebar dua kumpulan, satu
   // klik terus). Lihat EditoriumLayout.tsx untuk susunan Operasi Harian / Tata Kelola & Rujukan.
-  const [activeTab, setActiveTab] = useState('kandungan');
+  // Paparan Utama (Fasa 5) — destinasi lalai selepas log masuk, ganti Kandungan.
+  const [activeTab, setActiveTab] = useState('paparan_utama');
   // Log keluar = keluar terus ke frontpage. Editorium bukan tempat untuk sesiapa yang tak log
   // masuk — dulu pengguna ditinggalkan di /editorium (skrin pagar) selepas log keluar.
   //
@@ -266,6 +268,11 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       jumlahMakluman={notaMakluman.length}
       onOpenProfil={bukaProfil}
     >
+      {/* Paparan Utama (Fasa 5) — destinasi lalai selepas log masuk. */}
+      {activeTab === 'paparan_utama' && (
+        <DashboardConsole currentUser={{ id: currentUser.id, name: currentUser.name, roles }} onTukarTab={setActiveTab} />
+      )}
+
       {/* OPERASI HARIAN — destinasi kerja editorial setiap hari. */}
 
       {/* Kandungan — Indeks rasmi + Semakan pukal. Draf Saya/Nota Ketua Editor/Modul Khas kini

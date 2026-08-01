@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings,
-  LogOut, LogIn, PenLine, Mail, Lock, BookMarked, FileText, History,
+  LogOut, LogIn, PenLine, Mail, Lock, BookMarked, FileText, History, Home,
 } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
@@ -43,6 +43,13 @@ const ROLE_LABELS: Record<string, string> = {
   penolong_ketua_editor: 'Penolong Ketua Editor',
   editor: 'Editor',
 };
+
+// Paparan Utama (2026-08-02, Fasa 5) — item PERTAMA, DI ATAS kumpulan Penerbitan, destinasi
+// lalai selepas log masuk. Berdiri sendiri (bukan sebahagian Penerbitan) — ia "rumah", bukan
+// aliran kerja penerbitan.
+const UTAMA: NavItem[] = [
+  { id: 'paparan_utama', label: 'Paparan Utama', Icon: Home },
+];
 
 // Sidebar menegak TIGA kumpulan (2026-08-01, susunan tepat ditetapkan pemilik projek) — setiap
 // destinasi SATU klik. Kandungan dan Slot kekal ada sub-tab SENDIRI dalam EditoriumView.tsx
@@ -298,7 +305,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           }`}
         >
           <div className="flex-1 space-y-6">
-            {renderKumpulan('Penerbitan', PENERBITAN)}
+            {renderKumpulan('Utama', UTAMA)}
+            <div className="border-t border-stone-200 pt-4">
+              {renderKumpulan('Penerbitan', PENERBITAN)}
+            </div>
             <div className="border-t border-stone-200 pt-4">
               {renderKumpulan('Pengurusan', PENGURUSAN)}
             </div>
@@ -311,7 +321,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
         {/* Sidebar dibalut jadi bar mendatar boleh skrol pada skrin sempit (< md) — bukan
             disembunyikan terus, atau Editorium jadi tak boleh dinavigasi pada telefon/tablet. */}
         <nav className="md:hidden w-full overflow-x-auto flex gap-1 px-3 py-2 border-b border-stone-200 bg-[#F6F4EF]">
-          {[...PENERBITAN, ...PENGURUSAN, ...RUJUKAN].map((item) => {
+          {[...UTAMA, ...PENERBITAN, ...PENGURUSAN, ...RUJUKAN].map((item) => {
             const isActive = currentTab === item.id && !loggedOut;
             const isLocked = loggedOut || restricted(item.id);
             const { Icon } = item;
