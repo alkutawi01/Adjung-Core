@@ -34,7 +34,8 @@ Fasa 1 (keselamatan) ─┬─────────────────�
 Fasa 2 (pepijat kritikal + hutang ujian) ────► awal, bebas — boleh selari dengan Fasa 1
 Fasa 3 (Direktori) ──► Fasa 4 (Log Sistem) perlu tahu siapa buat apa
 Fasa 4 (Log Sistem) ──► Fasa 5 (Dashboard) panel keaktifan editor baca log yang sama
-Fasa 6 (Tetapan) ────► Fasa 7 (Modul Khas & kawalan slot)
+Fasa 6 (Tetapan) ────► Fasa 6b (Profil & Notifikasi) ────► Fasa 7 (Modul Khas & kawalan slot)
+Fasa 6b notifikasi Sistem (RSS/API gagal) bergantung rekod kesihatan Fasa 4 (Log Sistem)
 Fasa 8 (Editorial) ── bebas; skop kini ditetapkan (lihat fasa)
 Fasa 9–12 ───────────► Fasa 13 (reka bentuk) selepas UI stabil
 Fasa 13 ─────────────► Fasa 14 (jejak pengunjung) ► Fasa 15 (prestasi) ► Fasa 16–17
@@ -161,8 +162,33 @@ dasar bersih pertama kali — dahulu 82/84).
       UPDATE atas tempat, versi berkekalan 1.0); jadikan revisi terkumpul + UI lihat/
       pulih versi
 - [ ] Sebab penolakan — `Tolak` kini pulangkan draf TANPA sebarang catatan kepada penulis
-- [ ] Notifikasi kepada editor bila kandungannya disiar/ditolak (kini kena pergi semak
-      sendiri)
+
+### [ ] Fasa 6b — Profil editor lengkap & sistem notifikasi sebenar · `L` · ~6 hari
+Ditambah 2026-08-02 selepas semakan Izzat mendapati dua jurang: profil editor tak lengkap,
+dan Peti Makluman cuma Nota Ketua Editor — bukan sistem notifikasi.
+
+**Profil Editor (kini: nama pena/tandatangan/warna/bio sahaja boleh disunting):**
+- [ ] Tukar kata laluan sendiri — laluan backend `POST /api/auth/change-password` SUDAH
+      wujud (Fasa 1) tapi TIADA UI langsung; tambah borang dalam `ProfilEditorModal.tsx`
+- [ ] Tukar username sendiri — TIADA laluan, TIADA UI. Keputusan Izzat: editor boleh
+      tukar sendiri, perlu pengesahan (kata laluan semasa, sama corak `change-password`);
+      wajib semak keunikan username sebelum simpan
+- [ ] Tukar emel sendiri — sama, TIADA laluan/UI. Pengesahan sama seperti username
+
+**Peti Makluman → sistem notifikasi sebenar (kini: satu sumber sahaja, `editor_notes`):**
+Keputusan Izzat: skop Kandungan + Sistem (bukan kandungan sahaja).
+- [ ] Jadual `notifications` baharu — per-editor, status baca/belum baca (ganti kiraan
+      global sedia ada yang kira SEMUA nota tanpa mengira siapa dah baca — lihat
+      Lampiran A, "kiraan global bukan per-editor, tiada resit baca")
+- [ ] Jenis Kandungan: kandungan disiar, kandungan ditolak (sertakan sebab daripada item
+      di atas), penugasan slot baharu
+- [ ] Jenis Sistem: ambilan RSS gagal (sambung ke rekod kesihatan Fasa 4 Log Sistem),
+      API cuaca gagal, kata laluan sendiri ditukar, akaun digantung/diaktifkan semula
+      (Ketua Editor sahaja terima notis akaun-lain; setiap editor terima notis akaun-sendiri)
+- [ ] UI: lencana kiraan belum-baca per-editor (bukan jumlah semua nota macam sekarang),
+      tanda-dibaca bila drawer dibuka atau item diklik
+- [ ] Nota Ketua Editor (`editor_notes`) kekal sebagai SATU jenis dalam senarai gabungan
+      ni, bukan digantikan — cuma bukan lagi satu-satunya sumber
 
 ### [ ] Fasa 7 — Modul Khas & kawalan slot · `L` · ~6 hari
 Penemuan besar Fasa 0: satu-satunya jalan ubah Bidang/warna/selang carousel slot ialah
