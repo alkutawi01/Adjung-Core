@@ -111,8 +111,14 @@ export function calculateDeskScores(text, category, rules = [], desks = [], glob
   const normalizedText = (text || '').toLowerCase();
   const normalizedCategory = (category || '').toLowerCase();
 
+  // Pemanggil kadangkala hantar undefined/null (cth. tetapan pengelas belum dimuatkan lagi) —
+  // tanpa pengawal ni, .filter() membaling TypeError dan mematikan seluruh laluan pengelasan.
+  const safeRules = Array.isArray(rules) ? rules : [];
+  const safeDesks = Array.isArray(desks) ? desks : [];
+  const safeExclusions = Array.isArray(globalExclusions) ? globalExclusions : [];
+
   const deskMap = {};
-  const activeDesks = desks.filter(d => d.enabled !== 0);
+  const activeDesks = safeDesks.filter(d => d.enabled !== 0);
   activeDesks.forEach(d => {
     deskMap[d.id] = {
       id: d.id,
@@ -123,7 +129,7 @@ export function calculateDeskScores(text, category, rules = [], desks = [], glob
     };
   });
 
-  const activeRules = rules.filter(r => r.enabled !== 0);
+  const activeRules = safeRules.filter(r => r.enabled !== 0);
 
   for (const rule of activeRules) {
     const targetDesk = deskMap[rule.deskId] || Object.values(deskMap).find(d => d.deskName.toLowerCase() === rule.deskId.toLowerCase());
@@ -156,7 +162,7 @@ export function calculateDeskScores(text, category, rules = [], desks = [], glob
   const initialSorted = Object.values(deskMap).sort((a, b) => b.score - a.score);
 
   // Apply Global Conflict Rules & Context Resolver
-  const { resolvedDesks, resolverTag, conflictNote } = resolveDeskConflict(initialSorted, normalizedText, globalExclusions);
+  const { resolvedDesks, resolverTag, conflictNote } = resolveDeskConflict(initialSorted, normalizedText, safeExclusions);
 
   // Check minimum score threshold
   if (resolvedDesks.length === 0 || resolvedDesks[0].score < 20) {
