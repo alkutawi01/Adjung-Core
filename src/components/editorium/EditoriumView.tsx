@@ -70,8 +70,8 @@ interface EditoriumViewProps {
 // (borang Tetapan Slot Bidang, butang "Edit Kandungan") turut boleh baca sesi yang sama.
 export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onRequestLogin, onLogout }) => {
   const navigate = useNavigate();
-  // Kategori peringkat atas (2026-08-01, permintaan pemilik projek) — 9 tab mendatar disusun
-  // semula jadi 4 kategori. Lihat EditoriumLayout.tsx untuk nav pil di atas.
+  // Destinasi peringkat atas (2026-08-01, permintaan pemilik projek — sidebar dua kumpulan, satu
+  // klik terus). Lihat EditoriumLayout.tsx untuk susunan Operasi Harian / Tata Kelola & Rujukan.
   const [activeTab, setActiveTab] = useState('kandungan');
   // Log keluar = keluar terus ke frontpage. Editorium bukan tempat untuk sesiapa yang tak log
   // masuk — dulu pengguna ditinggalkan di /editorium (skrin pagar) selepas log keluar.
@@ -86,21 +86,12 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     navigate('/');
     onLogout();
   };
-  // Sub-tab kategori "Kandungan" (2026-08-01) — Draf Saya, Indeks, dan Modul Khas dulu tab
-  // peringkat atas sendiri-sendiri; kini sub-tab satu kategori sebab kesemuanya tentang MENULIS/
-  // MENGURUS kandungan editorial. "Semakan Kandungan" (dulu laman berasingan
-  // /studio/semakan-kandungan) kekal paparan teks pukal — ContentReview sudah ada togol dalaman
-  // sendiri "Paparan Kad"/"Paparan Teks Pukal".
-  const [kandunganSubTab, setKandunganSubTab] = useState<'draf_saya' | 'indeks' | 'semakan' | 'nota' | 'modul_khas'>('indeks');
-  // Sub-tab kategori "Slot" (2026-07-30, permintaan pemilik projek) — tidak berubah struktur,
-  // cuma kini bersarang bawah kategori "Slot" bukan terus di nav peringkat atas.
+  // Sub-tab DALAMAN destinasi "Kandungan" (2026-07-29) — Indeks dan Semakan Kandungan sahaja.
+  // Draf Saya, Nota Ketua Editor, Modul Khas kini destinasi SENDIRI di sidebar (2026-08-01), bukan
+  // sub-tab kategori — satu klik terus, ikut susunan yang pemilik projek nak.
+  const [kandunganSubTab, setKandunganSubTab] = useState<'indeks' | 'semakan'>('indeks');
+  // Sub-tab DALAMAN destinasi "Slot" (2026-07-30) — tidak berubah struktur.
   const [slotSubTab, setSlotSubTab] = useState<'senarai' | 'tier' | 'bidang' | 'tetapan_am'>('senarai');
-  // Sub-tab kategori "Pentadbiran" (2026-08-01) — Direktori (kakitangan), Tetapan (sistem, Ketua
-  // Editor sahaja), Log Audit: tiga fungsi mentadbir Editorium, dulu tab peringkat atas berasingan.
-  const [pentadbiranSubTab, setPentadbiranSubTab] = useState<'direktori' | 'editorial' | 'tetapan' | 'log_audit'>('direktori');
-  // Sub-tab kategori "Rujukan" (2026-08-01) — Perlembagaan dan Reka Bentuk: dokumen rujukan yang
-  // dibaca, bukan diubah setiap hari.
-  const [rujukanSubTab, setRujukanSubTab] = useState<'perlembagaan' | 'reka_bentuk'>('perlembagaan');
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
@@ -212,31 +203,20 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       onOpenMakluman={() => setMaklumanTerbuka(true)}
       jumlahMakluman={notaMakluman.length}
     >
-      {/* Kandungan (2026-08-01, permintaan pemilik projek) — segala tentang MENULIS/MENGURUS
-          kandungan editorial: draf peribadi, Indeks rasmi, semakan pukal, dan modul khas
-          (Ticker/Jam/Bar). Draf Saya sengaja sub-tab PERTAMA — itulah tempat kerja harian editor
-          bermula sebelum sesuatu masuk Indeks. */}
+      {/* OPERASI HARIAN — destinasi kerja editorial setiap hari. */}
+
+      {/* Kandungan — Indeks rasmi + Semakan pukal. Draf Saya/Nota Ketua Editor/Modul Khas kini
+          destinasi sendiri (2026-08-01), bukan sub-tab kategori sama. */}
       {activeTab === 'kandungan' && (
         <div className="space-y-4 font-sans">
           <SubTabBar
             items={[
-              { id: 'draf_saya', label: '1. Draf Saya' },
-              { id: 'indeks', label: '2. Indeks' },
-              { id: 'semakan', label: '3. Semakan Kandungan' },
-              { id: 'nota', label: '4. Nota Ketua Editor' },
-              { id: 'modul_khas', label: '5. Modul Khas' },
+              { id: 'indeks', label: '1. Indeks' },
+              { id: 'semakan', label: '2. Semakan Kandungan' },
             ]}
             active={kandunganSubTab}
             onChange={setKandunganSubTab}
           />
-          {kandunganSubTab === 'draf_saya' && (
-            <DrafSayaConsole
-              editorId={currentUser.id}
-              editorName={currentUser.name}
-              onBukaDraf={bukaDraf}
-              versi={drafVersi}
-            />
-          )}
           {kandunganSubTab === 'indeks' && (
             <IndeksConsole
               currentUserRole={currentUser.role}
@@ -244,60 +224,70 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             />
           )}
           {kandunganSubTab === 'semakan' && <ContentReview />}
-          {/* Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — Notis, Nota Am, Nota
-              Khas, dengan skop Dalaman vs Awam. Ketua Editor menerbitkan; Editor membaca. */}
-          {kandunganSubTab === 'nota' && (
-            <NotaKetuaEditorConsole
-              editorId={currentUser.id}
-              editorName={currentUser.name}
-              bolehUrus={currentUser.role === 'KETUA_EDITOR'}
-              onBerubah={() => setMaklumanVersi((v) => v + 1)}
-            />
-          )}
-          {kandunganSubTab === 'modul_khas' && (
-            <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4">
-              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Modul Khas</h3>
-              <p className="text-xs text-stone-500">
-                Jam, Ticker, dan Slot Bar ada peraturan penyuntingan tersendiri, berasingan daripada kad bento biasa.
-              </p>
-              <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <Radio className="w-4 h-4 text-[#802334]" />
-                  <div>
-                    <div className="text-sm font-semibold text-stone-800">Ticker (Berita Semasa)</div>
-                    <div className="text-[11px] text-stone-500">RSS, animasi, status, tetapan penyuntingan khas.</div>
-                  </div>
-                </div>
-                {/* Modal Ticker sebenar (TickerManagementModal) masih hidup di FrontpageView.tsx —
-                    lihat nota "+ Tulis Kandungan" di EditoriumLayout.tsx untuk sebab yang sama. */}
-                <a
-                  href="/?openTicker=1"
-                  className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0"
-                >
-                  Urus Ticker
-                </a>
-              </div>
-              <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4 opacity-50">
-                <div>
-                  <div className="text-sm font-semibold text-stone-800">Jam Dunia</div>
-                  <div className="text-[11px] text-stone-500">Belum disambungkan ke Editorium.</div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4 opacity-50">
-                <div>
-                  <div className="text-sm font-semibold text-stone-800">Slot Bar</div>
-                  <div className="text-[11px] text-stone-500">Belum disambungkan ke Editorium (kekal guna laluan sedia ada di frontpage).</div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
-      {/* Slot (2026-07-30, permintaan pemilik projek) — segala yang MENTAKRIFKAN slot duduk di
-          sini: bentuk, Bidang, warna, had aksara, animasi. Rasionalnya: slot ialah kad, kad ialah
-          slot. Senarai KANDUNGAN dalam slot sengaja tiada di sini — Ketua Editor menyunting
-          kandungan di Kandungan → Semakan Kandungan. Ticker dan tier Bar juga tiada di sini;
-          kedua-duanya ada rumah sendiri di Modul Khas. */}
+
+      {activeTab === 'draf_saya' && (
+        <DrafSayaConsole
+          editorId={currentUser.id}
+          editorName={currentUser.name}
+          onBukaDraf={bukaDraf}
+          versi={drafVersi}
+        />
+      )}
+
+      {/* Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — Notis, Nota Am, Nota Khas,
+          dengan skop Dalaman vs Awam. Ketua Editor menerbitkan; Editor membaca. */}
+      {activeTab === 'nota_ketua_editor' && (
+        <NotaKetuaEditorConsole
+          editorId={currentUser.id}
+          editorName={currentUser.name}
+          bolehUrus={currentUser.role === 'KETUA_EDITOR'}
+          onBerubah={() => setMaklumanVersi((v) => v + 1)}
+        />
+      )}
+
+      {activeTab === 'modul_khas' && (
+        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 font-sans">
+          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Modul Khas</h3>
+          <p className="text-xs text-stone-500">
+            Jam, Ticker, dan Slot Bar ada peraturan penyuntingan tersendiri, berasingan daripada kad bento biasa.
+          </p>
+          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <Radio className="w-4 h-4 text-[#802334]" />
+              <div>
+                <div className="text-sm font-semibold text-stone-800">Ticker (Berita Semasa)</div>
+                <div className="text-[11px] text-stone-500">RSS, animasi, status, tetapan penyuntingan khas.</div>
+              </div>
+            </div>
+            {/* Modal Ticker sebenar (TickerManagementModal) masih hidup di FrontpageView.tsx —
+                lihat nota "+ Tulis Kandungan" di EditoriumLayout.tsx untuk sebab yang sama. */}
+            <a
+              href="/?openTicker=1"
+              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0"
+            >
+              Urus Ticker
+            </a>
+          </div>
+          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4 opacity-50">
+            <div>
+              <div className="text-sm font-semibold text-stone-800">Jam Dunia</div>
+              <div className="text-[11px] text-stone-500">Belum disambungkan ke Editorium.</div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4 opacity-50">
+            <div>
+              <div className="text-sm font-semibold text-stone-800">Slot Bar</div>
+              <div className="text-[11px] text-stone-500">Belum disambungkan ke Editorium (kekal guna laluan sedia ada di frontpage).</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Slot — segala yang MENTAKRIFKAN slot: bentuk, Bidang, warna, had aksara, animasi.
+          Senarai KANDUNGAN dalam slot sengaja tiada di sini — Ketua Editor menyunting kandungan
+          di Kandungan → Semakan Kandungan. */}
       {activeTab === 'slot' && (
         <div className="space-y-4 font-sans">
           <SubTabBar
@@ -316,56 +306,24 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           {slotSubTab === 'tetapan_am' && <TetapanAmSlotConsole />}
         </div>
       )}
-      {/* Pentadbiran (2026-08-01, permintaan pemilik projek) — fungsi MENTADBIR Editorium:
-          kakitangan (Direktori), tetapan sistem (Ketua Editor sahaja), dan jejak audit. Berasingan
-          daripada Kandungan/Slot sebab ia bukan kerja editorial harian. */}
-      {activeTab === 'pentadbiran' && (
-        <div className="space-y-4 font-sans">
-          <SubTabBar
-            items={[
-              { id: 'direktori', label: '1. Direktori' },
-              {
-                id: 'editorial', label: '2. Editorial',
-                locked: currentUser.role !== 'KETUA_EDITOR',
-                lockedTitle: 'Hanya Ketua Editor boleh mengubah peraturan bahasa dan templat AI.',
-              },
-              {
-                id: 'tetapan', label: '3. Tetapan',
-                locked: currentUser.role !== 'KETUA_EDITOR',
-                lockedTitle: 'Hanya Ketua Editor boleh mengakses Tetapan.',
-              },
-              { id: 'log_audit', label: '4. Log Audit' },
-            ]}
-            active={pentadbiranSubTab}
-            onChange={setPentadbiranSubTab}
-          />
-          {pentadbiranSubTab === 'direktori' && <DirektoriConsole currentUserRole={currentUser.role} />}
-          {/* Editorial (2026-08-01, spesifikasi pemilik projek) — peraturan BAHASA: autocondong,
-              glosari/penyelarasan ejaan, templat penjanaan AI. Berasingan daripada Tetapan
-              (tetapan sistem) dan Slot (geometri kad). */}
-          {pentadbiranSubTab === 'editorial' && currentUser.role === 'KETUA_EDITOR' && <EditorialConsole />}
-          {pentadbiranSubTab === 'tetapan' && currentUser.role === 'KETUA_EDITOR' && (
-            <TetapanConsole currentUserRole={currentUser.role} />
-          )}
-          {pentadbiranSubTab === 'log_audit' && <LogAuditConsole />}
-        </div>
+
+      {/* TATA KELOLA & RUJUKAN — pentadbiran dan dokumen rujukan, bukan kerja editorial harian. */}
+
+      {/* Editorial (2026-08-01, spesifikasi pemilik projek) — peraturan BAHASA: autocondong,
+          glosari/penyelarasan ejaan, templat penjanaan AI. Ketua Editor sahaja. */}
+      {activeTab === 'editorial' && currentUser.role === 'KETUA_EDITOR' && <EditorialConsole />}
+
+      {activeTab === 'direktori' && <DirektoriConsole currentUserRole={currentUser.role} />}
+
+      {activeTab === 'tetapan' && currentUser.role === 'KETUA_EDITOR' && (
+        <TetapanConsole currentUserRole={currentUser.role} />
       )}
-      {/* Rujukan (2026-08-01, permintaan pemilik projek) — dokumen yang DIBACA, bukan diubah
-          setiap hari: peraturan editorial (Perlembagaan) dan sistem reka bentuk. */}
-      {activeTab === 'rujukan' && (
-        <div className="space-y-4 font-sans">
-          <SubTabBar
-            items={[
-              { id: 'perlembagaan', label: '1. Perlembagaan' },
-              { id: 'reka_bentuk', label: '2. Reka Bentuk' },
-            ]}
-            active={rujukanSubTab}
-            onChange={setRujukanSubTab}
-          />
-          {rujukanSubTab === 'perlembagaan' && <PerlembagaanConsole />}
-          {rujukanSubTab === 'reka_bentuk' && <SistemRekaBentukConsole />}
-        </div>
-      )}
+
+      {activeTab === 'log_audit' && <LogAuditConsole />}
+
+      {activeTab === 'perlembagaan' && <PerlembagaanConsole />}
+
+      {activeTab === 'reka_bentuk' && <SistemRekaBentukConsole />}
 
       {makluanTerbuka && (
         <MaklumanDrawer

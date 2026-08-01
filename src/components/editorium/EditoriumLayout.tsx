@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { List, LayoutGrid, Settings, Landmark, LogOut, LogIn, PenLine, Mail } from 'lucide-react';
+import {
+  List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings, History, Landmark, Palette,
+  LogOut, LogIn, PenLine, Mail, Lock,
+} from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
@@ -22,6 +25,35 @@ interface EditoriumLayoutProps {
   children?: React.ReactNode;
 }
 
+interface NavItem {
+  id: string;
+  label: string;
+  Icon: any;
+  restricted?: boolean;
+}
+
+// Sidebar menegak dua kumpulan (2026-08-01, permintaan pemilik projek — susun macam contoh yang
+// ditunjuk, bukan salinan terus cabang antigravity/simulasi) — setiap destinasi SATU klik, tiada
+// lagi lapisan kategori-lepas-sub-tab. Kandungan dan Slot kekal ada sub-tab SENDIRI dalam
+// EditoriumView.tsx (Indeks/Semakan, Senarai/Tier/Bidang/Tetapan Am) — itu keperluan sebenar bagi
+// dua destinasi tu, bukan lapisan navigasi tambahan.
+const OPERASI_HARIAN: NavItem[] = [
+  { id: 'kandungan', label: 'Kandungan', Icon: List },
+  { id: 'draf_saya', label: 'Draf Saya', Icon: FileEdit },
+  { id: 'nota_ketua_editor', label: 'Nota Ketua Editor', Icon: Bell },
+  { id: 'modul_khas', label: 'Modul Khas', Icon: Zap },
+  { id: 'slot', label: 'Slot', Icon: LayoutGrid },
+];
+
+const TATA_KELOLA: NavItem[] = [
+  { id: 'editorial', label: 'Editorial', Icon: BookOpen },
+  { id: 'direktori', label: 'Direktori', Icon: FolderOpen },
+  { id: 'tetapan', label: 'Tetapan', Icon: Settings },
+  { id: 'log_audit', label: 'Log Audit', Icon: History },
+  { id: 'perlembagaan', label: 'Perlembagaan', Icon: Landmark },
+  { id: 'reka_bentuk', label: 'Reka Bentuk', Icon: Palette },
+];
+
 export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   activeTab = 'kandungan',
   onTabChange,
@@ -40,27 +72,56 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
     if (onTabChange) onTabChange(tabId);
   };
 
-  // Belum log masuk = TIADA tab boleh dibuka. Dulu semua tab masih boleh diklik: tab bertukar
-  // aktif tapi kandungan kekal skrin pagar, jadi nav nampak macam rosak.
+  // Belum log masuk = TIADA destinasi boleh dibuka. Dulu semua tab masih boleh diklik: tab
+  // bertukar aktif tapi kandungan kekal skrin pagar, jadi nav nampak macam rosak.
   const loggedOut = !currentUser;
 
-  // Nav peringkat kategori (2026-08-01, permintaan pemilik projek) — 9 tab mendatar disusun
-  // semula jadi 4 kategori. Setiap kategori buka baris sub-tab sendiri (EditoriumView.tsx), corak
-  // sama yang sudah wujud untuk Kandungan/Slot sebelum ni — kini terpakai serata Editorium, bukan
-  // dua tempat sahaja. Tiada satu pun kategori disekat peringkat ni; sekatan peranan (Tetapan)
-  // kekal di peringkat SUB-tab dalam Pentadbiran.
-  const navItems = [
-    { id: 'kandungan', label: 'Kandungan', Icon: List },
-    { id: 'slot', label: 'Slot', Icon: LayoutGrid },
-    { id: 'pentadbiran', label: 'Pentadbiran', Icon: Settings },
-    { id: 'rujukan', label: 'Rujukan', Icon: Landmark },
-  ];
+  // Editorial DAN Tetapan (2026-08-01) — dua-dua Ketua Editor sahaja. Editorial ubah peraturan
+  // bahasa/templat AI sistem-lebar; Tetapan ubah tetapan sistem. Kedua-duanya bukan kerja editor
+  // biasa.
+  const restricted = (id: string) => (id === 'editorial' || id === 'tetapan') && currentUser?.role !== 'KETUA_EDITOR';
+
+  const renderKumpulan = (tajuk: string, items: NavItem[]) => (
+    <div className="space-y-1">
+      <div className="px-3 font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1.5">
+        {tajuk}
+      </div>
+      <div className="space-y-0.5">
+        {items.map((item) => {
+          const isActive = currentTab === item.id && !loggedOut;
+          const isLocked = loggedOut || restricted(item.id);
+          const { Icon } = item;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleNavClick(item.id)}
+              disabled={isLocked}
+              aria-disabled={isLocked}
+              title={loggedOut ? 'Log masuk dahulu untuk membuka destinasi ini' : (restricted(item.id) ? 'Hanya Ketua Editor' : undefined)}
+              className={`w-full flex items-center justify-between gap-2 text-xs font-medium px-3 py-2 rounded-lg transition-colors duration-150 ${
+                isActive
+                  ? 'bg-[#802334] text-white font-semibold'
+                  : isLocked
+                  ? 'text-stone-300 cursor-not-allowed'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.04] cursor-pointer'
+              }`}
+            >
+              <span className="flex items-center gap-2.5 min-w-0">
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-stone-400'}`} strokeWidth={2.2} />
+                <span className="truncate">{item.label}</span>
+              </span>
+              {!loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans flex flex-col antialiased">
-      {/* Editorium Header — bar identiti sahaja, maroon jelas (bukan hampir-hitam). Navigasi kini
-          ELEMEN BERASINGAN di bawah, duduk atas latar cream badan halaman (gaya iOS: bar status
-          bertona di atas, toolbar kaca lut sinar atas kandungan terang di bawah). */}
+    <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans antialiased">
+      {/* Editorium Header — bar identiti sahaja, maroon jelas. */}
       <header className="relative bg-Adjung-maroon-dark text-[#FDFDFD] select-none overflow-hidden">
         <div className="relative px-4 md:px-8 py-2 flex flex-wrap justify-between items-center gap-3">
           <Tooltip text="Klik untuk kembali ke Frontpage">
@@ -75,10 +136,6 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           <div className="flex items-center gap-2.5 font-sans text-[11px]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}>
             {currentUser ? (
               <>
-                {/* "+ Tulis Kandungan" (2026-07-29, permintaan pemilik projek) — Editorium dan
-                    Frontpage dipisah 100% sekarang; modal (pemilih slot + borang) render TERUS
-                    dalam EditoriumView sendiri (useSlotEditor, mandiri, tiada pergantungan pada
-                    FrontpageView), tiada navigasi/parameter URL lagi. */}
                 {/* Peti Makluman (2026-08-01, spesifikasi pemilik projek) — nota Ketua Editor
                     dicapai dari mana-mana halaman, tanpa meninggalkan kerja yang sedang dibuat.
                     Lencana kiraan hanya muncul apabila benar-benar ada nota. */}
@@ -97,6 +154,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                     )}
                   </button>
                 )}
+                {/* "+ Tulis Kandungan" (2026-07-29, permintaan pemilik projek) — Editorium dan
+                    Frontpage dipisah 100% sekarang; modal (pemilih slot + borang) render TERUS
+                    dalam EditoriumView sendiri (useSlotEditor, mandiri, tiada pergantungan pada
+                    FrontpageView), tiada navigasi/parameter URL lagi. */}
                 {onOpenSlotPicker && (
                   <button
                     type="button"
@@ -138,49 +199,43 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
         </div>
       </header>
 
-      {/* Navigasi — elemen berasingan drpd header, kapsul kaca TERANG (bukan gelap) duduk atas
-          latar cream badan halaman. Jarak jelas drpd header (bukan bersentuh/bertindih). */}
-      {/* Bila tetingkap sempit, nav BALUT ke baris seterusnya — bukan skrol mendatar. Dulu
-          `overflow-x-auto` di sini melukis skrolbar Windows yang memotong kapsul kaca nav. */}
-      <div className="relative z-10 flex justify-center px-4 pt-4 pb-2">
-        <nav
-          className="flex flex-wrap justify-center items-center gap-1 bg-white/70 backdrop-blur-2xl p-1 rounded-[1.5rem] border border-black/[0.06] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.06)]"
-          style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}
-        >
-          {navItems.map(item => {
+      {/* Badan halaman: sidebar menegak kiri (tetap) + kandungan (skrol sendiri). */}
+      <div className="flex items-start">
+        <aside className="hidden md:block w-60 shrink-0 sticky top-0 h-screen overflow-y-auto bg-[#F6F4EF] border-r border-stone-200 p-4 space-y-6">
+          {renderKumpulan('Operasi Harian', OPERASI_HARIAN)}
+          <div className="border-t border-stone-200 pt-4">
+            {renderKumpulan('Tata Kelola & Rujukan', TATA_KELOLA)}
+          </div>
+        </aside>
+
+        {/* Sidebar dibalut jadi bar mendatar boleh skrol pada skrin sempit (< md) — bukan
+            disembunyikan terus, atau Editorium jadi tak boleh dinavigasi pada telefon/tablet. */}
+        <nav className="md:hidden w-full overflow-x-auto flex gap-1 px-3 py-2 border-b border-stone-200 bg-[#F6F4EF]">
+          {[...OPERASI_HARIAN, ...TATA_KELOLA].map((item) => {
             const isActive = currentTab === item.id && !loggedOut;
+            const isLocked = loggedOut || restricted(item.id);
             const { Icon } = item;
-            // Belum log masuk = SEMUA kategori terkunci (skrin pagar di tengah sudah menerangkan
-            // sebabnya). Sekatan peranan (Tetapan) tidak lagi wujud di peringkat kategori ni sejak
-            // ia dipindah jadi sub-tab dalam Pentadbiran — lihat EditoriumView.tsx.
-            const isLocked = loggedOut;
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => handleNavClick(item.id)}
                 disabled={isLocked}
-                aria-disabled={isLocked}
-                title={loggedOut ? 'Log masuk dahulu untuk membuka tab ini' : undefined}
-                className={`relative flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-full whitespace-nowrap transition-all duration-200 ${
-                  isActive
-                    ? 'bg-white text-[#802334] shadow-[0_1px_4px_rgba(0,0,0,0.12)]'
-                    : isLocked
-                    ? 'text-stone-400 cursor-not-allowed'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.03]'
+                className={`shrink-0 flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
+                  isActive ? 'bg-[#802334] text-white font-semibold' : isLocked ? 'text-stone-300' : 'text-stone-600 bg-white border border-stone-200'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" strokeWidth={2.2} />
+                <Icon className="w-3 h-3" strokeWidth={2.2} />
                 {item.label}
               </button>
             );
           })}
         </nav>
-      </div>
 
-      {/* Main Content Workspace Area */}
-      <main className="flex-1 p-4 md:p-8 max-w-6xl w-full mx-auto">
-        {children}
-      </main>
+        <main className="flex-1 min-w-0 p-4 md:p-8">
+          {children}
+        </main>
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-stone-200 bg-stone-100 px-4 md:px-8 py-3 font-sans text-xs text-stone-500 flex flex-wrap justify-between items-center gap-2 select-none">
