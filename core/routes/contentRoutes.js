@@ -379,6 +379,17 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const attrs = {};
       for (const a of attrRows) attrs[a.attributeId] = a.valueText;
 
+      // Sebab penolakan (2026-08-02, Fasa 6) — dahulu "Tolak" pulangkan draf TANPA sebarang
+      // catatan kepada penulis, penulis kena teka sendiri kenapa. Disemat depan Nota sedia ada
+      // (bukan gantikan) supaya nota asal editor tak hilang.
+      // Nota ni SATU baris dalam format blok (parseManualSummaryBlocks huraikan baris demi
+      // baris) — baris baharu literal di dalam nilai akan senyap terpotong semasa dihurai
+      // semula, jadi digabung dengan pemisah dalam-baris, bukan \n\n.
+      const sebab = (req.body?.sebab || '').toString().trim().replace(/\r?\n/g, ' ');
+      const notaGabungan = sebab
+        ? `Sebab ditolak: ${sebab}${attrs.note ? ` — ${attrs.note}` : ''}`
+        : (attrs.note || '');
+
       const draftBlock = [
         `UUID: object-manual-slot${objRow.slotIndex}-${Date.now()}-reject`,
         `Status: draf`,
@@ -390,7 +401,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         `URL: ${attrs.url || ''}`,
         `Tarikh sumber: ${attrs.originalDate || ''}`,
         `Imej: ${attrs.image || ''}`,
-        `Nota: ${attrs.note || ''}`,
+        `Nota: ${notaGabungan}`,
         // Dipulangkan kepada editor yang MENERBITKANnya dulu (attribute 'editorName'), supaya draf
         // yang ditolak muncul semula dalam "Draf Saya" orang yang sama — bukan hilang dalam slot
         // sehingga dia membelek satu-satu. Kandungan lama tanpa editorName kekal kosong: "Draf

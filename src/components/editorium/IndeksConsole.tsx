@@ -415,14 +415,23 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // betul-betul PULANG jadi draf peribadi semula (server salin kandungan penuh balik ke
   // slots_config.manualSummary slot asal, arkib rekod Indeks lama) — hilang terus daripada
   // senarai Indeks (draf tak pernah terpapar di sini), muncul semula dalam modal Tulis Kandungan.
+  // Sebab penolakan (2026-08-02, Fasa 6) — dahulu Tolak pulangkan draf TANPA sebarang catatan
+  // kepada penulis. `window.prompt` sengaja BUKAN modal borang penuh — Tolak ialah tindakan
+  // pantas dalam senarai, bukan destinasi sendiri; sebab BOLEH dikosongkan (window.confirm
+  // sebelum ni pun tak wajibkan apa-apa input).
   const handleRejectToDraft = async (id: string) => {
-    if (!window.confirm('Tolak kandungan ini? Ia akan kembali jadi draf dalam modal Tulis Kandungan dan hilang daripada Indeks.')) return;
+    const sebab = window.prompt('Tolak kandungan ini? Ia akan kembali jadi draf dalam modal Tulis Kandungan. Nyatakan sebab (pilihan, dipaparkan kepada penulis):', '');
+    if (sebab === null) return; // Batal
     setActionError(null);
     const previous = items;
     setItems(prev => prev.filter(i => i.id !== id));
     if (activeItemModal && activeItemModal.id === id) setActiveItemModal(null);
     try {
-      const res = await fetch(`/api/system/content/${encodeURIComponent(id)}/reject-to-draft`, { method: 'POST' });
+      const res = await fetch(`/api/system/content/${encodeURIComponent(id)}/reject-to-draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sebab }),
+      });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Gagal tolak kandungan (${res.status}).`);
