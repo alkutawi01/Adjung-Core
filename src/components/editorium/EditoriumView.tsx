@@ -127,27 +127,22 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Dinaikkan selepas konsol Nota menyimpan sesuatu, supaya lencana header tak kekal lapuk.
   const [maklumanVersi, setMaklumanVersi] = useState(0);
 
-  // Profil Editor (2026-08-01, spesifikasi pemilik projek — aksesori header). Data penuh (nama
-  // pena, tandatangan, warna avatar, bio) diambil dari /api/db-state bila modal dibuka — prop
-  // `currentUser` cuma bawa id/name/role, tak cukup untuk borang profil.
+  // Profil Editor (2026-08-01, spesifikasi pemilik projek — aksesori header). Dipermudah
+  // 2026-08-02 (Izzat: "ni bukan medsos, hanya utk rujukan dalaman") — Nama Pena sahaja, avatar/
+  // tandatangan/bio dibuang. Nama pena tetap diambil dari /api/db-state bila modal dibuka (prop
+  // `currentUser` cuma bawa id/name/role dari sesi log masuk, mungkin lapuk berbanding DB).
   const [profilTerbuka, setProfilTerbuka] = useState(false);
-  const [profilData, setProfilData] = useState<{ id: string; penName: string; signature: string; avatarColor: string; bioSummary: string } | null>(null);
+  const [profilData, setProfilData] = useState<{ id: string; penName: string } | null>(null);
   const bukaProfil = () => {
     fetch('/api/db-state')
       .then((r) => r.json())
       .then((d) => {
         const u = (d.users || []).find((x: any) => x.id === currentUser?.id);
-        setProfilData({
-          id: currentUser!.id,
-          penName: u?.penName || currentUser!.name,
-          signature: u?.signature || '',
-          avatarColor: u?.avatarColor || '#802334',
-          bioSummary: u?.bioSummary || '',
-        });
+        setProfilData({ id: currentUser!.id, penName: u?.penName || currentUser!.name });
         setProfilTerbuka(true);
       })
       .catch(() => {
-        setProfilData({ id: currentUser!.id, penName: currentUser!.name, signature: '', avatarColor: '#802334', bioSummary: '' });
+        setProfilData({ id: currentUser!.id, penName: currentUser!.name });
         setProfilTerbuka(true);
       });
   };

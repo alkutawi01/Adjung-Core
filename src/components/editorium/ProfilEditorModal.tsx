@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
 // Profil Editor (2026-08-01, spesifikasi pemilik projek — aksesori header "Profil editor",
-// bukan destinasi sidebar). Editor sunting identiti DIA SENDIRI sahaja: nama pena, tandatangan,
-// warna avatar, bio ringkas. Email/username/peranan sengaja tiada di sini — bukan hak editor
-// untuk ubah sendiri.
+// bukan destinasi sidebar). 2026-08-02: dipermudah atas arahan Izzat — "ni bukan medsos, hanya
+// utk rujukan dalaman". Avatar/tandatangan/bio DIBUANG (bukan disorok — medan tu tak bermakna
+// untuk portal editorial dalaman, bukan produk sosial). Nama Pena SAHAJA yang kekal, sebab
+// itulah satu-satunya identiti yang pernah terpapar di luar Editorium (byline kandungan). Tukar
+// username/emel/kata laluan sendiri dirancang berasingan (lihat PELAN_PRA_LAUNCH.md Fasa 6b),
+// belum dibina di sini lagi.
 interface ProfilEditor {
   id: string;
   penName: string;
-  signature: string;
-  avatarColor: string;
-  bioSummary: string;
 }
 
 interface ProfilEditorModalProps {
@@ -22,14 +22,9 @@ interface ProfilEditorModalProps {
 }
 
 const HAD_PEN_NAME = 60;
-const HAD_SIGNATURE = 40;
-const HAD_BIO = 500;
 
 export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, onTutup, onKemasKini }) => {
   const [penName, setPenName] = useState(profil.penName || '');
-  const [signature, setSignature] = useState(profil.signature || '');
-  const [avatarColor, setAvatarColor] = useState(profil.avatarColor || '#802334');
-  const [bioSummary, setBioSummary] = useState(profil.bioSummary || '');
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState('');
   const [mesej, setMesej] = useState('');
@@ -42,11 +37,11 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
       const res = await fetch(`/api/system/profile/${profil.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ penName, signature, avatarColor, bioSummary }),
+        body: JSON.stringify({ penName }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan profil.');
-      onKemasKini({ penName, signature, avatarColor, bioSummary });
+      onKemasKini({ penName });
       setMesej('Profil disimpan');
       setTimeout(() => setMesej(''), 2000);
     } catch (err: any) {
@@ -68,24 +63,6 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
           <button type="button" onClick={onTutup} className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span
-            className="w-10 h-10 rounded-full border border-stone-300 shrink-0 flex items-center justify-center text-white font-serif font-semibold text-sm"
-            style={{ backgroundColor: avatarColor }}
-          >
-            {(penName || '?').trim().charAt(0).toUpperCase()}
-          </span>
-          <label className="flex flex-col gap-1 flex-1">
-            <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Warna Avatar</span>
-            <input
-              type="color"
-              value={avatarColor}
-              onChange={(e) => setAvatarColor(e.target.value)}
-              className="w-full h-7 border border-stone-300 rounded cursor-pointer"
-            />
-          </label>
-        </div>
-
         <label className="flex flex-col gap-1">
           <span className="flex justify-between font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
             <span>Nama Pena</span>
@@ -95,34 +72,8 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
             type="text"
             value={penName}
             onChange={(e) => setPenName(e.target.value)}
+            placeholder="Dipaparkan sebagai byline kandungan"
             className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="flex justify-between font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
-            <span>Tandatangan</span>
-            <span className={signature.length > HAD_SIGNATURE ? 'text-red-700' : 'text-stone-400'}>{signature.length}/{HAD_SIGNATURE}</span>
-          </span>
-          <input
-            type="text"
-            value={signature}
-            onChange={(e) => setSignature(e.target.value)}
-            placeholder="Dipaparkan pada kolofon Focus View, contoh…"
-            className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="flex justify-between font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
-            <span>Bio Ringkas</span>
-            <span className={bioSummary.length > HAD_BIO ? 'text-red-700' : 'text-stone-400'}>{bioSummary.length}/{HAD_BIO}</span>
-          </span>
-          <textarea
-            value={bioSummary}
-            onChange={(e) => setBioSummary(e.target.value)}
-            rows={3}
-            className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs resize-y"
           />
         </label>
 
@@ -134,7 +85,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
           {mesej && <span className="text-emerald-700 text-[11px] font-semibold">{mesej}</span>}
           <button
             type="submit"
-            disabled={menyimpan || !penName.trim() || penName.length > HAD_PEN_NAME || signature.length > HAD_SIGNATURE || bioSummary.length > HAD_BIO}
+            disabled={menyimpan || !penName.trim() || penName.length > HAD_PEN_NAME}
             className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-[#6a1c2a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {menyimpan ? 'Menyimpan…' : 'Simpan Profil'}
