@@ -183,24 +183,33 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
 - [ ] Focus View: tetapan animasi/mod turutan/had aksara (kini sifar tetapan di
       mana-mana)
 
-### [ ] Fasa 8 — Editorial dilengkapkan · `L` · ~6 hari (skop dikunci oleh Fasa 0)
+### [ ] Fasa 8 — Editorial dilengkapkan · `M` · ~4 hari (skop disemak semula 2026-08-02)
+**Perubahan strategi 2026-08-02 (arahan Ketua Editor):** saluran isian kandungan sah kini
+HANYA tiga — Manual, API luar bukan-AI, RSS. Pipeline penjanaan AI automatik (EditorialPipeline.js)
+DIMATIKAN (scheduler, commit `61be972`) — kod kekal wujud tapi tak dipanggil automatik lagi.
+AI hanya dibenarkan sebagai alat bantu MANUAL dalam chatbox editor (belum dibina, bukan
+skop pelan ni buat masa ini). Kesan: semua kerja mengukuhkan pipeline AI automatik
+(pengesahan bajet kos sebelum panggil, model lalai, dsb) **digugurkan daripada fasa ni** —
+tak berbaloi diperkukuh sesuatu yang sengaja tak dipanggil. Yang tinggal di bawah relevan
+tanpa mengira AI:
 - [ ] **Autocondong terpakai pada kad frontpage** — kini hanya tajuk ticker + sandbox;
       kad bento & Focus View langsung tak guna `TypographyRenderer` (keputusan reka
       bentuk: sahkan dengan Ketua Editor dulu)
-- [ ] 4 sub-templat semakan (ejaan/tatabahasa/gaya bahasa/format) + sambung `reviewPrompt`
-      tergantung ke butang semakan sebenar
-- [ ] Suntik glosari/ejaan ke dalam prompt AI (kini AI langsung tak nampak gaya rumah)
-- [ ] Limpahan teks: satu polisi seragam — kini 3 kelakuan berbeza (tolak dengan mesej /
-      langkau senyap di ticker AI / cantas senyap `...` di RSS — yang terakhir melanggar
-      perlembagaan)
-- [ ] AI: semakan bajet SEBELUM panggil (kini bajet kos disimpan tapi tak disemak);
-      baiki lalai `gemini-3.5-flash` (model tak wujud) & `max_tokens: 1000` Claude;
-      "Semak Sambungan" jujur (kini kata "Connected" untuk kunci sampah)
-- [ ] **Gate manusia untuk AI & RSS** — kini AI terus `approved` dan RSS ≥80 terus siar
-      TANPA manusia. KEPUTUSAN KETUA EDITOR: kekalkan auto-siar atau paksa Menunggu?
-- [ ] Medan "tempoh minimum paparan" sebenar + buang rujukan palsu dalam EditorialConsole
-- [ ] Asingkan glosari daripada penyelarasan ejaan
-- [ ] `validateMedanTambahan` pada laluan AI (kini laluan manual sahaja)
+- [ ] Limpahan teks: satu polisi seragam — RSS masih cantas senyap `...` pada 220 aksara
+      (`formatRssBrief`) tanpa penolakan/amaran macam laluan Manual — ini melanggar
+      perlembagaan (tiada pemotongan mekanikal senyap)
+- [ ] **Gate manusia untuk RSS** — RSS berskor ≥80 terus siar (`AUTO_LIVE`) TANPA semakan
+      manusia. KEPUTUSAN KETUA EDITOR: kekalkan auto-siar atau paksa semua ke Menunggu?
+- [ ] Asingkan glosari daripada penyelarasan ejaan (kini satu jadual bergabung) — masih
+      berguna sebagai rujukan pasif editor menulis manual, tanpa mengira AI
+- [ ] Medan "tempoh minimum paparan" sebenar + buang rujukan palsu dalam `EditorialConsole.tsx`
+      (kini kata ia wujud di Tetapan Am — medan tu tak wujud)
+
+**Digugurkan/ditangguh (bukan lagi keutamaan pra-launch, memandangkan AI automatik
+dimatikan):** 4 sub-templat semakan AI, suntik glosari ke prompt AI, semakan bajet kos AI
+sebelum panggil, baiki model lalai AI (`gemini-3.5-flash`), "Semak Sambungan" AI jujur.
+Semua ni kekal sebagai kerja masa depan KALAU/BILA ciri chatbox AI manual dibina — jangan
+mula sebelum ciri tu sendiri diarahkan.
 
 ### [ ] Fasa 8b — Format sumber · `L` · ~5 hari
 Enjin petikan berstruktur (penulis/penerbit/tarikh/jenis), validasi URL, semakan pautan
