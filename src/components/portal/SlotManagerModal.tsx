@@ -618,7 +618,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
                 </div>
                 <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor (pilihan) — hanya di Focus View…" maxLen={280} onChange={(v) => patch(activeIndex, 'note', v)} />
-                <ReadOnlyField label="Editor" value={editorName} />
+                {/* Penulis KANDUNGAN INI (2026-08-01, permintaan pemilik projek) — bukan lagi
+                    sesiapa yang kebetulan sedang log masuk. Satu slot boleh dikendalikan lebih
+                    seorang editor, jadi memapar nama pembuka borang di sini menipu: ia nampak
+                    macam pengesahan siapa menulis kandungan tu. Blok lama (sebelum cap nama
+                    wujud) papar "—", bukan nama diandaikan. */}
+                <ReadOnlyField label="Penulis" value={current.penulis || EDITOR_PLACEHOLDER} />
 
                 <hr className="border-stone-150" />
                 {/* Butang Terbit (2026-07-29, permintaan pemilik projek) — AKSI SEGERA, bukan
