@@ -52,22 +52,49 @@ serentak) dan lapisan infrastruktur (deploy, ralat, backup) hampir tiada.*
 
 ---
 
-### [ ] Fasa 1 — Keselamatan & log masuk · `L` · ~6 hari · **PENGHALANG LAUNCH**
-- [ ] Tutup: `GET /api/db-state` bocorkan lajur `password` kepada sesiapa
-- [ ] Middleware auth + semakan peranan di SETIAP laluan API (kini SIFAR laluan dilindungi
-      — semua kunci "Ketua Editor sahaja" hanyalah teater UI atas API terbuka)
-- [ ] Token sesi sebenar di server + tempoh luput (kini blob localStorage boleh diubah
-      sendiri jadi `KETUA_EDITOR`)
-- [ ] `POST /api/auth/reset-password` — token melalui emel, bukan terbuka
-- [ ] Buang lalai `password TEXT DEFAULT 'password'` + laluan kembali teks biasa
-- [ ] Had kadar (rate limit) pada log masuk — kini brute force tanpa had
-- [ ] `POST /api/media/upload` tanpa auth menulis fail ke folder awam — kunci
-- [ ] Pengendali ralat global Express (kini stack trace HTML terus ke pelanggan)
-- [ ] Ujian penjelakan peranan + XSS/CSRF
-- [ ] Cipta akaun editor (kini: INSERT ke DB dengan tangan sahaja)
-- [ ] Jemputan editor baharu + set semula kata laluan melalui emel
+### [~] Fasa 1 — Keselamatan & log masuk · `L` · ~6 hari · **PENGHALANG LAUNCH**
+Bahagian teras siap 2026-08-02 (commit `d44796d`) — 13 senario diuji terus di server hidup
+(bukan andaian): bocor password, akses tanpa sesi disekat, akses awam Frontpage kekal
+terbuka, log masuk, sekatan peranan KETUA_EDITOR, logout, had jenis fail media. `npm test`
+sama seperti garis dasar, tiada regresi.
+- [x] Tutup: `GET /api/db-state` bocorkan lajur `password` — dibuang tanpa syarat
+- [x] Middleware auth + semakan peranan di SETIAP laluan tulis API — gerbang diletak
+      **per-laluan di dalam setiap fail router** (`router.post('/x', requireAuth, ...)`),
+      BUKAN di `app.use()` mount — sebab sebenar: awalan `/api/system` dikongsi ~15 router
+      berlainan, jadi gerbang di situ menyekat laluan LAIN yang berkongsi awalan sama,
+      termasuk `/api/auth/login` sendiri (ditemui & dibetulkan semasa ujian langsung —
+      lihat `core/middleware/auth.js` untuk nota penuh). GET/HEAD portal awam kekal terbuka
+- [x] Token sesi sebenar di server (express-session, kuki httpOnly, `regenerate()` semasa
+      log masuk untuk elak session fixation) + tempoh luput 12 jam
+- [x] `POST /api/auth/reset-password` — kini KETUA_EDITOR sahaja (dahulu terbuka guna emel
+      sahaja). **Belum token emel sebenar** — SMTP tiada infrastruktur; ini penyelesaian
+      interim, token emel tinggal untuk kemudian (lihat item belum siap di bawah)
+- [x] Had kadar log masuk — 10 percubaan/15 minit
+- [x] `POST /api/media/upload` kini perlu sesi + had jenis fail (PNG/JPEG/WEBP/GIF/SVG
+      ikut MIME sebenar, bukan nama fail pelanggan) + had 5MB
+- [x] Pengendali ralat global Express + `uncaughtException`/`unhandledRejection` + penutupan
+      bersih (`db.close()` semasa SIGTERM/SIGINT)
+- [x] `PATCH /api/system/profile/:id` — hanya boleh sunting profil sendiri, kecuali
+      KETUA_EDITOR (dahulu sesiapa boleh tulis profil MANA-MANA id)
+- [x] Draf Saya (`GET /api/system/drafts`) kini perlu sesi sah untuk BACA, bukan sekadar
+      tulis — draf belum terbit ialah kandungan dalaman
+- [x] `PORT` kini boleh ikut `process.env.PORT` (persediaan Fasa 15)
+- [ ] Buang lalai `password TEXT DEFAULT 'password'` + laluan kembali teks biasa (kolum
+      DB masih ada lalai ni; tiada risiko baharu sebab tiada laluan INSERT manual selain
+      seed, tapi masih patut dibersihkan)
+- [ ] Jemputan editor baharu + token emel sebenar untuk set semula kata laluan — perlukan
+      infrastruktur SMTP, belum ada
+- [ ] Cipta akaun editor daripada UI (kini: INSERT ke DB dengan tangan sahaja — bersambung
+      Fasa 3 Direktori)
+- [ ] Ujian penjelakan peranan automatik (skrip ujian kekal, kini manual via curl) + ujian
+      XSS/CSRF berstruktur
 - [ ] Kuatkuasakan matriks RBAC dari Tetapan → Kawalan Akses di server (kini disimpan
-      tetapi tidak dibaca oleh sesiapa)
+      tetapi tidak dibaca — peraturan KETUA_EDITOR/EDITOR baharu di atas adalah HARDCODE
+      per-laluan, BUKAN baca daripada matriks tersimpan itu; perlu keputusan reka bentuk
+      sama ada matriks patut jadi sumber kebenaran sebenar atau dibuang)
+- [ ] `SESSION_SECRET` tetap dalam `.env` sebelum deploy sebenar (kini rahsia rawak
+      dijana setiap kali server bermula — semua sesi terputus setiap kali restart; amaran
+      dipaparkan di log server sehingga ditetapkan)
 
 ### [ ] Fasa 2 — Pepijat kritikal sedia ada + hutang ujian · `M` · ~3 hari
 Semua ditemui Fasa 0, semuanya menjejaskan data sebenar HARI INI:
