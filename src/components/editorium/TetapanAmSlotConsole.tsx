@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Save } from 'lucide-react';
+import { labelUi } from '../../config/istilah';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
 // bento sekali gus. Ticker dan tier Bar tiada di sini; kedua-duanya diuruskan di Modul Khas.
@@ -58,7 +59,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
-      setBerjaya('Tetapan disimpan dan berkuat kuasa serta-merta.');
+      setBerjaya(labelUi('toast.tetapan_am_disimpan'));
       muat();
     } catch (e: any) {
       setRalat(e.message || 'Gagal menyimpan.');

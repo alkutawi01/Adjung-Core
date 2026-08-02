@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import { labelUi } from '../../config/istilah';
 
 // Konsol Editorial (2026-08-01, spesifikasi pemilik projek) — peraturan BAHASA dan penjanaan AI,
 // berasingan daripada Tetapan (tetapan sistem) dan Slot (geometri kad).
@@ -158,7 +159,7 @@ export const EditorialConsole: React.FC = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan templat AI.');
-      setMesejAi('Templat AI disimpan');
+      setMesejAi(labelUi('toast.templat_ai_disimpan'));
       setTimeout(() => setMesejAi(''), 2400);
     } catch (e: any) {
       setRalatAi(e.message || 'Gagal menyimpan templat AI.');

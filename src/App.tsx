@@ -6,6 +6,7 @@ import { ContentReview } from './components/studio/ContentReview';
 import { EditoriumView } from './components/editorium/EditoriumView';
 import { LoginModal } from './components/editorium/LoginModal';
 import { muatPindaanTier } from './config/tierOverrides';
+import { muatPindaanLabel } from './config/labelOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -149,6 +150,10 @@ export default function App() {
     // had dalam borang penulisan mengesahkan ikut nilai lalai sedangkan server sudah pakai nilai
     // yang dipinda. Lihat src/config/tierOverrides.ts.
     muatPindaanTier();
+    // Gantian Label Sistem (Fasa 6) — sama sebab: label lama (STATUS_LABEL/MOD_KANDUNGAN_LABEL/
+    // MESEJ_SISTEM_LABEL) dikodkan terus di istilah.ts; gantian Ketua Editor kena disuap masuk
+    // secara eksplisit. Lihat src/config/labelOverrides.ts.
+    muatPindaanLabel();
   }, []);
 
   if (initializing || !systemSettings) {

@@ -38,6 +38,8 @@ import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes
 import { createUserAdminRoutes } from './core/routes/userAdminRoutes.js';
 import { createAuditLogRoutes } from './core/routes/auditLogRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
+import { createUiLabelRoutes } from './core/routes/uiLabelRoutes.js';
+import { SEMUA_LABEL_LALAI } from './src/config/istilah.ts';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
@@ -119,7 +121,7 @@ const initializeSchema = () => {
           avatarColor TEXT,
           bioSummary TEXT,
           isSuspended INTEGER DEFAULT 0,
-          password TEXT DEFAULT 'password',
+          password TEXT NOT NULL,
           affiliation TEXT,
           heroTitle TEXT,
           heroSubtitle TEXT,
@@ -168,6 +170,20 @@ const initializeSchema = () => {
         )
       `);
       db.run("CREATE INDEX IF NOT EXISTS idx_audit_log_createdAt ON audit_log(createdAt DESC)");
+
+      // 2026-08-02 (Fasa 6, "Editor label & tooltip") — kamus label boleh sunting. Menyimpan
+      // GANTIAN sahaja — kunci tanpa baris di sini guna nilai lalai dikodkan keras di
+      // src/config/istilah.ts (SEMUA_LABEL_LALAI), jadi lalai kekal satu sumber sahaja. Seeding
+      // (di bawah) tulis nilai lalai SEBAGAI gantian permulaan supaya paparan tak berubah
+      // sehingga Ketua Editor/Pentadbir benar-benar sunting sesuatu. Lihat core/routes/uiLabelRoutes.js.
+      db.run(`
+        CREATE TABLE IF NOT EXISTS ui_labels (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          category TEXT,
+          updatedAt TEXT
+        )
+      `);
 
       // 2. System Settings Table
       db.run(`
@@ -769,6 +785,23 @@ const seedDatabase = async () => {
     });
   } else {
     console.log(`system_settings already has ${settingsCount} row(s). Skipping settings seed.`);
+  }
+
+  // 2026-08-02 (Fasa 6) — semai `ui_labels` daripada nilai lalai istilah.ts, satu baris per
+  // kunci. Guna INSERT OR IGNORE (bukan cuma semasa jadual kosong) supaya kunci BAHARU yang
+  // ditambah ke SEMUA_LABEL_LALAI pada masa hadapan turut disemai tanpa menimpa gantian yang
+  // Ketua Editor dah sunting untuk kunci sedia ada.
+  const uiLabelsCount = await countRows('ui_labels');
+  await new Promise((resolveLabels) => {
+    const now = new Date().toISOString();
+    const stmt = db.prepare('INSERT OR IGNORE INTO ui_labels (key, value, category, updatedAt) VALUES (?, ?, ?, ?)');
+    for (const item of SEMUA_LABEL_LALAI) {
+      stmt.run(item.kunci, item.lalai, item.kategori, now);
+    }
+    stmt.finalize(() => resolveLabels());
+  });
+  if (uiLabelsCount === 0) {
+    console.log(`Seeded ${SEMUA_LABEL_LALAI.length} default ui_labels row(s).`);
   }
 };
 
@@ -2600,6 +2633,7 @@ app.use('/api/system', createProfileRoutes(dbGet, dbRun));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createAuditLogRoutes(dbAll));
+app.use('/api/system', createUiLabelRoutes(dbAll, dbRun));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
 // disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache

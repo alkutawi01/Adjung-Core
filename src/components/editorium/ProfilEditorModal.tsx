@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { labelUi } from '../../config/istilah';
 
 // Profil Editor (2026-08-01, spesifikasi pemilik projek — aksesori header "Profil editor",
 // bukan destinasi sidebar). 2026-08-02: dipermudah atas arahan Izzat — "ni bukan medsos, hanya
@@ -42,7 +43,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan profil.');
       onKemasKini({ penName });
-      setMesej('Profil disimpan');
+      setMesej(labelUi('toast.profil_disimpan'));
       setTimeout(() => setMesej(''), 2000);
     } catch (err: any) {
       setRalat(err.message || 'Gagal menyimpan profil.');

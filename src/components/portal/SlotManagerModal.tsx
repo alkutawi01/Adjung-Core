@@ -4,6 +4,7 @@ import { validateContentBudget, validateBidangTopik } from '../../../core/editor
 import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
+import { labelUi } from '../../config/istilah';
 
 interface Bidang { name: string; color: string; icon: string | null; iconSvg: string | null }
 
@@ -461,7 +462,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
       setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
     } else {
-      setPublishError(saveError || 'Gagal menerbitkan kandungan.');
+      setPublishError(saveError || labelUi('toast.gagal_terbit'));
       setTimeout(() => setPublishError(''), 5000);
     }
   };
@@ -479,10 +480,10 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     setSavingDraft(false);
     if (ok) {
       setFormConfig((prev: any) => ({ ...prev, manualSummary }));
-      setDraftNote('Draf disimpan');
+      setDraftNote(labelUi('toast.draf_disimpan'));
       setTimeout(() => setDraftNote(''), 2400);
     } else {
-      setPublishError(saveError || 'Gagal simpan draf.');
+      setPublishError(saveError || labelUi('toast.gagal_simpan_draf'));
       setTimeout(() => setPublishError(''), 5000);
     }
   };
@@ -505,10 +506,10 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     fetch(`/api/system/content/${encodeURIComponent(current.uuid)}/revisions`)
       .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
       .then(({ ok, data }) => {
-        if (!ok) { setRevisionsError(data?.error || 'Gagal memuatkan sejarah versi.'); setRevisions([]); return; }
+        if (!ok) { setRevisionsError(data?.error || labelUi('toast.gagal_muat_sejarah')); setRevisions([]); return; }
         setRevisions(Array.isArray(data) ? data : []);
       })
-      .catch(() => setRevisionsError('Gagal memuatkan sejarah versi.'))
+      .catch(() => setRevisionsError(labelUi('toast.gagal_muat_sejarah')))
       .finally(() => setRevisionsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current.uuid, isPublished]);

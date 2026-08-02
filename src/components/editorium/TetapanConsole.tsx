@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Lock, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
 } from 'lucide-react';
+import { SEMUA_LABEL_LALAI, labelUi } from '../../config/istilah';
+import { muatPindaanLabel } from '../../config/labelOverrides';
 
 
 interface BlockedCategory {
@@ -93,7 +95,7 @@ interface TetapanConsoleProps {
 export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   isPentadbir = true
 }) => {
-  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC'>('PolisiKandungan');
+  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem'>('PolisiKandungan');
 
   // Governance Jam Dunia (World Clock) — these were previously local-only state with no
   // backing DB columns at all (WorldClockStrip.tsx has read systemSettings.worldClockIntervalSec
@@ -372,8 +374,22 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           >
             4. Kawalan Akses
           </button>
+
+          <button
+            onClick={() => setSubTab('LabelSistem')}
+            className={`px-4 py-2 font-semibold transition-all border-b-2 ${
+              subTab === 'LabelSistem' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            5. Label Sistem
+          </button>
         </div>
       </div>
+
+      {/* 5. LABEL SISTEM (2026-08-02, Fasa 6 "Editor label & tooltip") — kamus label boleh
+          sunting: MOD_KANDUNGAN_LABEL/STATUS_LABEL/MESEJ_SISTEM_LABEL di src/config/istilah.ts,
+          disimpan di jadual `ui_labels` (core/routes/uiLabelRoutes.js). */}
+      {subTab === 'LabelSistem' && <LabelSistemPanel />}
 
       {/* 2. HALAMAN AWAM (2026-08-02, Fasa 6) — ruang edit kandungan Tentang/Hubungi/Polisi
           disediakan SEKARANG (Izzat: "sedia ruang edit sekarang"), papar di frontpage bila
@@ -751,7 +767,7 @@ function HalamanAwamPanel() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || 'Gagal menyimpan halaman.');
       }
-      setMesej('Disimpan');
+      setMesej(labelUi('toast.tetapan_disimpan'));
       setTimeout(() => setMesej(''), 2000);
     } catch (e: any) {
       setRalat(e.message || 'Gagal menyimpan halaman.');
@@ -820,6 +836,167 @@ function HalamanAwamPanel() {
               className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
             >
               {menyimpan ? 'Menyimpan...' : 'Simpan Halaman'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Panel Label Sistem (2026-08-02, Fasa 6 "Editor label & tooltip") — kamus label terkurasi
+// (Mod Kandungan/Status/Mesej Sistem, src/config/istilah.ts) boleh disunting di sini. Simpan
+// terus ke jadual `ui_labels` (POST /api/system/ui-labels), "Set semula" pulangkan SATU kunci
+// kepada nilai lalai (POST /api/system/ui-labels/reset). Selepas simpan/set semula, panggil
+// muatPindaanLabel() supaya label di seluruh Editorium/frontpage bertukar serta-merta tanpa
+// muat semula halaman.
+function LabelSistemPanel() {
+  const [nilaiSemasa, setNilaiSemasa] = useState<Record<string, string>>({});
+  const [suntingan, setSuntingan] = useState<Record<string, string>>({});
+  const [memuat, setMemuat] = useState(true);
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [ralat, setRalat] = useState('');
+  const [mesej, setMesej] = useState('');
+
+  const muatSemula = () => {
+    setMemuat(true);
+    setRalat('');
+    fetch('/api/system/ui-labels')
+      .then(async (r) => {
+        if (!r.ok) throw new Error('Gagal memuatkan kamus label.');
+        return r.json();
+      })
+      .then((data) => setNilaiSemasa(data && typeof data === 'object' ? data : {}))
+      .catch((e) => setRalat(e.message || 'Gagal memuatkan kamus label.'))
+      .finally(() => setMemuat(false));
+  };
+
+  useEffect(() => { muatSemula(); }, []);
+
+  const nilaiPapar = (kunci: string, lalai: string) => suntingan[kunci] ?? nilaiSemasa[kunci] ?? lalai;
+
+  const simpanSemua = async () => {
+    if (Object.keys(suntingan).length === 0) return;
+    setMenyimpan(true);
+    setRalat('');
+    try {
+      const res = await fetch('/api/system/ui-labels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(suntingan),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Gagal menyimpan label.');
+      }
+      setSuntingan({});
+      muatSemula();
+      await muatPindaanLabel();
+      setMesej(labelUi('toast.tetapan_disimpan'));
+      setTimeout(() => setMesej(''), 2000);
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal menyimpan label.');
+    } finally {
+      setMenyimpan(false);
+    }
+  };
+
+  const setSemula = async (kunci: string, lalai: string, kategori: string) => {
+    setMenyimpan(true);
+    setRalat('');
+    try {
+      const res = await fetch('/api/system/ui-labels/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: kunci, lalai, kategori }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Gagal mengembalikan nilai lalai.');
+      }
+      setSuntingan((prev) => {
+        const salinan = { ...prev };
+        delete salinan[kunci];
+        return salinan;
+      });
+      muatSemula();
+      await muatPindaanLabel();
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal mengembalikan nilai lalai.');
+    } finally {
+      setMenyimpan(false);
+    }
+  };
+
+  const kumpulan = SEMUA_LABEL_LALAI.reduce<Record<string, typeof SEMUA_LABEL_LALAI>>((acc, item) => {
+    (acc[item.kategori] ||= []).push(item);
+    return acc;
+  }, {});
+
+  const adaSuntingan = Object.keys(suntingan).length > 0;
+
+  return (
+    <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-6 text-xs">
+      <div>
+        <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
+          Kamus Label Sistem
+        </h3>
+        <p className="text-stone-500 text-xs mt-1">
+          Perkataan yang dipaparkan kepada editor (label Mod Kandungan, Status, dan mesej ringkas
+          simpan/terbit). Menyunting di sini TIDAK mengubah apa yang disimpan dalam pangkalan
+          data — cuma perkataan yang dipaparkan. Guna "Set semula" untuk kembalikan satu label
+          kepada perkataan asal.
+        </p>
+      </div>
+
+      {ralat && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>}
+
+      {memuat ? (
+        <p className="text-stone-400">Memuatkan...</p>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(kumpulan).map(([kategori, senarai]) => (
+            <div key={kategori} className="space-y-2">
+              <h4 className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500 border-b border-stone-200 pb-1">
+                {kategori}
+              </h4>
+              <div className="space-y-2">
+                {senarai.map((item) => {
+                  const semasa = nilaiPapar(item.kunci, item.lalai);
+                  const dipinda = semasa !== item.lalai;
+                  return (
+                    <div key={item.kunci} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={semasa}
+                        onChange={(e) => setSuntingan((prev) => ({ ...prev, [item.kunci]: e.target.value }))}
+                        className="flex-1 bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-sans"
+                      />
+                      {dipinda && (
+                        <button
+                          onClick={() => setSemula(item.kunci, item.lalai, kategori)}
+                          disabled={menyimpan}
+                          className="shrink-0 text-stone-500 hover:text-[#802334] font-semibold text-[11px] px-2 py-1.5 rounded border border-stone-300 hover:border-[#802334] transition-colors disabled:opacity-50 cursor-pointer"
+                          title={`Nilai asal: ${item.lalai}`}
+                        >
+                          Set semula
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          <div className="flex items-center justify-end gap-3 border-t border-stone-200 pt-4">
+            {mesej && <span className="text-emerald-700 text-[11px] font-semibold">{mesej}</span>}
+            <button
+              onClick={simpanSemua}
+              disabled={menyimpan || !adaSuntingan}
+              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {menyimpan ? 'Menyimpan...' : 'Simpan Label'}
             </button>
           </div>
         </div>
