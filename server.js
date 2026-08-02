@@ -2185,14 +2185,17 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     }
   }
 
-  return items.length > 0 ? items : [{
-    title: defaultSlot.manualTitle || '',
-    summary: defaultSlot.manualSummary || '',
-    url: defaultSlot.manualUrl || '#',
-    desk: defaultSlot.manualDesk || 'general',
-    source: defaultSlot.manualSource || '',
-    publishedAt: defaultSlot.lastAttemptAt || new Date().toISOString()
-  }];
+  // 2026-08-02 (ditemui semasa bina BarSlotManagerModal.tsx) — DAHULU jatuh balik ke phantom
+  // item guna defaultSlot.manualSummary (iaitu TEKS MENTAH yang baru dihurai di atas) bila blok
+  // parsing pulangkan sifar item. Ini betul untuk kes "hantaran benar-benar kosong" (dua gerbang
+  // di atas — undefined/null, trim kosong — sudah tangani itu dengan betul), tapi salah untuk kes
+  // "hantaran ADA kandungan (markah Tajuk:/Event: wujud) tapi setiap blok kebetulan kosong
+  // Tajuk/Event-nya" (cth editor kosongkan hanya baris Tajuk untuk tinggalkan draf, medan lain
+  // kekal terisi) — phantom item itu jadikan SELURUH teks mentah bertingkat sebagai `summary`,
+  // yang gagal validateContentBudget dengan mesej mengelirukan dan menyekat simpanan terus,
+  // walhal niat editor (giliran kosong/ditinggalkan) patut disimpan tanpa ralat. Pulangkan array
+  // KOSONG di sini sahaja — jangan sintesis kandungan daripada teks yang gagal dihurai.
+  return items;
 };
 
 // Serializes ONE draft item back into the Label: value block format — mirrors
