@@ -53,12 +53,13 @@ export function parseRssXml(xmlString) {
     const category = categoriesList.join(', ');
 
     if (title && (link || description)) {
-      const formattedBrief = formatRssBrief(description || title);
+      const { text: formattedBrief, truncated: briefTruncated } = formatRssBriefWithMeta(description || title);
       items.push({
         rssGuid,
         title,
         description,
         formattedBrief,
+        briefTruncated,
         link,
         publishedAt,
         category
@@ -69,8 +70,14 @@ export function parseRssXml(xmlString) {
   return deduplicateRssItems(items);
 }
 
-export function formatRssBrief(rawDescription) {
-  if (!rawDescription) return '';
+// formatRssBriefWithMeta (2026-08-02, Fasa 8, "limpahan teks seragam") — pemotongan 220 aksara
+// di bawah SENGAJA dikekalkan (Ticker satu baris, keputusan Izzat: bukan tolak ke Menunggu),
+// tapi sebelum ni pemotongan itu senyap SEPENUHNYA — tiada rekod ia berlaku, tiada cara Ketua
+// Editor jumpa balik item mana yang terpotong untuk disemak/dipanjangkan semula. Kini pulangkan
+// `truncated: true` bila ini berlaku, supaya pemanggil (slotRoutes.js) boleh catat ke Log Audit
+// + simpan penanda per-item — bukan "tiada pemotongan mekanikal senyap" (Perlembagaan) dilanggar.
+export function formatRssBriefWithMeta(rawDescription) {
+  if (!rawDescription) return { text: '', truncated: false };
 
   // Clean HTML tags and entities
   let cleanText = sanitizeHtmlText(rawDescription);
@@ -89,16 +96,18 @@ export function formatRssBrief(rawDescription) {
   cleanText = cleanText.replace(/\s*(?:\.{3,}|…)\s*$/, '');
 
   // Truncate to maximum 220 characters without cutting words mid-word
+  let truncated = false;
   if (cleanText.length > 220) {
-    let truncated = cleanText.substring(0, 220);
-    const lastSpace = truncated.lastIndexOf(' ');
+    truncated = true;
+    let cut = cleanText.substring(0, 220);
+    const lastSpace = cut.lastIndexOf(' ');
     if (lastSpace > 150) {
-      truncated = truncated.substring(0, lastSpace);
+      cut = cut.substring(0, lastSpace);
     }
-    if (truncated.endsWith('.')) {
-      cleanText = truncated + ' ...';
+    if (cut.endsWith('.')) {
+      cleanText = cut + ' ...';
     } else {
-      cleanText = truncated.replace(/[,;:\-\s]+$/, '') + '...';
+      cleanText = cut.replace(/[,;:\-\s]+$/, '') + '...';
     }
   }
 
@@ -111,7 +120,15 @@ export function formatRssBrief(rawDescription) {
   // Format 4 or more dots as ". ..."
   cleanText = cleanText.replace(/\.{4,}/g, '. ...');
 
-  return cleanText;
+  return { text: cleanText, truncated };
+}
+
+// formatRssBrief — bungkusan keserasian-ke-belakang (pulangkan string sahaja, sama seperti
+// sebelum ni). Kekal untuk semua pemanggil sedia ada yang tak perlukan metadata pemotongan;
+// laluan BARU yang perlu tahu bila pemotongan berlaku (slotRoutes.js) guna
+// formatRssBriefWithMeta() di atas terus.
+export function formatRssBrief(rawDescription) {
+  return formatRssBriefWithMeta(rawDescription).text;
 }
 
 export function filterByLanguage(item, targetLang = 'ms-MY') {

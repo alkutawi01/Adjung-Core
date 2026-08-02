@@ -881,10 +881,10 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
         try {
           await dbRun(`
             INSERT OR IGNORE INTO rss_ticker_items (
-              id, rssGuid, title, formattedBrief, source, originalUrl, category, rawCategory, publishedAt, score, scoreBreakdown, deskBreakdown, secondaryDesk, secondaryScore, decision, status, createdAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              id, rssGuid, title, formattedBrief, briefTruncated, source, originalUrl, category, rawCategory, publishedAt, score, scoreBreakdown, deskBreakdown, secondaryDesk, secondaryScore, decision, status, createdAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `, [
-            itemId, item.rssGuid, cleanedTitle, cleanedBrief,
+            itemId, item.rssGuid, cleanedTitle, cleanedBrief, item.briefTruncated ? 1 : 0,
             source.sourceName, item.link, assignedDesk, rawCategory || 'TIADA TAG',
             item.publishedAt, scoreResult.score, JSON.stringify(scoreResult.scoreBreakdown),
             JSON.stringify(deskClassification),
@@ -892,6 +892,20 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
             deskClassification.secondaryScore || 0,
             scoreResult.decision, scoreResult.status, new Date().toISOString()
           ]);
+          // Limpahan teks (2026-08-02, Fasa 8) — "tiada pemotongan mekanikal senyap" (Perlembagaan):
+          // pemotongan 220 aksara KEKAL (Ticker satu baris, keputusan Izzat), tapi kini dicatat
+          // supaya boleh disemak/dipanjangkan semula, bukan hilang senyap terus. Hanya log item
+          // yang benar-benar AUTO_LIVE (bukan setiap item ditolak/disekat — bunyi bising tak
+          // bermakna untuk item yang tak pernah siar pun).
+          if (item.briefTruncated && scoreResult.decision === 'AUTO_LIVE') {
+            await logAudit(dbRun, {
+              actorName: 'RSS Direct (automatik)',
+              action: 'rss-huraian-dipendekkan',
+              targetType: 'rss_ticker_item',
+              targetId: itemId,
+              detail: `${source.sourceName}: "${cleanedTitle}" — huraian dipendekkan pada 220 aksara semasa auto-siar Ticker.`,
+            });
+          }
         } catch (dbErr) {
           console.error(`[RSS DB Insert Error] Source '${source.sourceName}':`, dbErr.message);
         }

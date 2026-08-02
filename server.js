@@ -231,6 +231,10 @@ const initializeSchema = () => {
             db.run("ALTER TABLE rss_ticker_items ADD COLUMN secondaryDesk TEXT;", () => {});
             db.run("ALTER TABLE rss_ticker_items ADD COLUMN secondaryScore INTEGER DEFAULT 0;", () => {});
             db.run("ALTER TABLE rss_ticker_items ADD COLUMN rawCategory TEXT;", () => {});
+            // briefTruncated (2026-08-02, Fasa 8, "limpahan teks seragam") — formatRssBrief
+            // potong huraian panjang senyap sepenuhnya sebelum ni, tiada rekod ia berlaku.
+            // Kini ditanda per-item supaya boleh disemak/dipanjangkan semula di Editorium.
+            db.run("ALTER TABLE rss_ticker_items ADD COLUMN briefTruncated INTEGER DEFAULT 0;", () => {});
             db.run("ALTER TABLE rss_editorial_settings ADD COLUMN maxNewsAgeHours INTEGER DEFAULT 48;", () => {});
             db.run("ALTER TABLE rss_editorial_settings ADD COLUMN tickerMaxItems INTEGER DEFAULT 20;", () => {});
 

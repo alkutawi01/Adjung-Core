@@ -32,6 +32,7 @@ const TINDAKAN_LABEL: Record<string, string> = {
   'padam-nota': 'Padam Nota Ketua Editor',
   'ralat-ambilan-rss': 'Ralat ambilan RSS',
   'ambilan-rss-selesai': 'Ambilan RSS selesai',
+  'rss-huraian-dipendekkan': 'Huraian RSS dipendekkan (Ticker)',
   'ralat-pelayan': 'Ralat pelayan',
 };
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRssXml, filterByLanguage, deduplicateRssItems, formatRssBrief } from '../core/sources/RssDirectEngine.js';
+import { parseRssXml, filterByLanguage, deduplicateRssItems, formatRssBrief, formatRssBriefWithMeta } from '../core/sources/RssDirectEngine.js';
 import { calculateEditorialScore } from '../core/sources/EditorialScoreEngine.js';
 
 test('RssDirectEngine - parseRssXml extracts items and links from XML feed', () => {
@@ -36,6 +36,40 @@ test('RssDirectEngine - formatRssBrief removes datelines, extracts 1 sentence, e
   assert.equal(formatted.startsWith('PUTRAJAYA:'), false);
   assert.equal(formatted.includes('...'), false);
   assert.ok(formatted.length >= 80 && formatted.length <= 240);
+});
+
+test('RssDirectEngine - formatRssBriefWithMeta reports truncated:true only when text actually exceeds 220 chars (Fasa 8, limpahan teks)', () => {
+  const shortText = 'Kerajaan negeri sasar tarik 2 juta pelawat menjelang 2028.';
+  const shortResult = formatRssBriefWithMeta(shortText);
+  assert.equal(shortResult.truncated, false);
+  assert.equal(shortResult.text, shortText);
+
+  const longText = 'Kerajaan negeri sasar tarik 2 juta pelawat menjelang 2028 menerusi laluan warisan Islam merangkumi Kota Bharu, Pasir Mas dan Tumpat. Kerajaan negeri turut merancang pelbagai inisiatif tambahan bagi memastikan pelancongan mampan dan mesra alam sekitar demi generasi akan datang.';
+  const longResult = formatRssBriefWithMeta(longText);
+  assert.equal(longResult.truncated, true);
+  assert.ok(longResult.text.endsWith('...'));
+  assert.ok(longResult.text.length <= 224);
+
+  // formatRssBrief() (bungkusan lama, string sahaja) mesti pulangkan teks SAMA seperti .text
+  assert.equal(formatRssBrief(longText), longResult.text);
+});
+
+test('RssDirectEngine - parseRssXml stamps briefTruncated per item (Fasa 8)', () => {
+  const longDescription = 'Kerajaan negeri sasar tarik 2 juta pelawat menjelang 2028 menerusi laluan warisan Islam merangkumi Kota Bharu, Pasir Mas dan Tumpat. Kerajaan negeri turut merancang pelbagai inisiatif tambahan bagi memastikan pelancongan mampan dan mesra alam sekitar demi generasi akan datang.';
+  const xml = `
+    <rss version="2.0">
+      <channel>
+        <item>
+          <title>Kelantan lancar pelan pelancongan</title>
+          <description>${longDescription}</description>
+          <link>https://example.com/berita/1</link>
+        </item>
+      </channel>
+    </rss>
+  `;
+  const items = parseRssXml(xml);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].briefTruncated, true);
 });
 
 test('RssDirectEngine - deduplicateRssItems eliminates duplicate guids', () => {
