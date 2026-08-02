@@ -271,11 +271,16 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
       mungkin ada tetapan sendiri (masa transisi, warna semasa transisi, saiz, dll) — bukan
       satu dropdown global datar. Perlu reka bentuk skema tetapan per-jenis dahulu (rujuk
       Izzat) sebelum bina
-- [ ] Ticker: bawa kawalan ke Editorium (kini ~90% dalam modal frontpage) + UI kelajuan
-      pusingan ticker (kini TIADA UI langsung, hanya edit DB)
-- [ ] Jam Dunia: satukan kawalan sedia ada (kini tersorok di Tetapan → Operasi, kad
-      Modul Khas kata "belum disambungkan" — mengelirukan); tarikh cuti sekolah berkod
-      keras 2026/27 akan basi senyap — jadikan boleh edit
+- [x] Ticker: UI kelajuan pusingan — medan "Kelajuan Pusingan Ticker" ditambah ke modal
+      Urus Ticker sedia ada (guna formConfig/handleSaveSlot yang sama, tiada laluan baharu)
+- [ ] Ticker: bawa kawalan PENUH ke Editorium (kini ~90% masih dalam modal frontpage,
+      dicapai lalui pautan diterima `?openTicker=1` — bukan bocor, tapi bukan native
+      Editorium jugak) — pemindahan 899 baris `TickerManagementModal.tsx` ni skop
+      berasingan lebih besar, sengaja tak disentuh setakat ni
+- [x] Jam Dunia: satukan kawalan sedia ada — kad Modul Khas kini pautan terus ke Tetapan
+      → Operasi (dulu kata "belum disambungkan", mengelirukan); tarikh cuti sekolah
+      (dulu berkod keras 2026/27, akan basi senyap) kini boleh sunting terus di panel
+      Jam Dunia, disimpan `system_settings.schoolHolidaysJson`
 - [ ] Slot Bar: borang kandungan BAR dalam Editorium (medan Acara/Penganjur/Akses/
       Penerangan) — kini dikecualikan dari semua permukaan Editorium
 - [ ] Focus View: tetapan animasi/mod turutan/had aksara (kini sifar tetapan di
