@@ -536,6 +536,45 @@ persediaan (setiap item bawah KECUALI deploy sebenar — lihat "KIV — tunggu I
       tunggu Izzat" di atas: tindakan tak boleh patah balik, kesan sistem produksi sebenar).
       Semua persediaan di atas siap; butang "deploy" sendiri sengaja tak ditekan sesi ni
 
+**Semakan semula 2026-08-02 (lepas pemindahan Ticker/Bar + buang kod mati)**: gelombang besar
+kerja mendarat SELEPAS pengesahan asal di atas — Ticker & Slot Bar berpindah penuh ke Editorium
+native (`useTickerEditor.ts`, `BarSlotManagerModal.tsx`), dua pepijat kehilangan data sebenar
+ditemui & dibetulkan di laluan simpan Ticker/RSS (`slotsConfigRoutes.js`, `EditorialPipeline.js`)
+serta satu pepijat fallback phantom di `server.js` (`parseManualSummaryTemplate`), pembersihan
+kod mati besar di `FrontpageView.tsx` (~6889 → ~3114 baris), tetapan saiz overlay Ticker,
+had aksara Nota Focus View, dan kawalan carousel manual (klik/leret) pada 30 kad. Semakan
+fokus ni disahkan semula:
+- `npx tsc --noEmit` bersih + `npm test` 103/103 (baseline sebelum & selepas ujian sendiri,
+  tiada regresi)
+- Ticker: `system_settings.inTheNewsText` di-snapshot SEBELUM apa-apa ujian (panjang 10762,
+  sha256 `76bb0080...`) dan disahkan BYTE-IDENTIK selepas (panjang & hash sama tepat) — tiada
+  padaman senyap berlaku semasa sesi ni. Overlay skrin-penuh Ticker disahkan papar kandungan
+  sebenar, navigasi anak panah/titik berfungsi (diuji klik terus di pelayar), rotasi automatik
+  kekal berjalan
+- Tiga pepijat kehilangan data (commit `1173233`, `53160ca`, `e7e9902`) disemak semula secara
+  kod — setiap satu tukar kelakuan "tulis-ganti tanpa syarat" kepada "hanya tulis-ganti bila
+  kandungan baharu benar-benar wujud", corak yang betul dan konsisten merentasi ketiga-tiga
+  laluan
+- Slot Bar: laluan simpan (`POST /api/system/slots`) disahkan kekal corak INSERT
+  versi-menaik (tiada `DELETE FROM editorial_revisions/editorial_objects` pada laluan simpan) —
+  jaminan Fasa 2 "kemas kini di tempat, versi naik, tiada padam" kekal terpakai. Kad Bar di
+  frontpage disahkan buka/tutup (expand/collapse) betul di pelayar sebenar
+- Gerbang kebenaran laluan native (`requireAuth` di `POST /api/system/slots`) disahkan sedia
+  ada SEBELUM gelombang perubahan ni (bukan baharu, jadi diliputi RBAC asal) — permintaan
+  tanpa sesi disahkan pulangkan 401 sebenar
+- Frontpage disahkan semula selepas buang kod mati + perubahan lanjutan: kad biasa, kad Bar
+  (buka/tutup), Ticker marquee + overlay skrin-penuh, Focus View (Nota Editor papar betul),
+  carousel manual (rotasi automatik disahkan sambung semula lepas kandungan bertukar), skrin
+  375px (tiada overflow, susun atur kekal kemas) — semua disahkan dengan screenshot pelayar
+  sebenar, bukan hanya baca kod
+- Audit data ujian: tiada akaun `test-*` atau baris `user_roles` anak yatim baharu ditemui
+  (kekal bersih macam pengesahan asal); tiada ujian langsung (log masuk) dilakukan sesi ni
+  sebab dasar keselamatan projek melarang cipta akaun baharu walaupun untuk ujian sekali pakai —
+  pengesahan laluan simpan dibuat melalui semakan kod pepijat yang dibetulkan + pemeriksaan
+  gerbang kebenaran peringkat HTTP (401 tanpa sesi) sebagai ganti
+- Tiada pepijat BAHARU ditemui semasa semakan ni; backup segar
+  `adjung.db.backup-20260802-181833-fasa17-refresh-final` dicipta & disahkan gitignored
+
 ---
 
 ## Peraturan kerja
