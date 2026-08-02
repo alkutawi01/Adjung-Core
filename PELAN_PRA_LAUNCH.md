@@ -299,10 +299,16 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
       Izzat) sebelum bina
 - [x] Ticker: UI kelajuan pusingan — medan "Kelajuan Pusingan Ticker" ditambah ke modal
       Urus Ticker sedia ada (guna formConfig/handleSaveSlot yang sama, tiada laluan baharu)
-- [ ] Ticker: bawa kawalan PENUH ke Editorium (kini ~90% masih dalam modal frontpage,
-      dicapai lalui pautan diterima `?openTicker=1` — bukan bocor, tapi bukan native
-      Editorium jugak) — pemindahan 899 baris `TickerManagementModal.tsx` ni skop
-      berasingan lebih besar, sengaja tak disentuh setakat ni
+- [x] Ticker: bawa kawalan PENUH ke Editorium (2026-08-02) — `TickerManagementModal.tsx`
+      kini render TERUS di Editorium (Modul Khas → Urus Ticker), logik simpan/muat
+      dipindah ke `src/hooks/useTickerEditor.ts` (corak sama `useSlotEditor.ts`).
+      Sambungan URL `?openTicker=1` lama DIBUANG terus (bukan dikekal sebagai fallback) —
+      laluan native disahkan setara penuh (RSS Direct: sumber/status/review queue/tetapan
+      editorial/kategori tersekat semua berfungsi; Manual: textarea kandungan sama; kelajuan
+      pusingan sama) sebelum dibuang. Kesan sampingan disahkan: ini laluan TERAKHIR yang
+      set `isEditMode=true` di FrontpageView.tsx — sistem suntingan inline lama (~114
+      rujukan) kini sepenuhnya tak boleh dicapai daripada UI; pembersihan kod matinya
+      sengaja digugurkan daripada skop ni (tugasan berasingan dicadangkan)
 - [x] Jam Dunia: satukan kawalan sedia ada — kad Modul Khas kini pautan terus ke Tetapan
       → Operasi (dulu kata "belum disambungkan", mengelirukan); tarikh cuti sekolah
       (dulu berkod keras 2026/27, akan basi senyap) kini boleh sunting terus di panel
