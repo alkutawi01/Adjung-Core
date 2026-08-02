@@ -505,6 +505,7 @@ export const BidangConsole: React.FC = () => {
         ) : desksTertapis.length === 0 ? (
           <div className="text-stone-400 text-xs py-10 text-center">Tiada Bidang dalam paparan ini.</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
@@ -784,6 +785,7 @@ export const BidangConsole: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

@@ -82,6 +82,7 @@ export const LogAuditConsole: React.FC = () => {
       {ralat && <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded">{ralat}</div>}
 
       <div className="bg-white rounded-lg shadow-sm border border-stone-200 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse font-sans text-xs">
           <thead>
             <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
@@ -120,6 +121,7 @@ export const LogAuditConsole: React.FC = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
