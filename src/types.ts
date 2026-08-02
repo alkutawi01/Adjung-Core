@@ -189,6 +189,8 @@ export interface SystemSettings {
   worldClockBgClickEnabled?: boolean;
   glosSelariEnabled?: boolean;
   focusViewNotaMaxAksara?: number;
+  tickerOverlayTitleSize?: string;
+  tickerOverlayBriefSize?: string;
   researchFindingsText?: string;
   researchFindingsGoogleDocUrl?: string;
 }

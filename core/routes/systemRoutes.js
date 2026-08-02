@@ -119,7 +119,8 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
           allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText,
           worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl,
           masterPrompt, worldClockIntervalSec, worldClockBgClickEnabled, reviewPrompt,
-          glosSelariEnabled, schoolHolidaysJson, focusViewNotaMaxAksara
+          glosSelariEnabled, schoolHolidaysJson, focusViewNotaMaxAksara,
+          tickerOverlayTitleSize, tickerOverlayBriefSize
         ) VALUES (
           'settings-main', ?, ?, ?,
           ?, ?, ?, ?,
@@ -127,7 +128,8 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
           ?, ?, ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?,
-          ?, ?, ?
+          ?, ?, ?,
+          ?, ?
         )
       `, [
         s.frontpageTitle, s.frontpageSubtitle, JSON.stringify(s.rolePermissions || {}),
@@ -140,7 +142,9 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         s.reviewPrompt,
         s.glosSelariEnabled ? 1 : 0,
         s.schoolHolidaysJson !== undefined ? s.schoolHolidaysJson : null,
-        s.focusViewNotaMaxAksara !== undefined ? Number(s.focusViewNotaMaxAksara) : 180
+        s.focusViewNotaMaxAksara !== undefined ? Number(s.focusViewNotaMaxAksara) : 180,
+        s.tickerOverlayTitleSize || 'L',
+        s.tickerOverlayBriefSize || 'M'
       ]);
       // Matriks Kawalan Akses mungkin baru diubah — muat semula cache dalam-memori serta-merta
       // supaya perubahan kebenaran berkuat kuasa pada permintaan SETERUSNYA, bukan tunggu server

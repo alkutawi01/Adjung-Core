@@ -25,6 +25,25 @@ import { trackView } from '../../utils/trackView';
 // setGlosSelariAktif()/setTypographyRulesAktif() dalam useEffect (lihat berhampiran
 // systemSettings/adjungTypographyRules di bawah).
 
+// Saiz fon overlay skrin PENUH Ticker (2026-08-02) — `showNewsOverlay`, bila marquee Ticker
+// diklik. BUKAN Focus View kad biasa (dua overlay berlainan, tak sama tetapan). Sebelum ni
+// berkod keras (text-3xl md:text-5xl / text-lg md:text-xl), tiada tetapan admin langsung.
+// Kunci pratetap ('S'/'M'/'L'/'XL'), BUKAN kelas Tailwind terus daripada DB — kelas Tailwind
+// mesti hadir literal dalam source untuk JIT kompil betul, jadi peta ni satu-satunya tempat
+// kelas sebenar ditulis. Lalai 'L'/'M' padan kelakuan sedia ada tepat (tiada perubahan
+// kelakuan sehingga Ketua Editor sunting di Tetapan → Operasi).
+export const TICKER_OVERLAY_TITLE_SIZE_CLASS: Record<string, string> = {
+  S: 'text-2xl md:text-3xl',
+  M: 'text-3xl md:text-4xl',
+  L: 'text-3xl md:text-5xl',
+  XL: 'text-4xl md:text-6xl',
+};
+export const TICKER_OVERLAY_BRIEF_SIZE_CLASS: Record<string, string> = {
+  S: 'text-base md:text-lg',
+  M: 'text-lg md:text-xl',
+  L: 'text-xl md:text-2xl',
+};
+
 const SESSION_SEED = Math.random();
 
 const getHash = (str: string) => {
@@ -2974,13 +2993,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 </div>
 
                 {/* Large Serif Title */}
-                <h1 className="font-serif text-3xl md:text-5xl text-stone-900 leading-tight tracking-tight font-medium px-4">
+                <h1 className={`font-serif ${TICKER_OVERLAY_TITLE_SIZE_CLASS[systemSettings?.tickerOverlayTitleSize || 'L'] || TICKER_OVERLAY_TITLE_SIZE_CLASS.L} text-stone-900 leading-tight tracking-tight font-medium px-4`}>
                   {overlayItem.title}
                 </h1>
 
                 {/* Brief body */}
                 {overlayItem.brief && (
-                  <p className="font-serif text-lg md:text-xl text-stone-600 leading-relaxed max-w-xl mx-auto px-4 font-light">
+                  <p className={`font-serif ${TICKER_OVERLAY_BRIEF_SIZE_CLASS[systemSettings?.tickerOverlayBriefSize || 'M'] || TICKER_OVERLAY_BRIEF_SIZE_CLASS.M} text-stone-600 leading-relaxed max-w-xl mx-auto px-4 font-light`}>
                     {overlayItem.brief}
                   </p>
                 )}

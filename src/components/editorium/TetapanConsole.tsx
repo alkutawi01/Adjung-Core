@@ -133,6 +133,15 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const [savingFocusView, setSavingFocusView] = useState(false);
   const [focusViewSaveError, setFocusViewSaveError] = useState<string | null>(null);
 
+  // Saiz fon overlay skrin PENUH Ticker (2026-08-02) — bila marquee Ticker diklik
+  // (FrontpageView.tsx `showNewsOverlay`), BUKAN Focus View kad biasa. Sebelum ni berkod
+  // keras, sifar tetapan. Kunci pratetap ('S'/'M'/'L'/'XL'), bukan kelas Tailwind mentah —
+  // lihat TICKER_OVERLAY_TITLE_SIZE_CLASS/TICKER_OVERLAY_BRIEF_SIZE_CLASS di FrontpageView.tsx.
+  const [tickerOverlayTitleSize, setTickerOverlayTitleSize] = useState<string>('L');
+  const [tickerOverlayBriefSize, setTickerOverlayBriefSize] = useState<string>('M');
+  const [savingTickerOverlay, setSavingTickerOverlay] = useState(false);
+  const [tickerOverlaySaveError, setTickerOverlaySaveError] = useState<string | null>(null);
+
   const [apiHealthStatus, setApiHealthStatus] = useState<any>(null);
   const [isLoadingApiStatus, setIsLoadingApiStatus] = useState<boolean>(false);
 
@@ -230,6 +239,18 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
+  const handleSaveTickerOverlaySettings = async () => {
+    setSavingTickerOverlay(true);
+    setTickerOverlaySaveError(null);
+    try {
+      await saveSystemSettingsPatch({ tickerOverlayTitleSize, tickerOverlayBriefSize });
+    } catch (e: any) {
+      setTickerOverlaySaveError(e.message || 'Gagal menyimpan tetapan paparan penuh Ticker.');
+    } finally {
+      setSavingTickerOverlay(false);
+    }
+  };
+
   // Blocked RSS categories — real CRUD table (rss_blocked_categories), managed here AND in the
   // main frontpage's Ticker Management modal; both point at the same backend so they can never
   // drift out of sync with each other.
@@ -289,6 +310,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         if (s.worldClockBgClickEnabled !== undefined) setWorldClockBgClickEnabled(!!s.worldClockBgClickEnabled);
         if (s.glosSelariEnabled !== undefined) setGlosSelariEnabled(!!s.glosSelariEnabled);
         if (s.focusViewNotaMaxAksara !== undefined && s.focusViewNotaMaxAksara !== null) setFocusViewNotaMaxAksara(Number(s.focusViewNotaMaxAksara));
+        if (s.tickerOverlayTitleSize) setTickerOverlayTitleSize(s.tickerOverlayTitleSize);
+        if (s.tickerOverlayBriefSize) setTickerOverlayBriefSize(s.tickerOverlayBriefSize);
         fetch('/api/system/clock-holidays')
           .then(r => r.json())
           .then(d => { if (Array.isArray(d.schoolHolidays)) setSchoolHolidays(d.schoolHolidays); })
@@ -748,6 +771,67 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
               >
                 {savingFocusView ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Focus View</>}
+              </button>
+            </div>
+          </div>
+
+          {/* Tetapan Paparan Penuh Ticker (2026-08-02) — overlay skrin penuh bila marquee
+              Ticker diklik (showNewsOverlay, FrontpageView.tsx), BUKAN Focus View kad biasa —
+              dua overlay berlainan. Sebelum ni berkod keras, sifar tetapan. */}
+          <div className="pt-6 border-t border-stone-200 space-y-4">
+            <div>
+              <h4 className="font-sans text-xs uppercase tracking-wider text-[#802334] font-bold mb-0.5 flex items-center gap-1.5">
+                <Newspaper className="w-3.5 h-3.5" /> TETAPAN PAPARAN PENUH TICKER
+              </h4>
+              <p className="text-stone-500 text-[11px]">
+                Saiz fon tajuk dan huraian pada overlay skrin penuh yang terbuka bila jalur Ticker diklik. Berasingan daripada Focus View kad biasa.
+              </p>
+            </div>
+
+            {tickerOverlaySaveError && (
+              <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {tickerOverlaySaveError}</div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
+                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                  Saiz Tajuk
+                </label>
+                <select
+                  value={tickerOverlayTitleSize}
+                  onChange={(e) => setTickerOverlayTitleSize(e.target.value)}
+                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[#802334]"
+                >
+                  <option value="S">Kecil</option>
+                  <option value="M">Sederhana</option>
+                  <option value="L">Besar (lalai)</option>
+                  <option value="XL">Sangat Besar</option>
+                </select>
+              </div>
+
+              <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
+                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                  Saiz Huraian
+                </label>
+                <select
+                  value={tickerOverlayBriefSize}
+                  onChange={(e) => setTickerOverlayBriefSize(e.target.value)}
+                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[#802334]"
+                >
+                  <option value="S">Kecil</option>
+                  <option value="M">Sederhana (lalai)</option>
+                  <option value="L">Besar</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleSaveTickerOverlaySettings}
+                disabled={savingTickerOverlay}
+                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+              >
+                {savingTickerOverlay ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Paparan Penuh Ticker</>}
               </button>
             </div>
           </div>

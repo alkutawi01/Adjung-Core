@@ -1775,6 +1775,17 @@ const initEditorialOS = (dbConn) => {
                             // berasingan, tiada kaitan sistem tier kad. NULL/undefined = guna
                             // lalai 180 (tiada perubahan kelakuan sehingga Ketua Editor sunting).
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN focusViewNotaMaxAksara INTEGER DEFAULT 180", () => {});
+                            // tickerOverlayTitleSize/tickerOverlayBriefSize (2026-08-02) — saiz fon
+                            // tajuk/huraian paparan PENUH Ticker (overlay skrin penuh bila marquee
+                            // Ticker diklik, `showNewsOverlay` di FrontpageView.tsx — BUKAN Focus
+                            // View kad biasa, dua overlay berlainan). Sebelum ni berkod keras
+                            // (text-3xl md:text-5xl / text-lg md:text-xl), tiada tetapan langsung.
+                            // Nilai ialah KUNCI pratetap ('S'/'M'/'L'/'XL'), bukan kelas Tailwind
+                            // mentah — kelas mesti hadir literal dalam source untuk JIT Tailwind
+                            // kompil betul, jadi peta kunci->kelas kekal di FrontpageView.tsx.
+                            // NULL/undefined = guna lalai 'L'/'M' (padan kelakuan sedia ada tepat).
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN tickerOverlayTitleSize TEXT DEFAULT 'L'", () => {});
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN tickerOverlayBriefSize TEXT DEFAULT 'M'", () => {});
                             // reviewPrompt (2026-08-01, spesifikasi pemilik projek) — templat AI
                             // untuk SEMAKAN (ejaan, tatabahasa, gaya bahasa, format), berasingan
                             // daripada masterPrompt yang mengarah penjanaan KANDUNGAN.
