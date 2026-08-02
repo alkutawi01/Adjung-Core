@@ -10,6 +10,19 @@ SEBELUM launch — "tak nak kena ubah banyak benda selepas launch nanti."
 
 ---
 
+## KIV — tunggu Izzat (2026-08-02, sesi autonomi)
+
+Izzat arah teruskan semua fasa tanpa henti; item di bawah **KIV** (bukan dilangkau
+selama-lamanya) sebab perlukan keputusan/kelulusan yang cuma Izzat boleh buat:
+- **Fasa 8b** (Format sumber) — Izzat sendiri dah tanda "boleh tangguh pasca-launch"
+- **Fasa 11**: Perkongsian sosial, Carian pengunjung — pelan asal kata "tanya dahulu"
+- **Fasa 12** (Halaman Penaja) — reka bentuk & penempatan perlukan keputusan Ketua Editor
+- **Fasa 17**: langkah **deploy sebenar** & pengesahan pasca-deploy — tindakan tak boleh
+  patah balik, kesan sistem produksi sebenar; SEMUA kerja persediaan (ujian, pembersihan,
+  backup, semakan) akan disiapkan, cuma butang "deploy" sendiri ditahan
+- Sebarang keputusan UI/UX/label baharu yang tak dapat diselesaikan dengan terus
+  menggunapakai bahasa visual frontpage sedia ada
+
 ## Keputusan sedia dibuat
 
 - **Paparan Utama (dashboard)**: item pertama sidebar, di atas kumpulan Penerbitan,
