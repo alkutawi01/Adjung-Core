@@ -374,6 +374,24 @@ tanpa mengira AI:
       salah lokasi dalam teks rujukan. Teks di `EditorialConsole.tsx` dibetulkan untuk
       rujuk lokasi sebenar, bukan dibina semula sebagai ciri baharu (tiada keperluan
       medan kedua untuk nilai yang sama)
+- [x] **Jadual Terbit & Jadual Luput** (2026-08-02, permintaan langsung Izzat, di luar skop
+      pelan 17-fasa asal — sama corak seperti tambahan navigasi carousel hari ni). Lajur
+      baharu `scheduledPublishAt`/`scheduledExpiresAt` (ISO 8601, waktu Malaysia +08:00)
+      pada `editorial_revisions`; status baharu `scheduled` (dikecualikan drpd setiap query
+      awam). Scheduler `setInterval` 90 saat dlm `server.js` (corak sama RSS Auto
+      Scheduler) semak & terbit/arkib automatik, catat Log Audit + notifikasi. Dua
+      KEPUTUSAN Izzat disahkan semasa klarifikasi:
+      1. Tarikh luput TAK BOLEH ditetapkan pada satu-satunya kandungan hidup dalam slot —
+         mesti ada gantian (approved/pending/scheduled) sedia dlm giliran dulu, disemak
+         semasa SIMPAN (bukan semak-semula retroaktif semasa luput sebenar berlaku).
+      2. Hanya kebenaran `manageEditorial` sedia ada (Ketua Editor/Penolong) boleh tetapkan
+         jadual — Editor biasa ditolak 403 di server walaupun dia boleh terbit sendiri
+         secara normal; UI (modal Detail Kandungan, IndeksConsole.tsx) sekadar sembunyi/
+         nyahaktifkan medan untuk Editor, bukan gerbang sebenar.
+      Diuji hidup dgn akaun uji sekali guna + slot sedia ada (kes TOLAK/BENARKAN gerbang
+      gantian, 403 Editor, terbit & arkib automatik lulus tik penjadual sebenar) — semua
+      data/akaun uji dipadam & slot disahkan kembali sepadan snapshot asal selepas ujian.
+      114/114 ujian automatik lulus (103 asal + 11 baharu di `tests/scheduling.test.js`).
 
 **Digugurkan/ditangguh (bukan lagi keutamaan pra-launch, memandangkan AI automatik
 dimatikan):** 4 sub-templat semakan AI, suntik glosari ke prompt AI, semakan bajet kos AI
