@@ -40,7 +40,7 @@ interface SlotManagerModalProps {
   onSave: (e: React.FormEvent, manualSummaryOverride?: string, opts?: { closeOnSuccess?: boolean }) => Promise<boolean | void> | void;
 }
 
-const TAB_LABEL: Record<string, string> = { borang: 'Borang kandungan', maklumat: 'Maklumat slot', ai: 'Arahan AI' };
+const TAB_LABEL: Record<string, string> = { borang: 'Borang kandungan', maklumat: 'Maklumat slot', ai: 'Arahan AI', sejarah: 'Sejarah versi' };
 const GEN_MODE_LABEL: Record<string, string> = { bebas: 'Bebas', dengan_rujukan: 'Dengan rujukan' };
 
 const labelCls = 'font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500';
@@ -238,7 +238,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     const i = parseManualSummaryBlocks(formConfig.manualSummary || '').findIndex((b: any) => b.uuid === initialUuid);
     return i >= 0 ? i : 0;
   });
-  const [tab, setTab] = useState<'borang' | 'maklumat' | 'ai'>('borang');
+  const [tab, setTab] = useState<'borang' | 'maklumat' | 'ai' | 'sejarah'>('borang');
   const [pasteNote, setPasteNote] = useState('');
   const [aiNote, setAiNote] = useState('');
   const [imageNote, setImageNote] = useState('');
@@ -479,6 +479,64 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     } else {
       setPublishError(saveError || 'Gagal simpan draf.');
       setTimeout(() => setPublishError(''), 5000);
+    }
+  };
+
+  // Sejarah versi sebenar (Fasa 6, 2026-08-02) — item DRAF (status 'draft', belum tekan Terbit)
+  // tiada baris editorial_objects langsung, jadi tiada sejarah untuk dipapar. Item yang sudah
+  // punya rekod sebenar (bukan draf — 'pending'/'approved'/'rejected'/'archived') pasti wujud di
+  // editorial_objects dengan id = current.uuid (Bar tier kekal dalam giliran ni selepas Terbit;
+  // tier lain hilang daripada `items` selepas publishOne, jadi status draf ialah isyarat betul,
+  // bukan sekadar ada/tiada uuid — SETIAP item, draf atau tidak, sudah ada uuid tempatan).
+  const [revisions, setRevisions] = useState<any[] | null>(null);
+  const [revisionsLoading, setRevisionsLoading] = useState(false);
+  const [revisionsError, setRevisionsError] = useState('');
+  const [restoringId, setRestoringId] = useState<number | null>(null);
+  const isPublished = current.status && current.status !== 'draft';
+  const fetchRevisions = useCallback(() => {
+    if (!isPublished || !current.uuid) { setRevisions(null); return; }
+    setRevisionsLoading(true);
+    setRevisionsError('');
+    fetch(`/api/system/content/${encodeURIComponent(current.uuid)}/revisions`)
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) { setRevisionsError(data?.error || 'Gagal memuatkan sejarah versi.'); setRevisions([]); return; }
+        setRevisions(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setRevisionsError('Gagal memuatkan sejarah versi.'))
+      .finally(() => setRevisionsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.uuid, isPublished]);
+  useEffect(() => {
+    if (tab === 'sejarah') fetchRevisions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, current.uuid]);
+  const restoreVersion = async (revisionId: number) => {
+    if (!current.uuid) return;
+    setRestoringId(revisionId);
+    setRevisionsError('');
+    try {
+      const res = await fetch(`/api/system/content/${encodeURIComponent(current.uuid)}/revisions/${revisionId}/restore`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setRevisionsError(data?.error || 'Gagal memulihkan versi.');
+        return;
+      }
+      // Kandungan sebenar (server-side) sudah berubah — cerminkan segera pada borang tempatan
+      // (tajuk/huraian) supaya editor nampak kesan pulihan tanpa perlu tutup-buka modal, walaupun
+      // simpanan penuh giliran (Terbit/Simpan draf) masih perlu dilakukan berasingan kalau nak
+      // ubah suai lanjut selepas pulih.
+      const restored = (revisions || []).find((r) => r.id === revisionId);
+      if (restored) {
+        commit((prevItems) => prevItems.map((it, n) => (
+          n === activeIndex ? { ...it, title: restored.title, brief: restored.summary } : it
+        )));
+      }
+      fetchRevisions();
+    } catch {
+      setRevisionsError('Gagal memulihkan versi.');
+    } finally {
+      setRestoringId(null);
     }
   };
 
@@ -760,6 +818,59 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   <span className="font-sans text-[11px] text-stone-500">Salin arahan ini untuk ditampal ke chatbox AI. Output AI ditampal semula di "Borang kandungan" (butang Tampal).</span>
                   <button type="button" onClick={copyPrompt} className="px-2.5 py-1 border border-stone-300 rounded text-[11px] font-sans font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer shrink-0">{aiNote || 'Salin prompt'}</button>
                 </div>
+              </>
+            )}
+
+            {/* d. SEJARAH VERSI — Fasa 6 (2026-08-02). Sejarah sebenar (baris editorial_revisions
+                berkekalan), bukan andaian daripada teks draf tempatan — cuma wujud untuk kandungan
+                yang sudah punya rekod sebenar (bukan draf). */}
+            {tab === 'sejarah' && (
+              <>
+                {!isPublished && (
+                  <span className="font-sans text-[12px] text-stone-500">
+                    Kandungan ini belum diterbitkan — tiada sejarah versi lagi.
+                  </span>
+                )}
+                {isPublished && revisionsLoading && (
+                  <span className="font-sans text-[12px] text-stone-500">Memuatkan sejarah versi…</span>
+                )}
+                {isPublished && !revisionsLoading && revisionsError && (
+                  <span className="font-sans text-[12px] text-[#a8241f]">{revisionsError}</span>
+                )}
+                {isPublished && !revisionsLoading && !revisionsError && revisions && revisions.length === 0 && (
+                  <span className="font-sans text-[12px] text-stone-500">Tiada sejarah versi direkodkan.</span>
+                )}
+                {isPublished && !revisionsLoading && revisions && revisions.length > 0 && (
+                  <div className="flex flex-col gap-2.5">
+                    {revisions.map((r, i) => {
+                      const isTerkini = i === 0;
+                      return (
+                        <div key={r.id} className="flex items-start justify-between gap-4 border border-stone-200 rounded p-3">
+                          <div className="flex flex-col gap-1 min-w-0">
+                            <span className="flex items-center gap-2">
+                              <span className={labelCls}>Versi {r.version}</span>
+                              {isTerkini && (
+                                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-emerald-700">· Semasa</span>
+                              )}
+                              <span className="font-sans text-[10px] text-stone-400">{new Date(r.updatedAt || r.createdAt).toLocaleString('ms-MY')}</span>
+                            </span>
+                            <span className="font-serif text-[13px] text-stone-800 truncate">{r.title || <span className="text-stone-400">(tiada tajuk)</span>}</span>
+                            <span className="font-sans text-[11px] text-stone-500 truncate">{r.summary || ''}</span>
+                            <span className="font-mono text-[9px] text-stone-400">{r.createdBy || '—'} · {r.status}</span>
+                          </div>
+                          {!isTerkini && (
+                            <button
+                              type="button" onClick={() => restoreVersion(r.id)} disabled={restoringId !== null}
+                              className="shrink-0 px-3 py-1.5 border border-stone-300 rounded text-[11px] font-sans font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-wait cursor-pointer transition-colors"
+                            >
+                              {restoringId === r.id ? 'Memulihkan…' : 'Pulih versi ini'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             )}
           </section>

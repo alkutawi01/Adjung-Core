@@ -288,16 +288,43 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         }
       }
 
-      const setClauses = [];
-      const params = [];
-      if (title !== undefined) { setClauses.push('title = ?'); params.push(title); }
-      if (summary !== undefined) { setClauses.push('summary = ?'); params.push(summary); }
-      if (status !== undefined) { setClauses.push('status = ?'); params.push(status); }
-      if (setClauses.length > 0) {
-        setClauses.push('updatedAt = ?');
-        params.push(new Date().toISOString());
-        params.push(rev.id);
-        await dbRun(`UPDATE editorial_revisions SET ${setClauses.join(', ')} WHERE id = ?`, params);
+      // Sejarah versi sebenar (Fasa 6): kandungan (tajuk/huraian) yang benar-benar berubah
+      // MESTI dapat baris editorial_revisions BAHARU — bukan UPDATE atas revisi sedia ada,
+      // yang memusnahkan teks lama secara senyap. Kemas kini status-sahaja (tiada tajuk/
+      // huraian dihantar) kekal UPDATE di tempat, sebab itu bukan penulisan-ganti kandungan,
+      // sama macam laluan padam/arkib lain dalam projek ni.
+      const isContentEdit = title !== undefined || summary !== undefined;
+      const nowIso = new Date().toISOString();
+      let liveRevId = rev.id;
+
+      if (isContentEdit) {
+        const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
+        const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
+        const newTitle = title !== undefined ? title : rev.title;
+        const newSummary = summary !== undefined ? summary : rev.summary;
+        const newStatus = status !== undefined ? status : rev.status;
+        const newRev = await dbRun(
+          `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+           VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
+          [id, nextVersion, newTitle, newSummary, newStatus, req.session?.user?.username || 'edit-content', nowIso, nowIso]
+        );
+        liveRevId = newRev.lastID;
+
+        // Bawa semua atribut lama daripada revisi sebelumnya ke revisi baharu (revisionId baharu),
+        // supaya medan yang TIDAK disentuh oleh PATCH ni (mis. sumber, imej) tak "hilang" —
+        // laluan baca tapis atribut ikut revisionId semasa sahaja.
+        const oldAttrs = await dbAll(
+          "SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?",
+          [id, rev.id]
+        );
+        for (const a of oldAttrs) {
+          await dbRun(
+            "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
+            [id, liveRevId, a.attributeId, a.valueText]
+          );
+        }
+      } else if (status !== undefined) {
+        await dbRun(`UPDATE editorial_revisions SET status = ?, updatedAt = ? WHERE id = ?`, [status, nowIso, rev.id]);
       }
 
       if (desk !== undefined && desk.trim() !== '') {
@@ -313,14 +340,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         if (val === undefined) continue;
         const existing = await dbGet(
           "SELECT id FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = ?",
-          [id, rev.id, key]
+          [id, liveRevId, key]
         );
         if (existing) {
           await dbRun("UPDATE editorial_attribute_values SET valueText = ? WHERE id = ?", [val, existing.id]);
         } else {
           await dbRun(
             "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
-            [id, rev.id, key, val]
+            [id, liveRevId, key, val]
           );
         }
       }
@@ -345,6 +372,118 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
     } catch (err) {
       console.error('Patch content item error:', err);
       res.status(500).json({ error: 'Failed to update item. ' + (err.message || '') });
+    }
+  });
+
+  // GET /api/system/content/:id/revisions — Sejarah Versi Sebenar (Fasa 6). Pulangkan setiap
+  // baris editorial_revisions untuk objek ni (bukan cuma versi terkini), tersusun terbaharu dulu,
+  // supaya panel "Sejarah versi" boleh papar & pulihkan versi lama.
+  router.get('/content/:id/revisions', requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (id.startsWith('ticker-')) {
+        return res.status(400).json({ error: 'Item ticker tiada sejarah versi — ia disegarkan terus daripada suapan RSS.' });
+      }
+      const objRow = await dbGet("SELECT id FROM editorial_objects WHERE id = ?", [id]);
+      if (!objRow) {
+        return res.status(404).json({ error: 'Item tidak dijumpai.' });
+      }
+      const revisions = await dbAll(
+        "SELECT id, version, title, summary, status, createdBy, createdAt, updatedAt FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC",
+        [id]
+      );
+      res.json(revisions);
+    } catch (err) {
+      console.error('List content revisions error:', err);
+      res.status(500).json({ error: 'Failed to list revisions. ' + (err.message || '') });
+    }
+  });
+
+  // POST /api/system/content/:id/revisions/:revisionId/restore — pulihkan versi lama sebagai
+  // versi TERKINI baharu (versi + 1), bukan UPDATE atas rekod lama — sejarah kekal utuh selepas
+  // pulih pun. Mesti lepasi budget/Bidang-Topik semasa juga, sebab peraturan tier boleh berubah
+  // sejak versi lama tu ditulis.
+  router.post('/content/:id/revisions/:revisionId/restore', requireAuth, async (req, res) => {
+    try {
+      const { id, revisionId } = req.params;
+      if (id.startsWith('ticker-')) {
+        return res.status(400).json({ error: 'Item ticker tiada sejarah versi untuk dipulihkan.' });
+      }
+      const objRow = await dbGet("SELECT id, slotIndex FROM editorial_objects WHERE id = ?", [id]);
+      if (!objRow) {
+        return res.status(404).json({ error: 'Item tidak dijumpai.' });
+      }
+      const oldRev = await dbGet(
+        "SELECT * FROM editorial_revisions WHERE id = ? AND objectId = ?",
+        [revisionId, id]
+      );
+      if (!oldRev) {
+        return res.status(404).json({ error: 'Versi tersebut tidak dijumpai untuk kandungan ini.' });
+      }
+
+      const budgetCheck = validateContentBudget(objRow.slotIndex, oldRev.title || '', oldRev.summary || '');
+      if (!budgetCheck.isValid) {
+        return res.status(400).json({ error: `Versi ini tak boleh dipulihkan — ${budgetCheck.reason}` });
+      }
+
+      if (!TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
+        const deskAttr = await dbGet(
+          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'desk'",
+          [id, oldRev.id]
+        );
+        const topikAttr = await dbGet(
+          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'topik'",
+          [id, oldRev.id]
+        );
+        const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [objRow.slotIndex]);
+        const bidangTopikCheck = validateBidangTopik({
+          slotBidang: slotRow ? slotRow.manualDesk : null,
+          itemBidang: deskAttr ? deskAttr.valueText : null,
+          topik: topikAttr ? topikAttr.valueText : '',
+          requireTopik: true,
+          slotIndex: objRow.slotIndex,
+        });
+        if (!bidangTopikCheck.isValid) {
+          return res.status(400).json({ error: `Versi ini tak boleh dipulihkan — ${bidangTopikCheck.reason}` });
+        }
+      }
+
+      const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
+      const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
+      const nowIso = new Date().toISOString();
+      const newRev = await dbRun(
+        `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+         VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
+        [id, nextVersion, oldRev.title, oldRev.summary, oldRev.status, req.session?.user?.username || 'pulih-versi', nowIso, nowIso]
+      );
+      const newRevId = newRev.lastID;
+
+      const oldAttrs = await dbAll(
+        "SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?",
+        [id, oldRev.id]
+      );
+      for (const a of oldAttrs) {
+        await dbRun(
+          "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
+          [id, newRevId, a.attributeId, a.valueText]
+        );
+      }
+
+      await dbRun("UPDATE editorial_objects SET updatedAt = ? WHERE id = ?", [nowIso, id]);
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: `pulih-versi:v${oldRev.version}->v${nextVersion}`,
+        targetType: 'kandungan',
+        targetId: id,
+        detail: (oldRev.title || '').slice(0, 100),
+      });
+
+      res.json({ success: true, version: nextVersion, revisionId: newRevId });
+    } catch (err) {
+      console.error('Restore content revision error:', err);
+      res.status(500).json({ error: 'Failed to restore revision. ' + (err.message || '') });
     }
   });
 
@@ -604,6 +743,127 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
     } catch (err) {
       console.error('Create content item error:', err);
       res.status(500).json({ error: 'Failed to create item. ' + (err.message || '') });
+    }
+  });
+
+  // GET /api/system/content/:id/revisions — sejarah versi sebenar (Fasa 6). Senarai semua
+  // baris editorial_revisions untuk satu objek, versi terbaharu dahulu. Baca sahaja, tiada
+  // perubahan data — tak perlu requireAuth ketat macam laluan tulis, tapi ikut corak laluan
+  // baca lain dalam fail ni (content/all) yang juga tiada requireAuth.
+  router.get('/content/:id/revisions', async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (id.startsWith('ticker-')) {
+        return res.status(400).json({ error: 'Ticker tidak menyokong sejarah versi.' });
+      }
+      const objRow = await dbGet('SELECT id FROM editorial_objects WHERE id = ?', [id]);
+      if (!objRow) {
+        return res.status(404).json({ error: 'Item tidak dijumpai.' });
+      }
+      const revisions = await dbAll(
+        `SELECT id, version, title, summary, status, createdBy, createdAt, updatedAt
+         FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC`,
+        [id]
+      );
+      res.json(revisions);
+    } catch (err) {
+      console.error('Get content revisions error:', err);
+      res.status(500).json({ error: 'Gagal mendapatkan sejarah versi. ' + (err.message || '') });
+    }
+  });
+
+  // POST /api/system/content/:id/revisions/:revisionId/restore — pulihkan versi lama sebagai
+  // versi TERKINI baharu (bukan padam/tulis-ganti versi lain — sejarah kekal berkekalan).
+  router.post('/content/:id/revisions/:revisionId/restore', requireAuth, async (req, res) => {
+    try {
+      const { id, revisionId } = req.params;
+      if (id.startsWith('ticker-')) {
+        return res.status(400).json({ error: 'Ticker tidak menyokong pulihan versi.' });
+      }
+      const objRow = await dbGet('SELECT id, slotIndex, categoryId FROM editorial_objects WHERE id = ?', [id]);
+      if (!objRow) {
+        return res.status(404).json({ error: 'Item tidak dijumpai.' });
+      }
+      const oldRev = await dbGet(
+        'SELECT * FROM editorial_revisions WHERE id = ? AND objectId = ?',
+        [revisionId, id]
+      );
+      if (!oldRev) {
+        return res.status(404).json({ error: 'Versi tersebut tidak dijumpai untuk item ini.' });
+      }
+      const currentRev = await dbGet(
+        'SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1',
+        [id]
+      );
+      if (currentRev && currentRev.id === oldRev.id) {
+        return res.status(400).json({ error: 'Versi ini sudah menjadi versi semasa — tiada apa untuk dipulihkan.' });
+      }
+
+      // Peraturan bajet ruang & Bidang/Topik terpakai walaupun ini pulihan, bukan sunting
+      // baharu — versi lama mungkin tak lagi muat had tier semasa (CLAUDE.md: dikuatkuasakan
+      // di setiap laluan simpan, tanpa pengecualian).
+      const budgetCheck = validateContentBudget(objRow.slotIndex, oldRev.title, oldRev.summary);
+      if (!budgetCheck.isValid) {
+        return res.status(400).json({ error: budgetCheck.reason });
+      }
+      if (!TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
+        const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [objRow.slotIndex]);
+        const oldDeskRow = await dbGet(
+          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'desk'",
+          [id, oldRev.id]
+        );
+        const oldTopikRow = await dbGet(
+          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'topik'",
+          [id, oldRev.id]
+        );
+        const bidangTopikCheck = validateBidangTopik({
+          slotBidang: slotRow ? slotRow.manualDesk : null,
+          itemBidang: oldDeskRow ? oldDeskRow.valueText : objRow.categoryId,
+          topik: oldTopikRow ? oldTopikRow.valueText : '',
+          requireTopik: true,
+          slotIndex: objRow.slotIndex,
+        });
+        if (!bidangTopikCheck.isValid) {
+          return res.status(400).json({ error: bidangTopikCheck.reason });
+        }
+      }
+
+      const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
+      const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
+      const nowIso = new Date().toISOString();
+      const newRev = await dbRun(
+        `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+         VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
+        [id, nextVersion, oldRev.title, oldRev.summary, oldRev.status, req.session?.user?.username || 'restore-versi', nowIso, nowIso]
+      );
+      const newRevId = newRev.lastID;
+
+      const oldAttrs = await dbAll(
+        'SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?',
+        [id, oldRev.id]
+      );
+      for (const a of oldAttrs) {
+        await dbRun(
+          'INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)',
+          [id, newRevId, a.attributeId, a.valueText]
+        );
+      }
+
+      await dbRun('UPDATE editorial_objects SET updatedAt = ? WHERE id = ?', [nowIso, id]);
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: `restore-versi:${oldRev.version}->v${nextVersion}`,
+        targetType: 'kandungan',
+        targetId: id,
+        detail: (oldRev.title || '').slice(0, 100),
+      });
+
+      res.json({ success: true, newRevisionId: newRevId, version: nextVersion });
+    } catch (err) {
+      console.error('Restore content revision error:', err);
+      res.status(500).json({ error: 'Gagal memulihkan versi. ' + (err.message || '') });
     }
   });
 

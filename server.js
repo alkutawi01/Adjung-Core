@@ -2228,16 +2228,19 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
           `UPDATE editorial_objects SET categoryId = ?, sourceType = ?, updatedAt = ? WHERE id = ?`,
           [finalCategory, item.sourceType || 'web', updatedAt, objectId]
         );
-        await dbRun(
-          `UPDATE editorial_revisions SET title = ?, summary = ?, status = ?, updatedAt = ? WHERE objectId = ?`,
-          [item.title, item.summary, item.status || 'approved', updatedAt, objectId]
+        // Sejarah versi sebenar (Fasa 6): jangan UPDATE teks revisi sedia ada di tempat —
+        // itu memusnahkan teks lama secara senyap. Cari nombor versi tertinggi semasa,
+        // masukkan baris revisi BAHARU (versi + 1) dengan teks terkini; baris lama KEKAL
+        // tak disentuh sebagai sejarah. Laluan baca (ORDER BY version DESC LIMIT 1) automatik
+        // ambil versi terbaharu ni.
+        const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [objectId]);
+        const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
+        const newRev = await dbRun(
+          `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+           VALUES (?, ?, 'ms', ?, ?, ?, 'manual-slot-save', ?, ?)`,
+          [objectId, nextVersion, item.title, item.summary, item.status || 'approved', updatedAt, updatedAt]
         );
-        // Baris atribut mesti kekal terikat pada revisionId SEBENAR — laluan baca
-        // (resolveSlotContent) tapis `WHERE objectId = ? AND revisionId = ?` guna id revisi
-        // semasa, jadi atribut baharu MESTI guna id yang sama, bukan NULL/rambang.
-        const currentRev = await dbGet('SELECT id FROM editorial_revisions WHERE objectId = ?', [objectId]);
-        const currentRevId = currentRev ? currentRev.id : null;
-        await dbRun(`DELETE FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?`, [objectId, currentRevId]);
+        const currentRevId = newRev.lastID;
         const attrs = [
           { key: 'desk', val: finalCategory },
           { key: 'url', val: item.url || '#' },
