@@ -32,6 +32,27 @@ function extractTextFromHtml(html) {
   return text.trim();
 }
 
+// Cache dalam-memori untuk ambilan Google Doc luaran (2026-08-02, Fasa 15 — "prestasi &
+// kesediaan produksi"). `GET /api/db-state` dahulu buat 3 ambilan Google Doc (In The News,
+// Cuti Jam Dunia, Dapatan Penyelidikan) SETIAP panggilan, masing-masing sehingga 5s timeout —
+// sampai 15s tersekat pada kes terburuk, walhal SELEBIHNYA endpoint ni cuma baca SQLite tempatan
+// (pantas). Corak sama seperti cache XML di sitemapRoutes.js / rssFeedRoutes.js: satu kunci
+// per URL supaya pertukaran URL di Tetapan tak terjebak cache lapuk URL lama.
+const GOOGLE_DOC_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minit
+const googleDocCache = new Map(); // docUrl -> { text, expiresAt }
+
+async function fetchGoogleDocTextCached(docUrl) {
+  if (!docUrl) return '';
+  const now = Date.now();
+  const hit = googleDocCache.get(docUrl);
+  if (hit && hit.expiresAt > now) {
+    return hit.text;
+  }
+  const text = await fetchGoogleDocText(docUrl);
+  googleDocCache.set(docUrl, { text, expiresAt: now + GOOGLE_DOC_CACHE_TTL_MS });
+  return text;
+}
+
 // Helper to fetch Google Doc text export in the background (supports standard and published URLs)
 async function fetchGoogleDocText(docUrl) {
   if (!docUrl) return '';
@@ -142,9 +163,9 @@ export function createDbStateRoutes(dbAll, dbGet) {
         }
       }
 
-      const rawNewsText = await fetchGoogleDocText(systemSettings.inTheNewsGoogleDocUrl);
-      const rawHolidaysText = await fetchGoogleDocText(systemSettings.worldClockHolidaysGoogleDocUrl);
-      const rawFindingsText = await fetchGoogleDocText(systemSettings.researchFindingsGoogleDocUrl);
+      const rawNewsText = await fetchGoogleDocTextCached(systemSettings.inTheNewsGoogleDocUrl);
+      const rawHolidaysText = await fetchGoogleDocTextCached(systemSettings.worldClockHolidaysGoogleDocUrl);
+      const rawFindingsText = await fetchGoogleDocTextCached(systemSettings.researchFindingsGoogleDocUrl);
 
       const checkStatus = (text, url) => {
         if (!url) return 'empty';

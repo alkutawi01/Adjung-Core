@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { User, Entry, SystemSettings } from './types';
 import { db } from './db/mockDb';
 import { FrontpageView } from './components/portal/FrontpageView';
-import { ContentReview } from './components/studio/ContentReview';
-import { EditoriumView } from './components/editorium/EditoriumView';
 import { LoginModal } from './components/editorium/LoginModal';
 import { muatPindaanTier } from './config/tierOverrides';
 import { muatPindaanLabel } from './config/labelOverrides';
@@ -12,6 +10,19 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HalamanStatik } from './components/portal/HalamanStatik';
 import { TidakDijumpai } from './components/portal/TidakDijumpai';
+
+// Muat malas (2026-08-02, Fasa 15 — "prestasi & kesediaan produksi") — ContentReview (Studio)
+// dan EditoriumView (konsol pentadbiran penuh, import berpuluh-puluh sub-komponen) dahulu
+// dibundel TERUS ke dalam chunk utama walaupun kebanyakan pelawat portal awam tak pernah
+// melawat kedua-dua laluan ni langsung. Vite beri amaran "chunk > 500kB" pada bundle asal
+// (~1.09MB, gzip ~280KB) — pemisahan kod ni JS split rendah-risiko (React.lazy standard, tak
+// sentuh struktur bento/kad), bukan refactor besar-besaran.
+const ContentReview = React.lazy(() =>
+  import('./components/studio/ContentReview').then(m => ({ default: m.ContentReview }))
+);
+const EditoriumView = React.lazy(() =>
+  import('./components/editorium/EditoriumView').then(m => ({ default: m.EditoriumView }))
+);
 
 export default function App() {
   const [users, setUsers] = useState<User[]>([]);
@@ -259,7 +270,9 @@ export default function App() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
             >
-              <ContentReview />
+              <React.Suspense fallback={<LoadingScreen />}>
+                <ContentReview />
+              </React.Suspense>
             </motion.div>
           } />
 
@@ -270,12 +283,14 @@ export default function App() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
             >
-              <EditoriumView
-                currentUser={currentEditoriumUser}
-                onRequestLogin={() => requestLogin()}
-                onLogout={handleLogout}
-                onProfilKemasKini={handleProfilKemasKini}
-              />
+              <React.Suspense fallback={<LoadingScreen />}>
+                <EditoriumView
+                  currentUser={currentEditoriumUser}
+                  onRequestLogin={() => requestLogin()}
+                  onLogout={handleLogout}
+                  onProfilKemasKini={handleProfilKemasKini}
+                />
+              </React.Suspense>
             </motion.div>
           } />
 

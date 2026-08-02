@@ -2713,6 +2713,31 @@ app.use(createSitemapRoutes(dbAll));
 // core/sources/RssDirectEngine.js untuk ingest suapan luar).
 app.use(createRssFeedRoutes(dbAll));
 
+// Laluan serve produksi (2026-08-02, Fasa 15 — "prestasi & kesediaan produksi"). Dahulu Express
+// TAK PERNAH hidangkan frontend terbina — dev sentiasa lalui proksi Vite (lihat vite.config.ts,
+// server.proxy '/api' → port Express). Untuk deploy sebenar (skrip `npm start`, bukan `npm run
+// dev`) Express sendiri kena hidangkan `dist/` (output `vite build`) dan folder muat naik media.
+// `/uploads` sepatutnya sudah sedia dihidang secara statik oleh mediaRoutes.js sendiri — lihat
+// di situ; baris ni tambahan keselamatan sekiranya laluan tu tak dimuatkan pada mount tertentu.
+const distDir = path.join(__dirname, 'dist');
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (fs.existsSync(uploadsDir)) {
+  app.use('/uploads', express.static(uploadsDir));
+}
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+  // Fallback SPA: sebarang GET bukan-API yang tak sepadan fail statik (cth navigasi terus ke
+  // `/editorium` atau `/soalan-lazim`) kena hidangkan `index.html` supaya react-router-dom
+  // (client-side routing) yang uruskan laluan tu, bukan Express pulangkan 404. Diletak SELEPAS
+  // semua app.use('/api', ...) dan sitemap.xml/rss.xml di atas supaya laluan tu tak tertangkap.
+  app.get(/^(?!\/api\/).*/, (req, res) => {
+    res.sendFile(path.join(distDir, 'index.html'));
+  });
+  console.log(`Menghidang binaan produksi dari ${distDir}`);
+} else {
+  console.log('Tiada dist/ ditemui — jalankan `npm run build` untuk laluan serve produksi (dev guna proksi Vite berasingan).');
+}
+
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
 // disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache
 // dalam-memori ni, bukan pangkalan data pada setiap pengesahan.
@@ -2802,4 +2827,46 @@ app.listen(PORT, '0.0.0.0', () => {
     }
   }, SCHEDULER_INTERVAL_MS);
   console.log(`Internal RSS Direct scheduler active (checks every ${SCHEDULER_INTERVAL_MS / 60000} min). Scheduler penjanaan AI automatik DIMATIKAN sengaja.`);
+
+  // Backup automatik adjung.db (2026-08-02, Fasa 15) — dahulu SEMATA-MATA manual (`cp adjung.db
+  // adjung.db.backup-<ts>` diikuti sendiri setiap kali sebelum operasi destruktif, lihat
+  // CLAUDE.md #4). Tiada jaring keselamatan automatik bermakna crash/operasi tersasar antara dua
+  // backup manual tersendiri boleh musnahkan kandungan editorial sebenar TANPA cara pulih —
+  // `adjung.db` gitignored dan tiada salinan lain langsung. Salinan fail SQLite saiz sebegini
+  // (~beberapa MB) hampir seketika, tapi tetap dibalut cuba/tangkap penuh — backup gagal MESTI
+  // tak sekali-kali rebahkan server.
+  const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // sekali sehari
+  const BACKUP_RETENTION_COUNT = 7; // simpan 7 salinan terkini, buang yang lebih lama
+  const runScheduledBackup = () => {
+    try {
+      if (!fs.existsSync(dbPath)) return;
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupPath = path.join(__dirname, `adjung.db.backup-auto-${ts}`);
+      fs.copyFileSync(dbPath, backupPath);
+      console.log(`[Backup Automatik] Salinan dicipta: ${backupPath}`);
+
+      // Kuatkuasakan dasar pengekalan — buang salinan AUTOMATIK lama sahaja (awalan
+      // `adjung.db.backup-auto-`), jangan sentuh backup MANUAL sedia ada (pelbagai corak nama,
+      // dicipta sendiri sebelum operasi destruktif — lihat CLAUDE.md #4) supaya tak padam
+      // sejarah pemulihan yang mungkin masih diperlukan.
+      const files = fs.readdirSync(__dirname)
+        .filter(f => f.startsWith('adjung.db.backup-auto-'))
+        .sort(); // nama ISO-timestamp menaik secara leksikal = menaik ikut masa
+      const excess = files.length - BACKUP_RETENTION_COUNT;
+      if (excess > 0) {
+        files.slice(0, excess).forEach(f => {
+          try {
+            fs.unlinkSync(path.join(__dirname, f));
+            console.log(`[Backup Automatik] Buang salinan lapuk: ${f}`);
+          } catch (unlinkErr) {
+            console.error(`[Backup Automatik] Gagal buang ${f}:`, unlinkErr.message);
+          }
+        });
+      }
+    } catch (err) {
+      console.error('[Backup Automatik] Gagal cipta backup:', err.message);
+    }
+  };
+  setInterval(runScheduledBackup, BACKUP_INTERVAL_MS);
+  console.log(`Backup automatik adjung.db aktif (sekali setiap ${BACKUP_INTERVAL_MS / 3600000} jam, simpan ${BACKUP_RETENTION_COUNT} salinan terkini).`);
 });
