@@ -101,8 +101,13 @@ sama seperti garis dasar, tiada regresi.
 - [x] Cipta akaun editor daripada UI — nota ni jugak LAPUK: `DirektoriConsole.tsx` "Cipta
       Akaun" dah wujud, panggil `POST /api/system/users` (hash password, semak keunikan
       username/emel, wajib ≥satu peranan)
-- [ ] Ujian penjelakan peranan automatik (skrip ujian kekal, kini manual via curl) + ujian
-      XSS/CSRF berstruktur
+- [x] Ujian penjelakan peranan automatik (skrip ujian kekal) + ujian XSS/CSRF berstruktur —
+      `tests/security.test.js` (Fasa 17, 2026-08-02): akaun EDITOR ujian sekali pakai cuba
+      laluan `manageAccounts`-sahaja terhadap tika pelayan hidup sebenar (throwaway, bukan
+      andaian kod) → 401 tanpa sesi, 403 dengan sesi EDITOR tanpa kebenaran; sahkan seni
+      bina render kandungan (JSX/`safeParseInline`, bukan `dangerouslySetInnerHTML`)
+      menghalang XSS; sahkan konfigurasi kuki sesi (httpOnly, sameSite=lax, secure ikut
+      NODE_ENV) sepadan dokumentasi di atas. Bukan token CSRF baharu (skop tugasan)
 - [x] Kuatkuasakan matriks RBAC dari Tetapan → Kawalan Akses di server — nota ni LAPUK,
       disahkan 2026-08-02: `requirePermission()` (`core/middleware/auth.js`) dah baca
       matriks SEBENAR daripada `system_settings.rolePermissions` (cache dalam-memori,
@@ -473,7 +478,35 @@ hidup sedia ada (Peraturan Am + Reka Bentuk) — tak disentuh.
 
 ### [ ] Fasa 17 — Ujian menyeluruh & deploy · `M` · ~3 hari
 Setiap modul · dua peranan · dua saiz skrin · ujian & tsc bersih · bersih data ujian ·
-backup · deploy · sahkan pasca-deploy.
+backup · deploy · sahkan pasca-deploy. **Sesi autonomi 2026-08-02** siapkan SEMUA
+persediaan (setiap item bawah KECUALI deploy sebenar — lihat "KIV — tunggu Izzat" di atas).
+- [x] **Setiap modul** — laluan admin utama diuji integrasi lepas gelombang perubahan hari
+      ni: log masuk, Paparan Utama (dashboard hidup, 127 kandungan/2 menunggu/24 aktif/101
+      arkib betul), Kandungan (Indeks + Semakan Kandungan), Peti Makluman, Slot, Modul
+      Khas, Editorial, Nota Ketua Editor, Direktori/Tetapan (gerbang RBAC disahkan),
+      Panduan/Dokumentasi/Log Sistem, portal awam (frontpage + Focus View). Tiada regresi
+      silang-fasa ditemui (cth notifikasi Fasa 6b dan jejak pengunjung Fasa 14 kedua-duanya
+      hidup betul bersama laluan produksi Fasa 15)
+- [x] **Dua peranan** — akaun ujian sekali pakai KETUA_EDITOR & EDITOR log masuk sebenar di
+      pelayar; sahkan sidebar sekat butang ikut kebenaran (Direktori/Tetapan/Editorial/Nota
+      Ketua Editor bergembok utk EDITOR) DAN penguatkuasaan server (403 sebenar, bukan
+      sekadar UI tersorok — lihat `tests/security.test.js`)
+- [x] **Dua saiz skrin** — spot-check akhir desktop + telefon (375px) di frontpage dan
+      Paparan Utama Editorium lepas perubahan hari ni; tiada overflow baharu ditemui
+      (menyokong audit penuh Fasa 13 sedia ada)
+- [x] **Ujian & tsc bersih** — `npx tsc --noEmit` bersih, `npm test` 103/103 (98 asal + 5
+      ujian keselamatan baharu), tiada kegagalan
+- [x] **Bersih data ujian** — audit `adjung.db` penuh: ditemui 14 baris `user_roles` anak
+      yatim (rujuk akaun ujian fasa-fasa terdahulu — Fasa 3/4/5/6/6b/13/lang/halaman — yang
+      baris `users` induknya sudah dipadam tapi `user_roles` tak ikut terpadam sebab
+      `PRAGMA foreign_keys` tak berkuat kuasa semasa padaman tu berlaku). Dibersihkan;
+      `users`/`user_roles` kini cuma ada akaun sebenar Izzat (`user-chief-editor`). Tiada
+      kandungan editorial bertanda ujian ditemui pada peringkat `editorial_objects`
+- [x] **Backup** — `adjung.db.backup-20260802-154916-fasa17-final-verified` (lepas
+      pembersihan & pengesahan penuh di atas), disahkan `git check-ignore` (gitignored)
+- [ ] **Deploy sebenar & sahkan pasca-deploy** — **KIV, ditahan utk Izzat** (lihat "KIV —
+      tunggu Izzat" di atas: tindakan tak boleh patah balik, kesan sistem produksi sebenar).
+      Semua persediaan di atas siap; butang "deploy" sendiri sengaja tak ditekan sesi ni
 
 ---
 
