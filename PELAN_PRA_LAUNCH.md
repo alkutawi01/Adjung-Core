@@ -237,36 +237,44 @@ test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
 - [x] Sebab penolakan — `Tolak` kini minta sebab (pilihan) via prompt, disuntik ke `Nota:`
       draf
 
-### [~] Fasa 6b — Profil editor lengkap & sistem notifikasi sebenar · `M` · ~5 hari
+### [x] Fasa 6b — Profil editor lengkap & sistem notifikasi sebenar · `M` · ~5 hari · SIAP 2026-08-02
 Ditambah 2026-08-02 selepas semakan Izzat mendapati dua jurang: profil editor tak lengkap,
-dan Peti Makluman cuma Nota Ketua Editor — bukan sistem notifikasi.
+dan Peti Makluman cuma Nota Ketua Editor — bukan sistem notifikasi. Kedua-dua bahagian siap
+sama hari (commit `feat(profil-editor)`, `feat(notifikasi)`), diuji hidup di server dev sebenar
+(akaun ujian sekali pakai, dibersihkan selepas), `npx tsc --noEmit` bersih, `npm test` 98/98
+(tiada regresi).
 
 **Profil Editor** — DIPERMUDAH 2026-08-02 (commit `75c41d4`) sebelum kerja bermula: Izzat
 "ni bukan medsos, hanya utk rujukan dalaman, kalau ada pun di kad/focus view, nama pena."
 Avatar/tandatangan/bio **DIBUANG** (bukan skop, bukan sekadar belum dibina — disahkan
 tak pernah terpapar di byline Focus View pun, itu guna atribut `editorName` kandungan,
 bukan medan profil). Profil kini Nama Pena sahaja + baki di bawah:
-- [ ] Tukar kata laluan sendiri — laluan backend `POST /api/auth/change-password` SUDAH
-      wujud (Fasa 1) tapi TIADA UI langsung; tambah borang dalam `ProfilEditorModal.tsx`
-- [ ] Tukar username sendiri — TIADA laluan, TIADA UI. Keputusan Izzat: editor boleh
-      tukar sendiri, perlu pengesahan (kata laluan semasa, sama corak `change-password`);
-      wajib semak keunikan username sebelum simpan
-- [ ] Tukar emel sendiri — sama, TIADA laluan/UI. Pengesahan sama seperti username
+- [x] Tukar kata laluan sendiri — laluan backend `POST /api/auth/change-password` SUDAH
+      wujud (Fasa 1) tapi TIADA UI langsung; borang ditambah dalam `ProfilEditorModal.tsx`
+- [x] Tukar username sendiri — laluan baharu `POST /api/auth/change-username` (`requireAuth`,
+      pengesahan kata laluan semasa, semak keunikan case-insensitive `LOWER(username) = ?`
+      sama corak log masuk) + borang dalam `ProfilEditorModal.tsx`
+- [x] Tukar emel sendiri — `POST /api/auth/change-email`, sama corak seperti username
 
 **Peti Makluman → sistem notifikasi sebenar (kini: satu sumber sahaja, `editor_notes`):**
 Keputusan Izzat: skop Kandungan + Sistem (bukan kandungan sahaja).
-- [ ] Jadual `notifications` baharu — per-editor, status baca/belum baca (ganti kiraan
+- [x] Jadual `notifications` baharu — per-editor, status baca/belum baca (ganti kiraan
       global sedia ada yang kira SEMUA nota tanpa mengira siapa dah baca — lihat
-      Lampiran A, "kiraan global bukan per-editor, tiada resit baca")
-- [ ] Jenis Kandungan: kandungan disiar, kandungan ditolak (sertakan sebab daripada item
-      di atas), penugasan slot baharu
-- [ ] Jenis Sistem: ambilan RSS gagal (sambung ke rekod kesihatan Fasa 4 Log Sistem),
-      API cuaca gagal, kata laluan sendiri ditukar, akaun digantung/diaktifkan semula
-      (Ketua Editor sahaja terima notis akaun-lain; setiap editor terima notis akaun-sendiri)
-- [ ] UI: lencana kiraan belum-baca per-editor (bukan jumlah semua nota macam sekarang),
-      tanda-dibaca bila drawer dibuka atau item diklik
-- [ ] Nota Ketua Editor (`editor_notes`) kekal sebagai SATU jenis dalam senarai gabungan
-      ni, bukan digantikan — cuma bukan lagi satu-satunya sumber
+      Lampiran A, "kiraan global bukan per-editor, tiada resit baca"). Helper kongsi
+      `core/notifications/Notify.js` (sejawat `AuditLog.js`)
+- [x] Jenis Kandungan: kandungan disiar (`PATCH /content/:id` status->approved), kandungan
+      ditolak + sebab (reuse sebab penolakan Fasa 6, `reject-to-draft`), penugasan slot
+      baharu (`POST /slot-editors`, cuma editor BAHARU ditambah)
+- [x] Jenis Sistem: ambilan RSS gagal (`slotRoutes.js`, sejawat log audit `ralat-ambilan-rss`
+      sedia ada), API cuaca gagal (`systemRoutes.js`, dedup sejam elak banjir notis daripada
+      poll klien), kata laluan sendiri ditukar (`authRoutes.js`), akaun digantung/diaktifkan
+      semula (`userAdminRoutes.js` — pemilik akaun terima notis akaun-sendiri, Pentadbir/
+      Ketua Editor lain terima notis akaun-lain)
+- [x] UI: lencana kiraan belum-baca per-editor (`GET /notifications/unread-count`, bukan
+      jumlah semua nota macam dulu), tanda-dibaca bila drawer dibuka atau item diklik
+      (`POST /notifications/mark-read`)
+- [x] Nota Ketua Editor (`editor_notes`) kekal sebagai SATU jenis dalam senarai gabungan
+      di `MaklumanDrawer.tsx`, bukan digantikan — cuma bukan lagi satu-satunya sumber
 
 ### [ ] Fasa 7 — Modul Khas & kawalan slot · `L` · ~6 hari
 Penemuan besar Fasa 0: satu-satunya jalan ubah Bidang/warna/selang carousel slot ialah
