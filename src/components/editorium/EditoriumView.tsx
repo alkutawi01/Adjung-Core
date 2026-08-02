@@ -18,6 +18,7 @@ import { BidangConsole } from './BidangConsole';
 import { TetapanAmSlotConsole } from './TetapanAmSlotConsole';
 import { LogAuditConsole } from './LogAuditConsole';
 import { PerlembagaanConsole } from './PerlembagaanConsole';
+import { PanduanConsole } from './PanduanConsole';
 import { SistemRekaBentukConsole } from './SistemRekaBentukConsole';
 import { ContentReview } from '../studio/ContentReview';
 import { SlotManagerModal } from '../portal/SlotManagerModal';
@@ -423,16 +424,8 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           : <AksesDitolak mesej="Tetapan Sistem khusus untuk Pentadbir." />
       )}
 
-      {/* Panduan (2026-08-01) — panduan penggunaan Editorium. Belum dibina; papar status jujur
-          bukan reka kandungan kosong seolah-olah siap. */}
-      {activeTab === 'panduan' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 text-center py-16 font-sans">
-          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider mb-2">Panduan Belum Dibina</h3>
-          <p className="text-xs text-stone-500 max-w-md mx-auto">
-            Panduan penggunaan Editorium — cara menulis, terbit, dan urus kandungan langkah demi langkah — akan diletak di sini.
-          </p>
-        </div>
-      )}
+      {/* Panduan (Fasa 16, 2026-08-02) — panduan operasi harian sebenar, lihat PanduanConsole.tsx. */}
+      {activeTab === 'panduan' && <PanduanConsole />}
 
       {/* Dokumentasi (2026-08-01) — Peraturan Am (Perlembagaan) dan Reka Bentuk, dua-duanya
           rujukan sistem sebenar. Log Sistem kini destinasi SENDIRI, tak lagi sub-tab di sini. */}
