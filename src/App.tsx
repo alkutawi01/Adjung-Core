@@ -10,6 +10,8 @@ import { muatPindaanLabel } from './config/labelOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HalamanStatik } from './components/portal/HalamanStatik';
+import { TidakDijumpai } from './components/portal/TidakDijumpai';
 
 export default function App() {
   const [users, setUsers] = useState<User[]>([]);
@@ -276,6 +278,11 @@ export default function App() {
               />
             </motion.div>
           } />
+
+          <Route path="/tentang" element={<HalamanStatik pageKey="tentang" labelSandaran="Tentang" />} />
+          <Route path="/hubungi" element={<HalamanStatik pageKey="hubungi" labelSandaran="Hubungi" />} />
+          <Route path="/polisi-penafian" element={<HalamanStatik pageKey="polisi-penafian" labelSandaran="Polisi & Penafian" />} />
+          <Route path="*" element={<TidakDijumpai />} />
 
         </Routes>
       </AnimatePresence>
