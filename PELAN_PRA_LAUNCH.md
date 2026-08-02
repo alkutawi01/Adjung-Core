@@ -301,8 +301,8 @@ tanpa mengira AI:
 - [ ] Limpahan teks: satu polisi seragam — RSS masih cantas senyap `...` pada 220 aksara
       (`formatRssBrief`) tanpa penolakan/amaran macam laluan Manual — ini melanggar
       perlembagaan (tiada pemotongan mekanikal senyap)
-- [ ] **Gate manusia untuk RSS** — RSS berskor ≥80 terus siar (`AUTO_LIVE`) TANPA semakan
-      manusia. KEPUTUSAN KETUA EDITOR: kekalkan auto-siar atau paksa semua ke Menunggu?
+- [x] **Gate manusia untuk RSS** — KEPUTUSAN Izzat 2026-08-02: kekalkan auto-siar (skor
+      ≥80 terus `AUTO_LIVE`), tiada perubahan kod diperlukan
 - [ ] Asingkan glosari daripada penyelarasan ejaan (kini satu jadual bergabung) — masih
       berguna sebagai rujukan pasif editor menulis manual, tanpa mengira AI
 - [ ] Medan "tempoh minimum paparan" sebenar + buang rujukan palsu dalam `EditorialConsole.tsx`
