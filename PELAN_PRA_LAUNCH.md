@@ -264,10 +264,13 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
       kandungan yang patut lalui SlotManagerModal Editorium sahaja)
 - [x] Betulkan lajur "Animasi Transisi" Senarai Slot (kini papar selang carousel,
       bukan animasi — label mengelirukan) — ditukar ke "Carousel"
-- [x] Buang atau sambungkan tetapan mati "Jenis animasi transisi" — nota ni LAPUK, disahkan
-      2026-08-02: `TetapanAmSlotConsole.tsx` dah ada pilihan tunggal jujur ("Pudar", satu-
-      satunya wujud dalam kod) dengan disclaimer eksplisit "tiada pilihan ditawarkan sebelum
-      ia berfungsi" — tidak mengelirukan, tiada tindakan diperlukan
+- [ ] **Jenis animasi transisi — bina sistem sebenar, BUKAN sekadar buang/sambung** (nota
+      Izzat 2026-08-02, betulkan salah anggap sebelum ni): "Pudar" sekarang cuma SATU
+      pilihan sebab itu sahaja wujud, bukan sebab reka bentuk akhir — Izzat nak lebih
+      daripada satu JENIS animasi transisi kad (bukan sekadar carousel), dan setiap jenis
+      mungkin ada tetapan sendiri (masa transisi, warna semasa transisi, saiz, dll) — bukan
+      satu dropdown global datar. Perlu reka bentuk skema tetapan per-jenis dahulu (rujuk
+      Izzat) sebelum bina
 - [ ] Ticker: bawa kawalan ke Editorium (kini ~90% dalam modal frontpage) + UI kelajuan
       pusingan ticker (kini TIADA UI langsung, hanya edit DB)
 - [ ] Jam Dunia: satukan kawalan sedia ada (kini tersorok di Tetapan → Operasi, kad
