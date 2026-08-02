@@ -148,8 +148,18 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
           await dbRun("UPDATE system_settings SET masterPrompt = ? WHERE id = 'settings-main'", [slot.masterPrompt]);
         }
 
-        if (slot.slotIndex === -1 && slot.contentMode === 'Manual') {
-          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [stampManualModeOnTickerBlocks(slot.manualSummary || '')]);
+        // 2026-08-02 (Fasa 7, ditemui semasa ujian pemindahan Ticker) — dahulu laluan ni
+        // menulis-ganti inTheNewsText TANPA SYARAT bila contentMode Ticker = 'Manual', walaupun
+        // slot.manualSummary kosong/tak bermakna. `manualSummary` slot Ticker ialah medan BERBEZA
+        // sepenuhnya daripada inTheNewsText sebenar (dua sumber kandungan berasingan) — bermakna
+        // satu simpanan tak sengaja dalam mod Manual dengan medan kosong PADAM kandungan Ticker
+        // SEBENAR (9000+ aksara sumber RSS sebenar) secara senyap. Nyaris berlaku semasa ujian
+        // pemindahan Ticker ke Editorium hari ni — dipulihkan dari backup, tapi punca sebenar
+        // (laluan simpan ni) belum dibetulkan sehingga sekarang. Kini hanya tulis-ganti bila
+        // manualSummary BENAR-BENAR ada kandungan bermakna — kosong/ruang kosong sahaja dilangkau
+        // terus, inTheNewsText sedia ada KEKAL tak disentuh.
+        if (slot.slotIndex === -1 && slot.contentMode === 'Manual' && (slot.manualSummary || '').trim() !== '') {
+          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [stampManualModeOnTickerBlocks(slot.manualSummary)]);
         }
       }
       res.json({ success: true });
