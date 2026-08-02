@@ -208,7 +208,7 @@ test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
 - [x] Status RSS & API cuaca (baca `audit_log` Fasa 4)
 - [x] Keaktifan editor (kiraan ringkas drpd 200 log terkini)
 - [x] Destinasi lalai selepas log masuk (kumpulan sidebar "Utama" baharu, di atas Penerbitan)
-- [ ] Bilangan pengunjung & kandungan paling diminati — placeholder jujur, tunggu Fasa 14
+- [x] Bilangan pengunjung & kandungan paling diminati — data sebenar sejak Fasa 14 siap
 
 ### [x] Fasa 6 — Tetapan & aliran kerja teras · `L` · ~5 hari
 - [x] Editor label & tooltip (UI atas `src/config/istilah.ts`) — skop akhir: kamus label
@@ -393,7 +393,17 @@ jangan sentuh grid bento.
 Audit visual setiap skrin vs bahasa frontpage; keadaan kosong/memuat/ralat konsisten;
 telefon/tablet.
 
-### [ ] Fasa 14 — Jejak pengunjung & populariti · `M` · ~3 hari
+### [x] Fasa 14 — Jejak pengunjung & populariti · SIAP 2026-08-02 (commit `8008e28`)
+- [x] Jadual `daily_view_counts` (server.js) — kiraan HARIAN anonim sahaja, tiada pihak
+      ketiga, tiada cookie, tiada IP/user-agent (ikut "Keputusan sedia dibuat" di atas)
+- [x] `core/routes/viewStatsRoutes.js` — `POST /api/system/track-view` (naikkan kiraan),
+      `GET /api/system/view-stats` (ringkasan tren + kandungan paling diminati)
+- [x] `src/utils/trackView.ts` — panggilan terlepas-pandang (fire-and-forget, `keepalive`),
+      gagal senyap, tak pernah sekat/pecahkan paparan pembaca
+- [x] Instrumentasi: satu kiraan setiap muatan frontpage + satu kiraan setiap pembukaan
+      Focus View ikut slot (`FrontpageView.tsx`)
+- [x] Panel Paparan Utama (dashboard) gantikan placeholder jujur — tren 7 hari + kandungan
+      paling diminati ikut slot, guna `CartaBar` sedia ada (`DashboardConsole.tsx`)
 
 ### [ ] Fasa 15 — Prestasi & kesediaan produksi · `M` · ~3 hari
 - [ ] **Laluan serve produksi** — kini TIADA: tiada skrip `start`, Express tak hidangkan
