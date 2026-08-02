@@ -1,0 +1,8 @@
+# Adjung Brief — robots.txt (Fasa 9, SEO & penemuan)
+# Benarkan semua crawler. Sitemap dijana secara dinamik oleh server (lihat
+# core/routes/sitemapRoutes.js) — laluan /sitemap.xml hanya wujud selepas Express hidangkan
+# laman ni terus (lihat PELAN_PRA_LAUNCH.md Fasa 15, "laluan serve produksi" belum siap).
+User-agent: *
+Allow: /
+
+Sitemap: /sitemap.xml

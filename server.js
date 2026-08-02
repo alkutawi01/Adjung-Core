@@ -41,6 +41,8 @@ import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createUiLabelRoutes } from './core/routes/uiLabelRoutes.js';
 import { SEMUA_LABEL_LALAI } from './src/config/istilah.ts';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
+import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
+import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
 const mockDb = {};
@@ -2645,6 +2647,16 @@ app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createAuditLogRoutes(dbAll));
 app.use('/api/system', createUiLabelRoutes(dbAll, dbRun));
+// Bukan di bawah /api sengaja — sitemap.xml mesti wujud di root laman ikut konvensyen crawler
+// (robots.txt di public/robots.txt rujuk /sitemap.xml). Vite dev proxy hanya hantar laluan /api
+// ke server ni (lihat vite.config.ts); sehingga Fasa 15 sambungkan express.static untuk hidangkan
+// dist/, laluan ni boleh dicapai terus di port Express (cth curl http://localhost:5000/sitemap.xml).
+app.use(createSitemapRoutes(dbAll));
+
+// Sama sebab macam sitemap.xml di atas — rss.xml mesti wujud di root laman ikut konvensyen
+// pembaca suapan (bukan /api). Fasa 10 — Suapan RSS keluar (bukan ingest, lihat
+// core/sources/RssDirectEngine.js untuk ingest suapan luar).
+app.use(createRssFeedRoutes(dbAll));
 
 // Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
 // disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache

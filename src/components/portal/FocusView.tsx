@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { safeParseInline } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
+import { terapFocusSeo, buangSemulaFocusSeo } from '../../utils/seoMeta';
 
 // ============================================================================
 // FOCUS VIEW — permukaan bacaan skrin penuh yang dibuka bila kad bento diklik.
@@ -181,6 +182,22 @@ export const FocusView: React.FC<FocusViewProps> = ({
     const n = String(note || '').trim().length;
     if (n > NOTA_MAX) console.warn(`FocusView: nota ${n}/${NOTA_MAX} aksara — pendekkan nota di Editorium.`);
   }, [note]);
+
+  // SEO dinamik (Fasa 9) — kemas kini tajuk/meta description/OG/Twitter/JSON-LD NewsArticle
+  // di <head> bila Focus View dibuka, pulihkan meta lalai laman bila ditutup/tukar kandungan.
+  // Client-side sahaja (SPA tanpa SSR) — lihat nota panjang di src/utils/seoMeta.ts. `url`
+  // dibiar tak dihantar sengaja: tiada skema URL per-kandungan reachable lagi (keputusan
+  // penghalaan belum dibuat), jadi ia jatuh balik ke window.location.href.
+  React.useEffect(() => {
+    terapFocusSeo({
+      title: String(title || ''),
+      description: text || String(title || ''),
+      publishedDate,
+      desk,
+    });
+    return () => { buangSemulaFocusSeo(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, text, publishedDate, desk]);
 
   // Had tajuk ialah 168 aksara (MENEGAK). Saiz menurun mengikut kiraan aksara supaya blok tajuk
   // menduduki ukuran yang sama sama ada tajuk 40 aksara atau 168 aksara penuh.

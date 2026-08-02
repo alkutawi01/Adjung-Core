@@ -1,10 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="ms">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Adjung Brief</title>
+
+    <!-- Meta lalai seluruh laman (Fasa 9, SEO & penemuan). Kandungan per-artikel mengemas kini
+         tajuk/meta/OG/JSON-LD ni secara dinamik (client-side, lihat FocusView.tsx) bila Focus View
+         dibuka — bantu pratonton perkongsian sosial yang jalankan JS, tapi TIDAK membantu crawler
+         yang tidak jalankan JS sebab laman ini SPA tanpa SSR (lihat PELAN_PRA_LAUNCH.md Fasa 9). -->
+    <meta name="description" content="Adjung Brief — portal berita dan ilmu bahasa Melayu bergaya majalah ilmiah, memaparkan kandungan editorial pelbagai bidang (berita, ilmu, kebudayaan) yang disunting oleh pasukan editorial Adjung." />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Adjung Brief" />
+    <meta property="og:title" content="Adjung Brief" />
+    <meta property="og:description" content="Portal berita dan ilmu bahasa Melayu bergaya majalah ilmiah — berita, ilmu dan kebudayaan disunting oleh pasukan editorial Adjung." />
+    <meta property="og:image" content="/adjung-symbol.svg" />
+    <meta property="og:url" content="/" />
+    <meta property="og:locale" content="ms_MY" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Adjung Brief" />
+    <meta name="twitter:description" content="Portal berita dan ilmu bahasa Melayu bergaya majalah ilmiah — berita, ilmu dan kebudayaan disunting oleh pasukan editorial Adjung." />
+    <meta name="twitter:image" content="/adjung-symbol.svg" />
   </head>
   <body>
     <div id="root"></div>
