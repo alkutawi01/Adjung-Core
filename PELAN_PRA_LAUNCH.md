@@ -313,8 +313,19 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
       → Operasi (dulu kata "belum disambungkan", mengelirukan); tarikh cuti sekolah
       (dulu berkod keras 2026/27, akan basi senyap) kini boleh sunting terus di panel
       Jam Dunia, disimpan `system_settings.schoolHolidaysJson`
-- [ ] Slot Bar: borang kandungan BAR dalam Editorium (medan Acara/Penganjur/Akses/
-      Penerangan) — kini dikecualikan dari semua permukaan Editorium
+- [x] Slot Bar: borang kandungan BAR dalam Editorium (2026-08-02) — `BarSlotManagerModal.tsx`
+      baharu (medan Event/Penganjur/Lokasi/Akses/Penerangan/Tarikh/Sumber/URL/Imej/Nota,
+      instance kedua `useSlotEditor.ts` sedia ada, tiada hook baharu diperlukan) render native
+      di Editorium (Modul Khas → Urus Slot Bar, pemilih merentasi kesemua 8 slot Bar). Disahkan
+      hidup (akaun ujian sekali-pakai): simpan kandungan sebenar → kemas kini editorial_objects
+      DI TEMPAT (sepadan pembetulan Fasa 2 "terbitan tak boleh padam"), padam giliran → DB pulih
+      tepat kepada bilangan editorial_objects asal. Mendesak sebab laluan LAMA (klik kad Bar di
+      FrontpageView semasa isEditMode) hilang titik masuk UI sepenuhnya apabila sambungan
+      `?openTicker=1` dibuang (lihat item Ticker di atas) — borang lama KEKAL sebagai kod mati
+      (tak dibuang, risiko lebih rendah drpd buang sebelum laluan baharu "dibuktikan"). Turut
+      ditemui semasa ujian (dilaporkan berasingan, bukan dibaiki sesi ni): pepijat sedia ada
+      `server.js` `parseManualSummaryTemplate` — hantaran bukan-kosong yang parse kepada sifar
+      blok berjudul tersilap guna manualSummary mentah sebagai "huraian" phantom
 - [x] Focus View: tetapan had aksara (Nota Editor) — sebelum ni berkod keras
       (`NOTA_MAX = 180`, FocusView.tsx), kini `system_settings.focusViewNotaMaxAksara`,
       panel di Tetapan → Operasi, lalai 180 (tiada perubahan kelakuan sehingga disunting).
