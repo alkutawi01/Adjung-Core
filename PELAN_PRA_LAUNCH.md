@@ -356,7 +356,13 @@ SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
       untuk-bot) di luar skop suntikan meta client-side pas ni; ia juga bergantung pada
       skema URL per-kandungan (baris di atas) belum wujud. KIV, siasat berasingan.
 
-### [ ] Fasa 10 — Suapan RSS keluar · `S` · ~1 hari
+### [x] Fasa 10 — Suapan RSS keluar · `S` · ~1 hari
+- [x] `GET /rss.xml` — suapan RSS 2.0 standard (core/routes/rssFeedRoutes.js), kandungan
+      berstatus 'approved' sahaja (definisi sama seperti laluan awam layout/active),
+      escape XML betul, `Content-Type: application/rss+xml`, cache dalam-memori 12 minit.
+      **Nota:** sama had macam sitemap.xml (Fasa 9) — belum wujud skema URL kanonik
+      per-kandungan, jadi pautan `<item><link>` guna muka depan + parameter slot/item,
+      bukan laluan artikel sebenar. Naik taraf bila skema penghalaan per-kandungan wujud.
 
 ### [ ] Fasa 11 — Halaman awam · `M` · ~3 hari
 - [x] 404 bergaya Adjung — laluan `*` didaftar di App.tsx, papar `TidakDijumpai.tsx`
