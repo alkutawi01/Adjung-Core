@@ -389,9 +389,30 @@ SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
 Konsol urus + halaman awam. Reka bentuk & penempatan — **keputusan Ketua Editor**;
 jangan sentuh grid bento.
 
-### [ ] Fasa 13 — Penghalusan reka bentuk Editorium · `L` · ~5 hari
-Audit visual setiap skrin vs bahasa frontpage; keadaan kosong/memuat/ralat konsisten;
-telefon/tablet.
+### [x] Fasa 13 — Penghalusan reka bentuk Editorium · SIAP 2026-08-02 (commit `05a62b7`)
+Audit visual semua ~21 skrin Editorium (`src/components/editorium/*.tsx`) vs bahasa
+frontpage (maroon `#802334`, serif tajuk, label mono-uppercase, neutral stone) —
+keadaan kosong/memuat/ralat, dan lebar telefon (375px)/tablet (768px).
+- [x] Warna: semak semua penggunaan warna bukan-maroon (emerald/red) di setiap skrin —
+      kesemuanya status semantik (Aktif/ONLINE/berjaya = emerald, ralat = red), guna
+      secara konsisten merentas skrin, bukan penyelewengan daripada bahasa jenama.
+- [x] Label/tajuk/keadaan kosong-memuat-ralat: disemak merentas `TierKadConsole`,
+      `TetapanAmSlotConsole`, `EditorialConsole`, `NotaKetuaEditorConsole`,
+      `PanduanConsole`, `DrafSayaConsole`, `IndeksConsole`, `TetapanConsole`,
+      `PerlembagaanConsole`, `SistemRekaBentukConsole`, `EditoriumLayout` — corak
+      mono-uppercase label, "Memuatkan…", banner ralat merah sudah konsisten sedia
+      ada; `PanduanConsole` tiada state memuat/ralat sebab kandungan statik (bukan
+      pepijat).
+- [x] **Dibetulkan** — `BidangConsole.tsx`, `DirektoriConsole.tsx`, `LogAuditConsole.tsx`:
+      jadual tiada pembalut `overflow-x-auto` (tidak sepadan corak sedia ada di
+      `SenaraiSlotConsole`/`TetapanConsole`), berisiko overflow di telefon. Ditambah
+      pembalut sepadan corak sedia ada. Disahkan langsung di pelayar pada 375px
+      (Bidang & Log Sistem — tiada overflow mendatar dokumen selepas pembetulan;
+      Direktori sepadan struktur sama tetapi tidak dapat diuji langsung kerana akses
+      Pentadbir sahaja).
+- [x] `SistemRekaBentukConsole.tsx` ada satu `<table>` kecil (kad jenama) tanpa
+      pembalut — dibiarkan; jadual lebar tetap dalam kad bersaiz tetap, bukan jadual
+      data yang boleh overflow.
 
 ### [x] Fasa 14 — Jejak pengunjung & populariti · SIAP 2026-08-02 (commit `8008e28`)
 - [x] Jadual `daily_view_counts` (server.js) — kiraan HARIAN anonim sahaja, tiada pihak
