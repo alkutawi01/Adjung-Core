@@ -2,6 +2,8 @@ import React from 'react';
 import { Citation, EditorBlock, NewsItem, ParseError } from './types';
 import { citationStyleRegistry, HarvardStylePlugin } from './services/citationStyles';
 import { Tooltip } from './components/common/Tooltip';
+import { penggalSukuKata } from '../core/editorial/PemenggalSukuKata.js';
+import { parseTypographyTokensClient, TypographyRule } from './components/editorial/TypographyRenderer';
 
 const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
 const LATIN_REGEX = /[a-zA-Z]/g;
@@ -654,6 +656,61 @@ export function parseInlineFormatting(
 
   return nodes;
 }
+
+// safeParseInline (2026-08-02, dipindah dari FrontpageView.tsx, Fasa 8) — bungkusan tunggal
+// gloss/pemenggalan/autocondong bagi SEMUA teks editorial dipapar kepada pembaca (kad bento DAN
+// Focus View kini kedua-duanya guna fungsi SAMA, bukan dua laluan berasingan yang boleh
+// terpesong). Diletak di sini (bukan kekal dalam FrontpageView.tsx) supaya FocusView.tsx boleh
+// import terus tanpa import bulat (FrontpageView.tsx sendiri import FocusView.tsx).
+//
+// Bendera dalam-modul (glosSelariAktif/typographyRulesAktif) diselaraskan oleh FrontpageView.tsx
+// via setGlosSelariAktif()/setTypographyRulesAktif() setiap kali systemSettings/peraturan
+// autocondong berubah — corak sama seperti sebelum ni (satu bendera dalam-modul, bukan prop
+// dihantar merentasi ~60 tapak render kad + Focus View).
+let glosSelariAktif = false;
+export const setGlosSelariAktif = (aktif: boolean) => { glosSelariAktif = aktif; };
+
+let typographyRulesAktif: TypographyRule[] = [];
+export const setTypographyRulesAktif = (rules: TypographyRule[]) => {
+  typographyRulesAktif = rules;
+};
+
+const GLOSS_SYNTAX_RE = /\[([^\]]+)\]\(gloss:[^)]*\)/g;
+const stripGlossSyntax = (text: string): string => text.replace(GLOSS_SYNTAX_RE, '$1');
+
+export const safeParseInline = (text: string): React.ReactNode => {
+  if (typeof text !== 'string' || text === '') return text;
+  try {
+    const sumber = glosSelariAktif ? text : stripGlossSyntax(text);
+    if (typographyRulesAktif.length === 0) {
+      return parseInlineFormatting(penggalSukuKata(sumber));
+    }
+    // Autocondong dahulu (segmen teks mentah ikut peraturan istilah asing), gloss/pemenggalan
+    // sedia ada TERUS terpakai di dalam setiap segmen 'normal' — segmen dipadan (italic/bold/
+    // small_caps) dilangkau daripada gloss (jarang bertindih, istilah pendek) tapi tetap
+    // dipenggal suku kata untuk keselamatan bungkus baris kad sempit.
+    const tokens = parseTypographyTokensClient(sumber, typographyRulesAktif, 'all', 'ms-MY');
+    return tokens.map((token, idx) => {
+      if (token.style === 'normal') {
+        return <React.Fragment key={idx}>{parseInlineFormatting(penggalSukuKata(token.text))}</React.Fragment>;
+      }
+      const dipenggal = penggalSukuKata(token.text);
+      if (token.style === 'italic') {
+        return <em key={idx} className="italic font-serif inline" style={{ fontStyle: 'italic' }}>{dipenggal}</em>;
+      }
+      if (token.style === 'bold') {
+        return <strong key={idx} className="font-bold inline" style={{ fontWeight: 'bold' }}>{dipenggal}</strong>;
+      }
+      if (token.style === 'small_caps') {
+        return <span key={idx} className="uppercase text-[0.88em] tracking-wider font-semibold inline" style={{ fontVariant: 'small-caps' }}>{dipenggal}</span>;
+      }
+      return <React.Fragment key={idx}>{dipenggal}</React.Fragment>;
+    });
+  } catch (e) {
+    console.warn('parseInlineFormatting failed, falling back to plain text:', e, text);
+    return text;
+  }
+};
 
 /**
  * Generates an elegant and unique canonical URL for a given writer and post slug.

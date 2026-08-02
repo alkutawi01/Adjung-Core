@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
+import { safeParseInline } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
 
 // ============================================================================
@@ -84,10 +85,19 @@ export interface FocusViewProps {
    *  yang sama — kandungan yang sama tidak sepatutnya bertukar warna identiti apabila dibuka.
    *  Jatuh balik ke marun Adjung kalau Bidang tiada warna. */
   deskColor?: string;
+  /** Tajuk PLAIN — dikekalkan sebagai string (bukan ReactNode) sebab titleSize (di bawah)
+   *  mengira PANJANG AKSARA tajuk untuk tentukan saiz fon responsif; ReactNode tiada panjang
+   *  aksara bermakna. Guna `titleRendered` di bawah untuk hantar versi diformat (autocondong/
+   *  gloss/pemenggalan) — jatuh balik ke `title` mentah kalau tiada. */
   title: string;
+  /** Tajuk versi diformat (autocondong/gloss/pemenggalan, Fasa 8) — pilihan. Kosong = papar
+   *  `title` mentah macam sebelum ni (keserasian ke belakang). */
+  titleRendered?: React.ReactNode;
   /** Huraian panjang — SATU-SATUNYA badan kandungan (huraian pendek dibuang 2026-07-29, tidak
    *  lagi diterima sebagai prop). Mengalir dalam satu lajur, menatal dalam kotaknya sendiri —
-   *  satu-satunya bahagian Focus View yang menatal. */
+   *  satu-satunya bahagian Focus View yang menatal. Diformat (autocondong/gloss/pemenggalan)
+   *  per-perenggan di tapak render (Fasa 8) — `body` sendiri KEKAL string untuk pembahagian
+   *  perenggan (`text.split`) terus berfungsi. */
   body?: string;
   /** Grafik: nod imej, ilustrasi atau carta. Pilihan; tidak dirender langsung bila tiada. */
   visual?: React.ReactNode;
@@ -127,7 +137,7 @@ export interface FocusViewProps {
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
-  wordmark = 'Adjung', icon, desk, topik, deskColor, title, body,
+  wordmark = 'Adjung', icon, desk, topik, deskColor, title, titleRendered, body,
   visual, visualCaption, related = [], note, illustrationSvg,
   source, sourceUrl, sourceDate, publishedDate,
   editorName, editorContact, backdropImage, backdropOpacity = 0.06,
@@ -321,7 +331,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           <h1 style={{
             margin: 0, fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 500,
             lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty',
-          }}>{title}</h1>
+          }}>{titleRendered ?? title}</h1>
 
           {text && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -331,7 +341,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty',
               }}>
                 {paragraphs.map((para, j) => (
-                  <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{para}</p>
+                  <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{safeParseInline(para)}</p>
                 ))}
               </div>
             </div>
@@ -478,7 +488,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           </div>
 
           {/* TAJUK — statik, tiada scroll. Saiz melangkah 44/37/31/27 mengikut kiraan aksara. */}
-          <h1 style={{ margin: 'clamp(8px, 1.4vh, 14px) 0 0', fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'center' }}>{title}</h1>
+          <h1 style={{ margin: 'clamp(8px, 1.4vh, 14px) 0 0', fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'center' }}>{titleRendered ?? title}</h1>
 
           {/* HURAIAN PANJANG — SATU-SATUNYA bahagian Focus View yang menatal. Satu lajur,
               perenggan berturutan (pembahagian dua-ukuran lama dibuang bersama huraian pendek). */}
@@ -487,7 +497,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               {paragraphs.length > 0 && (
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-15)', fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'center' }}>
                   {paragraphs.map((para, j) => (
-                    <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{para}</p>
+                    <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
                   ))}
                 </div>
               )}

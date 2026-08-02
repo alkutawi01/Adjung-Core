@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Entry, SystemSettings } from '../../types';
 import { BRAND } from '../../config/brand';
-import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays } from '../../utils';
+import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays, safeParseInline, setGlosSelariAktif, setTypographyRulesAktif } from '../../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { Info, ChevronLeft, ChevronRight, X, RotateCcw, Check, AlertCircle, Settings, Lock, Trash2, Save, Search, PenLine, FlaskConical, Tag, Brain, Ban, PenTool, Building2, Zap, AlertTriangle } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
@@ -19,30 +19,13 @@ import { FocusView } from './FocusView';
 import { SlotManagerModal } from './SlotManagerModal';
 import { BidangIcon } from '../common/BidangIcon';
 
-// parseInlineFormatting is designed for hand-authored Note/Essay body text; applying it broadly to
-// every carousel item's title/brief (including years of accumulated AI-generated history per slot)
-// exposes it to content it was never vetted against. One malformed string (unbalanced markdown,
-// unexpected characters) must never take down the whole frontpage — fall back to the plain text.
-//
-// Glos Selari (2026-08-02, Fasa 6) — sintaks `[kata](gloss:makna)` dalam parseInlineFormatting
-// DAHULU sentiasa aktif tanpa syarat (togol di Tetapan cuma hiasan). Kini dikawal togol sebenar
-// (systemSettings.glosSelariEnabled) — ~60 tapak render kad di fail ni semua panggil satu fungsi
-// safeParseInline, jadi bendera dalam-modul ni cukup untuk kawal kesemuanya tanpa ubah setiap
-// tapak. Diselaraskan sekali dalam useEffect (lihat berhampiran systemSettings di bawah).
-let glosSelariAktif = false;
-const GLOSS_SYNTAX_RE = /\[([^\]]+)\]\(gloss:[^)]*\)/g;
-const stripGlossSyntax = (text: string): string => text.replace(GLOSS_SYNTAX_RE, '$1');
-
-const safeParseInline = (text: string): React.ReactNode => {
-  if (typeof text !== 'string' || text === '') return text;
-  try {
-    const sumber = glosSelariAktif ? text : stripGlossSyntax(text);
-    return parseInlineFormatting(penggalSukuKata(sumber));
-  } catch (e) {
-    console.warn('parseInlineFormatting failed, falling back to plain text:', e, text);
-    return text;
-  }
-};
+// safeParseInline (gloss/pemenggalan/autocondong bagi teks kad + Focus View) dipindah ke
+// utils.tsx (2026-08-02, Fasa 8) — FocusView.tsx kini import terus fungsi SAMA (dulu tak
+// diformat langsung), jadi ia perlu hidup di tempat yang kedua-dua fail boleh sampai tanpa
+// import bulat (FrontpageView.tsx sendiri import FocusView.tsx). Bendera dalam-modul
+// (glosSelariAktif/typographyRulesAktif) turut dipindah bersama — diselaraskan di sini via
+// setGlosSelariAktif()/setTypographyRulesAktif() dalam useEffect (lihat berhampiran
+// systemSettings/adjungTypographyRules di bawah).
 
 const SESSION_SEED = Math.random();
 
@@ -1449,8 +1432,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // Glos Selari (Fasa 6) — selaraskan bendera dalam-modul yang dibaca safeParseInline setiap
   // kali systemSettings berubah (cth Ketua Editor togol tetapan tanpa muat semula halaman).
   useEffect(() => {
-    glosSelariAktif = !!systemSettings?.glosSelariEnabled;
+    setGlosSelariAktif(!!systemSettings?.glosSelariEnabled);
   }, [systemSettings?.glosSelariEnabled]);
+
+  // Autocondong (Fasa 8) — selaraskan senarai peraturan dalam-modul yang dibaca safeParseInline
+  // setiap kali adjungTypographyRules berubah (muat awal, atau Ketua Editor tambah/sunting/
+  // buang peraturan di Editorial → Autocondong tanpa muat semula halaman).
+  useEffect(() => {
+    setTypographyRulesAktif(adjungTypographyRules);
+  }, [adjungTypographyRules]);
 
   const loadSlotsConfig = () => {
     fetch('/api/system/slots')
@@ -6732,6 +6722,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           deskColor={undefined}
           illustrationSvg={focusIllustration}
           title={asPlainText(focusItem.titleString) || asPlainText(focusItem.title)}
+          titleRendered={safeParseInline(asPlainText(focusItem.titleString) || asPlainText(focusItem.title))}
           body={asPlainText(focusItem.briefLong)}
           visual={focusItem.image ? <img src={focusItem.image} alt={asPlainText(focusItem.titleString) || asPlainText(focusItem.title) || ''} /> : undefined}
           note={focusItem.note}
