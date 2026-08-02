@@ -1,6 +1,7 @@
 import express from 'express';
 import { TIER_SLOTS, tierForSlot } from '../editorial/GeometryConfig.js';
 import { requireAuth } from '../middleware/auth.js';
+import { notifyMany } from '../notifications/Notify.js';
 
 // Penugasan editor kepada slot (2026-07-30, permintaan pemilik projek).
 //
@@ -65,6 +66,13 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
         if (!ada) return res.status(400).json({ error: `Editor tidak dijumpai: ${id}` });
       }
 
+      // Penugasan slot baharu (Fasa 6b notifikasi) — kira SEBELUM padam, supaya cuma editor yang
+      // BAHARU ditambah terima notis (bukan editor sedia ada yang senarai dia dihantar semula
+      // tanpa perubahan sebenar).
+      const seniorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [slot]);
+      const seniorIds = new Set((seniorRows || []).map((r) => r.editorId));
+      const editorBaharu = unik.filter((id) => !seniorIds.has(id));
+
       await dbRun('DELETE FROM slot_editors WHERE slotIndex = ?', [slot]);
       const now = new Date().toISOString();
       for (const id of unik) {
@@ -73,6 +81,15 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
           [slot, id, now]
         );
       }
+
+      await notifyMany(dbRun, editorBaharu, {
+        type: 'kandungan_penugasan_slot',
+        title: `Anda ditugaskan menguruskan slot ${slot + 1}`,
+        detail: `Tier ${tierForSlot(slot)}`,
+        targetType: 'slot',
+        targetId: String(slot),
+      });
+
       res.json({ success: true, slotIndex: slot, editorIds: unik, tier: tierForSlot(slot) });
     } catch (err) {
       console.error('POST slot-editors error:', err);

@@ -1,5 +1,14 @@
 import express from 'express';
 import { requirePermission, loadRolePermissions } from '../middleware/auth.js';
+import { notifyMany } from '../notifications/Notify.js';
+
+// Notifikasi Sistem (Fasa 6b) — dedail sama seperti slotRoutes.js's beritahuPentadbirDanKetuaEditor,
+// disalin di sini (bukan diimport) sebab modul ni tak lain kongsi apa-apa dengan slotRoutes.js;
+// dua fungsi kecil identik lebih murah daripada satu import silang-domain untuk 6 baris.
+async function beritahuPentadbirDanKetuaEditor(dbAll, dbRun, payload) {
+  const rows = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
+  await notifyMany(dbRun, (rows || []).map((r) => r.userId), payload);
+}
 
 export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   const router = express.Router();
@@ -22,6 +31,22 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
       };
     } catch (err) {
       openMeteo = { status: 'OFFLINE', latencyMs: Date.now() - meteoStart, endpoint: 'api.open-meteo.com/v1/forecast', error: err.message };
+      // Elak banjir notis — panel ni dipol berkala oleh klien, jadi hanya hantar notis kalau
+      // TIADA notis 'sistem_cuaca_gagal' belum-dibaca dalam sejam lepas (satu kegagalan
+      // berterusan = SATU notis, bukan satu setiap poll).
+      const baruBaru = await dbGet(
+        "SELECT id FROM notifications WHERE type = 'sistem_cuaca_gagal' AND isRead = 0 AND createdAt > ? LIMIT 1",
+        [new Date(Date.now() - 60 * 60 * 1000).toISOString()]
+      );
+      if (!baruBaru) {
+        await beritahuPentadbirDanKetuaEditor(dbAll, dbRun, {
+          type: 'sistem_cuaca_gagal',
+          title: 'API cuaca (Open-Meteo) gagal dihubungi',
+          detail: err.message || 'Ralat tidak diketahui',
+          targetType: 'sistem',
+          targetId: 'weather-status',
+        });
+      }
     }
 
     // Same DyDxSoft public-holiday API core/routes/worldClockRoutes.js's /clock-holidays actually

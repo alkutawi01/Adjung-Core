@@ -157,6 +157,12 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // SAMA. Kalau setiap satu mengambil sendiri, kiraan boleh menunjukkan nombor yang tidak sepadan
   // dengan apa yang sebenarnya terpapar bila dibuka.
   const [notaMakluman, setNotaMakluman] = useState<any[]>([]);
+  // Fasa 6b (2026-08-02) — notifikasi PER-EDITOR (`notifications`), berasingan daripada nota
+  // Ketua Editor di atas (tiada resit baca). `kiraanBelumBaca` datang terus daripada laluan
+  // kiraan khusus server (bukan senarai.filter di klien) supaya ia tepat walaupun senarai penuh
+  // belum dimuatkan (drawer belum dibuka).
+  const [notifikasiMakluman, setNotifikasiMakluman] = useState<any[]>([]);
+  const [kiraanBelumBaca, setKiraanBelumBaca] = useState(0);
   const [memuatMakluman, setMemuatMakluman] = useState(true);
   const [makluanTerbuka, setMaklumanTerbuka] = useState(false);
   // Dinaikkan selepas konsol Nota menyimpan sesuatu, supaya lencana header tak kekal lapuk.
@@ -167,30 +173,74 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // tandatangan/bio dibuang. Nama pena tetap diambil dari /api/db-state bila modal dibuka (prop
   // `currentUser` cuma bawa id/name/role dari sesi log masuk, mungkin lapuk berbanding DB).
   const [profilTerbuka, setProfilTerbuka] = useState(false);
-  const [profilData, setProfilData] = useState<{ id: string; penName: string } | null>(null);
+  const [profilData, setProfilData] = useState<{ id: string; penName: string; username: string; email: string } | null>(null);
   const bukaProfil = () => {
     fetch('/api/db-state')
       .then((r) => r.json())
       .then((d) => {
         const u = (d.users || []).find((x: any) => x.id === currentUser?.id);
-        setProfilData({ id: currentUser!.id, penName: u?.penName || currentUser!.name });
+        setProfilData({
+          id: currentUser!.id,
+          penName: u?.penName || currentUser!.name,
+          username: u?.username || '',
+          email: u?.email || '',
+        });
         setProfilTerbuka(true);
       })
       .catch(() => {
-        setProfilData({ id: currentUser!.id, penName: currentUser!.name });
+        setProfilData({ id: currentUser!.id, penName: currentUser!.name, username: '', email: '' });
         setProfilTerbuka(true);
       });
   };
 
+  // Kiraan belum-baca (lencana header) — dimuatkan berasingan daripada senarai penuh (bawah)
+  // supaya lencana tepat tanpa perlu buka laci dahulu. Muat semula lepas drawer ditutup (kiraan
+  // mungkin berubah sebab tanda-dibaca) dan lepas maklumanVersi naik (nota baharu Ketua Editor).
+  useEffect(() => {
+    if (!currentUser) return;
+    fetch('/api/system/notifications/unread-count')
+      .then((r) => r.json())
+      .then((d) => setKiraanBelumBaca(typeof d?.count === 'number' ? d.count : 0))
+      .catch(() => {});
+  }, [currentUser, maklumanVersi, makluanTerbuka]);
+
   useEffect(() => {
     if (!currentUser) return;
     setMemuatMakluman(true);
-    fetch('/api/system/editor-notes?status=aktif')
-      .then((r) => r.json())
-      .then((d) => setNotaMakluman(Array.isArray(d) ? d : []))
-      .catch(() => setNotaMakluman([]))
-      .finally(() => setMemuatMakluman(false));
+    Promise.all([
+      fetch('/api/system/editor-notes?status=aktif').then((r) => r.json()).catch(() => []),
+      fetch('/api/system/notifications').then((r) => r.json()).catch(() => []),
+    ]).then(([notaData, notifData]) => {
+      setNotaMakluman(
+        (Array.isArray(notaData) ? notaData : []).map((n: any) => ({ ...n, jenisSumber: 'nota_ketua_editor' }))
+      );
+      setNotifikasiMakluman(
+        (Array.isArray(notifData) ? notifData : []).map((n: any) => ({ ...n, jenisSumber: 'notifikasi' }))
+      );
+    }).finally(() => setMemuatMakluman(false));
   }, [currentUser, maklumanVersi]);
+
+  // Tanda-dibaca bila drawer DIBUKA (2026-08-02, Fasa 6b — "tanda-dibaca bila drawer dibuka atau
+  // item diklik") — buka laci sendiri dikira sebagai "dah nampak", bukan hanya klik satu-satu.
+  const bukaMakluman = () => {
+    setMaklumanTerbuka(true);
+    fetch('/api/system/notifications/mark-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      .then(() => {
+        setNotifikasiMakluman((prev) => prev.map((n) => ({ ...n, dibaca: true })));
+        setKiraanBelumBaca(0);
+      })
+      .catch(() => {});
+  };
+
+  const klikNotifikasi = (id: string) => {
+    setNotifikasiMakluman((prev) => prev.map((n) => (n.id === id ? { ...n, dibaca: true } : n)));
+    setKiraanBelumBaca((c) => Math.max(0, c - 1));
+    fetch('/api/system/notifications/mark-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+  };
 
   // Tetapkan editor terus daripada pemilih slot "Tulis Kandungan" (2026-08-01, permintaan pemilik
   // projek) — sebelum ni satu-satunya tempat menetapkan editor slot ialah Editorium → Slot →
@@ -268,8 +318,8 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       onRequestLogin={onRequestLogin}
       onLogout={handleLogoutAndLeave}
       onOpenSlotPicker={() => slotEditor.setShowSlotPicker(true)}
-      onOpenMakluman={() => setMaklumanTerbuka(true)}
-      jumlahMakluman={notaMakluman.length}
+      onOpenMakluman={bukaMakluman}
+      jumlahMakluman={kiraanBelumBaca}
       onOpenProfil={bukaProfil}
     >
       {/* Paparan Utama (Fasa 5) — destinasi lalai selepas log masuk. */}
@@ -449,8 +499,10 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       {makluanTerbuka && (
         <MaklumanDrawer
           nota={notaMakluman}
+          notifikasi={notifikasiMakluman}
           memuat={memuatMakluman}
           onTutup={() => setMaklumanTerbuka(false)}
+          onKlikNotifikasi={klikNotifikasi}
         />
       )}
 

@@ -2,6 +2,7 @@ import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
 import { hashPassword } from './authRoutes.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { notify, notifyMany } from '../notifications/Notify.js';
 
 // Direktori (2026-08-02, Fasa 3) — dahulu `staffList` konsol client array kosong berkod keras,
 // "+ Tambah Anggota" hiasan, tindakan status hanya state React (hilang bila muat semula). Laluan
@@ -117,7 +118,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       if (!STATUS_SAH.includes(status)) {
         return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${STATUS_SAH.join(', ')}.` });
       }
-      const sedia = await dbGet('SELECT id FROM users WHERE id = ?', [id]);
+      const sedia = await dbGet('SELECT id, penName, username, status AS statusLama FROM users WHERE id = ?', [id]);
       if (!sedia) return res.status(404).json({ error: 'Akaun tidak dijumpai.' });
 
       // isSuspended (disemak semasa log masuk, authRoutes.js) diselaraskan ikut status — Tidak
@@ -129,6 +130,29 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         actorId: req.session?.user?.id,
         actorName: req.session?.user?.penName || req.session?.user?.username,
         action: `status-akaun:${status}`,
+        targetType: 'akaun',
+        targetId: id,
+      });
+
+      // Notifikasi Sistem (Fasa 6b) — akaun digantung/diaktifkan semula. Keputusan Izzat: setiap
+      // editor terima notis akaun-SENDIRI, Ketua Editor/Pentadbir terima notis akaun-LAIN.
+      const digantung = isSuspended === 1;
+      await notify(dbRun, {
+        userId: id,
+        type: digantung ? 'sistem_akaun_digantung' : 'sistem_akaun_diaktifkan',
+        title: digantung ? 'Akaun anda telah digantung' : 'Akaun anda telah diaktifkan semula',
+        detail: `Status akaun kini: ${status}`,
+        targetType: 'akaun',
+        targetId: id,
+      });
+      const pentadbirRows = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
+      const penerimaLain = (pentadbirRows || [])
+        .map((r) => r.userId)
+        .filter((uid) => uid !== id && uid !== req.session?.user?.id);
+      await notifyMany(dbRun, penerimaLain, {
+        type: digantung ? 'sistem_akaun_digantung' : 'sistem_akaun_diaktifkan',
+        title: `${sedia.penName || sedia.username}: status akaun ditukar ke ${status}`,
+        detail: `Ditukar oleh ${req.session?.user?.penName || req.session?.user?.username || 'sistem'}.`,
         targetType: 'akaun',
         targetId: id,
       });

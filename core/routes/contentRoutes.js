@@ -4,6 +4,7 @@ import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { notifyMany } from '../notifications/Notify.js';
 
 // The Ticker (slotIndex -1) never writes to editorial_objects, in either Manual or AI Generated
 // mode — it always lives as a single "---"-delimited text blob in system_settings.inTheNewsText
@@ -366,6 +367,22 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           targetId: id,
           detail: (title !== undefined ? title : rev.title || '').slice(0, 100),
         });
+
+        // Notifikasi Kandungan (Fasa 6b) — "kandungan disiar". Cuma bila status BAHARU mendarat
+        // pada 'approved' (disiar) — bukan setiap perubahan status (arkib/tolak dilayan laluan
+        // lain). Beritahu semua editor yang diamanahkan slot ni (bukan cuma penulis asal — slot
+        // boleh dikongsi beberapa editor).
+        if (status === 'approved' && objRow) {
+          const notifySlotIndex = slotIndex !== undefined ? slotIndex : objRow.slotIndex;
+          const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [notifySlotIndex]);
+          await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
+            type: 'kandungan_disiar',
+            title: 'Kandungan anda telah disiar',
+            detail: (title !== undefined ? title : rev.title || '').slice(0, 150),
+            targetType: 'kandungan',
+            targetId: id,
+          });
+        }
       }
 
       res.json({ success: true });
@@ -563,6 +580,24 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         targetType: 'kandungan',
         targetId: id,
         detail: (rev.title || '').slice(0, 100),
+      });
+
+      // Notifikasi Kandungan (Fasa 6b) — "kandungan ditolak", sertakan sebab (item A daripada
+      // fasa ni: reuse sebab penolakan Fasa 6). Utamakan penulis asal (attrs.editorName, dicap
+      // semasa terbit) — draf yang ditolak pulang kepada dia; jatuh balik pada editor slot kalau
+      // tiada nama penulis tercatat (kandungan lama).
+      const penulisRow = attrs.editorName
+        ? await dbGet('SELECT id FROM users WHERE penName = ?', [attrs.editorName])
+        : null;
+      const penerimaIds = penulisRow
+        ? [penulisRow.id]
+        : (await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [objRow.slotIndex])).map((r) => r.editorId);
+      await notifyMany(dbRun, penerimaIds, {
+        type: 'kandungan_ditolak',
+        title: 'Kandungan anda ditolak',
+        detail: sebab ? `Sebab: ${sebab}` : (rev.title || '').slice(0, 150),
+        targetType: 'kandungan',
+        targetId: id,
       });
 
       res.json({ success: true });

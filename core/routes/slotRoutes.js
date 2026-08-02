@@ -8,6 +8,14 @@ import { parseTypographyTokens } from '../sources/TypographyRulesEngine.js';
 import { requirePermission } from '../middleware/auth.js';
 import { gantiBlokModTicker } from './contentRoutes.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { notifyMany } from '../notifications/Notify.js';
+
+// Notifikasi Sistem (Fasa 6b) — RSS/cuaca gagal ditujukan kepada Pentadbir/Ketua Editor sahaja
+// (mereka yang boleh bertindak ke atas kegagalan infrastruktur, bukan setiap editor biasa).
+async function beritahuPentadbirDanKetuaEditor(dbAll, dbRun, payload) {
+  const rows = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
+  await notifyMany(dbRun, (rows || []).map((r) => r.userId), payload);
+}
 
 // NOTE: this router used to also define GET/POST /slots and POST /slots/run-now, plus a whole
 // "Slot Governance" section (SlotGovernanceService + 4 routes at /api/slot-governance*,
@@ -919,6 +927,13 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
         targetType: 'rss_source',
         targetId: source.id,
         detail: `${source.sourceName}: ${fetchErr.message || fetchErr.name || 'ralat tidak diketahui'}`,
+      });
+      await beritahuPentadbirDanKetuaEditor(dbAll, dbRun, {
+        type: 'sistem_rss_gagal',
+        title: `Ambilan RSS gagal — ${source.sourceName}`,
+        detail: fetchErr.message || fetchErr.name || 'Ralat tidak diketahui',
+        targetType: 'rss_source',
+        targetId: source.id,
       });
     }
   }));
