@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, LayoutGrid, Radio, Cloud, Users, Hourglass } from 'lucide-react';
+import { Bell, LayoutGrid, Radio, Cloud, Users, Hourglass, Eye } from 'lucide-react';
 
 // Paparan Utama (2026-08-02, Fasa 5) — destinasi lalai selepas log masuk.
 //
@@ -11,10 +11,11 @@ import { Bell, LayoutGrid, Radio, Cloud, Users, Hourglass } from 'lucide-react';
 // papar apa yang benar bagi SEMUA orang — status kandungan, kesihatan sistem, keaktifan
 // pasukan keseluruhan.
 //
-// Digabung daripada laluan SEDIA ADA sahaja (content/all, editor-notes, categories/
-// slot-usage, audit-log, weather-status) — tiada laluan agregat baharu. Dua item yang
-// Izzat minta (bilangan pengunjung, kandungan paling diminati) SENGAJA tiada — belum ada
-// sumber data (jejak pengunjung, Fasa 14) — placeholder jujur, bukan angka rekaan.
+// Digabung daripada laluan SEDIA ADA (content/all, editor-notes, categories/slot-usage,
+// audit-log, weather-status) ditambah satu laluan agregat baharu, view-stats (Fasa 14,
+// 2026-08-02) — bilangan pengunjung & kandungan paling diminati kini data SEBENAR dari
+// jejak pengunjung dibina sendiri (tiada pihak ketiga, tiada cookie, kiraan harian sahaja
+// dalam adjung.db, lihat core/routes/viewStatsRoutes.js).
 interface DashboardConsoleProps {
   onTukarTab: (tabId: string) => void;
 }
@@ -99,6 +100,11 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
   const [statusRss, setStatusRss] = useState<{ masa: string; butiran: string; ralat: boolean } | null>(null);
   const [statusCuaca, setStatusCuaca] = useState<{ status: string; sihat: boolean } | null>(null);
   const [keaktifanEditor, setKeaktifanEditor] = useState<{ nama: string; bilangan: number }[]>([]);
+  const [jejakPengunjung, setJejakPengunjung] = useState<{
+    hariIni: number;
+    trenHarian: { tarikh: string; jumlah: number }[];
+    palingDiminati: { slotIndex: number; bidang: string; jumlah: number }[];
+  }>({ hariIni: 0, trenHarian: [], palingDiminati: [] });
 
   useEffect(() => {
     let batal = false;
@@ -110,7 +116,8 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
       fetch('/api/system/categories/slot-usage').then(r => r.json()).catch(() => []),
       fetch('/api/system/audit-log?limit=200').then(r => r.json()).catch(() => []),
       fetch('/api/system/weather-status').then(r => r.json()).catch(() => null),
-    ]).then(([kandungan, nota, slotUsage, logAudit, cuaca]) => {
+      fetch('/api/system/view-stats?days=7').then(r => r.json()).catch(() => ({ hariIni: 0, trenHarian: [], kandunganPalingDiminati: [] })),
+    ]).then(([kandungan, nota, slotUsage, logAudit, cuaca, statsView]) => {
       if (batal) return;
 
       const items = kandungan?.items || [];
@@ -123,6 +130,23 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
       setMaklumanTerbaru(Array.isArray(nota) ? nota.slice(0, 3) : []);
 
       setSlotBermasalah(Array.isArray(slotUsage) ? slotUsage.filter((s: SlotUsage) => s.liveCount === 0) : []);
+
+      // Jejak pengunjung (Fasa 14) — bidang slot dicari dari slot-usage sedia ada (sudah dimuat
+      // di atas), supaya senarai "paling diminati" papar Bidang, bukan cuma nombor slot mentah.
+      const bidangSlot: Record<number, string> = {};
+      (Array.isArray(slotUsage) ? slotUsage : []).forEach((s: SlotUsage) => { bidangSlot[s.slotIndex] = s.bidang; });
+      const palingDiminati = Array.isArray(statsView?.kandunganPalingDiminati)
+        ? statsView.kandunganPalingDiminati.map((r: { slotIndex: number; jumlah: number }) => ({
+            slotIndex: r.slotIndex,
+            bidang: bidangSlot[r.slotIndex] || '',
+            jumlah: r.jumlah,
+          }))
+        : [];
+      setJejakPengunjung({
+        hariIni: statsView?.hariIni || 0,
+        trenHarian: Array.isArray(statsView?.trenHarian) ? statsView.trenHarian : [],
+        palingDiminati,
+      });
 
       const logs: EntriLog[] = Array.isArray(logAudit) ? logAudit : [];
       const larianRss = logs.find(l => l.action === 'ambilan-rss-selesai' || l.action === 'ralat-ambilan-rss');
@@ -281,12 +305,51 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
         )}
       </div>
 
-      {/* Bilangan pengunjung / paling diminati — SENGAJA placeholder jujur, bukan angka
-          rekaan. Belum ada sumber data (Fasa 14, jejak pengunjung belum dibina). */}
-      <div className="bg-stone-50 p-5 rounded-lg border border-stone-200 border-dashed text-center">
-        <p className="text-xs text-stone-400">
-          Bilangan pengunjung & kandungan paling diminati akan dipaparkan di sini selepas jejak pengunjung dibina (Fasa 14).
-        </p>
+      {/* Jejak pengunjung & populariti (Fasa 14) — dibina sendiri, tiada pihak ketiga, tiada
+          cookie, kiraan harian sahaja dalam adjung.db. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white p-5 rounded-lg shadow-sm border border-stone-200">
+          <h3 className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500 mb-3 flex items-center gap-1.5">
+            <Eye className="w-3.5 h-3.5" /> Pengunjung Frontpage
+          </h3>
+          <div className="flex items-end gap-2 mb-3">
+            <span className="text-3xl font-bold font-mono text-[#802334]">{jejakPengunjung.hariIni}</span>
+            <span className="text-[11px] text-stone-500 mb-1">muatan hari ini</span>
+          </div>
+          {jejakPengunjung.trenHarian.length === 0 ? (
+            <p className="text-xs text-stone-400">Belum ada rekod jejak.</p>
+          ) : (
+            <div className="flex items-end gap-1.5 h-16">
+              {jejakPengunjung.trenHarian.map(t => {
+                const maks = Math.max(1, ...jejakPengunjung.trenHarian.map(x => x.jumlah));
+                return (
+                  <div key={t.tarikh} className="flex-1 flex flex-col items-center gap-1" title={`${t.tarikh}: ${t.jumlah}`}>
+                    <div
+                      className="w-full bg-[#802334]/70 rounded-t"
+                      style={{ height: `${Math.max(4, (t.jumlah / maks) * 56)}px` }}
+                    />
+                    <span className="text-[9px] font-mono text-stone-400">{t.tarikh.slice(8, 10)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[10px] text-stone-400 mt-2">Tren 7 hari terkini. Anonim, tiada cookie, tiada IP direkod.</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-lg shadow-sm border border-stone-200">
+          <h3 className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500 mb-3 flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5" /> Kandungan Paling Diminati (7 hari)
+          </h3>
+          {jejakPengunjung.palingDiminati.length === 0 ? (
+            <p className="text-xs text-stone-400">Belum ada rekod bacaan.</p>
+          ) : (
+            <CartaBar data={jejakPengunjung.palingDiminati.map(p => ({
+              label: `Slot ${p.slotIndex + 1}${p.bidang ? ` · ${p.bidang}` : ''}`,
+              nilai: p.jumlah,
+            }))} />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
 import { SlotManagerModal } from './SlotManagerModal';
 import { BidangIcon } from '../common/BidangIcon';
+import { trackView } from '../../utils/trackView';
 
 // safeParseInline (gloss/pemenggalan/autocondong bagi teks kad + Focus View) dipindah ke
 // utils.tsx (2026-08-02, Fasa 8) — FocusView.tsx kini import terus fungsi SAMA (dulu tak
@@ -1279,6 +1280,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     }
   }, [editingSlotIndex]);
 
+  // Jejak pengunjung (Fasa 14) — satu kiraan setiap muatan frontpage. Terlepas-pandang, sekali
+  // sahaja setiap mount (bukan setiap perubahan state) — sengaja tanpa senarai dependensi lain.
+  useEffect(() => {
+    trackView('homepage', 'utama');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -2331,6 +2339,16 @@ URL: ${url}`;
     if (!focusLoc) return null;
     return focusItemsForSlot(focusLoc.slotIndex)[focusLoc.itemIndex] || null;
   }, [focusLoc, focusItemsForSlot]);
+
+  // Jejak pengunjung (Fasa 14) — satu kiraan setiap pembukaan Focus View, ikut nombor slot
+  // (bukan id kandungan individu — item carousel dalam slot yang sama dikira sebagai satu
+  // sasaran populariti "Slot N", cukup untuk "kandungan paling diminati" tanpa perlu edarkan id
+  // objek editorial ke FocusView.tsx). Terlepas-pandang, sejajar corak SEO dinamik Fasa 9 di
+  // FocusView.tsx (terapFocusSeo).
+  React.useEffect(() => {
+    if (focusLoc && focusItem) trackView('slot', focusLoc.slotIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusLoc, focusItem]);
 
   // bentoNewsItems memarse title/brief jadi elemen React untuk dirender pada kad;
   // .titleString/.briefString simpan teks mentah. Focus View mahu yang mentah.

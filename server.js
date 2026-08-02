@@ -31,6 +31,7 @@ import { createSlotsConfigRoutes } from './core/routes/slotsConfigRoutes.js';
 import { createTierSettingsRoutes, loadTierOverrides } from './core/routes/tierSettingsRoutes.js';
 import { createSlotEditorRoutes } from './core/routes/slotEditorRoutes.js';
 import { createDraftRoutes } from './core/routes/draftRoutes.js';
+import { createViewStatsRoutes } from './core/routes/viewStatsRoutes.js';
 import { createEditorNotesRoutes } from './core/routes/editorNotesRoutes.js';
 import { createGlosariRoutes } from './core/routes/glosariRoutes.js';
 import { createEjaanRoutes } from './core/routes/ejaanRoutes.js';
@@ -173,6 +174,22 @@ const initializeSchema = () => {
         )
       `);
       db.run("CREATE INDEX IF NOT EXISTS idx_audit_log_createdAt ON audit_log(createdAt DESC)");
+
+      // 2026-08-02 (Fasa 14, "Jejak pengunjung & populariti") — jejak dibina sendiri, KEPUTUSAN
+      // Ketua Editor sedia ada (lihat "Keputusan sedia dibuat" dalam PELAN_PRA_LAUNCH.md): tiada
+      // pihak ketiga, tiada cookie, tiada IP/user-agent. Kiraan HARIAN sahaja, agregat anonim —
+      // satu baris per (tarikh, jenis sasaran, id sasaran), dinaikkan setiap kali dilawati. Lihat
+      // core/routes/viewStatsRoutes.js.
+      db.run(`
+        CREATE TABLE IF NOT EXISTS daily_view_counts (
+          date TEXT NOT NULL,
+          targetType TEXT NOT NULL,
+          targetId TEXT NOT NULL,
+          viewCount INTEGER DEFAULT 0,
+          PRIMARY KEY (date, targetType, targetId)
+        )
+      `);
+      db.run("CREATE INDEX IF NOT EXISTS idx_daily_view_counts_date ON daily_view_counts(date DESC)");
 
       // 2026-08-02 (Fasa 6, "Editor label & tooltip") — kamus label boleh sunting. Menyimpan
       // GANTIAN sahaja — kunci tanpa baris di sini guna nilai lalai dikodkan keras di
@@ -2673,6 +2690,7 @@ app.use('/api/system', createWorldClockRoutes(dbGet));
 app.use('/api/system', createTierSettingsRoutes(dbAll, dbRun));
 app.use('/api/system', createSlotEditorRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createDraftRoutes(dbAll));
+app.use('/api/system', createViewStatsRoutes(dbAll, dbRun));
 // Dilekap pada /api (bukan /api/system) sebab modul ni ada DUA laluan berlainan skop:
 // /api/system/editor-notes (Editorium) dan /api/public/editor-notes (portal awam). Gerbang
 // peranan diletak DALAM editorNotesRoutes.js sendiri, pada setiap laluan.
