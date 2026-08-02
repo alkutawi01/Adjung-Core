@@ -296,7 +296,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
 
       <div className="bg-white p-5 rounded-lg shadow-sm border border-stone-200">
         <h3 className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500 mb-2 flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5" /> Keaktifan Editor (200 tindakan terkini)
+          <Users className="w-3.5 h-3.5" /> Keaktifan Editor (5 paling aktif)
         </h3>
         {keaktifanEditor.length === 0 ? (
           <p className="text-xs text-stone-400">Tiada tindakan direkod lagi.</p>
