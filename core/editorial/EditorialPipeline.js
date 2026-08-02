@@ -425,10 +425,16 @@ ${slot.sourcesList.trim()}
         return { desk, title, brief, source, url, mode: 'AI Generated' };
       }))).filter(Boolean);
 
-      const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
-      const formattedText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'AI Generated', textItems);
-
-      await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
+      // 2026-08-02 (sama kelas pepijat macam slotsConfigRoutes.js, ditemui semasa ujian
+      // pemindahan Ticker) — gantiBlokModTicker() dengan textItems KOSONG buang SEMUA blok
+      // 'AI Generated' sedia ada tanpa menggantikannya dengan apa-apa. Laluan pipeline AI
+      // automatik dimatikan (Fasa 8), tapi run-now manual/laluan panggilan lain kekal wujud —
+      // jangan tulis-ganti bila tiada kandungan baharu sebenar untuk disimpan.
+      if (textItems.length > 0) {
+        const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+        const formattedText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'AI Generated', textItems);
+        await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
+      }
 
       // Track AI Usage Logs for Ticker
       const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, modelToUse]);
