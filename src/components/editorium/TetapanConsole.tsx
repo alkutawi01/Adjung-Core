@@ -459,7 +459,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {subTab === 'Operasi' && (
         <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-6 text-xs">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
-            <Newspaper className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Frontpage → Urus Ticker</strong>, bukan di sini — supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
+            <Newspaper className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Modul Khas → Urus Ticker</strong>, bukan di sini — supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
           </div>
 
           {/* Kategori RSS Tersekat — shared with the Frontpage Ticker Management modal */}
@@ -469,7 +469,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 Kategori RSS Tersekat
               </h4>
               <p className="text-stone-500 text-[11px]">
-                Kategori mentah RSS yang disenaraikan di sini turut terpakai di modal Urus Ticker Frontpage — satu senarai kongsi.
+                Kategori mentah RSS yang disenaraikan di sini turut terpakai di modal Urus Ticker (Editorium → Modul Khas) — satu senarai kongsi.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

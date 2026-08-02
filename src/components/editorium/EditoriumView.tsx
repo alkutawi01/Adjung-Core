@@ -24,6 +24,10 @@ import { ContentReview } from '../studio/ContentReview';
 import { SlotManagerModal } from '../portal/SlotManagerModal';
 import { PenugasanEditorPopover } from './PenugasanEditorPopover';
 import { useSlotEditor } from '../../hooks/useSlotEditor';
+import { useTickerEditor } from '../../hooks/useTickerEditor';
+import { TickerManagementModal } from '../portal/TickerManagementModal';
+import { ToastContainer, ToastMessage } from '../common/Toast';
+import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 
 // 2026-08-02 (Fasa 3) — mesej kunci akses seragam. Nav sidebar (EditoriumLayout.tsx) dah pun
@@ -138,6 +142,17 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
+  // Ticker (2026-08-02, Fasa 7, item terakhir) — native Editorium, gantikan sambungan URL
+  // "?openTicker=1" lama ke FrontpageView.tsx. Lihat useTickerEditor.ts untuk sejarah penuh.
+  const tickerEditor = useTickerEditor();
+  const [tickerToasts, setTickerToasts] = useState<ToastMessage[]>([]);
+  const addTickerToast = (type: 'success' | 'error' | 'info', message: string) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setTickerToasts((prev) => [...prev, { id, type, message }]);
+  };
+  const dismissTickerToast = (id: string) => {
+    setTickerToasts((prev) => prev.filter((t) => t.id !== id));
+  };
   // Draf yang diklik di "Draf Saya" (2026-08-01) — dihantar ke SlotManagerModal supaya modal
   // terbuka betul-betul pada draf itu, bukan pada kandungan pertama slot. Dikosongkan setiap kali
   // modal dibuka melalui laluan lain (pemilih slot, tukar slot dalam modal).
@@ -390,14 +405,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                 <div className="text-[11px] text-stone-500">RSS, animasi, status, tetapan penyuntingan khas.</div>
               </div>
             </div>
-            {/* Modal Ticker sebenar (TickerManagementModal) masih hidup di FrontpageView.tsx —
-                lihat nota "+ Tulis Kandungan" di EditoriumLayout.tsx untuk sebab yang sama. */}
-            <a
-              href="/?openTicker=1"
-              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0"
+            {/* Modal Ticker (TickerManagementModal) kini render TERUS di Editorium (2026-08-02,
+                Fasa 7) — lihat useTickerEditor.ts. Sambungan URL "?openTicker=1" lama ke
+                FrontpageView.tsx dibuang; lihat nota di FrontpageView.tsx untuk sebab kekal. */}
+            <button
+              type="button"
+              onClick={() => tickerEditor.openTickerEditor()}
+              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0 cursor-pointer"
             >
               Urus Ticker
-            </a>
+            </button>
           </div>
           {/* 2026-08-02 (Fasa 7) — kad ni dulu kata "Belum disambungkan ke Editorium", tapi
               tetapan Jam Dunia (selang auto-slaid, suis klik latar, status API Cuaca/Kalendar
@@ -505,6 +522,26 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           onKlikNotifikasi={klikNotifikasi}
         />
       )}
+
+      {/* Modal Ticker native Editorium (2026-08-02, Fasa 7) — lihat useTickerEditor.ts. */}
+      <TickerManagementModal
+        isOpen={!!tickerEditor.formConfig}
+        onClose={tickerEditor.closeTickerEditor}
+        formConfig={tickerEditor.formConfig}
+        setFormConfig={tickerEditor.setFormConfig}
+        slotsConfig={tickerEditor.slotsConfig}
+        handleSaveSlot={tickerEditor.handleSaveSlot}
+        registeredRssSources={tickerEditor.registeredRssSources}
+        loadRssSources={tickerEditor.loadRssSources}
+        reviewQueue={tickerEditor.reviewQueue}
+        loadReviewQueue={tickerEditor.loadReviewQueue}
+        rssStatus={tickerEditor.rssStatus}
+        adjungDesks={tickerEditor.adjungDesks}
+        addToast={addTickerToast}
+        validateContentBudget={validateContentBudget}
+        handleOverrideTickerDesk={tickerEditor.handleOverrideTickerDesk}
+      />
+      <ToastContainer toasts={tickerToasts} onDismiss={dismissTickerToast} />
 
       {profilTerbuka && profilData && (
         <ProfilEditorModal
