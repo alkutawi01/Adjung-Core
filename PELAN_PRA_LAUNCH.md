@@ -315,8 +315,17 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
       Jam Dunia, disimpan `system_settings.schoolHolidaysJson`
 - [ ] Slot Bar: borang kandungan BAR dalam Editorium (medan Acara/Penganjur/Akses/
       Penerangan) — kini dikecualikan dari semua permukaan Editorium
-- [ ] Focus View: tetapan animasi/mod turutan/had aksara (kini sifar tetapan di
-      mana-mana)
+- [x] Focus View: tetapan had aksara (Nota Editor) — sebelum ni berkod keras
+      (`NOTA_MAX = 180`, FocusView.tsx), kini `system_settings.focusViewNotaMaxAksara`,
+      panel di Tetapan → Operasi, lalai 180 (tiada perubahan kelakuan sehingga disunting).
+      **Animasi** dan **mod turutan** disiasat, SENGAJA tidak dibina — bukan diabaikan:
+      Focus View sendiri sifar animasi buka/tutup/navigasi (mount terus, tiada transition),
+      satu-satunya animasi berkod keras sistem ialah opacity 1s carousel kad bento — itu
+      SUDAH item KIV berasingan "Jenis animasi transisi" di atas, bukan sesuatu khusus
+      Focus View. Navigasi Sebelum/Seterusnya cuma SATU mod (RAWAK merentasi laman +
+      sejarah dilawati) — tiada mod alternatif sedia ada dalam kod untuk dijadikan pilihan;
+      reka mod baharu (kronologi/ikut Bidang/dll) perlukan input reka bentuk Izzat dahulu,
+      sama seperti KIV animasi transisi di atas
 
 ### [x] Fasa 8 — Editorial dilengkapkan · `M` · ~4 hari (skop disemak semula 2026-08-02)
 **Perubahan strategi 2026-08-02 (arahan Ketua Editor):** saluran isian kandungan sah kini
