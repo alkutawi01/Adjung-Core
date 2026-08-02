@@ -80,19 +80,21 @@ sama seperti garis dasar, tiada regresi.
 - [x] Draf Saya (`GET /api/system/drafts`) kini perlu sesi sah untuk BACA, bukan sekadar
       tulis — draf belum terbit ialah kandungan dalaman
 - [x] `PORT` kini boleh ikut `process.env.PORT` (persediaan Fasa 15)
-- [ ] Buang lalai `password TEXT DEFAULT 'password'` + laluan kembali teks biasa (kolum
-      DB masih ada lalai ni; tiada risiko baharu sebab tiada laluan INSERT manual selain
-      seed, tapi masih patut dibersihkan)
+- [x] Buang lalai `password TEXT DEFAULT 'password'` + laluan kembali teks biasa — disahkan
+      SEMUA akaun sedia ada dah scrypt-hash, kedua-dua laluan cipta akaun (seed + POST
+      /api/system/users) dah hash tanpa syarat, jadi laluan teks biasa mati kod dibuang
 - [ ] Jemputan editor baharu + token emel sebenar untuk set semula kata laluan — perlukan
       infrastruktur SMTP, belum ada
-- [ ] Cipta akaun editor daripada UI (kini: INSERT ke DB dengan tangan sahaja — bersambung
-      Fasa 3 Direktori)
+- [x] Cipta akaun editor daripada UI — nota ni jugak LAPUK: `DirektoriConsole.tsx` "Cipta
+      Akaun" dah wujud, panggil `POST /api/system/users` (hash password, semak keunikan
+      username/emel, wajib ≥satu peranan)
 - [ ] Ujian penjelakan peranan automatik (skrip ujian kekal, kini manual via curl) + ujian
       XSS/CSRF berstruktur
-- [ ] Kuatkuasakan matriks RBAC dari Tetapan → Kawalan Akses di server (kini disimpan
-      tetapi tidak dibaca — peraturan KETUA_EDITOR/EDITOR baharu di atas adalah HARDCODE
-      per-laluan, BUKAN baca daripada matriks tersimpan itu; perlu keputusan reka bentuk
-      sama ada matriks patut jadi sumber kebenaran sebenar atau dibuang)
+- [x] Kuatkuasakan matriks RBAC dari Tetapan → Kawalan Akses di server — nota ni LAPUK,
+      disahkan 2026-08-02: `requirePermission()` (`core/middleware/auth.js`) dah baca
+      matriks SEBENAR daripada `system_settings.rolePermissions` (cache dalam-memori,
+      disegar semula lepas simpan), dipakai di 9 fail router; tiada gerbang HARDCODE
+      role tinggal
 - [ ] `SESSION_SECRET` tetap dalam `.env` sebelum deploy sebenar (kini rahsia rawak
       dijana setiap kali server bermula — semua sesi terputus setiap kali restart; amaran
       dipaparkan di log server sehingga ditetapkan)
@@ -195,8 +197,12 @@ test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
 - [x] Destinasi lalai selepas log masuk (kumpulan sidebar "Utama" baharu, di atas Penerbitan)
 - [ ] Bilangan pengunjung & kandungan paling diminati — placeholder jujur, tunggu Fasa 14
 
-### [ ] Fasa 6 — Tetapan & aliran kerja teras · `L` · ~5 hari
-- [ ] Editor label & tooltip (UI atas `src/config/istilah.ts`)
+### [x] Fasa 6 — Tetapan & aliran kerja teras · `L` · ~5 hari
+- [x] Editor label & tooltip (UI atas `src/config/istilah.ts`) — skop akhir: kamus label
+      boleh sunting (bukan tooltip, tak pernah disahkan dalam skop), jadual `ui_labels`
+      baharu (`core/routes/uiLabelRoutes.js`), panel "5. Label Sistem" di
+      `TetapanConsole.tsx` merangkumi Mod Kandungan/Status/Mesej Sistem terkurasi (8 mesej
+      toast simpan/terbit/gagal), gantian dimuat ke browser via `src/config/labelOverrides.ts`
 - [x] Maklumat/halaman polisi (sumber untuk halaman awam Fasa 11) — ruang edit "Halaman
       Awam" di Tetapan (Tentang/Hubungi/Polisi & Penafian), guna `static_pages`+`/api/pages/:key`
       sedia ada
