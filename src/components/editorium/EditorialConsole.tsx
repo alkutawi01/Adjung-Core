@@ -6,18 +6,20 @@ import { labelUi } from '../../config/istilah';
 // berasingan daripada Tetapan (tetapan sistem) dan Slot (geometri kad).
 //
 // Setiap kawalan di sini menulis ke pangkalan data sebenar. Kalau sesuatu perkara dalam spesifikasi
-// sudah ada rumah di tempat lain (had aksara di Tier Kad, tempoh paparan di Tetapan Am), ia
+// sudah ada rumah di tempat lain (had aksara di Tier Kad, selang masa carousel di borang Urus Slot), ia
 // DIRUJUK ke sana, bukan disalin jadi kawalan kedua — dua kawalan untuk satu nilai bermakna
 // dua-duanya akhirnya bercanggah.
-type SubTab = 'autocondong' | 'glosari' | 'ai';
+type SubTab = 'autocondong' | 'glosari' | 'ejaan' | 'ai';
 
 interface Istilah { id: string; term: string; status: string }
 interface EntriGlosari { id: string; istilah: string; elakkan: string; maksud: string }
+interface EntriEjaan { id: string; betul: string; elakkan: string; catatan: string }
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: 'autocondong', label: '1. Autocondong' },
-  { id: 'glosari', label: '2. Glosari & Ejaan' },
-  { id: 'ai', label: '3. Templat AI' },
+  { id: 'glosari', label: '2. Glosari' },
+  { id: 'ejaan', label: '3. Penyelarasan Ejaan' },
+  { id: 'ai', label: '4. Templat AI' },
 ];
 
 export const EditorialConsole: React.FC = () => {
@@ -74,11 +76,12 @@ export const EditorialConsole: React.FC = () => {
     }
   };
 
-  // ── Glosari & Penyelarasan Ejaan ─────────────────────────────────────────────
+  // ── Glosari ──────────────────────────────────────────────────────────────────
+  // Rujukan definisi istilah sahaja (dipisahkan daripada Penyelarasan Ejaan di bawah, 2026-08-02
+  // Fasa 8 — sebelum ni bergabung dalam satu jadual/borang walaupun dua tujuan berbeza).
   const [glosari, setGlosari] = useState<EntriGlosari[]>([]);
   const [memuatGlosari, setMemuatGlosari] = useState(true);
   const [gIstilah, setGIstilah] = useState('');
-  const [gElakkan, setGElakkan] = useState('');
   const [gMaksud, setGMaksud] = useState('');
   const [ralatGlosari, setRalatGlosari] = useState('');
 
@@ -98,11 +101,11 @@ export const EditorialConsole: React.FC = () => {
       const res = await fetch('/api/system/glosari', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ istilah: gIstilah, elakkan: gElakkan, maksud: gMaksud }),
+        body: JSON.stringify({ istilah: gIstilah, maksud: gMaksud }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan istilah.');
-      setGIstilah(''); setGElakkan(''); setGMaksud('');
+      setGIstilah(''); setGMaksud('');
       muatGlosari();
     } catch (err: any) {
       setRalatGlosari(err.message || 'Gagal menyimpan istilah.');
@@ -116,6 +119,52 @@ export const EditorialConsole: React.FC = () => {
       setGlosari((prev) => prev.filter((g) => g.id !== id));
     } catch (e: any) {
       setRalatGlosari(e.message || 'Gagal memadam istilah.');
+    }
+  };
+
+  // ── Penyelarasan Ejaan ───────────────────────────────────────────────────────
+  // Pasangan bentuk betul vs bentuk dielakkan (jadual ejaan_piawai, berasingan daripada glosari_istilah).
+  const [ejaan, setEjaan] = useState<EntriEjaan[]>([]);
+  const [memuatEjaan, setMemuatEjaan] = useState(true);
+  const [eBetul, setEBetul] = useState('');
+  const [eElakkan, setEElakkan] = useState('');
+  const [eCatatan, setECatatan] = useState('');
+  const [ralatEjaan, setRalatEjaan] = useState('');
+
+  const muatEjaan = useCallback(() => {
+    setMemuatEjaan(true);
+    fetch('/api/system/ejaan')
+      .then((r) => r.json())
+      .then((d) => setEjaan(Array.isArray(d) ? d : []))
+      .catch(() => setRalatEjaan('Gagal membaca senarai ejaan.'))
+      .finally(() => setMemuatEjaan(false));
+  }, []);
+
+  const tambahEjaan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRalatEjaan('');
+    try {
+      const res = await fetch('/api/system/ejaan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ betul: eBetul, elakkan: eElakkan, catatan: eCatatan }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan bentuk ejaan.');
+      setEBetul(''); setEElakkan(''); setECatatan('');
+      muatEjaan();
+    } catch (err: any) {
+      setRalatEjaan(err.message || 'Gagal menyimpan bentuk ejaan.');
+    }
+  };
+
+  const buangEjaan = async (id: string) => {
+    try {
+      const res = await fetch(`/api/system/ejaan/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Gagal memadam bentuk ejaan.');
+      setEjaan((prev) => prev.filter((x) => x.id !== id));
+    } catch (e: any) {
+      setRalatEjaan(e.message || 'Gagal memadam bentuk ejaan.');
     }
   };
 
@@ -171,8 +220,9 @@ export const EditorialConsole: React.FC = () => {
   useEffect(() => {
     if (subTab === 'autocondong') muatIstilah();
     if (subTab === 'glosari') muatGlosari();
+    if (subTab === 'ejaan') muatEjaan();
     if (subTab === 'ai') muatAi();
-  }, [subTab, muatIstilah, muatGlosari, muatAi]);
+  }, [subTab, muatIstilah, muatGlosari, muatEjaan, muatAi]);
 
   return (
     <div className="space-y-4 font-sans">
@@ -255,42 +305,33 @@ export const EditorialConsole: React.FC = () => {
         </div>
       )}
 
-      {/* 2. GLOSARI & PENYELARASAN EJAAN */}
+      {/* 2. GLOSARI */}
       {subTab === 'glosari' && (
         <div className="space-y-4">
           <form onSubmit={tambahGlosari} className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
             <div>
-              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Glosari & Penyelarasan Ejaan</h3>
+              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Glosari</h3>
               <p className="text-stone-500 text-xs">
-                Senarai rujukan bentuk yang dipilih berbanding bentuk yang dielakkan. Ia rujukan untuk editor —
-                sistem tidak sesekali menulis-ganti kandungan sedia ada berdasarkan senarai ni.
+                Senarai rujukan istilah dan maksud/nota penggunaannya untuk editor menulis manual. Ia rujukan
+                pasif sahaja — sistem tidak sesekali menulis-ganti kandungan sedia ada berdasarkan senarai ni.
+                Untuk bentuk ejaan betul vs dielakkan, guna tab <strong className="font-semibold">Penyelarasan Ejaan</strong>.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Istilah dipilih</span>
-                <input
-                  type="text" value={gIstilah} onChange={(e) => setGIstilah(e.target.value)}
-                  placeholder="contoh: pautan"
-                  className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Elakkan (pilihan)</span>
-                <input
-                  type="text" value={gElakkan} onChange={(e) => setGElakkan(e.target.value)}
-                  placeholder="contoh: link, hyperlink"
-                  className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
-                />
-              </label>
-            </div>
+            <label className="flex flex-col gap-1">
+              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Istilah</span>
+              <input
+                type="text" value={gIstilah} onChange={(e) => setGIstilah(e.target.value)}
+                placeholder="contoh: Bidang"
+                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+              />
+            </label>
 
             <label className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Nota penggunaan (pilihan)</span>
+              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Maksud / nota penggunaan (pilihan)</span>
               <textarea
                 value={gMaksud} onChange={(e) => setGMaksud(e.target.value)} rows={2}
-                placeholder="Bila istilah ni digunakan, atau kenapa bentuk satu lagi dielakkan…"
+                placeholder="Penjelasan ringkas istilah ni, atau bila ia digunakan…"
                 className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs resize-y"
               />
             </label>
@@ -323,9 +364,8 @@ export const EditorialConsole: React.FC = () => {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-stone-100 border-b border-stone-200 font-sans text-[10px] uppercase text-stone-600 font-semibold">
-                      <th className="p-2.5">Istilah dipilih</th>
-                      <th className="p-2.5">Elakkan</th>
-                      <th className="p-2.5">Nota</th>
+                      <th className="p-2.5">Istilah</th>
+                      <th className="p-2.5">Maksud</th>
                       <th className="p-2.5"><span className="sr-only">Tindakan</span></th>
                     </tr>
                   </thead>
@@ -333,7 +373,6 @@ export const EditorialConsole: React.FC = () => {
                     {glosari.map((g) => (
                       <tr key={g.id} className="hover:bg-stone-50">
                         <td className="p-2.5 font-semibold text-stone-800">{g.istilah}</td>
-                        <td className="p-2.5 text-stone-500">{g.elakkan || <span className="text-stone-300">—</span>}</td>
                         <td className="p-2.5 text-stone-600">{g.maksud || <span className="text-stone-300">—</span>}</td>
                         <td className="p-2.5 text-right">
                           <button
@@ -341,6 +380,107 @@ export const EditorialConsole: React.FC = () => {
                             onClick={() => buangGlosari(g.id)}
                             className="text-stone-400 hover:text-red-700 cursor-pointer"
                             title="Buang daripada glosari"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 3. PENYELARASAN EJAAN */}
+      {subTab === 'ejaan' && (
+        <div className="space-y-4">
+          <form onSubmit={tambahEjaan} className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+            <div>
+              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Penyelarasan Ejaan</h3>
+              <p className="text-stone-500 text-xs">
+                Senarai rujukan bentuk ejaan yang betul berbanding bentuk yang kerap tersilap tulis/dielakkan.
+                Ia rujukan pasif untuk editor — sistem tidak sesekali menulis-ganti kandungan sedia ada
+                berdasarkan senarai ni.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex flex-col gap-1">
+                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Bentuk betul</span>
+                <input
+                  type="text" value={eBetul} onChange={(e) => setEBetul(e.target.value)}
+                  placeholder="contoh: kerana"
+                  className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Elakkan (pilihan)</span>
+                <input
+                  type="text" value={eElakkan} onChange={(e) => setEElakkan(e.target.value)}
+                  placeholder="contoh: kerena, krn"
+                  className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+                />
+              </label>
+            </div>
+
+            <label className="flex flex-col gap-1">
+              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Catatan (pilihan)</span>
+              <textarea
+                value={eCatatan} onChange={(e) => setECatatan(e.target.value)} rows={2}
+                placeholder="Nota ringkas, contoh sumber kesilapan biasa…"
+                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs resize-y"
+              />
+            </label>
+
+            {ralatEjaan && (
+              <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralatEjaan}</p>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={!eBetul.trim()}
+                className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                + Tambah ke Senarai Ejaan
+              </button>
+            </div>
+          </form>
+
+          <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-3 text-xs">
+            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
+              Senarai Ejaan ({ejaan.length})
+            </h3>
+            {memuatEjaan ? (
+              <p className="text-stone-400 py-6 text-center">Memuatkan senarai ejaan…</p>
+            ) : ejaan.length === 0 ? (
+              <p className="text-stone-400 py-10 text-center">Senarai ejaan masih kosong.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-stone-100 border-b border-stone-200 font-sans text-[10px] uppercase text-stone-600 font-semibold">
+                      <th className="p-2.5">Bentuk betul</th>
+                      <th className="p-2.5">Elakkan</th>
+                      <th className="p-2.5">Catatan</th>
+                      <th className="p-2.5"><span className="sr-only">Tindakan</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {ejaan.map((x) => (
+                      <tr key={x.id} className="hover:bg-stone-50">
+                        <td className="p-2.5 font-semibold text-stone-800">{x.betul}</td>
+                        <td className="p-2.5 text-stone-500">{x.elakkan || <span className="text-stone-300">—</span>}</td>
+                        <td className="p-2.5 text-stone-600">{x.catatan || <span className="text-stone-300">—</span>}</td>
+                        <td className="p-2.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => buangEjaan(x.id)}
+                            className="text-stone-400 hover:text-red-700 cursor-pointer"
+                            title="Buang daripada senarai ejaan"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -420,9 +560,10 @@ export const EditorialConsole: React.FC = () => {
           )}
 
           <p className="text-stone-400 text-[10px] border-t border-stone-200 pt-3 leading-relaxed">
-            Had aksara setiap tier kad diuruskan di Slot → Tier Kad. Tempoh minimum paparan dan had lain
-            diuruskan di Slot → Tetapan Am. Ia sengaja tiada di sini supaya satu nilai tak ada dua tempat
-            yang boleh bercanggah.
+            Had aksara setiap tier kad diuruskan di Slot → Tier Kad; had aksara medan lain diuruskan di
+            Slot → Tetapan Am. Selang masa putaran carousel (tempoh setiap kandungan dipaparkan sebelum
+            beralih) ditetapkan per-slot di borang Urus Slot (frontpage), bukan di sini atau di Tetapan Am —
+            ia sengaja tiada di sini supaya satu nilai tak ada dua tempat yang boleh bercanggah.
           </p>
         </div>
       )}

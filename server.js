@@ -33,6 +33,7 @@ import { createSlotEditorRoutes } from './core/routes/slotEditorRoutes.js';
 import { createDraftRoutes } from './core/routes/draftRoutes.js';
 import { createEditorNotesRoutes } from './core/routes/editorNotesRoutes.js';
 import { createGlosariRoutes } from './core/routes/glosariRoutes.js';
+import { createEjaanRoutes } from './core/routes/ejaanRoutes.js';
 import { createProfileRoutes } from './core/routes/profileRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createUserAdminRoutes } from './core/routes/userAdminRoutes.js';
@@ -343,9 +344,16 @@ const initializeSchema = () => {
               )
             `, () => {});
 
-            // Glosari & Penyelarasan Ejaan (2026-08-01, spesifikasi pemilik projek) — senarai
-            // rujukan istilah pilihan vs bentuk yang dielakkan. RUJUKAN sahaja: ia tidak pernah
-            // menulis-ganti kandungan editorial secara automatik. Lihat core/routes/glosariRoutes.js.
+            // Glosari (2026-08-01, dikemas kini 2026-08-02 Fasa 8) — senarai rujukan istilah +
+            // definisi/nota penggunaan untuk editor. RUJUKAN sahaja: tidak pernah menulis-ganti
+            // kandungan editorial secara automatik. Lihat core/routes/glosariRoutes.js.
+            //
+            // Nota sejarah: sehingga 2026-08-02 jadual ni turut memegang lajur `elakkan` (bentuk
+            // ejaan dielakkan) — dua tujuan berbeza bergabung dalam satu jadual. Dipisahkan ke
+            // jadual `ejaan_piawai` baharu di bawah supaya Glosari (definisi istilah) dan
+            // Penyelarasan Ejaan (bentuk betul vs dielakkan) jadi dua konsep berasingan yang jelas.
+            // Lajur `elakkan` dikekalkan di sini untuk keserasian data lama sahaja — borang UI baharu
+            // tidak lagi mengisinya.
             db.run(`
               CREATE TABLE IF NOT EXISTS glosari_istilah (
                 id TEXT PRIMARY KEY,
@@ -355,6 +363,34 @@ const initializeSchema = () => {
                 createdAt TEXT
               )
             `, () => {});
+
+            // Penyelarasan Ejaan (2026-08-02, Fasa 8) — dipisahkan daripada glosari_istilah.
+            // RUJUKAN pasif sahaja, sama seperti Glosari. Lihat core/routes/ejaanRoutes.js.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS ejaan_piawai (
+                id TEXT PRIMARY KEY,
+                betul TEXT NOT NULL,
+                elakkan TEXT,
+                catatan TEXT,
+                createdAt TEXT
+              )
+            `, () => {
+              // Migrasi data lama: mana-mana baris glosari_istilah yang ada nilai `elakkan` bukan
+              // kosong disalin (bukan dipindah — glosari_istilah tak diubah) ke ejaan_piawai supaya
+              // tiada data hilang. id baharu berasaskan id lama supaya migrasi ni idempoten
+              // (INSERT OR IGNORE + id deterministik = selamat jalan berkali-kali).
+              db.all(`SELECT id, istilah, elakkan, maksud FROM glosari_istilah WHERE elakkan IS NOT NULL AND TRIM(elakkan) != ''`, [], (err, rows) => {
+                if (err || !rows || rows.length === 0) return;
+                const now = new Date().toISOString();
+                rows.forEach((r) => {
+                  db.run(
+                    `INSERT OR IGNORE INTO ejaan_piawai (id, betul, elakkan, catatan, createdAt) VALUES (?, ?, ?, ?, ?)`,
+                    [`ejn-mig-${r.id}`, r.istilah, r.elakkan, r.maksud || '', now],
+                    () => {}
+                  );
+                });
+              });
+            });
 
             // Pindaan had aksara per-tier (2026-07-30). Menyimpan PINDAAN sahaja — tier tanpa
             // baris di sini guna nilai lalai GeometryConfig.js. Lihat core/routes/tierSettingsRoutes.js.
@@ -2642,6 +2678,7 @@ app.use('/api/system', createDraftRoutes(dbAll));
 // peranan diletak DALAM editorNotesRoutes.js sendiri, pada setiap laluan.
 app.use('/api', createEditorNotesRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createGlosariRoutes(dbAll, dbRun, dbGet));
+app.use('/api/system', createEjaanRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createProfileRoutes(dbGet, dbRun));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));
