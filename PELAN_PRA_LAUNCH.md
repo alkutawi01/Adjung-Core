@@ -339,9 +339,22 @@ keputusan pemilik projek.
 ### [ ] Fasa 9 — SEO & penemuan · `M` · ~3 hari
 Fasa 0 sahkan: portal ini **halimunan kepada enjin carian & pratonton sosial** (SPA tanpa
 SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
-- [ ] `lang="ms"` + meta description + OG/Twitter tags + JSON-LD NewsArticle
-- [ ] Tajuk/meta dinamik per kandungan · favicon semak · `sitemap.xml` · `robots.txt`
-- [ ] Prarender/SSR ringan untuk crawler — siasat pilihan paling ringkas
+- [x] `lang="ms"` (index.html, dulu "en") + meta description sebenar + OG (type/title/
+      description/image/url/site_name/locale)/Twitter Card seluruh laman + JSON-LD
+      NewsArticle disuntik client-side bila Focus View dibuka (src/utils/seoMeta.ts)
+- [x] Tajuk/meta dinamik per kandungan (FocusView.tsx, useEffect terap/buang semula,
+      disahkan hidup di pelayar) · favicon disemak — ikon marun #802334 jenama Adjung
+      sebenar, bukan default · `sitemap.xml` (core/routes/sitemapRoutes.js, dicache 15
+      minit, disahkan 200 langsung) · `robots.txt` (public/robots.txt, tunjuk ke
+      /sitemap.xml). **Nota:** sitemap HANYA senaraikan halaman depan — Focus View buka
+      kandungan sebagai overlay state client (`focusLoc`), bukan laluan URL sebenar;
+      `generateCanonicalUrl()` sedia ada (src/utils.tsx) jana URL subdomain rekaan yang
+      tidak disambungkan kepada penghalaan. Skema URL per-kandungan sebenar perlukan
+      keputusan penghalaan Ketua Editor — belum diputuskan, sengaja ditinggalkan.
+- [ ] Prarender/SSR ringan untuk crawler — **diperiksa, belum dilaksana**: perlukan
+      keputusan infrastruktur (Vite SSR/prerender plugin, atau proksi headless-browser-
+      untuk-bot) di luar skop suntikan meta client-side pas ni; ia juga bergantung pada
+      skema URL per-kandungan (baris di atas) belum wujud. KIV, siasat berasingan.
 
 ### [ ] Fasa 10 — Suapan RSS keluar · `S` · ~1 hari
 
