@@ -165,3 +165,33 @@ export function serializeManualBentoItem(item) {
 export function serializeManualBentoQueue(items) {
   return (items || []).map(serializeManualBentoItem).join(MANUAL_BLOCK_SEPARATOR);
 }
+
+// Serializes one BAR (Slot Bar / acara) item back into the Label: value block format. Distinct
+// field set from serializeManualBentoItem above — Bar has no Tajuk/Huraian/Bidang/Topik, uses
+// "Event:" as its title header (sets isEventBlock/desk='ACARA' on re-parse, see
+// parseManualBlockFields) plus Penganjur/Lokasi/Akses/Penerangan, the fields actually displayed
+// by BarCard.tsx/BarCardExpandedPanel.tsx. Kept a separate function (not a branch inside
+// serializeManualBentoItem) so the two field sets can never silently bleed into each other.
+export function serializeManualBarItem(item) {
+  const uuid = item.uuid || '';
+  const status = item.status === 'draft' ? 'draf' : item.status === 'pending' ? 'pending' : 'terbit';
+  return [
+    `UUID: ${uuid}`,
+    `Status: ${status}`,
+    `Event: ${item.title || ''}`,
+    `Penganjur: ${item.organizer || ''}`,
+    `Lokasi: ${item.location || ''}`,
+    `Akses: ${item.access || ''}`,
+    `Penerangan: ${item.penerangan || ''}`,
+    `Tarikh: ${item.date || ''}`,
+    `Sumber: ${item.source || ''}`,
+    `URL: ${item.url || ''}`,
+    `Imej: ${item.image || ''}`,
+    `Nota: ${item.note || ''}`,
+    `Penulis: ${item.penulis || ''}`,
+  ].join('\n');
+}
+
+export function serializeManualBarQueue(items) {
+  return (items || []).map(serializeManualBarItem).join(MANUAL_BLOCK_SEPARATOR);
+}

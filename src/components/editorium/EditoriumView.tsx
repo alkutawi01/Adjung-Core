@@ -22,6 +22,7 @@ import { PanduanConsole } from './PanduanConsole';
 import { SistemRekaBentukConsole } from './SistemRekaBentukConsole';
 import { ContentReview } from '../studio/ContentReview';
 import { SlotManagerModal } from '../portal/SlotManagerModal';
+import { BarSlotManagerModal } from '../portal/BarSlotManagerModal';
 import { PenugasanEditorPopover } from './PenugasanEditorPopover';
 import { useSlotEditor } from '../../hooks/useSlotEditor';
 import { useTickerEditor } from '../../hooks/useTickerEditor';
@@ -142,6 +143,15 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
+  // Slot Bar (2026-08-02, Fasa 7, item kedua terakhir) — native Editorium, gantikan borang LAMA
+  // di FrontpageView.tsx yang tiada titik masuk UI langsung lagi (pencetus TERAKHIR isEditMode,
+  // "?openTicker=1", dibuang sesi ni). useSlotEditor.ts SUDAH generik sepenuhnya (fetch/save
+  // /api/system/slots untuk mana-mana slotIndex, tak kisah tier) — bukan dicipta hook berasingan
+  // (useBarSlotEditor.ts) sebab itu cuma akan menyalin semula logik yang sama persis; instance
+  // KEDUA di sini (state berasingan daripada slotEditor bukan-Bar di atas) semata-mata supaya dua
+  // borang (SlotManagerModal biasa dan BarSlotManagerModal) tak berkongsi editingSlotIndex/
+  // formConfig dan saling tindih apabila dibuka serentak.
+  const barSlotEditor = useSlotEditor(currentUser?.name);
   // Ticker (2026-08-02, Fasa 7, item terakhir) — native Editorium, gantikan sambungan URL
   // "?openTicker=1" lama ke FrontpageView.tsx. Lihat useTickerEditor.ts untuk sejarah penuh.
   const tickerEditor = useTickerEditor();
@@ -433,11 +443,26 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               Urus Jam Dunia
             </button>
           </div>
-          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4 opacity-50">
-            <div>
-              <div className="text-sm font-semibold text-stone-800">Slot Bar</div>
-              <div className="text-[11px] text-stone-500">Belum disambungkan ke Editorium (kekal guna laluan sedia ada di frontpage).</div>
+          {/* Slot Bar (2026-08-02, Fasa 7) — kad ni dulu kata "Belum disambungkan ke Editorium",
+              tapi laluan LAMA (klik kad Bar di FrontpageView semasa isEditMode) sudah tiada
+              langsung titik masuk UI (pencetus terakhir isEditMode dibuang sesi ni). Kini native
+              di sini — lihat BarSlotManagerModal.tsx. Buka pada slot Bar PERTAMA (indeks terkecil
+              dalam TIER_SLOTS.BAR); dropdown dalam modal boleh tukar ke slot Bar lain. */}
+          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <Radio className="w-4 h-4 text-[#802334]" />
+              <div>
+                <div className="text-sm font-semibold text-stone-800">Slot Bar</div>
+                <div className="text-[11px] text-stone-500">Acara/Penganjur/Lokasi/Akses/Penerangan — {TIER_SLOTS.BAR.length} slot bar.</div>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => barSlotEditor.openSlotEditor(Math.min(...TIER_SLOTS.BAR))}
+              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0 cursor-pointer"
+            >
+              Urus Slot Bar
+            </button>
           </div>
         </div>
       )}
@@ -640,6 +665,29 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       {slotEditor.saveError && (
         <div className="fixed bottom-4 right-4 z-[60] bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded shadow-lg max-w-sm">
           {slotEditor.saveError}
+        </div>
+      )}
+
+      {/* Modal Slot Bar native Editorium (2026-08-02, Fasa 7) — lihat BarSlotManagerModal.tsx. */}
+      {barSlotEditor.editingSlotIndex !== null && barSlotEditor.formConfig && (
+        <BarSlotManagerModal
+          key={barSlotEditor.editingSlotIndex}
+          editingSlotIndex={barSlotEditor.editingSlotIndex}
+          formConfig={barSlotEditor.formConfig}
+          isSavingSlot={barSlotEditor.isSavingSlot}
+          saveError={barSlotEditor.saveError}
+          onClose={barSlotEditor.closeSlotEditor}
+          onSave={barSlotEditor.handleSaveSlot}
+          slotOptions={TIER_SLOTS.BAR.map((i: number) => ({
+            index: i,
+            label: `Slot ${i + 1} — Bar`,
+          }))}
+          onSwitchSlot={(i) => barSlotEditor.openSlotEditor(i)}
+        />
+      )}
+      {barSlotEditor.saveError && (
+        <div className="fixed bottom-4 right-4 z-[60] bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded shadow-lg max-w-sm">
+          {barSlotEditor.saveError}
         </div>
       )}
     </EditoriumLayout>
