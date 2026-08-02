@@ -3,10 +3,14 @@ import crypto from 'crypto';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 
 // Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
-// Existing rows predate this and still hold plaintext; verifyPassword falls back to a direct
-// comparison for those and the login route below transparently re-hashes on the next successful
-// login (no forced reset, no lockout risk for the one account that already exists). Exported so
-// server.js's DB seeding step can hash the initial Chief Editor account's random password too.
+// Exported so server.js's DB seeding step can hash the initial Chief Editor account's random
+// password too.
+//
+// 2026-08-02 (Fasa 1 cleanup): plaintext-row fallback removed — confirmed via direct DB query
+// that every existing account is already scrypt-hashed, and both account-creation paths (seed
+// in server.js, POST /api/system/users in userAdminRoutes.js) already call hashPassword()
+// unconditionally, so a plaintext row can no longer be created going forward either. If this
+// ever needs reintroducing (e.g. a raw DB import), diff against git history for the old fallback.
 export const hashPassword = (plain) => {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(plain, salt, 64).toString('hex');
@@ -14,15 +18,12 @@ export const hashPassword = (plain) => {
 };
 
 const verifyPassword = (plain, stored) => {
-  if (typeof stored === 'string' && stored.startsWith('scrypt$')) {
-    const [, salt, hash] = stored.split('$');
-    const candidate = crypto.scryptSync(plain, salt, 64).toString('hex');
-    const a = Buffer.from(hash, 'hex');
-    const b = Buffer.from(candidate, 'hex');
-    return a.length === b.length && crypto.timingSafeEqual(a, b);
-  }
-  // Legacy plaintext row.
-  return plain === stored;
+  if (typeof stored !== 'string' || !stored.startsWith('scrypt$')) return false;
+  const [, salt, hash] = stored.split('$');
+  const candidate = crypto.scryptSync(plain, salt, 64).toString('hex');
+  const a = Buffer.from(hash, 'hex');
+  const b = Buffer.from(candidate, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
 
 export function createAuthRoutes(dbGet, dbRun, dbAll) {
@@ -52,14 +53,6 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
 
       if (!verifyPassword(password, userRow.password)) {
         return res.status(401).json({ error: 'IncorrectPassword', message: 'Incorrect password.' });
-      }
-
-      // Transparent migration: a legacy plaintext row that just matched gets upgraded to a real
-      // hash immediately, with the same password the user already knows — no reset required.
-      if (typeof userRow.password !== 'string' || !userRow.password.startsWith('scrypt$')) {
-        const upgraded = hashPassword(password);
-        await dbRun("UPDATE users SET password = ? WHERE id = ?", [upgraded, userRow.id]);
-        userRow.password = upgraded;
       }
 
       // 2026-08-02 (Fasa 3) — peranan SEBENAR ialah senarai daripada `user_roles` (satu akaun
