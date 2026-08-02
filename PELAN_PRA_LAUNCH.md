@@ -299,7 +299,7 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
 - [ ] Focus View: tetapan animasi/mod turutan/had aksara (kini sifar tetapan di
       mana-mana)
 
-### [ ] Fasa 8 — Editorial dilengkapkan · `M` · ~4 hari (skop disemak semula 2026-08-02)
+### [x] Fasa 8 — Editorial dilengkapkan · `M` · ~4 hari (skop disemak semula 2026-08-02)
 **Perubahan strategi 2026-08-02 (arahan Ketua Editor):** saluran isian kandungan sah kini
 HANYA tiga — Manual, API luar bukan-AI, RSS. Pipeline penjanaan AI automatik (EditorialPipeline.js)
 DIMATIKAN (scheduler, commit `61be972`) — kod kekal wujud tapi tak dipanggil automatik lagi.
@@ -318,10 +318,21 @@ tanpa mengira AI:
       Editorium setiap kali berlaku pada item auto-siar — bukan hilang senyap lagi
 - [x] **Gate manusia untuk RSS** — KEPUTUSAN Izzat 2026-08-02: kekalkan auto-siar (skor
       ≥80 terus `AUTO_LIVE`), tiada perubahan kod diperlukan
-- [ ] Asingkan glosari daripada penyelarasan ejaan (kini satu jadual bergabung) — masih
-      berguna sebagai rujukan pasif editor menulis manual, tanpa mengira AI
-- [ ] Medan "tempoh minimum paparan" sebenar + buang rujukan palsu dalam `EditorialConsole.tsx`
-      (kini kata ia wujud di Tetapan Am — medan tu tak wujud)
+- [x] **Asingkan glosari daripada penyelarasan ejaan** — KEPUTUSAN 2026-08-02: disahkan
+      jadual `glosari_istilah` sedia ada bergabung dua tujuan berbeza (definisi istilah +
+      pasangan ejaan betul/dielakkan) dalam satu baris/borang. Dipisahkan kepada jadual
+      `ejaan_piawai` baharu (`core/routes/ejaanRoutes.js`) dengan tab "3. Penyelarasan
+      Ejaan" berasingan dalam Editorial Console, ikut corak CRUD sedia ada. Jadual lama
+      kosong (0 baris) semasa split — tiada data hilang; migrasi idempoten disediakan untuk
+      masa depan. Kedua-dua jadual kekal rujukan pasif sahaja, tiada penulisan-ganti
+      automatik ditambah (selaras peraturan projek)
+- [x] **Medan "tempoh minimum paparan" — rujukan palsu dibetulkan** — KEPUTUSAN 2026-08-02:
+      disahkan medan tu memang tak wujud di Tetapan Am Slot (`TetapanAmSlotConsole.tsx`).
+      Ciri sebenar (selang masa putaran carousel) SUDAH wujud sebagai `carouselInterval`
+      per-slot di borang Urus Slot (frontpage) — bukan "tak wujud langsung", cuma
+      salah lokasi dalam teks rujukan. Teks di `EditorialConsole.tsx` dibetulkan untuk
+      rujuk lokasi sebenar, bukan dibina semula sebagai ciri baharu (tiada keperluan
+      medan kedua untuk nilai yang sama)
 
 **Digugurkan/ditangguh (bukan lagi keutamaan pra-launch, memandangkan AI automatik
 dimatikan):** 4 sub-templat semakan AI, suntik glosari ke prompt AI, semakan bajet kos AI
