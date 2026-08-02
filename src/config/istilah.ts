@@ -50,6 +50,9 @@ export const STATUS_LABEL: Record<string, string> = {
   Live: 'Aktif',
   Pending: 'Menunggu',
   Archive: 'Arkib',
+  // Dijadualkan (2026-08-02) — BEZA daripada Menunggu (Pending): Menunggu = tunggu kelulusan
+  // Ketua Editor; Dijadualkan = SUDAH lulus, cuma tunggu masa terbit tiba (Jadual Terbit).
+  Scheduled: 'Dijadualkan',
 };
 
 export const labelStatus = (nilai?: string | null): string => {

@@ -52,6 +52,8 @@ const LABEL_KATEGORI: Record<string, string> = { notis: 'Notis', am: 'Nota Am', 
 const IKON_JENIS: Record<string, React.ReactNode> = {
   kandungan_disiar: <CheckCircle2 className="w-2.5 h-2.5" />,
   kandungan_ditolak: <XCircle className="w-2.5 h-2.5" />,
+  kandungan_terbit_berjadual: <CheckCircle2 className="w-2.5 h-2.5" />,
+  kandungan_luput_berjadual: <XCircle className="w-2.5 h-2.5" />,
   kandungan_penugasan_slot: <LayoutGrid className="w-2.5 h-2.5" />,
   sistem_rss_gagal: <Rss className="w-2.5 h-2.5" />,
   sistem_cuaca_gagal: <CloudOff className="w-2.5 h-2.5" />,
@@ -63,6 +65,8 @@ const IKON_JENIS: Record<string, React.ReactNode> = {
 const LABEL_JENIS: Record<string, string> = {
   kandungan_disiar: 'Kandungan Disiar',
   kandungan_ditolak: 'Kandungan Ditolak',
+  kandungan_terbit_berjadual: 'Terbit Berjadual',
+  kandungan_luput_berjadual: 'Luput Berjadual',
   kandungan_penugasan_slot: 'Penugasan Slot',
   sistem_rss_gagal: 'Sistem — RSS',
   sistem_cuaca_gagal: 'Sistem — Cuaca',

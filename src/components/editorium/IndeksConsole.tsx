@@ -3,6 +3,7 @@ import { AlertTriangle, X, Search, Pin, Lock } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
 import { labelMod, labelStatus } from '../../config/istilah';
+import { formatKlDisplay, klLocalToIso, isoToKlLocalInput } from '../../../core/editorial/Scheduling.js';
 
 interface BriefRecord {
   id: string;
@@ -13,7 +14,10 @@ interface BriefRecord {
   // Draf SENGAJA tiada di sini (2026-07-29) — draf ialah ruang peribadi editor dalam modal Tulis
   // Kandungan sahaja (slots_config.manualSummary), tak pernah punya baris editorial_objects,
   // jadi tak sesekali muncul dalam Indeks. Lihat nota alur kerja di server.js.
-  status: 'Pending' | 'Live' | 'Archive';
+  status: 'Pending' | 'Live' | 'Archive' | 'Scheduled';
+  // Jadual Terbit/Luput (2026-08-02) — ISO 8601, null bermakna tiada jadual ditetapkan.
+  scheduledPublishAt: string | null;
+  scheduledExpiresAt: string | null;
   source: string;
   creator: string;
   cardType: string;
@@ -73,11 +77,13 @@ const STATUS_TO_LABEL: Record<string, BriefRecord['status']> = {
   approved: 'Live',
   pending: 'Pending',
   archived: 'Archive',
+  scheduled: 'Scheduled',
 };
 const LABEL_TO_STATUS: Record<BriefRecord['status'], string> = {
   Live: 'approved',
   Pending: 'pending',
   Archive: 'archived',
+  Scheduled: 'scheduled',
 };
 
 // Label yang DIPAPAR kepada editor tinggal di src/config/istilah.ts (labelStatus/labelMod) — satu
@@ -199,6 +205,56 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const [reactivateSlotIndex, setReactivateSlotIndex] = useState<number | ''>('');
   const [reactivating, setReactivating] = useState(false);
 
+  // Jadual Terbit/Luput (2026-08-02) — draf input (waktu tempatan Malaysia, format
+  // datetime-local) untuk item detail modal semasa. Hanya KETUA_EDITOR/Penolong boleh sunting
+  // (gerbang sebenar di server; UI ni sekadar sembunyi/nyahaktif untuk EDITOR — sama corak
+  // "Tetapan Kad" di SenaraiSlotConsole.tsx).
+  const [draftJadualTerbit, setDraftJadualTerbit] = useState('');
+  const [draftJadualLuput, setDraftJadualLuput] = useState('');
+  const [savingJadual, setSavingJadual] = useState(false);
+  const [jadualError, setJadualError] = useState<string | null>(null);
+  useEffect(() => {
+    if (activeItemModal) {
+      setDraftJadualTerbit(isoToKlLocalInput(activeItemModal.scheduledPublishAt));
+      setDraftJadualLuput(isoToKlLocalInput(activeItemModal.scheduledExpiresAt));
+      setJadualError(null);
+    }
+  }, [activeItemModal?.id]);
+
+  const handleSimpanJadual = async () => {
+    if (!activeItemModal) return;
+    setSavingJadual(true);
+    setJadualError(null);
+    try {
+      const body: any = {
+        scheduledPublishAt: draftJadualTerbit ? klLocalToIso(draftJadualTerbit) : null,
+        scheduledExpiresAt: draftJadualLuput ? klLocalToIso(draftJadualLuput) : null,
+      };
+      const res = await fetch(`/api/system/content/${encodeURIComponent(activeItemModal.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const resBody = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(resBody.error || `Gagal simpan jadual (${res.status}).`);
+      setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
+        ...i,
+        scheduledPublishAt: body.scheduledPublishAt,
+        scheduledExpiresAt: body.scheduledExpiresAt,
+        status: body.scheduledPublishAt && i.status === 'Pending' ? 'Scheduled' : i.status,
+      } : i));
+      setActiveItemModal({
+        ...activeItemModal,
+        scheduledPublishAt: body.scheduledPublishAt,
+        scheduledExpiresAt: body.scheduledExpiresAt,
+      });
+    } catch (err: any) {
+      setJadualError(err.message || 'Gagal simpan jadual.');
+    } finally {
+      setSavingJadual(false);
+    }
+  };
+
   // Load Real Data from SQLite Endpoint
   useEffect(() => {
     setLoading(true);
@@ -230,6 +286,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             note: item.note || '',
             originalDate: item.originalDate || '',
             url: item.url || '',
+            scheduledPublishAt: item.scheduledPublishAt || null,
+            scheduledExpiresAt: item.scheduledExpiresAt || null,
           };
         });
 
@@ -258,6 +316,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       Pending: items.filter(i => i.status === 'Pending').length,
       Live: items.filter(i => i.status === 'Live').length,
       Archive: items.filter(i => i.status === 'Archive').length,
+      Scheduled: items.filter(i => i.status === 'Scheduled').length,
       Total: items.length
     };
   }, [items]);
@@ -535,6 +594,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <option value="Semua">Semua Status</option>
               <option value="Pending">Menunggu</option>
               <option value="Live">Aktif</option>
+              <option value="Scheduled">Dijadualkan</option>
               <option value="Archive">Arkib</option>
             </select>
           </div>
@@ -797,6 +857,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     <td className="p-2.5">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                         rec.status === 'Live' ? 'bg-emerald-100 text-emerald-800' :
+                        rec.status === 'Scheduled' ? 'bg-sky-100 text-sky-800' :
                         rec.status === 'Pending' ? 'bg-amber-100 text-amber-800' :
                         'bg-stone-200 text-stone-700'
                       }`}>
@@ -946,6 +1007,59 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Jadual Terbit/Luput (2026-08-02) — tidak terpakai pada Ticker (disegarkan terus
+                daripada suapan RSS). Medan kekal KELIHATAN untuk EDITOR biasa (papar nilai
+                sedia ada) tapi dinyahaktifkan supaya dia faham ciri ni wujud walaupun bukan
+                kebenaran dia — gerbang SEBENAR di server (PATCH /api/system/content/:id). */}
+            {activeItemModal.slot !== 'Ticker' && (
+              <div className="space-y-3 font-sans bg-sky-50 border border-sky-200 rounded p-4">
+                <div className="text-[10px] font-bold text-sky-900 uppercase tracking-wider">
+                  Jadual Terbit &amp; Jadual Luput (waktu Malaysia)
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Dijadualkan terbit</label>
+                    <input
+                      type="datetime-local"
+                      value={draftJadualTerbit}
+                      disabled={currentUserRole !== 'KETUA_EDITOR'}
+                      onChange={e => setDraftJadualTerbit(e.target.value)}
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs disabled:bg-stone-100 disabled:text-stone-400"
+                    />
+                    {activeItemModal.scheduledPublishAt && (
+                      <p className="text-[9px] text-sky-700 mt-1">Dijadualkan terbit: {formatKlDisplay(activeItemModal.scheduledPublishAt)}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Dijadualkan luput</label>
+                    <input
+                      type="datetime-local"
+                      value={draftJadualLuput}
+                      disabled={currentUserRole !== 'KETUA_EDITOR'}
+                      onChange={e => setDraftJadualLuput(e.target.value)}
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs disabled:bg-stone-100 disabled:text-stone-400"
+                    />
+                    {activeItemModal.scheduledExpiresAt && (
+                      <p className="text-[9px] text-sky-700 mt-1">Dijadualkan luput: {formatKlDisplay(activeItemModal.scheduledExpiresAt)}</p>
+                    )}
+                  </div>
+                </div>
+                {currentUserRole !== 'KETUA_EDITOR' && (
+                  <p className="text-[9px] text-stone-500">Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan jadual.</p>
+                )}
+                {jadualError && <p className="text-[9px] text-red-700 font-semibold">{jadualError}</p>}
+                {currentUserRole === 'KETUA_EDITOR' && (
+                  <button
+                    onClick={handleSimpanJadual}
+                    disabled={savingJadual}
+                    className="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {savingJadual ? 'Menyimpan...' : 'Simpan Jadual'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {activeItemModal.status === 'Archive' && activeItemModal.slot !== 'Ticker' && (
               <div className="space-y-3 font-sans bg-amber-50 border border-amber-200 rounded p-4">
