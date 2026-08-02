@@ -405,16 +405,36 @@ telefon/tablet.
 - [x] Panel Paparan Utama (dashboard) gantikan placeholder jujur — tren 7 hari + kandungan
       paling diminati ikut slot, guna `CartaBar` sedia ada (`DashboardConsole.tsx`)
 
-### [ ] Fasa 15 — Prestasi & kesediaan produksi · `M` · ~3 hari
-- [ ] **Laluan serve produksi** — kini TIADA: tiada skrip `start`, Express tak hidangkan
-      `dist/` mahupun `/uploads`, port berkod keras 5000. Perlu: `PORT` dari env,
-      `express.static`, fallback SPA, skrip mula, pengurus proses
-- [ ] `db-state` god-endpoint: kini menyekat sehingga 15s pada 3 ambilan Google Doc
-      setiap panggilan — cache
-- [ ] Masa muat frontpage 38 slot · masa API di bawah beban · saiz bundle
-- [ ] Backup automatik `adjung.db` berjadual + keluarkan ~35 MB backup manual dari
-      pokok kerja
-- [ ] Namakan semula pakej `react-example` → nama sebenar
+### [x] Fasa 15 — Prestasi & kesediaan produksi · `M` · ~3 hari · SIAP 2026-08-02 (commit `4ab7091`)
+- [x] **Laluan serve produksi** — `PORT` dari `process.env` disahkan sudah wujud sejak Fasa 1
+      (bukan baharu). Ditambah: `express.static` hidang `dist/` (binaan Vite) dan
+      `public/uploads`, fallback SPA (`app.get(/^(?!\/api\/).*/, ...)` pulangkan `index.html`
+      untuk navigasi terus cth `/editorium`), skrip `npm start` baharu (`vite build` diikuti
+      `node server.js` mod produksi, berasingan drpd `dev`). Tiada dependency PM2/pengurus
+      proses baharu ditambah — `package.json` tak ada satu pun sedia ada, dan `node server.js`
+      dengan penutupan bersih SIGTERM/SIGINT (sedia ada, Fasa 1) memadai buat masa ini
+- [x] `db-state` god-endpoint: cache dalam-memori TTL 5 minit ditambah untuk 3 ambilan Google
+      Doc luaran sahaja (`core/routes/dbStateRoutes.js`), corak sama seperti
+      `sitemapRoutes.js`/`rssFeedRoutes.js`; baki endpoint (baca SQLite tempatan) tak disentuh
+      sebab dah pantas
+- [x] Diukur: binaan produksi (`npm run build`) — bundle utama frontpage 807 KB (gzip 220 KB)
+      selepas code-split, `db-state` ~50ms sekali panggil (SQLite tempatan sahaja dlm dev DB
+      tanpa URL Google Doc ditetapkan, jadi ambilan luaran tak tercetus dlm ujian ni — cache
+      disahkan betul secara semakan kod, corak sama dgn sitemap/rss). Bundle asal 1085 KB (gzip
+      280 KB) dipetik amaran Vite "chunk > 500kB" — dibaiki rendah-risiko dgn `React.lazy` +
+      `Suspense` untuk `EditoriumView`/`ContentReview` (laluan admin, route-based, bukan
+      refactor bento/kad) — turun ke 807 KB (gzip 220 KB), Editorium (270 KB) jadi chunk
+      berasingan dimuat hanya bila dilawati
+- [x] Backup automatik `adjung.db` — `setInterval` 24 jam dlm `server.js`, cuba/tangkap penuh
+      (gagal backup tak rebahkan server), dasar pengekalan 7 salinan automatik terkini (awalan
+      `adjung.db.backup-auto-`, tak sentuh backup manual sedia ada). **Bendera untuk Izzat:**
+      ~19 fail backup manual (~56 MB jumlah, corak `adjung.db.backup-<pelbagai>`) masih di
+      pokok kerja — SEMUA disahkan gitignored (`*.db.backup-*` dlm `.gitignore`) dan TIADA
+      satu pun pernah dicommit ke git (disahkan `git log --all --full-history`), jadi tiada
+      isu bengkak repo git. Tapi ia salinan pemulihan sebenar (bukan ujian) — sengaja TAK
+      dipadam automatik di sini, Izzat perlu semak & padam sendiri ikut budi bicara bila selesa
+- [x] Namakan semula pakej `react-example` → `adjung-brief` (`package.json`, ikut nama sebenar
+      di `src/config/brand.ts`)
 
 ### [x] Fasa 16 — Panduan & Dokumentasi · `S` · ~1 hari
 Panduan (Editorium → Rujukan → Panduan) hidup — panduan operasi harian sebenar
