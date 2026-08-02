@@ -299,9 +299,10 @@ tanpa mengira AI:
       perluas. `safeParseInline` (dipindah ke `utils.tsx`) kini tokenkan autocondong
       dahulu, gloss/pemenggalan sedia ada terpakai dalam setiap segmen — kad bento DAN
       Focus View (title + setiap perenggan body) kedua-duanya guna fungsi SAMA
-- [ ] Limpahan teks: satu polisi seragam — RSS masih cantas senyap `...` pada 220 aksara
-      (`formatRssBrief`) tanpa penolakan/amaran macam laluan Manual — ini melanggar
-      perlembagaan (tiada pemotongan mekanikal senyap)
+- [x] Limpahan teks — KEPUTUSAN Izzat 2026-08-02: pemotongan 220 aksara KEKAL (Ticker
+      satu baris, pipeline automatik 3 jam sekali tanpa manusia hadir — tolak macam
+      Manual tak sesuai), tapi kini DICATAT ke Log Audit + boleh nampak di Log Sistem
+      Editorium setiap kali berlaku pada item auto-siar — bukan hilang senyap lagi
 - [x] **Gate manusia untuk RSS** — KEPUTUSAN Izzat 2026-08-02: kekalkan auto-siar (skor
       ≥80 terus `AUTO_LIVE`), tiada perubahan kod diperlukan
 - [ ] Asingkan glosari daripada penyelarasan ejaan (kini satu jadual bergabung) — masih
