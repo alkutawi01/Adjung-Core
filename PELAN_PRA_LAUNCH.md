@@ -202,8 +202,9 @@ test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
       sedia ada
 - [x] Hidupkan atau buang "Glos Selari" — disahkan ciri sebenar (interlinear gloss legasi
       Adjung Platform), disambung ke togol sebenar di Tetapan (`glosSelariEnabled`)
-- [ ] **Auto-simpan / penjaga dirty pada modal tulis** — kini tutup modal = kerja hilang
-      senyap; penjaga sedia ada cuma semak tajuk/huraian
+- [x] **Auto-simpan / penjaga dirty pada modal tulis** — amaran (bukan auto-simpan senyap,
+      lihat nota komit) kini merangkumi tutup modal (X) dan tutup/muat-semula tab pelayar,
+      bukan cuma tukar slot sahaja
 - [x] **Kawalan serentak** — dua editor buka slot sama: simpan kedua memadam simpanan
       pertama tanpa amaran. Token `updatedAt` di `slots_config`, disemak sebelum tulis
       (409 + mesej Malay bila konflik); turut baiki `saveError` yang sebelum ni tak pernah
