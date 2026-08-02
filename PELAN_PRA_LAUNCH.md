@@ -337,6 +337,8 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
       sejarah dilawati) — tiada mod alternatif sedia ada dalam kod untuk dijadikan pilihan;
       reka mod baharu (kronologi/ikut Bidang/dll) perlukan input reka bentuk Izzat dahulu,
       sama seperti KIV animasi transisi di atas
+- [x] Kawalan manual carousel (klik anak panah + swipe) — auto-putar kekal berjalan,
+      permintaan Izzat 2026-08-02
 
 ### [x] Fasa 8 — Editorial dilengkapkan · `M` · ~4 hari (skop disemak semula 2026-08-02)
 **Perubahan strategi 2026-08-02 (arahan Ketua Editor):** saluran isian kandungan sah kini
