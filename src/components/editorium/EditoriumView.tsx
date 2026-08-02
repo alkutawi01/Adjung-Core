@@ -375,7 +375,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             active={slotSubTab}
             onChange={setSlotSubTab}
           />
-          {slotSubTab === 'senarai' && <SenaraiSlotConsole />}
+          {slotSubTab === 'senarai' && <SenaraiSlotConsole currentEditoriumRole={effectiveEditorialRole} />}
           {slotSubTab === 'tier' && <TierKadConsole />}
           {slotSubTab === 'bidang' && <BidangConsole />}
           {slotSubTab === 'tetapan_am' && <TetapanAmSlotConsole />}
