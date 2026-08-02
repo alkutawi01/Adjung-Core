@@ -289,7 +289,16 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
             <div className="grid grid-cols-2 gap-5">
               <Field label="Sumber" value={current.source || ''} maxLen={60} onChange={(v) => patch(activeIndex, 'source', v)} />
               <Field label="URL" value={current.url || ''} placeholder="https://…" onChange={(v) => patch(activeIndex, 'url', v)} />
-              <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
+              {/* Imej DIMATIKAN sengaja (2026-08-02) — medan ni disimpan tapi BarCard.tsx/
+                  BarCardExpandedPanel.tsx tak pernah papar imej langsung, jadi muat naik di
+                  sini tak buat apa-apa kesan kelihatan. Disahkan Izzat: matikan dulu (bukan
+                  buang terus) sehingga keputusan sama ada nak bina paparan imej Bar. */}
+              <label className="flex flex-col gap-1 opacity-50">
+                <span className={labelCls}>Imej</span>
+                <span className="px-3 py-2 border border-dashed border-stone-300 rounded bg-stone-50 font-sans text-[11px] text-stone-400">
+                  Dimatikan buat masa ini — kad Bar tak papar imej lagi
+                </span>
+              </label>
             </div>
             <Field label="Nota" rows={2} value={current.note || ''} maxLen={280} placeholder="Nota editor (pilihan)…" onChange={(v) => patch(activeIndex, 'note', v)} />
 
