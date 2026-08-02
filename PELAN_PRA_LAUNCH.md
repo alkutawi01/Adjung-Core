@@ -258,12 +258,16 @@ Keputusan Izzat: skop Kandungan + Sistem (bukan kandungan sahaja).
 ### [ ] Fasa 7 — Modul Khas & kawalan slot · `L` · ~6 hari
 Penemuan besar Fasa 0: satu-satunya jalan ubah Bidang/warna/selang carousel slot ialah
 kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari Editorium.
-- [ ] Pintu masuk sah dalam Editorium untuk tetapan per-slot (Bidang, warna kad, selang/
-      lengah carousel) — kini medan wujud di DB & dibaca frontpage, tiada UI sah
-- [ ] Betulkan lajur "Animasi Transisi" Senarai Slot (kini papar selang carousel,
-      bukan animasi — label mengelirukan)
-- [ ] Buang atau sambungkan tetapan mati "Jenis animasi transisi" (kini ditulis ke DB,
-      tak pernah dibaca sesiapa)
+- [x] Pintu masuk sah dalam Editorium untuk tetapan per-slot (Bidang, warna kad, selang/
+      lengah carousel) — panel "Tetapan Kad" baharu di Senarai Slot (Ketua Editor sahaja),
+      borang lama FrontpageView.tsx SENGAJA tidak dibuka semula (turut ada medan sunting
+      kandungan yang patut lalui SlotManagerModal Editorium sahaja)
+- [x] Betulkan lajur "Animasi Transisi" Senarai Slot (kini papar selang carousel,
+      bukan animasi — label mengelirukan) — ditukar ke "Carousel"
+- [x] Buang atau sambungkan tetapan mati "Jenis animasi transisi" — nota ni LAPUK, disahkan
+      2026-08-02: `TetapanAmSlotConsole.tsx` dah ada pilihan tunggal jujur ("Pudar", satu-
+      satunya wujud dalam kod) dengan disclaimer eksplisit "tiada pilihan ditawarkan sebelum
+      ia berfungsi" — tidak mengelirukan, tiada tindakan diperlukan
 - [ ] Ticker: bawa kawalan ke Editorium (kini ~90% dalam modal frontpage) + UI kelajuan
       pusingan ticker (kini TIADA UI langsung, hanya edit DB)
 - [ ] Jam Dunia: satukan kawalan sedia ada (kini tersorok di Tetapan → Operasi, kad
