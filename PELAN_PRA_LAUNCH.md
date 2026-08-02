@@ -346,9 +346,14 @@ SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
 ### [ ] Fasa 10 — Suapan RSS keluar · `S` · ~1 hari
 
 ### [ ] Fasa 11 — Halaman awam · `M` · ~3 hari
-- [ ] 404 bergaya Adjung (kini URL salah = halaman kosong; laluan `*` tiada)
-- [ ] Tentang / Hubungi / Polisi & Penafian (kandungan dari Fasa 6)
-- [ ] Perkongsian sosial — **tanya dahulu** · Carian pengunjung — **tanya dahulu**
+- [x] 404 bergaya Adjung — laluan `*` didaftar di App.tsx, papar `TidakDijumpai.tsx`
+      (maroon, wordmark, pautan balik ke `/`)
+- [x] Tentang / Hubungi / Polisi & Penafian — komponen `HalamanStatik.tsx` papar
+      kandungan dari `GET /api/pages/:key` (Fasa 6) di laluan `/tentang`, `/hubungi`,
+      `/polisi-penafian`; keadaan kosong jujur bila belum diisi; pautan ditambah pada
+      lajur footer baharu "Am"
+- [ ] Perkongsian sosial — **tanya dahulu** (KIV, tunggu Izzat) · Carian pengunjung —
+      **tanya dahulu** (KIV, tunggu Izzat)
 
 ### [ ] Fasa 12 — Halaman Penaja · `M` · ~3 hari
 Konsol urus + halaman awam. Reka bentuk & penempatan — **keputusan Ketua Editor**;
