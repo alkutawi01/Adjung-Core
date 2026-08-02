@@ -208,9 +208,12 @@ test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
       pertama tanpa amaran. Token `updatedAt` di `slots_config`, disemak sebelum tulis
       (409 + mesej Malay bila konflik); turut baiki `saveError` yang sebelum ni tak pernah
       terpapar langsung di modal
-- [ ] **Sejarah versi sebenar** — kini `editorial_revisions` SENTIASA 1 baris (edit =
-      UPDATE atas tempat, versi berkekalan 1.0); jadikan revisi terkumpul + UI lihat/
-      pulih versi
+- [x] **Sejarah versi sebenar** — edit (isBarUpdate slot Bar di `server.js`, PATCH
+      `/api/system/content` di `contentRoutes.js`) kini INSERT baris revisi baharu
+      (versi = max+1) bukan UPDATE di tempat; baris/atribut lama kekal sebagai sejarah.
+      Laluan API baharu `GET .../revisions` (senarai versi) + `POST
+      .../revisions/:id/restore` (pulih versi lama sebagai versi terkini baharu, lepasi
+      semula budget/Bidang-Topik). Tab "Sejarah versi" baharu di `SlotManagerModal.tsx`
 - [x] Sebab penolakan — `Tolak` kini minta sebab (pilihan) via prompt, disuntik ke `Nota:`
       draf
 
