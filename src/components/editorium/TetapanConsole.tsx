@@ -126,6 +126,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const [savingGlosSelari, setSavingGlosSelari] = useState(false);
   const [glosSelariSaveError, setGlosSelariSaveError] = useState<string | null>(null);
 
+  // Nota editor Focus View (2026-08-02, Fasa 7) — had pemotongan sebelum ni berkod keras
+  // `NOTA_MAX = 180` di FocusView.tsx, sifar tetapan. Bukan sebahagian bajet ruang tajuk/huraian
+  // (GeometryConfig/ContentBudget) — nota editor medan berasingan, tak muncul di kad bento.
+  const [focusViewNotaMaxAksara, setFocusViewNotaMaxAksara] = useState<number>(180);
+  const [savingFocusView, setSavingFocusView] = useState(false);
+  const [focusViewSaveError, setFocusViewSaveError] = useState<string | null>(null);
+
   const [apiHealthStatus, setApiHealthStatus] = useState<any>(null);
   const [isLoadingApiStatus, setIsLoadingApiStatus] = useState<boolean>(false);
 
@@ -211,6 +218,18 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
+  const handleSaveFocusViewSettings = async () => {
+    setSavingFocusView(true);
+    setFocusViewSaveError(null);
+    try {
+      await saveSystemSettingsPatch({ focusViewNotaMaxAksara });
+    } catch (e: any) {
+      setFocusViewSaveError(e.message || 'Gagal menyimpan tetapan Focus View.');
+    } finally {
+      setSavingFocusView(false);
+    }
+  };
+
   // Blocked RSS categories — real CRUD table (rss_blocked_categories), managed here AND in the
   // main frontpage's Ticker Management modal; both point at the same backend so they can never
   // drift out of sync with each other.
@@ -269,6 +288,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         if (s.worldClockIntervalSec !== undefined) setWorldClockIntervalSec(Number(s.worldClockIntervalSec));
         if (s.worldClockBgClickEnabled !== undefined) setWorldClockBgClickEnabled(!!s.worldClockBgClickEnabled);
         if (s.glosSelariEnabled !== undefined) setGlosSelariEnabled(!!s.glosSelariEnabled);
+        if (s.focusViewNotaMaxAksara !== undefined && s.focusViewNotaMaxAksara !== null) setFocusViewNotaMaxAksara(Number(s.focusViewNotaMaxAksara));
         fetch('/api/system/clock-holidays')
           .then(r => r.json())
           .then(d => { if (Array.isArray(d.schoolHolidays)) setSchoolHolidays(d.schoolHolidays); })
@@ -684,6 +704,51 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Tetapan Focus View (2026-08-02, Fasa 7) — had pemotongan "Nota editor" sebelum ni
+              berkod keras (`NOTA_MAX = 180`, FocusView.tsx), sifar tetapan. Kini boleh sunting
+              di sini; lalai 180 aksara kekal sehingga disunting. */}
+          <div className="pt-6 border-t border-stone-200 space-y-4">
+            <div>
+              <h4 className="font-sans text-xs uppercase tracking-wider text-[#802334] font-bold mb-0.5 flex items-center gap-1.5">
+                <Newspaper className="w-3.5 h-3.5" /> TETAPAN FOCUS VIEW (PAPARAN BACAAN SKRIN PENUH)
+              </h4>
+              <p className="text-stone-500 text-[11px]">
+                Had pemotongan Nota Editor yang dipapar di kolofon Focus View. Nota melebihi had ini dipotong pada sempadan perkataan terdekat.
+              </p>
+            </div>
+
+            {focusViewSaveError && (
+              <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {focusViewSaveError}</div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
+                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                  Had Aksara Nota Editor
+                </label>
+                <input
+                  type="number" min={20} max={2000} step={10}
+                  value={focusViewNotaMaxAksara}
+                  onChange={(e) => setFocusViewNotaMaxAksara(Math.max(20, Number(e.target.value) || 0))}
+                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-mono text-xs font-semibold focus:outline-none focus:border-[#802334]"
+                />
+                <span className="text-[10px] text-stone-400 block">
+                  Lalai 180 aksara. Tidak berkaitan bajet ruang tajuk/huraian kad bento (Tier Kad) — nota editor medan berasingan, tak dipapar pada kad.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleSaveFocusViewSettings}
+                disabled={savingFocusView}
+                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+              >
+                {savingFocusView ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Focus View</>}
+              </button>
             </div>
           </div>
         </div>

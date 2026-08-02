@@ -188,6 +188,7 @@ export interface SystemSettings {
   worldClockIntervalSec?: number;
   worldClockBgClickEnabled?: boolean;
   glosSelariEnabled?: boolean;
+  focusViewNotaMaxAksara?: number;
   researchFindingsText?: string;
   researchFindingsGoogleDocUrl?: string;
 }

@@ -6739,6 +6739,7 @@ ${LAMPIRAN_EDITORIAL_RULES}`;
           body={asPlainText(focusItem.briefLong)}
           visual={focusItem.image ? <img src={focusItem.image} alt={asPlainText(focusItem.titleString) || asPlainText(focusItem.title) || ''} /> : undefined}
           note={focusItem.note}
+          notaMaxAksara={systemSettings?.focusViewNotaMaxAksara}
           source={focusItem.source}
           sourceUrl={focusItem.url}
           sourceDate={formatTarikhSumberPanjang(focusItem.originalDate)}

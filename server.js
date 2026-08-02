@@ -1768,6 +1768,13 @@ const initEditorialOS = (dbConn) => {
                             // perubahan kelakuan sehingga Ketua Editor sunting); JSON array
                             // {start,end,group,name} bila disunting. Dibaca di GET /clock-holidays.
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN schoolHolidaysJson TEXT", () => {});
+                            // focusViewNotaMaxAksara (2026-08-02, Fasa 7) — had pemotongan "Nota
+                            // editor" Focus View, sebelum ni berkod keras `NOTA_MAX = 180` di
+                            // FocusView.tsx tanpa sebarang tetapan. Bukan sebahagian bajet ruang
+                            // tajuk/huraian (GeometryConfig/ContentBudget) — nota editor medan
+                            // berasingan, tiada kaitan sistem tier kad. NULL/undefined = guna
+                            // lalai 180 (tiada perubahan kelakuan sehingga Ketua Editor sunting).
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN focusViewNotaMaxAksara INTEGER DEFAULT 180", () => {});
                             // reviewPrompt (2026-08-01, spesifikasi pemilik projek) — templat AI
                             // untuk SEMAKAN (ejaan, tatabahasa, gaya bahasa, format), berasingan
                             // daripada masterPrompt yang mengarah penjanaan KANDUNGAN.

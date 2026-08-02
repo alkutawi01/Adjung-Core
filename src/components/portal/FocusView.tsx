@@ -54,14 +54,16 @@ function useOverflowFade(): [React.RefObject<HTMLDivElement | null>, React.CSSPr
   return [ref, { maskImage: fade, WebkitMaskImage: fade }];
 }
 
-/** Had nota — tiga baris pada 11px/1.6 dalam kolum luar. */
+/** Had nota lalai — tiga baris pada 11px/1.6 dalam kolum luar. Boleh diselaraskan Ketua Editor
+ *  (system_settings.focusViewNotaMaxAksara, Tetapan → Operasi) — nilai ni kekal sebagai LALAI
+ *  sahaja (dipakai bila tetapan belum disunting), bukan had tegar. */
 export const NOTA_MAX = 180;
 
-function trimNota(note?: string): string {
+function trimNota(note: string | undefined, max: number): string {
   const t = String(note || '').trim();
-  if (t.length <= NOTA_MAX) return t;
-  const cut = t.lastIndexOf(' ', NOTA_MAX);
-  return t.slice(0, cut > NOTA_MAX * 0.6 ? cut : NOTA_MAX).trim() + '…';
+  if (t.length <= max) return t;
+  const cut = t.lastIndexOf(' ', max);
+  return t.slice(0, cut > max * 0.6 ? cut : max).trim() + '…';
 }
 
 export interface FocusRelatedItem {
@@ -105,8 +107,13 @@ export interface FocusViewProps {
   visualCaption?: string;
   /** Kandungan berkaitan. Pilihan; tidak dirender langsung bila tiada. */
   related?: Array<FocusRelatedItem | string>;
-  /** Nota editor. Pilihan; dipotong pada NOTA_MAX aksara, tidak dirender bila tiada. */
+  /** Nota editor. Pilihan; dipotong pada `notaMaxAksara` (lalai NOTA_MAX) aksara, tidak dirender
+   *  bila tiada. */
   note?: string;
+  /** Had pemotongan nota editor, aksara. Pilihan — jatuh balik ke NOTA_MAX (180) kalau tiada
+   *  (keserasian ke belakang, dan kalau pemanggil tak sambung system_settings.
+   *  focusViewNotaMaxAksara langsung). */
+  notaMaxAksara?: number;
   /** Markup SVG plat ilustrasi Bidang (sudah disanitize + disahkan ikut spec di server).
    *  Dipapar HANYA apabila kolum kanan tiada grafik, tiada kandungan berkaitan dan tiada nota —
    *  ia mengalah kepada kandungan sebenar, sentiasa. */
@@ -139,7 +146,7 @@ export interface FocusViewProps {
 
 export const FocusView: React.FC<FocusViewProps> = ({
   wordmark = 'Adjung', icon, desk, topik, deskColor, title, titleRendered, body,
-  visual, visualCaption, related = [], note, illustrationSvg,
+  visual, visualCaption, related = [], note, notaMaxAksara = NOTA_MAX, illustrationSvg,
   source, sourceUrl, sourceDate, publishedDate,
   editorName, editorContact, backdropImage, backdropOpacity = 0.06,
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
@@ -177,11 +184,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
 
   // Nota melebihi hadnya dipotong di sempadan perkataan; teks penuh kekal dalam atribut `title`,
   // dan amaran konsol menamakan lebihannya supaya editor memendekkannya di Editorium.
-  const notaText = trimNota(note);
+  const notaText = trimNota(note, notaMaxAksara);
   React.useEffect(() => {
     const n = String(note || '').trim().length;
-    if (n > NOTA_MAX) console.warn(`FocusView: nota ${n}/${NOTA_MAX} aksara — pendekkan nota di Editorium.`);
-  }, [note]);
+    if (n > notaMaxAksara) console.warn(`FocusView: nota ${n}/${notaMaxAksara} aksara — pendekkan nota di Editorium.`);
+  }, [note, notaMaxAksara]);
 
   // SEO dinamik (Fasa 9) — kemas kini tajuk/meta description/OG/Twitter/JSON-LD NewsArticle
   // di <head> bila Focus View dibuka, pulihkan meta lalai laman bila ditutup/tukar kandungan.

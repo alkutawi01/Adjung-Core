@@ -147,7 +147,8 @@ export function createDbStateRoutes(dbAll, dbGet) {
         worldClockIntervalSec: settingsRow.worldClockIntervalSec !== undefined && settingsRow.worldClockIntervalSec !== null ? settingsRow.worldClockIntervalSec : 60,
         worldClockBgClickEnabled: settingsRow.worldClockBgClickEnabled !== undefined && settingsRow.worldClockBgClickEnabled !== null ? settingsRow.worldClockBgClickEnabled === 1 : true,
         glosSelariEnabled: settingsRow.glosSelariEnabled === 1,
-        schoolHolidaysJson: settingsRow.schoolHolidaysJson || ''
+        schoolHolidaysJson: settingsRow.schoolHolidaysJson || '',
+        focusViewNotaMaxAksara: settingsRow.focusViewNotaMaxAksara !== undefined && settingsRow.focusViewNotaMaxAksara !== null ? settingsRow.focusViewNotaMaxAksara : 180
       } : {};
 
       let currentUser = null;
