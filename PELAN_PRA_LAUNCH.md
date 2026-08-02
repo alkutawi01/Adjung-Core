@@ -406,7 +406,11 @@ telefon/tablet.
       pokok kerja
 - [ ] Namakan semula pakej `react-example` → nama sebenar
 
-### [ ] Fasa 16 — Panduan & Dokumentasi · `S` · ~1 hari
+### [x] Fasa 16 — Panduan & Dokumentasi · `S` · ~1 hari
+Panduan (Editorium → Rujukan → Panduan) hidup — panduan operasi harian sebenar
+(Tulis/Draf/Terbit, bajet ruang kad, Bidang & Topik, urus slot, peranan RBAC,
+Log Sistem), gantikan placeholder "Panduan Belum Dibina". Dokumentasi sudah
+hidup sedia ada (Peraturan Am + Reka Bentuk) — tak disentuh.
 
 ### [ ] Fasa 17 — Ujian menyeluruh & deploy · `M` · ~3 hari
 Setiap modul · dua peranan · dua saiz skrin · ujian & tsc bersih · bersih data ujian ·
