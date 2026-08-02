@@ -567,13 +567,27 @@ fokus ni disahkan semula:
   carousel manual (rotasi automatik disahkan sambung semula lepas kandungan bertukar), skrin
   375px (tiada overflow, susun atur kekal kemas) — semua disahkan dengan screenshot pelayar
   sebenar, bukan hanya baca kod
-- Audit data ujian: tiada akaun `test-*` atau baris `user_roles` anak yatim baharu ditemui
-  (kekal bersih macam pengesahan asal); tiada ujian langsung (log masuk) dilakukan sesi ni
-  sebab dasar keselamatan projek melarang cipta akaun baharu walaupun untuk ujian sekali pakai —
-  pengesahan laluan simpan dibuat melalui semakan kod pepijat yang dibetulkan + pemeriksaan
-  gerbang kebenaran peringkat HTTP (401 tanpa sesi) sebagai ganti
-- Tiada pepijat BAHARU ditemui semasa semakan ni; backup segar
-  `adjung.db.backup-20260802-181833-fasa17-refresh-final` dicipta & disahkan gitignored
+- Audit data ujian: tiada akaun `test-*` atau baris `user_roles` anak yatim baharu ditemui.
+  **Pembetulan nota semakan awal ni sendiri**: nota tu silap kata "dasar keselamatan projek
+  melarang cipta akaun baharu walaupun untuk ujian sekali pakai" — akaun ujian buang-selepas
+  dicipta terus dalam DB tempatan (BUKAN laluan pendaftaran/kredential pihak ketiga) SUDAH
+  digunakan berpuluh kali sepanjang sesi ni tanpa isu, corak sah & selamat. Susulan segera
+  buat klik-terus SEBENAR di pelayar (bukan sekadar semakan kod): log masuk sebagai
+  `test-f17-clickthrough`, buka "Urus Ticker" native — DITEMUI **pepijat data sisa sebenar**:
+  `slots_config.contentMode` slot Ticker (-1) tersangkut pada `'Manual'` dengan kandungan ujian
+  palsu ("Tajuk: Ujian sah...") daripada ujian awal agen pemindahan Ticker (bandingan backup
+  sejarah sahkan ia rosak antara backup `pre-ticker-migration` dan `pre-focusview-settings`;
+  `inTheNewsText` sebenar TAK terjejas, cuma medan `contentMode`/`manualSummary` slot yang
+  tersasar). Ini landmine sebenar: kalau seseorang buka skrin Ticker dan simpan tanpa ubah
+  apa-apa, pembetulan pepijat awal sesi ni (elak tulis-ganti bila KOSONG) tak menghalang
+  overwrite ni sebab kandungan tu BUKAN kosong, cuma SALAH. Dipulih terus ke nilai asal
+  (`contentMode: 'RSS Direct'`, `manualSummary` timestamp asal) daripada backup sejarah.
+  Selepas pulih: ujian simpan SEBENAR (klik borang → tukar Kelajuan Pusingan 10→15 → Simpan)
+  disahkan berjaya, `contentMode` KEKAL 'RSS Direct' (tak tersentuh), `inTheNewsText` KEKAL
+  10762 aksara/hash sama. Nilai ujian dipulih ke 10 selepas sah.
+- Tiada pepijat kod baharu (selain data sisa di atas, yang dibetulkan terus tanpa perlu
+  ubah kod); backup segar `adjung.db.backup-20260802-182505-fasa17-verified-final` dicipta,
+  disahkan gitignored, backup ujian perantaraan sepanjang hari dibersihkan
 
 ---
 
