@@ -10,12 +10,43 @@ butang deploy sebenar.
 
 ---
 
-## Platform sasaran: VPS/VM biasa (bukan Cloud Run/serverless)
+## Platform sasaran: DigitalOcean Droplet (VPS)
 
-Memandangkan diasingkan daripada AI Studio, deploy sasaran ialah **VPS/VM biasa**
-(DigitalOcean, Linode, EC2, atau serupa) — cakera berkekalan lalai, `adjung.db` (SATU-
-SATUNYA tempat semua kandungan editorial sebenar tersimpan) selamat merentasi *restart*
-server, tiada langkah tambahan diperlukan. `server.js` sedia untuk corak ni terus.
+Izzat sudah setuju — **DigitalOcean** ialah platform dipilih (2026-08-02). Cadangan:
+Droplet asas 1GB RAM/1 vCPU (~USD 6/bulan), rantau **Singapore (sgp1)** — paling dekat
+dengan pelawat Malaysia, latency terendah. Cakera berkekalan lalai pada Droplet biasa,
+`adjung.db` (SATU-SATUNYA tempat semua kandungan editorial sebenar tersimpan) selamat
+merentasi *restart* server, tiada langkah tambahan diperlukan. `server.js` sedia untuk
+corak ni terus.
+
+### Langkah 0 — Cipta Droplet
+1. Daftar/log masuk [digitalocean.com](https://digitalocean.com) (Izzat buat sendiri —
+   ini penciptaan akaun/langganan, Claude tak boleh buat bagi pihak tuan).
+2. **Create → Droplets**.
+3. Image: **Ubuntu 24.04 LTS**.
+4. Plan: **Basic**, jenis **Regular SSD**, saiz **1GB RAM / 1 vCPU / 25GB SSD** (~$6/bulan)
+   — cukup untuk portal skop semasa; boleh naik taraf kelak tanpa migrasi kalau trafik naik.
+5. Rantau: **Singapore (sgp1)**.
+6. Authentication: **SSH Key** (lebih selamat daripada kata laluan) — DigitalOcean beri
+   panduan jana kunci kalau belum ada.
+7. Hostname: apa-apa nama dikenali (cth `adjung-brief-prod`).
+8. **Create Droplet** — tunggu ~1 minit, salin alamat IP yang diberikan.
+
+### Langkah 0b — Persediaan awal server (sekali sahaja)
+SSH masuk (`ssh root@<IP-droplet>`), kemudian:
+```bash
+apt update && apt upgrade -y
+# Node.js 20 LTS
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
+# pm2 - pengurus proses (auto-restart bila crash/reboot)
+npm install -g pm2
+# firewall asas
+ufw allow OpenSSH
+ufw allow 80
+ufw allow 443
+ufw enable
+```
 
 **Elakkan platform "serverless"/container tanpa volume berkekalan** (Cloud Run tanpa
 volume, Render/Railway free tier tanpa volume, dll.) — platform sebegini guna cakera
@@ -82,18 +113,47 @@ satu-satunya cara pulih kandungan sebenar.
 
 ---
 
-## Langkah 4 — Deploy ke VPS/VM
+## Langkah 4 — Deploy ke Droplet DigitalOcean
 
-1. Salin/klon repo ke server (`git clone` atau muat naik terus).
-2. `npm install` (perlukan `devDependencies` untuk `npm run build`).
-3. Tetapkan `.env` (Langkah 1).
-4. `npm start` — ini jalankan `npm run build` diikuti `node server.js` produksi.
-5. Sediakan pengurus proses supaya server mula semula automatik jika crash/reboot server
-   (`pm2`, `systemd` unit, atau serupa — tiada satu pun ditetapkan dalam kod ni lagi,
-   `server.js` sendiri ada pengendali `SIGTERM`/`SIGINT` yang tutup bersih, jadi mana-mana
-   pengurus proses standard sesuai).
-6. Konfigurasi reverse proxy (nginx/Caddy) untuk HTTPS + domain sebenar, hala ke port
-   `server.js` (langkau kalau panel VPS sediakan TLS terus).
+```bash
+# Di Droplet, sebagai root (atau user sudo)
+git clone <url-repo-git-tuan> /var/www/adjung-brief
+cd /var/www/adjung-brief
+npm install                    # perlukan devDependencies untuk npm run build
+nano .env                      # tampal SESSION_SECRET, NODE_ENV=production, PORT=5000 (Langkah 1)
+npm run build                  # bina dist/ produksi sekali sahaja di sini
+pm2 start server.js --name adjung-brief
+pm2 save                       # simpan senarai proses semasa
+pm2 startup                    # ikut arahan yang dipaparkan - daftar pm2 mula semula bila server reboot
+```
+
+`server.js` sendiri ada pengendali `SIGTERM`/`SIGINT` yang tutup bersih — sesuai dengan
+`pm2 restart`/`pm2 reload`.
+
+### Reverse proxy — nginx + HTTPS percuma (Let's Encrypt)
+```bash
+apt install -y nginx certbot python3-certbot-nginx
+```
+Cipta `/etc/nginx/sites-available/adjung-brief`:
+```nginx
+server {
+    listen 80;
+    server_name domain-tuan.com www.domain-tuan.com;
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+```bash
+ln -s /etc/nginx/sites-available/adjung-brief /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+certbot --nginx -d domain-tuan.com -d www.domain-tuan.com   # HTTPS automatik + auto-renew
+```
+(Domain tuan mesti sudah ada rekod DNS A menghala ke IP Droplet sebelum langkah `certbot`.)
 
 ---
 
