@@ -71,6 +71,9 @@ export const MESEJ_SISTEM_LABEL: Record<string, string> = {
   'toast.templat_ai_disimpan': 'Templat AI disimpan',
   'toast.tetapan_am_disimpan': 'Tetapan disimpan dan berkuat kuasa serta-merta.',
   'toast.gagal_muat_sejarah': 'Gagal memuatkan sejarah versi.',
+  'toast.kata_laluan_ditukar': 'Kata laluan berjaya ditukar',
+  'toast.username_ditukar': 'Username berjaya ditukar',
+  'toast.emel_ditukar': 'Emel berjaya ditukar',
 };
 
 /** Cari mesej sistem terkurasi ikut kunci (cth `labelUi('toast.draf_disimpan')`). */

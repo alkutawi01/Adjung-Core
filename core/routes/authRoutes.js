@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
+import { notify } from '../notifications/Notify.js';
 
 // Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
 // Exported so server.js's DB seeding step can hash the initial Chief Editor account's random
@@ -130,10 +131,89 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         return res.status(401).json({ error: 'Kata laluan semasa tidak tepat.' });
       }
       await dbRun("UPDATE users SET password = ? WHERE id = ?", [hashPassword(newPassword), userRow.id]);
+      // Notifikasi Sistem (Fasa 6b) — editor sendiri patut tahu bila kata laluan akaunnya
+      // ditukar, walaupun dia sendiri yang buat (jejak keselamatan mudah, bukan sekadar
+      // andaian yang buat mesti ingat).
+      await notify(dbRun, {
+        userId: userRow.id,
+        type: 'sistem_kata_laluan_ditukar',
+        title: 'Kata laluan anda telah ditukar',
+        detail: 'Kata laluan akaun anda berjaya dikemas kini.',
+        targetType: 'akaun',
+        targetId: userRow.id,
+      });
       res.json({ success: true });
     } catch (err) {
       console.error('Change password error:', err);
       res.status(500).json({ error: 'Gagal menukar kata laluan.' });
+    }
+  });
+
+  // POST /api/auth/change-username — tukar username SENDIRI (2026-08-02, Fasa 6b). Keputusan
+  // Izzat: sama corak pengesahan macam change-password (kata laluan semasa wajib), wajib semak
+  // keunikan (case-insensitive, sama corak carian log masuk `LOWER(username) = ?`) sebelum simpan.
+  router.post('/change-username', requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newUsername } = req.body || {};
+      if (!currentPassword || !newUsername) {
+        return res.status(400).json({ error: 'Kata laluan semasa dan username baharu diperlukan.' });
+      }
+      const next = newUsername.trim().toLowerCase();
+      if (next.length < 3) {
+        return res.status(400).json({ error: 'Username mesti sekurang-kurangnya 3 aksara.' });
+      }
+      const userRow = await dbGet("SELECT * FROM users WHERE id = ?", [req.session.user.id]);
+      if (!userRow || !verifyPassword(currentPassword, userRow.password)) {
+        return res.status(401).json({ error: 'Kata laluan semasa tidak tepat.' });
+      }
+      if (next === (userRow.username || '').toLowerCase()) {
+        return res.status(400).json({ error: 'Username baharu sama dengan username semasa.' });
+      }
+      const bertembung = await dbGet("SELECT id FROM users WHERE LOWER(username) = ? AND id != ?", [next, userRow.id]);
+      if (bertembung) {
+        return res.status(409).json({ error: 'Username ini sudah digunakan akaun lain.' });
+      }
+      await dbRun("UPDATE users SET username = ?, updatedAt = ? WHERE id = ?", [next, new Date().toISOString(), userRow.id]);
+      // Sesi server simpan salinan username untuk paparan header — segarkan serta-merta supaya
+      // tak lapuk sehingga log masuk semula.
+      if (req.session.user) req.session.user.username = next;
+      res.json({ success: true, username: next });
+    } catch (err) {
+      console.error('Change username error:', err);
+      res.status(500).json({ error: 'Gagal menukar username.' });
+    }
+  });
+
+  // POST /api/auth/change-email — tukar emel SENDIRI (2026-08-02, Fasa 6b). Sama corak seperti
+  // change-username.
+  router.post('/change-email', requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newEmail } = req.body || {};
+      if (!currentPassword || !newEmail) {
+        return res.status(400).json({ error: 'Kata laluan semasa dan emel baharu diperlukan.' });
+      }
+      const next = newEmail.trim().toLowerCase();
+      const emelSah = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next);
+      if (!emelSah) {
+        return res.status(400).json({ error: 'Format emel tidak sah.' });
+      }
+      const userRow = await dbGet("SELECT * FROM users WHERE id = ?", [req.session.user.id]);
+      if (!userRow || !verifyPassword(currentPassword, userRow.password)) {
+        return res.status(401).json({ error: 'Kata laluan semasa tidak tepat.' });
+      }
+      if (next === (userRow.email || '').toLowerCase()) {
+        return res.status(400).json({ error: 'Emel baharu sama dengan emel semasa.' });
+      }
+      const bertembung = await dbGet("SELECT id FROM users WHERE LOWER(email) = ? AND id != ?", [next, userRow.id]);
+      if (bertembung) {
+        return res.status(409).json({ error: 'Emel ini sudah digunakan akaun lain.' });
+      }
+      await dbRun("UPDATE users SET email = ?, updatedAt = ? WHERE id = ?", [next, new Date().toISOString(), userRow.id]);
+      if (req.session.user) req.session.user.email = next;
+      res.json({ success: true, email: next });
+    } catch (err) {
+      console.error('Change email error:', err);
+      res.status(500).json({ error: 'Gagal menukar emel.' });
     }
   });
 

@@ -43,6 +43,7 @@ import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createUiLabelRoutes } from './core/routes/uiLabelRoutes.js';
 import { SEMUA_LABEL_LALAI } from './src/config/istilah.ts';
 import { createContentRoutes } from './core/routes/contentRoutes.js';
+import { createNotificationRoutes } from './core/routes/notificationRoutes.js';
 import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
@@ -174,6 +175,28 @@ const initializeSchema = () => {
         )
       `);
       db.run("CREATE INDEX IF NOT EXISTS idx_audit_log_createdAt ON audit_log(createdAt DESC)");
+
+      // 2026-08-02 (Fasa 6b, "Peti Makluman → sistem notifikasi sebenar") — dahulu Peti Makluman
+      // cuma baca `editor_notes` terus (kiraan GLOBAL, semua editor kongsi satu kiraan tanpa
+      // mengira siapa dah baca — lihat Lampiran A, "kiraan global bukan per-editor, tiada resit
+      // baca"). Jadual ni PER-EDITOR: satu baris satu notis untuk SATU pengguna, status baca/
+      // belum baca sendiri. `editor_notes` KEKAL (satu jenis dalam senarai gabungan di UI), jadual
+      // ni tambahan untuk jenis Kandungan (disiar/ditolak/penugasan slot) dan Sistem (RSS/cuaca
+      // gagal, kata laluan ditukar, akaun digantung/diaktifkan) — lihat core/notifications/Notify.js.
+      db.run(`
+        CREATE TABLE IF NOT EXISTS notifications (
+          id TEXT PRIMARY KEY,
+          userId TEXT NOT NULL,
+          type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          detail TEXT,
+          targetType TEXT,
+          targetId TEXT,
+          isRead INTEGER DEFAULT 0,
+          createdAt TEXT
+        )
+      `);
+      db.run("CREATE INDEX IF NOT EXISTS idx_notifications_userId ON notifications(userId, createdAt DESC)");
 
       // 2026-08-02 (Fasa 14, "Jejak pengunjung & populariti") — jejak dibina sendiri, KEPUTUSAN
       // Ketua Editor sedia ada (lihat "Keputusan sedia dibuat" dalam PELAN_PRA_LAUNCH.md): tiada
@@ -2700,6 +2723,7 @@ app.use('/api/system', createEjaanRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createProfileRoutes(dbGet, dbRun));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));
+app.use('/api', createNotificationRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createAuditLogRoutes(dbAll));
 app.use('/api/system', createUiLabelRoutes(dbAll, dbRun));
 // Bukan di bawah /api sengaja — sitemap.xml mesti wujud di root laman ikut konvensyen crawler
