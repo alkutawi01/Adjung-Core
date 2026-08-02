@@ -1528,11 +1528,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     loadSlotsConfig();
   }, [systemSettings.inTheNewsText, activeLanguage, refreshKey]);
 
-  // `force`: benarkan panggilan program (cth pautan Editorium ?openTicker=1, lihat useEffect di
-  // bawah) memintas pengawal isEditMode — sumber panggilan tu bukan klik kad UI langsung, jadi
-  // tiada mod edit untuk disemak pun.
-  const handleCardClick = (idx: number, force = false) => {
-    if (!isEditMode && !force) return;
+  const handleCardClick = (idx: number) => {
+    if (!isEditMode) return;
     // Guard against a race where slotsConfig hasn't finished loading yet: without this, `config`
     // below silently resolves to undefined for every slot, and the modal falls back to synthesizing
     // its "Kandungan Manual" textarea from demo/placeholder content — which looks like real content
@@ -1743,27 +1740,12 @@ URL: ${url}`;
     setShowResetMenu(false);
   };
 
-  // Sambungan rentas-laman "buka modal ni terus" (2026-07-29) — Editorium dan Frontpage kini
-  // dipisah 100% untuk Tulis Kandungan (modal render terus di Editorium sendiri, lihat
-  // useSlotEditor.ts/EditoriumView.tsx — tiada lagi navigasi/parameter URL untuk tu). Ticker
-  // KEKAL guna sambungan URL sementara (TickerManagementModal + seluruh state sokongannya jauh
-  // lebih besar/kompleks — pemindahan penuh kerja berasingan akan datang). Butang "Urus Ticker"
-  // di Editorium pautkan ke "/?openTicker=1"; effect ni baca parameter tu SEKALI selepas
-  // slotsConfig termuat dan buka TickerManagementModal secara program (force=true memintas
-  // pengawal isEditMode — panggilan ni bukan klik kad UI). URL dibersihkan lepas tu.
-  const openedFromUrlRef = React.useRef(false);
-  React.useEffect(() => {
-    if (openedFromUrlRef.current) return;
-    if (slotsConfig.length === 0) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('openTicker')) {
-      openedFromUrlRef.current = true;
-      setIsEditMode(true);
-      handleCardClick(-1, true);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slotsConfig]);
+  // Sambungan rentas-laman "?openTicker=1" (2026-07-29 – 2026-08-02) DIBUANG — Ticker kini
+  // native sepenuhnya di Editorium (Modul Khas → Urus Ticker, lihat useTickerEditor.ts/
+  // EditoriumView.tsx), Fasa 7 item terakhir. TickerManagementModal di bawah (render dalam fail
+  // ni) KEKAL — masih dicapai terus melalui klik kad Ticker di grid bento SEMASA `isEditMode`
+  // Frontpage sendiri (lihat `handleCardClick(-1)` di ~baris 2825/2841), laluan berasingan
+  // sepenuhnya daripada Editorium, bukan skop pemindahan ni.
 
   // manualSummaryOverride: SlotManagerModal.tsx holds its content queue as LOCAL state (for
   // performance — see that file's notes) and passes the freshly-serialized text blob straight
@@ -2765,13 +2747,16 @@ URL: ${url}`;
         {/* Jalur utiliti editorial — bucu kanan masthead, sejajar logo. Dikemas (2026-07-29,
             permintaan pemilik projek) — frontpage TIADA butang editorial langsung lagi (Edit
             Kandungan/Tulis Kandungan/Log Keluar semua dibuang dari sini), cuma SATU pautan ke
-            Editorium. Tulis Kandungan kini render TERUS di Editorium sendiri (mandiri, lihat
-            useSlotEditor.ts) — tiada lagi navigasi/parameter URL untuk tu. Ticker SAHAJA masih
-            guna sambungan URL sementara (?openTicker=1, lihat useEffect di bawah) — pemindahan
-            penuhnya kerja berasingan akan datang (TickerManagementModal jauh lebih besar).
-            isEditMode/editingSlotIndex/handleCardClick dsb. kekal wujud dalam fail ni (114
-            rujukan, terlalu berisiko dicabut sesi ni) tapi kini tak boleh dicapai terus daripada
-            UI frontpage kecuali laluan Ticker tu. */}
+            Editorium. Tulis Kandungan (useSlotEditor.ts) DAN Ticker (2026-08-02, Fasa 7 item
+            terakhir, useTickerEditor.ts) kini render TERUS di Editorium sendiri — tiada lagi
+            navigasi/parameter URL merentas laman untuk kedua-duanya. `?openTicker=1` (laluan
+            terakhir yang masih boleh set isEditMode=true) dibuang terus (lihat nota
+            handleCardClick di atas) — isEditMode/editingSlotIndex/handleCardClick/
+            TickerManagementModal/SlotManagerModal (render di bawah) dsb. (114 rujukan) kini
+            SEPENUHNYA tak boleh dicapai daripada UI (tiada `setIsEditMode(true)` lain langsung
+            dalam fail ni) — mati sebenar, bukan cuma jarang guna. Pembersihan penuh sengaja
+            TAK dibuat sesi ni (skop lebih besar daripada pemindahan Ticker), lihat cadangan
+            tugasan berasingan. */}
         <div className="flex justify-end pt-2">
           {/* Belum log masuk: butang ni buka borang log masuk TERUS di atas frontpage (modal),
               bukan bawa ke skrin pagar "log masuk diperlukan" di Editorium — dulu pengguna kena
