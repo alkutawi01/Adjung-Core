@@ -1679,6 +1679,13 @@ const initEditorialOS = (dbConn) => {
                             // tanpa syarat pada setiap tajuk/huraian kad. Togol ni kini SEBENAR —
                             // FrontpageView.tsx semak nilai ni sebelum membenar sintaks gloss.
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN glosSelariEnabled INTEGER DEFAULT 0", () => {});
+                            // schoolHolidaysJson (2026-08-02, Fasa 7) — cuti sekolah sebelum ni
+                            // BERKOD KERAS (core/routes/worldClockRoutes.js, senarai tarikh 2026/27
+                            // sahaja) — akan basi senyap lepas 2027 (Jam Dunia terus papar tiada cuti
+                            // sekolah, tiada amaran). NULL = guna senarai lalai berkod keras (tiada
+                            // perubahan kelakuan sehingga Ketua Editor sunting); JSON array
+                            // {start,end,group,name} bila disunting. Dibaca di GET /clock-holidays.
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN schoolHolidaysJson TEXT", () => {});
                             // reviewPrompt (2026-08-01, spesifikasi pemilik projek) — templat AI
                             // untuk SEMAKAN (ejaan, tatabahasa, gaya bahasa, format), berasingan
                             // daripada masterPrompt yang mengarah penjanaan KANDUNGAN.
@@ -2620,7 +2627,7 @@ app.use('/api/system', createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeli
 app.use('/api/system', createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot));
 app.use('/api/system', createLayoutRoutes(db, dbAll, resolveSlotContent));
 app.use('/api/system', createContentRoutes(db, dbAll, dbGet, dbRun));
-app.use('/api/system', createWorldClockRoutes());
+app.use('/api/system', createWorldClockRoutes(dbGet));
 app.use('/api/system', createTierSettingsRoutes(dbAll, dbRun));
 app.use('/api/system', createSlotEditorRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createDraftRoutes(dbAll));

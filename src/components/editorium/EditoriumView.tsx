@@ -109,6 +109,9 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // klik terus). Lihat EditoriumLayout.tsx untuk susunan Operasi Harian / Tata Kelola & Rujukan.
   // Paparan Utama (Fasa 5) — destinasi lalai selepas log masuk, ganti Kandungan.
   const [activeTab, setActiveTab] = useState('paparan_utama');
+  // Sub-tab sasaran bila masuk Tetapan Sistem daripada pautan luar (2026-08-02, Fasa 7) —
+  // cth kad "Jam Dunia" di Modul Khas. undefined = lalai biasa (PolisiKandungan).
+  const [tetapanTujuSubTab, setTetapanTujuSubTab] = useState<'Operasi' | undefined>(undefined);
   // Log keluar = keluar terus ke frontpage. Editorium bukan tempat untuk sesiapa yang tak log
   // masuk — dulu pengguna ditinggalkan di /editorium (skrin pagar) selepas log keluar.
   //
@@ -345,11 +348,22 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               Urus Ticker
             </a>
           </div>
-          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4 opacity-50">
+          {/* 2026-08-02 (Fasa 7) — kad ni dulu kata "Belum disambungkan ke Editorium", tapi
+              tetapan Jam Dunia (selang auto-slaid, suis klik latar, status API Cuaca/Kalendar
+              Cuti) SUDAH pun wujud & berfungsi di Tetapan Sistem → Operasi — cuma tersorok di
+              sana, bukan sebenarnya tak disambung. Kad ni kini pautan terus ke situ. */}
+          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
             <div>
               <div className="text-sm font-semibold text-stone-800">Jam Dunia</div>
-              <div className="text-[11px] text-stone-500">Belum disambungkan ke Editorium.</div>
+              <div className="text-[11px] text-stone-500">Selang auto-slaid, suis latar, status API Cuaca &amp; Kalendar Cuti.</div>
             </div>
+            <button
+              type="button"
+              onClick={() => { setTetapanTujuSubTab('Operasi'); setActiveTab('tetapan'); }}
+              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0 cursor-pointer"
+            >
+              Urus Jam Dunia
+            </button>
           </div>
           <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4 opacity-50">
             <div>
@@ -405,7 +419,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
 
       {activeTab === 'tetapan' && (
         isPentadbir
-          ? <TetapanConsole isPentadbir={isPentadbir} />
+          ? <TetapanConsole isPentadbir={isPentadbir} initialSubTab={tetapanTujuSubTab} />
           : <AksesDitolak mesej="Tetapan Sistem khusus untuk Pentadbir." />
       )}
 

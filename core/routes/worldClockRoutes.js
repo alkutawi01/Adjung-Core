@@ -10,7 +10,26 @@ import express from 'express';
 // though the hijri calendar VALUE on any given civil day is identical across all of Malaysia.
 const HIJRI_ZONES = ['KDH01', 'KTN01', 'TRG01'];
 
-export function createWorldClockRoutes() {
+// Lalai berkod keras (2026-08-02, Fasa 7) — SANDARAN sahaja bila Ketua Editor belum sunting
+// (system_settings.schoolHolidaysJson kosong/NULL). Jangan tambah tarikh baharu di sini lepas
+// tempoh ni basi — sunting terus di Tetapan Sistem → Operasi → Jam Dunia sebaliknya, supaya
+// perubahan tak perlukan deploy kod semula.
+const SCHOOL_HOLIDAYS_LALAI = [
+  // Penggal 1
+  { start: '2026-05-24', end: '2026-06-01', group: 'A', name: 'Cuti Penggal 1 Sekolah' },
+  { start: '2026-05-25', end: '2026-06-02', group: 'B', name: 'Cuti Penggal 1 Sekolah' },
+  // Penggal 2
+  { start: '2026-09-11', end: '2026-09-19', group: 'A', name: 'Cuti Penggal 2 Sekolah' },
+  { start: '2026-09-12', end: '2026-09-20', group: 'B', name: 'Cuti Penggal 2 Sekolah' },
+  // Penggal 3
+  { start: '2026-12-25', end: '2027-01-02', group: 'A', name: 'Cuti Penggal 3 Sekolah' },
+  { start: '2026-12-26', end: '2027-01-03', group: 'B', name: 'Cuti Penggal 3 Sekolah' },
+  // Akhir Persekolahan
+  { start: '2027-01-22', end: '2027-02-13', group: 'A', name: 'Cuti Akhir Persekolahan' },
+  { start: '2027-01-23', end: '2027-02-14', group: 'B', name: 'Cuti Akhir Persekolahan' }
+];
+
+export function createWorldClockRoutes(dbGet) {
   const router = express.Router();
 
   // GET /api/system/clock-holidays
@@ -36,20 +55,16 @@ export function createWorldClockRoutes() {
         console.warn('Failed to fetch public holidays from DyDxSoft API:', apiErr.message);
       }
 
-      const schoolHolidays = [
-        // Penggal 1
-        { start: '2026-05-24', end: '2026-06-01', group: 'A', name: 'Cuti Penggal 1 Sekolah' },
-        { start: '2026-05-25', end: '2026-06-02', group: 'B', name: 'Cuti Penggal 1 Sekolah' },
-        // Penggal 2
-        { start: '2026-09-11', end: '2026-09-19', group: 'A', name: 'Cuti Penggal 2 Sekolah' },
-        { start: '2026-09-12', end: '2026-09-20', group: 'B', name: 'Cuti Penggal 2 Sekolah' },
-        // Penggal 3
-        { start: '2026-12-25', end: '2027-01-02', group: 'A', name: 'Cuti Penggal 3 Sekolah' },
-        { start: '2026-12-26', end: '2027-01-03', group: 'B', name: 'Cuti Penggal 3 Sekolah' },
-        // Akhir Persekolahan
-        { start: '2027-01-22', end: '2027-02-13', group: 'A', name: 'Cuti Akhir Persekolahan' },
-        { start: '2027-01-23', end: '2027-02-14', group: 'B', name: 'Cuti Akhir Persekolahan' }
-      ];
+      let schoolHolidays = SCHOOL_HOLIDAYS_LALAI;
+      try {
+        const row = await dbGet("SELECT schoolHolidaysJson FROM system_settings WHERE id = 'settings-main'");
+        if (row && row.schoolHolidaysJson) {
+          const parsed = JSON.parse(row.schoolHolidaysJson);
+          if (Array.isArray(parsed) && parsed.length > 0) schoolHolidays = parsed;
+        }
+      } catch (e) {
+        console.warn('Failed to load schoolHolidaysJson, using hardcoded default:', e.message);
+      }
 
       res.json({
         publicHolidays: apiHolidays,

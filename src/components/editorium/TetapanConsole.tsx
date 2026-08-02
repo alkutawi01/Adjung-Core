@@ -90,12 +90,16 @@ interface TetapanConsoleProps {
   // 'KETUA_EDITOR', tapi Ketua Editor tak automatik dapat akses ni lagi kecuali dia turut
   // dilantik Pentadbir — lihat EditoriumView.tsx pemanggil komponen ni).
   isPentadbir?: boolean;
+  // Mendarat terus pada sub-tab tertentu (2026-08-02, Fasa 7) — cth pautan "Jam Dunia" di
+  // kad Modul Khas, yang tetapannya sebenar hidup di sini (sub-tab Operasi), bukan tempat
+  // berasingan. Kosong = lalai PolisiKandungan seperti biasa.
+  initialSubTab?: 'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem';
 }
 
 export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
-  isPentadbir = true
+  isPentadbir = true, initialSubTab
 }) => {
-  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem'>('PolisiKandungan');
+  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem'>(initialSubTab || 'PolisiKandungan');
 
   // Governance Jam Dunia (World Clock) — these were previously local-only state with no
   // backing DB columns at all (WorldClockStrip.tsx has read systemSettings.worldClockIntervalSec
@@ -105,6 +109,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const [worldClockBgClickEnabled, setWorldClockBgClickEnabled] = useState<boolean>(true);
   const [savingWorldClock, setSavingWorldClock] = useState(false);
   const [worldClockSaveError, setWorldClockSaveError] = useState<string | null>(null);
+
+  // Cuti sekolah (2026-08-02, Fasa 7) — sebelum ni berkod keras di worldClockRoutes.js, tarikh
+  // 2026/27 sahaja, akan basi senyap lepas tu. Dimuat daripada laluan EFEKTIF sebenar
+  // (GET /clock-holidays, yang sendiri jatuh balik ke lalai berkod keras kalau DB kosong) —
+  // BUKAN terus daripada systemSettings.schoolHolidaysJson — supaya borang ni sentiasa papar
+  // apa yang Jam Dunia SEBENARNYA guna sekarang, bukan cuma apa yang tersimpan.
+  const [schoolHolidays, setSchoolHolidays] = useState<{ start: string; end: string; group: string; name: string }[]>([]);
 
   // Glos Selari (2026-08-02, Fasa 6) — dahulu checkbox hiasan tanpa kesan. Ciri anotasi
   // interlinear (`[kata](gloss:makna)`, utils.tsx parseInlineFormatting) SUDAH aktif tanpa
@@ -180,11 +191,19 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const handleSaveWorldClockSettings = async () => {
     setSavingWorldClock(true);
     setWorldClockSaveError(null);
+    const cutiSah = schoolHolidays.filter((c) => c.start.trim() && c.end.trim() && c.name.trim());
+    if (cutiSah.length !== schoolHolidays.length) {
+      setWorldClockSaveError('Setiap baris cuti sekolah mesti ada Tarikh Mula, Tarikh Tamat, dan Nama diisi (baris kosong dibuang).');
+      setSavingWorldClock(false);
+      return;
+    }
     try {
       await saveSystemSettingsPatch({
         worldClockIntervalSec,
-        worldClockBgClickEnabled
+        worldClockBgClickEnabled,
+        schoolHolidaysJson: JSON.stringify(cutiSah)
       });
+      setSchoolHolidays(cutiSah);
     } catch (e: any) {
       setWorldClockSaveError(e.message || 'Gagal menyimpan tetapan Jam Dunia.');
     } finally {
@@ -250,6 +269,10 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         if (s.worldClockIntervalSec !== undefined) setWorldClockIntervalSec(Number(s.worldClockIntervalSec));
         if (s.worldClockBgClickEnabled !== undefined) setWorldClockBgClickEnabled(!!s.worldClockBgClickEnabled);
         if (s.glosSelariEnabled !== undefined) setGlosSelariEnabled(!!s.glosSelariEnabled);
+        fetch('/api/system/clock-holidays')
+          .then(r => r.json())
+          .then(d => { if (Array.isArray(d.schoolHolidays)) setSchoolHolidays(d.schoolHolidays); })
+          .catch(() => {});
         if (s.rolePermissions && Array.isArray(s.rolePermissions) && s.rolePermissions.length > 0) {
           // Gabung (bukan ganti terus, 2026-07-29) — matriks tersimpan di DB mungkin masih 2 baris
           // lama (dari sebelum Pentadbir/Penolong Ketua Editor wujud). Baris baharu dalam
@@ -542,6 +565,66 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <span className="text-[10px] text-stone-400 block">
                   Apabila aktif, pengguna boleh menukar set paparan bandar dengan mengklik mana-mana ruang kosong di luar kad bento.
                 </span>
+              </div>
+            </div>
+
+            {/* Cuti Sekolah (2026-08-02, Fasa 7) — sebelum ni berkod keras, tarikh 2026/27
+                sahaja, akan basi senyap lepas tempoh tu. Kini boleh sunting terus di sini. */}
+            <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                  Tempoh Cuti Sekolah
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSchoolHolidays((p) => [...p, { start: '', end: '', group: 'A', name: '' }])}
+                  className="px-2.5 py-1 border border-stone-300 rounded text-[10px] font-sans font-semibold text-stone-600 hover:bg-white cursor-pointer"
+                >
+                  + Tambah Tempoh
+                </button>
+              </div>
+              <span className="text-[10px] text-stone-400 block -mt-1.5">
+                Kumpulan A/B ialah pembahagian rasmi Kementerian Pendidikan (negeri berlainan cuti pada tarikh sedikit berbeza). Senarai kosong = Jam Dunia tidak papar cuti sekolah langsung.
+              </span>
+              {schoolHolidays.length === 0 && (
+                <p className="text-stone-400 italic text-[11px] py-2">Tiada tempoh cuti sekolah ditetapkan.</p>
+              )}
+              <div className="space-y-2">
+                {schoolHolidays.map((cuti, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_1fr_70px_1.4fr_auto] gap-2 items-center">
+                    <input
+                      type="date" value={cuti.start}
+                      onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, start: e.target.value } : c))}
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[#802334]"
+                    />
+                    <input
+                      type="date" value={cuti.end}
+                      onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, end: e.target.value } : c))}
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[#802334]"
+                    />
+                    <select
+                      value={cuti.group}
+                      onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, group: e.target.value } : c))}
+                      className="w-full bg-white border border-stone-300 rounded px-1.5 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[#802334]"
+                    >
+                      <option value="A">Kump. A</option>
+                      <option value="B">Kump. B</option>
+                    </select>
+                    <input
+                      type="text" value={cuti.name} placeholder="Nama cuti (cth. Cuti Penggal 1 Sekolah)"
+                      onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, name: e.target.value } : c))}
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-sans text-[11px] focus:outline-none focus:border-[#802334]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSchoolHolidays((p) => p.filter((_, n) => n !== i))}
+                      className="text-stone-400 hover:text-red-700 cursor-pointer p-1"
+                      title="Buang tempoh ini"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
 
