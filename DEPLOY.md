@@ -122,13 +122,21 @@ cd /var/www/adjung-brief
 npm install                    # perlukan devDependencies untuk npm run build
 nano .env                      # tampal SESSION_SECRET, NODE_ENV=production, PORT=5000 (Langkah 1)
 npm run build                  # bina dist/ produksi sekali sahaja di sini
-pm2 start server.js --name adjung-brief
+pm2 start server.js --name adjung-brief --interpreter ./node_modules/.bin/tsx
 pm2 save                       # simpan senarai proses semasa
 pm2 startup                    # ikut arahan yang dipaparkan - daftar pm2 mula semula bila server reboot
 ```
 
 `server.js` sendiri ada pengendali `SIGTERM`/`SIGINT` yang tutup bersih — sesuai dengan
 `pm2 restart`/`pm2 reload`.
+
+**PENTING — kenapa `--interpreter tsx`, bukan `node` terus**: `server.js` import terus
+`src/config/istilah.ts` (fail TypeScript). Node 20 tak boleh baca `.ts` terus (baru Node
+22.6+/23+ ada sokongan native, dan itu pun perlu bendera/versi tertentu) — guna `tsx`
+(dah jadi devDependency projek, cara sama macam `npm run dev` jalankan `server.js`)
+elakkan ralat `ERR_UNKNOWN_FILE_EXTENSION`. Disahkan (2026-08-02) semasa deploy sebenar
+ke Droplet Node 20 — ujian tempatan awal tersembunyi bug ni sebab komputer pembangunan
+guna Node 24 yang sokong native TypeScript.
 
 ### Reverse proxy — nginx + HTTPS percuma (Let's Encrypt)
 ```bash

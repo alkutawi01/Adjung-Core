@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"cross-env PORT=5000 tsx watch server.js\" \"vite --port=3000 --host=0.0.0.0\"",
     "build": "vite build",
-    "start": "npm run build && cross-env NODE_ENV=production node server.js",
+    "start": "npm run build && cross-env NODE_ENV=production tsx server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
