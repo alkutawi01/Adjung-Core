@@ -298,10 +298,28 @@ const CarouselStableBlock: React.FC<{
   items: any[];
   activeIndex: number;
   renderItem: (item: any) => React.ReactNode;
-}> = ({ items, activeIndex, renderItem }) => {
+  onNavigate?: (direction: 1 | -1) => void;
+}> = ({ items, activeIndex, renderItem, onNavigate }) => {
   const list = items && items.length > 0 ? items : [{}];
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
+  // Leret (swipe) tangan — hanya bertindak balas leret yang cukup mendatar (elak konflik dengan
+  // skrol menegak biasa halaman) dan cukup jauh (elak leret tak sengaja yang kecil).
+  const sentuhMula = useRef<{ x: number; y: number } | null>(null);
+  const kendaliSentuhMula = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    sentuhMula.current = { x: t.clientX, y: t.clientY };
+  };
+  const kendaliSentuhTamat = (e: React.TouchEvent) => {
+    if (!sentuhMula.current || !onNavigate) return;
+    const t = e.changedTouches[0];
+    const deltaX = t.clientX - sentuhMula.current.x;
+    const deltaY = t.clientY - sentuhMula.current.y;
+    sentuhMula.current = null;
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 45) {
+      onNavigate(deltaX < 0 ? 1 : -1);
+    }
+  };
   // Content fingerprint (not the array reference, which can churn on every poll even when the
   // underlying text hasn't changed) — only remeasure when what's actually rendered could differ.
   const contentKey = list.map((it) => `${it.title || ''}|${it.brief || ''}|${it.topik || ''}`).join(' ');
@@ -350,7 +368,35 @@ const CarouselStableBlock: React.FC<{
     // data-carousel-stable: penanda supaya CSS telefon boleh melucutkan kunci tinggi ini. Kunci
     // itu diukur pada lebar semasa dan tidak pernah mengecil semula, jadi tinggi desktop (dengan
     // huraian) tidak boleh dibiarkan terbawa ke kad telefon yang bertajuk sahaja.
-    <div className="grid" data-carousel-stable="" style={{ minHeight: maxHeight }}>
+    <div
+      className="grid relative group/carousel"
+      data-carousel-stable=""
+      style={{ minHeight: maxHeight }}
+      onTouchStart={onNavigate ? kendaliSentuhMula : undefined}
+      onTouchEnd={onNavigate ? kendaliSentuhTamat : undefined}
+    >
+      {onNavigate && (
+        <>
+          <button
+            type="button"
+            aria-label="Kandungan sebelum"
+            title="Kandungan sebelum"
+            onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 text-white opacity-40 md:opacity-0 md:group-hover/carousel:opacity-40 hover:!opacity-80 transition-opacity duration-200 pointer-events-auto"
+          >
+            <span aria-hidden="true" className="text-xs leading-none">&#8249;</span>
+          </button>
+          <button
+            type="button"
+            aria-label="Kandungan seterusnya"
+            title="Kandungan seterusnya"
+            onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 text-white opacity-40 md:opacity-0 md:group-hover/carousel:opacity-40 hover:!opacity-80 transition-opacity duration-200 pointer-events-auto"
+          >
+            <span aria-hidden="true" className="text-xs leading-none">&#8250;</span>
+          </button>
+        </>
+      )}
       {list.map((it, i) => (
         <div
           key={i}
@@ -986,6 +1032,20 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   }, [parsedNewsItems, hasLoadedContent, categoryColors]);
 
   const [carouselIndices, setCarouselIndices] = useState<{[key: number]: number}>({});
+
+  // Navigasi manual (klik anak panah / leret) untuk kad carousel — permintaan Izzat 2026-08-02:
+  // pembaca tak patut perlu tunggu putaran automatik untuk lihat kandungan seterusnya. Guna
+  // wraparound SAMA seperti timer automatik di bawah (moden % items.length) supaya kelakuan
+  // konsisten; timer automatik itu sendiri TIDAK direset/diberhentikan oleh navigasi manual — ia
+  // terus berjalan ikut jadual sedia ada (paling ringkas & selamat, tak sentuh seni bina timer).
+  const majuKarusel = React.useCallback((slotIdx: number, items: any[], arah: 1 | -1) => {
+    if (!items || items.length <= 1) return;
+    setCarouselIndices(prev => {
+      const semasa = prev[slotIdx] || 0;
+      const seterus = (semasa + arah + items.length) % items.length;
+      return { ...prev, [slotIdx]: seterus };
+    });
+  }, []);
 
   // Tetapan Am Slot (Editorium → Slot → Tetapan Am). Lalai `true` supaya kelakuan sedia ada kekal
   // sekiranya panggilan gagal — bukan senyap-senyap tukar kepada "sentiasa mula di kandungan 1".
@@ -1705,6 +1765,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[0].items && bentoNewsItems[0].items.length > 0 ? bentoNewsItems[0].items : [bentoNewsItems[0]]}
                       activeIndex={bentoNewsItems[0].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(0, bentoNewsItems[0].items && bentoNewsItems[0].items.length > 0 ? bentoNewsItems[0].items : [bentoNewsItems[0]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] md:text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div>
@@ -1736,6 +1797,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <CarouselStableBlock
                         items={bentoNewsItems[1].items && bentoNewsItems[1].items.length > 0 ? bentoNewsItems[1].items : [bentoNewsItems[1]]}
                         activeIndex={bentoNewsItems[1].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(1, bentoNewsItems[1].items && bentoNewsItems[1].items.length > 0 ? bentoNewsItems[1].items : [bentoNewsItems[1]], dir)}
                         renderItem={(it) => (
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div>
@@ -1764,6 +1826,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <CarouselStableBlock
                         items={bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]]}
                         activeIndex={bentoNewsItems[2].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(2, bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]], dir)}
                         renderItem={(it) => (
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div>
@@ -1793,6 +1856,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <CarouselStableBlock
                         items={bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]]}
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(3, bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]], dir)}
                         renderItem={(it) => (
                           <>
                             <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -1824,6 +1888,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         <CarouselStableBlock
                           items={bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]]}
                           activeIndex={bentoNewsItems[4].carouselIndex || 0}
+                          onNavigate={(dir) => majuKarusel(4, bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]], dir)}
                           renderItem={(it) => (
                             <>
                               <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -1850,6 +1915,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         <CarouselStableBlock
                           items={bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]]}
                           activeIndex={bentoNewsItems[5].carouselIndex || 0}
+                          onNavigate={(dir) => majuKarusel(5, bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]], dir)}
                           renderItem={(it) => (
                             <>
                               <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -1882,6 +1948,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]]}
                       activeIndex={bentoNewsItems[6].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(6, bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
@@ -1914,6 +1981,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]]}
                       activeIndex={bentoNewsItems[12].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(12, bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[12].publishedAt)}</span>
@@ -1975,6 +2043,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
                       activeIndex={bentoNewsItems[11].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(11, bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2013,6 +2082,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]]}
                       activeIndex={bentoNewsItems[13].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(13, bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2044,6 +2114,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]]}
                       activeIndex={bentoNewsItems[14].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(14, bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2083,6 +2154,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]]}
                       activeIndex={bentoNewsItems[15].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(15, bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[15].publishedAt)}</span>
@@ -2115,6 +2187,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]]}
                       activeIndex={bentoNewsItems[16].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(16, bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2150,6 +2223,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <CarouselStableBlock
                         items={bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]]}
                         activeIndex={bentoNewsItems[17].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(17, bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]], dir)}
                         renderItem={(it) => (
                           <>
                               <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2179,6 +2253,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <CarouselStableBlock
                         items={bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]]}
                         activeIndex={bentoNewsItems[18].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(18, bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]], dir)}
                         renderItem={(it) => (
                           <>
                               <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2210,6 +2285,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]]}
                       activeIndex={bentoNewsItems[19].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(19, bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[19].publishedAt)}</span>
@@ -2251,6 +2327,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]]}
                       activeIndex={bentoNewsItems[26].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(26, bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[26].publishedAt)}</span>
@@ -2282,6 +2359,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]]}
                       activeIndex={bentoNewsItems[20].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(20, bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[20].publishedAt)}</span>
@@ -2315,6 +2393,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]]}
                       activeIndex={bentoNewsItems[25].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(25, bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2379,6 +2458,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]]}
                       activeIndex={bentoNewsItems[27].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(27, bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2410,6 +2490,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]]}
                       activeIndex={bentoNewsItems[28].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(28, bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2449,6 +2530,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]]}
                       activeIndex={bentoNewsItems[29].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(29, bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[29].publishedAt)}</span>
@@ -2481,6 +2563,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]]}
                       activeIndex={bentoNewsItems[30].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(30, bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2516,6 +2599,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <CarouselStableBlock
                         items={bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]]}
                         activeIndex={bentoNewsItems[31].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(31, bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]], dir)}
                         renderItem={(it) => (
                           <>
                               <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2545,6 +2629,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <CarouselStableBlock
                         items={bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]]}
                         activeIndex={bentoNewsItems[32].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(32, bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]], dir)}
                         renderItem={(it) => (
                           <>
                               <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2576,6 +2661,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]]}
                       activeIndex={bentoNewsItems[33].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(33, bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[33].publishedAt)}</span>
@@ -2616,6 +2702,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]]}
                       activeIndex={bentoNewsItems[34].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(34, bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[34].publishedAt)}</span>
@@ -2647,6 +2734,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <CarouselStableBlock
                       items={bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]]}
                       activeIndex={bentoNewsItems[37].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(37, bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]], dir)}
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[37].publishedAt)}</span>
@@ -2680,6 +2768,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <CarouselStableBlock
                       items={bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]]}
                       activeIndex={bentoNewsItems[35].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(35, bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
@@ -2711,6 +2800,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <CarouselStableBlock
                       items={bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]]}
                       activeIndex={bentoNewsItems[36].carouselIndex || 0}
+                      onNavigate={(dir) => majuKarusel(36, bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]], dir)}
                       renderItem={(it) => (
                         <>
                           <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
