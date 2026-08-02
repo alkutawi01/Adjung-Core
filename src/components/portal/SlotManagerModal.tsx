@@ -305,6 +305,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   });
   const activeIndex = Math.max(0, Math.min(active, items.length - 1));
   const current = items[activeIndex] || blankItem();
+  // Penjaga dirty (2026-08-02, Fasa 6) — sebelum ni tutup modal (X) buang draf ditaip tanpa
+  // sebarang amaran; hanya laluan "tukar slot" (handleSwitchSlot di bawah) yang disemak. Definisi
+  // sama macam di sana: ada tajuk/huraian sebenar ditaip (bukan cuma baris kosong "+ Masukkan"
+  // belum disentuh) di MANA-MANA kandungan dalam giliran.
+  const hasUnsavedWork = items.some((it) => (it.title || '').trim() || (it.brief || '').trim());
 
   const commit = (mutator: (prevItems: any[]) => any[]) => setItems((prev) => mutator(prev));
   const patch = (i: number, key: string, value: string) => commit((prevItems) => (
@@ -546,10 +551,33 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // Masukkan" belum disentuh), sama falsafah macam amaran padam kandungan di atas.
   const handleSwitchSlot = (idx: number) => {
     if (idx === editingSlotIndex) return;
-    const hasUnsavedWork = items.some((it) => (it.title || '').trim() || (it.brief || '').trim());
     if (hasUnsavedWork && !window.confirm('Tukar slot akan buang draf belum diterbitkan/disimpan dalam slot ni. Teruskan?')) return;
     onSwitchSlot?.(idx);
   };
+
+  // Amaran tutup modal (2026-08-02, Fasa 6, "Auto-simpan / penjaga dirty") — sama falsafah macam
+  // handleSwitchSlot di atas, tapi untuk butang X (satu-satunya laluan tutup modal ni). Auto-
+  // simpan sebenar (draf tersimpan tanpa tindakan editor) DIBUANG daripada skop: kandungan
+  // editorial ialah tulisan sebenar (lihat CLAUDE.md), draf separuh siap yang tersimpan senyap
+  // ke DB tanpa editor sedar lebih berbahaya daripada amaran ringkas ni.
+  const handleClose = () => {
+    if (hasUnsavedWork && !window.confirm('Tutup borang ni akan buang draf belum diterbitkan/disimpan dalam slot ni. Teruskan?')) return;
+    onClose();
+  };
+
+  // Amaran tutup TAB/muat semula pelayar (2026-08-02) — hasUnsavedWork tak boleh dibaca terus
+  // dalam handler beforeunload (closure lapuk), jadi bergantung pada ref yang sentiasa disegarkan.
+  const hasUnsavedWorkRef = useRef(hasUnsavedWork);
+  hasUnsavedWorkRef.current = hasUnsavedWork;
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedWorkRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
@@ -582,7 +610,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   ))}
                 </select>
               )}
-              <button type="button" aria-label="Tutup" onClick={onClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
+              <button type="button" aria-label="Tutup" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
                 <X size={18} />
               </button>
             </div>
