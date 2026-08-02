@@ -408,6 +408,22 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
               </select>
             </div>
 
+            {/* Kelajuan pusingan Ticker (2026-08-02, Fasa 7) — sebelum ni medan `carouselInterval`
+                slot Ticker (slotIndex -1) wujud di DB & dibaca terus oleh interval pusingan
+                (FrontpageView.tsx ~baris 1396/1407) tapi TIADA UI sunting sama sekali, cuma boleh
+                diubah terus dalam DB. Guna formConfig/handleSaveSlot yang sama seperti medan lain
+                dalam modal ni — tiada laluan simpan baharu diperlukan. */}
+            <div className="flex flex-col gap-1.5">
+              <label className="font-mono text-[9px] uppercase tracking-wider text-stone-600 font-bold">Kelajuan Pusingan Ticker (saat)</label>
+              <input
+                type="number" min={1}
+                value={formConfig.carouselInterval ?? 10}
+                onChange={(e) => setFormConfig({ ...formConfig, carouselInterval: Math.max(1, parseInt(e.target.value) || 10) })}
+                className="w-full max-w-[160px] px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+              />
+              <p className="font-sans text-[10px] text-stone-400">Selang masa antara satu berita bertukar ke berita seterusnya.</p>
+            </div>
+
             {/* RSS DIRECT SECTION */}
             {formConfig.contentMode === 'RSS Direct' && (
               <div className="space-y-5 pt-3 border-t border-stone-200">
