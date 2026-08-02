@@ -2,9 +2,10 @@ import express from 'express';
 import { validateContentBudget, validateBidangTopik, validateMedanTambahan, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
+import { isDue, hasReplacementForExpiry } from '../editorial/Scheduling.js';
 
 // The Ticker (slotIndex -1) never writes to editorial_objects, in either Manual or AI Generated
 // mode — it always lives as a single "---"-delimited text blob in system_settings.inTheNewsText
@@ -64,7 +65,90 @@ export const gantiBlokModTicker = (teksSemasa, modSendiri, blokBaharu) => {
   return serializeTickerText([...dikekalkan.map((i) => i), ...blokBaharu]);
 };
 
-const CONTENT_STATUSES = ['approved', 'pending', 'rejected', 'archived'];
+const CONTENT_STATUSES = ['approved', 'pending', 'rejected', 'archived', 'scheduled'];
+
+// Jadual Terbit/Luput (2026-08-02) — Keputusan Izzat #2: hanya Ketua Editor/Penolong Ketua Editor
+// (kunci kebenaran `manageEditorial` sedia ada, TIDAK cipta kunci baharu) boleh menetapkan
+// scheduledPublishAt/scheduledExpiresAt — Editor biasa TIDAK boleh, walaupun dia boleh terbit
+// kandungan dia sendiri secara normal. Ini gerbang SEBENAR (server-side) — penyembunyian UI cuma
+// UX, bukan keselamatan (sikap keselamatan sedia ada projek ni).
+const gerbangKebenaranJadual = (req, res, next) => {
+  const { scheduledPublishAt, scheduledExpiresAt } = req.body || {};
+  if (scheduledPublishAt === undefined && scheduledExpiresAt === undefined) return next();
+  if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
+    return res.status(403).json({ error: 'Forbidden', message: 'Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan Jadual Terbit/Luput.' });
+  }
+  next();
+};
+
+// Scheduler dalaman (2026-08-02) — dipanggil berkala oleh setInterval di server.js (corak sama
+// seperti RSS Auto Scheduler). Semak DUA syarat setiap tik:
+//   1. status='scheduled' & scheduledPublishAt sudah sampai -> terbit (status='approved').
+//   2. status='approved' & scheduledExpiresAt sudah sampai -> arkib (status='archived'), sama
+//      transisi status macam laluan arkib manual (reject-to-draft/PATCH status archived) —
+//      cuma tanda status, TIDAK sentuh tajuk/huraian.
+// Gerbang "ada pengganti" (hasReplacementForExpiry) HANYA disemak semasa SIMPAN tarikh luput
+// (PATCH di bawah) — bukan di sini semula. Andaian: sekali gerbang lulus semasa simpan, keadaan
+// slot pada saat luput sebenar dipercayai kekal sah (tiada langkah kunci/semak-semula di sini demi
+// mengelak concurrency kompleks untuk faedah kecil — didokumenkan di CLAUDE.md/spesifikasi ciri).
+export async function runSchedulingTick(dbAll, dbGet, dbRun) {
+  const nowIso = new Date().toISOString();
+
+  // (1) Terbit berjadual
+  try {
+    const dueToPublish = await dbAll(`
+      SELECT er.id as revisionId, er.objectId, er.title FROM editorial_revisions er
+      INNER JOIN (SELECT objectId, MAX(version) as mv FROM editorial_revisions GROUP BY objectId) lv
+        ON lv.objectId = er.objectId AND lv.mv = er.version
+      WHERE er.status = 'scheduled' AND er.scheduledPublishAt IS NOT NULL AND er.scheduledPublishAt <= ?
+    `, [nowIso]);
+    for (const row of dueToPublish) {
+      if (!isDue(row.scheduledPublishAt ?? nowIso)) { /* defensive no-op, SQL already filtered */ }
+      await dbRun("UPDATE editorial_revisions SET status = 'approved', updatedAt = ? WHERE id = ?", [nowIso, row.revisionId]);
+      const objRow = await dbGet('SELECT slotIndex FROM editorial_objects WHERE id = ?', [row.objectId]);
+      await logAudit(dbRun, {
+        actorId: null, actorName: 'Penjadual Sistem', action: 'kandungan-terbit-berjadual',
+        targetType: 'kandungan', targetId: row.objectId, detail: (row.title || '').slice(0, 100),
+      });
+      if (objRow) {
+        const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [objRow.slotIndex]);
+        await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
+          type: 'kandungan_terbit_berjadual', title: 'Kandungan berjadual anda kini disiar',
+          detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: row.objectId,
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[Jadual Terbit] Ralat tik penjadual:', err.message);
+  }
+
+  // (2) Luput/arkib berjadual
+  try {
+    const dueToExpire = await dbAll(`
+      SELECT er.id as revisionId, er.objectId, er.title FROM editorial_revisions er
+      INNER JOIN (SELECT objectId, MAX(version) as mv FROM editorial_revisions GROUP BY objectId) lv
+        ON lv.objectId = er.objectId AND lv.mv = er.version
+      WHERE er.status = 'approved' AND er.scheduledExpiresAt IS NOT NULL AND er.scheduledExpiresAt <= ?
+    `, [nowIso]);
+    for (const row of dueToExpire) {
+      await dbRun("UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ?", [nowIso, row.revisionId]);
+      const objRow = await dbGet('SELECT slotIndex FROM editorial_objects WHERE id = ?', [row.objectId]);
+      await logAudit(dbRun, {
+        actorId: null, actorName: 'Penjadual Sistem', action: 'kandungan-luput-berjadual',
+        targetType: 'kandungan', targetId: row.objectId, detail: (row.title || '').slice(0, 100),
+      });
+      if (objRow) {
+        const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [objRow.slotIndex]);
+        await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
+          type: 'kandungan_luput_berjadual', title: 'Kandungan anda telah luput & diarkibkan',
+          detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: row.objectId,
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[Jadual Luput] Ralat tik penjadual:', err.message);
+  }
+}
 
 export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   const router = express.Router();
@@ -80,7 +164,8 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const rows = await dbAll(`
         SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, eo.createdAt as objectCreatedAt,
                er.id as revisionId, er.title, er.summary, er.status, er.createdBy,
-               er.createdAt as revisionCreatedAt, er.updatedAt as revisionUpdatedAt
+               er.createdAt as revisionCreatedAt, er.updatedAt as revisionUpdatedAt,
+               er.scheduledPublishAt, er.scheduledExpiresAt
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
@@ -148,7 +233,9 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           createdBy: r.createdBy || '',
           editorName: attrs.editorName || '',
           createdAt: r.revisionCreatedAt,
-          updatedAt: r.revisionUpdatedAt
+          updatedAt: r.revisionUpdatedAt,
+          scheduledPublishAt: r.scheduledPublishAt || null,
+          scheduledExpiresAt: r.scheduledExpiresAt || null,
         };
       });
 
@@ -187,10 +274,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   });
 
   // PATCH /api/system/content/:id
-  router.patch('/content/:id', requireAuth, async (req, res) => {
+  router.patch('/content/:id', requireAuth, gerbangKebenaranJadual, async (req, res) => {
     try {
       const { id } = req.params;
-      const { title, summary, desk, source, url, status, topik, slotIndex, briefLong, originalDate, note } = req.body;
+      const { title, summary, desk, source, url, status, topik, slotIndex, briefLong, originalDate, note, scheduledPublishAt, scheduledExpiresAt } = req.body;
       if (status !== undefined && !CONTENT_STATUSES.includes(status)) {
         return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${CONTENT_STATUSES.join(', ')}.` });
       }
@@ -198,6 +285,9 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       if (id.startsWith('ticker-')) {
         if (status !== undefined) {
           return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah — buang baris tu terus daripada tetapan ticker untuk menariknya balik.' });
+        }
+        if (scheduledPublishAt !== undefined || scheduledExpiresAt !== undefined) {
+          return res.status(400).json({ error: 'Item ticker tidak menyokong Jadual Terbit/Luput — ia disegarkan terus daripada suapan RSS.' });
         }
         const idx = parseInt(id.slice('ticker-'.length), 10);
         const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
@@ -237,6 +327,24 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         // Sasaran slot: slot BAHARU kalau kandungan sedang dipindah (siar-semula kandungan
         // archived ke slot lain), jika tidak slot sedia ada.
         const targetSlotIndex = slotIndex !== undefined ? slotIndex : objRow.slotIndex;
+
+        // Keputusan Izzat #1 (Jadual Luput) — hanya semak bila scheduledExpiresAt SEDANG
+        // ditetapkan (nilai bukan-kosong) DAN ia berbeza daripada nilai tersimpan semasa (elak
+        // sekat semula kalau PATCH lain sekadar hantar semula nilai sedia ada tanpa berubah).
+        if (scheduledExpiresAt !== undefined && scheduledExpiresAt && scheduledExpiresAt !== rev.scheduledExpiresAt) {
+          const lainDalamSlot = await dbAll(`
+            SELECT r.status FROM editorial_objects o
+            INNER JOIN editorial_revisions r ON r.objectId = o.id
+            INNER JOIN (SELECT objectId, MAX(version) as mv FROM editorial_revisions GROUP BY objectId) lv
+              ON lv.objectId = o.id AND lv.mv = r.version
+            WHERE o.slotIndex = ? AND o.id != ?
+          `, [targetSlotIndex, id]);
+          if (!hasReplacementForExpiry(lainDalamSlot.map((r) => r.status))) {
+            return res.status(400).json({
+              error: 'Tak boleh tetapkan tarikh luput — ni satu-satunya kandungan slot ni. Sedia kandungan gantian dalam giliran dulu.',
+            });
+          }
+        }
 
         const nextTitle = title !== undefined ? title : rev.title;
         const nextSummary = summary !== undefined ? summary : rev.summary;
@@ -298,16 +406,27 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const nowIso = new Date().toISOString();
       let liveRevId = rev.id;
 
+      // Jadual Terbit — kalau editor tetapkan scheduledPublishAt TANPA hantar `status` eksplisit,
+      // status secara automatik jadi 'scheduled' (kandungan kekal tersembunyi drpd pembaca sehingga
+      // masa tiba — lihat runSchedulingTick). Hantar `status` eksplisit sekali tetap dihormati
+      // (cth padam jadual serentak paksa 'approved').
+      const effectiveStatus = (scheduledPublishAt !== undefined && scheduledPublishAt && status === undefined)
+        ? 'scheduled'
+        : status;
+      const scheduleFieldsChanged = scheduledPublishAt !== undefined || scheduledExpiresAt !== undefined;
+      const nextScheduledPublishAt = scheduledPublishAt !== undefined ? (scheduledPublishAt || null) : rev.scheduledPublishAt;
+      const nextScheduledExpiresAt = scheduledExpiresAt !== undefined ? (scheduledExpiresAt || null) : rev.scheduledExpiresAt;
+
       if (isContentEdit) {
         const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
         const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
         const newTitle = title !== undefined ? title : rev.title;
         const newSummary = summary !== undefined ? summary : rev.summary;
-        const newStatus = status !== undefined ? status : rev.status;
+        const newStatus = effectiveStatus !== undefined ? effectiveStatus : rev.status;
         const newRev = await dbRun(
-          `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-           VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
-          [id, nextVersion, newTitle, newSummary, newStatus, req.session?.user?.username || 'edit-content', nowIso, nowIso]
+          `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt, scheduledPublishAt, scheduledExpiresAt)
+           VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, nextVersion, newTitle, newSummary, newStatus, req.session?.user?.username || 'edit-content', nowIso, nowIso, nextScheduledPublishAt, nextScheduledExpiresAt]
         );
         liveRevId = newRev.lastID;
 
@@ -324,8 +443,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
             [id, liveRevId, a.attributeId, a.valueText]
           );
         }
-      } else if (status !== undefined) {
-        await dbRun(`UPDATE editorial_revisions SET status = ?, updatedAt = ? WHERE id = ?`, [status, nowIso, rev.id]);
+      } else if (effectiveStatus !== undefined || scheduleFieldsChanged) {
+        await dbRun(
+          `UPDATE editorial_revisions SET status = ?, scheduledPublishAt = ?, scheduledExpiresAt = ?, updatedAt = ? WHERE id = ?`,
+          [effectiveStatus !== undefined ? effectiveStatus : rev.status, nextScheduledPublishAt, nextScheduledExpiresAt, nowIso, rev.id]
+        );
       }
 
       if (desk !== undefined && desk.trim() !== '') {
@@ -358,11 +480,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // Log Audit (Fasa 4) — cuma catat bila STATUS berubah (terbit/tolak/arkib/siar-semula),
       // sebab itulah tindakan editorial yang bermakna untuk jejak; edit teks semata-mata
       // (tajuk/huraian) tak perlu satu baris log setiap ketikan.
-      if (status !== undefined && status !== rev.status) {
+      if (effectiveStatus !== undefined && effectiveStatus !== rev.status) {
         await logAudit(dbRun, {
           actorId: req.session?.user?.id,
           actorName: req.session?.user?.penName || req.session?.user?.username,
-          action: `status:${rev.status}->${status}`,
+          action: `status:${rev.status}->${effectiveStatus}`,
           targetType: 'kandungan',
           targetId: id,
           detail: (title !== undefined ? title : rev.title || '').slice(0, 100),
@@ -372,7 +494,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         // pada 'approved' (disiar) — bukan setiap perubahan status (arkib/tolak dilayan laluan
         // lain). Beritahu semua editor yang diamanahkan slot ni (bukan cuma penulis asal — slot
         // boleh dikongsi beberapa editor).
-        if (status === 'approved' && objRow) {
+        if (effectiveStatus === 'approved' && objRow) {
           const notifySlotIndex = slotIndex !== undefined ? slotIndex : objRow.slotIndex;
           const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [notifySlotIndex]);
           await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {

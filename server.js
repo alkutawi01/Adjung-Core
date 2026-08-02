@@ -42,7 +42,7 @@ import { createAuditLogRoutes } from './core/routes/auditLogRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createUiLabelRoutes } from './core/routes/uiLabelRoutes.js';
 import { SEMUA_LABEL_LALAI } from './src/config/istilah.ts';
-import { createContentRoutes } from './core/routes/contentRoutes.js';
+import { createContentRoutes, runSchedulingTick } from './core/routes/contentRoutes.js';
 import { createNotificationRoutes } from './core/routes/notificationRoutes.js';
 import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
@@ -1529,6 +1529,11 @@ const initEditorialOS = (dbConn) => {
           FOREIGN KEY(objectId) REFERENCES editorial_objects(id) ON DELETE CASCADE
         )
       `);
+      // Jadual Terbit / Jadual Luput (2026-08-02) — ISO 8601 dengan offset +08:00 (waktu Malaysia,
+      // lihat core/editorial/Scheduling.js). NULL = tiada jadual ditetapkan. dbConn.run ignore
+      // ralat "duplicate column" senyap (sama corak setiap ALTER TABLE lain dalam fail ni).
+      dbConn.run("ALTER TABLE editorial_revisions ADD COLUMN scheduledPublishAt TEXT", () => {});
+      dbConn.run("ALTER TABLE editorial_revisions ADD COLUMN scheduledExpiresAt TEXT", () => {});
 
       // 6. media_library
       dbConn.run(`
@@ -2872,6 +2877,17 @@ app.listen(PORT, '0.0.0.0', () => {
     }
   }, SCHEDULER_INTERVAL_MS);
   console.log(`Internal RSS Direct scheduler active (checks every ${SCHEDULER_INTERVAL_MS / 60000} min). Scheduler penjanaan AI automatik DIMATIKAN sengaja.`);
+
+  // Jadual Terbit / Jadual Luput (2026-08-02) — semak berkala sama corak seperti RSS Auto
+  // Scheduler di atas: setInterval dalam callback app.listen, dibalut cuba/tangkap penuh supaya
+  // kegagalan tik TIDAK sekali-kali rebahkan server. 90 saat cukup responsif untuk portal berita
+  // bahasa Melayu ni tanpa terlalu kerap tinjau DB (lihat core/routes/contentRoutes.js
+  // runSchedulingTick untuk logik penuh).
+  const JADUAL_TICK_INTERVAL_MS = 90 * 1000;
+  setInterval(() => {
+    runSchedulingTick(dbAll, dbGet, dbRun).catch((err) => console.error('[Jadual Terbit/Luput] Ralat tik:', err.message));
+  }, JADUAL_TICK_INTERVAL_MS);
+  console.log(`Penjadual Terbit/Luput aktif (semak setiap ${JADUAL_TICK_INTERVAL_MS / 1000} saat).`);
 
   // Backup automatik adjung.db (2026-08-02, Fasa 15) — dahulu SEMATA-MATA manual (`cp adjung.db
   // adjung.db.backup-<ts>` diikuti sendiri setiap kali sebelum operasi destruktif, lihat
