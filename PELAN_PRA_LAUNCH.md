@@ -295,9 +295,10 @@ skop pelan ni buat masa ini). Kesan: semua kerja mengukuhkan pipeline AI automat
 (pengesahan bajet kos sebelum panggil, model lalai, dsb) **digugurkan daripada fasa ni** —
 tak berbaloi diperkukuh sesuatu yang sengaja tak dipanggil. Yang tinggal di bawah relevan
 tanpa mengira AI:
-- [ ] **Autocondong terpakai pada kad frontpage** — kini hanya tajuk ticker + sandbox;
-      kad bento & Focus View langsung tak guna `TypographyRenderer` (keputusan reka
-      bentuk: sahkan dengan Ketua Editor dulu)
+- [x] **Autocondong terpakai pada kad frontpage** — KEPUTUSAN Izzat 2026-08-02: ya,
+      perluas. `safeParseInline` (dipindah ke `utils.tsx`) kini tokenkan autocondong
+      dahulu, gloss/pemenggalan sedia ada terpakai dalam setiap segmen — kad bento DAN
+      Focus View (title + setiap perenggan body) kedua-duanya guna fungsi SAMA
 - [ ] Limpahan teks: satu polisi seragam — RSS masih cantas senyap `...` pada 220 aksara
       (`formatRssBrief`) tanpa penolakan/amaran macam laluan Manual — ini melanggar
       perlembagaan (tiada pemotongan mekanikal senyap)
