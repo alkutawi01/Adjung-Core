@@ -6,6 +6,11 @@ import {
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
+// Logo sebenar (2026-08-03) — public/adjung-brief-logo.png (fail rekaan Izzat dari Claude
+// Design), disajikan terus daripada public/ (corak sama seperti favicon.svg/adjung-symbol.svg),
+// bukan import ES module.
+const ADJUNG_BRIEF_LOGO = '/adjung-brief-logo.png';
+
 interface EditoriumLayoutProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
@@ -199,10 +204,24 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
       <header className="relative bg-[#FDFDFD] border-b border-stone-200 select-none overflow-hidden">
         <div className="relative px-4 md:px-8 py-2.5 flex flex-wrap justify-between items-center gap-3">
           <Tooltip text="Klik untuk kembali ke Frontpage">
-            <a href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity select-none">
-              <span className="font-serif font-normal text-lg tracking-tight text-[#802334] leading-none">{BRAND.logoText}</span>
-              <span className="font-mono text-[9px] tracking-[0.18em] font-semibold text-stone-400 uppercase leading-none border-l border-stone-200 pl-2.5">
-                {BRAND.subLabel} · Editorium
+            {/* Logo SEBENAR (2026-08-03) — fail rekaan Izzat sendiri (src/assets/adjung-brief-
+                logo.png, dari Claude Design), BUKAN teks CSS ditiru. Fail asal 1563×1563px penuh
+                ruang kosong sekeliling — dipotong (bekas overflow-hidden + img diposisi negatif)
+                supaya cuma tera "Adjung / BRIEF" kelihatan, nisbah potongan sama seperti yang
+                mockup Claude Design sendiri guna (crop kiri -18px atas -65px pada bekas 150×56,
+                diskala ke tinggi header ni). "· Editorium" kekal teks berasingan (konteks laman
+                ni sahaja, bukan sebahagian jenama). */}
+            <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity select-none">
+              <div className="relative w-[100px] h-[40px] overflow-hidden shrink-0">
+                <img
+                  src={ADJUNG_BRIEF_LOGO}
+                  alt={`${BRAND.name} logo`}
+                  className="absolute w-[130px] h-[130px] max-w-none"
+                  style={{ left: '-15px', top: '-44px' }}
+                />
+              </div>
+              <span className="font-mono text-[8px] tracking-[0.22em] font-semibold text-stone-400 uppercase leading-none border-l border-stone-200 pl-2">
+                Editorium
               </span>
             </a>
           </Tooltip>
