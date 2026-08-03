@@ -108,7 +108,11 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         await dbRun('INSERT OR IGNORE INTO user_roles (userId, roleId) VALUES (?, ?)', [id, roleId]);
       }
 
-      const pautanJemputan = `/tetapkan-kata-laluan?token=${tokenJemputan}`;
+      // URL PENUH diperlukan (bukan laluan relatif) — pautan ni dibuka daripada klien EMEL,
+      // bukan pelayar yang sedang di brief.adjung.com, jadi tiada origin sedia ada untuk
+      // pautan relatif "menyambung" kepadanya. Corak sama seperti sitemapRoutes.js/authRoutes.js.
+      const baseUrlJemputan = `${req.protocol}://${req.get('host')}`;
+      const pautanJemputan = `${baseUrlJemputan}/tetapkan-kata-laluan?token=${tokenJemputan}`;
       const hantaran = await hantarEmel({
         to: e,
         subject: 'Jemputan Sertai Adjung Brief',

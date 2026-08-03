@@ -281,7 +281,12 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
           "UPDATE users SET resetToken = ?, resetTokenExpiresAt = ? WHERE id = ?",
           [token, tamatTempoh, userRow.id]
         );
-        const pautan = `/tetapkan-kata-laluan?token=${token}`;
+        // URL PENUH diperlukan (bukan laluan relatif) — pautan ni dibuka daripada klien EMEL
+        // (Gmail/Outlook dll), bukan pelayar yang sedang di brief.adjung.com, jadi tiada
+        // konteks origin sedia ada untuk pautan relatif "menyambung" kepadanya. Corak sama
+        // seperti sitemapRoutes.js punya baseUrl.
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const pautan = `${baseUrl}/tetapkan-kata-laluan?token=${token}`;
         await hantarEmel({
           to: userRow.email,
           subject: 'Set Semula Kata Laluan — Adjung Brief',
