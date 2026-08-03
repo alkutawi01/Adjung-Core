@@ -36,7 +36,7 @@ const TINDAKAN_LABEL: Record<string, string> = {
   'ralat-pelayan': 'Ralat pelayan',
 };
 
-const labelTindakan = (action: string): string => {
+export const labelTindakan = (action: string): string => {
   if (TINDAKAN_LABEL[action]) return TINDAKAN_LABEL[action];
   if (action.startsWith('status:')) return `Tukar status: ${action.slice('status:'.length).replace('->', ' → ')}`;
   if (action.startsWith('status-akaun:')) return `Tukar status akaun: ${action.slice('status-akaun:'.length)}`;
