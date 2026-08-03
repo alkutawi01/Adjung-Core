@@ -66,7 +66,7 @@ serentak) dan lapisan infrastruktur (deploy, ralat, backup) hampir tiada.*
 
 ---
 
-### [~] Fasa 1 — Keselamatan & log masuk · `L` · ~6 hari · **PENGHALANG LAUNCH**
+### [x] Fasa 1 — Keselamatan & log masuk · `L` · ~6 hari · **PENGHALANG LAUNCH** · SIAP 2026-08-03
 Bahagian teras siap 2026-08-02 (commit `d44796d`) — 13 senario diuji terus di server hidup
 (bukan andaian): bocor password, akses tanpa sesi disekat, akses awam Frontpage kekal
 terbuka, log masuk, sekatan peranan KETUA_EDITOR, logout, had jenis fail media. `npm test`
@@ -96,8 +96,18 @@ sama seperti garis dasar, tiada regresi.
 - [x] Buang lalai `password TEXT DEFAULT 'password'` + laluan kembali teks biasa — disahkan
       SEMUA akaun sedia ada dah scrypt-hash, kedua-dua laluan cipta akaun (seed + POST
       /api/system/users) dah hash tanpa syarat, jadi laluan teks biasa mati kod dibuang
-- [ ] Jemputan editor baharu + token emel sebenar untuk set semula kata laluan — perlukan
-      infrastruktur SMTP, belum ada
+- [x] Jemputan editor baharu + token emel sebenar untuk set semula kata laluan — SIAP
+      2026-08-03. Infrastruktur SMTP sebenar (Hostinger, `nodemailer`, `core/email/MailSender.js`)
+      kini wujud, tanpa konfigurasi ia gagal senyap (log amaran, tak ranap pelayan). Dua aliran
+      dibina, kedua kongsi halaman awam `/tetapkan-kata-laluan?token=...` dan laluan
+      `POST /api/auth/aktifkan-akaun`: (1) jemputan editor baharu — Pentadbir tak lagi
+      menaip kata laluan awal terus (`POST /api/system/users` kini hantar emel token 48 jam);
+      (2) lupa-kata-laluan swadaya — `POST /api/auth/lupa-kata-laluan` (token 2 jam, respons
+      generik sama ada emel wujud atau tidak, had kadar 10/15 minit). `POST /api/auth/reset-
+      password` (KETUA_EDITOR set terus untuk editor terkunci) KEKAL berasingan, tak dibuang.
+      Token disahkan oleh `core/auth/TokenLaluan.js` (diuji `tests/tokenLaluan.test.js`:
+      sah/tamat tempoh/sudah digunakan), disahkan hidup di server sebenar (token tamat tempoh
+      ditolak, token digunakan-semula ditolak, aliran penuh set-kata-laluan → log masuk berjaya)
 - [x] Cipta akaun editor daripada UI — nota ni jugak LAPUK: `DirektoriConsole.tsx` "Cipta
       Akaun" dah wujud, panggil `POST /api/system/users` (hash password, semak keunikan
       username/emel, wajib ≥satu peranan)
@@ -113,9 +123,9 @@ sama seperti garis dasar, tiada regresi.
       matriks SEBENAR daripada `system_settings.rolePermissions` (cache dalam-memori,
       disegar semula lepas simpan), dipakai di 9 fail router; tiada gerbang HARDCODE
       role tinggal
-- [ ] `SESSION_SECRET` tetap dalam `.env` sebelum deploy sebenar (kini rahsia rawak
-      dijana setiap kali server bermula — semua sesi terputus setiap kali restart; amaran
-      dipaparkan di log server sehingga ditetapkan)
+- [x] `SESSION_SECRET` tetap dalam `.env` sebelum deploy sebenar — SIAP 2026-08-02, `.env`
+      produksi di Droplet ada nilai tetap dijana (`crypto.randomBytes(32)`), disahkan sesi
+      kekal selepas beberapa kali `pm2 restart`
 
 ### [x] Fasa 2 — Pepijat kritikal sedia ada + hutang ujian · SIAP 2026-08-02 (commit `9fabbf9`)
 Semua ditemui Fasa 0, semuanya menjejaskan data sebenar. `npm test` 84/84 lulus (garis
