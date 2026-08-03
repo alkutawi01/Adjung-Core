@@ -97,17 +97,30 @@ sama seperti garis dasar, tiada regresi.
       SEMUA akaun sedia ada dah scrypt-hash, kedua-dua laluan cipta akaun (seed + POST
       /api/system/users) dah hash tanpa syarat, jadi laluan teks biasa mati kod dibuang
 - [x] Jemputan editor baharu + token emel sebenar untuk set semula kata laluan — SIAP
-      2026-08-03. Infrastruktur SMTP sebenar (Hostinger, `nodemailer`, `core/email/MailSender.js`)
-      kini wujud, tanpa konfigurasi ia gagal senyap (log amaran, tak ranap pelayan). Dua aliran
-      dibina, kedua kongsi halaman awam `/tetapkan-kata-laluan?token=...` dan laluan
-      `POST /api/auth/aktifkan-akaun`: (1) jemputan editor baharu — Pentadbir tak lagi
-      menaip kata laluan awal terus (`POST /api/system/users` kini hantar emel token 48 jam);
-      (2) lupa-kata-laluan swadaya — `POST /api/auth/lupa-kata-laluan` (token 2 jam, respons
-      generik sama ada emel wujud atau tidak, had kadar 10/15 minit). `POST /api/auth/reset-
-      password` (KETUA_EDITOR set terus untuk editor terkunci) KEKAL berasingan, tak dibuang.
+      2026-08-03. Dua aliran dibina, kedua kongsi halaman awam
+      `/tetapkan-kata-laluan?token=...` dan laluan `POST /api/auth/aktifkan-akaun`:
+      (1) jemputan editor baharu — Pentadbir tak lagi menaip kata laluan awal terus
+      (`POST /api/system/users` kini hantar emel token 48 jam); (2) lupa-kata-laluan
+      swadaya — `POST /api/auth/lupa-kata-laluan` (token 2 jam, respons generik sama ada
+      emel wujud atau tidak, had kadar 10/15 minit). `POST /api/auth/reset-password`
+      (KETUA_EDITOR set terus untuk editor terkunci) KEKAL berasingan, tak dibuang.
       Token disahkan oleh `core/auth/TokenLaluan.js` (diuji `tests/tokenLaluan.test.js`:
-      sah/tamat tempoh/sudah digunakan), disahkan hidup di server sebenar (token tamat tempoh
-      ditolak, token digunakan-semula ditolak, aliran penuh set-kata-laluan → log masuk berjaya)
+      sah/tamat tempoh/sudah digunakan).
+      **Infrastruktur emel — 3 pepijat sebenar ditemui & dibetulkan semasa uji hidup di
+      produksi (bukan cuma ujian tempatan)**: (a) percubaan pertama guna SMTP Hostinger
+      terus (`nodemailer`) — DigitalOcean SEKAT semua port SMTP keluar (465 DAN 587)
+      secara lalai untuk Droplet baharu (dasar anti-spam), disahkan sambungan TCP mentah
+      gagal terus kedua-dua port; ditukar sepenuhnya kepada **Resend** (API HTTPS, port
+      443, elak sekatan SMTP terus) — domain `mail.adjung.com` sudah disahkan (verified)
+      di Resend sedia ada; (b) selepas nginx reverse proxy diaktifkan, `express-rate-
+      limit` tolak SEMUA permintaan (`ERR_ERL_UNEXPECTED_X_FORWARDED_FOR`) — perlukan
+      `app.set('trust proxy', 1)` supaya Express percaya header `X-Forwarded-For` nginx;
+      (c) pautan dalam emel tertulis `http:///tetapkan-kata-laluan?...` (laluan RELATIF
+      dihantar terus sebagai href, tiada origin untuk emel "sambung" kepadanya) —
+      dibetulkan guna `${req.protocol}://${req.get('host')}` (corak sama
+      `sitemapRoutes.js`). Disahkan hidup PENUH hujung-ke-hujung di produksi sebenar
+      selepas ketiga-tiga pembetulan: emel sampai, pautan betul, set kata laluan
+      berjaya, log masuk dengan kata laluan baharu berjaya
 - [x] Cipta akaun editor daripada UI — nota ni jugak LAPUK: `DirektoriConsole.tsx` "Cipta
       Akaun" dah wujud, panggil `POST /api/system/users` (hash password, semak keunikan
       username/emel, wajib ≥satu peranan)
