@@ -55,6 +55,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Deploy produksi (2026-08-03) letak nginx sebagai reverse proxy — tanpa `trust proxy`,
+// express-rate-limit menolak setiap permintaan (ERR_ERL_UNEXPECTED_X_FORWARDED_FOR) sebab
+// header X-Forwarded-For nginx wujud tapi Express tak dikonfigur untuk percayainya. Nilai `1`
+// bermakna percaya SATU proksi terdekat sahaja (nginx tempatan), bukan rantaian tak terhad.
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '10mb' }));
 
 // Sesi sesi editor (2026-08-02, Fasa 1 keselamatan) — sebelum ini sesi hanya wujud sebagai

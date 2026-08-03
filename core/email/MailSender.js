@@ -34,6 +34,11 @@ function dapatkanTransporter() {
       port: Number(process.env.SMTP_PORT) || 465,
       secure: true, // port 465 = TLS/SSL tersirat
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      // Paksa IPv4 (2026-08-03) — smtp.hostinger.com pulangkan rekod AAAA (IPv6) yang tak
+      // boleh dicapai daripada Droplet DigitalOcean (cuma ada IPv4), ENETUNREACH lambat
+      // (tersekat sehingga connection timeout) sebelum sambungan IPv4 dicuba. Paksa terus
+      // elak percubaan IPv6 yang tahu pasti gagal.
+      family: 4,
     });
   }
   return transporter;
