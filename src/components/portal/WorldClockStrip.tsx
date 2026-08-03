@@ -717,7 +717,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
               Nama hari huruf besar pada kedua-dua belah supaya baris kekal seragam. */}
           {metaHijriStr && (
             <>
-              <span className="font-serif text-[11px] font-light tracking-[0.02em] text-stone-500 whitespace-nowrap uppercase">
+              <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap uppercase">
                 {metaHijriStr} {metaClock.dayFull} {metaClock.masaMelayuStr}
               </span>
               <span className="w-px h-[9px] bg-stone-300" />

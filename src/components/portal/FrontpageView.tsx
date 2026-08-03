@@ -1584,14 +1584,20 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
           {/* RIGHT: CONTROLS & LANGUAGE TOGGLES */}
           {/* Baris kawalan ini KOSONG pada telefon apabila tiada bahasa didayakan: satu-satunya
-              kandungan lainnya ("Baca Paparan Penuh") sudah `hidden sm:inline`. Div kosong itu
+              kandungan lainnya ("Baca Paparan Penuh") sudah `hidden md:inline`. Div kosong itu
               tinggi 0px, TETAPI bekas induk ialah flex-col dengan gap-3 — jadi `gap` 12px masih
               dikenakan di bawah ticker, menjadikan baris ticker tersasar ke atas antara dua
               garisan (diukur: jurang atas 17px lawan bawah 28px). Disembunyikan sepenuhnya bila
-              tiada apa-apa untuk dipapar supaya gap hantu itu hilang. */}
-          <div className={`items-center gap-3 shrink-0 self-end md:self-auto ${enabledLanguages.length > 0 ? 'flex' : 'hidden sm:flex'}`}>
+              tiada apa-apa untuk dipapar supaya gap hantu itu hilang.
+
+              Ambang `md` (bukan `sm`) SENGAJA disamakan dengan `md:flex-row` bekas induk di atas
+              (2026-08-02, laporan pemilik projek) — susunan bertukar sebaris cuma pada `md`
+              (768px), jadi kalau label ni nampak lebih awal (`sm`, 640px) ia akan jatuh ke baris
+              BAWAH ticker dalam julat tablet (640-767px) sebelum bekas induk sempat jadi flex-row.
+              Dua ambang mesti sentiasa sepadan. */}
+          <div className={`items-center gap-3 shrink-0 self-end md:self-auto ${enabledLanguages.length > 0 ? 'flex' : 'hidden md:flex'}`}>
             {parsedTickerNewsItems.length > 0 && (
-              <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200 mr-1 hidden sm:inline">
+              <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200 mr-1 hidden md:inline">
                 &bull; Baca Paparan Penuh
               </span>
             )}
