@@ -651,6 +651,27 @@ fokus ni disahkan semula:
 
 ---
 
+### [ ] Fasa 18 — Penghalusan bahasa & micro-interaction · ditambah 2026-08-03
+Permintaan Izzat — dua kerja "polishing" berasingan daripada 17 fasa asal, bukan penghalang
+launch, boleh dibuat bila-bila selepas fasa teras siap.
+
+- [ ] **Audit bahasa Melayu menyeluruh** — semak SEMUA label/teks UI di Editorium DAN
+      frontpage (bukan cuma satu bahagian), betulkan grammar/istilah yang tak ikut DBP
+      (isu berulang dalam projek ni — adalah/ialah, bila/apabila, di mana, di dalam, dsb,
+      lihat memori sesi `feedback_malay_language_quality`). Semak juga konsistensi dengan
+      istilah yang dah diluluskan di `src/config/istilah.ts` sebelum tulis baharu. Skop:
+      audit dulu (senaraikan semua ditemui, jangan terus ubah), bentang kepada Izzat untuk
+      makluman/kelulusan sebelum betulkan secara pukal — label ialah keputusan UI/UX,
+      bukan pembetulan kod semata (lihat memori `feedback_ui_ux_needs_approval`).
+- [ ] **Micro-interaction** — animasi/interaksi halus skala kecil (cth hover butang, transisi
+      buka/tutup modal, keadaan loading) — **BUKAN** sama dengan item "Jenis animasi
+      transisi" Fasa 7 (yang tu khusus animasi carousel kad bento/carousel, masih KIV
+      berasingan menunggu reka bentuk skema tetapan per-jenis daripada Izzat). Skop tepat
+      (yang mana elemen, gaya animasi macam mana) belum diputuskan — perlu bincang dengan
+      Izzat dulu sebelum bina, bukan reka sendiri (prinsip sama macam KIV Fasa 7).
+
+---
+
 ## Peraturan kerja
 
 1. Setiap fasa: bina → sahkan visual di browser sebenar → uji → commit + push → tanda `[x]`.
