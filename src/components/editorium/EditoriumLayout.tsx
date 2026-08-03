@@ -162,18 +162,18 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 : restricted(item.id) ? 'Hanya Ketua Editor'
                 : dilipat ? item.label : undefined
               }
-              className={`w-full flex items-center gap-2 text-xs font-medium py-2 rounded-lg transition-colors duration-150 ${
+              className={`w-full flex items-center gap-2 text-xs font-medium py-2 rounded transition-colors duration-150 ${
                 dilipat ? 'justify-center px-2' : 'justify-between px-3'
               } ${
                 isActive
-                  ? 'bg-[#802334] text-white font-semibold'
+                  ? 'text-[#802334] font-semibold bg-[#802334]/[0.06] shadow-[inset_2px_0_0_#802334]'
                   : isLocked
                   ? 'text-stone-300 cursor-not-allowed'
                   : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.04] cursor-pointer'
               }`}
             >
               <span className={`flex items-center gap-2.5 min-w-0 ${dilipat ? 'justify-center' : ''}`}>
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-stone-400'}`} strokeWidth={2.2} />
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#802334]' : 'text-stone-400'}`} strokeWidth={2.2} />
                 {!dilipat && <span className="truncate">{item.label}</span>}
               </span>
               {!dilipat && !loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
@@ -191,32 +191,36 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
     // dengan ruang kosong terbiar di bawahnya sehingga hujung skrin. Kini footer SENTIASA di
     // bawah — melekat di hujung viewport bila kandungan pendek, turun ikut skrol bila panjang.
     <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans antialiased flex flex-col">
-      {/* Editorium Header — bar identiti sahaja, maroon jelas. */}
-      <header className="relative bg-Adjung-maroon-dark text-[#FDFDFD] select-none overflow-hidden">
-        <div className="relative px-4 md:px-8 py-2 flex flex-wrap justify-between items-center gap-3">
+      {/* Editorium Header — bar identiti. 2026-08-03: reskin warna/gaya ikon ikut mockup Claude
+          Design Izzat ("ledger editorial" — latar cerah, garis rambut, aksen maroon), TAPI kekal
+          DUA keputusan sengaja lama yang disahkan semula (bukan diguna pakai mockup 100%):
+          butang tambah kandungan kekal IKON SAHAJA (bukan berlabel), dan susunan/tingkah laku
+          setiap elemen (log masuk/keluar, profil, makluman) kekal serupa. */}
+      <header className="relative bg-[#FDFDFD] border-b border-stone-200 select-none overflow-hidden">
+        <div className="relative px-4 md:px-8 py-2.5 flex flex-wrap justify-between items-center gap-3">
           <Tooltip text="Klik untuk kembali ke Frontpage">
-            <a href="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity select-none">
-              <span className="font-serif font-normal text-lg tracking-tight text-[#FDFDFD] leading-none">{BRAND.logoText}</span>
-              <span className="font-sans text-[9px] tracking-[0.22em] font-semibold text-[#c9929a] uppercase leading-none border-l border-white/15 pl-2.5">
+            <a href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity select-none">
+              <span className="font-serif font-normal text-lg tracking-tight text-[#802334] leading-none">{BRAND.logoText}</span>
+              <span className="font-mono text-[9px] tracking-[0.18em] font-semibold text-stone-400 uppercase leading-none border-l border-stone-200 pl-2.5">
                 {BRAND.subLabel} · Editorium
               </span>
             </a>
           </Tooltip>
 
-          <div className="flex items-center gap-2.5 font-sans text-[11px]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif' }}>
+          <div className="flex items-center gap-2.5 font-sans text-[11px]">
             {currentUser ? (
               <>
                 {/* Susunan header (2026-08-01) — nama/peranan editor diletak DEKAT HUJUNG KANAN
                     (bersebelahan Log Keluar), bukan di hadapan ikon-ikon tindakan. Ikon (tambah
                     kandungan, Makluman) datang dahulu, badge profil + Log Keluar menutup di hujung. */}
                 {/* Butang tambah kandungan — ikon sahaja (spesifikasi asal pemilik projek: "+"
-                    sebagai simbol, bukan label teks). */}
+                    sebagai simbol, bukan label teks — disahkan semula 2026-08-03). */}
                 {onOpenSlotPicker && (
                   <button
                     type="button"
                     onClick={onOpenSlotPicker}
                     title="Tulis Kandungan Baharu"
-                    className="flex items-center justify-center w-7 h-7 bg-white text-[#802334] rounded-full font-bold hover:bg-stone-100 transition-colors cursor-pointer"
+                    className="flex items-center justify-center w-7 h-7 bg-[#802334] text-white rounded hover:bg-[#9b2c41] transition-colors cursor-pointer"
                   >
                     <PenLine className="w-3.5 h-3.5" />
                   </button>
@@ -227,11 +231,11 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                     type="button"
                     onClick={onOpenMakluman}
                     title="Peti Makluman — nota Ketua Editor"
-                    className="relative flex items-center justify-center w-7 h-7 bg-white/[0.08] backdrop-blur-xl rounded-full border border-white/[0.1] text-white/80 hover:text-white hover:bg-white/[0.14] transition-colors cursor-pointer"
+                    className="relative flex items-center justify-center w-7 h-7 border border-stone-200 rounded text-stone-500 hover:text-[#802334] hover:border-stone-300 hover:bg-stone-50 transition-colors cursor-pointer"
                   >
                     <Mail className="w-3.5 h-3.5" />
                     {jumlahMakluman > 0 && (
-                      <span className="absolute -top-1 -right-1 font-mono text-[9px] font-bold bg-[#e0b7bd] text-[#5c1624] rounded-full min-w-[16px] px-1 leading-4 text-center">
+                      <span className="absolute -top-1.5 -right-1.5 font-mono text-[9px] font-bold bg-[#802334] text-white rounded-full min-w-[16px] px-1 leading-4 text-center border-2 border-[#FDFDFD]">
                         {jumlahMakluman}
                       </span>
                     )}
@@ -244,15 +248,15 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                   onClick={onOpenProfil}
                   title="Profil Editor"
                   disabled={!onOpenProfil}
-                  className="flex items-center gap-2 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1] hover:bg-white/[0.14] transition-colors cursor-pointer disabled:cursor-default"
+                  className="flex items-center gap-2 border border-stone-200 px-2.5 py-1 rounded hover:bg-stone-50 hover:border-stone-300 transition-colors cursor-pointer disabled:cursor-default"
                 >
                   <span className="relative flex w-1.5 h-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
                     <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500"></span>
                   </span>
-                  <span className="text-stone-100 font-medium">{currentUser.name}</span>
-                  <span className="text-white/30">·</span>
-                  <span className="text-[#e0b7bd]">{
+                  <span className="text-stone-800 font-medium">{currentUser.name}</span>
+                  <span className="text-stone-300">·</span>
+                  <span className="text-[#802334] font-mono text-[9.5px] uppercase tracking-wider font-semibold">{
                     // 2026-08-02 (Fasa 3) — label peranan SEBENAR (boleh berbilang, cth "Pentadbir,
                     // Ketua Editor"), bukan label binari lama.
                     roles.length > 0
@@ -263,7 +267,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 {onLogout && (
                   <button
                     onClick={onLogout}
-                    className="flex items-center gap-1 bg-white/[0.08] backdrop-blur-xl px-2.5 py-1 rounded-full border border-white/[0.1] text-white/70 hover:text-white transition-colors"
+                    className="flex items-center gap-1 border border-stone-200 px-2.5 py-1 rounded text-stone-500 hover:text-[#802334] hover:border-stone-300 hover:bg-stone-50 transition-colors"
                   >
                     <LogOut className="w-3 h-3" /> Log Keluar
                   </button>
@@ -273,7 +277,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               onRequestLogin && (
                 <button
                   onClick={onRequestLogin}
-                  className="flex items-center gap-1.5 bg-white/[0.08] backdrop-blur-xl px-3 py-1 rounded-full border border-white/[0.1] text-white hover:bg-white/[0.15] transition-colors font-medium"
+                  className="flex items-center gap-1.5 bg-[#802334] px-3 py-1 rounded text-white hover:bg-[#9b2c41] transition-colors font-medium"
                 >
                   <LogIn className="w-3.5 h-3.5" /> Log Masuk
                 </button>
@@ -300,7 +304,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           // Klik mana-mana pada sidebar tertutup = buka. Bila sudah terbuka, klik di sini tak
           // buat apa-apa; butang destinasi di dalamnya yang mengambil alih.
           onClick={() => { if (dilipat) setDilipat(false); }}
-          className={`hidden md:flex md:flex-col fixed left-0 top-[42px] h-[calc(100vh-42px)] z-30 overflow-y-auto bg-[#F6F4EF] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
+          className={`hidden md:flex md:flex-col fixed left-0 top-[42px] h-[calc(100vh-42px)] z-30 overflow-y-auto bg-[#FDFDFD] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
             dilipat ? 'w-[4.5rem] cursor-pointer' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
           }`}
         >
@@ -320,7 +324,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
         {/* Sidebar dibalut jadi bar mendatar boleh skrol pada skrin sempit (< md) — bukan
             disembunyikan terus, atau Editorium jadi tak boleh dinavigasi pada telefon/tablet. */}
-        <nav className="md:hidden w-full overflow-x-auto flex gap-1 px-3 py-2 border-b border-stone-200 bg-[#F6F4EF]">
+        <nav className="md:hidden w-full overflow-x-auto flex gap-1 px-3 py-2 border-b border-stone-200 bg-[#FDFDFD]">
           {[...UTAMA, ...PENERBITAN, ...PENGURUSAN, ...RUJUKAN].map((item) => {
             const isActive = currentTab === item.id && !loggedOut;
             const isLocked = loggedOut || restricted(item.id);
@@ -350,14 +354,14 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-stone-200 bg-stone-100 px-4 md:px-8 py-3 font-sans text-xs text-stone-500 flex flex-wrap justify-between items-center gap-2 select-none">
+      <footer className="border-t border-stone-200 bg-[#FDFDFD] px-4 md:px-8 py-3 font-sans text-[11px] text-stone-400 flex flex-wrap justify-between items-center gap-2 select-none">
         <div>
-          Adjung Brief Editorium • Editorial Control System
+          Adjung Brief Editorium · Sistem Kawalan Editorial
         </div>
         <div className="flex items-center gap-1.5">
           Status Sistem:
-          <span className="flex items-center gap-1.5 text-emerald-700 font-semibold">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="flex items-center gap-1.5 font-mono text-[10.5px] font-semibold" style={{ color: '#3d6b4c' }}>
+            <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: '#3d6b4c' }} />
             Dilindungi &amp; Aktif
           </span>
         </div>
