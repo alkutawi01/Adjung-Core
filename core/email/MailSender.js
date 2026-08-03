@@ -1,4 +1,12 @@
+import dns from 'node:dns';
 import nodemailer from 'nodemailer';
+
+// Paksa keutamaan IPv4 untuk SEMUA carian DNS proses ini (2026-08-03) — Droplet DigitalOcean
+// cuma ada sambungan IPv4, tapi smtp.hostinger.com pulangkan rekod AAAA (IPv6) juga. `nodemailer`
+// TIDAK terima pilihan `family` (disahkan: tiada rujukan langsung dalam kod sumbernya) — cara
+// betul ialah tetapkan keutamaan resolusi DNS Node.js sendiri, bukan konfigurasi per-sambungan.
+// Selamat global sebab pelayan ni tak buat carian DNS lain yang perlukan IPv6 langsung.
+dns.setDefaultResultOrder('ipv4first');
 
 // Penghantar emel (2026-08-03, Fasa 1) — infrastruktur SMTP sebenar (Hostinger) untuk jemputan
 // editor baharu & set semula kata laluan sendiri. Dahulu dua aliran ni tak boleh dibina langsung
@@ -34,11 +42,6 @@ function dapatkanTransporter() {
       port: Number(process.env.SMTP_PORT) || 465,
       secure: true, // port 465 = TLS/SSL tersirat
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      // Paksa IPv4 (2026-08-03) — smtp.hostinger.com pulangkan rekod AAAA (IPv6) yang tak
-      // boleh dicapai daripada Droplet DigitalOcean (cuma ada IPv4), ENETUNREACH lambat
-      // (tersekat sehingga connection timeout) sebelum sambungan IPv4 dicuba. Paksa terus
-      // elak percubaan IPv6 yang tahu pasti gagal.
-      family: 4,
     });
   }
   return transporter;
