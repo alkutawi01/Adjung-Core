@@ -1,8 +1,11 @@
 import express from 'express';
+import crypto from 'crypto';
 import { requirePermission } from '../middleware/auth.js';
 import { hashPassword } from './authRoutes.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { notify, notifyMany } from '../notifications/Notify.js';
+import { hantarEmel } from '../email/MailSender.js';
+import { janaTokenTamatTempoh } from '../auth/TokenLaluan.js';
 
 // Direktori (2026-08-02, Fasa 3) — dahulu `staffList` konsol client array kosong berkod keras,
 // "+ Tambah Anggota" hiasan, tindakan status hanya state React (hilang bila muat semula). Laluan
@@ -59,17 +62,22 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/system/users — cipta akaun editor baharu.
+  //
+  // 2026-08-03 (Fasa 1, jemputan editor baharu) — DAHULU Pentadbir menaip kata laluan awal
+  // terus dalam borang, kemudian terpaksa beritahu editor baharu kata laluan tu secara luar
+  // talian (WhatsApp/Slack/verbal) — bocor keselamatan sebenar. Kini Pentadbir TIDAK memilih
+  // kata laluan langsung: akaun dicipta dengan hash kata laluan rawak yang tak boleh log masuk
+  // (`resetToken` yang tentukan pemilikan sebenar), emel jemputan dihantar ke editor baharu
+  // dengan pautan `/tetapkan-kata-laluan?token=...` (sah 48 jam) supaya dia tetapkan kata
+  // laluannya SENDIRI — lihat POST /api/auth/aktifkan-akaun di authRoutes.js.
   router.post('/users', requirePermission('manageAccounts'), async (req, res) => {
     try {
-      const { username, email, penName, password, roles } = req.body || {};
+      const { username, email, penName, roles } = req.body || {};
       const u = (username || '').trim().toLowerCase();
       const e = (email || '').trim().toLowerCase();
       const pn = (penName || '').trim();
-      if (!u || !e || !pn || !password) {
-        return res.status(400).json({ error: 'Username, emel, nama pena dan kata laluan diperlukan.' });
-      }
-      if (password.length < 8) {
-        return res.status(400).json({ error: 'Kata laluan mesti sekurang-kurangnya 8 aksara.' });
+      if (!u || !e || !pn) {
+        return res.status(400).json({ error: 'Username, emel dan nama pena diperlukan.' });
       }
       const rolesToAssign = Array.isArray(roles) ? roles.filter((r) => ROLE_IDS_SAH.includes(r)) : [];
       if (rolesToAssign.length === 0) {
@@ -83,16 +91,32 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
 
       const id = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const kini = new Date().toISOString();
+      const tokenJemputan = crypto.randomBytes(32).toString('hex');
+      const tamatTempoh = janaTokenTamatTempoh(48);
+      // Hash kata laluan rawak sekali-lalu — lajur `password` DB tak boleh NULL, tapi nilai ni
+      // tak pernah diketahui/dimasukkan sesiapa jadi mustahil dipadankan verifyPassword() sehingga
+      // editor tetapkan kata laluannya sendiri melalui token jemputan.
+      const kataLaluanSementara = hashPassword(crypto.randomBytes(32).toString('hex'));
       await dbRun(
-        `INSERT INTO users (id, username, email, role, penName, isSuspended, status, password, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, 0, 'Aktif', ?, ?, ?)`,
+        `INSERT INTO users (id, username, email, role, penName, isSuspended, status, password, resetToken, resetTokenExpiresAt, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, 0, 'Aktif', ?, ?, ?, ?, ?)`,
         // `role` legasi diisi ikut peranan tertinggi yang dipilih, sekadar untuk paparan lama —
         // sumber kebenaran sebenar ialah user_roles di bawah.
-        [id, u, e, rolesToAssign.includes('ketua_editor') ? 'KETUA_EDITOR' : 'EDITOR', pn, hashPassword(password), kini, kini]
+        [id, u, e, rolesToAssign.includes('ketua_editor') ? 'KETUA_EDITOR' : 'EDITOR', pn, kataLaluanSementara, tokenJemputan, tamatTempoh, kini, kini]
       );
       for (const roleId of rolesToAssign) {
         await dbRun('INSERT OR IGNORE INTO user_roles (userId, roleId) VALUES (?, ?)', [id, roleId]);
       }
+
+      const pautanJemputan = `/tetapkan-kata-laluan?token=${tokenJemputan}`;
+      const hantaran = await hantarEmel({
+        to: e,
+        subject: 'Jemputan Sertai Adjung Brief',
+        html: `<p>Salam ${pn},</p>` +
+          `<p>Anda telah dijemput sertai Adjung Brief sebagai ${rolesToAssign.join(', ')}.</p>` +
+          `<p>Klik pautan berikut untuk menetapkan kata laluan akaun anda (sah selama 48 jam):</p>` +
+          `<p><a href="${pautanJemputan}">${pautanJemputan}</a></p>`,
+      });
 
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
@@ -103,7 +127,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         detail: `${pn} (${u}) — peranan: ${rolesToAssign.join(', ')}`,
       });
 
-      res.json({ success: true, id });
+      res.json({ success: true, id, emelDihantar: hantaran.berjaya });
     } catch (err) {
       console.error('POST users error:', err);
       res.status(500).json({ error: 'Gagal mencipta akaun. ' + (err.message || '') });

@@ -46,6 +46,7 @@ import { createContentRoutes, runSchedulingTick } from './core/routes/contentRou
 import { createNotificationRoutes } from './core/routes/notificationRoutes.js';
 import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
+import { semakKonfigSmtpStartup } from './core/email/MailSender.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
 const mockDb = {};
@@ -87,6 +88,17 @@ const loginRateLimiter = rateLimit({
   message: { error: 'Terlalu banyak cubaan log masuk. Cuba lagi selepas beberapa minit.' },
 });
 app.use('/api/auth/login', loginRateLimiter);
+
+// Had kadar lupa-kata-laluan (2026-08-03, Fasa 1) — sama corak had log masuk, elak seseorang
+// spam permintaan emel reset untuk sesuatu akaun (atau imbas emel berdaftar melalui masa respons).
+const lupaKataLaluanRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Jika emel ini berdaftar, pautan set semula telah dihantar.' },
+});
+app.use('/api/auth/lupa-kata-laluan', lupaKataLaluanRateLimiter);
 
 const dbPath = path.join(__dirname, 'adjung.db');
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -158,6 +170,12 @@ const initializeSchema = () => {
       // cuma `isSuspended` boolean, tak cukup nuansa untuk "Cuti" vs "Ditamatkan". `isSuspended`
       // dikekalkan (log masuk masih semaknya) dan diselaraskan bila `status` berubah.
       db.run("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'Aktif';", () => {});
+      // Jemputan editor baharu + set semula kata laluan sendiri (2026-08-03, Fasa 1) — token
+      // sekali-guna + tamat tempoh, disemak oleh core/auth/TokenLaluan.js's semakStatusToken().
+      // Dikongsi oleh DUA aliran (aktifkan akaun jemputan & lupa-kata-laluan) — lihat
+      // core/routes/authRoutes.js's POST /aktifkan-akaun.
+      db.run("ALTER TABLE users ADD COLUMN resetToken TEXT;", () => {});
+      db.run("ALTER TABLE users ADD COLUMN resetTokenExpiresAt TEXT;", () => {});
 
       // 2026-08-02 (Fasa 4) — Log Audit: dahulu SIFAR jejak, tiada jadual langsung. Rekod
       // tindakan editorial/pentadbiran penting (terbit/tolak/arkib kandungan, urus akaun,
@@ -2852,6 +2870,7 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend API server running on http://localhost:${PORT}`);
+  semakKonfigSmtpStartup();
 
   // Scheduler dalaman: server ni proses Node yang berjalan berterusan (bukan serverless).
   //

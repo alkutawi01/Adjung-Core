@@ -46,6 +46,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [tambahTerbuka, setTambahTerbuka] = useState(false);
+  const [mesejBerjaya, setMesejBerjaya] = useState('');
 
   const muatSemula = () => {
     setMemuat(true);
@@ -273,21 +274,31 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
         </div>
       )}
 
+      {mesejBerjaya && (
+        <div className="fixed bottom-4 right-4 z-[80] bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-sans rounded px-4 py-3 shadow-lg max-w-sm">
+          {mesejBerjaya}
+          <button type="button" onClick={() => setMesejBerjaya('')} className="ml-3 text-emerald-600 hover:text-emerald-900 font-bold">✕</button>
+        </div>
+      )}
+
       {tambahTerbuka && (
         <TambahAnggotaModal
           onTutup={() => setTambahTerbuka(false)}
-          onBerjaya={() => { setTambahTerbuka(false); muatSemula(); }}
+          onBerjaya={(emel: string) => {
+            setTambahTerbuka(false);
+            muatSemula();
+            setMesejBerjaya(`Akaun dicipta. E-mel jemputan telah dihantar ke ${emel} untuk tetapkan kata laluan.`);
+          }}
         />
       )}
     </div>
   );
 };
 
-function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerjaya: () => void }) {
+function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerjaya: (emel: string) => void }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [penName, setPenName] = useState('');
-  const [password, setPassword] = useState('');
   const [roles, setRoles] = useState<string[]>(['editor']);
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState('');
@@ -296,6 +307,10 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
     setRoles(prev => prev.includes(roleId) ? prev.filter(r => r !== roleId) : [...prev, roleId]);
   };
 
+  // 2026-08-03 (Fasa 1) — kata laluan awal DIBUANG dari borang ni: Pentadbir tak lagi memilih
+  // kata laluan editor baharu (bocor keselamatan luar talian). Sistem hantar emel jemputan
+  // bertoken supaya editor baharu tetapkan kata laluannya sendiri — lihat POST /api/system/users
+  // (userAdminRoutes.js) & halaman awam /tetapkan-kata-laluan.
   const hantar = async (e: React.FormEvent) => {
     e.preventDefault();
     setMenyimpan(true);
@@ -304,11 +319,11 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
       const res = await fetch('/api/system/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, penName, password, roles }),
+        body: JSON.stringify({ username, email, penName, roles }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal mencipta akaun.');
-      onBerjaya();
+      onBerjaya(email);
     } catch (err: any) {
       setRalat(err.message || 'Gagal mencipta akaun.');
     } finally {
@@ -336,10 +351,10 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
           <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Emel</span>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Kata Laluan Awal</span>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
-        </label>
+        <p className="text-[10px] text-stone-500 leading-relaxed">
+          Kata laluan tak ditetapkan di sini — e-mel jemputan bertoken akan dihantar ke alamat
+          emel di atas supaya anggota baharu menetapkan kata laluannya sendiri.
+        </p>
 
         <div className="flex flex-col gap-1">
           <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Peranan</span>

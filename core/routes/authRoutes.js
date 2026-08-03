@@ -2,6 +2,8 @@ import express from 'express';
 import crypto from 'crypto';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { notify } from '../notifications/Notify.js';
+import { hantarEmel } from '../email/MailSender.js';
+import { semakStatusToken, janaTokenTamatTempoh, STATUS_TOKEN } from '../auth/TokenLaluan.js';
 
 // Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
 // Exported so server.js's DB seeding step can hash the initial Chief Editor account's random
@@ -253,6 +255,82 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
     } catch (err) {
       console.error('Reset password error:', err);
       res.status(500).json({ error: 'Reset password failed.' });
+    }
+  });
+
+  // POST /api/auth/lupa-kata-laluan (2026-08-03, Fasa 1) — aliran SWADAYA (self-service) baharu,
+  // BERBEZA daripada /reset-password di atas: di sini pengguna sendiri memohon (tiada sesi log
+  // masuk), token bertempoh dihantar ke emel berdaftar akaun tu (bukan admin menaip kata laluan
+  // baharu terus). /reset-password KEKAL sebagai laluan Pentadbir untuk editor terkunci tanpa
+  // akses emel — dua laluan ni bersama, bukan gantian.
+  //
+  // Keselamatan: respons SAMA sama ada emel wujud atau tidak (anti-enumeration) — jangan sekali
+  // -kali bocorkan status pendaftaran emel melalui mesej berlainan.
+  router.post('/lupa-kata-laluan', async (req, res) => {
+    const mesejGeneric = { message: 'Jika emel ini berdaftar, pautan set semula telah dihantar.' };
+    try {
+      const { email } = req.body || {};
+      if (!email) return res.json(mesejGeneric);
+
+      const normalized = email.trim().toLowerCase();
+      const userRow = await dbGet("SELECT * FROM users WHERE LOWER(email) = ?", [normalized]);
+      if (userRow) {
+        const token = crypto.randomBytes(32).toString('hex');
+        const tamatTempoh = janaTokenTamatTempoh(2); // 2 jam — lebih pendek drpd jemputan (48j)
+        await dbRun(
+          "UPDATE users SET resetToken = ?, resetTokenExpiresAt = ? WHERE id = ?",
+          [token, tamatTempoh, userRow.id]
+        );
+        const pautan = `/tetapkan-kata-laluan?token=${token}`;
+        await hantarEmel({
+          to: userRow.email,
+          subject: 'Set Semula Kata Laluan — Adjung Brief',
+          html: `<p>Salam ${userRow.penName || userRow.username},</p>` +
+            `<p>Kami menerima permohonan untuk menetapkan semula kata laluan akaun Adjung Brief anda. ` +
+            `Klik pautan berikut (sah selama 2 jam):</p>` +
+            `<p><a href="${pautan}">${pautan}</a></p>` +
+            `<p>Jika anda tidak memohon set semula ini, abaikan sahaja emel ini — kata laluan anda kekal tidak berubah.</p>`,
+        });
+      }
+      res.json(mesejGeneric);
+    } catch (err) {
+      console.error('Lupa kata laluan error:', err);
+      res.json(mesejGeneric);
+    }
+  });
+
+  // POST /api/auth/aktifkan-akaun (2026-08-03, Fasa 1) — laluan AWAM (tiada sesi log masuk),
+  // dipakai oleh DUA aliran: tetapkan kata laluan buat pertama kali (jemputan editor baharu,
+  // lihat POST /api/system/users di userAdminRoutes.js) DAN set semula kata laluan sendiri
+  // (POST /lupa-kata-laluan di atas). Kedua guna token+kata laluan sahaja — token itu sendiri
+  // yang membuktikan pemilikan akaun, disahkan oleh semakStatusToken().
+  router.post('/aktifkan-akaun', async (req, res) => {
+    try {
+      const { token, password } = req.body || {};
+      if (!token || !password) {
+        return res.status(400).json({ error: 'Token dan kata laluan diperlukan.' });
+      }
+      if (password.length < 8) {
+        return res.status(400).json({ error: 'Kata laluan mesti sekurang-kurangnya 8 aksara.' });
+      }
+
+      const userRow = await dbGet("SELECT * FROM users WHERE resetToken = ?", [token]);
+      const status = semakStatusToken(userRow);
+      if (status === STATUS_TOKEN.TIDAK_WUJUD) {
+        return res.status(404).json({ error: 'Pautan tidak sah atau sudah digunakan.' });
+      }
+      if (status === STATUS_TOKEN.TAMAT_TEMPOH) {
+        return res.status(410).json({ error: 'Pautan ini sudah tamat tempoh. Sila mohon pautan baharu.' });
+      }
+
+      await dbRun(
+        "UPDATE users SET password = ?, resetToken = NULL, resetTokenExpiresAt = NULL WHERE id = ?",
+        [hashPassword(password), userRow.id]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Aktifkan akaun error:', err);
+      res.status(500).json({ error: 'Gagal menetapkan kata laluan.' });
     }
   });
 
