@@ -550,9 +550,28 @@ persediaan (setiap item bawah KECUALI deploy sebenar — lihat "KIV — tunggu I
       kandungan editorial bertanda ujian ditemui pada peringkat `editorial_objects`
 - [x] **Backup** — `adjung.db.backup-20260802-154916-fasa17-final-verified` (lepas
       pembersihan & pengesahan penuh di atas), disahkan `git check-ignore` (gitignored)
-- [ ] **Deploy sebenar & sahkan pasca-deploy** — **KIV, ditahan utk Izzat** (lihat "KIV —
-      tunggu Izzat" di atas: tindakan tak boleh patah balik, kesan sistem produksi sebenar).
-      Semua persediaan di atas siap; butang "deploy" sendiri sengaja tak ditekan sesi ni
+- [x] **Deploy sebenar & sahkan pasca-deploy** — SIAP 2026-08-02, dijalankan Izzat sendiri
+      (setiap arahan ditekan Izzat di Web Console DigitalOcean, saya cuma bimbing/sediakan)
+      selepas keputusan platform (VPS/VM DigitalOcean, lihat `DEPLOY.md`):
+      - Droplet `adjung-brief-prod` (Ubuntu 24.04, 1GB/1vCPU, rantau Singapore)
+      - Node 20 LTS + pm2 (auto-mula bila reboot via `pm2 startup`) + firewall `ufw` (22/80/443)
+      - **Pepijat SEBENAR ditemui & dibetulkan semasa deploy** (bukan diketahui sebelum ni):
+        `server.js` import terus `.ts` (`src/config/istilah.ts`) — jalan lancar di komputer
+        pembangunan (Node 24, sokongan native TypeScript) tapi GAGAL (`ERR_UNKNOWN_FILE_EXTENSION`)
+        di Node 20 (LTS server produksi). Dibetulkan: `npm start` & panduan pm2 kini guna `tsx`
+        (dah devDependency projek, cara sama macam `npm run dev`) — lihat commit `3f03b05`.
+        Nota: ujian binaan tempatan tak dapat kesan bug ni sebab versi Node berbeza — pelajaran
+        untuk deploy akan datang, sentiasa uji betul-betul di persekitaran/versi Node produksi.
+      - `npm audit fix` (bukan `--force`) dijalankan semasa persediaan — 15→9 kelemahan
+        (body-parser/postcss/protobufjs/react-router dibetulkan; baki rantaian sqlite3/tar
+        sengaja tak disentuh, perlukan breaking change, risiko native binding sqlite3)
+      - nginx reverse proxy + domain **`brief.adjung.com`** (subdomain — domain induk
+        `adjung.com` kekal untuk laman Adjung Platform berasingan di Vercel, rekod DNS `A`
+        subdomain ditambah tanpa ganggu wildcard `*.adjung.com` sedia ada)
+      - HTTPS percuma via Certbot/Let's Encrypt, auto-renew berjadual, http→https redirect
+        automatik (disahkan `301`)
+      - Disahkan pasca-deploy: restart pm2 terkawal → `adjung.db` utuh, server pulih normal
+        (200 OK selepas restart) — pengesahan cakera berkekalan sebenar
 
 **Semakan semula 2026-08-02 (lepas pemindahan Ticker/Bar + buang kod mati)**: gelombang besar
 kerja mendarat SELEPAS pengesahan asal di atas — Ticker & Slot Bar berpindah penuh ke Editorium
