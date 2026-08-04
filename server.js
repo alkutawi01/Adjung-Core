@@ -2281,6 +2281,9 @@ const serializeDraftBlock = (item) => [
   `Huraian panjang: ${item.briefLong || ''}`,
   `Sumber: ${item.source || ''}`,
   `URL: ${item.url || ''}`,
+  // Jenis sumber (Fasa 8b, 2026-08-05) — sepadan pembetulan ManualBlockFormat.js's
+  // serializeManualBentoItem (baris ni hilang senyap di sana sebelum ni juga).
+  `Jenis sumber: ${item.sourceType || ''}`,
   `Tarikh sumber: ${item.originalDate || ''}`,
   `Imej: ${item.image || ''}`,
   `Nota: ${item.note || ''}`,

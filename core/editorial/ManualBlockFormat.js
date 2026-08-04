@@ -155,6 +155,12 @@ export function serializeManualBentoItem(item) {
     `Huraian panjang: ${item.briefLong || ''}`,
     `Sumber: ${item.source || ''}`,
     `URL: ${item.url || ''}`,
+    // Jenis sumber (Fasa 8b, 2026-08-05) — SEBELUM NI TIADA DI SINI walaupun
+    // parseManualBlockFields() (atas fail ni) SUDAH baca baris ni sejak sekian lama: nilai yang
+    // editor pilih hilang senyap pada bulatan simpan seterusnya (baca → simpan → baca semula =
+    // kosong), sebab serialize tak pernah tulis baris ni balik ke teks. Ditemui semasa sambung
+    // dropdown UI (SlotManagerModal.tsx) — pepijat sedia ada, bukan diperkenalkan ciri baharu ni.
+    `Jenis sumber: ${item.sourceType || ''}`,
     `Tarikh sumber: ${item.date || ''}`,
     `Imej: ${item.image || ''}`,
     `Nota: ${item.note || ''}`,

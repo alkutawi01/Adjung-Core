@@ -133,6 +133,33 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, hint }: { la
   );
 }
 
+// Jenis Sumber (Fasa 8b, 2026-08-05) — dropdown Teks/Audio/Video. Adjung Brief cuma ambil
+// sumber daripada URL (laman web/audio/video dalam talian), tiada bahan bercetak fizikal — jadi
+// "Teks" (nilai simpanan 'web', sepadan SourceDetector.js) meliputi laman web/artikel/PDF, bukan
+// cuma laman web sempit. Dikesan automatik daripada URL/teks (core/editorial/SourceDetector.js)
+// bila editor tak override — medan ni bagi editor pilihan tulis ganti bila auto-kesan tersasar.
+const JENIS_SUMBER_PILIHAN: { value: string; label: string }[] = [
+  { value: 'web', label: 'Teks' },
+  { value: 'audio', label: 'Audio' },
+  { value: 'video', label: 'Video' },
+];
+function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className={labelCls}>{label}</span>
+      <select
+        value={value || options[0].value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors cursor-pointer"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 // Medan boleh taip (URL/nama fail sedia ada) DAN muat naik terus — butang panggil
 // /api/media/upload (base64 di badan JSON, lihat core/routes/mediaRoutes.js), tukar respons
 // { url } jadi nilai medan. Tidak buang keupayaan taip terus, sebab kandungan sedia ada mungkin
@@ -282,7 +309,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // key={editingSlotIndex} — tukar slot = remount penuh, bukan sekadar prop baharu.
   const blankItem = (suffix: string | number = '') => ({
     uuid: `object-manual-slot${editingSlotIndex}-${Date.now()}${suffix}`,
-    title: '', brief: '', briefLong: '', topik: '', source: '', url: '', date: '', note: '', image: '',
+    title: '', brief: '', briefLong: '', topik: '', source: '', url: '', sourceType: '', date: '', note: '', image: '',
     // Alur kerja Draf/Terbit (2026-07-29, permintaan pemilik projek) — lalai DRAF untuk
     // kandungan BAHARU: tak sesekali live sehingga editor sedar-sedar tekan "Terbit". Kandungan
     // sedia ada yang dihurai daripada manualSummary (lihat parseManualSummaryBlocks) bawa status
@@ -371,7 +398,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           // "pending" separa-terbit tersembunyi sebelum Terbit ditekan).
           status: 'draft',
           title: b.title, topik: b.topik, brief: b.brief, briefLong: b.briefLong,
-          source: b.source, url: b.url, date: b.date, note: b.note, image: b.image,
+          source: b.source, url: b.url, sourceType: b.sourceType, date: b.date, note: b.note, image: b.image,
           // Blok yang ditampal biasanya datang daripada AI luaran (tiada baris Penulis:) — yang
           // menampal itulah penulisnya. Kalau teks yang ditampal MEMANG sudah membawa nama
           // (cth. draf disalin daripada slot lain), nama asal itu dikekalkan.
@@ -742,6 +769,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <div className="grid grid-cols-2 gap-5">
                   <Field label="Sumber" value={current.source || ''} placeholder="Adjung Editorial" maxLen={60} onChange={(v) => patch(activeIndex, 'source', v)} />
                   <Field label="URL" value={current.url || ''} placeholder="https://…" onChange={(v) => patch(activeIndex, 'url', v)} />
+                  <SelectField label="Jenis sumber" value={current.sourceType || ''} options={JENIS_SUMBER_PILIHAN} onChange={(v) => patch(activeIndex, 'sourceType', v)} />
                   <Field label="Tarikh sumber" value={current.date || ''} placeholder="21.07.26" onChange={(v) => patch(activeIndex, 'date', v)} />
                   <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
                 </div>
