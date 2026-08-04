@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, ListOrdered, Pause, Play, Shuffle, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, ListOrdered, Pause, Play, Shuffle, X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { safeParseInline } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
@@ -432,57 +432,26 @@ export const FocusView: React.FC<FocusViewProps> = ({
           }} />
         )}
 
-        {/* Jalur atas — logo dan Tutup */}
+        {/* Jalur atas — logo DI TENGAH (2026-08-05, permintaan Izzat), grid 3-lajur macam desktop
+            supaya logo betul-betul tengah tanpa terjejas oleh Tutup di sisi. Rawak/Auto dipindah
+            keluar dari sini — lihat kawalan terapung di atas footer navigasi di bawah. Tutup kini
+            ikon telanjang (bukan pil bulatan) — permintaan Izzat, "butang pangkah tak perlu
+            bulatan". */}
         <div style={{
-          position: 'relative', flex: '0 0 auto', display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', gap: '12px', padding: '10px 16px',
-          borderBottom: '1px solid var(--stone-300)',
+          position: 'relative', flex: '0 0 auto', display: 'grid', gridTemplateColumns: '1fr auto 1fr',
+          alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--stone-300)',
         }}>
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-            {onToggleNavMode && (
-              // Kecil sengaja (2026-08-05, permintaan Izzat) — kawalan SEKUNDER berbanding Tutup;
-              // 30px bukan sasaran sentuh utama, tapi ikon padat cukup senang ditekan ibu jari.
-              <button
-                type="button" onClick={onToggleNavMode}
-                aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
-                title={navMode === 'rawak' ? 'Rawak' : 'Turutan'}
-                style={{
-                  appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
-                  borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
-                  alignItems: 'center', justifyContent: 'center', minWidth: '30px', minHeight: '30px',
-                  padding: 0, cursor: 'pointer',
-                }}
-              >
-                {navMode === 'rawak' ? <Shuffle size={13} strokeWidth={1.75} /> : <ListOrdered size={13} strokeWidth={1.75} />}
-              </button>
-            )}
-            {onNext && (
-              <button
-                type="button" onClick={() => setAutoPlay(p => !p)}
-                aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
-                style={{
-                  appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
-                  borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
-                  alignItems: 'center', justifyContent: 'center', minWidth: '30px', minHeight: '30px',
-                  padding: 0, cursor: 'pointer',
-                }}
-              >
-                {autoPlay ? <Pause size={13} strokeWidth={1.75} /> : <Play size={13} strokeWidth={1.75} />}
-              </button>
-            )}
-          {/* Tutup kekal 44x44 — satu-satunya sasaran sentuh UTAMA di jalur ni. */}
+          <span />
+          <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
           {onClose && (
             <button {...closeProps} style={{
-              appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
-              borderRadius: '999px', color: 'var(--stone-600)', display: 'inline-flex',
-              alignItems: 'center', justifyContent: 'center', minWidth: '44px', minHeight: '44px',
-              padding: 0, cursor: 'pointer',
+              justifySelf: 'end', background: 'none', border: 0, padding: 0, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: '44px', minHeight: '44px', color: 'var(--stone-500)',
             }}>
-              <X size={18} strokeWidth={1.75} />
+              <X size={20} strokeWidth={1.75} />
             </button>
           )}
-          </span>
         </div>
         {autoPlay && onNext && (
           <div key={title} style={{ height: '2px', flex: '0 0 auto', background: 'var(--stone-200)', overflow: 'hidden' }}>
@@ -507,11 +476,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
             </div>
           )}
 
+          {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-05, permintaan Izzat — "tak
+              perlu hyphenation") — titleRendered sisipkan pemenggalan suku kata (gloss/autocondong)
+              yang kelihatan sebagai sengkang lembut di tengah perkataan; pada skrin telefon yang
+              sempit, tajuk sudah pun patah baris kerap, jadi sengkang tambahan jadi mengganggu.
+              Desktop KEKAL guna titleRendered (ruang lebih lapang, kurang patah baris). */}
           <h1 style={{
             margin: 0, fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 500,
             lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty',
             textAlign: 'center',
-          }}>{titleRendered ?? title}</h1>
+          }}>{title}</h1>
 
           {text && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -589,32 +563,72 @@ export const FocusView: React.FC<FocusViewProps> = ({
           )}
         </div>
 
-        {/* Navigasi melekat di kaki — ikon anak panah sahaja (2026-08-05, permintaan Izzat,
-            "tak perlu label") + tajuk kandungan sebelum/selepas, sepadan preview Sebelum/Selepas
-            yang sedia ada di desktop. */}
+        {/* Navigasi melekat di kaki — ikon ATAS/BAWAH (2026-08-05, permintaan Izzat: "transisi
+            berlaku atas bawah, bukan kiri kanan", jadi ikon nav pun ikut arah sama), + tajuk
+            kandungan sebelum/selepas, tanpa label "Sebelum"/"Seterusnya". Rawak/Auto terapung DI
+            ATAS jalur ni (permintaan Izzat) — bukan lagi di masthead — supaya logo boleh betul-
+            betul di tengah masthead. */}
         {(onPrev || onNext) && (
-          <div style={{
-            position: 'relative', flex: '0 0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr',
-            gap: '1px', background: 'var(--border-default)', borderTop: '1px solid var(--border-default)',
-          }}>
-            <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} disabled={!onPrev} style={{ ...navBtn, flexDirection: 'row', alignItems: 'center' }}>
-              <ChevronLeft size={16} strokeWidth={1.75} color="var(--stone-400)" style={{ flex: '0 0 auto' }} />
-              {prevPreviewTitle && (
-                <span style={{
-                  fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
-                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
-                }}>{prevPreviewTitle}</span>
-              )}
-            </button>
-            <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} disabled={!onNext} style={{ ...navBtn, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
-              {nextPreviewTitle && (
-                <span style={{
-                  fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
-                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
-                }}>{nextPreviewTitle}</span>
-              )}
-              <ChevronRight size={16} strokeWidth={1.75} color="var(--stone-400)" style={{ flex: '0 0 auto' }} />
-            </button>
+          <div style={{ position: 'relative', flex: '0 0 auto' }}>
+            {(onToggleNavMode || onNext) && (
+              <div style={{
+                position: 'absolute', bottom: '100%', right: '10px', marginBottom: '8px',
+                display: 'inline-flex', alignItems: 'center', gap: '6px', zIndex: 5,
+              }}>
+                {onToggleNavMode && (
+                  <button
+                    type="button" onClick={onToggleNavMode}
+                    aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
+                    title={navMode === 'rawak' ? 'Rawak' : 'Turutan'}
+                    style={{
+                      appearance: 'none', background: 'var(--surface-page)', border: '1px solid var(--stone-300)',
+                      borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
+                      alignItems: 'center', justifyContent: 'center', minWidth: '30px', minHeight: '30px',
+                      padding: 0, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                    }}
+                  >
+                    {navMode === 'rawak' ? <Shuffle size={13} strokeWidth={1.75} /> : <ListOrdered size={13} strokeWidth={1.75} />}
+                  </button>
+                )}
+                {onNext && (
+                  <button
+                    type="button" onClick={() => setAutoPlay(p => !p)}
+                    aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
+                    style={{
+                      appearance: 'none', background: 'var(--surface-page)', border: '1px solid var(--stone-300)',
+                      borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
+                      alignItems: 'center', justifyContent: 'center', minWidth: '30px', minHeight: '30px',
+                      padding: 0, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                    }}
+                  >
+                    {autoPlay ? <Pause size={13} strokeWidth={1.75} /> : <Play size={13} strokeWidth={1.75} />}
+                  </button>
+                )}
+              </div>
+            )}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              gap: '1px', background: 'var(--border-default)', borderTop: '1px solid var(--border-default)',
+            }}>
+              <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} disabled={!onPrev} style={{ ...navBtn, flexDirection: 'row', alignItems: 'center' }}>
+                <ChevronUp size={16} strokeWidth={1.75} color="var(--stone-400)" style={{ flex: '0 0 auto' }} />
+                {prevPreviewTitle && (
+                  <span style={{
+                    fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
+                  }}>{prevPreviewTitle}</span>
+                )}
+              </button>
+              <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} disabled={!onNext} style={{ ...navBtn, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+                {nextPreviewTitle && (
+                  <span style={{
+                    fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
+                  }}>{nextPreviewTitle}</span>
+                )}
+                <ChevronDown size={16} strokeWidth={1.75} color="var(--stone-400)" style={{ flex: '0 0 auto' }} />
+              </button>
+            </div>
           </div>
         )}
       </div>
