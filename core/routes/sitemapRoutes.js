@@ -1,20 +1,18 @@
 import express from 'express';
+import { getOrCreateUrlKod } from './articleUrlRoutes.js';
+import { slugBidang } from '../editorial/UrlSlug.js';
 
 // sitemapRoutes.js (Fasa 9 — SEO & penemuan)
 //
 // GET /sitemap.xml — dijana daripada kandungan editorial hidup dalam DB, dicache dalam memori
 // (TTL_MS di bawah) supaya crawler yang minta berulang kali tidak pukul DB setiap kali.
 //
-// NOTA PENTING — kekurangan skema URL per-kandungan: aplikasi ni SPA (React Router) yang buka
-// kandungan sebagai overlay Focus View (state client-side `focusLoc`, lihat FrontpageView.tsx),
-// BUKAN laluan URL (`/artikel/:slug` atau serupa). `generateCanonicalUrl()` di src/utils.tsx
-// wujud tapi TIDAK disambungkan kepada penghalaan sebenar — ia jana URL subdomain-per-penulis
-// rekaan (`https://<penname>.Adjung.com/...`) yang tidak wujud sebagai laluan React Router. Jadi
-// sitemap ni HANYA senaraikan halaman depan buat masa ini — menambah entri per-kandungan dengan
-// URL yang tidak boleh dicapai lebih teruk daripada tiada entri langsung (pautan mati dalam
-// sitemap menjejaskan kredibiliti seluruh sitemap pada crawler). Bila skema URL per-kandungan
-// sebenar diputuskan (keputusan penghalaan, bukan untuk agent putuskan sendiri — lihat
-// PELAN_PRA_LAUNCH.md Fasa 9), sambung query kandungan hidup di bawah kepada entri <url> baharu.
+// 2026-08-05 — skema URL per-kandungan sekarang wujud (/:bidangSlug/kandungan/:kodPendek,
+// lihat core/routes/articleUrlRoutes.js, keputusan Izzat), jadi sitemap kini senaraikan SETIAP
+// kandungan hidup dengan URL sebenar yang boleh dicecah (bukan cuma halaman depan macam
+// sebelum ni). getOrCreateUrlKod() jana kod pendek malas (kalau belum wujud) semasa sitemap
+// dijana — pertama kali sahaja perlahan sikit (bilangan kandungan × pertanyaan DB), keputusan
+// dicache TTL_MS seperti biasa selepas itu.
 
 const TTL_MS = 15 * 60 * 1000; // 15 minit
 let cache = { xml: null, expiresAt: 0 };
@@ -42,7 +40,7 @@ export function buildSitemapXml(urls) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }
 
-export function createSitemapRoutes(dbAll) {
+export function createSitemapRoutes(dbAll, dbGet, dbRun) {
   const router = express.Router();
 
   router.get('/sitemap.xml', async (req, res) => {
@@ -55,22 +53,32 @@ export function createSitemapRoutes(dbAll) {
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
 
-      // Kandungan hidup (status 'approved', versi terkini per objek) — diambil supaya cache DB
-      // sedia untuk disambung kepada entri <url> sebenar bila skema laluan per-kandungan wujud
-      // (lihat nota di atas). Tidak digunakan untuk jana entri sitemap buat masa ini.
-      await dbAll(`
-        SELECT eo.id
+      // Kandungan hidup (status 'approved', versi terkini per objek), tak termasuk Ticker
+      // (slotIndex -1, tiada laluan URL sendiri — lihat nota EAV Ticker di server.js).
+      const rows = await dbAll(`
+        SELECT eo.id, eo.categoryId, er.createdAt
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
           SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions GROUP BY objectId
         ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
-        WHERE er.status = 'approved'
+        WHERE er.status = 'approved' AND eo.slotIndex >= 0
       `).catch(() => []);
 
       const urls = [
         { loc: `${baseUrl}/`, changefreq: 'hourly', priority: '1.0' },
       ];
+      for (const row of rows) {
+        // eslint-disable-next-line no-await-in-loop
+        const kod = await getOrCreateUrlKod(dbGet, dbRun, row.id).catch(() => null);
+        if (!kod) continue; // Jana gagal (amat jarang) — lompat entri ni, jangan pecahkan sitemap.
+        urls.push({
+          loc: `${baseUrl}/${slugBidang(row.categoryId)}/kandungan/${kod}`,
+          lastmod: row.createdAt ? new Date(row.createdAt).toISOString().slice(0, 10) : undefined,
+          changefreq: 'weekly',
+          priority: '0.7',
+        });
+      }
 
       const xml = buildSitemapXml(urls);
       cache = { xml, expiresAt: now + TTL_MS };

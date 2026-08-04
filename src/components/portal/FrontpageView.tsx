@@ -85,6 +85,12 @@ interface FrontpageViewProps {
   onLogout?: () => void;
   inTheNewsGoogleDocText?: string;
   worldClockHolidaysGoogleDocText?: string;
+  // Pautan mendalam per-kandungan (Fasa 9, 2026-08-05) — kod pendek daripada URL
+  // /:bidangSlug/kandungan/:kodPendek (App.tsx). Bila dibekalkan, Focus View kandungan berkenaan
+  // dibuka automatik semasa mount (satu kali sahaja, lihat useEffect di bawah) — supaya pautan
+  // dikongsi (RSS/sitemap/media sosial) benar-benar bawa pembaca terus ke kandungan tu, bukan
+  // muka depan kosong. Kod tak sah (404) — tiada apa berlaku, pembaca lihat muka depan biasa.
+  deepLinkKodPendek?: string;
 }
 
 export function HoverWords({ text, className }: { text: string; className?: string }) {
@@ -743,6 +749,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   inTheNewsGoogleDocText = '',
   worldClockHolidaysGoogleDocText = '',
   setIndexSearchQuery,
+  deepLinkKodPendek,
 }) => {
   const navigate = useNavigate();
   // Susun atur telefon (2026-07-31, permintaan pemilik projek — pusingan KELIMA): struktur
@@ -1445,6 +1452,26 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   };
 
   const closeFocus = () => setFocusLoc(null);
+
+  // Pautan mendalam per-kandungan (Fasa 9, 2026-08-05) — bila pembaca mendarat terus di
+  // /:bidangSlug/kandungan/:kodPendek (App.tsx hantar kod tu sebagai `deepLinkKodPendek`), buka
+  // Focus View kandungan berkenaan automatik SEKALI sahaja bila data slot dah sedia
+  // (`focusAllLocations.length > 0` — bukan setiap kali bentoNewsItems recompute, carousel
+  // automatik buat ni kerap, lihat nota `sudahBuka` di bawah). Kod tak sah (404 API) — senyap,
+  // pembaca lihat muka depan biasa (bukan ralat menakutkan untuk pautan lama/rosak).
+  const sudahBukaDeepLink = React.useRef(false);
+  React.useEffect(() => {
+    if (!deepLinkKodPendek || sudahBukaDeepLink.current || focusAllLocations.length === 0) return;
+    sudahBukaDeepLink.current = true;
+    fetch(`/api/system/content/by-kod/${encodeURIComponent(deepLinkKodPendek)}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (!data) return;
+        const loc = focusAllLocations.find(l => l.slotIndex === data.slotIndex) || null;
+        if (loc) { setFocusLoc(loc); setFocusHistory([loc]); }
+      })
+      .catch(() => {});
+  }, [deepLinkKodPendek, focusAllLocations]);
 
   // Gulung SATU sasaran rawak baharu setiap kali focusLoc berubah (buka baharu ATAU navigasi) —
   // bukan pada saat klik — supaya preview tajuk anak panah bawah sepadan destinasi sebenar.

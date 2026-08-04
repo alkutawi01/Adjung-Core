@@ -1,5 +1,7 @@
 import express from 'express';
 import { BRAND } from '../../src/config/brand.ts';
+import { getOrCreateUrlKod } from './articleUrlRoutes.js';
+import { slugBidang } from '../editorial/UrlSlug.js';
 
 // Fasa 10 — Suapan RSS KELUAR (bukan ingest). Adjung sudah ada mesin ingest RSS penuh
 // (core/sources/RssDirectEngine.js membaca suapan LUAR masuk ke rss_ticker_items), tapi tiada
@@ -34,7 +36,10 @@ export const buildRssXml = (items, { siteUrl }) => {
   const nowRfc822 = toRfc822(new Date().toISOString());
 
   const itemsXml = items.map((it) => {
-    const link = `${siteUrl}/?slot=${encodeURIComponent(it.slotIndex)}&item=${encodeURIComponent(it.id)}`;
+    // `link` disediakan oleh pemanggil (kod pendek URL kanonikal sebenar, Fasa 9 2026-08-05) bila
+    // ada; jatuh balik ke corak parameter slot/item lama kalau tiada (cth ujian unit fungsi tulen
+    // ni tanpa DB — lihat tests/rssFeed.test.js).
+    const link = it.link || `${siteUrl}/?slot=${encodeURIComponent(it.slotIndex)}&item=${encodeURIComponent(it.id)}`;
     const guid = `adjung-${it.id}`;
     return `    <item>
       <title>${escapeXml(it.title)}</title>
@@ -61,7 +66,7 @@ ${itemsXml}
 const CACHE_TTL_MS = 12 * 60 * 1000; // 12 minit — cukup segar tanpa hentam DB setiap capaian.
 let cache = { xml: null, builtAt: 0 };
 
-export function createRssFeedRoutes(dbAll) {
+export function createRssFeedRoutes(dbAll, dbGet, dbRun) {
   const router = express.Router();
 
   // GET /rss.xml — suapan RSS 2.0 kandungan editorial hidup (approved) Adjung. Laluan awam,
@@ -75,7 +80,7 @@ export function createRssFeedRoutes(dbAll) {
       }
 
       const rows = await dbAll(`
-        SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt as revisionCreatedAt
+        SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, er.title, er.summary, er.createdAt as revisionCreatedAt
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
@@ -86,20 +91,24 @@ export function createRssFeedRoutes(dbAll) {
         LIMIT 50
       `);
 
-      const items = rows.map(r => ({
-        id: r.objectId,
-        slotIndex: r.slotIndex,
-        title: r.title || '',
-        summary: r.summary || '',
-        createdAt: r.revisionCreatedAt
-      }));
-
-      // NOTA HAD: belum wujud skema URL kanonik per-artikel dalam kod pangkalan ni (lihat carian
-      // canonicalUrl — semuanya data mock di src/db/mockDb.ts, belum sambung ke rekod sebenar).
-      // Pautan di bawah tunjuk ke muka depan + parameter slot/item supaya sekurang-kurangnya
-      // boleh dikesan balik kandungan yang dimaksudkan. Naik taraf ke URL kanonik sebenar bila
-      // skema laluan per-artikel wujud kelak.
       const siteUrl = `${req.protocol}://${req.get('host')}`;
+      // Pautan kanonikal sebenar (Fasa 9, 2026-08-05) — skema /:bidangSlug/kandungan/:kodPendek
+      // kini wujud, gantikan corak parameter slot/item lama (yang tak boleh dicecah sebagai
+      // laluan sebenar).
+      const items = [];
+      for (const r of rows) {
+        // eslint-disable-next-line no-await-in-loop
+        const kod = await getOrCreateUrlKod(dbGet, dbRun, r.objectId).catch(() => null);
+        items.push({
+          id: r.objectId,
+          slotIndex: r.slotIndex,
+          title: r.title || '',
+          summary: r.summary || '',
+          createdAt: r.revisionCreatedAt,
+          link: kod ? `${siteUrl}/${slugBidang(r.categoryId)}/kandungan/${kod}` : undefined,
+        });
+      }
+
       const xml = buildRssXml(items, { siteUrl });
 
       cache = { xml, builtAt: now };

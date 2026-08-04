@@ -47,6 +47,7 @@ import { createContentRoutes, runSchedulingTick } from './core/routes/contentRou
 import { createNotificationRoutes } from './core/routes/notificationRoutes.js';
 import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
+import { createArticleUrlRoutes, createPublicArticleRoute } from './core/routes/articleUrlRoutes.js';
 import { semakKonfigSmtpStartup } from './core/email/MailSender.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
@@ -1803,6 +1804,14 @@ const initEditorialOS = (dbConn) => {
           // kekal kosong (papar "Tidak diketahui" di UI, bukan reka nama) — sama corak macam
           // sourceType/topik di atas, kena didaftar dulu di sini atau INSERT gagal senyap.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('editorName', 'Nama Editor', 'text')", () => {});
+
+          // urlKod: kod pendek unik per-kandungan (Fasa 9, 2026-08-05) — skema URL
+          // /<bidang-slug>/kandungan/<kod-pendek>. Lihat core/editorial/UrlSlug.js untuk sebab
+          // ia kod RAWAK baharu (bukan potongan editorial_objects.id sedia ada). Indeks unik
+          // SEPARA (WHERE urlKod IS NOT NULL) — kandungan yang belum pernah diminta URL-nya
+          // kekal NULL (jana malas, lihat getOrCreateUrlKod), bukan setiap baris perlu nilai.
+          dbConn.run("ALTER TABLE editorial_objects ADD COLUMN urlKod TEXT", () => {});
+          dbConn.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_editorial_objects_urlkod ON editorial_objects(urlKod) WHERE urlKod IS NOT NULL", () => {});
           dbConn.run("ALTER TABLE slots_config ADD COLUMN manualDesk TEXT", () => {
             dbConn.run("ALTER TABLE slots_config ADD COLUMN nextRunAt INTEGER", () => {
               dbConn.run("ALTER TABLE slots_config ADD COLUMN refreshInterval INTEGER", () => {
@@ -2816,16 +2825,23 @@ app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));
 app.use('/api', createNotificationRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createAuditLogRoutes(dbAll));
 app.use('/api/system', createUiLabelRoutes(dbAll, dbRun));
+app.use('/api', createArticleUrlRoutes(dbAll, dbGet, dbRun));
 // Bukan di bawah /api sengaja — sitemap.xml mesti wujud di root laman ikut konvensyen crawler
 // (robots.txt di public/robots.txt rujuk /sitemap.xml). Vite dev proxy hanya hantar laluan /api
 // ke server ni (lihat vite.config.ts); sehingga Fasa 15 sambungkan express.static untuk hidangkan
 // dist/, laluan ni boleh dicapai terus di port Express (cth curl http://localhost:5000/sitemap.xml).
-app.use(createSitemapRoutes(dbAll));
+app.use(createSitemapRoutes(dbAll, dbGet, dbRun));
 
 // Sama sebab macam sitemap.xml di atas — rss.xml mesti wujud di root laman ikut konvensyen
 // pembaca suapan (bukan /api). Fasa 10 — Suapan RSS keluar (bukan ingest, lihat
 // core/sources/RssDirectEngine.js untuk ingest suapan luar).
-app.use(createRssFeedRoutes(dbAll));
+app.use(createRssFeedRoutes(dbAll, dbGet, dbRun));
+
+// Laluan awam /:bidangSlug/kandungan/:kodPendek (Fasa 9, 2026-08-05) — MESTI didaftar sebelum
+// fallback SPA statik di bawah supaya bot dapat HTML pra-terap, bukan index.html kosong. `next()`
+// (kod tak dijumpai / bukan bot / ralat) jatuh terus ke fallback SPA di bawah — react-router-dom
+// klien uruskan laluan yang sama untuk pengguna manusia. Lihat core/routes/articleUrlRoutes.js.
+app.use(createPublicArticleRoute(dbAll, dbGet));
 
 // Laluan serve produksi (2026-08-02, Fasa 15 — "prestasi & kesediaan produksi"). Dahulu Express
 // TAK PERNAH hidangkan frontend terbina — dev sentiasa lalui proksi Vite (lihat vite.config.ts,

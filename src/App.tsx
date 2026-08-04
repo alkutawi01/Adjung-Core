@@ -7,7 +7,7 @@ import { muatPindaanTier } from './config/tierOverrides';
 import { muatPindaanLabel } from './config/labelOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
 import { HalamanStatik } from './components/portal/HalamanStatik';
 import { TidakDijumpai } from './components/portal/TidakDijumpai';
 import { TetapkanKataLaluan } from './components/portal/TetapkanKataLaluan';
@@ -24,6 +24,15 @@ const ContentReview = React.lazy(() =>
 const EditoriumView = React.lazy(() =>
   import('./components/editorium/EditoriumView').then(m => ({ default: m.EditoriumView }))
 );
+
+// Pautan mendalam per-kandungan (Fasa 9, 2026-08-05) — /:bidangSlug/kandungan/:kodPendek.
+// Bungkusan kecil supaya JSX laluan "/" tak perlu diduplikasi penuh: baca `kodPendek` dari URL
+// via useParams() (mesti dalam komponen berasingan — hook cuma boleh dipanggil dalam render
+// komponen, bukan terus dalam callback `element` Route), hantar ke children sebagai render-prop.
+function LaluanKandungan({ children }: { children: (kodPendek: string | undefined) => React.ReactNode }) {
+  const { kodPendek } = useParams<{ kodPendek: string }>();
+  return <>{children(kodPendek)}</>;
+}
 
 export default function App() {
   const [users, setUsers] = useState<User[]>([]);
@@ -233,6 +242,63 @@ export default function App() {
                 />
               </main>
             </motion.div>
+          } />
+          {/* Pautan mendalam per-kandungan (Fasa 9, 2026-08-05, keputusan Izzat) — sepadan skema
+              URL awam /:bidangSlug/kandungan/:kodPendek yang crawler bot dapat HTML pra-terap
+              (server.js/articleUrlRoutes.js). Pengguna manusia (SPA) mendarat di sini, JSX SAMA
+              persis macam laluan "/" — FrontpageView buka Focus View kandungan berkenaan
+              automatik (deepLinkKodPendek, lihat useEffect di FrontpageView.tsx). `bidangSlug`
+              sendiri tak digunakan langsung (kod pendek sahaja perlu unik, Bidang cuma kosmetik
+              URL) — tiada pengesahan padanan slug/Bidang sebenar, pautan kongsi lama kekal
+              berfungsi walau Bidang kandungan bertukar kemudian. */}
+          <Route path="/:bidangSlug/kandungan/:kodPendek" element={
+            <LaluanKandungan>
+              {(kodPendek) => (
+                <motion.div
+                  key="app-kandungan"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                  className="min-h-screen bg-[#FDFDFD]"
+                >
+                  {dbConnectionError && (
+                    <div role="alert" className="bg-red-700 text-white text-xs px-4 py-2.5 flex items-center justify-between shadow-md font-sans">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold tracking-wide uppercase bg-red-900 px-2 py-0.5 rounded">Amaran Sambungan</span>
+                        <span>Gagal menyambung ke pangkalan data SQLite (server.js). Mod Data Sementara Aktif — sebarang suntingan tidak akan disimpan ke database.</span>
+                      </div>
+                      <button
+                        onClick={fetchDbState}
+                        disabled={retryingDb}
+                        className="bg-white text-red-900 hover:bg-red-50 font-semibold px-3 py-1 rounded transition-colors text-xs disabled:opacity-50"
+                      >
+                        {retryingDb ? 'Menyemak...' : 'Cuba Semula Sambungan'}
+                      </button>
+                    </div>
+                  )}
+                  <main className="max-w-6xl w-full mx-auto">
+                    <FrontpageView
+                      entries={entries}
+                      users={users}
+                      systemSettings={systemSettings}
+                      setSelectedEntry={() => {}}
+                      setSelectedAuthorId={() => {}}
+                      setActiveTab={() => {}}
+                      currentUser={null}
+                      currentEditoriumRole={currentEditoriumUser?.role}
+                      currentEditoriumName={authUser?.role === 'KETUA_EDITOR' ? authUser.penName : undefined}
+                      currentEditoriumContact={authUser?.role === 'KETUA_EDITOR' ? authUser.email : undefined}
+                      onRequestEditLogin={requestLogin}
+                      onLogout={handleLogout}
+                      inTheNewsGoogleDocText={inTheNewsGoogleDocText}
+                      worldClockHolidaysGoogleDocText={worldClockHolidaysGoogleDocText}
+                      setIndexSearchQuery={() => {}}
+                      deepLinkKodPendek={kodPendek}
+                    />
+                  </main>
+                </motion.div>
+              )}
+            </LaluanKandungan>
           } />
           <Route path="/sandbox" element={
             <motion.div
