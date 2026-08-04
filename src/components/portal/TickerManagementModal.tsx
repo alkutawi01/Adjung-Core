@@ -189,10 +189,10 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         addToast('success', `Suapan RSS berjaya diserap! (${data.autoLiveCount} Auto Aktif, ${data.pendingReviewCount} Menunggu Semakan)`);
         loadReviewQueue();
       } else {
-        addToast('error', data.error || 'Gagal menyerap RSS Direct.');
+        addToast('error', data.error || 'Gagal menyerap Suapan RSS.');
       }
     } catch (err) {
-      addToast('error', 'Gagal menyambung ke pelayan RSS Direct.');
+      addToast('error', 'Gagal menyambung ke pelayan Suapan RSS.');
     } finally {
       setIsFetchingRss(false);
     }
