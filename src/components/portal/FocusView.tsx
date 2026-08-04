@@ -519,7 +519,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '2px' }}>
             <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5, wordBreak: 'break-all' }}>{source || '—'}</a>
             {sourceDate && (
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-11)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}>{sourceDate}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}>{sourceDate}</span>
             )}
           </div>
 
@@ -621,7 +621,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               gap: '1px', background: 'var(--border-default)', borderTop: '1px solid var(--border-default)',
             }}>
               <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} disabled={!onPrev} style={{ ...navBtn, flexDirection: 'row', alignItems: 'center' }}>
-                <ChevronUp size={16} strokeWidth={1.75} color="var(--stone-400)" style={{ flex: '0 0 auto' }} />
+                <ChevronUp size={16} strokeWidth={1.75} color="var(--color-Adjung-maroon)" style={{ flex: '0 0 auto' }} />
                 {prevPreviewTitle && (
                   <span style={{
                     fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
@@ -636,7 +636,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
                   }}>{nextPreviewTitle}</span>
                 )}
-                <ChevronDown size={16} strokeWidth={1.75} color="var(--stone-400)" style={{ flex: '0 0 auto' }} />
+                <ChevronDown size={16} strokeWidth={1.75} color="var(--color-Adjung-maroon)" style={{ flex: '0 0 auto' }} />
               </button>
             </div>
           </div>
