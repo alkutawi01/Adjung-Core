@@ -166,6 +166,22 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const warnaEyebrow = deskColor || 'var(--color-Adjung-maroon)';
   const isPhone = usePhoneViewport();
 
+  // Animasi transisi antara kandungan (2026-08-05, permintaan Izzat) — panel maroon "kad tengah"
+  // (sepadan bahasa visual Colophon carousel bento sedia ada) lalu ATAS-BAWAH (bukan kiri-kanan)
+  // apabila kandungan bertukar, sama ada navigasi manual (Sebelum/Seterusnya) atau tatal automatik.
+  // Kandungan sebenar (title/body/dll) sudah bertukar serta-merta melalui prop React seperti biasa
+  // — panel cuma perlu MENUTUP PENUH skrin seketika (fasa "tahan" di tengah keyframe, bukan cuma
+  // satu bingkai sekelip) supaya pertukaran itu tak kelihatan berlaku mengejut di sebalik panel.
+  // TIADA animasi pada mount pertama (firstRender ref) — hanya pada pertukaran SELEPAS itu.
+  const firstFocusRender = React.useRef(true);
+  const [tunjukTransisi, setTunjukTransisi] = React.useState(false);
+  React.useEffect(() => {
+    if (firstFocusRender.current) { firstFocusRender.current = false; return; }
+    setTunjukTransisi(true);
+    const t = setTimeout(() => setTunjukTransisi(false), 900);
+    return () => clearTimeout(t);
+  }, [title]);
+
   // Tatal automatik Focus View (2026-08-04, permintaan Izzat) — lompat sendiri ke kandungan
   // seterusnya (rawak merentasi Bidang, ditentukan oleh `onNext` yang FrontpageView bekalkan)
   // supaya pembaca tak perlu klik tiap kali. Hanya aktif bila ada sasaran seterusnya (`onNext`
@@ -201,7 +217,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // pecah kandungan MENDATAR (scroll-x), berlanggar terus dgn seni bina scroll-y sedia ada.
   // Sebaliknya: pecah SENARAI PERENGGAN kepada dua kumpulan (bukan CSS automatik), setiap kumpulan
   // susun menegak seperti biasa dalam grid 2-lajur — keseluruhan kawasan kekal SATU tatal menegak.
-  const HAD_DUA_LAJUR = 800;
+  const HAD_DUA_LAJUR = 300;
   const duaLajur = text.length > HAD_DUA_LAJUR && paragraphs.length > 1;
   const [lajurKiri, lajurKanan] = React.useMemo(() => {
     if (!duaLajur) return [paragraphs, [] as string[]];
@@ -323,6 +339,25 @@ export const FocusView: React.FC<FocusViewProps> = ({
     onFocus: () => setCloseLit(true), onBlur: () => setCloseLit(false),
   };
 
+  // Panel transisi "kad tengah" (lihat nota tunjukTransisi di atas) — sepadan telefon & desktop,
+  // jadi ditakrif SEKALI, disuntik dalam kedua-dua cawangan `return` di bawah.
+  const transitionOverlay = tunjukTransisi && (
+    <div
+      key={title}
+      aria-hidden="true"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 250, pointerEvents: 'none',
+        background: 'var(--color-Adjung-maroon)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'focusViewTransitionPanel 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+      }}
+    >
+      <span style={{ fontFamily: 'var(--font-serif)', fontSize: '26px', letterSpacing: 'var(--tracking-tight)', color: '#FDFDFD' }}>
+        {wordmark}
+      </span>
+    </div>
+  );
+
   // ==========================================================================================
   // SUSUN ATUR TELEFON
   //
@@ -355,6 +390,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
         position: 'fixed', inset: 0, zIndex: 200, background: 'var(--surface-page)',
         color: 'var(--text-body)', display: 'flex', flexDirection: 'column',
       }}>
+        {transitionOverlay}
         {backdropImage && (
           <div aria-hidden="true" style={{
             position: 'absolute', inset: 0, backgroundImage: 'url(' + backdropImage + ')',
@@ -529,6 +565,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // ==========================================================================================
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)', display: 'flex', flexDirection: 'column' }}>
+      {transitionOverlay}
       {backdropImage && (
         <div aria-hidden="true" style={{
           position: 'absolute', inset: 0, backgroundImage: 'url(' + backdropImage + ')',

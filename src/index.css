@@ -485,6 +485,18 @@ h1, h2, h3, h4, h5, h6, p {
   to { transform: scaleX(1); }
 }
 
+/* Panel transisi "kad tengah" Focus View (2026-08-05, permintaan Izzat) — lalu ATAS-BAWAH
+   (bukan kiri-kanan macam carousel bento), sepadan bahasa visual Colophon. Fasa "tahan"
+   (40%-60%) sengaja panel MENUTUP PENUH skrin lebih lama drpd satu bingkai supaya pertukaran
+   kandungan sebenar (berlaku serta-merta via prop React, bukan disegerakkan JS dgn animasi ni)
+   tak kelihatan berlaku mengejut di sebalik panel. */
+@keyframes focusViewTransitionPanel {
+  0% { transform: translateY(-100%); }
+  40% { transform: translateY(0%); }
+  60% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+
 /* Jenis animasi transisi carousel — Colophon & Column Rule Sweep (Fasa 7, 2026-08-04,
    spesifikasi Izzat/Claude Design: design_handoff_carousel_transitions). Overlay penuh (maroon +
    logo penaja) yang lalu di atas kad semasa pertukaran kandungan carousel — CARA overlay ini
