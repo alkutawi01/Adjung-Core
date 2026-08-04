@@ -480,28 +480,26 @@ h1, h2, h3, h4, h5, h6, p {
 
 /* Micro-interaction Topik kad bento (2026-08-05, Fasa 18, permintaan Izzat) — garis bawah
    MEMANJANG kiri ke kanan semasa hover atas teks Topik (.eyebrow-topik, EyebrowKad di
-   FrontpageView.tsx: pendek "_" -> penuh "_________"), bukan sekadar warna muncul. Pseudo-elemen
-   ::after (bukan text-decoration — text-decoration tiada kawalan lebar/arah tumbuh), skala
-   scaleX() dari 0 ke 1 dgn transform-origin kiri supaya garis "tumbuh" dari hujung kiri, bukan
-   dari tengah. Isyarat visual sahaja — tiada aksi klik disambung buat masa ini. */
+   FrontpageView.tsx: pendek "_" -> penuh "_________"), bukan sekadar warna muncul, dan
+   TERHAD PANJANG PERKATAAN sahaja (bukan lebar kad/kotak pembalut).
+   Percubaan pertama (pseudo-elemen ::after position:absolute + display:inline-block) SILAP —
+   inline-block yang teksnya membalut (Topik dua-perkataan pada kad sempit) mengembang ke lebar
+   PENUH kotak pembalut, bukan lebar teks sebenar; ::after width:100% jadi ikut kotak tu, garis
+   melintasi jauh melepasi perkataan. Punca sebenar, bukan sekadar simptom cat lain.
+   Teknik BETUL: latar belakang gradient pada elemen INLINE biasa (bukan inline-block) — untuk
+   teks inline yang membalut berbilang baris, setiap baris dapat kotak latar belakangnya SENDIRI
+   (ciri asas CSS box-decoration, bukan satu kotak digabung), jadi background-size 100% ikut
+   lebar SETIAP baris teks sebenar, bukan lebar kotak pembalut. */
 .eyebrow-topik {
-  position: relative;
-  display: inline-block;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 0% 1px;
+  padding-bottom: 2px;
+  transition: background-size 250ms ease;
 }
-.eyebrow-topik::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  width: 100%;
-  height: 1px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 250ms ease;
-}
-.eyebrow-kad:hover .eyebrow-topik::after {
-  transform: scaleX(1);
+.eyebrow-kad:hover .eyebrow-topik {
+  background-size: 100% 1px;
 }
 
 /* Jalur kemajuan tatal automatik Focus View (2026-08-04) — mengisi kiri ke kanan sepanjang tempoh
