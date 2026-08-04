@@ -526,9 +526,14 @@ export const FocusView: React.FC<FocusViewProps> = ({
           {text && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <hr style={{ ...rule, borderTopColor: 'var(--border-subtle)' }} />
+              {/* Margin kiri/kanan tambahan (2026-08-05, permintaan Izzat) — kolum huraian
+                  panjang dikecilkan drpd lebar penuh badan (padding 16px sedia ada), sengaja
+                  berasingan drpd bahagian lain (Sumber/Nota kekal lebar asal) — huraian panjang
+                  paling banyak teks berturutan, lebar penuh skrin telefon sukar dibaca. */}
               <div style={{
                 fontFamily: 'var(--font-serif)', fontSize: '14px', fontWeight: 300,
                 lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty',
+                padding: '0 10px',
               }}>
                 {paragraphs.map((para, j) => (
                   <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{safeParseInline(para)}</p>
