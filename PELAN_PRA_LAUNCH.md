@@ -443,10 +443,20 @@ sebelum panggil, baiki model lalai AI (`gemini-3.5-flash`), "Semak Sambungan" AI
 Semua ni kekal sebagai kerja masa depan KALAU/BILA ciri chatbox AI manual dibina — jangan
 mula sebelum ciri tu sendiri diarahkan.
 
-### [ ] Fasa 8b — Format sumber · `L` · ~5 hari
-Enjin petikan berstruktur (penulis/penerbit/tarikh/jenis), validasi URL, semakan pautan
-mati. Sedia ada: medan bebas + auto-kesan jenis sahaja. Boleh tangguh pasca-launch —
-keputusan pemilik projek.
+### [ ] Fasa 8b — Format sumber · `L` · ~5 hari (sebahagian siap 2026-08-05)
+- [x] Validasi URL sumber — `validateSourceUrl()` (core/editorial/ContentBudget.js), URL
+      sumber mesti sekurang-kurangnya rupa URL sah http/https (bukan lagi medan bebas
+      sepenuhnya/skema berbahaya seperti javascript:), disambung ke semua laluan simpan
+      (PATCH/POST content, ticker manual, batch-paste). Medan kosong kekal dibenarkan.
+- [x] Semakan pautan mati — job latar `core/editorial/LinkChecker.js` (setInterval 12 jam,
+      sama corak penjadual RSS sedia ada), semak URL sumber unik (HEAD → jatuh balik GET),
+      simpan `source_link_checks`. Status dipaparkan di Papan Pemuka Editorium ("Status
+      sistem"). Diuji langsung: 98 URL sumber sebenar disemak, 23 dikesan bermasalah
+      (kebanyakan sekatan bot 401/403 pelayan berita — bukan pautan benar-benar mati;
+      beberapa 404 sebenar dikesan betul).
+- [ ] Enjin petikan berstruktur (penulis/penerbit/tarikh/jenis format citation formal) —
+      BELUM dilaksana, DITANGGUH. Skop lebih besar (schema EAV baharu + UI Editorium baharu)
+      berbanding dua item di atas; keputusan pemilik projek sama ada teruskan pasca-launch.
 
 ---
 
