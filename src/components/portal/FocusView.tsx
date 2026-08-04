@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pause, Play, X } from 'lucide-react';
+import { ListOrdered, Pause, Play, Shuffle, X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { safeParseInline } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
@@ -147,6 +147,12 @@ export interface FocusViewProps {
    *  tak berubah); bodySizePx nilai literal px (15 = kelakuan asal tak berubah). */
   titleSizeScale?: number;
   bodySizePx?: number;
+  /** Mod navigasi "Seterusnya" (2026-08-05, permintaan Izzat) — 'rawak' (lalai) merentasi laman
+   *  elak Bidang sama berturut-turut; 'turutan' ikut susunan slot (Hero dulu). Butang tukar mod
+   *  di masthead cuma dirender bila `onToggleNavMode` dibekalkan (sama corak render-hanya-bila-
+   *  ada-isi fail ni). */
+  navMode?: 'rawak' | 'turutan';
+  onToggleNavMode?: () => void;
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
@@ -156,6 +162,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   editorName, editorContact, backdropImage, backdropOpacity = 0.06,
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
   titleSizeScale = 1, bodySizePx = 15,
+  navMode = 'rawak', onToggleNavMode,
 }) => {
   // Format label datang daripada eyebrowLabel() di GeometryConfig — sumber SAMA yang dipakai kad
   // bento dan pengesahan simpan. Sebelum ini fail ini ada takrifannya sendiri (' · '), jadi Focus
@@ -406,6 +413,21 @@ export const FocusView: React.FC<FocusViewProps> = ({
         }}>
           <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+            {onToggleNavMode && (
+              <button
+                type="button" onClick={onToggleNavMode}
+                aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
+                title={navMode === 'rawak' ? 'Rawak' : 'Turutan'}
+                style={{
+                  appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
+                  borderRadius: '999px', color: 'var(--stone-600)', display: 'inline-flex',
+                  alignItems: 'center', justifyContent: 'center', minWidth: '44px', minHeight: '44px',
+                  padding: 0, cursor: 'pointer',
+                }}
+              >
+                {navMode === 'rawak' ? <Shuffle size={16} strokeWidth={1.75} /> : <ListOrdered size={16} strokeWidth={1.75} />}
+              </button>
+            )}
             {onNext && (
               <button
                 type="button" onClick={() => setAutoPlay(p => !p)}
@@ -580,7 +602,22 @@ export const FocusView: React.FC<FocusViewProps> = ({
           dikembalikan (2026-07-29, permintaan pemilik projek selepas cuba tanpa garisan). */}
       <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
-        <span style={{ justifySelf: 'start' }}>
+        <span style={{ justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
+          {onToggleNavMode && (
+            <button
+              type="button" onClick={onToggleNavMode}
+              aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 0,
+                padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
+                fontFamily: 'var(--font-mono)', fontSize: 'var(--text-11)', textTransform: 'uppercase',
+                letterSpacing: 'var(--tracking-wide)',
+              }}
+            >
+              {navMode === 'rawak' ? <Shuffle size={13} strokeWidth={1.75} /> : <ListOrdered size={13} strokeWidth={1.75} />}
+              {navMode === 'rawak' ? 'Rawak' : 'Turutan'}
+            </button>
+          )}
           {onNext && (
             <button
               type="button" onClick={() => setAutoPlay(p => !p)}

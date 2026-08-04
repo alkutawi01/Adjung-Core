@@ -1390,6 +1390,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   /** Sasaran "seterusnya" rawak, DIGULUNG SEBELUM diklik (bukan pada saat klik) — supaya teks
    *  preview di sebelah anak panah bawah sepadan TEPAT dengan destinasi sebenar bila ditekan. */
   const [nextRandomLoc, setNextRandomLoc] = useState<FocusLoc | null>(null);
+  /** Mod navigasi "Seterusnya" Focus View (2026-08-05, permintaan Izzat — "ada butang utk pilih
+   *  turutan atau rawak"). 'rawak' (lalai, sedia ada) = merentasi laman elak Bidang sama berturut;
+   *  'turutan' = ikut susunan slot (Hero dulu, kemudian slot 2, 3, ...), guna urutan focusAllLocations
+   *  sedia ada (sudah tersusun ikut slotIndex→itemIndex). Ditukar butang di Focus View sendiri (kedua
+   *  telefon & desktop), kekal sepanjang sesi (tak reset tiap navigasi/buka semula). */
+  const [focusNavMode, setFocusNavMode] = useState<'rawak' | 'turutan'>('rawak');
 
   /** Senarai item bagi satu slot — carousel penuh, atau slot itu sendiri kalau tunggal. */
   const focusItemsForSlot = React.useCallback((slotIndex: number): any[] => {
@@ -1445,6 +1451,18 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   useEffect(() => {
     if (!focusLoc || focusAllLocations.length === 0) { setNextRandomLoc(null); return; }
     if (focusAllLocations.length === 1) { setNextRandomLoc(null); return; }
+
+    if (focusNavMode === 'turutan') {
+      // Ikut susunan focusAllLocations sedia ada (slotIndex→itemIndex menaik, Hero dulu) — bukan
+      // rawak. Cari kedudukan semasa dalam senarai, ambil seterusnya, gulung semula ke awal di hujung.
+      const semasaIdx = focusAllLocations.findIndex(
+        l => l.slotIndex === focusLoc.slotIndex && l.itemIndex === focusLoc.itemIndex
+      );
+      const seterusnyaIdx = semasaIdx === -1 ? 0 : (semasaIdx + 1) % focusAllLocations.length;
+      setNextRandomLoc(focusAllLocations[seterusnyaIdx]);
+      return;
+    }
+
     const bidangSemasa = (focusItemsForSlot(focusLoc.slotIndex)[focusLoc.itemIndex]?.desk || '').toLowerCase();
     // Elak Bidang SAMA berturut-turut (2026-08-04, permintaan Izzat — "supaya pembaca tak
     // tertumpu pada slot/Bidang yg sama sahaja") — cuba dapatkan calon Bidang BERBEZA dulu
@@ -1465,7 +1483,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     }
     setNextRandomLoc(candidate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusLoc]);
+  }, [focusLoc, focusNavMode]);
 
   /** Lompat ke sasaran rawak pra-gulung (`nextRandomLoc`), tolak kedudukan semasa ke sejarah. */
   const focusNext = React.useCallback(() => {
@@ -3237,6 +3255,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           onClose={closeFocus}
           titleSizeScale={tetapanFontFocusView.titleSizeScale}
           bodySizePx={tetapanFontFocusView.bodySizePx}
+          navMode={focusNavMode}
+          onToggleNavMode={() => setFocusNavMode(m => m === 'rawak' ? 'turutan' : 'rawak')}
         />
       )}
 
