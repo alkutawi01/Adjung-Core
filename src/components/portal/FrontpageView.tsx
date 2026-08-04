@@ -1492,16 +1492,37 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     setFocusLoc(nextRandomLoc);
   }, [nextRandomLoc]);
 
-  /** Undur satu langkah dalam sejarah dilawati — BUKAN lompat rawak baharu. No-op kalau tiada
-   *  sejarah untuk diundur (kandungan pertama dibuka). */
+  /** Sasaran "Sebelum" mod TURUTAN (2026-08-05, permintaan Izzat — "anggap ni loop... kandungan
+   *  sebelumnya adalah kandungan terakhir"). Mod turutan ada susunan tetap (focusAllLocations),
+   *  jadi "sebelum" dikira TERUS drpd kedudukan semasa (gulung ke penghujung senarai di
+   *  permulaan) — BUKAN daripada sejarah dilawati. Ini bermakna kandungan PERTAMA dibuka pun
+   *  terus ada "Sebelum" yang sah (kandungan terakhir dalam susunan), bukan kosong/dilumpuhkan.
+   *  Mod RAWAK kekal guna sejarah dilawati (di bawah) — rawak tiada susunan tetap, jadi "sebelum"
+   *  yang bermakna hanya "tempat saya datang dari", bukan gelung. */
+  const prevTurutanLoc = React.useMemo<FocusLoc | null>(() => {
+    if (focusNavMode !== 'turutan' || !focusLoc || focusAllLocations.length <= 1) return null;
+    const idx = focusAllLocations.findIndex(
+      l => l.slotIndex === focusLoc.slotIndex && l.itemIndex === focusLoc.itemIndex
+    );
+    if (idx === -1) return null;
+    return focusAllLocations[(idx - 1 + focusAllLocations.length) % focusAllLocations.length];
+  }, [focusNavMode, focusLoc, focusAllLocations]);
+
+  /** Undur satu langkah — mod turutan gulung ke penghujung senarai (loop), mod rawak undur
+   *  sejarah dilawati (BUKAN lompat rawak baharu). No-op kalau tiada sasaran/sejarah. */
   const focusPrev = React.useCallback(() => {
+    if (focusNavMode === 'turutan') {
+      if (!prevTurutanLoc) return;
+      setFocusLoc(prevTurutanLoc);
+      return;
+    }
     setFocusHistory(h => {
       if (h.length <= 1) return h;
       const next = h.slice(0, -1);
       setFocusLoc(next[next.length - 1]);
       return next;
     });
-  }, []);
+  }, [focusNavMode, prevTurutanLoc]);
 
   // Kekunci: Esc tutup, atas/bawah gerak (mod rawak) — sama seperti paparan penuh Ticker.
   useEffect(() => {
@@ -1543,11 +1564,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
    *  Ditemui semasa ujian browser 2026-07-29 (skrin kosong, "Cannot access 'asPlainText' before
    *  initialization"). */
   const focusPrevTitle = React.useMemo(() => {
-    if (focusHistory.length < 2) return undefined;
-    const loc = focusHistory[focusHistory.length - 2];
+    const loc = focusNavMode === 'turutan'
+      ? prevTurutanLoc
+      : (focusHistory.length < 2 ? null : focusHistory[focusHistory.length - 2]);
+    if (!loc) return undefined;
     const it = focusItemsForSlot(loc.slotIndex)[loc.itemIndex];
     return it ? (asPlainText(it.titleString) || asPlainText(it.title)) : undefined;
-  }, [focusHistory, focusItemsForSlot]);
+  }, [focusNavMode, prevTurutanLoc, focusHistory, focusItemsForSlot]);
 
   const focusNextTitle = React.useMemo(() => {
     if (!nextRandomLoc) return undefined;
@@ -3246,7 +3269,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           sourceUrl={focusItem.url}
           sourceDate={formatTarikhSumberPanjang(focusItem.originalDate)}
           publishedDate={formatSiaranDate(focusItem.publishedAt)}
-          onPrev={focusHistory.length > 1 ? focusPrev : undefined}
+          onPrev={(focusNavMode === 'turutan' ? !!prevTurutanLoc : focusHistory.length > 1) ? focusPrev : undefined}
           onNext={nextRandomLoc ? focusNext : undefined}
           prevPreviewTitle={focusPrevTitle}
           nextPreviewTitle={focusNextTitle}
