@@ -1226,6 +1226,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // carousel bento sekali gus. Lalai 'pudar' (opacity fade sedia ada) supaya kelakuan tak berubah
   // sekiranya panggilan gagal.
   const [tetapanAnimasi, setTetapanAnimasi] = useState<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
+  // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL, bukan per-Bidang/tier.
+  // Lalai 1 / 15px sepadan kelakuan sedia ada sekiranya panggilan gagal.
+  const [tetapanFontFocusView, setTetapanFontFocusView] = useState({ titleSizeScale: 1, bodySizePx: 15 });
   useEffect(() => {
     fetch('/api/system/slot-am-settings')
       .then(r => r.json())
@@ -1236,6 +1239,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             jenisAnimasi: d.jenisAnimasi || 'pudar',
             logoPenaja: d.logoPenaja || '',
             warnaPanelTransisi: d.warnaPanelTransisi || '#802334',
+          });
+          setTetapanFontFocusView({
+            titleSizeScale: Number(d.focusViewTitleScale) || 1,
+            bodySizePx: Number(d.focusViewBodySize) || 15,
           });
         }
       })
@@ -1438,10 +1445,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   useEffect(() => {
     if (!focusLoc || focusAllLocations.length === 0) { setNextRandomLoc(null); return; }
     if (focusAllLocations.length === 1) { setNextRandomLoc(null); return; }
-    let candidate: FocusLoc;
-    do {
-      candidate = focusAllLocations[Math.floor(Math.random() * focusAllLocations.length)];
-    } while (candidate.slotIndex === focusLoc.slotIndex && candidate.itemIndex === focusLoc.itemIndex);
+    const bidangSemasa = (focusItemsForSlot(focusLoc.slotIndex)[focusLoc.itemIndex]?.desk || '').toLowerCase();
+    // Elak Bidang SAMA berturut-turut (2026-08-04, permintaan Izzat — "supaya pembaca tak
+    // tertumpu pada slot/Bidang yg sama sahaja") — cuba dapatkan calon Bidang BERBEZA dulu
+    // (sehingga 20 percubaan, cukup untuk peluang tinggi walaupun senarai kecil/tak seimbang);
+    // gagal (cth semua kandungan satu Bidang sahaja), jatuh balik ke rawak biasa (mana-mana
+    // lokasi lain) — lebih baik ulang Bidang sekali-sekala drpd macet tanpa sasaran langsung.
+    let candidate: FocusLoc | null = null;
+    for (let cubaan = 0; cubaan < 20; cubaan++) {
+      const c = focusAllLocations[Math.floor(Math.random() * focusAllLocations.length)];
+      if (c.slotIndex === focusLoc.slotIndex && c.itemIndex === focusLoc.itemIndex) continue;
+      const bidangCalon = (focusItemsForSlot(c.slotIndex)[c.itemIndex]?.desk || '').toLowerCase();
+      if (bidangCalon !== bidangSemasa) { candidate = c; break; }
+    }
+    if (!candidate) {
+      do {
+        candidate = focusAllLocations[Math.floor(Math.random() * focusAllLocations.length)];
+      } while (candidate.slotIndex === focusLoc.slotIndex && candidate.itemIndex === focusLoc.itemIndex);
+    }
     setNextRandomLoc(candidate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusLoc]);
@@ -3214,6 +3235,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           editorName={currentEditoriumRole === 'KETUA_EDITOR' ? currentEditoriumName : undefined}
           editorContact={currentEditoriumRole === 'KETUA_EDITOR' ? currentEditoriumContact : undefined}
           onClose={closeFocus}
+          titleSizeScale={tetapanFontFocusView.titleSizeScale}
+          bodySizePx={tetapanFontFocusView.bodySizePx}
         />
       )}
 

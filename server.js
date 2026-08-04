@@ -1569,6 +1569,11 @@ const initEditorialOS = (dbConn) => {
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN logoPenaja TEXT", () => {});
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN warnaPanelTransisi TEXT DEFAULT '#802334'", () => {});
 
+      // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL untuk seluruh
+      // Focus View (bukan per-Bidang/tier). Lihat core/routes/slotAmRoutes.js.
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN focusViewTitleScale REAL DEFAULT 1", () => {});
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN focusViewBodySize INTEGER DEFAULT 15", () => {});
+
       // 6. media_library
       dbConn.run(`
         CREATE TABLE IF NOT EXISTS media_library (

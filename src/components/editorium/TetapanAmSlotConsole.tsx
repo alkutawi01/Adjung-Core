@@ -17,8 +17,27 @@ interface TetapanAm {
   hadNotaEditor: number;
   logoPenaja: string;
   warnaPanelTransisi: string;
+  focusViewTitleScale: number;
+  focusViewBodySize: number;
   jenisAnimasiPilihan?: { nilai: string; label: string }[];
 }
+
+// Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL untuk seluruh Focus
+// View (bukan per-Bidang/tier). Tangga terhad (bukan input bebas) — elak nilai pelik yang buat
+// tajuk/huraian tak muat dalam Focus View; mesti sepadan TITLE_SCALE_SAH/BODY_SIZE_SAH di
+// core/routes/slotAmRoutes.js.
+const PILIHAN_SAIZ_TAJUK_FOCUS: { nilai: number; label: string }[] = [
+  { nilai: 0.85, label: 'Kecil' },
+  { nilai: 1, label: 'Sederhana (lalai)' },
+  { nilai: 1.15, label: 'Besar' },
+  { nilai: 1.3, label: 'Sangat besar' },
+];
+const PILIHAN_SAIZ_HURAIAN_FOCUS: { nilai: number; label: string }[] = [
+  { nilai: 13, label: 'Kecil' },
+  { nilai: 15, label: 'Sederhana (lalai)' },
+  { nilai: 17, label: 'Besar' },
+  { nilai: 19, label: 'Sangat besar' },
+];
 
 const MEDAN_HAD: { kunci: keyof TetapanAm; label: string; nota: string }[] = [
   { kunci: 'hadHuraianPanjang', label: 'Huraian panjang', nota: 'Teks penuh dalam Focus View.' },
@@ -315,6 +334,42 @@ export const TetapanAmSlotConsole: React.FC = () => {
             ditunjukkan walaupun "Pudar" dipilih supaya Ketua Editor boleh sediakan dahulu sebelum
             tukar jenis animasi. */}
         <PanelPenajaField draf={draf} setDraf={setDraf} />
+
+        {/* 3c. Saiz fon Focus View — satu tetapan GLOBAL (bukan per-Bidang/tier), permintaan Izzat
+            2026-08-04, supaya semua kandungan dalam Focus View konsisten. */}
+        <div className="border border-stone-200 rounded p-4 space-y-3">
+          <div className="font-semibold text-stone-800">3c. Saiz fon Focus View</div>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 text-xs text-stone-600">
+              Tajuk
+              <select
+                value={draf.focusViewTitleScale}
+                onChange={e => setDraf(p => p ? { ...p, focusViewTitleScale: Number(e.target.value) } : p)}
+                className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+              >
+                {PILIHAN_SAIZ_TAJUK_FOCUS.map(o => (
+                  <option key={o.nilai} value={o.nilai}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-xs text-stone-600">
+              Huraian
+              <select
+                value={draf.focusViewBodySize}
+                onChange={e => setDraf(p => p ? { ...p, focusViewBodySize: Number(e.target.value) } : p)}
+                className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+              >
+                {PILIHAN_SAIZ_HURAIAN_FOCUS.map(o => (
+                  <option key={o.nilai} value={o.nilai}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="text-stone-400 text-[10px] leading-relaxed">
+            Terpakai pada tajuk dan huraian dalam Focus View sahaja (bukan kad bento). Tajuk masih
+            mengecil sendiri untuk tajuk yang sangat panjang; tetapan ini darab tangga saiz sedia ada.
+          </p>
+        </div>
 
         {/* 4. Had aksara medan lain */}
         <div className="border border-stone-200 rounded p-4 space-y-3">

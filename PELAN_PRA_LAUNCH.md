@@ -372,6 +372,17 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
       sama seperti KIV animasi transisi di atas
 - [x] Kawalan manual carousel (klik anak panah + swipe) — auto-putar kekal berjalan,
       permintaan Izzat 2026-08-02
+- [x] Focus View — 4 penambahbaikan (permintaan Izzat 2026-08-04):
+      (1) huraian panjang >800 aksara automatik dua-lajur (`FocusView.tsx`, `HAD_DUA_LAJUR`),
+      huraian pendek kekal satu-lajur; (2) saiz fon tajuk+huraian kini SATU tetapan GLOBAL
+      (bukan per-Bidang/tier) — `Tetapan Am Slot → 3c` di Editorium, lajur DB baharu
+      `slot_am_settings.focusViewTitleScale`/`focusViewBodySize` (lalai 1/15px = kelakuan
+      asal tak berubah); (3) navigasi Seterusnya (rawak) kini elak Bidang SAMA berturut-turut
+      (cuba 20 calon dulu, jatuh balik rawak biasa kalau tiada Bidang lain), supaya pembaca
+      tak tertumpu satu Bidang; (4) tatal automatik baharu — lompat sendiri ke kandungan
+      seterusnya tiap 14 saat (jalur kemajuan di bawah masthead + butang Auto boleh dijeda,
+      keadaan main/jeda kekal sepanjang sesi Focus View dibuka). Diuji langsung di
+      pelayar (progress bar, jeda/main, auto-lompat sebenar berlaku).
 
 ### [x] Fasa 8 — Editorial dilengkapkan · `M` · ~4 hari (skop disemak semula 2026-08-02)
 **Perubahan strategi 2026-08-02 (arahan Ketua Editor):** saluran isian kandungan sah kini

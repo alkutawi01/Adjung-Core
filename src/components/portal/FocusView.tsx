@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { Pause, Play, X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { safeParseInline } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
@@ -142,6 +142,11 @@ export interface FocusViewProps {
   prevPreviewTitle?: string;
   nextPreviewTitle?: string;
   onClose?: () => void;
+  /** Saiz fon Focus View (2026-08-04, Tetapan Am Slot — satu tetapan GLOBAL, bukan per-Bidang/
+   *  tier, permintaan Izzat). titleSizeScale darab tangga responsif sedia ada (1 = kelakuan asal
+   *  tak berubah); bodySizePx nilai literal px (15 = kelakuan asal tak berubah). */
+  titleSizeScale?: number;
+  bodySizePx?: number;
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
@@ -150,6 +155,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   source, sourceUrl, sourceDate, publishedDate,
   editorName, editorContact, backdropImage, backdropOpacity = 0.06,
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
+  titleSizeScale = 1, bodySizePx = 15,
 }) => {
   // Format label datang daripada eyebrowLabel() di GeometryConfig — sumber SAMA yang dipakai kad
   // bento dan pengesahan simpan. Sebelum ini fail ini ada takrifannya sendiri (' · '), jadi Focus
@@ -160,6 +166,24 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const warnaEyebrow = deskColor || 'var(--color-Adjung-maroon)';
   const isPhone = usePhoneViewport();
 
+  // Tatal automatik Focus View (2026-08-04, permintaan Izzat) — lompat sendiri ke kandungan
+  // seterusnya (rawak merentasi Bidang, ditentukan oleh `onNext` yang FrontpageView bekalkan)
+  // supaya pembaca tak perlu klik tiap kali. Hanya aktif bila ada sasaran seterusnya (`onNext`
+  // wujud) — di kandungan terakhir (satu-satunya lokasi di laman), butang/tatal automatik tak
+  // dirender langsung, sama macam anak panah sedia ada. Boleh dijeda oleh pembaca (butang Auto);
+  // keadaan main/jeda kekal sepanjang sesi Focus View dibuka (komponen sama, bukan remount setiap
+  // navigasi), tak reset ke "main" semula pada tiap kandungan.
+  const AUTOSCROLL_MS = 14000;
+  const [autoPlay, setAutoPlay] = React.useState(true);
+  React.useEffect(() => {
+    if (!autoPlay || !onNext) return;
+    const t = setTimeout(onNext, AUTOSCROLL_MS);
+    return () => clearTimeout(t);
+    // `title` dalam dependency: reset pemasa apabila kandungan bertukar (auto ATAU navigasi
+    // manual pembaca sendiri klik Sebelum/Seterusnya) supaya pembaca sentiasa dapat tempoh
+    // penuh untuk baca kandungan yang baru dipaparkan, bukan baki pemasa kandungan lama.
+  }, [autoPlay, onNext, title]);
+
   // Huraian panjang render satu lajur, perenggan berturutan — TIADA lagi pembahagian dua-ukuran
   // (2026-07-29, sejak huraian pendek dibuang: pembahagian tu sedia ada khusus untuk imbang ruang
   // bacaan apabila huraian pendek+panjang berkongsi jalur yang sama; dengan huraian pendek tiada,
@@ -169,6 +193,21 @@ export const FocusView: React.FC<FocusViewProps> = ({
     () => text.split(/\n{2,}/).filter(Boolean),
     [text]
   );
+
+  // Dua lajur bila huraian PANJANG (2026-08-04, permintaan Izzat — "susah nak baca panjang2 mcm
+  // tu") — cuma bila melepasi HAD_DUA_LAJUR aksara, huraian pendek kekal satu lajur macam sedia
+  // ada. BUKAN CSS `columns` (pagination browser mendatar) — kawasan ni SATU-SATUNYA kotak scroll
+  // MENEGAK di seluruh Focus View (keputusan sengaja pemilik projek, lihat nota di bawah); `columns`
+  // pecah kandungan MENDATAR (scroll-x), berlanggar terus dgn seni bina scroll-y sedia ada.
+  // Sebaliknya: pecah SENARAI PERENGGAN kepada dua kumpulan (bukan CSS automatik), setiap kumpulan
+  // susun menegak seperti biasa dalam grid 2-lajur — keseluruhan kawasan kekal SATU tatal menegak.
+  const HAD_DUA_LAJUR = 800;
+  const duaLajur = text.length > HAD_DUA_LAJUR && paragraphs.length > 1;
+  const [lajurKiri, lajurKanan] = React.useMemo(() => {
+    if (!duaLajur) return [paragraphs, [] as string[]];
+    const titikBelah = Math.ceil(paragraphs.length / 2);
+    return [paragraphs.slice(0, titikBelah), paragraphs.slice(titikBelah)];
+  }, [duaLajur, paragraphs]);
 
   const [bodyRef, bodyFade] = useOverflowFade();
 
@@ -213,7 +252,13 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // aksara pada 20.7px dan bukan 27px, kerana 2.3vh pada tinggi 900px ialah 20.7px — clamp itu
   // memilih nilai tengah, bukan nilai maksimum. Jangan perkenalkan semula terma vh di sini.
   const n = String(title || '').length;
-  const titleSize = n <= 60 ? '44px' : n <= 100 ? '37px' : n <= 140 ? '31px' : '27px';
+  const titleSizeAsas = n <= 60 ? 44 : n <= 100 ? 37 : n <= 140 ? 31 : 27;
+  // titleSizeScale (2026-08-04, Tetapan Am Slot — permintaan Izzat, satu tetapan global untuk
+  // saiz fon Focus View) DARABKAN dgn tangga responsif SEDIA ADA (bukan gantikan) — kekalkan
+  // logik adaptif ikut panjang tajuk (tajuk pendek tetap lebih besar drpd tajuk panjang), cuma
+  // skalakan keseluruhan tangga naik/turun ikut pilihan Ketua Editor.
+  const titleSize = `${Math.round(titleSizeAsas * titleSizeScale)}px`;
+  const bodySize = `${bodySizePx}px`;
 
   // Karya seni DIMUATKAN, tidak pernah dipangkas: kekang nod yang dihantar itu sendiri, kerana
   // kotak plat cuma mengerat. Anak bukan-elemen (teks, fragmen) lalu tanpa disentuh.
@@ -324,6 +369,21 @@ export const FocusView: React.FC<FocusViewProps> = ({
           borderBottom: '1px solid var(--stone-300)',
         }}>
           <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+            {onNext && (
+              <button
+                type="button" onClick={() => setAutoPlay(p => !p)}
+                aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
+                style={{
+                  appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
+                  borderRadius: '999px', color: 'var(--stone-600)', display: 'inline-flex',
+                  alignItems: 'center', justifyContent: 'center', minWidth: '44px', minHeight: '44px',
+                  padding: 0, cursor: 'pointer',
+                }}
+              >
+                {autoPlay ? <Pause size={16} strokeWidth={1.75} /> : <Play size={16} strokeWidth={1.75} />}
+              </button>
+            )}
           {/* Sasaran sentuh 44x44 dikekalkan; pil itu kini memegang ikon, bukan perkataan. */}
           {onClose && (
             <button {...closeProps} style={{
@@ -335,7 +395,13 @@ export const FocusView: React.FC<FocusViewProps> = ({
               <X size={18} strokeWidth={1.75} />
             </button>
           )}
+          </span>
         </div>
+        {autoPlay && onNext && (
+          <div key={title} style={{ height: '2px', flex: '0 0 auto', background: 'var(--stone-200)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards` }} />
+          </div>
+        )}
 
         {/* Badan yang menatal */}
         <div style={{
@@ -477,7 +543,23 @@ export const FocusView: React.FC<FocusViewProps> = ({
           dikembalikan (2026-07-29, permintaan pemilik projek selepas cuba tanpa garisan). */}
       <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
-        <span />
+        <span style={{ justifySelf: 'start' }}>
+          {onNext && (
+            <button
+              type="button" onClick={() => setAutoPlay(p => !p)}
+              aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 0,
+                padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
+                fontFamily: 'var(--font-mono)', fontSize: 'var(--text-11)', textTransform: 'uppercase',
+                letterSpacing: 'var(--tracking-wide)',
+              }}
+            >
+              {autoPlay ? <Pause size={13} strokeWidth={1.75} /> : <Play size={13} strokeWidth={1.75} />}
+              Auto
+            </button>
+          )}
+        </span>
         <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
         {onClose && (
           <button {...closeProps} style={{
@@ -490,6 +572,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
           </button>
         )}
       </div>
+      {autoPlay && onNext && (
+        <div key={title} style={{ height: '2px', flex: '0 0 auto', width: '100%', background: 'var(--border-subtle)', overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards` }} />
+        </div>
+      )}
       <hr style={{ ...rule, flex: '0 0 auto' }} />
 
       <div style={{ position: 'relative', flex: '1 1 auto', minHeight: 0, boxSizing: 'border-box', padding: 'clamp(10px, 1.6vh, 18px) 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -519,11 +606,23 @@ export const FocusView: React.FC<FocusViewProps> = ({
           <div style={{ minHeight: 0, margin: 'clamp(10px, 1.6vh, 18px) 0', overflow: 'hidden', display: 'flex' }}>
             <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', padding: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
               {paragraphs.length > 0 && (
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-15)', fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'center' }}>
-                  {paragraphs.map((para, j) => (
-                    <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
-                  ))}
-                </div>
+                duaLajur ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 'clamp(24px, 3.2vw, 44px)', textAlign: 'left' }}>
+                    {[lajurKiri, lajurKanan].map((lajur, lajurI) => (
+                      <div key={lajurI} style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty' }}>
+                        {lajur.map((para, j) => (
+                          <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'center' }}>
+                    {paragraphs.map((para, j) => (
+                      <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
+                    ))}
+                  </div>
+                )
               )}
             </div>
           </div>

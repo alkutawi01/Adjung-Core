@@ -21,6 +21,11 @@ export const AM_DEFAULTS = {
   // (panel kosong, bukan ralat). warnaPanelTransisi lalai maroon jenama sedia ada.
   logoPenaja: '',
   warnaPanelTransisi: '#802334',
+  // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL untuk seluruh
+  // Focus View, bukan per-Bidang/tier. focusViewTitleScale darab tangga saiz tajuk responsif
+  // sedia ada (1 = lalai/tak berubah). focusViewBodySize nilai literal px huraian (15 = lalai).
+  focusViewTitleScale: 1,
+  focusViewBodySize: 15,
 };
 
 // Tiga jenis animasi carousel yang dilaksanakan sebenar dalam kod (2026-08-04, Fasa 7 — spesifikasi
@@ -53,6 +58,8 @@ export const loadAmSettings = async (dbGet) => {
         hadNotaEditor: Number(row.hadNotaEditor) || 0,
         logoPenaja: row.logoPenaja || '',
         warnaPanelTransisi: row.warnaPanelTransisi || '#802334',
+        focusViewTitleScale: Number(row.focusViewTitleScale) || 1,
+        focusViewBodySize: Number(row.focusViewBodySize) || 15,
       };
     }
     // Pengesahan simpan (validateMedanTambahan) berjalan secara sync, jadi ia baca cache
@@ -92,6 +99,11 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       // dibenarkan supaya nilai simpan konsisten untuk dibaca semula sebagai swatch).
       const warnaSah = (nilai) => typeof nilai === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(nilai);
 
+      // Tangga terhad (bukan nombor bebas) — elak nilai pelik yang buat tajuk/huraian tak muat
+      // dalam Focus View. Sepadan dgn pilihan dropdown di TetapanAmSlotConsole.tsx.
+      const TITLE_SCALE_SAH = [0.85, 1, 1.15, 1.3];
+      const BODY_SIZE_SAH = [13, 15, 17, 19];
+
       const baharu = {
         mulaIkutMasa: b.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: nombor(b.hadKandunganSlot, 'Had bilangan kandungan'),
@@ -102,14 +114,16 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         hadNotaEditor: nombor(b.hadNotaEditor, 'Had nota editor'),
         logoPenaja: typeof b.logoPenaja === 'string' ? b.logoPenaja.slice(0, 500) : '',
         warnaPanelTransisi: warnaSah(b.warnaPanelTransisi) ? b.warnaPanelTransisi : '#802334',
+        focusViewTitleScale: TITLE_SCALE_SAH.includes(Number(b.focusViewTitleScale)) ? Number(b.focusViewTitleScale) : 1,
+        focusViewBodySize: BODY_SIZE_SAH.includes(Number(b.focusViewBodySize)) ? Number(b.focusViewBodySize) : 15,
       };
 
       await dbRun(`
         INSERT INTO slot_am_settings (
           id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
-          logoPenaja, warnaPanelTransisi, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          logoPenaja, warnaPanelTransisi, focusViewTitleScale, focusViewBodySize, updatedAt
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -120,11 +134,14 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           hadNotaEditor = excluded.hadNotaEditor,
           logoPenaja = excluded.logoPenaja,
           warnaPanelTransisi = excluded.warnaPanelTransisi,
+          focusViewTitleScale = excluded.focusViewTitleScale,
+          focusViewBodySize = excluded.focusViewBodySize,
           updatedAt = excluded.updatedAt
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
         baharu.logoPenaja, baharu.warnaPanelTransisi,
+        baharu.focusViewTitleScale, baharu.focusViewBodySize,
         new Date().toISOString(),
       ]);
 
