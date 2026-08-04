@@ -480,37 +480,36 @@ h1, h2, h3, h4, h5, h6, p {
 
 /* Jenis animasi transisi carousel — Colophon & Column Rule Sweep (Fasa 7, 2026-08-04,
    spesifikasi Izzat/Claude Design: design_handoff_carousel_transitions). Overlay penuh (maroon +
-   simbol Adjung) yang lalu di atas kad semasa pertukaran kandungan carousel — CARA overlay ini
+   logo penaja) yang lalu di atas kad semasa pertukaran kandungan carousel — CARA overlay ini
    dipilih (bukan trek 3-kad fizikal Colophon asal) untuk elak ubah struktur JSX renderItem yang
-   sangat fragile (lihat CLAUDE.md). Kesan visual sama (panel maroon sembunyikan pertukaran),
-   risiko struktur jauh lebih rendah. Dua fasa animasi (masuk/keluar) dikawal JS (CarouselStableBlock)
-   yang tukar className antara -in/-out pada masa genap separuh tempoh; kandungan sebenar ditukar
-   pada saat overlay tutup penuh (opacity/left di takat genap), jadi pertukaran tak pernah kelihatan.
+   sangat fragile (lihat CLAUDE.md). Kesan visual sama (panel sembunyikan pertukaran), risiko
+   struktur jauh lebih rendah.
+
+   SATU animasi berterusan (0%->50%->100%), BUKAN dua animasi berasingan (masuk/keluar) yang
+   tukar className di tengah — percubaan pertama (dua animasi + `key` React paksa remount di
+   genap separuh) masih "berkelip" (Izzat tangkap 2026-08-04, dua kali cuba). Punca sebenar:
+   walau apa pun teknik paksa-remount React, tukar ELEMEN DOM di tengah animasi tetap bawa risiko
+   satu bingkai terputus. SATU keyframe berterusan buang risiko tu terus — elemen overlay yang
+   SAMA kekal sepanjang 800ms/1100ms, tiada tukar className/remount langsung. CarouselStableBlock
+   (JS) cuma tukar kandungan SEBENAR (visualIndex) pada genap 50% (bila keyframe kedudukannya
+   translateX(0%), tutup penuh) — overlay sendiri tak terjejas/tak tahu langsung perubahan tu.
    Hormat prefers-reduced-motion — CarouselStableBlock langkau animasi ni terus jika didayakan. */
-@keyframes carouselColophonMasuk {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0%); }
-}
-@keyframes carouselColophonKeluar {
-  from { transform: translateX(0%); }
-  to { transform: translateX(-100%); }
+@keyframes carouselColophonPenuh {
+  0% { transform: translateX(100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(-100%); }
 }
 /* translateX (BUKAN `left`) — overlay kini position:fixed (liputi kad PENUH, diukur JS, lihat
    CarouselStableBlock), peratus `left` akan resolve terhadap viewport bukan lebar overlay sendiri
    pada position:fixed. transform:translateX() peratus SENTIASA relatif lebar elemen sendiri,
    betul tak kira skema kedudukan. */
-@keyframes carouselSapuanMasuk {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0%); }
+@keyframes carouselSapuanPenuh {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
 }
-@keyframes carouselSapuanKeluar {
-  from { transform: translateX(0%); }
-  to { transform: translateX(100%); }
-}
-.carousel-colophon-masuk { animation: carouselColophonMasuk 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.carousel-colophon-keluar { animation: carouselColophonKeluar 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.carousel-sapuan-masuk { animation: carouselSapuanMasuk 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.carousel-sapuan-keluar { animation: carouselSapuanKeluar 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.carousel-colophon-penuh { animation: carouselColophonPenuh 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.carousel-sapuan-penuh { animation: carouselSapuanPenuh 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
 
 /* ---------------------------------------------------------------------------------------------

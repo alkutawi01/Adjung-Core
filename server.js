@@ -1560,6 +1560,15 @@ const initEditorialOS = (dbConn) => {
       dbConn.run("ALTER TABLE editorial_revisions ADD COLUMN scheduledPublishAt TEXT", () => {});
       dbConn.run("ALTER TABLE editorial_revisions ADD COLUMN scheduledExpiresAt TEXT", () => {});
 
+      // Logo penaja + warna panel animasi transisi (2026-08-04, Fasa 7 lanjutan) — satu logo
+      // GLOBAL (bukan per-slot/rotasi), dipaparkan di tengah panel animasi Colophon/Sapuan
+      // Lajur (gantikan adjung-symbol.svg lama yang tak kelihatan sebab sama warna dgn latar,
+      // lihat core/routes/slotAmRoutes.js). NULL logoPenaja = tiada logo dipaparkan (kad kosong,
+      // bukan ralat). warnaPanelTransisi lalai #802334 (maroon jenama sedia ada) — satu warna
+      // tetap merentasi laman (BUKAN ikut Bidang kad, keputusan Izzat 2026-08-04).
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN logoPenaja TEXT", () => {});
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN warnaPanelTransisi TEXT DEFAULT '#802334'", () => {});
+
       // 6. media_library
       dbConn.run(`
         CREATE TABLE IF NOT EXISTS media_library (

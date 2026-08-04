@@ -16,6 +16,11 @@ export const AM_DEFAULTS = {
   hadSumber: 0,
   hadTopik: 0,
   hadNotaEditor: 0,
+  // Logo penaja + warna panel animasi (2026-08-04) — satu logo GLOBAL (bukan per-slot/rotasi,
+  // keputusan Izzat), dipaparkan di tengah panel Colophon/Sapuan Lajur. '' = tiada logo
+  // (panel kosong, bukan ralat). warnaPanelTransisi lalai maroon jenama sedia ada.
+  logoPenaja: '',
+  warnaPanelTransisi: '#802334',
 };
 
 // Tiga jenis animasi carousel yang dilaksanakan sebenar dalam kod (2026-08-04, Fasa 7 — spesifikasi
@@ -46,6 +51,8 @@ export const loadAmSettings = async (dbGet) => {
         hadSumber: Number(row.hadSumber) || 0,
         hadTopik: Number(row.hadTopik) || 0,
         hadNotaEditor: Number(row.hadNotaEditor) || 0,
+        logoPenaja: row.logoPenaja || '',
+        warnaPanelTransisi: row.warnaPanelTransisi || '#802334',
       };
     }
     // Pengesahan simpan (validateMedanTambahan) berjalan secara sync, jadi ia baca cache
@@ -80,6 +87,11 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         return n;
       };
 
+      // Warna: terima terus rentetan hex #RGB/#RRGGBB — semak format ringkas sahaja (elak
+      // suntikan/nilai sampah), bukan validasi warna penuh (nama warna CSS dsb sengaja tak
+      // dibenarkan supaya nilai simpan konsisten untuk dibaca semula sebagai swatch).
+      const warnaSah = (nilai) => typeof nilai === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(nilai);
+
       const baharu = {
         mulaIkutMasa: b.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: nombor(b.hadKandunganSlot, 'Had bilangan kandungan'),
@@ -88,13 +100,16 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         hadSumber: nombor(b.hadSumber, 'Had sumber'),
         hadTopik: nombor(b.hadTopik, 'Had topik'),
         hadNotaEditor: nombor(b.hadNotaEditor, 'Had nota editor'),
+        logoPenaja: typeof b.logoPenaja === 'string' ? b.logoPenaja.slice(0, 500) : '',
+        warnaPanelTransisi: warnaSah(b.warnaPanelTransisi) ? b.warnaPanelTransisi : '#802334',
       };
 
       await dbRun(`
         INSERT INTO slot_am_settings (
           id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi,
-          hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?)
+          hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
+          logoPenaja, warnaPanelTransisi, updatedAt
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -103,10 +118,13 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           hadSumber = excluded.hadSumber,
           hadTopik = excluded.hadTopik,
           hadNotaEditor = excluded.hadNotaEditor,
+          logoPenaja = excluded.logoPenaja,
+          warnaPanelTransisi = excluded.warnaPanelTransisi,
           updatedAt = excluded.updatedAt
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
+        baharu.logoPenaja, baharu.warnaPanelTransisi,
         new Date().toISOString(),
       ]);
 

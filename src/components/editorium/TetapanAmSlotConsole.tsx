@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Save } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, Save, Upload, X } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
@@ -15,6 +15,8 @@ interface TetapanAm {
   hadSumber: number;
   hadTopik: number;
   hadNotaEditor: number;
+  logoPenaja: string;
+  warnaPanelTransisi: string;
   jenisAnimasiPilihan?: { nilai: string; label: string }[];
 }
 
@@ -24,6 +26,114 @@ const MEDAN_HAD: { kunci: keyof TetapanAm; label: string; nota: string }[] = [
   { kunci: 'hadTopik', label: 'Topik', nota: 'Ruang eyebrow kad masih mengehadkan Topik ikut bentuk kad; yang mana lebih ketat, itu yang menahan.' },
   { kunci: 'hadNotaEditor', label: 'Nota editor', nota: 'Nota dalaman, tidak dipapar pada kad.' },
 ];
+
+const HAD_SAIZ_LOGO_BYTES = 5 * 1024 * 1024; // 5MB — sepadan had server (core/routes/mediaRoutes.js)
+
+// Logo penaja + warna panel animasi (2026-08-04) — satu logo GLOBAL dipaparkan di tengah panel
+// Colophon/Sapuan Lajur, gantikan adjung-symbol.svg lama yang tak kelihatan (sama warna dgn
+// latar). Muat naik guna /api/media/upload sedia ada (corak sama ImageField di
+// SlotManagerModal.tsx/BarSlotManagerModal.tsx — komponen berasingan sengaja, elak
+// gandingan-silang fail Editorium/portal untuk satu medan kecil ni).
+function PanelPenajaField({ draf, setDraf }: { draf: TetapanAm; setDraf: React.Dispatch<React.SetStateAction<TetapanAm | null>> }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [memuatNaik, setMemuatNaik] = useState(false);
+  const [nota, setNota] = useState('');
+
+  const muatNaikLogo = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setNota('Jenis fail tidak dibenarkan — guna imej sahaja.');
+      setTimeout(() => setNota(''), 2400);
+      return;
+    }
+    if (file.size > HAD_SAIZ_LOGO_BYTES) {
+      setNota('Fail terlalu besar (had 5MB).');
+      setTimeout(() => setNota(''), 2400);
+      return;
+    }
+    setMemuatNaik(true);
+    try {
+      const fileData: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Gagal baca fail'));
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/media/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, fileData }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Muat naik gagal');
+      setDraf(p => p ? { ...p, logoPenaja: data.url } : p);
+      setNota('Dimuat naik — jangan lupa tekan Simpan Tetapan.');
+    } catch (e: any) {
+      setNota(e.message || 'Muat naik gagal — cuba lagi.');
+    } finally {
+      setMemuatNaik(false);
+      setTimeout(() => setNota(''), 3200);
+    }
+  };
+
+  return (
+    <div className="border border-stone-200 rounded p-4 space-y-3">
+      <div className="font-semibold text-stone-800">3b. Logo penaja &amp; warna panel animasi</div>
+      <p className="text-stone-500 text-[11px] leading-relaxed">
+        Logo TUNGGAL dipaparkan di tengah panel semasa animasi Colophon/Sapuan Lajur berlaku
+        (kekal walaupun "Pudar" dipilih — cuma tak dipaparkan sehingga jenis lain diaktifkan).
+        Pastikan logo kontra dengan warna panel di bawah (cth logo putih pada panel gelap).
+      </p>
+      <div className="flex items-center gap-3">
+        <div
+          className="w-20 h-14 rounded border border-stone-300 flex items-center justify-center shrink-0 overflow-hidden"
+          style={{ backgroundColor: draf.warnaPanelTransisi }}
+        >
+          {draf.logoPenaja ? (
+            <img src={draf.logoPenaja} alt="Pratonton logo penaja" className="max-w-[85%] max-h-[85%] object-contain" />
+          ) : (
+            <span className="text-[9px] text-white/60 font-mono">Tiada logo</span>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={memuatNaik}
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1 px-2.5 py-1 border border-stone-300 rounded text-[11px] font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+            >
+              <Upload className="w-3 h-3" /> {memuatNaik ? 'Memuat naik…' : 'Muat naik logo'}
+            </button>
+            {draf.logoPenaja && (
+              <button
+                type="button"
+                onClick={() => setDraf(p => p ? { ...p, logoPenaja: '' } : p)}
+                className="flex items-center gap-1 px-2 py-1 border border-stone-200 rounded text-[11px] text-stone-500 hover:bg-stone-50 cursor-pointer"
+              >
+                <X className="w-3 h-3" /> Buang
+              </button>
+            )}
+            <input
+              ref={fileInputRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) muatNaikLogo(f); e.target.value = ''; }}
+            />
+          </div>
+          {nota && <span className="text-[10px] text-stone-500">{nota}</span>}
+        </div>
+      </div>
+      <label className="flex items-center gap-2">
+        <span className="font-semibold text-stone-700 text-[11px]">Warna panel</span>
+        <input
+          type="color"
+          value={draf.warnaPanelTransisi}
+          onChange={e => setDraf(p => p ? { ...p, warnaPanelTransisi: e.target.value } : p)}
+          className="w-10 h-7 border border-stone-300 rounded cursor-pointer"
+        />
+        <span className="font-mono text-[11px] text-stone-500">{draf.warnaPanelTransisi}</span>
+      </label>
+    </div>
+  );
+}
 
 export const TetapanAmSlotConsole: React.FC = () => {
   const [draf, setDraf] = useState<TetapanAm | null>(null);
@@ -143,10 +253,15 @@ export const TetapanAmSlotConsole: React.FC = () => {
             ))}
           </select>
           <p className="text-stone-400 text-[10px] leading-relaxed">
-            Setakat ini satu sahaja jenis yang benar-benar wujud dalam kod. Senarai ini akan bertambah apabila
-            animasi lain dibina — tiada pilihan ditawarkan di sini sebelum ia berfungsi.
+            "Pudar" ialah pertukaran lembut tanpa panel. "Colophon" dan "Sapuan Lajur" papar panel warna
+            penuh (tetapan 3b di bawah) sekejap semasa carousel bertukar kandungan.
           </p>
         </div>
+
+        {/* 3b. Logo penaja & warna panel — cuma relevan untuk Colophon/Sapuan Lajur, tapi kekal
+            ditunjukkan walaupun "Pudar" dipilih supaya Ketua Editor boleh sediakan dahulu sebelum
+            tukar jenis animasi. */}
+        <PanelPenajaField draf={draf} setDraf={setDraf} />
 
         {/* 4. Had aksara medan lain */}
         <div className="border border-stone-200 rounded p-4 space-y-3">
