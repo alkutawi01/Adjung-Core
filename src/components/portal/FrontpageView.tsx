@@ -410,8 +410,19 @@ const CarouselStableBlock: React.FC<{
     const kadPenuh = (containerRef.current?.closest('[data-slot]') as HTMLElement | null) || containerRef.current;
     // Jamin bekas kedudukan (position:relative) untuk overlay absolute — sifat aditif sahaja,
     // TIDAK diubah kalau kad tu sudah `relative` (kebanyakan sedia ada), tak jejas apa-apa lain.
-    if (kadPenuh && getComputedStyle(kadPenuh).position === 'static') {
-      kadPenuh.style.position = 'relative';
+    let overflowAsal: string | null = null;
+    if (kadPenuh) {
+      if (getComputedStyle(kadPenuh).position === 'static') {
+        kadPenuh.style.position = 'relative';
+      }
+      // "Stage" overflow:hidden (spesifikasi asal design_handoff_carousel_transitions) — TANPA
+      // ini, panel yang sedang bergerak keluar-masuk (translateX 100%/-100%) kelihatan MELIMPAH
+      // ke kad JIRAN semasa transit (Izzat tangkap: "kad tu boleh nampak bergerak dari kad lain
+      // ke kad lain"). Disimpan/dipulih (bukan tulis-ganti kekal) — sesetengah kad mungkin
+      // pentingkan overflow:visible untuk kesan lain (cth hover:scale), walaupun tak ditemui
+      // dalam audit semasa.
+      overflowAsal = kadPenuh.style.overflow || '';
+      kadPenuh.style.overflow = 'hidden';
     }
     setPortalTarget(kadPenuh);
 
@@ -423,6 +434,7 @@ const CarouselStableBlock: React.FC<{
     }, separuhMasa));
     overlayTimersRef.current.push(setTimeout(() => {
       setOverlayFasa(null);
+      if (kadPenuh) kadPenuh.style.overflow = overflowAsal || '';
     }, separuhMasa * 2));
   }, [activeIndex, jenisAnimasi]);
 
