@@ -545,7 +545,7 @@ Panduan (Editorium → Rujukan → Panduan) hidup — panduan operasi harian seb
 Log Sistem), gantikan placeholder "Panduan Belum Dibina". Dokumentasi sudah
 hidup sedia ada (Peraturan Am + Reka Bentuk) — tak disentuh.
 
-### [ ] Fasa 17 — Ujian menyeluruh & deploy · `M` · ~3 hari
+### [x] Fasa 17 — Ujian menyeluruh & deploy · `M` · ~3 hari · SIAP 2026-08-03
 Setiap modul · dua peranan · dua saiz skrin · ujian & tsc bersih · bersih data ujian ·
 backup · deploy · sahkan pasca-deploy. **Sesi autonomi 2026-08-02** siapkan SEMUA
 persediaan (setiap item bawah KECUALI deploy sebenar — lihat "KIV — tunggu Izzat" di atas).
