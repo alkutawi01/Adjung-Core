@@ -443,7 +443,11 @@ sebelum panggil, baiki model lalai AI (`gemini-3.5-flash`), "Semak Sambungan" AI
 Semua ni kekal sebagai kerja masa depan KALAU/BILA ciri chatbox AI manual dibina — jangan
 mula sebelum ciri tu sendiri diarahkan.
 
-### [ ] Fasa 8b — Format sumber · `L` · ~5 hari (sebahagian siap 2026-08-05)
+### [x] Fasa 8b — Format sumber · skop disederhanakan 2026-08-05, SIAP
+Skop asal (`L`, ~5 hari, enjin petikan penulis/penerbit/ISBN penuh) disederhanakan —
+KEPUTUSAN IZZAT: Adjung Brief cuma ambil sumber daripada URL (laman web/audio/video
+dalam talian), bukan bahan bercetak fizikal, jadi format citation akademik penuh tak
+relevan. Tiga item:
 - [x] Validasi URL sumber — `validateSourceUrl()` (core/editorial/ContentBudget.js), URL
       sumber mesti sekurang-kurangnya rupa URL sah http/https (bukan lagi medan bebas
       sepenuhnya/skema berbahaya seperti javascript:), disambung ke semua laluan simpan
@@ -454,9 +458,13 @@ mula sebelum ciri tu sendiri diarahkan.
       sistem"). Diuji langsung: 98 URL sumber sebenar disemak, 23 dikesan bermasalah
       (kebanyakan sekatan bot 401/403 pelayan berita — bukan pautan benar-benar mati;
       beberapa 404 sebenar dikesan betul).
-- [ ] Enjin petikan berstruktur (penulis/penerbit/tarikh/jenis format citation formal) —
-      BELUM dilaksana, DITANGGUH. Skop lebih besar (schema EAV baharu + UI Editorium baharu)
-      berbanding dua item di atas; keputusan pemilik projek sama ada teruskan pasca-launch.
+- [x] Jenis sumber terdedah di UI — dropdown "Teks/Audio/Video" (SlotManagerModal.tsx),
+      medan `sourceType` sedia ada (auto-kesan sejak lama, tak pernah nampak di UI editor).
+      Selesaikan ciri ni dedah pepijat sedia ada — `serializeManualBentoItem()`
+      (ManualBlockFormat.js) tak pernah tulis balik baris "Jenis sumber:" walaupun
+      penghurai baca — nilai hilang senyap pada bulatan simpan seterusnya. Dibetulkan
+      (dan salinan server.js punya serializeDraftBlock yang sama pepijat). Diuji round-trip
+      serialize→parse langsung (node -e), bukan cuma baca kod.
 
 ---
 
