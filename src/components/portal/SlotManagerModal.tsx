@@ -5,6 +5,7 @@ import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot } from '.
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
 import { labelUi } from '../../config/istilah';
+import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 
 interface Bidang { name: string; color: string; icon: string | null; iconSvg: string | null }
 
@@ -290,6 +291,17 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     return () => { batal = true; };
   }, [editingSlotIndex]);
 
+  // Susun atur telefon (2026-08-05, permintaan Izzat — "modal urus slot utk versi telefon
+  // bermasalah sangat") — grid tetap `minmax(240px, 32%) 1fr` di bawah paksa jalur Draf
+  // sekurang-kurangnya 240px lebar walaupun modal sendiri cuma ~360-420px di telefon, tinggalkan
+  // borang utama dikelar sangat sempit (~120-180px) — punca skrin tangkap Izzat tunjuk (borang
+  // terpotong, perlu tatal mendatar). Struktur DUA-LAJUR SEBELAH-MENYEBELAH (Draf | Borang)
+  // ditukar jadi SATU LAJUR bertindan (Draf jalur nipis atas, Borang penuh bawah) di telefon.
+  const isPhone = usePhoneViewport();
+  // Senarai Draf di telefon lalai TERTUTUP (2026-08-04, permintaan pemilik projek) — dengan
+  // banyak draf (cth 100+) jalur senarai terbuka automatik akan makan ruang skrin telefon
+  // yang terhad; dibuka bila diklik sahaja.
+  const [drafTerbukaPhone, setDrafTerbukaPhone] = useState(false);
   const tier = tierForSlot(editingSlotIndex) || 'STANDARD';
   const ceiling = ceilingForSlot(editingSlotIndex);
   const desk = formConfig.manualDesk || '';
@@ -644,38 +656,74 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
       <div className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in">
 
-        <header className="flex-none px-6 md:px-8 pt-5 pb-3.5">
-          <div className="flex items-start justify-between gap-6">
-            <div>
-              <h2 className="font-serif text-xl md:text-2xl font-medium tracking-tight text-stone-900">
-                Urus Slot <span className="font-mono text-lg" style={{ color: accent }}>{editingSlotIndex + 1}</span>
-              </h2>
-              <p className="mt-1.5 flex items-center gap-2.5 flex-wrap">
+        <header className="flex-none px-4 md:px-8 pt-5 pb-3.5">
+          {/* Telefon: tindan menegak (tajuk atas, kawalan slot+tutup bawah) — bukan sebelah-
+              menyebelah `justify-between` desktop, yang paksa "Urus Slot 3" mengecut ke lajur
+              sempit (~100px) bila dropdown slot (teks panjang cth "Slot 3 — Teknologi Digital")
+              ambil baki ruang, punca "Urus / Slot / 3" patah 3 baris dalam skrin tangkap Izzat. */}
+          {isPhone ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="font-serif text-xl font-medium tracking-tight text-stone-900">
+                  Urus Slot <span className="font-mono text-lg" style={{ color: accent }}>{editingSlotIndex + 1}</span>
+                </h2>
+                <button type="button" aria-label="Tutup" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer shrink-0 mt-1">
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="flex items-center gap-2.5 flex-wrap">
                 {bidang && <BidangIcon iconName={bidang.icon} iconSvg={bidang.iconSvg} color={accent} variant="bare" size={13} title={desk} />}
                 <span className="font-sans text-[10px] uppercase tracking-[0.15em] font-extrabold" style={{ color: accent }}>{desk || '— Belum ditetapkan —'}</span>
                 <span className="text-stone-300">·</span>
                 <span className="font-sans text-[11px] text-stone-500">{TIER_LABELS[tier] || tier}</span>
               </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Tukar slot (2026-07-29) — dropdown terus di sini gantikan kena Batal + buka
-                  pemilih semula setiap kali nak tukar slot lain. */}
+              {/* Tukar slot — lebar penuh di telefon (bukan sebelah butang Tutup, ruang tak cukup
+                  untuk teks pilihan panjang cth "Slot 3 — Teknologi Digital"). */}
               {slotOptions && slotOptions.length > 0 && (
                 <select
                   value={editingSlotIndex}
                   onChange={(e) => handleSwitchSlot(parseInt(e.target.value, 10))}
-                  className="border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold text-stone-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#802334]"
+                  className="w-full border border-stone-300 rounded px-2.5 py-2 font-sans text-xs font-semibold text-stone-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#802334]"
                 >
                   {slotOptions.map((opt) => (
                     <option key={opt.index} value={opt.index}>{opt.label}</option>
                   ))}
                 </select>
               )}
-              <button type="button" aria-label="Tutup" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
-                <X size={18} />
-              </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <h2 className="font-serif text-xl md:text-2xl font-medium tracking-tight text-stone-900">
+                  Urus Slot <span className="font-mono text-lg" style={{ color: accent }}>{editingSlotIndex + 1}</span>
+                </h2>
+                <p className="mt-1.5 flex items-center gap-2.5 flex-wrap">
+                  {bidang && <BidangIcon iconName={bidang.icon} iconSvg={bidang.iconSvg} color={accent} variant="bare" size={13} title={desk} />}
+                  <span className="font-sans text-[10px] uppercase tracking-[0.15em] font-extrabold" style={{ color: accent }}>{desk || '— Belum ditetapkan —'}</span>
+                  <span className="text-stone-300">·</span>
+                  <span className="font-sans text-[11px] text-stone-500">{TIER_LABELS[tier] || tier}</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Tukar slot (2026-07-29) — dropdown terus di sini gantikan kena Batal + buka
+                    pemilih semula setiap kali nak tukar slot lain. */}
+                {slotOptions && slotOptions.length > 0 && (
+                  <select
+                    value={editingSlotIndex}
+                    onChange={(e) => handleSwitchSlot(parseInt(e.target.value, 10))}
+                    className="border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold text-stone-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#802334]"
+                  >
+                    {slotOptions.map((opt) => (
+                      <option key={opt.index} value={opt.index}>{opt.label}</option>
+                    ))}
+                  </select>
+                )}
+                <button type="button" aria-label="Tutup" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+          )}
           {/* UUID + bajet kandungan (2026-07-29, permintaan pemilik projek) — dipindah dari
               tengah borang ke header supaya editor sedar bajet sepanjang masa menaip, tanpa
               tatal. Hanya relevan untuk tab "Borang kandungan" (kandungan aktif semasa), tapi
@@ -702,30 +750,51 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           </div>
         )}
 
-        <div className="flex-1 min-h-0 grid" style={{ gridTemplateColumns: 'minmax(240px, 32%) 1fr' }}>
+        {/* Draf | Borang: DUA LAJUR sebelah-menyebelah di desktop (grid `minmax(240px, 32%) 1fr`),
+            tapi lantai 240px tu paksa jalur Draf ambil LEBIH SEPARUH lebar modal telefon (~360-
+            420px total), tinggalkan Borang dikelar ~120-180px — punca sebenar skrin tangkap Izzat
+            (borang terpotong, kena tatal mendatar). Telefon: SATU LAJUR bertindan (Draf jalur
+            nipis mendatar atas, tinggi terhad+boleh tatal, Borang penuh lebar bawah). */}
+        <div className={isPhone ? 'flex-1 min-h-0 flex flex-col' : 'flex-1 min-h-0 grid'} style={isPhone ? undefined : { gridTemplateColumns: 'minmax(240px, 32%) 1fr' }}>
 
-          <section className="min-h-0 flex flex-col border-r border-stone-150">
-            <div className="flex-none flex items-baseline justify-between px-3 pt-3 pb-2">
-              <span className={labelCls}>Draf</span>
-              <span className="font-mono text-[10px] text-stone-400">{items.length}</span>
-            </div>
+          <section className={isPhone ? 'flex-none flex flex-col border-b border-stone-150' + (drafTerbukaPhone ? ' max-h-[30vh]' : '') : 'min-h-0 flex flex-col border-r border-stone-150'}>
+            {isPhone ? (
+              <button
+                type="button"
+                onClick={() => setDrafTerbukaPhone((v) => !v)}
+                className="flex-none flex items-baseline justify-between px-3 pt-3 pb-2 w-full cursor-pointer"
+              >
+                <span className={labelCls}>Draf</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="font-mono text-[10px] text-stone-400">{items.length}</span>
+                  <span className="font-mono text-[10px] text-stone-400">{drafTerbukaPhone ? '▲' : '▼'}</span>
+                </span>
+              </button>
+            ) : (
+              <div className="flex-none flex items-baseline justify-between px-3 pt-3 pb-2">
+                <span className={labelCls}>Draf</span>
+                <span className="font-mono text-[10px] text-stone-400">{items.length}</span>
+              </div>
+            )}
             {/* Modal ni RUANG DRAF PERIBADI SAHAJA (2026-07-29, permintaan pemilik projek) —
                 senarai FLAT, satu kumpulan "Draf" sahaja. Tiada lagi kumpulan "Akan Diterbitkan":
                 Terbit (butang publishOne di atas) ialah AKSI SEGERA, bukan status yang ditogol —
                 sebaik sahaja ditekan & berjaya, kandungan terus KELUAR daripada senarai ni (jadi
                 rekod Indeks rasmi berstatus Pending), tiada keadaan pertengahan kelihatan di sini. */}
-            <div className="flex-1 min-h-0 overflow-y-auto border-t border-stone-150">
-              <ol className="list-none m-0 p-0">
-                {items.map((it, i) => (
-                  <SidebarItem
-                    key={it.uuid || i}
-                    item={it} index={i} isActive={i === activeIndex}
-                    slotIndex={editingSlotIndex} desk={desk}
-                    onSelect={setActive} onMoveUp={moveUp} onMoveDown={moveDown} onRemove={remove}
-                  />
-                ))}
-              </ol>
-            </div>
+            {(!isPhone || drafTerbukaPhone) && (
+              <div className={isPhone ? 'min-h-0 overflow-y-auto border-t border-stone-150' : 'flex-1 min-h-0 overflow-y-auto border-t border-stone-150'}>
+                <ol className="list-none m-0 p-0">
+                  {items.map((it, i) => (
+                    <SidebarItem
+                      key={it.uuid || i}
+                      item={it} index={i} isActive={i === activeIndex}
+                      slotIndex={editingSlotIndex} desk={desk}
+                      onSelect={setActive} onMoveUp={moveUp} onMoveDown={moveDown} onRemove={remove}
+                    />
+                  ))}
+                </ol>
+              </div>
+            )}
             <div className="flex-none border-t border-stone-150 p-2">
               <button type="button" onClick={insert} className="w-full text-center py-1.5 rounded font-sans text-[11px] font-semibold text-stone-600 hover:text-[#802334] hover:bg-[#802334]/[0.08] transition-colors cursor-pointer">
                 + Tambah Kandungan Baharu
