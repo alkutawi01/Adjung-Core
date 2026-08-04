@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+﻿import React, { useState, useEffect, useRef, useLayoutEffect, useContext, createContext } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Entry, SystemSettings } from '../../types';
 import { BRAND } from '../../config/brand';
@@ -287,6 +288,13 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
 
 
 
+// Jenis animasi transisi carousel (Fasa 7, 2026-08-04) — dibekalkan oleh FrontpageView sekali di
+// peringkat atas (satu fetch /api/system/slot-am-settings), dibaca di sini via Context supaya
+// TIDAK perlu ubah 30 tapak panggilan CarouselStableBlock sedia ada satu-satu (struktur JSX
+// renderItem/carousel projek ni sangat fragile — lihat nota Fasa 7/CLAUDE.md — Context elak
+// sentuh struktur tu langsung). Lalai 'pudar' (kelakuan sedia ada) kalau Provider tiada.
+const JenisAnimasiContext = createContext<string>('pudar');
+
 // Locks a carousel card's height to whatever its longest rotating item actually needs — without
 // ever truncating anything. All items are stacked in the same grid cell (visibility:hidden still
 // takes up layout space, unlike display:none), so the browser's own layout engine computes the
@@ -300,8 +308,14 @@ const CarouselStableBlock: React.FC<{
   renderItem: (item: any) => React.ReactNode;
   onNavigate?: (direction: 1 | -1) => void;
 }> = ({ items, activeIndex, renderItem, onNavigate }) => {
+  const jenisAnimasi = useContext(JenisAnimasiContext);
   const list = items && items.length > 0 ? items : [{}];
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Rujukan bekas SENDIRI (kawasan tajuk+huraian sahaja) — dipakai untuk cari kad PENUH sebenar
+  // (data-slot terdekat, dilukis oleh pemanggil di LUAR komponen ni sepenuhnya, lihat 30 tapak
+  // panggilan CarouselStableBlock) supaya overlay animasi liputi SELURUH kad (border/badge/
+  // footer sumber sekali), bukan cuma kawasan kecil tajuk+huraian dalaman.
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
   // Leret (swipe) tangan — hanya bertindak balas leret yang cukup mendatar (elak konflik dengan
   // skrol menegak biasa halaman) dan cukup jauh (elak leret tak sengaja yang kecil).
@@ -361,6 +375,59 @@ const CarouselStableBlock: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentKey, list.length]);
 
+  // Jenis animasi transisi bukan-pudar (Colophon/Sapuan Lajur) — `visualIndex` SENGAJA lag di
+  // belakang `activeIndex` sehingga overlay tutup penuh stage, supaya pertukaran opacity kad
+  // sebenar (yang jadi asas kunci tinggi di atas) berlaku semasa tersembunyi, tak pernah kelihatan
+  // sebagai potongan mendadak. 'pudar' (lalai) terus guna activeIndex macam sedia ada — tiada
+  // overlay, tiada lag, kelakuan asal 100% tak berubah.
+  const [visualIndex, setVisualIndex] = useState(activeIndex);
+  const [overlayFasa, setOverlayFasa] = useState<'masuk' | 'keluar' | null>(null);
+  // Sasaran Portal — KAD PENUH (data-slot terdekat), bukan snapshot koordinat. Overlay dirender
+  // TERUS di dalam elemen kad sebenar ni (position:absolute inset-0 terhadapnya), jadi ia
+  // bergerak SAMA dengan kad secara automatik kalau kad tu anjak (cth carousel lain berdekatan
+  // ubah tinggi serentak semasa auto-putar) — position:fixed + koordinat snapshot (percubaan
+  // pertama) "terapung" berasingan bila ini berlaku sebab koordinat viewport dibeku sekali sahaja
+  // (ditangkap Izzat 2026-08-04: "bukan animasi transisi, kotak yang bergerak").
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const prevActiveIndexRef = useRef(activeIndex);
+  const overlayTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    if (activeIndex === prevActiveIndexRef.current) return;
+    prevActiveIndexRef.current = activeIndex;
+    overlayTimersRef.current.forEach(clearTimeout);
+    overlayTimersRef.current = [];
+
+    const prefersReduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const overlayBerkenaan = (jenisAnimasi === 'colophon' || jenisAnimasi === 'sapuan_lajur') && !prefersReduced;
+
+    if (!overlayBerkenaan) {
+      setVisualIndex(activeIndex);
+      setOverlayFasa(null);
+      return;
+    }
+
+    const kadPenuh = (containerRef.current?.closest('[data-slot]') as HTMLElement | null) || containerRef.current;
+    // Jamin bekas kedudukan (position:relative) untuk overlay absolute — sifat aditif sahaja,
+    // TIDAK diubah kalau kad tu sudah `relative` (kebanyakan sedia ada), tak jejas apa-apa lain.
+    if (kadPenuh && getComputedStyle(kadPenuh).position === 'static') {
+      kadPenuh.style.position = 'relative';
+    }
+    setPortalTarget(kadPenuh);
+
+    const separuhMasa = jenisAnimasi === 'sapuan_lajur' ? 550 : 400;
+    setOverlayFasa('masuk');
+    overlayTimersRef.current.push(setTimeout(() => {
+      setVisualIndex(activeIndex);
+      setOverlayFasa('keluar');
+    }, separuhMasa));
+    overlayTimersRef.current.push(setTimeout(() => {
+      setOverlayFasa(null);
+    }, separuhMasa * 2));
+  }, [activeIndex, jenisAnimasi]);
+
+  useEffect(() => () => { overlayTimersRef.current.forEach(clearTimeout); }, []);
+
   if (list.length <= 1) {
     return <>{renderItem(list[0] || {})}</>;
   }
@@ -369,6 +436,7 @@ const CarouselStableBlock: React.FC<{
     // itu diukur pada lebar semasa dan tidak pernah mengecil semula, jadi tinggi desktop (dengan
     // huraian) tidak boleh dibiarkan terbawa ke kad telefon yang bertajuk sahaja.
     <div
+      ref={containerRef}
       className="grid relative group/carousel"
       data-carousel-stable=""
       style={{ minHeight: maxHeight }}
@@ -397,7 +465,11 @@ const CarouselStableBlock: React.FC<{
           </button>
         </>
       )}
-      {list.map((it, i) => (
+      {list.map((it, i) => {
+        // 'pudar' pakai activeIndex terus (crossfade serentak, kelakuan asal); jenis lain pakai
+        // visualIndex yang lag di sebalik overlay (lihat useEffect di atas).
+        const indexDipaparkan = jenisAnimasi === 'colophon' || jenisAnimasi === 'sapuan_lajur' ? visualIndex : activeIndex;
+        return (
         <div
           key={i}
           ref={(el) => { itemRefs.current[i] = el; }}
@@ -409,15 +481,38 @@ const CarouselStableBlock: React.FC<{
             // the stretched size instead of the item's true natural content height, masking
             // any real variance on every subsequent measurement.
             alignSelf: 'start',
-            opacity: i === activeIndex ? 1 : 0,
-            transition: 'opacity 1s ease-in-out',
-            pointerEvents: i === activeIndex ? 'auto' : 'none',
+            opacity: i === indexDipaparkan ? 1 : 0,
+            transition: overlayFasa ? 'none' : 'opacity 1s ease-in-out',
+            pointerEvents: i === indexDipaparkan ? 'auto' : 'none',
           }}
-          aria-hidden={i === activeIndex ? undefined : true}
+          aria-hidden={i === indexDipaparkan ? undefined : true}
         >
           {renderItem(it)}
         </div>
-      ))}
+        );
+      })}
+      {/* Overlay animasi transisi (Colophon/Sapuan Lajur) — lihat nota @keyframes di
+          src/index.css. Dirender via Portal TERUS di dalam kad PENUH (data-slot terdekat),
+          position:absolute inset-0 terhadapnya — bergerak SAMA dengan kad secara automatik,
+          tiada snapshot koordinat yang boleh jadi basi (lihat nota `portalTarget` di atas). */}
+      {overlayFasa && portalTarget && jenisAnimasi === 'colophon' && createPortal(
+        <div
+          className={`absolute inset-0 z-40 flex items-center justify-center bg-[#802334] pointer-events-none ${overlayFasa === 'masuk' ? 'carousel-colophon-masuk' : 'carousel-colophon-keluar'}`}
+          aria-hidden="true"
+        >
+          <img src="/adjung-symbol.svg" alt="" className="w-9 h-9 opacity-90" />
+        </div>,
+        portalTarget
+      )}
+      {overlayFasa && portalTarget && jenisAnimasi === 'sapuan_lajur' && createPortal(
+        <div
+          className={`absolute inset-0 z-40 flex items-center justify-center bg-[#802334] pointer-events-none ${overlayFasa === 'masuk' ? 'carousel-sapuan-masuk' : 'carousel-sapuan-keluar'}`}
+          aria-hidden="true"
+        >
+          <img src="/adjung-symbol.svg" alt="" className="w-7 h-7 opacity-90" />
+        </div>,
+        portalTarget
+      )}
     </div>
   );
 };
@@ -1050,10 +1145,17 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // Tetapan Am Slot (Editorium → Slot → Tetapan Am). Lalai `true` supaya kelakuan sedia ada kekal
   // sekiranya panggilan gagal — bukan senyap-senyap tukar kepada "sentiasa mula di kandungan 1".
   const [mulaIkutMasa, setMulaIkutMasa] = useState(true);
+  // Jenis animasi transisi carousel (Fasa 7, 2026-08-04) — tetapan Am Slot, terpakai pada SEMUA
+  // carousel bento sekali gus. Lalai 'pudar' (opacity fade sedia ada) supaya kelakuan tak berubah
+  // sekiranya panggilan gagal.
+  const [jenisAnimasi, setJenisAnimasi] = useState('pudar');
   useEffect(() => {
     fetch('/api/system/slot-am-settings')
       .then(r => r.json())
-      .then(d => { if (d && d.mulaIkutMasa !== undefined) setMulaIkutMasa(!!d.mulaIkutMasa); })
+      .then(d => {
+        if (d && d.mulaIkutMasa !== undefined) setMulaIkutMasa(!!d.mulaIkutMasa);
+        if (d && d.jenisAnimasi) setJenisAnimasi(d.jenisAnimasi);
+      })
       .catch(() => {});
   }, []);
 
@@ -1469,6 +1571,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
 
   return (
+    // JenisAnimasiContext.Provider (Fasa 7, 2026-08-04) — bekalkan jenisAnimasi (Tetapan Am Slot)
+    // kepada SEMUA 30 CarouselStableBlock bersarang tanpa perlu ubah tapak panggilan masing-masing.
+    <JenisAnimasiContext.Provider value={jenisAnimasi}>
     <div className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-4 select-none animate-fade-in">
 
       <div className="max-w-5xl mx-auto w-full flex-1">
@@ -3160,5 +3265,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
+    </JenisAnimasiContext.Provider>
   );
 };

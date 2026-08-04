@@ -478,6 +478,40 @@ h1, h2, h3, h4, h5, h6, p {
   animation: bentoTextFadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
+/* Jenis animasi transisi carousel — Colophon & Column Rule Sweep (Fasa 7, 2026-08-04,
+   spesifikasi Izzat/Claude Design: design_handoff_carousel_transitions). Overlay penuh (maroon +
+   simbol Adjung) yang lalu di atas kad semasa pertukaran kandungan carousel — CARA overlay ini
+   dipilih (bukan trek 3-kad fizikal Colophon asal) untuk elak ubah struktur JSX renderItem yang
+   sangat fragile (lihat CLAUDE.md). Kesan visual sama (panel maroon sembunyikan pertukaran),
+   risiko struktur jauh lebih rendah. Dua fasa animasi (masuk/keluar) dikawal JS (CarouselStableBlock)
+   yang tukar className antara -in/-out pada masa genap separuh tempoh; kandungan sebenar ditukar
+   pada saat overlay tutup penuh (opacity/left di takat genap), jadi pertukaran tak pernah kelihatan.
+   Hormat prefers-reduced-motion — CarouselStableBlock langkau animasi ni terus jika didayakan. */
+@keyframes carouselColophonMasuk {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0%); }
+}
+@keyframes carouselColophonKeluar {
+  from { transform: translateX(0%); }
+  to { transform: translateX(-100%); }
+}
+/* translateX (BUKAN `left`) — overlay kini position:fixed (liputi kad PENUH, diukur JS, lihat
+   CarouselStableBlock), peratus `left` akan resolve terhadap viewport bukan lebar overlay sendiri
+   pada position:fixed. transform:translateX() peratus SENTIASA relatif lebar elemen sendiri,
+   betul tak kira skema kedudukan. */
+@keyframes carouselSapuanMasuk {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0%); }
+}
+@keyframes carouselSapuanKeluar {
+  from { transform: translateX(0%); }
+  to { transform: translateX(100%); }
+}
+.carousel-colophon-masuk { animation: carouselColophonMasuk 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.carousel-colophon-keluar { animation: carouselColophonKeluar 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.carousel-sapuan-masuk { animation: carouselSapuanMasuk 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.carousel-sapuan-keluar { animation: carouselSapuanKeluar 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
 
 /* ---------------------------------------------------------------------------------------------
    JARING KECEMASAN LIMPAHAN KAD (2026-07-31, permintaan pemilik projek)

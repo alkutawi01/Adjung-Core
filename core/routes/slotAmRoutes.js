@@ -18,11 +18,16 @@ export const AM_DEFAULTS = {
   hadNotaEditor: 0,
 };
 
-// Satu-satunya jenis animasi yang benar-benar wujud dalam kod hari ini: pudar (opacity 1s
-// ease-in-out, lihat CarouselStableBlock di FrontpageView.tsx). Senarai ni sengaja pendek —
-// jangan tawarkan pilihan yang tak dilaksanakan.
+// Tiga jenis animasi carousel yang dilaksanakan sebenar dalam kod (2026-08-04, Fasa 7 — spesifikasi
+// Izzat/Claude Design, design_handoff_carousel_transitions): pudar (opacity crossfade sedia ada),
+// colophon (overlay maroon lalu menegak — versi disesuaikan drpd trek 3-kad fizikal asal untuk
+// elak ubah struktur JSX renderItem yang fragile), sapuan_lajur (panel maroon sapu dua fasa).
+// Senarai ni sengaja terhad — jangan tawarkan pilihan yang tak dilaksanakan (lihat
+// CarouselStableBlock di FrontpageView.tsx untuk pelaksanaan sebenar setiap satu).
 export const JENIS_ANIMASI = [
   { nilai: 'pudar', label: 'Pudar (1 saat)' },
+  { nilai: 'colophon', label: 'Colophon (panel maroon menegak)' },
+  { nilai: 'sapuan_lajur', label: 'Sapuan Lajur (panel maroon sapu)' },
 ];
 
 let cache = { ...AM_DEFAULTS };
