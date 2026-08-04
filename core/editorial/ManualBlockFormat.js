@@ -40,6 +40,12 @@ export function parseManualBlockFields(block) {
   const fields = {
     uuid: '', title: '', brief: '', briefLong: '', desk: '', topik: '',
     date: '', source: '', url: '', sourceType: '',
+    // Sumber berbilang (2026-08-05, permintaan Izzat) — SETIAP baris "Sumber:" tolak entri
+    // baharu ke `sources` (dipasangkan dengan "URL:" berikutnya, jika ada, ikut turutan
+    // ditaip — editor sentiasa taip Sumber lalu URL bersebelahan dalam templat). `source`/`url`
+    // tunggal di atas KEKAL = entri PERTAMA sahaja (keserasian ke belakang untuk pengguna
+    // sedia ada yang cuma baca satu sumber, cth kad bento sebelum ciri ni wujud).
+    sources: [],
     organizer: '', location: '', access: '', penerangan: '',
     note: '', image: '', isEventBlock: false,
     // Penulis (2026-08-01, permintaan pemilik projek — modul "Draf Saya"): nama pena editor yang
@@ -108,9 +114,19 @@ export function parseManualBlockFields(block) {
     } else if (trimmed.startsWith('Penerangan:')) {
       fields.penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
     } else if (trimmed.startsWith('Sumber:')) {
-      fields.source = trimmed.replace(/^Sumber:\s*/i, '').trim();
+      const nama = trimmed.replace(/^Sumber:\s*/i, '').trim();
+      if (fields.sources.length === 0) fields.source = nama; // entri pertama = medan tunggal legasi.
+      fields.sources.push({ name: nama, url: '' });
     } else if (trimmed.startsWith('URL:')) {
-      fields.url = trimmed.replace(/^URL:\s*/i, '').trim();
+      const url = trimmed.replace(/^URL:\s*/i, '').trim();
+      if (fields.sources.length === 0) {
+        // Baris "URL:" muncul sebelum "Sumber:" (jarang, tapi templat tak kuatkuasa turutan) —
+        // cipta entri sumber kosong supaya URL ni tak hilang.
+        fields.sources.push({ name: '', url });
+      } else {
+        fields.sources[fields.sources.length - 1].url = url;
+      }
+      if (fields.sources.length === 1) fields.url = url; // entri pertama = medan tunggal legasi.
     }
   }
 
@@ -146,6 +162,21 @@ export function parseManualSummaryBlocks(summaryText) {
 export function serializeManualBentoItem(item) {
   const uuid = item.uuid || '';
   const status = item.status === 'draft' ? 'draf' : item.status === 'pending' ? 'pending' : 'terbit';
+
+  // Sumber berbilang (2026-08-05, permintaan Izzat) — tulis SATU pasangan Sumber:/URL: per
+  // entri `item.sources` (bukan cuma medan tunggal item.source/item.url) supaya parseManualBlockFields
+  // baca balik SEMUA entri, bukan cuma yang pertama. Jatuh balik ke medan tunggal kalau
+  // `item.sources` tiada/kosong (item lama sebelum ciri ni wujud, atau editor cuma isi medan
+  // tunggal — UI SlotManagerModal.tsx sentiasa isi `sources`, ni jaring keselamatan sahaja).
+  const sumberBaris = [];
+  const sourcesList = Array.isArray(item.sources) && item.sources.length > 0
+    ? item.sources
+    : [{ name: item.source || '', url: item.url || '' }];
+  for (const s of sourcesList) {
+    sumberBaris.push(`Sumber: ${s.name || ''}`);
+    sumberBaris.push(`URL: ${s.url || ''}`);
+  }
+
   return [
     `UUID: ${uuid}`,
     `Status: ${status}`,
@@ -153,8 +184,7 @@ export function serializeManualBentoItem(item) {
     `Topik: ${item.topik || item.topic || ''}`,
     `Huraian ringkas: ${item.brief || ''}`,
     `Huraian panjang: ${item.briefLong || ''}`,
-    `Sumber: ${item.source || ''}`,
-    `URL: ${item.url || ''}`,
+    ...sumberBaris,
     // Jenis sumber (Fasa 8b, 2026-08-05) — SEBELUM NI TIADA DI SINI walaupun
     // parseManualBlockFields() (atas fail ni) SUDAH baca baris ni sejak sekian lama: nilai yang
     // editor pilih hilang senyap pada bulatan simpan seterusnya (baca → simpan → baca semula =

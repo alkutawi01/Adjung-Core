@@ -118,16 +118,19 @@ export interface FocusViewProps {
    *  Dipapar HANYA apabila kolum kanan tiada grafik, tiada kandungan berkaitan dan tiada nota —
    *  ia mengalah kepada kandungan sebenar, sentiasa. */
   illustrationSvg?: string | null;
-  /** Sumber (nama atau teks URL), dipapar di kolofon. */
+  /** Sumber (nama atau teks URL), dipapar di kolofon. Jatuh balik/keserasian ke belakang bila
+   *  `sources` (di bawah) tiada — kandungan lama sebelum ciri sumber berbilang wujud. */
   source?: string;
   sourceUrl?: string;
+  /** Sumber berbilang (2026-08-05, permintaan Izzat) — kad papar label generik "Editorial
+   *  Adjung" bila >1 (ruang terhad, lihat FrontpageView.tsx), tapi Focus View (ruang lebih)
+   *  SENARAIKAN SEMUA sumber di sini, sama ada satu atau lebih. Bila dibekalkan (panjang > 0),
+   *  MENGATASI `source`/`sourceUrl` tunggal di atas untuk paparan kolofon. */
+  sources?: { name: string; url?: string }[];
   /** Tarikh sumber — tarikh bahan asal, dipapar di sebelah Sumber. */
   sourceDate?: string;
   /** Tarikh siaran — tarikh penyiaran Adjung, dipapar sebaris dengan eyebrow atas tajuk. */
   publishedDate?: string;
-  editorName?: string;
-  /** E-mel atau laman editor; alamat yang mengandungi "@" dipaut sebagai mailto. */
-  editorContact?: string;
   /** Lapisan kedua pilihan yang sangat samar atas latar pejal. */
   backdropImage?: string;
   backdropOpacity?: number;
@@ -158,8 +161,8 @@ export interface FocusViewProps {
 export const FocusView: React.FC<FocusViewProps> = ({
   wordmark = 'Adjung', icon, desk, topik, deskColor, title, titleRendered, body,
   visual, visualCaption, related = [], note, notaMaxAksara = NOTA_MAX, illustrationSvg,
-  source, sourceUrl, sourceDate, publishedDate,
-  editorName, editorContact, backdropImage, backdropOpacity = 0.06,
+  source, sourceUrl, sources = [], sourceDate, publishedDate,
+  backdropImage, backdropOpacity = 0.06,
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
   titleSizeScale = 1, bodySizePx = 15,
   navMode = 'rawak', onToggleNavMode,
@@ -543,9 +546,17 @@ export const FocusView: React.FC<FocusViewProps> = ({
           )}
 
           {/* Tarikh siaran dipindah ke kepala melekat (di atas, bawah tajuk) — lihat nota di sana.
-              Tarikh SUMBER (bukan siaran) kekal di sini, di bawah nama Sumber (permintaan Izzat). */}
+              Tarikh SUMBER (bukan siaran) kekal di sini, di bawah nama Sumber (permintaan Izzat).
+              Sumber berbilang (2026-08-05) — Focus View senaraikan SEMUA (`sources`), bukan cuma
+              satu (`source`/`sourceUrl`) — ruang lebih drpd kad, tiada sebab hadkan di sini. */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '2px' }}>
-            <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5, wordBreak: 'break-all' }}>{source || '—'}</a>
+            {sources.length > 0 ? (
+              sources.map((s, i) => (
+                <a key={i} href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5, wordBreak: 'break-all' }}>{s.name || '—'}</a>
+              ))
+            ) : (
+              <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5, wordBreak: 'break-all' }}>{source || '—'}</a>
+            )}
             {sourceDate && (
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}>{sourceDate}</span>
             )}
@@ -586,19 +597,6 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', fontWeight: 300,
                 lineHeight: 'var(--leading-relaxed)', color: 'var(--stone-600)', textWrap: 'pretty',
               }}>{note}</p>
-              {/* Tandatangan + URL editor ditengahkan (2026-08-05, permintaan Izzat, telefon
-                  sahaja) — nota sendiri KEKAL rata-kiri (bacaan perenggan), cuma dua elemen ni. */}
-              {editorName && (
-                <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', lineHeight: 1, color: 'var(--color-Adjung-maroon)', marginTop: '2px', textAlign: 'center' }}>{editorName}</span>
-              )}
-              {editorContact && (
-                <a
-                  href={editorContact.includes('@') ? 'mailto:' + editorContact : 'https://' + editorContact}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ ...sectionLabel, fontWeight: 400, textTransform: 'none', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)', textAlign: 'center' }}
-                >{editorContact}</a>
-              )}
             </div>
           )}
         </div>
@@ -896,33 +894,28 @@ export const FocusView: React.FC<FocusViewProps> = ({
       <div style={{ position: 'relative', flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) 0', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: 'min(64%, 900px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px' }}>
           <span style={{ maxWidth: '70%', lineHeight: 1.5 }}>
-            <span style={micro}>Sumber</span>
-            <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
-              <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
-              {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
-            </span>
+            <span style={micro}>{sources.length > 1 ? 'Sumber-sumber' : 'Sumber'}</span>
+            {/* Sumber berbilang (2026-08-05) — senaraikan SEMUA (`sources`), satu baris setiap
+                sumber; jatuh balik ke medan tunggal (`source`/`sourceUrl`) bila `sources` tiada
+                (kandungan lama). */}
+            {sources.length > 0 ? (
+              sources.map((s, i) => (
+                <span key={i} style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
+                  <a href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{s.name || '—'}</a>
+                  {i === 0 && sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
+                </span>
+              ))
+            ) : (
+              <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
+                <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
+                {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
+              </span>
+            )}
           </span>
           {publishedDate && (
             <span style={{ ...micro, fontFamily: 'var(--font-mono)', color: 'var(--stone-500)', letterSpacing: 'var(--tracking-wide)', whiteSpace: 'nowrap' }}>{publishedDate}</span>
           )}
         </div>
-        {(editorName || editorContact) && (
-          <span style={{ position: 'absolute', right: 'clamp(16px, 3vw, 40px)', bottom: 'clamp(10px, 1.8vh, 18px)', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-            {editorName && (
-              <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', color: 'var(--color-Adjung-maroon)' }}>{editorName}</span>
-            )}
-            {editorContact && (
-              <a
-                href={editorContact.includes('@') ? 'mailto:' + editorContact : 'https://' + editorContact}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ ...micro, color: 'var(--stone-500)', textTransform: 'none', letterSpacing: 'var(--tracking-wide)', fontWeight: 'var(--weight-regular)' as any }}
-              >
-                {editorContact}
-              </a>
-            )}
-          </span>
-        )}
       </div>
 
     </div>

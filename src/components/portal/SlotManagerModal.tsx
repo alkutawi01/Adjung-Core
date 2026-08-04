@@ -309,7 +309,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // key={editingSlotIndex} — tukar slot = remount penuh, bukan sekadar prop baharu.
   const blankItem = (suffix: string | number = '') => ({
     uuid: `object-manual-slot${editingSlotIndex}-${Date.now()}${suffix}`,
-    title: '', brief: '', briefLong: '', topik: '', source: '', url: '', sourceType: '', date: '', note: '', image: '',
+    title: '', brief: '', briefLong: '', topik: '', source: '', url: '', sources: [], sourceType: '', date: '', note: '', image: '',
     // Alur kerja Draf/Terbit (2026-07-29, permintaan pemilik projek) — lalai DRAF untuk
     // kandungan BAHARU: tak sesekali live sehingga editor sedar-sedar tekan "Terbit". Kandungan
     // sedia ada yang dihurai daripada manualSummary (lihat parseManualSummaryBlocks) bawa status
@@ -347,6 +347,39 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     prevItems.length > 0
       ? prevItems.map((it, n) => (n === i ? { ...it, [key]: value } : it))
       : [{ ...blankItem(), [key]: value }]
+  ));
+
+  // Sumber berbilang (2026-08-05, permintaan Izzat) — `it.sources` senarai {name,url}[]. `source`/
+  // `url` tunggal legasi diselaraskan SEKALI di sini (entri pertama) supaya kad/pautan lama yang
+  // masih baca medan tunggal terus betul tanpa perlu ubah kod lain — satu tempat sahaja.
+  const selarasSumberLegasi = (it: any) => ({
+    ...it,
+    source: (it.sources && it.sources[0]?.name) || '',
+    url: (it.sources && it.sources[0]?.url) || '',
+  });
+  const patchSumber = (i: number, sIdx: number, field: 'name' | 'url', value: string) => commit((prevItems) => (
+    prevItems.map((it, n) => {
+      if (n !== i) return it;
+      const sources = (it.sources && it.sources.length > 0) ? [...it.sources] : [{ name: it.source || '', url: it.url || '' }];
+      sources[sIdx] = { ...sources[sIdx], [field]: value };
+      return selarasSumberLegasi({ ...it, sources });
+    })
+  ));
+  const tambahSumber = (i: number) => commit((prevItems) => (
+    prevItems.map((it, n) => {
+      if (n !== i) return it;
+      const sources = (it.sources && it.sources.length > 0) ? [...it.sources] : [{ name: it.source || '', url: it.url || '' }];
+      sources.push({ name: '', url: '' });
+      return selarasSumberLegasi({ ...it, sources });
+    })
+  ));
+  const buangSumber = (i: number, sIdx: number) => commit((prevItems) => (
+    prevItems.map((it, n) => {
+      if (n !== i) return it;
+      const sources = (it.sources && it.sources.length > 0) ? [...it.sources] : [{ name: it.source || '', url: it.url || '' }];
+      const next = sources.filter((_: any, idx: number) => idx !== sIdx);
+      return selarasSumberLegasi({ ...it, sources: next.length > 0 ? next : [{ name: '', url: '' }] });
+    })
   ));
   // useCallback([items.length]): identiti KEKAL STABIL sepanjang menaip biasa (panjang giliran tak
   // berubah bila sekadar mengedit medan), hanya berubah identiti bila kandungan ditambah/dibuang/
@@ -398,7 +431,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           // "pending" separa-terbit tersembunyi sebelum Terbit ditekan).
           status: 'draft',
           title: b.title, topik: b.topik, brief: b.brief, briefLong: b.briefLong,
-          source: b.source, url: b.url, sourceType: b.sourceType, date: b.date, note: b.note, image: b.image,
+          source: b.source, url: b.url, sources: b.sources, sourceType: b.sourceType, date: b.date, note: b.note, image: b.image,
           // Blok yang ditampal biasanya datang daripada AI luaran (tiada baris Penulis:) — yang
           // menampal itulah penulisnya. Kalau teks yang ditampal MEMANG sudah membawa nama
           // (cth. draf disalin daripada slot lain), nama asal itu dikekalkan.
@@ -766,9 +799,45 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 )}
 
                 <hr className="border-stone-150" />
+                {/* Sumber berbilang (2026-08-05, permintaan Izzat) — editor boleh tambah lebih
+                    daripada satu sumber untuk SATU kandungan (cth digubah drpd pelbagai bahan).
+                    Kad terhad ruang: label kad papar "Editorial Adjung" secara automatik bila
+                    >1 sumber (lihat FrontpageView.tsx), bukan senarai penuh. Focus View (ruang
+                    lebih) senaraikan SEMUA. */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-baseline justify-between">
+                    <span className={labelCls}>Sumber {(current.sources && current.sources.length > 1) && <span className="font-sans normal-case tracking-normal font-normal text-stone-400">— kad papar "Editorial Adjung" (&gt;1 sumber)</span>}</span>
+                    <button type="button" onClick={() => tambahSumber(activeIndex)} className="text-[11px] font-sans font-semibold text-[#802334] hover:underline cursor-pointer">+ Tambah sumber</button>
+                  </div>
+                  {((current.sources && current.sources.length > 0) ? current.sources : [{ name: current.source || '', url: current.url || '' }]).map((s: any, sIdx: number) => (
+                    <div key={sIdx} className="grid grid-cols-2 gap-3 items-end">
+                      <label className="flex flex-col gap-1">
+                        {sIdx === 0 && <span className={labelCls}>Nama sumber</span>}
+                        <input
+                          type="text" value={s.name || ''} placeholder="Adjung Editorial" maxLength={60}
+                          onChange={(e) => patchSumber(activeIndex, sIdx, 'name', e.target.value)}
+                          className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+                        />
+                      </label>
+                      <span className="flex items-end gap-2">
+                        <label className="flex-1 flex flex-col gap-1">
+                          {sIdx === 0 && <span className={labelCls}>URL</span>}
+                          <input
+                            type="text" value={s.url || ''} placeholder="https://…"
+                            onChange={(e) => patchSumber(activeIndex, sIdx, 'url', e.target.value)}
+                            className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+                          />
+                        </label>
+                        {(current.sources && current.sources.length > 1) && (
+                          <button type="button" onClick={() => buangSumber(activeIndex, sIdx)} aria-label="Buang sumber ini" className="text-stone-400 hover:text-[#a8241f] cursor-pointer pb-1.5">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
                 <div className="grid grid-cols-2 gap-5">
-                  <Field label="Sumber" value={current.source || ''} placeholder="Adjung Editorial" maxLen={60} onChange={(v) => patch(activeIndex, 'source', v)} />
-                  <Field label="URL" value={current.url || ''} placeholder="https://…" onChange={(v) => patch(activeIndex, 'url', v)} />
                   <SelectField label="Jenis sumber" value={current.sourceType || ''} options={JENIS_SUMBER_PILIHAN} onChange={(v) => patch(activeIndex, 'sourceType', v)} />
                   <Field label="Tarikh sumber" value={current.date || ''} placeholder="21.07.26" onChange={(v) => patch(activeIndex, 'date', v)} />
                   <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />

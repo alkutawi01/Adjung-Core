@@ -1805,6 +1805,11 @@ const initEditorialOS = (dbConn) => {
           // sourceType/topik di atas, kena didaftar dulu di sini atau INSERT gagal senyap.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('editorName', 'Nama Editor', 'text')", () => {});
 
+          // sourcesJson: sumber berbilang (2026-08-05, permintaan Izzat) — senarai PENUH
+          // {name,url}[] disimpan JSON, berasingan drpd 'source'/'url' tunggal legasi (yang
+          // kekal = entri pertama sahaja, untuk keserasian ke belakang).
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('sourcesJson', 'Sumber Berbilang (JSON)', 'text')", () => {});
+
           // urlKod: kod pendek unik per-kandungan (Fasa 9, 2026-08-05) — skema URL
           // /<bidang-slug>/kandungan/<kod-pendek>. Lihat core/editorial/UrlSlug.js untuk sebab
           // ia kod RAWAK baharu (bukan potongan editorial_objects.id sedia ada). Indeks unik
@@ -2118,6 +2123,10 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let date = '';
     let source = '';
     let url = '';
+    // Sumber berbilang (2026-08-05, permintaan Izzat) — sama corak macam ManualBlockFormat.js
+    // (salinan client) — SETIAP baris "Sumber:" tolak entri baharu, dipasangkan dengan "URL:"
+    // berikutnya. `source`/`url` tunggal kekal = entri PERTAMA (keserasian ke belakang).
+    let sources = [];
     let sourceType = '';
     let isEventBlock = false;
     // LALAI 'approved' (BUKAN 'draft') bila tiada baris "Status:" — blok lama yang disimpan
@@ -2202,9 +2211,17 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       } else if (trimmed.startsWith('Penerangan:')) {
         penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
       } else if (trimmed.startsWith('Sumber:')) {
-        source = trimmed.replace(/^Sumber:\s*/i, '').trim();
+        const nama = trimmed.replace(/^Sumber:\s*/i, '').trim();
+        if (sources.length === 0) source = nama;
+        sources.push({ name: nama, url: '' });
       } else if (trimmed.startsWith('URL:')) {
-        url = trimmed.replace(/^URL:\s*/i, '').trim();
+        const u = trimmed.replace(/^URL:\s*/i, '').trim();
+        if (sources.length === 0) {
+          sources.push({ name: '', url: u });
+        } else {
+          sources[sources.length - 1].url = u;
+        }
+        if (sources.length === 1) url = u;
       }
     }
 
@@ -2251,6 +2268,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         image,
         penulis,
         source: organizer || source || defaultSlot.manualSource || '',
+        sources,
         // TIADA fallback ke defaultSlot.manualUrl/'#' di sini lagi (2026-07-29) — defaultSlot.manualUrl
         // ialah medan LEGASI peringkat SLOT yang useSlotEditor.ts set lalai '#' setiap kali modal
         // dibuka, jadi fallback ke situ mencemari URL kosong SETIAP kandungan (termasuk draf yang
@@ -2488,6 +2506,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         continue;
       }
 
+
       const objectId = isBar ? (item.uuid || `object-manual-slot${slotIndex}-${baseTs}-${i}`) : `object-manual-slot${slotIndex}-${baseTs}-${i}`;
       const createdAt = new Date(baseTs + i).toISOString();
       try {
@@ -2516,6 +2535,11 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         { key: 'desk', val: finalCategory },
         { key: 'url', val: item.url || '#' },
         { key: 'source', val: item.source || '' },
+        // Sumber berbilang (2026-08-05, permintaan Izzat) — senarai PENUH {name,url}[] disimpan
+        // sebagai JSON dalam SATU attribute (bukan berbilang baris EAV attributeId='source' —
+        // lebih ringkas baca semula). `source`/`url` di atas KEKAL entri pertama sahaja
+        // (keserasian ke belakang, label kad tunggal). Dibaca semula di resolveSlotContent().
+        { key: 'sourcesJson', val: JSON.stringify(Array.isArray(item.sources) ? item.sources : []) },
         { key: 'sourceType', val: item.sourceType || 'web' },
         { key: 'briefLong', val: item.briefLong || '' },
         { key: 'originalDate', val: item.originalDate || '' },
@@ -2655,6 +2679,9 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
           publisherName: renderToken.publisherName || parsed.source || 'Umum',
           source: renderToken.publisherName || parsed.source || 'Umum',
           url: renderToken.sourceUrl || renderToken.url || parsed.url || '#',
+          // Sumber berbilang (2026-08-05) — senarai PENUH untuk Focus View; label kad ("source"
+          // atas) diselaraskan ke "Editorial Adjung" di FrontpageView.tsx bila panjang > 1.
+          sources: Array.isArray(parsed.sources) ? parsed.sources : [],
           glyphProfile: renderToken.glyphProfile || null,
           presentationProfile: renderToken.presentationProfile || 'umum',
           publicationType: renderToken.publicationType || 'news',
@@ -2722,6 +2749,16 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       const peneranganAv = avs.find(a => a.attributeId === 'penerangan');
       const noteAv = avs.find(a => a.attributeId === 'note');
       const imageAv = avs.find(a => a.attributeId === 'image');
+      // Sumber berbilang (2026-08-05) — parse selamat (JSON rosak/lama tiada medan ni langsung
+      // = senarai kosong, bukan ranap laluan baca kandungan).
+      const sourcesJsonAv = avs.find(a => a.attributeId === 'sourcesJson');
+      let sources = [];
+      if (sourcesJsonAv && sourcesJsonAv.valueText) {
+        try {
+          const parsedSources = JSON.parse(sourcesJsonAv.valueText);
+          if (Array.isArray(parsedSources)) sources = parsedSources;
+        } catch (e) { /* JSON rosak — kekal senarai kosong, jangan ranap. */ }
+      }
 
       subItems.push({
         title: approvedRevision.title,
@@ -2736,6 +2773,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         // PresentationComposer's token names this field sourceUrl, not url — this fallback
         // chain avoids silently dropping every DB-backed item's click-through link to '#'.
         url: renderToken.sourceUrl || renderToken.url || '#',
+        sources,
         glyphProfile: renderToken.glyphProfile || null,
         presentationProfile: renderToken.presentationProfile || 'umum',
         publicationType: renderToken.publicationType || 'news',

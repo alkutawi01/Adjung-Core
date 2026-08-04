@@ -1207,6 +1207,25 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           itemToPush.source = itemToPush.source.substring(0, 25);
         }
       }
+      // Sumber berbilang (2026-08-05, permintaan Izzat) — kad terhad ruang, tak boleh senaraikan
+      // semua sumber. Bila kandungan ada LEBIH DARIPADA SATU sumber, kad papar label generik
+      // "Editorial Adjung" (bukan nama sumber pertama sahaja — itu mengelirukan, seolah cuma
+      // satu sumber dipakai). Focus View (ruang lebih) papar senarai PENUH — lihat
+      // `itemToPush.sources` dihantar terus (bukan diubah) untuk kegunaan Focus View di bawah.
+      // DUA tempat: `itemToPush.source` sendiri (label statik kad — banyak tapak render baca
+      // terus daripada objek slot peringkat atas ni, BUKAN per-item carousel) DAN setiap
+      // `itemToPush.items[j].source` (slot carousel berbilang kandungan — setiap item boleh ada
+      // bilangan sumber BERBEZA, jadi mesti disemak satu-satu, bukan warisi keputusan item
+      // pertama). Tanpa baris kedua ni, kandungan carousel BUKAN item pertama slot yang ada >1
+      // sumber tak pernah dapat label "Editorial Adjung" walaupun betul patut.
+      if (Array.isArray(itemToPush.sources) && itemToPush.sources.length > 1) {
+        itemToPush.source = 'Editorial Adjung';
+      }
+      if (Array.isArray(itemToPush.items)) {
+        itemToPush.items = itemToPush.items.map((it: any) => (
+          Array.isArray(it.sources) && it.sources.length > 1 ? { ...it, source: 'Editorial Adjung' } : it
+        ));
+      }
       if (itemToPush.desk === 'BELUM DIKELASKAN') {
         itemToPush.desk = 'SEMASA';
       }
@@ -3304,14 +3323,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           notaMaxAksara={systemSettings?.focusViewNotaMaxAksara}
           source={focusItem.source}
           sourceUrl={focusItem.url}
+          sources={Array.isArray(focusItem.sources) ? focusItem.sources : undefined}
           sourceDate={formatTarikhSumberPanjang(focusItem.originalDate)}
           publishedDate={formatSiaranDate(focusItem.publishedAt)}
           onPrev={(focusNavMode === 'turutan' ? !!prevTurutanLoc : focusHistory.length > 1) ? focusPrev : undefined}
           onNext={nextRandomLoc ? focusNext : undefined}
           prevPreviewTitle={focusPrevTitle}
           nextPreviewTitle={focusNextTitle}
-          editorName={currentEditoriumRole === 'KETUA_EDITOR' ? currentEditoriumName : undefined}
-          editorContact={currentEditoriumRole === 'KETUA_EDITOR' ? currentEditoriumContact : undefined}
           onClose={closeFocus}
           titleSizeScale={tetapanFontFocusView.titleSizeScale}
           bodySizePx={tetapanFontFocusView.bodySizePx}
