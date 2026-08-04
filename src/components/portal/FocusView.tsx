@@ -1,5 +1,5 @@
 import React from 'react';
-import { ListOrdered, Pause, Play, Shuffle, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ListOrdered, Pause, Play, Shuffle, X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { safeParseInline } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
@@ -207,6 +207,27 @@ export const FocusView: React.FC<FocusViewProps> = ({
     // penuh untuk baca kandungan yang baru dipaparkan, bukan baki pemasa kandungan lama.
   }, [autoPlay, onNext, title]);
 
+  // Leret (swipe) untuk navigasi Focus View telefon (2026-08-05, permintaan Izzat — "user boleh
+  // swap je di skrin"). MENDATAR (kiri/kanan) sengaja, BUKAN menegak — badan Focus View sendiri
+  // menatal MENEGAK (huraian panjang), jadi leret menegak mesti kekal untuk tatal biasa; leret
+  // mendatar bebas dipakai sebab tiada tatal mendatar dalam Focus View. Ambang 60px + nisbah
+  // mendatar:menegak > 1.5 elak leret menatal tak sengaja tercetus sebagai navigasi.
+  const sentuhMulaRef = React.useRef<{ x: number; y: number } | null>(null);
+  const kendaliSentuhMula = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    sentuhMulaRef.current = { x: t.clientX, y: t.clientY };
+  };
+  const kendaliSentuhTamat = (e: React.TouchEvent) => {
+    const mula = sentuhMulaRef.current;
+    sentuhMulaRef.current = null;
+    if (!mula) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - mula.x;
+    const dy = t.clientY - mula.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) { onNext && onNext(); } else { onPrev && onPrev(); }
+  };
+
   // Huraian panjang render satu lajur, perenggan berturutan — TIADA lagi pembahagian dua-ukuran
   // (2026-07-29, sejak huraian pendek dibuang: pembahagian tu sedia ada khusus untuk imbang ruang
   // bacaan apabila huraian pendek+panjang berkongsi jalur yang sama; dengan huraian pendek tiada,
@@ -389,14 +410,20 @@ export const FocusView: React.FC<FocusViewProps> = ({
     const navBtn: React.CSSProperties = {
       appearance: 'none', background: 'var(--surface-page)', border: 0, color: 'var(--stone-600)',
       fontFamily: 'var(--font-sans)', fontSize: '11px', letterSpacing: 'var(--tracking-wide)',
-      minHeight: '56px', cursor: 'pointer',
+      minHeight: '56px', cursor: 'pointer', display: 'flex', flexDirection: 'column',
+      alignItems: 'flex-start', justifyContent: 'center', gap: '3px', padding: '8px 14px',
+      textAlign: 'left',
     };
 
     return (
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 200, background: 'var(--surface-page)',
-        color: 'var(--text-body)', display: 'flex', flexDirection: 'column',
-      }}>
+      <div
+        style={{
+          position: 'fixed', inset: 0, zIndex: 200, background: 'var(--surface-page)',
+          color: 'var(--text-body)', display: 'flex', flexDirection: 'column',
+        }}
+        onTouchStart={kendaliSentuhMula}
+        onTouchEnd={kendaliSentuhTamat}
+      >
         {transitionOverlay}
         {backdropImage && (
           <div aria-hidden="true" style={{
@@ -414,18 +441,20 @@ export const FocusView: React.FC<FocusViewProps> = ({
           <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)' }}>{wordmark}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
             {onToggleNavMode && (
+              // Kecil sengaja (2026-08-05, permintaan Izzat) — kawalan SEKUNDER berbanding Tutup;
+              // 30px bukan sasaran sentuh utama, tapi ikon padat cukup senang ditekan ibu jari.
               <button
                 type="button" onClick={onToggleNavMode}
                 aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
                 title={navMode === 'rawak' ? 'Rawak' : 'Turutan'}
                 style={{
                   appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
-                  borderRadius: '999px', color: 'var(--stone-600)', display: 'inline-flex',
-                  alignItems: 'center', justifyContent: 'center', minWidth: '44px', minHeight: '44px',
+                  borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
+                  alignItems: 'center', justifyContent: 'center', minWidth: '30px', minHeight: '30px',
                   padding: 0, cursor: 'pointer',
                 }}
               >
-                {navMode === 'rawak' ? <Shuffle size={16} strokeWidth={1.75} /> : <ListOrdered size={16} strokeWidth={1.75} />}
+                {navMode === 'rawak' ? <Shuffle size={13} strokeWidth={1.75} /> : <ListOrdered size={13} strokeWidth={1.75} />}
               </button>
             )}
             {onNext && (
@@ -434,15 +463,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
                 style={{
                   appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
-                  borderRadius: '999px', color: 'var(--stone-600)', display: 'inline-flex',
-                  alignItems: 'center', justifyContent: 'center', minWidth: '44px', minHeight: '44px',
+                  borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
+                  alignItems: 'center', justifyContent: 'center', minWidth: '30px', minHeight: '30px',
                   padding: 0, cursor: 'pointer',
                 }}
               >
-                {autoPlay ? <Pause size={16} strokeWidth={1.75} /> : <Play size={16} strokeWidth={1.75} />}
+                {autoPlay ? <Pause size={13} strokeWidth={1.75} /> : <Play size={13} strokeWidth={1.75} />}
               </button>
             )}
-          {/* Sasaran sentuh 44x44 dikekalkan; pil itu kini memegang ikon, bukan perkataan. */}
+          {/* Tutup kekal 44x44 — satu-satunya sasaran sentuh UTAMA di jalur ni. */}
           {onClose && (
             <button {...closeProps} style={{
               appearance: 'none', background: 'transparent', border: '1px solid var(--stone-300)',
@@ -466,9 +495,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
           position: 'relative', flex: '1 1 auto', minHeight: 0, overflowY: 'auto',
           padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: '18px',
         }}>
-          {/* Glif Bidang sengaja TIDAK dirender di sini — lihat nota `icon` dalam FocusViewProps. */}
+          {/* Glif Bidang sengaja TIDAK dirender di sini — lihat nota `icon` dalam FocusViewProps.
+              Eyebrow + tajuk ditengahkan (2026-08-05, permintaan Izzat) — huraian & Sumber di
+              bawah KEKAL rata-kiri (bacaan perenggan panjang ditengahkan sukar dibaca). */}
           {label && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <span style={{
                 fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
                 letterSpacing: 'var(--tracking-editorial)', color: warnaEyebrow,
@@ -479,6 +510,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           <h1 style={{
             margin: 0, fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 500,
             lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty',
+            textAlign: 'center',
           }}>{titleRendered ?? title}</h1>
 
           {text && (
@@ -495,8 +527,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={sectionLabel}>Sumber</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '6px' }}>
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5 }}>
               <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
               {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
@@ -558,14 +589,32 @@ export const FocusView: React.FC<FocusViewProps> = ({
           )}
         </div>
 
-        {/* Navigasi melekat di kaki */}
+        {/* Navigasi melekat di kaki — ikon anak panah sahaja (2026-08-05, permintaan Izzat,
+            "tak perlu label") + tajuk kandungan sebelum/selepas, sepadan preview Sebelum/Selepas
+            yang sedia ada di desktop. */}
         {(onPrev || onNext) && (
           <div style={{
             position: 'relative', flex: '0 0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr',
             gap: '1px', background: 'var(--border-default)', borderTop: '1px solid var(--border-default)',
           }}>
-            <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} disabled={!onPrev} style={navBtn}>‹ Sebelum</button>
-            <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} disabled={!onNext} style={navBtn}>Seterusnya ›</button>
+            <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} disabled={!onPrev} style={{ ...navBtn, flexDirection: 'row', alignItems: 'center' }}>
+              <ChevronLeft size={16} strokeWidth={1.75} color="var(--stone-400)" style={{ flex: '0 0 auto' }} />
+              {prevPreviewTitle && (
+                <span style={{
+                  fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
+                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
+                }}>{prevPreviewTitle}</span>
+              )}
+            </button>
+            <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} disabled={!onNext} style={{ ...navBtn, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+              {nextPreviewTitle && (
+                <span style={{
+                  fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
+                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
+                }}>{nextPreviewTitle}</span>
+              )}
+              <ChevronRight size={16} strokeWidth={1.75} color="var(--stone-400)" style={{ flex: '0 0 auto' }} />
+            </button>
           </div>
         )}
       </div>
