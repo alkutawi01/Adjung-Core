@@ -478,19 +478,30 @@ h1, h2, h3, h4, h5, h6, p {
   animation: bentoTextFadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
-/* Micro-interaction Topik kad bento (2026-08-05, Fasa 18, permintaan Izzat) — garis bawah halus
-   muncul semasa hover atas teks Topik (.eyebrow-topik, EyebrowKad di FrontpageView.tsx), isyarat
-   visual halus sahaja — tiada aksi klik disambung buat masa ini. transition pada
-   text-decoration-color (bukan tambah/buang text-decoration) supaya peralihan lancar, bukan
-   loncat tiba-tiba. */
+/* Micro-interaction Topik kad bento (2026-08-05, Fasa 18, permintaan Izzat) — garis bawah
+   MEMANJANG kiri ke kanan semasa hover atas teks Topik (.eyebrow-topik, EyebrowKad di
+   FrontpageView.tsx: pendek "_" -> penuh "_________"), bukan sekadar warna muncul. Pseudo-elemen
+   ::after (bukan text-decoration — text-decoration tiada kawalan lebar/arah tumbuh), skala
+   scaleX() dari 0 ke 1 dgn transform-origin kiri supaya garis "tumbuh" dari hujung kiri, bukan
+   dari tengah. Isyarat visual sahaja — tiada aksi klik disambung buat masa ini. */
 .eyebrow-topik {
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: 2px;
-  transition: text-decoration-color 150ms ease;
+  position: relative;
+  display: inline-block;
 }
-.eyebrow-kad:hover .eyebrow-topik {
-  text-decoration-color: currentColor;
+.eyebrow-topik::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 250ms ease;
+}
+.eyebrow-kad:hover .eyebrow-topik::after {
+  transform: scaleX(1);
 }
 
 /* Jalur kemajuan tatal automatik Focus View (2026-08-04) — mengisi kiri ke kanan sepanjang tempoh
