@@ -581,15 +581,17 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', fontWeight: 300,
                 lineHeight: 'var(--leading-relaxed)', color: 'var(--stone-600)', textWrap: 'pretty',
               }}>{note}</p>
+              {/* Tandatangan + URL editor ditengahkan (2026-08-05, permintaan Izzat, telefon
+                  sahaja) — nota sendiri KEKAL rata-kiri (bacaan perenggan), cuma dua elemen ni. */}
               {editorName && (
-                <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', lineHeight: 1, color: 'var(--color-Adjung-maroon)', marginTop: '2px' }}>{editorName}</span>
+                <span style={{ fontFamily: 'var(--font-signature)', fontSize: 'var(--text-30)', lineHeight: 1, color: 'var(--color-Adjung-maroon)', marginTop: '2px', textAlign: 'center' }}>{editorName}</span>
               )}
               {editorContact && (
                 <a
                   href={editorContact.includes('@') ? 'mailto:' + editorContact : 'https://' + editorContact}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ ...sectionLabel, fontWeight: 400, textTransform: 'none', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}
+                  style={{ ...sectionLabel, fontWeight: 400, textTransform: 'none', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)', textAlign: 'center' }}
                 >{editorContact}</a>
               )}
             </div>
