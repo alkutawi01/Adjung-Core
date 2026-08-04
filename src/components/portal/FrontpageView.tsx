@@ -39,10 +39,14 @@ export const TICKER_OVERLAY_TITLE_SIZE_CLASS: Record<string, string> = {
   L: 'text-3xl md:text-5xl',
   XL: 'text-4xl md:text-6xl',
 };
+// Huraian dikecilkan lagi (2026-08-05, permintaan Izzat — "saiz skrg terlalu besar sampai perlu
+// potong huraian dan guna elipsis") — nilai px eksplisit (bukan skala Tailwind text-base/lg/xl
+// relatif) supaya tiga peringkat S/M/L konsisten tepat 16/18/20px di telefon, tanpa bergantung
+// pada tema Tailwind yang boleh berubah.
 export const TICKER_OVERLAY_BRIEF_SIZE_CLASS: Record<string, string> = {
-  S: 'text-base md:text-lg',
-  M: 'text-lg md:text-xl',
-  L: 'text-xl md:text-2xl',
+  S: 'text-[16px] md:text-[18px]',
+  M: 'text-[18px] md:text-[20px]',
+  L: 'text-[20px] md:text-[22px]',
 };
 
 const SESSION_SEED = Math.random();
@@ -3293,10 +3297,21 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             {BRAND.logoText}
           </div>
 
-          {/* Top Right Instructions */}
-          <div className="absolute top-6 right-6 font-mono text-[8px] uppercase tracking-widest text-stone-400 select-none">
+          {/* Top Right Instructions — teks "ESC atau Klik" hanya bermakna di desktop (kekunci ESC
+              wujud, ruang lapang di sisi logo). Di telefon ia berlanggar dgn logo tengah (skrin
+              sempit) DAN tiada makna sebab tiada kekunci ESC — gantikan dgn butang X yang jelas
+              (permintaan Izzat 2026-08-05, screenshot tunjuk label bertindih logo). */}
+          <div className="absolute top-6 right-6 hidden md:block font-mono text-[8px] uppercase tracking-widest text-stone-400 select-none">
             ESC atau Klik untuk Tutup
           </div>
+          <button
+            type="button"
+            onClick={() => setShowNewsOverlay(false)}
+            aria-label="Tutup"
+            className="absolute top-3 right-3 md:hidden inline-flex items-center justify-center w-11 h-11 text-stone-400 hover:text-[#802334] transition cursor-pointer select-none"
+          >
+            <X className="w-5 h-5" strokeWidth={1.75} />
+          </button>
 
           {/* Left Arrow */}
           {parsedTickerNewsItems.length > 1 && (
