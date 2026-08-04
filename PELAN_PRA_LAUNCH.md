@@ -468,7 +468,7 @@ relevan. Tiga item:
 
 ---
 
-### [ ] Fasa 9 — SEO & penemuan · `M` · ~3 hari
+### [x] Fasa 9 — SEO & penemuan · `M` · ~3 hari · SIAP 2026-08-05
 Fasa 0 sahkan: portal ini **halimunan kepada enjin carian & pratonton sosial** (SPA tanpa
 SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
 - [x] `lang="ms"` (index.html, dulu "en") + meta description sebenar + OG (type/title/
@@ -476,25 +476,39 @@ SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
       NewsArticle disuntik client-side bila Focus View dibuka (src/utils/seoMeta.ts)
 - [x] Tajuk/meta dinamik per kandungan (FocusView.tsx, useEffect terap/buang semula,
       disahkan hidup di pelayar) · favicon disemak — ikon marun #802334 jenama Adjung
-      sebenar, bukan default · `sitemap.xml` (core/routes/sitemapRoutes.js, dicache 15
-      minit, disahkan 200 langsung) · `robots.txt` (public/robots.txt, tunjuk ke
-      /sitemap.xml). **Nota:** sitemap HANYA senaraikan halaman depan — Focus View buka
-      kandungan sebagai overlay state client (`focusLoc`), bukan laluan URL sebenar;
-      `generateCanonicalUrl()` sedia ada (src/utils.tsx) jana URL subdomain rekaan yang
-      tidak disambungkan kepada penghalaan. Skema URL per-kandungan sebenar perlukan
-      keputusan penghalaan Ketua Editor — belum diputuskan, sengaja ditinggalkan.
-- [ ] Prarender/SSR ringan untuk crawler — **diperiksa, belum dilaksana**: perlukan
-      keputusan infrastruktur (Vite SSR/prerender plugin, atau proksi headless-browser-
-      untuk-bot) di luar skop suntikan meta client-side pas ni; ia juga bergantung pada
-      skema URL per-kandungan (baris di atas) belum wujud. KIV, siasat berasingan.
+      sebenar, bukan default · `robots.txt` (public/robots.txt, tunjuk ke /sitemap.xml)
+- [x] **Skema URL per-kandungan** (keputusan Izzat 2026-08-05):
+      `brief.adjung.com/<bidang-slug>/kandungan/<kod-pendek>` — kod pendek 6-aksara RAWAK
+      baharu (core/editorial/UrlSlug.js), BUKAN potongan `editorial_objects.id` sedia ada
+      (ID lama berkongsi awalan/akhiran panjang antara kandungan sekelompok, potongan
+      pendek pasti berlanggar). Lajur `editorial_objects.urlKod` (indeks unik separa),
+      dijana MALAS bila kali pertama diminta.
+- [x] **Prarender ringan untuk bot** (keputusan Izzat: proksi khas bot, bukan SSR penuh) —
+      `core/routes/articleUrlRoutes.js`, laluan awam `GET /:bidangSlug/kandungan/:kodPendek`
+      kesan User-Agent bot (Googlebot/Bingbot/Facebook/Twitter/dll), hidangkan HTML
+      pra-terap PENUH (tajuk/meta description/OG/Twitter/JSON-LD NewsArticle) tanpa
+      JavaScript langsung; UA manusia jatuh terus ke SPA seperti biasa (tiada perubahan
+      pengalaman pengguna).
+- [x] `sitemap.xml` dan `rss.xml` kini senaraikan **URL kandungan sebenar** (dulu cuma
+      muka depan / parameter slot-item yang tak boleh dicecah terus — had ni sekarang
+      diselesaikan sepenuhnya).
+- [x] Pautan mendalam (deep link) klien — laluan React Router
+      `/:bidangSlug/kandungan/:kodPendek` (App.tsx) buka Focus View kandungan berkenaan
+      automatik bila pembaca mendarat terus daripada pautan dikongsi (RSS/sitemap/media
+      sosial), bukan muka depan kosong.
+      Diuji: url-kod API, laluan bot (curl -A Googlebot, HTML meta lengkap), UA manusia
+      + kod tak sah kedua-duanya jatuh ke SPA, sitemap/rss URL sebenar, pautan mendalam
+      buka kandungan tepat di pelayar sebenar.
+      **Belum disambung** (peningkatan berasingan, bukan penghalang): meta URL kanonikal
+      untuk kandungan dibuka SECARA INTERAKTIF (klik kad terus, bukan pautan dikongsi)
+      masih guna `window.location.href` — perlukan `objectId` disalur ke FocusView.tsx.
 
 ### [x] Fasa 10 — Suapan RSS keluar · `S` · ~1 hari
 - [x] `GET /rss.xml` — suapan RSS 2.0 standard (core/routes/rssFeedRoutes.js), kandungan
       berstatus 'approved' sahaja (definisi sama seperti laluan awam layout/active),
       escape XML betul, `Content-Type: application/rss+xml`, cache dalam-memori 12 minit.
-      **Nota:** sama had macam sitemap.xml (Fasa 9) — belum wujud skema URL kanonik
-      per-kandungan, jadi pautan `<item><link>` guna muka depan + parameter slot/item,
-      bukan laluan artikel sebenar. Naik taraf bila skema penghalaan per-kandungan wujud.
+      **Naik taraf 2026-08-05 (Fasa 9):** `<item><link>` kini URL kandungan SEBENAR
+      (`/:bidangSlug/kandungan/:kodPendek`), bukan lagi muka depan + parameter slot/item.
 
 ### [ ] Fasa 11 — Halaman awam · `M` · ~3 hari
 - [x] 404 bergaya Adjung — laluan `*` didaftar di App.tsx, papar `TidakDijumpai.tsx`
