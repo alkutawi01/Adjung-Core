@@ -173,6 +173,27 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const warnaEyebrow = deskColor || 'var(--color-Adjung-maroon)';
   const isPhone = usePhoneViewport();
 
+  // Kunci scroll halaman di belakang semasa Focus View terbuka (2026-08-05, permintaan Izzat —
+  // "sepatutnya hanya boleh scroll Focus View"). Focus View sendiri `position: fixed` (bukan
+  // sebahagian aliran dokumen), jadi ia TAK menghalang halaman induk di belakang menatal — badan
+  // kekal boleh tatal (nampak "menerawang" di belakang panel tetap). Mount/unmount komponen ni
+  // SEPADAN TEPAT dengan buka/tutup Focus View (FrontpageView cuma render bila `focusLoc` wujud),
+  // jadi kunci/lepas kunci di sini betul-betul di tempat yang sepatutnya — tiada plumbing tambahan
+  // di FrontpageView.tsx. Simpan overflow SEDIA ADA (bukan andaikan '') supaya dipulihkan tepat.
+  React.useEffect(() => {
+    // Kunci KEDUA-DUA <html> dan <body> — sesetengah pelayar (terutama telefon) letak scroll
+    // sebenar pada documentElement (<html>), bukan <body>; kunci body sahaja tak cukup, ditemui
+    // semasa ujian browser (window.scrollTo masih berjaya menatal walaupun body overflow:hidden).
+    const asalBody = document.body.style.overflow;
+    const asalHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = asalBody;
+      document.documentElement.style.overflow = asalHtml;
+    };
+  }, []);
+
   // Animasi transisi antara kandungan (2026-08-05, permintaan Izzat) — panel maroon "kad tengah"
   // (sepadan bahasa visual Colophon carousel bento sedia ada) lalu ATAS-BAWAH (bukan kiri-kanan)
   // apabila kandungan bertukar, sama ada navigasi manual (Sebelum/Seterusnya) atau tatal automatik.
@@ -495,9 +516,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
           )}
         </div>
 
-        {/* Badan yang menatal */}
+        {/* Badan yang menatal — `overscrollBehavior: contain` elak tatal "rantai" ke halaman di
+            belakang bila pembaca sampai hujung atas/bawah huraian (bonus kepada kunci
+            html/body overflow di atas — dua lapis perlindungan sama konsep). */}
         <div style={{
-          position: 'relative', flex: '1 1 auto', minHeight: 0, overflowY: 'auto',
+          position: 'relative', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain',
           padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: '18px',
         }}>
           {text && (
@@ -751,7 +774,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           {/* HURAIAN PANJANG — SATU-SATUNYA bahagian Focus View yang menatal. Satu lajur,
               perenggan berturutan (pembahagian dua-ukuran lama dibuang bersama huraian pendek). */}
           <div style={{ minHeight: 0, margin: 'clamp(10px, 1.6vh, 18px) 0', overflow: 'hidden', display: 'flex' }}>
-            <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', padding: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
+            <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', scrollbarWidth: 'none', padding: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
               {paragraphs.length > 0 && (
                 duaLajur ? (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 'clamp(24px, 3.2vw, 44px)', textAlign: 'left' }}>
