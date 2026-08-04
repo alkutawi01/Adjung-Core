@@ -219,7 +219,13 @@ const EyebrowKad: React.FC<{
           />
         )}
       </span>
-      <span className="eyebrow-topik">{label}</span>
+      {/* `eyebrow-topik` anak TERUS bekas flex (`eyebrow-kad`, display:inline-flex) — CSS
+          "blockify" flex-item menjadikannya SATU kotak blok untuk susun atur, bukan inline
+          biasa, jadi teknik garis-bawah-tumbuh (index.css) yang perlukan inline SEBENAR
+          (hormati lebar setiap baris teks berbalut) mesti kena pada span DALAMAN
+          `eyebrow-topik-teks` — bukan `eyebrow-topik` sendiri (2026-08-05, dibetulkan selepas
+          garis nampak melintasi lebar penuh kotak, bukan lebar perkataan). */}
+      <span className="eyebrow-topik"><span className="eyebrow-topik-teks">{label}</span></span>
       {/* Nama Bidang kekal untuk pembaca skrin: ikon sahaja tidak membawa maksud tanpa dilihat. */}
       {bolehGunaIkon && <span className="sr-only">{item.desk}</span>}
     </span>
