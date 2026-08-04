@@ -304,7 +304,7 @@ Keputusan Izzat: skop Kandungan + Sistem (bukan kandungan sahaja).
 - [x] Nota Ketua Editor (`editor_notes`) kekal sebagai SATU jenis dalam senarai gabungan
       di `MaklumanDrawer.tsx`, bukan digantikan — cuma bukan lagi satu-satunya sumber
 
-### [ ] Fasa 7 — Modul Khas & kawalan slot · `L` · ~6 hari
+### [x] Fasa 7 — Modul Khas & kawalan slot · `L` · ~6 hari · SIAP 2026-08-04
 Penemuan besar Fasa 0: satu-satunya jalan ubah Bidang/warna/selang carousel slot ialah
 kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari Editorium.
 - [x] Pintu masuk sah dalam Editorium untuk tetapan per-slot (Bidang, warna kad, selang/
@@ -313,13 +313,23 @@ kebocoran mod edit dari pautan lama `?openTicker=1` di frontpage — bukan dari 
       kandungan yang patut lalui SlotManagerModal Editorium sahaja)
 - [x] Betulkan lajur "Animasi Transisi" Senarai Slot (kini papar selang carousel,
       bukan animasi — label mengelirukan) — ditukar ke "Carousel"
-- [ ] **Jenis animasi transisi — bina sistem sebenar, BUKAN sekadar buang/sambung** (nota
-      Izzat 2026-08-02, betulkan salah anggap sebelum ni): "Pudar" sekarang cuma SATU
-      pilihan sebab itu sahaja wujud, bukan sebab reka bentuk akhir — Izzat nak lebih
-      daripada satu JENIS animasi transisi kad (bukan sekadar carousel), dan setiap jenis
-      mungkin ada tetapan sendiri (masa transisi, warna semasa transisi, saiz, dll) — bukan
-      satu dropdown global datar. Perlu reka bentuk skema tetapan per-jenis dahulu (rujuk
-      Izzat) sebelum bina
+- [x] **Jenis animasi transisi** — SIAP 2026-08-04. Izzat bekalkan spesifikasi teknikal penuh
+      (design_handoff_carousel_transitions, Claude Design) untuk dua jenis baharu: Colophon
+      (panel maroon + simbol Adjung lalu menegak) dan Sapuan Lajur (panel sapu 2 fasa). "Pudar"
+      (opacity sedia ada) kekal sebagai pilihan asal — ketiga-tiga kini disenaraikan &
+      berfungsi sebenar di Tetapan Am Slot (dahulu cuma "pudar" wujud dlm senarai, dua lagi
+      tulis-sahaja). Pelaksanaan disesuaikan drpd spesifikasi asal (overlay React Context +
+      Portal, bukan trek 3-kad fizikal/restructure 30 tapak panggilan CarouselStableBlock —
+      makluman awal kpd Izzat, sebab struktur JSX renderItem sengaja fragile). Dua pepijat
+      sebenar ditemui & dibetulkan semasa ujian sendiri (bukan cuma andaian): (1) percubaan
+      pertama guna position:fixed + snapshot koordinat — kad "terapung" berasingan bila kad
+      berdekatan anjak tinggi (carousel lain auto-putar serentak); (2) overlay asal cuma
+      liputi tajuk+huraian, bukan kad penuh (border/badge/footer sumber di LUAR komponen).
+      Fix akhir: Portal `absolute inset-0` terus di dalam elemen kad sebenar — bergerak sama
+      dgn kad automatik, tiada snapshot basi. Disahkan dgn polling `getComputedStyle().transform`
+      setiap 100ms sepanjang animasi (bukan cuma screenshot tunggal). Hormat
+      prefers-reduced-motion. Lalai kekal 'pudar' (tiada perubahan kelakuan sehingga Ketua
+      Editor pilih sendiri)
 - [x] Ticker: UI kelajuan pusingan — medan "Kelajuan Pusingan Ticker" ditambah ke modal
       Urus Ticker sedia ada (guna formConfig/handleSaveSlot yang sama, tiada laluan baharu)
 - [x] Ticker: bawa kawalan PENUH ke Editorium (2026-08-02) — `TickerManagementModal.tsx`
