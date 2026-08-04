@@ -1755,6 +1755,20 @@ export function getDeskAccentColor(deskName: string): string {
   return `hsl(${hue}, 75%, 38%)`;
 }
 
+// Had aksara huraian Ticker (2026-08-05, permintaan Izzat) — 225 aksara. Kandungan sedia ada
+// (sumber RSS/Google Doc) semuanya sudah di bawah had ni (maksimum sebenar diperiksa dalam DB
+// ialah 222 aksara — sumber sendiri sudah pendekkan), jadi had ni SEKADAR PLAFON KESELAMATAN
+// untuk kandungan masa depan yang lebih panjang, bukan pemendekan kandungan sedia ada. Dipotong
+// pada sempadan perkataan (bukan tengah-tengah perkataan) + elipsis, sama corak dgn trimNota()
+// FocusView.tsx.
+const HAD_HURAIAN_TICKER = 225;
+function potongHuraianTicker(teks: string): string {
+  const t = teks.trim();
+  if (t.length <= HAD_HURAIAN_TICKER) return t;
+  const cut = t.lastIndexOf(' ', HAD_HURAIAN_TICKER);
+  return t.slice(0, cut > HAD_HURAIAN_TICKER * 0.6 ? cut : HAD_HURAIAN_TICKER).trim() + '...';
+}
+
 export function parseInTheNews(text: string): { items: NewsItem[]; errors: ParseError[] } {
   const items: NewsItem[] = [];
   const errors: ParseError[] = [];
@@ -1815,9 +1829,9 @@ export function parseInTheNews(text: string): { items: NewsItem[]; errors: Parse
       } else if (key === 'titleb') {
         titleB = val;
       } else if (key === 'brief' || key === 'summary' || key === 'briefa' || key === 'summarya' || key === 'huraian' || key === 'huraian ringkas') {
-        brief = val.replace(/&(?:copy);?/gi, '').replace(/©/g, '').replace(/\s+\([cC]\)\s*/g, ' ').replace(/(?:\s*[-–—|•]?\s*(?:\bcopyright\b|\bhakcipta\b|\bhak cipta\b|\ball rights reserved\b|new straits times(?: press)?(?: \(m\) bhd)?|bernama|media prima|astro awani|utusan malaysia|kosmo(?: digital)?|sinar harian|berita harian|rtm|the star)\b.*$)/gi, '').replace(/^(?:[A-Z\s]{2,30}(?:[,\s]+\d{1,2}\s+[A-Za-z]+)?)\s*[\-–—:]+\s*/i, '').replace(/,\s*(?:\.{3,}|…)/g, '...').replace(/\s+[A-Za-z0-9]{1,5}(?:\.\.\.|…)$/, '...').replace(/\.{4,}/g, '. ...').replace(/,\s*\.\.\./g, '...').replace(/\.\s*\.\.\./g, '. ...').trim();
+        brief = potongHuraianTicker(val.replace(/&(?:copy);?/gi, '').replace(/©/g, '').replace(/\s+\([cC]\)\s*/g, ' ').replace(/(?:\s*[-–—|•]?\s*(?:\bcopyright\b|\bhakcipta\b|\bhak cipta\b|\ball rights reserved\b|new straits times(?: press)?(?: \(m\) bhd)?|bernama|media prima|astro awani|utusan malaysia|kosmo(?: digital)?|sinar harian|berita harian|rtm|the star)\b.*$)/gi, '').replace(/^(?:[A-Z\s]{2,30}(?:[,\s]+\d{1,2}\s+[A-Za-z]+)?)\s*[\-–—:]+\s*/i, '').replace(/,\s*(?:\.{3,}|…)/g, '...').replace(/\s+[A-Za-z0-9]{1,5}(?:\.\.\.|…)$/, '...').replace(/\.{4,}/g, '. ...').replace(/,\s*\.\.\./g, '...').replace(/\.\s*\.\.\./g, '. ...').trim());
       } else if (key === 'briefb' || key === 'summaryb') {
-        briefB = val.replace(/&(?:copy);?/gi, '').replace(/©/g, '').replace(/\s+\([cC]\)\s*/g, ' ').replace(/(?:\s*[-–—|•]?\s*(?:\bcopyright\b|\bhakcipta\b|\bhak cipta\b|\ball rights reserved\b|new straits times(?: press)?(?: \(m\) bhd)?|bernama|media prima|astro awani|utusan malaysia|kosmo(?: digital)?|sinar harian|berita harian|rtm|the star)\b.*$)/gi, '').replace(/^(?:[A-Z\s]{2,30}(?:[,\s]+\d{1,2}\s+[A-Za-z]+)?)\s*[\-–—:]+\s*/i, '').replace(/,\s*(?:\.{3,}|…)/g, '...').replace(/\s+[A-Za-z0-9]{1,5}(?:\.\.\.|…)$/, '...').replace(/\.{4,}/g, '. ...').replace(/,\s*\.\.\./g, '...').replace(/\.\s*\.\.\./g, '. ...').trim();
+        briefB = potongHuraianTicker(val.replace(/&(?:copy);?/gi, '').replace(/©/g, '').replace(/\s+\([cC]\)\s*/g, ' ').replace(/(?:\s*[-–—|•]?\s*(?:\bcopyright\b|\bhakcipta\b|\bhak cipta\b|\ball rights reserved\b|new straits times(?: press)?(?: \(m\) bhd)?|bernama|media prima|astro awani|utusan malaysia|kosmo(?: digital)?|sinar harian|berita harian|rtm|the star)\b.*$)/gi, '').replace(/^(?:[A-Z\s]{2,30}(?:[,\s]+\d{1,2}\s+[A-Za-z]+)?)\s*[\-–—:]+\s*/i, '').replace(/,\s*(?:\.{3,}|…)/g, '...').replace(/\s+[A-Za-z0-9]{1,5}(?:\.\.\.|…)$/, '...').replace(/\.{4,}/g, '. ...').replace(/,\s*\.\.\./g, '...').replace(/\.\s*\.\.\./g, '. ...').trim());
       } else if (key === 'source' || key === 'sourcea' || key === 'sumber') {
         source = val;
       } else if (key === 'sourceb') {
