@@ -39,14 +39,14 @@ export const TICKER_OVERLAY_TITLE_SIZE_CLASS: Record<string, string> = {
   L: 'text-3xl md:text-5xl',
   XL: 'text-4xl md:text-6xl',
 };
-// Huraian dikecilkan lagi (2026-08-05, permintaan Izzat — "saiz skrg terlalu besar sampai perlu
-// potong huraian dan guna elipsis") — nilai px eksplisit (bukan skala Tailwind text-base/lg/xl
-// relatif) supaya tiga peringkat S/M/L konsisten tepat 16/18/20px di telefon, tanpa bergantung
-// pada tema Tailwind yang boleh berubah.
+// Huraian dikecilkan lagi (2026-08-05, permintaan Izzat — "boleh kecilkan lagi tak?", pusingan
+// kedua selepas 16/18/20 masih besar) — nilai px eksplisit (bukan skala Tailwind text-base/lg/xl
+// relatif) supaya tiga peringkat S/M/L konsisten tepat di telefon, tanpa bergantung pada tema
+// Tailwind yang boleh berubah.
 export const TICKER_OVERLAY_BRIEF_SIZE_CLASS: Record<string, string> = {
-  S: 'text-[16px] md:text-[18px]',
-  M: 'text-[18px] md:text-[20px]',
-  L: 'text-[20px] md:text-[22px]',
+  S: 'text-[13px] md:text-[15px]',
+  M: 'text-[14px] md:text-[16px]',
+  L: 'text-[15px] md:text-[18px]',
 };
 
 const SESSION_SEED = Math.random();
