@@ -142,6 +142,39 @@ export const TetapanAmSlotConsole: React.FC = () => {
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState<string | null>(null);
   const [berjaya, setBerjaya] = useState<string | null>(null);
+  const [mengagih, setMengagih] = useState(false);
+
+  // Agih lengah carousel bertingkat (2026-08-04, permintaan Izzat) — "kalau ada 30 slot carousel,
+  // setiap saat ada SATU yang bertukar, so 30 slot ambil 30 saat utk semua bertukar sekali" —
+  // slot ke-N (0-based) dapat carouselDelay = N saat. Baca SEMUA slot dulu (kekalkan setiap medan
+  // lain tak berubah — POST /api/system/slots INSERT OR REPLACE PENUH setiap baris, hantar objek
+  // separuh akan PADAM medan lain secara senyap), ubah carouselDelay sahaja, tulis balik.
+  const agihLengahBertingkat = async () => {
+    setMengagih(true);
+    setRalat(null);
+    setBerjaya(null);
+    try {
+      const res = await fetch('/api/system/slots');
+      const semua = await res.json();
+      if (!Array.isArray(semua)) throw new Error('Gagal membaca senarai slot.');
+      // Ticker (slotIndex -1) tiada carousel — langkau, jangan sentuh.
+      const dikemas = semua
+        .filter((s: any) => s.slotIndex >= 0)
+        .map((s: any) => ({ ...s, carouselDelay: s.slotIndex }));
+      const simpan = await fetch('/api/system/slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dikemas),
+      });
+      const data = await simpan.json();
+      if (!simpan.ok) throw new Error(data.error || 'Gagal menyimpan.');
+      setBerjaya(`Lengah diagih: Slot 1 = 0 saat, Slot ${dikemas.length} = ${dikemas.length - 1} saat.`);
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal mengagih lengah carousel.');
+    } finally {
+      setMengagih(false);
+    }
+  };
 
   const muat = () => {
     setLoading(true);
@@ -225,6 +258,26 @@ export const TetapanAmSlotConsole: React.FC = () => {
               pada kandungan pertama.
             </span>
           </label>
+        </div>
+
+        {/* 1b. Agih lengah bertingkat */}
+        <div className="border border-stone-200 rounded p-4 space-y-2">
+          <div className="font-semibold text-stone-800">1b. Agih lengah carousel bertingkat</div>
+          <p className="text-stone-500 text-[11px] leading-relaxed">
+            Klik untuk agih Slot 1 → lengah 0 saat, Slot 2 → 1 saat, Slot 3 → 2 saat, dan
+            seterusnya — supaya carousel bertukar SATU-SATU merentasi masa (bukan semua serentak),
+            tanpa perlu laras setiap slot satu-satu di "Tetapan Kad". Boleh diklik semula bila-bila
+            untuk agih semula; laras individu selepas itu (Senarai Slot → Tetapan Kad) tetap
+            berfungsi seperti biasa.
+          </p>
+          <button
+            type="button"
+            onClick={agihLengahBertingkat}
+            disabled={mengagih}
+            className="px-3 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50 hover:bg-stone-100 disabled:opacity-50 disabled:cursor-wait"
+          >
+            {mengagih ? 'Mengagih…' : 'Agih Lengah Bertingkat'}
+          </button>
         </div>
 
         {/* 2. Had bilangan kandungan */}
