@@ -40,6 +40,10 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
   const [itemsRingkas, setItemsRingkas] = useState<ItemRingkas[]>([]);
   const [statusRss, setStatusRss] = useState<{ masa: string; butiran: string; ralat: boolean } | null>(null);
   const [statusCuaca, setStatusCuaca] = useState<{ status: string; sihat: boolean } | null>(null);
+  // Semakan pautan mati (2026-08-05, Fasa 8b) — dibaca daripada source_link_checks (server.js
+  // setInterval, 12 jam), bukan disemak langsung di sini (elak paparan tersekat menunggu pelayan
+  // luar yang perlahan/mati).
+  const [statusPautan, setStatusPautan] = useState<{ jumlahDiperiksa: number; jumlahMati: number; terakhirSemak: string | null } | null>(null);
   const [aktivitiTerkini, setAktivitiTerkini] = useState<EntriLog[]>([]);
   const [jejakPengunjung, setJejakPengunjung] = useState<{
     hariIni: number;
@@ -58,7 +62,8 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
       fetch('/api/system/audit-log?limit=200').then(r => r.json()).catch(() => []),
       fetch('/api/system/weather-status').then(r => r.json()).catch(() => null),
       fetch('/api/system/view-stats?days=7').then(r => r.json()).catch(() => ({ hariIni: 0, trenHarian: [], kandunganPalingDiminati: [] })),
-    ]).then(([kandungan, nota, slotUsageResp, logAudit, cuaca, statsView]) => {
+      fetch('/api/system/link-checks').then(r => r.json()).catch(() => null),
+    ]).then(([kandungan, nota, slotUsageResp, logAudit, cuaca, statsView, pautan]) => {
       if (batal) return;
 
       const items = kandungan?.items || [];
@@ -103,6 +108,14 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
 
       if (cuaca?.openMeteo) {
         setStatusCuaca({ status: cuaca.openMeteo.status, sihat: (cuaca.openMeteo.status || '').includes('ONLINE') });
+      }
+
+      if (pautan) {
+        setStatusPautan({
+          jumlahDiperiksa: pautan.jumlahDiperiksa || 0,
+          jumlahMati: pautan.jumlahMati || 0,
+          terakhirSemak: pautan.terakhirSemak || null,
+        });
       }
     }).finally(() => { if (!batal) setMemuat(false); });
 
@@ -312,6 +325,26 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
               <span className="font-mono text-[10.5px] text-stone-400">BELUM DISEMAK</span>
             )}
           </div>
+          {/* Pautan sumber mati (Fasa 8b, 2026-08-05) — semakan latar setiap 12 jam (bukan setiap
+              kali papan pemuka dibuka), lihat core/editorial/LinkChecker.js. */}
+          <div className="flex items-baseline gap-3 py-3 border-b border-stone-100">
+            <span className="text-xs text-stone-700 flex-1">Pautan sumber</span>
+            {statusPautan && statusPautan.terakhirSemak ? (
+              <span className="font-mono text-[10.5px]" style={{ color: statusPautan.jumlahMati === 0 ? '#3d6b4c' : '#a8241f' }}>
+                {statusPautan.jumlahMati === 0
+                  ? `SIHAT · ${statusPautan.jumlahDiperiksa} disemak`
+                  : `${statusPautan.jumlahMati} MATI · ${statusPautan.jumlahDiperiksa} disemak`}
+              </span>
+            ) : (
+              <span className="font-mono text-[10.5px] text-stone-400">BELUM DISEMAK</span>
+            )}
+          </div>
+          {statusPautan && statusPautan.jumlahMati > 0 && (
+            <p className="mt-2 text-[10px] text-stone-400 leading-relaxed">
+              Semakan pautan sumber berjalan latar setiap 12 jam. Lihat/betulkan pautan bermasalah
+              di kandungan berkaitan (Urus Kandungan).
+            </p>
+          )}
           {maklumanTerbaru.length > 0 && (
             <div className="mt-5">
               <h3 className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-3">Makluman terbaru</h3>

@@ -72,6 +72,42 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     res.json({ success: true, openMeteo, holidayApi });
   });
 
+  // GET /api/system/link-checks (Fasa 8b, 2026-08-05) — status semakan pautan mati (sumber
+  // kandungan). Dibaca oleh DashboardConsole.tsx, jalur "Status sistem", sama corak macam
+  // weather-status di atas. Semakan sebenar berjalan latar (server.js setInterval, 12 jam) —
+  // laluan ni cuma BACA keputusan tersimpan, tak sekali-kali semak URL secara langsung dalam
+  // permintaan (elak permintaan pengguna tersekat menunggu pelayan luar yang perlahan/mati).
+  router.get('/system/link-checks', async (req, res) => {
+    try {
+      const rows = await dbAll(
+        "SELECT url, ok, httpStatus, errorMessage, checkedAt FROM source_link_checks ORDER BY checkedAt DESC"
+      );
+      const mati = rows.filter((r) => !r.ok);
+      const terakhirSemak = rows.length
+        ? rows.reduce((max, r) => (r.checkedAt > max ? r.checkedAt : max), rows[0].checkedAt)
+        : null;
+      res.json({ jumlahDiperiksa: rows.length, jumlahMati: mati.length, terakhirSemak, mati });
+    } catch (err) {
+      console.error('GET link-checks error:', err);
+      res.status(500).json({ error: 'Gagal membaca status semakan pautan. ' + err.message });
+    }
+  });
+
+  // POST /api/system/link-checks/run-now — cetus semakan pautan serta-merta (Ketua Editor/
+  // Pentadbir), tanpa tunggu giliran 12 jam. Sama corak "run-now" manual sedia ada untuk laluan
+  // lain (cth pipeline AI, walaupun kini dimatikan). Import lazy (bukan atas fail) elak kitaran
+  // import — systemRoutes.js tak lain bergantung pada modul editorial.
+  router.post('/system/link-checks/run-now', requirePermission('manageSettings'), async (req, res) => {
+    try {
+      const { checkAllSourceLinks } = await import('../editorial/LinkChecker.js');
+      const hasil = await checkAllSourceLinks(dbAll, dbRun);
+      res.json({ success: true, ...hasil });
+    } catch (err) {
+      console.error('POST link-checks/run-now error:', err);
+      res.status(500).json({ error: 'Gagal jalankan semakan pautan. ' + err.message });
+    }
+  });
+
   // GET /api/pages/:key — static/footer pages
   router.get('/pages/:key', async (req, res) => {
     const { key } = req.params;

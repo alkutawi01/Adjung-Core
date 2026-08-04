@@ -129,6 +129,34 @@ const validateMedanTambahan = ({ summaryLong, source, topik, note } = {}) => {
   return { isValid: true };
 };
 
+// Format sumber — validasi URL (2026-08-05, Fasa 8b). URL sumber bebas-had aksara (`hadSumber`
+// atas cuma kawal medan NAMA sumber, bukan pautan) tapi mesti sekurang-kurangnya rupa URL sah
+// (http/https + skema penuh) — sebelum ni medan bebas sepenuhnya, boleh simpan teks sampah dan
+// pembaca klik "Pautan Sumber" ke mana-mana. Medan kosong DIBENARKAN (bukan setiap kandungan ada
+// pautan sumber luar).
+const validateSourceUrl = (url) => {
+  if (url === undefined || url === null) return { isValid: true };
+  if (typeof url !== 'string') return { isValid: true };
+  const trimmed = url.trim();
+  if (!trimmed || trimmed === '#') return { isValid: true };
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return {
+      isValid: false,
+      reason: `URL sumber ("${trimmed}") bukan URL yang sah. Sertakan skema penuh (cth https://...).`,
+    };
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return {
+      isValid: false,
+      reason: `URL sumber mesti bermula dengan http:// atau https:// (dapat "${parsed.protocol}//").`,
+    };
+  }
+  return { isValid: true };
+};
+
 // Bidang (kategori/desk) is locked per-slot: every item saved into a slot must share that slot's
 // Bidang. Topik is a free-text per-item field, mandatory only for new/edited content (not for
 // status-only actions on legacy content that predates this rule — pass requireTopik accordingly).
@@ -197,6 +225,6 @@ const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik, slot
 export {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
-  validateContentBudget, validateBidangTopik,
+  validateContentBudget, validateBidangTopik, validateSourceUrl,
   setMedanLimits, getMedanLimits, validateMedanTambahan,
 };

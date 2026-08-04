@@ -11,10 +11,11 @@ import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
-import { validateContentBudget, validateBidangTopik, validateMedanTambahan } from './core/editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl } from './core/editorial/ContentBudget.js';
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
+import { checkAllSourceLinks } from './core/editorial/LinkChecker.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
 import { createCategoryRoutes } from './core/routes/categoryRoutes.js';
 import { createSystemRoutes } from './core/routes/systemRoutes.js';
@@ -1574,6 +1575,20 @@ const initEditorialOS = (dbConn) => {
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN focusViewTitleScale REAL DEFAULT 1", () => {});
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN focusViewBodySize INTEGER DEFAULT 15", () => {});
 
+      // source_link_checks (2026-08-05, Fasa 8b — semakan pautan mati) — satu rekod PER URL
+      // sumber unik (bukan per-kandungan; URL sama dikongsi rentas kandungan disemak sekali,
+      // bukan berulang-ulang). Diisi/dikemas kini oleh core/editorial/LinkChecker.js, dibaca oleh
+      // GET /api/system/link-checks (DashboardConsole.tsx, jalur "Status sistem").
+      dbConn.run(`
+        CREATE TABLE IF NOT EXISTS source_link_checks (
+          url TEXT PRIMARY KEY,
+          ok INTEGER,
+          httpStatus INTEGER,
+          errorMessage TEXT,
+          checkedAt TEXT
+        )
+      `);
+
       // 6. media_library
       dbConn.run(`
         CREATE TABLE IF NOT EXISTS media_library (
@@ -2319,6 +2334,13 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
       err.isValidationError = true;
       throw err;
     }
+    // Format sumber (Fasa 8b) — URL sumber mesti sekurang-kurangnya rupa URL sah kalau diisi.
+    const urlCheck = validateSourceUrl(item.url);
+    if (!urlCheck.isValid) {
+      const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${urlCheck.reason}`);
+      err.isValidationError = true;
+      throw err;
+    }
     if (effectiveMaxBriefLong && item.briefLong && item.briefLong.length > effectiveMaxBriefLong) {
       const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan — pendekkan huraian dahulu.`);
       err.isValidationError = true;
@@ -2917,6 +2939,18 @@ app.listen(PORT, '0.0.0.0', () => {
     }
   }, SCHEDULER_INTERVAL_MS);
   console.log(`Internal RSS Direct scheduler active (checks every ${SCHEDULER_INTERVAL_MS / 60000} min). Scheduler penjanaan AI automatik DIMATIKAN sengaja.`);
+
+  // Semakan pautan mati (2026-08-05, Fasa 8b) — sama corak macam penjadual lain di sini: setInterval
+  // dalam callback app.listen, dibalut cuba/tangkap PENUH supaya kegagalan semakan (atau pelayan
+  // luar yang perlahan/mati) TIDAK sekali-kali rebahkan server. 12 jam cukup kerap untuk kandungan
+  // kad bento yang boleh kekal bulanan, tanpa terlalu kerap hantar permintaan ke pelayan luar.
+  const LINK_CHECK_INTERVAL_MS = 12 * 60 * 60 * 1000;
+  setInterval(() => {
+    checkAllSourceLinks(dbAll, dbRun)
+      .then((res) => console.log(`[Semakan Pautan] Diperiksa ${res.diperiksa} URL, ${res.mati} mati.`))
+      .catch((err) => console.error('[Semakan Pautan] Ralat:', err.message));
+  }, LINK_CHECK_INTERVAL_MS);
+  console.log(`Semakan pautan mati aktif (setiap ${LINK_CHECK_INTERVAL_MS / 3600000} jam).`);
 
   // Jadual Terbit / Jadual Luput (2026-08-02) — semak berkala sama corak seperti RSS Auto
   // Scheduler di atas: setInterval dalam callback app.listen, dibalut cuba/tangkap penuh supaya

@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateContentBudget, validateBidangTopik, validateMedanTambahan, TIER_SLOTS } from '../editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, hasPermission } from '../middleware/auth.js';
@@ -358,6 +358,12 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         const medanCheck = validateMedanTambahan({ summaryLong: briefLong, source, topik, note });
         if (!medanCheck.isValid) {
           return res.status(400).json({ error: medanCheck.reason });
+        }
+
+        // Format sumber (Fasa 8b) — URL sumber mesti sekurang-kurangnya rupa URL sah kalau diisi.
+        const urlCheck = validateSourceUrl(url);
+        if (!urlCheck.isValid) {
+          return res.status(400).json({ error: urlCheck.reason });
         }
 
         // Bidang terkunci per-slot, Topik wajib — bila tajuk/huraian diedit, kandungan dipindah
@@ -802,6 +808,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         if (!tickerBudgetCheck.isValid) {
           return res.status(400).json({ error: tickerBudgetCheck.reason });
         }
+        const tickerUrlCheck = validateSourceUrl(url);
+        if (!tickerUrlCheck.isValid) {
+          return res.status(400).json({ error: tickerUrlCheck.reason });
+        }
         const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
         const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
         tickerItems.push({
@@ -825,6 +835,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const medanCheck = validateMedanTambahan({ source, topik });
       if (!medanCheck.isValid) {
         return res.status(400).json({ error: medanCheck.reason });
+      }
+
+      const urlCheck = validateSourceUrl(url);
+      if (!urlCheck.isValid) {
+        return res.status(400).json({ error: urlCheck.reason });
       }
 
       // Had bilangan kandungan seslot (Tetapan Am Slot; 0 = tiada had). Dikira daripada kandungan
