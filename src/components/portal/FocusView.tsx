@@ -459,21 +459,21 @@ export const FocusView: React.FC<FocusViewProps> = ({
           </div>
         )}
 
-        {/* Badan yang menatal */}
+        {/* Kepala melekat (2026-08-05, permintaan Izzat — "pastikan tajuk dan tarikh siaran
+            melekat di page ketika user menatal huraian panjang") — eyebrow, tajuk dan tarikh
+            siaran DI LUAR kotak scroll di bawah (flex 0 0 auto, bukan sebahagian badan yang
+            menatal), supaya kekal kelihatan sepanjang pembaca menatal huraian panjang. Tarikh
+            siaran TANPA label "Siaran" (permintaan Izzat) — cuma tarikh sahaja. */}
         <div style={{
-          position: 'relative', flex: '1 1 auto', minHeight: 0, overflowY: 'auto',
-          padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: '18px',
+          flex: '0 0 auto', padding: '20px 16px 14px', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-subtle)',
         }}>
-          {/* Glif Bidang sengaja TIDAK dirender di sini — lihat nota `icon` dalam FocusViewProps.
-              Eyebrow + tajuk ditengahkan (2026-08-05, permintaan Izzat) — huraian & Sumber di
-              bawah KEKAL rata-kiri (bacaan perenggan panjang ditengahkan sukar dibaca). */}
+          {/* Glif Bidang sengaja TIDAK dirender di sini — lihat nota `icon` dalam FocusViewProps. */}
           {label && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <span style={{
-                fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
-                letterSpacing: 'var(--tracking-editorial)', color: warnaEyebrow,
-              }}>{label}</span>
-            </div>
+            <span style={{
+              fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
+              letterSpacing: 'var(--tracking-editorial)', color: warnaEyebrow,
+            }}>{label}</span>
           )}
 
           {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-05, permintaan Izzat — "tak
@@ -487,6 +487,19 @@ export const FocusView: React.FC<FocusViewProps> = ({
             textAlign: 'center',
           }}>{title}</h1>
 
+          {publishedDate && (
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--text-11)', letterSpacing: 'var(--tracking-wide)',
+              color: 'var(--stone-400)',
+            }}>{publishedDate}</span>
+          )}
+        </div>
+
+        {/* Badan yang menatal */}
+        <div style={{
+          position: 'relative', flex: '1 1 auto', minHeight: 0, overflowY: 'auto',
+          padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: '18px',
+        }}>
           {text && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <hr style={{ ...rule, borderTopColor: 'var(--border-subtle)' }} />
@@ -501,15 +514,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '6px' }}>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5 }}>
-              <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
-              {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
-            </span>
-            {publishedDate && (
-              <span style={{ ...sectionLabel, fontWeight: 400, color: 'var(--stone-400)' }}>
-                Siaran <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}>{publishedDate}</span>
-              </span>
+          {/* Tarikh siaran dipindah ke kepala melekat (di atas, bawah tajuk) — lihat nota di sana.
+              Tarikh SUMBER (bukan siaran) kekal di sini, di bawah nama Sumber (permintaan Izzat). */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '2px' }}>
+            <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5, wordBreak: 'break-all' }}>{source || '—'}</a>
+            {sourceDate && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-11)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}>{sourceDate}</span>
             )}
           </div>
 
