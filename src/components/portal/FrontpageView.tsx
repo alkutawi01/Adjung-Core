@@ -1042,6 +1042,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     setIsLoadingLoadingFooterPage(true);
     setFooterPageData(null);
     try {
+      // "Pengumuman" (2026-08-05, permintaan Izzat) — dahulu tarik daripada static_pages
+      // ('notices', tak pernah diisi — halaman ni sentiasa kosong walaupun Ketua Editor dah
+      // terbitkan Nota berskop "Awam" di Editorium). Nota Awam sebenar (editor_notes,
+      // type='awam') ada laluan awam sendiri (GET /api/public/editor-notes) tapi TAK PERNAH
+      // dipanggil klien mana-mana — kesan sebenar: togol Dalaman/Awam di borang Nota Ketua
+      // Editor tiada kesan langsung kepada pembaca. Kini "Pengumuman" tarik terus daripada
+      // laluan awam tu (bukan static_pages), guna slot footer sedia ada — bukan bina UI baharu.
+      if (key === 'notices') {
+        const res = await fetch('/api/public/editor-notes');
+        if (res.ok) {
+          const notes = await res.json();
+          const content = Array.isArray(notes) && notes.length > 0
+            ? notes.map((n: any) => `**${n.tajuk}**\n${n.kandungan}`).join('\n\n')
+            : 'Tiada pengumuman aktif buat masa ini.';
+          setFooterPageData({ title: 'Pengumuman', content });
+        } else {
+          addToast('error', 'Gagal memuatkan pengumuman.');
+          setActiveFooterPageKey(null);
+        }
+        setIsLoadingLoadingFooterPage(false);
+        return;
+      }
       const res = await fetch(`/api/pages/${key}`);
       if (res.ok) {
         const data = await res.json();
