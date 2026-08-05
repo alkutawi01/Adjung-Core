@@ -520,28 +520,32 @@ const CarouselStableBlock: React.FC<{
             kad penuh (bawah sekali), kedua-dua saiz skrin. */}
       {onNavigate && kadPenuhStabil && createPortal(
         <div className="absolute inset-0 z-10 pointer-events-none">
-          {/* Gaya pill putih (2026-08-05, permintaan Izzat — bulatan gelap lut sinar lama
-              "kurang cantik", tak sepadan jenama) — guna semula corak butang bulat sedia ada
-              di Focus View (navigasi kandungan): latar putih, sempadan stone nipis, bayang
-              lembut, ikon marun bila hover. Konsisten dgn selebihnya aplikasi, bukan reka
-              baharu berasingan. */}
+          {/* Ikon sahaja, tiada pill/bulatan (2026-08-05, pusingan kedua permintaan Izzat — pill
+              putih masih "kurang lawa"). Diposisi di TENGAH jidar kad (padding kad, bukan tepi
+              mutlak) — kad carousel hampir semua guna md:p-6 (24px, satu kad hero sahaja
+              md:p-8), ikon lebar 16px, jadi tengah jidar = (24-16)/2 = 4px drpd tepi kad
+              (left-1/right-1). TIADA kelas warna eksplisit sengaja — Portal render terus ke
+              dalam kadPenuhStabil (kad sebenar), yang ada `color: finalTextColor` inline
+              (getCardTheme di atas, sudah kira kontras gelap/cerah setiap kad individu); ikon
+              lucide default stroke=currentColor, jadi ia WARIS warna tajuk/huraian kad tu
+              secara automatik — kontras terjamin tanpa perlu logik tema berasingan di sini. */}
           <button
             type="button"
             aria-label="Kandungan sebelum"
             title="Kandungan sebelum"
             onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
-            className="hidden md:flex absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 items-center justify-center rounded-full bg-white border border-stone-300 text-stone-500 shadow-[0_1px_4px_rgba(0,0,0,0.12)] opacity-0 group-hover:opacity-100 hover:!text-[#802334] hover:!border-stone-400 transition-opacity duration-200 pointer-events-auto"
+            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity duration-200 pointer-events-auto"
           >
-            <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2} />
+            <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
           </button>
           <button
             type="button"
             aria-label="Kandungan seterusnya"
             title="Kandungan seterusnya"
             onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
-            className="hidden md:flex absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 items-center justify-center rounded-full bg-white border border-stone-300 text-stone-500 shadow-[0_1px_4px_rgba(0,0,0,0.12)] opacity-0 group-hover:opacity-100 hover:!text-[#802334] hover:!border-stone-400 transition-opacity duration-200 pointer-events-auto"
+            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity duration-200 pointer-events-auto"
           >
-            <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
+            <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
           </button>
           {/* Dot — visual sahaja (tak boleh diklik terus; onNavigate cuma sokong langkah
               relatif ±1, bukan lompat terus — cukup papar "berapa banyak / yang mana
