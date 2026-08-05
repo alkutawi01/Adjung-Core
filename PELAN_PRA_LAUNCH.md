@@ -820,18 +820,46 @@ transisi perlukan skema tetapan per-jenis" (Fasa 7/18) — kini ada skema sebena
 
 ---
 
+### [x] Fasa 20 — Susulan audit keselamatan · SIAP 2026-08-05
+Item "belum siap" ditemui semasa audit di atas — diselesaikan sama hari, bukan ditangguh
+(item #1 & #2 di bawah dinilai PENGHALANG LAUNCH, sama taraf Fasa 1).
+- [x] **Gerbang peranan Log Sistem** — dahulu `requireAuth` sahaja: mana-mana editor log
+      masuk boleh baca jejak audit SEMUA orang. Kunci kebenaran BAHARU `viewAuditLog` (lalai
+      Pentadbir + Ketua Editor + Penolong Ketua Editor, Editor biasa TIDAK), digabung
+      automatik ke matriks tersimpan sedia ada (tiada migrasi DB). Nav sidebar + render
+      Editorium turut disekat. Disahkan hidup: tanpa sesi 401, Editor 403, Ketua Editor 200,
+      Penolong 200.
+- [x] **KRITIKAL — kebocoran token reset kata laluan `GET /api/db-state`** — laluan ni
+      TERBUKA tanpa sesi (portal awam sendiri membacanya semasa muat) tapi memulangkan
+      jadual `users` PENUH, termasuk `resetToken`/`resetTokenExpiresAt` dan `email`. Semasa
+      token set-semula kata laluan aktif (editor tekan "lupa kata laluan"), sesiapa di
+      internet boleh baca token tu dan tetapkan kata laluan akaun orang lain = ambil alih
+      akaun penuh. Pusingan Fasa 1 (2026-08-02) cuma buang lajur `password`; tiga lajur ni
+      tertinggal — TERSEDIA DI PRODUKSI sehingga pembetulan ni di-deploy. Ketiga-tiganya
+      disahkan tidak pernah dibaca kod klien (grep `resetToken` dalam `src/` kosong; `email`
+      UI datang drpd respons log masuk), dibuang tanpa syarat.
+- [x] **`POST /api/system/slot-editors` tiada gerbang kunci** — `requireAuth` sahaja: mana-mana
+      Editor biasa boleh tugaskan/tanggalkan editor pada MANA-MANA slot via API. Kunci
+      `assignSlot` sudah wujud dalam matriks Kawalan Akses sejak Fasa 3, tak pernah
+      disambungkan — kini disambung. Butang di `SenaraiSlotConsole.tsx` turut disorok untuk
+      peranan tanpa kunci ni (Editor tetap nampak siapa ditugaskan, teks statik bukan butang).
+- [x] **Label peranan bocor kod mentah** — `SenaraiSlotConsole.tsx` papar `PENTADBIR`/
+      `PENOLONG_KETUA_EDITOR` huruf besar mentah untuk lajur legasi `users.role` di luar
+      KETUA_EDITOR/EDITOR; kini dipetakan ke label Melayu betul.
+
+Disahkan hidup dgn akaun ujian sekali pakai (dibersihkan selepas): setiap gerbang diuji
+tanpa-sesi/Editor/Ketua-Editor/Penolong via curl terhadap pelayan hidup, bukan andaian kod.
+`slot_editors` disahkan sepadan backup lepas ujian (tiada data hilang). `npx tsc --noEmit`
+bersih, `npm run build` lulus, `npm test` 123/123.
+
 ## Belum siap (bukan penghalang launch) — audit 2026-08-05
 
 Disahkan terhadap kod semasa, bukan sekadar baca pelan:
 1. **Audit log tak menyeluruh** — `POST /api/system/content`, tetapan sistem, tier settings,
    slot-am settings tiada `logAudit()`. (Fasa 4, sedia dicatat.)
-2. **`SenaraiSlotConsole.tsx` guna peranan binari lama** — `:382` papar KETUA_EDITOR/EDITOR
-   sahaja; gerbang UI `:244`/`:314` pun binari (`role ===`) sedangkan seluruh app dah guna
-   `roles[]` 4-peranan. **Lebih berat drpd catatan asal "kosmetik sahaja"** — Pentadbir/
-   Penolong berkemungkinan tersekat salah di skrin ni.
-3. **`stripLocationDateline` diduplikasi** — `core/sources/SourceSanitizer.js:84` +
+2. **`stripLocationDateline` diduplikasi** — `core/sources/SourceSanitizer.js:84` +
    `core/sources/EditorialTextNormalizer.js:37`, logik identik (cuma nama parameter beza).
-4. **Carta organisasi** — belum dibina (pelan sendiri tanda bukan keutamaan).
+3. **Carta organisasi** — belum dibina (pelan sendiri tanda bukan keutamaan).
 
 ---
 

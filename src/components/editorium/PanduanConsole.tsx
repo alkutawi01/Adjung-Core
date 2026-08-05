@@ -157,7 +157,9 @@ export const PanduanConsole: React.FC = () => {
           </Card>
           <Card title="Editor">
             Peranan asas — tulis dan terbit kandungan (mendarat sebagai Menunggu,
-            tunggu kelulusan), urus slot yang ditugaskan padanya.
+            tunggu kelulusan). TIDAK boleh tugaskan/tanggalkan editor pada slot (Ketua
+            Editor/Penolong sahaja, kunci <em>Agihan Slot</em>) dan TIDAK boleh baca
+            Log Sistem (lihat 06 di bawah).
           </Card>
         </div>
         <p className="font-sans text-[10px] text-stone-400 mt-2">
@@ -173,7 +175,9 @@ export const PanduanConsole: React.FC = () => {
           Kalau kandungan hilang tiba-tiba, simpanan gagal, atau tindakan tak seperti
           dijangka — semak <strong>Log Sistem</strong> (nav bawah, kumpulan Rujukan).
           Ia papar jejak audit sebenar daripada pangkalan data (siapa buat apa, bila) —
-          bukan log teknikal pelayan.
+          bukan log teknikal pelayan. Khusus untuk <strong>Pentadbir/Ketua Editor/
+          Penolong Ketua Editor</strong> (2026-08-05) — Editor biasa tak nampak destinasi
+          ni langsung dalam nav; kalau perlu semak jejak, minta Ketua Editor/Pentadbir.
         </Card>
       </div>
     </div>
