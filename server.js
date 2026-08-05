@@ -2851,7 +2851,7 @@ app.use('/api/media', requireAuthForWrites, createMediaRoutes(__dirname));
 app.use('/api/auth', createAuthRoutes(dbGet, dbRun, dbAll));
 app.use('/api', createDbStateRoutes(dbAll, dbGet));
 app.use('/api/system', createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, runAllScheduledSlots));
-app.use('/api/system', createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot));
+app.use('/api/system', createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot, parseManualSummaryTemplate));
 app.use('/api/system', createLayoutRoutes(db, dbAll, resolveSlotContent));
 app.use('/api/system', createContentRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api/system', createWorldClockRoutes(dbGet));

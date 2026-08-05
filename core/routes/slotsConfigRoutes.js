@@ -2,7 +2,50 @@ import express from 'express';
 import { ceilingForSlot as getGeometryCeilingForSlot } from '../editorial/GeometryConfig.js';
 import { detectSourceType } from '../editorial/SourceDetector.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, hasPermission } from '../middleware/auth.js';
+
+// Gerbang Nota (2026-08-05, permintaan Ketua Editor) — medan "Nota editor" (Focus View)
+// sepatutnya HANYA boleh ditulis oleh (a) editor yang DITUGASKAN slot berkenaan (`slot_editors`,
+// bukan sesiapa yang kebetulan boleh buka Urus Slot — sesiapa BOLEH sebab tiada gerbang tulis
+// per-slot sedia ada, lihat nota di POST /slots di bawah) atau (b) Ketua Editor/Penolong Ketua
+// Editor (kunci `manageEditorial` sedia ada, PERANAN SAHAJA — bukan terikat slot tertentu).
+// Editor lain yang boleh sunting tajuk/huraian slot yang SAMA (kebenaran sedia ada, sengaja
+// longgar) TETAP disekat khusus pada medan Nota sahaja — baki borang tak disentuh.
+async function bolehTulisNota(dbAll, req, slotIndex) {
+  if (hasPermission(req.session?.user?.roles, 'manageEditorial')) return true;
+  const userId = req.session?.user?.id;
+  if (!userId) return false;
+  const rows = await dbAll('SELECT 1 FROM slot_editors WHERE slotIndex = ? AND editorId = ?', [slotIndex, userId]);
+  return rows.length > 0;
+}
+
+// Ganti HANYA baris "Nota: ..." dalam SATU blok (dikenal pasti dgn UUID), biar baki blok
+// (tajuk/huraian/sumber/dll — medan yg editor tu MEMANG dibenarkan ubah) tak disentuh. Pemadanan
+// blok guna regex sama seperti parseManualSummaryTemplate (server.js) supaya kedua-dua bahagian
+// baca teks yang SAMA cara — tidak diimport terus (function besar, digandingkan rapat dengan
+// parseManualSummaryTemplate/syncManualObjectsForSlot di server.js), corak "disalin sengaja
+// tak disatukan" yang sama macam ManualBlockFormat.js/server.js parser berganda.
+function kekalkanNotaLama(manualSummaryBaharu, notaLamaByUuid) {
+  if (!manualSummaryBaharu || !manualSummaryBaharu.includes('UUID:')) return manualSummaryBaharu;
+  const blocks = manualSummaryBaharu.split(/(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i);
+  const diperbetul = blocks.map((block) => {
+    const uuidMatch = block.match(/^UUID:\s*(.*)$/m);
+    const uuid = uuidMatch ? uuidMatch[1].trim() : '';
+    // UUID tiada langsung dlm map DAN tiada dlm blok pun (format usang/rosak) — tiada garis dasar
+    // dipercayai, biar sahaja (risiko lebih tinggi ganggu format sedia ada drpd faedah gerbang
+    // ni). UUID wujud tapi BUKAN dlm map (kandungan BAHARU editor tak sah ni cipta sendiri) —
+    // garis dasar KOSONG ('') — editor tu "bertanggungjawab menulis kandungan" makna ditugaskan
+    // SLOT, bukan sekadar orang yang kebetulan sedang menaip; kandungan baharu dlm slot bukan
+    // tugasannya tetap tak boleh bawa Nota.
+    if (!uuid) return block;
+    const notaLama = notaLamaByUuid.has(uuid) ? notaLamaByUuid.get(uuid) : '';
+    if (/^Nota:.*$/m.test(block)) {
+      return block.replace(/^Nota:.*$/m, `Nota: ${notaLama}`);
+    }
+    return `${block}\nNota: ${notaLama}`;
+  });
+  return diperbetul.join('\n\n________________________________________\n\n');
+}
 
 // Ticker Manual mode is genuinely freeform text (the Chief Editor types the whole
 // desk:/title:/brief:/source:/url: block directly into a plain textarea — no client-side template
@@ -25,7 +68,7 @@ const stampManualModeOnTickerBlocks = (rawText) => {
 // transaction, see Phase 1 of this session's server.js cleanup) and is passed in here rather than
 // moved, since moving it would also require moving parseManualSummaryTemplate, which
 // resolveSlotContent (server.js's render-time path) also depends on.
-export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot) {
+export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot, parseManualSummaryTemplate) {
   const router = express.Router();
 
   // GET /api/system/slots
@@ -99,6 +142,28 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         // membetulkan pepijat sedia ada di mana kegagalan pengesahan (validation) dulu berlaku
         // SELEPAS slots_config dah ditulis — simpanan tak sah sempat tersimpan walaupun save
         // ditolak. Sekarang pengesahan berlaku dulu; simpanan gagal tak sentuh DB langsung.
+        // Gerbang Nota (2026-08-05) — semak SEBELUM syncManualObjectsForSlot supaya pembetulan
+        // (kalau perlu) tersedia dalam manualSummary yang sebenarnya diproses/disimpan, bukan
+        // selepas fakta. Hanya buat kerja tambahan (baca DB, hurai teks) bila requester TAK ada
+        // kebenaran langsung (kes biasa — Ketua Editor/Penolong simpan sendiri — terus langkau).
+        if (slot.contentMode === 'Manual' && slot.slotIndex >= 0 && typeof slot.manualSummary === 'string'
+            && parseManualSummaryTemplate && !(await bolehTulisNota(dbAll, req, slot.slotIndex))) {
+          const semasaSlotRow = await dbAll(
+            "SELECT manualSummary FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?",
+            [slot.slotIndex]
+          );
+          const notaLamaByUuid = new Map();
+          try {
+            const itemLama = parseManualSummaryTemplate((semasaSlotRow[0] && semasaSlotRow[0].manualSummary) || '', slot);
+            for (const it of itemLama) {
+              if (it.uuid) notaLamaByUuid.set(it.uuid, it.note || '');
+            }
+          } catch (e) {
+            console.warn(`Gagal hurai manualSummary sedia ada slot ${slot.slotIndex} utk semak Nota:`, e.message);
+          }
+          slot.manualSummary = kekalkanNotaLama(slot.manualSummary, notaLamaByUuid);
+        }
+
         let persistedManualSummary = slot.manualSummary;
         if (slot.contentMode === 'Manual' && slot.slotIndex >= 0) {
           try {
