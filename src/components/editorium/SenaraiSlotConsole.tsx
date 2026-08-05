@@ -60,11 +60,25 @@ interface Pengguna {
   isSuspended?: boolean;
 }
 
+// Lajur LEGASI `users.role` (satu nilai) — bukan matriks RBAC 4-peranan sebenar (`user_roles`).
+// Dipetakan supaya tiada kod mentah huruf besar bocor ke UI; lihat nota di tapak render.
+const LABEL_PERANAN_LEGASI: Record<string, string> = {
+  KETUA_EDITOR: 'Ketua Editor',
+  PENOLONG_KETUA_EDITOR: 'Penolong Ketua Editor',
+  PENTADBIR: 'Pentadbir',
+  EDITOR: 'Editor',
+};
+
 interface Props {
   currentEditoriumRole?: string;
 }
 
 export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) => {
+  // `currentEditoriumRole` ialah peranan BERKESAN yang dipadankan di EditoriumView.tsx
+  // (`effectiveEditorialRole`): Ketua Editor DAN Penolong Ketua Editor kedua-duanya sampai sini
+  // sebagai 'KETUA_EDITOR', peranan lain sebagai 'EDITOR'. Sepadan lalai kunci `assignSlot` /
+  // `manageEditorial` dalam matriks Kawalan Akses.
+  const bolehAgihSlot = currentEditoriumRole === 'KETUA_EDITOR';
   const [slots, setSlots] = useState<SlotRow[]>([]);
   const [bidangList, setBidangList] = useState<BidangRow[]>([]);
   const [usage, setUsage] = useState<{ slotIndex: number; bidang: string; liveCount: number }[]>([]);
@@ -295,21 +309,35 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                         )}
                       </td>
                       <td className="p-2.5 text-right font-mono font-bold text-stone-800">{live}</td>
+                      {/* Penugasan editor (2026-08-05, audit) — boleh DIUBAH hanya oleh peranan
+                          berkunci `assignSlot` (Ketua Editor/Penolong). Editor biasa tetap NAMPAK
+                          siapa ditugaskan (maklumat berguna, bukan rahsia) tapi sebagai teks
+                          statik, bukan butang — dahulu sesiapa yang log masuk boleh klik dan
+                          tukar penugasan mana-mana slot. Gerbang sebenar di server
+                          (requirePermission('assignSlot'), core/routes/slotEditorRoutes.js). */}
                       <td className="p-2.5">
-                        <button
-                          type="button"
-                          onClick={() => bukaEditor(i)}
-                          title="Tetapkan editor yang menguruskan slot ini"
-                          className="text-left hover:text-[#802334] cursor-pointer group"
-                        >
-                          {editorBagiSlot(i).length === 0 ? (
-                            <span className="text-stone-400 italic group-hover:text-[#802334]">Belum ditugaskan</span>
+                        {bolehAgihSlot ? (
+                          <button
+                            type="button"
+                            onClick={() => bukaEditor(i)}
+                            title="Tetapkan editor yang menguruskan slot ini"
+                            className="text-left hover:text-[#802334] cursor-pointer group"
+                          >
+                            {editorBagiSlot(i).length === 0 ? (
+                              <span className="text-stone-400 italic group-hover:text-[#802334]">Belum ditugaskan</span>
+                            ) : (
+                              <span className="text-stone-700 group-hover:text-[#802334]">
+                                {editorBagiSlot(i).map(p => p.nama).join(', ')}
+                              </span>
+                            )}
+                          </button>
+                        ) : (
+                          editorBagiSlot(i).length === 0 ? (
+                            <span className="text-stone-400 italic">Belum ditugaskan</span>
                           ) : (
-                            <span className="text-stone-700 group-hover:text-[#802334]">
-                              {editorBagiSlot(i).map(p => p.nama).join(', ')}
-                            </span>
-                          )}
-                        </button>
+                            <span className="text-stone-700">{editorBagiSlot(i).map(p => p.nama).join(', ')}</span>
+                          )
+                        )}
                       </td>
                       {currentEditoriumRole === 'KETUA_EDITOR' && (
                         <td className="p-2.5">
@@ -378,9 +406,14 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                         className="w-3.5 h-3.5 rounded border-stone-300 text-[#802334] cursor-pointer"
                       />
                       <span className="font-semibold text-stone-800">{u.penName || u.username}</span>
-                      <span className="text-[10px] text-stone-400 ml-auto">
-                        {u.role === 'KETUA_EDITOR' ? 'Ketua Editor' : u.role === 'EDITOR' ? 'Editor' : u.role}
-                      </span>
+                      {/* Label peranan (2026-08-05) — `u.role` ialah lajur LEGASI satu-nilai, bukan
+                          `roles[]` RBAC 4-peranan sebenar (lihat core/middleware/auth.js). Ia tak
+                          boleh dipercayai sebagai peranan sebenar seseorang: akaun boleh pegang
+                          BERBILANG peranan, dan lajur legasi ni cuma gerbang binari lama. Dipapar
+                          sebagai petunjuk kasar sahaja; dahulu nilai luar dua-duanya (cth
+                          PENTADBIR) bocor sebagai kod mentah huruf besar. Peranan MUKTAMAD diurus
+                          di Direktori, bukan skrin ni. */}
+                      <span className="text-[10px] text-stone-400 ml-auto">{LABEL_PERANAN_LEGASI[u.role || ''] || '—'}</span>
                     </label>
                   );
                 })}

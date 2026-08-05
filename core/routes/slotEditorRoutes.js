@@ -1,6 +1,6 @@
 import express from 'express';
 import { TIER_SLOTS, tierForSlot } from '../editorial/GeometryConfig.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/auth.js';
 import { notifyMany } from '../notifications/Notify.js';
 
 // Penugasan editor kepada slot (2026-07-30, permintaan pemilik projek).
@@ -44,7 +44,13 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
   // Ganti SELURUH senarai editor bagi satu slot sekali gus — bukan tambah/buang satu-satu.
   // Borangnya menghantar keadaan akhir yang dikehendaki, jadi tiada keadaan separuh siap kalau
   // satu daripada beberapa panggilan gagal di tengah jalan.
-  router.post('/slot-editors', requireAuth, async (req, res) => {
+  // Gerbang `assignSlot` (2026-08-05, audit) — dahulu `requireAuth` SAHAJA: mana-mana editor yang
+  // log masuk boleh tugaskan/tanggalkan editor pada MANA-MANA slot, termasuk menanggalkan dirinya
+  // atau orang lain. Kunci `assignSlot` sebenarnya SUDAH wujud dalam matriks Kawalan Akses sejak
+  // Fasa 3 (lalai: Ketua Editor + Penolong ya, Pentadbir & Editor tidak) — cuma tak pernah
+  // disambungkan ke laluan ni. Sekarang disambung; UI di SenaraiSlotConsole.tsx turut disorok
+  // untuk peranan yang tiada kunci ni (bayang client, gerbang sebenar di sini).
+  router.post('/slot-editors', requirePermission('assignSlot'), async (req, res) => {
     try {
       const { slotIndex, editorIds } = req.body || {};
       const slot = Number(slotIndex);

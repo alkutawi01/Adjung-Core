@@ -106,7 +106,24 @@ export function createDbStateRoutes(dbAll, dbGet) {
       // 2026-08-02 (Fasa 1 keselamatan) — JANGAN sebarkan lajur `password` (hash scrypt atau
       // baris lama teks biasa) ke laluan ini. `db-state` dibaca oleh pelbagai konsol Editorium
       // dan sebelum ini `...u` menyalin SEMUA lajur users terus ke respons awam.
-      const users = usersRows.map(({ password: _omit, ...u }) => ({
+      //
+      // 2026-08-05 (audit) — laluan ni TERBUKA tanpa sesi (portal awam sendiri membacanya semasa
+      // muat), jadi apa-apa lajur `users` di sini terdedah kepada SESIAPA di internet. Pusingan
+      // Fasa 1 cuma buang `password`; TIGA lajur sensitif lain tertinggal:
+      //   - `resetToken` / `resetTokenExpiresAt` — token set-semula kata laluan. Ini yang paling
+      //     bahaya: semasa token aktif (editor tekan "lupa kata laluan"), sesiapa boleh baca
+      //     token tu di sini lalu tetapkan kata laluan akaun orang itu = ambil alih akaun penuh.
+      //   - `email` — alamat emel sebenar setiap anggota sidang editorial.
+      // Ketiga-tiganya disahkan TIDAK pernah dibaca mana-mana kod klien (grep `resetToken` dalam
+      // src/ kosong; `email` yang dipakai UI datang daripada respons LOG MASUK/authUser, bukan
+      // daripada laluan ni), jadi dibuang tanpa syarat — bukan cuma disorok bila tiada sesi.
+      const users = usersRows.map(({
+        password: _omitKataLaluan,
+        resetToken: _omitToken,
+        resetTokenExpiresAt: _omitTokenLuput,
+        email: _omitEmel,
+        ...u
+      }) => ({
         ...u,
         suspended: u.isSuspended === 1
       }));
