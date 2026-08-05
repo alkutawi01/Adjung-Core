@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Save } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
+import { tierForSlot, TIER_LABELS } from '../../../core/editorial/GeometryConfig.js';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
 // bento sekali gus. Ticker dan tier Bar tiada di sini; kedua-duanya diuruskan di Modul Khas.
@@ -88,6 +89,124 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
         "penaja" dalam nisbah papar penaja SETERUSNYA dalam senarai, bukan penaja yang sama
         berulang. Tiada penaja layak = kembali papar logo Adjung sahaja, panel tak pernah kosong.
       </p>
+    </div>
+  );
+}
+
+const PILIHAN_ARAH_SLOT: { nilai: string; label: string }[] = [
+  { nilai: '', label: 'Guna tetapan am' },
+  { nilai: 'kanan', label: 'Kanan' },
+  { nilai: 'kiri', label: 'Kiri' },
+  { nilai: 'atas', label: 'Atas' },
+  { nilai: 'bawah', label: 'Bawah' },
+];
+
+// Arah animasi PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah tertentu utk slot
+// tertentu sahaja?") — senarai BERASINGAN drpd tetapan am di atas (keputusan Izzat: "senarai
+// berasingan... lebih mudah nampak keseluruhan"), simpan ke slots_config.arahOverride PER SLOT
+// (bukan slot_am_settings global). '' = guna tetapan am (arahAnimasi di atas), nilai lain =
+// override slot tu SAHAJA. Baca/tulis berasingan drpd `draf`/`simpan()` di atas — laluan API
+// berbeza (GET/POST /api/system/slots, bukan /api/system/slot-am-settings).
+function ArahPerSlotField() {
+  const [slotArah, setSlotArah] = useState<Record<number, string>>({});
+  const [asal, setAsal] = useState<Record<number, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [ralat, setRalat] = useState<string | null>(null);
+  const [berjaya, setBerjaya] = useState<string | null>(null);
+
+  const muat = () => {
+    setLoading(true);
+    fetch('/api/system/slots')
+      .then(r => r.json())
+      .then((rows: any[]) => {
+        const m: Record<number, string> = {};
+        (Array.isArray(rows) ? rows : []).forEach(r => {
+          if (r.slotIndex >= 0) m[r.slotIndex] = r.arahOverride || '';
+        });
+        setSlotArah(m);
+        setAsal(m);
+      })
+      .catch(e => setRalat('Gagal memuatkan arah slot: ' + (e.message || '')))
+      .finally(() => setLoading(false));
+  };
+  useEffect(muat, []);
+
+  const berubah = JSON.stringify(slotArah) !== JSON.stringify(asal);
+
+  const simpan = async () => {
+    setMenyimpan(true);
+    setRalat(null);
+    setBerjaya(null);
+    try {
+      // Muat SEMULA baris penuh sejurus sebelum tulis (bukan guna baris dimuat semasa mount) —
+      // elak tulis-ganti perubahan medan LAIN (kandungan, warna dll) yang mungkin disimpan
+      // seseorang lain sementara skrin ni terbuka. Sama corak berjaga-jaga macam
+      // agihLengahBertingkat di atas.
+      const res = await fetch('/api/system/slots');
+      const semua = await res.json();
+      if (!Array.isArray(semua)) throw new Error('Gagal membaca senarai slot.');
+      const dikemas = semua
+        .filter((s: any) => s.slotIndex >= 0)
+        .map((s: any) => ({ ...s, arahOverride: slotArah[s.slotIndex] ?? (s.arahOverride || '') }));
+      const simpanRes = await fetch('/api/system/slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dikemas),
+      });
+      const data = await simpanRes.json();
+      if (!simpanRes.ok) throw new Error(data.error || 'Gagal menyimpan.');
+      setBerjaya('Arah slot disimpan.');
+      muat();
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal menyimpan arah slot.');
+    } finally {
+      setMenyimpan(false);
+      setTimeout(() => { setBerjaya(null); setRalat(null); }, 3200);
+    }
+  };
+
+  if (loading) return <div className="border border-stone-200 rounded p-4 text-xs text-stone-400">Memuatkan arah slot…</div>;
+
+  return (
+    <div className="border border-stone-200 rounded p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="font-semibold text-stone-800">3e. Arah animasi per-slot</div>
+        <button
+          type="button"
+          disabled={!berubah || menyimpan}
+          onClick={simpan}
+          className="flex items-center gap-1 px-2.5 py-1 border border-stone-300 rounded text-[11px] font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Save className="w-3 h-3" /> {menyimpan ? 'Menyimpan…' : 'Simpan arah slot'}
+        </button>
+      </div>
+      <p className="text-stone-500 text-[11px] leading-relaxed">
+        Override arah Colophon/Sapuan Lajur untuk slot TERTENTU sahaja — mengatasi arah tetapan am
+        (3a) khusus slot tu. Kebanyakan slot patut kekal "Guna tetapan am"; override cuma untuk
+        kekecualian.
+      </p>
+      {ralat && <p className="text-red-600 text-[11px] flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {ralat}</p>}
+      {berjaya && <p className="text-green-700 text-[11px]">{berjaya}</p>}
+      <div className="max-h-64 overflow-y-auto border border-stone-100 rounded divide-y divide-stone-100">
+        {Array.from({ length: 38 }, (_, i) => i).map(slotIndex => (
+          <div key={slotIndex} className="flex items-center justify-between px-3 py-1.5 text-xs">
+            <span className="text-stone-600">
+              Slot {slotIndex + 1}{' '}
+              <span className="text-stone-400 font-mono text-[10px]">{TIER_LABELS[tierForSlot(slotIndex)] || ''}</span>
+            </span>
+            <select
+              value={slotArah[slotIndex] || ''}
+              onChange={e => setSlotArah(p => ({ ...p, [slotIndex]: e.target.value }))}
+              className="px-2 py-1 border border-stone-300 rounded font-semibold text-[11px] bg-stone-50"
+            >
+              {PILIHAN_ARAH_SLOT.map(a => (
+                <option key={a.nilai} value={a.nilai}>{a.label}</option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -291,6 +410,8 @@ export const TetapanAmSlotConsole: React.FC = () => {
             ditunjukkan walaupun "Pudar" dipilih supaya Ketua Editor boleh sediakan dahulu sebelum
             tukar jenis animasi. */}
         <PanelTransisiField draf={draf} setDraf={setDraf} />
+
+        <ArahPerSlotField />
 
         {/* 3c. Saiz fon Focus View — satu tetapan GLOBAL (bukan per-Bidang/tier), permintaan Izzat
             2026-08-04, supaya semua kandungan dalam Focus View konsisten. */}

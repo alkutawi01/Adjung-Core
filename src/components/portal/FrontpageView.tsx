@@ -325,12 +325,18 @@ interface TetapanAnimasiCarousel {
   arahAnimasi: string;
   warnaPanelTransisi: string;
   ambilLogoTransisi: () => LogoTransisi;
+  // Arah PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah tertentu utk slot
+  // tertentu sahaja?") — override slots_config.arahOverride (Tetapan Am Slot, senarai berasingan)
+  // MENGATASI arahAnimasi global untuk slot tu sahaja. slotIndexStr datang terus dari atribut DOM
+  // `data-slot` (rentetan) — lihat kadPenuhStabil di CarouselStableBlock.
+  arahUntukSlot: (slotIndexStr: string | null | undefined) => string;
 }
 const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
   jenisAnimasi: 'colophon',
   arahAnimasi: 'kanan',
   warnaPanelTransisi: '#802334',
   ambilLogoTransisi: () => ({ jenis: 'adjung' }),
+  arahUntukSlot: () => 'kanan',
 };
 const JenisAnimasiContext = createContext<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
 
@@ -380,7 +386,7 @@ const CarouselStableBlock: React.FC<{
   renderItem: (item: any) => React.ReactNode;
   onNavigate?: (direction: 1 | -1) => void;
 }> = ({ items, activeIndex, renderItem, onNavigate }) => {
-  const { jenisAnimasi, arahAnimasi, warnaPanelTransisi, ambilLogoTransisi } = useContext(JenisAnimasiContext);
+  const { jenisAnimasi, warnaPanelTransisi, ambilLogoTransisi, arahUntukSlot } = useContext(JenisAnimasiContext);
   // Logo dipetik SEKALI setiap kali transisi bermula (bukan setiap render) — kalau dipanggil
   // ambilLogoTransisi() terus dalam JSX, ia maju giliran pada SETIAP render (banyak kali sepanjang
   // 1.3s/1.6s animasi), bukan sekali setiap pertukaran kandungan.
@@ -555,6 +561,11 @@ const CarouselStableBlock: React.FC<{
   if (list.length <= 1) {
     return <>{renderItem(list[0] || {})}</>;
   }
+  // Arah PANEL slot ni — override per-slot (Tetapan Am Slot, senarai berasingan) MENGATASI arah
+  // global bila ada. `kadPenuhStabil` (bukan `portalTarget`) sengaja dipakai — ia stabil sejak
+  // lekap pertama (lihat setContainerRef di atas), tak `null` sekejap semasa antara transisi macam
+  // `portalTarget` (yang hanya wujud SEMASA overlayAktif).
+  const arahEfektif = arahUntukSlot(kadPenuhStabil?.getAttribute('data-slot'));
   return (
     // data-carousel-stable: penanda supaya CSS telefon boleh melucutkan kunci tinggi ini. Kunci
     // itu diukur pada lebar semasa dan tidak pernah mengecil semula, jadi tinggi desktop (dengan
@@ -659,7 +670,7 @@ const CarouselStableBlock: React.FC<{
       {overlayAktif && portalTarget && jenisAnimasi === 'colophon' && createPortal(
         <div
           className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none carousel-colophon-penuh"
-          style={{ backgroundColor: warnaPanelTransisi, ...vektorArahOverlay(arahAnimasi, false) }}
+          style={{ backgroundColor: warnaPanelTransisi, ...vektorArahOverlay(arahEfektif, false) }}
           aria-hidden="true"
         >
           {logoTransisiSemasa.jenis === 'adjung'
@@ -671,7 +682,7 @@ const CarouselStableBlock: React.FC<{
       {overlayAktif && portalTarget && jenisAnimasi === 'sapuan_lajur' && createPortal(
         <div
           className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none carousel-sapuan-penuh"
-          style={{ backgroundColor: warnaPanelTransisi, ...vektorArahOverlay(arahAnimasi, true) }}
+          style={{ backgroundColor: warnaPanelTransisi, ...vektorArahOverlay(arahEfektif, true) }}
           aria-hidden="true"
         >
           {logoTransisiSemasa.jenis === 'adjung'
@@ -1426,9 +1437,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     return { jenis: 'penaja', logoUrl: p.logoUrl, nama: p.nama };
   }, [tetapanAnimasiMentah.nisbahPenajaTransisi, penajaLayakTransisi]);
 
+  // Arah animasi PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah tertentu utk
+  // slot tertentu sahaja?") — dibina drpd `slotsConfig` (GET /api/system/slots) yang sudah dimuat
+  // untuk keperluan lain, bukan fetch berasingan. Peta dikunci RENTETAN (bukan nombor) sebab
+  // dibaca semula guna atribut DOM `data-slot` (juga rentetan) di CarouselStableBlock.
+  const arahOverridePerSlot = React.useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const s of slotsConfig) {
+      if (s && s.arahOverride && ['kanan', 'kiri', 'atas', 'bawah'].includes(s.arahOverride)) {
+        m[String(s.slotIndex)] = s.arahOverride;
+      }
+    }
+    return m;
+  }, [slotsConfig]);
+  const arahUntukSlot = React.useCallback(
+    (slotIndexStr: string | null | undefined): string =>
+      (slotIndexStr != null && arahOverridePerSlot[slotIndexStr]) || tetapanAnimasiMentah.arahAnimasi,
+    [arahOverridePerSlot, tetapanAnimasiMentah.arahAnimasi]
+  );
+
   const tetapanAnimasi = React.useMemo<TetapanAnimasiCarousel>(
-    () => ({ ...tetapanAnimasiMentah, ambilLogoTransisi }),
-    [tetapanAnimasiMentah, ambilLogoTransisi]
+    () => ({ ...tetapanAnimasiMentah, ambilLogoTransisi, arahUntukSlot }),
+    [tetapanAnimasiMentah, ambilLogoTransisi, arahUntukSlot]
   );
 
   useEffect(() => {

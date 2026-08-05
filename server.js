@@ -1729,11 +1729,17 @@ const initEditorialOS = (dbConn) => {
           manualImageUrl TEXT,
           activeObjectId TEXT,
           searchStrategy TEXT DEFAULT 'Structured Sources Only',
+          arahOverride TEXT DEFAULT '',
           PRIMARY KEY (layoutTemplateId, slotIndex),
           FOREIGN KEY(providerId) REFERENCES ai_providers(id) ON DELETE SET NULL
         )
       `, () => {
         dbConn.run("ALTER TABLE slots_config ADD COLUMN searchStrategy TEXT DEFAULT 'Structured Sources Only'", () => {});
+        // Arah animasi transisi PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah
+        // tertentu utk slot tertentu sahaja?") — '' = guna tetapan am global (arahAnimasi di
+        // slot_am_settings), kanan/kiri/atas/bawah = override slot ni sahaja. Lihat
+        // core/routes/slotsConfigRoutes.js + arahUntukSlot() di FrontpageView.tsx.
+        dbConn.run("ALTER TABLE slots_config ADD COLUMN arahOverride TEXT DEFAULT ''", () => {});
       });
 
       // 11. pipeline_logs
