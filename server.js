@@ -1876,6 +1876,14 @@ const initEditorialOS = (dbConn) => {
           // kekal = entri pertama sahaja, untuk keserasian ke belakang).
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('sourcesJson', 'Sumber Berbilang (JSON)', 'text')", () => {});
 
+          // pernahDitolak: kunci draf ditolak (2026-08-05, permintaan Izzat — "editor degil publish
+          // semula tanpa pembetulan"). '1' bila draf ni lahir semula drpd blok "Tolak" (UUID blok
+          // berakhir '-reject', lihat syncManualObjectsForSlot & reject-to-draft di
+          // contentRoutes.js). PATCH /content/:id sekat status->approved oleh Editor biasa (kunci
+          // manageEditorial diperlukan) bila bendera ni '1' — sekali sahaja sehingga Ketua
+          // Editor/Penolong sendiri yang luluskan, elak editor terbit semula tanpa semakan.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('pernahDitolak', 'Pernah Ditolak', 'text')", () => {});
+
           // urlKod: kod pendek unik per-kandungan (Fasa 9, 2026-08-05) — skema URL
           // /<bidang-slug>/kandungan/<kod-pendek>. Lihat core/editorial/UrlSlug.js untuk sebab
           // ia kod RAWAK baharu (bukan potongan editorial_objects.id sedia ada). Indeks unik
@@ -2622,6 +2630,12 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         { key: 'penerangan', val: item.penerangan || '' },
         { key: 'note', val: item.note || '' },
         { key: 'image', val: item.image || '' },
+        // Kunci draf ditolak (2026-08-05) — item.uuid ialah UUID blok DRAF asal (bukan
+        // objectId, yang sentiasa baharu untuk tier bukan-Bar di atas). Blok yang lahir drpd
+        // "Tolak" (reject-to-draft, contentRoutes.js) diberi UUID berakhir '-reject' — kalau
+        // sepadan, kandungan ni pernah ditolak sekali, tandakan supaya PATCH /content/:id
+        // sekat Editor biasa self-approve semula tanpa kelulusan Ketua Editor/Penolong.
+        { key: 'pernahDitolak', val: (item.uuid && String(item.uuid).endsWith('-reject')) ? '1' : '' },
       ];
       for (const a of attrs) {
         await dbRun(

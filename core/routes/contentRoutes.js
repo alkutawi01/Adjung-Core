@@ -2,7 +2,7 @@ import express from 'express';
 import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
-import { requireAuth, hasPermission } from '../middleware/auth.js';
+import { requireAuth, requirePermission, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { isDue, hasReplacementForExpiry } from '../editorial/Scheduling.js';
@@ -318,6 +318,26 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1", [id]);
       if (!rev) {
         return res.status(404).json({ error: 'Item tidak dijumpai.' });
+      }
+
+      // Kunci draf ditolak (2026-08-05, permintaan Izzat) — "editor degil publish semula tanpa
+      // pembetulan": Editor biasa boleh self-publish kandungan dia sendiri secara normal (`publish`
+      // sedia ada), tapi kandungan yang PERNAH ditolak sekali (bendera `pernahDitolak`, disemat
+      // semasa Terbitkan drpd draf lahir-semula "Tolak" — lihat syncManualObjectsForSlot di
+      // server.js) mesti lalui Ketua Editor/Penolong Ketua Editor untuk terbit semula, BUKAN
+      // Editor sendiri. Semak SEBELUM validasi/tulisan lain — status='approved' yang diminta ialah
+      // satu-satunya senario disekat di sini (Tolak/Arkib/edit tajuk-huraian biasa tak disentuh).
+      if (status === 'approved' && rev.status !== 'approved'
+        && !hasPermission(req.session?.user?.roles, 'manageEditorial')) {
+        const bendera = await dbGet(
+          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'pernahDitolak'",
+          [id, rev.id]
+        );
+        if (bendera && bendera.valueText === '1') {
+          return res.status(403).json({
+            error: 'Kandungan ni pernah ditolak sebelum ini — perlu kelulusan Ketua Editor/Penolong Ketua Editor untuk terbit semula, bukan Editor sendiri.',
+          });
+        }
       }
 
       // Same hard-block as every other content path: an edit can never push a slot's title+brief
@@ -639,7 +659,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   // jejak audit, kandungan penuh disalin balik jadi blok draf dalam slots_config.manualSummary
   // slot asal supaya editor boleh sambung sunting dalam modal Tulis Kandungan). Draf tak pernah
   // muncul di Indeks — lihat nota di server.js/ManualBlockFormat.js.
-  router.post('/content/:id/reject-to-draft', requireAuth, async (req, res) => {
+  // Gerbang `reject` (2026-08-05, audit) — dahulu `requireAuth` SAHAJA: mana-mana editor yang log
+  // masuk boleh "Tolak" kandungan SESIAPA sahaja kembali jadi draf, walhal kunci `reject` sudah
+  // wujud dalam matriks Kawalan Akses sejak Fasa 3 (lalai: Ketua Editor + Penolong ya, Pentadbir &
+  // Editor tidak) — cuma tak pernah disambungkan ke laluan ni.
+  router.post('/content/:id/reject-to-draft', requirePermission('reject'), async (req, res) => {
     try {
       const { id } = req.params;
       if (id.startsWith('ticker-')) {
