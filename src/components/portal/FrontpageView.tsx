@@ -534,7 +534,7 @@ const CarouselStableBlock: React.FC<{
             aria-label="Kandungan sebelum"
             title="Kandungan sebelum"
             onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
-            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity duration-200 pointer-events-auto"
+            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
           >
             <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
           </button>
@@ -543,7 +543,7 @@ const CarouselStableBlock: React.FC<{
             aria-label="Kandungan seterusnya"
             title="Kandungan seterusnya"
             onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
-            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity duration-200 pointer-events-auto"
+            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
           >
             <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
           </button>
