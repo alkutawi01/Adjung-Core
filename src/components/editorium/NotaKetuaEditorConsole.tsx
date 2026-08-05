@@ -4,12 +4,18 @@ import { Pin, PinOff, Archive, ArchiveRestore, Trash2, Pencil } from 'lucide-rea
 // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — tiga kategori nota yang Ketua
 // Editor terbitkan kepada pasukan, dengan satu pengasingan penting: SKOP.
 //
-//   Dalaman — hanya kelihatan dalam Editorium.
-//   Awam    — boleh dipaparkan di portal awam.
+//   Nota (Dalaman)          — hanya kelihatan dalam Editorium.
+//   Catatan Ketua Editor    — disiarkan di Frontpage (pautan footer "Catatan Ketua Editor").
+//   Pengumuman              — disiarkan di Frontpage (pautan footer "Pengumuman").
 //
-// Pengasingan tu dikuatkuasakan di PELAYAN (SQL laluan awam menapis type='awam' secara keras),
-// bukan di sini — borang ni cuma menghantar pilihan, ia bukan yang menjaganya. Lihat
-// core/routes/editorNotesRoutes.js.
+// TIGA nilai skop (2026-08-05, dipecah daripada "Awam" generik) — setiap pilihan sepadan TEPAT
+// dengan satu destinasi Frontpage sebenar, label SAMA di kedua-dua hujung (Editorium & portal
+// awam) supaya editor tahu tepat ke mana nota tu akan tersiar, bukan label kabur "Awam" yang
+// perlu diteka destinasinya.
+//
+// Pengasingan tu dikuatkuasakan di PELAYAN (SQL laluan awam menapis `type` terhadap senarai putih
+// 2 nilai awam sahaja), bukan di sini — borang ni cuma menghantar pilihan, ia bukan yang
+// menjaganya. Lihat core/routes/editorNotesRoutes.js.
 //
 // Nota tidak dipadam terus: ia diarkibkan dahulu, kemudian barulah boleh dipadam — corak sama
 // macam peraturan padam/arkib kandungan editorial (sesuatu yang pernah terbit tidak lenyap dengan
@@ -19,12 +25,18 @@ interface Nota {
   tajuk: string;
   kandungan: string;
   kategori: 'notis' | 'am' | 'khas';
-  skop: 'dalaman' | 'awam';
+  skop: 'dalaman' | 'catatan_ketua_editor' | 'pengumuman';
   status: 'aktif' | 'arkib';
   disemat: boolean;
   penulis: string;
   dibuatPada: string;
 }
+
+const LABEL_SKOP: Record<Nota['skop'], string> = {
+  dalaman: 'Dalaman',
+  catatan_ketua_editor: 'Catatan Ketua Editor',
+  pengumuman: 'Pengumuman',
+};
 
 interface NotaKetuaEditorConsoleProps {
   editorId: string;
@@ -213,12 +225,13 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                 onChange={(e) => setSkop(e.target.value as Nota['skop'])}
                 className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs cursor-pointer"
               >
-                <option value="dalaman">Dalaman — Editorium sahaja</option>
-                <option value="awam">Awam — boleh dibaca pembaca</option>
+                <option value="dalaman">Nota (Dalaman) — Editorium sahaja</option>
+                <option value="catatan_ketua_editor">Catatan Ketua Editor — disiarkan di Frontpage</option>
+                <option value="pengumuman">Pengumuman — disiarkan di Frontpage</option>
               </select>
-              {skop === 'awam' && (
+              {skop !== 'dalaman' && (
                 <span className="text-[#802334] text-[10px] font-semibold">
-                  Nota ini boleh dibaca orang awam. Pastikan tiada maklumat dalaman di dalamnya.
+                  Nota ini akan disiarkan di Frontpage (pautan footer "{LABEL_SKOP[skop]}"). Pastikan tiada maklumat dalaman di dalamnya.
                 </span>
               )}
             </label>
@@ -318,12 +331,12 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                       </span>
                       <span
                         className={`font-mono text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded border ${
-                          n.skop === 'awam'
+                          n.skop !== 'dalaman'
                             ? 'text-[#802334] border-[#802334]/30 bg-[#802334]/[0.06]'
                             : 'text-stone-500 border-stone-200'
                         }`}
                       >
-                        {n.skop === 'awam' ? 'Awam' : 'Dalaman'}
+                        {LABEL_SKOP[n.skop] || n.skop}
                       </span>
                       <span className="font-mono text-[9px] text-stone-400">{tarikhRingkas(n.dibuatPada)}</span>
                     </div>

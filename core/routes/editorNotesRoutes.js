@@ -9,18 +9,24 @@ import { logAudit } from '../audit/AuditLog.js';
 //   kategori 'am'     — peringatan/garis panduan tugas harian
 //   kategori 'khas'   — nota bersasar, contohnya arahan satu kempen atau satu Bidang
 //
-// Skop (`type`) berasingan daripada kategori, dan inilah pengasingan paling penting dalam modul ni:
-//   'dalaman' — hanya kelihatan dalam Editorium (makluman editor)
-//   'awam'    — boleh dipaparkan di portal awam Frontpage
+// Skop (`type`) berasingan daripada kategori, dan inilah pengasingan paling penting dalam modul ni.
+// TIGA nilai (2026-08-05, dipecah daripada 'awam' generik — Ketua Editor perhatikan togol awal
+// "Awam" sahaja tak jelas ke MANA nota tu disiarkan; kini setiap pilihan sepadan TEPAT dengan
+// satu destinasi Frontpage sebenar, label sama di kedua-dua hujung):
+//   'dalaman'             — hanya kelihatan dalam Editorium (makluman editor), tak pernah awam
+//   'catatan_ketua_editor' — disiarkan di Frontpage, pautan footer "Catatan Ketua Editor"
+//   'pengumuman'          — disiarkan di Frontpage, pautan footer "Pengumuman"
 //
 // Nota 'dalaman' TIDAK BOLEH SESEKALI terlepas ke laluan awam. Sebab itu laluan awam di bawah
-// menapis `type = 'awam'` di dalam SQL itu sendiri, bukan bergantung pada penapisan di klien —
-// pelayar tak boleh minta nota dalaman walaupun ia mengubah parameter permintaan sendiri.
+// menapis `type` di dalam SQL itu sendiri (senarai putih 2 nilai awam sahaja), bukan bergantung
+// pada penapisan di klien — pelayar tak boleh minta nota dalaman walaupun ia mengubah parameter
+// permintaan sendiri.
 //
 // Status: 'aktif' (hidup) atau 'arkib' (disimpan sebagai rekod). Nota tidak dipadam terus; ia
 // diarkibkan — selaras dengan peraturan padam/arkib projek untuk kandungan terbitan.
 const KATEGORI_SAH = ['notis', 'am', 'khas'];
-const SKOP_SAH = ['dalaman', 'awam'];
+const SKOP_SAH = ['dalaman', 'catatan_ketua_editor', 'pengumuman'];
+const SKOP_AWAM_SAH = ['catatan_ketua_editor', 'pengumuman'];
 const STATUS_SAH = ['aktif', 'arkib'];
 
 // Had aksara dikuatkuasakan di PELAYAN, bukan sekadar atribut maxlength pada borang — borang boleh
@@ -80,15 +86,22 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/public/editor-notes — laluan AWAM. Penapis type='awam' AND status='aktif' ditulis
-  // keras dalam SQL; tiada parameter permintaan boleh melonggarkannya.
+  // GET /api/public/editor-notes?type=catatan_ketua_editor|pengumuman — laluan AWAM. `type`
+  // WAJIB dan disahkan terhadap SENARAI PUTIH 2 nilai awam sahaja (SKOP_AWAM_SAH) — 'dalaman'
+  // tidak pernah termasuk dalam senarai tu langsung, jadi mustahil tercapai walaupun pelayar
+  // cuba `?type=dalaman` secara langsung. status='aktif' turut ditulis keras dalam SQL.
   router.get('/public/editor-notes', async (req, res) => {
     try {
+      const { type } = req.query;
+      if (!SKOP_AWAM_SAH.includes(type)) {
+        return res.status(400).json({ error: 'Parameter type diperlukan (catatan_ketua_editor atau pengumuman).' });
+      }
       const rows = await dbAll(
         `SELECT id, title, content, category, author_name, created_at
          FROM editor_notes
-         WHERE type = 'awam' AND status = 'aktif'
-         ORDER BY is_pinned DESC, created_at DESC`
+         WHERE type = ? AND status = 'aktif'
+         ORDER BY is_pinned DESC, created_at DESC`,
+        [type]
       );
       res.json((rows || []).map((r) => ({
         id: r.id,

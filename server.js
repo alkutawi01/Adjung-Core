@@ -395,8 +395,10 @@ const initializeSchema = () => {
 
             // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — notis/nota am/nota khas
             // yang Ketua Editor terbitkan kepada pasukan. `type` ialah SKOP: 'dalaman' (Editorium
-            // sahaja) atau 'awam' (boleh dipapar di portal awam). Pengasingan tu dikuatkuasakan
-            // dalam SQL laluan awam, bukan di klien — lihat core/routes/editorNotesRoutes.js.
+            // sahaja), 'catatan_ketua_editor' atau 'pengumuman' (kedua-dua disiarkan di Frontpage,
+            // pautan footer sepadan namanya masing-masing — dipecah drpd 'awam' generik 2026-08-05).
+            // Pengasingan tu dikuatkuasakan dalam SQL laluan awam, bukan di klien — lihat
+            // core/routes/editorNotesRoutes.js.
             db.run(`
               CREATE TABLE IF NOT EXISTS editor_notes (
                 id TEXT PRIMARY KEY,
@@ -411,7 +413,13 @@ const initializeSchema = () => {
                 created_at TEXT,
                 updated_at TEXT
               )
-            `, () => {});
+            `, () => {
+              // Migrasi (2026-08-05, permintaan Ketua Editor) — skop 'awam' generik dipecah kepada
+              // DUA destinasi konkrit yang sepadan tepat dengan seksyen Frontpage sebenar
+              // ("Catatan Ketua Editor" dan "Pengumuman" — lihat core/routes/editorNotesRoutes.js).
+              // Rekod lama (jarang, ciri ni baharu) dianggap 'pengumuman' sebagai lalai selamat.
+              db.run("UPDATE editor_notes SET type = 'pengumuman' WHERE type = 'awam'", () => {});
+            });
 
             // Glosari (2026-08-01, dikemas kini 2026-08-02 Fasa 8) — senarai rujukan istilah +
             // definisi/nota penggunaan untuk editor. RUJUKAN sahaja: tidak pernah menulis-ganti

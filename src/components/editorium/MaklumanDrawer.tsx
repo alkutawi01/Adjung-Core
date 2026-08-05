@@ -19,7 +19,7 @@ interface Nota {
   tajuk: string;
   kandungan: string;
   kategori: string;
-  skop: 'dalaman' | 'awam';
+  skop: 'dalaman' | 'catatan_ketua_editor' | 'pengumuman';
   disemat: boolean;
   penulis: string;
   dibuatPada: string;
@@ -46,6 +46,7 @@ interface MaklumanDrawerProps {
 }
 
 const LABEL_KATEGORI: Record<string, string> = { notis: 'Notis', am: 'Nota Am', khas: 'Nota Khas' };
+const LABEL_SKOP: Record<string, string> = { catatan_ketua_editor: 'Catatan Ketua Editor', pengumuman: 'Pengumuman' };
 
 // Ikon + label ringkas ikut jenis notifikasi (Fasa 6b) — bantu editor imbas cepat jenis apa
 // tanpa baca setiap tajuk sepenuhnya.
@@ -168,9 +169,9 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                       <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
                         {LABEL_KATEGORI[n.kategori] || n.kategori}
                       </span>
-                      {n.skop === 'awam' && (
+                      {n.skop !== 'dalaman' && (
                         <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-[#802334] border border-[#802334]/30 bg-[#802334]/[0.06] px-1.5 py-0.5 rounded">
-                          Awam
+                          {LABEL_SKOP[n.skop] || n.skop}
                         </span>
                       )}
                       <span className="font-mono text-[9px] text-stone-400">{tarikhRingkas(n.dibuatPada)}</span>

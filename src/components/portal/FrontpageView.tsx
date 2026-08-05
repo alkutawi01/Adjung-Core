@@ -1042,23 +1042,27 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     setIsLoadingLoadingFooterPage(true);
     setFooterPageData(null);
     try {
-      // "Pengumuman" (2026-08-05, permintaan Izzat) — dahulu tarik daripada static_pages
-      // ('notices', tak pernah diisi — halaman ni sentiasa kosong walaupun Ketua Editor dah
-      // terbitkan Nota berskop "Awam" di Editorium). Nota Awam sebenar (editor_notes,
-      // type='awam') ada laluan awam sendiri (GET /api/public/editor-notes) tapi TAK PERNAH
-      // dipanggil klien mana-mana — kesan sebenar: togol Dalaman/Awam di borang Nota Ketua
-      // Editor tiada kesan langsung kepada pembaca. Kini "Pengumuman" tarik terus daripada
-      // laluan awam tu (bukan static_pages), guna slot footer sedia ada — bukan bina UI baharu.
-      if (key === 'notices') {
-        const res = await fetch('/api/public/editor-notes');
+      // "Catatan Ketua Editor" & "Pengumuman" (2026-08-05, permintaan Izzat) — dahulu KEDUA-DUA
+      // tarik daripada static_pages (halaman yang tak pernah diisi, sentiasa kosong) walaupun
+      // Ketua Editor dah terbitkan Nota berskop awam di Editorium. Nota Ketua Editor kini ada
+      // TIGA skop konkrit sepadan tepat 1:1 dengan destinasi Frontpage (lihat
+      // core/routes/editorNotesRoutes.js) — dua pautan footer ni tarik terus daripada laluan
+      // awam tu (bukan static_pages), guna slot footer sedia ada.
+      const SKOP_FOOTER: Record<string, { skop: string; tajuk: string }> = {
+        'editors-notes': { skop: 'catatan_ketua_editor', tajuk: 'Catatan Ketua Editor' },
+        notices: { skop: 'pengumuman', tajuk: 'Pengumuman' },
+      };
+      if (SKOP_FOOTER[key]) {
+        const { skop, tajuk } = SKOP_FOOTER[key];
+        const res = await fetch(`/api/public/editor-notes?type=${skop}`);
         if (res.ok) {
           const notes = await res.json();
           const content = Array.isArray(notes) && notes.length > 0
             ? notes.map((n: any) => `**${n.tajuk}**\n${n.kandungan}`).join('\n\n')
-            : 'Tiada pengumuman aktif buat masa ini.';
-          setFooterPageData({ title: 'Pengumuman', content });
+            : `Tiada ${tajuk.toLowerCase()} aktif buat masa ini.`;
+          setFooterPageData({ title: tajuk, content });
         } else {
-          addToast('error', 'Gagal memuatkan pengumuman.');
+          addToast('error', `Gagal memuatkan ${tajuk.toLowerCase()}.`);
           setActiveFooterPageKey(null);
         }
         setIsLoadingLoadingFooterPage(false);
@@ -3264,7 +3268,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             <div className="flex flex-col gap-2.5">
               <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Institusi</h3>
               <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
-                <li className="flex"><button onClick={() => handleFooterLinkClick('editors-notes')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Catatan Editor</button></li>
+                <li className="flex"><button onClick={() => handleFooterLinkClick('editors-notes')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Catatan Ketua Editor</button></li>
                 <li className="flex"><button onClick={() => handleFooterLinkClick('notices')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Pengumuman</button></li>
                 <li className="flex"><button onClick={() => handleFooterLinkClick('publishing-policies')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Dasar Penerbitan</button></li>
                 <li className="flex"><button onClick={() => handleFooterLinkClick('version-history')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Sejarah Versi</button></li>
