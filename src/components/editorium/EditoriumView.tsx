@@ -199,17 +199,31 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // tandatangan/bio dibuang. Nama pena tetap diambil dari /api/db-state bila modal dibuka (prop
   // `currentUser` cuma bawa id/name/role dari sesi log masuk, mungkin lapuk berbanding DB).
   const [profilTerbuka, setProfilTerbuka] = useState(false);
-  const [profilData, setProfilData] = useState<{ id: string; penName: string; username: string; email: string } | null>(null);
+  const [profilData, setProfilData] = useState<{
+    id: string; penName: string; username: string; email: string;
+    namaPenuh?: string; kelulusanKursus?: string; kelulusanUniversiti?: string;
+    kelulusanTahun?: string; negeriMenetap?: string; nomborTelefon?: string;
+  } | null>(null);
+  // 2026-08-05 (audit) — dahulu ambil emel/username sendiri drpd GET /api/db-state (laluan
+  // AWAM). Pembetulan keselamatan hari sama (tutup kebocoran resetToken) buang `email` drpd
+  // db-state — betul untuk laluan awam, tapi pecahkan paparan ni secara senyap. Kini guna
+  // GET /api/system/profile/:id (perlu sesi, pemilik sendiri sahaja) yang dibina khusus.
   const bukaProfil = () => {
-    fetch('/api/db-state')
+    fetch(`/api/system/profile/${currentUser?.id}`)
       .then((r) => r.json())
       .then((d) => {
-        const u = (d.users || []).find((x: any) => x.id === currentUser?.id);
+        const u = d.user;
         setProfilData({
           id: currentUser!.id,
           penName: u?.penName || currentUser!.name,
           username: u?.username || '',
           email: u?.email || '',
+          namaPenuh: u?.namaPenuh || '',
+          kelulusanKursus: u?.kelulusanKursus || '',
+          kelulusanUniversiti: u?.kelulusanUniversiti || '',
+          kelulusanTahun: u?.kelulusanTahun || '',
+          negeriMenetap: u?.negeriMenetap || '',
+          nomborTelefon: u?.nomborTelefon || '',
         });
         setProfilTerbuka(true);
       })

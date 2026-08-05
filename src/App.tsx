@@ -12,6 +12,7 @@ import { HalamanStatik } from './components/portal/HalamanStatik';
 import { HalamanPenaja } from './components/portal/HalamanPenaja';
 import { TidakDijumpai } from './components/portal/TidakDijumpai';
 import { TetapkanKataLaluan } from './components/portal/TetapkanKataLaluan';
+import { LengkapkanProfilModal } from './components/editorium/LengkapkanProfilModal';
 
 // Muat malas (2026-08-02, Fasa 15 — "prestasi & kesediaan produksi") — ContentReview (Studio)
 // dan EditoriumView (konsol pentadbiran penuh, import berpuluh-puluh sub-komponen) dahulu
@@ -58,7 +59,7 @@ export default function App() {
       return null;
     }
   };
-  const [authUser, setAuthUser] = useState<{ id: string; username: string; penName: string; email: string; role: string; roles?: string[] } | null>(readStoredAuth);
+  const [authUser, setAuthUser] = useState<{ id: string; username: string; penName: string; email: string; role: string; roles?: string[]; termaDipersetujuiPada?: string | null } | null>(readStoredAuth);
   const [showLoginModal, setShowLoginModal] = useState(false);
   // Dijalankan lepas log masuk berjaya (cth terus buka mod edit di frontpage) — bukan cuma
   // menutup modal sahaja.
@@ -85,7 +86,7 @@ export default function App() {
     setShowLoginModal(true);
   };
 
-  const handleLoginSuccess = (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[] }, rememberMe: boolean) => {
+  const handleLoginSuccess = (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[]; termaDipersetujuiPada?: string | null }, rememberMe: boolean) => {
     setAuthUser(user);
     const target = rememberMe ? window.localStorage : window.sessionStorage;
     const other = rememberMe ? window.sessionStorage : window.localStorage;
@@ -102,7 +103,7 @@ export default function App() {
   // sesi log masuk (header/Editorium papar nama tu), tanpa perlu log keluar-masuk semula.
   // Kekalkan storan (local/session) yang sama yang sedia digunakan — jangan tukar pilihan
   // "Ingat saya" sekadar sebab profil disunting.
-  const handleProfilKemasKini = (patch: { penName?: string }) => {
+  const handleProfilKemasKini = (patch: Record<string, string | undefined>) => {
     if (!authUser) return;
     const updated = { ...authUser, ...patch };
     setAuthUser(updated);
@@ -380,6 +381,17 @@ export default function App() {
       </AnimatePresence>
       {showLoginModal && (
         <LoginModal onClose={() => setShowLoginModal(false)} onSuccess={handleLoginSuccess} />
+      )}
+      {/* Gerbang log masuk PERTAMA (2026-08-05, permintaan Izzat) — "editor masa daftar masuk
+          kali pertama baca dan setuju beberapa syarat dan peraturan", digabung profil wajib.
+          `termaDipersetujuiPada` kosong = belum pernah setuju; modal ni TIDAK boleh
+          ditutup/langkau, dirender DI ATAS segala-galanya (z-[200], lebih tinggi drpd
+          LoginModal/modal lain z-[70]) sehingga borang dihantar berjaya. */}
+      {authUser && !authUser.termaDipersetujuiPada && (
+        <LengkapkanProfilModal
+          userId={authUser.id}
+          onSelesai={(patch) => handleProfilKemasKini(patch)}
+        />
       )}
     </BrowserRouter>
   );

@@ -973,6 +973,13 @@ const HALAMAN_AWAM_SENARAI: { key: string; label: string }[] = [
   { key: 'polisi-privasi', label: 'Polisi Privasi' },
   { key: 'terma-penggunaan', label: 'Terma Penggunaan' },
   { key: 'penafian', label: 'Penafian' },
+  // Syarat & Peraturan Editor (2026-08-05, permintaan Izzat) — KANDUNGAN DALAMAN untuk editor
+  // sahaja (dasar aktif, kerahsiaan draf, dll), BUKAN halaman awam pembaca — sengaja BERASINGAN
+  // drpd "Terma Penggunaan" di atas (tu untuk pembaca portal, dah ada kandungan sebenar).
+  // Dipapar di LengkapkanProfilModal.tsx (gerbang log masuk pertama editor), diedit di sini
+  // guna mekanisme static_pages SAMA (GET/POST /api/pages/:key) supaya satu corak, tiada laluan
+  // baharu diperlukan.
+  { key: 'syarat-editor', label: 'Syarat & Peraturan Editor' },
 ];
 
 function HalamanAwamPanel() {

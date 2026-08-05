@@ -7,7 +7,7 @@ interface LoginModalProps {
   // kepada editor ni (jadual slot_editors berkunci pada users.id, bukan nama pena). `roles`
   // (2026-08-02, Fasa 3) — senarai BERBILANG peranan (pentadbir/ketua_editor/
   // penolong_ketua_editor/editor); `role` legasi dikekalkan untuk paparan sahaja.
-  onSuccess: (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[] }, rememberMe: boolean) => void;
+  onSuccess: (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[]; termaDipersetujuiPada?: string | null }, rememberMe: boolean) => void;
 }
 
 // Log masuk Editorium (2026-07-29) — panggil /api/auth/login (core/routes/authRoutes.js,
@@ -64,6 +64,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         email: data.user.email || '',
         role: data.user.role,
         roles: Array.isArray(data.user.roles) ? data.user.roles : [],
+        termaDipersetujuiPada: data.user.termaDipersetujuiPada || null,
       }, rememberMe);
     } catch (err: any) {
       setError('Ralat sambungan: ' + (err.message || ''));

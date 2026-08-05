@@ -50,10 +50,10 @@ import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
 import { createArticleUrlRoutes, createPublicArticleRoute } from './core/routes/articleUrlRoutes.js';
 import { createSearchRoutes } from './core/routes/searchRoutes.js';
 import { createSponsorRoutes } from './core/routes/sponsorRoutes.js';
-import { semakKonfigSmtpStartup } from './core/email/MailSender.js';
+import { semakKonfigSmtpStartup, hantarEmel } from './core/email/MailSender.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
-import { notifyMany } from './core/notifications/Notify.js';
+import { notify, notifyMany } from './core/notifications/Notify.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -188,6 +188,26 @@ const initializeSchema = () => {
       // core/routes/authRoutes.js's POST /aktifkan-akaun.
       db.run("ALTER TABLE users ADD COLUMN resetToken TEXT;", () => {});
       db.run("ALTER TABLE users ADD COLUMN resetTokenExpiresAt TEXT;", () => {});
+
+      // Butiran profil wajib + dasar aktif (2026-08-05, permintaan Izzat) — lima medan onboarding
+      // (namaPenuh/kelulusan*/negeriMenetap/nomborTelefon) + `termaDipersetujuiPada` (NULL = belum
+      // pernah setuju Syarat & Peraturan, gerbang log masuk pertama — lihat profileRoutes.js +
+      // LengkapkanProfilModal.tsx client). `lastPublishedAt`/`amaranTakAktifTahap` menyokong dasar
+      // aktif: "aktif" ditakrif Izzat sebagai KANDUNGAN DITERBITKAN (bukan log masuk sahaja) —
+      // lastPublishedAt dikemas kini oleh contentRoutes.js setiap kali kandungan bercap nama
+      // editor ni bertukar ke status approved BAHARU. amaranTakAktifTahap (0=tiada, 1=amaran
+      // hari-7, 2=amaran hari-14, 3=notis hari-21/akaun digantung) elak e-mel sama dihantar
+      // berulang, direset ke 0 bila editor terbit semula. Lihat penjadual "Semakan Tak Aktif" di
+      // app.listen() untuk logik penuh.
+      db.run("ALTER TABLE users ADD COLUMN namaPenuh TEXT;", () => {});
+      db.run("ALTER TABLE users ADD COLUMN kelulusanKursus TEXT;", () => {});
+      db.run("ALTER TABLE users ADD COLUMN kelulusanUniversiti TEXT;", () => {});
+      db.run("ALTER TABLE users ADD COLUMN kelulusanTahun TEXT;", () => {});
+      db.run("ALTER TABLE users ADD COLUMN negeriMenetap TEXT;", () => {});
+      db.run("ALTER TABLE users ADD COLUMN nomborTelefon TEXT;", () => {});
+      db.run("ALTER TABLE users ADD COLUMN termaDipersetujuiPada TEXT;", () => {});
+      db.run("ALTER TABLE users ADD COLUMN lastPublishedAt TEXT;", () => {});
+      db.run("ALTER TABLE users ADD COLUMN amaranTakAktifTahap INTEGER DEFAULT 0;", () => {});
 
       // 2026-08-02 (Fasa 4) — Log Audit: dahulu SIFAR jejak, tiada jadual langsung. Rekod
       // tindakan editorial/pentadbiran penting (terbit/tolak/arkib kandungan, urus akaun,
@@ -3073,6 +3093,105 @@ const gracefulShutdown = (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Dasar aktif editorial (2026-08-05, permintaan Izzat) — "editor wajib aktif dalam had tempoh
+// yg ditetapkan, kalau tak akan digantung dan dipecat... supaya semua editor main peranan dan
+// aktif." "Aktif" ditakrif KANDUNGAN DITERBITKAN (bukan log masuk sahaja, keputusan Izzat) —
+// asas pengiraan ialah `lastPublishedAt` (dikemas kini contentRoutes.js setiap kali kandungan
+// bercap nama editor tu bertukar ke status approved BAHARU), jatuh balik ke `createdAt` untuk
+// akaun yang belum pernah terbit apa-apa (tempoh bertenang, bukan terus dikira tak aktif dari
+// hari pertama). Tiga tahap (nombor tepat daripada Izzat): hari ke-7 amaran pertama, hari ke-14
+// amaran kedua, hari ke-21 notis penamatan + akaun DIGANTUNG automatik (status='Tidak Aktif').
+// "Ditamatkan" (rekod pemecatan rasmi) KEKAL keputusan Pentadbir — sistem TIDAK menamatkan
+// terus, cuma menggantung (lihat DirektoriConsole.tsx, butang "Ditamatkan" sedia ada).
+// `amaranTakAktifTahap` (0-3) elak e-mel sama dihantar berulang setiap kali tik berjalan,
+// direset ke 0 automatik bila editor terbit semula (lihat contentRoutes.js).
+const HARI_MS = 24 * 60 * 60 * 1000;
+const AMBANG_TAK_AKTIF = { amaranPertama: 7 * HARI_MS, amaranKedua: 14 * HARI_MS, notisPenamatan: 21 * HARI_MS };
+const PERANAN_TERPAKAI_DASAR_AKTIF = ['editor', 'ketua_editor', 'penolong_ketua_editor'];
+
+const emelAmaranTakAktif = (namaPena, hariTakAktif, tahap) => {
+  const tajuk = tahap === 3
+    ? 'Notis Penamatan — Akaun Adjung Brief Anda Digantung'
+    : `Amaran Tidak Aktif (Hari ke-${hariTakAktif >= 14 ? 14 : 7}) — Adjung Brief`;
+  const mesejUtama = tahap === 3
+    ? `Akaun anda kini <strong>digantung automatik</strong> (status "Tidak Aktif") kerana tiada kandungan diterbitkan sejak ${hariTakAktif} hari. Log masuk telah disekat. Sidang Pentadbir/Ketua Editor akan menyemak akaun ini untuk keputusan seterusnya (aktifkan semula atau tamatkan rasmi).`
+    : `Kami perhatikan akaun anda tiada kandungan diterbitkan sejak <strong>${hariTakAktif} hari</strong>. Sila terbitkan kandungan baharu tidak lama lagi untuk mengekalkan status akaun anda.`;
+  const amaranSeterusnya = tahap === 1
+    ? '<p>Jika tiada kandungan diterbitkan sehingga hari ke-14, satu lagi amaran akan dihantar. Tiada kandungan sehingga hari ke-21, akaun akan digantung automatik.</p>'
+    : tahap === 2
+      ? '<p>Jika tiada kandungan diterbitkan sehingga hari ke-21, akaun akan digantung automatik.</p>'
+      : '';
+  const html = `
+    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+      <h2 style="color: #802334;">Adjung Brief</h2>
+      <p>Salam ${namaPena || 'Editor'},</p>
+      <p>${mesejUtama}</p>
+      ${amaranSeterusnya}
+      <p style="color: #78716c; font-size: 12px; margin-top: 24px;">E-mel automatik daripada sistem Adjung Brief — dasar aktif editorial.</p>
+    </div>
+  `;
+  return { tajuk, html };
+};
+
+const runSemakanTakAktif = async (dbAll, dbRun) => {
+  const now = Date.now();
+  const placeholders = PERANAN_TERPAKAI_DASAR_AKTIF.map(() => '?').join(',');
+  const rows = await dbAll(`
+    SELECT DISTINCT u.id, u.penName, u.email, u.createdAt, u.lastPublishedAt, u.amaranTakAktifTahap
+    FROM users u
+    INNER JOIN user_roles ur ON ur.userId = u.id AND ur.roleId IN (${placeholders})
+    WHERE u.status = 'Aktif'
+  `, PERANAN_TERPAKAI_DASAR_AKTIF);
+
+  for (const u of rows || []) {
+    const basis = u.lastPublishedAt ? new Date(u.lastPublishedAt).getTime() : new Date(u.createdAt).getTime();
+    if (!basis || Number.isNaN(basis)) continue;
+    const takAktifMs = now - basis;
+    const tahapSemasa = u.amaranTakAktifTahap || 0;
+    let tahapBaharu = null;
+    if (takAktifMs >= AMBANG_TAK_AKTIF.notisPenamatan && tahapSemasa < 3) tahapBaharu = 3;
+    else if (takAktifMs >= AMBANG_TAK_AKTIF.amaranKedua && tahapSemasa < 2) tahapBaharu = 2;
+    else if (takAktifMs >= AMBANG_TAK_AKTIF.amaranPertama && tahapSemasa < 1) tahapBaharu = 1;
+    if (tahapBaharu === null) continue;
+
+    const hariTakAktif = Math.floor(takAktifMs / HARI_MS);
+    const { tajuk, html } = emelAmaranTakAktif(u.penName, hariTakAktif, tahapBaharu);
+    if (u.email) {
+      await hantarEmel({ to: u.email, subject: tajuk, html }).catch((e) => console.error('[Semakan Tak Aktif] Gagal hantar emel:', e.message));
+    }
+
+    if (tahapBaharu === 3) {
+      await dbRun("UPDATE users SET status = 'Tidak Aktif', isSuspended = 1, amaranTakAktifTahap = 3, updatedAt = ? WHERE id = ?", [new Date().toISOString(), u.id]);
+      await logAudit(dbRun, {
+        actorId: null, actorName: 'Sistem (Dasar Aktif)',
+        action: 'akaun-digantung-tak-aktif', targetType: 'akaun', targetId: u.id,
+        detail: `${u.penName || u.id}: tiada kandungan diterbitkan sejak ${hariTakAktif} hari — digantung automatik.`,
+      });
+      await notify(dbRun, {
+        userId: u.id, type: 'sistem_akaun_digantung',
+        title: 'Akaun anda digantung automatik (tidak aktif)',
+        detail: `Tiada kandungan diterbitkan sejak ${hariTakAktif} hari.`,
+        targetType: 'akaun', targetId: u.id,
+      });
+      const pentadbirRows = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
+      await notifyMany(dbRun, (pentadbirRows || []).map((r) => r.userId), {
+        type: 'sistem_akaun_digantung',
+        title: `${u.penName || u.id}: akaun digantung automatik (tak aktif ${hariTakAktif} hari)`,
+        detail: 'Semak Direktori untuk keputusan seterusnya (aktifkan semula atau Ditamatkan).',
+        targetType: 'akaun', targetId: u.id,
+      });
+    } else {
+      await dbRun("UPDATE users SET amaranTakAktifTahap = ? WHERE id = ?", [tahapBaharu, u.id]);
+      await notify(dbRun, {
+        userId: u.id, type: 'sistem_amaran_tak_aktif',
+        title: tajuk,
+        detail: `Tiada kandungan diterbitkan sejak ${hariTakAktif} hari.`,
+        targetType: 'akaun', targetId: u.id,
+      });
+    }
+  }
+};
+
 // Start Express Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
@@ -3168,4 +3287,13 @@ app.listen(PORT, '0.0.0.0', () => {
   };
   setInterval(runScheduledBackup, BACKUP_INTERVAL_MS);
   console.log(`Backup automatik adjung.db aktif (sekali setiap ${BACKUP_INTERVAL_MS / 3600000} jam, simpan ${BACKUP_RETENTION_COUNT} salinan terkini).`);
+
+  // Dasar aktif editorial — Semakan Tak Aktif (2026-08-05, permintaan Izzat). Sama corak macam
+  // penjadual lain di sini: setInterval dibalut cuba/tangkap penuh, kegagalan TIDAK sekali-kali
+  // rebahkan server. Sekali sehari cukup — ambang dikira dalam HARI, bukan jam/minit.
+  const SEMAKAN_TAK_AKTIF_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  setInterval(() => {
+    runSemakanTakAktif(dbAll, dbRun).catch((err) => console.error('[Semakan Tak Aktif] Ralat:', err.message));
+  }, SEMAKAN_TAK_AKTIF_INTERVAL_MS);
+  console.log(`Semakan tak aktif editorial aktif (sekali setiap ${SEMAKAN_TAK_AKTIF_INTERVAL_MS / 3600000} jam — amaran hari-7/hari-14, gantung automatik hari-21).`);
 });

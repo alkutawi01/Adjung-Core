@@ -61,6 +61,9 @@ const IKON_JENIS: Record<string, React.ReactNode> = {
   sistem_kata_laluan_ditukar: <KeyRound className="w-2.5 h-2.5" />,
   sistem_akaun_digantung: <UserCog className="w-2.5 h-2.5" />,
   sistem_akaun_diaktifkan: <UserCog className="w-2.5 h-2.5" />,
+  // Dasar aktif editorial (2026-08-05) — amaran hari-7/hari-14 sebelum akaun digantung
+  // automatik hari-21 (lihat runSemakanTakAktif, server.js).
+  sistem_amaran_tak_aktif: <AlertTriangle className="w-2.5 h-2.5" />,
   // Fasa "Peti Makluman menyeluruh" (2026-08-05, permintaan pemilik projek — "setiap ralat/
   // perkara penting patut sampai Peti Makluman").
   sistem_ralat_pelayan: <AlertTriangle className="w-2.5 h-2.5" />,
@@ -78,6 +81,7 @@ const LABEL_JENIS: Record<string, string> = {
   sistem_kata_laluan_ditukar: 'Sistem — Akaun',
   sistem_akaun_digantung: 'Sistem — Akaun',
   sistem_akaun_diaktifkan: 'Sistem — Akaun',
+  sistem_amaran_tak_aktif: 'Sistem — Dasar Aktif',
   sistem_ralat_pelayan: 'Sistem — Ralat Pelayan',
   sistem_pautan_mati: 'Sistem — Pautan Mati',
 };

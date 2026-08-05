@@ -15,7 +15,26 @@ interface ProfilEditor {
   penName: string;
   username: string;
   email: string;
+  namaPenuh?: string;
+  kelulusanKursus?: string;
+  kelulusanUniversiti?: string;
+  kelulusanTahun?: string;
+  negeriMenetap?: string;
+  nomborTelefon?: string;
 }
+
+// Butiran profil wajib (2026-08-05, permintaan Izzat) — diisi kali pertama di
+// LengkapkanProfilModal.tsx (gerbang log masuk pertama), boleh disunting semula di sini bila-
+// bila masa. Tiada pengesahan kata laluan diperlukan (bukan medan sensitif keselamatan,
+// berbeza drpd username/emel/kata laluan di bawah).
+const MEDAN_BUTIRAN_PROFIL: { kunci: keyof ProfilEditor; label: string }[] = [
+  { kunci: 'namaPenuh', label: 'Nama Penuh' },
+  { kunci: 'kelulusanKursus', label: 'Kelulusan — Nama Kursus' },
+  { kunci: 'kelulusanUniversiti', label: 'Kelulusan — Universiti' },
+  { kunci: 'kelulusanTahun', label: 'Kelulusan — Tahun Graduasi' },
+  { kunci: 'negeriMenetap', label: 'Negeri Menetap' },
+  { kunci: 'nomborTelefon', label: 'Nombor Telefon' },
+];
 
 interface ProfilEditorModalProps {
   profil: ProfilEditor;
@@ -146,6 +165,9 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
   const [penName, setPenName] = useState(profil.penName || '');
   const [username, setUsername] = useState(profil.username || '');
   const [email, setEmail] = useState(profil.email || '');
+  const [butiran, setButiran] = useState<Record<string, string>>(
+    Object.fromEntries(MEDAN_BUTIRAN_PROFIL.map((m) => [m.kunci, profil[m.kunci] || '']))
+  );
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState('');
   const [mesej, setMesej] = useState('');
@@ -158,11 +180,11 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
       const res = await fetch(`/api/system/profile/${profil.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ penName }),
+        body: JSON.stringify({ penName, ...butiran }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan profil.');
-      onKemasKini({ penName });
+      onKemasKini({ penName, ...butiran });
       setMesej(labelUi('toast.profil_disimpan'));
       setTimeout(() => setMesej(''), 2000);
     } catch (err: any) {
@@ -197,6 +219,23 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
               className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
             />
           </label>
+
+          {/* Butiran profil wajib (2026-08-05) — diisi kali pertama semasa log masuk pertama
+              (LengkapkanProfilModal.tsx), boleh dikemas kini di sini bila-bila masa. */}
+          <div className="border-t border-stone-200 pt-3 space-y-2">
+            <p className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">Butiran Profil</p>
+            {MEDAN_BUTIRAN_PROFIL.map((m) => (
+              <label key={m.kunci} className="flex flex-col gap-1">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500">{m.label}</span>
+                <input
+                  type="text"
+                  value={butiran[m.kunci] || ''}
+                  onChange={(e) => setButiran((p) => ({ ...p, [m.kunci]: e.target.value }))}
+                  className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+                />
+              </label>
+            ))}
+          </div>
 
           {ralat && (
             <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>

@@ -530,6 +530,29 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
             targetType: 'kandungan',
             targetId: id,
           });
+
+          // Dasar aktif editorial (2026-08-05, permintaan Izzat) — "aktif" ditakrif KANDUNGAN
+          // DITERBITKAN, bukan log masuk sahaja. Kemas kini `users.lastPublishedAt` bagi PENULIS
+          // asal (attrs.editorName, bukan sesiapa yang klik butang — Ketua Editor selalunya yang
+          // luluskan kandungan ORANG LAIN, bukan kandungan dia sendiri), reset
+          // `amaranTakAktifTahap` ke 0 supaya kitaran amaran hari-7/14/21 (runSemakanTakAktif,
+          // server.js) bermula semula bersih. Gagal senyap (console.warn) — kegagalan ni tak
+          // patut gagalkan terbitan sebenar.
+          try {
+            const editorNameRow = await dbGet(
+              "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'editorName'",
+              [id, liveRevId]
+            );
+            const editorName = ((editorNameRow && editorNameRow.valueText) || '').trim();
+            if (editorName) {
+              await dbRun(
+                "UPDATE users SET lastPublishedAt = ?, amaranTakAktifTahap = 0 WHERE LOWER(TRIM(penName)) = LOWER(?)",
+                [nowIso, editorName]
+              );
+            }
+          } catch (e) {
+            console.warn('Gagal kemas kini lastPublishedAt (dasar aktif):', e.message);
+          }
         }
       }
 
