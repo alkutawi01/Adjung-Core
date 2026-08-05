@@ -87,6 +87,17 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   const [pengguna, setPengguna] = useState<Pengguna[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Status Aktif/Menunggu per-slot (2026-08-06, permintaan Izzat: "editor tahu status setiap
+  // slot dan bersedia tambah kandungan supaya setiap slot sentiasa mempunyai kandungan baharu")
+  // — dahulu lajur "Kandungan Aktif" gabungkan Aktif+Menunggu jadi SATU angka, tak boleh diklik,
+  // tiada senarai/tarikh. Dibina drpd GET /api/system/content/all (sumber SAMA yang Indeks
+  // guna) — bukan endpoint baharu, kiraan/senarai dibina client-side drpd data yang sama.
+  interface KandunganRingkas { id: string; tajuk: string; scheduledPublishAt: string | null; scheduledExpiresAt: string | null }
+  const [aktifPerSlot, setAktifPerSlot] = useState<Record<number, KandunganRingkas[]>>({});
+  const [menungguPerSlot, setMenungguPerSlot] = useState<Record<number, KandunganRingkas[]>>({});
+  // Panel senarai terbuka (klik angka Aktif/Menunggu) — satu pada satu masa.
+  const [panelSenarai, setPanelSenarai] = useState<{ slotIndex: number; jenis: 'aktif' | 'menunggu' } | null>(null);
+
   // Penyuntingan editor: satu slot pada satu masa, disimpan sebagai senarai penuh (bukan
   // tambah/buang satu-satu) supaya tiada keadaan separuh siap.
   const [slotDisunting, setSlotDisunting] = useState<number | null>(null);
@@ -170,8 +181,9 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
       fetch('/api/system/tier-settings').then(r => r.json()).catch(() => []),
       fetch('/api/db-state').then(r => r.json()).catch(() => ({})),
       muatPenugasan(),
+      fetch('/api/system/content/all').then(r => r.json()).catch(() => []),
     ])
-      .then(([slotRows, bidangRows, usageRows, tierRows, dbState]) => {
+      .then(([slotRows, bidangRows, usageRows, tierRows, dbState, , semuaKandungan]) => {
         if (Array.isArray(slotRows)) setSlots(slotRows);
         if (Array.isArray(bidangRows)) setBidangList(bidangRows);
         if (Array.isArray(usageRows)) setUsage(usageRows);
@@ -181,9 +193,34 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
           }])));
         }
         if (Array.isArray(dbState?.users)) setPengguna(dbState.users.filter((u: Pengguna) => !u.isSuspended));
+        // GET /api/system/content/all pulangkan { items, count } — bukan array terus.
+        const senaraiKandungan = Array.isArray(semuaKandungan?.items) ? semuaKandungan.items : [];
+        if (senaraiKandungan.length > 0) {
+          const aktif: Record<number, KandunganRingkas[]> = {};
+          const menunggu: Record<number, KandunganRingkas[]> = {};
+          for (const r of senaraiKandungan) {
+            if (r.status !== 'approved' && r.status !== 'pending') continue;
+            const ringkas: KandunganRingkas = {
+              id: r.id, tajuk: r.title || '(tiada tajuk)',
+              scheduledPublishAt: r.scheduledPublishAt || null,
+              scheduledExpiresAt: r.scheduledExpiresAt || null,
+            };
+            const kunci = r.status === 'approved' ? aktif : menunggu;
+            (kunci[r.slotIndex] = kunci[r.slotIndex] || []).push(ringkas);
+          }
+          setAktifPerSlot(aktif);
+          setMenungguPerSlot(menunggu);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
+
+  const formatTarikhMasa = (iso: string | null) => {
+    if (!iso) return null;
+    try {
+      return new Date(iso).toLocaleString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return null; }
+  };
 
   const editorBagiSlot = (slotIndex: number) => penugasan.filter(p => p.slotIndex === slotIndex);
 
@@ -217,9 +254,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   const bidangFor = (nama: string) =>
     bidangList.find(b => b.name.toLowerCase() === (nama || '').trim().toLowerCase());
 
-  const jumlahKandungan = SLOT_INDEXES.reduce(
-    (n, i) => n + (usage.find(u => u.slotIndex === i)?.liveCount || 0), 0
-  );
+  // Dikira drpd aktifPerSlot/menungguPerSlot (sumber SAMA yang lajur Aktif/Menunggu guna) —
+  // bukan `usage.liveCount` (yang gabungkan kedua-dua status jadi satu angka) supaya ringkasan
+  // atas dan jadual bawah sentiasa sepadan, tak pernah berselisih.
+  const jumlahAktif = SLOT_INDEXES.reduce((n, i) => n + (aktifPerSlot[i]?.length || 0), 0);
+  const jumlahMenunggu = SLOT_INDEXES.reduce((n, i) => n + (menungguPerSlot[i]?.length || 0), 0);
 
   return (
     <div className="space-y-4 font-sans">
@@ -231,7 +270,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
             </h3>
             <p className="text-stone-500 text-xs">
               {SLOT_INDEXES.length} slot bento — tidak termasuk Ticker dan tier <em>Bar</em>, yang diuruskan di Modul Khas.
-              Jumlah {jumlahKandungan} kandungan aktif.
+              Jumlah {jumlahAktif} kandungan aktif, {jumlahMenunggu} menunggu kelulusan.
             </p>
           </div>
         </div>
@@ -253,7 +292,8 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                       SENTIASA papar selang/lengah putaran carousel, bukan jenis animasi (tetapan
                       jenis animasi itu global, di Tetapan Am Slot, bukan per-slot). */}
                   <th className="p-2.5">Carousel</th>
-                  <th className="p-2.5 text-right">Kandungan Aktif</th>
+                  <th className="p-2.5 text-right">Aktif</th>
+                  <th className="p-2.5 text-right">Menunggu</th>
                   <th className="p-2.5">Editor</th>
                   {currentEditoriumRole === 'KETUA_EDITOR' && <th className="p-2.5">Tetapan Kad</th>}
                 </tr>
@@ -308,7 +348,35 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                           <span className="text-stone-400">—</span>
                         )}
                       </td>
-                      <td className="p-2.5 text-right font-mono font-bold text-stone-800">{live}</td>
+                      {/* Aktif/Menunggu (2026-08-06) — dahulu SATU angka gabungan tak boleh diklik.
+                          Klik buka panel senarai tajuk + tarikh jadual (kalau ada) — supaya editor
+                          nampak status setiap slot dan bersedia tambah kandungan baharu. */}
+                      <td className="p-2.5 text-right">
+                        {(aktifPerSlot[i]?.length || 0) > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => setPanelSenarai({ slotIndex: i, jenis: 'aktif' })}
+                            className="font-mono font-bold text-emerald-800 hover:underline cursor-pointer"
+                          >
+                            {aktifPerSlot[i].length}
+                          </button>
+                        ) : (
+                          <span className="font-mono font-bold text-stone-300">0</span>
+                        )}
+                      </td>
+                      <td className="p-2.5 text-right">
+                        {(menungguPerSlot[i]?.length || 0) > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => setPanelSenarai({ slotIndex: i, jenis: 'menunggu' })}
+                            className="font-mono font-bold text-amber-700 hover:underline cursor-pointer"
+                          >
+                            {menungguPerSlot[i].length}
+                          </button>
+                        ) : (
+                          <span className="font-mono font-bold text-stone-300">0</span>
+                        )}
+                      </td>
                       {/* Penugasan editor (2026-08-05, audit) — boleh DIUBAH hanya oleh peranan
                           berkunci `assignSlot` (Ketua Editor/Penolong). Editor biasa tetap NAMPAK
                           siapa ditugaskan (maklumat berguna, bukan rahsia) tapi sebagai teks
@@ -554,6 +622,40 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
               >
                 {menyimpanTetapan ? 'Menyimpan...' : 'Simpan'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Panel senarai Aktif/Menunggu (2026-08-06) — klik angka di jadual buka ni. Tarikh jadual
+          (scheduledExpiresAt/scheduledPublishAt) cuma wujud kalau Ketua Editor/Penolong sengaja
+          tetapkan Jadual Terbit/Luput (Fasa 8, pilihan — bukan wajib); kandungan tanpa jadual
+          papar label jujur "Tiada jadual (manual)", bukan tarikh rekaan. */}
+      {panelSenarai && (
+        <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setPanelSenarai(null)}>
+          <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full max-h-[80vh] overflow-y-auto p-6 space-y-3 text-xs font-sans">
+            <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase tracking-wider">
+                Slot {panelSenarai.slotIndex + 1} — {panelSenarai.jenis === 'aktif' ? 'Kandungan Aktif' : 'Kandungan Menunggu'}
+              </h3>
+              <button type="button" onClick={() => setPanelSenarai(null)} className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+            </div>
+            <div className="divide-y divide-stone-100">
+              {(panelSenarai.jenis === 'aktif' ? aktifPerSlot[panelSenarai.slotIndex] : menungguPerSlot[panelSenarai.slotIndex] || [])?.map((k) => {
+                const tarikh = panelSenarai.jenis === 'aktif' ? formatTarikhMasa(k.scheduledExpiresAt) : formatTarikhMasa(k.scheduledPublishAt);
+                return (
+                  <div key={k.id} className="py-2.5">
+                    <p className="font-serif text-stone-800 font-semibold">{k.tajuk}</p>
+                    <p className="text-[10px] text-stone-500 mt-0.5">
+                      {panelSenarai.jenis === 'aktif' ? (
+                        tarikh ? <>Akan terarkib: <span className="font-semibold text-stone-700">{tarikh}</span></> : 'Tiada jadual (kekal aktif sehingga digantikan manual)'
+                      ) : (
+                        tarikh ? <>Akan aktif: <span className="font-semibold text-stone-700">{tarikh}</span></> : 'Menunggu kelulusan Ketua Editor/Penolong (tiada jadual)'
+                      )}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
