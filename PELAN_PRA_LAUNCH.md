@@ -227,9 +227,15 @@ test` 84/84, `tsc` bersih. Semua data ujian dibersihkan selepas.
       bermakna (status kandungan, akaun, Bidang, Nota, RSS, ralat pelayan). Mutasi lain
       (cth `POST /content` penuh, tetapan sistem am, tier/slot-am) TIDAK direkod — boleh
       ditambah kemudian kalau perlu, bukan halangan launch
-- [ ] Log Sistem tiada gerbang peranan khusus (mana-mana editor log masuk boleh baca
-      jejak SEMUA orang) — sama seperti Panduan/Dokumentasi (destinasi rujukan terbuka).
-      Keputusan reka bentuk kalau nak dikhususkan Pentadbir/Ketua Editor sahaja kemudian
+- [x] Log Sistem gerbang peranan — SIAP 2026-08-05. Dahulu `requireAuth` sahaja (mana-mana
+      editor log masuk boleh baca jejak SEMUA orang). KEPUTUSAN Izzat: kunci kebenaran
+      BAHARU `viewAuditLog`, lalai Pentadbir + Ketua Editor + Penolong Ketua Editor, Editor
+      biasa TIDAK. Kunci digabung automatik ke matriks tersimpan sedia ada (logik
+      gabung-KUNCI `parseStoredMatrix`/`TetapanConsole` yang dibina Fasa 3 — tiada migrasi
+      DB perlu), boleh diubah di Tetapan → Kawalan Akses. Nav sidebar + render Editorium
+      turut disekat (bayang client) supaya Editor tak jumpa skrin ralat 403 mentah.
+      Disahkan hidup dgn akaun ujian sekali pakai: tanpa sesi 401 · Editor 403 · Ketua
+      Editor 200 · Penolong 200; lajur checkbox baharu papar betul. Data ujian dibersihkan.
 
 ### [x] Fasa 5 — Paparan Utama (dashboard) · SIAP 2026-08-02 (commit `fec841c`)
 - [x] Status kandungan · draf saya · makluman terbaru · slot kosong/bermasalah
@@ -499,9 +505,9 @@ SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
       Diuji: url-kod API, laluan bot (curl -A Googlebot, HTML meta lengkap), UA manusia
       + kod tak sah kedua-duanya jatuh ke SPA, sitemap/rss URL sebenar, pautan mendalam
       buka kandungan tepat di pelayar sebenar.
-      **Belum disambung** (peningkatan berasingan, bukan penghalang): meta URL kanonikal
-      untuk kandungan dibuka SECARA INTERAKTIF (klik kad terus, bukan pautan dikongsi)
-      masih guna `window.location.href` — perlukan `objectId` disalur ke FocusView.tsx.
+      ~~Belum disambung: meta URL kanonikal untuk kandungan dibuka SECARA INTERAKTIF~~ —
+      SIAP semasa Fasa 11 (2026-08-05): `objectId` kini disalur ke `FocusView.tsx`,
+      `terapFocusSeo()` guna URL kod-pendek sebenar walaupun kandungan dibuka dgn klik kad.
 
 ### [x] Fasa 10 — Suapan RSS keluar · `S` · ~1 hari
 - [x] `GET /rss.xml` — suapan RSS 2.0 standard (core/routes/rssFeedRoutes.js), kandungan
@@ -558,11 +564,13 @@ lama+semasa, bulan terbaru dahulu) — bukan terus ke laman penaja masing-masing
 - [x] `HalamanPenaja.tsx` (`/penaja`, awam) — senarai dikumpul ikut bulan, terbaru dahulu.
 - [x] Footer (`FrontpageView.tsx`) — baris "Portal ini disokong oleh:" di bawah logo,
       HANYA dipapar bila ada penaja bulan semasa (keadaan kosong jujur, disorok terus).
-- [x] **Togol "Papar semasa transisi carousel"** — keputusan Izzat: bina tetapan/wiring
-      SAHAJA pusingan ni (medan DB + togol borang), overlay transisi carousel SEBENAR
-      (Colophon/Sapuan Lajur, Fasa 7) BELUM disambungkan — JSX carousel rapuh, perlukan
-      pengesahan reka bentuk/kelakuan berasingan sebelum disentuh. Togol ni belum beri
-      sebarang kesan visual pada masa ini.
+- [x] **Togol "Papar semasa transisi carousel"** — DISAMBUNG PENUH 2026-08-05 (dahulu
+      tetapan/wiring sahaja, tiada kesan visual). Panel transisi kini papar wordmark Adjung
+      sendiri secara lalai, bergilir dengan logo penaja SEBENAR (penaja bertanda
+      `tayangSemasaTransisi`, bulan semasa) ikut nisbah Adjung:penaja boleh laras (Tetapan
+      Am Slot 3b: 0=Adjung sahaja / 1:1 / 1:2 / 1:3). Berbilang penaja berputar round-robin;
+      tiada penaja layak = jatuh balik logo Adjung, panel tak pernah kosong. Logo penaja
+      TUNGGAL manual lama (Fasa 7) digugurkan — digantikan giliran automatik ni.
       Disahkan hidup (akaun ujian Pentadbir sekali pakai): cipta penaja → footer & /penaja
       papar betul kedua-duanya, arkib → hilang serta-merta drpd kedua-dua laluan awam.
       `npx tsc --noEmit` bersih, `npm run build` lulus, `npm test` 123/123.
@@ -779,6 +787,51 @@ launch, boleh dibuat bila-bila selepas fasa teras siap.
       Disahkan hidup di pelayar (fetch API dilengahkan buatan untuk pancing keadaan loading):
       rangka pulsa Papan Pemuka papar betul. `npx tsc --noEmit` bersih, `npm run build` lulus,
       `npm test` 123/123.
+
+### [x] Fasa 19 — Animasi transisi boleh laras & penghalusan awam · ditambah 2026-08-05
+Gelombang permintaan Izzat selepas Fasa 18. Menyelesaikan item KIV lama "Jenis animasi
+transisi perlukan skema tetapan per-jenis" (Fasa 7/18) — kini ada skema sebenar.
+- [x] **Colophon jadi lalai** (dahulu 'pudar') — diselaraskan di SEMUA tapak fallback
+      (skema DB, cache server, muat-semula, konteks client), nilai `adjung.db` sedia ada
+      turut dikemas kini (backup diambil dahulu).
+- [x] **Arah animasi boleh ditetapkan** — kanan/kiri/atas/bawah (Tetapan Am Slot 3a).
+      Satu `@keyframes` guna pembolehubah CSS (`--transisi-masuk`/`--transisi-keluar`)
+      gantikan dua @keyframes tetap. Sapuan Lajur guna arah BERTENTANGAN automatik supaya
+      dua jenis animasi kekal kelihatan berbeza.
+- [x] **Arah override PER-SLOT** — `slots_config.arahOverride` ('' = guna tetapan am),
+      senarai berasingan 38 slot di Tetapan Am Slot 3e (keputusan Izzat: senarai berasingan,
+      bukan dalam Urus Slot). `CarouselStableBlock` baca via atribut DOM `data-slot` — bukan
+      prop baharu merentasi 30 tapak panggilan (struktur JSX carousel sengaja tak disentuh).
+- [x] **Logo Adjung dalam panel + tahan 0.5s di tengah** — lihat Fasa 12 di atas untuk
+      giliran logo. Panel kini TAHAN tertutup penuh 500ms sebelum sambung keluar (dahulu
+      terus lalu); @keyframes dipecah kepada dua genap `translate(0,0)`, pemasaan JS
+      diselaraskan. Disahkan hidup: transform kekal `(0,0)` sepanjang ~400–900ms.
+- [x] **Focus View: teks boleh disalin** — pepijat sedia ada sejak Focus View dibina:
+      bekas induk halaman (`FrontpageView.tsx`) kunci `select-none` (elak teks kad terpilih
+      semasa klik/leret carousel), Focus View dilahirkan BERSARANG dalam pokok DOM yang sama
+      (bukan Portal) jadi mewarisi sekatan tu walhal ia permukaan BACAAN. Ditulis-ganti
+      eksplisit di kedua-dua bekas akar (telefon & desktop).
+- [x] **Kotak carian direka semula** — ikon sahaja, slide buka bila diklik (dahulu kotak
+      tetap makan ruang masthead). Tutup (Esc/klik luar/pilih hasil) reset penuh query+hasil.
+- [x] **Footer**: dua kolum di tablet/telefon (logo merentasi penuh, Institusi & Maklumat
+      bersebelahan); nama syarikat **Adjung Corporation → Adjung Press**.
+- [x] **LoadingScreen** ikut nisbah lockup jenama rasmi; label ticker "BERITA SEMASA" dua
+      baris + rata kanan di telefon SAHAJA (`sm:`, bukan `md:` — tablet dikecualikan).
+
+---
+
+## Belum siap (bukan penghalang launch) — audit 2026-08-05
+
+Disahkan terhadap kod semasa, bukan sekadar baca pelan:
+1. **Audit log tak menyeluruh** — `POST /api/system/content`, tetapan sistem, tier settings,
+   slot-am settings tiada `logAudit()`. (Fasa 4, sedia dicatat.)
+2. **`SenaraiSlotConsole.tsx` guna peranan binari lama** — `:382` papar KETUA_EDITOR/EDITOR
+   sahaja; gerbang UI `:244`/`:314` pun binari (`role ===`) sedangkan seluruh app dah guna
+   `roles[]` 4-peranan. **Lebih berat drpd catatan asal "kosmetik sahaja"** — Pentadbir/
+   Penolong berkemungkinan tersekat salah di skrin ni.
+3. **`stripLocationDateline` diduplikasi** — `core/sources/SourceSanitizer.js:84` +
+   `core/sources/EditorialTextNormalizer.js:37`, logik identik (cuma nama parameter beza).
+4. **Carta organisasi** — belum dibina (pelan sendiri tanda bukan keutamaan).
 
 ---
 
