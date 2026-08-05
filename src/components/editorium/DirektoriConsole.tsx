@@ -47,6 +47,13 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [tambahTerbuka, setTambahTerbuka] = useState(false);
   const [mesejBerjaya, setMesejBerjaya] = useState('');
+  // Pengesahan "Ditamatkan" (2026-08-05, permintaan Izzat: "adakah kandungan yg berstatus
+  // menunggu dan draf masih ada? saya rasa yg arkib sahaja dikekalkan") — tukar status ke
+  // Ditamatkan dahulu papar kiraan Draf+Menunggu kepunyaan akaun tu, Pentadbir kena tekan pilihan
+  // eksplisit (bukan padam automatik senyap). Kandungan approved/archived TIDAK disentuh.
+  const [konfirmasiTamat, setKonfirmasiTamat] = useState<{ staff: Staff; draf: any[]; menunggu: any[] } | null>(null);
+  const [memuatKonfirmasi, setMemuatKonfirmasi] = useState(false);
+  const [memproses, setMemproses] = useState(false);
 
   const muatSemula = () => {
     setMemuat(true);
@@ -77,6 +84,51 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       setStaffList(prev => prev.map(s => s.id === staff.id ? updated : s));
     } catch {
       alert('Gagal mengemas kini status.');
+    }
+  };
+
+  // "Ditamatkan" dipintas (bukan terus ubahStatus) — semak dulu Draf+Menunggu kepunyaannya
+  // supaya Pentadbir buat keputusan termaklum, bukan terkejut kandungan hilang/tertinggal senyap.
+  const klikTamatkan = async (staff: Staff) => {
+    setMemuatKonfirmasi(true);
+    try {
+      const res = await fetch(`/api/system/users/${staff.id}/kandungan-belum-terbit`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menyemak kandungan.');
+      setKonfirmasiTamat({ staff, draf: data.draf || [], menunggu: data.menunggu || [] });
+    } catch (e: any) {
+      alert(e.message || 'Gagal menyemak kandungan belum terbit.');
+    } finally {
+      setMemuatKonfirmasi(false);
+    }
+  };
+
+  const tamatkanSahaja = async () => {
+    if (!konfirmasiTamat) return;
+    setMemproses(true);
+    try {
+      await ubahStatus(konfirmasiTamat.staff, 'Ditamatkan');
+      setKonfirmasiTamat(null);
+      setMesejBerjaya('Akaun ditamatkan. Draf/Menunggu kepunyaannya dikekalkan.');
+    } finally {
+      setMemproses(false);
+    }
+  };
+
+  const tamatkanDanPadam = async () => {
+    if (!konfirmasiTamat) return;
+    setMemproses(true);
+    try {
+      await ubahStatus(konfirmasiTamat.staff, 'Ditamatkan');
+      const res = await fetch(`/api/system/users/${konfirmasiTamat.staff.id}/kandungan-belum-terbit/padam`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal memadam kandungan.');
+      setKonfirmasiTamat(null);
+      setMesejBerjaya(`Akaun ditamatkan. ${data.drafDipadam} draf dan ${data.menungguDipadam} kandungan menunggu dipadam.`);
+    } catch (e: any) {
+      alert(e.message || 'Gagal memadam kandungan belum terbit.');
+    } finally {
+      setMemproses(false);
     }
   };
 
@@ -260,11 +312,11 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                   {STATUS_SAH.map(s => (
                     <button
                       key={s}
-                      onClick={() => ubahStatus(selectedStaff, s)}
-                      disabled={selectedStaff.status === s}
+                      onClick={() => s === 'Ditamatkan' ? klikTamatkan(selectedStaff) : ubahStatus(selectedStaff, s)}
+                      disabled={selectedStaff.status === s || (s === 'Ditamatkan' && memuatKonfirmasi)}
                       className="inline-flex items-center gap-1.5 bg-stone-700 hover:bg-stone-900 disabled:opacity-40 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-md font-semibold text-xs transition-colors cursor-pointer"
                     >
-                      {s}
+                      {s === 'Ditamatkan' && memuatKonfirmasi ? 'Menyemak…' : s}
                     </button>
                   ))}
                 </div>
@@ -290,6 +342,72 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
             setMesejBerjaya(`Akaun dicipta. E-mel jemputan telah dihantar ke ${emel} untuk tetapkan kata laluan.`);
           }}
         />
+      )}
+
+      {konfirmasiTamat && (
+        <div className="fixed inset-0 z-[70] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => !memproses && setKonfirmasiTamat(null)}>
+          <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs font-sans">
+            <h3 className="font-sans text-xs font-bold text-[#802334] uppercase tracking-wider border-b border-stone-200 pb-2">
+              Tamatkan {konfirmasiTamat.staff.penName || konfirmasiTamat.staff.username}?
+            </h3>
+
+            {(konfirmasiTamat.draf.length === 0 && konfirmasiTamat.menunggu.length === 0) ? (
+              <p className="text-stone-600 leading-relaxed">
+                Tiada draf atau kandungan menunggu kepunyaan akaun ni — selamat ditamatkan.
+              </p>
+            ) : (
+              <>
+                <p className="text-stone-600 leading-relaxed">
+                  Akaun ni ada <strong className="text-stone-900">{konfirmasiTamat.draf.length} draf</strong> dan{' '}
+                  <strong className="text-stone-900">{konfirmasiTamat.menunggu.length} kandungan menunggu</strong> yang
+                  belum pernah diterbitkan. Kandungan yang SUDAH diterbitkan (aktif/arkib) tidak terjejas — cuma
+                  yang belum terbit ni pilihan awak.
+                </p>
+                <div className="max-h-32 overflow-y-auto border border-stone-200 rounded divide-y divide-stone-100">
+                  {konfirmasiTamat.draf.map((d, i) => (
+                    <div key={`draf-${i}`} className="px-3 py-1.5 flex justify-between gap-2">
+                      <span className="text-stone-700 truncate">{d.tajuk}</span>
+                      <span className="text-stone-400 shrink-0">Draf · Slot {d.slotIndex + 1}</span>
+                    </div>
+                  ))}
+                  {konfirmasiTamat.menunggu.map((m, i) => (
+                    <div key={`menunggu-${i}`} className="px-3 py-1.5 flex justify-between gap-2">
+                      <span className="text-stone-700 truncate">{m.tajuk}</span>
+                      <span className="text-stone-400 shrink-0">Menunggu</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="flex flex-col gap-2 pt-2 border-t border-stone-200">
+              <button
+                type="button"
+                onClick={tamatkanDanPadam}
+                disabled={memproses}
+                className="bg-red-700 hover:bg-red-800 disabled:opacity-50 text-white px-3 py-2 rounded-md font-semibold text-xs cursor-pointer"
+              >
+                {memproses ? 'Memproses…' : 'Tamatkan + Padam draf/menunggu'}
+              </button>
+              <button
+                type="button"
+                onClick={tamatkanSahaja}
+                disabled={memproses}
+                className="bg-stone-700 hover:bg-stone-900 disabled:opacity-50 text-white px-3 py-2 rounded-md font-semibold text-xs cursor-pointer"
+              >
+                Tamatkan sahaja (kekalkan draf/menunggu)
+              </button>
+              <button
+                type="button"
+                onClick={() => setKonfirmasiTamat(null)}
+                disabled={memproses}
+                className="bg-stone-100 hover:bg-stone-200 disabled:opacity-50 text-stone-700 px-3 py-2 rounded-md font-semibold text-xs cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

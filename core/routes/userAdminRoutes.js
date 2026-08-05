@@ -6,6 +6,8 @@ import { logAudit } from '../audit/AuditLog.js';
 import { notify, notifyMany } from '../notifications/Notify.js';
 import { hantarEmel } from '../email/MailSender.js';
 import { janaTokenTamatTempoh } from '../auth/TokenLaluan.js';
+import { TIER_SLOTS } from '../editorial/GeometryConfig.js';
+import { MANUAL_BLOCK_SPLIT_REGEX, parseManualSummaryBlocks } from '../editorial/ManualBlockFormat.js';
 
 // Direktori (2026-08-02, Fasa 3) — dahulu `staffList` konsol client array kosong berkod keras,
 // "+ Tambah Anggota" hiasan, tindakan status hanya state React (hilang bila muat semula). Laluan
@@ -13,6 +15,58 @@ import { janaTokenTamatTempoh } from '../auth/TokenLaluan.js';
 // Pentadbir sepenuhnya (kebenaran `manageAccounts`) — lihat matriks di core/middleware/auth.js.
 const STATUS_SAH = ['Aktif', 'Cuti', 'Tidak Aktif', 'Ditamatkan'];
 const ROLE_IDS_SAH = ['pentadbir', 'ketua_editor', 'penolong_ketua_editor', 'editor'];
+const BAR_SLOTS = new Set(TIER_SLOTS.BAR);
+const samaNama = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
+
+// Draf/Menunggu tak diterbitkan kepunyaan seorang editor (2026-08-05, permintaan Izzat: "kalau
+// editor tu dah dibuang, adakah kandungan yg berstatus menunggu dan draf masih ada? saya rasa yg
+// arkib sahaja dikekalkan") — dipanggil oleh GET (kira/senarai sahaja) DAN POST (padam sebenar) di
+// bawah supaya logik pengesanan kekal SATU tempat, bukan disalin dua kali.
+//
+// Draf: blok teks "Status: draf" dalam slots_config.manualSummary (bukan baris DB — lihat
+// draftRoutes.js untuk penjelasan penuh corak ni), dikenal pasti drpd baris "Penulis:" sepadan
+// nama pena. Menunggu: baris editorial_objects SEBENAR dgn revisi TERKINI berstatus 'pending' dan
+// atribut editorName sepadan. Kandungan approved/archived (Arkib) — SENGAJA tidak disentuh
+// langsung di sini, itu rekod sejarah kekal.
+async function cariKandunganBelumTerbit(dbAll, penName) {
+  const draf = []; // { slotIndex, tajuk }
+  const menunggu = []; // { id, tajuk }
+  if (!penName) return { draf, menunggu };
+
+  const slots = await dbAll(
+    "SELECT slotIndex, manualSummary FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex >= 0"
+  );
+  for (const slot of slots || []) {
+    if (BAR_SLOTS.has(slot.slotIndex)) continue; // Bar belum sokong alur Draf/Terbit
+    const blok = parseManualSummaryBlocks(slot.manualSummary || '');
+    blok.forEach((b) => {
+      if (b.status === 'draft' && samaNama(b.penulis, penName)) {
+        draf.push({ slotIndex: slot.slotIndex, tajuk: b.title || '(tiada tajuk)' });
+      }
+    });
+  }
+
+  const rows = await dbAll(`
+    SELECT eo.id, er.title FROM editorial_objects eo
+    INNER JOIN (SELECT objectId, MAX(version) mv FROM editorial_revisions GROUP BY objectId) lv ON lv.objectId = eo.id
+    INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.version = lv.mv
+    INNER JOIN editorial_attribute_values eav ON eav.objectId = eo.id AND eav.revisionId = er.id AND eav.attributeId = 'editorName'
+    WHERE er.status = 'pending' AND eav.valueText = ?
+  `, [penName]);
+  for (const r of rows || []) menunggu.push({ id: r.id, tajuk: r.title || '(tiada tajuk)' });
+
+  return { draf, menunggu };
+}
+
+// Buang blok Draf sepadan drpd manualSummary SETIAP slot — split guna regex SAMA dengan
+// parseManualSummaryBlocks (diimport terus, bukan disalin semula) supaya raw-split dan
+// hasil-hurai SENTIASA sepadan indeks demi indeks (satu-satunya cara selamat "zip" dua array
+// tanpa parseManualBlockFields tunggal, yang tidak dieksport).
+const bahagikanBlokMentah = (manualSummary) => {
+  if (!manualSummary || (!manualSummary.includes('Tajuk:') && !manualSummary.includes('Event:'))) return [];
+  return manualSummary.split(MANUAL_BLOCK_SPLIT_REGEX).filter((b) => b.trim().length > 0);
+};
+const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n';
 
 export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
@@ -189,6 +243,87 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
     } catch (err) {
       console.error('PATCH user status error:', err);
       res.status(500).json({ error: 'Gagal mengemas kini status. ' + (err.message || '') });
+    }
+  });
+
+  // GET /api/system/users/:id/kandungan-belum-terbit — kiraan/senarai Draf+Menunggu kepunyaan
+  // akaun ni, untuk papar amaran SEBELUM Pentadbir sahkan "Ditamatkan" (bukan padam automatik
+  // senyap — keputusan Izzat: "tunjuk & minta pengesahan").
+  router.get('/users/:id/kandungan-belum-terbit', requirePermission('manageAccounts'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await dbGet('SELECT penName FROM users WHERE id = ?', [id]);
+      if (!user) return res.status(404).json({ error: 'Akaun tidak dijumpai.' });
+      const { draf, menunggu } = await cariKandunganBelumTerbit(dbAll, (user.penName || '').trim());
+      res.json({ draf, menunggu });
+    } catch (err) {
+      console.error('GET kandungan-belum-terbit error:', err);
+      res.status(500).json({ error: 'Gagal mengira kandungan belum terbit. ' + (err.message || '') });
+    }
+  });
+
+  // POST /api/system/users/:id/kandungan-belum-terbit/padam — padam SEBENAR Draf+Menunggu
+  // kepunyaan akaun ni. Kandungan approved/archived (Arkib) TIDAK disentuh — itu rekod sejarah
+  // kekal, "terbitan tak boleh padam" (peraturan projek) terpakai penuh di sini.
+  router.post('/users/:id/kandungan-belum-terbit/padam', requirePermission('manageAccounts'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await dbGet('SELECT penName, username FROM users WHERE id = ?', [id]);
+      if (!user) return res.status(404).json({ error: 'Akaun tidak dijumpai.' });
+      const penName = (user.penName || '').trim();
+      if (!penName) return res.json({ success: true, drafDipadam: 0, menungguDipadam: 0 });
+
+      let drafDipadam = 0;
+      const slots = await dbAll(
+        "SELECT slotIndex, manualSummary FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex >= 0"
+      );
+      for (const slot of slots || []) {
+        if (BAR_SLOTS.has(slot.slotIndex)) continue;
+        const manualSummary = slot.manualSummary || '';
+        const mentah = bahagikanBlokMentah(manualSummary);
+        if (mentah.length === 0) continue;
+        const parsed = parseManualSummaryBlocks(manualSummary);
+        const disimpan = [];
+        let berubah = false;
+        mentah.forEach((raw, i) => {
+          const meta = parsed[i];
+          const buang = meta && meta.status === 'draft' && samaNama(meta.penulis, penName);
+          if (buang) { drafDipadam += 1; berubah = true; }
+          else disimpan.push(raw.trim());
+        });
+        if (berubah) {
+          const nextSummary = disimpan.join(DRAFT_BLOCK_SEPARATOR);
+          await dbRun(
+            "UPDATE slots_config SET manualSummary = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?",
+            [nextSummary, slot.slotIndex]
+          );
+        }
+      }
+
+      const rows = await dbAll(`
+        SELECT eo.id FROM editorial_objects eo
+        INNER JOIN (SELECT objectId, MAX(version) mv FROM editorial_revisions GROUP BY objectId) lv ON lv.objectId = eo.id
+        INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.version = lv.mv
+        INNER JOIN editorial_attribute_values eav ON eav.objectId = eo.id AND eav.revisionId = er.id AND eav.attributeId = 'editorName'
+        WHERE er.status = 'pending' AND eav.valueText = ?
+      `, [penName]);
+      for (const r of rows || []) {
+        await dbRun('DELETE FROM editorial_objects WHERE id = ?', [r.id]); // CASCADE ke revisions/attrs
+      }
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-kandungan-belum-terbit',
+        targetType: 'akaun',
+        targetId: id,
+        detail: `${user.penName || user.username}: ${drafDipadam} draf, ${rows.length} menunggu dipadam.`,
+      });
+
+      res.json({ success: true, drafDipadam, menungguDipadam: rows.length });
+    } catch (err) {
+      console.error('POST kandungan-belum-terbit/padam error:', err);
+      res.status(500).json({ error: 'Gagal memadam kandungan belum terbit. ' + (err.message || '') });
     }
   });
 
