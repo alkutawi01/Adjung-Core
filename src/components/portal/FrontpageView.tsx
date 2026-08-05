@@ -1978,10 +1978,18 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           <div className="flex-1 min-w-0 flex items-center gap-2">
             {activeTickerNewsItem ? (
               <div className="select-text py-1 flex items-center overflow-hidden flex-1 gap-2.5">
+                {/* Label "BERITA SEMASA" dua baris di telefon (2026-08-05, permintaan Izzat) —
+                    satu baris makan lebar besar pada skrin sempit, tinggalkan sedikit sahaja
+                    ruang utk tajuk ticker sendiri (line-clamp-2 di atas). Susun menegak (lebar
+                    lebih kurang lebar perkataan terpanjang "SEMASA", bukan jumlah dua perkataan)
+                    bebaskan ruang mendatar. Desktop kekal satu baris asal (md:) — ruang lebih
+                    lapang di situ, tiada sebab ubah. */}
                 <strong
-                  className="font-sans text-[11px] md:text-xs uppercase tracking-wider font-bold inline-block shrink-0 text-[#802334]"
+                  className="font-sans text-[11px] md:text-xs uppercase tracking-wider font-bold shrink-0 text-[#802334] leading-[1.15] flex flex-col md:block md:leading-normal"
                 >
-                  <HoverWords text="BERITA SEMASA" />
+                  <span className="md:hidden">BERITA</span>
+                  <span className="md:hidden">SEMASA</span>
+                  <span className="hidden md:inline"><HoverWords text="BERITA SEMASA" /></span>
                 </strong>
                 <AnimatePresence mode="wait">
                   <motion.h4
