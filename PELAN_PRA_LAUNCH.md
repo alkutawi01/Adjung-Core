@@ -725,7 +725,7 @@ fokus ni disahkan semula:
 
 ---
 
-### [ ] Fasa 18 — Penghalusan bahasa & micro-interaction · ditambah 2026-08-03
+### [x] Fasa 18 — Penghalusan bahasa & micro-interaction · ditambah 2026-08-03 · SIAP 2026-08-05 (pusingan pertama)
 Permintaan Izzat — dua kerja "polishing" berasingan daripada 17 fasa asal, bukan penghalang
 launch, boleh dibuat bila-bila selepas fasa teras siap.
 
