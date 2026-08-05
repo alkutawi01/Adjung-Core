@@ -1548,7 +1548,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
+  // Ikon-sahaja -> slide buka kotak (2026-08-05, permintaan Izzat — kotak tetap lama "kurang
+  // lawa"/makan ruang masthead sentiasa). `searchExpanded` kawal LEBAR (ikon sempit vs kotak
+  // penuh); dropdown keputusan (`searchOpen`) hanya bermakna bila kotak pun terbuka.
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const searchBoxRef = React.useRef<HTMLDivElement>(null);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     const q = searchQuery.trim();
@@ -1563,13 +1568,30 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     return () => { dibatal = true; clearTimeout(t); };
   }, [searchQuery]);
 
+  const tutupCarian = React.useCallback(() => {
+    setSearchOpen(false);
+    setSearchExpanded(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  }, []);
+
   React.useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setSearchOpen(false);
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) tutupCarian();
     };
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') tutupCarian(); };
     document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, []);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [tutupCarian]);
+
+  const bukaCarian = () => {
+    setSearchExpanded(true);
+    setTimeout(() => searchInputRef.current?.focus(), 50);
+  };
 
   /** Buka Focus View terus daripada keputusan carian — sama corak "usaha terbaik" seperti
    *  pautan mendalam (`by-kod`) di atas: itemIndex sentiasa 0, cukup baik memandangkan
@@ -1580,6 +1602,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     setSearchQuery('');
     setSearchResults([]);
     setSearchOpen(false);
+    setSearchExpanded(false);
   };
 
   // Gulung SATU sasaran rawak baharu setiap kali focusLoc berubah (buka baharu ATAU navigasi) —
@@ -1880,22 +1903,37 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             (2026-08-02) — sudah mati sejak `?openTicker=1` (laluan terakhir yang masih boleh set
             isEditMode=true) dibuang. */}
         <div className="flex justify-between items-center pt-2 gap-3">
-          {/* Carian pengunjung (2026-08-05, Fasa 11) — kotak ringkas, keputusan turun sebagai
-              senarai terapung bila diklik/ditaip. Bucu kiri masthead (bucu kanan sudah dipakai
-              pautan Editorium) — tak sentuh grid bento, hanya jalur utiliti sedia ada. */}
-          <div ref={searchBoxRef} className="relative flex-1 max-w-[220px]">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-stone-300 bg-white focus-within:border-[#802334] transition-colors">
-              <Search size={12} className="text-stone-400 shrink-0" />
+          {/* Carian pengunjung (2026-08-05, Fasa 11, reka bentuk disemak semula selepas maklum
+              balas Izzat "kotak tetap kurang lawa") — ikon SAHAJA lalai, klik slide-buka kotak
+              ke KANAN drpd ikon (bukan overlay/modal — ikon kekal jangkar kiri masthead, kotak
+              tumbuh drpd situ). Satu bekas bermorf (bukan ikon+kotak berasingan) — lebar bekas
+              sendiri yang beranimasi (w-7 -> w-[220px]), input pudar masuk serentak, elak dua
+              elemen background berlanggar semasa peralihan. Tutup (Escape/klik luar/pilih
+              keputusan) kosongkan carian sekali, bukan sekadar sorok kotak — bukaan seterusnya
+              sentiasa mula bersih. */}
+          <div ref={searchBoxRef} className="relative shrink-0">
+            <div
+              onClick={() => { if (!searchExpanded) bukaCarian(); }}
+              className={`flex items-center gap-1.5 py-1 rounded border bg-white transition-all duration-300 ease-in-out overflow-hidden ${
+                searchExpanded
+                  ? 'w-[220px] px-2.5 border-stone-300 focus-within:border-[#802334] cursor-text'
+                  : 'w-7 px-0 justify-center border-transparent hover:border-stone-300 cursor-pointer'
+              }`}
+            >
+              <Search size={searchExpanded ? 12 : 14} className="text-stone-400 shrink-0 transition-all duration-300" />
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
-                onFocus={() => setSearchOpen(true)}
                 placeholder="Cari kandungan…"
-                className="w-full min-w-0 bg-transparent outline-none font-sans text-xs text-stone-700 placeholder:text-stone-400"
+                tabIndex={searchExpanded ? 0 : -1}
+                className={`min-w-0 bg-transparent outline-none font-sans text-xs text-stone-700 placeholder:text-stone-400 transition-opacity duration-200 ${
+                  searchExpanded ? 'w-full opacity-100 delay-150' : 'w-0 opacity-0'
+                }`}
               />
             </div>
-            {searchOpen && searchQuery.trim().length >= 2 && (
+            {searchExpanded && searchOpen && searchQuery.trim().length >= 2 && (
               <div className="absolute left-0 top-full mt-1 w-full min-w-[280px] bg-white border border-stone-300 rounded shadow-lg z-30 max-h-[320px] overflow-y-auto">
                 {searchResults.length === 0 ? (
                   <div className="px-3 py-2.5 font-sans text-xs text-stone-400">Tiada kandungan dijumpai.</div>
