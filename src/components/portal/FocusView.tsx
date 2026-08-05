@@ -513,6 +513,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
         style={{
           position: 'fixed', inset: 0, zIndex: 200, background: 'var(--surface-page)',
           color: 'var(--text-body)', display: 'flex', flexDirection: 'column',
+          // Bendera userSelect (2026-08-05) — FrontpageView.tsx punya bekas induk terkunci
+          // `select-none` (Tailwind) di peringkat halaman PENUH (elak teks kad tak sengaja
+          // terpilih semasa klik/leret carousel) — Focus View DILAHIRKAN bersarang dalam pokok
+          // DOM tu (bukan Portal), jadi warisi sekatan tu turut sekali walhal ni permukaan
+          // BACAAN, bukan kad. Ditulis-ganti eksplisit di sini supaya pembaca boleh salin teks.
+          userSelect: 'text', WebkitUserSelect: 'text',
         }}
         onTouchStart={kendaliSentuhMula}
         onTouchEnd={kendaliSentuhTamat}
@@ -766,7 +772,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // dengan kandungan lain semasa navigasi.
   // ==========================================================================================
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)', display: 'flex', flexDirection: 'column', userSelect: 'text', WebkitUserSelect: 'text' }}>
       {transitionOverlay}
       {backdropImage && (
         <div aria-hidden="true" style={{
