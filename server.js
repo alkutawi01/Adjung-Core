@@ -375,6 +375,7 @@ const initializeSchema = () => {
                 hadKandunganSlot INTEGER DEFAULT 0,
                 jenisAnimasi TEXT DEFAULT 'colophon',
                 arahAnimasi TEXT DEFAULT 'kanan',
+                nisbahPenajaTransisi INTEGER DEFAULT 0,
                 hadHuraianPanjang INTEGER DEFAULT 0,
                 hadSumber INTEGER DEFAULT 0,
                 hadTopik INTEGER DEFAULT 0,
@@ -1630,6 +1631,10 @@ const initEditorialOS = (dbConn) => {
       // 'kanan' supaya kelakuan Colophon sedia ada (masuk kanan -> keluar kiri) tak berubah untuk
       // pemasangan sedia ada. Lihat core/routes/slotAmRoutes.js.
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN arahAnimasi TEXT DEFAULT 'kanan'", () => {});
+
+      // Nisbah logo Adjung : logo penaja dalam panel transisi (2026-08-05, permintaan Izzat).
+      // Lihat core/routes/slotAmRoutes.js. Lalai 0 = logo Adjung sahaja, tak bergantung penaja.
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN nisbahPenajaTransisi INTEGER DEFAULT 0", () => {});
 
       // source_link_checks (2026-08-05, Fasa 8b — semakan pautan mati) — satu rekod PER URL
       // sumber unik (bukan per-kandungan; URL sama dikongsi rentas kandungan disemak sekali,

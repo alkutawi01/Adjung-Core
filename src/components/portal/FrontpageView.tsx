@@ -309,14 +309,45 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
 // TIDAK perlu ubah 30 tapak panggilan CarouselStableBlock sedia ada satu-satu (struktur JSX
 // renderItem/carousel projek ni sangat fragile — lihat nota Fasa 7/CLAUDE.md — Context elak
 // sentuh struktur tu langsung). Lalai 'pudar' (kelakuan sedia ada) kalau Provider tiada.
+// Giliran logo Adjung/penaja dalam panel transisi (2026-08-05, permintaan Izzat: "penaja mungkin
+// lebih daripada satu, jadi semua ni boleh dilaraskan oleh Ketua Editor") — GANTIKAN logoPenaja
+// (satu logo manual GLOBAL, Fasa 7) dengan giliran automatik antara logo Adjung dan penaja SEBENAR
+// (jadual `sponsors`, medan tayangSemasaTransisi). `jenis: 'adjung'` = papar wordmark Adjung
+// (LogoTransisiAdjung di bawah, bukan imej — sama sebab macam LoadingScreen: logo PNG marun-atas-
+// putih tak boleh dibaca atas panel gelap).
+interface LogoTransisi {
+  jenis: 'adjung' | 'penaja';
+  logoUrl?: string;
+  nama?: string;
+}
 interface TetapanAnimasiCarousel {
   jenisAnimasi: string;
   arahAnimasi: string;
-  logoPenaja: string;
   warnaPanelTransisi: string;
+  ambilLogoTransisi: () => LogoTransisi;
 }
-const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = { jenisAnimasi: 'colophon', arahAnimasi: 'kanan', logoPenaja: '', warnaPanelTransisi: '#802334' };
+const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
+  jenisAnimasi: 'colophon',
+  arahAnimasi: 'kanan',
+  warnaPanelTransisi: '#802334',
+  ambilLogoTransisi: () => ({ jenis: 'adjung' }),
+};
 const JenisAnimasiContext = createContext<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
+
+// Wordmark Adjung untuk panel transisi (2026-08-05) — versi ringkas struktur/nisbah SAMA seperti
+// LoadingScreen.tsx (yang dah dibetulkan 2026-08-05 supaya sepadan lockup rasmi), diskalakan lebih
+// kecil untuk muat dalam panel carousel (bukan skrin penuh). Teks (bukan imej PNG) atas sebab sama
+// — logo rasmi marun-atas-putih tak boleh dibaca atas panel gelap.
+const LogoTransisiAdjung: React.FC = () => (
+  <div className="flex flex-col items-center justify-center select-none">
+    <span className="font-serif font-normal tracking-tight text-2xl text-[#FDFDFD]">{BRAND.logoText}</span>
+    <div className="flex items-center justify-center gap-1.5 mt-1">
+      <div className="h-px bg-[#FDFDFD]/40 w-4" />
+      <span className="font-sans text-[7px] tracking-[0.25em] font-semibold text-[#FDFDFD]/70 uppercase">{BRAND.subLabel}</span>
+      <div className="h-px bg-[#FDFDFD]/40 w-4" />
+    </div>
+  </div>
+);
 
 // Vektor arah panel Colophon/Sapuan Lajur (2026-08-05, permintaan Izzat) — panel MASUK dari arah
 // dipilih, KELUAR ke arah BERTENTANGAN (sapuan semula jadi). `songsangArah` bagi Sapuan Lajur arah
@@ -349,7 +380,11 @@ const CarouselStableBlock: React.FC<{
   renderItem: (item: any) => React.ReactNode;
   onNavigate?: (direction: 1 | -1) => void;
 }> = ({ items, activeIndex, renderItem, onNavigate }) => {
-  const { jenisAnimasi, arahAnimasi, logoPenaja, warnaPanelTransisi } = useContext(JenisAnimasiContext);
+  const { jenisAnimasi, arahAnimasi, warnaPanelTransisi, ambilLogoTransisi } = useContext(JenisAnimasiContext);
+  // Logo dipetik SEKALI setiap kali transisi bermula (bukan setiap render) — kalau dipanggil
+  // ambilLogoTransisi() terus dalam JSX, ia maju giliran pada SETIAP render (banyak kali sepanjang
+  // 1.3s/1.6s animasi), bukan sekali setiap pertukaran kandungan.
+  const [logoTransisiSemasa, setLogoTransisiSemasa] = useState<LogoTransisi>({ jenis: 'adjung' });
   const list = items && items.length > 0 ? items : [{}];
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Rujukan bekas SENDIRI (kawasan tajuk+huraian sahaja) — dipakai untuk cari kad PENUH sebenar
@@ -493,19 +528,26 @@ const CarouselStableBlock: React.FC<{
       kadPenuh.style.overflow = 'hidden';
     }
     setPortalTarget(kadPenuh);
+    setLogoTransisiSemasa(ambilLogoTransisi());
 
-    // Jumlah tempoh SATU keyframe berterusan (0%->50%->100%) — separuhMasa ialah TITIK TENGAH
-    // (50%, kedudukan translateX(0%), overlay tutup penuh) di mana kandungan SEBENAR ditukar;
-    // overlay sendiri (className/elemen) tak disentuh langsung pada saat ni.
-    const separuhMasa = jenisAnimasi === 'sapuan_lajur' ? 550 : 400;
+    // Tempoh SATU keyframe berterusan (masuk -> TAHAN 500ms -> keluar) — masukMasa ialah TITIK
+    // bila panel BARU tutup penuh (kedudukan translate(0,0), lihat peratusan @keyframes di
+    // src/index.css — MESTI sepadan nombor ni, jangan ubah salah satu tanpa yang lain). Kandungan
+    // SEBENAR ditukar pada saat ni (tersembunyi di sebalik panel yang tertutup penuh); panel
+    // sendiri (className/elemen) tak disentuh langsung. jumlahMasa = masukMasa + tahanMasa(500) +
+    // keluarMasa(=masukMasa) — sepadan animation-duration 1.3s (Colophon) / 1.6s (Sapuan Lajur).
+    const masukMasa = jenisAnimasi === 'sapuan_lajur' ? 550 : 400;
+    const tahanMasa = 500;
+    const jumlahMasa = masukMasa * 2 + tahanMasa;
     setOverlayAktif(true);
     overlayTimersRef.current.push(setTimeout(() => {
       setVisualIndex(activeIndex);
-    }, separuhMasa));
+    }, masukMasa));
     overlayTimersRef.current.push(setTimeout(() => {
       setOverlayAktif(false);
       if (kadPenuh) kadPenuh.style.overflow = overflowAsal || '';
-    }, separuhMasa * 2));
+    }, jumlahMasa));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, jenisAnimasi]);
 
   useEffect(() => () => { overlayTimersRef.current.forEach(clearTimeout); }, []);
@@ -611,16 +653,18 @@ const CarouselStableBlock: React.FC<{
           src/index.css. Dirender via Portal TERUS di dalam kad PENUH (data-slot terdekat),
           position:absolute inset-0 terhadapnya — bergerak SAMA dengan kad secara automatik,
           tiada snapshot koordinat yang boleh jadi basi (lihat nota `portalTarget` di atas).
-          Logo penaja + warna panel (2026-08-04, Tetapan Am Slot) gantikan adjung-symbol.svg
-          lama yang tak kelihatan (sama warna dgn latar) — '' logoPenaja = panel kosong sengaja,
-          bukan ralat (belum semua Ketua Editor sedia muat naik logo). */}
+          Logo bergilir Adjung/penaja (2026-08-05, tetapan `nisbahPenajaTransisi`) — dipetik
+          SEKALI setiap transisi (logoTransisiSemasa, lihat useEffect di atas), bukan setiap
+          render. */}
       {overlayAktif && portalTarget && jenisAnimasi === 'colophon' && createPortal(
         <div
           className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none carousel-colophon-penuh"
           style={{ backgroundColor: warnaPanelTransisi, ...vektorArahOverlay(arahAnimasi, false) }}
           aria-hidden="true"
         >
-          {logoPenaja && <img src={logoPenaja} alt="" className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
+          {logoTransisiSemasa.jenis === 'adjung'
+            ? <LogoTransisiAdjung />
+            : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
         </div>,
         portalTarget
       )}
@@ -630,7 +674,9 @@ const CarouselStableBlock: React.FC<{
           style={{ backgroundColor: warnaPanelTransisi, ...vektorArahOverlay(arahAnimasi, true) }}
           aria-hidden="true"
         >
-          {logoPenaja && <img src={logoPenaja} alt="" className="max-w-[40%] max-h-[40%] object-contain opacity-95" />}
+          {logoTransisiSemasa.jenis === 'adjung'
+            ? <LogoTransisiAdjung />
+            : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[40%] max-h-[40%] object-contain opacity-95" />}
         </div>,
         portalTarget
       )}
@@ -1315,7 +1361,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // Jenis animasi transisi carousel (Fasa 7, 2026-08-04) — tetapan Am Slot, terpakai pada SEMUA
   // carousel bento sekali gus. Lalai 'pudar' (opacity fade sedia ada) supaya kelakuan tak berubah
   // sekiranya panggilan gagal.
-  const [tetapanAnimasi, setTetapanAnimasi] = useState<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
+  const [tetapanAnimasiMentah, setTetapanAnimasiMentah] = useState({
+    jenisAnimasi: 'colophon', arahAnimasi: 'kanan', warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0,
+  });
   // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL, bukan per-Bidang/tier.
   // Lalai 1 / 15px sepadan kelakuan sedia ada sekiranya panggilan gagal.
   const [tetapanFontFocusView, setTetapanFontFocusView] = useState({ titleSizeScale: 1, bodySizePx: 15 });
@@ -1325,11 +1373,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .then(d => {
         if (d && d.mulaIkutMasa !== undefined) setMulaIkutMasa(!!d.mulaIkutMasa);
         if (d) {
-          setTetapanAnimasi({
+          setTetapanAnimasiMentah({
             jenisAnimasi: d.jenisAnimasi || 'colophon',
             arahAnimasi: d.arahAnimasi || 'kanan',
-            logoPenaja: d.logoPenaja || '',
             warnaPanelTransisi: d.warnaPanelTransisi || '#802334',
+            nisbahPenajaTransisi: Number(d.nisbahPenajaTransisi) || 0,
           });
           setTetapanFontFocusView({
             titleSizeScale: Number(d.focusViewTitleScale) || 1,
@@ -1339,6 +1387,49 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       })
       .catch(() => {});
   }, []);
+
+  // Penaja bulan semasa (2026-08-05, Fasa 12) — footer papar "Portal ini disokong oleh:" HANYA
+  // bila ada penaja utk bulan ni (keadaan kosong jujur — sembunyi terus, bukan baris kosong).
+  // Boleh berbilang penaja serentak (keputusan Izzat); klik mana-mana bahagian baris ni bawa ke
+  // /penaja (senarai PENUH, bukan terus ke laman penaja masing-masing). `tayangSemasaTransisi`
+  // (2026-08-05) menentukan penaja mana LAYAK muncul dalam giliran panel transisi — lihat
+  // ambilLogoTransisi di bawah.
+  const [penajaSemasa, setPenajaSemasa] = useState<{ id: string; nama: string; logoUrl: string; tayangSemasaTransisi?: boolean }[]>([]);
+  React.useEffect(() => {
+    let dibatal = false;
+    fetch('/api/public/sponsors/semasa')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => { if (!dibatal) setPenajaSemasa(Array.isArray(data) ? data : []); })
+      .catch(() => {});
+    return () => { dibatal = true; };
+  }, []);
+
+  // Giliran logo Adjung/penaja (2026-08-05) — dua ref kekal antara panggilan (BUKAN state — tak
+  // perlu re-render bila giliran maju, cuma perlu nilai TERKINI setiap kali dipanggil):
+  // `putaranRef` kira setiap giliran (Adjung ATAU penaja), `indeksPenajaRef` kira giliran PENAJA
+  // sahaja supaya round-robin penaja terus maju merentasi kitaran (bukan reset setiap kitaran).
+  const putaranTransisiRef = useRef(0);
+  const indeksPenajaTransisiRef = useRef(0);
+  const penajaLayakTransisi = React.useMemo(
+    () => penajaSemasa.filter((p: any) => p.tayangSemasaTransisi),
+    [penajaSemasa]
+  );
+  const ambilLogoTransisi = React.useCallback((): LogoTransisi => {
+    const nisbah = tetapanAnimasiMentah.nisbahPenajaTransisi;
+    if (nisbah <= 0 || penajaLayakTransisi.length === 0) return { jenis: 'adjung' };
+    const kitaran = nisbah + 1;
+    const posisi = putaranTransisiRef.current % kitaran;
+    putaranTransisiRef.current += 1;
+    if (posisi === 0) return { jenis: 'adjung' };
+    const p = penajaLayakTransisi[indeksPenajaTransisiRef.current % penajaLayakTransisi.length];
+    indeksPenajaTransisiRef.current += 1;
+    return { jenis: 'penaja', logoUrl: p.logoUrl, nama: p.nama };
+  }, [tetapanAnimasiMentah.nisbahPenajaTransisi, penajaLayakTransisi]);
+
+  const tetapanAnimasi = React.useMemo<TetapanAnimasiCarousel>(
+    () => ({ ...tetapanAnimasiMentah, ambilLogoTransisi }),
+    [tetapanAnimasiMentah, ambilLogoTransisi]
+  );
 
   useEffect(() => {
     const activeTimers: { timeoutId?: any; intervalId?: any }[] = [];
@@ -1546,20 +1637,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       })
       .catch(() => {});
   }, [deepLinkKodPendek, focusAllLocations]);
-
-  // Penaja bulan semasa (2026-08-05, Fasa 12) — footer papar "Portal ini disokong oleh:" HANYA
-  // bila ada penaja utk bulan ni (keadaan kosong jujur — sembunyi terus, bukan baris kosong).
-  // Boleh berbilang penaja serentak (keputusan Izzat); klik mana-mana bahagian baris ni bawa ke
-  // /penaja (senarai PENUH, bukan terus ke laman penaja masing-masing).
-  const [penajaSemasa, setPenajaSemasa] = useState<{ id: string; nama: string; logoUrl: string }[]>([]);
-  React.useEffect(() => {
-    let dibatal = false;
-    fetch('/api/public/sponsors/semasa')
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => { if (!dibatal) setPenajaSemasa(Array.isArray(data) ? data : []); })
-      .catch(() => {});
-    return () => { dibatal = true; };
-  }, []);
 
   // Carian pengunjung (2026-08-05, Fasa 11 — keputusan Izzat: carian ringkas tajuk/topik).
   // Debounce 300ms elak hentam server setiap ketukan kekunci; had 2 aksara minimum sepadan

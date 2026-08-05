@@ -565,13 +565,27 @@ h1, h2, h3, h4, h5, h6, p {
    `top`) — overlay position:fixed (liputi kad PENUH, diukur JS), peratus `left`/`top` resolve
    terhadap viewport bukan saiz overlay sendiri; transform peratus SENTIASA relatif saiz elemen
    sendiri, betul tak kira skema kedudukan. */
-@keyframes carouselTransisiPenuh {
+/* Tahan 0.5s di tengah (2026-08-05, permintaan Izzat: "biarkan ia terhenti di tengah-tengah
+   selama 0.5 saat") — DUA titik genap (bukan satu) pada translate(0,0) supaya panel kekal tutup
+   PENUH sepanjang 500ms sebelum sambung keluar, bukan terus lalu macam sebelum ni. Peratusan
+   dikira drpd jumlah tempoh SEBENAR animation-duration setiap kelas (lihat di bawah) — masuk/
+   keluar Colophon 400ms setiap satu (jumlah 1300ms), Sapuan Lajur 550ms setiap satu (jumlah
+   1600ms) — CarouselStableBlock punya pemasaan JS (separuhMasa/jumlahMasa) MESTI sepadan nombor
+   ni, jangan ubah salah satu tanpa yang lain. */
+@keyframes carouselColophonTransisi {
   0% { transform: var(--transisi-masuk, translateX(100%)); }
-  50% { transform: translate(0, 0); }
+  30.77% { transform: translate(0, 0); }
+  69.23% { transform: translate(0, 0); }
   100% { transform: var(--transisi-keluar, translateX(-100%)); }
 }
-.carousel-colophon-penuh { animation: carouselTransisiPenuh 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.carousel-sapuan-penuh { animation: carouselTransisiPenuh 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes carouselSapuanTransisi {
+  0% { transform: var(--transisi-masuk, translateX(-100%)); }
+  34.38% { transform: translate(0, 0); }
+  65.63% { transform: translate(0, 0); }
+  100% { transform: var(--transisi-keluar, translateX(100%)); }
+}
+.carousel-colophon-penuh { animation: carouselColophonTransisi 1.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.carousel-sapuan-penuh { animation: carouselSapuanTransisi 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
 
 /* ---------------------------------------------------------------------------------------------

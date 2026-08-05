@@ -17,11 +17,19 @@ export const AM_DEFAULTS = {
   hadSumber: 0,
   hadTopik: 0,
   hadNotaEditor: 0,
-  // Logo penaja + warna panel animasi (2026-08-04) — satu logo GLOBAL (bukan per-slot/rotasi,
-  // keputusan Izzat), dipaparkan di tengah panel Colophon/Sapuan Lajur. '' = tiada logo
-  // (panel kosong, bukan ralat). warnaPanelTransisi lalai maroon jenama sedia ada.
+  // Logo penaja lama (2026-08-04, satu logo manual GLOBAL) — DIGANTIKAN 2026-08-05 oleh giliran
+  // logo Adjung/penaja automatik (nisbahPenajaTransisi di bawah, sumber penaja dari jadual
+  // `sponsors` sebenar, medan tayangSemasaTransisi). Medan/lajur DB dikekalkan supaya tak hilang
+  // nilai lama, tapi tidak lagi dibaca oleh overlay panel (lihat FrontpageView.tsx).
   logoPenaja: '',
   warnaPanelTransisi: '#802334',
+  // Nisbah logo Adjung : logo penaja dalam panel transisi (2026-08-05, permintaan Izzat — "penaja
+  // mungkin lebih daripada satu, jadi Ketua Editor boleh laraskan"). 0 = logo Adjung SAHAJA
+  // (lalai — selamat, tak bergantung pada penaja langsung). N>0 = bagi setiap 1 giliran logo
+  // Adjung, N giliran seterusnya logo penaja (round-robin merentasi SEMUA penaja bertanda
+  // tayangSemasaTransisi bulan semasa). Jatuh balik ke Adjung sahaja bila tiada penaja layak,
+  // supaya panel tak pernah kosong.
+  nisbahPenajaTransisi: 0,
   // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL untuk seluruh
   // Focus View, bukan per-Bidang/tier. focusViewTitleScale darab tangga saiz tajuk responsif
   // sedia ada (1 = lalai/tak berubah). focusViewBodySize nilai literal px huraian (15 = lalai).
@@ -51,6 +59,16 @@ export const ARAH_ANIMASI = [
   { nilai: 'bawah', label: 'Bawah (masuk dari bawah, keluar ke atas)' },
 ];
 
+// Nisbah logo Adjung : logo penaja dalam panel transisi (2026-08-05, permintaan Izzat). Bilangan
+// giliran penaja BERTURUT-TURUT selepas setiap 1 giliran logo Adjung. Sumber penaja: jadual
+// `sponsors`, medan tayangSemasaTransisi (lihat core/routes/sponsorRoutes.js).
+export const NISBAH_PENAJA_TRANSISI = [
+  { nilai: 0, label: 'Logo Adjung sahaja (tiada logo penaja)' },
+  { nilai: 1, label: '1 Adjung : 1 penaja' },
+  { nilai: 2, label: '1 Adjung : 2 penaja' },
+  { nilai: 3, label: '1 Adjung : 3 penaja' },
+];
+
 let cache = { ...AM_DEFAULTS };
 
 export const getAmSettings = () => ({ ...cache });
@@ -70,6 +88,7 @@ export const loadAmSettings = async (dbGet) => {
         hadNotaEditor: Number(row.hadNotaEditor) || 0,
         logoPenaja: row.logoPenaja || '',
         warnaPanelTransisi: row.warnaPanelTransisi || '#802334',
+        nisbahPenajaTransisi: NISBAH_PENAJA_TRANSISI.some(n => n.nilai === Number(row.nisbahPenajaTransisi)) ? Number(row.nisbahPenajaTransisi) : 0,
         focusViewTitleScale: Number(row.focusViewTitleScale) || 1,
         focusViewBodySize: Number(row.focusViewBodySize) || 15,
       };
@@ -90,7 +109,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
   router.get('/slot-am-settings', async (req, res) => {
     try {
       await loadAmSettings(dbGet);
-      res.json({ ...getAmSettings(), jenisAnimasiPilihan: JENIS_ANIMASI, arahAnimasiPilihan: ARAH_ANIMASI });
+      res.json({ ...getAmSettings(), jenisAnimasiPilihan: JENIS_ANIMASI, arahAnimasiPilihan: ARAH_ANIMASI, nisbahPenajaTransisiPilihan: NISBAH_PENAJA_TRANSISI });
     } catch (err) {
       console.error('GET slot-am-settings error:', err);
       res.status(500).json({ error: 'Gagal membaca Tetapan Am Slot. ' + (err.message || '') });
@@ -127,6 +146,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         hadNotaEditor: nombor(b.hadNotaEditor, 'Had nota editor'),
         logoPenaja: typeof b.logoPenaja === 'string' ? b.logoPenaja.slice(0, 500) : '',
         warnaPanelTransisi: warnaSah(b.warnaPanelTransisi) ? b.warnaPanelTransisi : '#802334',
+        nisbahPenajaTransisi: NISBAH_PENAJA_TRANSISI.some(n => n.nilai === Number(b.nisbahPenajaTransisi)) ? Number(b.nisbahPenajaTransisi) : 0,
         focusViewTitleScale: TITLE_SCALE_SAH.includes(Number(b.focusViewTitleScale)) ? Number(b.focusViewTitleScale) : 1,
         focusViewBodySize: BODY_SIZE_SAH.includes(Number(b.focusViewBodySize)) ? Number(b.focusViewBodySize) : 15,
       };
@@ -135,8 +155,8 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         INSERT INTO slot_am_settings (
           id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
-          logoPenaja, warnaPanelTransisi, focusViewTitleScale, focusViewBodySize, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, focusViewTitleScale, focusViewBodySize, updatedAt
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -148,13 +168,14 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           hadNotaEditor = excluded.hadNotaEditor,
           logoPenaja = excluded.logoPenaja,
           warnaPanelTransisi = excluded.warnaPanelTransisi,
+          nisbahPenajaTransisi = excluded.nisbahPenajaTransisi,
           focusViewTitleScale = excluded.focusViewTitleScale,
           focusViewBodySize = excluded.focusViewBodySize,
           updatedAt = excluded.updatedAt
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
-        baharu.logoPenaja, baharu.warnaPanelTransisi,
+        baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi,
         baharu.focusViewTitleScale, baharu.focusViewBodySize,
         new Date().toISOString(),
       ]);
