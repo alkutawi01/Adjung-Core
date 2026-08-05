@@ -561,7 +561,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         </div>
       )}
 
-      {activeTab === 'log_sistem' && <LogAuditConsole />}
+      {/* Log Sistem (2026-08-05, keputusan Izzat) — jejak audit SEMUA orang (tindakan editor
+          lain, akaun, Bidang, ralat pelayan). Dahulu terbuka kepada sesiapa yang log masuk;
+          kini Pentadbir + Ketua Editor + Penolong. Gerbang SEBENAR di server
+          (requirePermission('viewAuditLog'), core/routes/auditLogRoutes.js) — ini cuma bayang
+          client supaya Editor tak nampak skrin kosong/ralat 403 mentah. */}
+      {activeTab === 'log_sistem' && (
+        (isPentadbir || isEditorialAdmin)
+          ? <LogAuditConsole />
+          : <AksesDitolak mesej="Log Sistem khusus untuk Pentadbir / Ketua Editor / Penolong Ketua Editor." />
+      )}
 
       {makluanTerbuka && (
         <MaklumanDrawer

@@ -31,6 +31,7 @@ interface RbacMatrixRow {
     manageEditorial: boolean; // Bidang, Editorial (tipografi/glosari), RSS admin, Jam Dunia admin
     manageAccounts: boolean;  // Direktori — urus akaun/status/peranan editor lain
     manageEditorNotes: boolean; // Nota Ketua Editor (tulis) — Ketua Editor sahaja secara lalai
+    viewAuditLog: boolean; // Log Sistem (baca jejak audit semua orang) — Editor biasa tidak
   };
 }
 
@@ -50,7 +51,8 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     permissions: {
       viewAll: true, editOwn: false, editAll: false, publish: false,
       reject: false, assignSlot: false, manageSettings: true, manageRbac: true,
-      manageEditorial: false, manageAccounts: true, manageEditorNotes: false
+      manageEditorial: false, manageAccounts: true, manageEditorNotes: false,
+      viewAuditLog: true
     }
   },
   {
@@ -60,7 +62,8 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     permissions: {
       viewAll: true, editOwn: true, editAll: true, publish: true,
       reject: true, assignSlot: true, manageSettings: false, manageRbac: false,
-      manageEditorial: true, manageAccounts: false, manageEditorNotes: true
+      manageEditorial: true, manageAccounts: false, manageEditorNotes: true,
+      viewAuditLog: true
     }
   },
   {
@@ -70,7 +73,8 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     permissions: {
       viewAll: true, editOwn: true, editAll: true, publish: true,
       reject: true, assignSlot: true, manageSettings: false, manageRbac: false,
-      manageEditorial: true, manageAccounts: false, manageEditorNotes: false
+      manageEditorial: true, manageAccounts: false, manageEditorNotes: false,
+      viewAuditLog: true
     }
   },
   {
@@ -80,7 +84,8 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     permissions: {
       viewAll: true, editOwn: true, editAll: false, publish: true,
       reject: false, assignSlot: false, manageSettings: false, manageRbac: false,
-      manageEditorial: false, manageAccounts: false, manageEditorNotes: false
+      manageEditorial: false, manageAccounts: false, manageEditorNotes: false,
+      viewAuditLog: false
     }
   }
 ];
@@ -879,6 +884,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   <th className="p-3 text-center">Agihan Slot</th>
                   <th className="p-3 text-center">Bidang & Editorial</th>
                   <th className="p-3 text-center">Nota Ketua Editor</th>
+                  <th className="p-3 text-center">Log Sistem</th>
                   <th className="p-3 text-center">Direktori & Akaun</th>
                   <th className="p-3 text-center">Polisi & Tetapan</th>
                   <th className="p-3 text-center">Tadbir RBAC</th>
@@ -917,6 +923,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     </td>
                     <td className="p-3 text-center">
                       <input type="checkbox" checked={row.permissions.manageEditorNotes} onChange={() => handleTogglePermission(row.roleId, 'manageEditorNotes')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                    </td>
+                    <td className="p-3 text-center">
+                      <input type="checkbox" checked={row.permissions.viewAuditLog} onChange={() => handleTogglePermission(row.roleId, 'viewAuditLog')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
                       <input type="checkbox" checked={row.permissions.manageAccounts} onChange={() => handleTogglePermission(row.roleId, 'manageAccounts')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />

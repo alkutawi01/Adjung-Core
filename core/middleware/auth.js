@@ -36,21 +36,25 @@ const DEFAULT_ROLE_PERMISSIONS = {
     viewAll: true, editOwn: false, editAll: false, publish: false, reject: false,
     assignSlot: false, manageSettings: true, manageRbac: true,
     manageEditorial: false, manageAccounts: true, manageEditorNotes: false,
+    viewAuditLog: true,
   },
   ketua_editor: {
     viewAll: true, editOwn: true, editAll: true, publish: true, reject: true,
     assignSlot: true, manageSettings: false, manageRbac: false,
     manageEditorial: true, manageAccounts: false, manageEditorNotes: true,
+    viewAuditLog: true,
   },
   penolong_ketua_editor: {
     viewAll: true, editOwn: true, editAll: true, publish: true, reject: true,
     assignSlot: true, manageSettings: false, manageRbac: false,
     manageEditorial: true, manageAccounts: false, manageEditorNotes: false,
+    viewAuditLog: true,
   },
   editor: {
     viewAll: true, editOwn: true, editAll: false, publish: true, reject: false,
     assignSlot: false, manageSettings: false, manageRbac: false,
     manageEditorial: false, manageAccounts: false, manageEditorNotes: false,
+    viewAuditLog: false,
   },
 };
 

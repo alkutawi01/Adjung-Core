@@ -132,9 +132,12 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   // tipografi/glosari) dikongsi Ketua Editor + Penolong/Timbalan Ketua Editor. Direktori &
   // Tetapan Sistem domain Pentadbir sahaja (2026-08-02 — dahulu Direktori terbuka untuk
   // sesiapa log masuk, Tetapan Ketua-Editor-sahaja; kedua-duanya kini Pentadbir).
+  // Log Sistem (2026-08-05, keputusan Izzat) — jejak audit SEMUA orang; dahulu terbuka kepada
+  // sesiapa yang log masuk (termasuk Editor biasa). Kini Pentadbir + Ketua Editor + Penolong.
   const restricted = (id: string) => {
     if (id === 'nota_ketua_editor') return !isKetuaEditor;
     if (id === 'editorial') return !isEditorialAdmin;
+    if (id === 'log_sistem') return !(isPentadbir || isEditorialAdmin);
     if (id === 'tetapan' || id === 'direktori') return !isPentadbir;
     return false;
   };
