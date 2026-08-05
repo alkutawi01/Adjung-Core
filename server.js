@@ -49,6 +49,7 @@ import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
 import { createArticleUrlRoutes, createPublicArticleRoute } from './core/routes/articleUrlRoutes.js';
 import { createSearchRoutes } from './core/routes/searchRoutes.js';
+import { createSponsorRoutes } from './core/routes/sponsorRoutes.js';
 import { semakKonfigSmtpStartup } from './core/email/MailSender.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
@@ -420,6 +421,32 @@ const initializeSchema = () => {
               // Rekod lama (jarang, ciri ni baharu) dianggap 'pengumuman' sebagai lalai selamat.
               db.run("UPDATE editor_notes SET type = 'pengumuman' WHERE type = 'awam'", () => {});
             });
+
+            // Penaja (2026-08-05, Fasa 12 — permintaan Izzat) — tajaan BULANAN, boleh berbilang
+            // penaja serentak dalam satu bulan. `bulan` format 'YYYY-MM' (input type="month"
+            // native, tiada penghuraian tarikh tersendiri diperlukan). Footer papar penaja bulan
+            // SEMASA sahaja ("Portal ini disokong oleh:"); /penaja (halaman awam) senaraikan
+            // SEMUA penaja aktif — lama dan semasa — disusun bulan terbaru dahulu (bukan ditapis
+            // ikut bulan semasa di situ, beza tujuan drpd footer). `status` bukan tapisan
+            // bulan/sejarah — ia laluan pembetulan/tarik balik entri tersilap sahaja (arkib, bukan
+            // padam terus, sama prinsip seluruh projek ni).
+            // `tayangSemasaTransisi` — togol DATA sahaja buat masa ini (keputusan Izzat 2026-08-05:
+            // bina tetapan/wiring dulu, overlay transisi carousel sebenar KEMUDIAN — JSX tu rapuh,
+            // lihat CLAUDE.md/nota CarouselStableBlock di FrontpageView.tsx). Togol ni BELUM
+            // memberi sebarang kesan visual sehingga overlay disambungkan.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS sponsors (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                logoUrl TEXT,
+                url TEXT,
+                bulan TEXT NOT NULL,
+                tayangSemasaTransisi INTEGER DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'aktif',
+                createdAt TEXT,
+                updatedAt TEXT
+              )
+            `, () => {});
 
             // Glosari (2026-08-01, dikemas kini 2026-08-02 Fasa 8) — senarai rujukan istilah +
             // definisi/nota penggunaan untuk editor. RUJUKAN sahaja: tidak pernah menulis-ganti
@@ -2881,6 +2908,7 @@ app.use('/api/system', createAuditLogRoutes(dbAll));
 app.use('/api/system', createUiLabelRoutes(dbAll, dbRun));
 app.use('/api', createArticleUrlRoutes(dbAll, dbGet, dbRun));
 app.use('/api', createSearchRoutes(dbAll));
+app.use('/api', createSponsorRoutes(dbAll, dbRun, dbGet));
 // Bukan di bawah /api sengaja — sitemap.xml mesti wujud di root laman ikut konvensyen crawler
 // (robots.txt di public/robots.txt rujuk /sitemap.xml). Vite dev proxy hanya hantar laluan /api
 // ke server ni (lihat vite.config.ts); sehingga Fasa 15 sambungkan express.static untuk hidangkan

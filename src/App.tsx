@@ -9,6 +9,7 @@ import { LoadingScreen } from './components/common/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
 import { HalamanStatik } from './components/portal/HalamanStatik';
+import { HalamanPenaja } from './components/portal/HalamanPenaja';
 import { TidakDijumpai } from './components/portal/TidakDijumpai';
 import { TetapkanKataLaluan } from './components/portal/TetapkanKataLaluan';
 
@@ -369,6 +370,9 @@ export default function App() {
           <Route path="/polisi-privasi" element={<HalamanStatik pageKey="polisi-privasi" labelSandaran="Polisi Privasi" />} />
           <Route path="/terma-penggunaan" element={<HalamanStatik pageKey="terma-penggunaan" labelSandaran="Terma Penggunaan" />} />
           <Route path="/penafian" element={<HalamanStatik pageKey="penafian" labelSandaran="Penafian" />} />
+          {/* Penaja (2026-08-05, Fasa 12) — struktur data berkumpul (senarai per-bulan), bukan
+              prosa title+content macam HalamanStatik, jadi komponen tersendiri. */}
+          <Route path="/penaja" element={<HalamanPenaja />} />
           <Route path="/tetapkan-kata-laluan" element={<TetapkanKataLaluan />} />
           <Route path="*" element={<TidakDijumpai />} />
 

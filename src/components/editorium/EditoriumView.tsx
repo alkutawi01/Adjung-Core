@@ -7,6 +7,7 @@ import { IndeksConsole } from './IndeksConsole';
 import { DrafSayaConsole } from './DrafSayaConsole';
 import { DashboardConsole } from './DashboardConsole';
 import { NotaKetuaEditorConsole } from './NotaKetuaEditorConsole';
+import { PenajaConsole } from './PenajaConsole';
 import { MaklumanDrawer } from './MaklumanDrawer';
 import { ProfilEditorModal } from './ProfilEditorModal';
 import { DirektoriConsole } from './DirektoriConsole';
@@ -464,7 +465,31 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               Urus Slot Bar
             </button>
           </div>
+          {/* Penaja (2026-08-05, Fasa 12) — tajaan bulanan, Pentadbir sahaja (keputusan
+              perniagaan/penempatan, bukan editorial harian — kunci manageSettings sama macam
+              Direktori/Tetapan). Editor/Ketua Editor biasa nampak kad ni tapi klik akan ditolak
+              (AksesDitolak di destinasi 'penaja' di bawah), sama corak macam kad lain di sini
+              tak sorok berdasarkan peranan pelawat. */}
+          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
+            <div>
+              <div className="text-sm font-semibold text-stone-800">Penaja</div>
+              <div className="text-[11px] text-stone-500">Tajaan bulanan — footer & halaman /penaja awam.</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('penaja')}
+              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0 cursor-pointer"
+            >
+              Urus Penaja
+            </button>
+          </div>
         </div>
+      )}
+
+      {activeTab === 'penaja' && (
+        isPentadbir
+          ? <PenajaConsole />
+          : <AksesDitolak mesej="Penaja khusus untuk Pentadbir." />
       )}
 
       {/* Slot — segala yang MENTAKRIFKAN slot: bentuk, Bidang, warna, had aksara, animasi.

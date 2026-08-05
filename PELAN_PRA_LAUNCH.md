@@ -541,9 +541,31 @@ SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
       View kandungan TEPAT (bukan kandungan lain dalam slot sama), butang Kongsi papar
       URL sebenar terjana. `npx tsc --noEmit` bersih, `npm test` 123/123.
 
-### [ ] Fasa 12 — Halaman Penaja · `M` · ~3 hari
-Konsol urus + halaman awam. Reka bentuk & penempatan — **keputusan Ketua Editor**;
-jangan sentuh grid bento.
+### [x] Fasa 12 — Halaman Penaja · `M` · ~3 hari · SIAP 2026-08-05
+Konsol urus + halaman awam. Reka bentuk & penempatan — **keputusan Ketua Editor**
+(2026-08-05): tajaan BULANAN, boleh berbilang penaja serentak satu bulan, footer papar
+bulan semasa sahaja ("Portal ini disokong oleh:") pautan ke /penaja (senarai PENUH,
+lama+semasa, bulan terbaru dahulu) — bukan terus ke laman penaja masing-masing.
+- [x] Jadual `sponsors` baharu (server.js) — nama/logo/URL/bulan (`YYYY-MM`)/status
+      (aktif/arkib, tak padam terus)/`tayangSemasaTransisi` (togol DATA sahaja buat masa
+      ini, lihat di bawah). `core/routes/sponsorRoutes.js`: CRUD Editorium
+      (`manageSettings`, Pentadbir sahaja — keputusan perniagaan, sama gerbang macam
+      Direktori/Tetapan) + dua laluan awam (`/public/sponsors/semasa` bulan ni sahaja,
+      `/public/sponsors/semua` senarai penuh aktif).
+- [x] `PenajaConsole.tsx` (Editorium → Modul Khas → Urus Penaja) — borang cipta/sunting
+      (nama, muat naik logo guna `/api/media/upload` sedia ada, URL pilihan, bulan
+      `input type="month"`, togol transisi) + senarai aktif/arkib.
+- [x] `HalamanPenaja.tsx` (`/penaja`, awam) — senarai dikumpul ikut bulan, terbaru dahulu.
+- [x] Footer (`FrontpageView.tsx`) — baris "Portal ini disokong oleh:" di bawah logo,
+      HANYA dipapar bila ada penaja bulan semasa (keadaan kosong jujur, disorok terus).
+- [x] **Togol "Papar semasa transisi carousel"** — keputusan Izzat: bina tetapan/wiring
+      SAHAJA pusingan ni (medan DB + togol borang), overlay transisi carousel SEBENAR
+      (Colophon/Sapuan Lajur, Fasa 7) BELUM disambungkan — JSX carousel rapuh, perlukan
+      pengesahan reka bentuk/kelakuan berasingan sebelum disentuh. Togol ni belum beri
+      sebarang kesan visual pada masa ini.
+      Disahkan hidup (akaun ujian Pentadbir sekali pakai): cipta penaja → footer & /penaja
+      papar betul kedua-duanya, arkib → hilang serta-merta drpd kedua-dua laluan awam.
+      `npx tsc --noEmit` bersih, `npm run build` lulus, `npm test` 123/123.
 
 ### [x] Fasa 13 — Penghalusan reka bentuk Editorium · SIAP 2026-08-02 (commit `05a62b7`)
 Audit visual semua ~21 skrin Editorium (`src/components/editorium/*.tsx`) vs bahasa

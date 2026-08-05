@@ -1527,6 +1527,20 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .catch(() => {});
   }, [deepLinkKodPendek, focusAllLocations]);
 
+  // Penaja bulan semasa (2026-08-05, Fasa 12) — footer papar "Portal ini disokong oleh:" HANYA
+  // bila ada penaja utk bulan ni (keadaan kosong jujur — sembunyi terus, bukan baris kosong).
+  // Boleh berbilang penaja serentak (keputusan Izzat); klik mana-mana bahagian baris ni bawa ke
+  // /penaja (senarai PENUH, bukan terus ke laman penaja masing-masing).
+  const [penajaSemasa, setPenajaSemasa] = useState<{ id: string; nama: string; logoUrl: string }[]>([]);
+  React.useEffect(() => {
+    let dibatal = false;
+    fetch('/api/public/sponsors/semasa')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => { if (!dibatal) setPenajaSemasa(Array.isArray(data) ? data : []); })
+      .catch(() => {});
+    return () => { dibatal = true; };
+  }, []);
+
   // Carian pengunjung (2026-08-05, Fasa 11 — keputusan Izzat: carian ringkas tajuk/topik).
   // Debounce 300ms elak hentam server setiap ketukan kekunci; had 2 aksara minimum sepadan
   // gerbang server (core/routes/searchRoutes.js). Hasil sentiasa kandungan TERBIT sahaja
@@ -3270,8 +3284,27 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               di footer. */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 px-4">
             {/* Logo / Kiri */}
-            <div className="flex flex-col justify-start">
+            <div className="flex flex-col justify-start gap-3">
               <h2 className="font-serif text-3xl font-normal text-[#802334] tracking-tight">Adjung</h2>
+              {/* Penaja bulan semasa (Fasa 12) — sembunyi terus bila tiada penaja bulan ni,
+                  bukan baris kosong. Klik bawa ke /penaja (senarai penuh), bukan terus ke laman
+                  penaja individu — sepadan permintaan Izzat. */}
+              {penajaSemasa.length > 0 && (
+                <Link to="/penaja" className="flex flex-col gap-1.5 group">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold group-hover:text-[#802334] transition-colors">
+                    Portal ini disokong oleh:
+                  </span>
+                  <span className="flex flex-wrap items-center gap-2.5">
+                    {penajaSemasa.map((p) => (
+                      p.logoUrl ? (
+                        <img key={p.id} src={p.logoUrl} alt={p.nama} title={p.nama} className="h-5 object-contain grayscale group-hover:grayscale-0 transition-all" />
+                      ) : (
+                        <span key={p.id} className="font-sans text-xs font-semibold text-stone-600 group-hover:text-[#802334] transition-colors">{p.nama}</span>
+                      )
+                    ))}
+                  </span>
+                </Link>
+              )}
             </div>
 
             {/* Kolum INSTITUSI */}
