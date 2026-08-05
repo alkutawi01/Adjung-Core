@@ -123,9 +123,20 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
   }, []);
 
   if (memuat) {
+    // Rangka pulsa (Fasa 18, 2026-08-05, permintaan pemilik projek) — bayang kasar susun atur
+    // sebenar (jalur statistik 4-kad + carta) gantikan teks statik "Memuatkan..." lama, supaya
+    // pembaca nampak SESUATU sedang berlaku dan bentuk kandungan akan datang, bukan skrin kosong.
     return (
-      <div className="bg-white p-16 text-center border border-stone-200">
-        <p className="text-xs text-stone-400 font-mono uppercase tracking-wider">Memuatkan papan pemuka...</p>
+      <div className="animate-pulse flex flex-col gap-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="bg-white border border-stone-200 rounded-lg p-5 flex flex-col gap-3">
+              <div className="h-2.5 w-16 bg-stone-150 rounded" />
+              <div className="h-7 w-12 bg-stone-200 rounded" />
+            </div>
+          ))}
+        </div>
+        <div className="bg-white border border-stone-200 rounded-lg p-5 h-40" />
       </div>
     );
   }

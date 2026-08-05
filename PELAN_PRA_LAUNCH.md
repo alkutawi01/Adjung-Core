@@ -738,12 +738,25 @@ launch, boleh dibuat bila-bila selepas fasa teras siap.
       (patut "Suapan RSS", istilah rasmi `istilah.ts` — fail yang sama guna betul di tempat
       lain). Nota: audit ni skop fail SEDIA ADA sahaja — konsol/fail baharu selepas ni belum
       disemak.
-- [ ] **Micro-interaction** — animasi/interaksi halus skala kecil (cth hover butang, transisi
-      buka/tutup modal, keadaan loading) — **BUKAN** sama dengan item "Jenis animasi
-      transisi" Fasa 7 (yang tu khusus animasi carousel kad bento/carousel, masih KIV
-      berasingan menunggu reka bentuk skema tetapan per-jenis daripada Izzat). Skop tepat
-      (yang mana elemen, gaya animasi macam mana) belum diputuskan — perlu bincang dengan
-      Izzat dulu sebelum bina, bukan reka sendiri (prinsip sama macam KIV Fasa 7).
+- [x] **Micro-interaction** — SIAP 2026-08-05 (skop pusingan pertama, keputusan Izzat: butang
+      hover/klik, keadaan loading, kad bento hover — halus & pantas 150-200ms, bukan dramatik).
+      **BUKAN** sama dengan item "Jenis animasi transisi" Fasa 7 (khusus animasi carousel kad
+      bento, masih KIV berasingan menunggu reka bentuk skema tetapan per-jenis).
+      - Tekan butang: satu peraturan CSS global (`src/index.css`, `button:active { transform:
+        scale(0.97) }`, 150ms) — bukan disunting per-butang (tiada komponen `<Button>` kongsi,
+        beratus tapak panggilan). `:active` sengaja dipilih (bukan `:hover`) — hampir setiap
+        butang sedia ada SUDAH ada kesan hover sendiri, `:active` kekal kosong di merata
+        tempat jadi tiada perlanggaran gaya.
+      - Kad bento hover: SUDAH wujud sejak sebelum ni (`hover:scale-[1.01] hover:shadow-lg`,
+        30 tapak di FrontpageView.tsx) — cuma tempoh 300ms->200ms diselaraskan ikut keputusan
+        "halus & pantas" (find-replace mekanikal merentasi kesemua 30 tapak, rentetan sama
+        tepat setiap satu).
+      - Keadaan loading: teks statik "Memuatkan..." di Papan Pemuka (`DashboardConsole.tsx`)
+        dan Indeks (`IndeksConsole.tsx`) digantikan rangka pulsa (`animate-pulse`) yang bayang
+        kasar susun atur sebenar (jalur statistik/carta, baris jadual) — bukan skrin kosong.
+      Disahkan hidup di pelayar (fetch API dilengahkan buatan untuk pancing keadaan loading):
+      rangka pulsa Papan Pemuka papar betul. `npx tsc --noEmit` bersih, `npm run build` lulus,
+      `npm test` 123/123.
 
 ---
 

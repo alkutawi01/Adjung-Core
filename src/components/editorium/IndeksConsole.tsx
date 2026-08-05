@@ -790,8 +790,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
       {/* Content List Table */}
       {loading ? (
-        <div className="bg-white p-12 text-center rounded-lg border border-stone-200 font-sans text-xs text-stone-500">
-          ⏳ Memuatkan meja kerja kandungan...
+        // Rangka pulsa (Fasa 18, 2026-08-05) — baris jadual kasar gantikan teks statik lama,
+        // bayang bentuk senarai akan datang.
+        <div className="bg-white rounded-lg border border-stone-200 overflow-hidden animate-pulse">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-stone-150 last:border-b-0">
+              <div className="h-2.5 w-24 bg-stone-150 rounded shrink-0" />
+              <div className="h-2.5 flex-1 bg-stone-150 rounded" />
+              <div className="h-2.5 w-14 bg-stone-200 rounded shrink-0" />
+            </div>
+          ))}
         </div>
       ) : sortedRecords.length === 0 ? (
         <div className="bg-white p-12 text-center rounded-lg border border-stone-200 font-serif text-stone-500 text-xs">

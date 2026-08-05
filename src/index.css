@@ -124,6 +124,22 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
   font-family: 'Inter', "Libre Franklin", system-ui, sans-serif !important;
 }
 
+/* Micro-interaction — tekan butang (Fasa 18, 2026-08-05, permintaan pemilik projek). Sengaja
+   satu peraturan GLOBAL (bukan disunting per-butang di setiap fail) — setiap butang di seluruh
+   apl sedia ada dikodkan tangan (hover:bg-X sendiri-sendiri, tiada komponen <Button> kongsi),
+   jadi peraturan global ialah satu-satunya cara liputi semuanya tanpa sentuh beratus tapak
+   panggilan. `:active` sengaja dipilih (bukan `:hover`) — hampir setiap butang sedia ada SUDAH
+   ada kesan hover sendiri (warna/latar), :active kekal KOSONG di merata tempat, jadi tiada
+   perlanggaran dengan gaya sedia ada. Halus & pantas (150ms, skala 0.97) ikut keputusan
+   pemilik projek — bukan efek dramatik. Dikecualikan butang dilumpuhkan (:disabled) supaya
+   tiada kesan tekan pada butang yang memang tak boleh diklik. */
+button:not(:disabled) {
+  transition: transform 150ms ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
 /* Custom scrollbars matching the cream theme with maroon accent */
 ::-webkit-scrollbar {
   width: 6px;

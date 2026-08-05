@@ -2150,7 +2150,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             {bentoNewsItems[0] && (
                 <div
                   data-slot={0}
-                  className={`col-span-6 md:col-span-6 p-4 md:p-8 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 group md:mb-4`}
+                  className={`col-span-6 md:col-span-6 p-4 md:p-8 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 group md:mb-4`}
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
                 <BentoInner itemKey="0" className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">
@@ -2182,7 +2182,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[1] && (
                 <div
                   data-slot={1}
-                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group`}
+                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group`}
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
                   <BentoInner itemKey="1" className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
                     <div className="space-y-4">
@@ -2211,7 +2211,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[2] && (
                 <div
                   data-slot={2}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`}
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="flex-1">
@@ -2240,7 +2240,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[3] && (
                 <div
                   data-slot={3}
-                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group`}
+                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group`}
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
                   <BentoInner itemKey="3" className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
@@ -2272,7 +2272,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[4] && (
                 <div 
                   data-slot={4}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 group`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1 group`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
@@ -2299,7 +2299,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[5] && (
                 <div 
                   data-slot={5}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1 group`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1 group`} 
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
                     <BentoInner itemKey="5" className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
@@ -2334,7 +2334,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[6] && (
                 <div
                   data-slot={6}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden group`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden group`}
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -2367,7 +2367,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 <div
                   data-slot={12}
                   ref={bar1SiblingLocks.idx12.ref}
-                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group`}
+                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group`}
                  style={{ ...getCardTheme(bentoNewsItems[12], 'transparent').cardStyle, ...bar1SiblingLocks.idx12.lockStyle }} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -2428,7 +2428,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 <div
                   data-slot={11}
                   ref={bar1SiblingLocks.idx11.ref}
-                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group`}
+                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group`}
                  style={{ ...getCardTheme(bentoNewsItems[11], 'transparent').cardStyle, ...bar1SiblingLocks.idx11.lockStyle }} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{<EyebrowKad item={bentoNewsItems[11]} bidang={bidangUntuk(bentoNewsItems[11])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
@@ -2467,7 +2467,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[13] && (
                 <div 
                   data-slot={13}
-                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`} 
+                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`} 
                  style={getCardTheme(bentoNewsItems[13], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{<EyebrowKad item={bentoNewsItems[13]} bidang={bidangUntuk(bentoNewsItems[13])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[13].publishedAt)}</span>
@@ -2499,7 +2499,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[14] && (
                 <div 
                   data-slot={14}
-                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`} 
+                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`} 
                  style={getCardTheme(bentoNewsItems[14], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{<EyebrowKad item={bentoNewsItems[14]} bidang={bidangUntuk(bentoNewsItems[14])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[14].publishedAt)}</span>
@@ -2540,7 +2540,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[15] && (
                 <div
                   data-slot={15}
-                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
+                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={getCardTheme(bentoNewsItems[15], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -2572,7 +2572,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[16] && (
                 <div 
                   data-slot={16}
-                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
+                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
                  style={getCardTheme(bentoNewsItems[16], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[16]).deskStyle}>{<EyebrowKad item={bentoNewsItems[16]} bidang={bidangUntuk(bentoNewsItems[16])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[16].publishedAt)}</span>
@@ -2608,7 +2608,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[17] && (
                 <div 
                   data-slot={17}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
                    style={getCardTheme(bentoNewsItems[17], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[17]).deskStyle}>{<EyebrowKad item={bentoNewsItems[17]} bidang={bidangUntuk(bentoNewsItems[17])} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[17].publishedAt)}</span>
@@ -2638,7 +2638,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[18] && (
                 <div 
                   data-slot={18}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
                    style={getCardTheme(bentoNewsItems[18], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[18]).deskStyle}>{<EyebrowKad item={bentoNewsItems[18]} bidang={bidangUntuk(bentoNewsItems[18])} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[18].publishedAt)}</span>
@@ -2671,7 +2671,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[19] && (
                 <div 
                   data-slot={19}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[19], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -2713,7 +2713,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 <div
                   data-slot={26}
                   ref={bar2SiblingLocks.idx26.ref}
-                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
+                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={{ ...getCardTheme(bentoNewsItems[26], 'transparent').cardStyle, ...bar2SiblingLocks.idx26.lockStyle }} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -2745,7 +2745,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[20] && (
                 <div 
                   data-slot={20}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[20], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -2778,7 +2778,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 <div
                   data-slot={25}
                   ref={bar2SiblingLocks.idx25.ref}
-                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
+                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
                  style={{ ...getCardTheme(bentoNewsItems[25], 'transparent').cardStyle, ...bar2SiblingLocks.idx25.lockStyle }} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{<EyebrowKad item={bentoNewsItems[25]} bidang={bidangUntuk(bentoNewsItems[25])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[25].publishedAt)}</span>
@@ -2843,7 +2843,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[27] && (
                 <div 
                   data-slot={27}
-                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`} 
+                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`} 
                  style={getCardTheme(bentoNewsItems[27], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[27]).deskStyle}>{<EyebrowKad item={bentoNewsItems[27]} bidang={bidangUntuk(bentoNewsItems[27])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[27].publishedAt)}</span>
@@ -2875,7 +2875,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[28] && (
                 <div 
                   data-slot={28}
-                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`} 
+                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`} 
                  style={getCardTheme(bentoNewsItems[28], 'transparent').cardStyle} >
                   <div className="space-y-2">
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[28]).deskStyle}>{<EyebrowKad item={bentoNewsItems[28]} bidang={bidangUntuk(bentoNewsItems[28])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[28].publishedAt)}</span>
@@ -2916,7 +2916,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[29] && (
                 <div
                   data-slot={29}
-                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
+                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={getCardTheme(bentoNewsItems[29], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -2948,7 +2948,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[30] && (
                 <div 
                   data-slot={30}
-                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
+                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
                  style={getCardTheme(bentoNewsItems[30], 'transparent').cardStyle} >
                   <div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[30]).deskStyle}>{<EyebrowKad item={bentoNewsItems[30]} bidang={bidangUntuk(bentoNewsItems[30])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[30].publishedAt)}</span>
@@ -2984,7 +2984,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[31] && (
                 <div 
                   data-slot={31}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
                    style={getCardTheme(bentoNewsItems[31], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[31]).deskStyle}>{<EyebrowKad item={bentoNewsItems[31]} bidang={bidangUntuk(bentoNewsItems[31])} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[31].publishedAt)}</span>
@@ -3014,7 +3014,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[32] && (
                 <div 
                   data-slot={32}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
                    style={getCardTheme(bentoNewsItems[32], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[32]).deskStyle}>{<EyebrowKad item={bentoNewsItems[32]} bidang={bidangUntuk(bentoNewsItems[32])} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[32].publishedAt)}</span>
@@ -3047,7 +3047,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[33] && (
                 <div 
                   data-slot={33}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[33], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3088,7 +3088,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[34] && (
                 <div
                   data-slot={34}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[34], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3120,7 +3120,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[37] && (
                 <div 
                   data-slot={37}
-                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
+                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={getCardTheme(bentoNewsItems[37], 'transparent').cardStyle} >
                   <div className="space-y-4">
                     <CarouselStableBlock
@@ -3153,7 +3153,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[35] && (
                 <div
                   data-slot={35}
-                  className={`col-span-2 md:col-span-1 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-2 md:col-span-1 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                    style={getCardTheme(bentoNewsItems[35], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{<EyebrowKad item={bentoNewsItems[35]} bidang={bidangUntuk(bentoNewsItems[35])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[35].publishedAt)}</span>
@@ -3185,7 +3185,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[36] && (
                 <div 
                   data-slot={36}
-                  className={`col-span-2 md:col-span-1 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-2 md:col-span-1 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                    style={getCardTheme(bentoNewsItems[36], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{<EyebrowKad item={bentoNewsItems[36]} bidang={bidangUntuk(bentoNewsItems[36])} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[36].publishedAt)}</span>
