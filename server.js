@@ -442,11 +442,22 @@ const initializeSchema = () => {
                 url TEXT,
                 bulan TEXT NOT NULL,
                 tayangSemasaTransisi INTEGER DEFAULT 0,
+                jumlahBayaran REAL DEFAULT 0,
                 status TEXT NOT NULL DEFAULT 'aktif',
                 createdAt TEXT,
                 updatedAt TEXT
               )
-            `, () => {});
+            `, () => {
+              // jumlahBayaran (2026-08-05, permintaan Izzat — halaman /penaja akan dinaik taraf
+              // supaya saiz "kotak" setiap penaja berkadar terus dengan jumlah tajaan, cth RM1000
+              // = kotak 10x lebih besar drpd RM100). DATA sahaja pusingan ni (sama corak macam
+              // tayangSemasaTransisi) — pengiraan/lukisan kotak sebenar ialah kerja Fasa
+              // akan datang, BUKAN dipaparkan di /penaja sekarang (jumlah bayaran ialah maklumat
+              // sensitif, tak sepatutnya terus terdedah kepada awam sebelum reka bentuk visualisasi
+              // yang betul disahkan). ALTER TABLE selamat diulang — DB sedia ada (jadual dicipta
+              // sebelum lajur ni wujud) akan gagal senyap dgn ralat "duplicate column", diabaikan.
+              db.run("ALTER TABLE sponsors ADD COLUMN jumlahBayaran REAL DEFAULT 0", () => {});
+            });
 
             // Glosari (2026-08-01, dikemas kini 2026-08-02 Fasa 8) — senarai rujukan istilah +
             // definisi/nota penggunaan untuk editor. RUJUKAN sahaja: tidak pernah menulis-ganti

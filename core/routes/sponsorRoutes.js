@@ -11,6 +11,7 @@ import { requirePermission } from '../middleware/auth.js';
 const HAD_NAMA = 100;
 const bulanSemasa = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 
+// Baris ADMIN (Editorium) — sertakan jumlahBayaran, Pentadbir sahaja yang capai laluan ni.
 const barisKepadaPenaja = (r) => ({
   id: r.id,
   nama: r.name,
@@ -18,9 +19,18 @@ const barisKepadaPenaja = (r) => ({
   url: r.url || '',
   bulan: r.bulan,
   tayangSemasaTransisi: r.tayangSemasaTransisi === 1,
+  jumlahBayaran: r.jumlahBayaran || 0,
   status: r.status,
   dikemasPada: r.updatedAt,
 });
+
+// Baris AWAM — SENGAJA tanpa jumlahBayaran (2026-08-05, permintaan Izzat: had ni disimpan utk
+// kegunaan dalaman/visualisasi kotak akan datang, bukan angka rasmi terus terdedah kepada
+// pembaca sebelum reka bentuk visualisasi disahkan).
+const barisKepadaPenajaAwam = (r) => {
+  const { jumlahBayaran, ...baki } = barisKepadaPenaja(r);
+  return baki;
+};
 
 export function createSponsorRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
@@ -39,19 +49,21 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
   // POST /api/system/sponsors — cipta penaja baharu.
   router.post('/system/sponsors', requirePermission('manageSettings'), async (req, res) => {
     try {
-      const { nama, logoUrl, url, bulan, tayangSemasaTransisi } = req.body || {};
+      const { nama, logoUrl, url, bulan, tayangSemasaTransisi, jumlahBayaran } = req.body || {};
       const namaBersih = String(nama || '').trim();
       const bulanBersih = String(bulan || '').trim();
       if (!namaBersih) return res.status(400).json({ error: 'Nama penaja diperlukan.' });
       if (namaBersih.length > HAD_NAMA) return res.status(400).json({ error: `Nama penaja melebihi had ${HAD_NAMA} aksara.` });
       if (!/^\d{4}-\d{2}$/.test(bulanBersih)) return res.status(400).json({ error: 'Bulan mesti format YYYY-MM.' });
+      const bayaranBersih = jumlahBayaran === undefined || jumlahBayaran === null || jumlahBayaran === '' ? 0 : Number(jumlahBayaran);
+      if (Number.isNaN(bayaranBersih) || bayaranBersih < 0) return res.status(400).json({ error: 'Jumlah bayaran mesti nombor positif.' });
 
       const id = `penaja-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const now = new Date().toISOString();
       await dbRun(
-        `INSERT INTO sponsors (id, name, logoUrl, url, bulan, tayangSemasaTransisi, status, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, 'aktif', ?, ?)`,
-        [id, namaBersih, logoUrl || '', url || '', bulanBersih, tayangSemasaTransisi ? 1 : 0, now, now]
+        `INSERT INTO sponsors (id, name, logoUrl, url, bulan, tayangSemasaTransisi, jumlahBayaran, status, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'aktif', ?, ?)`,
+        [id, namaBersih, logoUrl || '', url || '', bulanBersih, tayangSemasaTransisi ? 1 : 0, bayaranBersih, now, now]
       );
       res.json({ success: true, id });
     } catch (err) {
@@ -67,7 +79,7 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
       const existing = await dbGet('SELECT id FROM sponsors WHERE id = ?', [id]);
       if (!existing) return res.status(404).json({ error: 'Penaja tidak dijumpai.' });
 
-      const { nama, logoUrl, url, bulan, tayangSemasaTransisi, status } = req.body || {};
+      const { nama, logoUrl, url, bulan, tayangSemasaTransisi, jumlahBayaran, status } = req.body || {};
       const sets = [];
       const params = [];
       if (nama !== undefined) {
@@ -83,6 +95,11 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
         sets.push('bulan = ?'); params.push(bulan);
       }
       if (tayangSemasaTransisi !== undefined) { sets.push('tayangSemasaTransisi = ?'); params.push(tayangSemasaTransisi ? 1 : 0); }
+      if (jumlahBayaran !== undefined) {
+        const bayaranBersih = jumlahBayaran === null || jumlahBayaran === '' ? 0 : Number(jumlahBayaran);
+        if (Number.isNaN(bayaranBersih) || bayaranBersih < 0) return res.status(400).json({ error: 'Jumlah bayaran mesti nombor positif.' });
+        sets.push('jumlahBayaran = ?'); params.push(bayaranBersih);
+      }
       if (status !== undefined) {
         if (!['aktif', 'arkib'].includes(status)) return res.status(400).json({ error: 'Status tidak sah.' });
         sets.push('status = ?'); params.push(status);
@@ -106,7 +123,7 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
         "SELECT * FROM sponsors WHERE bulan = ? AND status = 'aktif' ORDER BY createdAt ASC",
         [bulanSemasa()]
       );
-      res.json((rows || []).map(barisKepadaPenaja));
+      res.json((rows || []).map(barisKepadaPenajaAwam));
     } catch (err) {
       console.error('GET public/sponsors/semasa error:', err);
       res.status(500).json({ error: 'Gagal membaca penaja semasa. ' + (err.message || '') });
@@ -120,7 +137,7 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
       const rows = await dbAll(
         "SELECT * FROM sponsors WHERE status = 'aktif' ORDER BY bulan DESC, createdAt ASC"
       );
-      res.json((rows || []).map(barisKepadaPenaja));
+      res.json((rows || []).map(barisKepadaPenajaAwam));
     } catch (err) {
       console.error('GET public/sponsors/semua error:', err);
       res.status(500).json({ error: 'Gagal membaca senarai penaja. ' + (err.message || '') });

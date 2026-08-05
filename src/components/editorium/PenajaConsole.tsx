@@ -17,6 +17,12 @@ interface Penaja {
   url: string;
   bulan: string; // 'YYYY-MM'
   tayangSemasaTransisi: boolean;
+  // Jumlah bayaran (2026-08-05, permintaan Izzat) — utk kegunaan DALAMAN sahaja buat masa ini:
+  // halaman /penaja akan dinaik taraf supaya saiz "kotak" setiap penaja berkadar terus dgn
+  // jumlah tajaan (cth RM1000 = kotak 10x lebih besar drpd RM100), tapi pengiraan/lukisan
+  // sebenar ialah kerja fasa akan datang — angka ni TIDAK dipaparkan di /penaja sekarang
+  // (maklumat sensitif, laluan awam sengaja tak pulangkan medan ni — lihat sponsorRoutes.js).
+  jumlahBayaran: number;
   status: 'aktif' | 'arkib';
   dikemasPada: string;
 }
@@ -46,6 +52,7 @@ export const PenajaConsole: React.FC = () => {
   const [url, setUrl] = useState('');
   const [bulan, setBulan] = useState(bulanSemasaInput());
   const [tayangSemasaTransisi, setTayangSemasaTransisi] = useState(false);
+  const [jumlahBayaran, setJumlahBayaran] = useState('');
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralatBorang, setRalatBorang] = useState('');
   const [mesej, setMesej] = useState('');
@@ -76,6 +83,7 @@ export const PenajaConsole: React.FC = () => {
     setUrl('');
     setBulan(bulanSemasaInput());
     setTayangSemasaTransisi(false);
+    setJumlahBayaran('');
     setRalatBorang('');
   };
 
@@ -86,6 +94,7 @@ export const PenajaConsole: React.FC = () => {
     setUrl(p.url);
     setBulan(p.bulan);
     setTayangSemasaTransisi(p.tayangSemasaTransisi);
+    setJumlahBayaran(p.jumlahBayaran ? String(p.jumlahBayaran) : '');
     setRalatBorang('');
   };
 
@@ -136,7 +145,7 @@ export const PenajaConsole: React.FC = () => {
         {
           method: menyuntingSedia ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nama, logoUrl, url, bulan, tayangSemasaTransisi }),
+          body: JSON.stringify({ nama, logoUrl, url, bulan, tayangSemasaTransisi, jumlahBayaran: jumlahBayaran === '' ? 0 : Number(jumlahBayaran) }),
         }
       );
       const data = await res.json();
@@ -221,6 +230,18 @@ export const PenajaConsole: React.FC = () => {
             placeholder="https://…"
             className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
           />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Jumlah Bayaran (RM)</span>
+          <input
+            type="number" min="0" step="1" value={jumlahBayaran} onChange={(e) => setJumlahBayaran(e.target.value)}
+            placeholder="0"
+            className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+          />
+          <span className="text-stone-400 text-[10px]">
+            Untuk kegunaan dalaman — akan tentukan saiz visual penaja di /penaja apabila ciri visualisasi dibina. Tidak dipaparkan kepada awam.
+          </span>
         </label>
 
         <label className="flex flex-col gap-1">
@@ -323,7 +344,9 @@ export const PenajaConsole: React.FC = () => {
                       )}
                     </div>
                     <p className="font-serif text-sm text-stone-900 truncate">{p.nama}</p>
-                    {p.url && <p className="text-stone-400 text-[10px] truncate">{p.url}</p>}
+                    <p className="text-stone-400 text-[10px] truncate">
+                      {p.url}{p.url && p.jumlahBayaran > 0 ? ' · ' : ''}{p.jumlahBayaran > 0 ? `RM${p.jumlahBayaran.toLocaleString('ms-MY')}` : ''}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
