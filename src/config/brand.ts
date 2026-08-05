@@ -8,6 +8,6 @@ export const BRAND = {
   logo: "Adjung",
   version: "1.1.0",
   // Copyright is held by the parent company, not this product — Adjung Brief is one product
-  // under Adjung Corporation, distinct from the portal/product name above.
-  copyright: "© 2026 Adjung Corporation"
+  // under Adjung Press, distinct from the portal/product name above.
+  copyright: "© 2026 Adjung Press"
 };

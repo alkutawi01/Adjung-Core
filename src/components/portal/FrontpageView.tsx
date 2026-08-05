@@ -3456,9 +3456,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               dipaut lagi di sini — "Mengenai Adjung" (modal) sekarang satu-satunya pautan
               pengenalan, laluan /tentang sendiri kekal wujud (tak dipadam), cuma tak diiklankan
               di footer. */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 px-4">
-            {/* Logo / Kiri */}
-            <div className="flex flex-col justify-start gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-8 px-4">
+            {/* Logo / Kiri — merentasi KEDUA-DUA kolum di telefon/tablet (2026-08-05, permintaan
+                Izzat: "utk tablet dan telefon, jadikan dua kolum") supaya Institusi & Maklumat
+                duduk BERSEBELAHAN sebagai dua kolum tu, bukan logo tersorong sekali jadi kolum
+                pertama drpd tiga. Desktop (md:) kembali 1 drpd 3 kolum macam asal. */}
+            <div className="col-span-2 md:col-span-1 flex flex-col justify-start gap-3">
               <h2 className="font-serif text-3xl font-normal text-[#802334] tracking-tight">Adjung</h2>
               {/* Penaja bulan semasa (Fasa 12) — sembunyi terus bila tiada penaja bulan ni,
                   bukan baris kosong. Klik bawa ke /penaja (senarai penuh), bukan terus ke laman
