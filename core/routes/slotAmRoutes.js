@@ -11,7 +11,7 @@ import { requireAuth } from '../middleware/auth.js';
 export const AM_DEFAULTS = {
   mulaIkutMasa: 1,
   hadKandunganSlot: 0,
-  jenisAnimasi: 'pudar',
+  jenisAnimasi: 'colophon',
   hadHuraianPanjang: 0,
   hadSumber: 0,
   hadTopik: 0,
@@ -51,7 +51,7 @@ export const loadAmSettings = async (dbGet) => {
       cache = {
         mulaIkutMasa: row.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: Number(row.hadKandunganSlot) || 0,
-        jenisAnimasi: row.jenisAnimasi || 'pudar',
+        jenisAnimasi: row.jenisAnimasi || 'colophon',
         hadHuraianPanjang: Number(row.hadHuraianPanjang) || 0,
         hadSumber: Number(row.hadSumber) || 0,
         hadTopik: Number(row.hadTopik) || 0,
@@ -107,7 +107,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       const baharu = {
         mulaIkutMasa: b.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: nombor(b.hadKandunganSlot, 'Had bilangan kandungan'),
-        jenisAnimasi: JENIS_ANIMASI.some(j => j.nilai === b.jenisAnimasi) ? b.jenisAnimasi : 'pudar',
+        jenisAnimasi: JENIS_ANIMASI.some(j => j.nilai === b.jenisAnimasi) ? b.jenisAnimasi : 'colophon',
         hadHuraianPanjang: nombor(b.hadHuraianPanjang, 'Had huraian panjang'),
         hadSumber: nombor(b.hadSumber, 'Had sumber'),
         hadTopik: nombor(b.hadTopik, 'Had topik'),

@@ -314,7 +314,7 @@ interface TetapanAnimasiCarousel {
   logoPenaja: string;
   warnaPanelTransisi: string;
 }
-const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = { jenisAnimasi: 'pudar', logoPenaja: '', warnaPanelTransisi: '#802334' };
+const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = { jenisAnimasi: 'colophon', logoPenaja: '', warnaPanelTransisi: '#802334' };
 const JenisAnimasiContext = createContext<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
 
 // Locks a carousel card's height to whatever its longest rotating item actually needs — without
@@ -1307,7 +1307,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         if (d && d.mulaIkutMasa !== undefined) setMulaIkutMasa(!!d.mulaIkutMasa);
         if (d) {
           setTetapanAnimasi({
-            jenisAnimasi: d.jenisAnimasi || 'pudar',
+            jenisAnimasi: d.jenisAnimasi || 'colophon',
             logoPenaja: d.logoPenaja || '',
             warnaPanelTransisi: d.warnaPanelTransisi || '#802334',
           });

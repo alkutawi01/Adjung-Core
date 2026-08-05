@@ -373,7 +373,7 @@ const initializeSchema = () => {
                 id TEXT PRIMARY KEY,
                 mulaIkutMasa INTEGER DEFAULT 1,
                 hadKandunganSlot INTEGER DEFAULT 0,
-                jenisAnimasi TEXT DEFAULT 'pudar',
+                jenisAnimasi TEXT DEFAULT 'colophon',
                 hadHuraianPanjang INTEGER DEFAULT 0,
                 hadSumber INTEGER DEFAULT 0,
                 hadTopik INTEGER DEFAULT 0,
