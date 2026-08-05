@@ -917,6 +917,22 @@ amaran hari-7 sekali sahaja (tak berulang bila dijalankan semula), gantung autom
 kitaran reset ke 0 lepas kandungan diterbitkan semula. Backup diambil dahulu. `npx tsc --noEmit`
 bersih, `npm run build` lulus, `npm test` 123/123.
 
+### [x] Fasa 23 — Aktif/Menunggu boleh diklik di Senarai Slot · SIAP 2026-08-06
+Isu Izzat: "kat mana editor nak tgok bilangan kandungan aktif dan menunggu untuk setiap slot,
+yang apabila diklik akan paparkan senarai tajuk lengkap dengan tarikh/jam" — belum wujud
+sepenuhnya (lajur "Kandungan Aktif" lama gabungkan Aktif+Menunggu jadi SATU angka, tak boleh
+diklik, tiada tarikh).
+- [x] Dua lajur berasingan (Aktif/Menunggu) di Senarai Slot, setiap angka boleh diklik buka
+      panel senarai tajuk. Aktif papar "Akan terarkib: <tarikh>" bila `scheduledExpiresAt`
+      ditetapkan, jika tidak "Tiada jadual (kekal aktif sehingga digantikan manual)" — jujur,
+      bukan tarikh rekaan (Jadual Terbit/Luput ciri PILIHAN, Fasa 8, bukan wajib pada setiap
+      kandungan). Menunggu papar "Akan aktif: <tarikh>" atau "Menunggu kelulusan... (tiada
+      jadual)". Dibina drpd `GET /api/system/content/all` (sumber SAMA Indeks), dikira
+      client-side — bukan endpoint baharu.
+Disahkan hidup: angka betul per-slot, panel papar tajuk + tarikh jadual sebenar (diuji dgn
+kandungan ujian `scheduledPublishAt`), status jujur untuk kandungan tanpa jadual. Data ujian
+dibersihkan. `npx tsc --noEmit` bersih, `npm run build` lulus, `npm test` 123/123.
+
 ## Belum siap (bukan penghalang launch) — audit 2026-08-05
 
 Disahkan terhadap kod semasa, bukan sekadar baca pelan:
