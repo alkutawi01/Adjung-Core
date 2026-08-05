@@ -311,11 +311,30 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
 // sentuh struktur tu langsung). Lalai 'pudar' (kelakuan sedia ada) kalau Provider tiada.
 interface TetapanAnimasiCarousel {
   jenisAnimasi: string;
+  arahAnimasi: string;
   logoPenaja: string;
   warnaPanelTransisi: string;
 }
-const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = { jenisAnimasi: 'colophon', logoPenaja: '', warnaPanelTransisi: '#802334' };
+const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = { jenisAnimasi: 'colophon', arahAnimasi: 'kanan', logoPenaja: '', warnaPanelTransisi: '#802334' };
 const JenisAnimasiContext = createContext<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
+
+// Vektor arah panel Colophon/Sapuan Lajur (2026-08-05, permintaan Izzat) — panel MASUK dari arah
+// dipilih, KELUAR ke arah BERTENTANGAN (sapuan semula jadi). `songsangArah` bagi Sapuan Lajur arah
+// LAWAN drpd `arahAnimasi` sebenar supaya dua jenis animasi ni kekal kelihatan berbeza antara satu
+// sama lain (bukan Colophon perlahan) — sepadan kelakuan asal (dahulu arah dikunci kod, bukan
+// tetapan; sekarang boleh tetap, tapi hubungan bertentangan dikekalkan).
+const VEKTOR_ARAH: Record<string, { masuk: string; keluar: string }> = {
+  kanan: { masuk: 'translateX(100%)', keluar: 'translateX(-100%)' },
+  kiri: { masuk: 'translateX(-100%)', keluar: 'translateX(100%)' },
+  atas: { masuk: 'translateY(-100%)', keluar: 'translateY(100%)' },
+  bawah: { masuk: 'translateY(100%)', keluar: 'translateY(-100%)' },
+};
+const SONGSANG_ARAH: Record<string, string> = { kanan: 'kiri', kiri: 'kanan', atas: 'bawah', bawah: 'atas' };
+const vektorArahOverlay = (arah: string, songsang: boolean) => {
+  const arahSebenar = songsang ? (SONGSANG_ARAH[arah] || 'kiri') : arah;
+  const v = VEKTOR_ARAH[arahSebenar] || VEKTOR_ARAH.kanan;
+  return { '--transisi-masuk': v.masuk, '--transisi-keluar': v.keluar } as React.CSSProperties;
+};
 
 // Locks a carousel card's height to whatever its longest rotating item actually needs — without
 // ever truncating anything. All items are stacked in the same grid cell (visibility:hidden still
@@ -330,7 +349,7 @@ const CarouselStableBlock: React.FC<{
   renderItem: (item: any) => React.ReactNode;
   onNavigate?: (direction: 1 | -1) => void;
 }> = ({ items, activeIndex, renderItem, onNavigate }) => {
-  const { jenisAnimasi, logoPenaja, warnaPanelTransisi } = useContext(JenisAnimasiContext);
+  const { jenisAnimasi, arahAnimasi, logoPenaja, warnaPanelTransisi } = useContext(JenisAnimasiContext);
   const list = items && items.length > 0 ? items : [{}];
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Rujukan bekas SENDIRI (kawasan tajuk+huraian sahaja) — dipakai untuk cari kad PENUH sebenar
@@ -598,7 +617,7 @@ const CarouselStableBlock: React.FC<{
       {overlayAktif && portalTarget && jenisAnimasi === 'colophon' && createPortal(
         <div
           className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none carousel-colophon-penuh"
-          style={{ backgroundColor: warnaPanelTransisi }}
+          style={{ backgroundColor: warnaPanelTransisi, ...vektorArahOverlay(arahAnimasi, false) }}
           aria-hidden="true"
         >
           {logoPenaja && <img src={logoPenaja} alt="" className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
@@ -608,7 +627,7 @@ const CarouselStableBlock: React.FC<{
       {overlayAktif && portalTarget && jenisAnimasi === 'sapuan_lajur' && createPortal(
         <div
           className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none carousel-sapuan-penuh"
-          style={{ backgroundColor: warnaPanelTransisi }}
+          style={{ backgroundColor: warnaPanelTransisi, ...vektorArahOverlay(arahAnimasi, true) }}
           aria-hidden="true"
         >
           {logoPenaja && <img src={logoPenaja} alt="" className="max-w-[40%] max-h-[40%] object-contain opacity-95" />}
@@ -1308,6 +1327,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         if (d) {
           setTetapanAnimasi({
             jenisAnimasi: d.jenisAnimasi || 'colophon',
+            arahAnimasi: d.arahAnimasi || 'kanan',
             logoPenaja: d.logoPenaja || '',
             warnaPanelTransisi: d.warnaPanelTransisi || '#802334',
           });

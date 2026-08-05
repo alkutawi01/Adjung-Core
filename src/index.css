@@ -557,22 +557,21 @@ h1, h2, h3, h4, h5, h6, p {
    (JS) cuma tukar kandungan SEBENAR (visualIndex) pada genap 50% (bila keyframe kedudukannya
    translateX(0%), tutup penuh) — overlay sendiri tak terjejas/tak tahu langsung perubahan tu.
    Hormat prefers-reduced-motion — CarouselStableBlock langkau animasi ni terus jika didayakan. */
-@keyframes carouselColophonPenuh {
-  0% { transform: translateX(100%); }
-  50% { transform: translateX(0%); }
-  100% { transform: translateX(-100%); }
+/* Arah boleh tetap (2026-08-05, permintaan Izzat: "boleh tetapkan kiri, kanan, atas, bawah") —
+   satu @keyframes guna PEMBOLEH UBAH CSS (--transisi-masuk/--transisi-keluar) dibekalkan sebagai
+   inline style oleh CarouselStableBlock ikut tetapan `arahAnimasi` (Tetapan Am Slot), bukan 4
+   @keyframes bertulis-tangan berasingan. Lalai (fallback var()) kekalkan arah asal Colophon
+   (kanan->kiri) kalau pembolehubah entah bagaimana tak dibekalkan. translateX/Y (BUKAN `left`/
+   `top`) — overlay position:fixed (liputi kad PENUH, diukur JS), peratus `left`/`top` resolve
+   terhadap viewport bukan saiz overlay sendiri; transform peratus SENTIASA relatif saiz elemen
+   sendiri, betul tak kira skema kedudukan. */
+@keyframes carouselTransisiPenuh {
+  0% { transform: var(--transisi-masuk, translateX(100%)); }
+  50% { transform: translate(0, 0); }
+  100% { transform: var(--transisi-keluar, translateX(-100%)); }
 }
-/* translateX (BUKAN `left`) — overlay kini position:fixed (liputi kad PENUH, diukur JS, lihat
-   CarouselStableBlock), peratus `left` akan resolve terhadap viewport bukan lebar overlay sendiri
-   pada position:fixed. transform:translateX() peratus SENTIASA relatif lebar elemen sendiri,
-   betul tak kira skema kedudukan. */
-@keyframes carouselSapuanPenuh {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(0%); }
-  100% { transform: translateX(100%); }
-}
-.carousel-colophon-penuh { animation: carouselColophonPenuh 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.carousel-sapuan-penuh { animation: carouselSapuanPenuh 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.carousel-colophon-penuh { animation: carouselTransisiPenuh 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.carousel-sapuan-penuh { animation: carouselTransisiPenuh 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
 
 /* ---------------------------------------------------------------------------------------------

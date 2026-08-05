@@ -12,6 +12,7 @@ export const AM_DEFAULTS = {
   mulaIkutMasa: 1,
   hadKandunganSlot: 0,
   jenisAnimasi: 'colophon',
+  arahAnimasi: 'kanan',
   hadHuraianPanjang: 0,
   hadSumber: 0,
   hadTopik: 0,
@@ -40,6 +41,16 @@ export const JENIS_ANIMASI = [
   { nilai: 'sapuan_lajur', label: 'Sapuan Lajur (panel maroon sapu)' },
 ];
 
+// Arah panel Colophon/Sapuan Lajur (2026-08-05, permintaan Izzat) — terpakai pada KEDUA-DUA jenis
+// animasi berpanel (bukan 'pudar', yang tiada panel/arah langsung). Panel MASUK dari arah yang
+// dipilih, KELUAR ke arah bertentangan (sapuan semula jadi, bukan pantul balik ke arah sama).
+export const ARAH_ANIMASI = [
+  { nilai: 'kanan', label: 'Kanan (masuk dari kanan, keluar ke kiri)' },
+  { nilai: 'kiri', label: 'Kiri (masuk dari kiri, keluar ke kanan)' },
+  { nilai: 'atas', label: 'Atas (masuk dari atas, keluar ke bawah)' },
+  { nilai: 'bawah', label: 'Bawah (masuk dari bawah, keluar ke atas)' },
+];
+
 let cache = { ...AM_DEFAULTS };
 
 export const getAmSettings = () => ({ ...cache });
@@ -52,6 +63,7 @@ export const loadAmSettings = async (dbGet) => {
         mulaIkutMasa: row.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: Number(row.hadKandunganSlot) || 0,
         jenisAnimasi: row.jenisAnimasi || 'colophon',
+        arahAnimasi: row.arahAnimasi || 'kanan',
         hadHuraianPanjang: Number(row.hadHuraianPanjang) || 0,
         hadSumber: Number(row.hadSumber) || 0,
         hadTopik: Number(row.hadTopik) || 0,
@@ -78,7 +90,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
   router.get('/slot-am-settings', async (req, res) => {
     try {
       await loadAmSettings(dbGet);
-      res.json({ ...getAmSettings(), jenisAnimasiPilihan: JENIS_ANIMASI });
+      res.json({ ...getAmSettings(), jenisAnimasiPilihan: JENIS_ANIMASI, arahAnimasiPilihan: ARAH_ANIMASI });
     } catch (err) {
       console.error('GET slot-am-settings error:', err);
       res.status(500).json({ error: 'Gagal membaca Tetapan Am Slot. ' + (err.message || '') });
@@ -108,6 +120,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         mulaIkutMasa: b.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: nombor(b.hadKandunganSlot, 'Had bilangan kandungan'),
         jenisAnimasi: JENIS_ANIMASI.some(j => j.nilai === b.jenisAnimasi) ? b.jenisAnimasi : 'colophon',
+        arahAnimasi: ARAH_ANIMASI.some(a => a.nilai === b.arahAnimasi) ? b.arahAnimasi : 'kanan',
         hadHuraianPanjang: nombor(b.hadHuraianPanjang, 'Had huraian panjang'),
         hadSumber: nombor(b.hadSumber, 'Had sumber'),
         hadTopik: nombor(b.hadTopik, 'Had topik'),
@@ -120,14 +133,15 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
 
       await dbRun(`
         INSERT INTO slot_am_settings (
-          id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi,
+          id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           logoPenaja, warnaPanelTransisi, focusViewTitleScale, focusViewBodySize, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
           jenisAnimasi = excluded.jenisAnimasi,
+          arahAnimasi = excluded.arahAnimasi,
           hadHuraianPanjang = excluded.hadHuraianPanjang,
           hadSumber = excluded.hadSumber,
           hadTopik = excluded.hadTopik,
@@ -138,7 +152,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           focusViewBodySize = excluded.focusViewBodySize,
           updatedAt = excluded.updatedAt
       `, [
-        baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi,
+        baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
         baharu.logoPenaja, baharu.warnaPanelTransisi,
         baharu.focusViewTitleScale, baharu.focusViewBodySize,

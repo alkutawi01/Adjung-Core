@@ -11,6 +11,7 @@ interface TetapanAm {
   mulaIkutMasa: number;
   hadKandunganSlot: number;
   jenisAnimasi: string;
+  arahAnimasi: string;
   hadHuraianPanjang: number;
   hadSumber: number;
   hadTopik: number;
@@ -20,6 +21,7 @@ interface TetapanAm {
   focusViewTitleScale: number;
   focusViewBodySize: number;
   jenisAnimasiPilihan?: { nilai: string; label: string }[];
+  arahAnimasiPilihan?: { nilai: string; label: string }[];
 }
 
 // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL untuk seluruh Focus
@@ -327,6 +329,25 @@ export const TetapanAmSlotConsole: React.FC = () => {
           <p className="text-stone-400 text-[10px] leading-relaxed">
             "Pudar" ialah pertukaran lembut tanpa panel. "Colophon" dan "Sapuan Lajur" papar panel warna
             penuh (tetapan 3b di bawah) sekejap semasa carousel bertukar kandungan.
+          </p>
+        </div>
+
+        {/* 3a. Arah animasi — cuma terpakai untuk Colophon/Sapuan Lajur (panel "Pudar" tiada arah).
+            Kekal ditunjukkan walaupun "Pudar" dipilih, sama sebab macam 3b di bawah. */}
+        <div className="border border-stone-200 rounded p-4 space-y-2">
+          <div className="font-semibold text-stone-800">3a. Arah animasi (Colophon / Sapuan Lajur)</div>
+          <select
+            value={draf.arahAnimasi}
+            onChange={e => setDraf(p => p ? { ...p, arahAnimasi: e.target.value } : p)}
+            className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+          >
+            {(draf.arahAnimasiPilihan || [{ nilai: 'kanan', label: 'Kanan (masuk dari kanan, keluar ke kiri)' }]).map(a => (
+              <option key={a.nilai} value={a.nilai}>{a.label}</option>
+            ))}
+          </select>
+          <p className="text-stone-400 text-[10px] leading-relaxed">
+            Colophon guna arah ni terus. Sapuan Lajur guna arah BERTENTANGAN secara automatik supaya
+            dua jenis animasi ni kekal kelihatan berbeza antara satu sama lain.
           </p>
         </div>
 

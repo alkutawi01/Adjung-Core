@@ -374,6 +374,7 @@ const initializeSchema = () => {
                 mulaIkutMasa INTEGER DEFAULT 1,
                 hadKandunganSlot INTEGER DEFAULT 0,
                 jenisAnimasi TEXT DEFAULT 'colophon',
+                arahAnimasi TEXT DEFAULT 'kanan',
                 hadHuraianPanjang INTEGER DEFAULT 0,
                 hadSumber INTEGER DEFAULT 0,
                 hadTopik INTEGER DEFAULT 0,
@@ -1623,6 +1624,12 @@ const initEditorialOS = (dbConn) => {
       // Focus View (bukan per-Bidang/tier). Lihat core/routes/slotAmRoutes.js.
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN focusViewTitleScale REAL DEFAULT 1", () => {});
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN focusViewBodySize INTEGER DEFAULT 15", () => {});
+
+      // Arah animasi transisi Colophon/Sapuan Lajur (2026-08-05, permintaan Izzat) — panel boleh
+      // masuk dari kanan/kiri/atas/bawah, satu tetapan GLOBAL (bukan per-jenis animasi). Lalai
+      // 'kanan' supaya kelakuan Colophon sedia ada (masuk kanan -> keluar kiri) tak berubah untuk
+      // pemasangan sedia ada. Lihat core/routes/slotAmRoutes.js.
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN arahAnimasi TEXT DEFAULT 'kanan'", () => {});
 
       // source_link_checks (2026-08-05, Fasa 8b — semakan pautan mati) — satu rekod PER URL
       // sumber unik (bukan per-kandungan; URL sama dikongsi rentas kandungan disemak sekali,
