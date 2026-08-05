@@ -882,6 +882,41 @@ disahkan bersih, tiada baris tertinggal). Backup diambil dahulu, data ujian dibe
 slot dibandingkan sepadan backup asal. `npx tsc --noEmit` bersih, `npm run build` lulus,
 `npm test` 123/123.
 
+### [x] Fasa 22 — Profil wajib, terma onboarding & dasar aktif editorial · SIAP 2026-08-05
+Permintaan Izzat, tiga bahagian.
+- [x] **Profil editor lengkap** — enam medan baharu di `users`: Nama Penuh, Kelulusan (Nama
+      Kursus/Universiti/Tahun Graduasi), Negeri Menetap, Nombor Telefon. Boleh disunting bila-
+      bila di Profil Editor (header), turut diisi kali pertama semasa onboarding di bawah.
+- [x] **Gerbang log masuk pertama** — `LengkapkanProfilModal.tsx` (tak boleh ditutup/langkau,
+      z-tertinggi) papar Syarat & Peraturan Editor (kandungan dalaman baharu, kunci
+      `static_pages` `'syarat-editor'` — BERASINGAN drpd "Terma Penggunaan" awam sedia ada yang
+      dah ada kandungan pembaca sebenar) + borang enam medan wajib, satu butang "Sahkan &
+      Teruskan". `termaDipersetujuiPada` (cap masa PERSETUJUAN PERTAMA) tak ditulis-ganti pada
+      edit profil kemudian.
+- [x] **Dasar aktif editorial** — KEPUTUSAN Izzat: "aktif" ditakrif KANDUNGAN DITERBITKAN
+      (bukan log masuk). Hari ke-7 tak aktif → e-mel amaran pertama; hari ke-14 → amaran kedua;
+      hari ke-21 → notis penamatan + akaun DIGANTUNG automatik (status "Tidak Aktif", log
+      masuk disekat). "Ditamatkan" rasmi (pemecatan) KEKAL keputusan Pentadbir (Direktori,
+      Fasa 21) — sistem tak menamatkan terus. Penjadual `runSemakanTakAktif` (setInterval
+      harian, sama corak penjadual lain di `app.listen`) + e-mel 3 peringkat guna `hantarEmel()`
+      sedia ada (Fasa 1). `lastPublishedAt`/`amaranTakAktifTahap` dikemas kini di
+      `contentRoutes.js` setiap kali kandungan bercap nama editor bertukar `approved` BAHARU —
+      reset kitaran amaran automatik bila editor terbit semula.
+- [x] **Susulan (audit)**: `GET /api/system/profile/:id` baharu — `ProfilEditorModal.tsx`
+      dahulu ambil emel/username drpd `GET /api/db-state` (laluan awam), yang pembetulan
+      keselamatan Fasa 20 (tutup kebocoran resetToken) buang lajur emelnya — pecahkan paparan
+      "Emel semasa" secara senyap. Laluan khusus (sesi + pemilik sendiri sahaja) gantikan
+      pergantungan tu.
+
+Disahkan hidup PENUH dgn akaun ujian sekali pakai (dibersihkan selepas): borang onboarding
+(markdown **tebal** papar betul — pepijat ditemui & dibetulkan semasa ujian, `paparTeksTebal()`
+sama corak `HalamanStatik.tsx`), sesi kekal lepas reload, Profil Editor papar emel + medan
+baharu betul. Penjadual diuji terus (laluan debug sementara, dibuang selepas disahkan) —
+amaran hari-7 sekali sahaja (tak berulang bila dijalankan semula), gantung automatik hari-21
+(status/isSuspended/notifikasi/audit log semua betul), log masuk disekat lepas gantung,
+kitaran reset ke 0 lepas kandungan diterbitkan semula. Backup diambil dahulu. `npx tsc --noEmit`
+bersih, `npm run build` lulus, `npm test` 123/123.
+
 ## Belum siap (bukan penghalang launch) — audit 2026-08-05
 
 Disahkan terhadap kod semasa, bukan sekadar baca pelan:
