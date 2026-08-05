@@ -201,7 +201,15 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           DUA keputusan sengaja lama yang disahkan semula (bukan diguna pakai mockup 100%):
           butang tambah kandungan kekal IKON SAHAJA (bukan berlabel), dan susunan/tingkah laku
           setiap elemen (log masuk/keluar, profil, makluman) kekal serupa. */}
-      <header className="relative bg-[#FDFDFD] border-b border-stone-200 select-none overflow-hidden">
+      {/* `overflow-hidden` DIBUANG (2026-08-05, pepijat lebar skrin sederhana ~850-900px, dilapor
+          pemilik projek — teks badge/nav terpotong "KETUA EDITOR" jadi "KIA EDR") — bukan pepijat
+          telefon (lihat SlotManagerModal.tsx fix untuk itu), lebar ANTARA md:768 dan lg:1024
+          langsung tiada gerbang breakpoint di sini, jadi kelompok kanan (butang+badge+log keluar)
+          yang TIDAK sendiri flex-wrap (di bawah) memaksa lebar melebihi ruang lalu DIPOTONG oleh
+          overflow-hidden header — bukan dibalut ke baris baharu. Kelompok kanan kini flex-wrap
+          sendiri (bukan cuma header luar) supaya ia patah ke baris kedua pada lebar sempit,
+          overflow-hidden header dibuang supaya baris kedua tu kelihatan (bukan turut terpotong). */}
+      <header className="relative bg-[#FDFDFD] border-b border-stone-200 select-none">
         <div className="relative px-4 md:px-8 py-2.5 flex flex-wrap justify-between items-center gap-3">
           <Tooltip text="Klik untuk kembali ke Frontpage">
             {/* Logo SEBENAR (2026-08-03) — fail rekaan Izzat sendiri (src/assets/adjung-brief-
@@ -226,7 +234,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
             </a>
           </Tooltip>
 
-          <div className="flex items-center gap-2.5 font-sans text-[11px]">
+          <div className="flex flex-wrap items-center justify-end gap-2.5 font-sans text-[11px]">
             {currentUser ? (
               <>
                 {/* Susunan header (2026-08-01) — nama/peranan editor diletak DEKAT HUJUNG KANAN
