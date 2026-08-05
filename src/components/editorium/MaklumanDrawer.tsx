@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell } from 'lucide-react';
+import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off } from 'lucide-react';
 
 // Peti Makluman (2026-08-01, spesifikasi pemilik projek) — laci gelongsor yang memaparkan
 // makluman AKTIF tanpa editor perlu meninggalkan halaman yang sedang dibuka.
@@ -60,6 +60,10 @@ const IKON_JENIS: Record<string, React.ReactNode> = {
   sistem_kata_laluan_ditukar: <KeyRound className="w-2.5 h-2.5" />,
   sistem_akaun_digantung: <UserCog className="w-2.5 h-2.5" />,
   sistem_akaun_diaktifkan: <UserCog className="w-2.5 h-2.5" />,
+  // Fasa "Peti Makluman menyeluruh" (2026-08-05, permintaan pemilik projek — "setiap ralat/
+  // perkara penting patut sampai Peti Makluman").
+  sistem_ralat_pelayan: <AlertTriangle className="w-2.5 h-2.5" />,
+  sistem_pautan_mati: <Link2Off className="w-2.5 h-2.5" />,
 };
 
 const LABEL_JENIS: Record<string, string> = {
@@ -73,6 +77,8 @@ const LABEL_JENIS: Record<string, string> = {
   sistem_kata_laluan_ditukar: 'Sistem — Akaun',
   sistem_akaun_digantung: 'Sistem — Akaun',
   sistem_akaun_diaktifkan: 'Sistem — Akaun',
+  sistem_ralat_pelayan: 'Sistem — Ralat Pelayan',
+  sistem_pautan_mati: 'Sistem — Pautan Mati',
 };
 
 const tarikhRingkas = (iso: string) => {

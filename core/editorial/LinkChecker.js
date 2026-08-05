@@ -11,6 +11,8 @@
 //
 // Jujukan (bukan serentak) sengaja — bilangan URL unik biasanya puluhan sahaja (bukan ribuan),
 // dan mengelak ledakan permintaan serentak ke banyak pelayan luar sekali gus.
+import { notifyMany } from '../notifications/Notify.js';
+
 const HAD_MASA_SETIAP_URL_MS = 8000;
 const HAD_KELEWATAN_ANTARA_URL_MS = 150;
 
@@ -45,9 +47,17 @@ export async function checkAllSourceLinks(dbAll, dbRun) {
 
   let diperiksa = 0;
   let mati = 0;
+  // Pautan BAHARU mati (2026-08-05, permintaan pemilik projek — "setiap perkara penting patut
+  // sampai Peti Makluman") — kumpul HANYA URL yang bertukar OK->mati LARIAN NI (bukan yang
+  // sudah lama diketahui mati, elak spam notis sama setiap 12 jam selagi belum dibetulkan).
+  const baharuMati = [];
   for (const url of urls) {
+    const sebelum = await dbGetSatu(dbAll, url);
     const hasil = await semakSatuUrl(url);
-    if (!hasil.ok) mati += 1;
+    if (!hasil.ok) {
+      mati += 1;
+      if (!sebelum || sebelum.ok) baharuMati.push(url);
+    }
     diperiksa += 1;
     await dbRun(
       `INSERT INTO source_link_checks (url, ok, httpStatus, errorMessage, checkedAt)
@@ -59,7 +69,23 @@ export async function checkAllSourceLinks(dbAll, dbRun) {
     );
     await tidur(HAD_KELEWATAN_ANTARA_URL_MS);
   }
+
+  if (baharuMati.length > 0) {
+    const penerima = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
+    await notifyMany(dbRun, (penerima || []).map((r) => r.userId), {
+      type: 'sistem_pautan_mati',
+      title: `${baharuMati.length} pautan sumber baharu dikesan mati`,
+      detail: baharuMati.slice(0, 5).join(', ') + (baharuMati.length > 5 ? ` dan ${baharuMati.length - 5} lagi` : ''),
+      targetType: 'sistem',
+    });
+  }
+
   return { diperiksa, mati };
+}
+
+async function dbGetSatu(dbAll, url) {
+  const rows = await dbAll('SELECT ok FROM source_link_checks WHERE url = ?', [url]);
+  return rows && rows[0] ? { ok: !!rows[0].ok } : null;
 }
 
 export default checkAllSourceLinks;

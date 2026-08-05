@@ -52,6 +52,7 @@ import { createSearchRoutes } from './core/routes/searchRoutes.js';
 import { semakKonfigSmtpStartup } from './core/email/MailSender.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
+import { notifyMany } from './core/notifications/Notify.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2935,6 +2936,13 @@ loadRolePermissions(dbGet).then(() => {
 // yang tak ditangkap dalam satu handler pulangkan stack trace HTML lalai Express terus kepada
 // pelanggan. MESTI diletak SELEPAS semua app.use/mount di atas (Express hanya panggil handler
 // 4-argumen ini bila diletak paling akhir).
+// Peti Makluman — ralat pelayan (2026-08-05, permintaan pemilik projek: "setiap ralat/perkara
+// penting patut sampai Peti Makluman"). Kunci minit sejuk (10 minit) elak banjir notis sama bila
+// SATU laluan rosak kena hentam berulang-ulang dalam masa singkat — Pentadbir/Ketua Editor perlu
+// tahu ADA masalah, bukan dibanjiri puluhan notis serupa untuk satu insiden yang sama.
+let ralatPelayanTerakhirDinotis = 0;
+const RALAT_PELAYAN_SEJUK_MS = 10 * 60 * 1000;
+
 app.use((err, req, res, next) => {
   console.error('Ralat tidak dijangka pada', req.method, req.originalUrl, ':', err);
   // Log Audit (Fasa 4) — catat ralat pelayan yang tak ditangkap supaya boleh disemak dari Log
@@ -2946,6 +2954,18 @@ app.use((err, req, res, next) => {
     targetType: 'server',
     detail: `${req.method} ${req.originalUrl}: ${err.message || err}`,
   }).catch(() => {});
+  const sekarang = Date.now();
+  if (sekarang - ralatPelayanTerakhirDinotis >= RALAT_PELAYAN_SEJUK_MS) {
+    ralatPelayanTerakhirDinotis = sekarang;
+    dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')")
+      .then((rows) => notifyMany(dbRun, (rows || []).map((r) => r.userId), {
+        type: 'sistem_ralat_pelayan',
+        title: 'Ralat pelayan tak dijangka berlaku',
+        detail: `${req.method} ${req.originalUrl}: ${(err.message || String(err)).slice(0, 150)}`,
+        targetType: 'sistem',
+      }))
+      .catch(() => {});
+  }
   if (res.headersSent) return next(err);
   res.status(500).json({ error: 'Ralat pelayan dalaman.' });
 });
