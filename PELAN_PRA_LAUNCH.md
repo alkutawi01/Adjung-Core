@@ -852,6 +852,36 @@ tanpa-sesi/Editor/Ketua-Editor/Penolong via curl terhadap pelayan hidup, bukan a
 `slot_editors` disahkan sepadan backup lepas ujian (tiada data hilang). `npx tsc --noEmit`
 bersih, `npm run build` lulus, `npm test` 123/123.
 
+### [x] Fasa 21 — Aliran kerja editorial: kunci draf ditolak & pembersihan akaun ditamatkan · SIAP 2026-08-05
+Isu Izzat: "Ketua Editor cuma boleh pulangkan jadi draf, kalau editor degil terus publish
+semula tanpa pembetulan macam mana?" — dua bahagian.
+- [x] **Kunci draf ditolak** — punca sebenar ditemui: Editor ada kuasa self-publish
+      kandungan sendiri secara normal (memang direka begitu), jadi tiada apa menghalang dia
+      terbit semula draf SAMA tanpa dibetulkan lepas "Tolak". Kandungan yang lahir semula
+      drpd blok Tolak (UUID berakhir `-reject`) kini ditanda `pernahDitolak='1'` semasa
+      Terbitkan. `PATCH /content/:id` sekat status→approved oleh Editor biasa (kunci
+      `manageEditorial` diperlukan) bila bendera aktif — sekali sahaja sehingga Ketua
+      Editor/Penolong sendiri luluskan. Kandungan biasa (tak pernah ditolak) tak terjejas.
+      Susulan: `POST /content/:id/reject-to-draft` (Tolak) dahulu `requireAuth` sahaja —
+      mana-mana Editor boleh tolak kandungan sesiapa; kunci `reject` sedia ada dlm matriks
+      RBAC sejak Fasa 3 tak pernah disambungkan, kini disambung.
+- [x] **Amaran draf/menunggu sebelum tamatkan akaun** — Izzat: "kalau editor tu dah
+      dibuang, adakah kandungan yg berstatus menunggu dan draf masih ada? saya rasa yg
+      arkib sahaja dikekalkan." Dahulu tukar status ke Ditamatkan tak sentuh kandungan
+      langsung — Draf/Menunggu kekal senyap selama-lamanya. Kini Pentadbir klik
+      "Ditamatkan" papar kiraan+senarai Draf/Menunggu kepunyaan akaun tu, pilihan eksplisit
+      "Tamatkan sahaja" (kekal) atau "Tamatkan + Padam draf/menunggu" — bukan automatik
+      senyap. Kandungan approved/archived (Arkib) TIDAK disentuh. Laluan baharu GET/POST
+      `/api/system/users/:id/kandungan-belum-terbit` (`manageAccounts`).
+
+Disahkan hujung-ke-hujung: kunci draf diuji Editor 403/Ketua Editor 200 (kandungan berbendera)
+DAN Editor 200 (kandungan biasa, tiada regresi); gerbang Tolak Editor 403/Ketua Editor 200.
+Amaran tamatkan akaun diuji PENUH di UI sebenar (bukan curl sahaja) — modal papar kiraan
+betul, "Tamatkan sahaja" kekalkan draf, "Tamatkan + Padam" buang draf+menunggu (cascade FK
+disahkan bersih, tiada baris tertinggal). Backup diambil dahulu, data ujian dibersihkan,
+slot dibandingkan sepadan backup asal. `npx tsc --noEmit` bersih, `npm run build` lulus,
+`npm test` 123/123.
+
 ## Belum siap (bukan penghalang launch) — audit 2026-08-05
 
 Disahkan terhadap kod semasa, bukan sekadar baca pelan:
