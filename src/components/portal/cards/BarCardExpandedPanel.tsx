@@ -23,12 +23,15 @@ export const BarCardExpandedPanel: React.FC<BarCardExpandedPanelProps> = ({ item
           Lokasi: <span className="text-stone-600 normal-case tracking-normal font-normal">{item.location}</span>
         </div>
       )}
+      {/* Fon lebih kecil drpd tajuk kad Bar (BarCard.tsx: text-[10px] md:text-sm) — permintaan
+          pemilik projek 2026-08-05, panel akordion patut jelas anak kepada tajuk, bukan sebaris
+          besarnya. */}
       {hasPenerangan ? (
-        <p className="font-serif text-xs sm:text-sm text-stone-700 leading-relaxed whitespace-pre-line">
+        <p className="font-serif text-[9px] md:text-xs text-stone-700 leading-relaxed whitespace-pre-line">
           {item.penerangan}
         </p>
       ) : (
-        <p className="font-serif text-xs sm:text-sm text-stone-400 italic">Tiada perincian tambahan.</p>
+        <p className="font-serif text-[9px] md:text-xs text-stone-400 italic">Tiada perincian tambahan.</p>
       )}
       {hasUrl && (
         <a
