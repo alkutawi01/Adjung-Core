@@ -3258,39 +3258,43 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
       {/* Footer Reka Bentuk Premium */}
       <footer className="w-full max-w-5xl mx-auto mt-12 pt-10 pb-6 border-t border-stone-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 px-4">
+          {/* Susun atur footer (2026-08-05, permintaan Izzat) — DUA kolum pautan sahaja (dahulu
+              tiga: Institusi/Adjung/Am terpisah tanpa sebab jelas). Institusi kini gabung modal
+              "Adjung" lama (Mengenai Adjung, Lembaga Editorial) + modal "Institusi" lama (Catatan
+              Ketua Editor, Dasar Penerbitan, Pengumuman, Sejarah Versi) — enam pautan modal dalam
+              SATU kolum. Maklumat ialah laluan halaman sebenar (bukan modal): Hubungi + tiga
+              halaman polisi berasingan (Polisi Privasi/Terma Penggunaan/Penafian, dipecah drpd
+              "Polisi & Penafian" tunggal lama). "Tentang" (laluan /tentang lama) sengaja tak
+              dipaut lagi di sini — "Mengenai Adjung" (modal) sekarang satu-satunya pautan
+              pengenalan, laluan /tentang sendiri kekal wujud (tak dipadam), cuma tak diiklankan
+              di footer. */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 px-4">
             {/* Logo / Kiri */}
             <div className="flex flex-col justify-start">
               <h2 className="font-serif text-3xl font-normal text-[#802334] tracking-tight">Adjung</h2>
             </div>
-            
+
             {/* Kolum INSTITUSI */}
             <div className="flex flex-col gap-2.5">
               <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Institusi</h3>
               <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
+                <li className="flex"><button onClick={() => handleFooterLinkClick('about')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Mengenai Adjung</button></li>
+                <li className="flex"><button onClick={() => handleFooterLinkClick('editorial-board')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Lembaga Editorial</button></li>
                 <li className="flex"><button onClick={() => handleFooterLinkClick('editors-notes')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Catatan Ketua Editor</button></li>
-                <li className="flex"><button onClick={() => handleFooterLinkClick('notices')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Pengumuman</button></li>
                 <li className="flex"><button onClick={() => handleFooterLinkClick('publishing-policies')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Dasar Penerbitan</button></li>
+                <li className="flex"><button onClick={() => handleFooterLinkClick('notices')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Pengumuman</button></li>
                 <li className="flex"><button onClick={() => handleFooterLinkClick('version-history')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Sejarah Versi</button></li>
               </ul>
             </div>
 
-            {/* Kolum ADJUNG */}
+            {/* Kolum MAKLUMAT — halaman awam sebenar (laluan berasingan, bukan modal) */}
             <div className="flex flex-col gap-2.5">
-              <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Adjung</h3>
+              <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Maklumat</h3>
               <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
-                <li className="flex"><button onClick={() => handleFooterLinkClick('about')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Mengenai Adjung</button></li>
-                <li className="flex"><button onClick={() => handleFooterLinkClick('editorial-board')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Lembaga Editorial</button></li>
-              </ul>
-            </div>
-
-            {/* Kolum AM (Fasa 11) — halaman awam sebenar (laluan berasingan, bukan modal) */}
-            <div className="flex flex-col gap-2.5">
-              <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Am</h3>
-              <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
-                <li className="flex"><Link to="/tentang" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Tentang</Link></li>
                 <li className="flex"><Link to="/hubungi" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Hubungi</Link></li>
-                <li className="flex"><Link to="/polisi-penafian" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Polisi & Penafian</Link></li>
+                <li className="flex"><Link to="/polisi-privasi" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Polisi Privasi</Link></li>
+                <li className="flex"><Link to="/terma-penggunaan" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Terma Penggunaan</Link></li>
+                <li className="flex"><Link to="/penafian" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Penafian</Link></li>
               </ul>
             </div>
           </div>
@@ -3309,8 +3313,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           <div className="bg-[#FDFDFD] rounded-lg border border-stone-200 max-w-2xl w-full max-h-[85vh] overflow-y-auto flex flex-col shadow-2xl animate-fade-in">
             <header className="px-6 py-5 border-b border-stone-200 flex justify-between items-center bg-stone-50/50">
               <div>
+                {/* Semua pautan modal footer kini SATU kolum "Institusi" (2026-08-05) — dulu
+                    terbahagi "Institusi"/"Adjung", tiada lagi cabang kedua diperlukan. */}
                 <span className="font-mono text-[9px] uppercase tracking-widest text-[#8E8B82] font-bold">
-                  {['editors-notes', 'notices', 'publishing-policies', 'version-history'].includes(activeFooterPageKey) ? 'Institusi' : 'Adjung'}
+                  Institusi
                 </span>
                 <h3 className="font-serif text-2xl font-bold text-[#802334] tracking-tight mt-0.5">
                   {footerPageData?.title || 'Kandungan'}

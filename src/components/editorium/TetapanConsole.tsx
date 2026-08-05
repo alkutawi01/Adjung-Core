@@ -957,7 +957,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 const HALAMAN_AWAM_SENARAI: { key: string; label: string }[] = [
   { key: 'tentang', label: 'Tentang' },
   { key: 'hubungi', label: 'Hubungi' },
-  { key: 'polisi-penafian', label: 'Polisi & Penafian' },
+  // "Polisi & Penafian" dipecah kepada TIGA halaman berasingan (2026-08-05, permintaan Izzat —
+  // susun atur footer baharu). Kunci 'polisi-penafian' lama DIKEKALKAN wujud di static_pages
+  // (tak dipadam) sekiranya ada kandungan lama tersimpan — cuma tak diedit/dipaparkan di sini
+  // lagi, tiga kunci baharu ni yang aktif.
+  { key: 'polisi-privasi', label: 'Polisi Privasi' },
+  { key: 'terma-penggunaan', label: 'Terma Penggunaan' },
+  { key: 'penafian', label: 'Penafian' },
 ];
 
 function HalamanAwamPanel() {

@@ -363,7 +363,12 @@ export default function App() {
 
           <Route path="/tentang" element={<HalamanStatik pageKey="tentang" labelSandaran="Tentang" />} />
           <Route path="/hubungi" element={<HalamanStatik pageKey="hubungi" labelSandaran="Hubungi" />} />
-          <Route path="/polisi-penafian" element={<HalamanStatik pageKey="polisi-penafian" labelSandaran="Polisi & Penafian" />} />
+          {/* "Polisi & Penafian" dipecah kepada tiga laluan berasingan (2026-08-05, susun atur
+              footer baharu) — /polisi-penafian lama sengaja tak dikekalkan sebagai alias, laluan
+              baharu ni sahaja yang dipaut daripada footer sekarang. */}
+          <Route path="/polisi-privasi" element={<HalamanStatik pageKey="polisi-privasi" labelSandaran="Polisi Privasi" />} />
+          <Route path="/terma-penggunaan" element={<HalamanStatik pageKey="terma-penggunaan" labelSandaran="Terma Penggunaan" />} />
+          <Route path="/penafian" element={<HalamanStatik pageKey="penafian" labelSandaran="Penafian" />} />
           <Route path="/tetapkan-kata-laluan" element={<TetapkanKataLaluan />} />
           <Route path="*" element={<TidakDijumpai />} />
 
