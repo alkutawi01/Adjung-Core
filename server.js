@@ -48,6 +48,7 @@ import { createNotificationRoutes } from './core/routes/notificationRoutes.js';
 import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
 import { createArticleUrlRoutes, createPublicArticleRoute } from './core/routes/articleUrlRoutes.js';
+import { createSearchRoutes } from './core/routes/searchRoutes.js';
 import { semakKonfigSmtpStartup } from './core/email/MailSender.js';
 import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
@@ -2761,6 +2762,12 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       }
 
       subItems.push({
+        // objectId (2026-08-05, Fasa 11 — perkongsian sosial) — dibawa terus ke klien supaya
+        // Focus View boleh minta kod URL pendek sebenar (GET .../url-kod) untuk butang kongsi/
+        // pautan kanonikal, bukan window.location.href generik. Draf tak-diterbitkan (blok
+        // manual di atas, editorialObj.id = 'manual') sengaja TIADA medan ni — belum ada rekod
+        // editorial_objects sebenar untuk dijana kod.
+        objectId,
         title: approvedRevision.title,
         brief: approvedRevision.summary,
         publishedAt: approvedRevision.createdAt,
@@ -2864,6 +2871,7 @@ app.use('/api', createNotificationRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createAuditLogRoutes(dbAll));
 app.use('/api/system', createUiLabelRoutes(dbAll, dbRun));
 app.use('/api', createArticleUrlRoutes(dbAll, dbGet, dbRun));
+app.use('/api', createSearchRoutes(dbAll));
 // Bukan di bawah /api sengaja — sitemap.xml mesti wujud di root laman ikut konvensyen crawler
 // (robots.txt di public/robots.txt rujuk /sitemap.xml). Vite dev proxy hanya hantar laluan /api
 // ke server ni (lihat vite.config.ts); sehingga Fasa 15 sambungkan express.static untuk hidangkan

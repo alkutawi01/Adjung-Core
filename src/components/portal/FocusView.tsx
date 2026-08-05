@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronUp, ListOrdered, Pause, Play, Shuffle, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Facebook, Link2, ListOrdered, MessageCircle, Pause, Play, Shuffle, Twitter, X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { safeParseInline } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
@@ -69,6 +69,38 @@ function trimNota(note: string | undefined, max: number): string {
 export interface FocusRelatedItem {
   title: string;
   url?: string;
+}
+
+/** Ikon bulat "Kongsi" (2026-08-05, Fasa 11 — perkongsian sosial) — WhatsApp/Facebook/X/Salin
+ *  pautan. Dikongsi antara helaian telefon dan kolofon desktop (dua tapak render berlainan,
+ *  komponen sama supaya gaya/kelakuan sentiasa sepadan). Corak ikon bulat sepadan butang
+ *  navigasi kaki sedia ada (round pill, border stone-300, boxShadow lembut).
+ *  `title`/`url` mesti sudah SEDIA (pemanggil semak `shareUrl` sebelum render). */
+function KongsiButtons({ title, url, disalinBerjaya, onSalin }: { title: string; url: string; disalinBerjaya: boolean; onSalin: () => void }) {
+  const btnStyle: React.CSSProperties = {
+    appearance: 'none', background: 'var(--surface-page)', border: '1px solid var(--stone-300)',
+    borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
+    alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
+    padding: 0, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', textDecoration: 'none',
+  };
+  const teks = encodeURIComponent(title);
+  const laluan = encodeURIComponent(url);
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+      <a href={`https://wa.me/?text=${teks}%20${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di WhatsApp" title="WhatsApp" style={btnStyle}>
+        <MessageCircle size={13} strokeWidth={1.75} />
+      </a>
+      <a href={`https://www.facebook.com/sharer/sharer.php?u=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di Facebook" title="Facebook" style={btnStyle}>
+        <Facebook size={13} strokeWidth={1.75} />
+      </a>
+      <a href={`https://twitter.com/intent/tweet?text=${teks}&url=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di X" title="X (Twitter)" style={btnStyle}>
+        <Twitter size={13} strokeWidth={1.75} />
+      </a>
+      <button type="button" onClick={onSalin} aria-label="Salin pautan" title="Salin pautan" style={btnStyle}>
+        {disalinBerjaya ? <Check size={13} strokeWidth={1.75} /> : <Link2 size={13} strokeWidth={1.75} />}
+      </button>
+    </span>
+  );
 }
 
 export interface FocusViewProps {
@@ -156,6 +188,12 @@ export interface FocusViewProps {
    *  ada-isi fail ni). */
   navMode?: 'rawak' | 'turutan';
   onToggleNavMode?: () => void;
+  /** ID objek editorial kandungan (2026-08-05, Fasa 11 — perkongsian sosial). Bila dibekalkan
+   *  (kandungan diterbitkan sebenar, bukan draf), Focus View minta kod URL pendek kanonikal
+   *  (GET /api/system/content/:objectId/url-kod) untuk butang Kongsi + meta URL kanonikal
+   *  (sebelum ni jatuh balik ke window.location.href — lihat nota terapFocusSeo di bawah).
+   *  Draf tak-diterbitkan tiada objectId sebenar — butang Kongsi tak dirender langsung. */
+  objectId?: string;
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
@@ -166,6 +204,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
   titleSizeScale = 1, bodySizePx = 15,
   navMode = 'rawak', onToggleNavMode,
+  objectId,
 }) => {
   // Format label datang daripada eyebrowLabel() di GeometryConfig — sumber SAMA yang dipakai kad
   // bento dan pengesahan simpan. Sebelum ini fail ini ada takrifannya sendiri (' · '), jadi Focus
@@ -297,21 +336,51 @@ export const FocusView: React.FC<FocusViewProps> = ({
     if (n > notaMaxAksara) console.warn(`FocusView: nota ${n}/${notaMaxAksara} aksara — pendekkan nota di Editorium.`);
   }, [note, notaMaxAksara]);
 
+  // URL kandungan sebenar (2026-08-05, Fasa 11 — perkongsian sosial) — minta kod pendek
+  // kanonikal bila `objectId` wujud (kandungan diterbitkan). Ini SAMBUNGKAN jurang yang
+  // dicatat di Fasa 9 ("meta URL kanonikal untuk kandungan dibuka SECARA INTERAKTIF masih
+  // guna window.location.href") — kini terapFocusSeo() di bawah dapat `url` sebenar bila ada.
+  const [shareUrl, setShareUrl] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    setShareUrl(null);
+    if (!objectId || objectId === 'manual') return;
+    let dibatal = false;
+    fetch(`/api/system/content/${encodeURIComponent(objectId)}/url-kod`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (dibatal || !data || !data.laluan) return;
+        setShareUrl(`${window.location.origin}${data.laluan}`);
+      })
+      .catch(() => {});
+    return () => { dibatal = true; };
+  }, [objectId]);
+
+  // Salin pautan (2026-08-05, Fasa 11) — maklum balas ikon bertukar sekejap kepada tanda betul.
+  const [disalinBerjaya, setDisalinBerjaya] = React.useState(false);
+  const salinPautan = React.useCallback(() => {
+    if (!shareUrl) return;
+    navigator.clipboard?.writeText(shareUrl).then(() => {
+      setDisalinBerjaya(true);
+      setTimeout(() => setDisalinBerjaya(false), 2000);
+    }).catch(() => {});
+  }, [shareUrl]);
+
   // SEO dinamik (Fasa 9) — kemas kini tajuk/meta description/OG/Twitter/JSON-LD NewsArticle
   // di <head> bila Focus View dibuka, pulihkan meta lalai laman bila ditutup/tukar kandungan.
   // Client-side sahaja (SPA tanpa SSR) — lihat nota panjang di src/utils/seoMeta.ts. `url`
-  // dibiar tak dihantar sengaja: tiada skema URL per-kandungan reachable lagi (keputusan
-  // penghalaan belum dibuat), jadi ia jatuh balik ke window.location.href.
+  // guna `shareUrl` sebenar bila sudah tersedia (Fasa 11), jatuh balik ke window.location.href
+  // (kelakuan asal Fasa 9) sementara/bila tiada.
   React.useEffect(() => {
     terapFocusSeo({
       title: String(title || ''),
       description: text || String(title || ''),
       publishedDate,
       desk,
+      url: shareUrl || undefined,
     });
     return () => { buangSemulaFocusSeo(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, text, publishedDate, desk]);
+  }, [title, text, publishedDate, desk, shareUrl]);
 
   // Had tajuk ialah 168 aksara (MENEGAK). Saiz menurun mengikut kiraan aksara supaya blok tajuk
   // menduduki ukuran yang sama sama ada tajuk 40 aksara atau 168 aksara penuh.
@@ -561,6 +630,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}>{sourceDate}</span>
             )}
           </div>
+
+          {/* Kongsi (2026-08-05, Fasa 11 — perkongsian sosial) — hanya dirender bila `shareUrl`
+              sedia (kandungan diterbitkan sebenar, kod URL sudah diambil). Ikon bulat sepadan
+              corak butang navigasi kaki sedia ada di bawah (round pill, border stone-300). */}
+          {shareUrl && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <span style={micro}>Kongsi</span>
+              <KongsiButtons title={title} url={shareUrl} disalinBerjaya={disalinBerjaya} onSalin={salinPautan} />
+            </div>
+          )}
 
           {visual && (
             <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -912,6 +991,13 @@ export const FocusView: React.FC<FocusViewProps> = ({
               </span>
             )}
           </span>
+          {/* Kongsi (2026-08-05, Fasa 11) — sama syarat/komponen macam versi telefon di atas. */}
+          {shareUrl && (
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: '0 0 auto' }}>
+              <span style={micro}>Kongsi</span>
+              <KongsiButtons title={title} url={shareUrl} disalinBerjaya={disalinBerjaya} onSalin={salinPautan} />
+            </span>
+          )}
           {publishedDate && (
             <span style={{ ...micro, fontFamily: 'var(--font-mono)', color: 'var(--stone-500)', letterSpacing: 'var(--tracking-wide)', whiteSpace: 'nowrap' }}>{publishedDate}</span>
           )}

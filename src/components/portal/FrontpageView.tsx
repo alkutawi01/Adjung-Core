@@ -5,7 +5,7 @@ import { User, Entry, SystemSettings } from '../../types';
 import { BRAND } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays, safeParseInline, setGlosSelariAktif, setTypographyRulesAktif } from '../../utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, X, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Lock, Search } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 import { penggalSukuKata } from '../../../core/editorial/PemenggalSukuKata.js';
 import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRenderer';
@@ -1492,6 +1492,47 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .catch(() => {});
   }, [deepLinkKodPendek, focusAllLocations]);
 
+  // Carian pengunjung (2026-08-05, Fasa 11 — keputusan Izzat: carian ringkas tajuk/topik).
+  // Debounce 300ms elak hentam server setiap ketukan kekunci; had 2 aksara minimum sepadan
+  // gerbang server (core/routes/searchRoutes.js). Hasil sentiasa kandungan TERBIT sahaja
+  // (approved) — draf/pending tak boleh dicecah pembaca.
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchBoxRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) { setSearchResults([]); return; }
+    let dibatal = false;
+    const t = setTimeout(() => {
+      fetch(`/api/system/search?q=${encodeURIComponent(q)}`)
+        .then(r => (r.ok ? r.json() : { results: [] }))
+        .then(data => { if (!dibatal) setSearchResults(data.results || []); })
+        .catch(() => { if (!dibatal) setSearchResults([]); });
+    }, 300);
+    return () => { dibatal = true; clearTimeout(t); };
+  }, [searchQuery]);
+
+  React.useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setSearchOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  /** Buka Focus View terus daripada keputusan carian — sama corak "usaha terbaik" seperti
+   *  pautan mendalam (`by-kod`) di atas: itemIndex sentiasa 0, cukup baik memandangkan
+   *  kebanyakan slot satu kandungan sahaja (lihat nota articleUrlRoutes.js). */
+  const openSearchResult = (slotIndex: number) => {
+    const loc = focusAllLocations.find(l => l.slotIndex === slotIndex);
+    if (loc) { setFocusLoc(loc); setFocusHistory([loc]); }
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchOpen(false);
+  };
+
   // Gulung SATU sasaran rawak baharu setiap kali focusLoc berubah (buka baharu ATAU navigasi) —
   // bukan pada saat klik — supaya preview tajuk anak panah bawah sepadan destinasi sebenar.
   // Elak sasaran = kedudukan semasa bila > 1 pilihan wujud (loop cuma ulang sekali, senarai ni
@@ -1789,7 +1830,46 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             TickerManagementModal/SlotManagerModal/borang BAR terbenam) dibuang sepenuhnya
             (2026-08-02) — sudah mati sejak `?openTicker=1` (laluan terakhir yang masih boleh set
             isEditMode=true) dibuang. */}
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-between items-center pt-2 gap-3">
+          {/* Carian pengunjung (2026-08-05, Fasa 11) — kotak ringkas, keputusan turun sebagai
+              senarai terapung bila diklik/ditaip. Bucu kiri masthead (bucu kanan sudah dipakai
+              pautan Editorium) — tak sentuh grid bento, hanya jalur utiliti sedia ada. */}
+          <div ref={searchBoxRef} className="relative flex-1 max-w-[220px]">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-stone-300 bg-white focus-within:border-[#802334] transition-colors">
+              <Search size={12} className="text-stone-400 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+                onFocus={() => setSearchOpen(true)}
+                placeholder="Cari kandungan…"
+                className="w-full min-w-0 bg-transparent outline-none font-sans text-xs text-stone-700 placeholder:text-stone-400"
+              />
+            </div>
+            {searchOpen && searchQuery.trim().length >= 2 && (
+              <div className="absolute left-0 top-full mt-1 w-full min-w-[280px] bg-white border border-stone-300 rounded shadow-lg z-30 max-h-[320px] overflow-y-auto">
+                {searchResults.length === 0 ? (
+                  <div className="px-3 py-2.5 font-sans text-xs text-stone-400">Tiada kandungan dijumpai.</div>
+                ) : (
+                  <ol className="list-none m-0 p-0">
+                    {searchResults.map((r) => (
+                      <li key={r.objectId} className="border-b border-stone-150 last:border-b-0">
+                        <button
+                          type="button"
+                          onClick={() => openSearchResult(r.slotIndex)}
+                          className="w-full text-left px-3 py-2.5 hover:bg-stone-50 cursor-pointer"
+                        >
+                          <div className="font-mono text-[9px] uppercase tracking-wide text-[#802334]">{r.topik || r.desk}</div>
+                          <div className="font-serif text-sm text-stone-800 leading-snug">{r.title}</div>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Belum log masuk: butang ni buka borang log masuk TERUS di atas frontpage (modal),
               bukan bawa ke skrin pagar "log masuk diperlukan" di Editorium — dulu pengguna kena
               klik "Log Masuk" DUA kali untuk sampai borang yang sama. Lepas berjaya, barulah
@@ -1803,7 +1883,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               }
               onRequestEditLogin?.(() => navigate('/editorium'));
             }}
-            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334]"
+            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334] shrink-0"
           >
             <Lock size={12} /> {currentEditoriumRole ? 'Editorium' : 'Log Masuk'}
           </button>
@@ -3324,6 +3404,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           source={focusItem.source}
           sourceUrl={focusItem.url}
           sources={Array.isArray(focusItem.sources) ? focusItem.sources : undefined}
+          objectId={focusItem.objectId}
           sourceDate={formatTarikhSumberPanjang(focusItem.originalDate)}
           publishedDate={formatSiaranDate(focusItem.publishedAt)}
           onPrev={(focusNavMode === 'turutan' ? !!prevTurutanLoc : focusHistory.length > 1) ? focusPrev : undefined}

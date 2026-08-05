@@ -510,15 +510,36 @@ SSR, tiada meta description, tiada OG tags, `lang="en"` pada portal Melayu!).
       **Naik taraf 2026-08-05 (Fasa 9):** `<item><link>` kini URL kandungan SEBENAR
       (`/:bidangSlug/kandungan/:kodPendek`), bukan lagi muka depan + parameter slot/item.
 
-### [ ] Fasa 11 — Halaman awam · `M` · ~3 hari
+### [x] Fasa 11 — Halaman awam · `M` · ~3 hari · SIAP 2026-08-05
 - [x] 404 bergaya Adjung — laluan `*` didaftar di App.tsx, papar `TidakDijumpai.tsx`
       (maroon, wordmark, pautan balik ke `/`)
 - [x] Tentang / Hubungi / Polisi & Penafian — komponen `HalamanStatik.tsx` papar
       kandungan dari `GET /api/pages/:key` (Fasa 6) di laluan `/tentang`, `/hubungi`,
       `/polisi-penafian`; keadaan kosong jujur bila belum diisi; pautan ditambah pada
       lajur footer baharu "Am"
-- [ ] Perkongsian sosial — **tanya dahulu** (KIV, tunggu Izzat) · Carian pengunjung —
-      **tanya dahulu** (KIV, tunggu Izzat)
+- [x] **Perkongsian sosial** — KEPUTUSAN Izzat 2026-08-05: butang Kongsi di Focus View
+      sahaja (WhatsApp/Facebook/X/Salin pautan), guna URL sebenar Fasa 9. `objectId`
+      dibawa dari `resolveSlotContent` (server.js) → `layout/active` → `bentoNewsItems`
+      → `focusItem` → prop baharu `FocusView.objectId` (draf tak-diterbitkan tiada
+      medan ni, butang Kongsi tak dirender). Komponen `KongsiButtons` dikongsi antara
+      helaian telefon dan kolofon desktop. Bonus: sambungkan jurang dicatat Fasa 9 —
+      meta URL kanonikal (`terapFocusSeo`) kini guna URL sebenar bila kandungan dibuka
+      secara interaktif (klik kad), bukan lagi `window.location.href` sahaja.
+- [x] **Carian pengunjung** — KEPUTUSAN Izzat 2026-08-05: carian ringkas tajuk/huraian/
+      topik. `GET /api/system/search?q=` baharu (core/routes/searchRoutes.js), laluan
+      awam tiada auth, kandungan `approved` sahaja. Kotak carian di masthead frontpage
+      (bucu kiri, bersebelahan pautan Editorium), keputusan turun sebagai senarai
+      terapung, klik buka Focus View terus (guna `slotIndex`, itemIndex=0 usaha
+      terbaik — corak sama pautan mendalam `by-kod` sedia ada).
+      **Pepijat sebenar ditemui & dibetulkan semasa ujian langsung**: query awal join
+      `MAX(version)` merentasi SEMUA status (bukan hanya `approved`) — kandungan yang
+      pernah diedit lagi lepas Terbit (version lebih tinggi wujud tapi bukan approved,
+      cth pending semakan/ditolak) padan ke revisi SALAH, carian pulangkan SIFAR baris
+      walaupun kandungan tu sebenarnya aktif. Dibetulkan: subquery `latest` kini hanya
+      kira `MAX(version)` daripada revisi `status='approved'`.
+      Diuji hidup di pelayar: carian "Kelantan" pulangkan hasil betul, klik buka Focus
+      View kandungan TEPAT (bukan kandungan lain dalam slot sama), butang Kongsi papar
+      URL sebenar terjana. `npx tsc --noEmit` bersih, `npm test` 123/123.
 
 ### [ ] Fasa 12 — Halaman Penaja · `M` · ~3 hari
 Konsol urus + halaman awam. Reka bentuk & penempatan — **keputusan Ketua Editor**;
