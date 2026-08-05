@@ -521,7 +521,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     const check = itemFits(editingSlotIndex, desk, item);
     if (!check.isValid) {
       setPublishError(check.reason || 'Kandungan ini tidak lulus bajet ruang kad atau Topik.');
-      setTimeout(() => setPublishError(''), 3600);
+      setTimeout(() => setPublishError(''), 8000);
       return;
     }
     setPublishingIndex(i);
@@ -845,7 +845,18 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
             )}
 
             {/* b. BORANG KANDUNGAN */}
-            {tab === 'borang' && (
+            {/* Papar mesej ruang kosong bila senarai Draf kosong (2026-08-05, jumpa semasa
+                simulasi editor) — sebelum ni borang "Kandungan 01" kosong tetap kekal papar
+                lepas draf terakhir berjaya Terbit (DRAF jadi 0), buat editor keliru ingatkan
+                masih ada kerja belum simpan padahal tiada. `current` guna blankItem() sebagai
+                fallback (lihat atas), jadi tanpa semakan ni borang nampak "aktif" walhal palsu. */}
+            {tab === 'borang' && items.length === 0 && (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <span className="font-sans text-sm text-stone-500">Tiada draf lagi dalam slot ini.</span>
+                <button type="button" onClick={insert} className="font-sans text-[11px] font-semibold text-[#802334] hover:underline cursor-pointer">+ Tambah Kandungan Baharu</button>
+              </div>
+            )}
+            {tab === 'borang' && items.length > 0 && (
               <>
                 <div className="flex items-baseline justify-between gap-4">
                   <span className={labelCls}>Kandungan <span className="font-mono">{String(activeIndex + 1).padStart(2, '0')}</span></span>
