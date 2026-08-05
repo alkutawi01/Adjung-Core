@@ -18,6 +18,14 @@ interface HalamanData {
   updatedAt?: string;
 }
 
+// Sokongan **tebal** ringkas (2026-08-05) — sepadan corak sedia ada di modal footer
+// (FrontpageView.tsx), supaya sub-tajuk seksyen (cth "**Sumber kandungan**") dalam kandungan
+// Dasar Penerbitan/Polisi Privasi/dll dipaparkan tebal, bukan tanda bintang mentah.
+const paparTeksTebal = (teks: string) => {
+  const bahagian = teks.split(/\*\*([^*]+)\*\*/g);
+  return bahagian.map((bhg, i) => (i % 2 === 1 ? <strong key={i} className="text-[#802334] font-semibold">{bhg}</strong> : bhg));
+};
+
 export const HalamanStatik: React.FC<HalamanStatikProps> = ({ pageKey, labelSandaran }) => {
   const [data, setData] = useState<HalamanData | null>(null);
   const [memuat, setMemuat] = useState(true);
@@ -75,7 +83,7 @@ export const HalamanStatik: React.FC<HalamanStatikProps> = ({ pageKey, labelSand
               <div className="flex flex-col gap-4">
                 {perenggan.map((p, idx) => (
                   <p key={idx} className="font-serif text-[15px] leading-relaxed text-stone-700 whitespace-pre-line">
-                    {p}
+                    {paparTeksTebal(p)}
                   </p>
                 ))}
               </div>
