@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 
 // Gerbang log masuk PERTAMA (2026-08-05, permintaan Izzat) — "saya nak editor masa daftar
 // masuk kali pertama baca dan setuju beberapa syarat dan peraturan", digabung dengan lima
@@ -11,13 +12,6 @@ interface LengkapkanProfilProps {
   userId: string;
   onSelesai: (patch: Record<string, string>) => void;
 }
-
-// Sama helper macam HalamanStatik.tsx (paparTeksTebal) — teks static_pages guna **tebal**
-// mentah, kena dihuraikan supaya tak papar asterisk literal.
-const paparTeksTebal = (teks: string) => {
-  const bahagian = teks.split(/\*\*([^*]+)\*\*/g);
-  return bahagian.map((bhg, i) => (i % 2 === 1 ? <strong key={i} className="text-[#802334] font-semibold">{bhg}</strong> : bhg));
-};
 
 const MEDAN_PROFIL: { kunci: string; label: string; placeholder: string }[] = [
   { kunci: 'namaPenuh', label: 'Nama Penuh', placeholder: 'Seperti dalam kad pengenalan' },
@@ -104,7 +98,7 @@ export const LengkapkanProfilModal: React.FC<LengkapkanProfilProps> = ({ userId,
               {memuatTerma ? (
                 'Memuatkan…'
               ) : terma ? (
-                terma.split(/\n{2,}/).map((p, i) => <p key={i}>{paparTeksTebal(p)}</p>)
+                renderMarkdownRingkas(terma)
               ) : (
                 'Syarat belum diisi oleh pentadbiran.'
               )}

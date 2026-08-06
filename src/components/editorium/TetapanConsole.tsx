@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { SEMUA_LABEL_LALAI, labelUi } from '../../config/istilah';
 import { muatPindaanLabel } from '../../config/labelOverrides';
+import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 
 
 interface BlockedCategory {
@@ -994,10 +995,15 @@ function HalamanAwamPanel() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState('');
   const [mesej, setMesej] = useState('');
+  // Pratonton (2026-08-06, Izzat: "saya tak pasti mcm mana rupa dia bila di modal") — render
+  // markdown ringkas SAMA renderer macam LengkapkanProfilModal.tsx/HalamanStatik.tsx supaya
+  // rupa di sini SEPADAN rupa sebenar tanpa perlu simpan dulu untuk semak.
+  const [pratonton, setPratonton] = useState(false);
 
   useEffect(() => {
     setMemuat(true);
     setRalat('');
+    setPratonton(false);
     fetch(`/api/pages/${halamanAktif}`)
       .then(async (r) => {
         if (r.status === 404) return null;
@@ -1035,7 +1041,7 @@ function HalamanAwamPanel() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+    <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs max-w-3xl mx-auto">
       <div>
         <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
           Kandungan Halaman Awam & Dalaman
@@ -1098,16 +1104,33 @@ function HalamanAwamPanel() {
               className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-sans"
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Kandungan</span>
-            <textarea
-              value={kandungan}
-              onChange={(e) => setKandungan(e.target.value)}
-              rows={10}
-              className="bg-stone-50 border border-stone-300 rounded px-3 py-2 text-xs font-sans resize-y"
-              placeholder="Taip kandungan halaman di sini..."
-            />
-          </label>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Kandungan</span>
+              <button
+                type="button"
+                onClick={() => setPratonton((p) => !p)}
+                className="font-mono text-[9px] uppercase tracking-wider font-bold text-[#802334] hover:underline cursor-pointer"
+              >
+                {pratonton ? '✎ Sunting' : '👁 Pratonton'}
+              </button>
+            </div>
+            {pratonton ? (
+              <div className="bg-stone-50 border border-stone-200 rounded px-3 py-2 min-h-[15rem] text-[11px] text-stone-700 leading-relaxed space-y-2">
+                {kandungan.trim() ? renderMarkdownRingkas(kandungan) : (
+                  <p className="text-stone-400 italic">Tiada kandungan untuk pratonton.</p>
+                )}
+              </div>
+            ) : (
+              <textarea
+                value={kandungan}
+                onChange={(e) => setKandungan(e.target.value)}
+                rows={10}
+                className="bg-stone-50 border border-stone-300 rounded px-3 py-2 text-xs font-sans resize-y"
+                placeholder="Taip kandungan halaman di sini... (sokongan ringkas: # / ## tajuk, --- garis pemisah, **tebal**)"
+              />
+            )}
+          </div>
 
           {ralat && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>}
 
