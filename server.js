@@ -3136,11 +3136,20 @@ const emelAmaranTakAktif = (namaPena, hariTakAktif, tahap) => {
 const runSemakanTakAktif = async (dbAll, dbRun) => {
   const now = Date.now();
   const placeholders = PERANAN_TERPAKAI_DASAR_AKTIF.map(() => '?').join(',');
+  // Akaun berperanan `pentadbir` DIKECUALIKAN (2026-08-06, pembetulan audit) — dasar aktif ni
+  // mengukur KANDUNGAN DITERBITKAN, tapi Pentadbir sendiri ada `publish: false` dalam matriks
+  // RBAC: dia secara struktur TAK BOLEH terbitkan kandungan, jadi mengukurnya dengan neraca tu
+  // pasti gagal tak kira berapa rajin dia. Tanpa pengecualian ni, akaun pemilik projek (yang
+  // pegang ketua_editor + pentadbir serentak) tergolong dalam dasar dan akan menggantung DIRINYA
+  // SENDIRI pada hari ke-21 — tiada Pentadbir lain wujud untuk memulihkannya, jadi ia terkunci
+  // keluar daripada sistem sendiri sepenuhnya (disahkan semasa audit: akaun sebenar sudah berada
+  // di tahap amaran 1). Dasar ni memang direka untuk EDITOR, bukan penyelenggara sistem.
   const rows = await dbAll(`
     SELECT DISTINCT u.id, u.penName, u.email, u.createdAt, u.lastPublishedAt, u.amaranTakAktifTahap
     FROM users u
     INNER JOIN user_roles ur ON ur.userId = u.id AND ur.roleId IN (${placeholders})
     WHERE u.status = 'Aktif'
+      AND NOT EXISTS (SELECT 1 FROM user_roles pa WHERE pa.userId = u.id AND pa.roleId = 'pentadbir')
   `, PERANAN_TERPAKAI_DASAR_AKTIF);
 
   for (const u of rows || []) {

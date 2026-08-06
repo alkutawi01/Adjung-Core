@@ -1017,6 +1017,50 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     }
   };
 
+  // Leret untuk navigasi overlay Ticker skrin penuh (2026-08-06, permintaan Izzat) — di telefon
+  // anak panah kiri/kanan sukar dicapai walaupun kini boleh diklik (ia bertindih teks), jadi leret
+  // jari ialah gerak isyarat utama yang dijangka. Ambang/logik SAMA seperti carousel kad bento
+  // (kendaliSentuhMula/Tamat di CarouselStableBlock) supaya kelakuan leret konsisten seluruh
+  // portal: mesti mendatar (|deltaX| > |deltaY|) dan sekurang-kurangnya 45px, supaya tatal
+  // menegak biasa tak tersalah tafsir sebagai navigasi.
+  const sentuhOverlayMula = useRef<{ x: number; y: number } | null>(null);
+  // Bendera "baru sahaja leret" — bekas overlay ada onClick yang MENUTUP overlay, dan penyemak
+  // imbas tetap membangkitkan `click` sintetik selepas `touchend` walaupun jari bergerak jauh.
+  // Tanpa bendera ni, setiap leret berjaya akan menukar berita LALU terus menutup overlay.
+  const leretBaruBerlaku = useRef(false);
+  const kendaliSentuhOverlayMula = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    sentuhOverlayMula.current = { x: t.clientX, y: t.clientY };
+  };
+  const kendaliSentuhOverlayTamat = (e: React.TouchEvent) => {
+    if (!sentuhOverlayMula.current || parsedTickerNewsItems.length <= 1) return;
+    const t = e.changedTouches[0];
+    const deltaX = t.clientX - sentuhOverlayMula.current.x;
+    const deltaY = t.clientY - sentuhOverlayMula.current.y;
+    sentuhOverlayMula.current = null;
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 45) {
+      leretBaruBerlaku.current = true;
+      // Tamat-masa automatik (bukan cuma tunggu klik seterusnya "guna" bendera ni) — leret
+      // SEBENAR di telefon selalunya TAK cetuskan klik-serasi langsung (gerak isyarat leret
+      // dianggap tatal, bukan ketukan), jadi bendera boleh tersekat `true` selama-lamanya dan
+      // menyekat klik-tutup SAH seterusnya. 400ms cukup luas untuk klik-serasi (kalau ada)
+      // tiba, tapi singkat untuk tak jejas ketukan tulen tak berkaitan lepas tu.
+      setTimeout(() => { leretBaruBerlaku.current = false; }, 400);
+      setActiveOverlayIndex((prev) =>
+        deltaX < 0
+          ? (prev + 1) % parsedTickerNewsItems.length
+          : (prev - 1 + parsedTickerNewsItems.length) % parsedTickerNewsItems.length
+      );
+    }
+  };
+  const tutupOverlayJikaBukanLeret = () => {
+    if (leretBaruBerlaku.current) {
+      leretBaruBerlaku.current = false;
+      return;
+    }
+    setShowNewsOverlay(false);
+  };
+
   // Autocondong (Fasa 8) — senarai peraturan tipografi hidup (dibaca TypographyRenderer/
   // safeParseInline). Pengurusan peraturan (tambah/sunting/buang) kini native di Editorium
   // (Modul Editorial → Autocondong); state+loader di sini KEKAL kerana ia juga sumber data
@@ -3673,7 +3717,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       {showNewsOverlay && overlayItem && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/48 backdrop-blur-xl transition-all duration-300 animate-fade-in p-6 select-none"
-          onClick={() => setShowNewsOverlay(false)}
+          onClick={tutupOverlayJikaBukanLeret}
+          onTouchStart={kendaliSentuhOverlayMula}
+          onTouchEnd={kendaliSentuhOverlayTamat}
         >
           {/* Top Centered Logo */}
           <div className="absolute top-6 left-1/2 -translate-x-1/2 font-serif text-lg font-semibold tracking-wider text-[#802334] select-none">
@@ -3702,7 +3748,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               <button
                 type="button"
                 onClick={handlePrevNewsItem}
-                className="absolute left-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
+                /* z-10 (2026-08-06, pembetulan audit) — WAJIB. Blok bacaan tengah di bawah ni
+                   `w-full` + `relative`: di telefon ia merentangi SELURUH lebar skrin dan, kerana
+                   ia datang KEMUDIAN dalam DOM dengan konteks penyusunannya sendiri, ia dicat DI
+                   ATAS anak panah ni — jadi anak panah kelihatan tetapi ketukan tak pernah sampai
+                   (disahkan: document.elementFromPoint di tengah butang pulangkan blok teks, bukan
+                   butang). Di desktop `max-w-2xl` meninggalkan ruang di tepi jadi masalah ni tak
+                   pernah kelihatan. */
+                className="absolute left-6 top-1/2 -translate-y-1/2 z-10 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
               >
                 <ChevronLeft className="w-8 h-8" />
               </button>
@@ -3715,7 +3768,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               <button
                 type="button"
                 onClick={handleNextNewsItem}
-                className="absolute right-6 top-1/2 -translate-y-1/2 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
+                /* z-10 — lihat nota anak panah kiri di atas (sebab sama). */
+                className="absolute right-6 top-1/2 -translate-y-1/2 z-10 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
               >
                 <ChevronRight className="w-8 h-8" />
               </button>

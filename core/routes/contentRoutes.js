@@ -154,7 +154,17 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   const router = express.Router();
 
   // GET /api/system/content/all
-  router.get('/content/all', async (req, res) => {
+  //
+  // Gerbang sesi (2026-08-06, pembetulan audit) — laluan ni dahulu TERBUKA sepenuhnya tanpa sesi.
+  // Ia memulangkan SETIAP revisi terkini tanpa mengira status (approved/pending/rejected/archived)
+  // berserta medan DALAMAN: `note` (Nota editor — ironinya kita bina gerbang ketat siapa boleh
+  // MENULISnya di slotsConfigRoutes.js, tapi sesiapa di internet boleh MEMBACA semuanya),
+  // `editorName`, `createdBy`. Disahkan hidup semasa audit: 127 item terdedah tanpa log masuk,
+  // termasuk 102 kandungan arkib (yang merangkumi kandungan pernah DITOLAK). Kesemua empat
+  // pemanggilnya ialah skrin Editorium di sebalik log masuk (DashboardConsole, IndeksConsole,
+  // SenaraiSlotConsole, ContentReview), jadi requireAuth tidak memecahkan apa-apa. Laluan AWAM
+  // sebenar (layout/active, rss.xml, search) berasingan dan sentiasa 'approved' sahaja.
+  router.get('/content/all', requireAuth, async (req, res) => {
     try {
       // Admin index view: show the latest revision of every object regardless of status (approved,
       // pending, rejected, archived) — unlike the public-facing layout/active endpoint, which only
