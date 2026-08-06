@@ -29,7 +29,7 @@ export function createTranslationRoutes(dbAll, dbRun) {
       res.json(configs);
     } catch (err) {
       console.error('Fetch translation configs error:', err);
-      res.status(500).json({ error: 'Failed to fetch translation configurations.' });
+      res.status(500).json({ error: 'Gagal membaca konfigurasi terjemahan.' });
     }
   });
 
@@ -53,7 +53,7 @@ export function createTranslationRoutes(dbAll, dbRun) {
       res.json({ success: true });
     } catch (err) {
       console.error('Save translation configs error:', err);
-      res.status(500).json({ error: 'Failed to save translation configurations.' });
+      res.status(500).json({ error: 'Gagal menyimpan konfigurasi terjemahan.' });
     }
   });
 
@@ -61,7 +61,10 @@ export function createTranslationRoutes(dbAll, dbRun) {
   router.delete('/configs/:code', async (req, res) => {
     try {
       const { code } = req.params;
-      await dbRun("DELETE FROM translation_configs WHERE languageCode = ?", [code]);
+      const hasil = await dbRun("DELETE FROM translation_configs WHERE languageCode = ?", [code]);
+      if (!hasil || hasil.changes === 0) {
+        return res.status(404).json({ error: 'Konfigurasi bahasa tidak dijumpai.' });
+      }
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
         actorName: req.session?.user?.penName || req.session?.user?.username,
@@ -72,7 +75,7 @@ export function createTranslationRoutes(dbAll, dbRun) {
       res.json({ success: true });
     } catch (err) {
       console.error('Delete translation config error:', err);
-      res.status(500).json({ error: 'Failed to delete translation config.' });
+      res.status(500).json({ error: 'Gagal memadam konfigurasi terjemahan.' });
     }
   });
 

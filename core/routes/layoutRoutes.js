@@ -41,7 +41,7 @@ export function createLayoutRoutes(db, dbAll, resolveSlotContent) {
       res.json(resolvedSlots);
     } catch (err) {
       console.error('Resolve layout error:', err);
-      res.status(500).json({ error: 'Failed to resolve layout slots.' });
+      res.status(500).json({ error: 'Gagal menyelesaikan susun atur slot.' });
     }
   });
 

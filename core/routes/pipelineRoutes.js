@@ -77,7 +77,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
       }
 
       if (parsedItems.length === 0) {
-        return res.status(400).json({ error: 'Failed to parse any valid news slot data from the pasted text.' });
+        return res.status(400).json({ error: 'Tiada data slot berita yang sah dapat dihurai daripada teks yang ditampal.' });
       }
 
       // Same hard-block as the per-slot manual save: every slot of the same geometry tier is
@@ -174,7 +174,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
       res.json({ success: true, count: results.length, items: parsedItems });
     } catch (err) {
       console.error('Batch paste error:', err);
-      res.status(500).json({ error: 'Failed to process batch paste data. ' + err.message });
+      res.status(500).json({ error: 'Gagal memproses data tampal pukal. ' + err.message });
     }
   });
 
@@ -196,7 +196,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
           await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [result.objectId, slotIndex]);
           return res.json({ success: true, objectId: result.objectId, status: result.status });
         } else {
-          return res.status(400).json({ error: 'Failed to run pipeline (slot might be disabled).' });
+          return res.status(400).json({ error: 'Gagal menjalankan pipeline (slot mungkin dilumpuhkan).' });
         }
       } else {
         const { runId, results, stats } = await runAllScheduledSlots(force);
@@ -204,7 +204,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
       }
     } catch (err) {
       console.error('Run pipeline error:', err);
-      res.status(500).json({ error: 'Failed to run editorial pipeline. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal menjalankan pipeline editorial. ' + (err.message || '') });
     }
   });
 
@@ -212,7 +212,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
   router.post('/slots/run-now', requireAuth, async (req, res) => {
     const { slotIndex } = req.body;
     if (slotIndex === undefined || slotIndex === null) {
-      return res.status(400).json({ error: 'Missing slotIndex parameter.' });
+      return res.status(400).json({ error: 'Parameter nombor slot tiada.' });
     }
 
     try {

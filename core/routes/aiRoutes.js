@@ -12,7 +12,7 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
       res.json(providers);
     } catch (err) {
       console.error('Fetch providers error:', err);
-      res.status(500).json({ error: 'Failed to fetch providers.' });
+      res.status(500).json({ error: 'Gagal membaca senarai penyedia AI.' });
     }
   });
 
@@ -38,7 +38,7 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true });
     } catch (err) {
       console.error('Save provider error:', err);
-      res.status(500).json({ error: 'Failed to save provider.' });
+      res.status(500).json({ error: 'Gagal menyimpan penyedia AI.' });
     }
   });
 
@@ -48,7 +48,7 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
       const { id } = req.body;
       const prov = await dbGet("SELECT * FROM ai_providers WHERE id = ?", [id]);
       if (!prov) {
-        return res.status(404).json({ error: 'Provider not found' });
+        return res.status(404).json({ error: 'Penyedia AI tidak dijumpai.' });
       }
       const apiKey = process.env[prov.secretName] || '';
       const success = apiKey.length > 0;
@@ -59,7 +59,7 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
       res.json({ success, status: statusText, lastTest });
     } catch (err) {
       console.error('Test provider error:', err);
-      res.status(500).json({ error: 'Failed to test provider connection.' });
+      res.status(500).json({ error: 'Gagal menguji sambungan penyedia AI.' });
     }
   });
 
@@ -70,7 +70,7 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
       res.json(prompts);
     } catch (err) {
       console.error('Fetch prompts error:', err);
-      res.status(500).json({ error: 'Failed to fetch prompt templates.' });
+      res.status(500).json({ error: 'Gagal membaca templat prompt.' });
     }
   });
 
@@ -93,7 +93,7 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true });
     } catch (err) {
       console.error('Save prompt error:', err);
-      res.status(500).json({ error: 'Failed to save prompt template.' });
+      res.status(500).json({ error: 'Gagal menyimpan templat prompt.' });
     }
   });
 
@@ -104,7 +104,7 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
       res.json(logs);
     } catch (err) {
       console.error('Fetch pipeline logs error:', err);
-      res.status(500).json({ error: 'Failed to fetch pipeline logs.' });
+      res.status(500).json({ error: 'Gagal membaca log pipeline.' });
     }
   });
 
@@ -123,7 +123,7 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
       res.json(logs);
     } catch (err) {
       console.error('Fetch slot AI logs error:', err);
-      res.status(500).json({ error: 'Failed to fetch AI logs for slot.' });
+      res.status(500).json({ error: 'Gagal membaca log AI bagi slot ini.' });
     }
   });
 

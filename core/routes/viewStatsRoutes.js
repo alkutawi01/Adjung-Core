@@ -31,6 +31,20 @@ export function createViewStatsRoutes(dbAll, dbRun) {
       if (!TARGET_TYPES.has(targetType) || !targetId) {
         return res.status(204).end(); // senyap — jangan risaukan klien pengunjung awam
       }
+      // targetId disahkan ketat (2026-08-06, audit) — laluan ni AWAM tanpa sesi, dan dahulu
+      // menerima sebarang rentetan. Setiap nilai unik mencipta SATU baris baharu setiap hari,
+      // jadi penyerang boleh mengembungkan daily_view_counts tanpa had dan mencemarkan statistik
+      // Paparan Utama. Sekarang: 'slot' mesti nombor slot sah (0-37), 'homepage' tiada id bebas.
+      // Nilai 'utama' ialah apa yang klien SEBENARNYA hantar untuk homepage (lihat
+      // trackView('homepage', 'utama') di FrontpageView.tsx) — disahkan terhadap kod klien, bukan
+      // diandaikan; menyekat nilai lain akan mematikan kiraan pengunjung halaman utama secara
+      // senyap.
+      if (targetType === 'slot') {
+        const n = Number(targetId);
+        if (!Number.isInteger(n) || n < 0 || n > 37) return res.status(204).end();
+      } else if (targetId !== 'utama') {
+        return res.status(204).end();
+      }
       const date = todayStr();
       await dbRun(
         `INSERT INTO daily_view_counts (date, targetType, targetId, viewCount)

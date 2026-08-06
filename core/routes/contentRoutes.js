@@ -146,7 +146,7 @@ const gerbangKebenaranJadual = (req, res, next) => {
   const { scheduledPublishAt, scheduledExpiresAt } = req.body || {};
   if (scheduledPublishAt === undefined && scheduledExpiresAt === undefined) return next();
   if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
-    return res.status(403).json({ error: 'Forbidden', message: 'Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan Jadual Terbit/Luput.' });
+    return res.status(403).json({ error: 'Akses ditolak', message: 'Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan Jadual Terbit/Luput.' });
   }
   next();
 };
@@ -174,16 +174,46 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
     `, [nowIso]);
     for (const row of dueToPublish) {
       if (!isDue(row.scheduledPublishAt ?? nowIso)) { /* defensive no-op, SQL already filtered */ }
-      await dbRun("UPDATE editorial_revisions SET status = 'approved', updatedAt = ? WHERE id = ?", [nowIso, row.revisionId]);
       const objRow = await dbGet('SELECT slotIndex FROM editorial_objects WHERE id = ?', [row.objectId]);
+
+      // Had kandungan seslot terpakai pada terbitan BERJADUAL juga (2026-08-06, audit). Dahulu
+      // langkah ni menaikkan scheduled->approved TANPA SYARAT: jadual ialah satu-satunya laluan
+      // yang boleh menolak slot melebihi hadKandunganSlot, sedangkan setiap laluan kelulusan
+      // manual menghormatinya. Kalau slot penuh pada saat jadual matang, kandungan masuk giliran
+      // 'slot_penuh' dan dinaikkan automatik oleh promosikanMenungguSlotKosong() sebaik ruang
+      // terbuka — jadual tetap dihormati, cuma beratur, bukan dibuang.
+      let statusJadual = 'approved';
+      let sebabJadual = '';
+      if (objRow && !TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
+        const { hadKandunganSlot } = getAmSettings();
+        if (hadKandunganSlot > 0) {
+          const kiraanAktif = await dbGet(`
+            SELECT COUNT(*) AS n FROM editorial_objects o
+            JOIN editorial_revisions r ON r.objectId = o.id
+            WHERE o.slotIndex = ? AND o.id != ? AND r.status = 'approved'
+              AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+          `, [objRow.slotIndex, row.objectId]);
+          if (kiraanAktif && kiraanAktif.n >= hadKandunganSlot) {
+            statusJadual = 'pending';
+            sebabJadual = 'slot_penuh';
+          }
+        }
+      }
+
+      await dbRun("UPDATE editorial_revisions SET status = ?, updatedAt = ? WHERE id = ?", [statusJadual, nowIso, row.revisionId]);
+      await tetapkanSebabMenunggu(dbGet, dbRun, row.objectId, row.revisionId, sebabJadual);
       await logAudit(dbRun, {
-        actorId: null, actorName: 'Penjadual Sistem', action: 'kandungan-terbit-berjadual',
+        actorId: null, actorName: 'Penjadual Sistem',
+        action: sebabJadual === 'slot_penuh' ? 'kandungan-berjadual-tunggu-slot' : 'kandungan-terbit-berjadual',
         targetType: 'kandungan', targetId: row.objectId, detail: (row.title || '').slice(0, 100),
       });
       if (objRow) {
         const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [objRow.slotIndex]);
         await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
-          type: 'kandungan_terbit_berjadual', title: 'Kandungan berjadual anda kini disiar',
+          type: 'kandungan_terbit_berjadual',
+          title: sebabJadual === 'slot_penuh'
+            ? 'Kandungan berjadual anda menunggu slot kosong'
+            : 'Kandungan berjadual anda kini disiar',
           detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: row.objectId,
         });
       }
@@ -357,7 +387,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       res.json({ items: allItems, count: allItems.length });
     } catch (err) {
       console.error('Fetch aggregate content error:', err);
-      res.status(500).json({ error: 'Failed to fetch aggregate content. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal membaca himpunan kandungan. ' + (err.message || '') });
     }
   });
 
@@ -712,7 +742,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       res.json({ success: true, slotPenuh: sebabMenungguBaharu === 'slot_penuh' });
     } catch (err) {
       console.error('Patch content item error:', err);
-      res.status(500).json({ error: 'Failed to update item. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal mengemas kini kandungan. ' + (err.message || '') });
     }
   });
 
@@ -736,7 +766,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       res.json(revisions);
     } catch (err) {
       console.error('List content revisions error:', err);
-      res.status(500).json({ error: 'Failed to list revisions. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal membaca senarai versi. ' + (err.message || '') });
     }
   });
 
@@ -789,13 +819,37 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         }
       }
 
+      // Had kandungan seslot terpakai pada pulihan juga (2026-08-06, audit). Versi lama boleh
+      // berstatus 'approved'; memulihkannya ke atas kandungan yang kini diarkib/menunggu akan
+      // menjadikannya AKTIF serta-merta — memintas hadKandunganSlot yang dikuatkuasakan pada
+      // setiap laluan kelulusan lain. Kalau slot dah penuh, versi tetap dipulihkan tapi masuk
+      // giliran 'slot_penuh' (sama mekanisme macam PATCH /content/:id), bukan ditolak: editor
+      // tak patut kehilangan pulihan sebab masalah ruang yang akan selesai sendiri.
+      let statusPulihan = oldRev.status;
+      let sebabMenungguPulihan = '';
+      if (oldRev.status === 'approved' && !TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
+        const { hadKandunganSlot } = getAmSettings();
+        if (hadKandunganSlot > 0) {
+          const kiraanAktif = await dbGet(`
+            SELECT COUNT(*) AS n FROM editorial_objects o
+            JOIN editorial_revisions r ON r.objectId = o.id
+            WHERE o.slotIndex = ? AND o.id != ? AND r.status = 'approved'
+              AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+          `, [objRow.slotIndex, id]);
+          if (kiraanAktif && kiraanAktif.n >= hadKandunganSlot) {
+            statusPulihan = 'pending';
+            sebabMenungguPulihan = 'slot_penuh';
+          }
+        }
+      }
+
       const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
       const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
       const nowIso = new Date().toISOString();
       const newRev = await dbRun(
         `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
          VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
-        [id, nextVersion, oldRev.title, oldRev.summary, oldRev.status, req.session?.user?.username || 'pulih-versi', nowIso, nowIso]
+        [id, nextVersion, oldRev.title, oldRev.summary, statusPulihan, req.session?.user?.username || 'pulih-versi', nowIso, nowIso]
       );
       const newRevId = newRev.lastID;
 
@@ -811,6 +865,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       }
 
       await dbRun("UPDATE editorial_objects SET updatedAt = ? WHERE id = ?", [nowIso, id]);
+      // Tanda sebab menunggu pada revisi BAHARU supaya panel Senarai Slot papar "menunggu slot
+      // kosong" (bukan "menunggu semakan"), dan promosikanMenungguSlotKosong() boleh menaikkannya
+      // automatik sebaik ruang terbuka.
+      await tetapkanSebabMenunggu(dbGet, dbRun, id, newRevId, statusPulihan === 'pending' ? (sebabMenungguPulihan || 'semakan') : '');
 
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
@@ -821,10 +879,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         detail: (oldRev.title || '').slice(0, 100),
       });
 
-      res.json({ success: true, version: nextVersion, revisionId: newRevId });
+      res.json({ success: true, version: nextVersion, revisionId: newRevId, slotPenuh: sebabMenungguPulihan === 'slot_penuh' });
     } catch (err) {
       console.error('Restore content revision error:', err);
-      res.status(500).json({ error: 'Failed to restore revision. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal memulihkan versi. ' + (err.message || '') });
     }
   });
 
@@ -898,7 +956,19 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const existingSummary = (slotRow && slotRow.manualSummary) || '';
       const nextSummary = existingSummary.trim() ? `${existingSummary}${DRAFT_SEPARATOR}${draftBlock}` : draftBlock;
 
-      await dbRun("UPDATE slots_config SET manualSummary = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [nextSummary, objRow.slotIndex]);
+      // UPSERT + semak `changes` SEBELUM mengarkibkan revisi (2026-08-06, audit "kegagalan
+      // senyap"). Dahulu UPDATE tulen: kalau baris slots_config slot tu tiada, teks draf yang baru
+      // disusun ini hilang terus (0 baris ditulis, tiada ralat), TAPI baris seterusnya tetap
+      // mengarkibkan revisi asal — kandungan editor MUSNAH sepenuhnya sedangkan UI kata "berjaya
+      // ditolak ke draf". Urutan sekarang: pastikan draf betul-betul selamat dulu, baru arkib.
+      const tulisDraf = await dbRun(`
+        INSERT INTO slots_config (layoutTemplateId, slotIndex, manualSummary)
+        VALUES ('frontpage', ?, ?)
+        ON CONFLICT(layoutTemplateId, slotIndex) DO UPDATE SET manualSummary = excluded.manualSummary
+      `, [objRow.slotIndex, nextSummary]);
+      if (!tulisDraf || tulisDraf.changes === 0) {
+        return res.status(500).json({ error: 'Draf gagal disimpan — kandungan asal TIDAK diarkibkan, tiada apa hilang. Cuba lagi.' });
+      }
       await dbRun("UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ?", [new Date().toISOString(), rev.id]);
       await tetapkanSebabMenunggu(dbGet, dbRun, id, rev.id, '');
 
@@ -941,7 +1011,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       res.json({ success: true });
     } catch (err) {
       console.error('Reject-to-draft error:', err);
-      res.status(500).json({ error: 'Failed to reject to draft. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal menolak kandungan ke draf. ' + (err.message || '') });
     }
   });
 
@@ -995,7 +1065,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       });
     } catch (err) {
       console.error('Delete content item error:', err);
-      res.status(500).json({ error: 'Failed to delete item. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal memadam kandungan. ' + (err.message || '') });
     }
   });
 
@@ -1004,7 +1074,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
     try {
       const { slotIndex, title, summary, desk, source, url, imageUrl, topik } = req.body;
       if (slotIndex === undefined || slotIndex === null) {
-        return res.status(400).json({ error: 'Missing slotIndex.' });
+        return res.status(400).json({ error: 'Nombor slot tiada.' });
       }
       if (!title || !title.trim()) {
         return res.status(400).json({ error: 'Tajuk diperlukan.' });
@@ -1141,130 +1211,16 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       res.json({ success: true, id: objectId });
     } catch (err) {
       console.error('Create content item error:', err);
-      res.status(500).json({ error: 'Failed to create item. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal mencipta kandungan. ' + (err.message || '') });
     }
   });
 
-  // GET /api/system/content/:id/revisions — sejarah versi sebenar (Fasa 6). Senarai semua
-  // baris editorial_revisions untuk satu objek, versi terbaharu dahulu. Baca sahaja, tiada
-  // perubahan data — tak perlu requireAuth ketat macam laluan tulis, tapi ikut corak laluan
-  // baca lain dalam fail ni (content/all) yang juga tiada requireAuth.
-  router.get('/content/:id/revisions', async (req, res) => {
-    try {
-      const { id } = req.params;
-      if (id.startsWith('ticker-')) {
-        return res.status(400).json({ error: 'Ticker tidak menyokong sejarah versi.' });
-      }
-      const objRow = await dbGet('SELECT id FROM editorial_objects WHERE id = ?', [id]);
-      if (!objRow) {
-        return res.status(404).json({ error: 'Item tidak dijumpai.' });
-      }
-      const revisions = await dbAll(
-        `SELECT id, version, title, summary, status, createdBy, createdAt, updatedAt
-         FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC`,
-        [id]
-      );
-      res.json(revisions);
-    } catch (err) {
-      console.error('Get content revisions error:', err);
-      res.status(500).json({ error: 'Gagal mendapatkan sejarah versi. ' + (err.message || '') });
-    }
-  });
+  // (2026-08-06, audit "kegagalan senyap") Blok PENDUA GET /content/:id/revisions +
+  // POST .../restore dibuang dari sini. Ia didaftar kali KEDUA selepas versi bergerbang di
+  // atas (baris ~722/747), jadi Express tak pernah memadankannya — kod mati. Bahaya sebenar:
+  // salinan GET yang mati tu TIADA requireAuth, jadi kalau versi bergerbang dipadam atau
+  // susunan berubah, laluan terbuka hidup semula secara senyap.
 
-  // POST /api/system/content/:id/revisions/:revisionId/restore — pulihkan versi lama sebagai
-  // versi TERKINI baharu (bukan padam/tulis-ganti versi lain — sejarah kekal berkekalan).
-  router.post('/content/:id/revisions/:revisionId/restore', requireAuth, async (req, res) => {
-    try {
-      const { id, revisionId } = req.params;
-      if (id.startsWith('ticker-')) {
-        return res.status(400).json({ error: 'Ticker tidak menyokong pulihan versi.' });
-      }
-      const objRow = await dbGet('SELECT id, slotIndex, categoryId FROM editorial_objects WHERE id = ?', [id]);
-      if (!objRow) {
-        return res.status(404).json({ error: 'Item tidak dijumpai.' });
-      }
-      const oldRev = await dbGet(
-        'SELECT * FROM editorial_revisions WHERE id = ? AND objectId = ?',
-        [revisionId, id]
-      );
-      if (!oldRev) {
-        return res.status(404).json({ error: 'Versi tersebut tidak dijumpai untuk item ini.' });
-      }
-      const currentRev = await dbGet(
-        'SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1',
-        [id]
-      );
-      if (currentRev && currentRev.id === oldRev.id) {
-        return res.status(400).json({ error: 'Versi ini sudah menjadi versi semasa — tiada apa untuk dipulihkan.' });
-      }
-
-      // Peraturan bajet ruang & Bidang/Topik terpakai walaupun ini pulihan, bukan sunting
-      // baharu — versi lama mungkin tak lagi muat had tier semasa (CLAUDE.md: dikuatkuasakan
-      // di setiap laluan simpan, tanpa pengecualian).
-      const budgetCheck = validateContentBudget(objRow.slotIndex, oldRev.title, oldRev.summary);
-      if (!budgetCheck.isValid) {
-        return res.status(400).json({ error: budgetCheck.reason });
-      }
-      if (!TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
-        const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [objRow.slotIndex]);
-        const oldDeskRow = await dbGet(
-          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'desk'",
-          [id, oldRev.id]
-        );
-        const oldTopikRow = await dbGet(
-          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'topik'",
-          [id, oldRev.id]
-        );
-        const bidangTopikCheck = validateBidangTopik({
-          slotBidang: slotRow ? slotRow.manualDesk : null,
-          itemBidang: oldDeskRow ? oldDeskRow.valueText : objRow.categoryId,
-          topik: oldTopikRow ? oldTopikRow.valueText : '',
-          requireTopik: true,
-          slotIndex: objRow.slotIndex,
-        });
-        if (!bidangTopikCheck.isValid) {
-          return res.status(400).json({ error: bidangTopikCheck.reason });
-        }
-      }
-
-      const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
-      const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
-      const nowIso = new Date().toISOString();
-      const newRev = await dbRun(
-        `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-         VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
-        [id, nextVersion, oldRev.title, oldRev.summary, oldRev.status, req.session?.user?.username || 'restore-versi', nowIso, nowIso]
-      );
-      const newRevId = newRev.lastID;
-
-      const oldAttrs = await dbAll(
-        'SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?',
-        [id, oldRev.id]
-      );
-      for (const a of oldAttrs) {
-        await dbRun(
-          'INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)',
-          [id, newRevId, a.attributeId, a.valueText]
-        );
-      }
-
-      await dbRun('UPDATE editorial_objects SET updatedAt = ? WHERE id = ?', [nowIso, id]);
-
-      await logAudit(dbRun, {
-        actorId: req.session?.user?.id,
-        actorName: req.session?.user?.penName || req.session?.user?.username,
-        action: `restore-versi:${oldRev.version}->v${nextVersion}`,
-        targetType: 'kandungan',
-        targetId: id,
-        detail: (oldRev.title || '').slice(0, 100),
-      });
-
-      res.json({ success: true, newRevisionId: newRevId, version: nextVersion });
-    } catch (err) {
-      console.error('Restore content revision error:', err);
-      res.status(500).json({ error: 'Gagal memulihkan versi. ' + (err.message || '') });
-    }
-  });
 
   return router;
 }

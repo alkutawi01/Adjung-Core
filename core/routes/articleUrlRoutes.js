@@ -33,7 +33,13 @@ export async function getOrCreateUrlKod(dbGet, dbRun, objectId) {
     // Amat tak berkemungkinan (36^6 ≈ 2.2 bilion kombinasi) — jaring keselamatan sahaja.
     throw new Error('Gagal jana kod URL unik selepas 20 percubaan.');
   }
-  await dbRun('UPDATE editorial_objects SET urlKod = ? WHERE id = ?', [kod, objectId]);
+  // Semak `changes` (2026-08-06, audit "kegagalan senyap") — objek boleh dipadam antara SELECT di
+  // atas dan tulisan ni. Tanpa semakan, kita pulangkan kod URL yang tak pernah tersimpan: pautan
+  // dikongsi keluar, kemudian membawa ke halaman tiada.
+  const hasil = await dbRun('UPDATE editorial_objects SET urlKod = ? WHERE id = ?', [kod, objectId]);
+  if (!hasil || hasil.changes === 0) {
+    throw new Error('Kandungan tidak dijumpai — kod URL tidak dapat disimpan.');
+  }
   return kod;
 }
 

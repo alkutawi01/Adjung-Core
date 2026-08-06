@@ -186,12 +186,12 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     try {
       const page = await dbGet("SELECT * FROM static_pages WHERE key = ?", [key]);
       if (!page) {
-        return res.status(404).json({ error: 'Page not found.' });
+        return res.status(404).json({ error: 'Halaman tidak dijumpai.' });
       }
       res.json(page);
     } catch (err) {
       console.error(`Get page ${key} error:`, err);
-      res.status(500).json({ error: 'Failed to fetch page. ' + err.message });
+      res.status(500).json({ error: 'Gagal membaca halaman. ' + err.message });
     }
   });
 
@@ -200,7 +200,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     const { key } = req.params;
     const { title, content } = req.body;
     if (!title || !content) {
-      return res.status(400).json({ error: 'Missing title or content.' });
+      return res.status(400).json({ error: 'Tajuk atau kandungan tiada.' });
     }
     const timestamp = new Date().toISOString();
     try {
@@ -223,7 +223,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
       res.json({ success: true });
     } catch (err) {
       console.error(`Save page ${key} error:`, err);
-      res.status(500).json({ error: 'Failed to save page. ' + err.message });
+      res.status(500).json({ error: 'Gagal menyimpan halaman. ' + err.message });
     }
   });
 
@@ -287,7 +287,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
       res.json({ success: true });
     } catch (err) {
       console.error('Save system settings error:', err);
-      res.status(500).json({ error: 'Failed to save system settings. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal menyimpan tetapan sistem. ' + (err.message || '') });
     }
   });
 
@@ -308,7 +308,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
       });
     } catch (err) {
       console.error('System health check error:', err);
-      res.status(500).json({ status: 'ERROR', error: 'Failed to perform health check.' });
+      res.status(500).json({ status: 'ERROR', error: 'Gagal menjalankan semakan kesihatan sistem.' });
     }
   });
 

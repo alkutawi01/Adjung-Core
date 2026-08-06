@@ -79,7 +79,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
       res.json(slots);
     } catch (err) {
       console.error('Fetch slots config error:', err);
-      res.status(500).json({ error: 'Failed to fetch slots configuration.' });
+      res.status(500).json({ error: 'Gagal membaca konfigurasi slot.' });
     }
   });
 
@@ -243,7 +243,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
       res.json({ success: true });
     } catch (err) {
       console.error('Save slots config error:', err);
-      res.status(500).json({ error: 'Failed to save slots configuration. ' + (err.message || '') });
+      res.status(500).json({ error: 'Gagal menyimpan konfigurasi slot. ' + (err.message || '') });
     }
   });
 

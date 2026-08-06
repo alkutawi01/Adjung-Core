@@ -126,6 +126,20 @@ const lupaKataLaluanRateLimiter = rateLimit({
 });
 app.use('/api/auth/lupa-kata-laluan', lupaKataLaluanRateLimiter);
 
+// Had kadar aktifkan-akaun (2026-08-06, audit) — laluan tebus token (jemputan editor & set semula
+// kata laluan) ialah satu-satunya laluan auth awam yang tertinggal tanpa had. Token 256-bit
+// menjadikan tekaan kasar tak praktikal, jadi ini bukan lubang kritikal — tapi tanpa had, laluan
+// ni boleh dispam percuma (kos CPU scrypt setiap percubaan). Had lebih longgar daripada log masuk
+// sebab editor sah mungkin tersilap beberapa kali semasa menetapkan kata laluan pertama.
+const aktifkanAkaunRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak cubaan. Cuba lagi selepas beberapa minit.' },
+});
+app.use('/api/auth/aktifkan-akaun', aktifkanAkaunRateLimiter);
+
 const dbPath = path.join(__dirname, 'adjung.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -1870,6 +1884,19 @@ const initEditorialOS = (dbConn) => {
           // any new EAV attribute key (briefLong, originalDate) MUST be registered here first, or
           // every syncManualObjectsForSlot() insert using it throws SQLITE_CONSTRAINT and silently
           // aborts (caught + console.warn'd by the caller), dropping that slot's sync entirely.
+          // desk/url/source/imageUrl: EMPAT medan paling asas kandungan (Bidang, pautan sumber,
+          // nama sumber, imej) — ditulis oleh HAMPIR SETIAP laluan cipta kandungan
+          // (contentRoutes POST /content attrs[], syncManualObjectsForSlot, EditorialPipeline)
+          // tapi tidak pernah didaftar di sini (2026-08-06, ditemui semasa audit "kegagalan
+          // senyap"). Ia hanya berfungsi setakat ini kerana adjung.db sedia ada mewarisi baris
+          // ni daripada seed lama — pada DB BAHARU (deploy pelayan baharu, bina semula DB),
+          // PRAGMA foreign_keys = ON (baris 140) menyebabkan setiap INSERT gagal dengan
+          // SQLITE_CONSTRAINT yang cuma dicatat console.warn: setiap kandungan baharu kehilangan
+          // Bidang, URL, sumber dan imej secara SENYAP. Disahkan dengan ujian FK pada DB kosong.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('desk', 'Bidang', 'text')", () => {});
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('url', 'Pautan Sumber', 'text')", () => {});
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('source', 'Nama Sumber', 'text')", () => {});
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('imageUrl', 'URL Imej', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('briefLong', 'Huraian Panjang', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('originalDate', 'Tarikh Asal', 'text')", () => {});
           // sourceType: turut disimpan oleh syncManualObjectsForSlot() (attrs array) tapi sebelum ni

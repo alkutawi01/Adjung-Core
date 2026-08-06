@@ -5,6 +5,7 @@ import { notify } from '../notifications/Notify.js';
 import { hantarEmel } from '../email/MailSender.js';
 import { semakStatusToken, janaTokenTamatTempoh, STATUS_TOKEN } from '../auth/TokenLaluan.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { baseUrlEmel } from '../utils/baseUrl.js';
 
 // Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
 // Exported so server.js's DB seeding step can hash the initial Chief Editor account's random
@@ -38,7 +39,7 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
     try {
       const { usernameOrEmail, password } = req.body;
       if (!usernameOrEmail || !password) {
-        return res.status(400).json({ error: 'Username/Email and Password are required.' });
+        return res.status(400).json({ error: 'Nama pengguna/emel dan kata laluan diperlukan.' });
       }
 
       const normalized = usernameOrEmail.trim().toLowerCase();
@@ -48,15 +49,15 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
       );
 
       if (!userRow) {
-        return res.status(404).json({ error: 'UserNotFound', message: 'User not found. Please check your credentials.' });
+        return res.status(404).json({ error: 'Pengguna tidak dijumpai', message: 'Pengguna tidak dijumpai. Sila semak butiran log masuk anda.' });
       }
 
       if (userRow.isSuspended === 1) {
-        return res.status(403).json({ error: 'AccountSuspended', message: 'This account has been suspended by the editorial board.' });
+        return res.status(403).json({ error: 'Akaun digantung', message: 'Akaun ini telah digantung oleh sidang editorial.' });
       }
 
       if (!verifyPassword(password, userRow.password)) {
-        return res.status(401).json({ error: 'IncorrectPassword', message: 'Incorrect password.' });
+        return res.status(401).json({ error: 'Kata laluan salah', message: 'Kata laluan salah.' });
       }
 
       // 2026-08-02 (Fasa 3) — peranan SEBENAR ialah senarai daripada `user_roles` (satu akaun
@@ -101,7 +102,7 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
   // tak boleh dipercayai — ia boleh tersasar daripada sesi sebenar bila kuki luput).
   router.get('/me', (req, res) => {
     if (!req.session || !req.session.user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: 'Tidak dibenarkan' });
     }
     res.json({ user: req.session.user });
   });
@@ -231,7 +232,7 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
     try {
       const { email, password } = req.body;
       if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required.' });
+        return res.status(400).json({ error: 'Emel dan kata laluan diperlukan.' });
       }
       if (password.length < 8) {
         return res.status(400).json({ error: 'Kata laluan mesti sekurang-kurangnya 8 aksara.' });
@@ -244,7 +245,7 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
       );
 
       if (!userRow) {
-        return res.status(404).json({ error: 'UserNotFound', message: 'User with this email was not found.' });
+        return res.status(404).json({ error: 'Pengguna tidak dijumpai', message: 'Pengguna dengan emel ini tidak dijumpai.' });
       }
 
       await dbRun(
@@ -261,10 +262,10 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         detail: userRow.email,
       });
 
-      res.json({ success: true, message: 'Password updated successfully.' });
+      res.json({ success: true, message: 'Kata laluan berjaya dikemas kini.' });
     } catch (err) {
       console.error('Reset password error:', err);
-      res.status(500).json({ error: 'Reset password failed.' });
+      res.status(500).json({ error: 'Set semula kata laluan gagal.' });
     }
   });
 
@@ -295,7 +296,7 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         // (Gmail/Outlook dll), bukan pelayar yang sedang di brief.adjung.com, jadi tiada
         // konteks origin sedia ada untuk pautan relatif "menyambung" kepadanya. Corak sama
         // seperti sitemapRoutes.js punya baseUrl.
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const baseUrl = baseUrlEmel();
         const pautan = `${baseUrl}/tetapkan-kata-laluan?token=${token}`;
         await hantarEmel({
           to: userRow.email,

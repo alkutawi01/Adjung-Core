@@ -35,7 +35,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(sources);
     } catch (err) {
       console.error('Fetch RSS sources error:', err);
-      res.status(500).json({ error: 'Failed to fetch RSS sources.' });
+      res.status(500).json({ error: 'Gagal membaca sumber RSS.' });
     }
   });
 
@@ -51,7 +51,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, id: sourceId });
     } catch (err) {
       console.error('Save RSS source error:', err);
-      res.status(500).json({ error: 'Failed to save RSS source.' });
+      res.status(500).json({ error: 'Gagal menyimpan sumber RSS.' });
     }
   });
 
@@ -59,11 +59,12 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.delete('/rss-sources/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
-      await dbRun("DELETE FROM rss_sources_registry WHERE id = ?", [id]);
+      const h = await dbRun("DELETE FROM rss_sources_registry WHERE id = ?", [id]);
+      if (!h || h.changes === 0) return res.status(404).json({ error: 'Sumber RSS tidak dijumpai.' });
       res.json({ success: true, id });
     } catch (err) {
       console.error('Delete RSS source error:', err);
-      res.status(500).json({ error: 'Failed to delete RSS source.' });
+      res.status(500).json({ error: 'Gagal memadam sumber RSS.' });
     }
   });
 
@@ -74,7 +75,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(items);
     } catch (err) {
       console.error('Fetch review queue error:', err);
-      res.status(500).json({ error: 'Failed to fetch review queue.' });
+      res.status(500).json({ error: 'Gagal membaca giliran semakan.' });
     }
   });
 
@@ -95,7 +96,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       });
     } catch (err) {
       console.error('Fetch ticker status error:', err);
-      res.status(500).json({ error: 'Failed to fetch ticker status.' });
+      res.status(500).json({ error: 'Gagal membaca status Ticker.' });
     }
   });
 
@@ -103,13 +104,14 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.post('/ticker/review-action', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { itemId, action } = req.body; // action: 'approve' | 'reject'
-      if (!itemId || !action) return res.status(400).json({ error: 'Missing itemId or action' });
+      if (!itemId || !action) return res.status(400).json({ error: 'itemId atau tindakan tiada.' });
       const newStatus = action === 'approve' ? 'approved' : 'rejected';
-      await dbRun("UPDATE rss_ticker_items SET status = ? WHERE id = ?", [newStatus, itemId]);
+      const h = await dbRun("UPDATE rss_ticker_items SET status = ? WHERE id = ?", [newStatus, itemId]);
+      if (!h || h.changes === 0) return res.status(404).json({ error: 'Item Ticker tidak dijumpai.' });
       res.json({ success: true, itemId, status: newStatus });
     } catch (err) {
       console.error('Review action error:', err);
-      res.status(500).json({ error: 'Failed to update item status.' });
+      res.status(500).json({ error: 'Gagal mengemas kini status item.' });
     }
   });
 
@@ -132,7 +134,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(settings);
     } catch (err) {
       console.error('Fetch RSS settings error:', err);
-      res.status(500).json({ error: 'Failed to fetch RSS settings.' });
+      res.status(500).json({ error: 'Gagal membaca tetapan RSS.' });
     }
   });
 
@@ -188,7 +190,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true });
     } catch (err) {
       console.error('Save RSS settings error:', err);
-      res.status(500).json({ error: 'Failed to save RSS settings.' });
+      res.status(500).json({ error: 'Gagal menyimpan tetapan RSS.' });
     }
   });
 
@@ -199,7 +201,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(rules);
     } catch (err) {
       console.error('Fetch RSS text rules error:', err);
-      res.status(500).json({ error: 'Failed to fetch RSS text rules.' });
+      res.status(500).json({ error: 'Gagal membaca peraturan teks RSS.' });
     }
   });
 
@@ -230,7 +232,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, id });
     } catch (err) {
       console.error('Create RSS text rule error:', err);
-      res.status(500).json({ error: 'Failed to create RSS text rule.' });
+      res.status(500).json({ error: 'Gagal mencipta peraturan teks RSS.' });
     }
   });
 
@@ -272,7 +274,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true });
     } catch (err) {
       console.error('Update RSS text rule error:', err);
-      res.status(500).json({ error: 'Failed to update RSS text rule.' });
+      res.status(500).json({ error: 'Gagal mengemas kini peraturan teks RSS.' });
     }
   });
 
@@ -290,7 +292,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true });
     } catch (err) {
       console.error('Delete RSS text rule error:', err);
-      res.status(500).json({ error: 'Failed to delete RSS text rule.' });
+      res.status(500).json({ error: 'Gagal memadam peraturan teks RSS.' });
     }
   });
 
@@ -308,7 +310,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, ...testResult });
     } catch (err) {
       console.error('Test RSS text rules error:', err);
-      res.status(500).json({ error: 'Failed to test RSS text rules.' });
+      res.status(500).json({ error: 'Gagal menguji peraturan teks RSS.' });
     }
   });
 
@@ -321,7 +323,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(desks);
     } catch (err) {
       console.error('Fetch adjung desks error:', err);
-      res.status(500).json({ error: 'Failed to fetch Adjung desks.' });
+      res.status(500).json({ error: 'Gagal membaca senarai Bidang Adjung.' });
     }
   });
 
@@ -373,7 +375,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true });
     } catch (err) {
       console.error('Update adjung desk error:', err);
-      res.status(500).json({ error: 'Failed to update Adjung desk.' });
+      res.status(500).json({ error: 'Gagal mengemas kini Bidang Adjung.' });
     }
   });
 
@@ -390,7 +392,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true });
     } catch (err) {
       console.error('Delete adjung desk error:', err);
-      res.status(500).json({ error: 'Failed to delete Adjung desk.' });
+      res.status(500).json({ error: 'Gagal memadam Bidang Adjung.' });
     }
   });
 
@@ -403,7 +405,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(rules);
     } catch (err) {
       console.error('Fetch RSS desk rules error:', err);
-      res.status(500).json({ error: 'Failed to fetch RSS desk rules.' });
+      res.status(500).json({ error: 'Gagal membaca peraturan Bidang RSS.' });
     }
   });
 
@@ -434,7 +436,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, id });
     } catch (err) {
       console.error('Create RSS desk rule error:', err);
-      res.status(500).json({ error: 'Failed to create RSS desk rule.' });
+      res.status(500).json({ error: 'Gagal mencipta peraturan Bidang RSS.' });
     }
   });
 
@@ -468,7 +470,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true });
     } catch (err) {
       console.error('Update RSS desk rule error:', err);
-      res.status(500).json({ error: 'Failed to update RSS desk rule.' });
+      res.status(500).json({ error: 'Gagal mengemas kini peraturan Bidang RSS.' });
     }
   });
 
@@ -476,11 +478,12 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.delete('/rss-desk-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
-      await dbRun("DELETE FROM rss_desk_rules WHERE id = ?", [id]);
+      const h = await dbRun("DELETE FROM rss_desk_rules WHERE id = ?", [id]);
+      if (!h || h.changes === 0) return res.status(404).json({ error: 'Peraturan Bidang RSS tidak dijumpai.' });
       res.json({ success: true });
     } catch (err) {
       console.error('Delete RSS desk rule error:', err);
-      res.status(500).json({ error: 'Failed to delete RSS desk rule.' });
+      res.status(500).json({ error: 'Gagal memadam peraturan Bidang RSS.' });
     }
   });
 
@@ -496,7 +499,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, ...classificationResult });
     } catch (err) {
       console.error('Test RSS desk rules error:', err);
-      res.status(500).json({ error: 'Failed to test RSS desk rules.' });
+      res.status(500).json({ error: 'Gagal menguji peraturan Bidang RSS.' });
     }
   });
 
@@ -530,11 +533,12 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         }
       }
 
-      await dbRun("UPDATE rss_ticker_items SET category = ? WHERE id = ?", [newDesk.trim(), id]);
+      const h = await dbRun("UPDATE rss_ticker_items SET category = ? WHERE id = ?", [newDesk.trim(), id]);
+      if (!h || h.changes === 0) return res.status(404).json({ error: 'Item Ticker tidak dijumpai.' });
       res.json({ success: true });
     } catch (err) {
       console.error('Override ticker desk error:', err);
-      res.status(500).json({ error: 'Failed to override ticker desk.' });
+      res.status(500).json({ error: 'Gagal menukar Bidang item Ticker.' });
     }
   });
 
@@ -545,7 +549,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(memories);
     } catch (err) {
       console.error('Fetch editorial memory error:', err);
-      res.status(500).json({ error: 'Failed to fetch editorial memory.' });
+      res.status(500).json({ error: 'Gagal membaca memori editorial.' });
     }
   });
 
@@ -570,12 +574,13 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         VALUES (?, ?, ?, 40, 0, 1, 10, ?)
       `, [ruleId, desk.id, phrase.trim().toLowerCase(), now]);
 
-      await dbRun("UPDATE rss_editorial_memory SET status = 'promoted' WHERE id = ?", [memoryId]);
+      const h = await dbRun("UPDATE rss_editorial_memory SET status = 'promoted' WHERE id = ?", [memoryId]);
+      if (!h || h.changes === 0) return res.status(404).json({ error: 'Cadangan memori tidak dijumpai.' });
 
       res.json({ success: true, ruleId });
     } catch (err) {
       console.error('Promote memory error:', err);
-      res.status(500).json({ error: 'Failed to promote memory suggestion.' });
+      res.status(500).json({ error: 'Gagal menaikkan cadangan memori.' });
     }
   });
 
@@ -586,7 +591,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(categories);
     } catch (err) {
       console.error('Fetch blocked categories error:', err);
-      res.status(500).json({ error: 'Failed to fetch blocked categories.' });
+      res.status(500).json({ error: 'Gagal membaca kategori disekat.' });
     }
   });
 
@@ -608,7 +613,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, id });
     } catch (err) {
       console.error('Add blocked category error:', err);
-      res.status(500).json({ error: 'Failed to add blocked category.' });
+      res.status(500).json({ error: 'Gagal menambah kategori disekat.' });
     }
   });
 
@@ -616,11 +621,12 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.delete('/rss-blocked-categories/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
-      await dbRun("DELETE FROM rss_blocked_categories WHERE id = ?", [id]);
+      const h = await dbRun("DELETE FROM rss_blocked_categories WHERE id = ?", [id]);
+      if (!h || h.changes === 0) return res.status(404).json({ error: 'Kategori disekat tidak dijumpai.' });
       res.json({ success: true });
     } catch (err) {
       console.error('Delete blocked category error:', err);
-      res.status(500).json({ error: 'Failed to delete blocked category.' });
+      res.status(500).json({ error: 'Gagal memadam kategori disekat.' });
     }
   });
 
@@ -631,7 +637,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(items);
     } catch (err) {
       console.error('Fetch blocked queue error:', err);
-      res.status(500).json({ error: 'Failed to fetch blocked queue.' });
+      res.status(500).json({ error: 'Gagal membaca giliran disekat.' });
     }
   });
 
@@ -642,7 +648,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(rules);
     } catch (err) {
       console.error('Fetch typography rules error:', err);
-      res.status(500).json({ error: 'Failed to fetch typography rules.' });
+      res.status(500).json({ error: 'Gagal membaca peraturan tipografi.' });
     }
   });
 
@@ -673,7 +679,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, id });
     } catch (err) {
       console.error('Create typography rule error:', err);
-      res.status(500).json({ error: 'Failed to create typography rule. Pastikan istilah/bahasa/skop belum didaftarkan.' });
+      res.status(500).json({ error: 'Gagal mencipta peraturan tipografi. Pastikan istilah/bahasa/skop belum didaftarkan.' });
     }
   });
 
@@ -713,7 +719,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, id, newVersion });
     } catch (err) {
       console.error('Update typography rule error:', err);
-      res.status(500).json({ error: 'Failed to update typography rule.' });
+      res.status(500).json({ error: 'Gagal mengemas kini peraturan tipografi.' });
     }
   });
 
@@ -721,11 +727,12 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.delete('/adjung-typography-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
-      await dbRun("DELETE FROM adjung_typography_rules WHERE id = ?", [id]);
+      const h = await dbRun("DELETE FROM adjung_typography_rules WHERE id = ?", [id]);
+      if (!h || h.changes === 0) return res.status(404).json({ error: 'Peraturan tipografi tidak dijumpai.' });
       res.json({ success: true });
     } catch (err) {
       console.error('Delete typography rule error:', err);
-      res.status(500).json({ error: 'Failed to delete typography rule.' });
+      res.status(500).json({ error: 'Gagal memadam peraturan tipografi.' });
     }
   });
 
@@ -738,7 +745,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, tokens });
     } catch (err) {
       console.error('Preview typography error:', err);
-      res.status(500).json({ error: 'Failed to preview typography.' });
+      res.status(500).json({ error: 'Gagal memaparkan pratonton tipografi.' });
     }
   });
 
@@ -749,7 +756,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       res.json(result);
     } catch (err) {
       console.error('Fetch direct RSS ticker error:', err);
-      res.status(500).json({ error: 'Failed to fetch direct RSS ticker.' });
+      res.status(500).json({ error: 'Gagal membaca Ticker RSS langsung.' });
     }
   });
 

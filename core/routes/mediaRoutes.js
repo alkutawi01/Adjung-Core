@@ -1,6 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import { sanitizeSvgMarkup } from '../utils/sanitizeSvg.js';
 
 // 2026-08-02 (Fasa 1 keselamatan) — dahulu laluan ini tanpa auth (mount-level gate di server.js
 // kini kunci ini), TANPA had jenis fail (mana-mana base64 berlabel .png pun diterima), dan
@@ -49,13 +50,36 @@ export function createMediaRoutes(rootDir) {
       const cleanFilename = `${Date.now()}-${namaAsas}${sambungan}`;
       const filePath = path.join(uploadDir, cleanFilename);
 
+      // SVG ditapis SEBELUM ditulis (2026-08-06, audit keselamatan). Format lain ialah imej
+      // raster — tak boleh membawa skrip — tapi SVG ialah XML yang boleh mengandungi <script>
+      // dan pengendali on*. Kerana fail dihidang dari /uploads pada origin YANG SAMA, SVG
+      // bersenjata yang dibuka sesiapa akan menjalankan skrip dalam konteks sesi mereka: satu
+      // editor boleh merampas sesi Ketua Editor/Pentadbir. Ditapis, bukan ditolak, supaya ikon
+      // SVG sah kekal boleh dimuat naik.
+      if (mime === 'image/svg+xml') {
+        let svgMentah;
+        try {
+          svgMentah = Buffer.from(base64Data, 'base64').toString('utf8');
+        } catch {
+          return res.status(400).json({ error: 'Fail SVG tidak dapat dibaca.' });
+        }
+        let svgBersih;
+        try {
+          svgBersih = sanitizeSvgMarkup(svgMentah);
+        } catch (e) {
+          return res.status(400).json({ error: e.message || 'Fail SVG tidak sah.' });
+        }
+        fs.writeFileSync(filePath, svgBersih, { encoding: 'utf8' });
+        return res.json({ url: `/uploads/${cleanFilename}` });
+      }
+
       fs.writeFileSync(filePath, base64Data, { encoding: 'base64' });
 
       const fileUrl = `/uploads/${cleanFilename}`;
       res.json({ url: fileUrl });
     } catch (err) {
       console.error('File upload error:', err);
-      res.status(500).json({ error: 'Failed to upload file.' });
+      res.status(500).json({ error: 'Gagal memuat naik fail.' });
     }
   });
 

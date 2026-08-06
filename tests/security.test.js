@@ -114,7 +114,7 @@ test('Penjelakan peranan — akaun EDITOR (tiada manageAccounts) cuba GET /api/s
   const res = await fetch(`${BASE}/api/system/users`, { headers: { cookie } });
   assert.equal(res.status, 403);
   const body = await res.json();
-  assert.equal(body.error, 'Forbidden');
+  assert.equal(body.error, 'Anda tiada kebenaran untuk tindakan ini.');
 });
 
 test('Penjelakan peranan — akaun EDITOR cuba POST /api/system/users (cipta akaun baharu) pulangkan 403', async () => {

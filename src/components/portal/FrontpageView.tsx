@@ -1289,7 +1289,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     // Indices (into ABOUT_ADJUNG_ITEMS) whose title is short enough (<=40 chars) for BAR-type slots.
     const SHORT_TITLE_SAFE = [0, 2, 5, 6, 7, 9];
     const BAR_SLOTS = new Set(TIER_SLOTS.BAR);
-    const NO_BRIEF_SLOTS = new Set([4, 5, 17, 18, 31, 32, 7, 8, 9, 10, 21, 22, 23, 24]);
+    // Diterbitkan daripada TIER_SLOTS (2026-08-06, audit tier) — dahulu senarai ini ditaip
+    // tangan. Nilainya memang betul, tapi kalau satu slot bertukar tier di GeometryConfig.js,
+    // salinan tangan tertinggal SENYAP dan kad mula papar huraian yang sepatutnya tiada.
+    const NO_BRIEF_SLOTS = new Set([...TIER_SLOTS.KOMPAK, ...TIER_SLOTS.BAR]);
 
     const fallbacks = Array.from({ length: 38 }, (_, i) => {
       const pool = BAR_SLOTS.has(i) ? SHORT_TITLE_SAFE.map(idx => ABOUT_ADJUNG_ITEMS[idx]) : ABOUT_ADJUNG_ITEMS;
@@ -2668,7 +2671,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     PROGRAM-PROGRAM BERMANFAAT
                   </span>
                 </div>
-                {[7, 8, 9, 10].map((idx) => {
+                {TIER_SLOTS.BAR.slice(0, 4).map((idx) => {
                   const barItem = bentoNewsItems[idx];
                   if (!barItem) return null;
                   const isExpanded = expandedBarCluster1 === idx;
@@ -3080,7 +3083,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     PROGRAM-PROGRAM BERMANFAAT
                   </span>
                 </div>
-                {[21, 22, 23, 24].map((idx) => {
+                {TIER_SLOTS.BAR.slice(4).map((idx) => {
                   const barItem = bentoNewsItems[idx];
                   if (!barItem) return null;
                   const isExpanded = expandedBarCluster2 === idx;

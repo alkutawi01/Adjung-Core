@@ -293,7 +293,7 @@ class CategoryRegistry {
           } while (warnaDigunakan.has(warnaBaharu.toUpperCase()));
         }
         warnaDigunakan.add(warnaBaharu.toUpperCase());
-        await this.dbRun(db, "UPDATE CategoryRegistry SET color = ?, updatedAt = ? WHERE id = ?", [warnaBaharu, now, ahli[i].id]);
+        await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET color = ?, updatedAt = ? WHERE id = ?", [warnaBaharu, now, ahli[i].id]);
         dikemas++;
       }
     }
@@ -336,10 +336,22 @@ class CategoryRegistry {
   // (lihat archiveLiveContentInSlot, dipanggil eksplisit apabila TUKAR Bidang satu slot, bukan
   // apabila Bidang itu sendiri diarkibkan). Bidang diarkib cuma hilang daripada senarai boleh
   // pilih untuk kandungan BAHARU — kandungan sedia ada yang sudah guna Bidang tu terus hidup.
+  // Pembantu kongsi (2026-08-06, audit "kegagalan senyap") — setiap setter di bawah dahulu
+  // menjalankan UPDATE ... WHERE id = ? TANPA menyemak berapa baris benar-benar berubah. Kalau id
+  // tak wujud (baris diarkib/dipadam, id basi dalam tab yang lama dibuka), SQLite ubah SIFAR baris,
+  // tak lempar apa-apa, dan laluan pemanggil tetap pulangkan {success:true} — Taksonomi papar
+  // "warna/ikon/plat disimpan" sedangkan DB langsung tak berubah. Corak sama dengan pepijat
+  // assign-slot yang disahkan hidup. Sekarang sifar baris = ralat sebenar, bukan kejayaan palsu.
+  static async dbRunMestiUbah(db, query, params, mesejKalauTiada = 'Bidang tidak dijumpai.') {
+    const hasil = await this.dbRun(db, query, params);
+    if (!hasil || hasil.changes === 0) throw new Error(mesejKalauTiada);
+    return hasil;
+  }
+
   static async setActiveStatus(db, id, isActive) {
     if (!id) throw new Error('id Bidang diperlukan.');
     const now = new Date().toISOString();
-    await this.dbRun(db, "UPDATE CategoryRegistry SET isActive = ?, updatedAt = ? WHERE id = ?", [isActive ? 1 : 0, now, id]);
+    await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET isActive = ?, updatedAt = ? WHERE id = ?", [isActive ? 1 : 0, now, id]);
   }
 
   // Tukar ikon SATU baris Bidang taksonomi ke ikon lucide-react terkurasi (Taksonomi -> klik badge
@@ -348,7 +360,7 @@ class CategoryRegistry {
     if (!id) throw new Error('id Bidang diperlukan.');
     if (!iconName || !iconName.trim()) throw new Error('Nama ikon diperlukan.');
     const now = new Date().toISOString();
-    await this.dbRun(db, "UPDATE CategoryRegistry SET icon = ?, iconSvg = NULL, updatedAt = ? WHERE id = ?", [iconName.trim(), now, id]);
+    await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET icon = ?, iconSvg = NULL, updatedAt = ? WHERE id = ?", [iconName.trim(), now, id]);
   }
 
   // Tetapkan SVG custom (markup dah disanitize di peringkat route sebelum sampai sini — lihat
@@ -358,7 +370,7 @@ class CategoryRegistry {
     if (!id) throw new Error('id Bidang diperlukan.');
     if (!sanitizedSvg || !sanitizedSvg.trim()) throw new Error('SVG tidak sah.');
     const now = new Date().toISOString();
-    await this.dbRun(db, "UPDATE CategoryRegistry SET iconSvg = ?, updatedAt = ? WHERE id = ?", [sanitizedSvg.trim(), now, id]);
+    await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET iconSvg = ?, updatedAt = ? WHERE id = ?", [sanitizedSvg.trim(), now, id]);
   }
 
   // Warna Bidang. Warna diberi AUTOMATIK semasa Bidang dicipta, dan sehingga kini tiada cara untuk
@@ -380,7 +392,7 @@ class CategoryRegistry {
     if (!id) throw new Error('id Bidang diperlukan.');
     if (!sanitizedSvg || !sanitizedSvg.trim()) throw new Error('SVG tidak sah.');
     const now = new Date().toISOString();
-    await this.dbRun(db, "UPDATE CategoryRegistry SET illustrationSvg = ?, updatedAt = ? WHERE id = ?", [sanitizedSvg.trim(), now, id]);
+    await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET illustrationSvg = ?, updatedAt = ? WHERE id = ?", [sanitizedSvg.trim(), now, id]);
   }
 
   // Buang plat ilustrasi. Bidang kembali tiada plat — kolum kanan Focus View jadi ruang lapang
@@ -388,7 +400,7 @@ class CategoryRegistry {
   static async clearIllustrationSvg(db, id) {
     if (!id) throw new Error('id Bidang diperlukan.');
     const now = new Date().toISOString();
-    await this.dbRun(db, "UPDATE CategoryRegistry SET illustrationSvg = NULL, updatedAt = ? WHERE id = ?", [now, id]);
+    await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET illustrationSvg = NULL, updatedAt = ? WHERE id = ?", [now, id]);
   }
 
   // Namakan-semula SATU baris Bidang taksonomi — sengaja BUKAN renameCategory()/mergeCategories()
@@ -400,7 +412,7 @@ class CategoryRegistry {
     const trimmedName = newName.trim();
     const newSlug = this.getSlug(trimmedName);
     const now = new Date().toISOString();
-    await this.dbRun(db, "UPDATE CategoryRegistry SET name = ?, slug = ?, updatedAt = ? WHERE id = ?", [trimmedName, newSlug, now, id]);
+    await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET name = ?, slug = ?, updatedAt = ? WHERE id = ?", [trimmedName, newSlug, now, id]);
   }
 
   // Nombor slot (0-based) yang manualDesk-nya sepadan (case-insensitive) nama Bidang ni — untuk

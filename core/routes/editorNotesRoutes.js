@@ -1,5 +1,5 @@
 import express from 'express';
-import { requirePermission } from '../middleware/auth.js';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 
 // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — tiga jenis nota yang Ketua Editor
@@ -54,7 +54,13 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
   // GET /api/system/editor-notes — senarai penuh untuk Editorium (dalaman + awam).
   // Lalai status 'aktif' supaya arkib tidak membanjiri paparan harian; hantar ?status=arkib untuk
   // tab Arkib, atau ?status=semua untuk kedua-duanya.
-  router.get('/system/editor-notes', async (req, res) => {
+  //
+  // requireAuth (2026-08-06, audit keselamatan) — dahulu TERBUKA sepenuhnya walaupun laluan awam
+  // bertapis (/public/editor-notes, senarai putih skop) sudah wujud bersebelahan. Sesiapa di
+  // internet boleh baca SEMUA nota termasuk skop 'dalaman' dan arkib dengan
+  // ?skop=dalaman&status=semua — perbincangan dalaman sidang editorial terdedah. Laluan awam di
+  // bawah kekal terbuka; ini laluan Editorium, perlu sesi.
+  router.get('/system/editor-notes', requireAuth, async (req, res) => {
     try {
       const { kategori, skop, status = 'aktif' } = req.query;
       const syarat = [];

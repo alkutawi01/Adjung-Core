@@ -224,7 +224,7 @@ export function createDbStateRoutes(dbAll, dbGet) {
       });
     } catch (err) {
       console.error('Error fetching database state:', err);
-      res.status(500).json({ error: 'Database query failed' });
+      res.status(500).json({ error: 'Pertanyaan pangkalan data gagal.' });
     }
   });
 

@@ -859,7 +859,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           </div>
 
           {/* TAJUK — statik, tiada scroll. Saiz melangkah 44/37/31/27 mengikut kiraan aksara. */}
-          <h1 style={{ margin: 'clamp(8px, 1.4vh, 14px) 0 0', fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'center' }}>{titleRendered ?? title}</h1>
+          <h1 style={{ margin: 'clamp(8px, 1.4vh, 14px) 0 0', fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'center', hyphens: 'none', WebkitHyphens: 'none' }}>{titleRendered ?? title}</h1>
 
           {/* HURAIAN PANJANG — SATU-SATUNYA bahagian Focus View yang menatal. Satu lajur,
               perenggan berturutan (pembahagian dua-ukuran lama dibuang bersama huraian pendek). */}
@@ -869,7 +869,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 duaLajur ? (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 'clamp(24px, 3.2vw, 44px)', textAlign: 'left' }}>
                     {[lajurKiri, lajurKanan].map((lajur, lajurI) => (
-                      <div key={lajurI} style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty' }}>
+                      <div key={lajurI} style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', hyphens: 'none', WebkitHyphens: 'none' }}>
                         {lajur.map((para, j) => (
                           <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
                         ))}
@@ -877,7 +877,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'center', hyphens: 'none', WebkitHyphens: 'none' }}>
                     {paragraphs.map((para, j) => (
                       <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
                     ))}

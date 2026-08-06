@@ -55,7 +55,7 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
       });
     } catch (err) {
       console.error('Fetch AI statistics error:', err);
-      res.status(500).json({ error: 'Failed to fetch AI usage statistics.' });
+      res.status(500).json({ error: 'Gagal membaca statistik penggunaan AI.' });
     }
   });
 
@@ -107,7 +107,7 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
       });
     } catch (err) {
       console.error('Fetch AI breakdown error:', err);
-      res.status(500).json({ error: 'Failed to fetch AI breakdown data.' });
+      res.status(500).json({ error: 'Gagal membaca pecahan data AI.' });
     }
   });
 
@@ -151,7 +151,7 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
       res.json(breakdown);
     } catch (err) {
       console.error('Failed to fetch slot costs:', err);
-      res.status(500).json({ error: 'Failed to fetch slot costs.' });
+      res.status(500).json({ error: 'Gagal membaca kos slot.' });
     }
   });
 
@@ -162,7 +162,7 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
       res.json(pricing);
     } catch (err) {
       console.error('Fetch pricing error:', err);
-      res.status(500).json({ error: 'Failed to fetch AI model pricing.' });
+      res.status(500).json({ error: 'Gagal membaca harga model AI.' });
     }
   });
 
@@ -180,7 +180,7 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
       res.json({ success: true });
     } catch (err) {
       console.error('Save pricing error:', err);
-      res.status(500).json({ error: 'Failed to save AI model pricing.' });
+      res.status(500).json({ error: 'Gagal menyimpan harga model AI.' });
     }
   });
 

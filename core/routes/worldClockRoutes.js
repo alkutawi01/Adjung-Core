@@ -72,7 +72,7 @@ export function createWorldClockRoutes(dbGet) {
       });
     } catch (err) {
       console.error('Failed to resolve holidays:', err);
-      res.status(500).json({ error: 'Failed to retrieve holidays list.' });
+      res.status(500).json({ error: 'Gagal membaca senarai cuti.' });
     }
   });
 
