@@ -140,7 +140,14 @@ const aktifkanAkaunRateLimiter = rateLimit({
 });
 app.use('/api/auth/aktifkan-akaun', aktifkanAkaunRateLimiter);
 
-const dbPath = path.join(__dirname, 'adjung.db');
+// ADJUNG_DB_PATH (2026-08-07) — membolehkan pelayan dihidupkan terhadap pangkalan data BUANGAN
+// untuk simulasi/ujian, tanpa menyentuh adjung.db sebenar. Lalai kekal betul-betul sama seperti
+// dahulu, jadi produksi tak terjejas langsung. Ini yang membolehkan ujian "DB BAHARU" — satu
+// kelas pepijat (atribut tak berdaftar, baris yang diandaikan wujud) HANYA menampakkan diri pada
+// pangkalan data kosong, bukan pada adjung.db yang sudah mewarisi baris daripada seed lama.
+const dbPath = process.env.ADJUNG_DB_PATH
+  ? path.resolve(process.env.ADJUNG_DB_PATH)
+  : path.join(__dirname, 'adjung.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error connecting to SQLite database:', err.message);

@@ -527,7 +527,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         const reactivating = status !== undefined
           && ['approved', 'pending'].includes(status)
           && ['archived', 'rejected'].includes(rev.status);
-        const mustValidateBidangTopik = title !== undefined || summary !== undefined || slotIndex !== undefined || reactivating;
+        // `topik`/`desk` MESTI turut mencetuskan semakan (2026-08-07, ditemui oleh simulasi
+        // pintas-peraturan): sebelum ni senarai pencetus cuma title/summary/slotIndex/reactivating,
+        // jadi PATCH yang menyentuh HANYA Topik atau HANYA Bidang melepasi validateBidangTopik
+        // sepenuhnya — Topik boleh dikosongkan (walaupun wajib) dan Bidang boleh ditukar kepada
+        // nilai yang tak sepadan Bidang terkunci slot. Medan yang DIVALIDASI mesti sentiasa
+        // termasuk dalam syarat yang mencetuskan validasinya sendiri.
+        const mustValidateBidangTopik = title !== undefined || summary !== undefined
+          || slotIndex !== undefined || topik !== undefined || desk !== undefined || reactivating;
         if (mustValidateBidangTopik && !TIER_SLOTS.BAR.includes(targetSlotIndex)) {
           const slotRow = await dbGet("SELECT manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [targetSlotIndex]);
           const existingAttrs = await dbGet(

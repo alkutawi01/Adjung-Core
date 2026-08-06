@@ -382,7 +382,7 @@ class CategoryRegistry {
     const warna = String(hex || '').trim();
     if (!/^#[0-9a-f]{6}$/i.test(warna)) throw new Error('Warna mesti kod hex 6 digit, cth #802334.');
     const now = new Date().toISOString();
-    await this.dbRun(db, "UPDATE CategoryRegistry SET color = ?, updatedAt = ? WHERE id = ?", [warna.toUpperCase(), now, id]);
+    await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET color = ?, updatedAt = ? WHERE id = ?", [warna.toUpperCase(), now, id]);
   }
 
   // Plat ilustrasi BESAR Bidang (markup dah disanitize + disahkan ikut spec di categoryRoutes.js).

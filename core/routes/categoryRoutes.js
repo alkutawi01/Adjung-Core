@@ -278,7 +278,8 @@ export function createCategoryRoutes(db) {
       res.json({ success: true });
     } catch (err) {
       console.error('Rename active category error:', err);
-      res.status(500).json({ error: err.message || 'Gagal menamakan semula Bidang.' });
+      const tiada = /tidak dijumpai/i.test(err.message || '');
+      res.status(tiada ? 404 : 500).json({ error: err.message || 'Gagal menamakan semula Bidang.' });
     }
   });
 
@@ -311,7 +312,8 @@ export function createCategoryRoutes(db) {
       res.json({ success: true });
     } catch (err) {
       console.error('Set active category error:', err);
-      res.status(500).json({ error: err.message || 'Failed to update category status.' });
+      const tiada = /tidak dijumpai/i.test(err.message || '');
+      res.status(tiada ? 404 : 500).json({ error: err.message || 'Gagal mengemas kini status Bidang.' });
     }
   });
 
