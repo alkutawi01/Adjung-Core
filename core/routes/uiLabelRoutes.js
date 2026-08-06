@@ -1,5 +1,6 @@
 import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Kamus Label Sistem boleh sunting (2026-08-02, Fasa 6 "Editor label & tooltip").
 //
@@ -46,6 +47,13 @@ export function createUiLabelRoutes(dbAll, dbRun) {
           [kunci, nilai, kunci, now]
         );
       }
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-label-ui',
+        targetType: 'label',
+        detail: kunciSenarai.join(', '),
+      });
       res.json({ success: true });
     } catch (err) {
       console.error('POST ui-labels error:', err);
@@ -67,6 +75,13 @@ export function createUiLabelRoutes(dbAll, dbRun) {
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, category = excluded.category, updatedAt = excluded.updatedAt`,
         [key, lalai, kategori || '', new Date().toISOString()]
       );
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'set-semula-label-ui',
+        targetType: 'label',
+        targetId: key,
+      });
       res.json({ success: true });
     } catch (err) {
       console.error('POST ui-labels/reset error:', err);

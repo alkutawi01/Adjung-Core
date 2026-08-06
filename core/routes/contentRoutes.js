@@ -1032,6 +1032,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           url: url || '#'
         });
         await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
+        await logAudit(dbRun, {
+          actorId: req.session?.user?.id,
+          actorName: req.session?.user?.penName || req.session?.user?.username,
+          action: 'cipta-kandungan-ticker',
+          targetType: 'kandungan',
+          targetId: `ticker-${tickerItems.length - 1}`,
+          detail: title.trim().slice(0, 100),
+        });
         return res.json({ success: true, id: `ticker-${tickerItems.length - 1}` });
       }
 
@@ -1120,6 +1128,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           [objectId, revisionId, a.key, a.val]
         );
       }
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cipta-kandungan',
+        targetType: 'kandungan',
+        targetId: objectId,
+        detail: title.trim().slice(0, 100),
+      });
 
       res.json({ success: true, id: objectId });
     } catch (err) {

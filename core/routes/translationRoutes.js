@@ -1,4 +1,5 @@
 import express from 'express';
+import { logAudit } from '../audit/AuditLog.js';
 
 export function createTranslationRoutes(dbAll, dbRun) {
   const router = express.Router();
@@ -42,6 +43,13 @@ export function createTranslationRoutes(dbAll, dbRun) {
           VALUES (?, ?, ?, ?, ?, ?)
         `, [item.languageCode, item.languageName, item.providerId, item.isEnabled ? 1 : 0, item.createdAt || new Date().toISOString(), new Date().toISOString()]);
       }
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-konfigurasi-terjemahan',
+        targetType: 'terjemahan',
+        detail: list.map((i) => i.languageCode).join(', '),
+      });
       res.json({ success: true });
     } catch (err) {
       console.error('Save translation configs error:', err);
@@ -54,6 +62,13 @@ export function createTranslationRoutes(dbAll, dbRun) {
     try {
       const { code } = req.params;
       await dbRun("DELETE FROM translation_configs WHERE languageCode = ?", [code]);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-konfigurasi-terjemahan',
+        targetType: 'terjemahan',
+        targetId: code,
+      });
       res.json({ success: true });
     } catch (err) {
       console.error('Delete translation config error:', err);

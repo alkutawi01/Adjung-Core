@@ -1,5 +1,6 @@
 import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Glosari & Penyelarasan Ejaan (2026-08-01, spesifikasi pemilik projek) — senarai rujukan istilah
 // untuk pasukan editorial: bentuk yang DIPILIH bagi sesuatu istilah, berbanding bentuk yang kerap
@@ -60,6 +61,14 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
         [id, istilah, elakkan, maksud, new Date().toISOString()]
       );
       const baris = await dbGet('SELECT * FROM glosari_istilah WHERE id = ?', [id]);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'tambah-glosari',
+        targetType: 'glosari',
+        targetId: id,
+        detail: istilah,
+      });
       res.json({ success: true, entri: barisKepadaEntri(baris) });
     } catch (err) {
       console.error('POST glosari error:', err);
@@ -72,6 +81,13 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
       const sedia = await dbGet('SELECT id FROM glosari_istilah WHERE id = ?', [req.params.id]);
       if (!sedia) return res.status(404).json({ error: 'Istilah tidak dijumpai.' });
       await dbRun('DELETE FROM glosari_istilah WHERE id = ?', [req.params.id]);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-glosari',
+        targetType: 'glosari',
+        targetId: req.params.id,
+      });
       res.json({ success: true });
     } catch (err) {
       console.error('DELETE glosari error:', err);

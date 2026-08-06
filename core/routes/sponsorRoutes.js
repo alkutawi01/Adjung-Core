@@ -1,5 +1,6 @@
 import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Penaja (2026-08-05, Fasa 12 — permintaan Izzat). Tajaan BULANAN, boleh berbilang penaja
 // serentak satu bulan. Dua permukaan berasingan:
@@ -65,6 +66,14 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
          VALUES (?, ?, ?, ?, ?, ?, ?, 'aktif', ?, ?)`,
         [id, namaBersih, logoUrl || '', url || '', bulanBersih, tayangSemasaTransisi ? 1 : 0, bayaranBersih, now, now]
       );
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cipta-penaja',
+        targetType: 'penaja',
+        targetId: id,
+        detail: `${namaBersih} (${bulanBersih})`,
+      });
       res.json({ success: true, id });
     } catch (err) {
       console.error('POST system/sponsors error:', err);
@@ -109,6 +118,14 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
       params.push(id);
 
       await dbRun(`UPDATE sponsors SET ${sets.join(', ')} WHERE id = ?`, params);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-penaja',
+        targetType: 'penaja',
+        targetId: id,
+        detail: status !== undefined ? `status -> ${status}` : undefined,
+      });
       res.json({ success: true });
     } catch (err) {
       console.error('PATCH system/sponsors error:', err);

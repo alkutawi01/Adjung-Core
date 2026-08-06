@@ -2,6 +2,7 @@ import express from 'express';
 import { TIER_SLOTS, tierForSlot } from '../editorial/GeometryConfig.js';
 import { requirePermission } from '../middleware/auth.js';
 import { notifyMany } from '../notifications/Notify.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Penugasan editor kepada slot (2026-07-30, permintaan pemilik projek).
 //
@@ -94,6 +95,15 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
         detail: `Tier ${tierForSlot(slot)}`,
         targetType: 'slot',
         targetId: String(slot),
+      });
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-editor-slot',
+        targetType: 'slot',
+        targetId: String(slot),
+        detail: `Editor: ${unik.join(', ') || '(tiada)'}`,
       });
 
       res.json({ success: true, slotIndex: slot, editorIds: unik, tier: tierForSlot(slot) });

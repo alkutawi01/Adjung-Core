@@ -360,6 +360,15 @@ export function createCategoryRoutes(db) {
         }
       }
 
+      await logAudit(dbRunAdapter, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'tetapkan-bidang-slot',
+        targetType: 'slot',
+        targetId: String(slotIndex),
+        detail: trimmed || '(kosong)',
+      });
+
       res.json({ success: true });
     } catch (err) {
       console.error('Assign slot error:', err);

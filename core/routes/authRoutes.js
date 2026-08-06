@@ -4,6 +4,7 @@ import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { notify } from '../notifications/Notify.js';
 import { hantarEmel } from '../email/MailSender.js';
 import { semakStatusToken, janaTokenTamatTempoh, STATUS_TOKEN } from '../auth/TokenLaluan.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
 // Exported so server.js's DB seeding step can hash the initial Chief Editor account's random
@@ -250,6 +251,15 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         "UPDATE users SET password = ? WHERE id = ?",
         [hashPassword(password), userRow.id]
       );
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'set-semula-kata-laluan-editor',
+        targetType: 'akaun',
+        targetId: userRow.id,
+        detail: userRow.email,
+      });
 
       res.json({ success: true, message: 'Password updated successfully.' });
     } catch (err) {

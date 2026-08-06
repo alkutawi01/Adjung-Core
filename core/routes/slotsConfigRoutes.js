@@ -3,6 +3,7 @@ import { ceilingForSlot as getGeometryCeilingForSlot } from '../editorial/Geomet
 import { detectSourceType } from '../editorial/SourceDetector.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, hasPermission } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Gerbang Nota (2026-08-05, permintaan Ketua Editor) — medan "Nota editor" (Focus View)
 // sepatutnya HANYA boleh ditulis oleh (a) editor yang DITUGASKAN slot berkenaan (`slot_editors`,
@@ -229,6 +230,16 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
           await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [stampManualModeOnTickerBlocks(slot.manualSummary)]);
         }
       }
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-konfigurasi-slot',
+        targetType: 'slot',
+        targetId: slots.map((s) => s.slotIndex).join(','),
+        detail: `${slots.length} slot disimpan`,
+      });
+
       res.json({ success: true });
     } catch (err) {
       console.error('Save slots config error:', err);
