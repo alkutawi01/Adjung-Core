@@ -425,7 +425,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               subTab === 'HalamanAwam' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
-            2. Halaman Awam
+            2. Halaman Awam & Dalaman
           </button>
 
           <button
@@ -963,23 +963,27 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 // Halaman Awam (2026-08-02, Fasa 6) — ruang edit Tentang/Hubungi/Polisi & Penafian. Guna
 // static_pages sedia ada (GET/POST /api/pages/:key). Sengaja TIDAK papar apa-apa halaman awam
 // sebenar di sini — itu Fasa 11; ini cuma tempat isi kandungan supaya tak tertangguh sepenuhnya.
-const HALAMAN_AWAM_SENARAI: { key: string; label: string }[] = [
-  { key: 'tentang', label: 'Tentang' },
-  { key: 'hubungi', label: 'Hubungi' },
+// `kumpulan` (2026-08-06, pembetulan label — Izzat: "kenapa letak di Halaman Awam? logik ke?")
+// — 'awam' = pembaca portal boleh nampak, 'dalaman' = editor sahaja (LengkapkanProfilModal.tsx).
+// Dua kumpulan ni kongsi mekanisme belakang tabir SAMA (static_pages) sengaja untuk elak laluan
+// berganda, tapi perlu dibezakan SECARA VISUAL di sini supaya tak nampak macam salah kategori.
+const HALAMAN_AWAM_SENARAI: { key: string; label: string; kumpulan: 'awam' | 'dalaman' }[] = [
+  { key: 'tentang', label: 'Tentang', kumpulan: 'awam' },
+  { key: 'hubungi', label: 'Hubungi', kumpulan: 'awam' },
   // "Polisi & Penafian" dipecah kepada TIGA halaman berasingan (2026-08-05, permintaan Izzat —
   // susun atur footer baharu). Kunci 'polisi-penafian' lama DIKEKALKAN wujud di static_pages
   // (tak dipadam) sekiranya ada kandungan lama tersimpan — cuma tak diedit/dipaparkan di sini
   // lagi, tiga kunci baharu ni yang aktif.
-  { key: 'polisi-privasi', label: 'Polisi Privasi' },
-  { key: 'terma-penggunaan', label: 'Terma Penggunaan' },
-  { key: 'penafian', label: 'Penafian' },
+  { key: 'polisi-privasi', label: 'Polisi Privasi', kumpulan: 'awam' },
+  { key: 'terma-penggunaan', label: 'Terma Penggunaan', kumpulan: 'awam' },
+  { key: 'penafian', label: 'Penafian', kumpulan: 'awam' },
   // Syarat & Peraturan Editor (2026-08-05, permintaan Izzat) — KANDUNGAN DALAMAN untuk editor
   // sahaja (dasar aktif, kerahsiaan draf, dll), BUKAN halaman awam pembaca — sengaja BERASINGAN
   // drpd "Terma Penggunaan" di atas (tu untuk pembaca portal, dah ada kandungan sebenar).
   // Dipapar di LengkapkanProfilModal.tsx (gerbang log masuk pertama editor), diedit di sini
   // guna mekanisme static_pages SAMA (GET/POST /api/pages/:key) supaya satu corak, tiada laluan
   // baharu diperlukan.
-  { key: 'syarat-editor', label: 'Syarat & Peraturan Editor' },
+  { key: 'syarat-editor', label: 'Syarat & Peraturan Editor', kumpulan: 'dalaman' },
 ];
 
 function HalamanAwamPanel() {
@@ -1034,7 +1038,7 @@ function HalamanAwamPanel() {
     <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
       <div>
         <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-          Kandungan Halaman Awam
+          Kandungan Halaman Awam & Dalaman
         </h3>
         <p className="text-stone-500 text-xs mt-1">
           Ruang isi kandungan sahaja — halaman awam sebenar (URL, reka bentuk, pautan footer) belum
@@ -1042,18 +1046,43 @@ function HalamanAwamPanel() {
         </p>
       </div>
 
-      <div className="flex gap-1.5 border-b border-stone-200 pb-2">
-        {HALAMAN_AWAM_SENARAI.map(h => (
-          <button
-            key={h.key}
-            onClick={() => setHalamanAktif(h.key)}
-            className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors ${
-              halamanAktif === h.key ? 'bg-[#802334] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-            }`}
-          >
-            {h.label}
-          </button>
-        ))}
+      <div className="space-y-2 border-b border-stone-200 pb-3">
+        <div>
+          <span className="block font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1">
+            Halaman awam — pembaca portal boleh nampak
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {HALAMAN_AWAM_SENARAI.filter(h => h.kumpulan === 'awam').map(h => (
+              <button
+                key={h.key}
+                onClick={() => setHalamanAktif(h.key)}
+                className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors ${
+                  halamanAktif === h.key ? 'bg-[#802334] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                {h.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <span className="block font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1">
+            Dalaman — editor sahaja, tak dipaparkan kepada pembaca
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {HALAMAN_AWAM_SENARAI.filter(h => h.kumpulan === 'dalaman').map(h => (
+              <button
+                key={h.key}
+                onClick={() => setHalamanAktif(h.key)}
+                className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors ${
+                  halamanAktif === h.key ? 'bg-[#802334] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                {h.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {memuat ? (
