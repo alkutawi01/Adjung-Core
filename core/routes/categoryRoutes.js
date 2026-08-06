@@ -19,10 +19,27 @@ const SVG_ALLOWED_ATTR = [
 ];
 const SVG_MAX_BYTES = 100 * 1024; // ikon patut kecil — had jana-jana penyalahgunaan/DB bloat
 
+// Kongsi antara ikon KECIL (di bawah) dan plat ilustrasi BESAR (sanitizeIllustrationSvg) — dahulu
+// dua salinan berasingan, satu (ikon) tertinggal tanpa penukaran warna sama sekali (2026-08-06,
+// laporan Izzat: "warna pun tak berubah ikut warna yg sepatutnya" selepas muat naik ikon custom).
+// Warna literal (fill/stroke/stop-color) ditukar kepada currentColor supaya ikon/plat mewarisi
+// warna Bidang (`color` CSS pada wrapper di BidangIcon.tsx), sama seperti ikon lucide-react
+// bawaan yang memang guna currentColor secara semula jadi.
+const KEKAL_WARNA = /^(?:none|transparent|inherit|currentColor|url\()/i;
+function tukarWarnaKepadaCurrentColor(svg) {
+  let warnaDitukar = 0;
+  const hasil = svg.replace(/\s(fill|stroke|stop-color)\s*=\s*"([^"]*)"/gi, (padanan, atribut, nilai) => {
+    if (KEKAL_WARNA.test(nilai.trim())) return padanan;
+    warnaDitukar++;
+    return ` ${atribut}="currentColor"`;
+  });
+  return { svg: hasil, warnaDitukar };
+}
+
 function sanitizeSvgIcon(raw) {
   if (typeof raw !== 'string' || !raw.trim()) throw new Error('SVG kosong.');
   if (Buffer.byteLength(raw, 'utf8') > SVG_MAX_BYTES) throw new Error('Fail SVG terlalu besar (had 100KB).');
-  const cleaned = sanitizeHtml(raw, {
+  let cleaned = sanitizeHtml(raw, {
     allowedTags: SVG_ALLOWED_TAGS,
     allowedAttributes: { '*': SVG_ALLOWED_ATTR },
     allowedSchemes: [],
@@ -33,6 +50,7 @@ function sanitizeSvgIcon(raw) {
     parser: { xmlMode: true }
   }).trim();
   if (!/^<svg[\s>]/i.test(cleaned)) throw new Error('Fail bukan SVG yang sah selepas ditapis.');
+  ({ svg: cleaned } = tukarWarnaKepadaCurrentColor(cleaned));
   return cleaned;
 }
 
@@ -109,13 +127,8 @@ function sanitizeIllustrationSvg(raw) {
   //
   // Nilai legap (opacity/fill-opacity/stroke-opacity) tidak disentuh, jadi variasi ton dalam karya
   // asal masih kekal.
-  const KEKAL = /^(?:none|transparent|inherit|currentColor|url\()/i;
-  let warnaDitukar = 0;
-  cleaned = cleaned.replace(/\s(fill|stroke|stop-color)\s*=\s*"([^"]*)"/gi, (padanan, atribut, nilai) => {
-    if (KEKAL.test(nilai.trim())) return padanan;
-    warnaDitukar++;
-    return ` ${atribut}="currentColor"`;
-  });
+  const { svg: svgWarnaDitukar, warnaDitukar } = tukarWarnaKepadaCurrentColor(cleaned);
+  cleaned = svgWarnaDitukar;
 
   // width/height pada akar melawan penyaizan CSS; buang senyap-senyap, bukan tolak.
   const rootTag = cleaned.slice(0, cleaned.indexOf('>') + 1);
