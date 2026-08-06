@@ -1,6 +1,7 @@
 import express from 'express';
 import { requirePermission, loadRolePermissions } from '../middleware/auth.js';
 import { notifyMany } from '../notifications/Notify.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Notifikasi Sistem (Fasa 6b) — dedail sama seperti slotRoutes.js's beritahuPentadbirDanKetuaEditor,
 // disalin di sini (bukan diimport) sebab modul ni tak lain kongsi apa-apa dengan slotRoutes.js;
@@ -136,6 +137,18 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         INSERT OR REPLACE INTO static_pages (key, title, content, updatedAt)
         VALUES (?, ?, ?, ?)
       `, [key, title, content, timestamp]);
+
+      // Log Audit (2026-08-06, pembetulan audit) — halaman awam (Tentang, Terma Penggunaan, dll)
+      // dibaca sesiapa di internet, patut ada jejak siapa ubah kandungannya bila.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-halaman-awam',
+        targetType: 'halaman-awam',
+        targetId: key,
+        detail: (title || '').slice(0, 100),
+      });
+
       res.json({ success: true });
     } catch (err) {
       console.error(`Save page ${key} error:`, err);
@@ -186,6 +199,20 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
       // supaya perubahan kebenaran berkuat kuasa pada permintaan SETERUSNYA, bukan tunggu server
       // dimulakan semula (sama corak loadAmSettings/loadTierOverrides).
       await loadRolePermissions(dbGet);
+
+      // Log Audit (2026-08-06, pembetulan audit) — laluan ni tulis-ganti SATU baris settings-main
+      // sepenuhnya (INSERT OR REPLACE), merangkumi tetapan sistem paling sensitif dalam projek ni
+      // (matriks Kawalan Akses RBAC, master prompt AI, dll). Dahulu sifar jejak langsung —
+      // sesiapa boleh ubah kebenaran peranan tanpa rekod siapa/bila.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-tetapan-sistem',
+        targetType: 'tetapan',
+        targetId: 'system-settings',
+        detail: s.rolePermissions !== undefined ? 'Termasuk kemas kini matriks Kawalan Akses (RBAC).' : undefined,
+      });
+
       res.json({ success: true });
     } catch (err) {
       console.error('Save system settings error:', err);

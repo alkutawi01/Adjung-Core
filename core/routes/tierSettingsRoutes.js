@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 import {
   GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, setTierOverrides, ratiosForTier,
 } from '../editorial/GeometryConfig.js';
@@ -92,6 +93,18 @@ export const createTierSettingsRoutes = (dbAll, dbRun) => {
       `, [tierKey, tajuk, huraian, new Date().toISOString()]);
 
       await loadTierOverrides(dbAll);
+
+      // Log Audit (2026-08-06, pembetulan audit) — pindaan tier jejas SEMUA slot bentuk tu
+      // sekali gus (bukan slot tunggal), patut ada jejak siapa ubah bila.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-tetapan-tier',
+        targetType: 'tier',
+        targetId: tierKey,
+        detail: `Had tajuk=${tajuk}, huraian=${huraian}.`,
+      });
+
       res.json({ success: true, tierKey, maxTitleAlone: tajuk, maxBriefAlone: huraian });
     } catch (err) {
       console.error('POST tier-settings error:', err);
@@ -109,6 +122,15 @@ export const createTierSettingsRoutes = (dbAll, dbRun) => {
       }
       await dbRun('DELETE FROM tier_settings WHERE tierKey = ?', [tierKey]);
       await loadTierOverrides(dbAll);
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'reset-tetapan-tier',
+        targetType: 'tier',
+        targetId: tierKey,
+      });
+
       res.json({ success: true, tierKey });
     } catch (err) {
       console.error('POST tier-settings/reset error:', err);

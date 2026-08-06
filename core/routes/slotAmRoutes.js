@@ -1,6 +1,7 @@
 import express from 'express';
 import { setMedanLimits } from '../editorial/ContentBudget.js';
 import { requireAuth } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
 // bento sekali gus, bukan per-slot dan bukan per-tier. Ticker dan tier Bar tiada di sini; kedua-dua
@@ -181,6 +182,20 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       ]);
 
       await loadAmSettings(dbGet);
+
+      // Log Audit (2026-08-06, pembetulan audit) — dahulu tetapan sistem (Tetapan Am Slot, Tier
+      // Kad, Polisi/Halaman Awam) langsung tak dicatat, cuma tindakan editorial (terbit/tolak/
+      // arkib) dan pentadbiran akaun yang direkod. Perubahan sini boleh jejas SEMUA slot bento
+      // sekali gus (jenis/arah animasi, had aksara, giliran logo penaja) — patut ada jejak siapa
+      // ubah bila, sama macam tindakan lain.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-tetapan-am-slot',
+        targetType: 'tetapan',
+        targetId: 'slot-am-settings',
+      });
+
       res.json({ success: true, ...getAmSettings() });
     } catch (err) {
       console.error('POST slot-am-settings error:', err);

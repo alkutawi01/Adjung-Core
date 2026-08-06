@@ -1,6 +1,15 @@
 // EditorialTextNormalizer.js - Dynamic Text Cleaning & Transformation Engine for Adjung Brief.
 // 100% Configurable by Chief Editor via Adjung Editorial Text Rules.
 
+// stripLocationDateline diimport terus daripada SourceSanitizer.js (2026-08-06, pembetulan
+// audit) — dahulu DUA salinan byte-for-byte sama fungsi ni wujud (satu di sini, satu di
+// SourceSanitizer.js/dipakai RssDirectEngine.js), risiko hanyut kalau satu diubah tanpa yang
+// lain. Kedua-dua salinan disahkan LIVE (bukan satu kod mati) — laluan ni (normalizeEditorialText/
+// processTextWithTrace, dipanggil slotRoutes.js semasa ambilan RSS) dan RssDirectEngine.js
+// kedua-duanya benar-benar dilaksanakan.
+import { stripLocationDateline } from './SourceSanitizer.js';
+export { stripLocationDateline };
+
 export function decodeHtmlEntities(rawText) {
   if (!rawText || typeof rawText !== 'string') return '';
 
@@ -34,10 +43,6 @@ export function decodeHtmlEntities(rawText) {
     .replace(/&ndash;/g, '–');
 }
 
-export function stripLocationDateline(rawText) {
-  if (!rawText || typeof rawText !== 'string') return '';
-  return rawText.replace(/^(?:[A-Z\s]{2,30}(?:[,\s]+\d{1,2}\s+[A-Za-z]+)?)\s*[\-–—:]+\s*/i, '').trim();
-}
 
 /**
  * Filter and sort rules applicable for a specific scope and sourceId.
