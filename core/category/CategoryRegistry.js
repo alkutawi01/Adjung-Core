@@ -100,6 +100,28 @@ class CategoryRegistry {
     return await this.dbAll(db, "SELECT * FROM CategoryRegistry ORDER BY name ASC");
   }
 
+  // Pemilih warna kongsi (2026-08-06, pembetulan — dahulu activateCategory ada salinan fallback
+  // BERASINGAN yang dikodkan keras generateColorBeyondPalette(0), bermakna SETIAP Bidang dicipta
+  // via "+ Tambah Bidang" tanpa warna eksplisit dapat warna IDENTIK, bukan pelbagai — Izzat
+  // laporkan "dua jenis maroon" di Taksonomi. SATU sumber kebenaran untuk logik "cari warna belum
+  // digunakan" supaya kedua-dua laluan cipta Bidang (auto-daftar RSS/pipeline DAN "+ Tambah
+  // Bidang" manual) sentiasa selari.
+  static async pilihWarnaBelumDigunakan(db) {
+    const allRegistered = await this.dbAll(db, "SELECT color FROM CategoryRegistry");
+    const assignedColors = allRegistered.map(r => r.color.toUpperCase());
+
+    // Find first unused color in the curated palette; once that's exhausted, generate a new one
+    // algorithmically rather than wrapping around and reusing an already-assigned color.
+    let chosenColor = COLOR_PALETTE.find(c => !assignedColors.includes(c.toUpperCase()));
+    if (!chosenColor) {
+      chosenColor = this.generateColorBeyondPalette(allRegistered.length);
+      while (assignedColors.includes(chosenColor.toUpperCase())) {
+        chosenColor = this.generateColorBeyondPalette(allRegistered.length + assignedColors.length);
+      }
+    }
+    return chosenColor;
+  }
+
   static async registerCategory(db, category) {
     if (!category || category.trim() === '') {
       category = 'UMUM';
@@ -113,19 +135,7 @@ class CategoryRegistry {
       return existing;
     }
 
-    // Assign color
-    const allRegistered = await this.dbAll(db, "SELECT color FROM CategoryRegistry");
-    const assignedColors = allRegistered.map(r => r.color.toUpperCase());
-
-    // Find first unused color in the curated palette; once that's exhausted, generate a new one
-    // algorithmically rather than wrapping around and reusing an already-assigned color.
-    let chosenColor = COLOR_PALETTE.find(c => !assignedColors.includes(c.toUpperCase()));
-    if (!chosenColor) {
-      chosenColor = this.generateColorBeyondPalette(allRegistered.length);
-      while (assignedColors.includes(chosenColor.toUpperCase())) {
-        chosenColor = this.generateColorBeyondPalette(allRegistered.length + assignedColors.length);
-      }
-    }
+    const chosenColor = await this.pilihWarnaBelumDigunakan(db);
 
     const id = `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const now = new Date().toISOString();
@@ -262,7 +272,7 @@ class CategoryRegistry {
     }
 
     const id = `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const finalColor = color || this.generateColorBeyondPalette(0);
+    const finalColor = color || await this.pilihWarnaBelumDigunakan(db);
     const finalIcon = icon || null;
     await this.dbRun(db, `
       INSERT INTO CategoryRegistry (id, slug, name, color, icon, usageCount, isActive, originalName, createdAt, updatedAt)
