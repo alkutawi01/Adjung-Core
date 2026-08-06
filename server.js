@@ -2823,17 +2823,20 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
 
     if (objectIds.length === 0 && !slotHasMigratedRows) {
       isManualParsed = true;
-      // TAPIS DRAF (2026-08-07, ditemui oleh simulasi portal awam) — laluan sandaran ni menghurai
-      // teks manualSummary MENTAH, yang mengandungi blok draf editor bersama blok yang benar-benar
-      // diterbitkan. Sebelum ni ia mendorong SETIAP blok ke frontpage AWAM tanpa melihat status:
-      // slot yang belum pernah ada kandungan diterbitkan (tiada baris editorial_objects) akan
-      // menyiarkan tulisan draf yang belum siap kepada pembaca. Disahkan hidup: tajuk bertanda
-      // "Status: draf" muncul dalam GET /api/system/layout/active tanpa sesi.
+      // HANYA TERBIT YANG AWAM (2026-08-07, ditemui oleh simulasi portal awam & matriks status) —
+      // laluan sandaran ni menghurai teks manualSummary MENTAH, yang mengandungi blok draf DAN
+      // blok menunggu semakan bersama blok yang benar-benar diterbitkan. Sebelum ni ia mendorong
+      // SETIAP blok ke frontpage AWAM tanpa melihat status langsung: slot legasi (tiada baris
+      // editorial_objects) menyiarkan tulisan belum siap kepada pembaca. Disahkan hidup dua kali —
+      // mula-mula tajuk "Status: draf", kemudian "Status: pending" — jadi senarai putih digunakan
+      // di sini, BUKAN senarai hitam: apa-apa status baharu pada masa depan tersembunyi secara
+      // lalai, bukan terdedah secara lalai.
       //
-      // Blok tanpa baris "Status:" langsung dianggap terbit — sengaja, sepadan lalai
-      // parseManualSummaryTemplate (kandungan lama sebelum medan Status wujud).
+      // Blok tanpa baris "Status:" langsung dihurai sebagai 'approved' oleh
+      // parseManualSummaryTemplate (sengaja — kandungan lama sebelum medan Status wujud), jadi ia
+      // tetap lulus penapis ni dan kekal terpapar seperti dahulu.
       const parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot)
-        .filter((p) => p.status !== 'draft');
+        .filter((p) => p.status === 'approved');
       for (const parsed of parsedItems) {
         const approvedRevision = {
           title: parsed.title,

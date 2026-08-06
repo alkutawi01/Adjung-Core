@@ -36,7 +36,56 @@ async function tetapkanSebabMenunggu(dbGet, dbRun, objectId, revisionId, nilai) 
 // gus — kalau ruang lebih daripada satu terbuka serentak (jarang, tapi boleh berlaku semasa
 // runSchedulingTick luput beberapa item serentak), panggilan berulang di setiap tapak yang sama
 // akan naikkan taraf satu demi satu sehingga ruang penuh atau tiada calon lagi.
+// Kunci per-slot (2026-08-07) — keadaan perlumbaan SEBENAR yang ditangkap simulasi serentak:
+// dua tindakan yang membebaskan ruang pada slot SAMA (cth dua permintaan Arkib serentak, atau
+// runSchedulingTick meluputkan beberapa item serentak) memanggil fungsi ni bersilang. Kedua-dua
+// panggilan membaca kiraan 'approved' SEBELUM mana-mana daripadanya menulis, kedua-duanya nampak
+// ada ruang, dan kedua-duanya menaikkan satu kandungan — slot melebihi hadKandunganSlot.
+// Perlumbaan ni berselang-seli (lulus larian pertama, gagal larian kemudian), jadi ia takkan
+// pernah ditemui dengan membaca kod atau ujian sekali-jalan.
+//
+// Panggilan pada slot yang SAMA kini beratur (rantaian janji per-slot); slot berbeza tetap
+// berjalan serentak. Cukup kerana pelayan berjalan sebagai SATU proses (PM2 mod fork) — kalau
+// kelak diskalakan kepada mod cluster/berbilang tika, kunci ni mesti dinaik taraf kepada kunci
+// peringkat pangkalan data (cth transaksi IMMEDIATE), kerana kunci dalam-proses tidak merentas proses.
+const kunciPromosiSlot = new Map();
+
+// Siri-kan operasi status kandungan (2026-08-07) — perlumbaan KEDUA yang ditangkap simulasi
+// serentak: semakan had kapasiti dalam PATCH /content/:id juga BACA kiraan 'approved' dahulu dan
+// TULIS status kemudian. Dua editor meluluskan dua kandungan BERBEZA pada slot yang sama dalam
+// masa yang sama: kedua-duanya nampak ada ruang, kedua-duanya jadi Aktif, had dilanggar.
+// Disahkan berselang-seli — 3 daripada 4 larian gagal sebelum pembetulan ini.
+//
+// Operasi status kandungan disiri-kan sepenuhnya (bukan per-slot) kerana bahagian kritikal
+// merentangi hampir keseluruhan pengendali, dan menguncinya per-slot memerlukan penyusunan semula
+// besar pada kod yang sudah rumit — risiko yang tidak berbaloi. Kosnya boleh diabaikan: ini
+// tindakan editorial (beberapa puluh sehari, dicetuskan klik manusia), bukan trafik pembaca.
+// Laluan BACA awam tidak tersentuh langsung.
+//
+// Sama seperti kunci promosi di atas: cukup kerana pelayan satu proses (PM2 mod fork). Kalau
+// kelak diskalakan kepada berbilang tika, ini mesti jadi kunci peringkat pangkalan data.
+let rantaianKunciKandungan = Promise.resolve();
+function denganKunciKandungan(fn) {
+  const giliran = rantaianKunciKandungan.catch(() => {}).then(fn);
+  rantaianKunciKandungan = giliran.catch(() => {});
+  return giliran;
+}
+
 async function promosikanMenungguSlotKosong(dbAll, dbGet, dbRun, slotIndex) {
+  const sebelumnya = kunciPromosiSlot.get(slotIndex) || Promise.resolve();
+  const giliran = sebelumnya
+    .catch(() => {}) // kegagalan panggilan terdahulu tak boleh menyekat giliran seterusnya
+    .then(() => promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotIndex));
+  kunciPromosiSlot.set(slotIndex, giliran);
+  try {
+    await giliran;
+  } finally {
+    // Elak Map membesar tanpa had: buang entri kalau tiada panggilan lain beratur selepas kita.
+    if (kunciPromosiSlot.get(slotIndex) === giliran) kunciPromosiSlot.delete(slotIndex);
+  }
+}
+
+async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotIndex) {
   if (TIER_SLOTS.BAR.includes(slotIndex)) return; // Bar tak sokong alur Draf/Terbit
   const { hadKandunganSlot } = getAmSettings();
   if (!hadKandunganSlot || hadKandunganSlot <= 0) return; // tiada had = tiada giliran utk dinaik taraf
@@ -392,7 +441,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   });
 
   // PATCH /api/system/content/:id
-  router.patch('/content/:id', requireAuth, gerbangKebenaranJadual, async (req, res) => {
+  router.patch('/content/:id', requireAuth, gerbangKebenaranJadual, (req, res) => denganKunciKandungan(async () => {
     try {
       const { id } = req.params;
       const { title, summary, desk, source, url, status, topik, slotIndex, briefLong, originalDate, note, scheduledPublishAt, scheduledExpiresAt } = req.body;
@@ -751,7 +800,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       console.error('Patch content item error:', err);
       res.status(500).json({ error: 'Gagal mengemas kini kandungan. ' + (err.message || '') });
     }
-  });
+  }));
 
   // GET /api/system/content/:id/revisions — Sejarah Versi Sebenar (Fasa 6). Pulangkan setiap
   // baris editorial_revisions untuk objek ni (bukan cuma versi terkini), tersusun terbaharu dulu,
