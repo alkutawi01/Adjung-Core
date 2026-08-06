@@ -263,18 +263,8 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 {/* Susunan header (2026-08-01) — nama/peranan editor diletak DEKAT HUJUNG KANAN
                     (bersebelahan Log Keluar), bukan di hadapan ikon-ikon tindakan. Ikon (tambah
                     kandungan, Makluman) datang dahulu, badge profil + Log Keluar menutup di hujung. */}
-                {/* Butang tambah kandungan — ikon sahaja (spesifikasi asal pemilik projek: "+"
-                    sebagai simbol, bukan label teks — disahkan semula 2026-08-03). */}
-                {onOpenSlotPicker && (
-                  <button
-                    type="button"
-                    onClick={onOpenSlotPicker}
-                    title="Tulis Kandungan Baharu"
-                    className="flex items-center justify-center w-7 h-7 bg-[#802334] text-white rounded hover:bg-[#9b2c41] transition-colors cursor-pointer"
-                  >
-                    <PenLine className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                {/* Butang tambah kandungan dipindah jadi FAB terapung penjuru kanan bawah
+                    (2026-08-07, permintaan Izzat) — lihat hujung fail. */}
                 {/* Peti Makluman — ikon sahaja ("✉️" sebagai simbol). */}
                 {onOpenMakluman && (
                   <button
@@ -417,6 +407,23 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           </span>
         </div>
       </footer>
+
+      {/* FAB tulis kandungan — terapung penjuru kanan bawah (2026-08-07, permintaan Izzat:
+          "ikon/butang tulis kandungan jadikan terapung di penjuru kanan belah bawah"). Dulu
+          ikon dalam header, kini `fixed` supaya sentiasa boleh dicapai tanpa skrol balik atas,
+          konsisten pada semua saiz skrin (bukan cuma md+). Ikon sahaja kekal (spesifikasi asal
+          pemilik projek disahkan 2026-08-03), diperbesar sikit (w-12 h-12) sebab kini sasaran
+          sentuh berasingan, bukan sebahagian kelompok ikon kecil header. */}
+      {currentUser && onOpenSlotPicker && (
+        <button
+          type="button"
+          onClick={onOpenSlotPicker}
+          title="Tulis Kandungan Baharu"
+          className="fixed bottom-16 right-6 z-40 flex items-center justify-center w-12 h-12 bg-[#802334] text-white rounded-full shadow-[0_4px_16px_rgba(128,35,52,0.4)] hover:bg-[#9b2c41] hover:shadow-[0_6px_20px_rgba(128,35,52,0.5)] transition-all cursor-pointer"
+        >
+          <PenLine className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 };
