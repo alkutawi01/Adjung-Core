@@ -28,11 +28,26 @@ const SVG_MAX_BYTES = 100 * 1024; // ikon patut kecil — had jana-jana penyalah
 const KEKAL_WARNA = /^(?:none|transparent|inherit|currentColor|url\()/i;
 function tukarWarnaKepadaCurrentColor(svg) {
   let warnaDitukar = 0;
-  const hasil = svg.replace(/\s(fill|stroke|stop-color)\s*=\s*"([^"]*)"/gi, (padanan, atribut, nilai) => {
+  let hasil = svg.replace(/\s(fill|stroke|stop-color)\s*=\s*"([^"]*)"/gi, (padanan, atribut, nilai) => {
     if (KEKAL_WARNA.test(nilai.trim())) return padanan;
     warnaDitukar++;
     return ` ${atribut}="currentColor"`;
   });
+
+  // Ikon TANPA atribut `fill` eksplisit langsung (kes biasa: fail line-icon yang bergantung pada
+  // lalai SVG) tak pernah sepadan regex di atas — tiada apa untuk "ditukar". Tapi lalai SVG bila
+  // `fill` tiada ialah HITAM, bukan warisi warna induk — jadi ikon tetap hitam walaupun wrapper
+  // `color` CSS betul. Suntik `fill="currentColor"` pada akar <svg> (fill DIWARISI ke anak yang
+  // tiada fill sendiri) supaya kes ni turut ikut warna Bidang. (2026-08-06, ditemui semasa
+  // pembetulan data sedia ada — skrip migrasi laporkan 0/9 ditukar walaupun ikon jelas hitam,
+  // sebab tiada literal fill/stroke untuk regex atas tangkap langsung.)
+  const akhirTagAkar = hasil.indexOf('>');
+  const tagAkar = hasil.slice(0, akhirTagAkar + 1);
+  if (!/\sfill\s*=/i.test(tagAkar)) {
+    hasil = tagAkar.replace(/^<svg/i, '<svg fill="currentColor"') + hasil.slice(akhirTagAkar + 1);
+    warnaDitukar++;
+  }
+
   return { svg: hasil, warnaDitukar };
 }
 
