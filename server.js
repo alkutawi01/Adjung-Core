@@ -2,6 +2,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import express from 'express';
 import session from 'express-session';
+import connectSqlite3 from 'connect-sqlite3';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import sqlite3 from 'sqlite3';
@@ -78,7 +79,20 @@ if (!process.env.SESSION_SECRET) {
   console.warn('AMARAN: SESSION_SECRET tiada dalam .env — guna rahsia rawak sementara (sesi akan hilang setiap kali server dimulakan semula). Tetapkan SESSION_SECRET sebelum deploy.');
 }
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
+// Storan sesi berterusan (2026-08-06) — dahulu MemoryStore lalai express-session (amaran rasmi:
+// "not designed for a production environment, will leak memory"), yang bermakna SEMUA pengguna
+// log masuk ter-logout serentak setiap kali proses PM2 di-restart (deploy, crash-recovery, dsb.).
+// SQLite dipilih (bukan Redis) sebab stack ni dah guna SQLite untuk semua data lain — tiada infra
+// tambahan diperlukan. Fail berasingan daripada adjung.db (bukan jadual dalam DB yang sama) supaya
+// backup automatik adjung.db (di atas) tak perlu peduli jadual sesi yang tak relevan padanya.
+const SQLiteStore = connectSqlite3(session);
+// connect-sqlite3@0.9 jangka `db` sebagai instance sqlite3.Database HIDUP, bukan nama fail —
+// versi API lama (dir+db sebagai string) tak dipakai versi ni, ditemui via TypeError
+// "this.db.exec is not a function" semasa ujian pertama.
+const sessionDb = new sqlite3.Database(path.join(__dirname, 'sessions.db'));
 app.use(session({
+  store: new SQLiteStore({ db: sessionDb }),
   name: 'adjung.sid',
   secret: sessionSecret,
   resave: false,
