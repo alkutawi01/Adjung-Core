@@ -1642,6 +1642,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   type FocusLoc = { slotIndex: number; itemIndex: number };
 
   const [focusLoc, setFocusLoc] = useState<FocusLoc | null>(null);
+  // Imej Focus View rosak TAK boleh ditayang automatik (2026-08-07, permintaan Izzat eksplisit)
+  // — dahulu <img> mentah tanpa onError, jadi URL patah/404 papar ikon "imej rosak" pelayar terus
+  // dalam Focus View, dan `visual` yang wujud (walaupun rosak) menghalang gagal-lancar ke plat
+  // ilustrasi Bidang (kananKosong = !visual && ...). Set URL diketahui rosak: sekali gagal,
+  // dikekalkan sepanjang sesi supaya tak cuba muat semula fail sama berulang kali navigasi
+  // carousel. Kandungan yang imejnya SAH terus ditayang seperti biasa, tak terjejas.
+  const [imejFocusViewRosak, setImejFocusViewRosak] = useState<Set<string>>(new Set());
   /** Tindanan lokasi dilawati (mod navigasi rawak) — entri terakhir ialah `focusLoc` semasa.
    *  "Sebelum" ialah UNDUR sejarah ni, BUKAN lompat rawak baharu — padan corak "Rawak" Wikipedia +
    *  butang undur pelayar, bukan carousel dua-hala. */
@@ -1898,6 +1905,23 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // bentoNewsItems memarse title/brief jadi elemen React untuk dirender pada kad;
   // .titleString/.briefString simpan teks mentah. Focus View mahu yang mentah.
   const asPlainText = (v: any): string => (typeof v === 'string' ? v : '');
+
+  // Cegah kata terakhir tajuk Focus View tersadai bersendirian di baris sendiri (2026-08-07,
+  // Izzat perasan: "'like' bersendirian di baris bawah" — nampak janggal). `text-wrap: pretty`
+  // pada h1 (FocusView.tsx) sudah cuba imbangkan baris terbalut, tapi disahkan HIDUP ia masih
+  // membiarkan satu perkataan pendek keseorangan bila tajuk kebetulan patah begitu. Penyelesaian
+  // tipografi piawai: tukar RUANG SEBELUM perkataan TERAKHIR kepada ruang tak-boleh-pecah
+  // (U+00A0) — dua perkataan terakhir sentiasa kekal sebaris, tak kira di mana baris sebenarnya
+  // patah. Diterapkan pada STRING mentah di sini (bukan dalam FocusView.tsx sendiri) supaya turut
+  // menular ke `titleRendered` (dihantar melalui safeParseInline di bawah) MAHUPUN `title` mentah
+  // (laluan telefon guna terus, lihat nota "tak perlu hyphenation" di FocusView.tsx) — satu
+  // pembetulan, dua laluan render.
+  const cegahKataYatimAkhir = (teks: string): string => {
+    if (!teks) return teks;
+    const kata = teks.trim().split(/\s+/);
+    if (kata.length < 2) return teks;
+    return kata.slice(0, -1).join(' ') + ' ' + kata[kata.length - 1];
+  };
 
   /** Tajuk kandungan SEBELUM (sejarah) dan SETERUSNYA (sasaran rawak pra-gulung), untuk preview
    *  di sebelah anak panah atas/bawah Focus View. MESTI selepas `asPlainText` (bukan sebelum) —
@@ -3693,10 +3717,23 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           topik={focusItem.topik}
           deskColor={undefined}
           illustrationSvg={focusIllustration}
-          title={asPlainText(focusItem.titleString) || asPlainText(focusItem.title)}
-          titleRendered={safeParseInline(asPlainText(focusItem.titleString) || asPlainText(focusItem.title))}
+          title={cegahKataYatimAkhir(asPlainText(focusItem.titleString) || asPlainText(focusItem.title))}
+          titleRendered={safeParseInline(cegahKataYatimAkhir(asPlainText(focusItem.titleString) || asPlainText(focusItem.title)))}
           body={asPlainText(focusItem.briefLong)}
-          visual={focusItem.image ? <img src={focusItem.image} alt={asPlainText(focusItem.titleString) || asPlainText(focusItem.title) || ''} /> : undefined}
+          visual={(focusItem.image && !imejFocusViewRosak.has(focusItem.image)) ? (
+            <img
+              src={focusItem.image}
+              alt={asPlainText(focusItem.titleString) || asPlainText(focusItem.title) || ''}
+              onError={(e) => {
+                // Sorok SERTA-MERTA (sebelum React sempat re-render) supaya ikon "imej rosak"
+                // pelayar tak pernah terpapar walau sesaat, kemudian tandakan rosak supaya
+                // FocusView gagal-lancar ke plat ilustrasi/kandungan berkaitan.
+                e.currentTarget.style.display = 'none';
+                const url = focusItem.image!;
+                setImejFocusViewRosak((prev) => (prev.has(url) ? prev : new Set(prev).add(url)));
+              }}
+            />
+          ) : undefined}
           note={focusItem.note}
           notaMaxAksara={systemSettings?.focusViewNotaMaxAksara}
           source={focusItem.source}

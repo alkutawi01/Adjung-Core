@@ -13,7 +13,7 @@ import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
 import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl } from './core/editorial/ContentBudget.js';
-import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS } from './core/editorial/GeometryConfig.js';
+import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS, MIN_BRIEF_LONG_CHARS } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
 import { checkAllSourceLinks } from './core/editorial/LinkChecker.js';
@@ -2509,6 +2509,17 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
     const budgetCheck = validateContentBudget(slotIndex, item.title, item.summary);
     if (!budgetCheck.isValid) {
       const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason} Kandungan tidak disiarkan.`);
+      err.isValidationError = true;
+      throw err;
+    }
+    // Had MINIMUM huraian panjang (2026-08-07, permintaan Izzat — "nak tetapkan had minimum
+    // kependekan supaya tidak ada lagi huraian panjang yg terlalu pendek"). Medan ni OPSYENAL
+    // (ramai kandungan tiada langsung, itu sah) — had minimum cuma terpakai bila editor BENAR-
+    // BENAR isi sesuatu. Data sebenar sebelum had ni wujud: 294 aksara tersimpan sebagai "huraian
+    // panjang", praktikalnya cuma huraian ringkas dipanjangkan sikit, bukan bacaan Focus View
+    // dua-lajur yang medan ni dimaksudkan.
+    if (item.briefLong && item.briefLong.trim() && item.briefLong.length < MIN_BRIEF_LONG_CHARS) {
+      const err = new Error(`Huraian panjang bagi "${(item.title || '').slice(0, 40)}..." terlalu pendek (${item.briefLong.length} aksara, minimum ${MIN_BRIEF_LONG_CHARS}). Kandungan tidak disiarkan — panjangkan huraian atau kosongkan terus medan ni.`);
       err.isValidationError = true;
       throw err;
     }

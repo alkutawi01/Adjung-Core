@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import {
   List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings,
   LogOut, LogIn, PenLine, Mail, Lock, BookMarked, FileText, History, Home,
@@ -104,6 +104,26 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   // automatik, dan ia buat editor rasa terpaksa cari butang dulu sebelum boleh guna Editorium.
   // (Sejarah: hover-untuk-kembang pernah dicuba dan ditolak — ia buat sidebar rasa tak stabil.)
   const [dilipat, setDilipat] = useState(true);
+
+  // Tinggi header DIUKUR, bukan dikodkan keras (2026-08-07, laporan Izzat: "sidebar menutup
+  // header tab, sampai terlindung logo"). Sidebar <aside> dahulu guna top-[42px] tetap, tapi
+  // header sebenar 61px tinggi (padding + logo 40px) — disahkan dgn getBoundingClientRect:
+  // penjuru bawah-kiri logo bertindih sidebar. Nilai tetap pun takkan pernah betul untuk semua
+  // kes — header sendiri patah jadi DUA baris pada lebar sempit (lihat komen "kelompok kanan
+  // patah ke baris kedua" di header di bawah), jadi tingginya berubah ikut kandungan/lebar
+  // skrin. ResizeObserver memastikan sidebar sentiasa bermula tepat di penghujung header
+  // SEBENAR, tak kira berapa baris ia jadi.
+  const headerRef = useRef<HTMLElement>(null);
+  const [tinggiHeader, setTinggiHeader] = useState(61);
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const kemaskini = () => setTinggiHeader(el.getBoundingClientRect().height);
+    kemaskini();
+    const ro = new ResizeObserver(kemaskini);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const handleNavClick = (tabId: string) => {
     setCurrentTab(tabId);
@@ -212,7 +232,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           overflow-hidden header — bukan dibalut ke baris baharu. Kelompok kanan kini flex-wrap
           sendiri (bukan cuma header luar) supaya ia patah ke baris kedua pada lebar sempit,
           overflow-hidden header dibuang supaya baris kedua tu kelihatan (bukan turut terpotong). */}
-      <header className="relative bg-[#FDFDFD] border-b border-stone-200 select-none">
+      <header ref={headerRef} className="relative bg-[#FDFDFD] border-b border-stone-200 select-none">
         <div className="relative px-4 md:px-8 py-2.5 flex flex-wrap justify-between items-center gap-3">
           <Tooltip text="Klik untuk kembali ke Frontpage">
             {/* Logo SEBENAR (2026-08-03) — fail rekaan Izzat sendiri (src/assets/adjung-brief-
@@ -328,13 +348,14 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
             halaman (kandungan, header, ruang kosong) menutupnya semula. Inilah "klik tempat
             lain, ia tertutup". */}
         {!dilipat && (
-          <div className="hidden md:block fixed inset-0 z-20" onClick={() => setDilipat(true)} />
+          <div className="hidden md:block fixed inset-0 z-20" style={{ top: tinggiHeader }} onClick={() => setDilipat(true)} />
         )}
         <aside
           // Klik mana-mana pada sidebar tertutup = buka. Bila sudah terbuka, klik di sini tak
           // buat apa-apa; butang destinasi di dalamnya yang mengambil alih.
           onClick={() => { if (dilipat) setDilipat(false); }}
-          className={`hidden md:flex md:flex-col fixed left-0 top-[42px] h-[calc(100vh-42px)] z-30 overflow-y-auto bg-[#FDFDFD] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
+          style={{ top: tinggiHeader, height: `calc(100vh - ${tinggiHeader}px)` }}
+          className={`hidden md:flex md:flex-col fixed left-0 z-30 overflow-y-auto bg-[#FDFDFD] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
             dilipat ? 'w-[4.5rem] cursor-pointer' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
           }`}
         >

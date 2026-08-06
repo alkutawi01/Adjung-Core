@@ -301,15 +301,20 @@ export const FocusView: React.FC<FocusViewProps> = ({
     [text]
   );
 
-  // Dua lajur bila huraian PANJANG (2026-08-04, permintaan Izzat — "susah nak baca panjang2 mcm
-  // tu") — cuma bila melepasi HAD_DUA_LAJUR aksara, huraian pendek kekal satu lajur macam sedia
-  // ada. BUKAN CSS `columns` (pagination browser mendatar) — kawasan ni SATU-SATUNYA kotak scroll
+  // Dua lajur pada DESKTOP untuk huraian panjang (2026-08-07, permintaan Izzat eksplisit — "untuk
+  // desktop, huraian panjang dlm focus view jadikan dua lajur"). Dahulu bersyarat ambang 300
+  // aksara (permintaan asal 2026-08-04, "susah nak baca panjang2 mcm tu") — ambang tu dibuang:
+  // data sebenar ada dua kandungan 294 dan 305 aksara, cuma 11 aksara beza, tapi terpapar
+  // BERBEZA (satu lajur vs dua lajur) semata-mata sebab robek sewenang-wenang di 300. Kini
+  // SETIAP huraian panjang berbilang perenggan jadi dua lajur — konsisten, bukan bergantung
+  // ambang. Perenggan TUNGGAL kekal satu lajur (tiada apa bermakna untuk dipecah).
+  //
+  // BUKAN CSS `columns` (pagination browser mendatar) — kawasan ni SATU-SATUNYA kotak scroll
   // MENEGAK di seluruh Focus View (keputusan sengaja pemilik projek, lihat nota di bawah); `columns`
   // pecah kandungan MENDATAR (scroll-x), berlanggar terus dgn seni bina scroll-y sedia ada.
   // Sebaliknya: pecah SENARAI PERENGGAN kepada dua kumpulan (bukan CSS automatik), setiap kumpulan
   // susun menegak seperti biasa dalam grid 2-lajur — keseluruhan kawasan kekal SATU tatal menegak.
-  const HAD_DUA_LAJUR = 300;
-  const duaLajur = text.length > HAD_DUA_LAJUR && paragraphs.length > 1;
+  const duaLajur = paragraphs.length > 1;
   const [lajurKiri, lajurKanan] = React.useMemo(() => {
     if (!duaLajur) return [paragraphs, [] as string[]];
     const titikBelah = Math.ceil(paragraphs.length / 2);
@@ -883,7 +888,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'center', hyphens: 'none', WebkitHyphens: 'none' }}>
+                  // Jaring keselamatan lajur tunggal (2026-08-07, permintaan Izzat eksplisit —
+                  // "kalau ada kurang perkataan/aksara... pastikan satu lajur tu align center
+                  // (bukan center kandungan dlm lajur, tp lajur tu sendiri di tengah2)"). Kes ni
+                  // ialah huraian SATU perenggan sahaja (duaLajur perlukan >1 perenggan) — dahulu
+                  // teks direntang PENUH lebar kotak dengan textAlign:center (setiap baris teks
+                  // dipusatkan berasingan, bukan blok lajur itu sendiri). Kini blok lajur
+                  // dihadkan ~separuh lebar (padan kasar satu lajur mod dua-lajur) dan
+                  // DIPUSATKAN sebagai SATU blok (margin auto) — teks di dalamnya kekal rata kiri
+                  // (bacaan biasa), bukan setiap baris dipusatkan.
+                  <div style={{ maxWidth: '50%', width: 'fit-content', minWidth: 'min(100%, 320px)', margin: '0 auto', fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
                     {paragraphs.map((para, j) => (
                       <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
                     ))}

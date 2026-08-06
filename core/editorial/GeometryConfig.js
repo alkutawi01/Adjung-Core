@@ -97,21 +97,34 @@ export const tierForSlot = (slotIndex) => {
   return null;
 };
 
-// maxBriefLong: character budget for the "Huraian Panjang" field — extra content not shown on
-// the card itself, only in a not-yet-built "spotlight" detail view. There's no geometry-derived
-// ceiling for it (it isn't rendered on the card), so it stays a manually curated per-tier value.
-// Promoted here from two previously-independent copies (server.js, FrontpageView.tsx) that had
-// already happened to agree on these exact numbers — unifying them now so they can't drift apart.
+// MIN_BRIEF_LONG_CHARS (2026-08-07, permintaan Izzat) — "nak tetapkan had minimum kependekan
+// supaya tidak ada lagi huraian panjang yg terlalu pendek". Data sebenar sebelum ini ada
+// kandungan berlabel "huraian panjang" sependek 294 aksara — praktikalnya cuma huraian ringkas
+// yang dipanjangkan sikit, bukan bacaan mendalam yang medan ni dimaksudkan (Focus View, susun
+// atur dua lajur). Rata untuk SEMUA tier (keputusan eksplisit Izzat: 400-600 sama rata,
+// bukan minimum ditambah PADA had maksimum lama yang berbeza-beza ikut tier).
+export const MIN_BRIEF_LONG_CHARS = 400;
+
+// maxBriefLong: character budget for the "Huraian Panjang" field — extra content shown dalam
+// Focus View (bukan pada kad itu sendiri). Tiada had terbit-daripada-geometri untuk medan ni
+// (ia tak dirender pada kad), jadi ia nilai per-tier yang dikurasi tangan.
+//
+// DISERAGAMKAN kepada 600 rata (2026-08-07, permintaan Izzat eksplisit — "400-600 rata untuk
+// semua tier", menggantikan jadual lama 400/500/600/800 yang berbeza ikut tier) supaya berpasangan
+// bersih dengan MIN_BRIEF_LONG_CHARS di atas — setiap tier (kecuali BAR/TICKER, tiada medan ni
+// langsung) kongsi julat SAMA 400-600, bukan had berlainan yang mengelirukan sebab apa "panjang"
+// bermaksud berbeza ikut tier.
+export const MAX_BRIEF_LONG_CHARS = 600;
 export const MAX_BRIEF_LONG_BY_TIER = {
-  HERO: 800,
-  MENEGAK: 800,
-  STANDARD: 600,
-  SEGI_EMPAT_MEDIUM: 500,
-  SEGI_EMPAT_SMALL: 400,
-  KOMPAK: 400,
+  HERO: MAX_BRIEF_LONG_CHARS,
+  MENEGAK: MAX_BRIEF_LONG_CHARS,
+  STANDARD: MAX_BRIEF_LONG_CHARS,
+  SEGI_EMPAT_MEDIUM: MAX_BRIEF_LONG_CHARS,
+  SEGI_EMPAT_SMALL: MAX_BRIEF_LONG_CHARS,
+  KOMPAK: MAX_BRIEF_LONG_CHARS,
   BAR: 0,
   TICKER: 0,
-  DEFAULT: 600,
+  DEFAULT: MAX_BRIEF_LONG_CHARS,
 };
 
 // Had aksara label eyebrow kad — string "Bidang | Topik" yang dipapar di atas tajuk.

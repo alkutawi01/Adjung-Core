@@ -27,12 +27,14 @@ test('ceilingForSlot - matches canonical GEOMETRY_RATIOS for every tier (regress
   // their own hand-typed copy of these ceilings, and 4 of 8 tiers had silently drifted from the
   // canonical values here. ceilingForSlot() is now the single source both of them delegate to --
   // this test asserts it actually matches GEOMETRY_RATIOS for a representative slot per tier.
-  assert.deepEqual(ceilingForSlot(0), { maxTitle: 115, maxBrief: 350, maxBriefLong: 800 }); // HERO
-  assert.deepEqual(ceilingForSlot(1), { maxTitle: 168, maxBrief: 429, maxBriefLong: 800 }); // MENEGAK
+  // maxBriefLong diseragamkan 600 rata semua tier (2026-08-07, permintaan Izzat eksplisit —
+  // "400-600 rata untuk semua tier", gantikan jadual lama 400/500/600/800 berbeza ikut tier).
+  assert.deepEqual(ceilingForSlot(0), { maxTitle: 115, maxBrief: 350, maxBriefLong: 600 }); // HERO
+  assert.deepEqual(ceilingForSlot(1), { maxTitle: 168, maxBrief: 429, maxBriefLong: 600 }); // MENEGAK
   assert.deepEqual(ceilingForSlot(2), { maxTitle: 110, maxBrief: 280, maxBriefLong: 600 }); // STANDARD
-  assert.deepEqual(ceilingForSlot(13), { maxTitle: 94, maxBrief: 126, maxBriefLong: 500 }); // SEGI_EMPAT_MEDIUM
-  assert.deepEqual(ceilingForSlot(3), { maxTitle: 62, maxBrief: 78, maxBriefLong: 400 }); // SEGI_EMPAT_SMALL
-  assert.deepEqual(ceilingForSlot(4), { maxTitle: 80, maxBrief: 41, maxBriefLong: 400 }); // KOMPAK
+  assert.deepEqual(ceilingForSlot(13), { maxTitle: 94, maxBrief: 126, maxBriefLong: 600 }); // SEGI_EMPAT_MEDIUM
+  assert.deepEqual(ceilingForSlot(3), { maxTitle: 62, maxBrief: 78, maxBriefLong: 600 }); // SEGI_EMPAT_SMALL
+  assert.deepEqual(ceilingForSlot(4), { maxTitle: 80, maxBrief: 41, maxBriefLong: 600 }); // KOMPAK
   assert.deepEqual(ceilingForSlot(7), { maxTitle: 95, maxBrief: 0, maxBriefLong: 0 }); // BAR
   assert.deepEqual(ceilingForSlot(-1), { maxTitle: 80, maxBrief: 220, maxBriefLong: 0 }); // TICKER
 });
