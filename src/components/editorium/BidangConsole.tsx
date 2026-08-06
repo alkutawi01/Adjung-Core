@@ -44,6 +44,58 @@ export const BidangConsole: React.FC = () => {
   const [renameValue, setRenameValue] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // Strategi warna Taksonomi (2026-08-06, permintaan Izzat — "biar editor boleh pilih nak
+  // selaraskan semua bidang guna satu warna sahaja, atau pelbagaikan"). Bukan skrip
+  // command-line sekali-guna — tindakan berulang boleh dipanggil bila-bila masa oleh Ketua
+  // Editor/Penolong terus dari sini.
+  const [showWarnaModal, setShowWarnaModal] = useState(false);
+  const [warnaSeragam, setWarnaSeragam] = useState('#802334');
+  const [memprosesWarna, setMemprosesWarna] = useState<'unify' | 'diversify' | null>(null);
+  const [mesejWarna, setMesejWarna] = useState<string | null>(null);
+  const [ralatWarna, setRalatWarna] = useState<string | null>(null);
+
+  const selaraskanSatuWarna = async () => {
+    setMemprosesWarna('unify');
+    setRalatWarna(null);
+    setMesejWarna(null);
+    try {
+      const res = await fetch('/api/system/categories/unify-colors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ color: warnaSeragam }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menyelaraskan warna.');
+      setMesejWarna(`${data.dikemas} Bidang aktif kini guna warna yang sama.`);
+      fetchActiveBidang();
+    } catch (e: any) {
+      setRalatWarna(e.message || 'Gagal menyelaraskan warna.');
+    } finally {
+      setMemprosesWarna(null);
+    }
+  };
+
+  const pelbagaikanWarna = async () => {
+    setMemprosesWarna('diversify');
+    setRalatWarna(null);
+    setMesejWarna(null);
+    try {
+      const res = await fetch('/api/system/categories/diversify-colors', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal mempelbagaikan warna.');
+      setMesejWarna(
+        data.dikemas > 0
+          ? `${data.dikemas} Bidang diagihkan warna baharu (yang sudah unik tak diusik).`
+          : 'Semua Bidang aktif sudah ada warna unik — tiada perubahan diperlukan.'
+      );
+      fetchActiveBidang();
+    } catch (e: any) {
+      setRalatWarna(e.message || 'Gagal mempelbagaikan warna.');
+    } finally {
+      setMemprosesWarna(null);
+    }
+  };
+
   // /categories/taksonomi (bukan /categories/active) — konsol ni perlukan DUA-DUA status
   // (aktif+arkib) supaya Ketua Editor boleh nampak dan pulihkan yang diarkib. /categories/active
   // (aktif sahaja) masih dipakai di tempat lain (dropdown borang kandungan, dll).
@@ -475,6 +527,12 @@ export const BidangConsole: React.FC = () => {
             <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5" /> {desks.filter(d => d.isActive === 1).length} Bidang Aktif
             </span>
+            <button
+              onClick={() => { setMesejWarna(null); setRalatWarna(null); setShowWarnaModal(true); }}
+              className="bg-white border border-stone-300 hover:border-[#802334] hover:text-[#802334] text-stone-600 px-3 py-1.5 rounded font-semibold text-xs"
+            >
+              Strategi Warna
+            </button>
             <button
               onClick={() => setShowAddModal(true)}
               className="bg-[#802334] hover:bg-[#601824] text-white px-3 py-1.5 rounded font-semibold text-xs"
@@ -1011,6 +1069,61 @@ export const BidangConsole: React.FC = () => {
               <button onClick={handleAddDesk} disabled={addingDesk} className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50">
                 {addingDesk ? 'Menambah...' : 'Tambah Bidang'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL STRATEGI WARNA (2026-08-06) — dua tindakan berulang, bukan skrip sekali-guna. */}
+      {showWarnaModal && (
+        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
+                Strategi Warna Bidang
+              </h3>
+              <button onClick={() => setShowWarnaModal(false)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
+            </div>
+
+            <div className="space-y-4 font-sans">
+              <div className="space-y-2 border-b border-stone-200 pb-4">
+                <p className="font-semibold text-stone-800">Selaraskan ke SATU warna</p>
+                <p className="text-stone-500">Semua Bidang aktif ({desks.filter(d => d.isActive === 1).length}) akan guna warna yang sama ini.</p>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className="w-9 h-8 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
+                  <input type="text" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-mono font-bold" />
+                </div>
+                <button
+                  onClick={selaraskanSatuWarna}
+                  disabled={memprosesWarna !== null}
+                  className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                >
+                  {memprosesWarna === 'unify' ? 'Menyelaraskan...' : 'Selaraskan Semua'}
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-semibold text-stone-800">Pelbagaikan semula</p>
+                <p className="text-stone-500">
+                  Bidang yang berkongsi warna sama diagihkan warna baharu berbeza dari palet — Bidang
+                  paling lama dalam setiap kumpulan kekal dengan warna asalnya, Bidang yang warnanya
+                  sudah unik langsung tak diusik.
+                </p>
+                <button
+                  onClick={pelbagaikanWarna}
+                  disabled={memprosesWarna !== null}
+                  className="bg-stone-700 hover:bg-stone-800 text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                >
+                  {memprosesWarna === 'diversify' ? 'Memproses...' : 'Pelbagaikan Semula'}
+                </button>
+              </div>
+
+              {mesejWarna && <p className="text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">{mesejWarna}</p>}
+              {ralatWarna && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2">{ralatWarna}</p>}
+            </div>
+
+            <div className="pt-2 border-t border-stone-200 flex justify-end">
+              <button onClick={() => setShowWarnaModal(false)} className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs">Tutup</button>
             </div>
           </div>
         </div>

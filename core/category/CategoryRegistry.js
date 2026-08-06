@@ -250,6 +250,56 @@ class CategoryRegistry {
     return await this.dbAll(db, "SELECT * FROM CategoryRegistry WHERE isActive = 1 ORDER BY name ASC");
   }
 
+  // Strategi warna keseluruhan Taksonomi (2026-08-06, permintaan Izzat — "biar editor boleh
+  // pilih nak selaraskan semua bidang guna satu warna sahaja, atau pelbagaikan"). Ikon SVG
+  // custom TIDAK perlu disentuh langsung — warna diwarisi hidup melalui `color` CSS di
+  // BidangIcon.tsx (currentColor), jadi tukar CategoryRegistry.color sahaja cukup, terus
+  // terpakai di ikon, eyebrow kad, dan Focus View serentak.
+  static async unifyAllColors(db, warna) {
+    if (!/^#[0-9a-f]{6}$/i.test(warna)) throw new Error('Warna mesti kod hex 6 digit, cth #802334.');
+    const now = new Date().toISOString();
+    const { changes } = await this.dbRun(db, "UPDATE CategoryRegistry SET color = ?, updatedAt = ? WHERE isActive = 1", [warna, now]);
+    return { dikemas: changes };
+  }
+
+  // Pelbagaikan — Bidang yang warnanya SUDAH unik (tiada Bidang aktif lain berkongsi warna sama)
+  // dikekalkan tanpa diusik ("automatik pilih warna yg dipilih pada asalnya kalau ada"). Bagi
+  // setiap kumpulan Bidang yang berkongsi SATU warna sama, baris PALING LAMA (createdAt) kekal
+  // dengan warna tu (dianggap "asal" — yang lain kemudiannya jatuh pada fallback identik yang
+  // sama, lihat bug activateCategory di atas); baki ahli kumpulan diagihkan warna baharu berbeza
+  // daripada palet, satu per satu, supaya tiada dua Bidang aktif berkongsi warna selepas ni.
+  static async diversifyColors(db) {
+    const semua = await this.dbAll(db, "SELECT id, name, color, createdAt FROM CategoryRegistry WHERE isActive = 1 ORDER BY createdAt ASC");
+    const kumpulan = new Map();
+    for (const baris of semua) {
+      const kunci = (baris.color || '').toUpperCase();
+      if (!kumpulan.has(kunci)) kumpulan.set(kunci, []);
+      kumpulan.get(kunci).push(baris);
+    }
+
+    const warnaDigunakan = new Set(semua.map((b) => (b.color || '').toUpperCase()));
+    const now = new Date().toISOString();
+    let dikemas = 0;
+    let indeksJana = 0;
+
+    for (const [, ahli] of kumpulan) {
+      if (ahli.length <= 1) continue; // warna dah unik, tak diusik
+      // ahli[0] (paling lama) kekal; ahli selebihnya diagihkan warna baharu.
+      for (let i = 1; i < ahli.length; i++) {
+        let warnaBaharu = COLOR_PALETTE.find((c) => !warnaDigunakan.has(c.toUpperCase()));
+        if (!warnaBaharu) {
+          do {
+            warnaBaharu = this.generateColorBeyondPalette(indeksJana++);
+          } while (warnaDigunakan.has(warnaBaharu.toUpperCase()));
+        }
+        warnaDigunakan.add(warnaBaharu.toUpperCase());
+        await this.dbRun(db, "UPDATE CategoryRegistry SET color = ?, updatedAt = ? WHERE id = ?", [warnaBaharu, now, ahli[i].id]);
+        dikemas++;
+      }
+    }
+    return { dikemas, diperiksa: semua.length };
+  }
+
   // Cipta/guna-semula (ikut slug, sama corak macam registerCategory) + tetapkan warna PILIHAN
   // eksplisit (bukan auto-palette) + isActive=1. Guna untuk "+ Tambah Bidang" di Taksonomi.
   // `icon` (nama komponen lucide-react, kes Pascal, cth "TrendingUp") pilihan — kosong/null

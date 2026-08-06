@@ -252,6 +252,48 @@ export function createCategoryRoutes(db) {
     }
   });
 
+  // POST /api/system/categories/unify-colors — selaraskan SEMUA Bidang aktif kepada SATU warna
+  // (Izzat: "biar editor boleh pilih nak selaraskan semua bidang guna satu warna sahaja, atau
+  // pelbagaikan"). Ikon custom tak perlu diproses semula — warna diwarisi hidup (currentColor).
+  router.post('/categories/unify-colors', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const { color } = req.body || {};
+      if (!color) return res.status(400).json({ error: 'Warna diperlukan.' });
+      const hasil = await CategoryRegistry.unifyAllColors(db, color);
+      await logAudit(dbRunAdapter, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'selaraskan-warna-bidang',
+        targetType: 'bidang',
+        detail: `${hasil.dikemas} Bidang -> ${color}`,
+      });
+      res.json({ success: true, ...hasil });
+    } catch (err) {
+      console.error('Unify category colors error:', err);
+      res.status(400).json({ error: err.message || 'Gagal menyelaraskan warna.' });
+    }
+  });
+
+  // POST /api/system/categories/diversify-colors — Bidang aktif yang berkongsi warna sama
+  // diagihkan warna baharu berbeza (Bidang paling lama dalam kumpulan berkongsi tu kekal dengan
+  // warna asalnya). Bidang yang warnanya sudah unik langsung tak diusik.
+  router.post('/categories/diversify-colors', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const hasil = await CategoryRegistry.diversifyColors(db);
+      await logAudit(dbRunAdapter, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'pelbagaikan-warna-bidang',
+        targetType: 'bidang',
+        detail: `${hasil.dikemas} daripada ${hasil.diperiksa} Bidang dikemas kini`,
+      });
+      res.json({ success: true, ...hasil });
+    } catch (err) {
+      console.error('Diversify category colors error:', err);
+      res.status(400).json({ error: err.message || 'Gagal mempelbagaikan warna.' });
+    }
+  });
+
   // POST /api/system/categories/rename-active — tukar nama SATU baris Bidang taksonomi (tak
   // cascade ke kandungan sedia ada — lihat nota di renameActiveCategory()).
   router.post('/categories/rename-active', requirePermission('manageEditorial'), async (req, res) => {
