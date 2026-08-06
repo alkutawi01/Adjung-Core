@@ -7,7 +7,7 @@ import { muatPindaanTier } from './config/tierOverrides';
 import { muatPindaanLabel } from './config/labelOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { motion, AnimatePresence } from 'motion/react';
-import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useParams, useLocation } from 'react-router-dom';
 import { HalamanStatik } from './components/portal/HalamanStatik';
 import { HalamanPenaja } from './components/portal/HalamanPenaja';
 import { TidakDijumpai } from './components/portal/TidakDijumpai';
@@ -34,6 +34,23 @@ const EditoriumView = React.lazy(() =>
 function LaluanKandungan({ children }: { children: (kodPendek: string | undefined) => React.ReactNode }) {
   const { kodPendek } = useParams<{ kodPendek: string }>();
   return <>{children(kodPendek)}</>;
+}
+
+// Laluan yang tergolong dalam kerja editorial — gerbang profil wajib (di bawah) hanya aktif di
+// sini, bukan di frontpage awam (lihat nota di titik guna).
+const LALUAN_EDITORIAL = ['/editorium', '/studio/semakan-kandungan'];
+
+function GerbangProfilWajib({
+  authUser,
+  onSelesai,
+}: {
+  authUser: { id: string; termaDipersetujuiPada?: string | null } | null;
+  onSelesai: (patch: Record<string, string | undefined>) => void;
+}) {
+  const location = useLocation();
+  const dalamEditorial = LALUAN_EDITORIAL.some((laluan) => location.pathname.startsWith(laluan));
+  if (!authUser || authUser.termaDipersetujuiPada || !dalamEditorial) return null;
+  return <LengkapkanProfilModal userId={authUser.id} onSelesai={onSelesai} />;
 }
 
 export default function App() {
@@ -386,13 +403,14 @@ export default function App() {
           kali pertama baca dan setuju beberapa syarat dan peraturan", digabung profil wajib.
           `termaDipersetujuiPada` kosong = belum pernah setuju; modal ni TIDAK boleh
           ditutup/langkau, dirender DI ATAS segala-galanya (z-[200], lebih tinggi drpd
-          LoginModal/modal lain z-[70]) sehingga borang dihantar berjaya. */}
-      {authUser && !authUser.termaDipersetujuiPada && (
-        <LengkapkanProfilModal
-          userId={authUser.id}
-          onSelesai={(patch) => handleProfilKemasKini(patch)}
-        />
-      )}
+          LoginModal/modal lain z-[70]) sehingga borang dihantar berjaya.
+          Skop kepada Editorium/Studio SAHAJA (2026-08-06, pembetulan) — dahulu authUser wujud
+          + terma belum setuju memaparkan modal ni di MANA-MANA laluan termasuk frontpage awam,
+          sebab sesi editor kekal dalam browser walaupun editor tu cuma nak baca portal macam
+          pembaca biasa (cth: buka brief.adjung.com terus dari carian Google). Gerbang "kali
+          pertama log masuk" patut memaksa selesaikan profil SEBELUM mula kerja editorial, bukan
+          menyekat pembacaan portal sendiri. */}
+      <GerbangProfilWajib authUser={authUser} onSelesai={handleProfilKemasKini} />
     </BrowserRouter>
   );
 }
