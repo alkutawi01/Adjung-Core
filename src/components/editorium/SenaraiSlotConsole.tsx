@@ -92,7 +92,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   // — dahulu lajur "Kandungan Aktif" gabungkan Aktif+Menunggu jadi SATU angka, tak boleh diklik,
   // tiada senarai/tarikh. Dibina drpd GET /api/system/content/all (sumber SAMA yang Indeks
   // guna) — bukan endpoint baharu, kiraan/senarai dibina client-side drpd data yang sama.
-  interface KandunganRingkas { id: string; tajuk: string; scheduledPublishAt: string | null; scheduledExpiresAt: string | null }
+  interface KandunganRingkas { id: string; tajuk: string; scheduledPublishAt: string | null; scheduledExpiresAt: string | null; sebabMenunggu?: string }
   const [aktifPerSlot, setAktifPerSlot] = useState<Record<number, KandunganRingkas[]>>({});
   const [menungguPerSlot, setMenungguPerSlot] = useState<Record<number, KandunganRingkas[]>>({});
   // Panel senarai terbuka (klik angka Aktif/Menunggu) — satu pada satu masa.
@@ -204,6 +204,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
               id: r.id, tajuk: r.title || '(tiada tajuk)',
               scheduledPublishAt: r.scheduledPublishAt || null,
               scheduledExpiresAt: r.scheduledExpiresAt || null,
+              sebabMenunggu: r.sebabMenunggu || '',
             };
             const kunci = r.status === 'approved' ? aktif : menunggu;
             (kunci[r.slotIndex] = kunci[r.slotIndex] || []).push(ringkas);
@@ -649,8 +650,15 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                     <p className="text-[10px] text-stone-500 mt-0.5">
                       {panelSenarai.jenis === 'aktif' ? (
                         tarikh ? <>Akan terarkib: <span className="font-semibold text-stone-700">{tarikh}</span></> : 'Tiada jadual (kekal aktif sehingga digantikan manual)'
+                      ) : tarikh ? (
+                        <>Akan aktif: <span className="font-semibold text-stone-700">{tarikh}</span></>
+                      ) : k.sebabMenunggu === 'slot_penuh' ? (
+                        // Dua jenis Menunggu (2026-08-06) — dah lulus keputusan, cuma tunggu ruang
+                        // kosong dalam slot (hadKandunganSlot). Naik taraf AUTOMATIK bila ruang
+                        // wujud (Arkib/Tolak/Luput berjadual) — tiada tindakan manusia diperlukan.
+                        <span className="text-amber-700 font-semibold">Sudah lulus — menunggu slot kosong (naik taraf automatik)</span>
                       ) : (
-                        tarikh ? <>Akan aktif: <span className="font-semibold text-stone-700">{tarikh}</span></> : 'Menunggu kelulusan Ketua Editor/Penolong (tiada jadual)'
+                        'Menunggu kelulusan Ketua Editor/Penolong (tiada jadual)'
                       )}
                     </p>
                   </div>

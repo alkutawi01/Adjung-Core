@@ -7,6 +7,76 @@ import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { isDue, hasReplacementForExpiry } from '../editorial/Scheduling.js';
 
+// Dua jenis Menunggu (2026-08-06, permintaan Izzat: "menunggu sepatutnya ada dua jenis, menunggu
+// semakan dan menunggu untuk disiarkan/aktif") — helper kongsi tulis/kemas kini attribute
+// `sebabMenunggu` (EAV, sama corak pernahDitolak). 'semakan' = perlu keputusan MANUSIA (Ketua
+// Editor/Penolong, atau Editor berkelayakan publish); 'slot_penuh' = dah lulus keputusan, cuma
+// tunggu ruang kosong (hadKandunganSlot) — dinaik taraf AUTOMATIK oleh
+// promosikanMenungguSlotKosong() di bawah, tiada keputusan manusia kedua diperlukan. '' = tak
+// terpakai (approved/archived/rejected/scheduled).
+async function tetapkanSebabMenunggu(dbGet, dbRun, objectId, revisionId, nilai) {
+  const sedia = await dbGet(
+    "SELECT id FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'sebabMenunggu'",
+    [objectId, revisionId]
+  );
+  if (sedia) {
+    await dbRun('UPDATE editorial_attribute_values SET valueText = ? WHERE id = ?', [nilai, sedia.id]);
+  } else {
+    await dbRun(
+      "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, 'sebabMenunggu', ?)",
+      [objectId, revisionId, nilai]
+    );
+  }
+}
+
+// Naik taraf AUTOMATIK kandungan 'slot_penuh' bila ruang berkosong dalam slot (2026-08-06) —
+// dipanggil selepas MANA-MANA tindakan yang mengurangkan kiraan 'approved' sesuatu slot (Arkib
+// manual, Tolak-ke-draf, Luput berjadual — lihat setiap tapak panggilan). Naikkan SATU sahaja
+// setiap panggilan (yang paling lama tertunggu — createdAt ASC, gilir adil), bukan semua sekali
+// gus — kalau ruang lebih daripada satu terbuka serentak (jarang, tapi boleh berlaku semasa
+// runSchedulingTick luput beberapa item serentak), panggilan berulang di setiap tapak yang sama
+// akan naikkan taraf satu demi satu sehingga ruang penuh atau tiada calon lagi.
+async function promosikanMenungguSlotKosong(dbAll, dbGet, dbRun, slotIndex) {
+  if (TIER_SLOTS.BAR.includes(slotIndex)) return; // Bar tak sokong alur Draf/Terbit
+  const { hadKandunganSlot } = getAmSettings();
+  if (!hadKandunganSlot || hadKandunganSlot <= 0) return; // tiada had = tiada giliran utk dinaik taraf
+
+  while (true) {
+    const kiraanAktif = await dbGet(`
+      SELECT COUNT(*) AS n FROM editorial_objects o
+      JOIN editorial_revisions r ON r.objectId = o.id
+      WHERE o.slotIndex = ? AND r.status = 'approved'
+        AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+    `, [slotIndex]);
+    if (!kiraanAktif || kiraanAktif.n >= hadKandunganSlot) return; // tiada ruang (lagi)
+
+    const calon = await dbGet(`
+      SELECT o.id AS objectId, r.id AS revisionId, r.title FROM editorial_objects o
+      JOIN editorial_revisions r ON r.objectId = o.id
+      JOIN editorial_attribute_values eav ON eav.objectId = o.id AND eav.revisionId = r.id
+        AND eav.attributeId = 'sebabMenunggu' AND eav.valueText = 'slot_penuh'
+      WHERE o.slotIndex = ? AND r.status = 'pending'
+        AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+      ORDER BY o.createdAt ASC LIMIT 1
+    `, [slotIndex]);
+    if (!calon) return; // tiada calon menunggu slot kosong
+
+    const kini = new Date().toISOString();
+    await dbRun("UPDATE editorial_revisions SET status = 'approved', updatedAt = ? WHERE id = ?", [kini, calon.revisionId]);
+    await tetapkanSebabMenunggu(dbGet, dbRun, calon.objectId, calon.revisionId, '');
+    await logAudit(dbRun, {
+      actorId: null, actorName: 'Sistem (Slot Berkosong)',
+      action: 'kandungan-naik-taraf-slot-kosong', targetType: 'kandungan', targetId: calon.objectId,
+      detail: (calon.title || '').slice(0, 100),
+    });
+    const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [slotIndex]);
+    await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
+      type: 'kandungan_disiar', title: 'Kandungan anda kini Aktif (slot dah berkosong)',
+      detail: (calon.title || '').slice(0, 150), targetType: 'kandungan', targetId: calon.objectId,
+    });
+  }
+}
+
 // The Ticker (slotIndex -1) never writes to editorial_objects, in either Manual or AI Generated
 // mode — it always lives as a single "---"-delimited text blob in system_settings.inTheNewsText
 // (see EditorialPipeline.js's slotIndex===-1 branch, and the ticker save path in POST
@@ -143,6 +213,11 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
           type: 'kandungan_luput_berjadual', title: 'Kandungan anda telah luput & diarkibkan',
           detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: row.objectId,
         });
+        // Slot berkosong (2026-08-06) — luput berjadual bebaskan satu ruang 'approved'; naik
+        // taraf calon 'slot_penuh' paling lama tertunggu dalam slot yang sama, kalau ada.
+        await promosikanMenungguSlotKosong(dbAll, dbGet, dbRun, objRow.slotIndex).catch((e) => {
+          console.warn('[Jadual Luput] Gagal naik taraf kandungan slot-berkosong:', e.message);
+        });
       }
     }
   } catch (err) {
@@ -242,6 +317,9 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           status: r.status || 'approved',
           createdBy: r.createdBy || '',
           editorName: attrs.editorName || '',
+          // Dua jenis Menunggu (2026-08-06) — 'semakan' (perlu keputusan Ketua Editor/Penolong)
+          // atau 'slot_penuh' (dah lulus, tunggu ruang kosong) — lihat SenaraiSlotConsole.tsx.
+          sebabMenunggu: attrs.sebabMenunggu || '',
           createdAt: r.revisionCreatedAt,
           updatedAt: r.revisionUpdatedAt,
           scheduledPublishAt: r.scheduledPublishAt || null,
@@ -330,15 +408,25 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         return res.status(404).json({ error: 'Item tidak dijumpai.' });
       }
 
-      // Kunci draf ditolak (2026-08-05, permintaan Izzat) — "editor degil publish semula tanpa
-      // pembetulan": Editor biasa boleh self-publish kandungan dia sendiri secara normal (`publish`
-      // sedia ada), tapi kandungan yang PERNAH ditolak sekali (bendera `pernahDitolak`, disemat
-      // semasa Terbitkan drpd draf lahir-semula "Tolak" — lihat syncManualObjectsForSlot di
-      // server.js) mesti lalui Ketua Editor/Penolong Ketua Editor untuk terbit semula, BUKAN
-      // Editor sendiri. Semak SEBELUM validasi/tulisan lain — status='approved' yang diminta ialah
-      // satu-satunya senario disekat di sini (Tolak/Arkib/edit tajuk-huraian biasa tak disentuh).
+      // Dasar Terbit Sendiri Editor (2026-08-06, permintaan Izzat) — "editor boleh terus publish,
+      // tp benda ni boleh diubah oleh ketua editor... guna rbac". Kunci RBAC `publish` (togol
+      // khusus Ketua Editor di /system/editor-publish-policy, TetapanAmSlotConsole.tsx) tentukan
+      // sama ada Editor biasa boleh terus luluskan kandungan SENDIRI. Disemak SEBELUM kunci
+      // pernah-ditolak di bawah (dasar am ni lebih luas drpd kes pernah-ditolak khusus).
+      //
+      // Kunci draf ditolak (2026-08-05) — "editor degil publish semula tanpa pembetulan":
+      // walaupun dasar am benarkan self-publish, kandungan yang PERNAH ditolak sekali (bendera
+      // `pernahDitolak`, disemat semasa Terbitkan drpd draf lahir-semula "Tolak" — lihat
+      // syncManualObjectsForSlot server.js) tetap mesti lalui Ketua Editor/Penolong untuk terbit
+      // semula. Semak SEBELUM validasi/tulisan lain — status='approved' ialah satu-satunya
+      // senario disekat di sini (Tolak/Arkib/edit tajuk-huraian biasa tak disentuh).
       if (status === 'approved' && rev.status !== 'approved'
         && !hasPermission(req.session?.user?.roles, 'manageEditorial')) {
+        if (!hasPermission(req.session?.user?.roles, 'publish')) {
+          return res.status(403).json({
+            error: 'Dasar semasa: Editor perlu kelulusan Ketua Editor/Penolong Ketua Editor untuk terbit — kandungan kekal Menunggu sehingga disemak.',
+          });
+        }
         const bendera = await dbGet(
           "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'pernahDitolak'",
           [id, rev.id]
@@ -349,6 +437,12 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           });
         }
       }
+
+      // Dua jenis Menunggu (2026-08-06) — kandungan yang LULUS gerbang kelulusan di atas mungkin
+      // masih tak boleh terus jadi Aktif kalau slot dah penuh dengan kandungan APPROVED sedia
+      // ada (hadKandunganSlot, Tetapan Am Slot). Ditetapkan '' (bukan null) di sini supaya jenis
+      // konsisten sepanjang fungsi — diisi 'slot_penuh' di bawah kalau berkenaan.
+      let sebabMenungguBaharu = '';
 
       // Same hard-block as every other content path: an edit can never push a slot's title+brief
       // over its tier's budget, no matter which screen the edit came from.
@@ -431,6 +525,29 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         if (slotIndex !== undefined && slotIndex !== objRow.slotIndex) {
           await dbRun("UPDATE editorial_objects SET slotIndex = ? WHERE id = ?", [slotIndex, id]);
         }
+
+        // Had bilangan kandungan AKTIF seslot (2026-08-06, permintaan Izzat: "menunggu sepatutnya
+        // ada dua jenis... menunggu semakan dan menunggu untuk disiarkan/aktif") — kandungan yang
+        // LULUS gerbang kelulusan di atas tapi slot dah PENUH dengan kandungan APPROVED sedia ada
+        // TIDAK terus jadi Aktif; ia kekal 'pending' bertanda sebabMenunggu='slot_penuh', dinaik
+        // taraf AUTOMATIK oleh promosikanMenungguSlotKosong() sebaik ruang kosong wujud (tiada
+        // keputusan manusia kedua diperlukan). Kira APPROVED SAHAJA (bukan approved+pending macam
+        // POST /content di bawah, laluan penciptaan berasingan) — 'pending' memang dijangka
+        // beratur menunggu giliran, bukan sebahagian had "aktif serentak".
+        if (status === 'approved' && rev.status !== 'approved' && !TIER_SLOTS.BAR.includes(targetSlotIndex)) {
+          const { hadKandunganSlot } = getAmSettings();
+          if (hadKandunganSlot > 0) {
+            const kiraanAktif = await dbGet(`
+              SELECT COUNT(*) AS n FROM editorial_objects o
+              JOIN editorial_revisions r ON r.objectId = o.id
+              WHERE o.slotIndex = ? AND o.id != ? AND r.status = 'approved'
+                AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+            `, [targetSlotIndex, id]);
+            if (kiraanAktif && kiraanAktif.n >= hadKandunganSlot) {
+              sebabMenungguBaharu = 'slot_penuh';
+            }
+          }
+        }
       }
 
       // Sejarah versi sebenar (Fasa 6): kandungan (tajuk/huraian) yang benar-benar berubah
@@ -446,9 +563,16 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // status secara automatik jadi 'scheduled' (kandungan kekal tersembunyi drpd pembaca sehingga
       // masa tiba — lihat runSchedulingTick). Hantar `status` eksplisit sekali tetap dihormati
       // (cth padam jadual serentak paksa 'approved').
-      const effectiveStatus = (scheduledPublishAt !== undefined && scheduledPublishAt && status === undefined)
+      let effectiveStatus = (scheduledPublishAt !== undefined && scheduledPublishAt && status === undefined)
         ? 'scheduled'
         : status;
+      // Slot penuh (dua jenis Menunggu, lihat nota di atas) — tulis-ganti niat 'approved' kepada
+      // 'pending' SEBELUM apa-apa penulisan DB berlaku, supaya SETIAP laluan tulis di bawah
+      // (edit kandungan MAHUPUN status-sahaja) secara automatik hormati sekatan ni tanpa perlu
+      // disemak dua kali.
+      if (sebabMenungguBaharu === 'slot_penuh' && effectiveStatus === 'approved') {
+        effectiveStatus = 'pending';
+      }
       const scheduleFieldsChanged = scheduledPublishAt !== undefined || scheduledExpiresAt !== undefined;
       const nextScheduledPublishAt = scheduledPublishAt !== undefined ? (scheduledPublishAt || null) : rev.scheduledPublishAt;
       const nextScheduledExpiresAt = scheduledExpiresAt !== undefined ? (scheduledExpiresAt || null) : rev.scheduledExpiresAt;
@@ -564,9 +688,28 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
             console.warn('Gagal kemas kini lastPublishedAt (dasar aktif):', e.message);
           }
         }
+
+        // Slot berkosong (2026-08-06) — Arkib SENGAJA membebaskan satu ruang 'approved' dalam
+        // slot ni; naik taraf calon 'slot_penuh' paling lama tertunggu, kalau ada.
+        if (effectiveStatus === 'archived' && objRow) {
+          const slotUntukPromosi = slotIndex !== undefined ? slotIndex : objRow.slotIndex;
+          await promosikanMenungguSlotKosong(dbAll, dbGet, dbRun, slotUntukPromosi).catch((e) => {
+            console.warn('Gagal naik taraf kandungan slot-berkosong:', e.message);
+          });
+        }
       }
 
-      res.json({ success: true });
+      // Dua jenis Menunggu (2026-08-06) — catat/kemas kini sebab menunggu SETIAP kali status
+      // benar-benar berubah pada 'pending' (semakan biasa atau tersekat slot penuh) atau bersih
+      // sepenuhnya bila mendarat pada status lain ('approved' terus, 'archived', dsb).
+      if (effectiveStatus !== undefined) {
+        const nilaiSebab = effectiveStatus === 'pending'
+          ? (sebabMenungguBaharu === 'slot_penuh' ? 'slot_penuh' : 'semakan')
+          : '';
+        await tetapkanSebabMenunggu(dbGet, dbRun, id, liveRevId, nilaiSebab);
+      }
+
+      res.json({ success: true, slotPenuh: sebabMenungguBaharu === 'slot_penuh' });
     } catch (err) {
       console.error('Patch content item error:', err);
       res.status(500).json({ error: 'Failed to update item. ' + (err.message || '') });
@@ -757,6 +900,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
       await dbRun("UPDATE slots_config SET manualSummary = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [nextSummary, objRow.slotIndex]);
       await dbRun("UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ?", [new Date().toISOString(), rev.id]);
+      await tetapkanSebabMenunggu(dbGet, dbRun, id, rev.id, '');
 
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
@@ -766,6 +910,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         targetId: id,
         detail: (rev.title || '').slice(0, 100),
       });
+
+      // Slot berkosong (2026-08-06) — kalau kandungan yang ditolak ni tadinya 'approved' (bukan
+      // 'pending'), Tolak turut bebaskan satu ruang aktif; naik taraf calon 'slot_penuh' paling
+      // lama tertunggu dalam slot yang sama, kalau ada.
+      if (rev.status === 'approved') {
+        await promosikanMenungguSlotKosong(dbAll, dbGet, dbRun, objRow.slotIndex).catch((e) => {
+          console.warn('Gagal naik taraf kandungan slot-berkosong (Tolak):', e.message);
+        });
+      }
 
       // Notifikasi Kandungan (Fasa 6b) — "kandungan ditolak", sertakan sebab (item A daripada
       // fasa ni: reuse sebab penolakan Fasa 6). Utamakan penulis asal (attrs.editorName, dicap

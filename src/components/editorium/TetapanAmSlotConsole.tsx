@@ -211,6 +211,77 @@ function ArahPerSlotField() {
   );
 }
 
+// Dasar Terbit Sendiri Editor (2026-08-06, permintaan Izzat) — "editor boleh terus publish, tp
+// benda ni boleh diubah oleh ketua editor... guna rbac, benarkan ketua editor sahaja yg boleh
+// tukar polisi ni". Guna kunci RBAC SEDIA ADA (`publish`, peranan Editor) sebagai sumber
+// kebenaran — laluan `GET/PATCH /system/editor-publish-policy` (systemRoutes.js) dibuka khusus
+// untuk kunci `manageEditorial` (Ketua Editor/Penolong), BUKAN `manageSettings` (Pentadbir-sahaja,
+// borang Kawalan Akses penuh) — supaya Ketua Editor boleh tukar SATU togol ni sendiri tanpa
+// perlu akses seluruh matriks RBAC yang sensitif. Komponen berasingan (bukan sebahagian `draf`
+// TetapanAm) — laluan API dan kunci kebenaran berbeza sepenuhnya drpd tetapan lain di skrin ni.
+function DasarTerbitSendiriField() {
+  const [benarkanSelfPublish, setBenarkanSelfPublish] = useState<boolean | null>(null);
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [ralat, setRalat] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/system/editor-publish-policy')
+      .then(r => r.json())
+      .then(d => setBenarkanSelfPublish(!!d.benarkanSelfPublish))
+      .catch(() => setRalat('Gagal memuatkan dasar terbit sendiri.'));
+  }, []);
+
+  const tukar = async (nilaiBaharu: boolean) => {
+    setMenyimpan(true);
+    setRalat(null);
+    const asal = benarkanSelfPublish;
+    setBenarkanSelfPublish(nilaiBaharu); // optimistik, dipulihkan kalau gagal
+    try {
+      const res = await fetch('/api/system/editor-publish-policy', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benarkanSelfPublish: nilaiBaharu }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
+    } catch (e: any) {
+      setBenarkanSelfPublish(asal);
+      setRalat(e.message || 'Gagal menyimpan dasar terbit sendiri.');
+    } finally {
+      setMenyimpan(false);
+    }
+  };
+
+  return (
+    <div className="border border-stone-200 rounded p-4 space-y-2">
+      <div className="font-semibold text-stone-800">2a. Dasar Terbit Sendiri Editor</div>
+      {benarkanSelfPublish === null ? (
+        <p className="text-stone-400 text-[11px]">Memuatkan…</p>
+      ) : (
+        <label className="flex items-center gap-2.5 cursor-pointer w-fit">
+          <input
+            type="checkbox"
+            checked={benarkanSelfPublish}
+            disabled={menyimpan}
+            onChange={e => tukar(e.target.checked)}
+            className="w-4 h-4 rounded border-stone-300 text-[#802334] cursor-pointer disabled:cursor-wait"
+          />
+          <span className="text-stone-700">
+            Benarkan Editor luluskan kandungan sendiri (tanpa tunggu Ketua Editor/Penolong)
+          </span>
+        </label>
+      )}
+      {ralat && <p className="text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5 text-[10px]">{ralat}</p>}
+      <p className="text-stone-400 text-[10px] leading-relaxed">
+        Bila dinyahtanda, SEMUA kandungan Editor (bukan Ketua Editor/Penolong) kekal Menunggu
+        sehingga diluluskan secara manual di Kandungan → Indeks — tak kira kandungan tu pernah
+        ditolak atau tidak. Kandungan yang pernah ditolak sekali sentiasa perlu kelulusan Ketua
+        Editor/Penolong, tak kira tetapan ni (lihat Panduan → 01).
+      </p>
+    </div>
+  );
+}
+
 export const TetapanAmSlotConsole: React.FC = () => {
   const [draf, setDraf] = useState<TetapanAm | null>(null);
   const [asal, setAsal] = useState<TetapanAm | null>(null);
@@ -366,8 +437,14 @@ export const TetapanAmSlotConsole: React.FC = () => {
           <p className="text-stone-400 text-[10px] leading-relaxed">
             Dikira daripada kandungan yang masih hidup sahaja; kandungan arkib tidak mengambil ruang.
             Had ini menahan kandungan BAHARU sahaja — slot yang sudah melebihi had tidak dikosongkan sendiri.
+            Had ni turut kawal <strong>bila kandungan Menunggu boleh jadi Aktif</strong> (2026-08-06) —
+            kalau slot dah penuh dengan kandungan Aktif sedia ada, kandungan yang cuba diluluskan
+            kekal Menunggu (ditanda "tunggu slot kosong") dan naik taraf AUTOMATIK sebaik ada
+            ruang, tanpa perlu keputusan manusia kedua.
           </p>
         </div>
+
+        <DasarTerbitSendiriField />
 
         {/* 3. Jenis animasi */}
         <div className="border border-stone-200 rounded p-4 space-y-2">

@@ -93,7 +93,10 @@ const CartaAlirKandungan: React.FC = () => {
       <p className="font-sans text-[10px] text-stone-400 mt-1 px-1">
         Draf ialah blok teks peribadi (belum jadi rekod rasmi) — semua status lain rekod
         sebenar dalam Indeks. Aktif/Menunggu boleh diklik terus di <strong>Slot → Senarai
-        Slot</strong> untuk lihat senarai tajuk + tarikh jadual (kalau ada).
+        Slot</strong> untuk lihat senarai tajuk + tarikh jadual (kalau ada). "Luluskan" boleh
+        dibuat Editor SENDIRI atau perlu Ketua Editor/Penolong, ikut <strong>Dasar Terbit
+        Sendiri Editor</strong> (Slot → 4. Tetapan Am); kandungan yang lulus tapi slot penuh
+        kekal Menunggu (naik taraf automatik bila ruang terbuka) — lihat seksyen 01 di atas.
       </p>
     </div>
   );
@@ -137,16 +140,28 @@ export const PanduanConsole: React.FC = () => {
             terbit dengan kandungan terpotong.
           </Card>
           <Card title="4. Status selepas terbit">
-            Kandungan yang berjaya diterbitkan mendarat sebagai <strong>Menunggu</strong>{' '}
-            (bukan terus Aktif) — perlu kelulusan Ketua Editor di <strong>Kandungan →
-            Indeks</strong>. Pengecualian: slot Bar (jalur acara/program) kekal ikut
+            Kandungan yang berjaya diterbitkan mendarat sebagai <strong>Menunggu</strong> (bukan
+            terus Aktif). Ikut <strong>Dasar Terbit Sendiri Editor</strong> semasa (Slot → 4.
+            Tetapan Am, ditetapkan Ketua Editor) — Editor SENDIRI boleh terus luluskan kandungan
+            dia di Indeks (lalai), ATAU dimatikan supaya SEMUA kandungan Editor wajib lalui Ketua
+            Editor/Penolong dahulu. Pengecualian: slot Bar (jalur acara/program) kekal ikut
             peraturan tersendiri, lihat Dokumentasi → Peraturan Am seksyen 04.
           </Card>
           <Card title="Kelulusan di Indeks">
-            Ketua Editor/Penolong semak kandungan Menunggu di <strong>Kandungan →
-            Indeks</strong>, boleh Lulus (jadi Aktif, terus di frontpage) atau Tolak.
-            Tolak BUKAN buang kandungan — ia pulangkan semula sebagai draf yang boleh
-            disunting di Tulis Kandungan/Draf Saya.
+            Sesiapa yang berkelayakan (Editor sendiri kalau dasar benarkan, atau Ketua
+            Editor/Penolong) semak kandungan Menunggu di <strong>Kandungan → Indeks</strong>,
+            boleh Lulus (jadi Aktif) atau Tolak. Kandungan yang PERNAH ditolak sekali sentiasa
+            wajib lalui Ketua Editor/Penolong untuk terbit semula, tak kira dasar terbit sendiri
+            — lihat seksyen 02 (Carta Alir) di atas. Tolak BUKAN buang kandungan — ia pulangkan
+            semula sebagai draf yang boleh disunting di Tulis Kandungan/Draf Saya.
+          </Card>
+          <Card title="Menunggu semakan vs menunggu slot kosong">
+            "Lulus" tak semestinya terus jadikan kandungan Aktif — kalau slot dah penuh (Had
+            Bilangan Kandungan, Tetapan Am Slot), kandungan tu kekal Menunggu dengan status
+            "sudah lulus, tunggu slot kosong". Ia naik taraf ke Aktif SECARA AUTOMATIK sebaik
+            ruang terbuka (kandungan lain diarkibkan/ditolak/luput) — tiada tindakan manusia
+            kedua diperlukan. Lihat status ni terus di <strong>Slot → Senarai Slot</strong>
+            (klik angka Menunggu).
           </Card>
           <Card title="Draf Saya">
             Senarai semua draf peribadi anda merentasi slot, dengan siapa pemiliknya

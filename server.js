@@ -1904,6 +1904,16 @@ const initEditorialOS = (dbConn) => {
           // Editor/Penolong sendiri yang luluskan, elak editor terbit semula tanpa semakan.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('pernahDitolak', 'Pernah Ditolak', 'text')", () => {});
 
+          // sebabMenunggu: DUA jenis Menunggu (2026-08-06, permintaan Izzat — "menunggu sepatutnya
+          // ada dua jenis, menunggu semakan dan menunggu untuk disiarkan/aktif"). Nilai 'semakan'
+          // (lalai bagi setiap kandungan pending baharu — perlu keputusan MANUSIA, Ketua Editor/
+          // Penolong atau Editor berkelayakan self-publish) atau 'slot_penuh' (dah lulus keputusan,
+          // cuma tunggu RUANG kosong dalam slot — hadKandunganSlot, Tetapan Am Slot — sebelum boleh
+          // jadi 'approved'). Kandungan 'slot_penuh' dinaik taraf AUTOMATIK oleh
+          // promosikanMenungguSlotKosong() (contentRoutes.js) sebaik ruang kosong wujud, tiada
+          // keputusan manusia kedua diperlukan. Lihat PATCH /content/:id untuk logik penuh.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('sebabMenunggu', 'Sebab Menunggu', 'text')", () => {});
+
           // urlKod: kod pendek unik per-kandungan (Fasa 9, 2026-08-05) — skema URL
           // /<bidang-slug>/kandungan/<kod-pendek>. Lihat core/editorial/UrlSlug.js untuk sebab
           // ia kod RAWAK baharu (bukan potongan editorial_objects.id sedia ada). Indeks unik
@@ -2656,6 +2666,11 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         // sepadan, kandungan ni pernah ditolak sekali, tandakan supaya PATCH /content/:id
         // sekat Editor biasa self-approve semula tanpa kelulusan Ketua Editor/Penolong.
         { key: 'pernahDitolak', val: (item.uuid && String(item.uuid).endsWith('-reject')) ? '1' : '' },
+        // Dua jenis Menunggu (2026-08-06) — kandungan yang baru Terbitkan (finalStatus='pending')
+        // sentiasa mula sebagai 'semakan' (perlu keputusan manusia — self-publish ATAU Ketua
+        // Editor/Penolong, ikut dasar semasa). Ia cuma bertukar 'slot_penuh' kalau/bila seseorang
+        // cuba luluskannya tapi slot penuh — lihat PATCH /content/:id (contentRoutes.js).
+        { key: 'sebabMenunggu', val: finalStatus === 'pending' ? 'semakan' : '' },
       ];
       for (const a of attrs) {
         await dbRun(

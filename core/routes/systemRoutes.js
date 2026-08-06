@@ -109,6 +109,77 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     }
   });
 
+  // Dasar Terbit Sendiri Editor (2026-08-06, permintaan Izzat) — "editor boleh terus publish, tp
+  // benda ni boleh diubah oleh ketua editor... guna rbac, benarkan ketua editor sahaja yg boleh
+  // tukar polisi ni". Guna kunci RBAC SEDIA ADA (`publish`, peranan `editor`) sebagai sumber
+  // kebenaran tunggal (sepadan Kawalan Akses penuh, TIDAK cipta konsep dasar berasingan) — cuma
+  // laluan NI dibuka khusus untuk Ketua Editor/Penolong (`manageEditorial`), bukan Pentadbir-sahaja
+  // (`manageSettings`) macam borang Kawalan Akses penuh, supaya Ketua Editor boleh tukar SATU
+  // togol ni sendiri tanpa perlu akses seluruh matriks RBAC yang sensitif.
+  //
+  // system_settings.rolePermissions disimpan sebagai ARRAY {roleId, roleName, permissions}[]
+  // (format borang TetapanConsole.tsx) — bukan objek map terus.
+  const bacaMatriksRolePermissions = async () => {
+    const row = await dbGet("SELECT rolePermissions FROM system_settings WHERE id = 'settings-main'");
+    const raw = row && row.rolePermissions ? safeJsonParse(row.rolePermissions, []) : [];
+    return Array.isArray(raw) ? raw : [];
+  };
+
+  router.get('/system/editor-publish-policy', async (req, res) => {
+    try {
+      const matriks = await bacaMatriksRolePermissions();
+      const barisEditor = matriks.find((r) => r.roleId === 'editor');
+      // Tiada baris tersimpan langsung (pemasangan baharu) = lalai DEFAULT_ROLE_PERMISSIONS.editor
+      // (publish: true, lihat core/middleware/auth.js) — Editor boleh self-publish.
+      const benarkanSelfPublish = barisEditor ? barisEditor.permissions?.publish !== false : true;
+      res.json({ benarkanSelfPublish });
+    } catch (err) {
+      console.error('GET editor-publish-policy error:', err);
+      res.status(500).json({ error: 'Gagal membaca dasar terbit sendiri editor.' });
+    }
+  });
+
+  router.patch('/system/editor-publish-policy', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const { benarkanSelfPublish } = req.body || {};
+      if (typeof benarkanSelfPublish !== 'boolean') {
+        return res.status(400).json({ error: 'benarkanSelfPublish mesti boolean.' });
+      }
+      const matriks = await bacaMatriksRolePermissions();
+      const indeks = matriks.findIndex((r) => r.roleId === 'editor');
+      if (indeks === -1) {
+        // Baris 'editor' tak wujud langsung dalam matriks tersimpan (pemasangan baharu/matriks
+        // lapuk) — cipta baris minimum, kunci lain akan digabung ke lalai DEFAULT_ROLE_PERMISSIONS
+        // oleh parseStoredMatrix() (core/middleware/auth.js) semasa dibaca semula.
+        matriks.push({ roleId: 'editor', roleName: 'Editor', permissions: { publish: benarkanSelfPublish } });
+      } else {
+        matriks[indeks] = {
+          ...matriks[indeks],
+          permissions: { ...(matriks[indeks].permissions || {}), publish: benarkanSelfPublish },
+        };
+      }
+      await dbRun(
+        "UPDATE system_settings SET rolePermissions = ? WHERE id = 'settings-main'",
+        [JSON.stringify(matriks)]
+      );
+      await loadRolePermissions(dbGet);
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-dasar-terbit-sendiri',
+        targetType: 'tetapan',
+        targetId: 'editor-publish-policy',
+        detail: benarkanSelfPublish ? 'Editor dibenarkan terbit sendiri.' : 'Editor kini perlu kelulusan Ketua Editor/Penolong untuk terbit.',
+      });
+
+      res.json({ success: true, benarkanSelfPublish });
+    } catch (err) {
+      console.error('PATCH editor-publish-policy error:', err);
+      res.status(500).json({ error: 'Gagal mengemas kini dasar terbit sendiri editor.' });
+    }
+  });
+
   // GET /api/pages/:key — static/footer pages
   router.get('/pages/:key', async (req, res) => {
     const { key } = req.params;
