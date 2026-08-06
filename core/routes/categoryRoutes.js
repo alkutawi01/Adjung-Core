@@ -374,8 +374,17 @@ export function createCategoryRoutes(db) {
   router.post('/categories/assign-slot', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { slotIndex, bidangName } = req.body;
-      if (slotIndex === undefined || slotIndex === null || Number(slotIndex) < 0) {
-        return res.status(400).json({ error: 'slotIndex tidak sah.' });
+      // Sahkan slotIndex sebagai INTEGER dalam julat sebenar (0–37), bukan sekadar "bukan negatif"
+      // (2026-08-07, ditemui oleh simulasi input-jahat). Semakan lama `Number(slotIndex) < 0`
+      // melepaskan dua nilai berbahaya: 99999 (lulus sebab >0) dan 'bukan-nombor' (Number() jadi
+      // NaN, dan NaN < 0 ialah false). Dahulu ia tak berbahaya kerana UPDATE tulen cuma padan
+      // sifar baris — tetapi selepas laluan ni ditukar kepada UPSERT (pembetulan "simpan Bidang
+      // gagal senyap"), nilai sampah itu MENCIPTA baris slots_config baharu: slot 99999 dan
+      // slotIndex berjenis TEXT. Julat dikuatkuasakan di sini supaya UPSERT tak boleh mencemarkan
+      // jadual. (Ticker ialah slotIndex -1 tetapi diuruskan di Modul Khas, bukan laluan ni.)
+      const slotNum = Number(slotIndex);
+      if (!Number.isInteger(slotNum) || slotNum < 0 || slotNum > 37) {
+        return res.status(400).json({ error: 'Nombor slot tidak sah — mesti antara slot 1 hingga 38.' });
       }
       const trimmed = (bidangName || '').trim();
       if (trimmed) {
@@ -386,7 +395,7 @@ export function createCategoryRoutes(db) {
         }
       }
 
-      const currentRow = await CategoryRegistry.dbGet(db, "SELECT manualDesk, contentMode FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
+      const currentRow = await CategoryRegistry.dbGet(db, "SELECT manualDesk, contentMode FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotNum]);
       const oldDesk = (currentRow && currentRow.manualDesk) || '';
 
       // UPSERT, bukan UPDATE kosong (2026-08-06, disahkan hidup — laporan Izzat "tak boleh save
@@ -399,15 +408,15 @@ export function createCategoryRoutes(db) {
         INSERT INTO slots_config (layoutTemplateId, slotIndex, manualDesk)
         VALUES ('frontpage', ?, ?)
         ON CONFLICT(layoutTemplateId, slotIndex) DO UPDATE SET manualDesk = excluded.manualDesk
-      `, [slotIndex, trimmed]);
+      `, [slotNum, trimmed]);
       if (!hasilTulis || hasilTulis.changes === 0) {
-        return res.status(500).json({ error: `Slot ${Number(slotIndex) + 1} gagal disimpan — tiada baris ditulis.` });
+        return res.status(500).json({ error: `Slot ${slotNum + 1} gagal disimpan — tiada baris ditulis.` });
       }
 
       // Bidang slot betul-betul berubah — kandungan live/pending lama dalam slot ni tak lagi
       // sepadan, arkib supaya tak terus terpapar dengan Bidang yang tak sah.
       if (oldDesk.toLowerCase() !== trimmed.toLowerCase()) {
-        await CategoryRegistry.archiveLiveContentInSlot(db, slotIndex);
+        await CategoryRegistry.archiveLiveContentInSlot(db, slotNum);
         // Slot Manual: giliran SEBENAR yang dibaca modal Urus Slot ialah teks mentah
         // manualSummary — archiveLiveContentInSlot() di atas cuma tanda status baris
         // editorial_revisions (untuk paparan Semakan Kandungan), TIDAK sentuh teks tu. Tanpa
@@ -415,7 +424,7 @@ export function createCategoryRoutes(db) {
         // daripada teks lama yang tak berubah), dan disiar semula sebagai 'approved' bila
         // disimpan. Kosongkan sekali supaya kedua-dua sumber data selari.
         if (currentRow && currentRow.contentMode === 'Manual') {
-          await CategoryRegistry.dbRun(db, "UPDATE slots_config SET manualSummary = '' WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
+          await CategoryRegistry.dbRun(db, "UPDATE slots_config SET manualSummary = '' WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotNum]);
         }
       }
 
@@ -424,7 +433,7 @@ export function createCategoryRoutes(db) {
         actorName: req.session?.user?.penName || req.session?.user?.username,
         action: 'tetapkan-bidang-slot',
         targetType: 'slot',
-        targetId: String(slotIndex),
+        targetId: String(slotNum),
         detail: trimmed || '(kosong)',
       });
 

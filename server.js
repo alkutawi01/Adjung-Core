@@ -1924,9 +1924,16 @@ const initEditorialOS = (dbConn) => {
           // ciri akordion akan datang) — tiada had aksara dikuatkuasakan setakat ini sebab tiada
           // panel sebenar untuk diukur, sama macam briefLong sebelum ciri spotlight dibina.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('penerangan', 'Penerangan', 'text')", () => {});
-          // note/image: medan baharu Urus Slot (modal bento bukan-BAR) — nota dalaman (tak
-          // disiarkan) dan lampiran imej Focus View per-kandungan. Sama corak macam
-          // briefLong/topik di atas — kena didaftar dulu di sini atau INSERT gagal senyap.
+          // note/image: medan baharu Urus Slot (modal bento bukan-BAR) — nota editor dan lampiran
+          // imej Focus View per-kandungan. Sama corak macam briefLong/topik di atas — kena
+          // didaftar dulu di sini atau INSERT gagal senyap.
+          //
+          // JELAS TENTANG `note` (2026-08-07): ia BUKAN nota rahsia dalaman. Komen asal di sini
+          // tertulis "tak disiarkan", bercanggah dengan UI ("Nota editor (pilihan) — hanya di
+          // Focus View…", SlotManagerModal.tsx) dan dengan FocusView.tsx yang memang MEMAPARKANNYA
+          // kepada pembaca, lengkap dengan had aksara boleh tetap (hadNotaEditor, Tetapan Am Slot).
+          // Maksud sebenar: tidak dipapar pada KAD, hanya dalam Focus View. Ia memang sampai
+          // kepada pembaca — jangan taip maklumat sulit di situ.
           // "Tarikh sumber" (borang Urus Slot) memetakan kepada attributeId 'originalDate' sedia
           // ada (didaftar di atas sebagai 'Tarikh Asal') — bukan attribute baharu, sebab ia
           // konsep yang sama (tarikh bahan ASAL, bukan tarikh disiarkan Adjung).
@@ -2816,7 +2823,17 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
 
     if (objectIds.length === 0 && !slotHasMigratedRows) {
       isManualParsed = true;
-      const parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot);
+      // TAPIS DRAF (2026-08-07, ditemui oleh simulasi portal awam) — laluan sandaran ni menghurai
+      // teks manualSummary MENTAH, yang mengandungi blok draf editor bersama blok yang benar-benar
+      // diterbitkan. Sebelum ni ia mendorong SETIAP blok ke frontpage AWAM tanpa melihat status:
+      // slot yang belum pernah ada kandungan diterbitkan (tiada baris editorial_objects) akan
+      // menyiarkan tulisan draf yang belum siap kepada pembaca. Disahkan hidup: tajuk bertanda
+      // "Status: draf" muncul dalam GET /api/system/layout/active tanpa sesi.
+      //
+      // Blok tanpa baris "Status:" langsung dianggap terbit — sengaja, sepadan lalai
+      // parseManualSummaryTemplate (kandungan lama sebelum medan Status wujud).
+      const parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot)
+        .filter((p) => p.status !== 'draft');
       for (const parsed of parsedItems) {
         const approvedRevision = {
           title: parsed.title,
@@ -3106,6 +3123,18 @@ let ralatPelayanTerakhirDinotis = 0;
 const RALAT_PELAYAN_SEJUK_MS = 10 * 60 * 1000;
 
 app.use((err, req, res, next) => {
+  // Ralat KLIEN dikenal pasti dahulu (2026-08-07, ditemui oleh simulasi input-jahat) — badan JSON
+  // rosak atau melebihi had saiz dahulunya jatuh ke pengendali umum di bawah dan dilaporkan
+  // sebagai 500 "Ralat pelayan dalaman", lalu turut mencetuskan notifikasi "ralat pelayan" kepada
+  // Pentadbir/Ketua Editor. Kedua-duanya salah: pelayan berfungsi dengan betul, permintaan yang
+  // cacat. Balas 400/413 dan JANGAN kejutkan sesiapa.
+  if (err && (err.type === 'entity.parse.failed' || err instanceof SyntaxError && 'body' in err)) {
+    return res.status(400).json({ error: 'Badan permintaan bukan JSON yang sah.' });
+  }
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Permintaan terlalu besar.' });
+  }
+
   console.error('Ralat tidak dijangka pada', req.method, req.originalUrl, ':', err);
   // Log Audit (Fasa 4) — catat ralat pelayan yang tak ditangkap supaya boleh disemak dari Log
   // Sistem, bukan cuma konsol proses (yang hilang bila server dimulakan semula/PM2 pusing log).

@@ -464,7 +464,13 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // jadi ditakrif SEKALI, disuntik dalam kedua-dua cawangan `return` di bawah.
   const transitionOverlay = tunjukTransisi && (
     <div
-      key={title}
+      // Awalan pada kunci (2026-08-07) — panel transisi ni dan bar autoscroll di bawah ialah
+      // ADIK-BERADIK dalam induk yang sama, dan kedua-duanya dahulu guna `key={title}` sahaja.
+      // React mengadu "two children with the same key" dan amaran itu bukan kosmetik: dua anak
+      // berkongsi kunci boleh diduplikasi/ditinggalkan semasa kemas kini. Kunci kekal berubah
+      // ikut `title` (itu tujuannya — paksa remount supaya animasi bermula semula setiap kali
+      // kandungan bertukar), cuma diruang-namakan supaya unik antara adik-beradik.
+      key={`transisi-${title}`}
       aria-hidden="true"
       style={{
         position: 'fixed', inset: 0, zIndex: 250, pointerEvents: 'none',
@@ -553,7 +559,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           )}
         </div>
         {autoPlay && onNext && (
-          <div key={title} style={{ height: '2px', flex: '0 0 auto', background: 'var(--stone-200)', overflow: 'hidden' }}>
+          <div key={`bar-${title}`} style={{ height: '2px', flex: '0 0 auto', background: 'var(--stone-200)', overflow: 'hidden' }}>
             <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards` }} />
           </div>
         )}
@@ -833,7 +839,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
         )}
       </div>
       {autoPlay && onNext && (
-        <div key={title} style={{ height: '2px', flex: '0 0 auto', width: '100%', background: 'var(--border-subtle)', overflow: 'hidden' }}>
+        <div key={`bar-${title}`} style={{ height: '2px', flex: '0 0 auto', width: '100%', background: 'var(--border-subtle)', overflow: 'hidden' }}>
           <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards` }} />
         </div>
       )}
