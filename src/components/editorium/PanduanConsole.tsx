@@ -20,6 +20,85 @@ const Card: React.FC<{ title: string; children: React.ReactNode }> = ({ title, c
   </div>
 );
 
+// Carta Alir Kandungan (2026-08-06, permintaan Izzat) — status SEBENAR dalam kod
+// (core/routes/contentRoutes.js CONTENT_STATUSES + runSchedulingTick): Draf (blok teks,
+// TIADA baris DB — lihat draftRoutes.js) -> Menunggu ('pending') -> Aktif ('approved') ->
+// Arkib ('archived'). 'rejected'/'scheduled' turut wujud dalam kod tapi bukan status HENTIAN
+// yang editor nampak sendiri secara kekal — 'rejected' legasi tak pernah ditulis sesiapa
+// (Tolak sebenar guna mekanisme draf-semula, lihat nota di bawah), 'scheduled' singkatan
+// automatik sebelum Aktif (Jadual Terbit) jadi tak ditunjukkan sebagai kotak berasingan supaya
+// carta ni kekal mudah dibaca peringkat harian, bukan spesifikasi teknikal penuh.
+const CartaAlirKandungan: React.FC = () => {
+  const kotak = { w: 148, h: 68 };
+  const y = 118;
+  const posisi = { draf: 24, menunggu: 232, aktif: 440, arkib: 648 };
+  const warna = {
+    draf: { bg: '#f5f5f4', border: '#a8a29e', teks: '#57534e' },
+    menunggu: { bg: '#fffbeb', border: '#b45309', teks: '#92400e' },
+    aktif: { bg: '#ecfdf5', border: '#065f46', teks: '#065f46' },
+    arkib: { bg: '#f5f5f4', border: '#78716c', teks: '#44403c' },
+  };
+  const Kotak: React.FC<{ x: number; label: string; sub: string; warna: { bg: string; border: string; teks: string } }> = ({ x, label, sub, warna: w }) => (
+    <g>
+      <rect x={x} y={y} width={kotak.w} height={kotak.h} rx={8} fill={w.bg} stroke={w.border} strokeWidth={1.5} />
+      <text x={x + kotak.w / 2} y={y + 28} textAnchor="middle" fontSize="13" fontWeight={700} fill={w.teks} fontFamily="ui-serif, Georgia, serif">{label}</text>
+      <text x={x + kotak.w / 2} y={y + 46} textAnchor="middle" fontSize="9" fill={w.teks} fontFamily="ui-monospace, monospace" letterSpacing="0.03em">{sub}</text>
+    </g>
+  );
+  return (
+    <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs overflow-x-auto">
+      <svg viewBox="0 0 830 320" className="w-full min-w-[700px]" style={{ maxHeight: 360 }}>
+        <defs>
+          <marker id="panahMaroon" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#802334" />
+          </marker>
+          <marker id="panahMerah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#b91c1c" />
+          </marker>
+          <marker id="panahKelabu" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#78716c" />
+          </marker>
+        </defs>
+
+        <Kotak x={posisi.draf} label="Draf" sub="TEKS SAHAJA" warna={warna.draf} />
+        <Kotak x={posisi.menunggu} label="Menunggu" sub="PENDING" warna={warna.menunggu} />
+        <Kotak x={posisi.aktif} label="Aktif" sub="APPROVED · DI FRONTPAGE" warna={warna.aktif} />
+        <Kotak x={posisi.arkib} label="Arkib" sub="ARCHIVED" warna={warna.arkib} />
+
+        {/* Aliran ke hadapan (maroon) — Terbitkan / Luluskan / Arkibkan */}
+        <line x1={posisi.draf + kotak.w} y1={y + 34} x2={posisi.menunggu - 4} y2={y + 34} stroke="#802334" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
+        <text x={(posisi.draf + kotak.w + posisi.menunggu) / 2} y={y + 20} textAnchor="middle" fontSize="9.5" fill="#802334" fontWeight={600}>Terbitkan</text>
+
+        <line x1={posisi.menunggu + kotak.w} y1={y + 34} x2={posisi.aktif - 4} y2={y + 34} stroke="#802334" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
+        <text x={(posisi.menunggu + kotak.w + posisi.aktif) / 2} y={y + 20} textAnchor="middle" fontSize="9.5" fill="#802334" fontWeight={600}>Luluskan</text>
+
+        <line x1={posisi.aktif + kotak.w} y1={y + 34} x2={posisi.arkib - 4} y2={y + 34} stroke="#802334" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
+        <text x={(posisi.aktif + kotak.w + posisi.arkib) / 2} y={y + 20} textAnchor="middle" fontSize="9" fill="#802334" fontWeight={600}>Arkibkan /</text>
+        <text x={(posisi.aktif + kotak.w + posisi.arkib) / 2} y={y + 30} textAnchor="middle" fontSize="9" fill="#802334" fontWeight={600}>Luput berjadual</text>
+
+        {/* Gelung Tolak (merah, lengkung bawah) — Menunggu/Aktif kembali ke Draf. Titik kawalan
+            kongsi X dengan hujung (bukan satu puncak di tengah) — bentuk lengkung jadi RATA
+            melintasi keseluruhan lebar, bukan melengkung ke bawah cuma di tengah. Label DUA
+            baris diletak SELEPAS bahagian rata tu sepenuhnya (bukan cuma bawah puncak anggapan)
+            — isu ditemui semasa sahkan visual sebenar (dua percubaan pertama masih bertindih,
+            baris kod ni jarak diperbesar sehingga disahkan bersih). */}
+        <path d={`M ${posisi.aktif + kotak.w / 2} ${y + kotak.h} C ${posisi.aktif + kotak.w / 2} ${y + kotak.h + 70}, ${posisi.draf + kotak.w / 2} ${y + kotak.h + 70}, ${posisi.draf + kotak.w / 2} ${y + kotak.h}`} fill="none" stroke="#b91c1c" strokeWidth={1.5} strokeDasharray="4,3" markerEnd="url(#panahMerah)" />
+        <text x={(posisi.draf + posisi.aktif) / 2 + kotak.w / 2} y={y + kotak.h + 92} textAnchor="middle" fontSize="9.5" fill="#b91c1c" fontWeight={600}>Tolak (sebab dicatat, kekal Menunggu selepas Terbitkan semula —</text>
+        <text x={(posisi.draf + posisi.aktif) / 2 + kotak.w / 2} y={y + kotak.h + 104} textAnchor="middle" fontSize="9.5" fill="#b91c1c" fontWeight={600}>perlu kelulusan Ketua Editor/Penolong)</text>
+
+        {/* Gelung Siarkan Semula (kelabu, lengkung atas) — Arkib kembali ke Aktif */}
+        <path d={`M ${posisi.arkib + kotak.w / 2} ${y} C ${posisi.arkib + kotak.w / 2} ${y - 42}, ${posisi.aktif + kotak.w / 2} ${y - 42}, ${posisi.aktif + kotak.w / 2} ${y}`} fill="none" stroke="#78716c" strokeWidth={1.5} strokeDasharray="4,3" markerEnd="url(#panahKelabu)" />
+        <text x={(posisi.aktif + posisi.arkib) / 2 + kotak.w / 2} y={y - 50} textAnchor="middle" fontSize="9.5" fill="#78716c" fontWeight={600}>Siarkan Semula (boleh pindah slot lain, Bidang sepadan)</text>
+      </svg>
+      <p className="font-sans text-[10px] text-stone-400 mt-1 px-1">
+        Draf ialah blok teks peribadi (belum jadi rekod rasmi) — semua status lain rekod
+        sebenar dalam Indeks. Aktif/Menunggu boleh diklik terus di <strong>Slot → Senarai
+        Slot</strong> untuk lihat senarai tajuk + tarikh jadual (kalau ada).
+      </p>
+    </div>
+  );
+};
+
 export const PanduanConsole: React.FC = () => {
   return (
     <div className="space-y-8">
@@ -53,7 +132,7 @@ export const PanduanConsole: React.FC = () => {
           <Card title="3. Terbit sekarang">
             Apabila kandungan siap, klik <strong>Terbit sekarang</strong>. Sistem akan
             menyemak dua perkara sebelum benarkan terbit: (a) tajuk + huraian muat dalam
-            bajet ruang kad tu (lihat seksyen 02 di bawah), dan (b) Bidang serta Topik
+            bajet ruang kad tu (lihat seksyen 03 di bawah), dan (b) Bidang serta Topik
             sudah diisi. Kalau gagal semakan, sistem tolak dan tunjuk sebab — bukan
             terbit dengan kandungan terpotong.
           </Card>
@@ -77,9 +156,15 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 02 — BAJET RUANG KAD */}
+      {/* 02 — CARTA ALIR KANDUNGAN (2026-08-06, permintaan Izzat) */}
       <div>
-        <SectionLabel>02 — Kenapa Kandungan Kadang Ditolak: Bajet Ruang Kad</SectionLabel>
+        <SectionLabel>02 — Carta Alir Kandungan: Draf sampai Arkib</SectionLabel>
+        <CartaAlirKandungan />
+      </div>
+
+      {/* 03 — BAJET RUANG KAD */}
+      <div>
+        <SectionLabel>03 — Kenapa Kandungan Kadang Ditolak: Bajet Ruang Kad</SectionLabel>
         <Card title="Satu bajet, dua medan">
           <>
             Setiap kad bento (Hero, Menegak, Standard, dll.) ada saiz fizikal tetap — kad
@@ -98,9 +183,9 @@ export const PanduanConsole: React.FC = () => {
         </Card>
       </div>
 
-      {/* 03 — BIDANG & TOPIK */}
+      {/* 04 — BIDANG & TOPIK */}
       <div>
-        <SectionLabel>03 — Bidang &amp; Topik</SectionLabel>
+        <SectionLabel>04 — Bidang &amp; Topik</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Bidang terkunci per-slot">
             Setiap slot (kecuali Ticker dan tier Bar) terkunci kepada SATU Bidang tetap
@@ -118,9 +203,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 04 — MENGURUS SLOT SEDIA ADA */}
+      {/* 05 — MENGURUS SLOT SEDIA ADA */}
       <div>
-        <SectionLabel>04 — Mengurus Slot Sedia Ada</SectionLabel>
+        <SectionLabel>05 — Mengurus Slot Sedia Ada</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Senarai Slot">
             <strong>Slot → 1. Senarai Slot</strong> — senarai semua 38 slot bento, tunjuk
@@ -135,9 +220,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 05 — PERANAN & KEBENARAN */}
+      {/* 06 — PERANAN & KEBENARAN */}
       <div>
-        <SectionLabel>05 — Peranan &amp; Kebenaran (RBAC)</SectionLabel>
+        <SectionLabel>06 — Peranan &amp; Kebenaran (RBAC)</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Pentadbir">
             Domain teknikal: Direktori (urus akaun), Tetapan Sistem, dan Kawalan Akses.
@@ -168,9 +253,9 @@ export const PanduanConsole: React.FC = () => {
         </p>
       </div>
 
-      {/* 06 — BILA SESUATU TAK KENA */}
+      {/* 07 — BILA SESUATU TAK KENA */}
       <div>
-        <SectionLabel>06 — Bila Sesuatu Tak Kena</SectionLabel>
+        <SectionLabel>07 — Bila Sesuatu Tak Kena</SectionLabel>
         <Card title="Log Sistem">
           Kalau kandungan hilang tiba-tiba, simpanan gagal, atau tindakan tak seperti
           dijangka — semak <strong>Log Sistem</strong> (nav bawah, kumpulan Rujukan).
