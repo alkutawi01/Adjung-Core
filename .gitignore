@@ -15,4 +15,3 @@ adjung.db
 *.db.backup-*
 .claude/
 public/uploads/
-.simulasi/
