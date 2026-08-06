@@ -1,4 +1,6 @@
 import express from 'express';
+import { requirePermission } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 export function createAIRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
@@ -14,14 +16,25 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // POST /api/ai/providers
-  router.post('/providers', async (req, res) => {
+  // POST /api/ai/providers — DAHULU tiada langsung requireAuth/requirePermission (2026-08-06,
+  // ditemui semasa audit log audit), berbeza daripada hampir semua laluan tulis lain dalam
+  // sistem — sesiapa yang tahu URL boleh tulis-ganti konfigurasi provider AI (termasuk pointer
+  // secretName API key) tanpa log masuk langsung. Kini dikunci sama seperti tetapan lain.
+  router.post('/providers', requirePermission('manageSettings'), async (req, res) => {
     try {
       const p = req.body;
       await dbRun(`
         INSERT OR REPLACE INTO ai_providers (id, name, secretName, model, monthlyBudget, dailyBudget, status, lastTest, enabled)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [p.id, p.name, p.secretName, p.model, p.monthlyBudget, p.dailyBudget, p.status, p.lastTest, p.enabled ? 1 : 0]);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-ai-provider',
+        targetType: 'ai-provider',
+        targetId: p.id,
+        detail: p.name,
+      });
       res.json({ success: true });
     } catch (err) {
       console.error('Save provider error:', err);
@@ -30,7 +43,7 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
   });
 
   // POST /api/ai/test-provider
-  router.post('/test-provider', async (req, res) => {
+  router.post('/test-provider', requirePermission('manageSettings'), async (req, res) => {
     try {
       const { id } = req.body;
       const prov = await dbGet("SELECT * FROM ai_providers WHERE id = ?", [id]);
@@ -61,14 +74,22 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // POST /api/ai/prompts
-  router.post('/prompts', async (req, res) => {
+  // POST /api/ai/prompts — sama gerbang keselamatan seperti /providers di atas.
+  router.post('/prompts', requirePermission('manageSettings'), async (req, res) => {
     try {
       const p = req.body;
       await dbRun(`
         INSERT OR REPLACE INTO prompt_templates (id, name, templateText, version, updatedAt)
         VALUES (?, ?, ?, ?, ?)
       `, [p.id, p.name, p.templateText, p.version, new Date().toISOString()]);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-templat-prompt-ai',
+        targetType: 'prompt-ai',
+        targetId: p.id,
+        detail: p.name,
+      });
       res.json({ success: true });
     } catch (err) {
       console.error('Save prompt error:', err);
