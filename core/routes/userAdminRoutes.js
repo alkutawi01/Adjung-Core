@@ -142,6 +142,17 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       if (existing) {
         return res.status(409).json({ error: 'Username atau emel sudah digunakan.' });
       }
+      // Nama pena unik (2026-08-06, pembetulan audit) — `penName` DIPAKAI sebagai identiti
+      // "siapa tulis kandungan ni" di seluruh sistem (attribute `editorName`, "Draf Saya", dan
+      // kini `lastPublishedAt` dasar aktif — lihat contentRoutes.js), bukan `users.id`. Dua
+      // editor bernama pena SAMA akan berkongsi jam tak aktif SATU SAMA LAIN (kandungan editor
+      // A "diterbitkan" tersilap direset jam editor B) — bukan andaian, ini padanan LOWER(TRIM())
+      // tulen tanpa gerbang, jadi cegah di punca (cipta akaun) senang drpd tulis semula seluruh
+      // mekanisme identiti sedia ada yang dah lama guna corak ni.
+      const penNameSedia = await dbGet('SELECT id FROM users WHERE LOWER(TRIM(penName)) = LOWER(?)', [pn]);
+      if (penNameSedia) {
+        return res.status(409).json({ error: `Nama pena "${pn}" sudah digunakan akaun lain — pilih nama pena lain (dipakai sebagai identiti penulis kandungan, mesti unik).` });
+      }
 
       const id = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const kini = new Date().toISOString();

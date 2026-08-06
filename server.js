@@ -3167,6 +3167,20 @@ const runSemakanTakAktif = async (dbAll, dbRun) => {
     const { tajuk, html } = emelAmaranTakAktif(u.penName, hariTakAktif, tahapBaharu);
     if (u.email) {
       await hantarEmel({ to: u.email, subject: tajuk, html }).catch((e) => console.error('[Semakan Tak Aktif] Gagal hantar emel:', e.message));
+    } else {
+      // Editor tanpa emel berdaftar (2026-08-06, pembetulan audit) — dahulu eskalasi (termasuk
+      // gantung automatik tahap 3) terus jalan senyap tanpa SEBARANG cara memberitahu editor tu
+      // (notifikasi dalam-apl pun tak berguna kalau dia dah tak log masuk — itu puncanya jadi tak
+      // aktif). Beritahu Pentadbir/Ketua Editor SETIAP peringkat (bukan tunggu tahap 3 gantung),
+      // supaya seseorang boleh campur tangan secara manual (hubungi editor tu di luar sistem)
+      // sebelum gantungan berlaku, bukan lepas fakta.
+      const penerimaTiadaEmel = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
+      await notifyMany(dbRun, (penerimaTiadaEmel || []).map((r) => r.userId), {
+        type: 'sistem_amaran_tak_aktif',
+        title: `${u.penName || u.id}: tiada emel berdaftar — amaran tak aktif tahap ${tahapBaharu} tak dapat dihantar`,
+        detail: `Tak aktif ${hariTakAktif} hari. Editor ni tiada emel dalam sistem — sila hubungi secara manual di luar sistem sebelum ${tahapBaharu === 3 ? 'gantungan berlaku' : 'eskalasi seterusnya'}.`,
+        targetType: 'akaun', targetId: u.id,
+      });
     }
 
     if (tahapBaharu === 3) {

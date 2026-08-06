@@ -74,6 +74,13 @@ export function createProfileRoutes(dbGet, dbRun) {
         const v = (penName || '').trim();
         if (!v) return res.status(400).json({ error: 'Nama pena tidak boleh kosong.' });
         if (v.length > HAD_PEN_NAME) return res.status(400).json({ error: `Nama pena tidak boleh melebihi ${HAD_PEN_NAME} aksara.` });
+        // Nama pena unik (2026-08-06, pembetulan audit) — sama sebab macam POST /users: penName
+        // ialah identiti "siapa tulis kandungan ni" di seluruh sistem (editorName, Draf Saya,
+        // lastPublishedAt dasar aktif), padanan LOWER(TRIM()) tanpa gerbang. Semak akaun LAIN
+        // (bukan diri sendiri — editor boleh "tukar" ke nama sama dia sendiri, cth ubah huruf
+        // besar/kecil sahaja).
+        const lain = await dbGet('SELECT id FROM users WHERE LOWER(TRIM(penName)) = LOWER(?) AND id != ?', [v, id]);
+        if (lain) return res.status(409).json({ error: `Nama pena "${v}" sudah digunakan akaun lain — pilih nama pena lain.` });
         set.push('penName = ?'); params.push(v);
       }
 
