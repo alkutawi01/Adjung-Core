@@ -1,7 +1,8 @@
 // Single source of truth for "does this title+brief fit the card" for every code path that can
 // create or edit editorial content (manual paste, AI pipeline generation, content-review edits).
-// Mirrors GEOMETRY_RATIOS in src/components/portal/FrontpageView.tsx — keep both in sync if the
-// underlying card geometry ever changes (measured empirically per tier, see that file's comments).
+// Geometry numbers (GEOMETRY_RATIOS etc.) come from GeometryConfig.js below, the single shared
+// module for every consumer (FrontpageView.tsx, server.js, this file) — see that module's own
+// comments for how the numbers were measured empirically per tier.
 //
 // Title and brief share one fixed space budget per card, not two independent caps: a card can fit
 // a long title with a short brief, or a short title with a long brief, but not both maxed out at
