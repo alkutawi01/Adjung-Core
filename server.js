@@ -26,6 +26,7 @@ import { createTranslationRoutes } from './core/routes/translationRoutes.js';
 import { createChangelogRoutes } from './core/routes/changelogRoutes.js';
 import { createMediaRoutes } from './core/routes/mediaRoutes.js';
 import { createAuthRoutes, hashPassword } from './core/routes/authRoutes.js';
+import { daftarStorSesi } from './core/auth/SesiPengguna.js';
 import { createDbStateRoutes } from './core/routes/dbStateRoutes.js';
 import { createPipelineRoutes } from './core/routes/pipelineRoutes.js';
 import { createWorldClockRoutes } from './core/routes/worldClockRoutes.js';
@@ -91,6 +92,9 @@ const SQLiteStore = connectSqlite3(session);
 // versi API lama (dir+db sebagai string) tak dipakai versi ni, ditemui via TypeError
 // "this.db.exec is not a function" semasa ujian pertama.
 const sessionDb = new sqlite3.Database(path.join(__dirname, 'sessions.db'));
+// Stor sesi didaftarkan supaya laluan tukar kata laluan boleh membatalkan sesi lama akaun
+// berkenaan (core/auth/SesiPengguna.js).
+daftarStorSesi(sessionDb);
 app.use(session({
   store: new SQLiteStore({ db: sessionDb }),
   name: 'adjung.sid',

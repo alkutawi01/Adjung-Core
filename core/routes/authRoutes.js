@@ -6,6 +6,7 @@ import { hantarEmel } from '../email/MailSender.js';
 import { semakStatusToken, janaTokenTamatTempoh, STATUS_TOKEN } from '../auth/TokenLaluan.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { baseUrlEmel } from '../utils/baseUrl.js';
+import { padamSesiPengguna } from '../auth/SesiPengguna.js';
 
 // Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
 // Exported so server.js's DB seeding step can hash the initial Chief Editor account's random
@@ -48,16 +49,26 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         [normalized, normalized]
       );
 
+      // Anti-enumerasi akaun (2026-08-07, Pelan 02 #10) — dahulu akaun tidak wujud pulangkan 404
+      // "Pengguna tidak dijumpai" manakala kata laluan salah pulangkan 401, jadi sesiapa boleh
+      // menyenaraikan emel/nama pengguna yang berdaftar. Kini KEDUA-DUA kes pulangkan mesej dan
+      // kod status yang SAMA (selaras falsafah sedia ada di /lupa-kata-laluan). Status penggantungan
+      // pula hanya didedahkan SELEPAS kata laluan betul — jika tidak, ia bocor kewujudan akaun juga.
+      const gagalLogMasuk = () => res.status(401).json({
+        error: 'Butiran log masuk tidak tepat',
+        message: 'Butiran log masuk tidak tepat. Sila semak nama pengguna/emel dan kata laluan anda.',
+      });
+
       if (!userRow) {
-        return res.status(404).json({ error: 'Pengguna tidak dijumpai', message: 'Pengguna tidak dijumpai. Sila semak butiran log masuk anda.' });
+        return gagalLogMasuk();
+      }
+
+      if (!verifyPassword(password, userRow.password)) {
+        return gagalLogMasuk();
       }
 
       if (userRow.isSuspended === 1) {
         return res.status(403).json({ error: 'Akaun digantung', message: 'Akaun ini telah digantung oleh sidang editorial.' });
-      }
-
-      if (!verifyPassword(password, userRow.password)) {
-        return res.status(401).json({ error: 'Kata laluan salah', message: 'Kata laluan salah.' });
       }
 
       // 2026-08-02 (Fasa 3) — peranan SEBENAR ialah senarai daripada `user_roles` (satu akaun
@@ -135,6 +146,9 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         return res.status(401).json({ error: 'Kata laluan semasa tidak tepat.' });
       }
       await dbRun("UPDATE users SET password = ? WHERE id = ?", [hashPassword(newPassword), userRow.id]);
+      // Usir semua sesi LAIN akaun ni (2026-08-07, Pelan 02 #11) — sesi semasa pengguna sendiri
+      // dikecualikan supaya dia tidak dilog keluar oleh tindakannya sendiri.
+      await padamSesiPengguna(userRow.id, req.sessionID);
       // Notifikasi Sistem (Fasa 6b) — editor sendiri patut tahu bila kata laluan akaunnya
       // ditukar, walaupun dia sendiri yang buat (jejak keselamatan mudah, bukan sekadar
       // andaian yang buat mesti ingat).
@@ -252,6 +266,9 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         "UPDATE users SET password = ? WHERE id = ?",
         [hashPassword(password), userRow.id]
       );
+      // Kata laluan editor lain ditetapkan semula oleh Pentadbir — SEMUA sesi akaun tu dibatalkan
+      // (tiada pengecualian: sesi Pentadbir yang membuat tindakan ini bukan sesi akaun tersebut).
+      await padamSesiPengguna(userRow.id);
 
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
@@ -343,6 +360,10 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         "UPDATE users SET password = ?, resetToken = NULL, resetTokenExpiresAt = NULL WHERE id = ?",
         [hashPassword(password), userRow.id]
       );
+      // Laluan awam (tiada sesi log masuk) — batalkan SEMUA sesi akaun tu. Inilah kes paling
+      // penting: kalau penceroboh sudah log masuk dengan kata laluan lama, pemilik sah yang
+      // menetapkan semula kata laluannya mesti mengusir penceroboh itu serta-merta.
+      await padamSesiPengguna(userRow.id);
       res.json({ success: true });
     } catch (err) {
       console.error('Aktifkan akaun error:', err);
