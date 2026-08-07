@@ -3767,7 +3767,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 duduk BERSEBELAHAN sebagai dua kolum tu, bukan logo tersorong sekali jadi kolum
                 pertama drpd tiga. Desktop (md:) kembali 1 drpd 3 kolum macam asal. */}
             <div className="col-span-2 md:col-span-1 flex flex-col justify-start gap-3">
-              <h2 className="font-serif text-3xl font-normal text-[#802334] tracking-tight">Adjung</h2>
+              {/* Simbol Adjung rasmi (segi empat tegak, nisbah 1:2, Sistem Identiti Visual Adjung
+                  v1.0) di sebelah wordmark (2026-08-07, permintaan Izzat) — public/adjung-symbol.svg,
+                  sama asset yang dipakai favicon.svg. aria-hidden: dekoratif sahaja, "Adjung" teks
+                  di sisinya sudah bawa maksud penuh untuk pembaca skrin. */}
+              <div className="flex items-center gap-2.5">
+                <img src="/adjung-symbol.svg" alt="" aria-hidden="true" className="h-7 w-auto shrink-0" />
+                <h2 className="font-serif text-3xl font-normal text-[#802334] tracking-tight">Adjung</h2>
+              </div>
               {/* Penaja bulan semasa (Fasa 12) — sembunyi terus bila tiada penaja bulan ni,
                   bukan baris kosong. Klik bawa ke /penaja (senarai penuh), bukan terus ke laman
                   penaja individu — sepadan permintaan Izzat. */}

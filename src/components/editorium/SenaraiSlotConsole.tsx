@@ -497,7 +497,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                               className="text-left hover:text-Adjung-maroon cursor-pointer group"
                             >
                               {editorBagiSlot(i).length === 0 ? (
-                                <span className="text-stone-400 italic group-hover:text-Adjung-maroon">Belum ditugaskan</span>
+                                <span className="text-stone-400 group-hover:text-Adjung-maroon">Belum ditugaskan</span>
                               ) : (
                                 <span className="text-stone-700 group-hover:text-Adjung-maroon">
                                   {editorBagiSlot(i).map(p => p.nama).join(', ')}
@@ -507,7 +507,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                           </Tooltip>
                         ) : (
                           editorBagiSlot(i).length === 0 ? (
-                            <span className="text-stone-400 italic">Belum ditugaskan</span>
+                            <span className="text-stone-400">Belum ditugaskan</span>
                           ) : (
                             <span className="text-stone-700">{editorBagiSlot(i).map(p => p.nama).join(', ')}</span>
                           )

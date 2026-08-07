@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Zap, X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
+import { X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
 import { StatusBadge } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -74,6 +74,14 @@ export const BidangConsole: React.FC = () => {
   const desksTertapis = desks.filter(d =>
     paparanStatus === 'semua' ? true : paparanStatus === 'aktif' ? d.isActive === 1 : d.isActive !== 1
   );
+  // Bilangan setiap togol (2026-08-07, permintaan Izzat) — dahulu "Aktif"/"Arkib"/"Semua" tanpa
+  // angka, editor terpaksa klik setiap satu untuk tahu berapa banyak sebelum tahu jadual mana
+  // patut disemak dulu.
+  const jumlahIkutStatus: Record<'aktif' | 'arkib' | 'semua', number> = {
+    aktif: desks.filter(d => d.isActive === 1).length,
+    arkib: desks.filter(d => d.isActive !== 1).length,
+    semua: desks.length,
+  };
   const [menukarStatusId, setMenukarStatusId] = useState<string | null>(null);
 
   const togolStatusBidang = async (d: ActiveBidang) => {
@@ -258,9 +266,6 @@ export const BidangConsole: React.FC = () => {
         huraian="Bidang bagi setiap slot (kecuali Ticker dan Slot Bar) hanya boleh dipilih oleh Ketua Editor. Menukar Bidang sesuatu slot akan mengarkibkan kandungan aktif dalam slot tersebut."
         tindakan={
           <>
-            <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5" /> {desks.filter(d => d.isActive === 1).length} Bidang Aktif
-            </span>
             <Button
               variant="secondary"
               onClick={() => setShowWarnaModal(true)}
@@ -286,7 +291,7 @@ export const BidangConsole: React.FC = () => {
                 paparanStatus === s ? 'bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,.04)]' : 'text-stone-500 hover:text-stone-800'
               }`}
             >
-              {s}
+              {s} ({jumlahIkutStatus[s]})
             </button>
           ))}
         </div>
@@ -416,7 +421,7 @@ export const BidangConsole: React.FC = () => {
                           className="inline-flex items-center gap-1.5 group cursor-pointer text-left"
                         >
                           {d.slots.length === 0 ? (
-                            <span className="text-stone-400 italic group-hover:text-Adjung-maroon">Tiada slot</span>
+                            <span className="text-stone-400 group-hover:text-Adjung-maroon">Tiada slot</span>
                           ) : (
                             <span className="flex flex-wrap gap-1">
                               {d.slots.map(s => (
@@ -434,7 +439,7 @@ export const BidangConsole: React.FC = () => {
                       {(() => {
                         const senarai = editorBagiBidang(d.slots);
                         return senarai.length === 0
-                          ? <span className="text-stone-400 italic">Belum ditugaskan</span>
+                          ? <span className="text-stone-400">Belum ditugaskan</span>
                           : senarai.join(', ');
                       })()}
                     </td>
@@ -829,11 +834,6 @@ function IkonWarnaModal({
         <div className="font-sans space-y-3">
           <div className="pb-3 border-b border-stone-200">
             <label className={LABEL_BORANG}>Warna Bidang</label>
-            <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
-              Dipakai pada eyebrow kad, glif Bidang, dan eyebrow Focus View — identiti visual Bidang ini
-              merentas seluruh portal. Warna diberi automatik semasa Bidang dicipta; tukar di sini kalau ia
-              tidak sesuai.
-            </p>
             <div className="flex items-center gap-3">
               <Tooltip text="Pilih warna">
                 <input
@@ -915,7 +915,7 @@ function IkonWarnaModal({
                 />
               )}
             </div>
-            <p className="text-stone-400 text-[10px] mt-1.5">Had 100KB. Ditapis ketat di server sebelum disimpan (skrip/pengendali klik dibuang).</p>
+            <p className="text-stone-400 text-[10px] mt-1.5">Saiz maksimum 100 KB. Semua fail SVG akan disanitasi di pelayan sebelum disimpan.</p>
             {svgUploadError && <MesejStatus tone="error" className="mt-1">{svgUploadError}</MesejStatus>}
             {svgUploadPreview && (
               <Button
