@@ -34,10 +34,22 @@ export interface EditorDialogProps {
   children: React.ReactNode;
   /** Baris tindakan di kaki dialog (butang simpan/batal). Dijajar kanan. */
   tindakan?: React.ReactNode;
+  /** Kandungan kiri pada baris tindakan — cth "Tarikh: 2 Ogos 2026" bersebelahan butang di kanan.
+   *  Tanpa slot ni, dialog berkaki-terbelah terpaksa kekal ditulis tangan. */
+  tindakanKiri?: React.ReactNode;
+  /** Badan menatal sendiri, kepala dan kaki MELEKAT (2026-08-07).
+   *
+   *  Mod lalai menatal keseluruhan dialog (`max-h-[90vh] overflow-y-auto`), yang memadai untuk
+   *  borang pendek. Ia TIDAK memadai untuk dialog berkandungan panjang: butang tutup di kepala
+   *  menatal keluar pandangan, jadi pembaca terpaksa menatal balik ke atas untuk menutupnya —
+   *  pepijat yang sudah pernah berlaku dan didokumentasikan di IndeksConsole.tsx (2026-07-29).
+   *
+   *  Bila `true`: panel jadi tinggi tetap, kepala/kaki `flex-none`, badan sahaja yang menatal. */
+  badanMenatal?: boolean;
 }
 
 export const EditorDialog: React.FC<EditorDialogProps> = ({
-  tajuk, onTutup, saiz = 'lg', children, tindakan,
+  tajuk, onTutup, saiz = 'lg', children, tindakan, tindakanKiri, badanMenatal = false,
 }) => {
   const refModal = React.useRef<HTMLDivElement>(null);
   // Perangkap fokus + Escape + pulangkan fokus kepada pencetus. Sengaja TIDAK boleh dimatikan:
@@ -63,10 +75,12 @@ export const EditorDialog: React.FC<EditorDialogProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={idTajuk}
-        className={`bg-white rounded-lg shadow-xl border border-stone-300 w-full ${SAIZ_CLASS[saiz]} p-6 space-y-4 text-xs font-sans max-h-[90vh] overflow-y-auto`}
+        className={`bg-white rounded-lg shadow-xl border border-stone-300 w-full ${SAIZ_CLASS[saiz]} text-xs font-sans max-h-[90vh] ${
+          badanMenatal ? 'flex flex-col overflow-hidden' : 'p-6 space-y-4 overflow-y-auto'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+        <div className={`flex justify-between items-center border-b border-stone-200 pb-2 ${badanMenatal ? 'flex-none px-6 pt-6' : ''}`}>
           <h3 id={idTajuk} className="font-serif text-lg font-bold text-Adjung-maroon flex items-center gap-2 min-w-0">{tajuk}</h3>
           <button
             type="button"
@@ -78,10 +92,22 @@ export const EditorDialog: React.FC<EditorDialogProps> = ({
           </button>
         </div>
 
-        {children}
+        {/* Mod lalai sengaja merender `children` TERUS tanpa pembalut — jarak dikawal oleh
+            `space-y-4` pada panel. Menambah pembalut di sini akan mengubah rupa kesemua dialog
+            sedia ada yang sudah disahkan. */}
+        {badanMenatal
+          ? <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">{children}</div>
+          : children}
 
-        {tindakan && (
-          <div className="flex justify-end gap-2 pt-1">{tindakan}</div>
+        {(tindakan || tindakanKiri) && (
+          <div
+            className={`flex items-center gap-2 ${tindakanKiri ? 'justify-between' : 'justify-end'} ${
+              badanMenatal ? 'flex-none px-6 pb-6 pt-3 border-t border-stone-200' : 'pt-1'
+            }`}
+          >
+            {tindakanKiri && <div className="min-w-0">{tindakanKiri}</div>}
+            {tindakan && <div className="flex items-center gap-2 shrink-0">{tindakan}</div>}
+          </div>
         )}
       </div>
     </div>
