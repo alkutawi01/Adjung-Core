@@ -114,12 +114,17 @@ function DasarTerbitSendiriField() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState<string | null>(null);
 
-  useEffect(() => {
+  // 2026-08-07 (Audit §D6) — muatDasar() ditakrif berasingan supaya boleh dipanggil semula
+  // daripada butang "Cuba Lagi" dalam MesejStatus, bukan hanya sekali semasa lekapan.
+  const muatDasar = () => {
+    setRalat(null);
     fetch('/api/system/editor-publish-policy')
       .then(r => r.json())
       .then(d => setBenarkanSelfPublish(!!d.benarkanSelfPublish))
       .catch(() => setRalat('Gagal memuatkan dasar terbit sendiri.'));
-  }, []);
+  };
+
+  useEffect(muatDasar, []);
 
   const tukar = async (nilaiBaharu: boolean) => {
     setMenyimpan(true);
@@ -161,7 +166,7 @@ function DasarTerbitSendiriField() {
           </span>
         </label>
       )}
-      {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
+      {ralat && <MesejStatus tone="error" onCubaLagi={muatDasar}>{ralat}</MesejStatus>}
       <p className="text-stone-400 text-[10px] leading-relaxed">
         Bila dinyahtanda, SEMUA kandungan Editor (bukan Ketua Editor/Penolong) kekal Menunggu
         sehingga diluluskan secara manual di Kandungan → Indeks — tak kira kandungan tu pernah
@@ -275,7 +280,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
 
       <PanelCard className="space-y-5 text-xs">
         {ralat && (
-          <MesejStatus tone="error" className="flex items-start gap-1.5">
+          <MesejStatus tone="error" className="flex items-start gap-1.5" onCubaLagi={muat}>
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" /> {ralat}
           </MesejStatus>
         )}

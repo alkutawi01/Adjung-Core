@@ -130,7 +130,7 @@ export const TierKadConsole: React.FC = () => {
         </MesejStatus>
 
         {ralat && (
-          <MesejStatus tone="error" className="flex items-start gap-1.5">
+          <MesejStatus tone="error" className="flex items-start gap-1.5" onCubaLagi={muat}>
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" /> {ralat}
           </MesejStatus>
         )}

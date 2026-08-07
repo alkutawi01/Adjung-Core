@@ -115,15 +115,23 @@ export const LogAuditConsole: React.FC = () => {
       {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
       <PanelCard padding="p-0">
-        <div className="overflow-x-auto">
+        {/* 2026-08-07 (Audit §I1, semakan sanggahan) — pembalut PanelCard padding="p-0" guna
+            overflow-hidden (untuk sudut bulat), yang tanpa disedari jadi "bekas tatal" TERDEKAT
+            bagi kepala melekat (position: sticky) sebelum peluang ia sampai ke tatal laman
+            sebenar — sebab bekas tu sendiri tak pernah tatal (tinggi mengikut kandungan), kepala
+            melekat jadi tak berkesan langsung. `overflow-y-auto` + `max-h-[70vh]` di sini
+            menjadikan bekas jadual SENDIRI bekas tatal yang sah, supaya kepala benar-benar
+            melekat semasa senarai log ditatal. Disahkan mata: lihat pelan audit §I1. */}
+        <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
         <table className="w-full text-left border-collapse font-sans text-xs min-w-[720px]">
+          <caption className="sr-only">Log tindakan sistem dan editorial</caption>
           <thead>
             <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
-              <th className="p-3">Masa</th>
-              <th className="p-3">Pelaku</th>
-              <th className="p-3">Tindakan</th>
-              <th className="p-3">Sasaran</th>
-              <th className="p-3">Butiran</th>
+              <th scope="col" className="p-3">Masa</th>
+              <th scope="col" className="p-3">Pelaku</th>
+              <th scope="col" className="p-3">Tindakan</th>
+              <th scope="col" className="p-3">Sasaran</th>
+              <th scope="col" className="p-3">Butiran</th>
             </tr>
           </thead>
           <tbody className="font-sans">

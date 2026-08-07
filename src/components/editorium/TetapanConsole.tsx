@@ -13,6 +13,7 @@ import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
+import { ToastContainer, ToastMessage } from '../common/Toast';
 
 
 interface BlockedCategory {
@@ -114,6 +115,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   isPentadbir = true, initialSubTab
 }) => {
   const [subTab, setSubTab] = useState<'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem'>(initialSubTab || 'PolisiKandungan');
+
+  // Toast simpan (2026-08-07, Audit §D3) — butang simpan seksyen ni bertaburan beratus baris
+  // (Jam Dunia, Focus View, Ticker Overlay, RBAC) dengan mesej inline jauh di bawah, mudah
+  // terlepas pandang selepas menatal. Toast muncul dekat penjuru skrin tak kira kedudukan
+  // tatalan — corak sama seperti toast Ticker di EditoriumView.tsx.
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const addToast = (type: ToastMessage['type'], message: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts((prev) => [...prev, { id, type, message }]);
+  };
+  const dismissToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   // Governance Jam Dunia (World Clock) — these were previously local-only state with no
   // backing DB columns at all (WorldClockStrip.tsx has read systemSettings.worldClockIntervalSec
@@ -234,8 +246,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         schoolHolidaysJson: JSON.stringify(cutiSah)
       });
       setSchoolHolidays(cutiSah);
+      addToast('success', 'Tetapan Jam Dunia disimpan.');
     } catch (e: any) {
-      setWorldClockSaveError(e.message || 'Gagal menyimpan tetapan Jam Dunia.');
+      const mesejRalat = e.message || 'Gagal menyimpan tetapan Jam Dunia.';
+      setWorldClockSaveError(mesejRalat);
+      addToast('error', mesejRalat);
     } finally {
       setSavingWorldClock(false);
     }
@@ -246,8 +261,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     setFocusViewSaveError(null);
     try {
       await saveSystemSettingsPatch({ focusViewNotaMaxAksara });
+      addToast('success', 'Tetapan Focus View disimpan.');
     } catch (e: any) {
-      setFocusViewSaveError(e.message || 'Gagal menyimpan tetapan Focus View.');
+      const mesejRalat = e.message || 'Gagal menyimpan tetapan Focus View.';
+      setFocusViewSaveError(mesejRalat);
+      addToast('error', mesejRalat);
     } finally {
       setSavingFocusView(false);
     }
@@ -258,8 +276,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     setTickerOverlaySaveError(null);
     try {
       await saveSystemSettingsPatch({ tickerOverlayTitleSize, tickerOverlayBriefSize });
+      addToast('success', 'Tetapan paparan penuh Ticker disimpan.');
     } catch (e: any) {
-      setTickerOverlaySaveError(e.message || 'Gagal menyimpan tetapan paparan penuh Ticker.');
+      const mesejRalat = e.message || 'Gagal menyimpan tetapan paparan penuh Ticker.';
+      setTickerOverlaySaveError(mesejRalat);
+      addToast('error', mesejRalat);
     } finally {
       setSavingTickerOverlay(false);
     }
@@ -393,8 +414,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     try {
       await saveSystemSettingsPatch({ rolePermissions: rbacMatrix });
       setRbacDirty(false);
+      addToast('success', 'Kawalan Akses disimpan.');
     } catch (e: any) {
-      setRbacSaveError(e.message || 'Gagal menyimpan matriks RBAC.');
+      const mesejRalat = e.message || 'Gagal menyimpan matriks RBAC.';
+      setRbacSaveError(mesejRalat);
+      addToast('error', mesejRalat);
     } finally {
       setSavingRbac(false);
     }
@@ -952,6 +976,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       )}
 
       {/* MODAL PEMILIH IKON BIDANG */}
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 };
@@ -995,7 +1021,7 @@ function HalamanAwamPanel() {
   // rupa di sini SEPADAN rupa sebenar tanpa perlu simpan dulu untuk semak.
   const [pratonton, setPratonton] = useState(false);
 
-  useEffect(() => {
+  const muatHalaman = () => {
     setMemuat(true);
     setRalat('');
     setPratonton(false);
@@ -1011,7 +1037,11 @@ function HalamanAwamPanel() {
       })
       .catch((e) => setRalat(e.message || 'Gagal memuatkan halaman.'))
       .finally(() => setMemuat(false));
-  }, [halamanAktif]);
+  };
+
+  // 2026-08-07 (Audit §D6) — muatHalaman() ditakrif di atas supaya boleh dipanggil semula
+  // daripada butang "Cuba Lagi" dalam MesejStatus, bukan hanya sekali semasa lekapan.
+  useEffect(muatHalaman, [halamanAktif]);
 
   const simpan = async () => {
     setMenyimpan(true);
@@ -1027,7 +1057,9 @@ function HalamanAwamPanel() {
         throw new Error(body.error || 'Gagal menyimpan halaman.');
       }
       setMesej(labelUi('toast.tetapan_disimpan'));
-      setTimeout(() => setMesej(''), 2000);
+      // 2026-08-07 (Audit §D2) — 2000ms terlalu pantas bagi editor yang mengalih pandangan
+      // sebentar (borang panjang, banyak medan); dinaikkan ke 6000ms.
+      setTimeout(() => setMesej(''), 6000);
     } catch (e: any) {
       setRalat(e.message || 'Gagal menyimpan halaman.');
     } finally {
@@ -1125,7 +1157,7 @@ function HalamanAwamPanel() {
             )}
           </div>
 
-          {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
+          {ralat && <MesejStatus tone="error" onCubaLagi={muatHalaman}>{ralat}</MesejStatus>}
 
           <div className="flex items-center justify-end gap-3">
             {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
@@ -1188,7 +1220,8 @@ function LabelSistemPanel() {
       muatSemula();
       await muatPindaanLabel();
       setMesej(labelUi('toast.tetapan_disimpan'));
-      setTimeout(() => setMesej(''), 2000);
+      // 2026-08-07 (Audit §D2) — 2000ms terlalu pantas; dinaikkan ke 6000ms.
+      setTimeout(() => setMesej(''), 6000);
     } catch (e: any) {
       setRalat(e.message || 'Gagal menyimpan label.');
     } finally {
@@ -1242,7 +1275,7 @@ function LabelSistemPanel() {
         </p>
       </div>
 
-      {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
+      {ralat && <MesejStatus tone="error" onCubaLagi={muatSemula}>{ralat}</MesejStatus>}
 
       {memuat ? (
         <p className="text-stone-400">Memuatkan...</p>
