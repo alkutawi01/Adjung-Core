@@ -2,18 +2,25 @@ import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 
-// Glosari & Penyelarasan Ejaan (2026-08-01, spesifikasi pemilik projek) — senarai rujukan istilah
-// untuk pasukan editorial: bentuk yang DIPILIH bagi sesuatu istilah, berbanding bentuk yang kerap
-// tersilap tulis.
+// Glosari (2026-08-01; tujuannya berubah 2026-08-07) — istilah dan maksudnya, DIPAPARKAN kepada
+// pembaca sebagai tooltip hover pada kandungan sebenar. Lihat src/components/common/
+// IstilahGlosari.tsx: kali pertama sesuatu istilah muncul dalam tajuk/huraian sebuah artikel,
+// istilah itu digaris putus-putus dan maksudnya dipapar sebagai tooltip.
 //
-// Ia SENGAJA rujukan, bukan penapis automatik. Ia TIDAK mengubah kandungan editorial yang sudah
-// ditulis — menulis-ganti teks editor secara automatik ialah perkara yang peraturan projek ni
-// larang keras. Enjin autocondong (adjung_typography_rules) mengubah PAPARAN sahaja dan itu perkara
-// berasingan; glosari di sini menjawab "kita eja begini, bukan begitu" untuk rujukan manusia.
+// Ia tetap TIDAK menulis-ganti kandungan editorial yang sudah ditulis — ia cuma membalut istilah
+// pada masa PAPARAN, sama konsep dengan enjin autocondong (adjung_typography_rules). Teks sebenar
+// dalam pangkalan data tidak pernah disentuh.
+//
+// Asalnya ini rujukan PASIF untuk pasukan editorial sahaja (dibaca manusia di Editorium, tidak
+// pernah menyentuh apa pembaca nampak). Sebab itu `maksud` dahulu boleh kosong. Sejak ia menjadi
+// tooltip pembaca, entri TANPA maksud tidak melakukan apa-apa langsung — binaPetaGlosari()
+// melangkaunya terus — jadi ia kini WAJIB, jika tidak ia cuma data mati.
 //
 //   istilah   — bentuk yang DIPILIH (contoh: "pautan")
-//   elakkan   — bentuk yang patut dielakkan, boleh kosong (contoh: "link")
-//   maksud    — penjelasan ringkas/nota penggunaan, boleh kosong
+//   maksud    — penjelasan untuk pembaca, WAJIB (lihat nota di atas)
+//   elakkan   — WARISAN, tidak lagi dihantar oleh borang Glosari. Bentuk ejaan betul berbanding
+//               bentuk dielakkan kini ada jadual sendiri (`ejaan_piawai`, core/routes/ejaanRoutes.js,
+//               tab "Penyelarasan Ejaan"). Lajur dikekalkan kerana baris lama mungkin masih mengisinya.
 const HAD_ISTILAH = 80;
 const HAD_ELAKKAN = 120;
 const HAD_MAKSUD = 400;
@@ -46,6 +53,8 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
       const maksud = (req.body?.maksud || '').trim();
 
       if (!istilah) return res.status(400).json({ error: 'Istilah wajib diisi.' });
+      // Maksud wajib sejak Glosari menjadi tooltip pembaca (2026-08-07) — lihat nota kepala fail.
+      if (!maksud) return res.status(400).json({ error: 'Maksud wajib diisi — tanpanya istilah tidak akan dipaparkan kepada pembaca.' });
       if (istilah.length > HAD_ISTILAH) return res.status(400).json({ error: `Istilah tidak boleh melebihi ${HAD_ISTILAH} aksara.` });
       if (elakkan.length > HAD_ELAKKAN) return res.status(400).json({ error: `Senarai "elakkan" tidak boleh melebihi ${HAD_ELAKKAN} aksara.` });
       if (maksud.length > HAD_MAKSUD) return res.status(400).json({ error: `Maksud tidak boleh melebihi ${HAD_MAKSUD} aksara.` });

@@ -393,11 +393,17 @@ export const EditorialConsole: React.FC = () => {
               />
             </label>
 
+            {/* Maksud WAJIB (2026-08-07) — dahulu dilabel "(pilihan)", tetapi sejak Glosari
+                bertukar menjadi tooltip pembaca, binaPetaGlosari() (src/components/common/
+                IstilahGlosari.tsx) MELANGKAU terus mana-mana entri tanpa maksud. Entri tanpa
+                maksud tidak melakukan apa-apa langsung — data mati. Jadual `glosari_istilah`
+                hanya wujud untuk tooltip pembaca; bentuk ejaan betul/dielakkan ada jadualnya
+                sendiri (`ejaan_piawai`, tab Penyelarasan Ejaan). */}
             <label className="block">
-              <span className={LABEL_BORANG}>Maksud / nota penggunaan (pilihan)</span>
+              <span className={LABEL_BORANG}>Maksud</span>
               <textarea
                 value={gMaksud} onChange={(e) => setGMaksud(e.target.value)} rows={2}
-                placeholder="Penjelasan ringkas istilah ni, atau bila ia digunakan…"
+                placeholder="Penjelasan ringkas untuk pembaca…"
                 className={`${INPUT_BORANG} resize-y`}
               />
             </label>
@@ -405,7 +411,7 @@ export const EditorialConsole: React.FC = () => {
             {ralatGlosari && <MesejStatus tone="error">{ralatGlosari}</MesejStatus>}
 
             <div className="flex justify-end">
-              <Button type="submit" variant="primary" size="md" disabled={menghantarGlosari || !gIstilah.trim()}>
+              <Button type="submit" variant="primary" size="md" disabled={menghantarGlosari || !gIstilah.trim() || !gMaksud.trim()}>
                 {menghantarGlosari ? 'Menambah…' : '+ Tambah ke Glosari'}
               </Button>
             </div>
