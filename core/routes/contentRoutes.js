@@ -840,7 +840,12 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   // versi TERKINI baharu (versi + 1), bukan UPDATE atas rekod lama — sejarah kekal utuh selepas
   // pulih pun. Mesti lepasi budget/Bidang-Topik semasa juga, sebab peraturan tier boleh berubah
   // sejak versi lama tu ditulis.
-  router.post('/content/:id/revisions/:revisionId/restore', requireAuth, async (req, res) => {
+  // Gerbang + kunci + transaksi (2026-08-07, Pelan 02 #3): dahulu laluan ni `requireAuth` sahaja,
+  // sedangkan memulihkan versi berstatus 'approved' ialah tindakan TERBIT — sama kesannya seperti
+  // PATCH /content/:id yang menaikkan status ke 'approved', jadi kunci `publish` yang sama dipakai.
+  // Ia juga disiri-kan dengan denganKunciKandungan (perlumbaan baca-kiraan/tulis-status yang sama)
+  // dan dibungkus satu transaksi supaya revisi baharu tidak pernah wujud tanpa atributnya.
+  router.post('/content/:id/revisions/:revisionId/restore', requireAuth, (req, res) => denganKunciKandungan(async () => {
     try {
       const { id, revisionId } = req.params;
       if (id.startsWith('ticker-')) {
@@ -856,6 +861,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       );
       if (!oldRev) {
         return res.status(404).json({ error: 'Versi tersebut tidak dijumpai untuk kandungan ini.' });
+      }
+
+      // Versi lama berstatus 'approved' terus terbit semula apabila dipulihkan — jadi ia perlukan
+      // kebenaran `publish` yang sama seperti laluan kelulusan lain.
+      if (oldRev.status === 'approved' && !hasPermission(req.session?.user?.roles, 'publish')) {
+        return res.status(403).json({
+          error: 'Anda tiada kebenaran untuk memulihkan versi yang terus terbit — minta Ketua Editor/Penolong Ketua Editor.',
+        });
       }
 
       const budgetCheck = validateContentBudget(objRow.slotIndex, oldRev.title || '', oldRev.summary || '');
@@ -912,29 +925,45 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
       const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
       const nowIso = new Date().toISOString();
-      const newRev = await dbRun(
-        `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-         VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
-        [id, nextVersion, oldRev.title, oldRev.summary, statusPulihan, req.session?.user?.username || 'pulih-versi', nowIso, nowIso]
-      );
-      const newRevId = newRev.lastID;
 
-      const oldAttrs = await dbAll(
-        "SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?",
-        [id, oldRev.id]
-      );
-      for (const a of oldAttrs) {
-        await dbRun(
-          "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
-          [id, newRevId, a.attributeId, a.valueText]
+      // Satu transaksi untuk keseluruhan pulihan: revisi baharu + salinan atribut (Bidang, Topik,
+      // URL, sumber) + kemas kini objek. Kegagalan separuh jalan dahulu meninggalkan revisi tanpa
+      // atribut — Bidang/URL/sumber hilang senyap.
+      await dbRun('BEGIN TRANSACTION');
+      let newRevId;
+      try {
+        const newRev = await dbRun(
+          `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+           VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
+          [id, nextVersion, oldRev.title, oldRev.summary, statusPulihan, req.session?.user?.username || 'pulih-versi', nowIso, nowIso]
         );
-      }
+        newRevId = newRev.lastID;
 
-      await dbRun("UPDATE editorial_objects SET updatedAt = ? WHERE id = ?", [nowIso, id]);
-      // Tanda sebab menunggu pada revisi BAHARU supaya panel Senarai Slot papar "menunggu slot
-      // kosong" (bukan "menunggu semakan"), dan promosikanMenungguSlotKosong() boleh menaikkannya
-      // automatik sebaik ruang terbuka.
-      await tetapkanSebabMenunggu(dbGet, dbRun, id, newRevId, statusPulihan === 'pending' ? (sebabMenungguPulihan || 'semakan') : '');
+        const oldAttrs = await dbAll(
+          "SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?",
+          [id, oldRev.id]
+        );
+        for (const a of oldAttrs) {
+          await dbRun(
+            "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
+            [id, newRevId, a.attributeId, a.valueText]
+          );
+        }
+
+        await dbRun("UPDATE editorial_objects SET updatedAt = ? WHERE id = ?", [nowIso, id]);
+        // Tanda sebab menunggu pada revisi BAHARU supaya panel Senarai Slot papar "menunggu slot
+        // kosong" (bukan "menunggu semakan"), dan promosikanMenungguSlotKosong() boleh menaikkannya
+        // automatik sebaik ruang terbuka.
+        await tetapkanSebabMenunggu(dbGet, dbRun, id, newRevId, statusPulihan === 'pending' ? (sebabMenungguPulihan || 'semakan') : '');
+        await dbRun('COMMIT');
+      } catch (e) {
+        try {
+          await dbRun('ROLLBACK');
+        } catch (rollbackErr) {
+          console.error('Rollback gagal selepas ralat pulih versi:', rollbackErr.message);
+        }
+        throw e;
+      }
 
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
@@ -950,7 +979,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       console.error('Restore content revision error:', err);
       res.status(500).json({ error: 'Gagal memulihkan versi. ' + (err.message || '') });
     }
-  });
+  }));
 
   // POST /api/system/content/:id/reject-to-draft — "Tolak" di Indeks (2026-07-29, permintaan
   // pemilik projek). Alur kerja Draf/Terbit: kandungan "Terbitkan" masuk Indeks sebagai Pending,
