@@ -192,16 +192,17 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs min-w-[860px]">
+                <caption className="sr-only">Senarai draf mengikut slot dan status kelengkapan</caption>
                 <thead>
                   <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
-                    <th className="p-2.5">Slot</th>
-                    <th className="p-2.5">Bentuk</th>
-                    <th className="p-2.5">Bidang</th>
-                    <th className="p-2.5">Topik</th>
-                    <th className="p-2.5">Tajuk</th>
-                    <th className="p-2.5">Kelengkapan</th>
-                    <th className="p-2.5">Bajet Ruang</th>
-                    <th className="p-2.5"><span className="sr-only">Tindakan</span></th>
+                    <th scope="col" className="p-2.5">Slot</th>
+                    <th scope="col" className="p-2.5">Bentuk</th>
+                    <th scope="col" className="p-2.5">Bidang</th>
+                    <th scope="col" className="p-2.5">Topik</th>
+                    <th scope="col" className="p-2.5">Tajuk</th>
+                    <th scope="col" className="p-2.5">Kelengkapan</th>
+                    <th scope="col" className="p-2.5">Bajet Ruang</th>
+                    <th scope="col" className="p-2.5"><span className="sr-only">Tindakan</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -213,8 +214,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                     return (
                       <tr
                         key={`${d.slotIndex}-${d.uuid || d.urutan}`}
-                        className={`hover:bg-stone-50 cursor-pointer ${GARIS_BARIS}`}
-                        onClick={() => onBukaDraf(d.slotIndex, d.uuid)}
+                        className={`hover:bg-stone-50 ${GARIS_BARIS}`}
                       >
                         <td className="p-2.5 font-mono font-bold text-stone-800">{d.slotIndex + 1}</td>
                         <td className="p-2.5 text-stone-600">
@@ -271,7 +271,16 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                           )}
                         </td>
                         <td className="p-2.5 text-right">
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-Adjung-maroon font-semibold">Sambung</span>
+                          {/* Butang sebenar (Audit UI/UX Editorium §G3) — dahulu tindakan buka draf
+                              ni cuma onClick pada <tr>, langsung tidak boleh dicapai papan kekunci
+                              (laluan kerja harian utama modul ni). */}
+                          <button
+                            type="button"
+                            onClick={() => onBukaDraf(d.slotIndex, d.uuid)}
+                            className="w-full text-right font-mono text-[10px] uppercase tracking-wider text-Adjung-maroon font-semibold cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"
+                          >
+                            Sambung
+                          </button>
                         </td>
                       </tr>
                     );

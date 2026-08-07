@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { AlertTriangle, X, Search, Pin, Lock } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
+import { useModalFokus } from '../../hooks/useModalFokus';
 import { Tooltip } from '../common/Tooltip';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -212,6 +213,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
   // Detail Modal State
   const [activeItemModal, setActiveItemModal] = useState<BriefRecord | null>(null);
+  // Pengurusan fokus modal (Audit UI/UX Editorium §G1/G2/G6) — perangkap Tab, fokus elemen
+  // pertama semasa buka, pulangkan fokus ke pencetus semasa tutup, Escape menutup modal.
+  const refDetailModal = useRef<HTMLDivElement>(null);
+  useModalFokus(refDetailModal, activeItemModal ? () => setActiveItemModal(null) : undefined);
 
   // Siar-semula kandungan archived — Bidang/Topik/slot sasaran boleh diedit khusus untuk item
   // berstatus Archive (lihat "03 — Bidang & Topik" di Perlembagaan untuk peraturan penuh).
@@ -580,7 +585,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       {actionError && (
         <MesejStatus tone="error" className="flex justify-between items-center">
           <span className="inline-flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {actionError}</span>
-          <button onClick={() => setActionError(null)} className="font-bold px-2 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+          <button onClick={() => setActionError(null)} aria-label="Tutup" className="font-bold px-2 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </MesejStatus>
       )}
 
@@ -827,22 +832,23 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       ) : (
         <PanelCard padding="p-0" className="overflow-x-auto">
           <table className="w-full text-left border-collapse font-sans text-xs min-w-[850px] table-fixed">
+            <caption className="sr-only">Senarai kandungan mengikut slot dan status</caption>
             <thead>
               <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
-                <th className="p-2.5 w-16">ID</th>
+                <th scope="col" className="p-2.5 w-16">ID</th>
                 {/* Tajuk dikecilkan lagi + Editor (2026-07-29, permintaan pemilik projek) — Topik/
                     Kaedah/Jenis Kad dibuang terus daripada jadual (kekal di penapis + modal
                     perincian) supaya jadual tak lebar sampai sembunyikan lajur Tindakan. Tajuk
                     penuh (dipotong di sini) boleh dibaca melalui tooltip bila hover, sama corak
                     macam lajur ID. */}
-                <th className="p-2.5 w-40">Tajuk Brief</th>
-                <th className="p-2.5 w-20">Status</th>
-                <th className="p-2.5 w-24">Bidang</th>
-                <th className="p-2.5 w-28">Sumber</th>
-                <th className="p-2.5 w-24">Editor</th>
-                <th className="p-2.5 w-16">Slot</th>
-                <th className="p-2.5 w-16">Tarikh</th>
-                <th className="p-2.5 w-20 text-right">Tindakan</th>
+                <th scope="col" className="p-2.5 w-40">Tajuk Brief</th>
+                <th scope="col" className="p-2.5 w-20">Status</th>
+                <th scope="col" className="p-2.5 w-24">Bidang</th>
+                <th scope="col" className="p-2.5 w-28">Sumber</th>
+                <th scope="col" className="p-2.5 w-24">Editor</th>
+                <th scope="col" className="p-2.5 w-16">Slot</th>
+                <th scope="col" className="p-2.5 w-16">Tarikh</th>
+                <th scope="col" className="p-2.5 w-20 text-right">Tindakan</th>
               </tr>
             </thead>
             <tbody className="font-sans">
@@ -854,17 +860,22 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 // might not be theirs) rather than something to "fix" until real ownership exists.
                 const isReadOnly = currentUserRole === 'EDITOR' && editorViewMode === 'all' && rec.creator !== currentUserName;
 
+                // Buka modal detail kandungan — dahulu dicetuskan hanya oleh onClick pada <tr>,
+                // langsung tidak boleh dicapai papan kekunci (Audit UI/UX Editorium §G3, laluan
+                // kerja harian utama modul ni). Kini dicetuskan oleh <button> sebenar dalam sel
+                // Tajuk Brief supaya Tab/Enter/Space berfungsi sama macam klik tetikus.
+                const bukaDetail = () => {
+                  setActiveItemModal(rec);
+                  const matchedBidang = activeBidangList.find(b => b.name.toLowerCase() === rec.desk.toLowerCase());
+                  setReactivateDesk(matchedBidang ? matchedBidang.name : '');
+                  setReactivateTopik(rec.topik);
+                  setReactivateSlotIndex(rec.slotIndex);
+                };
+
                 return (
                   <tr
                     key={rec.id}
-                    onClick={() => {
-                      setActiveItemModal(rec);
-                      const matchedBidang = activeBidangList.find(b => b.name.toLowerCase() === rec.desk.toLowerCase());
-                      setReactivateDesk(matchedBidang ? matchedBidang.name : '');
-                      setReactivateTopik(rec.topik);
-                      setReactivateSlotIndex(rec.slotIndex);
-                    }}
-                    className={`hover:bg-stone-50 cursor-pointer transition-colors ${GARIS_BARIS}`}
+                    className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS}`}
                   >
                     <Tooltip text={rec.id}>
                       <td className="p-2.5 font-sans text-xs text-stone-500 font-semibold truncate max-w-[100px]">
@@ -873,12 +884,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     </Tooltip>
                     <Tooltip text={rec.title}>
                       <td className="p-2.5">
-                        <div className="font-serif font-medium text-stone-900 leading-snug truncate">
-                          {rec.title}
-                        </div>
-                        <div className="font-serif text-[11px] text-stone-500 truncate">
-                          {rec.summary}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={bukaDetail}
+                          className="w-full text-left cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"
+                        >
+                          <div className="font-serif font-medium text-stone-900 leading-snug truncate">
+                            {rec.title}
+                          </div>
+                          <div className="font-serif text-[11px] text-stone-500 truncate">
+                            {rec.summary}
+                          </div>
+                        </button>
                       </td>
                     </Tooltip>
                     <td className="p-2.5">
@@ -965,18 +982,24 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           footer sentiasa jadi laluan kedua yang sedia ada. */}
       {activeItemModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden">
+          <div
+            ref={refDetailModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="indeks-detail-modal-tajuk"
+            className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden"
+          >
             <div className="flex-none flex justify-between items-start border-b border-stone-200 px-6 pt-6 pb-3">
               <div>
                 <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-bold block mb-1">
                   DETAIL KANDUNGAN • {activeItemModal.id}
                 </span>
                 {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon. */}
-                <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
+                <h3 id="indeks-detail-modal-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">
                   {activeItemModal.title}
                 </h3>
               </div>
-              <button onClick={() => setActiveItemModal(null)} className="text-stone-400 hover:text-stone-700 font-bold text-lg shrink-0 cursor-pointer">
+              <button onClick={() => setActiveItemModal(null)} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 font-bold text-lg shrink-0 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
