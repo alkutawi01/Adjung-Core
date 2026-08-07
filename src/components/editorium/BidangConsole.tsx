@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Zap, X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
 import { StatusBadge } from '../common/StatusBadge';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Button } from '../common/Button';
+import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 
 // Bidang (2026-07-30) — DIPINDAHKAN daripada Tetapan → "2. Taksonomi" ke tab Slot, atas permintaan
@@ -514,35 +520,28 @@ export const BidangConsole: React.FC = () => {
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-        <div className="flex flex-wrap justify-between items-center gap-4">
-          <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-              Bidang (Senarai Tertutup)
-            </h3>
-            <p className="text-stone-500 text-xs">
-              Senarai Bidang yang boleh dipilih untuk setiap slot (selain Ticker dan tier Bar) — dikurasi Ketua Editor sahaja. Menukar Bidang sesuatu slot akan mengarkibkan kandungan aktif sedia ada dalam slot tu.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+      <ModulTajuk
+        tajuk="Bidang (Senarai Tertutup)"
+        huraian="Senarai Bidang yang boleh dipilih untuk setiap slot (selain Ticker dan tier Bar) — dikurasi Ketua Editor sahaja. Menukar Bidang sesuatu slot akan mengarkibkan kandungan aktif sedia ada dalam slot tu."
+        tindakan={
+          <>
             <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5" /> {desks.filter(d => d.isActive === 1).length} Bidang Aktif
             </span>
-            <button
+            <Button
+              variant="secondary"
               onClick={() => { setMesejWarna(null); setRalatWarna(null); setShowWarnaModal(true); }}
-              className="bg-white border border-stone-300 hover:border-Adjung-maroon hover:text-Adjung-maroon text-stone-600 px-3 py-1.5 rounded font-semibold text-xs"
             >
               Strategi Warna
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-Adjung-maroon hover:bg-Adjung-maroon-dark text-white px-3 py-1.5 rounded font-semibold text-xs"
-            >
+            </Button>
+            <Button variant="primary" onClick={() => setShowAddModal(true)}>
               + Tambah Bidang
-            </button>
-          </div>
-        </div>
+            </Button>
+          </>
+        }
+      />
 
+      <PanelCard className="space-y-4 text-xs">
         {/* Togol paparan status (2026-08-01) — lalai Aktif sahaja, sama kelakuan seperti dulu. */}
         <div className="flex items-center bg-stone-100 p-0.5 rounded border border-stone-200 text-xs w-max">
           {(['aktif', 'arkib', 'semua'] as const).map(s => (
@@ -560,14 +559,14 @@ export const BidangConsole: React.FC = () => {
         </div>
 
         {desksLoading ? (
-          <div className="text-stone-400 text-xs py-6 text-center">Memuatkan Bidang...</div>
+          <KeadaanKosong>Memuatkan Bidang...</KeadaanKosong>
         ) : desksTertapis.length === 0 ? (
-          <div className="text-stone-400 text-xs py-10 text-center">Tiada Bidang dalam paparan ini.</div>
+          <KeadaanKosong>Tiada Bidang dalam paparan ini.</KeadaanKosong>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+              <tr className={KEPALA_JADUAL}>
                 <th className="p-3">Ikon</th>
                 <th className="p-3">Warna</th>
                 <th className="p-3">Nama Bidang</th>
@@ -577,10 +576,10 @@ export const BidangConsole: React.FC = () => {
                 <th className="p-3">Editor</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody>
               {desksTertapis.map(d => (
                 <React.Fragment key={d.id}>
-                  <tr className="hover:bg-stone-50">
+                  <tr className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                     <td className="p-3">
                       <button
                         type="button"
@@ -629,7 +628,7 @@ export const BidangConsole: React.FC = () => {
                               if (e.key === 'Enter') handleRenameBidang(d.id);
                               if (e.key === 'Escape') setRenamingBidangId(null);
                             }}
-                            className="bg-stone-50 border border-stone-300 rounded px-2 py-1 text-xs font-semibold"
+                            className={`${INPUT_BORANG} py-1 text-xs font-semibold`}
                             autoFocus
                           />
                           <button onClick={() => handleRenameBidang(d.id)} className="text-emerald-700" title="Simpan"><Check className="w-3.5 h-3.5" /></button>
@@ -757,22 +756,20 @@ export const BidangConsole: React.FC = () => {
 
                         {/* Ringkasan + pengesahan. Butang hanya hidup apabila ada perubahan sebenar. */}
                         <div className="mt-3 pt-3 border-t border-stone-200 flex items-center gap-2 flex-wrap">
-                          <button
-                            type="button"
+                          <Button
+                            variant="primary"
                             disabled={!adaPerubahan || applyingSlots}
                             onClick={() => setSlotConfirmOpen(true)}
-                            className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             Sahkan Perubahan
-                          </button>
-                          <button
-                            type="button"
+                          </Button>
+                          <Button
+                            variant="secondary"
                             disabled={!adaPerubahan || applyingSlots}
                             onClick={() => { setPendingSlots([...d.slots]); setSlotBlockedMsg(null); setSlotConfirmOpen(false); }}
-                            className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-40"
                           >
                             Set Semula
-                          </button>
+                          </Button>
                           <span className="text-[10px] text-stone-500">
                             {adaPerubahan
                               ? `${tambah.length} ditambah, ${buang.length} dibuang`
@@ -813,22 +810,20 @@ export const BidangConsole: React.FC = () => {
                             </p>
 
                             <div className="flex items-center gap-2 pt-1">
-                              <button
-                                type="button"
+                              <Button
+                                variant="primary"
                                 disabled={applyingSlots}
                                 onClick={() => applySlotChanges(d)}
-                                className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
                               >
                                 {applyingSlots ? 'Menyimpan...' : (jumlahArkib > 0 ? `Teruskan dan arkibkan ${jumlahArkib} kandungan` : 'Teruskan')}
-                              </button>
-                              <button
-                                type="button"
+                              </Button>
+                              <Button
+                                variant="secondary"
                                 disabled={applyingSlots}
                                 onClick={() => setSlotConfirmOpen(false)}
-                                className="bg-white border border-stone-300 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
                               >
                                 Batal
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         )}
@@ -842,25 +837,25 @@ export const BidangConsole: React.FC = () => {
           </table>
           </div>
         )}
-      </div>
+      </PanelCard>
 
       {iconPickerBidangId && (() => {
         const target = desks.find(d => d.id === iconPickerBidangId);
         if (!target) return null;
         return (
           <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-lg w-full p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto">
               <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-                <h3 className="font-sans text-xs font-bold text-Adjung-maroon uppercase flex items-center gap-2">
+                <h3 className="font-serif text-lg font-bold text-Adjung-maroon flex items-center gap-2">
                   <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />
                   Ikon, Warna &amp; Plat — {target.name}
                 </h3>
-                <button onClick={closeIconPicker} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
+                <button onClick={closeIconPicker} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
               </div>
 
               <div className="font-sans space-y-3">
                 <div className="pb-3 border-b border-stone-200">
-                  <label className="text-xs text-stone-500 font-semibold block mb-1">Warna Bidang</label>
+                  <label className={LABEL_BORANG}>Warna Bidang</label>
                   <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
                     Dipakai pada eyebrow kad, glif Bidang, dan eyebrow Focus View — identiti visual Bidang ini
                     merentas seluruh portal. Warna diberi automatik semasa Bidang dicipta; tukar di sini kalau ia
@@ -889,20 +884,16 @@ export const BidangConsole: React.FC = () => {
                       {target.name}
                     </span>
                     {warnaDraf && warnaDraf.toUpperCase() !== (target.color || '').toUpperCase() && (
-                      <button
-                        onClick={() => handleSaveColor(target.id)}
-                        disabled={simpanWarna}
-                        className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
-                      >
+                      <Button variant="primary" onClick={() => handleSaveColor(target.id)} disabled={simpanWarna}>
                         {simpanWarna ? 'Menyimpan...' : 'Guna Warna Ini'}
-                      </button>
+                      </Button>
                     )}
                   </div>
-                  {warnaError && <p className="text-red-600 text-[10px] mt-1">{warnaError}</p>}
+                  {warnaError && <MesejStatus tone="error" className="mt-1">{warnaError}</MesejStatus>}
                 </div>
 
                 <div>
-                  <label className="text-xs text-stone-500 font-semibold block mb-2">Pilih Ikon Sedia Ada</label>
+                  <label className={LABEL_BORANG}>Pilih Ikon Sedia Ada</label>
                   <div className="grid grid-cols-8 gap-1.5">
                     {BIDANG_ICON_NAMES.map(name => {
                       const Icon = BIDANG_ICON_MAP[name];
@@ -926,9 +917,12 @@ export const BidangConsole: React.FC = () => {
                 </div>
 
                 <div className="pt-3 border-t border-stone-200">
-                  <label className="text-xs text-stone-500 font-semibold block mb-2">Atau Muat Naik SVG Sendiri</label>
+                  <label className={LABEL_BORANG}>Atau Muat Naik SVG Sendiri</label>
                   <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold cursor-pointer">
+                    {/* <label> membalut <input type="file"> — tak boleh jadi <Button> (elemen
+                        <button> tak boleh mencetuskan pemilih fail), jadi ia meminjam bahasa
+                        visual varian `secondary` secara langsung. */}
+                    <label className="inline-flex items-center justify-center gap-2 rounded-md font-semibold font-sans text-xs px-4 py-1.5 cursor-pointer transition-colors bg-white text-Adjung-maroon border border-stone-200 hover:bg-stone-50 hover:border-stone-300">
                       <Upload className="w-3.5 h-3.5" /> Pilih Fail .svg
                       <input
                         type="file"
@@ -946,19 +940,20 @@ export const BidangConsole: React.FC = () => {
                     )}
                   </div>
                   <p className="text-stone-400 text-[10px] mt-1.5">Had 100KB. Ditapis ketat di server sebelum disimpan (skrip/pengendali klik dibuang).</p>
-                  {svgUploadError && <p className="text-red-600 text-[10px] mt-1">{svgUploadError}</p>}
+                  {svgUploadError && <MesejStatus tone="error" className="mt-1">{svgUploadError}</MesejStatus>}
                   {svgUploadPreview && (
-                    <button
+                    <Button
+                      variant="primary"
                       onClick={() => handleUploadSvgIcon(target.id)}
                       disabled={uploadingSvg}
-                      className="mt-2 bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                      className="mt-2"
                     >
                       {uploadingSvg ? 'Memuat naik...' : 'Guna SVG Ini'}
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <div className="pt-3 border-t border-stone-200">
-                  <label className="text-xs text-stone-500 font-semibold block mb-1">Plat Ilustrasi Bidang</label>
+                  <label className={LABEL_BORANG}>Plat Ilustrasi Bidang</label>
                   <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
                     Ilustrasi besar yang menutup kolum kanan Focus View apabila kandungan itu tiada grafik,
                     tiada kandungan berkaitan dan tiada nota editor. Ia mengalah kepada kandungan sebenar —
@@ -983,7 +978,10 @@ export const BidangConsole: React.FC = () => {
                   </p>
 
                   <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] font-sans text-xs px-3 py-1.5 rounded font-semibold cursor-pointer">
+                    {/* <label> membalut <input type="file"> — tak boleh jadi <Button> (elemen
+                        <button> tak boleh mencetuskan pemilih fail), jadi ia meminjam bahasa
+                        visual varian `secondary` secara langsung. */}
+                    <label className="inline-flex items-center justify-center gap-2 rounded-md font-semibold font-sans text-xs px-4 py-1.5 cursor-pointer transition-colors bg-white text-Adjung-maroon border border-stone-200 hover:bg-stone-50 hover:border-stone-300">
                       <Upload className="w-3.5 h-3.5" /> Pilih Plat .svg
                       <input
                         type="file"
@@ -1002,34 +1000,26 @@ export const BidangConsole: React.FC = () => {
                     )}
                   </div>
 
-                  {illusError && <p className="text-red-600 text-[10px] mt-1">{illusError}</p>}
-                  {illusNote && <p className="text-emerald-700 text-[10px] mt-1">{illusNote}</p>}
+                  {illusError && <MesejStatus tone="error" className="mt-1">{illusError}</MesejStatus>}
+                  {illusNote && <MesejStatus tone="success" className="mt-1">{illusNote}</MesejStatus>}
 
                   <div className="flex items-center gap-2 mt-2">
                     {illusPreview && (
-                      <button
-                        onClick={() => handleUploadIllustration(target.id)}
-                        disabled={uploadingIllus}
-                        className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
-                      >
+                      <Button variant="primary" onClick={() => handleUploadIllustration(target.id)} disabled={uploadingIllus}>
                         {uploadingIllus ? 'Memuat naik...' : 'Guna Plat Ini'}
-                      </button>
+                      </Button>
                     )}
                     {target.hasIllustration && !illusPreview && (
-                      <button
-                        onClick={() => handleClearIllustration(target.id)}
-                        disabled={uploadingIllus}
-                        className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
-                      >
+                      <Button variant="secondary" onClick={() => handleClearIllustration(target.id)} disabled={uploadingIllus}>
                         {uploadingIllus ? 'Membuang...' : 'Buang Plat'}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
               </div>
 
               <div className="pt-2 border-t border-stone-200 flex justify-end">
-                <button onClick={closeIconPicker} className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs">Tutup</button>
+                <Button variant="secondary" onClick={closeIconPicker}>Tutup</Button>
               </div>
             </div>
           </div>
@@ -1039,33 +1029,33 @@ export const BidangConsole: React.FC = () => {
       {/* MODAL TAMBAH BIDANG */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs">
+          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-sans text-xs font-bold text-Adjung-maroon uppercase">
+              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
                 + Tambah Bidang Baharu
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setShowAddModal(false)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
             </div>
 
             <div className="space-y-3 font-sans">
               <div>
-                <label className="text-xs text-stone-500 font-semibold block mb-1">Nama Bidang</label>
-                <input type="text" placeholder="Astronomi" value={newDeskName} onChange={e => setNewDeskName(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-semibold" />
+                <label className={LABEL_BORANG}>Nama Bidang</label>
+                <input type="text" placeholder="Astronomi" value={newDeskName} onChange={e => setNewDeskName(e.target.value)} className={INPUT_BORANG} />
               </div>
               <div>
-                <label className="text-xs text-stone-500 font-semibold block mb-1">Warna Bidang (Hex)</label>
+                <label className={LABEL_BORANG}>Warna Bidang (Hex)</label>
                 <div className="flex items-center gap-2">
-                  <input type="color" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className="w-9 h-8 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
-                  <input type="text" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-mono font-bold" />
+                  <input type="color" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className="w-9 h-8 shrink-0 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
+                  <input type="text" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className={`${INPUT_BORANG} font-mono font-bold`} />
                 </div>
               </div>
             </div>
 
             <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
-              <button onClick={() => setShowAddModal(false)} className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs">Batal</button>
-              <button onClick={handleAddDesk} disabled={addingDesk} className="bg-Adjung-maroon text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50">
+              <Button variant="secondary" onClick={() => setShowAddModal(false)}>Batal</Button>
+              <Button variant="primary" onClick={handleAddDesk} disabled={addingDesk}>
                 {addingDesk ? 'Menambah...' : 'Tambah Bidang'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1074,12 +1064,12 @@ export const BidangConsole: React.FC = () => {
       {/* MODAL STRATEGI WARNA (2026-08-06) — dua tindakan berulang, bukan skrip sekali-guna. */}
       {showWarnaModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs">
+          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-sans text-xs font-bold text-Adjung-maroon uppercase">
+              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
                 Strategi Warna Bidang
               </h3>
-              <button onClick={() => setShowWarnaModal(false)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setShowWarnaModal(false)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
             </div>
 
             <div className="space-y-4 font-sans">
@@ -1087,16 +1077,12 @@ export const BidangConsole: React.FC = () => {
                 <p className="font-semibold text-stone-800">Selaraskan ke SATU warna</p>
                 <p className="text-stone-500">Semua Bidang aktif ({desks.filter(d => d.isActive === 1).length}) akan guna warna yang sama ini.</p>
                 <div className="flex items-center gap-2">
-                  <input type="color" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className="w-9 h-8 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
-                  <input type="text" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className="w-full bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-mono font-bold" />
+                  <input type="color" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className="w-9 h-8 shrink-0 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
+                  <input type="text" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className={`${INPUT_BORANG} font-mono font-bold`} />
                 </div>
-                <button
-                  onClick={selaraskanSatuWarna}
-                  disabled={memprosesWarna !== null}
-                  className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
-                >
+                <Button variant="primary" onClick={selaraskanSatuWarna} disabled={memprosesWarna !== null}>
                   {memprosesWarna === 'unify' ? 'Menyelaraskan...' : 'Selaraskan Semua'}
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-2">
@@ -1106,21 +1092,17 @@ export const BidangConsole: React.FC = () => {
                   paling lama dalam setiap kumpulan kekal dengan warna asalnya, Bidang yang warnanya
                   sudah unik langsung tak diusik.
                 </p>
-                <button
-                  onClick={pelbagaikanWarna}
-                  disabled={memprosesWarna !== null}
-                  className="bg-stone-700 hover:bg-stone-800 text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
-                >
+                <Button variant="secondary" onClick={pelbagaikanWarna} disabled={memprosesWarna !== null}>
                   {memprosesWarna === 'diversify' ? 'Memproses...' : 'Pelbagaikan Semula'}
-                </button>
+                </Button>
               </div>
 
-              {mesejWarna && <p className="text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">{mesejWarna}</p>}
-              {ralatWarna && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2">{ralatWarna}</p>}
+              {mesejWarna && <MesejStatus tone="success">{mesejWarna}</MesejStatus>}
+              {ralatWarna && <MesejStatus tone="error">{ralatWarna}</MesejStatus>}
             </div>
 
             <div className="pt-2 border-t border-stone-200 flex justify-end">
-              <button onClick={() => setShowWarnaModal(false)} className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs">Tutup</button>
+              <Button variant="secondary" onClick={() => setShowWarnaModal(false)}>Tutup</Button>
             </div>
           </div>
         </div>

@@ -2,6 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, RotateCcw, Save } from 'lucide-react';
 import { muatPindaanTier } from '../../config/tierOverrides';
 import { StatusBadge } from '../common/StatusBadge';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Button } from '../common/Button';
+import { KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // Tier Kad (2026-07-30, permintaan pemilik projek) — tetapan yang dikongsi SEMUA slot yang sebentuk.
 // Buat masa ini: had aksara tajuk dan huraian ringkas.
@@ -106,37 +112,37 @@ export const TierKadConsole: React.FC = () => {
 
   return (
     <div className="space-y-4 font-sans">
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-        <div>
-          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Tier Kad</h3>
-          <p className="text-stone-500 text-xs">
+      <ModulTajuk
+        tajuk="Tier Kad"
+        huraian={
+          <>
             Tetapan yang dikongsi semua slot yang sama bentuk. Menukar had di sini berkuat kuasa serentak
             pada setiap slot dalam tier itu — tiada pengecualian per-slot.
-          </p>
-        </div>
+          </>
+        }
+      />
 
-        <div className="p-3 bg-stone-50 border border-stone-200 rounded text-[11px] text-stone-600 leading-relaxed">
+      <PanelCard className="space-y-4 text-xs">
+        <MesejStatus tone="neutral" className="leading-relaxed">
           Tajuk dan huraian berkongsi <strong className="font-semibold">satu</strong> bajet ruang, bukan dua had berasingan.
           Nombor di bawah ialah had setiap medan apabila medan satu lagi kosong; tajuk yang panjang mengecilkan
           ruang huraian secara berkadar, dan sebaliknya.
-        </div>
+        </MesejStatus>
 
         {ralat && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded text-red-800 text-[11px] flex items-start gap-1.5">
+          <MesejStatus tone="error" className="flex items-start gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" /> {ralat}
-          </div>
+          </MesejStatus>
         )}
-        {berjaya && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-emerald-800 text-[11px]">{berjaya}</div>
-        )}
+        {berjaya && <MesejStatus tone="success">{berjaya}</MesejStatus>}
 
         {loading ? (
-          <div className="text-stone-400 text-xs py-6 text-center">Memuatkan tetapan tier...</div>
+          <KeadaanKosong>Memuatkan tetapan tier...</KeadaanKosong>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-stone-100 border-b border-stone-200 font-sans text-[10px] uppercase text-stone-600 font-semibold">
+                <tr className={KEPALA_JADUAL}>
                   <th className="p-2.5">Bentuk Kad</th>
                   <th className="p-2.5 text-right">Bilangan Slot</th>
                   <th className="p-2.5 text-right">Had Tajuk</th>
@@ -145,13 +151,13 @@ export const TierKadConsole: React.FC = () => {
                   <th className="p-2.5 text-right">Tindakan</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody>
                 {rows.map(t => {
                   const d = draf[t.tierKey] || { tajuk: '', huraian: '' };
                   const adaPerubahan = berubah(t);
                   const barSahaja = t.tierKey === 'BAR';
                   return (
-                    <tr key={t.tierKey} className="hover:bg-stone-50">
+                    <tr key={t.tierKey} className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                       <td className="p-2.5">
                         <div className="font-semibold text-stone-800">
                           {TIER_LABEL_IS_ENGLISH[t.tierKey] ? <em>{t.label}</em> : t.label}
@@ -186,24 +192,25 @@ export const TierKadConsole: React.FC = () => {
                       <td className="p-2.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {t.dipinda && (
-                            <button
-                              type="button"
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => kembaliLalai(t)}
                               disabled={menyimpan === t.tierKey}
                               title="Kembali ke nilai lalai"
-                              className="text-stone-500 hover:text-Adjung-maroon disabled:opacity-40"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                            </button>
+                              className="hover:text-Adjung-maroon"
+                              icon={<RotateCcw className="w-3.5 h-3.5" />}
+                            />
                           )}
-                          <button
-                            type="button"
+                          <Button
+                            variant="primary"
+                            size="sm"
                             onClick={() => simpan(t)}
                             disabled={!adaPerubahan || menyimpan === t.tierKey}
-                            className="bg-Adjung-maroon text-white px-2.5 py-1 rounded font-semibold text-[10px] disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                            icon={<Save className="w-3 h-3" />}
                           >
-                            <Save className="w-3 h-3" /> {menyimpan === t.tierKey ? 'Menyimpan...' : 'Simpan'}
-                          </button>
+                            {menyimpan === t.tierKey ? 'Menyimpan...' : 'Simpan'}
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -214,7 +221,7 @@ export const TierKadConsole: React.FC = () => {
           </div>
         )}
 
-        <div className="border-t border-stone-200 pt-3 text-[10px] text-stone-500 leading-relaxed space-y-1.5">
+        <div className="border-t border-Adjung-line pt-3 text-[10px] text-stone-500 leading-relaxed space-y-1.5">
           <p>
             <strong className="font-semibold text-stone-700">Menaikkan had tidak membesarkan kad.</strong>{' '}
             Nilai lalai diukur daripada ruang sebenar yang ada pada kad itu. Menaikkannya bermakna teks yang
@@ -226,7 +233,7 @@ export const TierKadConsole: React.FC = () => {
             suntingan terus). Kandungan sedia ada tidak disemak semula.
           </p>
         </div>
-      </div>
+      </PanelCard>
     </div>
   );
 };

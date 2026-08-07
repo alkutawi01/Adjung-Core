@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Save } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Button } from '../common/Button';
 import { tierForSlot, TIER_LABELS } from '../../../core/editorial/GeometryConfig.js';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
@@ -149,14 +154,14 @@ function DasarTerbitSendiriField() {
             checked={benarkanSelfPublish}
             disabled={menyimpan}
             onChange={e => tukar(e.target.checked)}
-            className="w-4 h-4 rounded border-stone-300 text-[#802334] cursor-pointer disabled:cursor-wait"
+            className="w-4 h-4 rounded border-stone-300 text-Adjung-maroon cursor-pointer disabled:cursor-wait"
           />
           <span className="text-stone-700">
             Benarkan Editor luluskan kandungan sendiri (tanpa tunggu Ketua Editor/Penolong)
           </span>
         </label>
       )}
-      {ralat && <p className="text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5 text-[10px]">{ralat}</p>}
+      {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
       <p className="text-stone-400 text-[10px] leading-relaxed">
         Bila dinyahtanda, SEMUA kandungan Editor (bukan Ketua Editor/Penolong) kekal Menunggu
         sehingga diluluskan secara manual di Kandungan → Indeks — tak kira kandungan tu pernah
@@ -249,30 +254,32 @@ export const TetapanAmSlotConsole: React.FC = () => {
       min={0}
       value={String(draf?.[kunci] ?? 0)}
       onChange={e => setDraf(p => p ? { ...p, [kunci]: Number(e.target.value) } : p)}
-      className="w-24 px-2 py-1 border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-[#802334]"
+      className="w-24 px-2 py-1 border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon"
     />
   );
 
   if (loading || !draf) {
-    return <div className="bg-white p-6 rounded-lg border border-stone-200 text-xs text-stone-400 text-center font-sans">Memuatkan tetapan...</div>;
+    return (
+      <PanelCard className="font-sans">
+        <KeadaanKosong>Memuatkan tetapan...</KeadaanKosong>
+      </PanelCard>
+    );
   }
 
   return (
     <div className="space-y-4 font-sans">
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-5 text-xs">
-        <div>
-          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Tetapan Am Slot</h3>
-          <p className="text-stone-500 text-xs">
-            Terpakai pada SEMUA slot bento sekali gus — tidak termasuk Ticker dan tier <em>Bar</em>.
-          </p>
-        </div>
+      <ModulTajuk
+        tajuk="Tetapan Am Slot"
+        huraian={<>Terpakai pada SEMUA slot bento sekali gus — tidak termasuk Ticker dan tier <em>Bar</em>.</>}
+      />
 
+      <PanelCard className="space-y-5 text-xs">
         {ralat && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded text-red-800 text-[11px] flex items-start gap-1.5">
+          <MesejStatus tone="error" className="flex items-start gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" /> {ralat}
-          </div>
+          </MesejStatus>
         )}
-        {berjaya && <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-emerald-800 text-[11px]">{berjaya}</div>}
+        {berjaya && <MesejStatus tone="success">{berjaya}</MesejStatus>}
 
         {/* 1. Putaran carousel */}
         <div className="border border-stone-200 rounded p-4 space-y-2">
@@ -282,7 +289,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
               type="checkbox"
               checked={!!draf.mulaIkutMasa}
               onChange={e => setDraf(p => p ? { ...p, mulaIkutMasa: e.target.checked ? 1 : 0 } : p)}
-              className="w-3.5 h-3.5 mt-0.5 rounded border-stone-300 text-[#802334] cursor-pointer"
+              className="w-3.5 h-3.5 mt-0.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer"
             />
             <span className="text-stone-600 leading-relaxed">
               Kandungan mana yang muncul dahulu ditentukan oleh jam semasa pembaca melawat — pelawat pada 9.01
@@ -302,14 +309,9 @@ export const TetapanAmSlotConsole: React.FC = () => {
             untuk agih semula; laras individu selepas itu (Senarai Slot → Tetapan Kad) tetap
             berfungsi seperti biasa.
           </p>
-          <button
-            type="button"
-            onClick={agihLengahBertingkat}
-            disabled={mengagih}
-            className="px-3 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50 hover:bg-stone-100 disabled:opacity-50 disabled:cursor-wait"
-          >
+          <Button variant="secondary" onClick={agihLengahBertingkat} disabled={mengagih}>
             {mengagih ? 'Mengagih…' : 'Agih Lengah Bertingkat'}
-          </button>
+          </Button>
         </div>
 
         {/* 2. Had bilangan kandungan */}
@@ -339,7 +341,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
             Tetapan Kad (SenaraiSlotConsole.tsx) — konteks per-slot lebih sesuai di situ, bukan
             senarai panjang berasingan di sini. Tinggal di sini: togol aktif/nyahaktif (baharu),
             jenis/arah LALAI (dipakai slot yang tak override), kelajuan (baharu), warna panel. */}
-        <div className="border-2 border-[#802334]/20 rounded p-4 space-y-4 bg-[#FAF7F0]">
+        <div className="border-2 border-Adjung-maroon/20 rounded p-4 space-y-4 bg-Adjung-paper">
           <div className="font-bold text-stone-800 text-[13px]">Animasi Transisi Carousel</div>
 
           {/* 3. Togol aktif/nyahaktif — permintaan eksplisit Izzat, mesti WUJUD berasingan drpd
@@ -349,7 +351,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
               type="checkbox"
               checked={!!draf.animasiAktif}
               onChange={e => setDraf(p => p ? { ...p, animasiAktif: e.target.checked } : p)}
-              className="w-3.5 h-3.5 mt-0.5 rounded border-stone-300 text-[#802334] cursor-pointer"
+              className="w-3.5 h-3.5 mt-0.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer"
             />
             <span className="text-stone-700">
               <strong className="font-semibold">3. Animasi transisi aktif</strong> — bila
@@ -477,18 +479,18 @@ export const TetapanAmSlotConsole: React.FC = () => {
           <p className="text-stone-400 text-[10px]"><strong className="font-semibold">0 = tiada had.</strong> Kandungan sedia ada tidak disemak semula — had hanya menahan simpanan baharu.</p>
         </div>
 
-        <div className="border-t border-stone-200 pt-3 flex items-center gap-3">
-          <button
-            type="button"
+        <div className="border-t border-Adjung-line pt-3 flex items-center gap-3">
+          <Button
+            variant="primary"
             onClick={simpan}
             disabled={!berubah || menyimpan}
-            className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            icon={<Save className="w-3.5 h-3.5" />}
           >
-            <Save className="w-3.5 h-3.5" /> {menyimpan ? 'Menyimpan...' : 'Simpan Tetapan'}
-          </button>
+            {menyimpan ? 'Menyimpan...' : 'Simpan Tetapan'}
+          </Button>
           <span className="text-[10px] text-stone-500">{berubah ? 'Ada perubahan belum disimpan' : 'Tiada perubahan'}</span>
         </div>
-      </div>
+      </PanelCard>
     </div>
   );
 };

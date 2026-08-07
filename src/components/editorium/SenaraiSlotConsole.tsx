@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { BidangIcon } from '../common/BidangIcon';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Button } from '../common/Button';
+import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import {
   GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH, tierForSlot,
 } from '../../../core/editorial/GeometryConfig.js';
@@ -270,26 +276,24 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
 
   return (
     <div className="space-y-4 font-sans">
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-        <div className="flex flex-wrap justify-between items-end gap-4">
-          <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-              Senarai Slot
-            </h3>
-            <p className="text-stone-500 text-xs">
-              {SLOT_INDEXES.length} slot bento — tidak termasuk Ticker dan tier <em>Bar</em>, yang diuruskan di Modul Khas.
-              Jumlah {jumlahAktif} kandungan aktif, {jumlahMenunggu} menunggu kelulusan.
-            </p>
-          </div>
-        </div>
+      <ModulTajuk
+        tajuk="Senarai Slot"
+        huraian={
+          <>
+            {SLOT_INDEXES.length} slot bento — tidak termasuk Ticker dan tier <em>Bar</em>, yang diuruskan di Modul Khas.
+            Jumlah {jumlahAktif} kandungan aktif, {jumlahMenunggu} menunggu kelulusan.
+          </>
+        }
+      />
 
+      <PanelCard className="space-y-4 text-xs">
         {loading ? (
-          <div className="text-stone-400 text-xs py-6 text-center">Memuatkan senarai slot...</div>
+          <KeadaanKosong>Memuatkan senarai slot...</KeadaanKosong>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-stone-100 border-b border-stone-200 font-sans text-[10px] uppercase text-stone-600 font-semibold">
+                <tr className={KEPALA_JADUAL}>
                   <th className="p-2.5">Slot</th>
                   <th className="p-2.5">Bentuk</th>
                   <th className="p-2.5">Bidang</th>
@@ -306,7 +310,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                   {currentEditoriumRole === 'KETUA_EDITOR' && <th className="p-2.5">Tetapan Kad</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody>
                 {SLOT_INDEXES.map(i => {
                   const tier = tierForSlot(i) as keyof typeof GEOMETRY_RATIOS;
                   // Nilai berkuat kuasa (termasuk pindaan Tier Kad); GEOMETRY_RATIOS cuma sandaran
@@ -320,7 +324,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                   const selang = cfg?.carouselInterval;
                   const lengah = cfg?.carouselDelay;
                   return (
-                    <tr key={i} className="hover:bg-stone-50">
+                    <tr key={i} className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                       <td className="p-2.5 font-mono font-bold text-stone-800">{i + 1}</td>
                       <td className="p-2.5 text-stone-600">
                         {TIER_LABEL_IS_ENGLISH[tier] ? <em>{TIER_LABELS[tier]}</em> : TIER_LABELS[tier]}
@@ -397,12 +401,12 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                             type="button"
                             onClick={() => bukaEditor(i)}
                             title="Tetapkan editor yang menguruskan slot ini"
-                            className="text-left hover:text-[#802334] cursor-pointer group"
+                            className="text-left hover:text-Adjung-maroon cursor-pointer group"
                           >
                             {editorBagiSlot(i).length === 0 ? (
-                              <span className="text-stone-400 italic group-hover:text-[#802334]">Belum ditugaskan</span>
+                              <span className="text-stone-400 italic group-hover:text-Adjung-maroon">Belum ditugaskan</span>
                             ) : (
-                              <span className="text-stone-700 group-hover:text-[#802334]">
+                              <span className="text-stone-700 group-hover:text-Adjung-maroon">
                                 {editorBagiSlot(i).map(p => p.nama).join(', ')}
                               </span>
                             )}
@@ -417,13 +421,9 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                       </td>
                       {currentEditoriumRole === 'KETUA_EDITOR' && (
                         <td className="p-2.5">
-                          <button
-                            type="button"
-                            onClick={() => bukaTetapan(i)}
-                            className="px-2 py-1 border border-stone-300 rounded text-[10px] font-sans font-semibold text-stone-600 hover:bg-stone-50 hover:text-[#802334] cursor-pointer"
-                          >
+                          <Button variant="secondary" size="sm" onClick={() => bukaTetapan(i)}>
                             Tetapan
-                          </button>
+                          </Button>
                         </td>
                       )}
                     </tr>
@@ -434,7 +434,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
           </div>
         )}
 
-        <div className="border-t border-stone-200 pt-3 space-y-1.5 text-[10px] text-stone-500 leading-relaxed">
+        <div className="border-t border-Adjung-line pt-3 space-y-1.5 text-[10px] text-stone-500 leading-relaxed">
           <p>
             <strong className="font-semibold text-stone-700">Had aksara ikut bentuk, bukan ikut slot.</strong>{' '}
             Semua slot yang sama bentuk berkongsi had yang sama — ia datang daripada saiz fizikal kad itu sendiri.
@@ -450,7 +450,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
             Bidang tidak ditetapkan berasingan — ia terus mengikut slot milik Bidang tersebut.
           </p>
         </div>
-      </div>
+      </PanelCard>
 
       {slotDisunting !== null && (
         <div
@@ -460,10 +460,10 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
         >
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-5 space-y-3 text-xs" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
+              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
                 Editor Slot {slotDisunting + 1}
               </h3>
-              <button onClick={() => setSlotDisunting(null)} className="text-stone-400"><X className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setSlotDisunting(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
             </div>
 
             <p className="text-stone-500 text-[10px] leading-relaxed">
@@ -472,9 +472,9 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
             </p>
 
             {pengguna.length === 0 ? (
-              <p className="text-stone-400 italic py-3">Tiada pengguna dalam sistem.</p>
+              <KeadaanKosong>Tiada pengguna dalam sistem.</KeadaanKosong>
             ) : (
-              <div className="max-h-64 overflow-y-auto divide-y divide-stone-100 border border-stone-200 rounded">
+              <div className="max-h-64 overflow-y-auto divide-y divide-Adjung-line border border-stone-200 rounded">
                 {pengguna.map(u => {
                   const ditanda = drafEditor.includes(u.id);
                   return (
@@ -483,7 +483,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                         type="checkbox"
                         checked={ditanda}
                         onChange={() => setDrafEditor(prev => ditanda ? prev.filter(x => x !== u.id) : [...prev, u.id])}
-                        className="w-3.5 h-3.5 rounded border-stone-300 text-[#802334] cursor-pointer"
+                        className="w-3.5 h-3.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer"
                       />
                       <span className="font-semibold text-stone-800">{u.penName || u.username}</span>
                       {/* Label peranan (2026-08-05) — `u.role` ialah lajur LEGASI satu-nilai, bukan
@@ -500,23 +500,15 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
               </div>
             )}
 
-            {ralat && <p className="text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5 text-[10px]">{ralat}</p>}
+            {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
             <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
-              <button
-                onClick={() => setSlotDisunting(null)}
-                disabled={menyimpan}
-                className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
-              >
+              <Button variant="secondary" onClick={() => setSlotDisunting(null)} disabled={menyimpan}>
                 Batal
-              </button>
-              <button
-                onClick={simpanEditor}
-                disabled={menyimpan}
-                className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
-              >
+              </Button>
+              <Button variant="primary" onClick={simpanEditor} disabled={menyimpan}>
                 {menyimpan ? 'Menyimpan...' : 'Simpan'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -528,20 +520,23 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
           onMouseDown={(e) => { mousedownPadaBackdropTetapan.current = e.target === e.currentTarget; }}
           onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropTetapan.current && !menyimpanTetapan) setSlotTetapan(null); }}
         >
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-5 space-y-4 text-xs" onClick={e => e.stopPropagation()}>
+          {/* max-w-2xl (bukan max-w-sm) — modal ni borang tetapan berbilang medan, dan Pelan 03
+              akan MENAMBAH medan lagi di sini; anatomi modal piawai (Pelan 01 D2) cuma benarkan
+              dua saiz, jadi saiz kandungan/borang panjang ialah pilihan yang betul. */}
+          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[85vh] overflow-y-auto p-5 space-y-4 text-xs" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
+              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
                 Tetapan Kad — Slot {slotTetapan + 1}
               </h3>
-              <button onClick={() => setSlotTetapan(null)} className="text-stone-400"><X className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setSlotTetapan(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Bidang</span>
+              <span className={LABEL_BORANG}>Bidang</span>
               <select
                 value={drafTetapan.manualDesk}
                 onChange={e => setDrafTetapan(p => p ? { ...p, manualDesk: e.target.value } : p)}
-                className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-sans text-xs bg-white"
+                className={INPUT_BORANG}
               >
                 <option value="">— Belum ditetapkan —</option>
                 {bidangList.map(b => (
@@ -555,7 +550,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Warna Latar Kad</span>
+              <span className={LABEL_BORANG}>Warna Latar Kad</span>
               <div className="flex gap-2 flex-wrap items-center">
                 {[{ label: 'Telus', value: 'transparent' }, ...WARNA_PRATETAP].map(opt => {
                   const dipilih = (drafTetapan.bgColor || 'transparent') === opt.value;
@@ -565,7 +560,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                       type="button"
                       title={opt.label}
                       onClick={() => setDrafTetapan(p => p ? { ...p, bgColor: opt.value } : p)}
-                      className={`w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-[#802334] scale-110' : 'border-stone-300'}`}
+                      className={`w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
                       style={{
                         backgroundColor: opt.value === 'transparent' ? '#ffffff' : opt.value,
                         backgroundImage: opt.value === 'transparent' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
@@ -578,7 +573,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Warna Bingkai Kad</span>
+              <span className={LABEL_BORANG}>Warna Bingkai Kad</span>
               <div className="flex gap-2 flex-wrap items-center">
                 {[{ label: 'Auto', value: '' }, ...WARNA_PRATETAP].map(opt => {
                   const dipilih = (drafTetapan.borderColor || '') === opt.value;
@@ -588,7 +583,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                       type="button"
                       title={opt.label}
                       onClick={() => setDrafTetapan(p => p ? { ...p, borderColor: opt.value } : p)}
-                      className={`w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-[#802334] scale-110' : 'border-stone-300'}`}
+                      className={`w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
                       style={{
                         backgroundColor: opt.value === '' ? '#ffffff' : opt.value,
                         backgroundImage: opt.value === '' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
@@ -602,21 +597,21 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Selang Carousel (saat)</span>
+                <span className={LABEL_BORANG}>Selang Carousel (saat)</span>
                 <input
                   type="number" min={1}
                   value={drafTetapan.carouselInterval}
                   onChange={e => setDrafTetapan(p => p ? { ...p, carouselInterval: Math.max(1, parseInt(e.target.value) || 10) } : p)}
-                  className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                  className={INPUT_BORANG}
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Lengah Mula (saat)</span>
+                <span className={LABEL_BORANG}>Lengah Mula (saat)</span>
                 <input
                   type="number" min={0}
                   value={drafTetapan.carouselDelay}
                   onChange={e => setDrafTetapan(p => p ? { ...p, carouselDelay: Math.max(0, parseInt(e.target.value) || 0) } : p)}
-                  className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-mono text-xs"
+                  className={INPUT_BORANG}
                 />
               </div>
             </div>
@@ -628,11 +623,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                 Slot); pilihan lain override slot NI SAHAJA. */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Jenis Animasi</span>
+                <span className={LABEL_BORANG}>Jenis Animasi</span>
                 <select
                   value={drafTetapan.jenisAnimasiOverride}
                   onChange={e => setDrafTetapan(p => p ? { ...p, jenisAnimasiOverride: e.target.value } : p)}
-                  className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+                  className={INPUT_BORANG}
                 >
                   <option value="">Guna tetapan lalai</option>
                   <option value="pudar">Pudar (1 saat)</option>
@@ -642,11 +637,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                 </select>
               </div>
               <div className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Arah Animasi</span>
+                <span className={LABEL_BORANG}>Arah Animasi</span>
                 <select
                   value={drafTetapan.arahOverride}
                   onChange={e => setDrafTetapan(p => p ? { ...p, arahOverride: e.target.value } : p)}
-                  className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+                  className={INPUT_BORANG}
                 >
                   <option value="">Guna tetapan lalai</option>
                   <option value="kanan">Kanan</option>
@@ -662,23 +657,15 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
               di Tetapan Am aktif.
             </p>
 
-            {ralatTetapan && <p className="text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5 text-[10px]">{ralatTetapan}</p>}
+            {ralatTetapan && <MesejStatus tone="error">{ralatTetapan}</MesejStatus>}
 
             <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
-              <button
-                onClick={() => setSlotTetapan(null)}
-                disabled={menyimpanTetapan}
-                className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
-              >
+              <Button variant="secondary" onClick={() => setSlotTetapan(null)} disabled={menyimpanTetapan}>
                 Batal
-              </button>
-              <button
-                onClick={simpanTetapan}
-                disabled={menyimpanTetapan}
-                className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
-              >
+              </Button>
+              <Button variant="primary" onClick={simpanTetapan} disabled={menyimpanTetapan}>
                 {menyimpanTetapan ? 'Menyimpan...' : 'Simpan'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -694,18 +681,18 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
           onMouseDown={(e) => { mousedownPadaBackdropPanel.current = e.target === e.currentTarget; }}
           onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropPanel.current) setPanelSenarai(null); }}
         >
-          <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full max-h-[80vh] overflow-y-auto p-6 space-y-3 text-xs font-sans">
+          <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 space-y-3 text-xs font-sans">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase tracking-wider">
+              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
                 Slot {panelSenarai.slotIndex + 1} — {panelSenarai.jenis === 'aktif' ? 'Kandungan Aktif' : 'Kandungan Menunggu'}
               </h3>
-              <button type="button" onClick={() => setPanelSenarai(null)} className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+              <button type="button" onClick={() => setPanelSenarai(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
             </div>
-            <div className="divide-y divide-stone-100">
+            <div>
               {(panelSenarai.jenis === 'aktif' ? aktifPerSlot[panelSenarai.slotIndex] : menungguPerSlot[panelSenarai.slotIndex] || [])?.map((k) => {
                 const tarikh = panelSenarai.jenis === 'aktif' ? formatTarikhMasa(k.scheduledExpiresAt) : formatTarikhMasa(k.scheduledPublishAt);
                 return (
-                  <div key={k.id} className="py-2.5">
+                  <div key={k.id} className={`py-2.5 ${GARIS_BARIS}`}>
                     <p className="font-serif text-stone-800 font-semibold">{k.tajuk}</p>
                     <p className="text-[10px] text-stone-500 mt-0.5">
                       {panelSenarai.jenis === 'aktif' ? (
