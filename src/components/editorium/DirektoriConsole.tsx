@@ -1,6 +1,12 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Search, Plus, X, Hourglass } from 'lucide-react';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Button } from '../common/Button';
+import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // 2026-08-02 (Fasa 3) — Direktori disambungkan ke data SEBENAR (jadual `users` + `user_roles`,
 // core/routes/userAdminRoutes.js). Dahulu staffList array kosong berkod keras, "+ Tambah Anggota"
@@ -11,7 +17,7 @@ import { StatusBadge, StatusTone } from '../common/StatusBadge';
 // bukan di sini.
 const ROLE_META: Record<string, { label: string; warna: string }> = {
   pentadbir: { label: 'Pentadbir', warna: 'bg-stone-800 text-white' },
-  ketua_editor: { label: 'Ketua Editor', warna: 'bg-[var(--color-Adjung-maroon)] text-white' },
+  ketua_editor: { label: 'Ketua Editor', warna: 'bg-Adjung-maroon text-white' },
   penolong_ketua_editor: { label: 'Penolong Ketua Editor', warna: 'bg-amber-700 text-white' },
   editor: { label: 'Editor', warna: 'bg-stone-200 text-stone-800' },
 };
@@ -165,47 +171,38 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
-        <div>
-          <h2 className="font-serif text-base uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-1">
-            Direktori Editorial Adjung Brief
-          </h2>
-          <p className="font-sans text-xs text-stone-600">
-            Pusat direktori pasukan editorial. Mengurus rekod keanggotaan, peranan, dan status perkhidmatan.
-          </p>
-        </div>
+      <ModulTajuk
+        tajuk="Direktori Editorial Adjung Brief"
+        huraian="Pusat direktori pasukan editorial. Mengurus rekod keanggotaan, peranan, dan status perkhidmatan."
+        tindakan={
+          <>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
+              <input
+                type="text"
+                placeholder="Cari anggota, username, atau emel..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className={`${INPUT_BORANG} pl-8 w-64`}
+              />
+            </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Cari anggota, username, atau emel..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="bg-stone-50 border border-stone-300 rounded pl-8 pr-3 py-1.5 font-serif text-xs w-64"
-            />
-          </div>
+            {isPentadbir && (
+              <Button onClick={() => setTambahTerbuka(true)} icon={<Plus className="w-3.5 h-3.5" />}>
+                TAMBAH ANGGOTA
+              </Button>
+            )}
+          </>
+        }
+      />
 
-          {isPentadbir && (
-            <button
-              onClick={() => setTambahTerbuka(true)}
-              className="inline-flex items-center gap-1.5 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white font-mono text-xs px-4 py-2 rounded font-bold transition-colors cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              TAMBAH ANGGOTA
-            </button>
-          )}
-        </div>
-      </div>
+      {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
-      {ralat && <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded">{ralat}</div>}
-
-      <div className="bg-white rounded-lg shadow-sm border border-stone-200 overflow-hidden">
+      <PanelCard padding="p-0">
         <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse font-sans text-xs">
           <thead>
-            <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+            <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
               <th className="p-4">Nama Anggota</th>
               <th className="p-4">ID Pengguna</th>
               <th className="p-4">Peranan</th>
@@ -215,19 +212,19 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <th className="p-4 text-right">Tindakan</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100 font-sans">
+          <tbody className="font-sans">
             {memuat && (
               <tr><td colSpan={7} className="p-12 text-center text-stone-400"><Hourglass className="w-5 h-5 mx-auto mb-2 animate-pulse" />Memuatkan...</td></tr>
             )}
             {!memuat && filteredStaff.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-12 text-center text-stone-500">
-                  <div className="font-bold uppercase tracking-wider text-[11px] mb-1">Tiada Anggota Sepadan</div>
+                <td colSpan={7}>
+                  <KeadaanKosong>Tiada Anggota Sepadan</KeadaanKosong>
                 </td>
               </tr>
             )}
             {!memuat && filteredStaff.map(staff => (
-              <tr key={staff.id} className="hover:bg-stone-50 transition-colors">
+              <tr key={staff.id} className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS}`}>
                 <td className="p-4 font-serif font-bold text-stone-900">{staff.penName}</td>
                 <td className="p-4 text-stone-500 font-mono font-bold text-xs">{staff.username}</td>
                 <td className="p-4">
@@ -245,19 +242,16 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 <td className="p-4 text-stone-700 font-mono text-xs">{staff.countPublished}</td>
                 <td className="p-4 text-stone-500 font-mono text-xs">{new Date(staff.createdAt).toLocaleDateString('ms-MY')}</td>
                 <td className="p-4 text-right">
-                  <button
-                    onClick={() => setSelectedStaff(staff)}
-                    className="bg-stone-800 hover:bg-stone-900 text-[#E9D8A6] px-3 py-1 rounded font-bold text-[10px] transition-colors"
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => setSelectedStaff(staff)}>
                     Lihat Profil
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
         </div>
-      </div>
+      </PanelCard>
 
       {selectedStaff && (
         // Tutup cuma bila mousedown DAN click kedua-duanya pada backdrop (lihat LoginModal.tsx,
@@ -271,13 +265,14 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-start border-b border-stone-200 pb-4">
               <div>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-[var(--color-Adjung-maroon)] font-bold block mb-1">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold block mb-1">
                   PROFIL ANGGOTA EDITORIAL
                 </span>
-                <h3 className="font-serif text-xl font-bold text-stone-900">{selectedStaff.penName}</h3>
+                {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon, bukan stone-900. */}
+                <h3 className="font-serif text-lg font-bold text-Adjung-maroon">{selectedStaff.penName}</h3>
                 <span className="font-mono text-xs text-stone-500">{selectedStaff.username} • {selectedStaff.email}</span>
               </div>
-              <button onClick={() => setSelectedStaff(null)} className="text-stone-400 hover:text-stone-800 px-2 py-1">
+              <button onClick={() => setSelectedStaff(null)} className="text-stone-400 hover:text-stone-700 px-2 py-1 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -295,13 +290,13 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">PERANAN (BOLEH BERBILANG)</h4>
               <div className="grid grid-cols-2 gap-2">
                 {ROLE_ORDER.map(roleId => (
-                  <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border ${isPentadbir ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'} ${selectedStaff.roles.includes(roleId) ? 'border-[var(--color-Adjung-maroon)] bg-white' : 'border-stone-200 bg-stone-100'}`}>
+                  <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border ${isPentadbir ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'} ${selectedStaff.roles.includes(roleId) ? 'border-Adjung-maroon bg-white' : 'border-stone-200 bg-stone-100'}`}>
                     <input
                       type="checkbox"
                       checked={selectedStaff.roles.includes(roleId)}
                       onChange={() => isPentadbir && togolPeranan(selectedStaff, roleId)}
                       disabled={!isPentadbir}
-                      className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4"
+                      className="rounded border-stone-300 text-Adjung-maroon w-4 h-4"
                     />
                     <span className="font-semibold text-stone-800">{ROLE_META[roleId].label}</span>
                   </label>
@@ -321,15 +316,18 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <div className="border-t border-stone-200 pt-4 flex flex-wrap justify-between items-center gap-2 font-sans text-xs">
                 <span className="text-stone-500 font-semibold text-xs">TUKAR STATUS PERKHIDMATAN:</span>
                 <div className="flex items-center gap-2 flex-wrap">
+                  {/* "Ditamatkan" ialah tindakan merbahaya — varian `bahaya`, dan pengesahan dua
+                      langkah sedia ada (klikTamatkan → modal konfirmasiTamat) dikekalkan. */}
                   {STATUS_SAH.map(s => (
-                    <button
+                    <Button
                       key={s}
+                      variant={s === 'Ditamatkan' ? 'bahaya' : 'secondary'}
+                      size="sm"
                       onClick={() => s === 'Ditamatkan' ? klikTamatkan(selectedStaff) : ubahStatus(selectedStaff, s)}
                       disabled={selectedStaff.status === s || (s === 'Ditamatkan' && memuatKonfirmasi)}
-                      className="inline-flex items-center gap-1.5 bg-stone-700 hover:bg-stone-900 disabled:opacity-40 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded font-semibold text-xs transition-colors cursor-pointer"
                     >
                       {s === 'Ditamatkan' && memuatKonfirmasi ? 'Menyemak…' : s}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -339,10 +337,10 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       )}
 
       {mesejBerjaya && (
-        <div className="fixed bottom-4 right-4 z-[80] bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-sans rounded px-4 py-3 shadow-lg max-w-sm">
+        <MesejStatus tone="success" className="fixed bottom-4 right-4 z-[80] shadow-lg max-w-sm">
           {mesejBerjaya}
-          <button type="button" onClick={() => setMesejBerjaya('')} className="ml-3 text-emerald-600 hover:text-emerald-900 font-bold">✕</button>
-        </div>
+          <button type="button" onClick={() => setMesejBerjaya('')} className="ml-3 font-bold cursor-pointer">✕</button>
+        </MesejStatus>
       )}
 
       {tambahTerbuka && (
@@ -363,8 +361,10 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           onMouseDown={(e) => { mousedownPadaBackdropTamat.current = e.target === e.currentTarget; }}
           onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropTamat.current && !memproses) setKonfirmasiTamat(null); }}
         >
-          <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs font-sans">
-            <h3 className="font-sans text-xs font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wider border-b border-stone-200 pb-2">
+          {/* Saiz modal piawai (Pelan 01 Fasa D2): `max-w-sm` untuk pengesahan, `max-w-2xl` untuk
+              kandungan/jadual — tiada saiz ketiga. */}
+          <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs font-sans">
+            <h3 className="font-serif text-lg font-bold text-Adjung-maroon border-b border-stone-200 pb-2">
               Tamatkan {konfirmasiTamat.staff.penName || konfirmasiTamat.staff.username}?
             </h3>
 
@@ -397,31 +397,18 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               </>
             )}
 
+            {/* Kaki modal disusun menegak (bukan sebaris) sebab label tindakannya panjang —
+                susunan tetap mengikut keutamaan D2: tindakan merbahaya, tindakan biasa, Batal. */}
             <div className="flex flex-col gap-2 pt-2 border-t border-stone-200">
-              <button
-                type="button"
-                onClick={tamatkanDanPadam}
-                disabled={memproses}
-                className="bg-[var(--color-error)] hover:opacity-90 disabled:opacity-50 text-white px-3 py-2 rounded font-semibold text-xs cursor-pointer"
-              >
+              <Button variant="bahaya" onClick={tamatkanDanPadam} disabled={memproses}>
                 {memproses ? 'Memproses…' : 'Tamatkan + Padam draf/menunggu'}
-              </button>
-              <button
-                type="button"
-                onClick={tamatkanSahaja}
-                disabled={memproses}
-                className="bg-stone-700 hover:bg-stone-900 disabled:opacity-50 text-white px-3 py-2 rounded font-semibold text-xs cursor-pointer"
-              >
+              </Button>
+              <Button variant="secondary" onClick={tamatkanSahaja} disabled={memproses}>
                 Tamatkan sahaja (kekalkan draf/menunggu)
-              </button>
-              <button
-                type="button"
-                onClick={() => setKonfirmasiTamat(null)}
-                disabled={memproses}
-                className="bg-stone-100 hover:bg-stone-200 disabled:opacity-50 text-stone-700 px-3 py-2 rounded font-semibold text-xs cursor-pointer"
-              >
+              </Button>
+              <Button variant="ghost" onClick={() => setKonfirmasiTamat(null)} disabled={memproses}>
                 Batal
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -468,47 +455,47 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
 
   return (
     <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={onTutup}>
-      <form onSubmit={hantar} onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs font-sans">
+      <form onSubmit={hantar} onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs font-sans">
         <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 className="font-sans text-xs font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wider">Tambah Anggota</h3>
-          <button type="button" onClick={onTutup} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
+          <h3 className="font-serif text-lg font-bold text-Adjung-maroon">Tambah Anggota</h3>
+          <button type="button" onClick={onTutup} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
 
-        <label className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Nama Pena</span>
-          <input type="text" value={penName} onChange={e => setPenName(e.target.value)} required className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
+        <label className="block">
+          <span className={LABEL_BORANG}>Nama Pena</span>
+          <input type="text" value={penName} onChange={e => setPenName(e.target.value)} required className={INPUT_BORANG} />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">ID Pengguna</span>
-          <input type="text" value={username} onChange={e => setUsername(e.target.value)} required className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
+        <label className="block">
+          <span className={LABEL_BORANG}>ID Pengguna</span>
+          <input type="text" value={username} onChange={e => setUsername(e.target.value)} required className={INPUT_BORANG} />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Emel</span>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs" />
+        <label className="block">
+          <span className={LABEL_BORANG}>Emel</span>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className={INPUT_BORANG} />
         </label>
         <p className="text-[10px] text-stone-500 leading-relaxed">
           Kata laluan tak ditetapkan di sini — e-mel jemputan bertoken akan dihantar ke alamat
           emel di atas supaya anggota baharu menetapkan kata laluannya sendiri.
         </p>
 
-        <div className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Peranan</span>
+        <div>
+          <span className={LABEL_BORANG}>Peranan</span>
           <div className="grid grid-cols-2 gap-2">
             {ROLE_ORDER.map(roleId => (
-              <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer ${roles.includes(roleId) ? 'border-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-stone-200'}`}>
-                <input type="checkbox" checked={roles.includes(roleId)} onChange={() => togol(roleId)} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4" />
+              <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer ${roles.includes(roleId) ? 'border-Adjung-maroon bg-stone-50' : 'border-stone-200'}`}>
+                <input type="checkbox" checked={roles.includes(roleId)} onChange={() => togol(roleId)} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4" />
                 <span className="font-semibold text-stone-800">{ROLE_META[roleId].label}</span>
               </label>
             ))}
           </div>
         </div>
 
-        {ralat && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>}
+        {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
-        <div className="flex justify-end pt-1 border-t border-stone-200">
-          <button type="submit" disabled={menyimpan || roles.length === 0} className="bg-[var(--color-Adjung-maroon)] text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-[var(--color-Adjung-maroon-dark)] transition-colors disabled:opacity-50 cursor-pointer">
+        <div className="flex justify-end gap-2 pt-1 border-t border-stone-200">
+          <Button type="submit" disabled={menyimpan || roles.length === 0}>
             {menyimpan ? 'Mencipta...' : 'Cipta Akaun'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

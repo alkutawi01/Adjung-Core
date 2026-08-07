@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { NotebookText, Hourglass, RefreshCw } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Button } from '../common/Button';
+import { KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // Log Sistem (2026-08-02, Fasa 4) — dahulu SIFAR: tiada jadual audit_log, tiada penulisan,
 // konsol ni cuma placeholder jujur. Kini baca GET /api/system/audit-log (jadual sebenar,
@@ -90,35 +96,29 @@ export const LogAuditConsole: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200 flex flex-wrap justify-between items-center gap-4">
-        <div>
-          <h2 className="font-serif text-base uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-1">
-            Log Sistem
-          </h2>
-          <p className="font-sans text-xs text-stone-600">
+      {/* Log Sistem ialah modul satu-fungsi — tiada seksyen bernombor (Pelan 01 Fasa D1). */}
+      <ModulTajuk
+        tajuk="Log Sistem"
+        huraian={
+          <>
             Jejak tindakan editorial dan pentadbiran — terbit/tolak/arkib kandungan, urus akaun,
             perubahan Bidang, ambilan RSS, ralat pelayan. Terkini di atas.
-          </p>
-        </div>
-        <button
-          onClick={muatSemula}
-          className="inline-flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-mono text-xs px-3 py-2 rounded font-bold transition-colors cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Muat Semula
-        </button>
-      </div>
+          </>
+        }
+        tindakan={
+          <Button variant="secondary" onClick={muatSemula} icon={<RefreshCw className="w-3.5 h-3.5" />}>
+            Muat Semula
+          </Button>
+        }
+      />
 
-      {ralat && (
-        <div className="bg-red-50 border border-[var(--color-error)] text-[var(--color-error)] text-xs px-3 py-2 rounded">
-          {ralat}
-        </div>
-      )}
+      {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
-      <div className="bg-white rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200 overflow-hidden">
+      <PanelCard padding="p-0">
         <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse font-sans text-xs min-w-[720px]">
           <thead>
-            <tr className="border-b border-stone-200 font-mono text-[10px] uppercase tracking-wide text-stone-400" style={{ background: '#F7F5F2' }}>
+            <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
               <th className="p-3">Masa</th>
               <th className="p-3">Pelaku</th>
               <th className="p-3">Tindakan</th>
@@ -132,15 +132,15 @@ export const LogAuditConsole: React.FC = () => {
             )}
             {!memuat && entri.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-12 text-center text-stone-500">
-                  <div className="mb-2 flex justify-center"><NotebookText className="w-6 h-6" /></div>
-                  <div className="font-bold uppercase tracking-wider text-[11px] mb-1">Log Kosong</div>
-                  <p className="text-xs max-w-sm mx-auto">Belum ada tindakan direkod lagi.</p>
+                <td colSpan={5}>
+                  <KeadaanKosong ikon={<NotebookText className="w-6 h-6" />}>
+                    Log Kosong — belum ada tindakan direkod lagi.
+                  </KeadaanKosong>
                 </td>
               </tr>
             )}
             {!memuat && entri.map(e => (
-              <tr key={e.id} className="hover:bg-stone-50 transition-colors" style={{ borderTop: '1px solid #F0EDE9' }}>
+              <tr key={e.id} className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS}`}>
                 <td className="p-3 text-stone-500 font-mono text-xs whitespace-nowrap">
                   {new Date(e.createdAt).toLocaleString('ms-MY')}
                 </td>
@@ -157,7 +157,7 @@ export const LogAuditConsole: React.FC = () => {
           </tbody>
         </table>
         </div>
-      </div>
+      </PanelCard>
     </div>
   );
 };

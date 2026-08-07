@@ -3,6 +3,13 @@ import { AlertTriangle, X, Search, Pin, Lock } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { SectionLabel } from '../common/SectionLabel';
+import { Button } from '../common/Button';
+import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { labelMod, labelStatus } from '../../config/istilah';
 import { formatKlDisplay, klLocalToIso, isoToKlLocalInput } from '../../../core/editorial/Scheduling.js';
 
@@ -556,23 +563,30 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* MEJA KERJA EDITORIAL - SMART FILTER BAR */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200 space-y-4">
-        <div className="flex flex-wrap justify-end items-center gap-4">
-          {/* Quick Counter Badges */}
+      {/* Modul ni dahulu langsung tiada tajuk (Pelan 01 Fasa C, baris #2) — kini memperkenalkan
+          dirinya seperti modul lain, dengan kiraan status sebagai tindakan di hujung kanan. */}
+      <ModulTajuk
+        tajuk="Indeks Kandungan"
+        huraian="Senarai induk semua kandungan editorial yang sudah direkodkan — tapis mengikut status, Bidang, sumber, slot atau editor, dan uruskan penyiaran setiap kandungan."
+        tindakan={
           <div className="flex items-center gap-2 font-sans text-[10px]">
             <StatusBadge tone="warning" label={`MENUNGGU: ${statusCounts.Pending}`} />
             <StatusBadge tone="success" label={`AKTIF: ${statusCounts.Live}`} />
             <StatusBadge tone="neutral" label={`ARKIB: ${statusCounts.Archive}`} />
           </div>
-        </div>
+        }
+      />
 
-        {actionError && (
-          <div className="bg-red-50 border border-red-200 text-red-800 text-xs font-sans px-3 py-2 rounded flex justify-between items-center">
-            <span className="inline-flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {actionError}</span>
-            <button onClick={() => setActionError(null)} className="font-bold px-2"><X className="w-3.5 h-3.5" /></button>
-          </div>
-        )}
+      {actionError && (
+        <MesejStatus tone="error" className="flex justify-between items-center">
+          <span className="inline-flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {actionError}</span>
+          <button onClick={() => setActionError(null)} className="font-bold px-2 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+        </MesejStatus>
+      )}
+
+      {/* MEJA KERJA EDITORIAL - SMART FILTER BAR */}
+      <PanelCard className="space-y-4">
+        <SectionLabel>01 — Penapis Kandungan</SectionLabel>
 
         {/* Search Input — draf sahaja, ditapis bila "Tapis" ditekan (lihat nota FilterState). */}
         <div className="w-full relative">
@@ -583,7 +597,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             value={draftFilters.search}
             onChange={e => patchDraft({ search: e.target.value })}
             onKeyDown={e => { if (e.key === 'Enter') handleApplyFilters(); }}
-            className="w-full bg-stone-50 border border-stone-300 rounded pl-10 pr-4 py-2.5 font-sans text-xs shadow-xs"
+            className={`${INPUT_BORANG} pl-10`}
           />
         </div>
 
@@ -595,11 +609,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 font-sans text-xs">
           {/* 1. Status Filter */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">STATUS</label>
+            <label className={LABEL_BORANG}>STATUS</label>
             <select
               value={draftFilters.status}
               onChange={e => patchDraft({ status: e.target.value })}
-              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+              className={INPUT_BORANG}
             >
               <option value="Semua">Semua Status</option>
               <option value="Pending">Menunggu</option>
@@ -611,11 +625,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
           {/* 2. Jenis Kad Filter */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">JENIS KAD</label>
+            <label className={LABEL_BORANG}>JENIS KAD</label>
             <select
               value={draftFilters.cardType}
               onChange={e => patchDraft({ cardType: e.target.value })}
-              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+              className={INPUT_BORANG}
             >
               <option value="Semua">Semua Kad</option>
               <option value="HERO">{TIER_LABELS.HERO}</option>
@@ -634,14 +648,14 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               akhir teks bebas (padanan separa, lihat filteredRecords) — senarai sumber sebenar
               boleh cecah ratusan/ribuan bila sistem berkembang, dropdown biasa tak lagi praktikal. */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">SUMBER</label>
+            <label className={LABEL_BORANG}>SUMBER</label>
             <input
               type="text"
               list="sumber-datalist"
               placeholder="Cari sumber…"
               value={draftFilters.source}
               onChange={e => patchDraft({ source: e.target.value })}
-              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+              className={INPUT_BORANG}
             />
             <datalist id="sumber-datalist">
               {sourceOptions.map(s => <option key={s} value={s} />)}
@@ -650,11 +664,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
           {/* 3b. Kaedah (cara kandungan dicipta — Manual/AI Generated/RSS Direct/dll.) Filter */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">KAEDAH</label>
+            <label className={LABEL_BORANG}>KAEDAH</label>
             <select
               value={draftFilters.creator}
               onChange={e => patchDraft({ creator: e.target.value })}
-              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+              className={INPUT_BORANG}
             >
               <option value="Semua">Semua Kaedah</option>
               {creatorOptions.map(c => <option key={c} value={c}>{labelMod(c)}</option>)}
@@ -665,11 +679,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               untuk kandungan sedia ada sebelum ciri ni wujud (papar "Tidak diketahui", bukan reka
               nama) — sebab tu editorNameOptions tak sumbang opsyen kosong. */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">EDITOR</label>
+            <label className={LABEL_BORANG}>EDITOR</label>
             <select
               value={draftFilters.editor}
               onChange={e => patchDraft({ editor: e.target.value })}
-              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+              className={INPUT_BORANG}
             >
               <option value="Semua">Semua Editor</option>
               {editorNameOptions.map(e => <option key={e} value={e}>{e}</option>)}
@@ -680,11 +694,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               berasingan (lihat nota deskOptions/orphanDeskOptions di atas) untuk cari kandungan
               lama yang masih guna bidang yang dah dimansuhkan. */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">BIDANG</label>
+            <label className={LABEL_BORANG}>BIDANG</label>
             <select
               value={draftFilters.desk}
               onChange={e => patchDraft({ desk: e.target.value })}
-              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+              className={INPUT_BORANG}
             >
               <option value="Semua">Semua Bidang</option>
               <optgroup label="Bidang Berdaftar">
@@ -700,11 +714,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
           {/* 5. Slot Filter */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">SLOT</label>
+            <label className={LABEL_BORANG}>SLOT</label>
             <select
               value={draftFilters.slot}
               onChange={e => patchDraft({ slot: e.target.value })}
-              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+              className={INPUT_BORANG}
             >
               <option value="SemuaKecualiTicker">Semua Slot (kecuali Ticker)</option>
               <option value="Semua">Semua Slot (termasuk Ticker)</option>
@@ -714,11 +728,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
           {/* 6. Susunan */}
           <div>
-            <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">SUSUNAN</label>
+            <label className={LABEL_BORANG}>SUSUNAN</label>
             <select
               value={draftFilters.sort}
               onChange={e => patchDraft({ sort: e.target.value as FilterState['sort'] })}
-              className="w-full bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-semibold text-xs"
+              className={INPUT_BORANG}
             >
               <option value="newest">Paling Baharu</option>
               <option value="oldest">Paling Lama</option>
@@ -730,22 +744,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           {/* Tapis + Reset — penapis TIDAK terpakai sehingga "Tapis" ditekan (lihat nota
               FilterState di atas); "Set Semula Penapis" kekal serta-merta. */}
           <div className="flex items-end gap-2">
-            <button
-              onClick={handleApplyFilters}
-              className="flex-1 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white font-semibold px-3 py-1.5 rounded transition-colors text-[11px] relative"
-            >
+            <Button onClick={handleApplyFilters} size="sm" className="flex-1 relative">
               Tapis
               {filtersDirty && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-white" title="Ada penapis belum ditapis" />}
-            </button>
-            <button
-              onClick={handleResetFilters}
-              className="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold px-3 py-1.5 rounded transition-colors text-[11px]"
-            >
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleResetFilters} className="flex-1">
               Set Semula
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </PanelCard>
 
       {/* Editor View Switcher (Kandungan Saya vs Semua Read Only) — relevant once real EDITOR accounts exist */}
       {currentUserRole === 'EDITOR' && (
@@ -753,7 +761,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <button
             onClick={() => setEditorViewMode('mine')}
             className={`px-4 py-1.5 rounded font-bold transition-all inline-flex items-center gap-1.5 ${
-              editorViewMode === 'mine' ? 'bg-[var(--color-Adjung-maroon)] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              editorViewMode === 'mine' ? 'bg-Adjung-maroon text-white' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             <Pin className="w-3.5 h-3.5" /> Kandungan Saya (Boleh Sunting & Siar)
@@ -761,7 +769,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <button
             onClick={() => setEditorViewMode('all')}
             className={`px-4 py-1.5 rounded font-bold transition-all inline-flex items-center gap-1.5 ${
-              editorViewMode === 'all' ? 'bg-[var(--color-Adjung-maroon)] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              editorViewMode === 'all' ? 'bg-Adjung-maroon text-white' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             <Lock className="w-3.5 h-3.5" /> Semua Kandungan (Baca Sahaja)
@@ -786,8 +794,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
       {/* Filtering Results Summary — julat halaman semasa (cth "1–100"), bukan sekadar jumlah
           keputusan tapisan, supaya editor tahu tepat baris mana sedang dipaparkan. */}
-      <div className="flex justify-between items-center font-sans text-xs text-stone-500 px-1">
-        <div>
+      <div className="px-1">
+        <SectionLabel className="!mb-2">02 — Senarai Kandungan</SectionLabel>
+        <div className="font-sans text-xs text-stone-500">
           {sortedRecords.length === 0 ? (
             <>Menampilkan <strong className="font-mono font-bold">0</strong> daripada <span className="font-mono font-semibold">{items.length}</span> jumlah kandungan</>
           ) : (
@@ -812,14 +821,14 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           ))}
         </div>
       ) : sortedRecords.length === 0 ? (
-        <div className="bg-white p-12 text-center rounded-lg border border-stone-200 font-serif text-stone-500 text-xs">
-          Tiada kandungan yang sepadan dengan kriteria filter pilihan anda.
-        </div>
+        <PanelCard>
+          <KeadaanKosong>Tiada kandungan yang sepadan dengan kriteria filter pilihan anda.</KeadaanKosong>
+        </PanelCard>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-stone-200 overflow-x-auto">
+        <PanelCard padding="p-0" className="overflow-x-auto">
           <table className="w-full text-left border-collapse font-sans text-xs min-w-[850px] table-fixed">
             <thead>
-              <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+              <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
                 <th className="p-2.5 w-16">ID</th>
                 {/* Tajuk dikecilkan lagi + Editor (2026-07-29, permintaan pemilik projek) — Topik/
                     Kaedah/Jenis Kad dibuang terus daripada jadual (kekal di penapis + modal
@@ -836,7 +845,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 <th className="p-2.5 w-20 text-right">Tindakan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 font-sans">
+            <tbody className="font-sans">
               {pagedRecords.map(rec => {
                 // Same caveat as the Editor View Mode filter above: rec.creator !== currentUserName
                 // is always true today (no real per-account authorship yet), so this always evaluates
@@ -855,7 +864,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       setReactivateTopik(rec.topik);
                       setReactivateSlotIndex(rec.slotIndex);
                     }}
-                    className="hover:bg-stone-50 cursor-pointer transition-colors"
+                    className={`hover:bg-stone-50 cursor-pointer transition-colors ${GARIS_BARIS}`}
                   >
                     <Tooltip text={rec.id}>
                       <td className="p-2.5 font-sans text-xs text-stone-500 font-semibold truncate max-w-[100px]">
@@ -901,7 +910,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                             }
                             e.target.value = '';
                           }}
-                          className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 rounded px-1.5 py-1 font-sans text-[10px] font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--color-Adjung-maroon)] max-w-full"
+                          className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 rounded px-1.5 py-1 font-sans text-[10px] font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-Adjung-maroon max-w-full"
                         >
                           <option value="" disabled hidden>Tindakan ▾</option>
                           {rec.status !== 'Live' && <option value="Live">Siar</option>}
@@ -922,26 +931,28 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               halaman — satu halaman sahaja tak perlu sebarang kawalan. */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-stone-200 font-sans text-xs">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 border border-stone-300 rounded font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 ← Sebelum
-              </button>
+              </Button>
               <span className="text-stone-500">
                 Halaman <strong className="font-mono font-bold text-stone-800">{currentPage}</strong> daripada <strong className="font-mono font-bold text-stone-800">{totalPages}</strong>
               </span>
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 border border-stone-300 rounded font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 Seterusnya →
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </PanelCard>
       )}
 
       {/* BRIEF DETAIL MODAL */}
@@ -960,11 +971,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-bold block mb-1">
                   DETAIL KANDUNGAN • {activeItemModal.id}
                 </span>
-                <h3 className="font-serif text-xl font-bold text-stone-900">
+                {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon. */}
+                <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
                   {activeItemModal.title}
                 </h3>
               </div>
-              <button onClick={() => setActiveItemModal(null)} className="text-stone-400 hover:text-stone-800 font-bold text-lg shrink-0">
+              <button onClick={() => setActiveItemModal(null)} className="text-stone-400 hover:text-stone-700 font-bold text-lg shrink-0 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1012,7 +1024,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <div className="col-span-2 md:col-span-3 min-w-0">
                 <span className="text-stone-500 text-[9px] block">URL</span>
                 {activeItemModal.url && activeItemModal.url !== '#' ? (
-                  <a href={activeItemModal.url} target="_blank" rel="noopener noreferrer" className="text-[var(--color-Adjung-maroon)] underline break-all font-semibold">{activeItemModal.url}</a>
+                  <a href={activeItemModal.url} target="_blank" rel="noopener noreferrer" className="text-Adjung-maroon underline break-all font-semibold">{activeItemModal.url}</a>
                 ) : (
                   <strong className="text-stone-900">-</strong>
                 )}
@@ -1030,26 +1042,26 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Dijadualkan terbit</label>
+                    <label className={LABEL_BORANG}>Dijadualkan terbit</label>
                     <input
                       type="datetime-local"
                       value={draftJadualTerbit}
                       disabled={currentUserRole !== 'KETUA_EDITOR'}
                       onChange={e => setDraftJadualTerbit(e.target.value)}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs disabled:bg-stone-100 disabled:text-stone-400"
+                      className={`${INPUT_BORANG} bg-white`}
                     />
                     {activeItemModal.scheduledPublishAt && (
                       <p className="text-[9px] text-sky-700 mt-1">Dijadualkan terbit: {formatKlDisplay(activeItemModal.scheduledPublishAt)}</p>
                     )}
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Dijadualkan luput</label>
+                    <label className={LABEL_BORANG}>Dijadualkan luput</label>
                     <input
                       type="datetime-local"
                       value={draftJadualLuput}
                       disabled={currentUserRole !== 'KETUA_EDITOR'}
                       onChange={e => setDraftJadualLuput(e.target.value)}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs disabled:bg-stone-100 disabled:text-stone-400"
+                      className={`${INPUT_BORANG} bg-white`}
                     />
                     {activeItemModal.scheduledExpiresAt && (
                       <p className="text-[9px] text-sky-700 mt-1">Dijadualkan luput: {formatKlDisplay(activeItemModal.scheduledExpiresAt)}</p>
@@ -1059,15 +1071,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 {currentUserRole !== 'KETUA_EDITOR' && (
                   <p className="text-[9px] text-stone-500">Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan jadual.</p>
                 )}
-                {jadualError && <p className="text-[9px] text-red-700 font-semibold">{jadualError}</p>}
+                {jadualError && <MesejStatus tone="error">{jadualError}</MesejStatus>}
                 {currentUserRole === 'KETUA_EDITOR' && (
-                  <button
-                    onClick={handleSimpanJadual}
-                    disabled={savingJadual}
-                    className="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-                  >
+                  <Button onClick={handleSimpanJadual} disabled={savingJadual}>
                     {savingJadual ? 'Menyimpan...' : 'Simpan Jadual'}
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -1079,32 +1087,32 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Bidang</label>
+                    <label className={LABEL_BORANG}>Bidang</label>
                     <select
                       value={reactivateDesk}
                       onChange={e => { setReactivateDesk(e.target.value); setReactivateSlotIndex(''); }}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs"
+                      className={`${INPUT_BORANG} bg-white`}
                     >
                       <option value="">— Pilih Bidang —</option>
                       {activeBidangList.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Topik</label>
+                    <label className={LABEL_BORANG}>Topik</label>
                     <input
                       type="text"
                       value={reactivateTopik}
                       onChange={e => setReactivateTopik(e.target.value)}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs"
+                      className={`${INPUT_BORANG} bg-white`}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-stone-500 block mb-1">Slot Sasaran (Bidang sepadan sahaja)</label>
+                  <label className={LABEL_BORANG}>Slot Sasaran (Bidang sepadan sahaja)</label>
                   <select
                     value={reactivateSlotIndex}
                     onChange={e => setReactivateSlotIndex(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 text-xs"
+                    className={`${INPUT_BORANG} bg-white`}
                     disabled={!reactivateDesk}
                   >
                     <option value="">— Pilih Slot —</option>
@@ -1116,13 +1124,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     <p className="text-[9px] text-amber-700 mt-1">Tiada slot ditetapkan untuk Bidang ni lagi — tetapkan dulu di Tetapan &gt; Taksonomi.</p>
                   )}
                 </div>
-                <button
+                <Button
                   onClick={handleReactivate}
                   disabled={reactivating || !reactivateDesk || !reactivateTopik.trim() || reactivateSlotIndex === ''}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {reactivating ? 'Menyiarkan...' : 'Siarkan Semula'}
-                </button>
+                </Button>
               </div>
             )}
             </div>
@@ -1130,35 +1137,25 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <div className="flex-none flex justify-between items-center border-t border-stone-200 px-6 py-4 font-mono text-xs">
               <span className="text-stone-500">Tarikh: <strong>{activeItemModal.date}</strong></span>
               {activeItemModal.slot !== 'Ticker' ? (
+                // Susunan kaki modal (Pelan 01 Fasa D2): tindakan utama paling kanan, tindakan
+                // merbahaya di kiri. "Tolak" sudah ada pengesahannya sendiri (window.prompt).
                 <div className="flex gap-2">
-                  {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
-                    <button
-                      onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}
-                      className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
-                    >
-                      Siar Brief
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleRejectToDraft(activeItemModal.id)}
-                    className="bg-[var(--color-error)] hover:bg-red-800 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
-                  >
-                    Tolak (kembali jadi draf)
-                  </button>
-                  <button
-                    onClick={() => setActiveItemModal(null)}
-                    className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
-                  >
+                  <Button variant="ghost" onClick={() => setActiveItemModal(null)}>
                     Tutup
-                  </button>
+                  </Button>
+                  <Button variant="bahaya" onClick={() => handleRejectToDraft(activeItemModal.id)}>
+                    Tolak (kembali jadi draf)
+                  </Button>
+                  {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
+                    <Button onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}>
+                      Siar Brief
+                    </Button>
+                  )}
                 </div>
               ) : (
-                <button
-                  onClick={() => setActiveItemModal(null)}
-                  className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
-                >
+                <Button variant="ghost" onClick={() => setActiveItemModal(null)}>
                   Tutup
-                </button>
+                </Button>
               )}
             </div>
           </div>
