@@ -36,6 +36,12 @@ export function useSlotEditor(editorName?: string) {
   const [showSlotPicker, setShowSlotPicker] = useState(false);
   const [isSavingSlot, setIsSavingSlot] = useState(false);
   const [saveError, setSaveError] = useState('');
+  // Konflik penyuntingan serentak (2026-08-07, Audit UI/UX Editorium §F3) — true khusus apabila
+  // pelayan menolak simpan dengan 409 (slotsConfigRoutes.js POST /slots) kerana slot ni sudah
+  // disimpan orang lain sejak dibuka. Berasingan daripada saveError am supaya pemanggil boleh
+  // papar butang "Salin draf saya ke papan klip" HANYA pada kes ni — editor tak perlu menaip
+  // semula draf secara manual selepas muat semula slot.
+  const [saveErrorIsConflict, setSaveErrorIsConflict] = useState(false);
 
   const fetchSlotsConfig = useCallback(() => {
     fetch('/api/system/slots')
@@ -133,7 +139,31 @@ export function useSlotEditor(editorName?: string) {
     setEditingSlotIndex(null);
     setFormConfig(null);
     setSaveError('');
+    setSaveErrorIsConflict(false);
   }, []);
+
+  // Salin draf semasa (belum disimpan) ke papan klip sebagai teks boleh baca — dipanggil oleh
+  // butang di sebelah mesej konflik 409 supaya editor boleh tampal semula selepas muat semula
+  // slot, bukan menaip semula dari ingatan (Audit §F3). Pulangkan boolean kejayaan.
+  const salinDrafKePapanKlip = useCallback(async () => {
+    if (!formConfig) return false;
+    const teks = [
+      `Slot: ${formConfig.slotIndex + 1}`,
+      `Tajuk: ${formConfig.manualTitle || ''}`,
+      `Huraian ringkas: ${formConfig.manualSummary || ''}`,
+      `Bidang: ${formConfig.manualDesk || ''}`,
+      `Sumber: ${formConfig.manualSource || ''}`,
+      `URL: ${formConfig.manualUrl || ''}`,
+      `Imej: ${formConfig.manualImageUrl || ''}`,
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(teks);
+      return true;
+    } catch (e) {
+      console.error('Gagal menyalin draf ke papan klip:', e);
+      return false;
+    }
+  }, [formConfig]);
 
   // opts.closeOnSuccess (2026-07-29, permintaan pemilik projek) — lalai true untuk Simpan
   // keseluruhan modal (kelakuan asal, tak berubah). Butang "Terbit" SATU kandungan (di
@@ -147,6 +177,7 @@ export function useSlotEditor(editorName?: string) {
     const closeOnSuccess = opts?.closeOnSuccess !== false;
     setIsSavingSlot(true);
     setSaveError('');
+    setSaveErrorIsConflict(false);
     const finalFormConfig = { ...formConfig, editorName: editorName || '' };
     if (typeof manualSummaryOverride === 'string') {
       finalFormConfig.manualSummary = manualSummaryOverride;
@@ -164,10 +195,12 @@ export function useSlotEditor(editorName?: string) {
         return true;
       } else {
         setSaveError(data.error || 'Gagal menyimpan slot.');
+        setSaveErrorIsConflict(response.status === 409);
         return false;
       }
     } catch (err: any) {
       setSaveError('Ralat menyimpan slot: ' + (err.message || ''));
+      setSaveErrorIsConflict(false);
       return false;
     } finally {
       setIsSavingSlot(false);
@@ -178,7 +211,8 @@ export function useSlotEditor(editorName?: string) {
     slotsConfig, activeBidangList,
     editingSlotIndex, formConfig, setFormConfig,
     showSlotPicker, setShowSlotPicker,
-    isSavingSlot, saveError,
+    isSavingSlot, saveError, saveErrorIsConflict,
     openSlotEditor, closeSlotEditor, handleSaveSlot,
+    salinDrafKePapanKlip,
   };
 }

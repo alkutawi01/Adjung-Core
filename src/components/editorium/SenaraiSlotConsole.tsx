@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X, Check } from 'lucide-react';
 import { BidangIcon } from '../common/BidangIcon';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -7,6 +7,8 @@ import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
+import { useModalFokus } from '../../hooks/useModalFokus';
+import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
 import {
   GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH, tierForSlot,
 } from '../../../core/editorial/GeometryConfig.js';
@@ -75,6 +77,13 @@ const LABEL_PERANAN_LEGASI: Record<string, string> = {
   EDITOR: 'Editor',
 };
 
+// Bentuk draf modal "Tetapan Kad" — dikongsi antara komponen induk dan `TetapanSlotModal`
+// supaya nilai semasa dan nilai-awal (untuk semakan kotor §B2) sentiasa sepadan jenis.
+interface DrafTetapan {
+  manualDesk: string; bgColor: string; borderColor: string; carouselInterval: number; carouselDelay: number;
+  jenisAnimasiOverride: string; arahOverride: string; warnaPanelOverride: string; kelajuanOverride: string; logoTransisiMode: string;
+}
+
 interface Props {
   currentEditoriumRole?: string;
 }
@@ -103,16 +112,19 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   const [menungguPerSlot, setMenungguPerSlot] = useState<Record<number, KandunganRingkas[]>>({});
   // Panel senarai terbuka (klik angka Aktif/Menunggu) — satu pada satu masa.
   const [panelSenarai, setPanelSenarai] = useState<{ slotIndex: number; jenis: 'aktif' | 'menunggu' } | null>(null);
-  // Backdrop-click guard untuk tiga modal di bawah (lihat LoginModal.tsx, pepijat Izzat
-  // 2026-08-07) — kekal false selagi mousedown tak bermula terus pada backdrop.
-  const mousedownPadaBackdropPanel = React.useRef(false);
-  const mousedownPadaBackdropEditor = React.useRef(false);
-  const mousedownPadaBackdropTetapan = React.useRef(false);
+  // Backdrop-click guard untuk modal-modal di bawah (lihat LoginModal.tsx, pepijat Izzat
+  // 2026-08-07) — dipindahkan ke dalam setiap komponen modal sendiri (§G1/G2/B2, 2026-08-07)
+  // supaya `useModalFokus`/`useAmaranBelumSimpan` mempunyai kitaran hayat lekap/lucutkan
+  // sebenar (modal buka/tutup = komponen dilekap/dilucutkan), bukan sekadar JSX bersyarat
+  // dalam komponen induk yang sentiasa hidup.
 
   // Penyuntingan editor: satu slot pada satu masa, disimpan sebagai senarai penuh (bukan
   // tambah/buang satu-satu) supaya tiada keadaan separuh siap.
   const [slotDisunting, setSlotDisunting] = useState<number | null>(null);
   const [drafEditor, setDrafEditor] = useState<string[]>([]);
+  // Nilai draf SEMASA modal dibuka (§B2) — perbandingan drafEditor semasa dengan ni menentukan
+  // "kotor" (ada perubahan belum disimpan), tanpa kira susunan tanda/nyahtanda.
+  const [drafEditorAwal, setDrafEditorAwal] = useState<string[]>([]);
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState<string | null>(null);
 
@@ -122,7 +134,9 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   // (bukan buka borang lama itu) sebab borang tu turut papar medan sunting KANDUNGAN, yang
   // sepatutnya cuma lalui SlotManagerModal Editorium sejak pemisahan 2026-07-29.
   const [slotTetapan, setSlotTetapan] = useState<number | null>(null);
-  const [drafTetapan, setDrafTetapan] = useState<{ manualDesk: string; bgColor: string; borderColor: string; carouselInterval: number; carouselDelay: number; jenisAnimasiOverride: string; arahOverride: string; warnaPanelOverride: string; kelajuanOverride: string; logoTransisiMode: string } | null>(null);
+  const [drafTetapan, setDrafTetapan] = useState<DrafTetapan | null>(null);
+  // Nilai draf SEMASA modal dibuka (§B2) — sama tujuan seperti drafEditorAwal di atas.
+  const [drafTetapanAwal, setDrafTetapanAwal] = useState<DrafTetapan | null>(null);
   const [menyimpanTetapan, setMenyimpanTetapan] = useState(false);
 
   // Nilai Tetapan Am semasa (2026-08-07, Pelan 03) — dipapar dalam label kawalan per-slot supaya
@@ -143,19 +157,24 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
     return () => { dibatal = true; };
   }, []);
   const [ralatTetapan, setRalatTetapan] = useState<string | null>(null);
+  // Konflik penyuntingan serentak (§F3) — true khusus apabila pelayan menolak simpan dengan 409
+  // (slot ni sudah disimpan orang lain sejak dibuka). Menentukan sama ada butang "Salin draf
+  // saya ke papan klip" dipapar di sebelah mesej ralat.
+  const [ralatTetapanKonflik, setRalatTetapanKonflik] = useState(false);
 
   // Muat SEMULA baris penuh terus dari server semasa buka (bukan guna salinan `slots` dalam
   // ingatan) — sama sebab seperti useSlotEditor.openSlotEditor: elak menimpa simpanan terkini
   // orang lain, dan dapatkan token `updatedAt` segar untuk kawalan serentak (Fasa 6).
   const bukaTetapan = async (slotIndex: number) => {
     setRalatTetapan(null);
+    setRalatTetapanKonflik(false);
     try {
       const res = await fetch('/api/system/slots');
       const data = await res.json();
       const baris = Array.isArray(data) ? data.find((s: any) => s.slotIndex === slotIndex) : null;
       if (!baris) throw new Error('Slot tidak dijumpai.');
       setSlots((prev) => prev.map((s) => (s.slotIndex === slotIndex ? baris : s)));
-      setDrafTetapan({
+      const nilaiAwal: DrafTetapan = {
         manualDesk: baris.manualDesk || '',
         bgColor: baris.bgColor || 'transparent',
         borderColor: baris.borderColor || '',
@@ -166,17 +185,28 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
         warnaPanelOverride: baris.warnaPanelOverride || '',
         kelajuanOverride: baris.kelajuanOverride || '',
         logoTransisiMode: baris.logoTransisiMode || '',
-      });
+      };
+      setDrafTetapan(nilaiAwal);
+      setDrafTetapanAwal(nilaiAwal);
       setSlotTetapan(slotIndex);
     } catch (e: any) {
       setRalatTetapan(e.message || 'Gagal memuatkan tetapan slot.');
     }
   };
 
+  const tutupTetapan = () => {
+    setSlotTetapan(null);
+    setDrafTetapan(null);
+    setDrafTetapanAwal(null);
+    setRalatTetapan(null);
+    setRalatTetapanKonflik(false);
+  };
+
   const simpanTetapan = async () => {
     if (slotTetapan === null || !drafTetapan) return;
     setMenyimpanTetapan(true);
     setRalatTetapan(null);
+    setRalatTetapanKonflik(false);
     try {
       const semasaRes = await fetch('/api/system/slots');
       const semasaData = await semasaRes.json();
@@ -189,15 +219,43 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
         body: JSON.stringify(gabungan),
       });
       const hasil = await res.json();
-      if (!res.ok) throw new Error(hasil.error || 'Gagal menyimpan tetapan slot.');
+      if (!res.ok) {
+        setRalatTetapanKonflik(res.status === 409);
+        throw new Error(hasil.error || 'Gagal menyimpan tetapan slot.');
+      }
       const senaraiBaru = await fetch('/api/system/slots').then((r) => r.json());
       if (Array.isArray(senaraiBaru)) setSlots(senaraiBaru);
       setSlotTetapan(null);
       setDrafTetapan(null);
+      setDrafTetapanAwal(null);
     } catch (e: any) {
       setRalatTetapan(e.message || 'Gagal menyimpan tetapan slot.');
     } finally {
       setMenyimpanTetapan(false);
+    }
+  };
+
+  // Salin draf "Tetapan Kad" belum disimpan ke papan klip (§F3) — dipanggil oleh butang di
+  // sebelah mesej konflik 409 supaya Ketua Editor tak perlu menaip semula selepas muat semula.
+  const salinDrafTetapanKePapanKlip = async () => {
+    if (slotTetapan === null || !drafTetapan) return;
+    const teks = [
+      `Slot: ${slotTetapan + 1}`,
+      `Bidang: ${drafTetapan.manualDesk || ''}`,
+      `Warna Latar: ${drafTetapan.bgColor || ''}`,
+      `Warna Bingkai: ${drafTetapan.borderColor || ''}`,
+      `Selang Carousel (saat): ${drafTetapan.carouselInterval}`,
+      `Lengah Mula (saat): ${drafTetapan.carouselDelay}`,
+      `Jenis Animasi: ${drafTetapan.jenisAnimasiOverride || '(guna tetapan lalai)'}`,
+      `Arah Animasi: ${drafTetapan.arahOverride || '(guna tetapan lalai)'}`,
+      `Warna Panel Transisi: ${drafTetapan.warnaPanelOverride || '(guna tetapan lalai)'}`,
+      `Kelajuan Animasi: ${drafTetapan.kelajuanOverride || '(guna tetapan lalai)'}`,
+      `Logo dalam Panel: ${drafTetapan.logoTransisiMode || '(guna tetapan lalai)'}`,
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(teks);
+    } catch (e) {
+      console.error('Gagal menyalin draf tetapan ke papan klip:', e);
     }
   };
 
@@ -262,7 +320,15 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   const bukaEditor = (slotIndex: number) => {
     setRalat(null);
     setSlotDisunting(slotIndex);
-    setDrafEditor(editorBagiSlot(slotIndex).map(p => p.editorId));
+    const awal = editorBagiSlot(slotIndex).map(p => p.editorId);
+    setDrafEditor(awal);
+    setDrafEditorAwal(awal);
+  };
+
+  const tutupEditor = () => {
+    setSlotDisunting(null);
+    setDrafEditorAwal([]);
+    setRalat(null);
   };
 
   const simpanEditor = async () => {
@@ -474,286 +540,35 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
       </PanelCard>
 
       {slotDisunting !== null && (
-        <div
-          className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-          onMouseDown={(e) => { mousedownPadaBackdropEditor.current = e.target === e.currentTarget; }}
-          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropEditor.current && !menyimpan) setSlotDisunting(null); }}
-        >
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-5 space-y-3 text-xs" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
-                Editor Slot {slotDisunting + 1}
-              </h3>
-              <button onClick={() => setSlotDisunting(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-            </div>
-
-            <p className="text-stone-500 text-[10px] leading-relaxed">
-              Tanda setiap editor yang diamanahkan menguruskan slot ini. Mereka juga secara automatik
-              bertanggungjawab ke atas Bidang slot ini.
-            </p>
-
-            {pengguna.length === 0 ? (
-              <KeadaanKosong>Tiada pengguna dalam sistem.</KeadaanKosong>
-            ) : (
-              <div className="max-h-64 overflow-y-auto divide-y divide-Adjung-line border border-stone-200 rounded">
-                {pengguna.map(u => {
-                  const ditanda = drafEditor.includes(u.id);
-                  return (
-                    <label key={u.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-stone-50">
-                      <input
-                        type="checkbox"
-                        checked={ditanda}
-                        onChange={() => setDrafEditor(prev => ditanda ? prev.filter(x => x !== u.id) : [...prev, u.id])}
-                        className="w-3.5 h-3.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer"
-                      />
-                      <span className="font-semibold text-stone-800">{u.penName || u.username}</span>
-                      {/* Label peranan (2026-08-05) — `u.role` ialah lajur LEGASI satu-nilai, bukan
-                          `roles[]` RBAC 4-peranan sebenar (lihat core/middleware/auth.js). Ia tak
-                          boleh dipercayai sebagai peranan sebenar seseorang: akaun boleh pegang
-                          BERBILANG peranan, dan lajur legasi ni cuma gerbang binari lama. Dipapar
-                          sebagai petunjuk kasar sahaja; dahulu nilai luar dua-duanya (cth
-                          PENTADBIR) bocor sebagai kod mentah huruf besar. Peranan MUKTAMAD diurus
-                          di Direktori, bukan skrin ni. */}
-                      <span className="text-[10px] text-stone-400 ml-auto">{LABEL_PERANAN_LEGASI[u.role || ''] || '—'}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-
-            {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
-
-            <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setSlotDisunting(null)} disabled={menyimpan}>
-                Batal
-              </Button>
-              <Button variant="primary" onClick={simpanEditor} disabled={menyimpan}>
-                {menyimpan ? 'Menyimpan...' : 'Simpan'}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <EditorSlotModal
+          slotIndex={slotDisunting}
+          pengguna={pengguna}
+          drafEditor={drafEditor}
+          setDrafEditor={setDrafEditor}
+          drafEditorAwal={drafEditorAwal}
+          menyimpan={menyimpan}
+          ralat={ralat}
+          onSimpan={simpanEditor}
+          onTutup={tutupEditor}
+        />
       )}
 
       {slotTetapan !== null && drafTetapan && (
-        <div
-          className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-          onMouseDown={(e) => { mousedownPadaBackdropTetapan.current = e.target === e.currentTarget; }}
-          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropTetapan.current && !menyimpanTetapan) setSlotTetapan(null); }}
-        >
-          {/* max-w-2xl (bukan max-w-sm) — modal ni borang tetapan berbilang medan, dan Pelan 03
-              akan MENAMBAH medan lagi di sini; anatomi modal piawai (Pelan 01 D2) cuma benarkan
-              dua saiz, jadi saiz kandungan/borang panjang ialah pilihan yang betul. */}
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[85vh] overflow-y-auto p-5 space-y-4 text-xs" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
-                Tetapan Kad — Slot {slotTetapan + 1}
-              </h3>
-              <button onClick={() => setSlotTetapan(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className={LABEL_BORANG}>Bidang</span>
-              <select
-                value={drafTetapan.manualDesk}
-                onChange={e => setDrafTetapan(p => p ? { ...p, manualDesk: e.target.value } : p)}
-                className={INPUT_BORANG}
-              >
-                <option value="">— Belum ditetapkan —</option>
-                {bidangList.map(b => (
-                  <option key={b.name} value={b.name}>{b.name}</option>
-                ))}
-              </select>
-              <p className="text-stone-400 text-[9px] leading-relaxed">
-                Pertukaran Bidang tidak retroaktif — kandungan sedia ada dalam slot ini akan diarkibkan
-                secara automatik jika Bidang ditukar (tidak lagi sepadan Bidang terkunci baharu).
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className={LABEL_BORANG}>Warna Latar Kad</span>
-              <div className="flex gap-2 flex-wrap items-center">
-                {[{ label: 'Telus', value: 'transparent' }, ...WARNA_PRATETAP].map(opt => {
-                  const dipilih = (drafTetapan.bgColor || 'transparent') === opt.value;
-                  return (
-                    <button
-                      key={opt.label}
-                      type="button"
-                      title={opt.label}
-                      onClick={() => setDrafTetapan(p => p ? { ...p, bgColor: opt.value } : p)}
-                      className={`w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
-                      style={{
-                        backgroundColor: opt.value === 'transparent' ? '#ffffff' : opt.value,
-                        backgroundImage: opt.value === 'transparent' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
-                        backgroundSize: opt.value === 'transparent' ? '6px 6px' : undefined,
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className={LABEL_BORANG}>Warna Bingkai Kad</span>
-              <div className="flex gap-2 flex-wrap items-center">
-                {[{ label: 'Auto', value: '' }, ...WARNA_PRATETAP].map(opt => {
-                  const dipilih = (drafTetapan.borderColor || '') === opt.value;
-                  return (
-                    <button
-                      key={opt.label}
-                      type="button"
-                      title={opt.label}
-                      onClick={() => setDrafTetapan(p => p ? { ...p, borderColor: opt.value } : p)}
-                      className={`w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
-                      style={{
-                        backgroundColor: opt.value === '' ? '#ffffff' : opt.value,
-                        backgroundImage: opt.value === '' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
-                        backgroundSize: opt.value === '' ? '6px 6px' : undefined,
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <span className={LABEL_BORANG}>Selang Carousel (saat)</span>
-                <input
-                  type="number" min={1}
-                  value={drafTetapan.carouselInterval}
-                  onChange={e => setDrafTetapan(p => p ? { ...p, carouselInterval: Math.max(1, parseInt(e.target.value) || 10) } : p)}
-                  className={INPUT_BORANG}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className={LABEL_BORANG}>Lengah Mula (saat)</span>
-                <input
-                  type="number" min={0}
-                  value={drafTetapan.carouselDelay}
-                  onChange={e => setDrafTetapan(p => p ? { ...p, carouselDelay: Math.max(0, parseInt(e.target.value) || 0) } : p)}
-                  className={INPUT_BORANG}
-                />
-              </div>
-            </div>
-
-            {/* Animasi transisi PER-SLOT (2026-08-07, permintaan Izzat eksplisit — "semua ni
-                [jenis + arah animasi per-slot] boleh ditetapkan di modul Slot-Senarai Slot",
-                BUKAN Tetapan Am Slot — Tetapan Am kekal hanya utk togol aktif/nyahaktif +
-                kelajuan, lihat TetapanAmSlotConsole.tsx). '' = guna tetapan LALAI (Tetapan Am
-                Slot); pilihan lain override slot NI SAHAJA. */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <span className={LABEL_BORANG}>Jenis Animasi</span>
-                <select
-                  value={drafTetapan.jenisAnimasiOverride}
-                  onChange={e => setDrafTetapan(p => p ? { ...p, jenisAnimasiOverride: e.target.value } : p)}
-                  className={INPUT_BORANG}
-                >
-                  <option value="">Guna tetapan lalai</option>
-                  <option value="pudar">Pudar (1 saat)</option>
-                  <option value="colophon">Colophon (panel maroon menegak)</option>
-                  <option value="sapuan_lajur">Sapuan Lajur (panel maroon sapu)</option>
-                  <option value="gerak_susun">Gerak Susun (kandungan+logo bergerak)</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className={LABEL_BORANG}>Arah Animasi</span>
-                <select
-                  value={drafTetapan.arahOverride}
-                  onChange={e => setDrafTetapan(p => p ? { ...p, arahOverride: e.target.value } : p)}
-                  className={INPUT_BORANG}
-                >
-                  <option value="">Guna tetapan lalai</option>
-                  <option value="kanan">Kanan</option>
-                  <option value="kiri">Kiri</option>
-                  <option value="atas">Atas</option>
-                  <option value="bawah">Bawah</option>
-                </select>
-              </div>
-            </div>
-            <p className="text-stone-400 text-[10px] leading-relaxed -mt-1">
-              Gerak Susun cuma sokong arah Kanan/Kiri — Atas/Bawah jatuh balik ke Kanan utknya.
-              Animasi cuma berlaku bila slot ni ada &gt;1 kandungan (carousel) DAN togol animasi
-              di Tetapan Am aktif.
-            </p>
-
-            {/* Warna panel / kelajuan / logo PER-SLOT (2026-08-07, Pelan 03 — arahan Izzat: "saya
-                nak frontpage tidak membosankan"). Ikut konvensyen yang SAMA seperti dua kawalan di
-                atas: kosong = warisi Tetapan Am, nilai = override slot ni sahaja. Nilai am semasa
-                ditunjukkan dalam label supaya Ketua Editor nampak apa yang diwarisi. */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <span className={LABEL_BORANG}>Warna Panel Transisi</span>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={drafTetapan.warnaPanelOverride || amWarnaPanel}
-                    onChange={e => setDrafTetapan(p => p ? { ...p, warnaPanelOverride: e.target.value } : p)}
-                    className="h-8 w-12 shrink-0 cursor-pointer rounded border border-stone-300 bg-white p-0.5"
-                    aria-label="Warna panel transisi slot ini"
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setDrafTetapan(p => p ? { ...p, warnaPanelOverride: '' } : p)}
-                    disabled={!drafTetapan.warnaPanelOverride}
-                  >
-                    Ikut Am
-                  </Button>
-                </div>
-                <span className="text-stone-400 text-[10px]">
-                  {drafTetapan.warnaPanelOverride
-                    ? `Khusus slot ini: ${drafTetapan.warnaPanelOverride}`
-                    : `Ikut Tetapan Am — kini ${amWarnaPanel}`}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className={LABEL_BORANG}>Kelajuan Animasi</span>
-                <select
-                  value={drafTetapan.kelajuanOverride}
-                  onChange={e => setDrafTetapan(p => p ? { ...p, kelajuanOverride: e.target.value } : p)}
-                  className={INPUT_BORANG}
-                >
-                  <option value="">Guna tetapan lalai ({amKelajuan}&times;)</option>
-                  <option value="0.5">0.5&times; (dua kali lebih pantas)</option>
-                  <option value="1">1&times; (biasa)</option>
-                  <option value="1.5">1.5&times;</option>
-                  <option value="2">2&times; (dua kali lebih perlahan)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className={LABEL_BORANG}>Logo dalam Panel Transisi</span>
-              <select
-                value={drafTetapan.logoTransisiMode}
-                onChange={e => setDrafTetapan(p => p ? { ...p, logoTransisiMode: e.target.value } : p)}
-                className={INPUT_BORANG}
-              >
-                <option value="">Guna tetapan lalai (giliran Adjung &amp; penaja)</option>
-                <option value="adjung">Logo Adjung sahaja</option>
-                <option value="penaja">Logo penaja sahaja</option>
-                <option value="tiada">Tanpa logo</option>
-              </select>
-              <span className="text-stone-400 text-[10px] leading-relaxed">
-                &quot;Logo penaja sahaja&quot; jatuh balik ke logo Adjung apabila tiada penaja
-                bertanda tayang bagi bulan semasa — panel tidak pernah kosong.
-              </span>
-            </div>
-
-            {ralatTetapan && <MesejStatus tone="error">{ralatTetapan}</MesejStatus>}
-
-            <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setSlotTetapan(null)} disabled={menyimpanTetapan}>
-                Batal
-              </Button>
-              <Button variant="primary" onClick={simpanTetapan} disabled={menyimpanTetapan}>
-                {menyimpanTetapan ? 'Menyimpan...' : 'Simpan'}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <TetapanSlotModal
+          slotIndex={slotTetapan}
+          bidangList={bidangList}
+          draf={drafTetapan}
+          setDraf={setDrafTetapan}
+          drafAwal={drafTetapanAwal}
+          amWarnaPanel={amWarnaPanel}
+          amKelajuan={amKelajuan}
+          menyimpan={menyimpanTetapan}
+          ralat={ralatTetapan}
+          ralatKonflik={ralatTetapanKonflik}
+          onSalinDraf={salinDrafTetapanKePapanKlip}
+          onSimpan={simpanTetapan}
+          onTutup={tutupTetapan}
+        />
       )}
 
       {/* Panel senarai Aktif/Menunggu (2026-08-06) — klik angka di jadual buka ni. Tarikh jadual
@@ -761,45 +576,479 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
           tetapkan Jadual Terbit/Luput (Fasa 8, pilihan — bukan wajib); kandungan tanpa jadual
           papar label jujur "Tiada jadual (manual)", bukan tarikh rekaan. */}
       {panelSenarai && (
-        <div
-          className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-          onMouseDown={(e) => { mousedownPadaBackdropPanel.current = e.target === e.currentTarget; }}
-          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropPanel.current) setPanelSenarai(null); }}
-        >
-          <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 space-y-3 text-xs font-sans">
-            <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
-                Slot {panelSenarai.slotIndex + 1} — {panelSenarai.jenis === 'aktif' ? 'Kandungan Aktif' : 'Kandungan Menunggu'}
-              </h3>
-              <button type="button" onClick={() => setPanelSenarai(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-            </div>
-            <div>
-              {(panelSenarai.jenis === 'aktif' ? aktifPerSlot[panelSenarai.slotIndex] : menungguPerSlot[panelSenarai.slotIndex] || [])?.map((k) => {
-                const tarikh = panelSenarai.jenis === 'aktif' ? formatTarikhMasa(k.scheduledExpiresAt) : formatTarikhMasa(k.scheduledPublishAt);
-                return (
-                  <div key={k.id} className={`py-2.5 ${GARIS_BARIS}`}>
-                    <p className="font-serif text-stone-800 font-semibold">{k.tajuk}</p>
-                    <p className="text-[10px] text-stone-500 mt-0.5">
-                      {panelSenarai.jenis === 'aktif' ? (
-                        tarikh ? <>Akan terarkib: <span className="font-semibold text-stone-700">{tarikh}</span></> : 'Tiada jadual (kekal aktif sehingga digantikan manual)'
-                      ) : tarikh ? (
-                        <>Akan aktif: <span className="font-semibold text-stone-700">{tarikh}</span></>
-                      ) : k.sebabMenunggu === 'slot_penuh' ? (
-                        // Dua jenis Menunggu (2026-08-06) — dah lulus keputusan, cuma tunggu ruang
-                        // kosong dalam slot (hadKandunganSlot). Naik taraf AUTOMATIK bila ruang
-                        // wujud (Arkib/Tolak/Luput berjadual) — tiada tindakan manusia diperlukan.
-                        <span className="text-amber-700 font-semibold">Sudah lulus — menunggu slot kosong (naik taraf automatik)</span>
-                      ) : (
-                        'Menunggu kelulusan Ketua Editor/Penolong (tiada jadual)'
-                      )}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+        <PanelSenaraiModal
+          slotIndex={panelSenarai.slotIndex}
+          jenis={panelSenarai.jenis}
+          senarai={(panelSenarai.jenis === 'aktif' ? aktifPerSlot[panelSenarai.slotIndex] : menungguPerSlot[panelSenarai.slotIndex]) || []}
+          formatTarikhMasa={formatTarikhMasa}
+          onTutup={() => setPanelSenarai(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Sub-komponen modal (2026-08-07, Audit UI/UX Editorium §G1/G2/G4/G6/B2/J5/F3)
+//
+// Dipisahkan drpd JSX bersyarat dalam induk supaya `useModalFokus`/`useAmaranBelumSimpan`
+// dapat kitaran hayat lekap/lucutkan React SEBENAR — modal buka/tutup = komponen
+// dilekap/dilucutkan, bukan cuma `{kondisi && <div>...}` dalam komponen induk yang sentiasa
+// hidup (kalau cangkuk diletak di induk, `useEffect`-nya cuma jalan sekali semasa induk lekap,
+// bukan setiap kali modal dibuka).
+// ---------------------------------------------------------------------------
+
+interface EditorSlotModalProps {
+  slotIndex: number;
+  pengguna: Pengguna[];
+  drafEditor: string[];
+  setDrafEditor: React.Dispatch<React.SetStateAction<string[]>>;
+  drafEditorAwal: string[];
+  menyimpan: boolean;
+  ralat: string | null;
+  onSimpan: () => void;
+  onTutup: () => void;
+}
+
+const EditorSlotModal: React.FC<EditorSlotModalProps> = ({
+  slotIndex, pengguna, drafEditor, setDrafEditor, drafEditorAwal, menyimpan, ralat, onSimpan, onTutup,
+}) => {
+  const refModal = useRef<HTMLDivElement>(null);
+  const mousedownPadaBackdrop = useRef(false);
+  const kotor = drafEditor.length !== drafEditorAwal.length || !drafEditor.every(id => drafEditorAwal.includes(id));
+  const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
+  useModalFokus(refModal, cubaTutup);
+  const idTajuk = 'editor-slot-modal-tajuk';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current && !menyimpan) cubaTutup(); }}
+    >
+      <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={idTajuk}
+        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-5 space-y-3 text-xs"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+          <h3 id={idTajuk} className="font-serif text-lg font-bold text-Adjung-maroon">
+            Editor Slot {slotIndex + 1}
+          </h3>
+          <button onClick={cubaTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+        </div>
+
+        <p className="text-stone-500 text-[10px] leading-relaxed">
+          Tanda setiap editor yang diamanahkan menguruskan slot ini. Mereka juga secara automatik
+          bertanggungjawab ke atas Bidang slot ini.
+        </p>
+
+        {pengguna.length === 0 ? (
+          <KeadaanKosong>Tiada pengguna dalam sistem.</KeadaanKosong>
+        ) : (
+          <div className="max-h-64 overflow-y-auto divide-y divide-Adjung-line border border-stone-200 rounded">
+            {pengguna.map(u => {
+              const ditanda = drafEditor.includes(u.id);
+              return (
+                <label key={u.id} className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-stone-50">
+                  <input
+                    type="checkbox"
+                    checked={ditanda}
+                    onChange={() => setDrafEditor(prev => ditanda ? prev.filter(x => x !== u.id) : [...prev, u.id])}
+                    className="w-3.5 h-3.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer"
+                  />
+                  <span className="font-semibold text-stone-800">{u.penName || u.username}</span>
+                  {/* Label peranan (2026-08-05) — `u.role` ialah lajur LEGASI satu-nilai, bukan
+                      `roles[]` RBAC 4-peranan sebenar (lihat core/middleware/auth.js). Ia tak
+                      boleh dipercayai sebagai peranan sebenar seseorang: akaun boleh pegang
+                      BERBILANG peranan, dan lajur legasi ni cuma gerbang binari lama. Dipapar
+                      sebagai petunjuk kasar sahaja; dahulu nilai luar dua-duanya (cth
+                      PENTADBIR) bocor sebagai kod mentah huruf besar. Peranan MUKTAMAD diurus
+                      di Direktori, bukan skrin ni. */}
+                  <span className="text-[10px] text-stone-400 ml-auto">{LABEL_PERANAN_LEGASI[u.role || ''] || '—'}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+
+        {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
+
+        <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
+          <Button variant="secondary" onClick={cubaTutup} disabled={menyimpan}>
+            Batal
+          </Button>
+          <Button variant="primary" onClick={onSimpan} disabled={menyimpan}>
+            {menyimpan ? 'Menyimpan...' : 'Simpan'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface TetapanSlotModalProps {
+  slotIndex: number;
+  bidangList: BidangRow[];
+  draf: DrafTetapan;
+  setDraf: React.Dispatch<React.SetStateAction<DrafTetapan | null>>;
+  drafAwal: DrafTetapan | null;
+  amWarnaPanel: string;
+  amKelajuan: number;
+  menyimpan: boolean;
+  ralat: string | null;
+  ralatKonflik: boolean;
+  onSalinDraf: () => void;
+  onSimpan: () => void;
+  onTutup: () => void;
+}
+
+const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
+  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, menyimpan, ralat, ralatKonflik,
+  onSalinDraf, onSimpan, onTutup,
+}) => {
+  const refModal = useRef<HTMLDivElement>(null);
+  const mousedownPadaBackdrop = useRef(false);
+  const kotor = JSON.stringify(draf) !== JSON.stringify(drafAwal);
+  const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
+  useModalFokus(refModal, cubaTutup);
+  const idTajuk = 'tetapan-slot-modal-tajuk';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current && !menyimpan) cubaTutup(); }}
+    >
+      {/* max-w-2xl (bukan max-w-sm) — modal ni borang tetapan berbilang medan, dan Pelan 03
+          akan MENAMBAH medan lagi di sini; anatomi modal piawai (Pelan 01 D2) cuma benarkan
+          dua saiz, jadi saiz kandungan/borang panjang ialah pilihan yang betul. */}
+      <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={idTajuk}
+        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[85vh] overflow-y-auto p-5 space-y-4 text-xs"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+          <h3 id={idTajuk} className="font-serif text-lg font-bold text-Adjung-maroon">
+            Tetapan Kad — Slot {slotIndex + 1}
+          </h3>
+          <button onClick={cubaTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <span className={LABEL_BORANG}>Bidang</span>
+          <select
+            value={draf.manualDesk}
+            onChange={e => setDraf(p => p ? { ...p, manualDesk: e.target.value } : p)}
+            className={INPUT_BORANG}
+          >
+            <option value="">— Belum ditetapkan —</option>
+            {bidangList.map(b => (
+              <option key={b.name} value={b.name}>{b.name}</option>
+            ))}
+          </select>
+          <p className="text-stone-400 text-[9px] leading-relaxed">
+            Pertukaran Bidang tidak retroaktif — kandungan sedia ada dalam slot ini akan diarkibkan
+            secara automatik jika Bidang ditukar (tidak lagi sepadan Bidang terkunci baharu).
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <span className={LABEL_BORANG}>Warna Latar Kad</span>
+          <div className="flex gap-2 flex-wrap items-center">
+            {[{ label: 'Telus', value: 'transparent' }, ...WARNA_PRATETAP].map(opt => {
+              const dipilih = (draf.bgColor || 'transparent') === opt.value;
+              // Tanda semak (2026-08-07, Audit §J5) — dahulu pilihan semasa cuma ditanda dengan
+              // bingkai+skala, isyarat WARNA sahaja. Kini ada tanda semak (bentuk) DAN
+              // `aria-pressed` supaya pengguna buta warna/pembaca skrin juga tahu mana dipilih.
+              return (
+                <button
+                  key={opt.label}
+                  type="button"
+                  title={opt.label}
+                  aria-pressed={dipilih}
+                  onClick={() => setDraf(p => p ? { ...p, bgColor: opt.value } : p)}
+                  className={`relative w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
+                  style={{
+                    backgroundColor: opt.value === 'transparent' ? '#ffffff' : opt.value,
+                    backgroundImage: opt.value === 'transparent' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
+                    backgroundSize: opt.value === 'transparent' ? '6px 6px' : undefined,
+                  }}
+                >
+                  {dipilih && (
+                    <Check
+                      className="w-3.5 h-3.5 pointer-events-none"
+                      strokeWidth={3}
+                      style={{ color: (opt.value === 'transparent' || opt.value === '#FFFFFF') ? '#1F1F1F' : '#FFFFFF' }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
+
+        <div className="flex flex-col gap-1">
+          <span className={LABEL_BORANG}>Warna Bingkai Kad</span>
+          <div className="flex gap-2 flex-wrap items-center">
+            {[{ label: 'Auto', value: '' }, ...WARNA_PRATETAP].map(opt => {
+              const dipilih = (draf.borderColor || '') === opt.value;
+              return (
+                <button
+                  key={opt.label}
+                  type="button"
+                  title={opt.label}
+                  aria-pressed={dipilih}
+                  onClick={() => setDraf(p => p ? { ...p, borderColor: opt.value } : p)}
+                  className={`relative w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
+                  style={{
+                    backgroundColor: opt.value === '' ? '#ffffff' : opt.value,
+                    backgroundImage: opt.value === '' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
+                    backgroundSize: opt.value === '' ? '6px 6px' : undefined,
+                  }}
+                >
+                  {dipilih && (
+                    <Check
+                      className="w-3.5 h-3.5 pointer-events-none"
+                      strokeWidth={3}
+                      style={{ color: (opt.value === '' || opt.value === '#FFFFFF') ? '#1F1F1F' : '#FFFFFF' }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Selang Carousel (saat)</span>
+            <input
+              type="number" min={1}
+              value={draf.carouselInterval}
+              onChange={e => setDraf(p => p ? { ...p, carouselInterval: Math.max(1, parseInt(e.target.value) || 10) } : p)}
+              className={INPUT_BORANG}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Lengah Mula (saat)</span>
+            <input
+              type="number" min={0}
+              value={draf.carouselDelay}
+              onChange={e => setDraf(p => p ? { ...p, carouselDelay: Math.max(0, parseInt(e.target.value) || 0) } : p)}
+              className={INPUT_BORANG}
+            />
+          </div>
+        </div>
+
+        {/* Animasi transisi PER-SLOT (2026-08-07, permintaan Izzat eksplisit — "semua ni
+            [jenis + arah animasi per-slot] boleh ditetapkan di modul Slot-Senarai Slot",
+            BUKAN Tetapan Am Slot — Tetapan Am kekal hanya utk togol aktif/nyahaktif +
+            kelajuan, lihat TetapanAmSlotConsole.tsx). '' = guna tetapan LALAI (Tetapan Am
+            Slot); pilihan lain override slot NI SAHAJA. */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Jenis Animasi</span>
+            <select
+              value={draf.jenisAnimasiOverride}
+              onChange={e => setDraf(p => p ? { ...p, jenisAnimasiOverride: e.target.value } : p)}
+              className={INPUT_BORANG}
+            >
+              <option value="">Guna tetapan lalai</option>
+              <option value="pudar">Pudar (1 saat)</option>
+              <option value="colophon">Colophon (panel maroon menegak)</option>
+              <option value="sapuan_lajur">Sapuan Lajur (panel maroon sapu)</option>
+              <option value="gerak_susun">Gerak Susun (kandungan+logo bergerak)</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Arah Animasi</span>
+            <select
+              value={draf.arahOverride}
+              onChange={e => setDraf(p => p ? { ...p, arahOverride: e.target.value } : p)}
+              className={INPUT_BORANG}
+            >
+              <option value="">Guna tetapan lalai</option>
+              <option value="kanan">Kanan</option>
+              <option value="kiri">Kiri</option>
+              <option value="atas">Atas</option>
+              <option value="bawah">Bawah</option>
+            </select>
+          </div>
+        </div>
+        <p className="text-stone-400 text-[10px] leading-relaxed -mt-1">
+          Gerak Susun cuma sokong arah Kanan/Kiri — Atas/Bawah jatuh balik ke Kanan utknya.
+          Animasi cuma berlaku bila slot ni ada &gt;1 kandungan (carousel) DAN togol animasi
+          di Tetapan Am aktif.
+        </p>
+
+        {/* Warna panel / kelajuan / logo PER-SLOT (2026-08-07, Pelan 03 — arahan Izzat: "saya
+            nak frontpage tidak membosankan"). Ikut konvensyen yang SAMA seperti dua kawalan di
+            atas: kosong = warisi Tetapan Am, nilai = override slot ni sahaja. Nilai am semasa
+            ditunjukkan dalam label supaya Ketua Editor nampak apa yang diwarisi. */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Warna Panel Transisi</span>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={draf.warnaPanelOverride || amWarnaPanel}
+                onChange={e => setDraf(p => p ? { ...p, warnaPanelOverride: e.target.value } : p)}
+                className="h-8 w-12 shrink-0 cursor-pointer rounded border border-stone-300 bg-white p-0.5"
+                aria-label="Warna panel transisi slot ini"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDraf(p => p ? { ...p, warnaPanelOverride: '' } : p)}
+                disabled={!draf.warnaPanelOverride}
+              >
+                Ikut Am
+              </Button>
+            </div>
+            <span className="text-stone-400 text-[10px]">
+              {draf.warnaPanelOverride
+                ? `Khusus slot ini: ${draf.warnaPanelOverride}`
+                : `Ikut Tetapan Am — kini ${amWarnaPanel}`}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Kelajuan Animasi</span>
+            <select
+              value={draf.kelajuanOverride}
+              onChange={e => setDraf(p => p ? { ...p, kelajuanOverride: e.target.value } : p)}
+              className={INPUT_BORANG}
+            >
+              <option value="">Guna tetapan lalai ({amKelajuan}&times;)</option>
+              <option value="0.5">0.5&times; (dua kali lebih pantas)</option>
+              <option value="1">1&times; (biasa)</option>
+              <option value="1.5">1.5&times;</option>
+              <option value="2">2&times; (dua kali lebih perlahan)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <span className={LABEL_BORANG}>Logo dalam Panel Transisi</span>
+          <select
+            value={draf.logoTransisiMode}
+            onChange={e => setDraf(p => p ? { ...p, logoTransisiMode: e.target.value } : p)}
+            className={INPUT_BORANG}
+          >
+            <option value="">Guna tetapan lalai (giliran Adjung &amp; penaja)</option>
+            <option value="adjung">Logo Adjung sahaja</option>
+            <option value="penaja">Logo penaja sahaja</option>
+            <option value="tiada">Tanpa logo</option>
+          </select>
+          <span className="text-stone-400 text-[10px] leading-relaxed">
+            &quot;Logo penaja sahaja&quot; jatuh balik ke logo Adjung apabila tiada penaja
+            bertanda tayang bagi bulan semasa — panel tidak pernah kosong.
+          </span>
+        </div>
+
+        {ralat && (
+          <MesejStatus tone="error">
+            <span>
+              {ralat}
+              {/* Salin draf ke papan klip pada konflik 409 (Audit §F3) — Ketua Editor tak perlu
+                  menaip semula tetapan ni selepas muat semula slot yang dicadangkan mesej ralat. */}
+              {ralatKonflik && (
+                <button
+                  type="button"
+                  onClick={onSalinDraf}
+                  className="ml-2 font-semibold underline underline-offset-2 hover:no-underline cursor-pointer"
+                >
+                  Salin draf saya ke papan klip
+                </button>
+              )}
+            </span>
+          </MesejStatus>
+        )}
+
+        <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
+          <Button variant="secondary" onClick={cubaTutup} disabled={menyimpan}>
+            Batal
+          </Button>
+          <Button variant="primary" onClick={onSimpan} disabled={menyimpan}>
+            {menyimpan ? 'Menyimpan...' : 'Simpan'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface PanelSenaraiModalProps {
+  slotIndex: number;
+  jenis: 'aktif' | 'menunggu';
+  senarai: { id: string; tajuk: string; scheduledPublishAt: string | null; scheduledExpiresAt: string | null; sebabMenunggu?: string }[];
+  formatTarikhMasa: (iso: string | null) => string | null;
+  onTutup: () => void;
+}
+
+// Panel senarai Aktif/Menunggu (2026-08-06) — klik angka di jadual buka ni. Tarikh jadual
+// (scheduledExpiresAt/scheduledPublishAt) cuma wujud kalau Ketua Editor/Penolong sengaja
+// tetapkan Jadual Terbit/Luput (Fasa 8, pilihan — bukan wajib); kandungan tanpa jadual
+// papar label jujur "Tiada jadual (manual)", bukan tarikh rekaan. PANEL NI BACA SAHAJA —
+// tiada `useAmaranBelumSimpan` (tiada draf untuk hilang), tapi tetap dapat pengurusan fokus
+// (§G1/G2/G6) sepadan dua modal boleh-sunting di atas.
+const PanelSenaraiModal: React.FC<PanelSenaraiModalProps> = ({ slotIndex, jenis, senarai, formatTarikhMasa, onTutup }) => {
+  const refModal = useRef<HTMLDivElement>(null);
+  const mousedownPadaBackdrop = useRef(false);
+  useModalFokus(refModal, onTutup);
+  const idTajuk = 'panel-senarai-modal-tajuk';
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
+    >
+      <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={idTajuk}
+        onClick={e => e.stopPropagation()}
+        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 space-y-3 text-xs font-sans"
+      >
+        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+          <h3 id={idTajuk} className="font-serif text-lg font-bold text-Adjung-maroon">
+            Slot {slotIndex + 1} — {jenis === 'aktif' ? 'Kandungan Aktif' : 'Kandungan Menunggu'}
+          </h3>
+          <button type="button" onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+        </div>
+        <div>
+          {senarai.map((k) => {
+            const tarikh = jenis === 'aktif' ? formatTarikhMasa(k.scheduledExpiresAt) : formatTarikhMasa(k.scheduledPublishAt);
+            return (
+              <div key={k.id} className={`py-2.5 ${GARIS_BARIS}`}>
+                <p className="font-serif text-stone-800 font-semibold">{k.tajuk}</p>
+                <p className="text-[10px] text-stone-500 mt-0.5">
+                  {jenis === 'aktif' ? (
+                    tarikh ? <>Akan terarkib: <span className="font-semibold text-stone-700">{tarikh}</span></> : 'Tiada jadual (kekal aktif sehingga digantikan manual)'
+                  ) : tarikh ? (
+                    <>Akan aktif: <span className="font-semibold text-stone-700">{tarikh}</span></>
+                  ) : k.sebabMenunggu === 'slot_penuh' ? (
+                    // Dua jenis Menunggu (2026-08-06) — dah lulus keputusan, cuma tunggu ruang
+                    // kosong dalam slot (hadKandunganSlot). Naik taraf AUTOMATIK bila ruang
+                    // wujud (Arkib/Tolak/Luput berjadual) — tiada tindakan manusia diperlukan.
+                    <span className="text-amber-700 font-semibold">Sudah lulus — menunggu slot kosong (naik taraf automatik)</span>
+                  ) : (
+                    'Menunggu kelulusan Ketua Editor/Penolong (tiada jadual)'
+                  )}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
