@@ -19,6 +19,7 @@ export const muatPindaanMedanLimit = async (): Promise<void> => {
     setMedanLimitOverrides({
       maxBriefLong: Number(data?.hadHuraianPanjang) || 0,
       maxTopik: Number(data?.hadTopik) || 0,
+      minBriefLong: Number(data?.hadHuraianPanjangMin) || 0,
     });
   } catch {
     // Senyap: gagal ambil bermakna guna nilai lalai — bukan keadaan rosak.

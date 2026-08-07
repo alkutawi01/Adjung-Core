@@ -1,6 +1,6 @@
 import express from 'express';
 import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, TIER_SLOTS } from '../editorial/ContentBudget.js';
-import { MIN_BRIEF_LONG_CHARS } from '../editorial/GeometryConfig.js';
+import { effectiveMinBriefLong } from '../editorial/GeometryConfig.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, requirePermission, hasPermission } from '../middleware/auth.js';
@@ -560,9 +560,9 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         // Had MINIMUM huraian panjang (2026-08-07, permintaan Izzat) — sama penguatkuasaan
         // seperti laluan Terbitkan (server.js syncManualObjectsForSlot). Hanya terpakai bila
         // `briefLong` BENAR-BENAR dihantar dalam PATCH ni (medan tak disentuh, tak disemak).
-        if (briefLong !== undefined && briefLong && briefLong.trim() && briefLong.length < MIN_BRIEF_LONG_CHARS) {
+        if (briefLong !== undefined && briefLong && briefLong.trim() && briefLong.length < effectiveMinBriefLong()) {
           return res.status(400).json({
-            error: `Huraian panjang terlalu pendek (${briefLong.length} aksara, minimum ${MIN_BRIEF_LONG_CHARS}). Panjangkan huraian atau kosongkan terus medan ni.`,
+            error: `Huraian panjang terlalu pendek (${briefLong.length} aksara, minimum ${effectiveMinBriefLong()}). Panjangkan huraian atau kosongkan terus medan ni.`,
           });
         }
 

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, ChevronUp, ChevronDown, Trash2, Lock, Upload, AlertCircle } from 'lucide-react';
 import { validateContentBudget, validateBidangTopik } from '../../../core/editorial/ContentBudget.js';
-import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot, MIN_BRIEF_LONG_CHARS } from '../../../core/editorial/GeometryConfig.js';
+import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot, effectiveMinBriefLong } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
 import { Tooltip } from '../common/Tooltip';
@@ -103,7 +103,7 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     `Topik: maksimum ${hadTopik} aksara`,
     `Tajuk: maksimum ${titleTarget} aksara`,
     `Huraian ringkas: maksimum ${briefTarget} aksara`,
-    `Huraian panjang: minimum ${MIN_BRIEF_LONG_CHARS}, maksimum ${ceiling.maxBriefLong} aksara`, '',
+    `Huraian panjang: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong} aksara`, '',
     `[Had usia sumber]: ${fc.aiPromptRecency || '-'}`,
     `[Bahasa sumber]: ${fc.aiPromptLanguage || '-'}`,
     `[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`,
@@ -994,7 +994,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 {ceiling.maxBrief > 0 && (
                   <>
                     <Field label="Huraian ringkas" rows={4} value={current.brief || ''} placeholder="Huraian ringkas, dipapar pada kad…" onChange={(v) => patch(activeIndex, 'brief', v)} />
-                    <Field label="Huraian panjang" rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh — hanya di Focus View…" maxLen={ceiling.maxBriefLong} minLen={MIN_BRIEF_LONG_CHARS} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
+                    <Field label="Huraian panjang" rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh — hanya di Focus View…" maxLen={ceiling.maxBriefLong} minLen={effectiveMinBriefLong()} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
                   </>
                 )}
 

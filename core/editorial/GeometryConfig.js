@@ -227,14 +227,23 @@ export const MAX_EYEBROW_TOPIK_CHARS_BY_TIER = {
 // dipapar/dikuatkuasakan di sini. Sambungkan terus supaya SATU medan Tetapan Am Slot kawal
 // KEDUA-DUA — semakan tambahan DAN had geometri sebenar — bukan dua sistem berasingan yang
 // mengelirukan. 0 (lalai) = guna nilai geometri asal, tak berubah.
-const MEDAN_LIMIT_OVERRIDES = { maxBriefLong: 0, maxTopik: 0 };
+// minBriefLong (2026-08-08) — sambungan sama corak: had MINIMUM Huraian Panjang yang dipapar
+// (Field minLen, prompt AI) sebelum ni baca MIN_BRIEF_LONG_CHARS (400) tegar terus, tak pernah
+// baca pindaan hadHuraianPanjangMin Tetapan Am Slot (cth 1000) — bug SAMA persis untuk sisi
+// minimum lepas sisi maksimum dibetulkan. 0 = guna MIN_BRIEF_LONG_CHARS asal.
+const MEDAN_LIMIT_OVERRIDES = { maxBriefLong: 0, maxTopik: 0, minBriefLong: 0 };
 
 export const setMedanLimitOverrides = (nilai) => {
   MEDAN_LIMIT_OVERRIDES.maxBriefLong = Number.isFinite(nilai?.maxBriefLong) && nilai.maxBriefLong > 0 ? nilai.maxBriefLong : 0;
   MEDAN_LIMIT_OVERRIDES.maxTopik = Number.isFinite(nilai?.maxTopik) && nilai.maxTopik > 0 ? nilai.maxTopik : 0;
+  MEDAN_LIMIT_OVERRIDES.minBriefLong = Number.isFinite(nilai?.minBriefLong) && nilai.minBriefLong > 0 ? nilai.minBriefLong : 0;
 };
 
 export const getMedanLimitOverrides = () => ({ ...MEDAN_LIMIT_OVERRIDES });
+
+// Had minimum Huraian Panjang BERKUAT KUASA — guna ni (bukan MIN_BRIEF_LONG_CHARS terus) di
+// mana-mana paparan/pengesahan supaya pindaan Tetapan Am Slot benar-benar tercermin.
+export const effectiveMinBriefLong = () => MEDAN_LIMIT_OVERRIDES.minBriefLong || MIN_BRIEF_LONG_CHARS;
 
 // Berapa aksara Topik yang muat pada slot ni bila laluan ikon aktif (lihat nota di atas). Ini
 // nombor yang editor (dan prom AI) perlu nampak — had eyebrow mentah/label gabungan tak berguna

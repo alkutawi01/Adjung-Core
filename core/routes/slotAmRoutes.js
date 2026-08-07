@@ -135,7 +135,7 @@ export const loadAmSettings = async (dbGet) => {
     // Sambung SATU medan Tetapan Am Slot ni ke had geometri sebenar juga (2026-08-07, permintaan
     // Izzat) — bukan lagi cuma semakan tambahan senyap, had yang dipapar di modal Urus Slot/prompt
     // AI turut ikut nombor ni bila diisi.
-    setMedanLimitOverrides({ maxBriefLong: cache.hadHuraianPanjang, maxTopik: cache.hadTopik });
+    setMedanLimitOverrides({ maxBriefLong: cache.hadHuraianPanjang, maxTopik: cache.hadTopik, minBriefLong: cache.hadHuraianPanjangMin });
     return getAmSettings();
   } catch (err) {
     console.warn('Gagal memuatkan Tetapan Am Slot:', err.message);
