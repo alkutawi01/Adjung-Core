@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, ChevronUp, ChevronDown, Trash2, Lock, Upload, AlertCircle } from 'lucide-react';
 import { validateContentBudget, validateBidangTopik } from '../../../core/editorial/ContentBudget.js';
-import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot } from '../../../core/editorial/GeometryConfig.js';
+import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot, MIN_BRIEF_LONG_CHARS } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
 import { Tooltip } from '../common/Tooltip';
@@ -62,7 +62,7 @@ function buildAiPrompt(fc: any, ceiling: { maxTitle: number; maxBrief: number; m
     '[Had aksara]',
     `Tajuk: maksimum ${ceiling.maxTitle} aksara`,
     `Huraian ringkas: maksimum ${ceiling.maxBrief} aksara`,
-    `Huraian panjang: maksimum ${ceiling.maxBriefLong} aksara`,
+    `Huraian panjang: minimum ${MIN_BRIEF_LONG_CHARS}, maksimum ${ceiling.maxBriefLong} aksara`,
     `Topik: maksimum ${hadTopik} aksara`, '',
     `[Had usia sumber]: ${fc.aiPromptRecency || '-'}`,
     `[Bahasa sumber]: ${fc.aiPromptLanguage || '-'}`,
@@ -917,7 +917,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 </div>
 
                 <Field label="Topik" value={current.topik || ''} placeholder="Topik kandungan…" maxLen={hadTopik} onChange={(v) => patch(activeIndex, 'topik', v)} />
-                <Field label="Tajuk" value={current.title || ''} placeholder="Tajuk kandungan…" onChange={(v) => patch(activeIndex, 'title', v)} />
+                <Field label="Tajuk" value={current.title || ''} placeholder="Tajuk kandungan…" maxLen={ceiling.maxTitle} onChange={(v) => patch(activeIndex, 'title', v)} />
                 {ceiling.maxBrief > 0 && (
                   <>
                     <Field label="Huraian ringkas" rows={4} value={current.brief || ''} placeholder="Huraian ringkas, dipapar pada kad…" onChange={(v) => patch(activeIndex, 'brief', v)} />

@@ -201,16 +201,21 @@ export const eyebrowCeilingForSlot = (slotIndex) => {
 // balik kepada label teks "Bidang" sahaja (tiada ikon tanpa Topik, lihat EyebrowKad), disahkan
 // terus terhadap MAX_EYEBROW_CHARS_BY_TIER/eyebrowCeilingForSlot() seperti biasa (lihat
 // validateBidangTopik() di ContentBudget.js).
+// Had SERAGAM 25 aksara merentasi SEMUA tier (2026-08-07, arahan tegas Izzat) — gantikan nombor
+// diukur-per-tier sebelum ini (34-90, berbeza-beza ikut lebar bekas eyebrow sebenar setiap tier).
+// Keputusan produk eksplisit: SEMUA slot SELAIN Ticker dan tier BAR guna had SAMA, tak kira lebar
+// kad sebenar boleh muat lebih. BAR/TICKER dikecualikan terus (comment asal kekal betul: eyebrow/
+// Bidang/Topik tak dipapar pada tier ni langsung — lihat CLAUDE.md, "Bidang & Topik" seksyen 03).
 export const MAX_EYEBROW_TOPIK_CHARS_BY_TIER = {
-  HERO: 90,
-  MENEGAK: 34,
-  STANDARD: 59,
-  SEGI_EMPAT_MEDIUM: 57,
-  SEGI_EMPAT_SMALL: 34,
-  KOMPAK: 40,
+  HERO: 25,
+  MENEGAK: 25,
+  STANDARD: 25,
+  SEGI_EMPAT_MEDIUM: 25,
+  SEGI_EMPAT_SMALL: 25,
+  KOMPAK: 25,
   BAR: 34,
   TICKER: 34,
-  DEFAULT: 34,
+  DEFAULT: 25,
 };
 
 // Berapa aksara Topik yang muat pada slot ni bila laluan ikon aktif (lihat nota di atas). Ini
