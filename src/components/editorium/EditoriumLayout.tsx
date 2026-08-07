@@ -7,10 +7,15 @@ import {
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
 
-// Logo sebenar (2026-08-03) — public/adjung-brief-logo.png (fail rekaan Izzat dari Claude
-// Design), disajikan terus daripada public/ (corak sama seperti favicon.svg/adjung-symbol.svg),
-// bukan import ES module.
-const ADJUNG_BRIEF_LOGO = '/adjung-brief-logo.png';
+// Logo sebenar (2026-08-07, PNG->SVG) — public/adjung-brief-logo.svg, disajikan terus daripada
+// public/ (corak sama seperti favicon.svg/adjung-symbol.svg), bukan import ES module. Dahulu
+// PNG raster 1563×1563px (permintaan Izzat: "sepatutnya semua imej dalam Adjung Brief guna SVG,
+// tidak perlu PNG langsung") — disurih jadi path vektor (bukan dibina semula guna teks: nisbah
+// lebar:tinggi "Adjung" pada PNG asal ialah 3.245, TIDAK sepadan Source Serif 4 punya 2.895,
+// jadi fon berbeza — path surihan mengekalkan bentuk huruf SEBENAR). SVG sudah dipotong tepat
+// pada sempadan lockup ("Adjung"+garis+"BRIEF"), jadi tiada lagi keperluan bekas overflow-hidden
+// + posisi negatif macam PNG dahulu.
+const ADJUNG_BRIEF_LOGO = '/adjung-brief-logo.svg';
 
 interface EditoriumLayoutProps {
   activeTab?: string;
@@ -265,22 +270,16 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
       <header ref={headerRef} className="relative bg-[#FDFDFD] border-b border-stone-200 select-none">
         <div className="relative px-4 md:px-8 py-2.5 flex flex-wrap justify-between items-center gap-3">
           <Tooltip text="Klik untuk kembali ke Frontpage">
-            {/* Logo SEBENAR (2026-08-03) — fail rekaan Izzat sendiri (src/assets/adjung-brief-
-                logo.png, dari Claude Design), BUKAN teks CSS ditiru. Fail asal 1563×1563px penuh
-                ruang kosong sekeliling — dipotong (bekas overflow-hidden + img diposisi negatif)
-                supaya cuma tera "Adjung / BRIEF" kelihatan, nisbah potongan sama seperti yang
-                mockup Claude Design sendiri guna (crop kiri -18px atas -65px pada bekas 150×56,
-                diskala ke tinggi header ni). "· Editorium" kekal teks berasingan (konteks laman
-                ni sahaja, bukan sebahagian jenama). */}
+            {/* Logo SEBENAR (2026-08-07) — SVG disurih drpd rekaan Izzat, sudah dipotong tepat
+                pada sempadan lockup ("Adjung"+garis+"BRIEF"), jadi img terus tanpa bekas
+                crop/posisi negatif macam PNG dahulu. "· Editorium" kekal teks berasingan
+                (konteks laman ni sahaja, bukan sebahagian jenama). */}
             <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity select-none">
-              <div className="relative w-[100px] h-[40px] overflow-hidden shrink-0">
-                <img
-                  src={ADJUNG_BRIEF_LOGO}
-                  alt={`${BRAND.name} logo`}
-                  className="absolute w-[130px] h-[130px] max-w-none"
-                  style={{ left: '-15px', top: '-44px' }}
-                />
-              </div>
+              <img
+                src={ADJUNG_BRIEF_LOGO}
+                alt={`${BRAND.name} logo`}
+                className="w-[100px] h-auto shrink-0"
+              />
               <span className="font-mono text-[8px] tracking-[0.22em] font-semibold text-stone-400 uppercase leading-none border-l border-stone-200 pl-2">
                 Editorium
               </span>

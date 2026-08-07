@@ -162,7 +162,7 @@ button:not(:disabled):active {
   background: #FDFDFD;
 }
 ::-webkit-scrollbar-thumb {
-  background: #802334;
+  background: var(--color-Adjung-maroon);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -416,14 +416,14 @@ input[type="range"].adjung-range::-webkit-slider-thumb {
   width: 10px;
   height: 10px;
   border-radius: 9999px;
-  background: #802334; /* Adjung-maroon */
+  background: var(--color-Adjung-maroon); /* Adjung-maroon */
   border: 1px solid rgba(253, 253, 253, 0.2);
   transition: transform 0.1s ease, background-color 0.15s ease;
 }
 
 input[type="range"].adjung-range::-webkit-slider-thumb:hover {
   transform: scale(1.25);
-  background: #9b2c41;
+  background: var(--color-Adjung-maroon-dark); /* hanyutan lama #9b2c41 dibetulkan 2026-08-07 */
 }
 
 input[type="range"].adjung-range::-webkit-slider-thumb:active {
@@ -434,7 +434,7 @@ input[type="range"].adjung-range::-moz-range-thumb {
   width: 10px;
   height: 10px;
   border-radius: 9999px;
-  background: #802334;
+  background: var(--color-Adjung-maroon);
   border: 1px solid rgba(253, 253, 253, 0.2);
   cursor: pointer;
   transition: transform 0.1s ease, background-color 0.15s ease;
@@ -442,7 +442,7 @@ input[type="range"].adjung-range::-moz-range-thumb {
 
 input[type="range"].adjung-range::-moz-range-thumb:hover {
   transform: scale(1.25);
-  background: #9b2c41;
+  background: var(--color-Adjung-maroon-dark); /* hanyutan lama #9b2c41 dibetulkan 2026-08-07 */
 }
 
 input[type="range"].adjung-range::-moz-range-thumb:active {

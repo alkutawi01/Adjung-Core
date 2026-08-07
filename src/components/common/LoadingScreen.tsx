@@ -22,11 +22,12 @@ export const LoadingScreen: React.FC = () => {
       <div className="max-w-md w-full flex flex-col items-center justify-center text-center">
 
         {/* Wordmark Adjung — nisbah dibetulkan (2026-08-05, permintaan Izzat) supaya SEPADAN
-            lockup rasmi (public/adjung-brief-logo.png: "Adjung" + garis pembahagi + "BRIEF" di
-            bawah) dan wordmark Hero muka hadapan (FrontpageView.tsx) — dahulu skrin ni cuma
-            teks "Adjung" tunggal tanpa sub-label "BRIEF"/garis pembahagi langsung, nisbah/
-            susunan tak sepadan jenama. Fail PNG sendiri tak dipakai terus di sini (ia latar
-            putih + teks marun pekat — tak boleh dibaca atas latar marun skrin loading ni),
+            lockup rasmi (public/adjung-brief-logo.svg, 2026-08-07 ditukar drpd PNG: "Adjung" +
+            garis pembahagi + "BRIEF" di bawah) dan wordmark Hero muka hadapan (FrontpageView.tsx)
+            — dahulu skrin ni cuma teks "Adjung" tunggal tanpa sub-label "BRIEF"/garis pembahagi
+            langsung, nisbah/susunan tak sepadan jenama. Fail SVG sendiri tak dipakai terus di
+            sini (ia latar putih + teks marun pekat — tak boleh dibaca atas latar marun skrin
+            loading ni),
             dibina semula guna HTML/CSS ikut susunan dan nisbah SAMA seperti Hero, cuma warna
             disongsang (putih/krim) supaya kekal boleh dibaca atas latar marun. */}
         <h1 className="font-serif font-normal tracking-tight text-6xl md:text-7xl text-[#FDFDFD] select-none">
