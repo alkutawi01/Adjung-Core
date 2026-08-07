@@ -6,6 +6,13 @@ import { SEMUA_LABEL_LALAI, labelUi } from '../../config/istilah';
 import { muatPindaanLabel } from '../../config/labelOverrides';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { SectionLabel } from '../common/SectionLabel';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Button } from '../common/Button';
+import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 
 interface BlockedCategory {
@@ -395,27 +402,36 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
   if (!isPentadbir) {
     return (
-      <div className="bg-white p-12 text-center rounded-lg border border-stone-200 shadow-sm space-y-3 font-serif">
-        <div className="flex justify-center"><Lock className="w-8 h-8" /></div>
-        <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-          Akses Terhad (Khusus Ketua Editor)
-        </h3>
-        <p className="text-xs text-stone-600">
-          Modul Tetapan dan Pusat Konfigurasi Polisi hanya boleh diakses oleh Ketua Editor.
-        </p>
-      </div>
+      <PanelCard>
+        <KeadaanKosong ikon={<Lock className="w-8 h-8" />}>
+          <span className="block font-serif text-base uppercase tracking-wider text-Adjung-maroon font-bold mb-1">
+            Akses Terhad (Khusus Ketua Editor)
+          </span>
+          <span className="block text-stone-600">
+            Modul Tetapan dan Pusat Konfigurasi Polisi hanya boleh diakses oleh Ketua Editor.
+          </span>
+        </KeadaanKosong>
+      </PanelCard>
     );
   }
 
   return (
     <div className="space-y-6 font-sans">
+      {/* Struktur modul (Pelan 01 Fasa D1): satu kepala modul, kemudian seksyen bernombor
+          berterusan 01–09 merentas kelima-lima sub-tab sedia ada. Susunan dan teks tab TIDAK
+          diubah — struktur navigasi ialah keputusan pemilik projek. */}
+      <ModulTajuk
+        tajuk="Tetapan"
+        huraian="Polisi kandungan, kandungan halaman awam dan dalaman, tetapan operasi (RSS, jam dunia, Focus View, Ticker), kawalan akses peranan, dan kamus label sistem."
+      />
+
       {/* Submodule Navigation Bar */}
       <div className="flex flex-wrap justify-between items-center border-b border-stone-200 pb-3 text-xs gap-2">
         <div className="flex flex-wrap gap-1">
           <button
             onClick={() => setSubTab('PolisiKandungan')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'PolisiKandungan' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'PolisiKandungan' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             1. Polisi Kandungan
@@ -424,7 +440,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <button
             onClick={() => setSubTab('HalamanAwam')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'HalamanAwam' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'HalamanAwam' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             2. Halaman Awam & Dalaman
@@ -433,7 +449,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <button
             onClick={() => setSubTab('Operasi')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'Operasi' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'Operasi' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             3. Operasi & Governance
@@ -442,7 +458,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <button
             onClick={() => setSubTab('RBAC')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'RBAC' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'RBAC' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             4. Kawalan Akses
@@ -451,7 +467,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <button
             onClick={() => setSubTab('LabelSistem')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'LabelSistem' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'LabelSistem' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             5. Label Sistem
@@ -472,10 +488,8 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
       {/* 1. POLISI KANDUNGAN */}
       {subTab === 'PolisiKandungan' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
-          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-            Polisi Teks & Format Global
-          </h3>
+        <PanelCard className="space-y-4 text-xs">
+          <SectionLabel>01 — Polisi Teks &amp; Format Global</SectionLabel>
           <div className="space-y-4 divide-y divide-stone-100">
             {/* Autocondong Istilah Asing & Pinjaman (2026-08-01) — DIPINDAHKAN ke Pentadbiran →
                 Editorial → Autocondong, sebahagian daripada spesifikasi konsol Editorial pemilik
@@ -488,7 +502,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     checked={glosSelariEnabled}
                     onChange={handleToggleGlosSelari}
                     disabled={savingGlosSelari}
-                    className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50"
+                    className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer disabled:opacity-50"
                   />
                   <span>Glos Selari (Anotasi Interlinear Dwibahasa / Arab-Melayu)</span>
                 </label>
@@ -497,17 +511,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   tajuk/huraian — makna terpapar sebagai anotasi kecil di atas kata pada frontpage. Dimatikan lalai;
                   sintaks yang wujud dipapar sebagai teks biasa (anotasi diabaikan) selagi togol ni tak dihidupkan.
                 </p>
-                {glosSelariSaveError && <p className="text-red-700 text-xs">{glosSelariSaveError}</p>}
+                {glosSelariSaveError && <MesejStatus tone="error">{glosSelariSaveError}</MesejStatus>}
               </div>
             </div>
           </div>
-        </div>
+        </PanelCard>
       )}
 
       {/* 2. TAKSONOMI (BIDANG — SENARAI TERTUTUP) */}
       {/* 2. OPERASI & GOVERNANCE */}
       {subTab === 'Operasi' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-6 text-xs">
+        <PanelCard className="space-y-6 text-xs">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
             <Newspaper className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Modul Khas → Urus Ticker</strong>, bukan di sini — supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
           </div>
@@ -515,9 +529,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           {/* Kategori RSS Tersekat — shared with the Frontpage Ticker Management modal */}
           <div className="space-y-3">
             <div>
-              <h4 className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold mb-0.5">
-                Kategori RSS Tersekat
-              </h4>
+              <SectionLabel>03 — Kategori RSS Tersekat</SectionLabel>
               <p className="text-stone-500 text-[11px]">
                 Kategori mentah RSS yang disenaraikan di sini turut terpakai di modal Urus Ticker (Editorium → Modul Khas) — satu senarai kongsi.
               </p>
@@ -526,10 +538,10 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               {blockedCategories.map(c => (
                 <span key={c.id} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
                   <span>{c.categoryName}</span>
-                  <button onClick={() => handleRemoveBlockedCategory(c.id)} className="text-stone-400 hover:text-red-700 font-bold"><X className="w-3 h-3" /></button>
+                  <button onClick={() => handleRemoveBlockedCategory(c.id)} className="text-stone-400 hover:text-[var(--color-error)] font-bold"><X className="w-3 h-3" /></button>
                 </span>
               ))}
-              {blockedCategories.length === 0 && <span className="text-stone-400 italic">Tiada kategori disekat lagi.</span>}
+              {blockedCategories.length === 0 && <KeadaanKosong className="w-full">Tiada kategori disekat lagi.</KeadaanKosong>}
             </div>
             <div className="flex gap-2 max-w-md">
               <input
@@ -537,9 +549,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 placeholder="Cth: Hiburan, Gosip..."
                 value={newBlockedCategoryInput}
                 onChange={e => setNewBlockedCategoryInput(e.target.value)}
-                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs flex-1"
+                className={`${INPUT_BORANG} flex-1`}
               />
-              <button onClick={handleAddBlockedCategory} className="bg-[var(--color-Adjung-maroon)] text-white px-3 py-1.5 rounded font-semibold text-xs">+ Tambah</button>
+              <Button type="button" variant="primary" size="md" onClick={handleAddBlockedCategory}>+ Tambah</Button>
             </div>
           </div>
 
@@ -551,14 +563,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <div className="pt-4 border-t border-stone-100">
             <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 flex items-center justify-between gap-3">
               <div>
-                <h4 className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold mb-0.5">
-                  Nisbah Geometri & Belanjawan Aksara Spatial
-                </h4>
+                <SectionLabel>04 — Nisbah Geometri &amp; Belanjawan Aksara Spatial</SectionLabel>
                 <p className="text-stone-500 text-[11px]">
-                  Carta penuh (live, terus dari <code className="bg-stone-100 text-[var(--color-Adjung-maroon)] px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>) kini di tab <strong>Perlembagaan</strong> supaya tak pernah lapuk.
+                  Carta penuh (live, terus dari <code className="bg-stone-100 text-Adjung-maroon px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>) kini di tab <strong>Perlembagaan</strong> supaya tak pernah lapuk.
                 </p>
               </div>
-              <span className="font-mono text-[9px] uppercase tracking-widest text-[var(--color-Adjung-maroon)] font-bold whitespace-nowrap">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold whitespace-nowrap">
                 → Perlembagaan
               </span>
             </div>
@@ -567,27 +577,27 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           {/* Tetapan Jam Dunia & Cuaca */}
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
-              <h4 className="font-sans text-xs uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-0.5 flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5" /> TETAPAN JAM DUNIA, CUACA & API GOVERNANCE (15 BANDAR IBU NEGERI)
-              </h4>
+              <SectionLabel className="flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5" /> 05 — TETAPAN JAM DUNIA, CUACA &amp; API GOVERNANCE (15 BANDAR IBU NEGERI)
+              </SectionLabel>
               <p className="text-stone-500 text-[11px]">
                 Kawalan masa pertukaran slaid Jam Dunia, suis pemicu klik latar belakang, dan status kesihatan API Cuaca & Kalendar Cuti.
               </p>
             </div>
 
             {worldClockSaveError && (
-              <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {worldClockSaveError}</div>
+              <MesejStatus tone="error" className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {worldClockSaveError}</MesejStatus>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
-                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                <label className={LABEL_BORANG}>
                   Selang Masa Auto-Slaid Jam Dunia
                 </label>
                 <select
                   value={worldClockIntervalSec}
                   onChange={(e) => setWorldClockIntervalSec(Number(e.target.value))}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                  className={INPUT_BORANG}
                 >
                   <option value={30}>30 Saat</option>
                   <option value={60}>60 Saat / 1 Minit</option>
@@ -601,13 +611,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               </div>
 
               <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
-                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                <label className={LABEL_BORANG}>
                   Pemicu Pertukaran Klik Latar Belakang
                 </label>
                 <select
                   value={worldClockBgClickEnabled ? '1' : '0'}
                   onChange={(e) => setWorldClockBgClickEnabled(e.target.value === '1')}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                  className={INPUT_BORANG}
                 >
                   <option value="1">Aktif</option>
                   <option value="0">Tidak Aktif</option>
@@ -622,22 +632,22 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 sahaja, akan basi senyap lepas tempoh tu. Kini boleh sunting terus di sini. */}
             <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                <label className={LABEL_BORANG}>
                   Tempoh Cuti Sekolah
                 </label>
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setSchoolHolidays((p) => [...p, { start: '', end: '', group: 'A', name: '' }])}
-                  className="px-2.5 py-1 border border-stone-300 rounded text-[10px] font-sans font-semibold text-stone-600 hover:bg-white cursor-pointer"
                 >
                   + Tambah Tempoh
-                </button>
+                </Button>
               </div>
               <span className="text-[10px] text-stone-400 block -mt-1.5">
                 Kumpulan A/B ialah pembahagian rasmi Kementerian Pendidikan (negeri berlainan cuti pada tarikh sedikit berbeza). Senarai kosong = Jam Dunia tidak papar cuti sekolah langsung.
               </span>
               {schoolHolidays.length === 0 && (
-                <p className="text-stone-400 italic text-[11px] py-2">Tiada tempoh cuti sekolah ditetapkan.</p>
+                <KeadaanKosong>Tiada tempoh cuti sekolah ditetapkan.</KeadaanKosong>
               )}
               <div className="space-y-2">
                 {schoolHolidays.map((cuti, i) => (
@@ -645,17 +655,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     <input
                       type="date" value={cuti.start}
                       onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, start: e.target.value } : c))}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                      className={INPUT_BORANG}
                     />
                     <input
                       type="date" value={cuti.end}
                       onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, end: e.target.value } : c))}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                      className={INPUT_BORANG}
                     />
                     <select
                       value={cuti.group}
                       onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, group: e.target.value } : c))}
-                      className="w-full bg-white border border-stone-300 rounded px-1.5 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                      className={INPUT_BORANG}
                     >
                       <option value="A">Kump. A</option>
                       <option value="B">Kump. B</option>
@@ -663,12 +673,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     <input
                       type="text" value={cuti.name} placeholder="Nama cuti (cth. Cuti Penggal 1 Sekolah)"
                       onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, name: e.target.value } : c))}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-sans text-[11px] focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                      className={INPUT_BORANG}
                     />
                     <button
                       type="button"
                       onClick={() => setSchoolHolidays((p) => p.filter((_, n) => n !== i))}
-                      className="text-stone-400 hover:text-red-700 cursor-pointer p-1"
+                      className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer p-1"
                       title="Buang tempoh ini"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -679,28 +689,24 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             </div>
 
             <div className="flex justify-end">
-              <button
-                onClick={handleSaveWorldClockSettings}
-                disabled={savingWorldClock}
-                className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
-              >
+              <Button variant="primary" size="md" onClick={handleSaveWorldClockSettings} disabled={savingWorldClock}>
                 {savingWorldClock ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Jam Dunia</>}
-              </button>
+              </Button>
             </div>
 
             <div className="pt-2">
               <div className="flex justify-between items-center mb-2">
-                <h5 className="font-sans text-[11px] uppercase tracking-wider text-stone-700 font-bold">
-                  Status & Prestasi Integrasi API (Live Health Check)
+                <h5 className={LABEL_BORANG}>
+                  Status &amp; Prestasi Integrasi API (Live Health Check)
                 </h5>
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={fetchApiStatus}
                   disabled={isLoadingApiStatus}
-                  className="text-[10px] font-mono text-[var(--color-Adjung-maroon)] hover:underline uppercase font-bold cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
                 >
                   {isLoadingApiStatus ? 'Menyemak API...' : <><RefreshCw className="w-3 h-3" /> Semak Status API Live</>}
-                </button>
+                </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
@@ -744,28 +750,28 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               di sini; lalai 180 aksara kekal sehingga disunting. */}
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
-              <h4 className="font-sans text-xs uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-0.5 flex items-center gap-1.5">
-                <Newspaper className="w-3.5 h-3.5" /> TETAPAN FOCUS VIEW (PAPARAN BACAAN SKRIN PENUH)
-              </h4>
+              <SectionLabel className="flex items-center gap-1.5">
+                <Newspaper className="w-3.5 h-3.5" /> 06 — TETAPAN FOCUS VIEW (PAPARAN BACAAN SKRIN PENUH)
+              </SectionLabel>
               <p className="text-stone-500 text-[11px]">
                 Had pemotongan Nota Editor yang dipapar di kolofon Focus View. Nota melebihi had ini dipotong pada sempadan perkataan terdekat.
               </p>
             </div>
 
             {focusViewSaveError && (
-              <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {focusViewSaveError}</div>
+              <MesejStatus tone="error" className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {focusViewSaveError}</MesejStatus>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
-                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                <label className={LABEL_BORANG}>
                   Had Aksara Nota Editor
                 </label>
                 <input
                   type="number" min={20} max={2000} step={10}
                   value={focusViewNotaMaxAksara}
                   onChange={(e) => setFocusViewNotaMaxAksara(Math.max(20, Number(e.target.value) || 0))}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-mono text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                  className={INPUT_BORANG}
                 />
                 <span className="text-[10px] text-stone-400 block">
                   Lalai 180 aksara. Tidak berkaitan bajet ruang tajuk/huraian kad bento (Tier Kad) — nota editor medan berasingan, tak dipapar pada kad.
@@ -774,13 +780,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             </div>
 
             <div className="flex justify-end">
-              <button
-                onClick={handleSaveFocusViewSettings}
-                disabled={savingFocusView}
-                className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
-              >
+              <Button variant="primary" size="md" onClick={handleSaveFocusViewSettings} disabled={savingFocusView}>
                 {savingFocusView ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Focus View</>}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -789,27 +791,27 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               dua overlay berlainan. Sebelum ni berkod keras, sifar tetapan. */}
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
-              <h4 className="font-sans text-xs uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-0.5 flex items-center gap-1.5">
-                <Newspaper className="w-3.5 h-3.5" /> TETAPAN PAPARAN PENUH TICKER
-              </h4>
+              <SectionLabel className="flex items-center gap-1.5">
+                <Newspaper className="w-3.5 h-3.5" /> 07 — TETAPAN PAPARAN PENUH TICKER
+              </SectionLabel>
               <p className="text-stone-500 text-[11px]">
                 Saiz fon tajuk dan huraian pada overlay skrin penuh yang terbuka bila jalur Ticker diklik. Berasingan daripada Focus View kad biasa.
               </p>
             </div>
 
             {tickerOverlaySaveError && (
-              <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {tickerOverlaySaveError}</div>
+              <MesejStatus tone="error" className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {tickerOverlaySaveError}</MesejStatus>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
-                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                <label className={LABEL_BORANG}>
                   Saiz Tajuk
                 </label>
                 <select
                   value={tickerOverlayTitleSize}
                   onChange={(e) => setTickerOverlayTitleSize(e.target.value)}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                  className={INPUT_BORANG}
                 >
                   <option value="S">Kecil</option>
                   <option value="M">Sederhana</option>
@@ -819,13 +821,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               </div>
 
               <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
-                <label className="font-sans text-xs uppercase tracking-wider text-stone-700 font-bold block">
+                <label className={LABEL_BORANG}>
                   Saiz Huraian
                 </label>
                 <select
                   value={tickerOverlayBriefSize}
                   onChange={(e) => setTickerOverlayBriefSize(e.target.value)}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                  className={INPUT_BORANG}
                 >
                   <option value="S">Kecil</option>
                   <option value="M">Sederhana (lalai)</option>
@@ -835,21 +837,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             </div>
 
             <div className="flex justify-end">
-              <button
-                onClick={handleSaveTickerOverlaySettings}
-                disabled={savingTickerOverlay}
-                className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
-              >
+              <Button variant="primary" size="md" onClick={handleSaveTickerOverlaySettings} disabled={savingTickerOverlay}>
                 {savingTickerOverlay ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Paparan Penuh Ticker</>}
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
+        </PanelCard>
       )}
 
       {/* 4. INTERACTIVE RBAC PERMISSION TABLE MATRIX */}
       {subTab === 'RBAC' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+        <PanelCard className="space-y-4 text-xs">
           <div className="p-4 bg-emerald-50 border border-emerald-200 rounded text-emerald-900">
             {/* 2026-08-02 (Fasa 3) — matriks ni kini SUMBER KEBENARAN SEBENAR (bukan hiasan lagi).
                 Setiap laluan API tulis semak matriks ni secara langsung (requirePermission,
@@ -862,9 +860,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </div>
           <div className="flex flex-wrap justify-between items-center border-b border-stone-200 pb-3 gap-2">
             <div>
-              <h3 className="font-sans text-xs font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wider">
-                KAWALAN AKSES — MATRIKS KEBENARAN PERANAN
-              </h3>
+              <SectionLabel>08 — KAWALAN AKSES — MATRIKS KEBENARAN PERANAN</SectionLabel>
               <p className="text-stone-500 text-xs mt-0.5">
                 Pentadbir boleh menanda atau membatalkan kebenaran peranan mengikut keperluan tadbir urus sistem. Perubahan berkuat kuasa serta-merta selepas disimpan.
               </p>
@@ -872,13 +868,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </div>
 
           {rbacSaveError && (
-            <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {rbacSaveError}</div>
+            <MesejStatus tone="error" className="flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {rbacSaveError}</MesejStatus>
           )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs font-semibold text-stone-700">
+                <tr className={KEPALA_JADUAL}>
                   <th className="p-3 min-w-36">Peranan Editorial</th>
                   <th className="p-3 text-center">Lihat Semua</th>
                   <th className="p-3 text-center">Sunting Saya</th>
@@ -894,51 +890,51 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   <th className="p-3 text-center">Tadbir RBAC</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100 font-sans">
+              <tbody className="font-sans">
                 {rbacMatrix.map(row => {
                   const kunciEditorial = row.isImmutableAdmin;
                   return (
-                  <tr key={row.roleId} className="hover:bg-stone-50 transition-colors">
+                  <tr key={row.roleId} className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS}`}>
                     <td className="p-3 font-bold text-stone-900 flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${row.roleId === 'ketua_editor' ? 'bg-[var(--color-Adjung-maroon)]' : 'bg-stone-500'}`} />
+                      <span className={`w-2.5 h-2.5 rounded-full ${row.roleId === 'ketua_editor' ? 'bg-Adjung-maroon' : 'bg-stone-500'}`} />
                       <span>{row.roleName}</span>
                     </td>
 
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.viewAll} onChange={() => handleTogglePermission(row.roleId, 'viewAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.viewAll} onChange={() => handleTogglePermission(row.roleId, 'viewAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.editOwn} onChange={() => handleTogglePermission(row.roleId, 'editOwn')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.editOwn} onChange={() => handleTogglePermission(row.roleId, 'editOwn')} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.editAll} onChange={() => handleTogglePermission(row.roleId, 'editAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.editAll} onChange={() => handleTogglePermission(row.roleId, 'editAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.publish} onChange={() => handleTogglePermission(row.roleId, 'publish')} disabled={kunciEditorial} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.publish} onChange={() => handleTogglePermission(row.roleId, 'publish')} disabled={kunciEditorial} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.reject} onChange={() => handleTogglePermission(row.roleId, 'reject')} disabled={kunciEditorial} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.reject} onChange={() => handleTogglePermission(row.roleId, 'reject')} disabled={kunciEditorial} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.assignSlot} onChange={() => handleTogglePermission(row.roleId, 'assignSlot')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.assignSlot} onChange={() => handleTogglePermission(row.roleId, 'assignSlot')} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageEditorial} onChange={() => handleTogglePermission(row.roleId, 'manageEditorial')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageEditorial} onChange={() => handleTogglePermission(row.roleId, 'manageEditorial')} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageEditorNotes} onChange={() => handleTogglePermission(row.roleId, 'manageEditorNotes')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageEditorNotes} onChange={() => handleTogglePermission(row.roleId, 'manageEditorNotes')} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.viewAuditLog} onChange={() => handleTogglePermission(row.roleId, 'viewAuditLog')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.viewAuditLog} onChange={() => handleTogglePermission(row.roleId, 'viewAuditLog')} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageAccounts} onChange={() => handleTogglePermission(row.roleId, 'manageAccounts')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageAccounts} onChange={() => handleTogglePermission(row.roleId, 'manageAccounts')} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageSettings} onChange={() => handleTogglePermission(row.roleId, 'manageSettings')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageSettings} onChange={() => handleTogglePermission(row.roleId, 'manageSettings')} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageRbac} onChange={() => handleTogglePermission(row.roleId, 'manageRbac')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageRbac} onChange={() => handleTogglePermission(row.roleId, 'manageRbac')} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer" />
                     </td>
                   </tr>
                   );
@@ -948,15 +944,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </div>
 
           <div className="flex justify-end pt-2">
-            <button
-              onClick={handleSaveRbac}
-              disabled={savingRbac || !rbacDirty}
-              className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
-            >
+            <Button variant="primary" size="md" onClick={handleSaveRbac} disabled={savingRbac || !rbacDirty}>
               {savingRbac ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : rbacDirty ? <><Save className="w-3.5 h-3.5" /> Simpan Kawalan Akses</> : <><Check className="w-3.5 h-3.5" /> Tersimpan</>}
-            </button>
+            </Button>
           </div>
-        </div>
+        </PanelCard>
       )}
 
       {/* MODAL PEMILIH IKON BIDANG */}
@@ -1044,11 +1036,9 @@ function HalamanAwamPanel() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs max-w-3xl mx-auto">
+    <PanelCard className="space-y-4 text-xs max-w-3xl mx-auto">
       <div>
-        <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-          Kandungan Halaman Awam & Dalaman
-        </h3>
+        <SectionLabel>02 — Kandungan Halaman Awam &amp; Dalaman</SectionLabel>
         <p className="text-stone-500 text-xs mt-1">
           Ruang isi kandungan sahaja — halaman awam sebenar (URL, reka bentuk, pautan footer) belum
           dibina (Fasa 11). Kandungan yang disimpan di sini akan dipaparkan bila halaman tu siap.
@@ -1057,7 +1047,7 @@ function HalamanAwamPanel() {
 
       <div className="space-y-2 border-b border-stone-200 pb-3">
         <div>
-          <span className="block font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1">
+          <span className={LABEL_BORANG}>
             Halaman awam — pembaca portal boleh nampak
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -1066,7 +1056,7 @@ function HalamanAwamPanel() {
                 key={h.key}
                 onClick={() => setHalamanAktif(h.key)}
                 className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors ${
-                  halamanAktif === h.key ? 'bg-[var(--color-Adjung-maroon)] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  halamanAktif === h.key ? 'bg-Adjung-maroon text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
                 {h.label}
@@ -1075,7 +1065,7 @@ function HalamanAwamPanel() {
           </div>
         </div>
         <div>
-          <span className="block font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1">
+          <span className={LABEL_BORANG}>
             Dalaman — editor sahaja, tak dipaparkan kepada pembaca
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -1084,7 +1074,7 @@ function HalamanAwamPanel() {
                 key={h.key}
                 onClick={() => setHalamanAktif(h.key)}
                 className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors ${
-                  halamanAktif === h.key ? 'bg-[var(--color-Adjung-maroon)] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  halamanAktif === h.key ? 'bg-Adjung-maroon text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
                 {h.label}
@@ -1098,22 +1088,22 @@ function HalamanAwamPanel() {
         <p className="text-stone-400">Memuatkan...</p>
       ) : (
         <div className="space-y-3">
-          <label className="flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Tajuk Halaman</span>
+          <label className="block">
+            <span className={LABEL_BORANG}>Tajuk Halaman</span>
             <input
               type="text"
               value={tajuk}
               onChange={(e) => setTajuk(e.target.value)}
-              className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-sans"
+              className={INPUT_BORANG}
             />
           </label>
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Kandungan</span>
+              <span className={LABEL_BORANG}>Kandungan</span>
               <button
                 type="button"
                 onClick={() => setPratonton((p) => !p)}
-                className="font-mono text-[9px] uppercase tracking-wider font-bold text-[var(--color-Adjung-maroon)] hover:underline cursor-pointer"
+                className="font-mono text-[9px] uppercase tracking-wider font-bold text-Adjung-maroon hover:underline cursor-pointer"
               >
                 {pratonton ? '✎ Sunting' : '👁 Pratonton'}
               </button>
@@ -1121,7 +1111,7 @@ function HalamanAwamPanel() {
             {pratonton ? (
               <div className="bg-stone-50 border border-stone-200 rounded px-3 py-2 min-h-[15rem] text-[11px] text-stone-700 leading-relaxed space-y-2">
                 {kandungan.trim() ? renderMarkdownRingkas(kandungan) : (
-                  <p className="text-stone-400 italic">Tiada kandungan untuk pratonton.</p>
+                  <KeadaanKosong>Tiada kandungan untuk pratonton.</KeadaanKosong>
                 )}
               </div>
             ) : (
@@ -1129,27 +1119,23 @@ function HalamanAwamPanel() {
                 value={kandungan}
                 onChange={(e) => setKandungan(e.target.value)}
                 rows={10}
-                className="bg-stone-50 border border-stone-300 rounded px-3 py-2 text-xs font-sans resize-y"
+                className={`${INPUT_BORANG} resize-y`}
                 placeholder="Taip kandungan halaman di sini... (sokongan ringkas: # / ## tajuk, --- garis pemisah, **tebal**)"
               />
             )}
           </div>
 
-          {ralat && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>}
+          {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
           <div className="flex items-center justify-end gap-3">
-            {mesej && <span className="text-emerald-700 text-[11px] font-semibold">{mesej}</span>}
-            <button
-              onClick={simpan}
-              disabled={menyimpan || !tajuk.trim()}
-              className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
-            >
+            {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
+            <Button variant="primary" size="md" onClick={simpan} disabled={menyimpan || !tajuk.trim()}>
               {menyimpan ? 'Menyimpan...' : 'Simpan Halaman'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
-    </div>
+    </PanelCard>
   );
 }
 
@@ -1245,11 +1231,9 @@ function LabelSistemPanel() {
   const adaSuntingan = Object.keys(suntingan).length > 0;
 
   return (
-    <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-6 text-xs">
+    <PanelCard className="space-y-6 text-xs">
       <div>
-        <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-          Kamus Label Sistem
-        </h3>
+        <SectionLabel>09 — Kamus Label Sistem</SectionLabel>
         <p className="text-stone-500 text-xs mt-1">
           Perkataan yang dipaparkan kepada editor (label Mod Kandungan, Status, dan mesej ringkas
           simpan/terbit). Menyunting di sini TIDAK mengubah apa yang disimpan dalam pangkalan
@@ -1258,7 +1242,7 @@ function LabelSistemPanel() {
         </p>
       </div>
 
-      {ralat && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>}
+      {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
       {memuat ? (
         <p className="text-stone-400">Memuatkan...</p>
@@ -1266,7 +1250,7 @@ function LabelSistemPanel() {
         <div className="space-y-6">
           {Object.entries(kumpulan).map(([kategori, senarai]) => (
             <div key={kategori} className="space-y-2">
-              <h4 className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500 border-b border-stone-200 pb-1">
+              <h4 className={`${LABEL_BORANG} border-b border-stone-200 pb-1`}>
                 {kategori}
               </h4>
               <div className="space-y-2">
@@ -1279,17 +1263,19 @@ function LabelSistemPanel() {
                         type="text"
                         value={semasa}
                         onChange={(e) => setSuntingan((prev) => ({ ...prev, [item.kunci]: e.target.value }))}
-                        className="flex-1 bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs font-sans"
+                        className={`${INPUT_BORANG} flex-1`}
                       />
                       {dipinda && (
-                        <button
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="shrink-0"
                           onClick={() => setSemula(item.kunci, item.lalai, kategori)}
                           disabled={menyimpan}
-                          className="shrink-0 text-stone-500 hover:text-[var(--color-Adjung-maroon)] font-semibold text-[11px] px-2 py-1.5 rounded border border-stone-300 hover:border-[var(--color-Adjung-maroon)] transition-colors disabled:opacity-50 cursor-pointer"
                           title={`Nilai asal: ${item.lalai}`}
                         >
                           Set semula
-                        </button>
+                        </Button>
                       )}
                     </div>
                   );
@@ -1299,18 +1285,14 @@ function LabelSistemPanel() {
           ))}
 
           <div className="flex items-center justify-end gap-3 border-t border-stone-200 pt-4">
-            {mesej && <span className="text-emerald-700 text-[11px] font-semibold">{mesej}</span>}
-            <button
-              onClick={simpanSemua}
-              disabled={menyimpan || !adaSuntingan}
-              className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
-            >
+            {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
+            <Button variant="primary" size="md" onClick={simpanSemua} disabled={menyimpan || !adaSuntingan}>
               {menyimpan ? 'Menyimpan...' : 'Simpan Label'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
-    </div>
+    </PanelCard>
   );
 }
 

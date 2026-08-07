@@ -3,6 +3,12 @@ import { X } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
 import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { SectionLabel } from '../common/SectionLabel';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // Konsol Editorial (2026-08-01, spesifikasi pemilik projek) — peraturan BAHASA dan penjanaan AI,
 // berasingan daripada Tetapan (tetapan sistem) dan Slot (geometri kad).
@@ -226,8 +232,17 @@ export const EditorialConsole: React.FC = () => {
     if (subTab === 'ai') muatAi();
   }, [subTab, muatIstilah, muatGlosari, muatEjaan, muatAi]);
 
+  // Struktur modul (Pelan 01 Fasa D1): SATU kepala modul di atas, kemudian seksyen bernombor
+  // berterusan 01–06 mengikut aliran tab sedia ada. Dahulu enam <h3> setara membuatkan setiap
+  // sub-tab kelihatan seperti modul berasingan, sedangkan kesemuanya satu modul Editorial.
+  // Susunan tab dan teksnya TIDAK diubah — susunan navigasi ialah keputusan pemilik projek.
   return (
     <div className="space-y-4 font-sans">
+      <ModulTajuk
+        tajuk="Editorial"
+        huraian="Peraturan bahasa dan templat penjanaan AI: istilah autocondong, glosari rujukan, penyelarasan ejaan, dan templat prompt."
+      />
+
       <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs">
         {SUB_TABS.map((t) => (
           <button
@@ -236,10 +251,9 @@ export const EditorialConsole: React.FC = () => {
             onClick={() => setSubTab(t.id)}
             className={`px-4 py-2 font-semibold tracking-wide transition-all border-b-2 cursor-pointer ${
               subTab === t.id
-                ? 'text-[var(--color-Adjung-maroon)] bg-stone-50'
+                ? 'text-Adjung-maroon border-Adjung-maroon bg-stone-50'
                 : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
-            style={subTab === t.id ? { borderColor: 'var(--color-Adjung-maroon)' } : undefined}
           >
             {t.label}
           </button>
@@ -248,9 +262,9 @@ export const EditorialConsole: React.FC = () => {
 
       {/* 1. AUTOCONDONG */}
       {subTab === 'autocondong' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+        <PanelCard className="space-y-4 text-xs">
           <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Istilah Autocondong</h3>
+            <SectionLabel>01 — Istilah Autocondong</SectionLabel>
             <p className="text-stone-500 text-xs">
               Perkataan di sini dicondongkan secara automatik semasa paparan. Ia mengubah PAPARAN sahaja —
               kandungan editorial yang tersimpan tidak pernah disentuh.
@@ -264,7 +278,7 @@ export const EditorialConsole: React.FC = () => {
               onChange={(e) => setIstilahBaharu(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); tambahIstilah(); } }}
               placeholder="Tambah istilah (contoh: machine learning)…"
-              className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs flex-1"
+              className={`${INPUT_BORANG} flex-1`}
             />
             <Button
               type="button"
@@ -277,13 +291,13 @@ export const EditorialConsole: React.FC = () => {
             </Button>
           </div>
 
-          {ralatIstilah && (
-            <p className="text-[var(--color-error)] bg-[color-mix(in_srgb,var(--color-error)_8%,white)] border border-[color-mix(in_srgb,var(--color-error)_35%,white)] rounded px-3 py-2 text-[11px]">{ralatIstilah}</p>
-          )}
+          {ralatIstilah && <MesejStatus tone="error">{ralatIstilah}</MesejStatus>}
 
           <div className="flex flex-wrap gap-2">
             {memuatIstilah && <span className="text-stone-400">Memuatkan…</span>}
-            {!memuatIstilah && istilah.length === 0 && <span className="text-stone-400 italic">Senarai masih kosong.</span>}
+            {!memuatIstilah && istilah.length === 0 && (
+              <KeadaanKosong className="w-full">Senarai masih kosong.</KeadaanKosong>
+            )}
             {istilah.map((t) => (
               <span key={t.id} className="bg-stone-100 border border-stone-200 text-stone-800 px-2.5 py-1 rounded flex items-center gap-1.5">
                 <span className="italic font-semibold">{t.term}</span>
@@ -306,15 +320,16 @@ export const EditorialConsole: React.FC = () => {
             Untuk skop, bahasa, keutamaan, dan kekecualian setiap peraturan, guna panel Peraturan Tipografi penuh
             di Tetapan Slot (frontpage) — senarai di sini dan di sana ialah data yang sama.
           </p>
-        </div>
+        </PanelCard>
       )}
 
       {/* 2. GLOSARI */}
       {subTab === 'glosari' && (
         <div className="space-y-4">
-          <form onSubmit={tambahGlosari} className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+          <PanelCard>
+          <form onSubmit={tambahGlosari} className="space-y-4 text-xs">
             <div>
-              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Glosari</h3>
+              <SectionLabel>02 — Glosari</SectionLabel>
               <p className="text-stone-500 text-xs">
                 Senarai rujukan istilah dan maksud/nota penggunaannya untuk editor menulis manual. Ia rujukan
                 pasif sahaja — sistem tidak sesekali menulis-ganti kandungan sedia ada berdasarkan senarai ni.
@@ -322,27 +337,25 @@ export const EditorialConsole: React.FC = () => {
               </p>
             </div>
 
-            <label className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Istilah</span>
+            <label className="block">
+              <span className={LABEL_BORANG}>Istilah</span>
               <input
                 type="text" value={gIstilah} onChange={(e) => setGIstilah(e.target.value)}
                 placeholder="contoh: Bidang"
-                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+                className={INPUT_BORANG}
               />
             </label>
 
-            <label className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Maksud / nota penggunaan (pilihan)</span>
+            <label className="block">
+              <span className={LABEL_BORANG}>Maksud / nota penggunaan (pilihan)</span>
               <textarea
                 value={gMaksud} onChange={(e) => setGMaksud(e.target.value)} rows={2}
                 placeholder="Penjelasan ringkas istilah ni, atau bila ia digunakan…"
-                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs resize-y"
+                className={`${INPUT_BORANG} resize-y`}
               />
             </label>
 
-            {ralatGlosari && (
-              <p className="text-[var(--color-error)] bg-[color-mix(in_srgb,var(--color-error)_8%,white)] border border-[color-mix(in_srgb,var(--color-error)_35%,white)] rounded px-3 py-2 text-[11px]">{ralatGlosari}</p>
-            )}
+            {ralatGlosari && <MesejStatus tone="error">{ralatGlosari}</MesejStatus>}
 
             <div className="flex justify-end">
               <Button type="submit" variant="primary" size="md" disabled={!gIstilah.trim()}>
@@ -350,28 +363,27 @@ export const EditorialConsole: React.FC = () => {
               </Button>
             </div>
           </form>
+          </PanelCard>
 
-          <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-3 text-xs">
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-              Senarai Glosari ({glosari.length})
-            </h3>
+          <PanelCard className="space-y-3 text-xs">
+            <SectionLabel>03 — Senarai Glosari ({glosari.length})</SectionLabel>
             {memuatGlosari ? (
               <p className="text-stone-400 py-6 text-center">Memuatkan glosari…</p>
             ) : glosari.length === 0 ? (
-              <p className="text-stone-400 py-10 text-center">Glosari masih kosong.</p>
+              <KeadaanKosong>Glosari masih kosong.</KeadaanKosong>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-stone-100 border-b border-stone-200 font-sans text-[10px] uppercase text-stone-600 font-semibold">
+                    <tr className={KEPALA_JADUAL}>
                       <th className="p-2.5">Istilah</th>
                       <th className="p-2.5">Maksud</th>
                       <th className="p-2.5"><span className="sr-only">Tindakan</span></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-100">
+                  <tbody>
                     {glosari.map((g) => (
-                      <tr key={g.id} className="hover:bg-stone-50">
+                      <tr key={g.id} className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                         <td className="p-2.5 font-semibold text-stone-800">{g.istilah}</td>
                         <td className="p-2.5 text-stone-600">{g.maksud || <span className="text-stone-300">—</span>}</td>
                         <td className="p-2.5 text-right">
@@ -390,16 +402,17 @@ export const EditorialConsole: React.FC = () => {
                 </table>
               </div>
             )}
-          </div>
+          </PanelCard>
         </div>
       )}
 
       {/* 3. PENYELARASAN EJAAN */}
       {subTab === 'ejaan' && (
         <div className="space-y-4">
-          <form onSubmit={tambahEjaan} className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+          <PanelCard>
+          <form onSubmit={tambahEjaan} className="space-y-4 text-xs">
             <div>
-              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Penyelarasan Ejaan</h3>
+              <SectionLabel>04 — Penyelarasan Ejaan</SectionLabel>
               <p className="text-stone-500 text-xs">
                 Senarai rujukan bentuk ejaan yang betul berbanding bentuk yang kerap tersilap tulis/dielakkan.
                 Ia rujukan pasif untuk editor — sistem tidak sesekali menulis-ganti kandungan sedia ada
@@ -408,36 +421,34 @@ export const EditorialConsole: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <label className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Bentuk betul</span>
+              <label className="block">
+                <span className={LABEL_BORANG}>Bentuk betul</span>
                 <input
                   type="text" value={eBetul} onChange={(e) => setEBetul(e.target.value)}
                   placeholder="contoh: kerana"
-                  className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+                  className={INPUT_BORANG}
                 />
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Elakkan (pilihan)</span>
+              <label className="block">
+                <span className={LABEL_BORANG}>Elakkan (pilihan)</span>
                 <input
                   type="text" value={eElakkan} onChange={(e) => setEElakkan(e.target.value)}
                   placeholder="contoh: kerena, krn"
-                  className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+                  className={INPUT_BORANG}
                 />
               </label>
             </div>
 
-            <label className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Catatan (pilihan)</span>
+            <label className="block">
+              <span className={LABEL_BORANG}>Catatan (pilihan)</span>
               <textarea
                 value={eCatatan} onChange={(e) => setECatatan(e.target.value)} rows={2}
                 placeholder="Nota ringkas, contoh sumber kesilapan biasa…"
-                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs resize-y"
+                className={`${INPUT_BORANG} resize-y`}
               />
             </label>
 
-            {ralatEjaan && (
-              <p className="text-[var(--color-error)] bg-[color-mix(in_srgb,var(--color-error)_8%,white)] border border-[color-mix(in_srgb,var(--color-error)_35%,white)] rounded px-3 py-2 text-[11px]">{ralatEjaan}</p>
-            )}
+            {ralatEjaan && <MesejStatus tone="error">{ralatEjaan}</MesejStatus>}
 
             <div className="flex justify-end">
               <Button type="submit" variant="primary" size="md" disabled={!eBetul.trim()}>
@@ -445,29 +456,28 @@ export const EditorialConsole: React.FC = () => {
               </Button>
             </div>
           </form>
+          </PanelCard>
 
-          <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-3 text-xs">
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-              Senarai Ejaan ({ejaan.length})
-            </h3>
+          <PanelCard className="space-y-3 text-xs">
+            <SectionLabel>05 — Senarai Ejaan ({ejaan.length})</SectionLabel>
             {memuatEjaan ? (
               <p className="text-stone-400 py-6 text-center">Memuatkan senarai ejaan…</p>
             ) : ejaan.length === 0 ? (
-              <p className="text-stone-400 py-10 text-center">Senarai ejaan masih kosong.</p>
+              <KeadaanKosong>Senarai ejaan masih kosong.</KeadaanKosong>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-stone-100 border-b border-stone-200 font-sans text-[10px] uppercase text-stone-600 font-semibold">
+                    <tr className={KEPALA_JADUAL}>
                       <th className="p-2.5">Bentuk betul</th>
                       <th className="p-2.5">Elakkan</th>
                       <th className="p-2.5">Catatan</th>
                       <th className="p-2.5"><span className="sr-only">Tindakan</span></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-100">
+                  <tbody>
                     {ejaan.map((x) => (
-                      <tr key={x.id} className="hover:bg-stone-50">
+                      <tr key={x.id} className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                         <td className="p-2.5 font-semibold text-stone-800">{x.betul}</td>
                         <td className="p-2.5 text-stone-500">{x.elakkan || <span className="text-stone-300">—</span>}</td>
                         <td className="p-2.5 text-stone-600">{x.catatan || <span className="text-stone-300">—</span>}</td>
@@ -487,15 +497,15 @@ export const EditorialConsole: React.FC = () => {
                 </table>
               </div>
             )}
-          </div>
+          </PanelCard>
         </div>
       )}
 
       {/* 3. TEMPLAT AI */}
       {subTab === 'ai' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+        <PanelCard className="space-y-4 text-xs">
           <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Templat Penjanaan AI</h3>
+            <SectionLabel>06 — Templat Penjanaan AI</SectionLabel>
             <p className="text-stone-500 text-xs">
               Peraturan am yang dimasukkan ke dalam setiap prompt AI. Templat kandungan di bawah ialah yang
               SAMA dipapar sebagai "Peraturan Am" dalam Urus Slot — menyuntingnya di sini mengubah prompt
@@ -507,8 +517,8 @@ export const EditorialConsole: React.FC = () => {
             <p className="text-stone-400 py-6 text-center">Memuatkan templat…</p>
           ) : (
             <>
-              <label className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
+              <label className="block">
+                <span className={LABEL_BORANG}>
                   Templat penjanaan kandungan
                 </span>
                 <textarea
@@ -516,12 +526,12 @@ export const EditorialConsole: React.FC = () => {
                   onChange={(e) => setMasterPrompt(e.target.value)}
                   rows={4}
                   placeholder="Contoh: Gunakan bahasa Melayu baku, elakkan jargon, nada formal dan tidak emosional…"
-                  className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs resize-y"
+                  className={`${INPUT_BORANG} resize-y`}
                 />
               </label>
 
-              <label className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
+              <label className="block">
+                <span className={LABEL_BORANG}>
                   Templat semakan (ejaan, tatabahasa, gaya bahasa, format)
                 </span>
                 <textarea
@@ -529,17 +539,15 @@ export const EditorialConsole: React.FC = () => {
                   onChange={(e) => setReviewPrompt(e.target.value)}
                   rows={4}
                   placeholder="Contoh: Semak ejaan, tatabahasa, gaya bahasa akademik dan format perenggan teks berikut…"
-                  className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs resize-y"
+                  className={`${INPUT_BORANG} resize-y`}
                 />
-                <span className="text-stone-400 text-[10px]">
+                <span className="block mt-1 text-stone-400 text-[10px]">
                   Templat semakan disimpan tetapi belum disambungkan ke mana-mana butang semakan — belum ada
                   alur kerja semakan AI dalam Editorium setakat ini.
                 </span>
               </label>
 
-              {ralatAi && (
-                <p className="text-[var(--color-error)] bg-[color-mix(in_srgb,var(--color-error)_8%,white)] border border-[color-mix(in_srgb,var(--color-error)_35%,white)] rounded px-3 py-2 text-[11px]">{ralatAi}</p>
-              )}
+              {ralatAi && <MesejStatus tone="error">{ralatAi}</MesejStatus>}
 
               <div className="flex items-center justify-end gap-3">
                 {mesejAi && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesejAi}</span>}
@@ -556,7 +564,7 @@ export const EditorialConsole: React.FC = () => {
             beralih) ditetapkan per-slot di borang Urus Slot (frontpage), bukan di sini atau di Tetapan Am —
             ia sengaja tiada di sini supaya satu nilai tak ada dua tempat yang boleh bercanggah.
           </p>
-        </div>
+        </PanelCard>
       )}
     </div>
   );

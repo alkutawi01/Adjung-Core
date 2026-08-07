@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { labelTindakan } from './LogAuditConsole';
 import { SlotMatrixCell } from '../common/SlotMatrixCell';
+import { StatusBadge } from '../common/StatusBadge';
 
 // Paparan Utama (2026-08-02, Fasa 5) — destinasi lalai selepas log masuk.
 //
@@ -172,9 +173,9 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
   const tarikhHariIni = new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const WARNA_STATUS: Record<'terisi' | 'menunggu' | 'kosong', string> = {
-    terisi: '#3d6b4c',
-    menunggu: '#b8934a',
-    kosong: '#a8241f',
+    terisi: 'var(--color-success)',
+    menunggu: 'var(--color-warning)',
+    kosong: 'var(--color-error)',
   };
 
   return (
@@ -196,22 +197,22 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
           <div className="font-serif text-4xl md:text-5xl font-normal text-stone-900">{jumlahRekod}</div>
           <div className="text-[11px] text-stone-500 mt-2">Merentas {JUMLAH_SLOT} slot terbitan</div>
         </div>
-        <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 border-b md:border-b-0 border-stone-200 text-center hover:bg-[#802334]/5 transition-colors cursor-pointer">
+        <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 border-b md:border-b-0 border-stone-200 text-center hover:bg-Adjung-maroon/5 transition-colors cursor-pointer">
           <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Aktif</div>
-          <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: '#3d6b4c' }}>{statusKandungan.aktif}</div>
+          <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: 'var(--color-success)' }}>{statusKandungan.aktif}</div>
           <div className="flex items-center gap-2 mt-3 px-2">
             <span className="flex-1 h-[3px] bg-stone-200">
-              <span className="block h-[3px]" style={{ width: `${jumlahRekod > 0 ? (statusKandungan.aktif / jumlahRekod) * 100 : 0}%`, background: '#3d6b4c' }} />
+              <span className="block h-[3px]" style={{ width: `${jumlahRekod > 0 ? (statusKandungan.aktif / jumlahRekod) * 100 : 0}%`, background: 'var(--color-success)' }} />
             </span>
             <span className="font-mono text-[10px] text-stone-500">{jumlahRekod > 0 ? Math.round((statusKandungan.aktif / jumlahRekod) * 100) : 0}%</span>
           </div>
         </button>
-        <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 border-r md:border-r border-stone-200 text-center hover:bg-[#802334]/5 transition-colors cursor-pointer">
+        <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 border-r md:border-r border-stone-200 text-center hover:bg-Adjung-maroon/5 transition-colors cursor-pointer">
           <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Menunggu semakan</div>
-          <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: '#b8934a' }}>{statusKandungan.menunggu}</div>
+          <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: 'var(--color-warning)' }}>{statusKandungan.menunggu}</div>
           <div className="text-[11px] text-stone-500 mt-2">Dalam giliran semakan</div>
         </button>
-        <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 text-center hover:bg-[#802334]/5 transition-colors cursor-pointer">
+        <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 text-center hover:bg-Adjung-maroon/5 transition-colors cursor-pointer">
           <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Arkib</div>
           <div className="font-serif text-4xl md:text-5xl font-normal text-stone-400">{statusKandungan.arkib}</div>
           <div className="text-[11px] text-stone-500 mt-2">Ditarik daripada edaran</div>
@@ -256,7 +257,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
                   <span className="ml-auto font-mono text-[10.5px] text-stone-500">{b.nilai}</span>
                 </div>
                 <span className="block h-1 bg-stone-100">
-                  <span className="block h-1" style={{ width: `${(b.nilai / bidangMaks) * 100}%`, background: '#802334' }} />
+                  <span className="block h-1" style={{ width: `${(b.nilai / bidangMaks) * 100}%`, background: 'var(--color-Adjung-maroon)' }} />
                 </span>
               </div>
             ))
@@ -269,7 +270,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
         <div className="flex items-baseline gap-3 mb-5 flex-wrap">
           <h2 className="font-mono text-[10px] uppercase tracking-widest font-semibold text-stone-400">Matriks slot terbitan</h2>
           {jumlahBermasalah > 0 && (
-            <span className="font-mono text-[10.5px]" style={{ color: '#a8241f' }}>{jumlahBermasalah} / {JUMLAH_SLOT} memerlukan perhatian</span>
+            <span className="font-mono text-[10.5px]" style={{ color: 'var(--color-error)' }}>{jumlahBermasalah} / {JUMLAH_SLOT} memerlukan perhatian</span>
           )}
           <button onClick={() => onTukarTab('kandungan')} className="ml-auto text-[11px] font-semibold text-[var(--color-Adjung-maroon)] hover:text-[var(--color-Adjung-maroon-dark)] cursor-pointer">
             Buka dalam Indeks →
@@ -318,19 +319,22 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
           <div className="flex items-baseline gap-3 py-3 border-b border-stone-100">
             <span className="text-xs text-stone-700 flex-1">Suapan RSS</span>
             {statusRss ? (
-              <span className="font-mono text-[10.5px]" style={{ color: statusRss.ralat ? '#a8241f' : '#3d6b4c' }}>
-                {statusRss.ralat ? 'RALAT' : 'SIHAT'} · {statusRss.masa}
+              // Dwi-kod (Pelan 01): lencana berikon + berlabel, warna cuma penguat — bukan
+              // warna teks semata-mata seperti dahulu.
+              <span className="flex items-baseline gap-2">
+                <StatusBadge tone={statusRss.ralat ? 'error' : 'success'} label={statusRss.ralat ? 'RALAT' : 'SIHAT'} />
+                <span className="font-mono text-[10.5px] text-stone-400">{statusRss.masa}</span>
               </span>
             ) : (
-              <span className="font-mono text-[10.5px] text-stone-400">TIADA REKOD</span>
+              <StatusBadge tone="neutral" label="Tiada Rekod" />
             )}
           </div>
           <div className="flex items-baseline gap-3 py-3 border-b border-stone-100">
             <span className="text-xs text-stone-700 flex-1">API cuaca</span>
             {statusCuaca ? (
-              <span className="font-mono text-[10.5px]" style={{ color: statusCuaca.sihat ? '#3d6b4c' : '#a8241f' }}>{statusCuaca.status}</span>
+              <StatusBadge tone={statusCuaca.sihat ? 'success' : 'error'} label={statusCuaca.status} />
             ) : (
-              <span className="font-mono text-[10.5px] text-stone-400">BELUM DISEMAK</span>
+              <StatusBadge tone="neutral" label="Belum Disemak" />
             )}
           </div>
           {/* Pautan sumber mati (Fasa 8b, 2026-08-05) — semakan latar setiap 12 jam (bukan setiap
@@ -338,13 +342,15 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
           <div className="flex items-baseline gap-3 py-3 border-b border-stone-100">
             <span className="text-xs text-stone-700 flex-1">Pautan sumber</span>
             {statusPautan && statusPautan.terakhirSemak ? (
-              <span className="font-mono text-[10.5px]" style={{ color: statusPautan.jumlahMati === 0 ? '#3d6b4c' : '#a8241f' }}>
-                {statusPautan.jumlahMati === 0
-                  ? `SIHAT · ${statusPautan.jumlahDiperiksa} disemak`
-                  : `${statusPautan.jumlahMati} MATI · ${statusPautan.jumlahDiperiksa} disemak`}
+              <span className="flex items-baseline gap-2">
+                <StatusBadge
+                  tone={statusPautan.jumlahMati === 0 ? 'success' : 'error'}
+                  label={statusPautan.jumlahMati === 0 ? 'SIHAT' : `${statusPautan.jumlahMati} MATI`}
+                />
+                <span className="font-mono text-[10.5px] text-stone-400">{statusPautan.jumlahDiperiksa} disemak</span>
               </span>
             ) : (
-              <span className="font-mono text-[10.5px] text-stone-400">BELUM DISEMAK</span>
+              <StatusBadge tone="neutral" label="Belum Disemak" />
             )}
           </div>
           {statusPautan && statusPautan.jumlahMati > 0 && (
