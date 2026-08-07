@@ -111,7 +111,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   // (bukan buka borang lama itu) sebab borang tu turut papar medan sunting KANDUNGAN, yang
   // sepatutnya cuma lalui SlotManagerModal Editorium sejak pemisahan 2026-07-29.
   const [slotTetapan, setSlotTetapan] = useState<number | null>(null);
-  const [drafTetapan, setDrafTetapan] = useState<{ manualDesk: string; bgColor: string; borderColor: string; carouselInterval: number; carouselDelay: number } | null>(null);
+  const [drafTetapan, setDrafTetapan] = useState<{ manualDesk: string; bgColor: string; borderColor: string; carouselInterval: number; carouselDelay: number; jenisAnimasiOverride: string; arahOverride: string } | null>(null);
   const [menyimpanTetapan, setMenyimpanTetapan] = useState(false);
   const [ralatTetapan, setRalatTetapan] = useState<string | null>(null);
 
@@ -132,6 +132,8 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
         borderColor: baris.borderColor || '',
         carouselInterval: baris.carouselInterval || 10,
         carouselDelay: baris.carouselDelay || 0,
+        jenisAnimasiOverride: baris.jenisAnimasiOverride || '',
+        arahOverride: baris.arahOverride || '',
       });
       setSlotTetapan(slotIndex);
     } catch (e: any) {
@@ -605,6 +607,47 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                 />
               </div>
             </div>
+
+            {/* Animasi transisi PER-SLOT (2026-08-07, permintaan Izzat eksplisit — "semua ni
+                [jenis + arah animasi per-slot] boleh ditetapkan di modul Slot-Senarai Slot",
+                BUKAN Tetapan Am Slot — Tetapan Am kekal hanya utk togol aktif/nyahaktif +
+                kelajuan, lihat TetapanAmSlotConsole.tsx). '' = guna tetapan LALAI (Tetapan Am
+                Slot); pilihan lain override slot NI SAHAJA. */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Jenis Animasi</span>
+                <select
+                  value={drafTetapan.jenisAnimasiOverride}
+                  onChange={e => setDrafTetapan(p => p ? { ...p, jenisAnimasiOverride: e.target.value } : p)}
+                  className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+                >
+                  <option value="">Guna tetapan lalai</option>
+                  <option value="pudar">Pudar (1 saat)</option>
+                  <option value="colophon">Colophon (panel maroon menegak)</option>
+                  <option value="sapuan_lajur">Sapuan Lajur (panel maroon sapu)</option>
+                  <option value="gerak_susun">Gerak Susun (kandungan+logo bergerak)</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Arah Animasi</span>
+                <select
+                  value={drafTetapan.arahOverride}
+                  onChange={e => setDrafTetapan(p => p ? { ...p, arahOverride: e.target.value } : p)}
+                  className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+                >
+                  <option value="">Guna tetapan lalai</option>
+                  <option value="kanan">Kanan</option>
+                  <option value="kiri">Kiri</option>
+                  <option value="atas">Atas</option>
+                  <option value="bawah">Bawah</option>
+                </select>
+              </div>
+            </div>
+            <p className="text-stone-400 text-[10px] leading-relaxed -mt-1">
+              Gerak Susun cuma sokong arah Kanan/Kiri — Atas/Bawah jatuh balik ke Kanan utknya.
+              Animasi cuma berlaku bila slot ni ada &gt;1 kandungan (carousel) DAN togol animasi
+              di Tetapan Am aktif.
+            </p>
 
             {ralatTetapan && <p className="text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5 text-[10px]">{ralatTetapan}</p>}
 

@@ -437,7 +437,14 @@ const initializeSchema = () => {
                 hadNotaEditor INTEGER DEFAULT 0,
                 updatedAt TEXT
               )
-            `, () => {});
+            `, () => {
+              // Togol aktif/nyahaktif + kelajuan animasi (2026-08-07, permintaan Izzat — Tetapan
+              // Am Slot kekal HANYA utk enable/disable + kelajuan, bukan pilihan jenis/arah
+              // per-slot yang kini di Senarai Slot). ALTER (bukan cuma CREATE TABLE) sebab jadual
+              // sedia ada di adjung.db production tak dapat lajur baharu drpd CREATE IF NOT EXISTS.
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN animasiAktif INTEGER DEFAULT 1', () => {});
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN kelajuanAnimasi REAL DEFAULT 1', () => {});
+            });
 
             // Penugasan editor kepada slot (2026-07-30). Banyak-ke-banyak: satu slot boleh
             // beberapa editor, satu editor boleh beberapa slot. Editor bagi sesuatu Bidang DIKIRA
@@ -1795,6 +1802,13 @@ const initEditorialOS = (dbConn) => {
         // slot_am_settings), kanan/kiri/atas/bawah = override slot ni sahaja. Lihat
         // core/routes/slotsConfigRoutes.js + arahUntukSlot() di FrontpageView.tsx.
         dbConn.run("ALTER TABLE slots_config ADD COLUMN arahOverride TEXT DEFAULT ''", () => {});
+        // Jenis animasi transisi PER-SLOT (2026-08-07, permintaan Izzat: "benarkan ketua editor
+        // tetapkan animasi... berlainan utk setiap slot") — '' = guna jenisAnimasi tetapan am
+        // global (slot_am_settings), pudar/colophon/sapuan_lajur/gerak_susun = override slot ni
+        // sahaja. Lihat core/routes/slotsConfigRoutes.js + jenisAnimasiUntukSlot() di
+        // FrontpageView.tsx. Ditetapkan di Senarai Slot → Tetapan Kad (BUKAN Tetapan Am Slot —
+        // permintaan eksplisit supaya tetapan per-slot tak bercampur dgn tetapan am).
+        dbConn.run("ALTER TABLE slots_config ADD COLUMN jenisAnimasiOverride TEXT DEFAULT ''", () => {});
       });
 
       // 11. pipeline_logs

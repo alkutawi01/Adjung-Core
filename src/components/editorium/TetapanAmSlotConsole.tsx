@@ -13,6 +13,8 @@ interface TetapanAm {
   hadKandunganSlot: number;
   jenisAnimasi: string;
   arahAnimasi: string;
+  animasiAktif: boolean;
+  kelajuanAnimasi: number;
   hadHuraianPanjang: number;
   hadSumber: number;
   hadTopik: number;
@@ -24,6 +26,7 @@ interface TetapanAm {
   jenisAnimasiPilihan?: { nilai: string; label: string }[];
   arahAnimasiPilihan?: { nilai: string; label: string }[];
   nisbahPenajaTransisiPilihan?: { nilai: number; label: string }[];
+  kelajuanAnimasiPilihan?: { nilai: number; label: string }[];
 }
 
 // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL untuk seluruh Focus
@@ -56,7 +59,7 @@ const MEDAN_HAD: { kunci: keyof TetapanAm; label: string; nota: string }[] = [
 function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React.Dispatch<React.SetStateAction<TetapanAm | null>> }) {
   return (
     <div className="border border-stone-200 rounded p-4 space-y-3">
-      <div className="font-semibold text-stone-800">3b. Warna panel &amp; giliran logo</div>
+      <div className="font-semibold text-stone-800">3d. Warna panel &amp; giliran logo</div>
       <p className="text-stone-500 text-[11px] leading-relaxed">
         Panel semasa animasi Colophon/Sapuan Lajur papar logo Adjung sendiri secara lalai (kekal
         walaupun "Pudar" dipilih — cuma tak dipaparkan sehingga jenis lain diaktifkan). Tanda
@@ -89,124 +92,6 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
         "penaja" dalam nisbah papar penaja SETERUSNYA dalam senarai, bukan penaja yang sama
         berulang. Tiada penaja layak = kembali papar logo Adjung sahaja, panel tak pernah kosong.
       </p>
-    </div>
-  );
-}
-
-const PILIHAN_ARAH_SLOT: { nilai: string; label: string }[] = [
-  { nilai: '', label: 'Guna tetapan am' },
-  { nilai: 'kanan', label: 'Kanan' },
-  { nilai: 'kiri', label: 'Kiri' },
-  { nilai: 'atas', label: 'Atas' },
-  { nilai: 'bawah', label: 'Bawah' },
-];
-
-// Arah animasi PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah tertentu utk slot
-// tertentu sahaja?") — senarai BERASINGAN drpd tetapan am di atas (keputusan Izzat: "senarai
-// berasingan... lebih mudah nampak keseluruhan"), simpan ke slots_config.arahOverride PER SLOT
-// (bukan slot_am_settings global). '' = guna tetapan am (arahAnimasi di atas), nilai lain =
-// override slot tu SAHAJA. Baca/tulis berasingan drpd `draf`/`simpan()` di atas — laluan API
-// berbeza (GET/POST /api/system/slots, bukan /api/system/slot-am-settings).
-function ArahPerSlotField() {
-  const [slotArah, setSlotArah] = useState<Record<number, string>>({});
-  const [asal, setAsal] = useState<Record<number, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [menyimpan, setMenyimpan] = useState(false);
-  const [ralat, setRalat] = useState<string | null>(null);
-  const [berjaya, setBerjaya] = useState<string | null>(null);
-
-  const muat = () => {
-    setLoading(true);
-    fetch('/api/system/slots')
-      .then(r => r.json())
-      .then((rows: any[]) => {
-        const m: Record<number, string> = {};
-        (Array.isArray(rows) ? rows : []).forEach(r => {
-          if (r.slotIndex >= 0) m[r.slotIndex] = r.arahOverride || '';
-        });
-        setSlotArah(m);
-        setAsal(m);
-      })
-      .catch(e => setRalat('Gagal memuatkan arah slot: ' + (e.message || '')))
-      .finally(() => setLoading(false));
-  };
-  useEffect(muat, []);
-
-  const berubah = JSON.stringify(slotArah) !== JSON.stringify(asal);
-
-  const simpan = async () => {
-    setMenyimpan(true);
-    setRalat(null);
-    setBerjaya(null);
-    try {
-      // Muat SEMULA baris penuh sejurus sebelum tulis (bukan guna baris dimuat semasa mount) —
-      // elak tulis-ganti perubahan medan LAIN (kandungan, warna dll) yang mungkin disimpan
-      // seseorang lain sementara skrin ni terbuka. Sama corak berjaga-jaga macam
-      // agihLengahBertingkat di atas.
-      const res = await fetch('/api/system/slots');
-      const semua = await res.json();
-      if (!Array.isArray(semua)) throw new Error('Gagal membaca senarai slot.');
-      const dikemas = semua
-        .filter((s: any) => s.slotIndex >= 0)
-        .map((s: any) => ({ ...s, arahOverride: slotArah[s.slotIndex] ?? (s.arahOverride || '') }));
-      const simpanRes = await fetch('/api/system/slots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dikemas),
-      });
-      const data = await simpanRes.json();
-      if (!simpanRes.ok) throw new Error(data.error || 'Gagal menyimpan.');
-      setBerjaya('Arah slot disimpan.');
-      muat();
-    } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan arah slot.');
-    } finally {
-      setMenyimpan(false);
-      setTimeout(() => { setBerjaya(null); setRalat(null); }, 3200);
-    }
-  };
-
-  if (loading) return <div className="border border-stone-200 rounded p-4 text-xs text-stone-400">Memuatkan arah slot…</div>;
-
-  return (
-    <div className="border border-stone-200 rounded p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="font-semibold text-stone-800">3e. Arah animasi per-slot</div>
-        <button
-          type="button"
-          disabled={!berubah || menyimpan}
-          onClick={simpan}
-          className="flex items-center gap-1 px-2.5 py-1 border border-stone-300 rounded text-[11px] font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Save className="w-3 h-3" /> {menyimpan ? 'Menyimpan…' : 'Simpan arah slot'}
-        </button>
-      </div>
-      <p className="text-stone-500 text-[11px] leading-relaxed">
-        Override arah Colophon/Sapuan Lajur untuk slot TERTENTU sahaja — mengatasi arah tetapan am
-        (3a) khusus slot tu. Kebanyakan slot patut kekal "Guna tetapan am"; override cuma untuk
-        kekecualian.
-      </p>
-      {ralat && <p className="text-red-600 text-[11px] flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {ralat}</p>}
-      {berjaya && <p className="text-green-700 text-[11px]">{berjaya}</p>}
-      <div className="max-h-64 overflow-y-auto border border-stone-100 rounded divide-y divide-stone-100">
-        {Array.from({ length: 38 }, (_, i) => i).map(slotIndex => (
-          <div key={slotIndex} className="flex items-center justify-between px-3 py-1.5 text-xs">
-            <span className="text-stone-600">
-              Slot {slotIndex + 1}{' '}
-              <span className="text-stone-400 font-mono text-[10px]">{TIER_LABELS[tierForSlot(slotIndex)] || ''}</span>
-            </span>
-            <select
-              value={slotArah[slotIndex] || ''}
-              onChange={e => setSlotArah(p => ({ ...p, [slotIndex]: e.target.value }))}
-              className="px-2 py-1 border border-stone-300 rounded font-semibold text-[11px] bg-stone-50"
-            >
-              {PILIHAN_ARAH_SLOT.map(a => (
-                <option key={a.nilai} value={a.nilai}>{a.label}</option>
-              ))}
-            </select>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -446,54 +331,96 @@ export const TetapanAmSlotConsole: React.FC = () => {
 
         <DasarTerbitSendiriField />
 
-        {/* 3. Jenis animasi */}
-        <div className="border border-stone-200 rounded p-4 space-y-2">
-          <div className="font-semibold text-stone-800">3. Jenis animasi transisi</div>
-          <select
-            value={draf.jenisAnimasi}
-            onChange={e => setDraf(p => p ? { ...p, jenisAnimasi: e.target.value } : p)}
-            className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
-          >
-            {(draf.jenisAnimasiPilihan || [{ nilai: 'pudar', label: 'Pudar (1 saat)' }]).map(j => (
-              <option key={j.nilai} value={j.nilai}>{j.label}</option>
-            ))}
-          </select>
+        {/* SESEKSYEN ANIMASI (3-3d) — DIRESTRUKTUR 2026-08-07, permintaan Izzat eksplisit: "modul
+            Slot-Tetapan Am hanya untuk mengaktifkan atau menyahaktifkan pilihan animasi serta
+            menetapkan tetapan am seperti kelajuan dan sebagainya... jangan campur adukkan tetapan
+            animasi dengan tetapan lain dalam tetapan am, susah nak faham." Jenis+arah PER-SLOT
+            (dahulu 3a + senarai 38-slot "ArahPerSlotField" di sini) DIPINDAH ke Senarai Slot →
+            Tetapan Kad (SenaraiSlotConsole.tsx) — konteks per-slot lebih sesuai di situ, bukan
+            senarai panjang berasingan di sini. Tinggal di sini: togol aktif/nyahaktif (baharu),
+            jenis/arah LALAI (dipakai slot yang tak override), kelajuan (baharu), warna panel. */}
+        <div className="border-2 border-[#802334]/20 rounded p-4 space-y-4 bg-[#FAF7F0]">
+          <div className="font-bold text-stone-800 text-[13px]">Animasi Transisi Carousel</div>
+
+          {/* 3. Togol aktif/nyahaktif — permintaan eksplisit Izzat, mesti WUJUD berasingan drpd
+              jenis animasi (dahulu "Pudar" jadi proksi tak langsung utk "off", tiada togol tegas). */}
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!draf.animasiAktif}
+              onChange={e => setDraf(p => p ? { ...p, animasiAktif: e.target.checked } : p)}
+              className="w-3.5 h-3.5 mt-0.5 rounded border-stone-300 text-[#802334] cursor-pointer"
+            />
+            <span className="text-stone-700">
+              <strong className="font-semibold">3. Animasi transisi aktif</strong> — bila
+              dinyahtanda, SEMUA slot carousel guna pertukaran pudar ringkas (kelakuan asal),
+              tak kira jenis animasi dipilih di sini atau di Senarai Slot per-slot.
+            </span>
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="font-semibold text-stone-800 text-[11px]">3a. Jenis animasi lalai</span>
+              <select
+                value={draf.jenisAnimasi}
+                onChange={e => setDraf(p => p ? { ...p, jenisAnimasi: e.target.value } : p)}
+                disabled={!draf.animasiAktif}
+                className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50 disabled:opacity-40"
+              >
+                {(draf.jenisAnimasiPilihan || [{ nilai: 'pudar', label: 'Pudar (1 saat)' }]).map(j => (
+                  <option key={j.nilai} value={j.nilai}>{j.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="font-semibold text-stone-800 text-[11px]">3b. Arah animasi lalai</span>
+              <select
+                value={draf.arahAnimasi}
+                onChange={e => setDraf(p => p ? { ...p, arahAnimasi: e.target.value } : p)}
+                disabled={!draf.animasiAktif}
+                className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50 disabled:opacity-40"
+              >
+                {(draf.arahAnimasiPilihan || [{ nilai: 'kanan', label: 'Kanan (masuk dari kanan, keluar ke kiri)' }]).map(a => (
+                  <option key={a.nilai} value={a.nilai}>{a.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           <p className="text-stone-400 text-[10px] leading-relaxed">
-            "Pudar" ialah pertukaran lembut tanpa panel. "Colophon" dan "Sapuan Lajur" papar panel warna
-            penuh (tetapan 3b di bawah) sekejap semasa carousel bertukar kandungan.
+            "Lalai" = dipakai slot yang TAK override jenis/arah sendiri. Override per-slot kini di{' '}
+            <strong className="font-semibold">Senarai Slot → Tetapan Kad</strong> (bukan di sini).
           </p>
+
+          {/* 3c. Kelajuan — baharu, permintaan eksplisit Izzat ("tetapan am seperti kelajuan"). */}
+          <div className="flex flex-col gap-1.5">
+            <span className="font-semibold text-stone-800 text-[11px]">3c. Kelajuan animasi</span>
+            <select
+              value={draf.kelajuanAnimasi}
+              onChange={e => setDraf(p => p ? { ...p, kelajuanAnimasi: Number(e.target.value) } : p)}
+              disabled={!draf.animasiAktif}
+              className="w-fit px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50 disabled:opacity-40"
+            >
+              {(draf.kelajuanAnimasiPilihan || [{ nilai: 1, label: 'Sederhana (lalai)' }]).map(k => (
+                <option key={k.nilai} value={k.nilai}>{k.label}</option>
+              ))}
+            </select>
+            <p className="text-stone-400 text-[10px] leading-relaxed">
+              Terpakai pada Colophon, Sapuan Lajur dan Gerak Susun sama rata.
+            </p>
+          </div>
+
+          {/* 3d. Logo penaja & warna panel — cuma relevan untuk Colophon/Sapuan Lajur/Gerak Susun,
+              tapi kekal ditunjukkan walaupun "Pudar" dipilih supaya Ketua Editor boleh sediakan
+              dahulu sebelum tukar jenis animasi. */}
+          <PanelTransisiField draf={draf} setDraf={setDraf} />
         </div>
 
-        {/* 3a. Arah animasi — cuma terpakai untuk Colophon/Sapuan Lajur (panel "Pudar" tiada arah).
-            Kekal ditunjukkan walaupun "Pudar" dipilih, sama sebab macam 3b di bawah. */}
-        <div className="border border-stone-200 rounded p-4 space-y-2">
-          <div className="font-semibold text-stone-800">3a. Arah animasi (Colophon / Sapuan Lajur)</div>
-          <select
-            value={draf.arahAnimasi}
-            onChange={e => setDraf(p => p ? { ...p, arahAnimasi: e.target.value } : p)}
-            className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
-          >
-            {(draf.arahAnimasiPilihan || [{ nilai: 'kanan', label: 'Kanan (masuk dari kanan, keluar ke kiri)' }]).map(a => (
-              <option key={a.nilai} value={a.nilai}>{a.label}</option>
-            ))}
-          </select>
-          <p className="text-stone-400 text-[10px] leading-relaxed">
-            Colophon guna arah ni terus. Sapuan Lajur guna arah BERTENTANGAN secara automatik supaya
-            dua jenis animasi ni kekal kelihatan berbeza antara satu sama lain.
-          </p>
-        </div>
-
-        {/* 3b. Logo penaja & warna panel — cuma relevan untuk Colophon/Sapuan Lajur, tapi kekal
-            ditunjukkan walaupun "Pudar" dipilih supaya Ketua Editor boleh sediakan dahulu sebelum
-            tukar jenis animasi. */}
-        <PanelTransisiField draf={draf} setDraf={setDraf} />
-
-        <ArahPerSlotField />
-
-        {/* 3c. Saiz fon Focus View — satu tetapan GLOBAL (bukan per-Bidang/tier), permintaan Izzat
-            2026-08-04, supaya semua kandungan dalam Focus View konsisten. */}
+        {/* 4. Saiz fon Focus View — satu tetapan GLOBAL (bukan per-Bidang/tier), permintaan Izzat
+            2026-08-04, supaya semua kandungan dalam Focus View konsisten. Dinomborkan semula
+            drpd "3c" (2026-08-07) — bukan sebahagian seksyen animasi di atas, tak sepatutnya
+            bernombor macam ia bersambung terus drpd 3a/3b/3c animasi. */}
         <div className="border border-stone-200 rounded p-4 space-y-3">
-          <div className="font-semibold text-stone-800">3c. Saiz fon Focus View</div>
+          <div className="font-semibold text-stone-800">4. Saiz fon Focus View</div>
           <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 text-xs text-stone-600">
               Tajuk
@@ -526,10 +453,10 @@ export const TetapanAmSlotConsole: React.FC = () => {
           </p>
         </div>
 
-        {/* 4. Had aksara medan lain */}
+        {/* 5. Had aksara medan lain */}
         <div className="border border-stone-200 rounded p-4 space-y-3">
           <div>
-            <div className="font-semibold text-stone-800">4. Had aksara medan lain</div>
+            <div className="font-semibold text-stone-800">5. Had aksara medan lain</div>
             <p className="text-stone-500 text-[11px] leading-relaxed mt-0.5">
               Tajuk dan huraian ringkas tiada di sini — kedua-duanya dikawal oleh ruang fizikal kad, di sub-menu
               <strong className="font-semibold"> Tier Kad</strong>. Medan di bawah tidak dipapar pada muka kad,

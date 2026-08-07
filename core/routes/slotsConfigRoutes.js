@@ -180,17 +180,19 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         }
 
         const arahOverrideSah = ['', 'kanan', 'kiri', 'atas', 'bawah'].includes(slot.arahOverride) ? slot.arahOverride : '';
+        // Jenis animasi PER-SLOT (2026-08-07) — sanitasi sama corak macam arahOverrideSah di atas.
+        const jenisAnimasiOverrideSah = ['', 'pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'].includes(slot.jenisAnimasiOverride) ? slot.jenisAnimasiOverride : '';
 
         await dbRun(`
           INSERT OR REPLACE INTO slots_config (
             layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
             manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, maxBriefLong, refreshHour, refreshDay, eventExpiryFilter,
-            aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType, genMode, arahOverride, updatedAt
-          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType, genMode, arahOverride, jenisAnimasiOverride, updatedAt
+          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
           slot.manualTitle, persistedManualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
-          slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas', arahOverrideSah, new Date().toISOString()
+          slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas', arahOverrideSah, jenisAnimasiOverrideSah, new Date().toISOString()
         ]);
 
         if (slot.manualDesk && slot.manualDesk.trim() !== '') {

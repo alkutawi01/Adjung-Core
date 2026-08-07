@@ -14,6 +14,14 @@ export const AM_DEFAULTS = {
   hadKandunganSlot: 0,
   jenisAnimasi: 'colophon',
   arahAnimasi: 'kanan',
+  // Togol aktif/nyahaktif + kelajuan (2026-08-07, permintaan Izzat eksplisit — "modul Slot-
+  // Tetapan Am hanya untuk mengaktifkan atau menyahaktifkan pilihan animasi serta menetapkan
+  // tetapan am seperti kelajuan dan sebagainya. jangan campur adukkan tetapan animasi dengan
+  // tetapan lain"). `animasiAktif=0` paksa SEMUA slot guna 'pudar' (kelakuan asal tanpa panel),
+  // tak kira jenis dipilih per-slot/global. `kelajuanAnimasi` pendarab tempoh animasi (1 = lalai,
+  // dipakai pada Colophon/Sapuan Lajur/Gerak Susun — lihat CarouselStableBlock).
+  animasiAktif: 1,
+  kelajuanAnimasi: 1,
   hadHuraianPanjang: 0,
   hadSumber: 0,
   hadTopik: 0,
@@ -48,6 +56,11 @@ export const JENIS_ANIMASI = [
   { nilai: 'pudar', label: 'Pudar (1 saat)' },
   { nilai: 'colophon', label: 'Colophon (panel maroon menegak)' },
   { nilai: 'sapuan_lajur', label: 'Sapuan Lajur (panel maroon sapu)' },
+  // Gerak Susun (2026-08-07, permintaan Izzat eksplisit) — BERBEZA drpd Colophon/Sapuan Lajur:
+  // kandungan SEBENAR bergerak (bukan panel menutup+kandungan bertukar senyap di sebalik panel).
+  // Kandungan lama bergerak keluar, diekori logo Adjung/penaja, diekori kandungan baharu — satu
+  // regangan bergerak berterusan, arah kanan/kiri sahaja (tiada atas/bawah, ikut spesifikasi).
+  { nilai: 'gerak_susun', label: 'Gerak Susun (kandungan+logo bergerak berturutan)' },
 ];
 
 // Arah panel Colophon/Sapuan Lajur (2026-08-05, permintaan Izzat) — terpakai pada KEDUA-DUA jenis
@@ -70,6 +83,15 @@ export const NISBAH_PENAJA_TRANSISI = [
   { nilai: 3, label: '1 Adjung : 3 penaja' },
 ];
 
+// Kelajuan animasi (2026-08-07) — pendarab tempoh, tangga terhad sama sebab macam TITLE_SCALE_SAH
+// (elak nilai pelik yang buat animasi terlalu pantas/lambat tak sengaja).
+export const KELAJUAN_ANIMASI = [
+  { nilai: 0.5, label: 'Pantas (0.5×)' },
+  { nilai: 1, label: 'Sederhana (lalai)' },
+  { nilai: 1.5, label: 'Perlahan (1.5×)' },
+  { nilai: 2, label: 'Sangat perlahan (2×)' },
+];
+
 let cache = { ...AM_DEFAULTS };
 
 export const getAmSettings = () => ({ ...cache });
@@ -83,6 +105,8 @@ export const loadAmSettings = async (dbGet) => {
         hadKandunganSlot: Number(row.hadKandunganSlot) || 0,
         jenisAnimasi: row.jenisAnimasi || 'colophon',
         arahAnimasi: row.arahAnimasi || 'kanan',
+        animasiAktif: row.animasiAktif === 0 ? 0 : 1,
+        kelajuanAnimasi: KELAJUAN_ANIMASI.some(k => k.nilai === Number(row.kelajuanAnimasi)) ? Number(row.kelajuanAnimasi) : 1,
         hadHuraianPanjang: Number(row.hadHuraianPanjang) || 0,
         hadSumber: Number(row.hadSumber) || 0,
         hadTopik: Number(row.hadTopik) || 0,
@@ -110,7 +134,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
   router.get('/slot-am-settings', async (req, res) => {
     try {
       await loadAmSettings(dbGet);
-      res.json({ ...getAmSettings(), jenisAnimasiPilihan: JENIS_ANIMASI, arahAnimasiPilihan: ARAH_ANIMASI, nisbahPenajaTransisiPilihan: NISBAH_PENAJA_TRANSISI });
+      res.json({ ...getAmSettings(), jenisAnimasiPilihan: JENIS_ANIMASI, arahAnimasiPilihan: ARAH_ANIMASI, nisbahPenajaTransisiPilihan: NISBAH_PENAJA_TRANSISI, kelajuanAnimasiPilihan: KELAJUAN_ANIMASI });
     } catch (err) {
       console.error('GET slot-am-settings error:', err);
       res.status(500).json({ error: 'Gagal membaca Tetapan Am Slot. ' + (err.message || '') });
@@ -141,6 +165,8 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         hadKandunganSlot: nombor(b.hadKandunganSlot, 'Had bilangan kandungan'),
         jenisAnimasi: JENIS_ANIMASI.some(j => j.nilai === b.jenisAnimasi) ? b.jenisAnimasi : 'colophon',
         arahAnimasi: ARAH_ANIMASI.some(a => a.nilai === b.arahAnimasi) ? b.arahAnimasi : 'kanan',
+        animasiAktif: b.animasiAktif ? 1 : 0,
+        kelajuanAnimasi: KELAJUAN_ANIMASI.some(k => k.nilai === Number(b.kelajuanAnimasi)) ? Number(b.kelajuanAnimasi) : 1,
         hadHuraianPanjang: nombor(b.hadHuraianPanjang, 'Had huraian panjang'),
         hadSumber: nombor(b.hadSumber, 'Had sumber'),
         hadTopik: nombor(b.hadTopik, 'Had topik'),
@@ -154,15 +180,17 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
 
       await dbRun(`
         INSERT INTO slot_am_settings (
-          id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi,
+          id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi, animasiAktif, kelajuanAnimasi,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, focusViewTitleScale, focusViewBodySize, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
           jenisAnimasi = excluded.jenisAnimasi,
           arahAnimasi = excluded.arahAnimasi,
+          animasiAktif = excluded.animasiAktif,
+          kelajuanAnimasi = excluded.kelajuanAnimasi,
           hadHuraianPanjang = excluded.hadHuraianPanjang,
           hadSumber = excluded.hadSumber,
           hadTopik = excluded.hadTopik,
@@ -175,6 +203,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           updatedAt = excluded.updatedAt
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
+        baharu.animasiAktif, baharu.kelajuanAnimasi,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
         baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi,
         baharu.focusViewTitleScale, baharu.focusViewBodySize,
