@@ -51,6 +51,10 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const [memuat, setMemuat] = useState(true);
   const [ralat, setRalat] = useState('');
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  // Backdrop-click guard untuk dua modal di bawah (lihat LoginModal.tsx, pepijat Izzat
+  // 2026-08-07) — kekal false selagi mousedown tak bermula terus pada backdrop.
+  const mousedownPadaBackdropStaff = React.useRef(false);
+  const mousedownPadaBackdropTamat = React.useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [tambahTerbuka, setTambahTerbuka] = useState(false);
   const [mesejBerjaya, setMesejBerjaya] = useState('');
@@ -256,7 +260,14 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       </div>
 
       {selectedStaff && (
-        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setSelectedStaff(null)}>
+        // Tutup cuma bila mousedown DAN click kedua-duanya pada backdrop (lihat LoginModal.tsx,
+        // pepijat Izzat 2026-08-07: drag-select teks dalam modal + lepas tetikus di luar modal
+        // tak patut tutup modal).
+        <div
+          className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onMouseDown={(e) => { mousedownPadaBackdropStaff.current = e.target === e.currentTarget; }}
+          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropStaff.current) setSelectedStaff(null); }}
+        >
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-start border-b border-stone-200 pb-4">
               <div>
@@ -346,7 +357,12 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       )}
 
       {konfirmasiTamat && (
-        <div className="fixed inset-0 z-[70] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => !memproses && setKonfirmasiTamat(null)}>
+        // Sama corak backdrop-guard — lihat komen di modal selectedStaff atas.
+        <div
+          className="fixed inset-0 z-[70] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onMouseDown={(e) => { mousedownPadaBackdropTamat.current = e.target === e.currentTarget; }}
+          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropTamat.current && !memproses) setKonfirmasiTamat(null); }}
+        >
           <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs font-sans">
             <h3 className="font-sans text-xs font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wider border-b border-stone-200 pb-2">
               Tamatkan {konfirmasiTamat.staff.penName || konfirmasiTamat.staff.username}?

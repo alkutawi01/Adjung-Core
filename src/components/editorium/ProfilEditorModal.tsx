@@ -161,7 +161,10 @@ function BorangPengesahan({
   );
 }
 
+// Backdrop-click guard (lihat LoginModal.tsx, pepijat Izzat 2026-08-07: drag-select teks dalam
+// medan kata laluan/emel lalu lepas tetikus di luar modal tak patut tutup modal).
 export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, onTutup, onKemasKini }) => {
+  const mousedownPadaBackdrop = React.useRef(false);
   const [penName, setPenName] = useState(profil.penName || '');
   const [username, setUsername] = useState(profil.username || '');
   const [email, setEmail] = useState(profil.email || '');
@@ -195,7 +198,11 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
   };
 
   return (
-    <div className="fixed inset-0 z-[70] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={onTutup}>
+    <div
+      className="fixed inset-0 z-[70] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
+    >
       <div
         onClick={(e) => e.stopPropagation()}
         className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 text-xs font-sans"

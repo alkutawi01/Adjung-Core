@@ -97,6 +97,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   const [menungguPerSlot, setMenungguPerSlot] = useState<Record<number, KandunganRingkas[]>>({});
   // Panel senarai terbuka (klik angka Aktif/Menunggu) — satu pada satu masa.
   const [panelSenarai, setPanelSenarai] = useState<{ slotIndex: number; jenis: 'aktif' | 'menunggu' } | null>(null);
+  // Backdrop-click guard untuk tiga modal di bawah (lihat LoginModal.tsx, pepijat Izzat
+  // 2026-08-07) — kekal false selagi mousedown tak bermula terus pada backdrop.
+  const mousedownPadaBackdropPanel = React.useRef(false);
+  const mousedownPadaBackdropEditor = React.useRef(false);
+  const mousedownPadaBackdropTetapan = React.useRef(false);
 
   // Penyuntingan editor: satu slot pada satu masa, disimpan sebagai senarai penuh (bukan
   // tambah/buang satu-satu) supaya tiada keadaan separuh siap.
@@ -448,7 +453,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
       </div>
 
       {slotDisunting !== null && (
-        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => !menyimpan && setSlotDisunting(null)}>
+        <div
+          className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onMouseDown={(e) => { mousedownPadaBackdropEditor.current = e.target === e.currentTarget; }}
+          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropEditor.current && !menyimpan) setSlotDisunting(null); }}
+        >
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-5 space-y-3 text-xs" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
@@ -514,7 +523,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
       )}
 
       {slotTetapan !== null && drafTetapan && (
-        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => !menyimpanTetapan && setSlotTetapan(null)}>
+        <div
+          className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onMouseDown={(e) => { mousedownPadaBackdropTetapan.current = e.target === e.currentTarget; }}
+          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropTetapan.current && !menyimpanTetapan) setSlotTetapan(null); }}
+        >
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-5 space-y-4 text-xs" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
@@ -676,7 +689,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
           tetapkan Jadual Terbit/Luput (Fasa 8, pilihan — bukan wajib); kandungan tanpa jadual
           papar label jujur "Tiada jadual (manual)", bukan tarikh rekaan. */}
       {panelSenarai && (
-        <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setPanelSenarai(null)}>
+        <div
+          className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onMouseDown={(e) => { mousedownPadaBackdropPanel.current = e.target === e.currentTarget; }}
+          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropPanel.current) setPanelSenarai(null); }}
+        >
           <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full max-h-[80vh] overflow-y-auto p-6 space-y-3 text-xs font-sans">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
               <h3 className="font-sans text-xs font-bold text-[#802334] uppercase tracking-wider">

@@ -94,6 +94,9 @@ const tarikhRingkas = (iso: string) => {
 };
 
 export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi, memuat, onTutup, onKlikNotifikasi }) => {
+  // Backdrop-click guard (lihat LoginModal.tsx, pepijat Izzat 2026-08-07) — kekal false selagi
+  // mousedown tak bermula terus pada backdrop.
+  const mousedownPadaBackdrop = React.useRef(false);
   // Escape menutup laci — ia menutupi kerja yang sedang dibuat, jadi mesti ada jalan keluar pantas
   // yang tak perlu menyasarkan tetikus ke butang X.
   useEffect(() => {
@@ -112,7 +115,11 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
   });
 
   return (
-    <div className="fixed inset-0 z-[60] flex justify-end bg-stone-900/50 backdrop-blur-xs" onClick={onTutup}>
+    <div
+      className="fixed inset-0 z-[60] flex justify-end bg-stone-900/50 backdrop-blur-xs"
+      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
+    >
       <aside
         className="w-full max-w-md h-full bg-[#FDFDFD] border-l border-stone-200 shadow-2xl flex flex-col font-sans"
         onClick={(e) => e.stopPropagation()}

@@ -92,8 +92,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
     }
   };
 
+  // Tutup cuma bila mousedown DAN click kedua-duanya bermula pada backdrop — bukan tutup terus
+  // atas onClick sahaja (2026-08-07, pepijat Izzat: modal tertutup sendiri bila drag-select teks
+  // dalam medan ID/Kata Laluan lalu cursor terkeluar sempadan modal semasa butang tetikus
+  // ditekan; mouseup/click tercetus pada backdrop walaupun drag bermula dari dalam modal).
+  const mousedownPadaBackdrop = React.useRef(false);
+
   return (
-    <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onClose(); }}
+    >
       <div
         className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 font-sans"
         onClick={(e) => e.stopPropagation()}

@@ -98,6 +98,9 @@ interface EditoriumViewProps {
 // (borang Tetapan Slot Bidang, butang "Edit Kandungan") turut boleh baca sesi yang sama.
 export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onRequestLogin, onLogout, onProfilKemasKini }) => {
   const navigate = useNavigate();
+  // Backdrop-click guard modal "Pilih Slot" di bawah (lihat LoginModal.tsx, pepijat Izzat
+  // 2026-08-07) — kekal false selagi mousedown tak bermula terus pada backdrop.
+  const mousedownPadaBackdropSlotPicker = React.useRef(false);
   // Kebenaran berbilang peranan (2026-08-02, Fasa 3) — lihat DEFAULT_RBAC_MATRIX di
   // TetapanConsole.tsx / DEFAULT_ROLE_PERMISSIONS di core/middleware/auth.js untuk padanan
   // penuh. Ini cuma bayang RINGKAS di client untuk sorok/tunjuk nav — kawalan SEBENAR tetap di
@@ -630,7 +633,11 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           borangnya belum sepadan, kerja berasingan akan datang) dan Ticker (Modul Khas, laluan
           sendiri). Render TERUS di sini (bukan Frontpage) — Editorium mandiri sepenuhnya. */}
       {slotEditor.showSlotPicker && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md" onClick={() => slotEditor.setShowSlotPicker(false)}>
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md"
+          onMouseDown={(e) => { mousedownPadaBackdropSlotPicker.current = e.target === e.currentTarget; }}
+          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropSlotPicker.current) slotEditor.setShowSlotPicker(false); }}
+        >
           <div className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex-none px-5 py-4 border-b border-stone-150 flex items-center justify-between">
               <h2 className="font-serif text-lg font-medium text-stone-900">Pilih Slot</h2>
