@@ -4,6 +4,12 @@ import { TIER_LABELS, tierForSlot } from '../../../core/editorial/GeometryConfig
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
 import { BidangIcon } from '../common/BidangIcon';
 import { StatusBadge } from '../common/StatusBadge';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Button } from '../common/Button';
+import { INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // "Draf Saya" (2026-08-01, permintaan pemilik projek) — sebelum ni seorang editor terpaksa membuka
 // slot yang dia kendalikan SATU PER SATU untuk mencari draf sendiri, sebab draf tidak pernah
@@ -116,23 +122,13 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
 
   return (
     <div className="space-y-4 font-sans">
-      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200 space-y-4 text-xs">
-        <div className="flex flex-wrap justify-between items-end gap-4">
-          <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Draf Saya</h3>
-            <p className="text-stone-500 text-xs">
-              Semua draf yang belum diterbitkan, dikumpulkan daripada setiap slot. Klik satu baris untuk menyambung menulis.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={muatDraf}
-            className="px-3 py-1.5 border border-stone-300 rounded text-[11px] font-semibold text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
-          >
-            Muat Semula
-          </button>
-        </div>
+      <ModulTajuk
+        tajuk="Draf Saya"
+        huraian="Semua draf yang belum diterbitkan, dikumpulkan daripada setiap slot. Klik satu baris untuk menyambung menulis."
+        tindakan={<Button variant="secondary" onClick={muatDraf}>Muat Semula</Button>}
+      />
 
+      <PanelCard className="space-y-4 text-xs">
         {/* Metrik ringkas — gambaran keseluruhan sebelum menatal senarai. */}
         {!memuat && draf.length > 0 && (
           <div className="grid grid-cols-3 gap-4 py-3 border-y border-stone-100">
@@ -151,9 +147,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
           </div>
         )}
 
-        {ralat && (
-          <div className="border border-[var(--color-error)] bg-red-50 text-[var(--color-error)] rounded px-3 py-2 text-[11px]">{ralat}</div>
-        )}
+        {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
         {/* Carian + penapis Bidang — hanya berguna bila senarai dah mula panjang, jadi sengaja
             tersembunyi sehingga ada sesuatu untuk ditapis. */}
@@ -164,13 +158,13 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
               value={carian}
               onChange={(e) => setCarian(e.target.value)}
               placeholder="Cari tajuk, huraian, atau topik…"
-              className="flex-1 min-w-[200px] bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+              className={`${INPUT_BORANG} flex-1 min-w-[200px]`}
             />
             {senaraiBidang.length > 2 && (
               <select
                 value={bidangDipilih}
                 onChange={(e) => setBidangDipilih(e.target.value)}
-                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs cursor-pointer"
+                className={`${INPUT_BORANG} w-auto cursor-pointer`}
               >
                 {senaraiBidang.map((b) => <option key={b} value={b}>{b}</option>)}
               </select>
@@ -179,21 +173,21 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         )}
 
         {memuat ? (
-          <div className="text-stone-400 text-xs py-6 text-center">Memuatkan draf...</div>
+          <KeadaanKosong>Memuatkan draf...</KeadaanKosong>
         ) : draf.length === 0 ? (
-          <div className="text-stone-400 text-xs py-10 text-center">
+          <KeadaanKosong>
             Tiada draf. Draf baharu muncul di sini sebaik anda menyimpannya dalam mana-mana slot.
-          </div>
+          </KeadaanKosong>
         ) : drafTertapis.length === 0 ? (
-          <div className="text-stone-400 text-xs py-10 text-center">
+          <KeadaanKosong>
             Tiada draf sepadan dengan carian/penapis semasa.
-          </div>
+          </KeadaanKosong>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs min-w-[860px]">
                 <thead>
-                  <tr className="border-b border-stone-200 font-mono text-[10px] uppercase tracking-wide text-stone-400" style={{ background: '#F7F5F2' }}>
+                  <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
                     <th className="p-2.5">Slot</th>
                     <th className="p-2.5">Bentuk</th>
                     <th className="p-2.5">Bidang</th>
@@ -213,8 +207,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                     return (
                       <tr
                         key={`${d.slotIndex}-${d.uuid || d.urutan}`}
-                        className="hover:bg-stone-50 cursor-pointer"
-                        style={{ borderTop: '1px solid #F0EDE9' }}
+                        className={`hover:bg-stone-50 cursor-pointer ${GARIS_BARIS}`}
                         onClick={() => onBukaDraf(d.slotIndex, d.uuid)}
                       >
                         <td className="p-2.5 font-mono font-bold text-stone-800">{d.slotIndex + 1}</td>
@@ -272,7 +265,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                           )}
                         </td>
                         <td className="p-2.5 text-right">
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-semibold">Sambung</span>
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-Adjung-maroon font-semibold">Sambung</span>
                         </td>
                       </tr>
                     );
@@ -289,7 +282,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
             )}
           </>
         )}
-      </div>
+      </PanelCard>
     </div>
   );
 };

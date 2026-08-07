@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Archive, ArchiveRestore, Pencil, Upload } from 'lucide-react';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { SectionLabel } from '../common/SectionLabel';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { StatusBadge } from '../common/StatusBadge';
+import { Button } from '../common/Button';
+import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
 
 // Penaja (2026-08-05, Fasa 12 — permintaan Izzat). Tajaan BULANAN, boleh berbilang penaja
 // serentak dalam satu bulan. Halaman awam /penaja senaraikan SEMUA penaja aktif (lama + semasa,
@@ -180,64 +188,62 @@ export const PenajaConsole: React.FC = () => {
 
   return (
     <div className="space-y-4 font-sans">
-      <form onSubmit={hantar} className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+      <ModulTajuk
+        tajuk="Penaja"
+        huraian="Urus tajaan bulanan portal — penaja bulan semasa dipapar di footer Frontpage, semua penaja aktif dipapar di halaman /penaja."
+      />
+
+      <PanelCard className="text-xs">
+        <form onSubmit={hantar} className="space-y-4">
         <div className="flex flex-wrap justify-between items-end gap-4">
           <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-              {menyunting ? 'Sunting Penaja' : 'Tambah Penaja'}
-            </h3>
+            <SectionLabel>01 — {menyunting ? 'Sunting Penaja' : 'Tambah Penaja'}</SectionLabel>
             <p className="text-stone-500 text-xs">
               Papar di footer Frontpage ("Portal ini disokong oleh:") hanya untuk bulan yang dipilih. Halaman /penaja senaraikan semua penaja aktif.
             </p>
           </div>
           {menyunting && (
-            <button
-              type="button"
-              onClick={kosongkanBorang}
-              className="px-3 py-1.5 border border-stone-300 rounded text-[11px] font-semibold text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
-            >
-              Batal Sunting
-            </button>
+            <Button variant="secondary" onClick={kosongkanBorang}>Batal Sunting</Button>
           )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
-            <span className="flex justify-between font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
+            <span className={`${LABEL_BORANG} flex justify-between`}>
               <span>Nama Penaja</span>
-              <span className={nama.length > HAD_NAMA ? 'text-red-700' : 'text-stone-400'}>{nama.length}/{HAD_NAMA}</span>
+              <span className={nama.length > HAD_NAMA ? 'text-[var(--color-error)]' : 'text-stone-400'}>{nama.length}/{HAD_NAMA}</span>
             </span>
             <input
               type="text" value={nama} onChange={(e) => setNama(e.target.value)}
               placeholder="Nama syarikat/penaja…"
-              className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+              className={INPUT_BORANG}
             />
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Bulan Tajaan</span>
+            <span className={LABEL_BORANG}>Bulan Tajaan</span>
             <input
               type="month" value={bulan} onChange={(e) => setBulan(e.target.value)}
-              className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs cursor-pointer"
+              className={`${INPUT_BORANG} cursor-pointer`}
             />
           </label>
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">URL Laman Penaja (pilihan)</span>
+          <span className={LABEL_BORANG}>URL Laman Penaja (pilihan)</span>
           <input
             type="text" value={url} onChange={(e) => setUrl(e.target.value)}
             placeholder="https://…"
-            className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+            className={INPUT_BORANG}
           />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Jumlah Bayaran (RM)</span>
+          <span className={LABEL_BORANG}>Jumlah Bayaran (RM)</span>
           <input
             type="number" min="0" step="1" value={jumlahBayaran} onChange={(e) => setJumlahBayaran(e.target.value)}
             placeholder="0"
-            className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+            className={INPUT_BORANG}
           />
           <span className="text-stone-400 text-[10px]">
             Untuk kegunaan dalaman — akan tentukan saiz visual penaja di /penaja apabila ciri visualisasi dibina. Tidak dipaparkan kepada awam.
@@ -246,20 +252,21 @@ export const PenajaConsole: React.FC = () => {
 
         <label className="flex flex-col gap-1">
           <span className="flex items-baseline justify-between gap-3">
-            <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Logo</span>
+            <span className={LABEL_BORANG}>Logo</span>
             {notaLogo && <span className="font-sans text-[9px] text-stone-400">{notaLogo}</span>}
           </span>
           <span className="flex items-center gap-2">
             <input
               type="text" value={logoUrl} placeholder="Nama fail / URL logo…" onChange={(e) => setLogoUrl(e.target.value)}
-              className="w-0 flex-1 border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+              className={`${INPUT_BORANG} w-0 flex-1`}
             />
-            <button
-              type="button" disabled={memuatNaik} onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1 px-2.5 py-1 border border-stone-300 rounded text-[11px] font-sans font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-wait"
+            <Button
+              variant="secondary" size="sm" className="shrink-0"
+              disabled={memuatNaik} onClick={() => fileInputRef.current?.click()}
+              icon={<Upload className="w-3 h-3" />}
             >
-              <Upload className="w-3 h-3" />{memuatNaik ? 'Memuat naik…' : 'Muat naik'}
-            </button>
+              {memuatNaik ? 'Memuat naik…' : 'Muat naik'}
+            </Button>
           </span>
           <input
             ref={fileInputRef} type="file" accept="image/*" className="hidden"
@@ -281,49 +288,42 @@ export const PenajaConsole: React.FC = () => {
           </span>
         </label>
 
-        {ralatBorang && (
-          <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralatBorang}</p>
-        )}
+        {ralatBorang && <MesejStatus tone="error">{ralatBorang}</MesejStatus>}
 
         <div className="flex items-center justify-end gap-3 pt-1">
-          {mesej && <span className="text-emerald-700 text-[11px] font-semibold">{mesej}</span>}
-          <button
+          {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
+          <Button
             type="submit"
+            variant="primary"
             disabled={menyimpan || !nama.trim() || nama.length > HAD_NAMA || !/^\d{4}-\d{2}$/.test(bulan)}
-            className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-[#6a1c2a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {menyimpan ? 'Menyimpan…' : menyunting ? 'Simpan Perubahan' : 'Tambah Penaja'}
-          </button>
+          </Button>
         </div>
-      </form>
+        </form>
+      </PanelCard>
 
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+      <PanelCard className="space-y-4 text-xs">
         <div className="flex flex-wrap justify-between items-end gap-4">
           <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-              {paparanArkib ? 'Penaja Diarkibkan' : 'Penaja Aktif'}
-            </h3>
+            <SectionLabel>02 — {paparanArkib ? 'Penaja Diarkibkan' : 'Penaja Aktif'}</SectionLabel>
             <p className="text-stone-500 text-xs">
               {paparanArkib
                 ? 'Penaja yang ditarik balik. Boleh dipulihkan bila-bila.'
                 : 'Semua penaja aktif (lama & semasa) — susun bulan terbaru dahulu.'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setPaparanArkib((v) => !v)}
-            className="px-3 py-1.5 border border-stone-300 rounded text-[11px] font-semibold text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
-          >
+          <Button variant="secondary" onClick={() => setPaparanArkib((v) => !v)}>
             {paparanArkib ? 'Lihat Aktif' : 'Lihat Arkib'}
-          </button>
+          </Button>
         </div>
 
-        {ralat && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>}
+        {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
         {memuat ? (
-          <p className="text-stone-400 text-xs">Memuatkan…</p>
+          <KeadaanKosong>Memuatkan…</KeadaanKosong>
         ) : senaraiDipapar.length === 0 ? (
-          <p className="text-stone-400 text-xs italic">{paparanArkib ? 'Tiada penaja diarkibkan.' : 'Tiada penaja aktif.'}</p>
+          <KeadaanKosong>{paparanArkib ? 'Tiada penaja diarkibkan.' : 'Tiada penaja aktif.'}</KeadaanKosong>
         ) : (
           <ul className="list-none m-0 p-0 divide-y divide-stone-100">
             {senaraiDipapar.map((p) => (
@@ -336,9 +336,12 @@ export const PenajaConsole: React.FC = () => {
                   )}
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-[#802334] border border-[#802334]/30 bg-[#802334]/[0.06] px-1.5 py-0.5 rounded">
-                        {bulanRingkas(p.bulan)}
-                      </span>
+                      {/* Status penaja — penaja aktif nada `success`, penaja diarkibkan nada
+                          `neutral` (bukan kegagalan, cuma tidak lagi disiarkan). */}
+                      <StatusBadge
+                        tone={p.status === 'aktif' ? 'success' : 'neutral'}
+                        label={bulanRingkas(p.bulan)}
+                      />
                       {p.tayangSemasaTransisi && (
                         <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">Transisi diaktifkan</span>
                       )}
@@ -353,7 +356,7 @@ export const PenajaConsole: React.FC = () => {
                   {!paparanArkib && (
                     <button
                       type="button" onClick={() => mulaSunting(p)}
-                      title="Sunting" className="p-1.5 text-stone-500 hover:text-[#802334] cursor-pointer"
+                      title="Sunting" className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
@@ -362,7 +365,7 @@ export const PenajaConsole: React.FC = () => {
                     type="button"
                     onClick={() => ubahStatus(p.id, paparanArkib ? 'aktif' : 'arkib')}
                     title={paparanArkib ? 'Pulihkan' : 'Arkibkan'}
-                    className="p-1.5 text-stone-500 hover:text-[#802334] cursor-pointer"
+                    className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
                   >
                     {paparanArkib ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
                   </button>
@@ -371,7 +374,7 @@ export const PenajaConsole: React.FC = () => {
             ))}
           </ul>
         )}
-      </div>
+      </PanelCard>
     </div>
   );
 };

@@ -1,5 +1,13 @@
 ﻿import React, { useCallback, useEffect, useState } from 'react';
 import { Pin, PinOff, Archive, ArchiveRestore, Trash2, Pencil } from 'lucide-react';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { SectionLabel } from '../common/SectionLabel';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { StatusBadge } from '../common/StatusBadge';
+import { Button } from '../common/Button';
+import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
 
 // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — tiga kategori nota yang Ketua
 // Editor terbitkan kepada pasukan, dengan satu pengasingan penting: SKOP.
@@ -179,39 +187,42 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
   const bakiTajuk = HAD_TAJUK - tajuk.length;
   const bakiKandungan = HAD_KANDUNGAN - kandungan.length;
 
+  // Nombor seksyen ikut aliran kerja (Pelan 01 Fasa D1): borang penerbitan dahulu, senarai
+  // kemudian. Apabila editor tiada kebenaran mengurus, borang tidak wujud, jadi senarai naik
+  // menjadi seksyen pertama.
+  const nomborSenarai = bolehUrus ? '02' : '01';
+
   return (
     <div className="space-y-4 font-sans">
+      <ModulTajuk
+        tajuk="Nota Ketua Editor"
+        huraian="Nota, catatan, dan pengumuman Ketua Editor kepada pasukan — sebahagiannya turut disiarkan di Frontpage."
+      />
+
       {/* Borang penerbitan — Ketua Editor sahaja. */}
       {bolehUrus && (
-        <form onSubmit={hantar} className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+        <PanelCard className="text-xs">
+          <form onSubmit={hantar} className="space-y-4">
           <div className="flex flex-wrap justify-between items-end gap-4">
             <div>
-              <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-                {menyunting ? 'Sunting Nota' : 'Terbitkan Nota'}
-              </h3>
+              <SectionLabel>01 — {menyunting ? 'Sunting Nota' : 'Terbitkan Nota'}</SectionLabel>
               <p className="text-stone-500 text-xs">
                 Nota <strong className="font-semibold text-stone-700">dalaman</strong> hanya kelihatan dalam Editorium.
                 Nota <strong className="font-semibold text-stone-700">awam</strong> boleh dipaparkan kepada pembaca.
               </p>
             </div>
             {menyunting && (
-              <button
-                type="button"
-                onClick={kosongkanBorang}
-                className="px-3 py-1.5 border border-stone-300 rounded text-[11px] font-semibold text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
-              >
-                Batal Sunting
-              </button>
+              <Button variant="secondary" onClick={kosongkanBorang}>Batal Sunting</Button>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <label className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Kategori</span>
+              <span className={LABEL_BORANG}>Kategori</span>
               <select
                 value={kategori}
                 onChange={(e) => setKategori(e.target.value as Nota['kategori'])}
-                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs cursor-pointer"
+                className={`${INPUT_BORANG} cursor-pointer`}
               >
                 {KATEGORI.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
               </select>
@@ -219,18 +230,18 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Skop</span>
+              <span className={LABEL_BORANG}>Skop</span>
               <select
                 value={skop}
                 onChange={(e) => setSkop(e.target.value as Nota['skop'])}
-                className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs cursor-pointer"
+                className={`${INPUT_BORANG} cursor-pointer`}
               >
                 <option value="dalaman">Nota (Dalaman) — Editorium sahaja</option>
                 <option value="catatan_ketua_editor">Catatan Ketua Editor — disiarkan di Frontpage</option>
                 <option value="pengumuman">Pengumuman — disiarkan di Frontpage</option>
               </select>
               {skop !== 'dalaman' && (
-                <span className="text-[var(--color-Adjung-maroon)] text-[10px] font-semibold">
+                <span className="text-Adjung-maroon text-[10px] font-semibold">
                   Nota ini akan disiarkan di Frontpage (pautan footer "{LABEL_SKOP[skop]}"). Pastikan tiada maklumat dalaman di dalamnya.
                 </span>
               )}
@@ -238,82 +249,73 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
           </div>
 
           <label className="flex flex-col gap-1">
-            <span className="flex justify-between font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
+            <span className={`${LABEL_BORANG} flex justify-between`}>
               <span>Tajuk</span>
-              <span className={bakiTajuk < 0 ? 'text-red-700' : 'text-stone-400'}>{tajuk.length}/{HAD_TAJUK}</span>
+              <span className={bakiTajuk < 0 ? 'text-[var(--color-error)]' : 'text-stone-400'}>{tajuk.length}/{HAD_TAJUK}</span>
             </span>
             <input
               type="text"
               value={tajuk}
               onChange={(e) => setTajuk(e.target.value)}
               placeholder="Tajuk nota…"
-              className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs"
+              className={INPUT_BORANG}
             />
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="flex justify-between font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
+            <span className={`${LABEL_BORANG} flex justify-between`}>
               <span>Kandungan</span>
-              <span className={bakiKandungan < 0 ? 'text-red-700' : 'text-stone-400'}>{kandungan.length}/{HAD_KANDUNGAN}</span>
+              <span className={bakiKandungan < 0 ? 'text-[var(--color-error)]' : 'text-stone-400'}>{kandungan.length}/{HAD_KANDUNGAN}</span>
             </span>
             <textarea
               value={kandungan}
               onChange={(e) => setKandungan(e.target.value)}
               rows={5}
               placeholder="Kandungan nota…"
-              className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs resize-y"
+              className={`${INPUT_BORANG} resize-y`}
             />
           </label>
 
-          {ralatBorang && (
-            <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralatBorang}</p>
-          )}
+          {ralatBorang && <MesejStatus tone="error">{ralatBorang}</MesejStatus>}
 
           <div className="flex items-center justify-end gap-3 pt-1">
-            {mesej && <span className="text-emerald-700 text-[11px] font-semibold">{mesej}</span>}
-            <button
+            {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
+            <Button
               type="submit"
+              variant="primary"
               disabled={menyimpan || !tajuk.trim() || !kandungan.trim() || bakiTajuk < 0 || bakiKandungan < 0}
-              className="bg-[var(--color-Adjung-maroon)] text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-[var(--color-Adjung-maroon-dark)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {menyimpan ? 'Menyimpan…' : menyunting ? 'Simpan Perubahan' : 'Terbitkan Nota'}
-            </button>
+            </Button>
           </div>
-        </form>
+          </form>
+        </PanelCard>
       )}
 
       {/* Senarai nota */}
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+      <PanelCard className="space-y-4 text-xs">
         <div className="flex flex-wrap justify-between items-end gap-4">
           <div>
-            <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">
-              {paparanArkib ? 'Nota Diarkibkan' : 'Nota Aktif'}
-            </h3>
+            <SectionLabel>{nomborSenarai} — {paparanArkib ? 'Nota Diarkibkan' : 'Nota Aktif'}</SectionLabel>
             <p className="text-stone-500 text-xs">
               {paparanArkib
                 ? 'Rekod nota lama. Nota di sini boleh dipulihkan atau dipadam terus.'
                 : 'Nota yang sedang berkuat kuasa. Nota disemat sentiasa di atas.'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setPaparanArkib((v) => !v)}
-            className="px-3 py-1.5 border border-stone-300 rounded text-[11px] font-semibold text-stone-600 hover:bg-stone-50 transition-colors cursor-pointer"
-          >
+          <Button variant="secondary" onClick={() => setPaparanArkib((v) => !v)}>
             {paparanArkib ? 'Lihat Nota Aktif' : 'Lihat Arkib'}
-          </button>
+          </Button>
         </div>
 
-        {ralat && (
-          <div className="border border-red-200 bg-red-50 text-red-800 rounded px-3 py-2 text-[11px]">{ralat}</div>
-        )}
+        {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
         {memuat ? (
-          <div className="text-stone-400 text-xs py-6 text-center">Memuatkan nota…</div>
+          <KeadaanKosong>Memuatkan nota…</KeadaanKosong>
         ) : nota.length === 0 ? (
-          <div className="text-stone-400 text-xs py-10 text-center">
+          <KeadaanKosong>
             {paparanArkib ? 'Tiada nota diarkibkan.' : 'Tiada nota aktif.'}
-          </div>
+          </KeadaanKosong>
         ) : (
           <ul className="list-none m-0 p-0 divide-y divide-stone-100">
             {nota.map((n) => (
@@ -322,22 +324,19 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {n.disemat && (
-                        <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider font-bold text-[var(--color-Adjung-maroon)]">
+                        <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider font-bold text-Adjung-maroon">
                           <Pin className="w-2.5 h-2.5" /> Disemat
                         </span>
                       )}
                       <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
                         {labelKategori(n.kategori)}
                       </span>
-                      <span
-                        className={`font-mono text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded border ${
-                          n.skop !== 'dalaman'
-                            ? 'text-[var(--color-Adjung-maroon)] border-[var(--color-Adjung-maroon)]/30 bg-[var(--color-Adjung-maroon)]/[0.06]'
-                            : 'text-stone-500 border-stone-200'
-                        }`}
-                      >
-                        {LABEL_SKOP[n.skop] || n.skop}
-                      </span>
+                      {/* Skop nota — nota awam (disiarkan di Frontpage) diberi nada `success`
+                          sebab ia tersiar; nota dalaman nada `neutral` sebab ia senyap. */}
+                      <StatusBadge
+                        tone={n.skop !== 'dalaman' ? 'success' : 'neutral'}
+                        label={LABEL_SKOP[n.skop] || n.skop}
+                      />
                       <span className="font-mono text-[9px] text-stone-400">{tarikhRingkas(n.dibuatPada)}</span>
                     </div>
                     <p className="font-serif text-[15px] leading-snug text-stone-900">{n.tajuk}</p>
@@ -355,7 +354,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             type="button"
                             title={n.disemat ? 'Nyahsemat' : 'Semat di atas'}
                             onClick={() => ubah(n.id, { disemat: !n.disemat })}
-                            className="p-1.5 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
                           >
                             {n.disemat ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                           </button>
@@ -363,7 +362,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             type="button"
                             title="Sunting nota"
                             onClick={() => mulaSunting(n)}
-                            className="p-1.5 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -371,7 +370,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             type="button"
                             title="Arkibkan nota"
                             onClick={() => ubah(n.id, { status: 'arkib' })}
-                            className="p-1.5 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
                           >
                             <Archive className="w-3.5 h-3.5" />
                           </button>
@@ -383,7 +382,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             type="button"
                             title="Pulihkan nota"
                             onClick={() => ubah(n.id, { status: 'aktif' })}
-                            className="p-1.5 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
                           >
                             <ArchiveRestore className="w-3.5 h-3.5" />
                           </button>
@@ -391,7 +390,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             type="button"
                             title="Padam nota selamanya"
                             onClick={() => padam(n.id)}
-                            className="p-1.5 text-stone-400 hover:text-red-700 transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-400 hover:text-[var(--color-error)] transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -410,7 +409,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
             Hanya Ketua Editor boleh menerbitkan, menyunting, atau mengarkibkan nota.
           </p>
         )}
-      </div>
+      </PanelCard>
     </div>
   );
 };

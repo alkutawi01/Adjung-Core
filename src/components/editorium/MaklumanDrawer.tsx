@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { StatusBadge } from '../common/StatusBadge';
 import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off } from 'lucide-react';
 
 // Peti Makluman (2026-08-01, spesifikasi pemilik projek) — laci gelongsor yang memaparkan
@@ -126,13 +128,13 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
       >
         <header className="flex-none px-5 py-4 border-b border-stone-200 flex items-center justify-between">
           <div>
-            <h2 className="font-serif text-lg font-medium text-stone-900 leading-none">Peti Makluman</h2>
+            <h2 className="font-serif text-lg font-bold text-Adjung-maroon leading-none">Peti Makluman</h2>
             <p className="text-stone-500 text-[11px] mt-1">Nota Ketua Editor dan notifikasi anda.</p>
           </div>
           <button
             type="button"
             onClick={onTutup}
-            className="text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+            className="text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
             title="Tutup (Escape)"
           >
             <X size={18} />
@@ -141,11 +143,11 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           {memuat ? (
-            <p className="text-stone-400 text-xs py-10 text-center">Memuatkan makluman…</p>
+            <KeadaanKosong>Memuatkan makluman…</KeadaanKosong>
           ) : senarai.length === 0 ? (
-            <p className="text-stone-400 text-xs py-12 text-center px-6">
+            <KeadaanKosong className="px-6">
               Tiada makluman semasa. Nota daripada Ketua Editor dan notifikasi akan muncul di sini.
-            </p>
+            </KeadaanKosong>
           ) : (
             <ul className="list-none m-0 p-0 divide-y divide-stone-100">
               {senarai.map((n) => {
@@ -154,10 +156,10 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                     <li
                       key={`notif-${n.id}`}
                       onClick={() => !n.dibaca && onKlikNotifikasi(n.id)}
-                      className={`px-5 py-4 space-y-1.5 ${!n.dibaca ? 'bg-[#802334]/[0.04] cursor-pointer' : ''}`}
+                      className={`px-5 py-4 space-y-1.5 ${!n.dibaca ? 'bg-Adjung-maroon/[0.04] cursor-pointer' : ''}`}
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        {!n.dibaca && <span className="w-1.5 h-1.5 rounded-full bg-[#802334]" aria-hidden />}
+                        {!n.dibaca && <span className="w-1.5 h-1.5 rounded-full bg-Adjung-maroon" aria-hidden />}
                         <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
                           {IKON_JENIS[n.jenis] || <Bell className="w-2.5 h-2.5" />}
                           {LABEL_JENIS[n.jenis] || n.jenis}
@@ -173,17 +175,17 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                   <li key={`nota-${n.id}`} className="px-5 py-4 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       {n.disemat && (
-                        <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider font-bold text-[#802334]">
+                        <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider font-bold text-Adjung-maroon">
                           <Pin className="w-2.5 h-2.5" /> Disemat
                         </span>
                       )}
                       <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
                         {LABEL_KATEGORI[n.kategori] || n.kategori}
                       </span>
+                      {/* Skop awam (disiarkan di Frontpage) — nada `success` seperti dalam konsol
+                          Nota Ketua Editor supaya kedua-dua tempat sama bahasanya. */}
                       {n.skop !== 'dalaman' && (
-                        <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-[#802334] border border-[#802334]/30 bg-[#802334]/[0.06] px-1.5 py-0.5 rounded">
-                          {LABEL_SKOP[n.skop] || n.skop}
-                        </span>
+                        <StatusBadge tone="success" label={LABEL_SKOP[n.skop] || n.skop} />
                       )}
                       <span className="font-mono text-[9px] text-stone-400">{tarikhRingkas(n.dibuatPada)}</span>
                     </div>
