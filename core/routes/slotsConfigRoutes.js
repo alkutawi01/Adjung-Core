@@ -182,17 +182,45 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         const arahOverrideSah = ['', 'kanan', 'kiri', 'atas', 'bawah'].includes(slot.arahOverride) ? slot.arahOverride : '';
         // Jenis animasi PER-SLOT (2026-08-07) — sanitasi sama corak macam arahOverrideSah di atas.
         const jenisAnimasiOverrideSah = ['', 'pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'].includes(slot.jenisAnimasiOverride) ? slot.jenisAnimasiOverride : '';
+        // Warna panel / kelajuan / logo transisi PER-SLOT (2026-08-07, Pelan 03) — sanitasi corak
+        // SAMA seperti dua di atas: nilai tak sah jatuh ke '' (warisi tetapan am), bukan ralat 500.
+        // Ini penting sebab '' ialah keadaan lalai yang sah, jadi menolak input rosak dengan
+        // senyap-warisi lebih selamat daripada menyimpan nilai yang memecahkan panel transisi.
+        // Gerbang per-MEDAN (bukan per-laluan) untuk tetapan estetik transisi — corak sama seperti
+        // bolehTulisNota di atas. POST /slots sengaja longgar supaya editor boleh menyunting
+        // kandungan slot yang ditugaskan kepadanya; menggerbang seluruh laluan akan mematahkan
+        // aliran kerja itu. Jadi medan estetik hanya boleh DIUBAH oleh pemegang `manageEditorial`;
+        // bagi yang lain nilai tersimpan dikekalkan, bukan ditolak dengan ralat (mereka menghantar
+        // semula borang PENUH, jadi menolak akan menghalang suntingan kandungan yang sah).
+        const bolehUbahEstetik = hasPermission(req.session?.user?.roles, 'manageEditorial');
+        const sediaAdaRows = bolehUbahEstetik ? [] : await dbAll(
+          `SELECT warnaPanelOverride, kelajuanOverride, logoTransisiMode
+             FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?`,
+          [slot.slotIndex]
+        );
+        const sediaAda = sediaAdaRows[0] || {};
+
+        const warnaPanelOverrideSah = !bolehUbahEstetik
+          ? (sediaAda.warnaPanelOverride || '')
+          : /^#[0-9a-fA-F]{6}$/.test(String(slot.warnaPanelOverride || '')) ? slot.warnaPanelOverride : '';
+        const kelajuanNombor = Number(slot.kelajuanOverride);
+        const kelajuanOverrideSah = !bolehUbahEstetik
+          ? (sediaAda.kelajuanOverride || '')
+          : Number.isFinite(kelajuanNombor) && kelajuanNombor >= 0.25 && kelajuanNombor <= 4 ? String(kelajuanNombor) : '';
+        const logoTransisiModeSah = !bolehUbahEstetik
+          ? (sediaAda.logoTransisiMode || '')
+          : ['', 'adjung', 'penaja', 'tiada'].includes(slot.logoTransisiMode) ? slot.logoTransisiMode : '';
 
         await dbRun(`
           INSERT OR REPLACE INTO slots_config (
             layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
             manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, maxBriefLong, refreshHour, refreshDay, eventExpiryFilter,
-            aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType, genMode, arahOverride, jenisAnimasiOverride, updatedAt
-          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType, genMode, arahOverride, jenisAnimasiOverride, warnaPanelOverride, kelajuanOverride, logoTransisiMode, updatedAt
+          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
           slot.manualTitle, persistedManualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
-          slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas', arahOverrideSah, jenisAnimasiOverrideSah, new Date().toISOString()
+          slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas', arahOverrideSah, jenisAnimasiOverrideSah, warnaPanelOverrideSah, kelajuanOverrideSah, logoTransisiModeSah, new Date().toISOString()
         ]);
 
         if (slot.manualDesk && slot.manualDesk.trim() !== '') {

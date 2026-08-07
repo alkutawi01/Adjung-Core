@@ -1813,6 +1813,18 @@ const initEditorialOS = (dbConn) => {
         // FrontpageView.tsx. Ditetapkan di Senarai Slot → Tetapan Kad (BUKAN Tetapan Am Slot —
         // permintaan eksplisit supaya tetapan per-slot tak bercampur dgn tetapan am).
         dbConn.run("ALTER TABLE slots_config ADD COLUMN jenisAnimasiOverride TEXT DEFAULT ''", () => {});
+        // Warna panel / kelajuan / logo transisi PER-SLOT (2026-08-07, Pelan 03 — arahan Izzat:
+        // "saya nak frontpage tidak membosankan"). Ketiga-tiganya ikut konvensyen SAMA seperti
+        // dua lajur di atas: '' = warisi tetapan am (slot_am_settings), nilai = override slot ni
+        // sahaja. Lihat core/routes/slotsConfigRoutes.js + warnaPanelUntukSlot()/
+        // kelajuanUntukSlot()/logoModeUntukSlot() di FrontpageView.tsx.
+        //   warnaPanelOverride  hex '#RRGGBB'
+        //   kelajuanOverride    pendarab tempoh, disimpan TEKS supaya '' bermakna "ikut am"
+        //                       (0 ialah nilai sah-kelihatan tapi tak bermakna di sini)
+        //   logoTransisiMode    'adjung' | 'penaja' | 'tiada'
+        dbConn.run("ALTER TABLE slots_config ADD COLUMN warnaPanelOverride TEXT DEFAULT ''", () => {});
+        dbConn.run("ALTER TABLE slots_config ADD COLUMN kelajuanOverride TEXT DEFAULT ''", () => {});
+        dbConn.run("ALTER TABLE slots_config ADD COLUMN logoTransisiMode TEXT DEFAULT ''", () => {});
       });
 
       // 11. pipeline_logs

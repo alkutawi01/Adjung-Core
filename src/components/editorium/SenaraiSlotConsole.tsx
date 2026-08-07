@@ -122,8 +122,26 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   // (bukan buka borang lama itu) sebab borang tu turut papar medan sunting KANDUNGAN, yang
   // sepatutnya cuma lalui SlotManagerModal Editorium sejak pemisahan 2026-07-29.
   const [slotTetapan, setSlotTetapan] = useState<number | null>(null);
-  const [drafTetapan, setDrafTetapan] = useState<{ manualDesk: string; bgColor: string; borderColor: string; carouselInterval: number; carouselDelay: number; jenisAnimasiOverride: string; arahOverride: string } | null>(null);
+  const [drafTetapan, setDrafTetapan] = useState<{ manualDesk: string; bgColor: string; borderColor: string; carouselInterval: number; carouselDelay: number; jenisAnimasiOverride: string; arahOverride: string; warnaPanelOverride: string; kelajuanOverride: string; logoTransisiMode: string } | null>(null);
   const [menyimpanTetapan, setMenyimpanTetapan] = useState(false);
+
+  // Nilai Tetapan Am semasa (2026-08-07, Pelan 03) — dipapar dalam label kawalan per-slot supaya
+  // Ketua Editor nampak apa yang sebenarnya diwarisi apabila kawalan dibiar "Ikut Am", bukan
+  // sekadar perkataan "lalai" yang tak memberitahu apa-apa.
+  const [amWarnaPanel, setAmWarnaPanel] = useState('#802334');
+  const [amKelajuan, setAmKelajuan] = useState(1);
+  useEffect(() => {
+    let dibatal = false;
+    fetch('/api/system/slot-am-settings')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (dibatal || !d) return;
+        if (typeof d.warnaPanelTransisi === 'string' && d.warnaPanelTransisi) setAmWarnaPanel(d.warnaPanelTransisi);
+        if (Number(d.kelajuanAnimasi) > 0) setAmKelajuan(Number(d.kelajuanAnimasi));
+      })
+      .catch(() => { /* tetapan am tak dapat dibaca — label kekal nilai lalai, bukan ralat */ });
+    return () => { dibatal = true; };
+  }, []);
   const [ralatTetapan, setRalatTetapan] = useState<string | null>(null);
 
   // Muat SEMULA baris penuh terus dari server semasa buka (bukan guna salinan `slots` dalam
@@ -145,6 +163,9 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
         carouselDelay: baris.carouselDelay || 0,
         jenisAnimasiOverride: baris.jenisAnimasiOverride || '',
         arahOverride: baris.arahOverride || '',
+        warnaPanelOverride: baris.warnaPanelOverride || '',
+        kelajuanOverride: baris.kelajuanOverride || '',
+        logoTransisiMode: baris.logoTransisiMode || '',
       });
       setSlotTetapan(slotIndex);
     } catch (e: any) {
@@ -656,6 +677,70 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
               Animasi cuma berlaku bila slot ni ada &gt;1 kandungan (carousel) DAN togol animasi
               di Tetapan Am aktif.
             </p>
+
+            {/* Warna panel / kelajuan / logo PER-SLOT (2026-08-07, Pelan 03 — arahan Izzat: "saya
+                nak frontpage tidak membosankan"). Ikut konvensyen yang SAMA seperti dua kawalan di
+                atas: kosong = warisi Tetapan Am, nilai = override slot ni sahaja. Nilai am semasa
+                ditunjukkan dalam label supaya Ketua Editor nampak apa yang diwarisi. */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <span className={LABEL_BORANG}>Warna Panel Transisi</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={drafTetapan.warnaPanelOverride || amWarnaPanel}
+                    onChange={e => setDrafTetapan(p => p ? { ...p, warnaPanelOverride: e.target.value } : p)}
+                    className="h-8 w-12 shrink-0 cursor-pointer rounded border border-stone-300 bg-white p-0.5"
+                    aria-label="Warna panel transisi slot ini"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setDrafTetapan(p => p ? { ...p, warnaPanelOverride: '' } : p)}
+                    disabled={!drafTetapan.warnaPanelOverride}
+                  >
+                    Ikut Am
+                  </Button>
+                </div>
+                <span className="text-stone-400 text-[10px]">
+                  {drafTetapan.warnaPanelOverride
+                    ? `Khusus slot ini: ${drafTetapan.warnaPanelOverride}`
+                    : `Ikut Tetapan Am — kini ${amWarnaPanel}`}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className={LABEL_BORANG}>Kelajuan Animasi</span>
+                <select
+                  value={drafTetapan.kelajuanOverride}
+                  onChange={e => setDrafTetapan(p => p ? { ...p, kelajuanOverride: e.target.value } : p)}
+                  className={INPUT_BORANG}
+                >
+                  <option value="">Guna tetapan lalai ({amKelajuan}&times;)</option>
+                  <option value="0.5">0.5&times; (dua kali lebih pantas)</option>
+                  <option value="1">1&times; (biasa)</option>
+                  <option value="1.5">1.5&times;</option>
+                  <option value="2">2&times; (dua kali lebih perlahan)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className={LABEL_BORANG}>Logo dalam Panel Transisi</span>
+              <select
+                value={drafTetapan.logoTransisiMode}
+                onChange={e => setDrafTetapan(p => p ? { ...p, logoTransisiMode: e.target.value } : p)}
+                className={INPUT_BORANG}
+              >
+                <option value="">Guna tetapan lalai (giliran Adjung &amp; penaja)</option>
+                <option value="adjung">Logo Adjung sahaja</option>
+                <option value="penaja">Logo penaja sahaja</option>
+                <option value="tiada">Tanpa logo</option>
+              </select>
+              <span className="text-stone-400 text-[10px] leading-relaxed">
+                &quot;Logo penaja sahaja&quot; jatuh balik ke logo Adjung apabila tiada penaja
+                bertanda tayang bagi bulan semasa — panel tidak pernah kosong.
+              </span>
+            </div>
 
             {ralatTetapan && <MesejStatus tone="error">{ralatTetapan}</MesejStatus>}
 

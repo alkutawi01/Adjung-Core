@@ -316,7 +316,7 @@ const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: s
 // (LogoTransisiAdjung di bawah, bukan imej — sama sebab macam LoadingScreen: logo PNG marun-atas-
 // putih tak boleh dibaca atas panel gelap).
 interface LogoTransisi {
-  jenis: 'adjung' | 'penaja';
+  jenis: 'adjung' | 'penaja' | 'tiada';
   logoUrl?: string;
   nama?: string;
 }
@@ -324,7 +324,7 @@ interface TetapanAnimasiCarousel {
   jenisAnimasi: string;
   arahAnimasi: string;
   warnaPanelTransisi: string;
-  ambilLogoTransisi: () => LogoTransisi;
+  ambilLogoTransisi: (mod?: string) => LogoTransisi;
   // Arah PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah tertentu utk slot
   // tertentu sahaja?") — override slots_config.arahOverride (kini ditetapkan di Senarai Slot,
   // lihat nota jenisAnimasiUntukSlot di bawah utk sebab pertukaran lokasi) MENGATASI arahAnimasi
@@ -345,6 +345,13 @@ interface TetapanAnimasiCarousel {
   // animasi, 1 = lalai. Terpakai pada Colophon/Sapuan Lajur (masukMasa/tahanMasa) dan Gerak
   // Susun (tempoh gerak) sama rata.
   kelajuanAnimasi: number;
+  // Tiga penyelesai PER-SLOT tambahan (2026-08-07, Pelan 03 — arahan Izzat: "saya nak frontpage
+  // tidak membosankan", warna/kelajuan/logo boleh berbeza setiap slot). Cermin corak
+  // arahUntukSlot/jenisAnimasiUntukSlot di atas: '' dalam slots_config = ikut tetapan am.
+  warnaPanelUntukSlot: (slotIndexStr: string | null | undefined) => string;
+  kelajuanUntukSlot: (slotIndexStr: string | null | undefined) => number;
+  // 'adjung' | 'penaja' | 'tiada' | '' ('' = ikut giliran am nisbahPenajaTransisi).
+  logoModeUntukSlot: (slotIndexStr: string | null | undefined) => string;
 }
 const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
   jenisAnimasi: 'colophon',
@@ -355,6 +362,9 @@ const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
   jenisAnimasiUntukSlot: () => 'colophon',
   animasiAktif: true,
   kelajuanAnimasi: 1,
+  warnaPanelUntukSlot: () => '#802334',
+  kelajuanUntukSlot: () => 1,
+  logoModeUntukSlot: () => '',
 };
 const JenisAnimasiContext = createContext<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
 
@@ -404,7 +414,7 @@ const CarouselStableBlock: React.FC<{
   renderItem: (item: any) => React.ReactNode;
   onNavigate?: (direction: 1 | -1) => void;
 }> = ({ items, activeIndex, renderItem, onNavigate }) => {
-  const { jenisAnimasi, warnaPanelTransisi, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot, animasiAktif, kelajuanAnimasi } = useContext(JenisAnimasiContext);
+  const { jenisAnimasi, warnaPanelTransisi, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot, animasiAktif, kelajuanAnimasi, warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot } = useContext(JenisAnimasiContext);
   // Logo dipetik SEKALI setiap kali transisi bermula (bukan setiap render) — kalau dipanggil
   // ambilLogoTransisi() terus dalam JSX, ia maju giliran pada SETIAP render (banyak kali sepanjang
   // 1.3s/1.6s animasi), bukan sekali setiap pertukaran kandungan.
@@ -540,6 +550,8 @@ const CarouselStableBlock: React.FC<{
     // lain (2026-08-07, permintaan Izzat eksplisit).
     const kadUntukJenis = (containerRef.current?.closest('[data-slot]') as HTMLElement | null) || containerRef.current;
     const jenisEfektif = animasiAktif ? jenisAnimasiUntukSlot(kadUntukJenis?.getAttribute('data-slot')) : 'pudar';
+    // Kelajuan/warna/logo EFEKTIF slot ni (Pelan 03) — sama corak seperti jenisEfektif di atas.
+    const kelajuanEfektif = kelajuanUntukSlot(kadUntukJenis?.getAttribute('data-slot'));
 
     if (jenisEfektif === 'gerak_susun') {
       const prefersReduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -556,7 +568,7 @@ const CarouselStableBlock: React.FC<{
         kadPenuh.style.overflow = 'hidden';
       }
       setPortalTarget(kadPenuh);
-      setLogoTransisiSemasa(ambilLogoTransisi());
+      setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot'))));
       setIndeksLamaGerak(indeksSebelum);
       // visualIndex dikemas kini SERTA-MERTA (bukan lag macam Colophon/Sapuan Lajur) — senarai
       // bertindan di bawah TERSEMBUNYI di sebalik regangan Gerak Susun sepanjang overlayAktif,
@@ -565,7 +577,7 @@ const CarouselStableBlock: React.FC<{
       setVisualIndex(activeIndex);
       setFasaGerak('diam');
       setOverlayAktif(true);
-      const tempohGerak = Math.round(900 * kelajuanAnimasi);
+      const tempohGerak = Math.round(900 * kelajuanEfektif);
       // rAF (bukan setTimeout 0) — jamin browser dah render kedudukan MULA (fasaGerak='diam',
       // tiada transition) SATU bingkai penuh dulu sebelum tukar ke 'gerak' (transition aktif),
       // supaya peralihan CSS benar-benar animasi drpd kedudukan mula, bukan terus lompat.
@@ -607,7 +619,7 @@ const CarouselStableBlock: React.FC<{
       kadPenuh.style.overflow = 'hidden';
     }
     setPortalTarget(kadPenuh);
-    setLogoTransisiSemasa(ambilLogoTransisi());
+    setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot'))));
 
     // Tempoh SATU keyframe berterusan (masuk -> TAHAN 500ms -> keluar) — masukMasa ialah TITIK
     // bila panel BARU tutup penuh (kedudukan translate(0,0), lihat peratusan @keyframes di
@@ -615,8 +627,8 @@ const CarouselStableBlock: React.FC<{
     // SEBENAR ditukar pada saat ni (tersembunyi di sebalik panel yang tertutup penuh); panel
     // sendiri (className/elemen) tak disentuh langsung. jumlahMasa = masukMasa + tahanMasa(500) +
     // keluarMasa(=masukMasa) — sepadan animation-duration 1.3s (Colophon) / 1.6s (Sapuan Lajur).
-    const masukMasa = Math.round((jenisEfektif === 'sapuan_lajur' ? 550 : 400) * kelajuanAnimasi);
-    const tahanMasa = Math.round(500 * kelajuanAnimasi);
+    const masukMasa = Math.round((jenisEfektif === 'sapuan_lajur' ? 550 : 400) * kelajuanEfektif);
+    const tahanMasa = Math.round(500 * kelajuanEfektif);
     const jumlahMasa = masukMasa * 2 + tahanMasa;
     setOverlayAktif(true);
     overlayTimersRef.current.push(setTimeout(() => {
@@ -643,11 +655,14 @@ const CarouselStableBlock: React.FC<{
   // di sini sebab render dan effect ialah dua konteks berasingan) — togol animasiAktif MENGATASI
   // pilihan per-slot/global.
   const jenisEfektifRender = animasiAktif ? jenisAnimasiUntukSlot(kadPenuhStabil?.getAttribute('data-slot')) : 'pudar';
-  const tempohColophonMs = Math.round((jenisEfektifRender === 'sapuan_lajur' ? 550 : 400) * 2 * kelajuanAnimasi + 500 * kelajuanAnimasi);
+  // Warna panel & kelajuan EFEKTIF slot ni (Pelan 03) — cermin jenisEfektifRender di atas.
+  const kelajuanEfektifRender = kelajuanUntukSlot(kadPenuhStabil?.getAttribute('data-slot'));
+  const warnaPanelEfektif = warnaPanelUntukSlot(kadPenuhStabil?.getAttribute('data-slot'));
+  const tempohColophonMs = Math.round((jenisEfektifRender === 'sapuan_lajur' ? 550 : 400) * 2 * kelajuanEfektifRender + 500 * kelajuanEfektifRender);
   // Gerak Susun aktif — senarai bertindan (crossfade) tersembunyi (opacity 0) sepanjang tempoh
   // ni, regangan 3-panel (JSX di bawah) yang kelihatan sebaliknya.
   const gerakAktif = jenisEfektifRender === 'gerak_susun' && overlayAktif;
-  const tempohGerakMs = Math.round(900 * kelajuanAnimasi);
+  const tempohGerakMs = Math.round(900 * kelajuanEfektifRender);
   return (
     // data-carousel-stable: penanda supaya CSS telefon boleh melucutkan kunci tinggi ini. Kunci
     // itu diukur pada lebar semasa dan tidak pernah mengecil semula, jadi tinggi desktop (dengan
@@ -754,10 +769,10 @@ const CarouselStableBlock: React.FC<{
       {overlayAktif && portalTarget && jenisEfektifRender === 'colophon' && createPortal(
         <div
           className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none carousel-colophon-penuh"
-          style={{ backgroundColor: warnaPanelTransisi, animationDuration: `${tempohColophonMs}ms`, ...vektorArahOverlay(arahEfektif, false) }}
+          style={{ backgroundColor: warnaPanelEfektif, animationDuration: `${tempohColophonMs}ms`, ...vektorArahOverlay(arahEfektif, false) }}
           aria-hidden="true"
         >
-          {logoTransisiSemasa.jenis === 'adjung'
+          {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
             ? <LogoTransisiAdjung />
             : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
         </div>,
@@ -766,10 +781,10 @@ const CarouselStableBlock: React.FC<{
       {overlayAktif && portalTarget && jenisEfektifRender === 'sapuan_lajur' && createPortal(
         <div
           className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none carousel-sapuan-penuh"
-          style={{ backgroundColor: warnaPanelTransisi, animationDuration: `${tempohColophonMs}ms`, ...vektorArahOverlay(arahEfektif, true) }}
+          style={{ backgroundColor: warnaPanelEfektif, animationDuration: `${tempohColophonMs}ms`, ...vektorArahOverlay(arahEfektif, true) }}
           aria-hidden="true"
         >
-          {logoTransisiSemasa.jenis === 'adjung'
+          {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
             ? <LogoTransisiAdjung />
             : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[40%] max-h-[40%] object-contain opacity-95" />}
         </div>,
@@ -799,8 +814,8 @@ const CarouselStableBlock: React.FC<{
             {arahEfektif === 'kiri' ? (
               <>
                 <div className="w-1/3 h-full shrink-0 overflow-hidden">{renderItem(list[activeIndex] || {})}</div>
-                <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelTransisi }}>
-                  {logoTransisiSemasa.jenis === 'adjung'
+                <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
+                  {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
@@ -809,8 +824,8 @@ const CarouselStableBlock: React.FC<{
             ) : (
               <>
                 <div className="w-1/3 h-full shrink-0 overflow-hidden">{renderItem(list[indeksLamaGerak] || {})}</div>
-                <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelTransisi }}>
-                  {logoTransisiSemasa.jenis === 'adjung'
+                <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
+                  {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
@@ -1605,7 +1620,18 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     () => penajaSemasa.filter((p: any) => p.tayangSemasaTransisi),
     [penajaSemasa]
   );
-  const ambilLogoTransisi = React.useCallback((): LogoTransisi => {
+  // `mod` (2026-08-07, Pelan 03) — pilihan logo PER-SLOT mengatasi giliran am:
+  //   'adjung' logo Adjung sahaja · 'penaja' penaja sahaja (jatuh balik Adjung bila tiada penaja
+  //   layak, supaya panel TIDAK PERNAH kosong) · 'tiada' tanpa logo · '' ikut giliran am di bawah.
+  const ambilLogoTransisi = React.useCallback((mod?: string): LogoTransisi => {
+    if (mod === 'tiada') return { jenis: 'tiada' };
+    if (mod === 'adjung') return { jenis: 'adjung' };
+    if (mod === 'penaja') {
+      if (penajaLayakTransisi.length === 0) return { jenis: 'adjung' };
+      const p = penajaLayakTransisi[indeksPenajaTransisiRef.current % penajaLayakTransisi.length];
+      indeksPenajaTransisiRef.current += 1;
+      return { jenis: 'penaja', logoUrl: p.logoUrl, nama: p.nama };
+    }
     const nisbah = tetapanAnimasiMentah.nisbahPenajaTransisi;
     if (nisbah <= 0 || penajaLayakTransisi.length === 0) return { jenis: 'adjung' };
     const kitaran = nisbah + 1;
@@ -1654,9 +1680,63 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     [jenisAnimasiOverridePerSlot, tetapanAnimasiMentah.jenisAnimasi]
   );
 
+  // Warna panel / kelajuan / logo PER-SLOT (2026-08-07, Pelan 03 — arahan Izzat: "saya nak
+  // frontpage tidak membosankan"). Ketiga-tiganya cermin corak arahOverridePerSlot di atas:
+  // baca slots_config, '' bermakna ikut tetapan am. Peta dikunci RENTETAN sebab dibaca semula
+  // daripada atribut DOM `data-slot`.
+  const warnaPanelPerSlot = React.useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const s of slotsConfig) {
+      // Hanya terima hex 6-digit — nilai rosak diabaikan supaya panel tak jadi lutsinar/hitam.
+      if (s && typeof s.warnaPanelOverride === 'string' && /^#[0-9a-fA-F]{6}$/.test(s.warnaPanelOverride)) {
+        m[String(s.slotIndex)] = s.warnaPanelOverride;
+      }
+    }
+    return m;
+  }, [slotsConfig]);
+  const warnaPanelUntukSlot = React.useCallback(
+    (slotIndexStr: string | null | undefined): string =>
+      (slotIndexStr != null && warnaPanelPerSlot[slotIndexStr]) || tetapanAnimasiMentah.warnaPanelTransisi,
+    [warnaPanelPerSlot, tetapanAnimasiMentah.warnaPanelTransisi]
+  );
+
+  const kelajuanPerSlot = React.useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const s of slotsConfig) {
+      const n = Number(s?.kelajuanOverride);
+      // Julat waras sahaja (0.25x–4x) — nilai luar julat/kosong jatuh ke tetapan am.
+      if (Number.isFinite(n) && n >= 0.25 && n <= 4) m[String(s.slotIndex)] = n;
+    }
+    return m;
+  }, [slotsConfig]);
+  const kelajuanUntukSlot = React.useCallback(
+    (slotIndexStr: string | null | undefined): number =>
+      (slotIndexStr != null && kelajuanPerSlot[slotIndexStr]) || tetapanAnimasiMentah.kelajuanAnimasi,
+    [kelajuanPerSlot, tetapanAnimasiMentah.kelajuanAnimasi]
+  );
+
+  const logoModePerSlot = React.useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const s of slotsConfig) {
+      if (s && ['adjung', 'penaja', 'tiada'].includes(s.logoTransisiMode)) {
+        m[String(s.slotIndex)] = s.logoTransisiMode;
+      }
+    }
+    return m;
+  }, [slotsConfig]);
+  const logoModeUntukSlot = React.useCallback(
+    (slotIndexStr: string | null | undefined): string =>
+      (slotIndexStr != null && logoModePerSlot[slotIndexStr]) || '',
+    [logoModePerSlot]
+  );
+
   const tetapanAnimasi = React.useMemo<TetapanAnimasiCarousel>(
-    () => ({ ...tetapanAnimasiMentah, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot }),
-    [tetapanAnimasiMentah, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot]
+    () => ({
+      ...tetapanAnimasiMentah, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot,
+      warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot,
+    }),
+    [tetapanAnimasiMentah, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot,
+     warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot]
   );
 
   useEffect(() => {
