@@ -165,6 +165,12 @@ export interface FocusViewProps {
   icon?: React.ReactNode;
   desk?: string;
   topik?: string;
+  /** Cari Bidang/Topik (2026-08-07, permintaan Izzat — konsisten dengan kad bento: "topik di full
+   *  view pun perlu ada microanimasi mcm di frontpage dan perlu ke search jgk, utk keselarasan").
+   *  Dipanggil dengan nilai mentah (desk ATAU topik) bila salah satu segmen eyebrow diklik.
+   *  Pemanggil (FrontpageView) tutup Focus View dahulu sebelum isi kotak carian — lihat
+   *  cariDariEyebrow di sana. `undefined` = eyebrow papar sahaja, tiada kesan klik. */
+  onCariEyebrow?: (nilai: string) => void;
   /** Warna Bidang (CategoryRegistry.color). Eyebrow kad guna warna ini, jadi Focus View mesti guna
    *  yang sama — kandungan yang sama tidak sepatutnya bertukar warna identiti apabila dibuka.
    *  Jatuh balik ke marun Adjung kalau Bidang tiada warna. */
@@ -246,7 +252,7 @@ export interface FocusViewProps {
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
-  wordmark = 'Adjung', icon, desk, topik, deskColor, title, titleRendered, body,
+  wordmark = 'Adjung', icon, desk, topik, onCariEyebrow, deskColor, title, titleRendered, body,
   visual, visualCaption, related = [], note, notaMaxAksara = NOTA_MAX, illustrationSvg,
   source, sourceUrl, sources = [], sourceDate, publishedDate,
   backdropImage, backdropOpacity = 0.06,
@@ -263,6 +269,39 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const label = eyebrowLabel(desk, topik);
   const warnaEyebrow = deskColor || 'var(--color-Adjung-maroon)';
   const isPhone = usePhoneViewport();
+
+  // Segmen Bidang/Topik boleh klik berasingan + microanimasi garis-bawah tumbuh (2026-08-07,
+  // permintaan Izzat — "topik di full view pun perlu ada microanimasi mcm di frontpage dan perlu
+  // ke search jgk, utk keselarasan"). `.eyebrow-topik-teks` ialah kelas ANIMASI sedia ada daripada
+  // kad bento (index.css) — dikongsi terus di sini, BUKAN disalin, supaya kedua-dua permukaan
+  // sentiasa nampak sama. Nilai mentah setiap segmen terus dari `desk`/`topik` (prop), pemisah
+  // " | " literal sama seperti eyebrowLabel() guna — `label` di atas KEKAL sumber pengesahan/
+  // gate render ("ada isi ke tidak"), cuma tak dipakai lagi untuk PAPARAN teks (perlukan bahagian
+  // berasingan bagi setiap zon klik).
+  const eyebrowKlikProps = (nilai: string): React.HTMLAttributes<HTMLSpanElement> => {
+    if (!onCariEyebrow || !nilai) return {};
+    return {
+      onClick: (e) => { e.stopPropagation(); onCariEyebrow(nilai); },
+      onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCariEyebrow(nilai); } },
+      role: 'button',
+      tabIndex: 0,
+      'aria-label': `Cari "${nilai}"`,
+      style: { cursor: 'pointer' },
+    };
+  };
+  const eyebrowNodes: React.ReactNode = (() => {
+    const d = (desk || '').trim();
+    const t = (topik || '').trim();
+    if (!d) return <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>;
+    if (!t) return <span className="eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>;
+    return (
+      <>
+        <span className="eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>
+        {' | '}
+        <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>
+      </>
+    );
+  })();
 
   // Glosari sebagai tooltip hover (2026-08-07, permintaan Izzat) — lihat
   // src/components/common/IstilahGlosari.tsx untuk penjelasan penuh. Dimuat SEKALI setiap Focus
@@ -662,7 +701,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <span style={{
               fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
               letterSpacing: 'var(--tracking-editorial)', color: warnaEyebrow,
-            }}>{label}</span>
+            }}>{eyebrowNodes}</span>
           )}
 
           {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-05, permintaan Izzat — "tak
@@ -968,7 +1007,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 lain") utk kes ekstrem satu perkataan tunggal lebih lebar drpd lajur. */}
             <div style={{ minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 'clamp(8px, 1.4vh, 14px)', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
               {label && (
-                <span style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{label}</span>
+                <span style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{eyebrowNodes}</span>
               )}
               {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-07 — lajur tajuk kini
                   sempit ~40% lebar helaian, sama alasan telefon di atas: titleRendered sisipkan

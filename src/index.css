@@ -534,6 +534,16 @@ h1, h2, h3, h4, h5, h6, p {
 .eyebrow-kad:hover .eyebrow-topik-teks {
   background-size: 100% 1px;
 }
+/* Hover TERUS pada segmen (2026-08-07, permintaan Izzat — Topik Focus View perlu microanimasi
+   sama macam kad, "utk keselarasan") — Focus View punya eyebrow bukan sebahagian kad boleh-klik
+   penuh macam bento (`.eyebrow-kad`), jadi tiada bekas induk untuk trigger hover seluruh baris;
+   setiap segmen (desk/topik) kini boleh klik SENDIRI (cari), maka hover TERUS pada segmen tu
+   sendiri ialah isyarat yang betul — bukan cuma jatuh balik, ini sebenarnya lebih tepat utk zon
+   klik berasingan berbanding hover-seluruh-baris kad. Subset semula jadi bagi kad bento (hover
+   Topik di dalam kad = hover eyebrow-kad jua), jadi tiada kesan visual berbeza di sana. */
+.eyebrow-topik-teks:hover {
+  background-size: 100% 1px;
+}
 
 /* Jalur kemajuan tatal automatik Focus View (2026-08-04) — mengisi kiri ke kanan sepanjang tempoh
    AUTOSCROLL_MS di FocusView.tsx, reset (key={title}) tiap kandungan bertukar. */
