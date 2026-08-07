@@ -1,5 +1,6 @@
 import express from 'express';
 import { setMedanLimits } from '../editorial/ContentBudget.js';
+import { setMedanLimitOverrides, MIN_BRIEF_LONG_CHARS } from '../editorial/GeometryConfig.js';
 import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 
@@ -26,6 +27,12 @@ export const AM_DEFAULTS = {
   hadSumber: 0,
   hadTopik: 0,
   hadNotaEditor: 0,
+  // Had MINIMUM (2026-08-07, permintaan Izzat — "sepatutnya ada juga had minimum"). Sama corak
+  // 0 = tiada had minimum.
+  hadHuraianPanjangMin: 0,
+  hadSumberMin: 0,
+  hadTopikMin: 0,
+  hadNotaEditorMin: 0,
   // Logo penaja lama (2026-08-04, satu logo manual GLOBAL) — DIGANTIKAN 2026-08-05 oleh giliran
   // logo Adjung/penaja automatik (nisbahPenajaTransisi di bawah, sumber penaja dari jadual
   // `sponsors` sebenar, medan tayangSemasaTransisi). Medan/lajur DB dikekalkan supaya tak hilang
@@ -111,6 +118,10 @@ export const loadAmSettings = async (dbGet) => {
         hadSumber: Number(row.hadSumber) || 0,
         hadTopik: Number(row.hadTopik) || 0,
         hadNotaEditor: Number(row.hadNotaEditor) || 0,
+        hadHuraianPanjangMin: Number(row.hadHuraianPanjangMin) || 0,
+        hadSumberMin: Number(row.hadSumberMin) || 0,
+        hadTopikMin: Number(row.hadTopikMin) || 0,
+        hadNotaEditorMin: Number(row.hadNotaEditorMin) || 0,
         logoPenaja: row.logoPenaja || '',
         warnaPanelTransisi: row.warnaPanelTransisi || '#802334',
         nisbahPenajaTransisi: NISBAH_PENAJA_TRANSISI.some(n => n.nilai === Number(row.nisbahPenajaTransisi)) ? Number(row.nisbahPenajaTransisi) : 0,
@@ -121,6 +132,10 @@ export const loadAmSettings = async (dbGet) => {
     // Pengesahan simpan (validateMedanTambahan) berjalan secara sync, jadi ia baca cache
     // dalam-memori ni dan bukan pangkalan data pada setiap semakan.
     setMedanLimits(cache);
+    // Sambung SATU medan Tetapan Am Slot ni ke had geometri sebenar juga (2026-08-07, permintaan
+    // Izzat) — bukan lagi cuma semakan tambahan senyap, had yang dipapar di modal Urus Slot/prompt
+    // AI turut ikut nombor ni bila diisi.
+    setMedanLimitOverrides({ maxBriefLong: cache.hadHuraianPanjang, maxTopik: cache.hadTopik });
     return getAmSettings();
   } catch (err) {
     console.warn('Gagal memuatkan Tetapan Am Slot:', err.message);
@@ -169,10 +184,27 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         arahAnimasi: ARAH_ANIMASI.some(a => a.nilai === b.arahAnimasi) ? b.arahAnimasi : 'kanan',
         animasiAktif: b.animasiAktif ? 1 : 0,
         kelajuanAnimasi: KELAJUAN_ANIMASI.some(k => k.nilai === Number(b.kelajuanAnimasi)) ? Number(b.kelajuanAnimasi) : 1,
-        hadHuraianPanjang: nombor(b.hadHuraianPanjang, 'Had huraian panjang'),
+        hadHuraianPanjang: (() => {
+          const n = nombor(b.hadHuraianPanjang, 'Had huraian panjang');
+          // Nombor ni kini turut jadi had MAKSIMUM geometri sebenar (setMedanLimitOverrides di
+          // atas), bukan cuma semakan tambahan — mesti sekurang-kurangnya minimum huraian panjang
+          // sedia ada (MIN_BRIEF_LONG_CHARS), kalau tidak mustahil simpan APA-APA kandungan (min >
+          // max). 0 (tiada had) sentiasa dibenarkan.
+          if (n > 0 && n < MIN_BRIEF_LONG_CHARS) {
+            throw new Error(`Had huraian panjang mesti sekurang-kurangnya ${MIN_BRIEF_LONG_CHARS} aksara (had minimum sedia ada), atau 0 untuk tiada had.`);
+          }
+          return n;
+        })(),
         hadSumber: nombor(b.hadSumber, 'Had sumber'),
         hadTopik: nombor(b.hadTopik, 'Had topik'),
         hadNotaEditor: nombor(b.hadNotaEditor, 'Had nota editor'),
+        // Had MINIMUM (2026-08-07, permintaan Izzat). silangSah: 0 = tiada minimum sentiasa
+        // dibenarkan; kalau kedua-dua min DAN max ditetapkan, min mesti <= max (kalau tidak
+        // mustahil simpan APA-APA kandungan untuk medan tu — julat sah kosong).
+        hadHuraianPanjangMin: nombor(b.hadHuraianPanjangMin, 'Had minimum huraian panjang'),
+        hadSumberMin: nombor(b.hadSumberMin, 'Had minimum sumber'),
+        hadTopikMin: nombor(b.hadTopikMin, 'Had minimum topik'),
+        hadNotaEditorMin: nombor(b.hadNotaEditorMin, 'Had minimum nota editor'),
         logoPenaja: typeof b.logoPenaja === 'string' ? b.logoPenaja.slice(0, 500) : '',
         warnaPanelTransisi: warnaSah(b.warnaPanelTransisi) ? b.warnaPanelTransisi : '#802334',
         nisbahPenajaTransisi: NISBAH_PENAJA_TRANSISI.some(n => n.nilai === Number(b.nisbahPenajaTransisi)) ? Number(b.nisbahPenajaTransisi) : 0,
@@ -180,12 +212,27 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         focusViewBodySize: BODY_SIZE_SAH.includes(Number(b.focusViewBodySize)) ? Number(b.focusViewBodySize) : 15,
       };
 
+      // Silang sah min <= max (2026-08-07) — kedua-dua ditetapkan (bukan 0) mesti julat SAH,
+      // kalau tidak mustahil simpan APA-APA kandungan untuk medan tu.
+      const pasanganMinMax = [
+        ['Huraian panjang', baharu.hadHuraianPanjangMin, baharu.hadHuraianPanjang],
+        ['Sumber', baharu.hadSumberMin, baharu.hadSumber],
+        ['Topik', baharu.hadTopikMin, baharu.hadTopik],
+        ['Nota editor', baharu.hadNotaEditorMin, baharu.hadNotaEditor],
+      ];
+      for (const [nama, min, maks] of pasanganMinMax) {
+        if (min > 0 && maks > 0 && min > maks) {
+          throw new Error(`${nama}: had minimum (${min}) tak boleh lebih besar daripada had maksimum (${maks}).`);
+        }
+      }
+
       await dbRun(`
         INSERT INTO slot_am_settings (
           id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi, animasiAktif, kelajuanAnimasi,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
+          hadHuraianPanjangMin, hadSumberMin, hadTopikMin, hadNotaEditorMin,
           logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, focusViewTitleScale, focusViewBodySize, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -197,6 +244,10 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           hadSumber = excluded.hadSumber,
           hadTopik = excluded.hadTopik,
           hadNotaEditor = excluded.hadNotaEditor,
+          hadHuraianPanjangMin = excluded.hadHuraianPanjangMin,
+          hadSumberMin = excluded.hadSumberMin,
+          hadTopikMin = excluded.hadTopikMin,
+          hadNotaEditorMin = excluded.hadNotaEditorMin,
           logoPenaja = excluded.logoPenaja,
           warnaPanelTransisi = excluded.warnaPanelTransisi,
           nisbahPenajaTransisi = excluded.nisbahPenajaTransisi,
@@ -207,6 +258,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
         baharu.animasiAktif, baharu.kelajuanAnimasi,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
+        baharu.hadHuraianPanjangMin, baharu.hadSumberMin, baharu.hadTopikMin, baharu.hadNotaEditorMin,
         baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi,
         baharu.focusViewTitleScale, baharu.focusViewBodySize,
         new Date().toISOString(),

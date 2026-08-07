@@ -93,7 +93,16 @@ const validateContentBudget = (slotIndex, title, summary) => {
 //
 // 0 = TIADA HAD. Nilai dimuatkan ke cache dalam-memori oleh server semasa boot dan setiap kali
 // disimpan (core/routes/slotAmRoutes.js) kerana pengesahan ni sync.
-let MEDAN_LIMITS = { hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0 };
+let MEDAN_LIMITS = {
+  hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0,
+  // Had MINIMUM (2026-08-07, permintaan Izzat — "sepatutnya ada juga had minimum... takkan
+  // huraian panjang boleh tulis 1 aksara sahaja") — sebelum ni HANYA had maksimum wujud untuk
+  // keempat-empat medan ni; Sumber/Topik/Nota Editor langsung tiada had minimum, dan had minimum
+  // Huraian Panjang (400 aksara) dikuatkuasakan berasingan (hardcoded, lihat MIN_BRIEF_LONG_CHARS
+  // di server.js/contentRoutes.js) — bukan boleh laras di sini. Ni tambahan, bukan gantian: "yang
+  // mana lebih ketat, itu yang menahan dahulu" (sama falsafah macam nota sedia ada di server.js).
+  hadHuraianPanjangMin: 0, hadSumberMin: 0, hadTopikMin: 0, hadNotaEditorMin: 0,
+};
 
 const setMedanLimits = (nilai) => {
   MEDAN_LIMITS = {
@@ -101,6 +110,10 @@ const setMedanLimits = (nilai) => {
     hadSumber: Number(nilai?.hadSumber) || 0,
     hadTopik: Number(nilai?.hadTopik) || 0,
     hadNotaEditor: Number(nilai?.hadNotaEditor) || 0,
+    hadHuraianPanjangMin: Number(nilai?.hadHuraianPanjangMin) || 0,
+    hadSumberMin: Number(nilai?.hadSumberMin) || 0,
+    hadTopikMin: Number(nilai?.hadTopikMin) || 0,
+    hadNotaEditorMin: Number(nilai?.hadNotaEditorMin) || 0,
   };
 };
 
@@ -112,18 +125,25 @@ const getMedanLimits = () => ({ ...MEDAN_LIMITS });
  */
 const validateMedanTambahan = ({ summaryLong, source, topik, note } = {}) => {
   const semakan = [
-    ['Huraian panjang', summaryLong, MEDAN_LIMITS.hadHuraianPanjang],
-    ['Sumber', source, MEDAN_LIMITS.hadSumber],
-    ['Topik', topik, MEDAN_LIMITS.hadTopik],
-    ['Nota editor', note, MEDAN_LIMITS.hadNotaEditor],
+    ['Huraian panjang', summaryLong, MEDAN_LIMITS.hadHuraianPanjang, MEDAN_LIMITS.hadHuraianPanjangMin],
+    ['Sumber', source, MEDAN_LIMITS.hadSumber, MEDAN_LIMITS.hadSumberMin],
+    ['Topik', topik, MEDAN_LIMITS.hadTopik, MEDAN_LIMITS.hadTopikMin],
+    ['Nota editor', note, MEDAN_LIMITS.hadNotaEditor, MEDAN_LIMITS.hadNotaEditorMin],
   ];
-  for (const [nama, nilai, had] of semakan) {
-    if (!had) continue; // 0 = tiada had
+  for (const [nama, nilai, had, min] of semakan) {
     if (typeof nilai !== 'string') continue;
-    if (nilai.length > had) {
+    if (had && nilai.length > had) {
       return {
         isValid: false,
         reason: `${nama} (${nilai.length} aksara) melebihi had ${had} aksara yang ditetapkan di Tetapan Am Slot. Kandungan tidak disiarkan.`,
+      };
+    }
+    // Had minimum HANYA terpakai bila editor BENAR-BENAR isi sesuatu — medan ni semua opsyenal,
+    // ramai kandungan tiada langsung dan itu sah. Kosong terus tak pernah ditolak sebab minimum.
+    if (min && nilai.trim() && nilai.length < min) {
+      return {
+        isValid: false,
+        reason: `${nama} (${nilai.length} aksara) terlalu pendek — minimum ${min} aksara yang ditetapkan di Tetapan Am Slot (atau kosongkan terus medan ni). Kandungan tidak disiarkan.`,
       };
     }
   }

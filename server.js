@@ -448,6 +448,13 @@ const initializeSchema = () => {
               // sedia ada di adjung.db production tak dapat lajur baharu drpd CREATE IF NOT EXISTS.
               db.run('ALTER TABLE slot_am_settings ADD COLUMN animasiAktif INTEGER DEFAULT 1', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN kelajuanAnimasi REAL DEFAULT 1', () => {});
+              // Had MINIMUM medan lain (2026-08-07, permintaan Izzat — "sepatutnya ada juga had
+              // minimum... takkan huraian panjang boleh tulis 1 aksara sahaja"). Sebelum ni hanya
+              // had MAKSIMUM wujud untuk keempat-empat medan ni.
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN hadHuraianPanjangMin INTEGER DEFAULT 0', () => {});
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN hadSumberMin INTEGER DEFAULT 0', () => {});
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN hadTopikMin INTEGER DEFAULT 0', () => {});
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN hadNotaEditorMin INTEGER DEFAULT 0', () => {});
             });
 
             // Penugasan editor kepada slot (2026-07-30). Banyak-ke-banyak: satu slot boleh

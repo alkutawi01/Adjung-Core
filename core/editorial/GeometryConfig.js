@@ -218,12 +218,34 @@ export const MAX_EYEBROW_TOPIK_CHARS_BY_TIER = {
   DEFAULT: 25,
 };
 
+// Pindaan had Topik/Huraian Panjang (2026-08-07, permintaan Izzat — "camna nak edit benda ni!")
+// — dua nombor global (MAX_EYEBROW_TOPIK_CHARS_BY_TIER seragam 25, MAX_BRIEF_LONG_CHARS 600)
+// diseragamkan sesi ni TANPA UI kawalan langsung, tersembunyi di belakang ikon kunci di modal
+// Urus Slot. Ketua Editor DAH ADA medan "Had Topik"/"Had Huraian Panjang" di Tetapan Am Slot
+// (slot_am_settings, hadTopik/hadHuraianPanjang) — tapi sebelum ni cuma pemeriksaan TAMBAHAN
+// senyap (ContentBudget.js validateMedanTambahan), tak pernah benar-benar UBAH nombor yang
+// dipapar/dikuatkuasakan di sini. Sambungkan terus supaya SATU medan Tetapan Am Slot kawal
+// KEDUA-DUA — semakan tambahan DAN had geometri sebenar — bukan dua sistem berasingan yang
+// mengelirukan. 0 (lalai) = guna nilai geometri asal, tak berubah.
+const MEDAN_LIMIT_OVERRIDES = { maxBriefLong: 0, maxTopik: 0 };
+
+export const setMedanLimitOverrides = (nilai) => {
+  MEDAN_LIMIT_OVERRIDES.maxBriefLong = Number.isFinite(nilai?.maxBriefLong) && nilai.maxBriefLong > 0 ? nilai.maxBriefLong : 0;
+  MEDAN_LIMIT_OVERRIDES.maxTopik = Number.isFinite(nilai?.maxTopik) && nilai.maxTopik > 0 ? nilai.maxTopik : 0;
+};
+
+export const getMedanLimitOverrides = () => ({ ...MEDAN_LIMIT_OVERRIDES });
+
 // Berapa aksara Topik yang muat pada slot ni bila laluan ikon aktif (lihat nota di atas). Ini
 // nombor yang editor (dan prom AI) perlu nampak — had eyebrow mentah/label gabungan tak berguna
 // kepada mereka sebab mereka tak menaip bahagian Bidang, dan Bidang tak lagi dipapar sebagai teks.
 export const topikCeilingForSlot = (slotIndex) => {
   const tier = tierForSlot(slotIndex) || 'DEFAULT';
-  return MAX_EYEBROW_TOPIK_CHARS_BY_TIER[tier] ?? MAX_EYEBROW_TOPIK_CHARS_BY_TIER.DEFAULT;
+  const asas = MAX_EYEBROW_TOPIK_CHARS_BY_TIER[tier] ?? MAX_EYEBROW_TOPIK_CHARS_BY_TIER.DEFAULT;
+  // BAR/TICKER dikecualikan daripada pindaan Ketua Editor — eyebrow/Topik tak dipapar pada tier
+  // ni langsung (lihat nota MAX_EYEBROW_TOPIK_CHARS_BY_TIER), pindaan global tak patut menular ke sana.
+  if ((tier === 'BAR' || tier === 'TICKER')) return asas;
+  return MEDAN_LIMIT_OVERRIDES.maxTopik || asas;
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -273,6 +295,10 @@ export const ceilingForSlot = (slotIndex) => {
   return {
     maxTitle: ratioDef ? ratioDef.maxTitleAlone : FALLBACK_CEILINGS.DEFAULT.maxTitle,
     maxBrief: ratioDef ? ratioDef.maxBriefAlone : FALLBACK_CEILINGS.DEFAULT.maxBrief,
-    maxBriefLong: MAX_BRIEF_LONG_BY_TIER[tier] ?? MAX_BRIEF_LONG_BY_TIER.DEFAULT,
+    // BAR/TICKER dikecualikan daripada pindaan Ketua Editor — medan Huraian Panjang tak wujud
+    // langsung untuk tier ni (0 tetap), pindaan global tak patut menular ke sana.
+    maxBriefLong: (tier === 'BAR' || tier === 'TICKER')
+      ? (MAX_BRIEF_LONG_BY_TIER[tier] ?? MAX_BRIEF_LONG_BY_TIER.DEFAULT)
+      : (MEDAN_LIMIT_OVERRIDES.maxBriefLong || MAX_BRIEF_LONG_BY_TIER[tier] || MAX_BRIEF_LONG_BY_TIER.DEFAULT),
   };
 };

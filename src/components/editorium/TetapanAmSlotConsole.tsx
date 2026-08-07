@@ -25,6 +25,10 @@ interface TetapanAm {
   hadSumber: number;
   hadTopik: number;
   hadNotaEditor: number;
+  hadHuraianPanjangMin: number;
+  hadSumberMin: number;
+  hadTopikMin: number;
+  hadNotaEditorMin: number;
   warnaPanelTransisi: string;
   nisbahPenajaTransisi: number;
   focusViewTitleScale: number;
@@ -52,11 +56,18 @@ const PILIHAN_SAIZ_HURAIAN_FOCUS: { nilai: number; label: string }[] = [
   { nilai: 19, label: 'Sangat besar' },
 ];
 
-const MEDAN_HAD: { kunci: keyof TetapanAm; label: string; nota: string }[] = [
-  { kunci: 'hadHuraianPanjang', label: 'Huraian panjang', nota: 'Teks penuh dalam Focus View.' },
-  { kunci: 'hadSumber', label: 'Sumber', nota: 'Nama penerbit asal kandungan.' },
-  { kunci: 'hadTopik', label: 'Topik', nota: 'Ruang eyebrow kad masih mengehadkan Topik ikut bentuk kad; yang mana lebih ketat, itu yang menahan.' },
-  { kunci: 'hadNotaEditor', label: 'Nota editor', nota: 'Nota dalaman, tidak dipapar pada kad.' },
+const MEDAN_HAD: { kunci: keyof TetapanAm; kunciMin: keyof TetapanAm; label: string; nota: string }[] = [
+  // Sambung terus ke had geometri sebenar (2026-08-07, permintaan Izzat) — bukan lagi cuma
+  // semakan tambahan senyap. Isi nombor di sini = had "Huraian Panjang"/"Topik" yang dipapar di
+  // modal Urus Slot (tab Arahan AI) turut berubah sama. Tak termasuk Bar/Ticker (Topik/Huraian
+  // Panjang tak wujud untuk tier tu).
+  //
+  // Had MINIMUM (2026-08-07, permintaan Izzat — "sepatutnya ada juga had minimum... takkan
+  // huraian panjang boleh tulis 1 aksara sahaja") — kunciMin, kolum kedua setiap baris.
+  { kunci: 'hadHuraianPanjang', kunciMin: 'hadHuraianPanjangMin', label: 'Huraian panjang', nota: 'Teks penuh dalam Focus View. Maksimum turut jadi had geometri sebenar (papar di Urus Slot → Arahan AI) — mesti ≥400 aksara, atau 0 untuk kekal 600 (lalai). Minimum berasingan — kosong terus tetap dibenarkan.' },
+  { kunci: 'hadSumber', kunciMin: 'hadSumberMin', label: 'Sumber', nota: 'Nama penerbit asal kandungan.' },
+  { kunci: 'hadTopik', kunciMin: 'hadTopikMin', label: 'Topik', nota: 'Maksimum turut jadi had geometri sebenar (papar di Urus Slot → Arahan AI), gantikan lalai 25. Ruang eyebrow fizikal kad tetap turut mengehadkan — mana-mana lebih ketat yang menahan.' },
+  { kunci: 'hadNotaEditor', kunciMin: 'hadNotaEditorMin', label: 'Nota editor', nota: 'Nota dalaman, tidak dipapar pada kad.' },
 ];
 
 // Warna panel + nisbah logo Adjung:penaja (2026-08-05, gantikan logo TUNGGAL manual Fasa 7 —
@@ -479,7 +490,14 @@ export const TetapanAmSlotConsole: React.FC = () => {
           <div className="space-y-2">
             {MEDAN_HAD.map(m => (
               <div key={m.kunci} className="flex items-start gap-3">
-                {nombor(m.kunci)}
+                <div className="flex flex-col items-center gap-0.5">
+                  {nombor(m.kunciMin)}
+                  <span className="text-stone-400 text-[9px] uppercase tracking-wide">Min</span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5">
+                  {nombor(m.kunci)}
+                  <span className="text-stone-400 text-[9px] uppercase tracking-wide">Maks</span>
+                </div>
                 <div className="pt-1">
                   <div className="font-semibold text-stone-700">{m.label}</div>
                   <div className="text-stone-400 text-[10px] leading-relaxed">{m.nota}</div>
