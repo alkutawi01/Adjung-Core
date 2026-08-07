@@ -58,7 +58,7 @@ export const PenugasanEditorPopover: React.FC<PenugasanEditorPopoverProps> = ({
                   type="checkbox"
                   checked={ditanda}
                   onChange={() => setDraf((prev) => (ditanda ? prev.filter((x) => x !== u.id) : [...prev, u.id]))}
-                  className="w-3.5 h-3.5 rounded border-stone-300 text-[#802334] cursor-pointer"
+                  className="w-3.5 h-3.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer"
                 />
                 <span className="font-semibold text-stone-800 truncate">{u.penName || u.username}</span>
               </label>
@@ -66,7 +66,7 @@ export const PenugasanEditorPopover: React.FC<PenugasanEditorPopoverProps> = ({
           })}
         </div>
       )}
-      {ralat && <p className="text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1 text-[10px]">{ralat}</p>}
+      {ralat && <p className="text-[var(--color-error)] bg-red-50 border border-[var(--color-error)] rounded px-2 py-1 text-[10px]">{ralat}</p>}
       <div className="flex justify-end gap-2 pt-1">
         <button
           type="button"
@@ -80,7 +80,7 @@ export const PenugasanEditorPopover: React.FC<PenugasanEditorPopoverProps> = ({
           type="button"
           onClick={simpan}
           disabled={menyimpan}
-          className="bg-[#802334] text-white px-3 py-1 rounded font-semibold text-[11px] disabled:opacity-50 cursor-pointer"
+          className="bg-Adjung-maroon text-white px-3 py-1 rounded font-semibold text-[11px] disabled:opacity-50 cursor-pointer"
         >
           {menyimpan ? 'Menyimpan…' : 'Simpan'}
         </button>

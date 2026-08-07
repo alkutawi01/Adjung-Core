@@ -44,7 +44,7 @@ export const SlotMatrixCell: React.FC<SlotMatrixCellProps> = ({ slotNombor, stat
     <button
       type="button"
       onClick={onClick}
-      className="bg-[#FDFDFD] px-3 py-2.5 flex flex-col gap-0.5 min-w-0 overflow-hidden hover:bg-[#802334]/5 transition-colors cursor-pointer text-left"
+      className="bg-[#FDFDFD] px-3 py-2.5 flex flex-col gap-0.5 min-w-0 overflow-hidden hover:bg-Adjung-maroon/5 transition-colors cursor-pointer text-left"
       style={STATUS_STYLE(status)}
     >
       <span className="font-mono text-[11px] font-semibold whitespace-nowrap text-stone-700">

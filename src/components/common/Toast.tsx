@@ -50,13 +50,13 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
           ? 'border-stone-200 border-l-[#3d6b4c]'
           : isError
           ? 'border-stone-200 border-l-[#a8241f]'
-          : 'border-stone-200 border-l-[#802334]'
+          : 'border-stone-200 border-l-Adjung-maroon'
       }`}
     >
       <div className="flex items-start gap-2.5">
         {isSuccess && <CheckCircle2 className="w-4 h-4 text-[#3d6b4c] shrink-0 mt-0.5" />}
         {isError && <AlertTriangle className="w-4 h-4 text-[#a8241f] shrink-0 mt-0.5" />}
-        {!isSuccess && !isError && <Info className="w-4 h-4 text-[#802334] shrink-0 mt-0.5" />}
+        {!isSuccess && !isError && <Info className="w-4 h-4 text-Adjung-maroon shrink-0 mt-0.5" />}
         <span>{toast.message}</span>
       </div>
       <button

@@ -17,7 +17,7 @@ export const LoadingScreen: React.FC = () => {
   return (
     <div 
       id="Adjung-loading-screen"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#802334] text-[#FDFDFD] transition-colors duration-300 select-none px-6"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-Adjung-maroon text-[#FDFDFD] transition-colors duration-300 select-none px-6"
     >
       <div className="max-w-md w-full flex flex-col items-center justify-center text-center">
 

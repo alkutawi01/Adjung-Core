@@ -70,7 +70,7 @@ function SubTabBar<T extends string>({ items, active, onChange }: {
           title={it.locked ? it.lockedTitle : undefined}
           className={`flex items-center gap-1.5 px-4 py-2 font-semibold tracking-wide transition-all border-b-2 ${
             active === it.id
-              ? 'border-[#802334] text-[#802334] bg-stone-50'
+              ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50'
               : it.locked
               ? 'border-transparent text-stone-300 cursor-not-allowed'
               : 'border-transparent text-stone-500 hover:text-stone-800'
@@ -673,7 +673,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setPopoverEditorSlot((prev) => (prev === i ? null : i)); }}
                         title="Tetapkan editor yang menguruskan slot ini"
-                        className="shrink-0 max-w-[7.5rem] truncate font-sans text-[10px] text-right cursor-pointer hover:text-[#802334]"
+                        className="shrink-0 max-w-[7.5rem] truncate font-sans text-[10px] text-right cursor-pointer hover:text-Adjung-maroon"
                       >
                         {editorSlot.length === 0 ? (
                           <span className="text-stone-400 italic">+ Editor</span>
@@ -723,7 +723,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         />
       )}
       {slotEditor.saveError && (
-        <div className="fixed bottom-4 right-4 z-[60] bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded shadow-lg max-w-sm">
+        <div className="fixed bottom-4 right-4 z-[60] bg-red-50 border border-[var(--color-error)] text-[var(--color-error)] text-xs px-4 py-3 rounded shadow-lg max-w-sm">
           {slotEditor.saveError}
         </div>
       )}
@@ -746,7 +746,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         />
       )}
       {barSlotEditor.saveError && (
-        <div className="fixed bottom-4 right-4 z-[60] bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded shadow-lg max-w-sm">
+        <div className="fixed bottom-4 right-4 z-[60] bg-red-50 border border-[var(--color-error)] text-[var(--color-error)] text-xs px-4 py-3 rounded shadow-lg max-w-sm">
           {barSlotEditor.saveError}
         </div>
       )}
