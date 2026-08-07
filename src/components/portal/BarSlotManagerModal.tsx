@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { X, Trash2, Upload } from 'lucide-react';
 import { ceilingForSlot, MAX_PENERANGAN_CHARS } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBarQueue } from '../../../core/editorial/ManualBlockFormat.js';
+import { useModalFokus } from '../../hooks/useModalFokus';
 
 // Borang native Editorium untuk slot Bar (Fasa 7, 2026-08-02) — dibina selepas laluan LAMA
 // (klik kad Bar di FrontpageView semasa isEditMode) jadi tak boleh dicapai langsung: pencetus
@@ -191,14 +192,27 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
     onClose();
   };
 
+  // Pengurusan fokus modal (2026-08-07, Audit UI/UX §G1/G6) — sebelum ni fokus papan kekunci
+  // kekal di halaman belakang bila modal ni terbuka (Tab menjelajah menu sisi di bawah lapisan
+  // gelap), Escape tak berfungsi, dan pembaca skrin tak tahu langsung satu dialog terbuka.
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalFokus(modalRef, handleClose);
+  const headingId = `bar-slot-modal-heading-${editingSlotIndex}`;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
-      <div className="bg-white rounded-lg border border-stone-200 shadow-[0_4px_16px_rgba(0,0,0,.08)] w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headingId}
+        className="bg-white rounded-lg border border-stone-200 shadow-[0_4px_16px_rgba(0,0,0,.08)] w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in"
+      >
 
         <header className="flex-none px-6 md:px-8 pt-5 pb-3.5">
           <div className="flex items-start justify-between gap-6">
             <div>
-              <h2 className="font-serif text-xl md:text-2xl font-medium tracking-tight text-stone-900">
+              <h2 id={headingId} className="font-serif text-xl md:text-2xl font-medium tracking-tight text-stone-900">
                 Urus Slot Bar <span className="font-mono text-lg text-[var(--color-Adjung-maroon)]">{editingSlotIndex + 1}</span>
               </h2>
               <p className="mt-1.5 flex items-center gap-2.5 flex-wrap">

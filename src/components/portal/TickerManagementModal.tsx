@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { X, RefreshCw, Plus, Trash2, Check, AlertTriangle, ShieldCheck, Zap, Save, Settings, ChevronDown, ChevronUp, Tag, Ban } from 'lucide-react';
 import { SystemSettings } from '../../types';
 import { Tooltip } from '../common/Tooltip';
 import { StatusBadge } from '../common/StatusBadge';
+import { useModalFokus } from '../../hooks/useModalFokus';
+import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
+import { BudgetMeter } from './SlotManagerModal';
+import { ceilingForSlot } from '../../../core/editorial/GeometryConfig.js';
 
 interface TickerManagementModalProps {
   isOpen: boolean;
@@ -134,30 +138,43 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
     return (formConfig.manualSummary || '').split('____').filter((b: string) => b.trim().length > 0);
   }, [formConfig.manualSummary]);
 
+  // Meter bajet langsung + amaran label tak dikenali (2026-08-07, Audit UI/UX §F1) — sebelum ni
+  // blok yang label "Tajuk:"/"Huraian ringkas:" tak sepadan (cth editor tersilap taip format)
+  // jatuh ke cabang `(title || brief) ? ... : { isValid: true }` — DIKIRA LULUS SECARA PALSU,
+  // walhal blok tu sebenarnya akan ditolak pelayan semasa cuba disimpan. Tiga keadaan sekarang:
+  // 'pass' (label dikesan, dalam bajet), 'fail' (label dikesan, melebihi bajet), 'warning'
+  // (LANGSUNG tiada label dikesan — status tak diketahui, bukan "lulus").
   const blockStatusList = useMemo(() => {
     if (formConfig.contentMode !== 'Manual' || manualBlocks.length === 0) return [];
-    
+
     return manualBlocks.map((block: string, bIdx: number) => {
       const titleMatch = block.match(/Tajuk:\s*(?:\([^)]*\))?\s*([^\n]+)/i);
       const briefMatch = block.match(/Huraian ringkas:\s*(?:\([^)]*\))?\s*([^\n]+)/i);
       const title = titleMatch ? titleMatch[1].trim() : '';
       const brief = briefMatch ? briefMatch[1].trim() : '';
-      
-      const check = (title || brief) 
-        ? validateContentBudget(-1, title, brief) 
-        : { isValid: true };
+      const recognized = !!(titleMatch || briefMatch);
+
+      const check = recognized ? validateContentBudget(-1, title, brief) : null;
+      const state: 'pass' | 'fail' | 'warning' = !recognized ? 'warning' : (check && check.isValid ? 'pass' : 'fail');
 
       return {
         index: bIdx + 1,
-        isValid: check.isValid,
-        reason: check.reason,
+        title,
+        brief,
+        state,
+        isValid: state === 'pass',
+        reason: !recognized
+          ? 'Label "Tajuk:"/"Huraian ringkas:" tidak dikesan dalam blok ini — mungkin ditolak semasa disimpan.'
+          : check?.reason,
         titleSnippet: title ? (title.length > 25 ? title.substring(0, 25) + '...' : title) : `Artikel #${bIdx + 1}`
       };
     });
   }, [formConfig.contentMode, manualBlocks, validateContentBudget]);
 
-  const passedCount = useMemo(() => blockStatusList.filter(b => b.isValid).length, [blockStatusList]);
-  const failedCount = useMemo(() => blockStatusList.filter(b => !b.isValid).length, [blockStatusList]);
+  const passedCount = useMemo(() => blockStatusList.filter(b => b.state === 'pass').length, [blockStatusList]);
+  const failedCount = useMemo(() => blockStatusList.filter(b => b.state === 'fail').length, [blockStatusList]);
+  const warningCount = useMemo(() => blockStatusList.filter(b => b.state === 'warning').length, [blockStatusList]);
+  const tickerCeiling = useMemo(() => ceilingForSlot(-1), []);
 
   // Memoized Live Slot Mode
   const liveSlotConfig = useMemo(() => slotsConfig.find((s) => s.slotIndex === -1), [slotsConfig]);
@@ -235,6 +252,11 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
   };
 
   const handleDeleteRssSource = async (sourceId: string, sourceName: string) => {
+    // Pengesahan sebelum padam (2026-08-07, Audit UI/UX §E4) — sebelum ni klik terus buang sumber
+    // RSS tanpa sebarang amaran. Keparahan rendah (senarai boleh didaftar semula), jadi confirm()
+    // asli pelayar memadai di sini — tidak seperti tindakan memusnah keparahan tinggi lain dalam
+    // projek ni yang guna panel pengesahan aplikasi sendiri.
+    if (!window.confirm(`Buang sumber RSS '${sourceName}'? Berita daripada sumber ni akan berhenti diserap.`)) return;
     try {
       const res = await fetch(`/api/system/rss-sources/${sourceId}`, { method: 'DELETE' });
       const data = await res.json();
@@ -301,16 +323,47 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
     }
   };
 
+  // Amaran kerja belum disimpan (2026-08-07, Audit UI/UX §B1) — sebelum ni X dan Batal terus
+  // panggil onClose tanpa sebarang semakan draf/beforeunload. Ticker SATU-SATUNYA slot yang
+  // membawa kandungan SEBENAR (selebihnya data ujian dalam projek ni — lihat CLAUDE.md), jadi ini
+  // tempat paling mahal untuk kehilangan kerja senyap. Snapshot nilai ASAL medan yang disunting
+  // terus dalam modal ni (mod kandungan, kelajuan pusingan, teks manual) sekali sahaja bila modal
+  // dibuka; kotor = mana-mana daripada tiga tu menyimpang daripada snapshot itu.
+  const initialSnapshotRef = useRef<{ manualSummary: string; contentMode: string; carouselInterval: number } | null>(null);
+  if (initialSnapshotRef.current === null) {
+    initialSnapshotRef.current = {
+      manualSummary: formConfig.manualSummary || '',
+      contentMode: formConfig.contentMode || 'Manual',
+      carouselInterval: formConfig.carouselInterval ?? 10,
+    };
+  }
+  const kotor = (
+    (formConfig.manualSummary || '') !== initialSnapshotRef.current.manualSummary ||
+    (formConfig.contentMode || 'Manual') !== initialSnapshotRef.current.contentMode ||
+    (formConfig.carouselInterval ?? 10) !== initialSnapshotRef.current.carouselInterval
+  );
+  const cubaTutup = useAmaranBelumSimpan(kotor, onClose);
+
+  // Pengurusan fokus modal (2026-08-07, Audit UI/UX §G1/G6) — lihat nota sama dalam
+  // BarSlotManagerModal.tsx/SlotManagerModal.tsx: sebelum ni fokus papan kekunci kekal di halaman
+  // belakang bila modal ni terbuka, Escape tak berfungsi, pembaca skrin tak tahu dialog terbuka.
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalFokus(modalRef, cubaTutup);
+
   return (
     <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-      <div 
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ticker-modal-heading"
         className="relative max-w-2xl w-full bg-white rounded-lg shadow-[0_4px_16px_rgba(0,0,0,.08)] border border-stone-200 overflow-hidden flex flex-col max-h-[90vh] animate-fade-in"
         style={{ contain: 'paint' }}
       >
         {/* Header - Adjung Maroon Brand */}
         <header className="px-6 py-4 border-b border-stone-200 flex justify-between items-center bg-[#FAF7F0] shrink-0">
           <div>
-            <h3 className="font-serif text-sm md:text-base font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wide flex items-center gap-2">
+            <h3 id="ticker-modal-heading" className="font-serif text-sm md:text-base font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wide flex items-center gap-2">
               <Settings size={16} className="text-[var(--color-Adjung-maroon)]" />
               Urus Ticker: Berita Terkini
             </h3>
@@ -321,7 +374,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
           <Tooltip text="Tutup Panel">
             <button
               type="button"
-              onClick={onClose}
+              onClick={cubaTutup}
               className="p-1 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition cursor-pointer rounded-full hover:bg-stone-200/60"
             >
               <X size={20} />
@@ -352,16 +405,21 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {warningCount > 0 && (
+                <span className="px-2.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-300 uppercase tracking-wider flex items-center gap-1">
+                  <AlertTriangle size={11} /> {warningCount} FORMAT TAK DIKENALI
+                </span>
+              )}
               {failedCount > 0 ? (
                 <span className="px-2.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[var(--color-Adjung-maroon)]/10 text-[var(--color-Adjung-maroon)] border border-[var(--color-Adjung-maroon)]/30 uppercase tracking-wider animate-pulse flex items-center gap-1">
                   <AlertTriangle size={11} /> {failedCount} GAGAL HAD AKSARA
                 </span>
-              ) : (
+              ) : warningCount === 0 ? (
                 <span className="px-2.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 uppercase tracking-wider flex items-center gap-1">
                   <ShieldCheck size={11} /> 100% MEMATUHI HAD
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -379,16 +437,49 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       type="button"
                       onClick={() => scrollToBlockInTextarea(item.index)}
                       className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
-                        item.isValid
+                        item.state === 'pass'
                           ? 'bg-white hover:bg-stone-100 text-stone-800 border-stone-300 hover:border-[var(--color-Adjung-maroon)]/50'
+                          : item.state === 'warning'
+                          ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
                           : 'bg-[var(--color-Adjung-maroon)]/10 hover:bg-[var(--color-Adjung-maroon)]/20 text-[var(--color-Adjung-maroon)] border-[var(--color-Adjung-maroon)]/40 animate-pulse'
                       }`}
                     >
                       <span className="font-extrabold">#{item.index}</span>
-                      <span>{item.isValid ? <Check className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}</span>
+                      <span>{item.state === 'pass' ? <Check className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}</span>
                       <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{item.titleSnippet}</span>
                     </button>
                   </Tooltip>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Meter bajet langsung per blok (2026-08-07, Audit UI/UX §F1) — sebelum ni cuma lulus/
+              gagal SELEPAS menaip, tiada peratus langsung ala BudgetMeter SlotManagerModal.tsx.
+              Blok label tak dikenali dipapar amaran kuning + sebab, BUKAN meter (tiada tajuk/
+              huraian sebenar dikesan untuk diukur). */}
+          {formConfig.contentMode === 'Manual' && blockStatusList.length > 0 && (
+            <div className="bg-[#F9F8F6] p-3.5 rounded-md border border-stone-200 space-y-2.5 select-none">
+              <div className="text-[9px] font-mono font-extrabold uppercase text-stone-500 tracking-widest">
+                METER BAJET SETIAP BLOK (LANGSUNG SAMBIL MENAIP):
+              </div>
+              <div className="space-y-2">
+                {blockStatusList.map((item) => (
+                  <div key={item.index} className="bg-white p-2.5 rounded border border-stone-200">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="font-mono text-[10px] font-bold text-stone-500">#{item.index} {item.titleSnippet}</span>
+                      {item.state === 'warning' && (
+                        <span className="font-mono text-[9px] font-bold uppercase text-amber-700 flex items-center gap-1 shrink-0">
+                          <AlertTriangle size={10} /> Amaran
+                        </span>
+                      )}
+                    </div>
+                    {item.state === 'warning' ? (
+                      <p className="font-sans text-[10px] text-amber-700 leading-snug">{item.reason}</p>
+                    ) : (
+                      <BudgetMeter slotIndex={-1} ceiling={tickerCeiling} title={item.title} brief={item.brief} />
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -894,7 +985,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
             <div className="flex justify-end gap-3 pt-4 border-t border-stone-200 shrink-0">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={cubaTutup}
                 className="px-4 py-2 border border-stone-300 text-stone-700 rounded text-xs font-mono font-bold uppercase tracking-wider hover:bg-stone-100 cursor-pointer"
               >
                 Batal

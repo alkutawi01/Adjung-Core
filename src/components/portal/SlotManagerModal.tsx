@@ -77,7 +77,10 @@ function buildAiPrompt(fc: any, ceiling: { maxTitle: number; maxBrief: number; m
 // membebaskan ruang untuk huraian lebih panjang, dan sebaliknya. Peraturan ni KEKAL dikuatkuasakan
 // di peringkat simpan (validateContentBudget, ContentBudget.js) — meter ni beri amaran awal
 // sebelum editor cuba simpan dan ditolak server.
-function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: number; ceiling: { maxTitle: number; maxBrief: number }; title: string; brief: string }) {
+// Export (2026-08-07, Audit UI/UX §F1) — TickerManagementModal.tsx guna komponen SAMA ni untuk
+// meter bajet langsung per-blok, bukan salinan berasingan. Kekalkan formula/tone identik supaya
+// dua tempat tak boleh terpesong sesama sendiri.
+export function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: number; ceiling: { maxTitle: number; maxBrief: number }; title: string; brief: string }) {
   const check = validateContentBudget(slotIndex, title || '', brief || '');
   const usedTitle = ceiling.maxTitle ? title.length / ceiling.maxTitle : 0;
   const usedBrief = ceiling.maxBrief ? brief.length / ceiling.maxBrief : 0;
@@ -349,7 +352,18 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // sebarang amaran; hanya laluan "tukar slot" (handleSwitchSlot di bawah) yang disemak. Definisi
   // sama macam di sana: ada tajuk/huraian sebenar ditaip (bukan cuma baris kosong "+ Masukkan"
   // belum disentuh) di MANA-MANA kandungan dalam giliran.
-  const hasUnsavedWork = items.some((it) => (it.title || '').trim() || (it.brief || '').trim());
+  //
+  // Skop diperluas (2026-08-07, Audit UI/UX §B5) — sebelum ni HANYA title/brief disemak, jadi
+  // menyunting briefLong/topik/source/url/imej langsung TIDAK mencetuskan amaran tutup langsung
+  // (kerja hilang senyap). Semak SEMUA medan boleh sunting dalam `blankItem()` di atas, bukan dua
+  // sahaja.
+  const itemHasContent = (it: any) => (
+    (it.title || '').trim() || (it.brief || '').trim() || (it.briefLong || '').trim() ||
+    (it.topik || '').trim() || (it.source || '').trim() || (it.url || '').trim() ||
+    (it.image || '').trim() ||
+    (Array.isArray(it.sources) && it.sources.some((s: any) => (s?.name || '').trim() || (s?.url || '').trim()))
+  );
+  const hasUnsavedWork = items.some(itemHasContent);
 
   const commit = (mutator: (prevItems: any[]) => any[]) => setItems((prev) => mutator(prev));
   const patch = (i: number, key: string, value: string) => commit((prevItems) => (
