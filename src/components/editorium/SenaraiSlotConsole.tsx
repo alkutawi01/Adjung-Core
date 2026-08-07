@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { X, Check } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Check } from 'lucide-react';
 import { BidangIcon } from '../common/BidangIcon';
 import { Tooltip } from '../common/Tooltip';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -9,7 +9,7 @@ import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
 import { FormColumn } from '../common/FormColumn';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
-import { useModalFokus } from '../../hooks/useModalFokus';
+import { EditorDialog } from '../common/EditorDialog';
 import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
 import {
   GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH, tierForSlot,
@@ -116,7 +116,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   const [panelSenarai, setPanelSenarai] = useState<{ slotIndex: number; jenis: 'aktif' | 'menunggu' } | null>(null);
   // Backdrop-click guard untuk modal-modal di bawah (lihat LoginModal.tsx, pepijat Izzat
   // 2026-08-07) — dipindahkan ke dalam setiap komponen modal sendiri (§G1/G2/B2, 2026-08-07)
-  // supaya `useModalFokus`/`useAmaranBelumSimpan` mempunyai kitaran hayat lekap/lucutkan
+  // supaya perangkap fokus EditorDialog/`useAmaranBelumSimpan` mempunyai kitaran hayat lekap/lucutkan
   // sebenar (modal buka/tutup = komponen dilekap/dilucutkan), bukan sekadar JSX bersyarat
   // dalam komponen induk yang sentiasa hidup.
 
@@ -599,7 +599,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
 // ---------------------------------------------------------------------------
 // Sub-komponen modal (2026-08-07, Audit UI/UX Editorium §G1/G2/G4/G6/B2/J5/F3)
 //
-// Dipisahkan drpd JSX bersyarat dalam induk supaya `useModalFokus`/`useAmaranBelumSimpan`
+// Dipisahkan drpd JSX bersyarat dalam induk supaya perangkap fokus EditorDialog/`useAmaranBelumSimpan`
 // dapat kitaran hayat lekap/lucutkan React SEBENAR — modal buka/tutup = komponen
 // dilekap/dilucutkan, bukan cuma `{kondisi && <div>...}` dalam komponen induk yang sentiasa
 // hidup (kalau cangkuk diletak di induk, `useEffect`-nya cuma jalan sekali semasa induk lekap,
@@ -621,34 +621,26 @@ interface EditorSlotModalProps {
 const EditorSlotModal: React.FC<EditorSlotModalProps> = ({
   slotIndex, pengguna, drafEditor, setDrafEditor, drafEditorAwal, menyimpan, ralat, onSimpan, onTutup,
 }) => {
-  const refModal = useRef<HTMLDivElement>(null);
-  const mousedownPadaBackdrop = useRef(false);
   const kotor = drafEditor.length !== drafEditorAwal.length || !drafEditor.every(id => drafEditorAwal.includes(id));
   const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
-  useModalFokus(refModal, cubaTutup);
-  const idTajuk = 'editor-slot-modal-tajuk';
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
-      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current && !menyimpan) cubaTutup(); }}
+    <EditorDialog
+      saiz="sm"
+      tajuk={`Editor Slot ${slotIndex + 1}`}
+      onTutup={() => { if (!menyimpan) cubaTutup(); }}
+      tindakan={
+        <>
+          <Button variant="secondary" onClick={cubaTutup} disabled={menyimpan}>
+            Batal
+          </Button>
+          <Button variant="primary" onClick={onSimpan} disabled={menyimpan}>
+            {menyimpan ? 'Menyimpan...' : 'Simpan'}
+          </Button>
+        </>
+      }
     >
-      <div
-        ref={refModal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={idTajuk}
-        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-5 space-y-3 text-xs"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 id={idTajuk} className="font-serif text-lg font-bold text-Adjung-maroon">
-            Editor Slot {slotIndex + 1}
-          </h3>
-          <button onClick={cubaTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-        </div>
-
+      <div className="space-y-3">
         <p className="text-stone-500 text-[10px] leading-relaxed">
           Tanda setiap editor yang diamanahkan menguruskan slot ini. Mereka juga secara automatik
           bertanggungjawab ke atas Bidang slot ini.
@@ -684,17 +676,8 @@ const EditorSlotModal: React.FC<EditorSlotModalProps> = ({
         )}
 
         {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
-
-        <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
-          <Button variant="secondary" onClick={cubaTutup} disabled={menyimpan}>
-            Batal
-          </Button>
-          <Button variant="primary" onClick={onSimpan} disabled={menyimpan}>
-            {menyimpan ? 'Menyimpan...' : 'Simpan'}
-          </Button>
-        </div>
       </div>
-    </div>
+    </EditorDialog>
   );
 };
 
@@ -718,37 +701,29 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
   slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, menyimpan, ralat, ralatKonflik,
   onSalinDraf, onSimpan, onTutup,
 }) => {
-  const refModal = useRef<HTMLDivElement>(null);
-  const mousedownPadaBackdrop = useRef(false);
   const kotor = JSON.stringify(draf) !== JSON.stringify(drafAwal);
   const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
-  useModalFokus(refModal, cubaTutup);
-  const idTajuk = 'tetapan-slot-modal-tajuk';
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
-      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current && !menyimpan) cubaTutup(); }}
+    /* saiz="lg" (max-w-2xl, bukan "sm") — modal ni borang tetapan berbilang medan, dan Pelan 03
+       akan MENAMBAH medan lagi di sini; anatomi modal piawai (Pelan 01 D2) cuma benarkan
+       dua saiz, jadi saiz kandungan/borang panjang ialah pilihan yang betul. */
+    <EditorDialog
+      saiz="lg"
+      tajuk={`Tetapan Kad — Slot ${slotIndex + 1}`}
+      onTutup={() => { if (!menyimpan) cubaTutup(); }}
+      tindakan={
+        <>
+          <Button variant="secondary" onClick={cubaTutup} disabled={menyimpan}>
+            Batal
+          </Button>
+          <Button variant="primary" onClick={onSimpan} disabled={menyimpan}>
+            {menyimpan ? 'Menyimpan...' : 'Simpan'}
+          </Button>
+        </>
+      }
     >
-      {/* max-w-2xl (bukan max-w-sm) — modal ni borang tetapan berbilang medan, dan Pelan 03
-          akan MENAMBAH medan lagi di sini; anatomi modal piawai (Pelan 01 D2) cuma benarkan
-          dua saiz, jadi saiz kandungan/borang panjang ialah pilihan yang betul. */}
-      <div
-        ref={refModal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={idTajuk}
-        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[85vh] overflow-y-auto p-5 space-y-4 text-xs"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 id={idTajuk} className="font-serif text-lg font-bold text-Adjung-maroon">
-            Tetapan Kad — Slot {slotIndex + 1}
-          </h3>
-          <button onClick={cubaTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-        </div>
-
+      <div className="space-y-4">
         <div className="flex flex-col gap-1">
           <span className={LABEL_BORANG}>Bidang</span>
           {/* `sm` — senarai Bidang ialah nama pendek satu perkataan ("Ekonomi", "Kebudayaan");
@@ -988,17 +963,8 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
             </span>
           </MesejStatus>
         )}
-
-        <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
-          <Button variant="secondary" onClick={cubaTutup} disabled={menyimpan}>
-            Batal
-          </Button>
-          <Button variant="primary" onClick={onSimpan} disabled={menyimpan}>
-            {menyimpan ? 'Menyimpan...' : 'Simpan'}
-          </Button>
-        </div>
       </div>
-    </div>
+    </EditorDialog>
   );
 };
 
@@ -1017,31 +983,12 @@ interface PanelSenaraiModalProps {
 // tiada `useAmaranBelumSimpan` (tiada draf untuk hilang), tapi tetap dapat pengurusan fokus
 // (§G1/G2/G6) sepadan dua modal boleh-sunting di atas.
 const PanelSenaraiModal: React.FC<PanelSenaraiModalProps> = ({ slotIndex, jenis, senarai, formatTarikhMasa, onTutup }) => {
-  const refModal = useRef<HTMLDivElement>(null);
-  const mousedownPadaBackdrop = useRef(false);
-  useModalFokus(refModal, onTutup);
-  const idTajuk = 'panel-senarai-modal-tajuk';
-
   return (
-    <div
-      className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
-      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
+    <EditorDialog
+      saiz="lg"
+      tajuk={`Slot ${slotIndex + 1} — ${jenis === 'aktif' ? 'Kandungan Aktif' : 'Kandungan Menunggu'}`}
+      onTutup={onTutup}
     >
-      <div
-        ref={refModal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={idTajuk}
-        onClick={e => e.stopPropagation()}
-        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 space-y-3 text-xs font-sans"
-      >
-        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 id={idTajuk} className="font-serif text-lg font-bold text-Adjung-maroon">
-            Slot {slotIndex + 1} — {jenis === 'aktif' ? 'Kandungan Aktif' : 'Kandungan Menunggu'}
-          </h3>
-          <button type="button" onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-        </div>
         <div>
           {senarai.map((k) => {
             const tarikh = jenis === 'aktif' ? formatTarikhMasa(k.scheduledExpiresAt) : formatTarikhMasa(k.scheduledPublishAt);
@@ -1066,8 +1013,7 @@ const PanelSenaraiModal: React.FC<PanelSenaraiModalProps> = ({ slotIndex, jenis,
             );
           })}
         </div>
-      </div>
-    </div>
+    </EditorDialog>
   );
 };
 

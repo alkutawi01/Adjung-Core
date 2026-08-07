@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
 import { StatusBadge } from '../common/StatusBadge';
@@ -10,7 +10,7 @@ import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
-import { useModalFokus } from '../../hooks/useModalFokus';
+import { EditorDialog } from '../common/EditorDialog';
 
 // Bidang (2026-07-30) — DIPINDAHKAN daripada Tetapan → "2. Taksonomi" ke tab Slot, atas permintaan
 // pemilik projek: slot ialah kad, kad ialah slot, jadi segala tetapan yang mentakrifkan slot duduk
@@ -606,7 +606,7 @@ export const BidangConsole: React.FC = () => {
 };
 
 // Modal ikon/warna Bidang (Audit UI/UX §G1/G2/G4/G6) — diasingkan daripada BidangConsole
-// supaya useModalFokus hanya aktif selagi modal ni benar-benar dilekap. Semua state ikon/warna/plat
+// supaya perangkap fokus (kini dalam EditorDialog) hanya aktif selagi modal ni benar-benar dilekap. Semua state ikon/warna/plat
 // kini tempatan kepada modal ni — dimulakan semula setiap kali dibuka (React melekapkannya semula),
 // jadi kelakuannya sama seperti openIconPicker/closeIconPicker asal yang mengeset semula state tiap
 // kali buka/tutup.
@@ -617,9 +617,6 @@ function IkonWarnaModal({
   onTutup: () => void;
   onUpdated: () => void;
 }) {
-  const refModal = useRef<HTMLDivElement>(null);
-  useModalFokus(refModal, onTutup);
-
   const [savingIconFor, setSavingIconFor] = useState<string | null>(null);
   const [svgUploadPreview, setSvgUploadPreview] = useState<string | null>(null);
   const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
@@ -711,22 +708,17 @@ function IkonWarnaModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div
-        ref={refModal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="ikon-warna-tajuk"
-        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto"
-      >
-        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 id="ikon-warna-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon flex items-center gap-2">
-            <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />
-            Ikon, Warna &amp; Plat — {target.name}
-          </h3>
-          <button onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-        </div>
-
+    <EditorDialog
+      saiz="lg"
+      onTutup={onTutup}
+      tajuk={
+        <>
+          <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />
+          Ikon, Warna &amp; Plat — {target.name}
+        </>
+      }
+      tindakan={<Button variant="secondary" onClick={onTutup}>Tutup</Button>}
+    >
         <div className="font-sans space-y-3">
           <div className="pb-3 border-b border-stone-200">
             <label className={LABEL_BORANG}>Warna Bidang</label>
@@ -825,21 +817,13 @@ function IkonWarnaModal({
             )}
           </div>
         </div>
-
-        <div className="pt-2 border-t border-stone-200 flex justify-end">
-          <Button variant="secondary" onClick={onTutup}>Tutup</Button>
-        </div>
-      </div>
-    </div>
+    </EditorDialog>
   );
 }
 
-// Modal "Tambah Bidang" (Audit UI/UX §G1/G2/G4/G6) — diasingkan supaya useModalFokus hanya aktif
+// Modal "Tambah Bidang" (Audit UI/UX §G1/G2/G4/G6) — diasingkan supaya perangkap fokus hanya aktif
 // selagi modal ni dilekap.
 function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerjaya: () => void }) {
-  const refModal = useRef<HTMLDivElement>(null);
-  useModalFokus(refModal, onTutup);
-
   const [newDeskName, setNewDeskName] = useState('');
   const [newDeskColor, setNewDeskColor] = useState('#802334');
   const [addingDesk, setAddingDesk] = useState(false);
@@ -864,21 +848,19 @@ function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerj
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div
-        ref={refModal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="tambah-bidang-tajuk"
-        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs"
-      >
-        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 id="tambah-bidang-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">
-            + Tambah Bidang Baharu
-          </h3>
-          <button onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-        </div>
-
+    <EditorDialog
+      saiz="sm"
+      onTutup={onTutup}
+      tajuk="+ Tambah Bidang Baharu"
+      tindakan={
+        <>
+          <Button variant="secondary" onClick={onTutup}>Batal</Button>
+          <Button variant="primary" onClick={handleAddDesk} disabled={addingDesk}>
+            {addingDesk ? 'Menambah...' : 'Tambah Bidang'}
+          </Button>
+        </>
+      }
+    >
         <div className="space-y-3 font-sans">
           <div>
             <label className={LABEL_BORANG}>Nama Bidang</label>
@@ -892,15 +874,7 @@ function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerj
             </div>
           </div>
         </div>
-
-        <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
-          <Button variant="secondary" onClick={onTutup}>Batal</Button>
-          <Button variant="primary" onClick={handleAddDesk} disabled={addingDesk}>
-            {addingDesk ? 'Menambah...' : 'Tambah Bidang'}
-          </Button>
-        </div>
-      </div>
-    </div>
+    </EditorDialog>
   );
 }
 
@@ -915,9 +889,6 @@ function StrategiWarnaModal({
   onTutup: () => void;
   fetchActiveBidang: () => void;
 }) {
-  const refModal = useRef<HTMLDivElement>(null);
-  useModalFokus(refModal, onTutup);
-
   const [warnaSeragam, setWarnaSeragam] = useState('#802334');
   const [memprosesWarna, setMemprosesWarna] = useState<'unify' | 'diversify' | null>(null);
   const [mesejWarna, setMesejWarna] = useState<string | null>(null);
@@ -966,21 +937,12 @@ function StrategiWarnaModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div
-        ref={refModal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="strategi-warna-tajuk"
-        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs"
-      >
-        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 id="strategi-warna-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">
-            Strategi Warna Bidang
-          </h3>
-          <button onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-        </div>
-
+    <EditorDialog
+      saiz="sm"
+      onTutup={onTutup}
+      tajuk="Strategi Warna Bidang"
+      tindakan={<Button variant="secondary" onClick={onTutup}>Tutup</Button>}
+    >
         <div className="space-y-4 font-sans">
           <div className="space-y-2 border-b border-stone-200 pb-4">
             <p className="font-semibold text-stone-800">Selaraskan ke SATU warna</p>
@@ -1008,12 +970,7 @@ function StrategiWarnaModal({
           {mesejWarna && <MesejStatus tone="success">{mesejWarna}</MesejStatus>}
           {ralatWarna && <MesejStatus tone="error" onCubaLagi={fetchActiveBidang}>{ralatWarna}</MesejStatus>}
         </div>
-
-        <div className="pt-2 border-t border-stone-200 flex justify-end">
-          <Button variant="secondary" onClick={onTutup}>Tutup</Button>
-        </div>
-      </div>
-    </div>
+    </EditorDialog>
   );
 }
 

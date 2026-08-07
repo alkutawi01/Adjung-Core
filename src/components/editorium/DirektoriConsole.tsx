@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Search, Plus, X, Hourglass } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search, Plus, Hourglass } from 'lucide-react';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -7,7 +7,7 @@ import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
-import { useModalFokus } from '../../hooks/useModalFokus';
+import { EditorDialog } from '../common/EditorDialog';
 import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
 
 // 2026-08-02 (Fasa 3) — Direktori disambungkan ke data SEBENAR (jadual `users` + `user_roles`,
@@ -59,9 +59,6 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const [memuat, setMemuat] = useState(true);
   const [ralat, setRalat] = useState('');
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
-  // Backdrop-click guard untuk modal konfirmasi tamat di bawah (lihat LoginModal.tsx, pepijat
-  // Izzat 2026-08-07) — kekal false selagi mousedown tak bermula terus pada backdrop.
-  const mousedownPadaBackdropTamat = React.useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [tambahTerbuka, setTambahTerbuka] = useState(false);
   const [mesejBerjaya, setMesejBerjaya] = useState('');
@@ -268,19 +265,12 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       )}
 
       {konfirmasiTamat && (
-        // Sama corak backdrop-guard — lihat komen di modal selectedStaff atas.
-        <div
-          className="fixed inset-0 z-[70] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-          onMouseDown={(e) => { mousedownPadaBackdropTamat.current = e.target === e.currentTarget; }}
-          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropTamat.current && !memproses) { setKonfirmasiTamat(null); setRalatTamat(''); } }}
+        <EditorDialog
+          saiz="sm"
+          tajuk={`Tamatkan ${konfirmasiTamat.staff.penName || konfirmasiTamat.staff.username}?`}
+          onTutup={() => { if (!memproses) { setKonfirmasiTamat(null); setRalatTamat(''); } }}
         >
-          {/* Saiz modal piawai (Pelan 01 Fasa D2): `max-w-sm` untuk pengesahan, `max-w-2xl` untuk
-              kandungan/jadual — tiada saiz ketiga. */}
-          <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs font-sans">
-            <h3 className="font-serif text-lg font-bold text-Adjung-maroon border-b border-stone-200 pb-2">
-              Tamatkan {konfirmasiTamat.staff.penName || konfirmasiTamat.staff.username}?
-            </h3>
-
+          <div className="space-y-4">
             {(konfirmasiTamat.draf.length === 0 && konfirmasiTamat.menunggu.length === 0) ? (
               <p className="text-stone-600 leading-relaxed">
                 Tiada draf atau kandungan menunggu kepunyaan akaun ni — selamat ditamatkan.
@@ -313,7 +303,9 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
             {ralatTamat && <MesejStatus tone="error">{ralatTamat}</MesejStatus>}
 
             {/* Kaki modal disusun menegak (bukan sebaris) sebab label tindakannya panjang —
-                susunan tetap mengikut keutamaan D2: tindakan merbahaya, tindakan biasa, Batal. */}
+                susunan tetap mengikut keutamaan D2: tindakan merbahaya, tindakan biasa, Batal.
+                Sebab itu ia kekal dalam `children` dan BUKAN dalam prop `tindakan` EditorDialog,
+                yang menjajarkan butang sebaris ke kanan. */}
             <div className="flex flex-col gap-2 pt-2 border-t border-stone-200">
               <Button variant="bahaya" onClick={tamatkanDanPadam} disabled={memproses}>
                 {memproses ? 'Memproses…' : 'Tamatkan + Padam draf/menunggu'}
@@ -326,14 +318,14 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               </Button>
             </div>
           </div>
-        </div>
+        </EditorDialog>
       )}
     </div>
   );
 };
 
 // Modal profil anggota (Audit UI/UX §G1/G2/G4/G6, §E5) — diasingkan daripada DirektoriConsole
-// supaya useModalFokus hanya aktif selagi modal ni benar-benar dilekap (bukan sepanjang hayat
+// supaya perangkap fokus (kini dalam EditorDialog) hanya aktif selagi modal ni dilekap (bukan sepanjang hayat
 // konsol induk). ubahStatus/klikTamatkan/togolPeranan turut dipindahkan ke sini kerana
 // kesemuanya cuma dicetuskan daripada dalam modal ni.
 function ProfilAnggotaModal({
@@ -345,12 +337,6 @@ function ProfilAnggotaModal({
   onUpdated: (updated: Staff) => void;
   onSiapUntukTamat: (payload: { staff: Staff; draf: any[]; menunggu: any[] }) => void;
 }) {
-  const refModal = useRef<HTMLDivElement>(null);
-  useModalFokus(refModal, onTutup);
-  // Tutup cuma bila mousedown DAN click kedua-duanya pada backdrop (lihat LoginModal.tsx,
-  // pepijat Izzat 2026-08-07: drag-select teks dalam modal + lepas tetikus di luar modal
-  // tak patut tutup modal).
-  const mousedownPadaBackdrop = useRef(false);
   const [ralatStatus, setRalatStatus] = useState('');
   const [ralatPeranan, setRalatPeranan] = useState('');
   const [memuatKonfirmasi, setMemuatKonfirmasi] = useState(false);
@@ -407,33 +393,23 @@ function ProfilAnggotaModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
-      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
+    <EditorDialog
+      saiz="lg"
+      onTutup={onTutup}
+      tajuk={
+        // Tajuk modal ni berbilang baris (kicker + nama pena + emel), sebab itu prop `tajuk`
+        // menerima ReactNode. Guna <span className="block"> — <div> dalam <h3> bukan HTML sah.
+        <span className="block min-w-0">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold block mb-1">
+            PROFIL ANGGOTA EDITORIAL
+          </span>
+          {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon, bukan stone-900. */}
+          <span className="block font-serif text-lg font-bold text-Adjung-maroon">{staff.penName}</span>
+          <span className="block font-mono text-xs font-normal text-stone-500">{staff.username} • {staff.email}</span>
+        </span>
+      }
     >
-      <div
-        ref={refModal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="profil-anggota-tajuk"
-        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-start border-b border-stone-200 pb-4">
-          <div>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold block mb-1">
-              PROFIL ANGGOTA EDITORIAL
-            </span>
-            {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon, bukan stone-900. */}
-            <h3 id="profil-anggota-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">{staff.penName}</h3>
-            <span className="font-mono text-xs text-stone-500">{staff.username} • {staff.email}</span>
-          </div>
-          <button onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 px-2 py-1 cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+      <div className="space-y-6">
         <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
           <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">MAKLUMAT IDENTITI</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -494,7 +470,7 @@ function ProfilAnggotaModal({
           </div>
         )}
       </div>
-    </div>
+    </EditorDialog>
   );
 }
 
@@ -534,41 +510,27 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
     }
   };
 
-  // Pengesan backdrop (2026-08-07) — modal ni TERTINGGAL semasa pembetulan kelas pepijat
-  // "modal tertutup sendiri semasa drag-select teks" dibuat pada semua modal lain. Tanpa pengesan
-  // mousedown, drag-select dalam medan emel/nama yang berakhir di luar sempadan modal akan
-  // menutupnya dan membuang apa yang sudah ditaip. Lihat LoginModal.tsx untuk nota penuh.
-  const mousedownPadaBackdrop = React.useRef(false);
-
   // Amaran belum-simpan (Audit UI/UX §B2) — kotor apabila mana-mana medan sudah diisi, atau
   // peranan lalai (`editor` sahaja) sudah ditukar. Sebelum ni klik latar/X menutup borang terus
   // walaupun editor sudah menaip nama/emel.
   const kotor = !!(username || email || penName) || roles.length !== 1 || roles[0] !== 'editor';
   const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
 
-  const refModal = useRef<HTMLFormElement>(null);
-  useModalFokus(refModal, cubaTutup);
-
   return (
-    <div
-      className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
-      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) cubaTutup(); }}
+    <EditorDialog
+      saiz="sm"
+      tajuk="Tambah Anggota"
+      onTutup={cubaTutup}
+      tindakan={
+        // `form=` menyambung butang di kaki dialog kepada borang dalam `children` — EditorDialog
+        // merender `tindakan` sebagai ADIK-BERADIK kepada children, jadi penghantaran tersirat
+        // tidak berfungsi tanpa atribut ni.
+        <Button type="submit" form="borang-tambah-anggota" disabled={menyimpan || roles.length === 0}>
+          {menyimpan ? 'Mencipta...' : 'Cipta Akaun'}
+        </Button>
+      }
     >
-      <form
-        ref={refModal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="tambah-anggota-tajuk"
-        onSubmit={hantar}
-        onClick={e => e.stopPropagation()}
-        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs font-sans"
-      >
-        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 id="tambah-anggota-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">Tambah Anggota</h3>
-          <button type="button" onClick={cubaTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-        </div>
-
+      <form id="borang-tambah-anggota" onSubmit={hantar} className="space-y-4">
         <label className="block">
           <span className={LABEL_BORANG}>Nama Pena</span>
           <input type="text" value={penName} onChange={e => setPenName(e.target.value)} required className={INPUT_BORANG} />
@@ -599,14 +561,8 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
         </div>
 
         {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
-
-        <div className="flex justify-end gap-2 pt-1 border-t border-stone-200">
-          <Button type="submit" disabled={menyimpan || roles.length === 0}>
-            {menyimpan ? 'Mencipta...' : 'Cipta Akaun'}
-          </Button>
-        </div>
       </form>
-    </div>
+    </EditorDialog>
   );
 }
 
