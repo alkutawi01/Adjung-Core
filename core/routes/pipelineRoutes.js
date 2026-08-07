@@ -114,11 +114,16 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
       // so far in this request instead of leaving a partial batch committed.
       await dbRun('BEGIN TRANSACTION');
       try {
-        for (const item of parsedItems) {
+        const asasTs = Date.now();
+        for (let i = 0; i < parsedItems.length; i += 1) {
+          const item = parsedItems[i];
           const slotIdx = item.slotIndex !== undefined ? parseInt(item.slotIndex, 10) : -1;
           if (slotIdx < 0 || slotIdx >= 38) continue;
 
-          const objectId = `object-manual-slot${slotIdx}-${Date.now()}`;
+          // Cap masa + indeks (corak sama seperti server.js) — dua item ke slot yang SAMA dalam
+          // satu batch berkongsi milisaat yang sama, jadi `Date.now()` sahaja menghasilkan id
+          // serupa dan INSERT kedua gagal UNIQUE, menggulung seluruh transaksi.
+          const objectId = `object-manual-slot${slotIdx}-${asasTs + i}`;
           const finalTitle = item.title ? item.title.trim() : '';
           const finalSummary = item.summary ? item.summary.trim() : '';
           const finalCategory = item.category ? item.category.trim().toUpperCase() : 'UMUM';
