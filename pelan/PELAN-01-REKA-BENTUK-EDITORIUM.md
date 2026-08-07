@@ -159,6 +159,39 @@ Setiap modul turut menerima (senarai semak seragam — rujuk sebagai **[SERAGAM]
 
 ---
 
+## 4b. FASA D — Penstrukturan semula submodul & modal (arahan Izzat 2026-08-07)
+
+Bukan sekadar gaya — susunan DALAMAN setiap modul dan anatomi modal mesti ikut satu logik profesional yang sama.
+
+### D1. Templat struktur modul piawai
+
+Setiap modul mengikut susunan tetap, atas ke bawah:
+1. `ModulTajuk` (tajuk + huraian + tindakan utama kanan)
+2. Mesej status global modul (`MesejStatus`) jika ada
+3. Kandungan, dipecah kepada **seksyen bernombor `SectionLabel`** (`01 —`, `02 —`, …) apabila modul ada lebih daripada satu subfungsi. Peraturan penomboran: ikut aliran kerja pengguna (input dahulu, senarai/hasil kemudian, arkib/rujukan akhir). Modul satu-fungsi (cth Log Sistem) tidak perlu nombor.
+
+Penstrukturan khusus yang dikenal pasti (pelaksana sahkan semasa membaca fail, dan bentangkan screenshot sebelum/selepas kepada Izzat pada titik semak §5):
+- **EditorialConsole** — 6 tajuk h3 setara sekarang → 1 `ModulTajuk` + 6 seksyen bernombor (`01 — Autocondong`, `02 — Glosari`, …, susunan ikut kekerapan guna harian).
+- **TetapanConsole** — paling besar dan bercampur; pecahkan kepada seksyen bernombor: `01 — Kawalan Akses` (matriks RBAC), `02 — Halaman Awam`, `03 — Penyelenggaraan`, dst. ikut kandungan sebenar fail. Jika selepas dipecah masih melebihi ~5 seksyen besar, cadangkan pemecahan kepada dua tab nav kepada Izzat — JANGAN pecahkan tanpa kelulusannya (struktur nav ialah keputusan beliau).
+- **NotaKetuaEditorConsole / PenajaConsole** — corak "borang cipta di atas, senarai di bawah" dikekalkan tetapi dinomborkan (`01 — Terbitkan Nota` / `02 — Nota Aktif`), selaras templat.
+- **SenaraiSlotConsole** — tiga modal (sunting slot / tetapan slot / panel senarai): pastikan pemisahan tugasnya jelas — *sunting kandungan* vs *tetapan slot* tidak bercampur dalam satu modal.
+
+### D2. Anatomi modal piawai
+
+Semua modal Editorium mengikut satu anatomi (rujuk `LoginModal.tsx` selepas pembaikan drag-select sebagai asas tingkah laku backdrop):
+1. **Kepala:** tajuk `font-serif text-lg font-bold text-Adjung-maroon` + ikon kecil pilihan, butang X kanan (`text-stone-400 hover:text-stone-700`)
+2. **Badan:** kandungan/borang (guna `LABEL_BORANG`/`INPUT_BORANG`)
+3. **Kaki:** butang tindakan di kanan — `Button variant="primary"` paling kanan, `secondary`/Batal di kirinya; tindakan merbahaya (padam/tamatkan) guna gaya bahaya dan WAJIB pengesahan dua langkah sedia ada
+4. **Saiz:** dua sahaja — `max-w-sm` (borang ringkas/pengesahan) dan `max-w-2xl` (kandungan/jadual); jangan reka saiz ketiga
+5. **Tingkah laku:** Escape menutup; klik backdrop menutup HANYA dengan pengesan mousedown (corak sedia ada); modal dengan borang kotor (ada perubahan belum simpan) meminta pengesahan sebelum tutup — jika belum ada mekanisme kotor, tanda TODO, jangan bina separuh jadi
+6. **Kecualian:** `LengkapkanProfilModal` kekal tidak boleh ditutup (sengaja, gerbang terma); `MaklumanDrawer` ialah laci, ikut anatomi laci sendiri tetapi warna/label diseragamkan
+
+### D3. Skop kumpulan komit
+
+Fasa D dilaksana SERENTAK dengan Fasa C bagi setiap modul (satu lawatan per fail, bukan dua pusingan), dalam kumpulan komit §5 yang sama. Kriteria siap §6 ditambah:
+- [ ] Setiap modul multi-fungsi berseksyen bernombor mengikut templat D1
+- [ ] Semua modal mematuhi anatomi D2 (kepala/badan/kaki/saiz/tingkah laku)
+
 ## 5. Urutan & kumpulan komit
 
 1. **Komit 1:** Fasa A penuh (komponen baharu) + Fasa B pada `common/` sahaja. tsc + semak visual tiada regresi (komponen belum dipakai, risiko rendah).

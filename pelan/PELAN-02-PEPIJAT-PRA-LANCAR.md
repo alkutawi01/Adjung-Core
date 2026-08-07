@@ -79,10 +79,10 @@
 
 ---
 
-## §S — Soalan untuk Izzat sebelum/semasa pelaksanaan
+## §S — Keputusan Izzat (SUDAH DIJAWAB 2026-08-07 — laksana terus, jangan tanya semula)
 
-- **S1 (#1):** Tampal pukal patut (a) masuk sebagai *Menunggu* dan ikut alur kelulusan biasa, atau (b) kekal terus-terbit tetapi terhad kepada pemegang kunci `publish` (Ketua Editor/Penolong)? — cadangan: (b), sebab tampal pukal memang alat Ketua Editor mengisi banyak slot pantas.
-- **S2 (#12):** Laluan pipeline AI dilumpuhkan terus (403 sentiasa) atau digerbang `manageEditorial` sahaja? — cadangan: dilumpuhkan terus, selaras keputusan saluran 2026-08-02.
+- **S1 (#1): TERUS TERBIT.** Tampal pukal kekal terus-terbit (`status: 'approved'`) tetapi digerbang `requirePermission('publish')` — ia alat pemegang kunci terbit sahaja. Semakan `hadKandunganSlot` tetap wajib ditambah.
+- **S2 (#12): LUMPUHKAN TERUS.** `POST /pipeline/run` & `/slots/run-now` pulangkan 403 sentiasa dengan mesej "Saluran AI dimatikan." — bukan sekadar gerbang kebenaran.
 
 ## Urutan pelaksanaan dicadangkan
 
