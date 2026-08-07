@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BRAND } from '../../config/brand';
 import { Tooltip } from '../common/Tooltip';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { SectionLabel } from '../common/SectionLabel';
+import { MesejStatus } from '../common/MesejStatus';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Button } from '../common/Button';
+import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // Rujukan visual tunggal (warna, tipografi, komponen kongsi). Geometri kad (saiz, had aksara)
 // didokumentasikan berasingan di Perlembagaan — muka ni tak ulang kandungan tu.
@@ -17,6 +24,8 @@ const COLOR_TOKENS = [
   { varName: '--color-Adjung-cream', tw: 'bg-Adjung-cream', usage: 'Latar halaman (portal awam & Editorium, diselaraskan 2026-07-26).' },
   { varName: '--color-Adjung-dark', tw: 'bg-Adjung-dark', usage: 'Warna teks/ink utama.' },
   { varName: '--color-Adjung-gray-light', tw: 'bg-Adjung-gray-light', usage: 'Neutral cair — sempadan, latar sekunder.' },
+  { varName: '--color-Adjung-paper', tw: 'bg-Adjung-paper', usage: 'Latar kertas — kepala jadual Editorium (KEPALA_JADUAL). Ditambah 2026-08-07 bagi menggantikan hex sebaris #F7F5F2.' },
+  { varName: '--color-Adjung-line', tw: 'border-Adjung-line', usage: 'Garis pemisah baris jadual (GARIS_BARIS). Ditambah 2026-08-07 bagi menggantikan hex sebaris #F0EDE9.' },
 ];
 
 // Belum jadi token @theme rasmi — hex terus dlm komponen berkenaan. Disenaraikan di sini supaya
@@ -79,25 +88,25 @@ export const SistemRekaBentukConsole: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200">
-        <h2 className="font-serif text-base uppercase tracking-wider text-Adjung-maroon font-bold mb-1">
-          Sistem Reka Bentuk Adjung Brief
-        </h2>
-        <p className="font-sans text-xs text-stone-600 max-w-2xl">
-          Rujukan tunggal identiti visual — jenama, warna, tipografi, komponen kongsi. Nilai di
-          bawah dibaca TERUS daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/index.css</code> dan{' '}
-          <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/config/brand.ts</code> semasa
-          muka ni dimuatkan — bukan salinan tangan. Peraturan geometri kad (saiz slot, had aksara)
-          kekal di <span className="font-semibold text-stone-800">Perlembagaan</span>, tak diulang di sini.
-        </p>
-      </div>
+      <ModulTajuk
+        tajuk="Sistem Reka Bentuk Adjung Brief"
+        huraian={
+          <span className="block max-w-2xl">
+            Rujukan tunggal identiti visual — jenama, warna, tipografi, komponen kongsi. Nilai di
+            bawah dibaca TERUS daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/index.css</code> dan{' '}
+            <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/config/brand.ts</code> semasa
+            muka ni dimuatkan — bukan salinan tangan. Peraturan geometri kad (saiz slot, had aksara)
+            kekal di <span className="font-semibold text-stone-800">Perlembagaan</span>, tak diulang di sini.
+          </span>
+        }
+      />
 
       {/* 01 — BRAND IDENTITY */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           01 — Identiti Jenama
-        </span>
-        <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+        </SectionLabel>
+        <PanelCard>
           <div className="flex flex-col items-center text-center py-4 mb-5 border-b border-stone-150">
             <div className="flex items-center gap-3 mb-1">
               <img src="/adjung-symbol.svg" alt="Simbol Adjung" className="h-11 w-auto" />
@@ -167,15 +176,15 @@ export const SistemRekaBentukConsole: React.FC = () => {
               dirujuk semula) — sahkan label tepat kalau ada silap.
             </p>
           </div>
-        </div>
+        </PanelCard>
       </div>
 
       {/* 02 — COLORS */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           02 — Warna
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+        </SectionLabel>
+        <PanelCard padding="p-6">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
             {COLOR_TOKENS.map(t => (
               <Tooltip key={t.varName} text={t.usage}>
@@ -205,15 +214,15 @@ export const SistemRekaBentukConsole: React.FC = () => {
               ))}
             </div>
           </div>
-        </div>
+        </PanelCard>
       </div>
 
       {/* 03 — TYPOGRAPHY */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           03 — Tipografi
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
+        </SectionLabel>
+        <PanelCard padding="p-6" className="space-y-4">
           {FONT_TOKENS.map(f => (
             <div key={f.varName} className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-2 md:gap-4 items-start pb-4 border-b border-stone-100 last:border-0 last:pb-0">
               <div>
@@ -228,15 +237,15 @@ export const SistemRekaBentukConsole: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
+        </PanelCard>
       </div>
 
       {/* 04 — COMPONENTS */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           04 — Komponen Kongsi
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-6">
+        </SectionLabel>
+        <PanelCard padding="p-6" className="space-y-6">
           <div>
             <div className="font-serif text-sm font-bold text-stone-900 mb-1">Tooltip</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
@@ -244,9 +253,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
               (32 tempat, digantikan 2026-07-25). Halaman ni sendiri guna Tooltip — hover atas swatch warna di atas.
             </p>
             <Tooltip text="Contoh tooltip Adjung — opacity+blur, maroon, tiada border">
-              <button className="px-3 py-1.5 bg-Adjung-maroon hover:bg-Adjung-maroon-dark text-white rounded text-xs font-semibold cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,.04)]">
-                Hover Saya
-              </button>
+              <Button>Hover Saya</Button>
             </Tooltip>
           </div>
 
@@ -268,7 +275,132 @@ export const SistemRekaBentukConsole: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </PanelCard>
+      </div>
+
+      {/* 05 — KOMPONEN & PEMALAR EDITORIUM (Pelan 01 Fasa A, 2026-08-07). Seksyen ni sengaja
+          memaparkan komponen SEBENAR (bukan gambar rajah), jadi apabila komponen kongsi berubah,
+          contoh di bawah turut berubah dengan sendirinya. */}
+      <div>
+        <SectionLabel>05 — Komponen &amp; Pemalar Editorium</SectionLabel>
+        <PanelCard padding="p-6" className="space-y-6">
+          <p className="font-sans text-xs text-stone-600 leading-relaxed">
+            Komponen di bawah ialah rangka piawai setiap modul Editorium. Peraturannya mudah:
+            modul TIDAK menulis gaya kad, tajuk, ralat, atau keadaan kosong sendiri lagi — semuanya
+            diimport daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">src/components/common/</code>.
+            Apabila sesuatu corak perlu berubah, ia diubah sekali di situ, bukan 16 kali.
+          </p>
+
+          <div className="pt-5 border-t border-stone-100">
+            <div className="font-serif text-sm font-bold text-stone-900 mb-1">ModulTajuk</div>
+            <p className="font-sans text-xs text-stone-600 mb-2.5">
+              Kepala modul piawai — tajuk serif-maroon, huraian pilihan, dan slot tindakan di hujung
+              kanan. Kepala setiap muka Editorium (termasuk muka ni) ialah komponen ni.
+            </p>
+            <ModulTajuk
+              tajuk="Tajuk Modul"
+              huraian="Satu ayat pendek menerangkan fungsi modul."
+              tindakan={<Button variant="secondary" size="sm">Muat Semula</Button>}
+            />
+          </div>
+
+          <div className="pt-5 border-t border-stone-100">
+            <div className="font-serif text-sm font-bold text-stone-900 mb-1">PanelCard</div>
+            <p className="font-sans text-xs text-stone-600 mb-2.5">
+              Kad panel tunggal: satu radius, satu sempadan, satu bayang. Padding{' '}
+              <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">p-6</code> (lalai),{' '}
+              <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">p-4</code> untuk kad
+              rujukan padat, dan <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">p-0</code> untuk
+              kad yang membalut jadual (memerlukan sudut terpotong kemas).
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <PanelCard padding="p-4"><span className="font-sans text-xs text-stone-600">padding="p-4"</span></PanelCard>
+              <PanelCard><span className="font-sans text-xs text-stone-600">padding lalai "p-6"</span></PanelCard>
+            </div>
+          </div>
+
+          <div className="pt-5 border-t border-stone-100">
+            <div className="font-serif text-sm font-bold text-stone-900 mb-1">SectionLabel</div>
+            <p className="font-sans text-xs text-stone-600 mb-2.5">
+              Label seksyen bernombor (<code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">01 —</code>,{' '}
+              <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">02 —</code>) yang memecahkan modul
+              berbilang fungsi. Setiap tajuk seksyen dalam muka ni menggunakannya.
+            </p>
+            <SectionLabel>01 — Contoh Label Seksyen</SectionLabel>
+          </div>
+
+          <div className="pt-5 border-t border-stone-100">
+            <div className="font-serif text-sm font-bold text-stone-900 mb-1">MesejStatus</div>
+            <p className="font-sans text-xs text-stone-600 mb-2.5">
+              Kotak mesej ralat/kejayaan/neutral. Menggantikan tiga merah berlainan yang dahulunya
+              membawa maksud sama — kini satu token semantik sahaja.
+            </p>
+            <div className="flex flex-col gap-2 max-w-sm">
+              <MesejStatus tone="error">Kandungan melebihi bajet ruang kad.</MesejStatus>
+              <MesejStatus tone="success">Tetapan berjaya disimpan.</MesejStatus>
+              <MesejStatus tone="neutral">Matriks disimpan, belum dikuatkuasakan.</MesejStatus>
+            </div>
+          </div>
+
+          <div className="pt-5 border-t border-stone-100">
+            <div className="font-serif text-sm font-bold text-stone-900 mb-1">KeadaanKosong</div>
+            <p className="font-sans text-xs text-stone-600 mb-2.5">
+              Nada tunggal bagi senarai kosong. Keadaan kosong bukan ralat, jadi ia kecil dan tenang —
+              bukan blok besar berwarna.
+            </p>
+            <PanelCard padding="p-0"><KeadaanKosong>Tiada rekod setakat ini.</KeadaanKosong></PanelCard>
+          </div>
+
+          <div className="pt-5 border-t border-stone-100">
+            <div className="font-serif text-sm font-bold text-stone-900 mb-1">Button — empat varian</div>
+            <p className="font-sans text-xs text-stone-600 mb-2.5">
+              Varian <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">bahaya</code> ditambah
+              2026-08-07 untuk tindakan yang tidak boleh dibatalkan (padam, tamatkan akaun) — ia WAJIB
+              berpasangan dengan pengesahan dua langkah, bukan sekadar warna merah. Dua saiz sahaja:{' '}
+              <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">sm</code> dan{' '}
+              <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">md</code>.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="primary">Utama</Button>
+              <Button variant="secondary">Sekunder</Button>
+              <Button variant="ghost">Telus</Button>
+              <Button variant="bahaya">Padam</Button>
+            </div>
+          </div>
+
+          <div className="pt-5 border-t border-stone-100">
+            <div className="font-serif text-sm font-bold text-stone-900 mb-1">Pemalar gayaKongsi</div>
+            <p className="font-sans text-xs text-stone-600 mb-2.5">
+              Corak yang terlalu kecil untuk dijadikan komponen penuh, tetapi tetap tidak boleh
+              ditulis semula oleh setiap modul. Diimport daripada{' '}
+              <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">common/gayaKongsi.ts</code>.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className={LABEL_BORANG}>LABEL_BORANG</label>
+                <input className={INPUT_BORANG} defaultValue="INPUT_BORANG — fokus maroon" readOnly />
+              </div>
+            </div>
+            <table className="w-full text-left border-collapse font-sans text-xs">
+              <thead>
+                <tr className={`${KEPALA_JADUAL} border-b border-Adjung-line`}>
+                  <th className="p-2.5">KEPALA_JADUAL</th>
+                  <th className="p-2.5">Latar token --color-Adjung-paper</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className={GARIS_BARIS}>
+                  <td className="p-2.5 text-stone-700">GARIS_BARIS</td>
+                  <td className="p-2.5 text-stone-500">Sempadan token --color-Adjung-line</td>
+                </tr>
+                <tr className={GARIS_BARIS}>
+                  <td className="p-2.5 text-stone-700">GARIS_BARIS</td>
+                  <td className="p-2.5 text-stone-500">Baris kedua, jarak sama</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </PanelCard>
       </div>
     </div>
   );

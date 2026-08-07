@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { GEOMETRY_RATIOS, ratiosForTier, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { SectionLabel } from '../common/SectionLabel';
+import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // Everything under CHART DATA below is read directly from core/editorial/GeometryConfig.js --
 // the exact same module server.js imports for validateContentBudget. There is no second copy of
@@ -156,26 +161,26 @@ export const PerlembagaanConsole: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200">
-        <h2 className="font-serif text-base uppercase tracking-wider text-Adjung-maroon font-bold mb-1">
-          Perlembagaan Adjung Brief
-        </h2>
-        <p className="font-sans text-xs text-stone-600 max-w-2xl">
-          Rujukan tunggal bagi peraturan kad bento serta sejarah perubahannya. Carta di bawah dijana
-          terus daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">core/editorial/GeometryConfig.js</code> —
-          apabila fail itu berubah, carta ini turut dikemas kini secara automatik. Peraturan bertulis
-          pula dikemas kini oleh editor setiap kali seni bina sebenar berubah.
-        </p>
-      </div>
+      <ModulTajuk
+        tajuk="Perlembagaan Adjung Brief"
+        huraian={
+          <span className="block max-w-2xl">
+            Rujukan tunggal bagi peraturan kad bento serta sejarah perubahannya. Carta di bawah dijana
+            terus daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">core/editorial/GeometryConfig.js</code> —
+            apabila fail itu berubah, carta ini turut dikemas kini secara automatik. Peraturan bertulis
+            pula dikemas kini oleh editor setiap kali seni bina sebenar berubah.
+          </span>
+        }
+      />
 
       {/* UNIVERSAL RULES */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           01 — Peraturan Sejagat (Semua Slot, Termasuk Ticker)
-        </span>
+        </SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {UNIVERSAL_RULES.map((rule, i) => (
-            <div key={i} className="bg-white p-4 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+            <PanelCard key={i} padding="p-4">
               <div className="flex items-start gap-2">
                 <span className="font-mono text-[10px] text-stone-400 font-bold pt-0.5">{String(i + 1).padStart(2, '0')}</span>
                 <div>
@@ -183,22 +188,22 @@ export const PerlembagaanConsole: React.FC = () => {
                   <p className="font-sans text-xs text-stone-600 leading-relaxed">{rule.body}</p>
                 </div>
               </div>
-            </div>
+            </PanelCard>
           ))}
         </div>
       </div>
 
       {/* TIER CHART — live from GeometryConfig.js */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           02 — Carta Pembahagian Slot (Masa Nyata)
-        </span>
+        </SectionLabel>
 
         {/* Shape gallery: real MEASURED pixel proportions (getBoundingClientRect on the live page
             at 1280px width), to scale, side by side — not derived from grid units (that
             approach was tried first and produced a wrong, near-square MENEGAK box; see the
             TIER_SHAPE_PX comment above for what happened and why). */}
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] mb-3">
+        <PanelCard padding="p-6" className="mb-3">
           <div className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold mb-3">
             Bentuk sebenar (diukur terus daripada kad sebenar, skala 1:{Math.round(1 / SHAPE_SCALE)})
           </div>
@@ -234,9 +239,9 @@ export const PerlembagaanConsole: React.FC = () => {
               );
             })}
           </div>
-        </div>
+        </PanelCard>
 
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
+        <PanelCard padding="p-6" className="space-y-4">
           {TIER_ORDER.map(tier => {
             const ratio = ratiosForTier(tier);
             const slots = tier === 'TICKER' ? null : (TIER_SLOTS as any)[tier];
@@ -274,17 +279,17 @@ export const PerlembagaanConsole: React.FC = () => {
               </div>
             );
           })}
-        </div>
+        </PanelCard>
       </div>
 
       {/* BIDANG & TOPIK — rujuk core/editorial/ContentBudget.js validateBidangTopik(). Bidang
           ialah konsep "Kategori"/desk sedia ada, kini terkunci kepada satu nilai tetap per slot;
           Topik ialah medan bebas-had per-kandungan yang mewarisi warna Bidang induknya. */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           03 — Bidang &amp; Topik
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
+        </SectionLabel>
+        <PanelCard padding="p-6" className="space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
@@ -356,7 +361,7 @@ Nota:`}</pre>
               tiada Bidang terkunci, tiada Topik, label kad tidak berubah.
             </p>
           </div>
-        </div>
+        </PanelCard>
       </div>
 
       {/* PERATURAN KHAS SLOT BAR — diekstrak & disahkan terus daripada kod semasa (server.js,
@@ -366,10 +371,10 @@ Nota:`}</pre>
           dibetulkan dulu sebelum peraturan ini ditulis, supaya apa yang tertulis di sini sentiasa
           padan dengan apa yang benar-benar berlaku, bukan spesifikasi angan-angan. */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           04 — Peraturan Khas Slot Bar
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
+        </SectionLabel>
+        <PanelCard padding="p-6" className="space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
@@ -444,16 +449,16 @@ URL:`}</pre>
               tiada perubahan kod diperlukan untuknya.
             </p>
           </div>
-        </div>
+        </PanelCard>
       </div>
 
       {/* ALUR KERJA DRAF/TERBIT — diekstrak & disahkan terus daripada kod semasa (SlotManagerModal.tsx,
           useSlotEditor.ts, server.js syncManualObjectsForSlot, IndeksConsole.tsx). */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           05 — Alur Kerja Draf/Terbit
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
+        </SectionLabel>
+        <PanelCard padding="p-6" className="space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Modal "Tulis Kandungan" ialah ruang draf peribadi sahaja</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
@@ -495,16 +500,16 @@ URL:`}</pre>
               jadi tak sesekali muncul dalam senarai/tapisan Indeks walau apa jua keadaan.
             </p>
           </div>
-        </div>
+        </PanelCard>
       </div>
 
       {/* NAMA EDITOR & KAWALAN AKSES — diekstrak & disahkan terus daripada kod semasa
           (useSlotEditor.ts, server.js, IndeksConsole.tsx, TetapanConsole.tsx). */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           06 — Nama Editor &amp; Kawalan Akses
-        </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
+        </SectionLabel>
+        <PanelCard padding="p-6" className="space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Nama editor sebenar dicatat semasa Terbit</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
@@ -534,37 +539,35 @@ URL:`}</pre>
               tegar dalam kod, tanpa rujuk matriks ni langsung. Ini KIV sehingga arahan lanjut.
             </p>
           </div>
-        </div>
+        </PanelCard>
       </div>
 
       {/* LIVE CHANGE LOG */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           07 — Log Perubahan Peraturan (Masa Nyata, Daripada Git)
-        </span>
-        <div className="bg-white rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] overflow-hidden">
+        </SectionLabel>
+        <PanelCard padding="p-0">
           {loadingLog ? (
-            <div className="p-8 text-center font-serif text-stone-500 text-xs">Memuatkan sejarah...</div>
+            <KeadaanKosong>Memuatkan sejarah...</KeadaanKosong>
           ) : changelogUnavailable ? (
-            <div className="p-8 text-center font-serif text-stone-500 text-xs">
-              Sejarah git tidak tersedia dalam persekitaran ini.
-            </div>
+            <KeadaanKosong>Sejarah git tidak tersedia dalam persekitaran ini.</KeadaanKosong>
           ) : commits.length === 0 ? (
-            <div className="p-8 text-center font-serif text-stone-500 text-xs">Tiada rekod perubahan setakat ini.</div>
+            <KeadaanKosong>Tiada rekod perubahan setakat ini.</KeadaanKosong>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse font-sans text-xs min-w-[480px]">
                 <thead>
-                  <tr className="bg-stone-100 border-b border-stone-200 font-mono text-[9px] uppercase text-stone-600 tracking-wider">
+                  <tr className={`${KEPALA_JADUAL} border-b border-Adjung-line`}>
                     <th className="p-3 w-24">Rujukan</th>
                     <th className="p-3 w-28">Tarikh</th>
                     <th className="p-3">Perubahan</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody>
                   {commits.map(c => (
                     <Tooltip key={c.fullHash} text={`git revert ${c.hash} — untuk batalkan perubahan ini`}>
-                      <tr className="hover:bg-stone-50">
+                      <tr className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                         <td className="p-3 font-mono text-[11px] text-stone-500">{c.hash}</td>
                         <td className="p-3 font-mono text-[10px] text-stone-500 whitespace-nowrap">{c.date}</td>
                         <td className="p-3 font-serif text-stone-800">{c.message}</td>
@@ -575,7 +578,7 @@ URL:`}</pre>
               </table>
             </div>
           )}
-        </div>
+        </PanelCard>
         <p className="font-sans text-[10px] text-stone-400 mt-2">
           Rujukan (cth. <code className="bg-stone-100 px-1 py-0.5 rounded">{commits[0]?.hash || '1a2b3c4'}</code>) boleh diminta untuk dibatalkan (revert) bila-bila masa.
         </p>
@@ -585,29 +588,29 @@ URL:`}</pre>
           UI/UX-affecting change lands (scripts/log-ui-change.mjs), not deferred to commit time,
           and carries a full jam:minit:saat timestamp, not just a date. */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
+        <SectionLabel>
           08 — Log Perubahan UI/UX (Masa Nyata)
-        </span>
-        <div className="bg-white rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] overflow-hidden">
+        </SectionLabel>
+        <PanelCard padding="p-0">
           {loadingUiUxLog ? (
-            <div className="p-8 text-center font-serif text-stone-500 text-xs">Memuatkan log...</div>
+            <KeadaanKosong>Memuatkan log...</KeadaanKosong>
           ) : uiUxUnavailable ? (
-            <div className="p-8 text-center font-serif text-stone-500 text-xs">Log UI/UX tidak tersedia.</div>
+            <KeadaanKosong>Log UI/UX tidak tersedia.</KeadaanKosong>
           ) : uiUxEntries.length === 0 ? (
-            <div className="p-8 text-center font-serif text-stone-500 text-xs">Tiada rekod perubahan UI/UX setakat ini.</div>
+            <KeadaanKosong>Tiada rekod perubahan UI/UX setakat ini.</KeadaanKosong>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse font-sans text-xs min-w-[480px]">
                 <thead>
-                  <tr className="bg-stone-100 border-b border-stone-200 font-mono text-[9px] uppercase text-stone-600 tracking-wider">
+                  <tr className={`${KEPALA_JADUAL} border-b border-Adjung-line`}>
                     <th className="p-3 w-40">Masa</th>
                     <th className="p-3">Perubahan</th>
                     <th className="p-3 w-56">Fail</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody>
                   {uiUxEntries.map((e, i) => (
-                    <tr key={i} className="hover:bg-stone-50">
+                    <tr key={i} className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                       <td className="p-3 font-mono text-[10px] text-stone-500 whitespace-nowrap">{formatLogTime(e.time)}</td>
                       <td className="p-3 font-serif text-stone-800">{e.summary}</td>
                       <td className="p-3 font-mono text-[9px] text-stone-500">{e.files.join(', ')}</td>
@@ -617,7 +620,7 @@ URL:`}</pre>
               </table>
             </div>
           )}
-        </div>
+        </PanelCard>
       </div>
     </div>
   );

@@ -1,4 +1,7 @@
 import React from 'react';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { SectionLabel } from '../common/SectionLabel';
 
 // Panduan (Fasa 16, 2026-08-02) — panduan operasi harian untuk editor sebenar, bukan spesifikasi
 // teknikal. Setiap dakwaan di bawah disemak terus terhadap kod semasa (EditoriumView.tsx,
@@ -7,17 +10,15 @@ import React from 'react';
 // (had aksara, format medan, dsb.) rujuk Dokumentasi → Peraturan Am (PerlembagaanConsole.tsx);
 // fail ni sengaja tidak menyalin semula nombor tersebut, cuma merujuk ke sana.
 
-const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
-    {children}
-  </span>
-);
-
+// Kad panduan bertajuk — chrome kad (sempadan/bayang/radius) datang daripada PanelCard kongsi;
+// yang tinggal di sini hanyalah corak tajuk + badan khusus muka panduan. Padding dikekalkan p-4
+// (bukan lalai p-6) kerana kad rujukan di sini padat dan berbilang dalam satu grid, sama seperti
+// kad peraturan Perlembagaan.
 const Card: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+  <PanelCard padding="p-4">
     <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">{title}</h3>
     <div className="font-sans text-xs text-stone-600 leading-relaxed">{children}</div>
-  </div>
+  </PanelCard>
 );
 
 // Carta Alir Kandungan (2026-08-06, permintaan Izzat) — status SEBENAR dalam kod
@@ -46,7 +47,7 @@ const CartaAlirKandungan: React.FC = () => {
     </g>
   );
   return (
-    <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] overflow-x-auto">
+    <PanelCard padding="p-4" className="overflow-x-auto">
       <svg viewBox="0 0 830 320" className="w-full min-w-[700px]" style={{ maxHeight: 360 }}>
         <defs>
           <marker id="panahMaroon" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
@@ -98,24 +99,24 @@ const CartaAlirKandungan: React.FC = () => {
         Sendiri Editor</strong> (Slot → 4. Tetapan Am); kandungan yang lulus tapi slot penuh
         kekal Menunggu (naik taraf automatik bila ruang terbuka) — lihat seksyen 01 di atas.
       </p>
-    </div>
+    </PanelCard>
   );
 };
 
 export const PanduanConsole: React.FC = () => {
   return (
     <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200">
-        <h2 className="font-serif text-base uppercase tracking-wider text-Adjung-maroon font-bold mb-1">
-          Panduan Penggunaan Editorium
-        </h2>
-        <p className="font-sans text-xs text-stone-600 max-w-2xl">
-          Rujukan ringkas cara menulis, menerbit, dan mengurus kandungan di Adjung Brief —
-          langkah demi langkah, ikut apa yang sebenarnya wujud dalam sistem hari ini. Untuk
-          peraturan teknikal penuh (had aksara kad, format medan, dsb.), rujuk{' '}
-          <span className="font-semibold text-stone-800">Dokumentasi → 1. Peraturan Am</span>.
-        </p>
-      </div>
+      <ModulTajuk
+        tajuk="Panduan Penggunaan Editorium"
+        huraian={
+          <span className="block max-w-2xl">
+            Rujukan ringkas cara menulis, menerbit, dan mengurus kandungan di Adjung Brief —
+            langkah demi langkah, ikut apa yang sebenarnya wujud dalam sistem hari ini. Untuk
+            peraturan teknikal penuh (had aksara kad, format medan, dsb.), rujuk{' '}
+            <span className="font-semibold text-stone-800">Dokumentasi → 1. Peraturan Am</span>.
+          </span>
+        }
+      />
 
       {/* 01 — ALUR KERJA TULIS/TERBIT */}
       <div>
