@@ -160,7 +160,7 @@ export const PenajaConsole: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan penaja.');
       kosongkanBorang();
       setMesej(menyuntingSedia ? 'Penaja dikemas kini' : 'Penaja ditambah');
-      setTimeout(() => setMesej(''), 2400);
+      setTimeout(() => setMesej(''), 6000);
       muat();
     } catch (err: any) {
       setRalatBorang(err.message || 'Gagal menyimpan penaja.');

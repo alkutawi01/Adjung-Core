@@ -93,6 +93,11 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
   const [ralatBorang, setRalatBorang] = useState('');
   const [mesej, setMesej] = useState('');
 
+  // Pengesahan dalam-aplikasi (Audit UI/UX §E1, §B4) — bukan `window.confirm`. Simpan id nota yang
+  // menunggu pengesahan; butang berkenaan (Padam/Sunting) digantikan sementara dengan Ya/Batal.
+  const [confirmPadamId, setConfirmPadamId] = useState('');
+  const [confirmSuntingId, setConfirmSuntingId] = useState('');
+
   const muat = useCallback(() => {
     setMemuat(true);
     setRalat('');
@@ -125,6 +130,18 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
     setKategori(n.kategori);
     setSkop(n.skop);
     setRalatBorang('');
+    setConfirmSuntingId('');
+  };
+
+  // B4: sebelum menimpa borang, semak jika ada kandungan belum simpan (nota BAHARU sedang ditaip,
+  // atau nota LAIN sedang disunting) — kalau ada, minta pengesahan dahulu.
+  const mintaSunting = (n: Nota) => {
+    const adaDrafLain = (tajuk.trim() !== '' || kandungan.trim() !== '') && menyunting !== n.id;
+    if (adaDrafLain) {
+      setConfirmSuntingId(n.id);
+    } else {
+      mulaSunting(n);
+    }
   };
 
   const hantar = async (e: React.FormEvent) => {
@@ -145,7 +162,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan nota.');
       kosongkanBorang();
       setMesej(menyuntingSedia ? 'Nota dikemas kini' : 'Nota diterbitkan');
-      setTimeout(() => setMesej(''), 2400);
+      setTimeout(() => setMesej(''), 6000);
       muat();
       onBerubah?.();
     } catch (err: any) {
@@ -358,14 +375,34 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                           >
                             {n.disemat ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                           </button>
-                          <button
-                            type="button"
-                            title="Sunting nota"
-                            onClick={() => mulaSunting(n)}
-                            className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
+                          {confirmSuntingId === n.id ? (
+                            <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-300 rounded px-2 py-1">
+                              <span className="text-[10px] text-amber-800 font-semibold whitespace-nowrap">Buang draf semasa?</span>
+                              <button
+                                type="button"
+                                onClick={() => mulaSunting(n)}
+                                className="text-[10px] font-bold text-amber-800 hover:underline cursor-pointer"
+                              >
+                                Ya
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmSuntingId('')}
+                                className="text-[10px] text-stone-500 hover:underline cursor-pointer"
+                              >
+                                Batal
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Sunting nota"
+                              onClick={() => mintaSunting(n)}
+                              className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             title="Arkibkan nota"
@@ -386,14 +423,34 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                           >
                             <ArchiveRestore className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            type="button"
-                            title="Padam nota selamanya"
-                            onClick={() => padam(n.id)}
-                            className="p-1.5 text-stone-400 hover:text-[var(--color-error)] transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {confirmPadamId === n.id ? (
+                            <span className="flex items-center gap-1.5 bg-red-50 border border-[var(--color-error)]/40 rounded px-2 py-1">
+                              <span className="text-[10px] text-[var(--color-error)] font-semibold whitespace-nowrap">Padam selamanya?</span>
+                              <button
+                                type="button"
+                                onClick={() => { padam(n.id); setConfirmPadamId(''); }}
+                                className="text-[10px] font-bold text-[var(--color-error)] hover:underline cursor-pointer"
+                              >
+                                Ya
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmPadamId('')}
+                                className="text-[10px] text-stone-500 hover:underline cursor-pointer"
+                              >
+                                Batal
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Padam nota selamanya"
+                              onClick={() => setConfirmPadamId(n.id)}
+                              className="p-1.5 text-stone-400 hover:text-[var(--color-error)] transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

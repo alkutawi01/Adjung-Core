@@ -41,6 +41,8 @@ export const EditorialConsole: React.FC = () => {
   const [memuatIstilah, setMemuatIstilah] = useState(true);
   const [istilahBaharu, setIstilahBaharu] = useState('');
   const [ralatIstilah, setRalatIstilah] = useState('');
+  const [menghantarIstilah, setMenghantarIstilah] = useState(false);
+  const [confirmBuangIstilah, setConfirmBuangIstilah] = useState('');
 
   const muatIstilah = useCallback(() => {
     setMemuatIstilah(true);
@@ -57,8 +59,9 @@ export const EditorialConsole: React.FC = () => {
 
   const tambahIstilah = async () => {
     const term = istilahBaharu.trim().toLowerCase();
-    if (!term) return;
+    if (!term || menghantarIstilah) return;
     setRalatIstilah('');
+    setMenghantarIstilah(true);
     try {
       const res = await fetch('/api/system/adjung-typography-rules', {
         method: 'POST',
@@ -71,6 +74,8 @@ export const EditorialConsole: React.FC = () => {
       muatIstilah();
     } catch (e: any) {
       setRalatIstilah(e.message || 'Gagal menambah istilah.');
+    } finally {
+      setMenghantarIstilah(false);
     }
   };
 
@@ -81,6 +86,8 @@ export const EditorialConsole: React.FC = () => {
       setIstilah((prev) => prev.filter((t) => t.id !== id));
     } catch (e: any) {
       setRalatIstilah(e.message || 'Gagal memadam istilah.');
+    } finally {
+      setConfirmBuangIstilah('');
     }
   };
 
@@ -92,6 +99,8 @@ export const EditorialConsole: React.FC = () => {
   const [gIstilah, setGIstilah] = useState('');
   const [gMaksud, setGMaksud] = useState('');
   const [ralatGlosari, setRalatGlosari] = useState('');
+  const [menghantarGlosari, setMenghantarGlosari] = useState(false);
+  const [confirmBuangGlosari, setConfirmBuangGlosari] = useState('');
 
   const muatGlosari = useCallback(() => {
     setMemuatGlosari(true);
@@ -104,7 +113,9 @@ export const EditorialConsole: React.FC = () => {
 
   const tambahGlosari = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (menghantarGlosari) return;
     setRalatGlosari('');
+    setMenghantarGlosari(true);
     try {
       const res = await fetch('/api/system/glosari', {
         method: 'POST',
@@ -117,6 +128,8 @@ export const EditorialConsole: React.FC = () => {
       muatGlosari();
     } catch (err: any) {
       setRalatGlosari(err.message || 'Gagal menyimpan istilah.');
+    } finally {
+      setMenghantarGlosari(false);
     }
   };
 
@@ -127,6 +140,8 @@ export const EditorialConsole: React.FC = () => {
       setGlosari((prev) => prev.filter((g) => g.id !== id));
     } catch (e: any) {
       setRalatGlosari(e.message || 'Gagal memadam istilah.');
+    } finally {
+      setConfirmBuangGlosari('');
     }
   };
 
@@ -138,6 +153,8 @@ export const EditorialConsole: React.FC = () => {
   const [eElakkan, setEElakkan] = useState('');
   const [eCatatan, setECatatan] = useState('');
   const [ralatEjaan, setRalatEjaan] = useState('');
+  const [menghantarEjaan, setMenghantarEjaan] = useState(false);
+  const [confirmBuangEjaan, setConfirmBuangEjaan] = useState('');
 
   const muatEjaan = useCallback(() => {
     setMemuatEjaan(true);
@@ -150,7 +167,9 @@ export const EditorialConsole: React.FC = () => {
 
   const tambahEjaan = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (menghantarEjaan) return;
     setRalatEjaan('');
+    setMenghantarEjaan(true);
     try {
       const res = await fetch('/api/system/ejaan', {
         method: 'POST',
@@ -163,6 +182,8 @@ export const EditorialConsole: React.FC = () => {
       muatEjaan();
     } catch (err: any) {
       setRalatEjaan(err.message || 'Gagal menyimpan bentuk ejaan.');
+    } finally {
+      setMenghantarEjaan(false);
     }
   };
 
@@ -173,6 +194,8 @@ export const EditorialConsole: React.FC = () => {
       setEjaan((prev) => prev.filter((x) => x.id !== id));
     } catch (e: any) {
       setRalatEjaan(e.message || 'Gagal memadam bentuk ejaan.');
+    } finally {
+      setConfirmBuangEjaan('');
     }
   };
 
@@ -285,9 +308,9 @@ export const EditorialConsole: React.FC = () => {
               variant="primary"
               size="sm"
               onClick={tambahIstilah}
-              disabled={!istilahBaharu.trim()}
+              disabled={menghantarIstilah || !istilahBaharu.trim()}
             >
-              + Tambah
+              {menghantarIstilah ? 'Menambah…' : '+ Tambah'}
             </Button>
           </div>
 
@@ -304,14 +327,33 @@ export const EditorialConsole: React.FC = () => {
                 {t.status !== 'active' && (
                   <StatusBadge tone="warning" label="Belum Aktif" />
                 )}
-                <button
-                  type="button"
-                  onClick={() => buangIstilah(t.id)}
-                  className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
-                  title="Buang istilah"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+                {confirmBuangIstilah === t.id ? (
+                  <span className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => buangIstilah(t.id)}
+                      className="text-[10px] font-bold text-[var(--color-error)] hover:underline cursor-pointer"
+                    >
+                      Buang?
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmBuangIstilah('')}
+                      className="text-[10px] text-stone-500 hover:underline cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmBuangIstilah(t.id)}
+                    className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
+                    title="Buang istilah"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
               </span>
             ))}
           </div>
@@ -358,8 +400,8 @@ export const EditorialConsole: React.FC = () => {
             {ralatGlosari && <MesejStatus tone="error">{ralatGlosari}</MesejStatus>}
 
             <div className="flex justify-end">
-              <Button type="submit" variant="primary" size="md" disabled={!gIstilah.trim()}>
-                + Tambah ke Glosari
+              <Button type="submit" variant="primary" size="md" disabled={menghantarGlosari || !gIstilah.trim()}>
+                {menghantarGlosari ? 'Menambah…' : '+ Tambah ke Glosari'}
               </Button>
             </div>
           </form>
@@ -387,14 +429,34 @@ export const EditorialConsole: React.FC = () => {
                         <td className="p-2.5 font-semibold text-stone-800">{g.istilah}</td>
                         <td className="p-2.5 text-stone-600">{g.maksud || <span className="text-stone-300">—</span>}</td>
                         <td className="p-2.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => buangGlosari(g.id)}
-                            className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
-                            title="Buang daripada glosari"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                          {confirmBuangGlosari === g.id ? (
+                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                              <span className="text-[10px] text-stone-500">Buang?</span>
+                              <button
+                                type="button"
+                                onClick={() => buangGlosari(g.id)}
+                                className="text-[10px] font-bold text-[var(--color-error)] hover:underline cursor-pointer"
+                              >
+                                Ya
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmBuangGlosari('')}
+                                className="text-[10px] text-stone-500 hover:underline cursor-pointer"
+                              >
+                                Batal
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmBuangGlosari(g.id)}
+                              className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
+                              title="Buang daripada glosari"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -451,8 +513,8 @@ export const EditorialConsole: React.FC = () => {
             {ralatEjaan && <MesejStatus tone="error">{ralatEjaan}</MesejStatus>}
 
             <div className="flex justify-end">
-              <Button type="submit" variant="primary" size="md" disabled={!eBetul.trim()}>
-                + Tambah ke Senarai Ejaan
+              <Button type="submit" variant="primary" size="md" disabled={menghantarEjaan || !eBetul.trim()}>
+                {menghantarEjaan ? 'Menambah…' : '+ Tambah ke Senarai Ejaan'}
               </Button>
             </div>
           </form>
@@ -482,14 +544,34 @@ export const EditorialConsole: React.FC = () => {
                         <td className="p-2.5 text-stone-500">{x.elakkan || <span className="text-stone-300">—</span>}</td>
                         <td className="p-2.5 text-stone-600">{x.catatan || <span className="text-stone-300">—</span>}</td>
                         <td className="p-2.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => buangEjaan(x.id)}
-                            className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
-                            title="Buang daripada senarai ejaan"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                          {confirmBuangEjaan === x.id ? (
+                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                              <span className="text-[10px] text-stone-500">Buang?</span>
+                              <button
+                                type="button"
+                                onClick={() => buangEjaan(x.id)}
+                                className="text-[10px] font-bold text-[var(--color-error)] hover:underline cursor-pointer"
+                              >
+                                Ya
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmBuangEjaan('')}
+                                className="text-[10px] text-stone-500 hover:underline cursor-pointer"
+                              >
+                                Batal
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmBuangEjaan(x.id)}
+                              className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
+                              title="Buang daripada senarai ejaan"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
