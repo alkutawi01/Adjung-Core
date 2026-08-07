@@ -26,6 +26,13 @@
   --color-success: #3D6B4C;
   --color-warning: #B8934A;
   --color-error: #A8241F;
+
+  /* Warna jadual Editorium (2026-08-07, penyeragaman reka bentuk — dahulu hex sebaris
+     #F7F5F2/#F0EDE9 bertaburan dalam DrafSayaConsole/LogAuditConsole tanpa nama). "paper"
+     ialah latar kepala jadual, "line" garis pemisah baris. Guna kelas Tailwind terbitan
+     (bg-Adjung-paper, border-Adjung-line) — JANGAN taip semula hexnya. */
+  --color-Adjung-paper: #F7F5F2;
+  --color-Adjung-line: #F0EDE9;
 }
 
 /* Token semantik dari Adjung Brief Design System (tokens/colors.css + tokens/typography.css),
