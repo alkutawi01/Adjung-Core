@@ -101,6 +101,13 @@ export function createWorldClockRoutes(dbGet) {
       if (!todayEntry) throw new Error(`No entry found for ${todayStr} (zone ${zone})`);
 
       let resultHijri = todayEntry.hijri;
+      // Lepas Maghrib hari ni (2026-08-07, permintaan Izzat: "hari" MESTI ikut Maghrib sama
+      // seperti tarikh Hijrah — dahulu label hari di sebelah tarikh Hijrah kekal ikut tengah
+      // malam, jadi selepas Maghrib tarikh Hijrah dah bertukar tapi nama hari belum). Dedahkan
+      // boolean ni terus supaya klien boleh anjak label hari SATU hari ke depan serentak dengan
+      // tarikh Hijrah — pengiraan Maghrib sepatutnya SATU tempat sahaja (di sini), bukan cuba
+      // kira semula di klien.
+      const lepasMaghrib = !!(todayEntry.maghrib && nowTimeStr >= todayEntry.maghrib);
 
       // Past today's Maghrib -> the Islamic day has already advanced; use tomorrow's civil-Hijri
       // value instead, crossing month boundaries by fetching next month if needed.
@@ -119,10 +126,10 @@ export function createWorldClockRoutes(dbGet) {
         if (tomorrowEntry) resultHijri = tomorrowEntry.hijri;
       }
 
-      res.json({ hijri: resultHijri, zone }); // hijri: "YYYY-MM-DD"
+      res.json({ hijri: resultHijri, zone, lepasMaghrib }); // hijri: "YYYY-MM-DD"
     } catch (err) {
       console.warn(`Failed to fetch Hijri date (zone=${zone}) from waktusolat.app:`, err.message);
-      res.json({ hijri: null, zone });
+      res.json({ hijri: null, zone, lepasMaghrib: false });
     }
   });
 

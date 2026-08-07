@@ -265,6 +265,13 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   // the fetch fails — confirmed via direct comparison against JAKIM's data that the local estimate
   // can drift a day off the real one, so the API result is preferred whenever it's reachable.
   const [jakimHijriByCity, setJakimHijriByCity] = useState<Record<string, string>>({});
+  // Lepas-Maghrib per bandar (2026-08-07, permintaan Izzat: "hari" MESTI ikut Maghrib sama seperti
+  // tarikh Hijrah — dahulu label hari [ISN/SEL/dll] di sebelah tarikh Hijrah kekal ikut tengah
+  // malam, jadi selepas Maghrib tarikh Hijrah dah bertukar tapi nama hari belum, dua-dua jadi tak
+  // sepadan). Bendera boolean ni datang terus dari pelayan (sama pengiraan Maghrib yang menentukan
+  // tarikh Hijrah tu sendiri) — dipakai di updateTime bawah untuk anjak label hari SATU hari ke
+  // depan bagi bandar Kumpulan A (Kelantan/Terengganu/Kedah) sahaja, serentak dengan tarikh Hijrah.
+  const [lepasMaghribByCity, setLepasMaghribByCity] = useState<Record<string, boolean>>({});
   useEffect(() => {
     const fetchAll = () => {
       Object.entries(HIJRI_ZONE_BY_CITY).forEach(([cityName, zone]) => {
@@ -274,6 +281,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
             if (data && data.hijri) {
               setJakimHijriByCity(prev => (prev[cityName] === data.hijri ? prev : { ...prev, [cityName]: data.hijri }));
             }
+            setLepasMaghribByCity(prev => (prev[cityName] === !!data?.lepasMaghrib ? prev : { ...prev, [cityName]: !!data?.lepasMaghrib }));
           })
           .catch(() => {});
       });
@@ -483,6 +491,15 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           let isSchoolHoliday = false;
 
           const day = obj.weekday.toUpperCase();
+          // Label hari anjak SATU hari ke depan selepas Maghrib bagi bandar Kumpulan A (2026-08-07,
+          // permintaan Izzat) — HANYA label paparan (dayLabel/dayFull di bawah), bukan `day` di
+          // atas: cuti/hujung minggu (gregKey, isDefaultWeekend, dll di bawah) SENGAJA kekal ikut
+          // tengah malam biasa, itu keputusan berasingan yang tak diminta. Susunan ISN->SEL->...
+          // ->AHD->ISN, gelung balik ke ISN lepas AHD.
+          const URUTAN_HARI = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+          const dayUntukLabel = (FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name) && lepasMaghribByCity[c.name])
+            ? URUTAN_HARI[(URUTAN_HARI.indexOf(day) + 1) % 7]
+            : day;
 
           // Cuti umum: API cuti ialah SUMBER TUNGGAL apabila ia menjawab. Ia membawa 49 cuti
           // setahun lengkap dengan kod negeri, termasuk cuti bergerak (Aidilfitri, Deepavali,
@@ -585,8 +602,8 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
             MON: 'Isnin', TUE: 'Selasa', WED: 'Rabu', THU: 'Khamis',
             FRI: 'Jumaat', SAT: 'Sabtu', SUN: 'Ahad'
           };
-          const dayLabel = DAY_LABEL_MS[day] || day;
-          const dayFull = DAY_FULL_MS[day] || day;
+          const dayLabel = DAY_LABEL_MS[dayUntukLabel] || dayUntukLabel;
+          const dayFull = DAY_FULL_MS[dayUntukLabel] || dayUntukLabel;
           const clockStr = `${obj.hour}:${obj.minute} ${obj.dayPeriod}`;
           const timeStr = `${displayDateStr} · ${dayLabel} · ${clockStr}`;
 
@@ -621,7 +638,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData, jakimHijriByCity]);
+  }, [systemSettings.worldClockHolidaysText, worldClockHolidaysGoogleDocText, apiHolidaysData, jakimHijriByCity, lepasMaghribByCity]);
 
   // Baris meta telefon, dua sumber berasingan:
   //
