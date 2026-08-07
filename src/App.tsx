@@ -4,6 +4,7 @@ import { db } from './db/mockDb';
 import { FrontpageView } from './components/portal/FrontpageView';
 import { LoginModal } from './components/editorium/LoginModal';
 import { muatPindaanTier } from './config/tierOverrides';
+import { muatPindaanMedanLimit } from './config/medanLimitOverrides';
 import { muatPindaanLabel } from './config/labelOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -213,6 +214,9 @@ export default function App() {
     // had dalam borang penulisan mengesahkan ikut nilai lalai sedangkan server sudah pakai nilai
     // yang dipinda. Lihat src/config/tierOverrides.ts.
     muatPindaanTier();
+    // Pindaan had geometri Topik/Huraian Panjang (Tetapan Am Slot) — sama sebab persis muatPindaanTier
+    // di atas. Lihat src/config/medanLimitOverrides.ts.
+    muatPindaanMedanLimit();
     // Gantian Label Sistem (Fasa 6) — sama sebab: label lama (STATUS_LABEL/MOD_KANDUNGAN_LABEL/
     // MESEJ_SISTEM_LABEL) dikodkan terus di istilah.ts; gantian Ketua Editor kena disuap masuk
     // secara eksplisit. Lihat src/config/labelOverrides.ts.

@@ -8,6 +8,7 @@ import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
 import { FormColumn } from '../common/FormColumn';
 import { tierForSlot, TIER_LABELS } from '../../../core/editorial/GeometryConfig.js';
+import { muatPindaanMedanLimit } from '../../config/medanLimitOverrides';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
 // bento sekali gus. Ticker dan tier Bar tiada di sini; kedua-duanya diuruskan di Modul Khas.
@@ -258,6 +259,9 @@ export const TetapanAmSlotConsole: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
       setBerjaya(labelUi('toast.tetapan_am_disimpan'));
       muat();
+      // Suap masuk salinan browser serta-merta (2026-08-08) — kalau tidak, meter had dalam
+      // modal Urus Slot papar nilai lama sehingga muat semula penuh. Lihat medanLimitOverrides.ts.
+      muatPindaanMedanLimit();
     } catch (e: any) {
       setRalat(e.message || 'Gagal menyimpan.');
     } finally {
