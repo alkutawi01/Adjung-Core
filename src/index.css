@@ -685,3 +685,66 @@ h1, h2, h3, h4, h5, h6, p {
     scroll-behavior: auto !important;
   }
 }
+
+/* Microanimation ikon Focus View (2026-08-07, permintaan Izzat — "tambah microanimation di full
+   screen view, mcm anak panah navigasi bertukar warna bila dihover, logo media sosial dll.").
+   Diguna pakai SAMA RATA merentasi semua butang ikon-sahaja Focus View (nav ATAS/BAWAH, togol
+   rawak/auto, Kongsi/Salin pautan, tutup) — bukan cuma anak panah — sepadan falsafah "sejenis
+   dilayan sama rata" projek ni. Warna rehat kekal seperti sedia ada per-butang (kebanyakan
+   stone-400/500); hover/fokus papan kekunci beralih ke marun + sedikit skala. Transition-duration
+   diringkaskan ke 0.01ms oleh peraturan prefers-reduced-motion global di atas. */
+.fv-icon-btn {
+  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fv-icon-btn:hover, .fv-icon-btn:focus-visible {
+  color: var(--color-Adjung-maroon) !important;
+  transform: scale(1.12);
+}
+
+/* Butang bulat (Kongsi WhatsApp/Facebook/X/Salin pautan) — angkat halus + garis marun, bukan
+   cuma warna, sebab latar+sempadan sedia ada (pill putih) perlu isyarat tambahan supaya hover
+   nampak pada latar terang. */
+.fv-pill-btn {
+  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fv-pill-btn:hover, .fv-pill-btn:focus-visible {
+  color: var(--color-Adjung-maroon) !important;
+  border-color: var(--color-Adjung-maroon) !important;
+  box-shadow: 0 2px 8px rgba(128, 35, 52, 0.18);
+  transform: translateY(-1px);
+}
+
+/* Preview Sebelum/Selepas desktop (anak panah ▲/▼ + tajuk) — anak panah bertukar marun DAN
+   beranjak sedikit ke arah navigasi (atas untuk Sebelum, bawah untuk Selepas), tajuk itu sendiri
+   tak berubah warna (kekal tenang, anak panah sahaja beri isyarat interaktif). */
+.fv-nav-preview .fv-arrow {
+  display: inline-block;
+  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fv-nav-preview:hover .fv-arrow, .fv-nav-preview:focus-visible .fv-arrow {
+  color: var(--color-Adjung-maroon) !important;
+}
+.fv-nav-preview.fv-nav-prev:hover .fv-arrow, .fv-nav-preview.fv-nav-prev:focus-visible .fv-arrow {
+  transform: translateY(-2px);
+}
+.fv-nav-preview.fv-nav-next:hover .fv-arrow, .fv-nav-preview.fv-nav-next:focus-visible .fv-arrow {
+  transform: translateY(2px);
+}
+
+/* Nav ATAS/BAWAH kaki telefon — chevron rehat stone-400 (bukan marun statik sedia ada, yang
+   menjadikan isyarat hover mustahil sebab warna dah sama), beralih marun + beranjak ikon sahaja
+   bila hover (tajuk pratonton di sisi kekal warna asal). */
+.fv-nav-chevron {
+  color: var(--stone-400);
+  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+button:hover .fv-nav-chevron, button:focus-visible .fv-nav-chevron {
+  color: var(--color-Adjung-maroon);
+}
+button:hover .fv-nav-chevron.fv-nav-chevron-up, button:focus-visible .fv-nav-chevron.fv-nav-chevron-up {
+  transform: translateY(-2px);
+}
+button:hover .fv-nav-chevron.fv-nav-chevron-down, button:focus-visible .fv-nav-chevron.fv-nav-chevron-down {
+  transform: translateY(2px);
+}

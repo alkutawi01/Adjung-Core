@@ -127,16 +127,16 @@ function KongsiButtons({ title, url, disalinBerjaya, onSalin }: { title: string;
   const laluan = encodeURIComponent(url);
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-      <a href={`https://wa.me/?text=${teks}%20${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di WhatsApp" title="WhatsApp" style={btnStyle}>
+      <a href={`https://wa.me/?text=${teks}%20${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di WhatsApp" title="WhatsApp" className="fv-pill-btn" style={btnStyle}>
         <MessageCircle size={13} strokeWidth={1.75} />
       </a>
-      <a href={`https://www.facebook.com/sharer/sharer.php?u=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di Facebook" title="Facebook" style={btnStyle}>
+      <a href={`https://www.facebook.com/sharer/sharer.php?u=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di Facebook" title="Facebook" className="fv-pill-btn" style={btnStyle}>
         <Facebook size={13} strokeWidth={1.75} />
       </a>
-      <a href={`https://twitter.com/intent/tweet?text=${teks}&url=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di X" title="X (Twitter)" style={btnStyle}>
+      <a href={`https://twitter.com/intent/tweet?text=${teks}&url=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di X" title="X (Twitter)" className="fv-pill-btn" style={btnStyle}>
         <Twitter size={13} strokeWidth={1.75} />
       </a>
-      <button type="button" onClick={onSalin} aria-label="Salin pautan" title="Salin pautan" style={btnStyle}>
+      <button type="button" onClick={onSalin} aria-label="Salin pautan" title="Salin pautan" className="fv-pill-btn" style={btnStyle}>
         {disalinBerjaya ? <Check size={13} strokeWidth={1.75} /> : <Link2 size={13} strokeWidth={1.75} />}
       </button>
     </span>
@@ -784,6 +784,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                     type="button" onClick={onToggleNavMode}
                     aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
                     title={navMode === 'rawak' ? 'Rawak' : 'Turutan'}
+                    className="fv-pill-btn"
                     style={{
                       appearance: 'none', background: 'var(--surface-page)', border: '1px solid var(--stone-300)',
                       borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
@@ -798,6 +799,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   <button
                     type="button" onClick={() => setAutoPlay(p => !p)}
                     aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
+                    className="fv-pill-btn"
                     style={{
                       appearance: 'none', background: 'var(--surface-page)', border: '1px solid var(--stone-300)',
                       borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
@@ -815,7 +817,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               gap: '1px', background: 'var(--border-default)', borderTop: '1px solid var(--border-default)',
             }}>
               <button type="button" aria-label="Kandungan sebelum" onClick={onPrev} disabled={!onPrev} style={{ ...navBtn, flexDirection: 'row', alignItems: 'center' }}>
-                <ChevronUp size={16} strokeWidth={1.75} color="var(--color-Adjung-maroon)" style={{ flex: '0 0 auto' }} />
+                <ChevronUp size={16} strokeWidth={1.75} className="fv-nav-chevron fv-nav-chevron-up" style={{ flex: '0 0 auto' }} />
                 {prevPreviewTitle && (
                   <span style={{
                     fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
@@ -830,7 +832,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
                   }}>{nextPreviewTitle}</span>
                 )}
-                <ChevronDown size={16} strokeWidth={1.75} color="var(--color-Adjung-maroon)" style={{ flex: '0 0 auto' }} />
+                <ChevronDown size={16} strokeWidth={1.75} className="fv-nav-chevron fv-nav-chevron-down" style={{ flex: '0 0 auto' }} />
               </button>
             </div>
           </div>
@@ -878,6 +880,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               type="button" onClick={onToggleNavMode}
               aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
               title={navMode === 'rawak' ? 'Rawak' : 'Turutan'}
+              className="fv-icon-btn"
               style={{
                 display: 'inline-flex', alignItems: 'center', background: 'none', border: 0,
                 padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
@@ -891,6 +894,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               type="button" onClick={() => setAutoPlay(p => !p)}
               aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
               title={autoPlay ? 'Jeda' : 'Auto'}
+              className="fv-icon-btn"
               style={{
                 display: 'inline-flex', alignItems: 'center', background: 'none', border: 0,
                 padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
@@ -902,7 +906,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
         </span>
         <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
         {onClose && (
-          <button {...closeProps} style={{
+          <button {...closeProps} className="fv-icon-btn" style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             justifySelf: 'end', background: 'none', border: 0, padding: 0, cursor: 'pointer', lineHeight: 1,
             color: closeLit ? 'var(--color-Adjung-maroon)' : 'var(--stone-400)',
@@ -1039,18 +1043,20 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   {prevPreviewTitle && (
                     <button
                       type="button" onClick={onPrev}
+                      className="fv-nav-preview fv-nav-prev"
                       style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: '8px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onPrev ? 'pointer' : 'default' }}
                     >
-                      <span style={{ ...micro, textTransform: 'none' as any, fontSize: 'var(--text-11)', flex: '0 0 auto' }} aria-hidden="true">▲</span>
+                      <span className="fv-arrow" style={{ ...micro, textTransform: 'none' as any, fontSize: 'var(--text-11)', flex: '0 0 auto' }} aria-hidden="true">▲</span>
                       <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{prevPreviewTitle}</span>
                     </button>
                   )}
                   {nextPreviewTitle && (
                     <button
                       type="button" onClick={onNext}
+                      className="fv-nav-preview fv-nav-next"
                       style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: '8px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onNext ? 'pointer' : 'default' }}
                     >
-                      <span style={{ ...micro, textTransform: 'none' as any, fontSize: 'var(--text-11)', flex: '0 0 auto' }} aria-hidden="true">▼</span>
+                      <span className="fv-arrow" style={{ ...micro, textTransform: 'none' as any, fontSize: 'var(--text-11)', flex: '0 0 auto' }} aria-hidden="true">▼</span>
                       <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{nextPreviewTitle}</span>
                     </button>
                   )}
