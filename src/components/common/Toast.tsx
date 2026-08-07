@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 
 export interface ToastMessage {
@@ -38,13 +38,17 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
 
   const isSuccess = toast.type === 'success';
   const isError = toast.type === 'error';
+  // Audit UI/UX §G10 — Toast ialah animasi PALING kerap muncul dalam kerja harian Editorium,
+  // tapi sebelum ni tak pernah menyemak prefers-reduced-motion langsung.
+  const kurangGerak = useReducedMotion();
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      role={isError ? 'alert' : 'status'}
+      initial={kurangGerak ? false : { opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.9 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      exit={kurangGerak ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.9 }}
+      transition={{ duration: kurangGerak ? 0.01 : 0.25, ease: 'easeOut' }}
       className={`pointer-events-auto flex items-start justify-between gap-3 p-3.5 rounded-lg shadow-lg border border-l-4 bg-[#FDFDFD] text-[#292524] text-xs leading-relaxed ${
         isSuccess
           ? 'border-stone-200 border-l-[#3d6b4c]'

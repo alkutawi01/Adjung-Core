@@ -14,9 +14,11 @@ export const INPUT_BORANG =
 
 /** Kepala jadual — gaya mono (DrafSayaConsole/LogAuditConsole) dipilih sebagai pemenang sebab ia
  *  paling hampir bahasa label frontpage. Latar guna token `--color-Adjung-paper`, bukan hex
- *  sebaris #F7F5F2 seperti dahulu. */
+ *  sebaris #F7F5F2 seperti dahulu. `sticky top-0 z-10` (2026-08-07, Audit §I1) — dahulu SEMUA
+ *  8 jadual Editorium kehilangan kepala apabila ditatal; latar pejal wajib pada sticky supaya
+ *  baris di bawahnya tidak lutsinar menerusinya. */
 export const KEPALA_JADUAL =
-  'font-mono text-[10px] uppercase tracking-wider text-stone-400 bg-Adjung-paper';
+  'font-mono text-[10px] uppercase tracking-wider text-stone-400 bg-Adjung-paper sticky top-0 z-10';
 
 /** Garis pemisah baris jadual — dahulu `style={{borderTop:'1px solid #F0EDE9'}}` sebaris atau
  *  `divide-y divide-stone-100`, bergantung fail. */

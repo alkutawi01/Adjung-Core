@@ -125,6 +125,33 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Sub-tab sasaran bila masuk Tetapan Sistem daripada pautan luar (2026-08-02, Fasa 7) —
   // cth kad "Jam Dunia" di Modul Khas. undefined = lalai biasa (PolisiKandungan).
   const [tetapanTujuSubTab, setTetapanTujuSubTab] = useState<'Operasi' | undefined>(undefined);
+  // Tukar tab MELALUI pembalut ni (2026-08-07, pepijat Audit UI/UX §C2) — dahulu
+  // `tetapanTujuSubTab` tak PERNAH ditetapkan semula selepas digunakan: sekali pintasan
+  // "Urus Jam Dunia" diklik, SETIAP lawatan Tetapan Sistem seterusnya (walaupun melalui sidebar
+  // biasa) terus melompat ke Operasi sepanjang baki sesi. Kosongkan ia apabila TINGGALKAN
+  // 'tetapan' (bukan semasa masuk — TetapanConsole baca nilai ni sekali sahaja semasa lekap,
+  // jadi mengosongkan semasa masuk akan membatalkan pintasan sebelum sempat dibaca).
+  const tukarTab = (tab: string) => {
+    if (activeTab === 'tetapan' && tab !== 'tetapan') setTetapanTujuSubTab(undefined);
+    setActiveTab(tab);
+  };
+
+  // Tajuk tab pelayar ikut modul semasa (2026-08-07, Audit UI/UX §C4) — dahulu `document.title`
+  // tak pernah berubah, kekal "Adjung Brief" pada kesemua 15 modul; beberapa tab Editorium
+  // terbuka jadi tak dapat dibezakan. Label sepadan LABEL SIDEBAR (EditoriumLayout.tsx) persis —
+  // jangan biarkan dua bertukar berasingan.
+  useEffect(() => {
+    const label: Record<string, string> = {
+      paparan_utama: 'Paparan Utama', draf_saya: 'Draf Saya', kandungan: 'Kandungan',
+      slot: 'Slot', modul_khas: 'Modul Khas', editorial: 'Editorial',
+      nota_ketua_editor: 'Nota Ketua Editor', direktori: 'Direktori', tetapan: 'Tetapan',
+      panduan: 'Panduan', dokumentasi: 'Dokumentasi', log_sistem: 'Log Sistem', penaja: 'Penaja',
+    };
+    document.title = label[activeTab]
+      ? `${label[activeTab]} — Editorium · Adjung Brief`
+      : 'Adjung Brief';
+    return () => { document.title = 'Adjung Brief'; };
+  }, [activeTab]);
   // Log keluar = keluar terus ke frontpage. Editorium bukan tempat untuk sesiapa yang tak log
   // masuk — dulu pengguna ditinggalkan di /editorium (skrin pagar) selepas log keluar.
   //
@@ -247,7 +274,9 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     fetch('/api/system/notifications/unread-count')
       .then((r) => r.json())
       .then((d) => setKiraanBelumBaca(typeof d?.count === 'number' ? d.count : 0))
-      .catch(() => {});
+      // Audit UI/UX §D7 — dahulu ditelan senyap sepenuhnya; console.warn sekurang-kurangnya
+      // memberi jejak bagi sesiapa yang menyiasat lencana kekal salah.
+      .catch((e) => console.warn('Gagal muat kiraan makluman belum baca:', e.message));
   }, [currentUser, maklumanVersi, makluanTerbuka]);
 
   useEffect(() => {
@@ -275,17 +304,25 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         setNotifikasiMakluman((prev) => prev.map((n) => ({ ...n, dibaca: true })));
         setKiraanBelumBaca(0);
       })
-      .catch(() => {});
+      .catch((e) => console.warn('Gagal tanda semua makluman dibaca:', e.message));
   };
 
   const klikNotifikasi = (id: string) => {
+    // Kemas kini optimistik (2026-08-07, Audit UI/UX §D7) — dahulu tak dipulihkan bila gagal:
+    // lencana NAMPAK kosong walaupun server masih kira belum baca, ia muncul semula pada muat
+    // semula seterusnya tanpa penjelasan. Kini dipulihkan (balikkan kedua-dua state) bila
+    // permintaan gagal, supaya paparan sentiasa sepadan realiti server.
     setNotifikasiMakluman((prev) => prev.map((n) => (n.id === id ? { ...n, dibaca: true } : n)));
     setKiraanBelumBaca((c) => Math.max(0, c - 1));
     fetch('/api/system/notifications/mark-read', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
-    }).catch(() => {});
+    }).catch((e) => {
+      console.warn('Gagal tanda makluman dibaca, memulihkan paparan:', e.message);
+      setNotifikasiMakluman((prev) => prev.map((n) => (n.id === id ? { ...n, dibaca: false } : n)));
+      setKiraanBelumBaca((c) => c + 1);
+    });
   };
 
   // Tetapkan editor terus daripada pemilih slot "Tulis Kandungan" (2026-08-01, permintaan pemilik
@@ -359,7 +396,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   return (
     <EditoriumLayout
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={tukarTab}
       currentUser={currentUser}
       onRequestLogin={onRequestLogin}
       onLogout={handleLogoutAndLeave}

@@ -666,3 +666,22 @@ h1, h2, h3, h4, h5, h6, p {
     letter-spacing: 0.08em;
   }
 }
+
+/* prefers-reduced-motion global untuk EDITORIUM (2026-08-07, Audit UI/UX §G10) — carousel
+   frontpage sudah menghormatinya (JS, lihat CarouselStableBlock), tapi Editorium sendiri
+   langsung tidak menyemaknya sebelum ni: `animate-ping` pada penunjuk status dalam-talian
+   (EditoriumLayout.tsx) berdenyut TANPA HENTI sepanjang sesi, dan animasi masuk Toast/modal
+   (motion/react, animate-fade-in) berjalan tanpa gerbang. Peraturan global ni memendekkan/
+   mematikan animasi hiasan sahaja — animasi carousel frontpage KEKAL dikawal JS-nya sendiri. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-ping {
+    animation: none !important;
+  }
+  .animate-fade-in {
+    animation-duration: 0.01ms !important;
+  }
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

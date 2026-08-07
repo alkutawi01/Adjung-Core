@@ -101,7 +101,14 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   onOpenProfil,
   children
 }) => {
-  const [currentTab, setCurrentTab] = useState(activeTab);
+  // `activeTab` prop TERKAWAL sepenuhnya (2026-08-07, pepijat Audit UI/UX §A1) — dahulu
+  // `currentTab` state SENDIRI dibaca sekali semasa lekapan sahaja, jadi apabila kandungan
+  // menukar destinasi sendiri (pintasan Paparan Utama, "Urus Penaja", dll — lihat
+  // `EditoriumView.tsx` `setActiveTab`), sidebar terus tak segerak: menyerlah destinasi LAMA,
+  // dan klik semula destinasi yang (pada hakikatnya) sedang aktif tak berkesan langsung sebab
+  // `currentTab` menyangka ia sudah di sana. Tiada lagi state pendua — `activeTab` ialah
+  // satu-satunya sumber kebenaran.
+  const currentTab = activeTab;
   // Sidebar berkelakuan sebagai FLYOUT ringkas (2026-08-01, arahan tepat pemilik projek):
   //   tertutup (rel ikon 72px) secara lalai
   //   klik sidebar          -> terbuka
@@ -161,7 +168,6 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   }, []);
 
   const handleNavClick = (tabId: string) => {
-    setCurrentTab(tabId);
     if (onTabChange) onTabChange(tabId);
     // SENGAJA tak tutup sidebar di sini — cuma DUA cara ia tutup: klik <aside> sendiri (bila
     // sudah terbuka, tiada kesan — lihat onClick <aside>) atau klik backdrop di luar. Memilih
@@ -210,37 +216,41 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           const isActive = currentTab === item.id && !loggedOut;
           const isLocked = loggedOut || restricted(item.id);
           const { Icon } = item;
+          // Label penerangan (2026-08-07, Audit UI/UX §C3/§G4) — dahulu atribut `title=` asli,
+          // yang TIDAK muncul pada fokus papan kekunci (cuma hover tetikus) dan tak boleh
+          // digayakan. Diganti komponen `Tooltip` projek, yang SUDAH menyokong onFocus/onBlur.
+          const labelPenerangan =
+            loggedOut ? 'Log masuk dahulu untuk membuka destinasi ini'
+            : restricted(item.id) ? 'Hanya Ketua Editor'
+            : !sidebarTerbuka ? item.label : undefined;
           const butang = (
-            <button
-              key={item.id}
-              type="button"
-              // Sidebar tertutup: klik ikon TIDAK terus melompat destinasi — ia dibiarkan naik
-              // (bubble) ke <aside> yang membukanya dahulu, supaya editor nampak label sebelum
-              // memilih. Sebaik terbuka, klik yang sama barulah menavigasi.
-              onClick={() => { if (sidebarTerbuka) handleNavClick(item.id); }}
-              disabled={isLocked}
-              aria-disabled={isLocked}
-              title={
-                loggedOut ? 'Log masuk dahulu untuk membuka destinasi ini'
-                : restricted(item.id) ? 'Hanya Ketua Editor'
-                : !sidebarTerbuka ? item.label : undefined
-              }
-              className={`w-full flex items-center gap-2 text-xs font-medium py-2 rounded transition-colors duration-150 ${
-                !sidebarTerbuka ? 'justify-center px-2' : 'justify-between px-3'
-              } ${
-                isActive
-                  ? 'text-Adjung-maroon font-semibold bg-Adjung-maroon/[0.06] shadow-[inset_2px_0_0_var(--color-Adjung-maroon)]'
-                  : isLocked
-                  ? 'text-stone-300 cursor-not-allowed'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.04] cursor-pointer'
-              }`}
-            >
-              <span className={`flex items-center gap-2.5 min-w-0 ${!sidebarTerbuka ? 'justify-center' : ''}`}>
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-Adjung-maroon' : 'text-stone-400'}`} strokeWidth={2.2} />
-                {sidebarTerbuka && <span className="truncate">{item.label}</span>}
-              </span>
-              {sidebarTerbuka && !loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
-            </button>
+            <Tooltip key={item.id} text={labelPenerangan}>
+              <button
+                type="button"
+                // Sidebar tertutup: klik ikon TIDAK terus melompat destinasi — ia dibiarkan naik
+                // (bubble) ke <aside> yang membukanya dahulu, supaya editor nampak label sebelum
+                // memilih. Sebaik terbuka, klik yang sama barulah menavigasi.
+                onClick={() => { if (sidebarTerbuka) handleNavClick(item.id); }}
+                disabled={isLocked}
+                aria-disabled={isLocked}
+                aria-label={!sidebarTerbuka ? item.label : undefined}
+                className={`w-full flex items-center gap-2 text-xs font-medium py-2 rounded transition-colors duration-150 ${
+                  !sidebarTerbuka ? 'justify-center px-2' : 'justify-between px-3'
+                } ${
+                  isActive
+                    ? 'text-Adjung-maroon font-semibold bg-Adjung-maroon/[0.06] shadow-[inset_2px_0_0_var(--color-Adjung-maroon)]'
+                    : isLocked
+                    ? 'text-stone-300 cursor-not-allowed'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.04] cursor-pointer'
+                }`}
+              >
+                <span className={`flex items-center gap-2.5 min-w-0 ${!sidebarTerbuka ? 'justify-center' : ''}`}>
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-Adjung-maroon' : 'text-stone-400'}`} strokeWidth={2.2} />
+                  {sidebarTerbuka && <span className="truncate">{item.label}</span>}
+                </span>
+                {sidebarTerbuka && !loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
+              </button>
+            </Tooltip>
           );
           return butang;
         })}
