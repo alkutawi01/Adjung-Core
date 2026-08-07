@@ -2,6 +2,7 @@ import React, { useState, useRef, useLayoutEffect } from 'react';
 import {
   List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings,
   LogOut, LogIn, PenLine, Mail, Lock, BookMarked, FileText, History, Home,
+  Pin, PinOff,
 } from 'lucide-react';
 import { Tooltip } from '../common/Tooltip';
 import { BRAND } from '../../config/brand';
@@ -103,7 +104,36 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   // Tiada butang "Lipatkan" langsung — butang tu redundan sebaik kelakuan buka/tutup jadi
   // automatik, dan ia buat editor rasa terpaksa cari butang dulu sebelum boleh guna Editorium.
   // (Sejarah: hover-untuk-kembang pernah dicuba dan ditolak — ia buat sidebar rasa tak stabil.)
-  const [dilipat, setDilipat] = useState(true);
+  // Sematkan sidebar (2026-08-07, permintaan Izzat) — pilihan KEKAL TERBUKA, untuk editor yang
+  // kerap melompat antara destinasi dan tak mahu sidebar tutup sendiri setiap kali klik. Bila
+  // DISEMAT kelakuan terapung/auto-tutup di atas dimatikan SEPENUHNYA: tiada backdrop, klik di
+  // tempat lain tak menutupnya, dan sidebar MENOLAK kandungan (bukan melayang atasnya) — kalau
+  // ia kekal terapung selamanya ia akan menutupi kandungan secara kekal, bukan sekejap.
+  // Disimpan dalam localStorage supaya pilihan kekal antara sesi/muat semula.
+  const KUNCI_SEMAT = 'adjung-editorium-sidebar-disemat';
+  const [disemat, setDisemat] = useState(() => {
+    try {
+      return window.localStorage.getItem(KUNCI_SEMAT) === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const [dilipat, setDilipatMentah] = useState(true);
+  // Bila disemat, SEMUA permintaan lipat automatik (klik backdrop, klik <aside>) diabaikan —
+  // satu-satunya cara tutup ialah nyahsemat melalui butang pin.
+  const setDilipat = (nilai: boolean) => { if (!disemat) setDilipatMentah(nilai); };
+  const sidebarTerbuka = disemat || !dilipat;
+
+  const togolSemat = () => {
+    const baharu = !disemat;
+    setDisemat(baharu);
+    try { window.localStorage.setItem(KUNCI_SEMAT, baharu ? '1' : '0'); } catch { /* storan disekat — pilihan tak kekal, bukan ralat */ }
+    // Nyahsemat = kembali ke lalai terlipat, bukan tinggalkan sidebar terbuka terapung tanpa
+    // backdrop yang baru sahaja dimatikan. Guna setter MENTAH: `setDilipat` berpagar `disemat`
+    // yang masih nilai LAMA (true) pada baris ni, jadi ia akan diabaikan.
+    if (!baharu) setDilipatMentah(true);
+  };
 
   // Tinggi header DIUKUR, bukan dikodkan keras (2026-08-07, laporan Izzat: "sidebar menutup
   // header tab, sampai terlindung logo"). Sidebar <aside> dahulu guna top-[42px] tetap, tapi
@@ -167,7 +197,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
       {/* Label kumpulan SENTIASA dirender (tinggi tetap) — teks cuma disorok (opacity-0) bila
           dilipat, bukan dibuang terus. Dulu label langsung tiada dalam DOM bila dilipat, jadi
           tinggi keseluruhan berubah dan baris ikon "melompat" kedudukan setiap kali togol. */}
-      <div className={`px-3 font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1.5 truncate transition-opacity ${dilipat ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`px-3 font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 mb-1.5 truncate transition-opacity ${!sidebarTerbuka ? 'opacity-0' : 'opacity-100'}`}>
         {tajuk}
       </div>
       <div className="space-y-0.5">
@@ -182,16 +212,16 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               // Sidebar tertutup: klik ikon TIDAK terus melompat destinasi — ia dibiarkan naik
               // (bubble) ke <aside> yang membukanya dahulu, supaya editor nampak label sebelum
               // memilih. Sebaik terbuka, klik yang sama barulah menavigasi.
-              onClick={() => { if (!dilipat) handleNavClick(item.id); }}
+              onClick={() => { if (sidebarTerbuka) handleNavClick(item.id); }}
               disabled={isLocked}
               aria-disabled={isLocked}
               title={
                 loggedOut ? 'Log masuk dahulu untuk membuka destinasi ini'
                 : restricted(item.id) ? 'Hanya Ketua Editor'
-                : dilipat ? item.label : undefined
+                : !sidebarTerbuka ? item.label : undefined
               }
               className={`w-full flex items-center gap-2 text-xs font-medium py-2 rounded transition-colors duration-150 ${
-                dilipat ? 'justify-center px-2' : 'justify-between px-3'
+                !sidebarTerbuka ? 'justify-center px-2' : 'justify-between px-3'
               } ${
                 isActive
                   ? 'text-[#802334] font-semibold bg-[#802334]/[0.06] shadow-[inset_2px_0_0_#802334]'
@@ -200,11 +230,11 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                   : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.04] cursor-pointer'
               }`}
             >
-              <span className={`flex items-center gap-2.5 min-w-0 ${dilipat ? 'justify-center' : ''}`}>
+              <span className={`flex items-center gap-2.5 min-w-0 ${!sidebarTerbuka ? 'justify-center' : ''}`}>
                 <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#802334]' : 'text-stone-400'}`} strokeWidth={2.2} />
-                {!dilipat && <span className="truncate">{item.label}</span>}
+                {sidebarTerbuka && <span className="truncate">{item.label}</span>}
               </span>
-              {!dilipat && !loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
+              {sidebarTerbuka && !loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
             </button>
           );
           return butang;
@@ -332,21 +362,30 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           (72px, w-[4.5rem]) tak kira sidebar dilipat atau dikembang; lebar tambahan bila
           dikembangkan (240px - 72px) melayang ATAS kandungan (bayang jelas jadi petanda ia
           terapung), bukan tolak kandungan. Ini jugalah sebabnya jadual lebar macam Indeks tak
-          perlu skrol mendatar sekadar sebab sidebar terbuka. */}
+          perlu skrol mendatar sekadar sebab sidebar terbuka.
+          PENGECUALIAN (2026-08-07): bila DISEMAT, sidebar bukan lagi flyout sekejap — ia kekal
+          terbuka, jadi ia MENOLAK `main` (md:pl-60) dan bukan melayang atas kandungan. */}
       <div className="relative flex flex-col flex-1">
         {/* Backdrop tak kelihatan — hanya wujud bila sidebar TERBUKA. Klik di mana-mana pada
             halaman (kandungan, header, ruang kosong) menutupnya semula. Inilah "klik tempat
             lain, ia tertutup". */}
-        {!dilipat && (
+        {/* Backdrop TIDAK wujud bila disemat — sidebar sengaja kekal terbuka, jadi klik di tempat
+            lain tak boleh menutupnya. */}
+        {!dilipat && !disemat && (
           <div className="hidden md:block fixed inset-0 z-20" style={{ top: tinggiHeader }} onClick={() => setDilipat(true)} />
         )}
         <aside
           // Klik mana-mana pada sidebar tertutup = buka. Bila sudah terbuka, klik di sini tak
           // buat apa-apa; butang destinasi di dalamnya yang mengambil alih.
-          onClick={() => { if (dilipat) setDilipat(false); }}
+          onClick={() => { if (!sidebarTerbuka) setDilipat(false); }}
           style={{ top: tinggiHeader, height: `calc(100vh - ${tinggiHeader}px)` }}
           className={`hidden md:flex md:flex-col fixed left-0 z-30 overflow-y-auto bg-[#FDFDFD] border-r border-stone-200 p-4 gap-6 transition-[width] duration-150 ${
-            dilipat ? 'w-[4.5rem] cursor-pointer' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
+            !sidebarTerbuka
+              ? 'w-[4.5rem] cursor-pointer'
+              // Bayang (petanda "terapung ATAS kandungan") sengaja DIBUANG bila disemat — bila
+              // disemat ia bukan lagi terapung, ia menolak kandungan, jadi bayang jadi penipuan
+              // visual.
+              : disemat ? 'w-60' : 'w-60 shadow-[4px_0_16px_rgba(0,0,0,0.08)]'
           }`}
         >
           <div className="flex-1 space-y-6">
@@ -361,6 +400,25 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               {renderKumpulan('Rujukan', RUJUKAN)}
             </div>
           </div>
+
+          {/* Butang semat — hanya bermakna (dan hanya kelihatan) bila sidebar sedang terbuka;
+              bila terlipat rel ikon 72px tiada ruang untuk label, dan editor perlu bukanya dahulu
+              untuk faham apa yang disemat. */}
+          {sidebarTerbuka && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); togolSemat(); }}
+              aria-pressed={disemat}
+              className={`shrink-0 w-full flex items-center gap-2.5 text-xs font-medium px-3 py-2 rounded border transition-colors ${
+                disemat
+                  ? 'text-[#802334] border-[#802334]/30 bg-[#802334]/[0.06]'
+                  : 'text-stone-500 border-stone-200 hover:text-stone-800 hover:bg-black/[0.04]'
+              }`}
+            >
+              {disemat ? <PinOff className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} /> : <Pin className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} />}
+              <span className="truncate">{disemat ? 'Nyahsemat sidebar' : 'Sematkan sidebar'}</span>
+            </button>
+          )}
         </aside>
 
         {/* Sidebar dibalut jadi bar mendatar boleh skrol pada skrin sempit (< md) — bukan
@@ -389,13 +447,22 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
         {/* pl-[4.5rem] tetap (SAMA seperti lebar rel ikon) tak kira dilipat atau dikembang —
             itulah yang menghalang kandungan daripada bergerak bila togol ditekan. */}
-        <main className="min-w-0 p-4 md:py-8 md:pr-8 md:pl-[4.5rem]">
-          {children}
+        <main className={`min-w-0 p-4 md:py-8 md:pr-8 transition-[padding] duration-150 ${disemat ? 'md:pl-60' : 'md:pl-[4.5rem]'}`}>
+          {/* Had lebar kongsi SEMUA modul Editorium (2026-08-07, maklum balas Izzat: kandungan
+              regang sepenuh skrin tanpa sebab pada skrin lebar — borang/jadual jadi payah dibaca/
+              imbas). Satu titik tetap di sini (bukan per-modul) supaya semua modul dilayan sama
+              rata — sepadan falsafah "tier/kumpulan dilayan sama rata" projek ni. */}
+          <div className="max-w-[1400px] mx-auto">
+            {children}
+          </div>
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-stone-200 bg-[#FDFDFD] px-4 md:px-8 py-3 font-sans text-[11px] text-stone-400 flex flex-wrap justify-between items-center gap-2 select-none">
+      {/* Footer — bila sidebar DISEMAT ia menolak footer sekali (md:pl-60), bukan cuma `main`
+          (2026-08-07, laporan Izzat: "sidebar menutup footer apabila disematkan"). <aside>
+          `fixed` setinggi viewport, jadi tanpa ini teks footer kiri terperangkap DI BAWAH
+          sidebar. Nilai mesti kekal sepadan dengan md:pl-* pada <main> di atas. */}
+      <footer className={`border-t border-stone-200 bg-[#FDFDFD] px-4 md:px-8 py-3 font-sans text-[11px] text-stone-400 flex flex-wrap justify-between items-center gap-2 select-none transition-[padding] duration-150 ${disemat ? 'md:pl-[16.5rem]' : ''}`}>
         <div>
           Adjung Brief Editorium · Sistem Kawalan Editorial
         </div>
