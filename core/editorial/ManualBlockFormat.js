@@ -219,7 +219,10 @@ export function serializeManualBarItem(item) {
     `Lokasi: ${item.location || ''}`,
     `Akses: ${item.access || ''}`,
     `Penerangan: ${item.penerangan || ''}`,
-    `Tarikh: ${item.date || ''}`,
+    // Label kanonikal "Tarikh sumber:" (2026-08-07, Pelan 02 #14) — selaras dengan
+    // serializeManualBentoItem dan serializeDraftBlock. Alias lama "Tarikh:" masih DIHURAI oleh
+    // parseManualBlockFields, jadi blok sedia ada dalam DB kekal terbaca.
+    `Tarikh sumber: ${item.date || ''}`,
     `Sumber: ${item.source || ''}`,
     `URL: ${item.url || ''}`,
     `Imej: ${item.image || ''}`,
