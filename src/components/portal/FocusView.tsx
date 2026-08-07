@@ -54,6 +54,63 @@ function useOverflowFade(): [React.RefObject<HTMLDivElement | null>, React.CSSPr
   return [ref, { maskImage: fade, WebkitMaskImage: fade }];
 }
 
+/** Muat-ke-kotak (fit-to-box) tajuk desktop (2026-08-07, permintaan Izzat). Tiga kehendak
+ *  serentak: (1) lajur tajuk PAKAI SEPENUH ruang lajur kiri yang dikhaskan — bukan fon kecil
+ *  tetap yang tinggalkan banyak ruang kosong di bawah cuma sebab tajuk pendek/sederhana; (2)
+ *  tajuk TAK PERNAH menceroboh lebar lajur huraian sebelah; (3) TAK PERNAH sengkang atau potong
+ *  tengah perkataan (`wordBreak:'normal'` di h1 sudah jamin ni — perkataan cuma boleh limpah
+ *  lebar, tak pernah patah tengah). Gabungan tiga kehendak ni bermakna saiz fon TAK BOLEH
+ *  tetap/tangga aksara sahaja — ia mesti diukur terhadap kotak SEBENAR (lebar DAN tinggi lajur
+ *  kiri) untuk setiap tajuk, sebab tajuk pendek patut jadi BESAR (isi ruang menegak) manakala
+ *  tajuk panjang atau tajuk dgn satu perkataan superpanjang patut jadi kecil (elak dua
+ *  pelanggaran di atas).
+ *
+ *  Gelung dedua (binary search) fontSize antara `minPx`-`maxPx`: bagi setiap saiz calon, uji
+ *  `scrollWidth<=clientWidth` (tiada baris melimpah sebab satu perkataan tak muat) DAN
+ *  `scrollHeight<=tinggi lajur kiri yang tersedia` (tak melimpah bawah kotak). Kedua-dua ukuran
+ *  membesar seiring fontSize (monoton), jadi dedua sah — cari saiz TERBESAR yang masih lulus
+ *  kedua-dua ujian, bukan cuma saiz terkecil yang muat.
+ *
+ *  `boxRef` ialah bekas lajur kiri PENUH (eyebrow + tajuk); `eyebrowRef` (pilihan) diukur &
+ *  ditolak drpd tinggi tersedia supaya ruang eyebrow+jurang tak dikira sebagai ruang tajuk. */
+function useFitTitleToBox(
+  h1Ref: React.RefObject<HTMLElement | null>,
+  boxRef: React.RefObject<HTMLElement | null>,
+  eyebrowRef: React.RefObject<HTMLElement | null>,
+  minPx: number,
+  maxPx: number,
+  deps: React.DependencyList,
+): void {
+  React.useLayoutEffect(() => {
+    const h1 = h1Ref.current;
+    const box = boxRef.current;
+    if (!h1 || !box) return;
+    const muatkan = () => {
+      const boxStyle = getComputedStyle(box);
+      const paddingTop = parseFloat(boxStyle.paddingTop) || 0;
+      const gap = parseFloat((boxStyle as any).rowGap || boxStyle.gap) || 0;
+      const eyebrowH = eyebrowRef.current ? eyebrowRef.current.getBoundingClientRect().height : 0;
+      const tinggiTersedia = box.clientHeight - paddingTop - eyebrowH - (eyebrowH > 0 ? gap : 0);
+      const muat = (px: number) => {
+        h1.style.fontSize = `${px}px`;
+        return h1.scrollWidth <= h1.clientWidth + 1 && h1.scrollHeight <= tinggiTersedia + 1;
+      };
+      let lo = minPx, hi = maxPx, terbaik = minPx;
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (muat(mid)) { terbaik = mid; lo = mid + 1; } else { hi = mid - 1; }
+      }
+      h1.style.fontSize = `${terbaik}px`;
+    };
+    muatkan();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(muatkan) : null;
+    if (ro) ro.observe(box);
+    window.addEventListener('resize', muatkan);
+    return () => { if (ro) ro.disconnect(); window.removeEventListener('resize', muatkan); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
 /** Had nota lalai — tiga baris pada 11px/1.6 dalam kolum luar. Boleh diselaraskan Ketua Editor
  *  (system_settings.focusViewNotaMaxAksara, Tetapan → Operasi) — nilai ni kekal sebagai LALAI
  *  sahaja (dipakai bila tetapan belum disunting), bukan had tegar. */
@@ -374,20 +431,26 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // aksara pada 20.7px dan bukan 27px, kerana 2.3vh pada tinggi 900px ialah 20.7px — clamp itu
   // memilih nilai tengah, bukan nilai maksimum. Jangan perkenalkan semula terma vh di sini.
   //
-  // Tangga 44/37/31/27 (2026-07-29) ditentukur utk lajur tajuk LEBAR PENUH (min(64%,900px),
-  // susun atur satu-lajur lama). Susun atur dua-lajur (2026-08-07) sempitkan lajur tajuk kepada
-  // ~5/12 lebar helaian (~40%) — pada saiz lama, perkataan Melayu panjang (cth "Dipersembahkan",
-  // 14 aksara) tak muat dalam satu baris lajur sempit itu dan patah TENGAH PERKATAAN (overflow-
-  // wrap:break-word terpaksa, bukan pilihan reka bentuk) — nampak rosak, bukan hanya lebih baris.
-  // Tangga diskalakan ÷1.28 supaya perkataan tunggal biasa muat dalam lebar lajur baharu.
-  const n = String(title || '').length;
-  const titleSizeAsas = n <= 60 ? 34 : n <= 100 ? 29 : n <= 140 ? 24 : 21;
-  // titleSizeScale (2026-08-04, Tetapan Am Slot — permintaan Izzat, satu tetapan global untuk
-  // saiz fon Focus View) DARABKAN dgn tangga responsif SEDIA ADA (bukan gantikan) — kekalkan
-  // logik adaptif ikut panjang tajuk (tajuk pendek tetap lebih besar drpd tajuk panjang), cuma
-  // skalakan keseluruhan tangga naik/turun ikut pilihan Ketua Editor.
-  const titleSize = `${Math.round(titleSizeAsas * titleSizeScale)}px`;
+  // Tangga aksara lama (44/37/31/27, kemudian 34/29/24/21) dibuang 2026-08-07 — permintaan Izzat
+  // ("kenapa tajuk mesti ada dua/tiga baris sahaja, kolum kiri masih kosong di bawah") — tangga
+  // tetap ikut kiraan aksara TAK PERNAH isi ruang menegak lajur sepenuhnya (tajuk pendek/sederhana
+  // dapat fon KECIL yang sama macam tajuk panjang, walhal lajur kiri ada banyak ruang kosong di
+  // bawah). Digantikan sepenuhnya oleh `useFitTitleToBox` (lihat definisi di atas) — dedua cari
+  // fon TERBESAR yang muat lebar DAN tinggi lajur kiri sebenar, jadi tajuk pendek automatik jadi
+  // besar (isi ruang), tajuk panjang/tajuk dgn perkataan superpanjang automatik jadi kecil secukup
+  // perlu sahaja. `titleSize` di bawah kekal cuma sbg NILAI AWAL render pertama (elak "flash"
+  // saiz salah sebelum useLayoutEffect ukur) — nilai sebenar sentiasa ditulis ganti oleh hook.
+  const titleSize = `${Math.round(38 * titleSizeScale)}px`;
   const bodySize = `${bodySizePx}px`;
+
+  // Refs muat-ke-kotak (lihat useFitTitleToBox di atas) — hanya BERKESAN pada susun atur desktop
+  // (lajur tajuk lebar+tinggi tetap); tiada kesan pada telefon (h1 telefon guna style literal
+  // sendiri, tak sambung hook ni — telefon satu lajur menatal, tiada "ruang kosong terkunci"
+  // utk diisi). `eyebrowRef` pilihan (label boleh tiada langsung — lihat prop `desk`/`topik`).
+  const titleBoxRef = React.useRef<HTMLDivElement>(null);
+  const titleRef = React.useRef<HTMLHeadingElement>(null);
+  const eyebrowRef = React.useRef<HTMLSpanElement>(null);
+  useFitTitleToBox(titleRef, titleBoxRef, eyebrowRef, Math.round(14 * titleSizeScale), Math.round(64 * titleSizeScale), [title, titleSizeScale]);
 
   // Karya seni DIMUATKAN, tidak pernah dipangkas: kekang nod yang dihantar itu sendiri, kerana
   // kotak plat cuma mengerat. Anak bukan-elemen (teks, fragmen) lalu tanpa disentuh.
@@ -857,10 +920,20 @@ export const FocusView: React.FC<FocusViewProps> = ({
               rata kiri biasa; tak perlu dipecah/dipusatkan lagi. */}
           <div style={{ minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 5fr) minmax(0, 7fr)', columnGap: 'clamp(28px, 4vw, 56px)' }}>
 
-            {/* Lajur kiri — eyebrow + tajuk, statik (tak menatal), rata kiri. */}
-            <div style={{ minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'clamp(8px, 1.4vh, 14px)', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
+            {/* Lajur kiri — eyebrow + tajuk, statik (tak menatal), rata kiri.
+                `alignItems:'stretch'` (BUKAN 'flex-start', 2026-08-07) — dengan flex-start, anak
+                flex (h1) saiz ikut kandungannya sendiri (fit-content), yang dlm sesetengah
+                pelayar/susun atur bersarang grid+flex boleh jadi LEBIH LEBAR drpd trek grid
+                (bukan dibalut pada sempadan lajur) — tajuk panjang jadi SATU BARIS melimpah lalu
+                dipotong oleh `overflow:'hidden'` (kelihatan macam tajuk terpotong tengah-tengah,
+                cth "Editorial Didahulu[kan]"), bukan patah baris macam sepatutnya. `stretch`
+                paksa h1 ambil LEBAR PENUH lajur (trek grid tetap), jadi pembalutan teks berlaku
+                pada sempadan lajur sebenar. `overflow:'hidden'` dikekalkan sbg jaring keselamatan
+                lapisan kedua (permintaan Izzat — "jgn benarkan tajuk...menceroboh kolum milik yg
+                lain") utk kes ekstrem satu perkataan tunggal lebih lebar drpd lajur. */}
+            <div ref={titleBoxRef} style={{ minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 'clamp(8px, 1.4vh, 14px)', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
               {label && (
-                <span style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{label}</span>
+                <span ref={eyebrowRef} style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{label}</span>
               )}
               {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-07 — lajur tajuk kini
                   sempit ~40% lebar helaian, sama alasan telefon di atas: titleRendered sisipkan
@@ -870,7 +943,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   perkataan, tak pernah potong tengah perkataan (cth "Dikem/udiankan"); ada cukup
                   ruang menegak di bawah tajuk utk baris tambahan, jadi tiada sebab paksa patah
                   tengah perkataan. */}
-              <h1 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none', wordBreak: 'normal', overflowWrap: 'normal' }}>{title}</h1>
+              <h1 ref={titleRef} style={{ margin: 0, minWidth: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none', wordBreak: 'normal', overflowWrap: 'normal' }}>{title}</h1>
             </div>
 
             {/* Lajur kanan — huraian panjang, SATU-SATUNYA bahagian Focus View yang menatal. */}
