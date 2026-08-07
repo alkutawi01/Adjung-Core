@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BRAND } from '../../config/brand';
+import { BRAND, LOGO_SIZE } from '../../config/brand';
 
 // Halaman Penaja (2026-08-05, Fasa 12 — permintaan Izzat). Senaraikan SEMUA penaja aktif (lama
 // dan semasa), disusun bulan terbaru dahulu, dikumpul ikut bulan. Tajaan BULANAN — footer
@@ -59,7 +59,7 @@ export const HalamanPenaja: React.FC = () => {
       <header className="w-full max-w-2xl mx-auto px-6 pt-10">
         <Link
           to="/"
-          className="font-serif text-2xl text-[#802334] tracking-tight hover:opacity-80 transition-opacity"
+          className={`font-serif ${LOGO_SIZE.header} text-[#802334] tracking-tight hover:opacity-80 transition-opacity`}
         >
           {BRAND.logoText}
         </Link>

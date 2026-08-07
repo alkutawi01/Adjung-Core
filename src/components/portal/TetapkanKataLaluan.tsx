@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { BRAND } from '../../config/brand';
+import { BRAND, LOGO_SIZE } from '../../config/brand';
 
 // Halaman awam "Tetapkan Kata Laluan" (2026-08-03, Fasa 1) — destinasi SATU pautan
 // `/tetapkan-kata-laluan?token=...` dikongsi oleh DUA aliran token emel sebenar:
@@ -57,7 +57,7 @@ export const TetapkanKataLaluan: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#802334] text-[#FDFDFD] flex flex-col items-center justify-center px-6 select-none">
       <div className="max-w-sm w-full flex flex-col items-center text-center space-y-4">
-        <span className="font-serif text-3xl md:text-4xl font-semibold tracking-wider text-[#FDFDFD]">
+        <span className={`font-serif ${LOGO_SIZE.gate} font-semibold tracking-wider text-[#FDFDFD]`}>
           {BRAND.logoText}
         </span>
         <h1 className="font-serif text-2xl md:text-3xl font-normal tracking-tight">

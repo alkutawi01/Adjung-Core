@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BRAND } from '../../config/brand';
+import { BRAND, LOGO_SIZE } from '../../config/brand';
 
 // Halaman 404 bergaya Adjung (Fasa 11, 2026-08-02) — sebelum ni laluan URL salah
 // memaparkan halaman kosong sebab tiada laluan `*` didaftar di App.tsx.
@@ -9,7 +9,7 @@ export const TidakDijumpai: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#802334] text-[#FDFDFD] flex flex-col items-center justify-center px-6 select-none">
       <div className="max-w-md w-full flex flex-col items-center text-center space-y-4">
-        <span className="font-serif text-3xl md:text-4xl font-semibold tracking-wider text-[#FDFDFD]">
+        <span className={`font-serif ${LOGO_SIZE.gate} font-semibold tracking-wider text-[#FDFDFD]`}>
           {BRAND.logoText}
         </span>
         <p className="font-mono text-[10px] tracking-widest uppercase font-bold text-stone-200">

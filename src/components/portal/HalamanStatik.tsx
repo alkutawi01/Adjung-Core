@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BRAND } from '../../config/brand';
+import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 
 // Halaman awam ringkas (Fasa 11, 2026-08-02) — papar kandungan yang diisi Ketua Editor
@@ -56,7 +56,7 @@ export const HalamanStatik: React.FC<HalamanStatikProps> = ({ pageKey, labelSand
       <header className="w-full max-w-2xl mx-auto px-6 pt-10">
         <Link
           to="/"
-          className="font-serif text-2xl text-[#802334] tracking-tight hover:opacity-80 transition-opacity"
+          className={`font-serif ${LOGO_SIZE.header} text-[#802334] tracking-tight hover:opacity-80 transition-opacity`}
         >
           {BRAND.logoText}
         </Link>

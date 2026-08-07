@@ -2,7 +2,7 @@
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Entry, SystemSettings } from '../../types';
-import { BRAND } from '../../config/brand';
+import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays, safeParseInline, setGlosSelariAktif, setTypographyRulesAktif } from '../../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, X, Lock, Search } from 'lucide-react';
@@ -2350,7 +2350,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
         {/* Wordmark Hero */}
         <section className="text-center pt-2 pb-6 animate-fade-in">
-          <h1 className="font-serif font-normal tracking-tight text-6xl md:text-7xl text-[#802334]">
+          <h1 className={`font-serif font-normal tracking-tight ${LOGO_SIZE.hero} text-[#802334]`}>
             <HoverWords text={BRAND.logoText} />
           </h1>
           <div className="flex items-center justify-center gap-3 mt-[8px] mb-1 max-w-xs mx-auto">
@@ -3936,7 +3936,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           onTouchEnd={kendaliSentuhOverlayTamat}
         >
           {/* Top Centered Logo */}
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 font-serif text-lg font-semibold tracking-wider text-[#802334] select-none">
+          <div className={`absolute top-6 left-1/2 -translate-x-1/2 font-serif ${LOGO_SIZE.mini} font-semibold tracking-wider text-[#802334] select-none`}>
             {BRAND.logoText}
           </div>
 

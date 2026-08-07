@@ -1,5 +1,5 @@
 import React from 'react';
-import { BRAND } from '../../config/brand';
+import { BRAND, LOGO_SIZE } from '../../config/brand';
 
 // Sempadan ralat React (2026-08-07, Tier 1 audit inventori) — sebelum ini TIADA langsung dalam
 // seluruh aplikasi, jadi satu ralat render (cth satu item kandungan rosak, satu medan `undefined`
@@ -46,7 +46,7 @@ export class ErrorBoundary extends React.Component {
     return (
       <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center px-6 font-sans">
         <div className="max-w-md w-full text-center">
-          <div className="font-serif text-3xl text-Adjung-maroon mb-3 select-none">{BRAND.logoText}</div>
+          <div className={`font-serif ${LOGO_SIZE.gate} text-Adjung-maroon mb-3 select-none`}>{BRAND.logoText}</div>
           <h1 className="font-serif text-lg font-bold text-stone-900 mb-2">
             Maaf, halaman ini tidak dapat dipaparkan
           </h1>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { BRAND } from '../../config/brand';
+import { BRAND, LOGO_SIZE } from '../../config/brand';
 
 export const LoadingScreen: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
@@ -30,7 +30,7 @@ export const LoadingScreen: React.FC = () => {
             loading ni),
             dibina semula guna HTML/CSS ikut susunan dan nisbah SAMA seperti Hero, cuma warna
             disongsang (putih/krim) supaya kekal boleh dibaca atas latar marun. */}
-        <h1 className="font-serif font-normal tracking-tight text-6xl md:text-7xl text-[#FDFDFD] select-none">
+        <h1 className={`font-serif font-normal tracking-tight ${LOGO_SIZE.hero} text-[#FDFDFD] select-none`}>
           {BRAND.logoText}
         </h1>
         <div className="flex items-center justify-center gap-3 mt-[8px] mb-1 max-w-xs mx-auto select-none">

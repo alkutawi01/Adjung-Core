@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Rss, Clock, CalendarDays, Handshake, X } from 'lucide-react';
-import { BRAND } from '../../config/brand';
+import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { EditoriumLayout } from './EditoriumLayout';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -397,7 +397,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     return (
       <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-2 text-stone-400">
-          <span className="font-serif text-2xl text-stone-300">{BRAND.logoText}</span>
+          <span className={`font-serif ${LOGO_SIZE.gate} text-stone-300`}>{BRAND.logoText}</span>
           <p className="text-xs">Log masuk diperlukan untuk mengakses Editorium.</p>
         </div>
       </div>
