@@ -681,14 +681,26 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const refModal = useRef<HTMLDivElement>(null);
   useModalFokus(refModal, onClose);
 
+  // Gerbang klik-backdrop-untuk-tutup (2026-08-07, sama pepijat/pembetulan macam LoginModal.tsx)
+  // — tanpa gerbang mousedown+click ni, menyeret untuk memilih teks dalam modal dan melepaskan
+  // tetikus di luar (di atas backdrop) akan tersalah tutup modal, buang draf belum disimpan.
+  // Modal ni sebelum ni TIADA klik-backdrop langsung (tak boleh ditutup klik luar pun) — tambah
+  // sekali dengan gerbang supaya konsisten dengan corak modal lain, bukan tanpa gerbang.
+  const mousedownPadaBackdrop = React.useRef(false);
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
+    <div
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md"
+      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) handleClose(); }}
+    >
       <div
         ref={refModal}
         role="dialog"
         aria-modal="true"
         aria-label={`Urus Slot ${editingSlotIndex + 1}`}
         className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in"
+        onClick={(e) => e.stopPropagation()}
       >
 
         <header className="flex-none px-4 md:px-8 pt-5 pb-3.5">

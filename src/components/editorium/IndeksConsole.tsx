@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AlertTriangle, X, Search, Pin, Lock } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
-import { useModalFokus } from '../../hooks/useModalFokus';
 import { Tooltip } from '../common/Tooltip';
+import { EditorDialog } from '../common/EditorDialog';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -216,8 +216,6 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const [activeItemModal, setActiveItemModal] = useState<BriefRecord | null>(null);
   // Pengurusan fokus modal (Audit UI/UX Editorium §G1/G2/G6) — perangkap Tab, fokus elemen
   // pertama semasa buka, pulangkan fokus ke pencetus semasa tutup, Escape menutup modal.
-  const refDetailModal = useRef<HTMLDivElement>(null);
-  useModalFokus(refDetailModal, activeItemModal ? () => setActiveItemModal(null) : undefined);
 
   // Siar-semula kandungan archived — Bidang/Topik/slot sasaran boleh diedit khusus untuk item
   // berstatus Archive (lihat "03 — Bidang & Topik" di Perlembagaan untuk peraturan penuh).
@@ -994,30 +992,44 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           (flex-col + header/footer flex-none, badan sahaja overflow-y-auto). Butang "Tutup" di
           footer sentiasa jadi laluan kedua yang sedia ada. */}
       {activeItemModal && (
-        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div
-            ref={refDetailModal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="indeks-detail-modal-tajuk"
-            className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden"
-          >
-            <div className="flex-none flex justify-between items-start border-b border-stone-200 px-6 pt-6 pb-3">
-              <div>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-bold block mb-1">
-                  DETAIL KANDUNGAN • {activeItemModal.id}
-                </span>
-                {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon. */}
-                <h3 id="indeks-detail-modal-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">
-                  {activeItemModal.title}
-                </h3>
-              </div>
-              <button onClick={() => setActiveItemModal(null)} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 font-bold text-lg shrink-0 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+        <EditorDialog
+          tajuk={(
+            <div>
+              <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-bold block mb-1">
+                DETAIL KANDUNGAN • {activeItemModal.id}
+              </span>
+              {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon. */}
+              <span className="font-serif text-lg font-bold text-Adjung-maroon">
+                {activeItemModal.title}
+              </span>
             </div>
-
-            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
+          )}
+          onTutup={() => setActiveItemModal(null)}
+          saiz="lg"
+          badanMenatal
+          tindakanKiri={<span className="text-stone-500">Tarikh: <strong>{activeItemModal.date}</strong></span>}
+          tindakan={activeItemModal.slot !== 'Ticker' ? (
+            // Susunan kaki modal (Pelan 01 Fasa D2): tindakan utama paling kanan, tindakan
+            // merbahaya di kiri. "Tolak" sudah ada pengesahannya sendiri (window.prompt).
+            <>
+              <Button variant="ghost" onClick={() => setActiveItemModal(null)}>
+                Tutup
+              </Button>
+              <Button variant="bahaya" onClick={() => handleRejectToDraft(activeItemModal.id)}>
+                Tolak (kembali jadi draf)
+              </Button>
+              {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
+                <Button onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}>
+                  Siar Brief
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button variant="ghost" onClick={() => setActiveItemModal(null)}>
+              Tutup
+            </Button>
+          )}
+        >
             <div className="flex flex-col gap-1">
               <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Huraian Ringkas</span>
               <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200">
@@ -1168,34 +1180,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 </Button>
               </div>
             )}
-            </div>
-
-            <div className="flex-none flex justify-between items-center border-t border-stone-200 px-6 py-4 font-mono text-xs">
-              <span className="text-stone-500">Tarikh: <strong>{activeItemModal.date}</strong></span>
-              {activeItemModal.slot !== 'Ticker' ? (
-                // Susunan kaki modal (Pelan 01 Fasa D2): tindakan utama paling kanan, tindakan
-                // merbahaya di kiri. "Tolak" sudah ada pengesahannya sendiri (window.prompt).
-                <div className="flex gap-2">
-                  <Button variant="ghost" onClick={() => setActiveItemModal(null)}>
-                    Tutup
-                  </Button>
-                  <Button variant="bahaya" onClick={() => handleRejectToDraft(activeItemModal.id)}>
-                    Tolak (kembali jadi draf)
-                  </Button>
-                  {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
-                    <Button onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}>
-                      Siar Brief
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <Button variant="ghost" onClick={() => setActiveItemModal(null)}>
-                  Tutup
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+        </EditorDialog>
       )}
     </div>
   );
