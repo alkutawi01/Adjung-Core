@@ -6,6 +6,7 @@ import { LoginModal } from './components/editorium/LoginModal';
 import { muatPindaanTier } from './config/tierOverrides';
 import { muatPindaanLabel } from './config/labelOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
+import { PERISTIWA_SESI_TAMAT } from './utils/pemintasSesi';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route, useParams, useLocation } from 'react-router-dom';
 import { HalamanStatik } from './components/portal/HalamanStatik';
@@ -133,6 +134,24 @@ export default function App() {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
     window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
   };
+
+  // Sesi tamat dikesan pemintas fetch global (2026-08-07, Audit UI/UX §D1, src/utils/
+  // pemintasSesi.ts) — dahulu setiap panel Editorium mereput senyap atau papar mesej sendiri-
+  // sendiri, header terus tunjuk titik hijau "aktif" dengan nama lapuk, borang log masuk tak
+  // pernah terbuka sendiri. Kosongkan `authUser` di sini sahaja sudah cukup: EditoriumView
+  // (useEffect sedia ada, `!currentUser && !sedangKeluar` -> `onRequestLogin()`) automatik buka
+  // LoginModal semula, DAN `activeTab`-nya tak reset (komponen tak unmount, cuma gerbang dalaman
+  // bertukar) — jadi editor kembali ke modul yang SAMA lepas log masuk semula, bukan tercampak
+  // ke destinasi lalai.
+  useEffect(() => {
+    const onSesiTamat = () => {
+      setAuthUser(null);
+      window.localStorage.removeItem(AUTH_STORAGE_KEY);
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    };
+    window.addEventListener(PERISTIWA_SESI_TAMAT, onSesiTamat);
+    return () => window.removeEventListener(PERISTIWA_SESI_TAMAT, onSesiTamat);
+  }, []);
   const [inTheNewsGoogleDocText, setInTheNewsGoogleDocText] = useState('');
   const [worldClockHolidaysGoogleDocText, setWorldClockHolidaysGoogleDocText] = useState('');
   const [initializing, setInitializing] = useState(true);
