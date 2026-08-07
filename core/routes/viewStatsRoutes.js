@@ -1,4 +1,5 @@
 import express from 'express';
+import { tarikhMalaysia } from '../utils/waktuMalaysia.js';
 
 // Jejak pengunjung & populariti (Fasa 14) — dibina sendiri, tiada pihak ketiga, tiada cookie,
 // tiada IP/user-agent. Kiraan HARIAN sahaja, agregat anonim, dalam jadual `daily_view_counts`
@@ -10,15 +11,10 @@ import express from 'express';
 // bila gagal, senyap 200/204 di sisi klien fetch()).
 const TARGET_TYPES = new Set(['homepage', 'slot']);
 
-function todayStr() {
-  // Tarikh tempatan Malaysia (Asia/Kuala_Lumpur), bukan UTC — supaya "kiraan harian" sepadan hari
-  // kalendar sebenar pembaca Malaysia, bukan berpecah pada waktu tengah hari MYT (UTC+8).
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Kuala_Lumpur', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(new Date());
-  const get = (t) => parts.find(p => p.type === t)?.value;
-  return `${get('year')}-${get('month')}-${get('day')}`;
-}
+// Tarikh tempatan Malaysia (Asia/Kuala_Lumpur), bukan UTC — supaya "kiraan harian" sepadan hari
+// kalendar sebenar pembaca Malaysia, bukan berpecah pada waktu tengah hari MYT (UTC+8). Logik
+// sebenar kini dikongsi di core/utils/waktuMalaysia.js (dipakai juga oleh penaja bulanan).
+const todayStr = () => tarikhMalaysia();
 
 export function createViewStatsRoutes(dbAll, dbRun) {
   const router = express.Router();

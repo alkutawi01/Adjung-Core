@@ -1,6 +1,7 @@
 import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { bulanMalaysia } from '../utils/waktuMalaysia.js';
 
 // Penaja (2026-08-05, Fasa 12 — permintaan Izzat). Tajaan BULANAN, boleh berbilang penaja
 // serentak satu bulan. Dua permukaan berasingan:
@@ -10,7 +11,9 @@ import { logAudit } from '../audit/AuditLog.js';
 //   - Awam: /public/sponsors/semasa (footer, bulan SEMASA sahaja) dan /public/sponsors/semua
 //     (halaman /penaja, SEMUA penaja aktif — lama & semasa — susun bulan terbaru dahulu).
 const HAD_NAMA = 100;
-const bulanSemasa = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+// Waktu Malaysia, bukan UTC (2026-08-07, Pelan 02 #9) — dahulu toISOString() menjadikan footer
+// awam memaparkan penaja bulan lepas antara 12:00 pagi dan 8:00 pagi MYT pada 1 haribulan.
+const bulanSemasa = () => bulanMalaysia(); // 'YYYY-MM'
 
 // Baris ADMIN (Editorium) — sertakan jumlahBayaran, Pentadbir sahaja yang capai laluan ni.
 const barisKepadaPenaja = (r) => ({
