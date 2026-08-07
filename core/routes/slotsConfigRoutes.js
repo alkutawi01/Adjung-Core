@@ -168,7 +168,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         let persistedManualSummary = slot.manualSummary;
         if (slot.contentMode === 'Manual' && slot.slotIndex >= 0) {
           try {
-            persistedManualSummary = await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot);
+            persistedManualSummary = await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot, req.session?.user?.roles);
           } catch (e) {
             if (e.isValidationError) {
               // Hard-block: abort the whole save (not just this slot) so the admin sees exactly

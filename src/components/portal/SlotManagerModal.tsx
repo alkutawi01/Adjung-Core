@@ -446,6 +446,14 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   );
   const hasUnsavedWork = items.some(itemHasContent);
 
+  // Pengesahan dalam-aplikasi untuk Tutup/Tukar Slot (bukan `window.confirm`) — sama falsafah
+  // audit UI/UX §E1/§B4 yang dah dipakai di NotaKetuaEditorConsole. window.confirm() blocking
+  // native boleh disenyapkan pelayar selepas beberapa kali dicetuskan berturut-turut ("Prevent
+  // this page from creating additional dialogs"), lepas tu butang X nampak "tak boleh ditekan"
+  // langsung tanpa sebarang respons — ditemui 2026-08-08 semasa ujian sebenar Izzat.
+  const [konfirmTutup, setKonfirmTutup] = useState(false);
+  const [konfirmTukarKe, setKonfirmTukarKe] = useState<number | null>(null);
+
   const commit = (mutator: (prevItems: any[]) => any[]) => setItems((prev) => mutator(prev));
   const patch = (i: number, key: string, value: string) => commit((prevItems) => (
     // Sama pertahanan macam initializer di atas — kalau entah bagaimana items jadi kosong (cth.
@@ -719,7 +727,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // Masukkan" belum disentuh), sama falsafah macam amaran padam kandungan di atas.
   const handleSwitchSlot = (idx: number) => {
     if (idx === editingSlotIndex) return;
-    if (hasUnsavedWork && !window.confirm('Tukar slot akan buang draf belum diterbitkan/disimpan dalam slot ni. Teruskan?')) return;
+    if (hasUnsavedWork) { setKonfirmTukarKe(idx); return; }
     onSwitchSlot?.(idx);
   };
 
@@ -729,7 +737,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // editorial ialah tulisan sebenar (lihat CLAUDE.md), draf separuh siap yang tersimpan senyap
   // ke DB tanpa editor sedar lebih berbahaya daripada amaran ringkas ni.
   const handleClose = () => {
-    if (hasUnsavedWork && !window.confirm('Tutup borang ni akan buang draf belum diterbitkan/disimpan dalam slot ni. Teruskan?')) return;
+    if (hasUnsavedWork) { setKonfirmTutup(true); return; }
     onClose();
   };
 
@@ -844,6 +852,34 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 )}
                 <button type="button" aria-label="Tutup" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
                   <X size={18} />
+                </button>
+              </div>
+            </div>
+          )}
+          {(konfirmTutup || konfirmTukarKe !== null) && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-[#802334]/30 bg-[#802334]/5 px-3 py-2">
+              <span className="font-sans text-xs text-stone-700">
+                {konfirmTutup
+                  ? 'Tutup borang ni akan buang draf belum diterbitkan/disimpan dalam slot ni. Teruskan?'
+                  : 'Tukar slot akan buang draf belum diterbitkan/disimpan dalam slot ni. Teruskan?'}
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setKonfirmTutup(false); setKonfirmTukarKe(null); }}
+                  className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (konfirmTutup) { setKonfirmTutup(false); onClose(); }
+                    else if (konfirmTukarKe !== null) { const idx = konfirmTukarKe; setKonfirmTukarKe(null); onSwitchSlot?.(idx); }
+                  }}
+                  className="font-sans text-xs font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer"
+                >
+                  Ya, teruskan
                 </button>
               </div>
             </div>
@@ -1057,10 +1093,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <hr className="border-stone-150" />
                 {/* Butang Terbit (2026-07-29, permintaan pemilik projek) — AKSI SEGERA, bukan
                     togol status. Kandungan dalam modal ni SENTIASA draf sehingga butang ni
-                    ditekan; klik terus hantar SATU kandungan ni ke Indeks (status Pending) dan
-                    buang daripada senarai draf — jelas berasingan daripada butang Simpan
-                    keseluruhan modal di footer (Simpan cuma simpan baki draf, tak terbitkan apa-
-                    apa). */}
+                    ditekan; klik terus hantar SATU kandungan ni ke Indeks dan buang daripada
+                    senarai draf — jelas berasingan daripada butang Simpan keseluruhan modal di
+                    footer (Simpan cuma simpan baki draf, tak terbitkan apa-apa). Status akhir
+                    (Aktif terus atau Menunggu) ditentukan SERVER ikut kebenaran penekan butang
+                    (server.js syncManualObjectsForSlot) — bukan dikodkan keras di sini. */}
                 <div className="flex items-center justify-between gap-4">
                   <span className="flex flex-col gap-0.5">
                     <span className={labelCls}>Kandungan ini masih draf</span>

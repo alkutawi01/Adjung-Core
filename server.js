@@ -53,7 +53,7 @@ import { createArticleUrlRoutes, createPublicArticleRoute } from './core/routes/
 import { createSearchRoutes } from './core/routes/searchRoutes.js';
 import { createSponsorRoutes } from './core/routes/sponsorRoutes.js';
 import { semakKonfigSmtpStartup, hantarEmel } from './core/email/MailSender.js';
-import { requireAuthForWrites, loadRolePermissions } from './core/middleware/auth.js';
+import { requireAuthForWrites, loadRolePermissions, hasPermission } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
 import { notify, notifyMany } from './core/notifications/Notify.js';
 const mockDb = {};
@@ -2546,7 +2546,7 @@ const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n'
 //     dicipta/dikemas kini sebagai baris rasmi editorial_objects/editorial_revisions, dan
 //     DIKELUARKAN daripada manualSummary — ia sekarang rekod Indeks rasmi, bukan draf lagi.
 //   - Slot Bar dikecualikan (belum disokong ciri ni — kekal 100% tingkah laku lama).
-const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) => {
+const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, roles) => {
   const items = parseManualSummaryTemplate(manualSummary || '', slotConfig);
   const isBar = TIER_SLOTS.BAR.includes(slotIndex);
 
@@ -2755,10 +2755,16 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
          VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?, ?)`,
         [objectId, finalCategory, slotIndex, item.sourceType || 'web', createdAt, createdAt]
       );
-      // Bukan Bar: tiada lagi 'approved' terus daripada laluan ni — "Terbitkan" sentiasa
-      // mendarat sebagai 'pending', menunggu kelulusan Ketua Editor di Indeks (atau auto-terbit,
-      // sistem tu belum wujud). Slot Bar kekal guna status yang dihurai terus (lama).
-      const finalStatus = isBar ? (item.status || 'approved') : 'pending';
+      // Bukan Bar: "Terbitkan" mendarat terus sebagai 'approved' bila penekan butang ada
+      // kebenaran (Ketua Editor/Penolong — manageEditorial — ATAU Editor yang dibenarkan Dasar
+      // Terbit Sendiri, kunci RBAC 'publish', togol di Tetapan Am Slot), jika tidak 'pending'
+      // menunggu kelulusan di Indeks. SEBELUM 2026-08-08 medan ni dikodkan keras 'pending' untuk
+      // SESIAPA SAHAJA termasuk Ketua Editor sendiri — laluan ni langsung tak berhubung dengan
+      // gerbang RBAC yang sama yang sudah wujud dan diuji di contentRoutes.js (PATCH /content/:id)
+      // — pepijat kritikal ditemui Izzat semasa ujian sebenar ("Ketua Editor pun kena tunggu
+      // luluskan kandungan sendiri!"). Slot Bar kekal guna status yang dihurai terus (lama).
+      const bolehTerbitTerus = isBar || hasPermission(roles, 'manageEditorial') || hasPermission(roles, 'publish');
+      const finalStatus = isBar ? (item.status || 'approved') : (bolehTerbitTerus ? 'approved' : 'pending');
       const rev = await dbRun(
         `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
          VALUES (?, 1.0, 'ms', ?, ?, ?, 'manual-slot-save', ?, ?)`,

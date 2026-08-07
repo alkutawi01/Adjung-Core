@@ -116,6 +116,12 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
   const current = items[activeIndex] || blankItem();
   const hasUnsavedWork = items.some((it) => (it.title || '').trim());
 
+  // Pengesahan dalam-aplikasi untuk Tutup/Tukar Slot (bukan `window.confirm`) — sama sebab macam
+  // SlotManagerModal.tsx (audit UI/UX §E1/§B4): window.confirm() boleh disenyapkan pelayar
+  // selepas beberapa kali tercetus, buat butang X "tak boleh ditekan" tanpa sebarang respons.
+  const [konfirmTutup, setKonfirmTutup] = useState(false);
+  const [konfirmTukarKe, setKonfirmTukarKe] = useState<number | null>(null);
+
   const commit = (mutator: (prev: any[]) => any[]) => setItems((prev) => mutator(prev));
   const patch = (i: number, key: string, value: string) => commit((prev) => (
     prev.length > 0 ? prev.map((it, n) => (n === i ? { ...it, [key]: value } : it)) : [{ ...blankItem(), [key]: value }]
@@ -189,12 +195,12 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
 
   const handleSwitchSlot = (idx: number) => {
     if (idx === editingSlotIndex) return;
-    if (hasUnsavedWork && !window.confirm('Tukar slot akan buang perubahan belum disimpan dalam slot ni. Teruskan?')) return;
+    if (hasUnsavedWork) { setKonfirmTukarKe(idx); return; }
     onSwitchSlot?.(idx);
   };
 
   const handleClose = () => {
-    if (hasUnsavedWork && !window.confirm('Tutup borang ni akan buang perubahan belum disimpan dalam slot ni. Teruskan?')) return;
+    if (hasUnsavedWork) { setKonfirmTutup(true); return; }
     onClose();
   };
 
@@ -244,6 +250,34 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
               </button>
             </div>
           </div>
+          {(konfirmTutup || konfirmTukarKe !== null) && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-[var(--color-Adjung-maroon)]/30 bg-[var(--color-Adjung-maroon)]/5 px-3 py-2">
+              <span className="font-sans text-xs text-stone-700">
+                {konfirmTutup
+                  ? 'Tutup borang ni akan buang perubahan belum disimpan dalam slot ni. Teruskan?'
+                  : 'Tukar slot akan buang perubahan belum disimpan dalam slot ni. Teruskan?'}
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setKonfirmTutup(false); setKonfirmTukarKe(null); }}
+                  className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (konfirmTutup) { setKonfirmTutup(false); onClose(); }
+                    else if (konfirmTukarKe !== null) { const idx = konfirmTukarKe; setKonfirmTukarKe(null); onSwitchSlot?.(idx); }
+                  }}
+                  className="font-sans text-xs font-semibold text-white bg-[var(--color-Adjung-maroon)] hover:opacity-90 rounded px-3 py-1 cursor-pointer"
+                >
+                  Ya, teruskan
+                </button>
+              </div>
+            </div>
+          )}
         </header>
         <hr className="border-stone-150" />
 
