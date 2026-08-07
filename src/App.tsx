@@ -6,6 +6,7 @@ import { LoginModal } from './components/editorium/LoginModal';
 import { muatPindaanTier } from './config/tierOverrides';
 import { muatPindaanLabel } from './config/labelOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { PERISTIWA_SESI_TAMAT } from './utils/pemintasSesi';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route, useParams, useLocation } from 'react-router-dom';
@@ -235,6 +236,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ErrorBoundary konteks="Laluan aplikasi">
       <AnimatePresence mode="wait">
         <Routes>
           <Route path="/" element={
@@ -415,6 +417,7 @@ export default function App() {
 
         </Routes>
       </AnimatePresence>
+      </ErrorBoundary>
       {showLoginModal && (
         <LoginModal onClose={() => setShowLoginModal(false)} onSuccess={handleLoginSuccess} />
       )}

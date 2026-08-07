@@ -1760,6 +1760,12 @@ const initEditorialOS = (dbConn) => {
       dbConn.run("CREATE INDEX IF NOT EXISTS idx_editorial_objects_category ON editorial_objects(categoryId, createdAt)");
       dbConn.run("CREATE INDEX IF NOT EXISTS idx_editorial_revisions_lookup ON editorial_revisions(objectId, status, version)");
       dbConn.run("CREATE INDEX IF NOT EXISTS idx_rss_ticker_category ON rss_ticker_items(category, publishedAt)");
+      // idx_rss_ticker_status (2026-08-07, Tier 1 audit inventori) — jadual ni SATU-SATUNYA
+      // kandungan editorial SEBENAR (2,295+ baris, bertambah setiap 3 jam TANPA pemangkasan,
+      // tiada had had atas), tapi SETIAP pertanyaan (slotRoutes.js: senarai menunggu, kiraan
+      // status, senarai lulus disusun skor, senarai disekat kategori) tapis `status` DAHULU —
+      // indeks sedia ada (category, publishedAt) tak sepadan corak tu langsung.
+      dbConn.run("CREATE INDEX IF NOT EXISTS idx_rss_ticker_status ON rss_ticker_items(status, score DESC, publishedAt DESC)");
 
       // 9. layout_templates
       dbConn.run(`
@@ -3455,4 +3461,21 @@ app.listen(PORT, '0.0.0.0', () => {
     runSemakanTakAktif(dbAll, dbRun).catch((err) => console.error('[Semakan Tak Aktif] Ralat:', err.message));
   }, SEMAKAN_TAK_AKTIF_INTERVAL_MS);
   console.log(`Semakan tak aktif editorial aktif (sekali setiap ${SEMAKAN_TAK_AKTIF_INTERVAL_MS / 3600000} jam — amaran hari-7/hari-14, gantung automatik hari-21).`);
+
+  // Pembersihan sesi luput (2026-08-07, Tier 1 audit inventori) — sebelum ni TIADA pembersihan
+  // berkala langsung; jadual `sessions` (sessions.db, connect-sqlite3) membesar SELAMANYA. Ini
+  // turut bermakna SesiPengguna.js (batal sesi lain selepas tukar kata laluan) — yang mengimbas
+  // PENUH jadual + hurai JSON setiap baris — makin lambat setiap hari tanpa pembersihan ni.
+  // connect-sqlite3 simpan `expired` sebagai UNIX epoch MILISAAT (bukan saat) — disahkan lajur
+  // tu di core/auth/SesiPengguna.js. Sekali sehari cukup, sama corak jadual lain di sini.
+  const PEMBERSIHAN_SESI_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  const bersihkanSesiLuput = () => {
+    sessionDb.run('DELETE FROM sessions WHERE expired < ?', [Date.now()], function (err) {
+      if (err) { console.error('[Pembersihan Sesi] Ralat:', err.message); return; }
+      if (this.changes > 0) console.log(`[Pembersihan Sesi] ${this.changes} sesi luput dibuang.`);
+    });
+  };
+  bersihkanSesiLuput();
+  setInterval(bersihkanSesiLuput, PEMBERSIHAN_SESI_INTERVAL_MS);
+  console.log(`Pembersihan sesi luput aktif (sekali setiap ${PEMBERSIHAN_SESI_INTERVAL_MS / 3600000} jam).`);
 });
