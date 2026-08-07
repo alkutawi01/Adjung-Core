@@ -2556,7 +2556,15 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
   // before touching the DB, so a rejected save leaves whatever was already there untouched (no
   // DELETE ever runs on failure).
   const ceiling = getGeometryCeilingForSlot(slotIndex);
-  const effectiveMaxBriefLong = typeof slotConfig.maxBriefLong === 'number' ? slotConfig.maxBriefLong : ceiling.maxBriefLong;
+  // Huraian Panjang (2026-08-08, pepijat kritikal Izzat) — SENTIASA guna ceiling.maxBriefLong
+  // (yang sudah baca pindaan global Tetapan Am Slot, lihat setMedanLimitOverrides), BUKAN
+  // slotConfig.maxBriefLong lama. Sebelum ni slotConfig.maxBriefLong (nilai per-slot yang
+  // disimpan sejak slot dicipta, cth 600 untuk slot 0) diutamakan MELEBIHI pindaan global —
+  // Ketua Editor tetapkan 1000-1200 di Tetapan Am Slot tapi setiap slot sedia ada masih tersekat
+  // pada 600 lama, sebab medan ni sengaja DIREKA sebagai dasar GLOBAL sahaja (bukan per-tier/
+  // per-slot — lihat nota MAX_BRIEF_LONG_CHARS di GeometryConfig.js), tiada UI edit per-slot
+  // pun wujud untuk medan ni.
+  const effectiveMaxBriefLong = ceiling.maxBriefLong;
   const isDraft = (item) => !isBar && item.status === 'draft';
   for (const item of items) {
     // Draf sengaja TIDAK disahkan — kerja belum siap, tak sesekali live, jadi tiada sebab sekat

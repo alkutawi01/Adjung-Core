@@ -9,6 +9,37 @@ import { labelUi } from '../../config/istilah';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { useModalFokus } from '../../hooks/useModalFokus';
 
+// Normalkan tarikh AI-tampal ke ISO yyyy-mm-dd (2026-08-08, pepijat Izzat — "kalau tampal output
+// AI, medan tarikh sumber tu kena isi sendiri jgk") — <input type="date"> HANYA papar nilai
+// dalam format ISO tepat; AI luaran tak semestinya ikut arahan prompt (buildAiPrompt di bawah)
+// walau dah dinyatakan, jadi kalau ia tulis "8 Ogos 2026" atau "08/08/2026", medan tarikh
+// kelihatan KOSONG selepas tampal — data sebenarnya tersimpan (b.date), cuma tak boleh dipapar
+// input date, jadi editor terpaksa isi semula secara manual. Cuba beberapa corak biasa; kalau
+// tiada padanan, pulangkan teks asal tak disentuh (falsafah sedia ada: jangan hilangkan tarikh
+// separa/tidak dikenali).
+const NAMA_BULAN_KE_NOMBOR: Record<string, string> = {
+  januari: '01', februari: '02', mac: '03', april: '04', mei: '05', jun: '06',
+  julai: '07', ogos: '08', september: '09', oktober: '10', november: '11', disember: '12',
+};
+function normalkanTarikhISO(raw: string): string {
+  const t = (raw || '').trim();
+  if (!t) return t;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const dmy = t.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})$/);
+  if (dmy) {
+    const [, d, m, y] = dmy;
+    const yyyy = y.length === 2 ? `20${y}` : y;
+    return `${yyyy}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  const namaBulan = t.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (namaBulan) {
+    const [, d, bulanNama, y] = namaBulan;
+    const bulan = NAMA_BULAN_KE_NOMBOR[bulanNama.toLowerCase()];
+    if (bulan) return `${y}-${bulan}-${d.padStart(2, '0')}`;
+  }
+  return t;
+}
+
 interface Bidang { name: string; color: string; icon: string | null; iconSvg: string | null }
 
 interface SlotManagerModalProps {
@@ -79,6 +110,7 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     `[Jumlah kandungan]: ${fc.generationLimit || 1}`,
     `[Mod janaan]: ${GEN_MODE_LABEL[fc.genMode] || fc.genMode || 'Bebas'}`, '',
     'Berikan output dalam format berikut sahaja, satu blok bagi setiap kandungan, dipisahkan dengan baris "____":',
+    '(Tarikh sumber MESTI format YYYY-MM-DD, cth 2026-08-08 — format lain tidak dikenali oleh borang)',
     'Topik:', 'Tajuk:', 'Huraian ringkas:', 'Huraian panjang:', 'Sumber:', 'URL:', 'Tarikh sumber:',
   ];
   return lines.join('\n');
@@ -502,7 +534,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           // "pending" separa-terbit tersembunyi sebelum Terbit ditekan).
           status: 'draft',
           title: b.title, topik: b.topik, brief: b.brief, briefLong: b.briefLong,
-          source: b.source, url: b.url, sources: b.sources, sourceType: b.sourceType, date: b.date, note: b.note, image: b.image,
+          source: b.source, url: b.url, sources: b.sources, sourceType: b.sourceType, date: normalkanTarikhISO(b.date), note: b.note, image: b.image,
           // Blok yang ditampal biasanya datang daripada AI luaran (tiada baris Penulis:) — yang
           // menampal itulah penulisnya. Kalau teks yang ditampal MEMANG sudah membawa nama
           // (cth. draf disalin daripada slot lain), nama asal itu dikekalkan.
