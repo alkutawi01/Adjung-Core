@@ -8,6 +8,7 @@ import { KeadaanKosong } from '../common/KeadaanKosong';
 import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
+import { FormColumn } from '../common/FormColumn';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
 
 // Penaja (2026-08-05, Fasa 12 — permintaan Izzat). Tajaan BULANAN, boleh berbilang penaja
@@ -208,6 +209,10 @@ export const PenajaConsole: React.FC = () => {
           )}
         </div>
 
+        {/* Lajur borang berhad lebar — borang ni kekal terpampang dalam PanelCard selebar
+            halaman, jadi tanpa had setiap medan terbentang lebih 1000px. Butang hantar dan
+            mesej ralat turut dibalut supaya tepi kanannya sejajar medan, bukan tepi skrin. */}
+        <FormColumn saiz="md" className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
             <span className={`${LABEL_BORANG} flex justify-between`}>
@@ -239,17 +244,20 @@ export const PenajaConsole: React.FC = () => {
           />
         </label>
 
-        <label className="flex flex-col gap-1">
-          <span className={LABEL_BORANG}>Jumlah Bayaran (RM)</span>
-          <input
-            type="number" min="0" step="1" value={jumlahBayaran} onChange={(e) => setJumlahBayaran(e.target.value)}
-            placeholder="0"
-            className={INPUT_BORANG}
-          />
-          <span className="text-stone-400 text-[10px]">
-            Untuk kegunaan dalaman — akan tentukan saiz visual penaja di /penaja apabila ciri visualisasi dibina. Tidak dipaparkan kepada awam.
-          </span>
-        </label>
+        {/* Lebih sempit daripada lajur induk — medan ni satu nombor sahaja. */}
+        <FormColumn saiz="sm">
+          <label className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Jumlah Bayaran (RM)</span>
+            <input
+              type="number" min="0" step="1" value={jumlahBayaran} onChange={(e) => setJumlahBayaran(e.target.value)}
+              placeholder="0"
+              className={INPUT_BORANG}
+            />
+            <span className="text-stone-400 text-[10px]">
+              Untuk kegunaan dalaman — akan tentukan saiz visual penaja di /penaja apabila ciri visualisasi dibina. Tidak dipaparkan kepada awam.
+            </span>
+          </label>
+        </FormColumn>
 
         <label className="flex flex-col gap-1">
           <span className="flex items-baseline justify-between gap-3">
@@ -301,6 +309,7 @@ export const PenajaConsole: React.FC = () => {
             {menyimpan ? 'Menyimpan…' : menyunting ? 'Simpan Perubahan' : 'Tambah Penaja'}
           </Button>
         </div>
+        </FormColumn>
         </form>
       </PanelCard>
 

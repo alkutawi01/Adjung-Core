@@ -7,6 +7,7 @@ import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
+import { FormColumn } from '../common/FormColumn';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { useModalFokus } from '../../hooks/useModalFokus';
 import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
@@ -750,16 +751,21 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
 
         <div className="flex flex-col gap-1">
           <span className={LABEL_BORANG}>Bidang</span>
-          <select
-            value={draf.manualDesk}
-            onChange={e => setDraf(p => p ? { ...p, manualDesk: e.target.value } : p)}
-            className={INPUT_BORANG}
-          >
-            <option value="">— Belum ditetapkan —</option>
-            {bidangList.map(b => (
-              <option key={b.name} value={b.name}>{b.name}</option>
-            ))}
-          </select>
+          {/* `sm` — senarai Bidang ialah nama pendek satu perkataan ("Ekonomi", "Kebudayaan");
+              selebar modal 2xl ia memberi isyarat salah tentang panjang yang dijangka. Nota di
+              bawah sengaja di LUAR lajur — ia teks penjelasan, bukan medan. */}
+          <FormColumn saiz="sm">
+            <select
+              value={draf.manualDesk}
+              onChange={e => setDraf(p => p ? { ...p, manualDesk: e.target.value } : p)}
+              className={INPUT_BORANG}
+            >
+              <option value="">— Belum ditetapkan —</option>
+              {bidangList.map(b => (
+                <option key={b.name} value={b.name}>{b.name}</option>
+              ))}
+            </select>
+          </FormColumn>
           <p className="text-stone-400 text-[9px] leading-relaxed">
             Pertukaran Bidang tidak retroaktif — kandungan sedia ada dalam slot ini akan diarkibkan
             secara automatik jika Bidang ditukar (tidak lagi sepadan Bidang terkunci baharu).
@@ -945,16 +951,19 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
 
         <div className="flex flex-col gap-1">
           <span className={LABEL_BORANG}>Logo dalam Panel Transisi</span>
-          <select
-            value={draf.logoTransisiMode}
-            onChange={e => setDraf(p => p ? { ...p, logoTransisiMode: e.target.value } : p)}
-            className={INPUT_BORANG}
-          >
-            <option value="">Guna tetapan lalai (giliran Adjung &amp; penaja)</option>
-            <option value="adjung">Logo Adjung sahaja</option>
-            <option value="penaja">Logo penaja sahaja</option>
-            <option value="tiada">Tanpa logo</option>
-          </select>
+          {/* `md`, bukan `sm` — teks pilihan terpanjang di sini ialah satu frasa penuh. */}
+          <FormColumn saiz="md">
+            <select
+              value={draf.logoTransisiMode}
+              onChange={e => setDraf(p => p ? { ...p, logoTransisiMode: e.target.value } : p)}
+              className={INPUT_BORANG}
+            >
+              <option value="">Guna tetapan lalai (giliran Adjung &amp; penaja)</option>
+              <option value="adjung">Logo Adjung sahaja</option>
+              <option value="penaja">Logo penaja sahaja</option>
+              <option value="tiada">Tanpa logo</option>
+            </select>
+          </FormColumn>
           <span className="text-stone-400 text-[10px] leading-relaxed">
             &quot;Logo penaja sahaja&quot; jatuh balik ke logo Adjung apabila tiada penaja
             bertanda tayang bagi bulan semasa — panel tidak pernah kosong.

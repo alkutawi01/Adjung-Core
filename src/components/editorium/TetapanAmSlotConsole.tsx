@@ -6,6 +6,7 @@ import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
+import { FormColumn } from '../common/FormColumn';
 import { tierForSlot, TIER_LABELS } from '../../../core/editorial/GeometryConfig.js';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
@@ -365,6 +366,10 @@ export const TetapanAmSlotConsole: React.FC = () => {
             </span>
           </label>
 
+          {/* Dua-dua select ni anak `flex-col`, jadi ia meregang penuh separuh lebar halaman.
+              Satu-satunya kawalan dalam fail ni yang benar-benar terlalu lebar — yang lain sudah
+              bersaiz kandungan (`w-fit`, `w-24`) atau memang kawalan sebaris padat. */}
+          <FormColumn saiz="md">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <span className="font-semibold text-stone-800 text-[11px]">3a. Jenis animasi lalai</span>
@@ -393,6 +398,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
               </select>
             </div>
           </div>
+          </FormColumn>
           <p className="text-stone-400 text-[10px] leading-relaxed">
             "Lalai" = dipakai slot yang TAK override jenis/arah sendiri. Override per-slot kini di{' '}
             <strong className="font-semibold">Senarai Slot → Tetapan Kad</strong> (bukan di sini).

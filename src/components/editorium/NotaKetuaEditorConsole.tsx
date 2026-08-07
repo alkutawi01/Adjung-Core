@@ -8,6 +8,7 @@ import { KeadaanKosong } from '../common/KeadaanKosong';
 import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
+import { FormColumn } from '../common/FormColumn';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
 
 // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — tiga kategori nota yang Ketua
@@ -234,6 +235,10 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
             )}
           </div>
 
+          {/* Lajur borang berhad lebar. `lg` (bukan `md`) sebab medan Kandungan ialah textarea
+              perenggan yang mendominasi borang ni — satu lajur untuk semua medan supaya tepi
+              kanannya rata, bukan textarea terjuih keluar daripada medan lain. */}
+          <FormColumn saiz="lg" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <label className="flex flex-col gap-1">
               <span className={LABEL_BORANG}>Kategori</span>
@@ -306,6 +311,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
               {menyimpan ? 'Menyimpan…' : menyunting ? 'Simpan Perubahan' : 'Terbitkan Nota'}
             </Button>
           </div>
+          </FormColumn>
           </form>
         </PanelCard>
       )}

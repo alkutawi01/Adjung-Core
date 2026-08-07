@@ -11,6 +11,7 @@ import { KeadaanKosong } from '../common/KeadaanKosong';
 import { SectionLabel } from '../common/SectionLabel';
 import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
+import { FormColumn } from '../common/FormColumn';
 import { labelMod, labelStatus } from '../../config/istilah';
 import { formatKlDisplay, klLocalToIso, isoToKlLocalInput } from '../../../core/editorial/Scheduling.js';
 
@@ -594,7 +595,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         <SectionLabel>01 — Penapis Kandungan</SectionLabel>
 
         {/* Search Input — draf sahaja, ditapis bila "Tapis" ditekan (lihat nota FilterState). */}
-        <div className="w-full relative">
+        <FormColumn saiz="md" className="relative">
           <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
           <input
             type="text"
@@ -604,7 +605,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             onKeyDown={e => { if (e.key === 'Enter') handleApplyFilters(); }}
             className={`${INPUT_BORANG} pl-10`}
           />
-        </div>
+        </FormColumn>
 
         {/* 7 Dropdown Smart Filters + Susunan */}
         {/* lg:grid-cols-5 (bukan 9) — 2026-07-29, permintaan pemilik projek: paksa kesemua 9

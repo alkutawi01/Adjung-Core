@@ -14,6 +14,7 @@ import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
+import { FormColumn } from '../common/FormColumn';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 
 
@@ -619,17 +620,21 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <label className={LABEL_BORANG}>
                   Selang Masa Auto-Slaid Jam Dunia
                 </label>
-                <select
-                  value={worldClockIntervalSec}
-                  onChange={(e) => setWorldClockIntervalSec(Number(e.target.value))}
-                  className={INPUT_BORANG}
-                >
-                  <option value={30}>30 Saat</option>
-                  <option value={60}>60 Saat / 1 Minit</option>
-                  <option value={120}>120 Saat / 2 Minit</option>
-                  <option value={300}>300 Saat / 5 Minit</option>
-                  <option value={0}>Matikan Auto-Slaid</option>
-                </select>
+                {/* `sm`, bukan `md` — pilihannya cuma beberapa perkataan ("30 Saat"), jadi kotak
+                    selebar lajur borang penuh memberi isyarat salah tentang panjang nilainya. */}
+                <FormColumn saiz="sm">
+                  <select
+                    value={worldClockIntervalSec}
+                    onChange={(e) => setWorldClockIntervalSec(Number(e.target.value))}
+                    className={INPUT_BORANG}
+                  >
+                    <option value={30}>30 Saat</option>
+                    <option value={60}>60 Saat / 1 Minit</option>
+                    <option value={120}>120 Saat / 2 Minit</option>
+                    <option value={300}>300 Saat / 5 Minit</option>
+                    <option value={0}>Matikan Auto-Slaid</option>
+                  </select>
+                </FormColumn>
                 <span className="text-[10px] text-stone-400 block">
                   Paparan Jam Dunia akan bertukar set (Set 1 ➔ Set 2 ➔ Set 3) secara automatik mengikut masa ini.
                 </span>
@@ -639,14 +644,16 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <label className={LABEL_BORANG}>
                   Pemicu Pertukaran Klik Latar Belakang
                 </label>
-                <select
-                  value={worldClockBgClickEnabled ? '1' : '0'}
-                  onChange={(e) => setWorldClockBgClickEnabled(e.target.value === '1')}
-                  className={INPUT_BORANG}
-                >
-                  <option value="1">Aktif</option>
-                  <option value="0">Tidak Aktif</option>
-                </select>
+                <FormColumn saiz="sm">
+                  <select
+                    value={worldClockBgClickEnabled ? '1' : '0'}
+                    onChange={(e) => setWorldClockBgClickEnabled(e.target.value === '1')}
+                    className={INPUT_BORANG}
+                  >
+                    <option value="1">Aktif</option>
+                    <option value="0">Tidak Aktif</option>
+                  </select>
+                </FormColumn>
                 <span className="text-[10px] text-stone-400 block">
                   Apabila aktif, pengguna boleh menukar set paparan bandar dengan mengklik mana-mana ruang kosong di luar kad bento.
                 </span>
@@ -794,12 +801,14 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <label className={LABEL_BORANG}>
                   Had Aksara Nota Editor
                 </label>
-                <input
-                  type="number" min={20} max={2000} step={10}
-                  value={focusViewNotaMaxAksara}
-                  onChange={(e) => setFocusViewNotaMaxAksara(Math.max(20, Number(e.target.value) || 0))}
-                  className={INPUT_BORANG}
-                />
+                <FormColumn saiz="sm">
+                  <input
+                    type="number" min={20} max={2000} step={10}
+                    value={focusViewNotaMaxAksara}
+                    onChange={(e) => setFocusViewNotaMaxAksara(Math.max(20, Number(e.target.value) || 0))}
+                    className={INPUT_BORANG}
+                  />
+                </FormColumn>
                 <span className="text-[10px] text-stone-400 block">
                   Lalai 180 aksara. Tidak berkaitan bajet ruang tajuk/huraian kad bento (Tier Kad) — nota editor medan berasingan, tak dipapar pada kad.
                 </span>
@@ -835,31 +844,35 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <label className={LABEL_BORANG}>
                   Saiz Tajuk
                 </label>
-                <select
-                  value={tickerOverlayTitleSize}
-                  onChange={(e) => setTickerOverlayTitleSize(e.target.value)}
-                  className={INPUT_BORANG}
-                >
-                  <option value="S">Kecil</option>
-                  <option value="M">Sederhana</option>
-                  <option value="L">Besar (lalai)</option>
-                  <option value="XL">Sangat Besar</option>
-                </select>
+                <FormColumn saiz="sm">
+                  <select
+                    value={tickerOverlayTitleSize}
+                    onChange={(e) => setTickerOverlayTitleSize(e.target.value)}
+                    className={INPUT_BORANG}
+                  >
+                    <option value="S">Kecil</option>
+                    <option value="M">Sederhana</option>
+                    <option value="L">Besar (lalai)</option>
+                    <option value="XL">Sangat Besar</option>
+                  </select>
+                </FormColumn>
               </div>
 
               <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
                 <label className={LABEL_BORANG}>
                   Saiz Huraian
                 </label>
-                <select
-                  value={tickerOverlayBriefSize}
-                  onChange={(e) => setTickerOverlayBriefSize(e.target.value)}
-                  className={INPUT_BORANG}
-                >
-                  <option value="S">Kecil</option>
-                  <option value="M">Sederhana (lalai)</option>
-                  <option value="L">Besar</option>
-                </select>
+                <FormColumn saiz="sm">
+                  <select
+                    value={tickerOverlayBriefSize}
+                    onChange={(e) => setTickerOverlayBriefSize(e.target.value)}
+                    className={INPUT_BORANG}
+                  >
+                    <option value="S">Kecil</option>
+                    <option value="M">Sederhana (lalai)</option>
+                    <option value="L">Besar</option>
+                  </select>
+                </FormColumn>
               </div>
             </div>
 
@@ -1294,7 +1307,9 @@ function LabelSistemPanel() {
                   const semasa = nilaiPapar(item.kunci, item.lalai);
                   const dipinda = semasa !== item.lalai;
                   return (
-                    <div key={item.kunci} className="flex items-center gap-2">
+                    // `sm`: setiap label sistem satu perkataan sahaja ("Aktif", "Arkib") — baris
+                    // dihadkan seluruhnya supaya butang "Set semula" rapat dengan medannya.
+                    <FormColumn key={item.kunci} saiz="sm" className="flex items-center gap-2">
                       <input
                         type="text"
                         value={semasa}
@@ -1315,7 +1330,7 @@ function LabelSistemPanel() {
                           </span>
                         </Tooltip>
                       )}
-                    </div>
+                    </FormColumn>
                   );
                 })}
               </div>
