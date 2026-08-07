@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MesejStatus } from '../common/MesejStatus';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
+import { useModalFokus } from '../../hooks/useModalFokus';
 
 // Gerbang log masuk PERTAMA (2026-08-05, permintaan Izzat) — "saya nak editor masa daftar
 // masuk kali pertama baca dan setuju beberapa syarat dan peraturan", digabung dengan lima
@@ -32,6 +33,11 @@ export const LengkapkanProfilModal: React.FC<LengkapkanProfilProps> = ({ userId,
   const [bersetuju, setBersetuju] = useState(false);
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState('');
+
+  // Fokus terperangkap sahaja (Audit UI/UX §G1) — `onTutup` sengaja `undefined` sebab modal ni
+  // gerbang terma wajib, TIDAK BOLEH ditutup dengan Escape/X/klik-luar (lihat nota fail di atas).
+  const refModal = React.useRef<HTMLDivElement>(null);
+  useModalFokus(refModal, undefined);
 
   useEffect(() => {
     fetch('/api/pages/syarat-editor')
@@ -67,9 +73,15 @@ export const LengkapkanProfilModal: React.FC<LengkapkanProfilProps> = ({ userId,
 
   return (
     <div className="fixed inset-0 z-[200] bg-stone-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl border border-stone-300 max-w-lg w-full max-h-[92vh] overflow-y-auto p-6 space-y-4 text-xs font-sans">
+      <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lengkapkan-profil-modal-tajuk"
+        className="bg-white rounded-lg shadow-2xl border border-stone-300 max-w-lg w-full max-h-[92vh] overflow-y-auto p-6 space-y-4 text-xs font-sans"
+      >
         <div className="border-b border-stone-200 pb-3">
-          <h2 className="font-serif text-lg font-bold text-Adjung-maroon">Lengkapkan Profil &amp; Terima Syarat</h2>
+          <h2 id="lengkapkan-profil-modal-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">Lengkapkan Profil &amp; Terima Syarat</h2>
           <p className="text-stone-500 text-[11px] mt-1">
             Sebelum meneruskan ke Editorium, sila lengkapkan butiran di bawah dan baca Syarat &amp; Peraturan
             Editor. Ini hanya perlu sekali sahaja.

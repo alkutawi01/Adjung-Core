@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { X, Lock } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
+import { useModalFokus } from '../../hooks/useModalFokus';
 
 interface LoginModalProps {
   onClose: () => void;
@@ -30,15 +31,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
   const [emelLupa, setEmelLupa] = useState('');
   const [mesejLupa, setMesejLupa] = useState('');
   const [menghantarLupa, setMenghantarLupa] = useState(false);
-
-  // Escape menutup borang — sama seperti klik X atau kawasan gelap di luar.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,6 +92,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
   // ditekan; mouseup/click tercetus pada backdrop walaupun drag bermula dari dalam modal).
   const mousedownPadaBackdrop = React.useRef(false);
 
+  // Fokus & Escape (2026-08-07, Audit UI/UX §G1/G2/G6) — cangkuk kongsi memerangkap Tab dalam
+  // modal, memulangkan fokus kepada pencetus apabila tutup, dan Escape menutup borang (gantikan
+  // useEffect manual lama yang buat perkara sama tanpa perangkap fokus).
+  const refModal = React.useRef<HTMLDivElement>(null);
+  useModalFokus(refModal, onClose);
+
   return (
     <div
       className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
@@ -107,6 +105,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
       onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onClose(); }}
     >
       <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="login-modal-tajuk"
         className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
@@ -114,11 +116,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
           {/* Kepala modal piawai (Pelan 01 Fasa D2): serif-lg maroon + ikon kecil, butang X kanan. */}
           <div className="flex items-center gap-2 text-Adjung-maroon">
             <Lock className="w-4 h-4 shrink-0" />
-            <h2 className="font-serif text-lg font-bold">
+            <h2 id="login-modal-tajuk" className="font-serif text-lg font-bold">
               {modLupa ? 'Lupa Kata Laluan' : 'Log Masuk ke Editorium'}
             </h2>
           </div>
-          <button type="button" onClick={onClose} className="text-stone-400 hover:text-stone-700">
+          <button type="button" onClick={onClose} aria-label="Tutup" className="text-stone-400 hover:text-stone-700">
             <X className="w-4 h-4" />
           </button>
         </div>

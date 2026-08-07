@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
 import { labelUi } from '../../config/istilah';
+import { useModalFokus } from '../../hooks/useModalFokus';
+import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
 
 // Profil Editor (2026-08-01, spesifikasi pemilik projek — aksesori header "Profil editor",
 // bukan destinasi sidebar). 2026-08-02: dipermudah atas arahan Izzat — "ni bukan medsos, hanya
@@ -88,7 +90,8 @@ function BorangPengesahan({
     setMenyimpan(false);
     if (hasil.ok) {
       setMesej(mesejBerjaya);
-      setTimeout(() => setMesej(''), 2500);
+      // D2 (Audit UI/UX §D2): 2500ms terlalu pantas bagi editor yang mengalih pandangan seketika.
+      setTimeout(() => setMesej(''), 6000);
       reset();
     } else {
       setRalat(hasil.ralat || 'Gagal menyimpan.');
@@ -176,6 +179,18 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
   const [ralat, setRalat] = useState('');
   const [mesej, setMesej] = useState('');
 
+  // B2 (Audit UI/UX §B2) — kotor apabila Nama Pena atau mana-mana medan Butiran Profil berbeza
+  // daripada nilai profil yang modal ni dibuka dengannya. Kelayakan Akaun (username/emel/kata
+  // laluan) tak dikira sini sebab sub-borang tu simpan serta-merta lepas pengesahan kata laluan,
+  // bukan draf yang boleh hilang.
+  const kotor =
+    penName !== (profil.penName || '') ||
+    MEDAN_BUTIRAN_PROFIL.some((m) => (butiran[m.kunci] || '') !== (profil[m.kunci] || ''));
+
+  const refModal = React.useRef<HTMLDivElement>(null);
+  const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
+  useModalFokus(refModal, cubaTutup);
+
   const simpan = async (e: React.FormEvent) => {
     e.preventDefault();
     setMenyimpan(true);
@@ -190,7 +205,8 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan profil.');
       onKemasKini({ penName, ...butiran });
       setMesej(labelUi('toast.profil_disimpan'));
-      setTimeout(() => setMesej(''), 2000);
+      // D2 (Audit UI/UX §D2): 2000ms terlalu pantas bagi editor yang mengalih pandangan seketika.
+      setTimeout(() => setMesej(''), 6000);
     } catch (err: any) {
       setRalat(err.message || 'Gagal menyimpan profil.');
     } finally {
@@ -202,15 +218,19 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
     <div
       className="fixed inset-0 z-[70] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
       onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
-      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) cubaTutup(); }}
     >
       <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profil-editor-modal-tajuk"
         onClick={(e) => e.stopPropagation()}
         className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 text-xs font-sans"
       >
         <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 className="font-serif text-lg font-bold text-Adjung-maroon">Profil Editor</h3>
-          <button type="button" onClick={onTutup} className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+          <h3 id="profil-editor-modal-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">Profil Editor</h3>
+          <button type="button" onClick={cubaTutup} aria-label="Tutup Profil Editor" className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
 
         <form onSubmit={simpan} className="space-y-3">

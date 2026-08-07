@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 // Popover kecil untuk menetapkan editor SATU slot, terus dari senarai (2026-08-01, permintaan
 // pemilik projek — pemilih slot "Tulis Kandungan"). Sengaja tetingkap kecil terapung, BUKAN modal
@@ -29,6 +29,16 @@ export const PenugasanEditorPopover: React.FC<PenugasanEditorPopoverProps> = ({
   const [draf, setDraf] = useState<string[]>(editorIdsSemasa);
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState('');
+
+  // Escape membatalkan popover (Audit UI/UX §G2) — popover ringkas, bukan modal skrin penuh,
+  // jadi tak perlukan perangkap fokus penuh useModalFokus, tapi tetap wajar keluar papan kekunci.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onBatal();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onBatal]);
 
   const simpan = async () => {
     setMenyimpan(true);

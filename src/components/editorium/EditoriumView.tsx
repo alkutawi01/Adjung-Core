@@ -28,6 +28,7 @@ import { ContentReview } from '../studio/ContentReview';
 import { SlotManagerModal } from '../portal/SlotManagerModal';
 import { BarSlotManagerModal } from '../portal/BarSlotManagerModal';
 import { PenugasanEditorPopover } from './PenugasanEditorPopover';
+import { useModalFokus } from '../../hooks/useModalFokus';
 import { useSlotEditor } from '../../hooks/useSlotEditor';
 import { useTickerEditor } from '../../hooks/useTickerEditor';
 import { TickerManagementModal } from '../portal/TickerManagementModal';
@@ -104,6 +105,10 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Backdrop-click guard modal "Pilih Slot" di bawah (lihat LoginModal.tsx, pepijat Izzat
   // 2026-08-07) — kekal false selagi mousedown tak bermula terus pada backdrop.
   const mousedownPadaBackdropSlotPicker = React.useRef(false);
+  // Fokus & Escape modal "Pilih Slot" (Audit UI/UX §G1/G2/G6) — refModalSlotPicker dipasang pada
+  // ref hanya apabila modal dibuka (guna ternary di bawah), jadi cangkuk ni selamat dipanggil
+  // tanpa syarat di sini (peraturan Hook React), refModal.current tinggal null selagi tertutup.
+  const refModalSlotPicker = React.useRef<HTMLDivElement>(null);
   // Kebenaran berbilang peranan (2026-08-02, Fasa 3) — lihat DEFAULT_RBAC_MATRIX di
   // TetapanConsole.tsx / DEFAULT_ROLE_PERMISSIONS di core/middleware/auth.js untuk padanan
   // penuh. Ini cuma bayang RINGKAS di client untuk sorok/tunjuk nav — kawalan SEBENAR tetap di
@@ -177,6 +182,12 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
+  // Fokus & Escape modal "Pilih Slot" (Audit UI/UX §G1/G2/G6) — `onTutup` cuma aktif apabila
+  // modal sebenarnya terbuka, supaya Escape di tempat lain dalam Editorium tak disilap tangkap.
+  useModalFokus(
+    refModalSlotPicker,
+    slotEditor.showSlotPicker ? () => slotEditor.setShowSlotPicker(false) : undefined
+  );
   // Slot Bar (2026-08-02, Fasa 7, item kedua terakhir) — native Editorium, gantikan borang LAMA
   // di FrontpageView.tsx yang tiada titik masuk UI langsung lagi (pencetus TERAKHIR isEditMode,
   // "?openTicker=1", dibuang sesi ni). useSlotEditor.ts SUDAH generik sepenuhnya (fetch/save
@@ -680,10 +691,17 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           onMouseDown={(e) => { mousedownPadaBackdropSlotPicker.current = e.target === e.currentTarget; }}
           onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropSlotPicker.current) slotEditor.setShowSlotPicker(false); }}
         >
-          <div className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-fade-in" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={refModalSlotPicker}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pilih-slot-modal-tajuk"
+            className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex-none px-5 py-4 border-b border-stone-150 flex items-center justify-between">
-              <h2 className="font-serif text-lg font-medium text-stone-900">Pilih Slot</h2>
-              <button type="button" onClick={() => slotEditor.setShowSlotPicker(false)} className="text-stone-400 hover:text-stone-600 cursor-pointer"><X size={18} /></button>
+              <h2 id="pilih-slot-modal-tajuk" className="font-serif text-lg font-medium text-stone-900">Pilih Slot</h2>
+              <button type="button" onClick={() => slotEditor.setShowSlotPicker(false)} aria-label="Tutup" className="text-stone-400 hover:text-stone-600 cursor-pointer"><X size={18} /></button>
             </div>
             <ol
               className="flex-1 min-h-0 overflow-y-auto list-none m-0 p-0"
