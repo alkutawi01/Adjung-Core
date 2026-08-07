@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Search, Plus, X, Hourglass } from 'lucide-react';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -7,6 +7,8 @@ import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
+import { useModalFokus } from '../../hooks/useModalFokus';
+import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
 
 // 2026-08-02 (Fasa 3) — Direktori disambungkan ke data SEBENAR (jadual `users` + `user_roles`,
 // core/routes/userAdminRoutes.js). Dahulu staffList array kosong berkod keras, "+ Tambah Anggota"
@@ -57,9 +59,8 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const [memuat, setMemuat] = useState(true);
   const [ralat, setRalat] = useState('');
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
-  // Backdrop-click guard untuk dua modal di bawah (lihat LoginModal.tsx, pepijat Izzat
-  // 2026-08-07) — kekal false selagi mousedown tak bermula terus pada backdrop.
-  const mousedownPadaBackdropStaff = React.useRef(false);
+  // Backdrop-click guard untuk modal konfirmasi tamat di bawah (lihat LoginModal.tsx, pepijat
+  // Izzat 2026-08-07) — kekal false selagi mousedown tak bermula terus pada backdrop.
   const mousedownPadaBackdropTamat = React.useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [tambahTerbuka, setTambahTerbuka] = useState(false);
@@ -69,8 +70,10 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   // Ditamatkan dahulu papar kiraan Draf+Menunggu kepunyaan akaun tu, Pentadbir kena tekan pilihan
   // eksplisit (bukan padam automatik senyap). Kandungan approved/archived TIDAK disentuh.
   const [konfirmasiTamat, setKonfirmasiTamat] = useState<{ staff: Staff; draf: any[]; menunggu: any[] } | null>(null);
-  const [memuatKonfirmasi, setMemuatKonfirmasi] = useState(false);
   const [memproses, setMemproses] = useState(false);
+  // Ralat tindakan tamatkan (Audit UI/UX §E5) — dahulu alert() pelayar mentah, kini kotak ralat
+  // dalam aplikasi, dipaparkan terus dalam modal konfirmasi yang mencetuskan tindakan tu.
+  const [ralatTamat, setRalatTamat] = useState('');
 
   const muatSemula = () => {
     setMemuat(true);
@@ -88,45 +91,30 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
     s.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const ubahStatus = async (staff: Staff, status: typeof STATUS_SAH[number]) => {
-    try {
-      const res = await fetch(`/api/system/users/${staff.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error();
-      const updated = { ...staff, status };
-      setSelectedStaff(updated);
-      setStaffList(prev => prev.map(s => s.id === staff.id ? updated : s));
-    } catch {
-      alert('Gagal mengemas kini status.');
-    }
-  };
-
-  // "Ditamatkan" dipintas (bukan terus ubahStatus) — semak dulu Draf+Menunggu kepunyaannya
-  // supaya Pentadbir buat keputusan termaklum, bukan terkejut kandungan hilang/tertinggal senyap.
-  const klikTamatkan = async (staff: Staff) => {
-    setMemuatKonfirmasi(true);
-    try {
-      const res = await fetch(`/api/system/users/${staff.id}/kandungan-belum-terbit`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menyemak kandungan.');
-      setKonfirmasiTamat({ staff, draf: data.draf || [], menunggu: data.menunggu || [] });
-    } catch (e: any) {
-      alert(e.message || 'Gagal menyemak kandungan belum terbit.');
-    } finally {
-      setMemuatKonfirmasi(false);
-    }
+  // Kemas kini rekod staf serentak dalam selectedStaff (jika modal profil masih terbuka pada
+  // staf yang sama) dan staffList — dipanggil daripada ProfilAnggotaModal selepas tindakan
+  // berjaya (tukar status, togol peranan).
+  const kemaskiniStaff = (updated: Staff) => {
+    setSelectedStaff(prev => (prev && prev.id === updated.id ? updated : prev));
+    setStaffList(prev => prev.map(s => s.id === updated.id ? updated : s));
   };
 
   const tamatkanSahaja = async () => {
     if (!konfirmasiTamat) return;
     setMemproses(true);
+    setRalatTamat('');
     try {
-      await ubahStatus(konfirmasiTamat.staff, 'Ditamatkan');
+      const res = await fetch(`/api/system/users/${konfirmasiTamat.staff.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Ditamatkan' }),
+      });
+      if (!res.ok) throw new Error('Gagal mengemas kini status.');
+      kemaskiniStaff({ ...konfirmasiTamat.staff, status: 'Ditamatkan' });
       setKonfirmasiTamat(null);
       setMesejBerjaya('Akaun ditamatkan. Draf/Menunggu kepunyaannya dikekalkan.');
+    } catch (e: any) {
+      setRalatTamat(e.message || 'Gagal mengemas kini status.');
     } finally {
       setMemproses(false);
     }
@@ -135,37 +123,24 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const tamatkanDanPadam = async () => {
     if (!konfirmasiTamat) return;
     setMemproses(true);
+    setRalatTamat('');
     try {
-      await ubahStatus(konfirmasiTamat.staff, 'Ditamatkan');
+      const resStatus = await fetch(`/api/system/users/${konfirmasiTamat.staff.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Ditamatkan' }),
+      });
+      if (!resStatus.ok) throw new Error('Gagal mengemas kini status.');
+      kemaskiniStaff({ ...konfirmasiTamat.staff, status: 'Ditamatkan' });
       const res = await fetch(`/api/system/users/${konfirmasiTamat.staff.id}/kandungan-belum-terbit/padam`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal memadam kandungan.');
       setKonfirmasiTamat(null);
       setMesejBerjaya(`Akaun ditamatkan. ${data.drafDipadam} draf dan ${data.menungguDipadam} kandungan menunggu dipadam.`);
     } catch (e: any) {
-      alert(e.message || 'Gagal memadam kandungan belum terbit.');
+      setRalatTamat(e.message || 'Gagal memadam kandungan belum terbit.');
     } finally {
       setMemproses(false);
-    }
-  };
-
-  const togolPeranan = async (staff: Staff, roleId: string) => {
-    const roles = staff.roles.includes(roleId)
-      ? staff.roles.filter(r => r !== roleId)
-      : [...staff.roles, roleId];
-    if (roles.length === 0) { alert('Akaun mesti pegang sekurang-kurangnya satu peranan.'); return; }
-    try {
-      const res = await fetch(`/api/system/users/${staff.id}/roles`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roles }),
-      });
-      if (!res.ok) throw new Error();
-      const updated = { ...staff, roles };
-      setSelectedStaff(updated);
-      setStaffList(prev => prev.map(s => s.id === staff.id ? updated : s));
-    } catch {
-      alert('Gagal mengemas kini peranan.');
     }
   };
 
@@ -196,20 +171,23 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
         }
       />
 
-      {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
+      {/* Butang "Cuba Lagi" (Audit UI/UX §D6) — muatSemula sudah wujud tapi dahulu tak pernah
+          disambungkan kepada jalan pulih dalam UI; Pentadbir terpaksa muat semula seluruh laman. */}
+      {ralat && <MesejStatus tone="error" onCubaLagi={muatSemula}>{ralat}</MesejStatus>}
 
       <PanelCard padding="p-0">
         <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse font-sans text-xs">
+          <caption className="sr-only">Senarai anggota editorial</caption>
           <thead>
             <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
-              <th className="p-4">Nama Anggota</th>
-              <th className="p-4">ID Pengguna</th>
-              <th className="p-4">Peranan</th>
-              <th className="p-4">Status</th>
-              <th className="p-4">Kandungan Diterbitkan</th>
-              <th className="p-4">Akaun Dicipta</th>
-              <th className="p-4 text-right">Tindakan</th>
+              <th scope="col" className="p-4">Nama Anggota</th>
+              <th scope="col" className="p-4">ID Pengguna</th>
+              <th scope="col" className="p-4">Peranan</th>
+              <th scope="col" className="p-4">Status</th>
+              <th scope="col" className="p-4">Kandungan Diterbitkan</th>
+              <th scope="col" className="p-4">Akaun Dicipta</th>
+              <th scope="col" className="p-4 text-right">Tindakan</th>
             </tr>
           </thead>
           <tbody className="font-sans">
@@ -254,86 +232,13 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       </PanelCard>
 
       {selectedStaff && (
-        // Tutup cuma bila mousedown DAN click kedua-duanya pada backdrop (lihat LoginModal.tsx,
-        // pepijat Izzat 2026-08-07: drag-select teks dalam modal + lepas tetikus di luar modal
-        // tak patut tutup modal).
-        <div
-          className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-          onMouseDown={(e) => { mousedownPadaBackdropStaff.current = e.target === e.currentTarget; }}
-          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropStaff.current) setSelectedStaff(null); }}
-        >
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-start border-b border-stone-200 pb-4">
-              <div>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold block mb-1">
-                  PROFIL ANGGOTA EDITORIAL
-                </span>
-                {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon, bukan stone-900. */}
-                <h3 className="font-serif text-lg font-bold text-Adjung-maroon">{selectedStaff.penName}</h3>
-                <span className="font-mono text-xs text-stone-500">{selectedStaff.username} • {selectedStaff.email}</span>
-              </div>
-              <button onClick={() => setSelectedStaff(null)} className="text-stone-400 hover:text-stone-700 px-2 py-1 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
-              <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">MAKLUMAT IDENTITI</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Nama Pena</span><strong className="text-stone-900 font-semibold">{selectedStaff.penName}</strong></div>
-                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase mb-1">Status</span><StatusBadge tone={STATUS_TONE[selectedStaff.status]} label={selectedStaff.status} /></div>
-                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Akaun Dicipta</span><strong className="font-mono font-bold">{new Date(selectedStaff.createdAt).toLocaleDateString('ms-MY')}</strong></div>
-              </div>
-            </div>
-
-            <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
-              <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">PERANAN (BOLEH BERBILANG)</h4>
-              <div className="grid grid-cols-2 gap-2">
-                {ROLE_ORDER.map(roleId => (
-                  <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border ${isPentadbir ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'} ${selectedStaff.roles.includes(roleId) ? 'border-Adjung-maroon bg-white' : 'border-stone-200 bg-stone-100'}`}>
-                    <input
-                      type="checkbox"
-                      checked={selectedStaff.roles.includes(roleId)}
-                      onChange={() => isPentadbir && togolPeranan(selectedStaff, roleId)}
-                      disabled={!isPentadbir}
-                      className="rounded border-stone-300 text-Adjung-maroon w-4 h-4"
-                    />
-                    <span className="font-semibold text-stone-800">{ROLE_META[roleId].label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
-              <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">AKTIVITI KANDUNGAN</h4>
-              <div className="bg-white p-3 rounded border border-stone-200 text-center max-w-[160px]">
-                <div className="text-2xl font-bold font-serif text-emerald-800 font-mono">{selectedStaff.countPublished}</div>
-                <span className="text-stone-500 text-[10px] uppercase font-semibold block mt-1">Kandungan Diterbitkan</span>
-              </div>
-            </div>
-
-            {isPentadbir && (
-              <div className="border-t border-stone-200 pt-4 flex flex-wrap justify-between items-center gap-2 font-sans text-xs">
-                <span className="text-stone-500 font-semibold text-xs">TUKAR STATUS PERKHIDMATAN:</span>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* "Ditamatkan" ialah tindakan merbahaya — varian `bahaya`, dan pengesahan dua
-                      langkah sedia ada (klikTamatkan → modal konfirmasiTamat) dikekalkan. */}
-                  {STATUS_SAH.map(s => (
-                    <Button
-                      key={s}
-                      variant={s === 'Ditamatkan' ? 'bahaya' : 'secondary'}
-                      size="sm"
-                      onClick={() => s === 'Ditamatkan' ? klikTamatkan(selectedStaff) : ubahStatus(selectedStaff, s)}
-                      disabled={selectedStaff.status === s || (s === 'Ditamatkan' && memuatKonfirmasi)}
-                    >
-                      {s === 'Ditamatkan' && memuatKonfirmasi ? 'Menyemak…' : s}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <ProfilAnggotaModal
+          staff={selectedStaff}
+          isPentadbir={isPentadbir}
+          onTutup={() => setSelectedStaff(null)}
+          onUpdated={kemaskiniStaff}
+          onSiapUntukTamat={setKonfirmasiTamat}
+        />
       )}
 
       {mesejBerjaya && (
@@ -359,7 +264,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
         <div
           className="fixed inset-0 z-[70] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
           onMouseDown={(e) => { mousedownPadaBackdropTamat.current = e.target === e.currentTarget; }}
-          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropTamat.current && !memproses) setKonfirmasiTamat(null); }}
+          onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdropTamat.current && !memproses) { setKonfirmasiTamat(null); setRalatTamat(''); } }}
         >
           {/* Saiz modal piawai (Pelan 01 Fasa D2): `max-w-sm` untuk pengesahan, `max-w-2xl` untuk
               kandungan/jadual — tiada saiz ketiga. */}
@@ -397,6 +302,8 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               </>
             )}
 
+            {ralatTamat && <MesejStatus tone="error">{ralatTamat}</MesejStatus>}
+
             {/* Kaki modal disusun menegak (bukan sebaris) sebab label tindakannya panjang —
                 susunan tetap mengikut keutamaan D2: tindakan merbahaya, tindakan biasa, Batal. */}
             <div className="flex flex-col gap-2 pt-2 border-t border-stone-200">
@@ -406,7 +313,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <Button variant="secondary" onClick={tamatkanSahaja} disabled={memproses}>
                 Tamatkan sahaja (kekalkan draf/menunggu)
               </Button>
-              <Button variant="ghost" onClick={() => setKonfirmasiTamat(null)} disabled={memproses}>
+              <Button variant="ghost" onClick={() => { setKonfirmasiTamat(null); setRalatTamat(''); }} disabled={memproses}>
                 Batal
               </Button>
             </div>
@@ -416,6 +323,172 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
     </div>
   );
 };
+
+// Modal profil anggota (Audit UI/UX §G1/G2/G4/G6, §E5) — diasingkan daripada DirektoriConsole
+// supaya useModalFokus hanya aktif selagi modal ni benar-benar dilekap (bukan sepanjang hayat
+// konsol induk). ubahStatus/klikTamatkan/togolPeranan turut dipindahkan ke sini kerana
+// kesemuanya cuma dicetuskan daripada dalam modal ni.
+function ProfilAnggotaModal({
+  staff, isPentadbir, onTutup, onUpdated, onSiapUntukTamat,
+}: {
+  staff: Staff;
+  isPentadbir: boolean;
+  onTutup: () => void;
+  onUpdated: (updated: Staff) => void;
+  onSiapUntukTamat: (payload: { staff: Staff; draf: any[]; menunggu: any[] }) => void;
+}) {
+  const refModal = useRef<HTMLDivElement>(null);
+  useModalFokus(refModal, onTutup);
+  // Tutup cuma bila mousedown DAN click kedua-duanya pada backdrop (lihat LoginModal.tsx,
+  // pepijat Izzat 2026-08-07: drag-select teks dalam modal + lepas tetikus di luar modal
+  // tak patut tutup modal).
+  const mousedownPadaBackdrop = useRef(false);
+  const [ralatStatus, setRalatStatus] = useState('');
+  const [ralatPeranan, setRalatPeranan] = useState('');
+  const [memuatKonfirmasi, setMemuatKonfirmasi] = useState(false);
+
+  const ubahStatus = async (status: typeof STATUS_SAH[number]) => {
+    setRalatStatus('');
+    try {
+      const res = await fetch(`/api/system/users/${staff.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error();
+      onUpdated({ ...staff, status });
+    } catch {
+      setRalatStatus('Gagal mengemas kini status.');
+    }
+  };
+
+  // "Ditamatkan" dipintas (bukan terus ubahStatus) — semak dulu Draf+Menunggu kepunyaannya
+  // supaya Pentadbir buat keputusan termaklum, bukan terkejut kandungan hilang/tertinggal senyap.
+  const klikTamatkan = async () => {
+    setMemuatKonfirmasi(true);
+    setRalatStatus('');
+    try {
+      const res = await fetch(`/api/system/users/${staff.id}/kandungan-belum-terbit`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menyemak kandungan.');
+      onSiapUntukTamat({ staff, draf: data.draf || [], menunggu: data.menunggu || [] });
+    } catch (e: any) {
+      setRalatStatus(e.message || 'Gagal menyemak kandungan belum terbit.');
+    } finally {
+      setMemuatKonfirmasi(false);
+    }
+  };
+
+  const togolPeranan = async (roleId: string) => {
+    const roles = staff.roles.includes(roleId)
+      ? staff.roles.filter(r => r !== roleId)
+      : [...staff.roles, roleId];
+    setRalatPeranan('');
+    if (roles.length === 0) { setRalatPeranan('Akaun mesti pegang sekurang-kurangnya satu peranan.'); return; }
+    try {
+      const res = await fetch(`/api/system/users/${staff.id}/roles`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roles }),
+      });
+      if (!res.ok) throw new Error();
+      onUpdated({ ...staff, roles });
+    } catch {
+      setRalatPeranan('Gagal mengemas kini peranan.');
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
+    >
+      <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profil-anggota-tajuk"
+        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-start border-b border-stone-200 pb-4">
+          <div>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold block mb-1">
+              PROFIL ANGGOTA EDITORIAL
+            </span>
+            {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon, bukan stone-900. */}
+            <h3 id="profil-anggota-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">{staff.penName}</h3>
+            <span className="font-mono text-xs text-stone-500">{staff.username} • {staff.email}</span>
+          </div>
+          <button onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 px-2 py-1 cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
+          <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">MAKLUMAT IDENTITI</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Nama Pena</span><strong className="text-stone-900 font-semibold">{staff.penName}</strong></div>
+            <div><span className="text-stone-500 block text-[10px] font-semibold uppercase mb-1">Status</span><StatusBadge tone={STATUS_TONE[staff.status]} label={staff.status} /></div>
+            <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Akaun Dicipta</span><strong className="font-mono font-bold">{new Date(staff.createdAt).toLocaleDateString('ms-MY')}</strong></div>
+          </div>
+        </div>
+
+        <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
+          <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">PERANAN (BOLEH BERBILANG)</h4>
+          <div className="grid grid-cols-2 gap-2">
+            {ROLE_ORDER.map(roleId => (
+              <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border ${isPentadbir ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'} ${staff.roles.includes(roleId) ? 'border-Adjung-maroon bg-white' : 'border-stone-200 bg-stone-100'}`}>
+                <input
+                  type="checkbox"
+                  checked={staff.roles.includes(roleId)}
+                  onChange={() => isPentadbir && togolPeranan(roleId)}
+                  disabled={!isPentadbir}
+                  className="rounded border-stone-300 text-Adjung-maroon w-4 h-4"
+                />
+                <span className="font-semibold text-stone-800">{ROLE_META[roleId].label}</span>
+              </label>
+            ))}
+          </div>
+          {ralatPeranan && <MesejStatus tone="error">{ralatPeranan}</MesejStatus>}
+        </div>
+
+        <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">
+          <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">AKTIVITI KANDUNGAN</h4>
+          <div className="bg-white p-3 rounded border border-stone-200 text-center max-w-[160px]">
+            <div className="text-2xl font-bold font-serif text-emerald-800 font-mono">{staff.countPublished}</div>
+            <span className="text-stone-500 text-[10px] uppercase font-semibold block mt-1">Kandungan Diterbitkan</span>
+          </div>
+        </div>
+
+        {isPentadbir && (
+          <div className="border-t border-stone-200 pt-4 space-y-2 font-sans text-xs">
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <span className="text-stone-500 font-semibold text-xs">TUKAR STATUS PERKHIDMATAN:</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* "Ditamatkan" ialah tindakan merbahaya — varian `bahaya`, dan pengesahan dua
+                    langkah sedia ada (klikTamatkan → modal konfirmasiTamat) dikekalkan. */}
+                {STATUS_SAH.map(s => (
+                  <Button
+                    key={s}
+                    variant={s === 'Ditamatkan' ? 'bahaya' : 'secondary'}
+                    size="sm"
+                    onClick={() => s === 'Ditamatkan' ? klikTamatkan() : ubahStatus(s)}
+                    disabled={staff.status === s || (s === 'Ditamatkan' && memuatKonfirmasi)}
+                  >
+                    {s === 'Ditamatkan' && memuatKonfirmasi ? 'Menyemak…' : s}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            {ralatStatus && <MesejStatus tone="error">{ralatStatus}</MesejStatus>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerjaya: (emel: string) => void }) {
   const [username, setUsername] = useState('');
@@ -459,16 +532,33 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
   // menutupnya dan membuang apa yang sudah ditaip. Lihat LoginModal.tsx untuk nota penuh.
   const mousedownPadaBackdrop = React.useRef(false);
 
+  // Amaran belum-simpan (Audit UI/UX §B2) — kotor apabila mana-mana medan sudah diisi, atau
+  // peranan lalai (`editor` sahaja) sudah ditukar. Sebelum ni klik latar/X menutup borang terus
+  // walaupun editor sudah menaip nama/emel.
+  const kotor = !!(username || email || penName) || roles.length !== 1 || roles[0] !== 'editor';
+  const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
+
+  const refModal = useRef<HTMLFormElement>(null);
+  useModalFokus(refModal, cubaTutup);
+
   return (
     <div
       className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
       onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
-      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) cubaTutup(); }}
     >
-      <form onSubmit={hantar} onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs font-sans">
+      <form
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tambah-anggota-tajuk"
+        onSubmit={hantar}
+        onClick={e => e.stopPropagation()}
+        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs font-sans"
+      >
         <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 className="font-serif text-lg font-bold text-Adjung-maroon">Tambah Anggota</h3>
-          <button type="button" onClick={onTutup} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+          <h3 id="tambah-anggota-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">Tambah Anggota</h3>
+          <button type="button" onClick={cubaTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
 
         <label className="block">

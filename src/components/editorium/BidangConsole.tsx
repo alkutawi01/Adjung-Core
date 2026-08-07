@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Zap, X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
 import { StatusBadge } from '../common/StatusBadge';
@@ -9,6 +9,7 @@ import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
+import { useModalFokus } from '../../hooks/useModalFokus';
 
 // Bidang (2026-07-30) — DIPINDAHKAN daripada Tetapan → "2. Taksonomi" ke tab Slot, atas permintaan
 // pemilik projek: slot ialah kad, kad ialah slot, jadi segala tetapan yang mentakrifkan slot duduk
@@ -50,58 +51,7 @@ export const BidangConsole: React.FC = () => {
   const [renamingBidangId, setRenamingBidangId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-
-  // Strategi warna Taksonomi (2026-08-06, permintaan Izzat — "biar editor boleh pilih nak
-  // selaraskan semua bidang guna satu warna sahaja, atau pelbagaikan"). Bukan skrip
-  // command-line sekali-guna — tindakan berulang boleh dipanggil bila-bila masa oleh Ketua
-  // Editor/Penolong terus dari sini.
   const [showWarnaModal, setShowWarnaModal] = useState(false);
-  const [warnaSeragam, setWarnaSeragam] = useState('#802334');
-  const [memprosesWarna, setMemprosesWarna] = useState<'unify' | 'diversify' | null>(null);
-  const [mesejWarna, setMesejWarna] = useState<string | null>(null);
-  const [ralatWarna, setRalatWarna] = useState<string | null>(null);
-
-  const selaraskanSatuWarna = async () => {
-    setMemprosesWarna('unify');
-    setRalatWarna(null);
-    setMesejWarna(null);
-    try {
-      const res = await fetch('/api/system/categories/unify-colors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ color: warnaSeragam }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menyelaraskan warna.');
-      setMesejWarna(`${data.dikemas} Bidang aktif kini guna warna yang sama.`);
-      fetchActiveBidang();
-    } catch (e: any) {
-      setRalatWarna(e.message || 'Gagal menyelaraskan warna.');
-    } finally {
-      setMemprosesWarna(null);
-    }
-  };
-
-  const pelbagaikanWarna = async () => {
-    setMemprosesWarna('diversify');
-    setRalatWarna(null);
-    setMesejWarna(null);
-    try {
-      const res = await fetch('/api/system/categories/diversify-colors', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal mempelbagaikan warna.');
-      setMesejWarna(
-        data.dikemas > 0
-          ? `${data.dikemas} Bidang diagihkan warna baharu (yang sudah unik tak diusik).`
-          : 'Semua Bidang aktif sudah ada warna unik — tiada perubahan diperlukan.'
-      );
-      fetchActiveBidang();
-    } catch (e: any) {
-      setRalatWarna(e.message || 'Gagal mempelbagaikan warna.');
-    } finally {
-      setMemprosesWarna(null);
-    }
-  };
 
   // /categories/taksonomi (bukan /categories/active) — konsol ni perlukan DUA-DUA status
   // (aktif+arkib) supaya Ketua Editor boleh nampak dan pulihkan yang diarkib. /categories/active
@@ -276,204 +226,12 @@ export const BidangConsole: React.FC = () => {
   };
 
   // Pemilih Ikon Bidang — klik badge ikon dalam jadual buka modal ni (grid lucide + muat naik SVG).
+  // Modal (IkonWarnaModal, di bawah) diasingkan sebagai komponen sendiri (Audit UI/UX §G1/G2/G6) —
+  // state ikon/warna/plat semuanya tempatan kepada modal itu, dimulakan semula setiap kali dibuka.
   const [iconPickerBidangId, setIconPickerBidangId] = useState<string | null>(null);
-  const [savingIconFor, setSavingIconFor] = useState<string | null>(null);
-  const [svgUploadPreview, setSvgUploadPreview] = useState<string | null>(null);
-  const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
-  const [uploadingSvg, setUploadingSvg] = useState(false);
-
-  // Plat ilustrasi Bidang — SVG besar untuk kolum kanan Focus View. Berasingan daripada ikon di
-  // atas: ikon 13px di jalur masthead, plat ~240px di permukaan bacaan. Spec dikuatkuasakan di
-  // server (core/routes/categoryRoutes.js): viewBox wajib, currentColor sahaja, had 256KB.
-  const [illusPreview, setIllusPreview] = useState<string | null>(null);
-  /** Markup plat SEMASA bagi Bidang yang modalnya terbuka, diambil atas permintaan. */
-  const [illusCurrent, setIllusCurrent] = useState<string | null>(null);
-  const [illusError, setIllusError] = useState<string | null>(null);
-  /** Nota selepas muat naik, cth berapa nilai warna ditukar. Maklum, bukan ralat. */
-  const [illusNote, setIllusNote] = useState<string | null>(null);
-  const [uploadingIllus, setUploadingIllus] = useState(false);
-
-  // Warna Bidang — dipentaskan dalam state supaya pemilih warna boleh diseret tanpa menghantar
-  // satu permintaan bagi setiap piksel pergerakan.
-  const [warnaDraf, setWarnaDraf] = useState<string | null>(null);
-  const [simpanWarna, setSimpanWarna] = useState(false);
-  const [warnaError, setWarnaError] = useState<string | null>(null);
-
-  // Markup plat diambil HANYA bila modal dibuka — ia tidak dibawa dalam senarai Bidang, kerana
-  // satu plat boleh ratusan kilobait dan senarai itu dimuat oleh frontpage awam juga.
-  const openIconPicker = (d: ActiveBidang) => {
-    setIconPickerBidangId(d.id);
-    setIllusCurrent(null);
-    setIllusPreview(null);
-    setIllusError(null);
-    setIllusNote(null);
-    setWarnaDraf(null);
-    setWarnaError(null);
-    if (d.hasIllustration) {
-      fetch('/api/system/categories/illustration?name=' + encodeURIComponent(d.name))
-        .then(res => res.json())
-        .then(data => setIllusCurrent(data?.illustrationSvg || null))
-        .catch(e => console.error('Error fetching illustration:', e));
-    }
-  };
-
-  const closeIconPicker = () => {
-    setIconPickerBidangId(null);
-    setSvgUploadPreview(null);
-    setSvgUploadError(null);
-    setIllusPreview(null);
-    setIllusCurrent(null);
-    setIllusError(null);
-    setIllusNote(null);
-    setWarnaDraf(null);
-    setWarnaError(null);
-  };
-
-  const handleSaveColor = async (id: string) => {
-    if (!warnaDraf) return;
-    setSimpanWarna(true);
-    setWarnaError(null);
-    try {
-      const res = await fetch('/api/system/categories/set-color', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, color: warnaDraf })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menetapkan warna.');
-      setWarnaDraf(null);
-      fetchActiveBidang();
-    } catch (e: any) {
-      setWarnaError(e.message || 'Gagal menetapkan warna.');
-    } finally {
-      setSimpanWarna(false);
-    }
-  };
-
-  const handleIllusFileSelected = (file: File | null) => {
-    setIllusError(null);
-    setIllusNote(null);
-    setIllusPreview(null);
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.svg')) {
-      setIllusError('Pilih fail .svg sahaja.');
-      return;
-    }
-    if (file.size > 256 * 1024) {
-      setIllusError('Fail terlalu besar (had 256KB untuk plat ilustrasi).');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setIllusPreview(String(reader.result || ''));
-    reader.onerror = () => setIllusError('Gagal membaca fail.');
-    reader.readAsText(file);
-  };
-
-  const handleUploadIllustration = async (id: string) => {
-    if (!illusPreview) return;
-    setUploadingIllus(true);
-    setIllusError(null);
-    try {
-      const res = await fetch('/api/system/categories/set-illustration-svg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, svg: illusPreview })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memuat naik plat ilustrasi.');
-      // Guna markup yang server benar-benar simpan, bukan fail mentah: warna sudah ditukar kepada
-      // currentColor di sana, jadi pratonton menunjukkan plat sebenar (bermarun) dan bukan fail asal.
-      setIllusCurrent(data.illustrationSvg || illusPreview);
-      setIllusNote(data.warnaDitukar > 0
-        ? `${data.warnaDitukar} nilai warna ditukar kepada currentColor — plat kini mengikut marun Adjung.`
-        : null);
-      setIllusPreview(null);
-      fetchActiveBidang();
-    } catch (e: any) {
-      setIllusError(e.message || 'Gagal memuat naik plat ilustrasi.');
-    } finally {
-      setUploadingIllus(false);
-    }
-  };
-
-  const handleClearIllustration = async (id: string) => {
-    setUploadingIllus(true);
-    setIllusError(null);
-    try {
-      const res = await fetch('/api/system/categories/clear-illustration-svg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal membuang plat ilustrasi.');
-      setIllusCurrent(null);
-      setIllusPreview(null);
-      fetchActiveBidang();
-    } catch (e: any) {
-      setIllusError(e.message || 'Gagal membuang plat ilustrasi.');
-    } finally {
-      setUploadingIllus(false);
-    }
-  };
-
-  const handlePickLucideIcon = async (id: string, iconName: string) => {
-    setSavingIconFor(id);
-    try {
-      const res = await fetch('/api/system/categories/set-icon', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, icon: iconName })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menetapkan ikon.');
-      closeIconPicker();
-      fetchActiveBidang();
-    } catch (e: any) {
-      alert('Ralat: ' + (e.message || ''));
-    } finally {
-      setSavingIconFor(null);
-    }
-  };
-
-  const handleSvgFileSelected = (file: File | null) => {
-    setSvgUploadError(null);
-    setSvgUploadPreview(null);
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.svg') && file.type !== 'image/svg+xml') {
-      setSvgUploadError('Pilih fail .svg sahaja.');
-      return;
-    }
-    if (file.size > 100 * 1024) {
-      setSvgUploadError('Fail terlalu besar (had 100KB).');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setSvgUploadPreview(String(reader.result || ''));
-    reader.onerror = () => setSvgUploadError('Gagal membaca fail.');
-    reader.readAsText(file);
-  };
-
-  const handleUploadSvgIcon = async (id: string) => {
-    if (!svgUploadPreview) return;
-    setUploadingSvg(true);
-    setSvgUploadError(null);
-    try {
-      const res = await fetch('/api/system/categories/set-icon-svg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, svg: svgUploadPreview })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memuat naik SVG.');
-      closeIconPicker();
-      fetchActiveBidang();
-    } catch (e: any) {
-      setSvgUploadError(e.message || 'Gagal memuat naik SVG.');
-    } finally {
-      setUploadingSvg(false);
-    }
-  };
+  const openIconPicker = (d: ActiveBidang) => setIconPickerBidangId(d.id);
+  const closeIconPicker = () => setIconPickerBidangId(null);
+  const iconPickerTarget = desks.find(d => d.id === iconPickerBidangId) || null;
 
   const handleRenameBidang = async (id: string) => {
     if (!renameValue.trim()) return;
@@ -492,32 +250,6 @@ export const BidangConsole: React.FC = () => {
     }
   };
 
-  const [newDeskName, setNewDeskName] = useState('');
-  const [newDeskColor, setNewDeskColor] = useState('#802334');
-  const [addingDesk, setAddingDesk] = useState(false);
-
-  const handleAddDesk = async () => {
-    if (!newDeskName.trim()) return;
-    setAddingDesk(true);
-    try {
-      const res = await fetch('/api/system/categories/activate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newDeskName.trim(), color: newDeskColor })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal menambah Bidang.');
-      setNewDeskName('');
-      setNewDeskColor('#802334');
-      setShowAddModal(false);
-      fetchActiveBidang();
-    } catch (e: any) {
-      alert('Ralat: ' + (e.message || ''));
-    } finally {
-      setAddingDesk(false);
-    }
-  };
-
   return (
     <div className="space-y-6 font-sans">
       <ModulTajuk
@@ -530,7 +262,7 @@ export const BidangConsole: React.FC = () => {
             </span>
             <Button
               variant="secondary"
-              onClick={() => { setMesejWarna(null); setRalatWarna(null); setShowWarnaModal(true); }}
+              onClick={() => setShowWarnaModal(true)}
             >
               Strategi Warna
             </Button>
@@ -839,276 +571,599 @@ export const BidangConsole: React.FC = () => {
         )}
       </PanelCard>
 
-      {iconPickerBidangId && (() => {
-        const target = desks.find(d => d.id === iconPickerBidangId);
-        if (!target) return null;
-        return (
-          <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto">
-              <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-                <h3 className="font-serif text-lg font-bold text-Adjung-maroon flex items-center gap-2">
-                  <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />
-                  Ikon, Warna &amp; Plat — {target.name}
-                </h3>
-                <button onClick={closeIconPicker} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-              </div>
-
-              <div className="font-sans space-y-3">
-                <div className="pb-3 border-b border-stone-200">
-                  <label className={LABEL_BORANG}>Warna Bidang</label>
-                  <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
-                    Dipakai pada eyebrow kad, glif Bidang, dan eyebrow Focus View — identiti visual Bidang ini
-                    merentas seluruh portal. Warna diberi automatik semasa Bidang dicipta; tukar di sini kalau ia
-                    tidak sesuai.
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={warnaDraf || target.color || '#802334'}
-                      onChange={e => { setWarnaDraf(e.target.value.toUpperCase()); setWarnaError(null); }}
-                      className="w-10 h-8 rounded border border-stone-300 bg-white cursor-pointer p-0.5"
-                      title="Pilih warna"
-                    />
-                    <input
-                      type="text"
-                      value={warnaDraf || target.color || ''}
-                      onChange={e => { setWarnaDraf(e.target.value.toUpperCase()); setWarnaError(null); }}
-                      placeholder="#802334"
-                      className="w-24 px-2 py-1 border border-stone-300 rounded font-mono text-[11px] uppercase"
-                    />
-                    {/* Pratonton dalam bentuk sebenar ia akan dipakai */}
-                    <span
-                      className="font-mono text-[10px] uppercase tracking-widest font-bold"
-                      style={{ color: warnaDraf || target.color }}
-                    >
-                      {target.name}
-                    </span>
-                    {warnaDraf && warnaDraf.toUpperCase() !== (target.color || '').toUpperCase() && (
-                      <Button variant="primary" onClick={() => handleSaveColor(target.id)} disabled={simpanWarna}>
-                        {simpanWarna ? 'Menyimpan...' : 'Guna Warna Ini'}
-                      </Button>
-                    )}
-                  </div>
-                  {warnaError && <MesejStatus tone="error" className="mt-1">{warnaError}</MesejStatus>}
-                </div>
-
-                <div>
-                  <label className={LABEL_BORANG}>Pilih Ikon Sedia Ada</label>
-                  <div className="grid grid-cols-8 gap-1.5">
-                    {BIDANG_ICON_NAMES.map(name => {
-                      const Icon = BIDANG_ICON_MAP[name];
-                      const isCurrent = !target.iconSvg && target.icon === name;
-                      return (
-                        <button
-                          key={name}
-                          type="button"
-                          title={name}
-                          disabled={savingIconFor === target.id}
-                          onClick={() => handlePickLucideIcon(target.id, name)}
-                          className={`flex items-center justify-center w-8 h-8 rounded border transition-colors disabled:opacity-40 ${
-                            isCurrent ? 'bg-Adjung-maroon border-Adjung-maroon text-white' : 'bg-stone-50 border-stone-200 text-stone-600 hover:border-Adjung-maroon hover:text-Adjung-maroon'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-stone-200">
-                  <label className={LABEL_BORANG}>Atau Muat Naik SVG Sendiri</label>
-                  <div className="flex items-center gap-3">
-                    {/* <label> membalut <input type="file"> — tak boleh jadi <Button> (elemen
-                        <button> tak boleh mencetuskan pemilih fail), jadi ia meminjam bahasa
-                        visual varian `secondary` secara langsung. */}
-                    <label className="inline-flex items-center justify-center gap-2 rounded-md font-semibold font-sans text-xs px-4 py-1.5 cursor-pointer transition-colors bg-white text-Adjung-maroon border border-stone-200 hover:bg-stone-50 hover:border-stone-300">
-                      <Upload className="w-3.5 h-3.5" /> Pilih Fail .svg
-                      <input
-                        type="file"
-                        accept=".svg,image/svg+xml"
-                        className="hidden"
-                        onChange={e => handleSvgFileSelected(e.target.files?.[0] || null)}
-                      />
-                    </label>
-                    {svgUploadPreview && (
-                      <span
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-stone-300 [&_svg]:w-4 [&_svg]:h-4"
-                        style={{ color: target.color }}
-                        dangerouslySetInnerHTML={{ __html: svgUploadPreview }}
-                      />
-                    )}
-                  </div>
-                  <p className="text-stone-400 text-[10px] mt-1.5">Had 100KB. Ditapis ketat di server sebelum disimpan (skrip/pengendali klik dibuang).</p>
-                  {svgUploadError && <MesejStatus tone="error" className="mt-1">{svgUploadError}</MesejStatus>}
-                  {svgUploadPreview && (
-                    <Button
-                      variant="primary"
-                      onClick={() => handleUploadSvgIcon(target.id)}
-                      disabled={uploadingSvg}
-                      className="mt-2"
-                    >
-                      {uploadingSvg ? 'Memuat naik...' : 'Guna SVG Ini'}
-                    </Button>
-                  )}
-                </div>
-                <div className="pt-3 border-t border-stone-200">
-                  <label className={LABEL_BORANG}>Plat Ilustrasi Bidang</label>
-                  <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
-                    Ilustrasi besar yang menutup kolum kanan Focus View apabila kandungan itu tiada grafik,
-                    tiada kandungan berkaitan dan tiada nota editor. Ia mengalah kepada kandungan sebenar —
-                    satu grafik atau satu nota sudah cukup untuk menyembunyikannya.
-                  </p>
-
-                  <p className="text-stone-500 text-[10px] font-semibold mb-1">Dua syarat:</p>
-                  <ul className="text-stone-500 text-[10px] leading-relaxed mb-2 pl-3 list-disc marker:text-stone-300">
-                    <li>SVG mesti ada <code className="font-mono">viewBox</code>. Nombornya bebas — <code className="font-mono">0 0 1024 1024</code> sama sah seperti <code className="font-mono">0 0 256 256</code>.</li>
-                    <li>Had 256KB.</li>
-                  </ul>
-                  <p className="text-stone-400 text-[10px] leading-relaxed mb-2">
-                    Warna tidak perlu disediakan: sistem menukar setiap fill/stroke kepada
-                    <code className="font-mono"> currentColor</code> semasa simpan, jadi plat sentiasa mengikut
-                    marun Adjung. Fail hitam putih pun boleh terus dimuat naik. <code className="font-mono">none</code>,
-                    <code className="font-mono"> transparent</code> dan nilai legap dikekalkan.
-                  </p>
-                  <p className="text-stone-400 text-[10px] leading-relaxed mb-2">
-                    Cadangan (tidak dikuatkuasakan): nisbah segi empat sama duduk paling baik dalam kolum;
-                    kekalkan karya sedikit dari tepi; garis halus supaya plat kekal senyap dan tidak menarik
-                    perhatian daripada tajuk. Bukan ikon yang dibesarkan — ikon 24px jadi nipis pada saiz ini.
-                  </p>
-
-                  <div className="flex items-center gap-3">
-                    {/* <label> membalut <input type="file"> — tak boleh jadi <Button> (elemen
-                        <button> tak boleh mencetuskan pemilih fail), jadi ia meminjam bahasa
-                        visual varian `secondary` secara langsung. */}
-                    <label className="inline-flex items-center justify-center gap-2 rounded-md font-semibold font-sans text-xs px-4 py-1.5 cursor-pointer transition-colors bg-white text-Adjung-maroon border border-stone-200 hover:bg-stone-50 hover:border-stone-300">
-                      <Upload className="w-3.5 h-3.5" /> Pilih Plat .svg
-                      <input
-                        type="file"
-                        accept=".svg,image/svg+xml"
-                        className="hidden"
-                        onChange={e => handleIllusFileSelected(e.target.files?.[0] || null)}
-                      />
-                    </label>
-                    {(illusPreview || illusCurrent) && (
-                      <span
-                        className="inline-flex items-center justify-center w-16 h-16 rounded border border-stone-200 bg-[#FDFDFD] [&_svg]:w-14 [&_svg]:h-14"
-                        style={{ color: 'var(--color-Adjung-maroon)' }}
-                        title={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}
-                        dangerouslySetInnerHTML={{ __html: (illusPreview || illusCurrent) as string }}
-                      />
-                    )}
-                  </div>
-
-                  {illusError && <MesejStatus tone="error" className="mt-1">{illusError}</MesejStatus>}
-                  {illusNote && <MesejStatus tone="success" className="mt-1">{illusNote}</MesejStatus>}
-
-                  <div className="flex items-center gap-2 mt-2">
-                    {illusPreview && (
-                      <Button variant="primary" onClick={() => handleUploadIllustration(target.id)} disabled={uploadingIllus}>
-                        {uploadingIllus ? 'Memuat naik...' : 'Guna Plat Ini'}
-                      </Button>
-                    )}
-                    {target.hasIllustration && !illusPreview && (
-                      <Button variant="secondary" onClick={() => handleClearIllustration(target.id)} disabled={uploadingIllus}>
-                        {uploadingIllus ? 'Membuang...' : 'Buang Plat'}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-stone-200 flex justify-end">
-                <Button variant="secondary" onClick={closeIconPicker}>Tutup</Button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* MODAL TAMBAH BIDANG */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs">
-            <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
-                + Tambah Bidang Baharu
-              </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-            </div>
-
-            <div className="space-y-3 font-sans">
-              <div>
-                <label className={LABEL_BORANG}>Nama Bidang</label>
-                <input type="text" placeholder="Astronomi" value={newDeskName} onChange={e => setNewDeskName(e.target.value)} className={INPUT_BORANG} />
-              </div>
-              <div>
-                <label className={LABEL_BORANG}>Warna Bidang (Hex)</label>
-                <div className="flex items-center gap-2">
-                  <input type="color" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className="w-9 h-8 shrink-0 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
-                  <input type="text" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className={`${INPUT_BORANG} font-mono font-bold`} />
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowAddModal(false)}>Batal</Button>
-              <Button variant="primary" onClick={handleAddDesk} disabled={addingDesk}>
-                {addingDesk ? 'Menambah...' : 'Tambah Bidang'}
-              </Button>
-            </div>
-          </div>
-        </div>
+      {iconPickerTarget && (
+        <IkonWarnaModal
+          target={iconPickerTarget}
+          onTutup={closeIconPicker}
+          onUpdated={fetchActiveBidang}
+        />
       )}
 
-      {/* MODAL STRATEGI WARNA (2026-08-06) — dua tindakan berulang, bukan skrip sekali-guna. */}
+      {showAddModal && (
+        <TambahBidangModal
+          onTutup={() => setShowAddModal(false)}
+          onBerjaya={() => { setShowAddModal(false); fetchActiveBidang(); }}
+        />
+      )}
+
       {showWarnaModal && (
-        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs">
-            <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-serif text-lg font-bold text-Adjung-maroon">
-                Strategi Warna Bidang
-              </h3>
-              <button onClick={() => setShowWarnaModal(false)} className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-            </div>
-
-            <div className="space-y-4 font-sans">
-              <div className="space-y-2 border-b border-stone-200 pb-4">
-                <p className="font-semibold text-stone-800">Selaraskan ke SATU warna</p>
-                <p className="text-stone-500">Semua Bidang aktif ({desks.filter(d => d.isActive === 1).length}) akan guna warna yang sama ini.</p>
-                <div className="flex items-center gap-2">
-                  <input type="color" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className="w-9 h-8 shrink-0 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
-                  <input type="text" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className={`${INPUT_BORANG} font-mono font-bold`} />
-                </div>
-                <Button variant="primary" onClick={selaraskanSatuWarna} disabled={memprosesWarna !== null}>
-                  {memprosesWarna === 'unify' ? 'Menyelaraskan...' : 'Selaraskan Semua'}
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <p className="font-semibold text-stone-800">Pelbagaikan semula</p>
-                <p className="text-stone-500">
-                  Bidang yang berkongsi warna sama diagihkan warna baharu berbeza dari palet — Bidang
-                  paling lama dalam setiap kumpulan kekal dengan warna asalnya, Bidang yang warnanya
-                  sudah unik langsung tak diusik.
-                </p>
-                <Button variant="secondary" onClick={pelbagaikanWarna} disabled={memprosesWarna !== null}>
-                  {memprosesWarna === 'diversify' ? 'Memproses...' : 'Pelbagaikan Semula'}
-                </Button>
-              </div>
-
-              {mesejWarna && <MesejStatus tone="success">{mesejWarna}</MesejStatus>}
-              {ralatWarna && <MesejStatus tone="error">{ralatWarna}</MesejStatus>}
-            </div>
-
-            <div className="pt-2 border-t border-stone-200 flex justify-end">
-              <Button variant="secondary" onClick={() => setShowWarnaModal(false)}>Tutup</Button>
-            </div>
-          </div>
-        </div>
+        <StrategiWarnaModal
+          jumlahAktif={desks.filter(d => d.isActive === 1).length}
+          onTutup={() => setShowWarnaModal(false)}
+          fetchActiveBidang={fetchActiveBidang}
+        />
       )}
     </div>
   );
 };
+
+// Modal ikon/warna/plat ilustrasi (Audit UI/UX §G1/G2/G4/G6) — diasingkan daripada BidangConsole
+// supaya useModalFokus hanya aktif selagi modal ni benar-benar dilekap. Semua state ikon/warna/plat
+// kini tempatan kepada modal ni — dimulakan semula setiap kali dibuka (React melekapkannya semula),
+// jadi kelakuannya sama seperti openIconPicker/closeIconPicker asal yang mengeset semula state tiap
+// kali buka/tutup.
+function IkonWarnaModal({
+  target, onTutup, onUpdated,
+}: {
+  target: ActiveBidang;
+  onTutup: () => void;
+  onUpdated: () => void;
+}) {
+  const refModal = useRef<HTMLDivElement>(null);
+  useModalFokus(refModal, onTutup);
+
+  const [savingIconFor, setSavingIconFor] = useState<string | null>(null);
+  const [svgUploadPreview, setSvgUploadPreview] = useState<string | null>(null);
+  const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
+  const [uploadingSvg, setUploadingSvg] = useState(false);
+
+  // Plat ilustrasi Bidang — SVG besar untuk kolum kanan Focus View. Berasingan daripada ikon di
+  // atas: ikon 13px di jalur masthead, plat ~240px di permukaan bacaan. Spec dikuatkuasakan di
+  // server (core/routes/categoryRoutes.js): viewBox wajib, currentColor sahaja, had 256KB.
+  const [illusPreview, setIllusPreview] = useState<string | null>(null);
+  /** Markup plat SEMASA bagi Bidang yang modalnya terbuka, diambil atas permintaan. */
+  const [illusCurrent, setIllusCurrent] = useState<string | null>(null);
+  const [illusError, setIllusError] = useState<string | null>(null);
+  /** Nota selepas muat naik, cth berapa nilai warna ditukar. Maklum, bukan ralat. */
+  const [illusNote, setIllusNote] = useState<string | null>(null);
+  const [uploadingIllus, setUploadingIllus] = useState(false);
+
+  // Warna Bidang — dipentaskan dalam state supaya pemilih warna boleh diseret tanpa menghantar
+  // satu permintaan bagi setiap piksel pergerakan.
+  const [warnaDraf, setWarnaDraf] = useState<string | null>(null);
+  const [simpanWarna, setSimpanWarna] = useState(false);
+  const [warnaError, setWarnaError] = useState<string | null>(null);
+
+  // Markup plat diambil HANYA bila modal dibuka — ia tidak dibawa dalam senarai Bidang, kerana
+  // satu plat boleh ratusan kilobait dan senarai itu dimuat oleh frontpage awam juga.
+  useEffect(() => {
+    if (target.hasIllustration) {
+      fetch('/api/system/categories/illustration?name=' + encodeURIComponent(target.name))
+        .then(res => res.json())
+        .then(data => setIllusCurrent(data?.illustrationSvg || null))
+        .catch(e => console.error('Error fetching illustration:', e));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target.id]);
+
+  const handleSaveColor = async (id: string) => {
+    if (!warnaDraf) return;
+    setSimpanWarna(true);
+    setWarnaError(null);
+    try {
+      const res = await fetch('/api/system/categories/set-color', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, color: warnaDraf })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menetapkan warna.');
+      setWarnaDraf(null);
+      onUpdated();
+    } catch (e: any) {
+      setWarnaError(e.message || 'Gagal menetapkan warna.');
+    } finally {
+      setSimpanWarna(false);
+    }
+  };
+
+  const handleIllusFileSelected = (file: File | null) => {
+    setIllusError(null);
+    setIllusNote(null);
+    setIllusPreview(null);
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.svg')) {
+      setIllusError('Pilih fail .svg sahaja.');
+      return;
+    }
+    if (file.size > 256 * 1024) {
+      setIllusError('Fail terlalu besar (had 256KB untuk plat ilustrasi).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setIllusPreview(String(reader.result || ''));
+    reader.onerror = () => setIllusError('Gagal membaca fail.');
+    reader.readAsText(file);
+  };
+
+  const handleUploadIllustration = async (id: string) => {
+    if (!illusPreview) return;
+    setUploadingIllus(true);
+    setIllusError(null);
+    try {
+      const res = await fetch('/api/system/categories/set-illustration-svg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, svg: illusPreview })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal memuat naik plat ilustrasi.');
+      // Guna markup yang server benar-benar simpan, bukan fail mentah: warna sudah ditukar kepada
+      // currentColor di sana, jadi pratonton menunjukkan plat sebenar (bermarun) dan bukan fail asal.
+      setIllusCurrent(data.illustrationSvg || illusPreview);
+      setIllusNote(data.warnaDitukar > 0
+        ? `${data.warnaDitukar} nilai warna ditukar kepada currentColor — plat kini mengikut marun Adjung.`
+        : null);
+      setIllusPreview(null);
+      onUpdated();
+    } catch (e: any) {
+      setIllusError(e.message || 'Gagal memuat naik plat ilustrasi.');
+    } finally {
+      setUploadingIllus(false);
+    }
+  };
+
+  const handleClearIllustration = async (id: string) => {
+    setUploadingIllus(true);
+    setIllusError(null);
+    try {
+      const res = await fetch('/api/system/categories/clear-illustration-svg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal membuang plat ilustrasi.');
+      setIllusCurrent(null);
+      setIllusPreview(null);
+      onUpdated();
+    } catch (e: any) {
+      setIllusError(e.message || 'Gagal membuang plat ilustrasi.');
+    } finally {
+      setUploadingIllus(false);
+    }
+  };
+
+  const handlePickLucideIcon = async (id: string, iconName: string) => {
+    setSavingIconFor(id);
+    try {
+      const res = await fetch('/api/system/categories/set-icon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, icon: iconName })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menetapkan ikon.');
+      onUpdated();
+      onTutup();
+    } catch (e: any) {
+      alert('Ralat: ' + (e.message || ''));
+    } finally {
+      setSavingIconFor(null);
+    }
+  };
+
+  const handleSvgFileSelected = (file: File | null) => {
+    setSvgUploadError(null);
+    setSvgUploadPreview(null);
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.svg') && file.type !== 'image/svg+xml') {
+      setSvgUploadError('Pilih fail .svg sahaja.');
+      return;
+    }
+    if (file.size > 100 * 1024) {
+      setSvgUploadError('Fail terlalu besar (had 100KB).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setSvgUploadPreview(String(reader.result || ''));
+    reader.onerror = () => setSvgUploadError('Gagal membaca fail.');
+    reader.readAsText(file);
+  };
+
+  const handleUploadSvgIcon = async (id: string) => {
+    if (!svgUploadPreview) return;
+    setUploadingSvg(true);
+    setSvgUploadError(null);
+    try {
+      const res = await fetch('/api/system/categories/set-icon-svg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, svg: svgUploadPreview })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal memuat naik SVG.');
+      onUpdated();
+      onTutup();
+    } catch (e: any) {
+      setSvgUploadError(e.message || 'Gagal memuat naik SVG.');
+    } finally {
+      setUploadingSvg(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ikon-warna-tajuk"
+        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto"
+      >
+        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+          <h3 id="ikon-warna-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon flex items-center gap-2">
+            <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />
+            Ikon, Warna &amp; Plat — {target.name}
+          </h3>
+          <button onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+        </div>
+
+        <div className="font-sans space-y-3">
+          <div className="pb-3 border-b border-stone-200">
+            <label className={LABEL_BORANG}>Warna Bidang</label>
+            <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
+              Dipakai pada eyebrow kad, glif Bidang, dan eyebrow Focus View — identiti visual Bidang ini
+              merentas seluruh portal. Warna diberi automatik semasa Bidang dicipta; tukar di sini kalau ia
+              tidak sesuai.
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={warnaDraf || target.color || '#802334'}
+                onChange={e => { setWarnaDraf(e.target.value.toUpperCase()); setWarnaError(null); }}
+                className="w-10 h-8 rounded border border-stone-300 bg-white cursor-pointer p-0.5"
+                title="Pilih warna"
+              />
+              <input
+                type="text"
+                value={warnaDraf || target.color || ''}
+                onChange={e => { setWarnaDraf(e.target.value.toUpperCase()); setWarnaError(null); }}
+                placeholder="#802334"
+                className="w-24 px-2 py-1 border border-stone-300 rounded font-mono text-[11px] uppercase"
+              />
+              {/* Pratonton dalam bentuk sebenar ia akan dipakai */}
+              <span
+                className="font-mono text-[10px] uppercase tracking-widest font-bold"
+                style={{ color: warnaDraf || target.color }}
+              >
+                {target.name}
+              </span>
+              {warnaDraf && warnaDraf.toUpperCase() !== (target.color || '').toUpperCase() && (
+                <Button variant="primary" onClick={() => handleSaveColor(target.id)} disabled={simpanWarna}>
+                  {simpanWarna ? 'Menyimpan...' : 'Guna Warna Ini'}
+                </Button>
+              )}
+            </div>
+            {warnaError && <MesejStatus tone="error" className="mt-1">{warnaError}</MesejStatus>}
+          </div>
+
+          <div>
+            <label className={LABEL_BORANG}>Pilih Ikon Sedia Ada</label>
+            <div className="grid grid-cols-8 gap-1.5">
+              {BIDANG_ICON_NAMES.map(name => {
+                const Icon = BIDANG_ICON_MAP[name];
+                const isCurrent = !target.iconSvg && target.icon === name;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    title={name}
+                    disabled={savingIconFor === target.id}
+                    onClick={() => handlePickLucideIcon(target.id, name)}
+                    className={`flex items-center justify-center w-8 h-8 rounded border transition-colors disabled:opacity-40 ${
+                      isCurrent ? 'bg-Adjung-maroon border-Adjung-maroon text-white' : 'bg-stone-50 border-stone-200 text-stone-600 hover:border-Adjung-maroon hover:text-Adjung-maroon'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-stone-200">
+            <label className={LABEL_BORANG}>Atau Muat Naik SVG Sendiri</label>
+            <div className="flex items-center gap-3">
+              {/* <label> membalut <input type="file"> — tak boleh jadi <Button> (elemen
+                  <button> tak boleh mencetuskan pemilih fail), jadi ia meminjam bahasa
+                  visual varian `secondary` secara langsung. */}
+              <label className="inline-flex items-center justify-center gap-2 rounded-md font-semibold font-sans text-xs px-4 py-1.5 cursor-pointer transition-colors bg-white text-Adjung-maroon border border-stone-200 hover:bg-stone-50 hover:border-stone-300">
+                <Upload className="w-3.5 h-3.5" /> Pilih Fail .svg
+                <input
+                  type="file"
+                  accept=".svg,image/svg+xml"
+                  className="hidden"
+                  onChange={e => handleSvgFileSelected(e.target.files?.[0] || null)}
+                />
+              </label>
+              {svgUploadPreview && (
+                <span
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-stone-300 [&_svg]:w-4 [&_svg]:h-4"
+                  style={{ color: target.color }}
+                  dangerouslySetInnerHTML={{ __html: svgUploadPreview }}
+                />
+              )}
+            </div>
+            <p className="text-stone-400 text-[10px] mt-1.5">Had 100KB. Ditapis ketat di server sebelum disimpan (skrip/pengendali klik dibuang).</p>
+            {svgUploadError && <MesejStatus tone="error" className="mt-1">{svgUploadError}</MesejStatus>}
+            {svgUploadPreview && (
+              <Button
+                variant="primary"
+                onClick={() => handleUploadSvgIcon(target.id)}
+                disabled={uploadingSvg}
+                className="mt-2"
+              >
+                {uploadingSvg ? 'Memuat naik...' : 'Guna SVG Ini'}
+              </Button>
+            )}
+          </div>
+          <div className="pt-3 border-t border-stone-200">
+            <label className={LABEL_BORANG}>Plat Ilustrasi Bidang</label>
+            <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
+              Ilustrasi besar yang menutup kolum kanan Focus View apabila kandungan itu tiada grafik,
+              tiada kandungan berkaitan dan tiada nota editor. Ia mengalah kepada kandungan sebenar —
+              satu grafik atau satu nota sudah cukup untuk menyembunyikannya.
+            </p>
+
+            <p className="text-stone-500 text-[10px] font-semibold mb-1">Dua syarat:</p>
+            <ul className="text-stone-500 text-[10px] leading-relaxed mb-2 pl-3 list-disc marker:text-stone-300">
+              <li>SVG mesti ada <code className="font-mono">viewBox</code>. Nombornya bebas — <code className="font-mono">0 0 1024 1024</code> sama sah seperti <code className="font-mono">0 0 256 256</code>.</li>
+              <li>Had 256KB.</li>
+            </ul>
+            <p className="text-stone-400 text-[10px] leading-relaxed mb-2">
+              Warna tidak perlu disediakan: sistem menukar setiap fill/stroke kepada
+              <code className="font-mono"> currentColor</code> semasa simpan, jadi plat sentiasa mengikut
+              marun Adjung. Fail hitam putih pun boleh terus dimuat naik. <code className="font-mono">none</code>,
+              <code className="font-mono"> transparent</code> dan nilai legap dikekalkan.
+            </p>
+            <p className="text-stone-400 text-[10px] leading-relaxed mb-2">
+              Cadangan (tidak dikuatkuasakan): nisbah segi empat sama duduk paling baik dalam kolum;
+              kekalkan karya sedikit dari tepi; garis halus supaya plat kekal senyap dan tidak menarik
+              perhatian daripada tajuk. Bukan ikon yang dibesarkan — ikon 24px jadi nipis pada saiz ini.
+            </p>
+
+            <div className="flex items-center gap-3">
+              {/* <label> membalut <input type="file"> — tak boleh jadi <Button> (elemen
+                  <button> tak boleh mencetuskan pemilih fail), jadi ia meminjam bahasa
+                  visual varian `secondary` secara langsung. */}
+              <label className="inline-flex items-center justify-center gap-2 rounded-md font-semibold font-sans text-xs px-4 py-1.5 cursor-pointer transition-colors bg-white text-Adjung-maroon border border-stone-200 hover:bg-stone-50 hover:border-stone-300">
+                <Upload className="w-3.5 h-3.5" /> Pilih Plat .svg
+                <input
+                  type="file"
+                  accept=".svg,image/svg+xml"
+                  className="hidden"
+                  onChange={e => handleIllusFileSelected(e.target.files?.[0] || null)}
+                />
+              </label>
+              {(illusPreview || illusCurrent) && (
+                <span
+                  className="inline-flex items-center justify-center w-16 h-16 rounded border border-stone-200 bg-[#FDFDFD] [&_svg]:w-14 [&_svg]:h-14"
+                  style={{ color: 'var(--color-Adjung-maroon)' }}
+                  title={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}
+                  dangerouslySetInnerHTML={{ __html: (illusPreview || illusCurrent) as string }}
+                />
+              )}
+            </div>
+
+            {illusError && <MesejStatus tone="error" className="mt-1">{illusError}</MesejStatus>}
+            {illusNote && <MesejStatus tone="success" className="mt-1">{illusNote}</MesejStatus>}
+
+            <div className="flex items-center gap-2 mt-2">
+              {illusPreview && (
+                <Button variant="primary" onClick={() => handleUploadIllustration(target.id)} disabled={uploadingIllus}>
+                  {uploadingIllus ? 'Memuat naik...' : 'Guna Plat Ini'}
+                </Button>
+              )}
+              {target.hasIllustration && !illusPreview && (
+                <Button variant="secondary" onClick={() => handleClearIllustration(target.id)} disabled={uploadingIllus}>
+                  {uploadingIllus ? 'Membuang...' : 'Buang Plat'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-stone-200 flex justify-end">
+          <Button variant="secondary" onClick={onTutup}>Tutup</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Modal "Tambah Bidang" (Audit UI/UX §G1/G2/G4/G6) — diasingkan supaya useModalFokus hanya aktif
+// selagi modal ni dilekap.
+function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerjaya: () => void }) {
+  const refModal = useRef<HTMLDivElement>(null);
+  useModalFokus(refModal, onTutup);
+
+  const [newDeskName, setNewDeskName] = useState('');
+  const [newDeskColor, setNewDeskColor] = useState('#802334');
+  const [addingDesk, setAddingDesk] = useState(false);
+
+  const handleAddDesk = async () => {
+    if (!newDeskName.trim()) return;
+    setAddingDesk(true);
+    try {
+      const res = await fetch('/api/system/categories/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newDeskName.trim(), color: newDeskColor })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menambah Bidang.');
+      onBerjaya();
+    } catch (e: any) {
+      alert('Ralat: ' + (e.message || ''));
+    } finally {
+      setAddingDesk(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tambah-bidang-tajuk"
+        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs"
+      >
+        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+          <h3 id="tambah-bidang-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">
+            + Tambah Bidang Baharu
+          </h3>
+          <button onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+        </div>
+
+        <div className="space-y-3 font-sans">
+          <div>
+            <label className={LABEL_BORANG}>Nama Bidang</label>
+            <input type="text" placeholder="Astronomi" value={newDeskName} onChange={e => setNewDeskName(e.target.value)} className={INPUT_BORANG} />
+          </div>
+          <div>
+            <label className={LABEL_BORANG}>Warna Bidang (Hex)</label>
+            <div className="flex items-center gap-2">
+              <input type="color" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className="w-9 h-8 shrink-0 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
+              <input type="text" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className={`${INPUT_BORANG} font-mono font-bold`} />
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
+          <Button variant="secondary" onClick={onTutup}>Batal</Button>
+          <Button variant="primary" onClick={handleAddDesk} disabled={addingDesk}>
+            {addingDesk ? 'Menambah...' : 'Tambah Bidang'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Modal "Strategi Warna" (2026-08-06, dua tindakan berulang, bukan skrip sekali-guna) — diasingkan
+// (Audit UI/UX §G1/G2/G4/G6). §D6: ralat menyelaraskan/mempelbagaikan warna dahulu tiada jalan
+// pulih langsung — "Cuba Lagi" kini memuat semula senarai Bidang supaya paparan sentiasa padan
+// dengan keadaan sebenar pada server sebelum editor cuba lagi.
+function StrategiWarnaModal({
+  jumlahAktif, onTutup, fetchActiveBidang,
+}: {
+  jumlahAktif: number;
+  onTutup: () => void;
+  fetchActiveBidang: () => void;
+}) {
+  const refModal = useRef<HTMLDivElement>(null);
+  useModalFokus(refModal, onTutup);
+
+  const [warnaSeragam, setWarnaSeragam] = useState('#802334');
+  const [memprosesWarna, setMemprosesWarna] = useState<'unify' | 'diversify' | null>(null);
+  const [mesejWarna, setMesejWarna] = useState<string | null>(null);
+  const [ralatWarna, setRalatWarna] = useState<string | null>(null);
+
+  const selaraskanSatuWarna = async () => {
+    setMemprosesWarna('unify');
+    setRalatWarna(null);
+    setMesejWarna(null);
+    try {
+      const res = await fetch('/api/system/categories/unify-colors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ color: warnaSeragam }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal menyelaraskan warna.');
+      setMesejWarna(`${data.dikemas} Bidang aktif kini guna warna yang sama.`);
+      fetchActiveBidang();
+    } catch (e: any) {
+      setRalatWarna(e.message || 'Gagal menyelaraskan warna.');
+    } finally {
+      setMemprosesWarna(null);
+    }
+  };
+
+  const pelbagaikanWarna = async () => {
+    setMemprosesWarna('diversify');
+    setRalatWarna(null);
+    setMesejWarna(null);
+    try {
+      const res = await fetch('/api/system/categories/diversify-colors', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal mempelbagaikan warna.');
+      setMesejWarna(
+        data.dikemas > 0
+          ? `${data.dikemas} Bidang diagihkan warna baharu (yang sudah unik tak diusik).`
+          : 'Semua Bidang aktif sudah ada warna unik — tiada perubahan diperlukan.'
+      );
+      fetchActiveBidang();
+    } catch (e: any) {
+      setRalatWarna(e.message || 'Gagal mempelbagaikan warna.');
+    } finally {
+      setMemprosesWarna(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="strategi-warna-tajuk"
+        className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs"
+      >
+        <div className="flex justify-between items-center border-b border-stone-200 pb-2">
+          <h3 id="strategi-warna-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">
+            Strategi Warna Bidang
+          </h3>
+          <button onClick={onTutup} aria-label="Tutup" className="text-stone-400 hover:text-stone-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+        </div>
+
+        <div className="space-y-4 font-sans">
+          <div className="space-y-2 border-b border-stone-200 pb-4">
+            <p className="font-semibold text-stone-800">Selaraskan ke SATU warna</p>
+            <p className="text-stone-500">Semua Bidang aktif ({jumlahAktif}) akan guna warna yang sama ini.</p>
+            <div className="flex items-center gap-2">
+              <input type="color" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className="w-9 h-8 shrink-0 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
+              <input type="text" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className={`${INPUT_BORANG} font-mono font-bold`} />
+            </div>
+            <Button variant="primary" onClick={selaraskanSatuWarna} disabled={memprosesWarna !== null}>
+              {memprosesWarna === 'unify' ? 'Menyelaraskan...' : 'Selaraskan Semua'}
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-semibold text-stone-800">Pelbagaikan semula</p>
+            <p className="text-stone-500">
+              Bidang yang berkongsi warna sama diagihkan warna baharu berbeza dari palet — Bidang
+              paling lama dalam setiap kumpulan kekal dengan warna asalnya, Bidang yang warnanya
+              sudah unik langsung tak diusik.
+            </p>
+            <Button variant="secondary" onClick={pelbagaikanWarna} disabled={memprosesWarna !== null}>
+              {memprosesWarna === 'diversify' ? 'Memproses...' : 'Pelbagaikan Semula'}
+            </Button>
+          </div>
+
+          {mesejWarna && <MesejStatus tone="success">{mesejWarna}</MesejStatus>}
+          {ralatWarna && <MesejStatus tone="error" onCubaLagi={fetchActiveBidang}>{ralatWarna}</MesejStatus>}
+        </div>
+
+        <div className="pt-2 border-t border-stone-200 flex justify-end">
+          <Button variant="secondary" onClick={onTutup}>Tutup</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default BidangConsole;
