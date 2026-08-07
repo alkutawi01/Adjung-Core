@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Rss, Clock, CalendarDays, Handshake, X } from 'lucide-react';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { EditoriumLayout } from './EditoriumLayout';
@@ -104,6 +104,14 @@ interface EditoriumViewProps {
 // (borang Tetapan Slot Bidang, butang "Edit Kandungan") turut boleh baca sesi yang sama.
 export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onRequestLogin, onLogout, onProfilKemasKini }) => {
   const navigate = useNavigate();
+  // Segerak tab/sub-tab semasa ke URL (?tab=...&sub=...), 2026-08-07, teguran Izzat — "setiap kali
+  // saya refresh ia kembali ke paparan utama. ini annoying". Laluan /editorium dahulu SATU laluan
+  // tunggal untuk kesemua 12 destinasi + sub-tabnya — `activeTab` cuma state React biasa, jadi muat
+  // semula (atau kongsi pautan) sentiasa jatuh balik ke Paparan Utama tak kira di mana editor
+  // sebenarnya berada. Dibaca SEKALI sebagai nilai awal (useState lazy init) — perubahan
+  // seterusnya kekal state React biasa (tak baca ulang setiap render), URL cuma DICERMIN keluar
+  // via useEffect di bawah supaya arah aliran data satu hala, bukan dua sumber kebenaran.
+  const [searchParams, setSearchParams] = useSearchParams();
   // Backdrop-click guard modal "Pilih Slot" di bawah (lihat LoginModal.tsx, pepijat Izzat
   // 2026-08-07) — kekal false selagi mousedown tak bermula terus pada backdrop.
   const mousedownPadaBackdropSlotPicker = React.useRef(false);
@@ -128,7 +136,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Destinasi peringkat atas (2026-08-01, permintaan pemilik projek — sidebar dua kumpulan, satu
   // klik terus). Lihat EditoriumLayout.tsx untuk susunan Operasi Harian / Tata Kelola & Rujukan.
   // Paparan Utama (Fasa 5) — destinasi lalai selepas log masuk, ganti Kandungan.
-  const [activeTab, setActiveTab] = useState('paparan_utama');
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'paparan_utama');
   // Sub-tab sasaran bila masuk Tetapan Sistem daripada pautan luar (2026-08-02, Fasa 7) —
   // cth kad "Jam Dunia" di Modul Khas. undefined = lalai biasa (PolisiKandungan).
   const [tetapanTujuSubTab, setTetapanTujuSubTab] = useState<'Operasi' | undefined>(undefined);
@@ -175,12 +183,41 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Sub-tab DALAMAN destinasi "Kandungan" (2026-07-29) — Indeks dan Semakan Kandungan sahaja.
   // Draf Saya, Nota Ketua Editor, Modul Khas kini destinasi SENDIRI di sidebar (2026-08-01), bukan
   // sub-tab kategori — satu klik terus, ikut susunan yang pemilik projek nak.
-  const [kandunganSubTab, setKandunganSubTab] = useState<'indeks' | 'semakan'>('indeks');
+  // Nilai awal sub-tab dibaca daripada URL HANYA bila `tab` di URL sepadan destinasi tu — kalau
+  // tidak, `sub` sisa daripada destinasi lain (cth ?tab=kandungan&sub=bidang lapuk) tak sepatutnya
+  // bocor jadi sub-tab awal Slot.
+  const subAwal = <T extends string>(tab: string, pilihan: readonly T[], lalai: T): T => {
+    const nilai = searchParams.get('tab') === tab ? searchParams.get('sub') : null;
+    return (pilihan as readonly string[]).includes(nilai || '') ? (nilai as T) : lalai;
+  };
+  const [kandunganSubTab, setKandunganSubTab] = useState<'indeks' | 'semakan'>(
+    () => subAwal('kandungan', ['indeks', 'semakan'] as const, 'indeks')
+  );
   // Sub-tab DALAMAN destinasi "Slot" (2026-07-30) — tidak berubah struktur.
-  const [slotSubTab, setSlotSubTab] = useState<'senarai' | 'tier' | 'bidang' | 'tetapan_am'>('senarai');
+  const [slotSubTab, setSlotSubTab] = useState<'senarai' | 'tier' | 'bidang' | 'tetapan_am'>(
+    () => subAwal('slot', ['senarai', 'tier', 'bidang', 'tetapan_am'] as const, 'senarai')
+  );
   // Sub-tab DALAMAN destinasi "Dokumentasi" (2026-08-01) — Peraturan Am (Perlembagaan) + Reka
   // Bentuk. Log Sistem kini destinasi sendiri, tak lagi sub-tab sini.
-  const [rujukanSubTab, setRujukanSubTab] = useState<'peraturan_am' | 'reka_bentuk'>('peraturan_am');
+  const [rujukanSubTab, setRujukanSubTab] = useState<'peraturan_am' | 'reka_bentuk'>(
+    () => subAwal('dokumentasi', ['peraturan_am', 'reka_bentuk'] as const, 'peraturan_am')
+  );
+  // Cerminkan activeTab + sub-tab BERKAITAN semasa ke URL (replace, bukan push — menukar tab
+  // TIDAK sepatutnya menambah entri baharu pada sejarah pelayar setiap klik, cuma Undur/Maju
+  // sepatutnya kekal tersedia untuk navigasi SEBENAR macam buka Focus View). `sub` cuma ditulis
+  // untuk destinasi yang benar-benar ada sub-tab; destinasi lain buang parameter tu terus supaya
+  // URL tak simpan sisa lapuk dari lawatan sebelumnya.
+  useEffect(() => {
+    const sub = activeTab === 'kandungan' ? kandunganSubTab
+      : activeTab === 'slot' ? slotSubTab
+      : activeTab === 'dokumentasi' ? rujukanSubTab
+      : null;
+    const semasa = new URLSearchParams(searchParams);
+    semasa.set('tab', activeTab);
+    if (sub) semasa.set('sub', sub); else semasa.delete('sub');
+    if (semasa.toString() !== searchParams.toString()) setSearchParams(semasa, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, kandunganSubTab, slotSubTab, rujukanSubTab]);
   // Tulis Kandungan (2026-07-29) — mandiri sepenuhnya, lihat useSlotEditor.ts. Hantar nama editor
   // log masuk supaya setiap Simpan/Terbit catat siapa sebenarnya terbitkan kandungan tu.
   const slotEditor = useSlotEditor(currentUser?.name);
