@@ -376,12 +376,10 @@ export const EditorialConsole: React.FC = () => {
             <div>
               <SectionLabel>02 — Glosari</SectionLabel>
               <p className="text-stone-500 text-xs">
-                Senarai istilah dan maksudnya. Sistem TIDAK sesekali menulis-ganti kandungan sedia
-                ada berdasarkan senarai ni — tapi setiap istilah di sini DIPAPARKAN kepada pembaca:
-                kali pertama istilah muncul dalam tajuk/huraian sesuatu artikel (paparan penuh),
-                ia digaris putus-putus, hover papar maksudnya sebagai tooltip. Kosongkan medan
-                "Maksud/Nota Penggunaan" kalau istilah tu tak patut jadi tooltip pembaca (cth cuma
-                nota ejaan dalaman). Untuk bentuk ejaan betul vs dielakkan, guna tab{' '}
+                Istilah dan maksudnya, dipaparkan kepada pembaca. Kali pertama sesuatu istilah
+                muncul dalam tajuk atau huraian sebuah artikel, istilah itu digaris putus-putus dan
+                maksudnya dipaparkan sebagai tooltip apabila dihover. Untuk bentuk ejaan yang betul
+                berbanding bentuk yang dielakkan, gunakan tab{' '}
                 <strong className="font-semibold">Penyelarasan Ejaan</strong>.
               </p>
             </div>

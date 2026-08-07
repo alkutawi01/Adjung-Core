@@ -95,30 +95,6 @@
   height: var(--bidang-icon-size, 14px);
 }
 
-/* Plat ilustrasi Bidang dalam kolum kanan Focus View. Saiz ditala DI SINI, bukan di dalam setiap
-   fail SVG — satu tempat untuk kesemua Bidang.
-
-   max-width + max-height (bukan width tetap) supaya sebarang nisbah viewBox terkandung dalam kotak
-   240x240: segi empat sama mengisi penuh, potret jadi 240 tinggi dan lebih kurus, lanskap jadi 240
-   lebar dan lebih rendah. Server cuma menuntut viewBox WUJUD, bukan nombor tertentu — jadi CSS di
-   sini yang bertanggungjawab mengandungkan apa sahaja nisbah yang datang.
-   100% supaya ia mengecil bersama kolum pada tetingkap sempit, bukan melimpah. */
-/* 2026-07-29: kolum "imej" Focus View kini jalur STATIK bertinggi tetap (bukan lagi kolum kanan
-   tinggi-penuh 557px seperti reka bentuk lama — lihat FocusView.tsx). Pembalut .bidang-illustration
-   sendiri diberi height:100% eksplisit (definite, bukan vh), jadi plat dengar terus tinggi
-   pembalut tu — width:auto kekalkan nisbah asal, max-width jaring keselamatan sekiranya nisbah
-   plat sangat lebar berbanding tinggi jalur.
-   Nombor tetap (540px/60vh) lama dibuang: ia dikira khas untuk kolum ~557px yang tak lagi wujud;
-   guna nombor itu di jalur baharu yang jauh lebih rendah akan buat plat melimpah lalu terpotong
-   senyap oleh overflow:hidden induknya (pepijat sebenar ditemui semasa ujian browser). */
-.bidang-illustration > svg {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: 100%;
-  display: block;
-}
-
 /* Base resets & styles for Adjung scholarly magazine */
 html, body {
   background-color: #FDFDFD;

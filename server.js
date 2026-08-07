@@ -2123,12 +2123,11 @@ const initEditorialOS = (dbConn) => {
                                                     // POST /categories/set-icon-svg sebelum simpan) — bila diisi, menang
                                                     // atas ikon lucide di `icon` (lihat BidangIcon di TetapanConsole.tsx).
                                                     dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN iconSvg TEXT", () => {
-                                                    // illustrationSvg: plat ilustrasi BESAR bagi Bidang, dipapar dalam kolum
-                                                    // kanan Focus View apabila kolum itu benar-benar kosong. SENGAJA medan
-                                                    // berasingan daripada iconSvg: glif masthead 13px perlu bentuk ringkas
-                                                    // dan tebal, plat bacaan ~240px perlu garis halus yang bernafas. Satu
-                                                    // medan untuk dua tugas jadi kompromi yang salah pada kedua-dua saiz.
-                                                    // Ditapis di POST /categories/set-illustration-svg (spec 256x256).
+                                                    // illustrationSvg: LAJUR WARISAN, TIDAK DIGUNAKAN LAGI. Ciri "Plat
+                                                    // Ilustrasi Bidang" dibuang sepenuhnya pada 2026-08-07 (Focus View
+                                                    // kini dua kolum, kolum kanan tak pernah kosong lagi). Migrasi ini
+                                                    // sengaja DIKEKALKAN — menggugurkan lajur memusnahkan data sedia ada.
+                                                    // Tiada kod hidup yang membaca atau menulis lajur ini.
                                                     dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN illustrationSvg TEXT", () => {
                                                       // Ikon lalai (nama komponen lucide-react, kes Pascal) — rujukan visual di
                                                       // Taksonomi sahaja buat masa ini. Bidang baharu ditambah via "+ Tambah

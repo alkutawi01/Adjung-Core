@@ -1069,10 +1069,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // icon/iconSvg dibawa sekali (bukan hanya name/color) sebab Focus View papar glif Bidang
   // di sebelah label "Bidang Topik" — lihat openFocus() di bawah.
   const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string; icon: string | null; iconSvg: string | null }[]>([]);
-  // Plat ilustrasi Bidang diambil SATU per satu bila Focus View dibuka, bukan dibawa dalam senarai
-  // pukal di atas: plat boleh ratusan kilobait, dan menghantar kesemua 25 kepada setiap pelawat
-  // frontpage untuk memaparkan sifar atau satu ialah pembaziran yang besar.
-  const [focusIllustration, setFocusIllustration] = useState<string | null>(null);
   const [activeLanguage, setActiveLanguage] = useState<'ms' | 'zh' | 'ar' | 'en'>('ms');
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   // BAR accordion: which card (by slot index) is expanded, per cluster — independent so opening
@@ -1938,8 +1934,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [focusLoc, setFocusLoc] = useState<FocusLoc | null>(null);
   // Imej Focus View rosak TAK boleh ditayang automatik (2026-08-07, permintaan Izzat eksplisit)
   // — dahulu <img> mentah tanpa onError, jadi URL patah/404 papar ikon "imej rosak" pelayar terus
-  // dalam Focus View, dan `visual` yang wujud (walaupun rosak) menghalang gagal-lancar ke plat
-  // ilustrasi Bidang (kananKosong = !visual && ...). Set URL diketahui rosak: sekali gagal,
+  // dalam Focus View. Set URL diketahui rosak: sekali gagal,
   // dikekalkan sepanjang sesi supaya tak cuba muat semula fail sama berulang kali navigasi
   // carousel. Kandungan yang imejnya SAH terus ditayang seperti biasa, tak terjejas.
   const [imejFocusViewRosak, setImejFocusViewRosak] = useState<Set<string>>(new Set());
@@ -2276,24 +2271,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const focusBidang = focusItem
     ? activeBidangList.find(b => b.name.toLowerCase() === (focusItem.desk || '').toLowerCase())
     : undefined;
-
-  // Plat ilustrasi Bidang diambil bila Focus View dibuka, bukan dibawa dalam senarai Bidang: satu
-  // plat boleh ratusan kilobait, dan menghantar kesemua 25 kepada setiap pelawat frontpage untuk
-  // memaparkan sifar atau satu ialah pembaziran yang besar (25 x 138KB = 3.4MB setiap muat).
-  //
-  // Dikosongkan dahulu setiap kali Bidang bertukar, supaya plat Bidang sebelumnya tidak sempat
-  // terpapar di bawah kandungan baharu sementara menunggu pengambilan.
-  const focusBidangName = focusBidang?.name || '';
-  useEffect(() => {
-    setFocusIllustration(null);
-    if (!focusBidangName) return;
-    let dibatalkan = false;
-    fetch('/api/system/categories/illustration?name=' + encodeURIComponent(focusBidangName))
-      .then(res => res.json())
-      .then(data => { if (!dibatalkan) setFocusIllustration(data?.illustrationSvg || null); })
-      .catch(() => {});
-    return () => { dibatalkan = true; };
-  }, [focusBidangName]);
 
 
 
@@ -3922,8 +3899,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           keputusan pemilik projek. `note` dan `visual` (medan "Imej" Urus Slot, dimuat naik ke
           /api/media/upload — lihat SlotManagerModal.tsx) dihantar. `visual` expects nod React
           (bukan URL mentah), jadi item.image dibalut jadi <img> di sini; kotak "Lampiran visual"
-          FocusView.tsx sendiri yang uruskan saiz (objectFit contain, 4:3) dan ia mengalah kepada
-          plat ilustrasi Bidang secara automatik (lihat showIllustration). `related` masih sengaja
+          FocusView.tsx sendiri yang uruskan saiz (objectFit contain, 4:3). `related` masih sengaja
           tidak dihantar (tiada punca data lagi).
 
           `editorName`/`editorContact` (2026-07-29): identiti EDITORIUM semasa yang log masuk
@@ -3960,7 +3936,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           topik={focusItem.topik}
           onCariEyebrow={cariDariEyebrow}
           deskColor={undefined}
-          illustrationSvg={focusIllustration}
           title={cegahKataYatimAkhir(asPlainText(focusItem.titleString) || asPlainText(focusItem.title))}
           titleRendered={safeParseInline(cegahKataYatimAkhir(asPlainText(focusItem.titleString) || asPlainText(focusItem.title)))}
           body={asPlainText(focusItem.briefLong)}
@@ -3971,7 +3946,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               onError={(e) => {
                 // Sorok SERTA-MERTA (sebelum React sempat re-render) supaya ikon "imej rosak"
                 // pelayar tak pernah terpapar walau sesaat, kemudian tandakan rosak supaya
-                // FocusView gagal-lancar ke plat ilustrasi/kandungan berkaitan.
+                // FocusView tidak lagi cuba merendernya.
                 e.currentTarget.style.display = 'none';
                 const url = focusItem.image!;
                 setImejFocusViewRosak((prev) => (prev.has(url) ? prev : new Set(prev).add(url)));

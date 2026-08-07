@@ -201,10 +201,6 @@ export interface FocusViewProps {
    *  (keserasian ke belakang, dan kalau pemanggil tak sambung system_settings.
    *  focusViewNotaMaxAksara langsung). */
   notaMaxAksara?: number;
-  /** Markup SVG plat ilustrasi Bidang (sudah disanitize + disahkan ikut spec di server).
-   *  Dipapar HANYA apabila kolum kanan tiada grafik, tiada kandungan berkaitan dan tiada nota —
-   *  ia mengalah kepada kandungan sebenar, sentiasa. */
-  illustrationSvg?: string | null;
   /** Sumber (nama atau teks URL), dipapar di kolofon. Jatuh balik/keserasian ke belakang bila
    *  `sources` (di bawah) tiada — kandungan lama sebelum ciri sumber berbilang wujud. */
   source?: string;
@@ -253,7 +249,7 @@ export interface FocusViewProps {
 
 export const FocusView: React.FC<FocusViewProps> = ({
   wordmark = 'Adjung', icon, desk, topik, onCariEyebrow, deskColor, title, titleRendered, body,
-  visual, visualCaption, related = [], note, notaMaxAksara = NOTA_MAX, illustrationSvg,
+  visual, visualCaption, related = [], note, notaMaxAksara = NOTA_MAX,
   source, sourceUrl, sources = [], sourceDate, publishedDate,
   backdropImage, backdropOpacity = 0.06,
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
@@ -430,16 +426,6 @@ export const FocusView: React.FC<FocusViewProps> = ({
   }, [title, paragraphs, petaGlosari]);
 
   const [bodyRef, bodyFade] = useOverflowFade();
-
-  // Plat ilustrasi Bidang menutup kolum kanan HANYA apabila kolum itu benar-benar kosong. Ia
-  // mengalah kepada kandungan sebenar tanpa kecuali: satu grafik, satu preview Sebelum/Selepas
-  // atau satu nota sudah cukup untuk menyingkirkannya. (2026-07-29: "kandungan berkaitan"
-  // dibuang daripada semakan ni — digantikan preview Sebelum/Selepas di susun atur desktop.)
-  //
-  // Ia identiti Bidang, bukan kandungan — jadi ia tidak mendakwa apa-apa tentang rencana itu, dan
-  // ia tidak mengumumkan ketiadaan seperti pemegang tempat bergaris putus yang dibuang dahulu.
-  const kananKosong = !visual && !note && !prevPreviewTitle && !nextPreviewTitle;
-  const showIllustration = kananKosong && !!illustrationSvg;
 
   // Nota melebihi hadnya dipotong di sempadan perkataan; teks penuh kekal dalam atribut `title`,
   // dan amaran konsol menamakan lebihannya supaya editor memendekkannya di Editorium.
@@ -1041,20 +1027,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
               tumbuh melebihi 140px bila kandungan sebenar (2 item berkaitan + nota) perlukan lebih
               — supaya TIADA kotak scroll sendiri di sini. Baris huraian panjang (minmax(0,1fr)) di
               atas yang menyerap sisa ruang dan membawa SATU-SATUNYA kotak scroll di seluruh Focus
-              View (permintaan eksplisit pemilik projek). Plat ilustrasi Bidang — lihat
-              `showIllustration` — mengalah kepada grafik/berkaitan/nota sebenar secara automatik,
-              tiada perubahan logik. */}
+              View (permintaan eksplisit pemilik projek). */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 9fr)', columnGap: 'clamp(20px, 2.8vw, 40px)', alignItems: 'center', paddingTop: 'clamp(10px, 1.8vh, 18px)', borderTop: '1px solid var(--border-subtle)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {showIllustration && (
-                <div
-                  aria-hidden="true"
-                  className="bidang-illustration"
-                  style={{ height: '180px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-Adjung-maroon)', opacity: 0.9, pointerEvents: 'none' }}
-                  dangerouslySetInnerHTML={{ __html: illustrationSvg as string }}
-                />
-              )}
-
               {visual && (
                 <figure style={{ margin: 0, width: '100%', display: 'flex', flexDirection: 'column' }}>
                   <div style={{

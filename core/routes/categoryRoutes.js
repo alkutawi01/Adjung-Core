@@ -9,9 +9,8 @@ import { logAudit } from '../audit/AuditLog.js';
 // Bukan cadangan, ni satu-satunya pertahanan XSS untuk laluan ni — jangan longgarkan tanpa sebab kukuh.
 const SVG_MAX_BYTES = 100 * 1024; // ikon patut kecil — had jana-jana penyalahgunaan/DB bloat
 
-// Kongsi antara ikon KECIL (di bawah) dan plat ilustrasi BESAR (sanitizeIllustrationSvg) — dahulu
-// dua salinan berasingan, satu (ikon) tertinggal tanpa penukaran warna sama sekali (2026-08-06,
-// laporan Izzat: "warna pun tak berubah ikut warna yg sepatutnya" selepas muat naik ikon custom).
+// Penukaran warna bagi ikon SVG custom Bidang (2026-08-06, laporan Izzat: "warna pun tak berubah
+// ikut warna yg sepatutnya" selepas muat naik ikon custom).
 // Warna literal (fill/stroke/stop-color) ditukar kepada currentColor supaya ikon/plat mewarisi
 // warna Bidang (`color` CSS pada wrapper di BidangIcon.tsx), sama seperti ikon lucide-react
 // bawaan yang memang guna currentColor secara semula jadi.
@@ -49,81 +48,6 @@ function sanitizeSvgIcon(raw) {
   let cleaned = sanitizeSvgMarkup(raw);
   ({ svg: cleaned } = tukarWarnaKepadaCurrentColor(cleaned));
   return cleaned;
-}
-
-// ---------------------------------------------------------------------------------------------
-// SPEC PLAT ILUSTRASI BIDANG
-//
-// Plat besar yang dipapar dalam kolum kanan Focus View apabila kolum itu benar-benar kosong.
-// Berbeza sepenuhnya daripada ikon Bidang 13px — jangan muat naik ikon lucide yang dibesarkan;
-// stroke setebal 2px pada kanvas 24 unit jadi nipis dan generik pada saiz bacaan.
-//
-// DUA SYARAT sahaja dikuatkuasakan — sengaja sedikit, kerana setiap syarat bermakna satu fail
-// terpaksa disunting tangan:
-//
-//   1. viewBox WUJUD   nombornya bebas. "0 0 1024 1024" sama sah seperti "0 0 256 256"; CSS
-//                      menyaiz mengikut nisbah, jadi nombor itu tidak pernah kelihatan. Tanpa
-//                      viewBox pula, height:auto tiada nisbah untuk dikira dan plat runtuh.
-//   2. Had fail        256KB.
-//
-// Selebihnya DIBETULKAN sendiri, bukan ditolak: warna literal ditukar kepada currentColor, dan
-// width/height pada akar dibuang. Kalau sistem mampu membetulkannya, ia tidak patut menjadi syarat
-// yang memaksa manusia menyunting fail.
-//
-// Selebihnya CADANGAN reka bentuk, bukan syarat: nisbah segi empat sama duduk paling baik dalam
-// kolum; kekalkan karya sedikit dari tepi supaya ia tidak tersepit; garis halus supaya plat kekal
-// senyap dan tidak menarik perhatian daripada tajuk.
-//
-// Tag/atribut yang dibenarkan sama seperti ikon (SVG_ALLOWED_TAGS/ATTR) — tiada <script>, tiada
-// pengendali on*, tiada rujukan luar.
-const ILLUSTRATION_MAX_BYTES = 256 * 1024;
-
-function sanitizeIllustrationSvg(raw) {
-  if (typeof raw !== 'string' || !raw.trim()) throw new Error('SVG kosong.');
-  if (Buffer.byteLength(raw, 'utf8') > ILLUSTRATION_MAX_BYTES) {
-    throw new Error('Fail SVG terlalu besar (had 256KB untuk plat ilustrasi).');
-  }
-
-  let cleaned = sanitizeSvgMarkup(raw);
-
-  // viewBox mesti ADA, tetapi nombornya bebas.
-  //
-  // Versi pertama semakan ini menuntut tepat "0 0 256 256". Itu salah: CSS menyaiz plat dengan
-  // width 240px dan height auto, jadi SVG berskala mengikut NISBAH sahaja — "0 0 1024 1024"
-  // dipapar sama persis seperti "0 0 256 256". Menuntut nombor tertentu cuma memaksa pereka
-  // menyunting tangan setiap fail untuk sifar perbezaan pada skrin.
-  //
-  // Yang benar-benar perlu ialah kewujudan viewBox: tanpanya, height:auto tiada nisbah untuk
-  // dikira dan plat runtuh. Nisbah bukan segi empat sama pun diterima — CSS mengandungkannya
-  // dalam kotak 240x240 (lihat .bidang-illustration di src/index.css).
-  const vb = cleaned.match(/\sviewBox\s*=\s*"([^"]*)"/i);
-  const vbNums = vb ? vb[1].trim().split(/[\s,]+/).map(Number) : [];
-  if (vbNums.length !== 4 || vbNums.some(n => !Number.isFinite(n)) || vbNums[2] <= 0 || vbNums[3] <= 0) {
-    throw new Error('SVG mesti ada viewBox yang sah, cth viewBox="0 0 1024 1024". Tanpanya plat tidak boleh diskalakan.');
-  }
-
-  // Warna tetap DITUKAR, bukan ditolak.
-  //
-  // Versi terdahulu menolak sebarang fill/stroke berwarna tetap dan menyuruh pereka menyunting
-  // fail sendiri. Itu kerja yang sistem memang mampu buat: plat ini monokrom mengikut reka bentuk
-  // (marun Adjung, ditetapkan komponen melalui `color`), jadi setiap warna literal dalam fail
-  // memang sepatutnya menjadi currentColor. Menolak fail kerana ia hitam, sedangkan kita akan
-  // mewarnakannya semula, cuma memindahkan kerja mekanikal kepada manusia.
-  //
-  // Yang DIKEKALKAN: `none` (bermaksud jangan isi — bukan warna), `transparent`, `inherit`,
-  // `currentColor` sendiri, dan rujukan `url(#...)` kepada kecerunan. Stop kecerunan yang berwarna
-  // tetap turut ditukar, jadi kecerunan menjadi rata currentColor — betul untuk plat monokrom.
-  //
-  // Nilai legap (opacity/fill-opacity/stroke-opacity) tidak disentuh, jadi variasi ton dalam karya
-  // asal masih kekal.
-  const { svg: svgWarnaDitukar, warnaDitukar } = tukarWarnaKepadaCurrentColor(cleaned);
-  cleaned = svgWarnaDitukar;
-
-  // width/height pada akar melawan penyaizan CSS; buang senyap-senyap, bukan tolak.
-  const rootTag = cleaned.slice(0, cleaned.indexOf('>') + 1);
-  cleaned = rootTag.replace(/\s(?:width|height)\s*=\s*"[^"]*"/gi, '') + cleaned.slice(rootTag.length);
-
-  return { svg: cleaned, warnaDitukar };
 }
 
 export function createCategoryRoutes(db) {
@@ -191,17 +115,13 @@ export function createCategoryRoutes(db) {
     try {
       const active = await CategoryRegistry.getActiveCategories(db);
       const withSlots = await Promise.all(active.map(async (cat) => {
-        // illustrationSvg SENGAJA tidak dihantar di sini. getActiveCategories buat SELECT *, dan
-        // senarai ini dimuat oleh frontpage awam pada setiap muat halaman — menghantar kesemua 25
-        // plat bermakna beberapa megabait markup dikirim kepada setiap pelawat sedangkan paling
-        // banyak SATU plat pernah dipapar, dan itu pun cuma di dalam Focus View.
-        //
-        // Yang tinggal ialah bendera boolean, cukup untuk Taksonomi menunjukkan Bidang mana sudah
-        // ada plat. Markup penuh diambil satu per satu melalui GET /categories/illustration/:id.
-        const { illustrationSvg, ...rest } = cat;
+        // Ciri "Plat Ilustrasi Bidang" dibuang (2026-08-07). Lajur DB `illustrationSvg` masih
+        // wujud (warisan, tidak digugurkan — lihat migrasi di server.js) dan getActiveCategories
+        // buat SELECT *, jadi ia terus ditanggalkan di sini: senarai ini dimuat oleh frontpage
+        // awam pada setiap muat halaman, dan markup lama boleh ratusan kilobait.
+        const { illustrationSvg: _warisan, ...rest } = cat;
         return {
           ...rest,
-          hasIllustration: !!(illustrationSvg && String(illustrationSvg).trim()),
           slots: await CategoryRegistry.getSlotsForCategory(db, cat.name)
         };
       }));
@@ -314,25 +234,6 @@ export function createCategoryRoutes(db) {
       console.error('Set active category error:', err);
       const tiada = /tidak dijumpai/i.test(err.message || '');
       res.status(tiada ? 404 : 500).json({ error: err.message || 'Gagal mengemas kini status Bidang.' });
-    }
-  });
-
-  // GET /api/system/categories/illustration?name=<Bidang> — markup plat SATU Bidang.
-  //
-  // Berasingan daripada /categories/active dengan sengaja: plat boleh ratusan kilobait, dan hanya
-  // satu diperlukan pada satu-satu masa (Focus View memaparkan plat Bidang kandungan yang dibuka
-  // sahaja). Menghantarnya dalam senarai pukal bermakna setiap pelawat frontpage memuat turun
-  // kesemua 25 plat untuk memaparkan sifar atau satu.
-  router.get('/categories/illustration', async (req, res) => {
-    try {
-      const name = String(req.query.name || '').trim();
-      if (!name) return res.status(400).json({ error: 'name diperlukan.' });
-      const row = await CategoryRegistry.dbGet(db,
-        "SELECT illustrationSvg FROM CategoryRegistry WHERE LOWER(name) = LOWER(?) AND isActive = 1", [name]);
-      res.json({ illustrationSvg: (row && row.illustrationSvg) || null });
-    } catch (err) {
-      console.error('Fetch illustration error:', err);
-      res.status(500).json({ error: 'Gagal membaca plat ilustrasi.' });
     }
   });
 
@@ -486,37 +387,6 @@ export function createCategoryRoutes(db) {
     } catch (err) {
       console.error('Set colour error:', err);
       res.status(400).json({ error: err.message || 'Gagal menetapkan warna.' });
-    }
-  });
-
-  // POST /api/system/categories/set-illustration-svg — muat naik plat ilustrasi Bidang.
-  // Disahkan ikut spec di atas (viewBox 256x256, currentColor sahaja) DAN ditapis dengan senarai
-  // putih yang sama seperti ikon. Jangan skip mana-mana daripada dua langkah itu.
-  router.post('/categories/set-illustration-svg', requirePermission('manageEditorial'), async (req, res) => {
-    try {
-      const { id, svg } = req.body;
-      if (!id || !svg) return res.status(400).json({ error: 'id dan svg diperlukan.' });
-      const { svg: cleaned, warnaDitukar } = sanitizeIllustrationSvg(svg);
-      await CategoryRegistry.setIllustrationSvg(db, id, cleaned);
-      // Markup yang BENAR-BENAR disimpan dipulangkan, supaya pratonton di Editorium memaparkan plat
-      // sebenar (sudah bermarun) dan bukan fail mentah yang dipilih pengguna.
-      res.json({ success: true, illustrationSvg: cleaned, warnaDitukar });
-    } catch (err) {
-      console.error('Set illustration SVG error:', err);
-      res.status(400).json({ error: err.message || 'Gagal memuat naik plat ilustrasi.' });
-    }
-  });
-
-  // POST /api/system/categories/clear-illustration-svg — buang plat ilustrasi Bidang.
-  router.post('/categories/clear-illustration-svg', requirePermission('manageEditorial'), async (req, res) => {
-    try {
-      const { id } = req.body;
-      if (!id) return res.status(400).json({ error: 'id diperlukan.' });
-      await CategoryRegistry.clearIllustrationSvg(db, id);
-      res.json({ success: true });
-    } catch (err) {
-      console.error('Clear illustration SVG error:', err);
-      res.status(400).json({ error: err.message || 'Gagal membuang plat ilustrasi.' });
     }
   });
 

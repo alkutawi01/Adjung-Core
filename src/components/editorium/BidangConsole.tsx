@@ -32,9 +32,6 @@ interface ActiveBidang {
   icon: string | null;
   /** Ikon SVG custom 13px bagi glif masthead. */
   iconSvg: string | null;
-  /** Ada plat ilustrasi? Markup penuh TIDAK dihantar dalam senarai pukal — plat boleh ratusan
-   *  kilobait. Diambil melalui GET /categories/illustration bila modal dibuka. */
-  hasIllustration: boolean;
   usageCount: number;
   slots: number[];
   /** Status arkib (2026-08-01, spesifikasi pemilik projek) — 1 aktif (boleh dipilih untuk
@@ -319,25 +316,14 @@ export const BidangConsole: React.FC = () => {
                 <React.Fragment key={d.id}>
                   <tr className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                     <td className="p-3">
-                      <Tooltip text="Tukar ikon dan plat ilustrasi">
+                      <Tooltip text="Tukar ikon Bidang">
                         <button
                           type="button"
                           onClick={() => openIconPicker(d)}
-                          aria-label="Tukar ikon dan plat ilustrasi"
+                          aria-label="Tukar ikon Bidang"
                           className="hover:ring-2 hover:ring-offset-1 hover:ring-stone-300 rounded-full transition-shadow relative"
                         >
                           <BidangIcon iconName={d.icon} iconSvg={d.iconSvg} color={d.color} />
-                          {/* Titik marun kecil: tanda Bidang ini sudah ada plat ilustrasi. Tanpa
-                              ini tiada cara melihat Bidang mana yang sudah siap tanpa membuka
-                              setiap satu modal. */}
-                          {d.hasIllustration && (
-                            <Tooltip text="Ada plat ilustrasi">
-                              <span
-                                aria-label="Ada plat ilustrasi"
-                                className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-Adjung-maroon border border-white"
-                              />
-                            </Tooltip>
-                          )}
                         </button>
                       </Tooltip>
                     </td>
@@ -619,7 +605,7 @@ export const BidangConsole: React.FC = () => {
   );
 };
 
-// Modal ikon/warna/plat ilustrasi (Audit UI/UX §G1/G2/G4/G6) — diasingkan daripada BidangConsole
+// Modal ikon/warna Bidang (Audit UI/UX §G1/G2/G4/G6) — diasingkan daripada BidangConsole
 // supaya useModalFokus hanya aktif selagi modal ni benar-benar dilekap. Semua state ikon/warna/plat
 // kini tempatan kepada modal ni — dimulakan semula setiap kali dibuka (React melekapkannya semula),
 // jadi kelakuannya sama seperti openIconPicker/closeIconPicker asal yang mengeset semula state tiap
@@ -639,34 +625,11 @@ function IkonWarnaModal({
   const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
   const [uploadingSvg, setUploadingSvg] = useState(false);
 
-  // Plat ilustrasi Bidang — SVG besar untuk kolum kanan Focus View. Berasingan daripada ikon di
-  // atas: ikon 13px di jalur masthead, plat ~240px di permukaan bacaan. Spec dikuatkuasakan di
-  // server (core/routes/categoryRoutes.js): viewBox wajib, currentColor sahaja, had 256KB.
-  const [illusPreview, setIllusPreview] = useState<string | null>(null);
-  /** Markup plat SEMASA bagi Bidang yang modalnya terbuka, diambil atas permintaan. */
-  const [illusCurrent, setIllusCurrent] = useState<string | null>(null);
-  const [illusError, setIllusError] = useState<string | null>(null);
-  /** Nota selepas muat naik, cth berapa nilai warna ditukar. Maklum, bukan ralat. */
-  const [illusNote, setIllusNote] = useState<string | null>(null);
-  const [uploadingIllus, setUploadingIllus] = useState(false);
-
   // Warna Bidang — dipentaskan dalam state supaya pemilih warna boleh diseret tanpa menghantar
   // satu permintaan bagi setiap piksel pergerakan.
   const [warnaDraf, setWarnaDraf] = useState<string | null>(null);
   const [simpanWarna, setSimpanWarna] = useState(false);
   const [warnaError, setWarnaError] = useState<string | null>(null);
-
-  // Markup plat diambil HANYA bila modal dibuka — ia tidak dibawa dalam senarai Bidang, kerana
-  // satu plat boleh ratusan kilobait dan senarai itu dimuat oleh frontpage awam juga.
-  useEffect(() => {
-    if (target.hasIllustration) {
-      fetch('/api/system/categories/illustration?name=' + encodeURIComponent(target.name))
-        .then(res => res.json())
-        .then(data => setIllusCurrent(data?.illustrationSvg || null))
-        .catch(e => console.error('Error fetching illustration:', e));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target.id]);
 
   const handleSaveColor = async (id: string) => {
     if (!warnaDraf) return;
@@ -686,73 +649,6 @@ function IkonWarnaModal({
       setWarnaError(e.message || 'Gagal menetapkan warna.');
     } finally {
       setSimpanWarna(false);
-    }
-  };
-
-  const handleIllusFileSelected = (file: File | null) => {
-    setIllusError(null);
-    setIllusNote(null);
-    setIllusPreview(null);
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.svg')) {
-      setIllusError('Pilih fail .svg sahaja.');
-      return;
-    }
-    if (file.size > 256 * 1024) {
-      setIllusError('Fail terlalu besar (had 256KB untuk plat ilustrasi).');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setIllusPreview(String(reader.result || ''));
-    reader.onerror = () => setIllusError('Gagal membaca fail.');
-    reader.readAsText(file);
-  };
-
-  const handleUploadIllustration = async (id: string) => {
-    if (!illusPreview) return;
-    setUploadingIllus(true);
-    setIllusError(null);
-    try {
-      const res = await fetch('/api/system/categories/set-illustration-svg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, svg: illusPreview })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memuat naik plat ilustrasi.');
-      // Guna markup yang server benar-benar simpan, bukan fail mentah: warna sudah ditukar kepada
-      // currentColor di sana, jadi pratonton menunjukkan plat sebenar (bermarun) dan bukan fail asal.
-      setIllusCurrent(data.illustrationSvg || illusPreview);
-      setIllusNote(data.warnaDitukar > 0
-        ? `${data.warnaDitukar} nilai warna ditukar kepada currentColor — plat kini mengikut marun Adjung.`
-        : null);
-      setIllusPreview(null);
-      onUpdated();
-    } catch (e: any) {
-      setIllusError(e.message || 'Gagal memuat naik plat ilustrasi.');
-    } finally {
-      setUploadingIllus(false);
-    }
-  };
-
-  const handleClearIllustration = async (id: string) => {
-    setUploadingIllus(true);
-    setIllusError(null);
-    try {
-      const res = await fetch('/api/system/categories/clear-illustration-svg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal membuang plat ilustrasi.');
-      setIllusCurrent(null);
-      setIllusPreview(null);
-      onUpdated();
-    } catch (e: any) {
-      setIllusError(e.message || 'Gagal membuang plat ilustrasi.');
-    } finally {
-      setUploadingIllus(false);
     }
   };
 
@@ -927,72 +823,6 @@ function IkonWarnaModal({
                 {uploadingSvg ? 'Memuat naik...' : 'Guna SVG Ini'}
               </Button>
             )}
-          </div>
-          <div className="pt-3 border-t border-stone-200">
-            <label className={LABEL_BORANG}>Plat Ilustrasi Bidang</label>
-            <p className="text-stone-400 text-[10px] mb-2 leading-relaxed">
-              Ilustrasi besar yang menutup kolum kanan Focus View apabila kandungan itu tiada grafik,
-              tiada kandungan berkaitan dan tiada nota editor. Ia mengalah kepada kandungan sebenar —
-              satu grafik atau satu nota sudah cukup untuk menyembunyikannya.
-            </p>
-
-            <p className="text-stone-500 text-[10px] font-semibold mb-1">Dua syarat:</p>
-            <ul className="text-stone-500 text-[10px] leading-relaxed mb-2 pl-3 list-disc marker:text-stone-300">
-              <li>SVG mesti ada <code className="font-mono">viewBox</code>. Nombornya bebas — <code className="font-mono">0 0 1024 1024</code> sama sah seperti <code className="font-mono">0 0 256 256</code>.</li>
-              <li>Had 256KB.</li>
-            </ul>
-            <p className="text-stone-400 text-[10px] leading-relaxed mb-2">
-              Warna tidak perlu disediakan: sistem menukar setiap fill/stroke kepada
-              <code className="font-mono"> currentColor</code> semasa simpan, jadi plat sentiasa mengikut
-              marun Adjung. Fail hitam putih pun boleh terus dimuat naik. <code className="font-mono">none</code>,
-              <code className="font-mono"> transparent</code> dan nilai legap dikekalkan.
-            </p>
-            <p className="text-stone-400 text-[10px] leading-relaxed mb-2">
-              Cadangan (tidak dikuatkuasakan): nisbah segi empat sama duduk paling baik dalam kolum;
-              kekalkan karya sedikit dari tepi; garis halus supaya plat kekal senyap dan tidak menarik
-              perhatian daripada tajuk. Bukan ikon yang dibesarkan — ikon 24px jadi nipis pada saiz ini.
-            </p>
-
-            <div className="flex items-center gap-3">
-              {/* <label> membalut <input type="file"> — tak boleh jadi <Button> (elemen
-                  <button> tak boleh mencetuskan pemilih fail), jadi ia meminjam bahasa
-                  visual varian `secondary` secara langsung. */}
-              <label className="inline-flex items-center justify-center gap-2 rounded-md font-semibold font-sans text-xs px-4 py-1.5 cursor-pointer transition-colors bg-white text-Adjung-maroon border border-stone-200 hover:bg-stone-50 hover:border-stone-300">
-                <Upload className="w-3.5 h-3.5" /> Pilih Plat .svg
-                <input
-                  type="file"
-                  accept=".svg,image/svg+xml"
-                  className="hidden"
-                  onChange={e => handleIllusFileSelected(e.target.files?.[0] || null)}
-                />
-              </label>
-              {(illusPreview || illusCurrent) && (
-                <Tooltip text={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}>
-                  <span
-                    className="inline-flex items-center justify-center w-16 h-16 rounded border border-stone-200 bg-[#FDFDFD] [&_svg]:w-14 [&_svg]:h-14"
-                    style={{ color: 'var(--color-Adjung-maroon)' }}
-                    aria-label={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}
-                    dangerouslySetInnerHTML={{ __html: (illusPreview || illusCurrent) as string }}
-                  />
-                </Tooltip>
-              )}
-            </div>
-
-            {illusError && <MesejStatus tone="error" className="mt-1">{illusError}</MesejStatus>}
-            {illusNote && <MesejStatus tone="success" className="mt-1">{illusNote}</MesejStatus>}
-
-            <div className="flex items-center gap-2 mt-2">
-              {illusPreview && (
-                <Button variant="primary" onClick={() => handleUploadIllustration(target.id)} disabled={uploadingIllus}>
-                  {uploadingIllus ? 'Memuat naik...' : 'Guna Plat Ini'}
-                </Button>
-              )}
-              {target.hasIllustration && !illusPreview && (
-                <Button variant="secondary" onClick={() => handleClearIllustration(target.id)} disabled={uploadingIllus}>
-                  {uploadingIllus ? 'Membuang...' : 'Buang Plat'}
-                </Button>
-              )}
-            </div>
           </div>
         </div>
 
