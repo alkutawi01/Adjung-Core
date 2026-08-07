@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock } from 'lucide-react';
+import { X } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
 import { useModalFokus } from '../../hooks/useModalFokus';
@@ -112,15 +112,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          {/* Kepala modal piawai (Pelan 01 Fasa D2): serif-lg maroon + ikon kecil, butang X kanan. */}
-          <div className="flex items-center gap-2 text-Adjung-maroon">
-            <Lock className="w-4 h-4 shrink-0" />
-            <h2 id="login-modal-tajuk" className="font-serif text-lg font-bold">
-              {modLupa ? 'Lupa Kata Laluan' : 'Log Masuk ke Editorium'}
-            </h2>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Tutup" className="text-stone-400 hover:text-stone-700">
+        {/* Kepala modal (2026-08-07, permintaan Izzat — "align center, buang ikon kunci") — tajuk
+            dipusatkan sepenuhnya, bukan dijajar kiri berpasangan dengan ikon; grid 3-lajur supaya
+            tajuk betul-betul tengah kotak walau kehadiran butang tutup di kanan (flex
+            justify-between cuma tolak ke tepi, tak pusatkan). */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
+          <span />
+          <h2 id="login-modal-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon text-center">
+            {modLupa ? 'Lupa Kata Laluan' : 'Log Masuk ke Editorium'}
+          </h2>
+          <button type="button" onClick={onClose} aria-label="Tutup" className="justify-self-end text-stone-400 hover:text-stone-700">
             <X className="w-4 h-4" />
           </button>
         </div>
