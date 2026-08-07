@@ -829,34 +829,33 @@ export const FocusView: React.FC<FocusViewProps> = ({
       <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
         <span style={{ justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
+          {/* Label teks "Rawak"/"Turutan"/"Auto" dibuang (2026-08-07, permintaan Izzat — "buang
+              label rawak dan auto, kekalkan ikon sahaja") — ikon + title (tooltip hover) +
+              aria-label (pembaca skrin) kekal cukup jelas tanpa teks kekal di sisi ikon. */}
           {onToggleNavMode && (
             <button
               type="button" onClick={onToggleNavMode}
               aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
+              title={navMode === 'rawak' ? 'Rawak' : 'Turutan'}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 0,
+                display: 'inline-flex', alignItems: 'center', background: 'none', border: 0,
                 padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
-                fontFamily: 'var(--font-mono)', fontSize: 'var(--text-11)', textTransform: 'uppercase',
-                letterSpacing: 'var(--tracking-wide)',
               }}
             >
               {navMode === 'rawak' ? <Shuffle size={13} strokeWidth={1.75} /> : <ListOrdered size={13} strokeWidth={1.75} />}
-              {navMode === 'rawak' ? 'Rawak' : 'Turutan'}
             </button>
           )}
           {onNext && (
             <button
               type="button" onClick={() => setAutoPlay(p => !p)}
               aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
+              title={autoPlay ? 'Jeda' : 'Auto'}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 0,
+                display: 'inline-flex', alignItems: 'center', background: 'none', border: 0,
                 padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
-                fontFamily: 'var(--font-mono)', fontSize: 'var(--text-11)', textTransform: 'uppercase',
-                letterSpacing: 'var(--tracking-wide)',
               }}
             >
               {autoPlay ? <Pause size={13} strokeWidth={1.75} /> : <Play size={13} strokeWidth={1.75} />}
-              Auto
             </button>
           )}
         </span>
@@ -929,7 +928,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <div style={{ minHeight: 0, overflow: 'hidden', display: 'flex', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
               <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', scrollbarWidth: 'none', paddingRight: 'clamp(8px, 1vw, 16px)', paddingBottom: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
                 {paragraphs.length > 0 && (
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
                     {paragraphs.map((para, j) => (
                       <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
                     ))}
@@ -985,6 +984,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 Sebelum/Selepas kini sampai ke tepi kanan penuh kolum grid, sejajar tepi kanan
                 tajuk/huraian panjang di atas (permintaan pemilik projek). */}
             <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.6vh, 16px)' }}>
+              {/* Nota Editor DI ATAS preview Sebelum/Selepas (2026-08-07, permintaan Izzat) —
+                  dahulu di bawah; susunan bertukar supaya nota (konteks editorial) dibaca dulu
+                  sebelum pautan navigasi ke kandungan lain. */}
+              {note && (
+                <p title={note} style={{ margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)' }}>
+                  <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText}
+                </p>
+              )}
+
               {(prevPreviewTitle || nextPreviewTitle) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 1.4vh, 14px)' }}>
                   {prevPreviewTitle && (
@@ -1006,12 +1014,6 @@ export const FocusView: React.FC<FocusViewProps> = ({
                     </button>
                   )}
                 </div>
-              )}
-
-              {note && (
-                <p title={note} style={{ margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)' }}>
-                  <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText}
-                </p>
               )}
             </div>
           </div>

@@ -1814,6 +1814,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     }
 
     const bidangSemasa = (focusItemsForSlot(focusLoc.slotIndex)[focusLoc.itemIndex]?.desk || '').toLowerCase();
+    // Elak calon SAMA dgn kandungan SEBELUM ni (2026-08-07 — pepijat ditemui Izzat: pratonton
+    // "Sebelum" dan "Seterusnya" kadang papar TAJUK SAMA). Punca: sasaran rawak cuma elak
+    // lokasi SEMASA (focusLoc), tak elak lokasi SEBELUM (focusHistory[length-2]) — jadi bila
+    // nasib buruk, sasaran rawak boleh terpilih balik ke tempat pembaca baru datang dari,
+    // buat "Seterusnya" kelihatan macam "Sebelum" (dua pratonton sama). `sebelumLoc` di bawah
+    // turut dielakkan sama macam focusLoc sendiri.
+    const sebelumLoc = focusHistory.length >= 2 ? focusHistory[focusHistory.length - 2] : null;
+    const samaLoc = (a: FocusLoc, b: FocusLoc | null) => !!b && a.slotIndex === b.slotIndex && a.itemIndex === b.itemIndex;
     // Elak Bidang SAMA berturut-turut (2026-08-04, permintaan Izzat — "supaya pembaca tak
     // tertumpu pada slot/Bidang yg sama sahaja") — cuba dapatkan calon Bidang BERBEZA dulu
     // (sehingga 20 percubaan, cukup untuk peluang tinggi walaupun senarai kecil/tak seimbang);
@@ -1822,14 +1830,18 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     let candidate: FocusLoc | null = null;
     for (let cubaan = 0; cubaan < 20; cubaan++) {
       const c = focusAllLocations[Math.floor(Math.random() * focusAllLocations.length)];
-      if (c.slotIndex === focusLoc.slotIndex && c.itemIndex === focusLoc.itemIndex) continue;
+      if (samaLoc(c, focusLoc) || samaLoc(c, sebelumLoc)) continue;
       const bidangCalon = (focusItemsForSlot(c.slotIndex)[c.itemIndex]?.desk || '').toLowerCase();
       if (bidangCalon !== bidangSemasa) { candidate = c; break; }
     }
     if (!candidate) {
+      // focusAllLocations.length <= 2 bermakna mustahil elak focusLoc DAN sebelumLoc serentak
+      // (tiada calon ketiga wujud) — jatuh balik terima calon yg sama dgn sebelumLoc drpd macet
+      // tanpa sasaran "Seterusnya" langsung (masih elak focusLoc, keperluan asas).
+      const bolehElakDua = focusAllLocations.length > 2;
       do {
         candidate = focusAllLocations[Math.floor(Math.random() * focusAllLocations.length)];
-      } while (candidate.slotIndex === focusLoc.slotIndex && candidate.itemIndex === focusLoc.itemIndex);
+      } while (samaLoc(candidate, focusLoc) || (bolehElakDua && samaLoc(candidate, sebelumLoc)));
     }
     setNextRandomLoc(candidate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
