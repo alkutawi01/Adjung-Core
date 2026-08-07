@@ -14,6 +14,12 @@ import {
   FOCUS_VIEW_EYEBROW_MAX_CHARS,
 } from './GeometryConfig.js';
 
+// Had minimum Huraian ringkas — nisbah minimum baki bajet huraian yang MESTI diisi (2026-08-08,
+// permintaan Izzat). 0.5 = huraian mesti guna sekurang-kurangnya separuh ruang yang tersedia
+// untuk tajuk semasa — cukup longgar untuk tajuk yang sengaja ringkas, cukup ketat untuk elak
+// huraian sekadar frasa pendek dalam kad yang boleh muat jauh lebih banyak.
+const MIN_BRIEF_USAGE_FRACTION = 0.5;
+
 // Every slot of the same tier gets the exact same rule — there is no per-slot special-casing.
 const validateContentBudget = (slotIndex, title, summary) => {
   const tier = tierForSlot(slotIndex);
@@ -70,6 +76,24 @@ const validateContentBudget = (slotIndex, title, summary) => {
         isValid: false,
         reason: `Huraian (${briefLen} aksara) melebihi had yang dibenarkan untuk tajuk sepanjang ${titleLen} aksara ini (had huraian maksimum: ${remainingBrief} aksara, kad ${tier}). Kandungan tidak disiarkan.`,
       };
+    }
+
+    // Had MINIMUM Huraian ringkas (2026-08-08, permintaan Izzat — "huraian pendek tidak terlalu
+    // pendek sehingga nampak kosong"). Ditemui semasa ujian sebenar: kad tier ketat (cth KOMPAK,
+    // had huraian 41 aksara) boleh diisi cuma 20 aksara ("Karya klasik Melayu.") — teknikal sah
+    // (dalam bajet), tapi tinggalkan ruang kosong ketara pada kad kerana saiz fizikal kad tetap
+    // tak kira berapa pendek kandungan diisi. Had dikira NISBAH terhadap baki bajet SEBENAR
+    // tajuk ini (bukan nombor tegar), sebab baki huraian berubah ikut panjang tajuk — tajuk
+    // panjang secara sah tinggalkan sedikit ruang huraian, itu bukan "terlalu pendek".
+    if (briefLen > 0 && maxBriefAlone > 0) {
+      const remainingBriefUntukTajukIni = Math.max(0, (1 - titleLen / maxTitleAlone) * maxBriefAlone);
+      const hadMinimumHuraian = Math.floor(remainingBriefUntukTajukIni * MIN_BRIEF_USAGE_FRACTION);
+      if (remainingBriefUntukTajukIni >= 10 && briefLen < hadMinimumHuraian) {
+        return {
+          isValid: false,
+          reason: `Huraian (${briefLen} aksara) terlalu pendek untuk ruang kad ${tier} — sekurang-kurangnya ${hadMinimumHuraian} aksara untuk tajuk sepanjang ${titleLen} aksara ini (elak kad nampak kosong). Panjangkan huraian, atau panjangkan tajuk untuk kurangkan baki ruang huraian.`,
+        };
+      }
     }
     return { isValid: true };
   }
