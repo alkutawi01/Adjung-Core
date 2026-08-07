@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Radio, X } from 'lucide-react';
+import { Lock, Rss, Clock, CalendarDays, Handshake, X } from 'lucide-react';
 import { BRAND } from '../../config/brand';
 import { EditoriumLayout } from './EditoriumLayout';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -481,9 +481,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             huraian="Jam, Ticker, dan Slot Bar ada peraturan penyuntingan tersendiri, berasingan daripada kad bento biasa."
           />
           <PanelCard className="space-y-4">
+          {/* Ikon + lebar butang diseragamkan (2026-08-07, Izzat tangkap: dua drpd empat baris ni
+              tiada ikon langsung — Ticker/Slot Bar ada `Radio`, Jam Dunia/Penaja tiada — dan
+              lebar butang "Urus X" ikut panjang teks label, jadi empat butang dlm satu lajur
+              menegak nampak tak sejajar). Ikon `Radio` (isyarat penyiaran) turut diganti — ia
+              sesuai utk Ticker (suapan berita) tapi tiada kaitan konsep dgn Slot Bar (acara/
+              penganjur/lokasi). Setiap baris kini ikon sepadan konsepnya sendiri; keempat-empat
+              butang `w-[136px]` tetap (muat selesa "Urus Jam Dunia", label terpanjang). */}
           <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <Radio className="w-4 h-4 text-Adjung-maroon" />
+              <Rss className="w-4 h-4 text-Adjung-maroon" />
               <div>
                 <div className="text-sm font-semibold text-stone-800">Ticker (Berita Semasa)</div>
                 <div className="text-[11px] text-stone-500">RSS, animasi, status, tetapan penyuntingan khas.</div>
@@ -494,7 +501,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                 FrontpageView.tsx dibuang; lihat nota di FrontpageView.tsx untuk sebab kekal. */}
             <Button
               onClick={() => tickerEditor.openTickerEditor()}
-              className="shrink-0"
+              className="shrink-0 w-[136px]"
               >
               Urus Ticker
             </Button>
@@ -504,13 +511,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               Cuti) SUDAH pun wujud & berfungsi di Tetapan Sistem → Operasi — cuma tersorok di
               sana, bukan sebenarnya tak disambung. Kad ni kini pautan terus ke situ. */}
           <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
-            <div>
-              <div className="text-sm font-semibold text-stone-800">Jam Dunia</div>
-              <div className="text-[11px] text-stone-500">Selang auto-slaid, suis latar, status API Cuaca &amp; Kalendar Cuti.</div>
+            <div className="flex items-center gap-3">
+              <Clock className="w-4 h-4 text-Adjung-maroon" />
+              <div>
+                <div className="text-sm font-semibold text-stone-800">Jam Dunia</div>
+                <div className="text-[11px] text-stone-500">Selang auto-slaid, suis latar, status API Cuaca &amp; Kalendar Cuti.</div>
+              </div>
             </div>
             <Button
               onClick={() => { setTetapanTujuSubTab('Operasi'); setActiveTab('tetapan'); }}
-              className="shrink-0"
+              className="shrink-0 w-[136px]"
               >
               Urus Jam Dunia
             </Button>
@@ -522,7 +532,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               dalam TIER_SLOTS.BAR); dropdown dalam modal boleh tukar ke slot Bar lain. */}
           <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <Radio className="w-4 h-4 text-Adjung-maroon" />
+              <CalendarDays className="w-4 h-4 text-Adjung-maroon" />
               <div>
                 <div className="text-sm font-semibold text-stone-800">Slot Bar</div>
                 <div className="text-[11px] text-stone-500">Acara/Penganjur/Lokasi/Akses/Penerangan — {TIER_SLOTS.BAR.length} slot bar.</div>
@@ -530,7 +540,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             </div>
             <Button
               onClick={() => barSlotEditor.openSlotEditor(Math.min(...TIER_SLOTS.BAR))}
-              className="shrink-0"
+              className="shrink-0 w-[136px]"
               >
               Urus Slot Bar
             </Button>
@@ -541,13 +551,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               (AksesDitolak di destinasi 'penaja' di bawah), sama corak macam kad lain di sini
               tak sorok berdasarkan peranan pelawat. */}
           <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
-            <div>
-              <div className="text-sm font-semibold text-stone-800">Penaja</div>
-              <div className="text-[11px] text-stone-500">Tajaan bulanan — footer & halaman /penaja awam.</div>
+            <div className="flex items-center gap-3">
+              <Handshake className="w-4 h-4 text-Adjung-maroon" />
+              <div>
+                <div className="text-sm font-semibold text-stone-800">Penaja</div>
+                <div className="text-[11px] text-stone-500">Tajaan bulanan — footer & halaman /penaja awam.</div>
+              </div>
             </div>
             <Button
               onClick={() => setActiveTab('penaja')}
-              className="shrink-0"
+              className="shrink-0 w-[136px]"
               >
               Urus Penaja
             </Button>
