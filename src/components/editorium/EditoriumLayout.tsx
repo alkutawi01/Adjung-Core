@@ -419,21 +419,25 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
           {/* Butang semat — hanya bermakna (dan hanya kelihatan) bila sidebar sedang terbuka;
               bila terlipat rel ikon 72px tiada ruang untuk label, dan editor perlu bukanya dahulu
-              untuk faham apa yang disemat. */}
+              untuk faham apa yang disemat. Ikon sahaja (2026-08-07, Izzat: "hapuskan perkataan
+              tu, guna icon sahaja") — label penuh dipindah ke Tooltip (juga memenuhi keperluan
+              nama boleh capai papan kekunci, bukan cuma hover tetikus). */}
           {sidebarTerbuka && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); togolSemat(); }}
-              aria-pressed={disemat}
-              className={`shrink-0 w-full flex items-center gap-2.5 text-xs font-medium px-3 py-2 rounded border transition-colors ${
-                disemat
-                  ? 'text-Adjung-maroon border-Adjung-maroon/30 bg-Adjung-maroon/[0.06]'
-                  : 'text-stone-500 border-stone-200 hover:text-stone-800 hover:bg-black/[0.04]'
-              }`}
-            >
-              {disemat ? <PinOff className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} /> : <Pin className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} />}
-              <span className="truncate">{disemat ? 'Nyahsemat sidebar' : 'Sematkan sidebar'}</span>
-            </button>
+            <Tooltip text={disemat ? 'Nyahsemat sidebar' : 'Sematkan sidebar'}>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); togolSemat(); }}
+                aria-pressed={disemat}
+                aria-label={disemat ? 'Nyahsemat sidebar' : 'Sematkan sidebar'}
+                className={`shrink-0 w-full flex items-center justify-center py-2 rounded border transition-colors ${
+                  disemat
+                    ? 'text-Adjung-maroon border-Adjung-maroon/30 bg-Adjung-maroon/[0.06]'
+                    : 'text-stone-500 border-stone-200 hover:text-stone-800 hover:bg-black/[0.04]'
+                }`}
+              >
+                {disemat ? <PinOff className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} /> : <Pin className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} />}
+              </button>
+            </Tooltip>
           )}
         </aside>
 
