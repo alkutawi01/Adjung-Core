@@ -113,8 +113,9 @@ export function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: n
   );
 }
 
-function Field({ label, value, onChange, rows, placeholder, maxLen, hint }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; hint?: string }) {
+function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint, type }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; minLen?: number; hint?: string; type?: 'text' | 'date' }) {
   const over = typeof maxLen === 'number' && value.length > maxLen;
+  const under = typeof minLen === 'number' && value.length > 0 && value.length < minLen;
   return (
     <label className="flex flex-col gap-1">
       <span className="flex items-baseline justify-between gap-3">
@@ -123,9 +124,12 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, hint }: { la
           {hint && <span className="font-sans normal-case tracking-normal font-normal text-stone-400">{hint}</span>}
         </span>
         {typeof maxLen === 'number' && (
-          <span className={`font-mono text-[9px] tabular-nums ${over ? 'text-[#a8241f]' : 'text-stone-400'}`}>{value.length}/{maxLen}</span>
+          <span className={`font-mono text-[9px] tabular-nums ${over || under ? 'text-[#a8241f]' : 'text-stone-400'}`}>
+            {value.length}/{maxLen}{typeof minLen === 'number' && <> · min {minLen}</>}
+          </span>
         )}
       </span>
+      {under && <span className="font-sans text-[9px] text-[#a8241f] -mt-0.5">{minLen - value.length} aksara lagi diperlukan (minimum {minLen})</span>}
       {rows ? (
         <textarea
           rows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
@@ -133,7 +137,7 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, hint }: { la
         />
       ) : (
         <input
-          type="text" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+          type={type || 'text'} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
           className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
         />
       )}
@@ -150,6 +154,15 @@ const JENIS_SUMBER_PILIHAN: { value: string; label: string }[] = [
   { value: 'web', label: 'Teks' },
   { value: 'audio', label: 'Audio' },
   { value: 'video', label: 'Video' },
+];
+
+// Pilihan tetap (2026-08-07, permintaan Izzat) — sebelum ini medan teks bebas, editor kena
+// taip sendiri setiap kali walaupun cuma segelintir nilai munasabah wujud.
+const HAD_USIA_SUMBER_PILIHAN: { value: string; label: string }[] = [
+  { value: '24 jam', label: '24 jam' },
+  { value: '1 minggu', label: '1 minggu' },
+  { value: '1 bulan', label: '1 bulan' },
+  { value: '1 tahun', label: '1 tahun' },
 ];
 function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return (
@@ -923,7 +936,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 {ceiling.maxBrief > 0 && (
                   <>
                     <Field label="Huraian ringkas" rows={4} value={current.brief || ''} placeholder="Huraian ringkas, dipapar pada kad…" onChange={(v) => patch(activeIndex, 'brief', v)} />
-                    <Field label="Huraian panjang" rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh — hanya di Focus View…" maxLen={ceiling.maxBriefLong} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
+                    <Field label="Huraian panjang" rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh — hanya di Focus View…" maxLen={ceiling.maxBriefLong} minLen={MIN_BRIEF_LONG_CHARS} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
                   </>
                 )}
 
@@ -968,7 +981,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-5">
                   <SelectField label="Jenis sumber" value={current.sourceType || ''} options={JENIS_SUMBER_PILIHAN} onChange={(v) => patch(activeIndex, 'sourceType', v)} />
-                  <Field label="Tarikh sumber" value={current.date || ''} placeholder="21.07.26" onChange={(v) => patch(activeIndex, 'date', v)} />
+                  <Field label="Tarikh sumber" type="date" value={current.date || ''} onChange={(v) => patch(activeIndex, 'date', v)} />
                   <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
                 </div>
                 <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor (pilihan) — hanya di Focus View…" maxLen={280} onChange={(v) => patch(activeIndex, 'note', v)} />
@@ -1041,7 +1054,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 />
 
                 <div className="grid grid-cols-2 gap-5">
-                  <Field label="Had usia sumber" value={formConfig.aiPromptRecency || ''} placeholder="Cth. 24 jam, 1 minggu" onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRecency: v }))} />
+                  <SelectField label="Had usia sumber" value={formConfig.aiPromptRecency || ''} options={HAD_USIA_SUMBER_PILIHAN} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRecency: v }))} />
                   <Field label="Bahasa sumber" value={formConfig.aiPromptLanguage || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptLanguage: v }))} />
                   <Field label="Negara asal sumber" value={formConfig.aiPromptRegion || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRegion: v }))} />
                   <label className="flex flex-col gap-1">

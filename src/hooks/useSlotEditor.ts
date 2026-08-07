@@ -121,7 +121,7 @@ export function useSlotEditor(editorName?: string) {
       refreshDay: config?.refreshDay || 'Isnin',
       eventExpiryFilter: config?.eventExpiryFilter || '',
       aiPromptTopic: config?.aiPromptTopic || '',
-      aiPromptRecency: config?.aiPromptRecency || '1 minggu terkini',
+      aiPromptRecency: config?.aiPromptRecency || '1 minggu',
       aiPromptLanguage: config?.aiPromptLanguage || 'Bahasa Melayu',
       aiPromptRegion: config?.aiPromptRegion || 'Global, Malaysia',
       aiPromptSource: config?.aiPromptSource || '',
