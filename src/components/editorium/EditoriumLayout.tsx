@@ -421,7 +421,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               bila terlipat rel ikon 72px tiada ruang untuk label, dan editor perlu bukanya dahulu
               untuk faham apa yang disemat. Ikon sahaja (2026-08-07, Izzat: "hapuskan perkataan
               tu, guna icon sahaja") — label penuh dipindah ke Tooltip (juga memenuhi keperluan
-              nama boleh capai papan kekunci, bukan cuma hover tetikus). */}
+              nama boleh capai papan kekunci, bukan cuma hover tetikus). Bulatan ikon kecil
+              dipusatkan (bukan lagi kotak bersempadan lebar penuh, sisa gaya lama era butang
+              berlabel — nampak janggal/kosong bila cuma ikon kecil tinggal di tengahnya,
+              ditangkap Izzat "kenapa mesti ada kotak?"). */}
           {sidebarTerbuka && (
             <Tooltip text={disemat ? 'Nyahsemat sidebar' : 'Sematkan sidebar'}>
               <button
@@ -429,10 +432,10 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 onClick={(e) => { e.stopPropagation(); togolSemat(); }}
                 aria-pressed={disemat}
                 aria-label={disemat ? 'Nyahsemat sidebar' : 'Sematkan sidebar'}
-                className={`shrink-0 w-full flex items-center justify-center py-2 rounded border transition-colors ${
+                className={`shrink-0 mx-auto flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
                   disemat
-                    ? 'text-Adjung-maroon border-Adjung-maroon/30 bg-Adjung-maroon/[0.06]'
-                    : 'text-stone-500 border-stone-200 hover:text-stone-800 hover:bg-black/[0.04]'
+                    ? 'text-Adjung-maroon bg-Adjung-maroon/[0.08]'
+                    : 'text-stone-500 hover:text-stone-800 hover:bg-black/[0.04]'
                 }`}
               >
                 {disemat ? <PinOff className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} /> : <Pin className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} />}
