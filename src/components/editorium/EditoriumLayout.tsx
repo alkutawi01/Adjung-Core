@@ -224,14 +224,14 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 !sidebarTerbuka ? 'justify-center px-2' : 'justify-between px-3'
               } ${
                 isActive
-                  ? 'text-[#802334] font-semibold bg-[#802334]/[0.06] shadow-[inset_2px_0_0_#802334]'
+                  ? 'text-Adjung-maroon font-semibold bg-Adjung-maroon/[0.06] shadow-[inset_2px_0_0_var(--color-Adjung-maroon)]'
                   : isLocked
                   ? 'text-stone-300 cursor-not-allowed'
                   : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.04] cursor-pointer'
               }`}
             >
               <span className={`flex items-center gap-2.5 min-w-0 ${!sidebarTerbuka ? 'justify-center' : ''}`}>
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#802334]' : 'text-stone-400'}`} strokeWidth={2.2} />
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-Adjung-maroon' : 'text-stone-400'}`} strokeWidth={2.2} />
                 {sidebarTerbuka && <span className="truncate">{item.label}</span>}
               </span>
               {sidebarTerbuka && !loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
@@ -301,11 +301,11 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                     type="button"
                     onClick={onOpenMakluman}
                     title="Peti Makluman — nota Ketua Editor"
-                    className="relative flex items-center justify-center w-7 h-7 border border-stone-200 rounded text-stone-500 hover:text-[#802334] hover:border-stone-300 hover:bg-stone-50 transition-colors cursor-pointer"
+                    className="relative flex items-center justify-center w-7 h-7 border border-stone-200 rounded text-stone-500 hover:text-Adjung-maroon hover:border-stone-300 hover:bg-stone-50 transition-colors cursor-pointer"
                   >
                     <Mail className="w-3.5 h-3.5" />
                     {jumlahMakluman > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 font-mono text-[9px] font-bold bg-[#802334] text-white rounded-full min-w-[16px] px-1 leading-4 text-center border-2 border-[#FDFDFD]">
+                      <span className="absolute -top-1.5 -right-1.5 font-mono text-[9px] font-bold bg-Adjung-maroon text-white rounded-full min-w-[16px] px-1 leading-4 text-center border-2 border-[#FDFDFD]">
                         {jumlahMakluman}
                       </span>
                     )}
@@ -326,7 +326,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                   </span>
                   <span className="text-stone-800 font-medium">{currentUser.name}</span>
                   <span className="text-stone-300">·</span>
-                  <span className="text-[#802334] font-mono text-[9.5px] uppercase tracking-wider font-semibold">{
+                  <span className="text-Adjung-maroon font-mono text-[9.5px] uppercase tracking-wider font-semibold">{
                     // 2026-08-02 (Fasa 3) — label peranan SEBENAR (boleh berbilang, cth "Pentadbir,
                     // Ketua Editor"), bukan label binari lama.
                     roles.length > 0
@@ -337,7 +337,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 {onLogout && (
                   <button
                     onClick={onLogout}
-                    className="flex items-center gap-1 border border-stone-200 px-2.5 py-1 rounded text-stone-500 hover:text-[#802334] hover:border-stone-300 hover:bg-stone-50 transition-colors"
+                    className="flex items-center gap-1 border border-stone-200 px-2.5 py-1 rounded text-stone-500 hover:text-Adjung-maroon hover:border-stone-300 hover:bg-stone-50 transition-colors"
                   >
                     <LogOut className="w-3 h-3" /> Log Keluar
                   </button>
@@ -347,7 +347,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               onRequestLogin && (
                 <button
                   onClick={onRequestLogin}
-                  className="flex items-center gap-1.5 bg-[#802334] px-3 py-1 rounded text-white hover:bg-[#9b2c41] transition-colors font-medium"
+                  className="flex items-center gap-1.5 bg-Adjung-maroon px-3 py-1 rounded text-white hover:bg-Adjung-maroon-dark transition-colors font-medium"
                 >
                   <LogIn className="w-3.5 h-3.5" /> Log Masuk
                 </button>
@@ -411,7 +411,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
               aria-pressed={disemat}
               className={`shrink-0 w-full flex items-center gap-2.5 text-xs font-medium px-3 py-2 rounded border transition-colors ${
                 disemat
-                  ? 'text-[#802334] border-[#802334]/30 bg-[#802334]/[0.06]'
+                  ? 'text-Adjung-maroon border-Adjung-maroon/30 bg-Adjung-maroon/[0.06]'
                   : 'text-stone-500 border-stone-200 hover:text-stone-800 hover:bg-black/[0.04]'
               }`}
             >
@@ -435,7 +435,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 onClick={() => handleNavClick(item.id)}
                 disabled={isLocked}
                 className={`shrink-0 flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
-                  isActive ? 'bg-[#802334] text-white font-semibold' : isLocked ? 'text-stone-300' : 'text-stone-600 bg-white border border-stone-200'
+                  isActive ? 'bg-Adjung-maroon text-white font-semibold' : isLocked ? 'text-stone-300' : 'text-stone-600 bg-white border border-stone-200'
                 }`}
               >
                 <Icon className="w-3 h-3" strokeWidth={2.2} />
@@ -486,7 +486,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           type="button"
           onClick={onOpenSlotPicker}
           title="Tulis Kandungan Baharu"
-          className="fixed bottom-16 right-6 z-40 flex items-center justify-center w-12 h-12 bg-[#802334] text-white rounded-full shadow-[0_4px_16px_rgba(128,35,52,0.4)] hover:bg-[#9b2c41] hover:shadow-[0_6px_20px_rgba(128,35,52,0.5)] transition-all cursor-pointer"
+          className="fixed bottom-16 right-6 z-40 flex items-center justify-center w-12 h-12 bg-Adjung-maroon text-white rounded-full shadow-[0_4px_16px_rgba(128,35,52,0.4)] hover:bg-Adjung-maroon-dark hover:shadow-[0_6px_20px_rgba(128,35,52,0.5)] transition-all cursor-pointer"
         >
           <PenLine className="w-5 h-5" />
         </button>

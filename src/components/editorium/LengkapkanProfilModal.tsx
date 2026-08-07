@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { MesejStatus } from '../common/MesejStatus';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 
 // Gerbang log masuk PERTAMA (2026-08-05, permintaan Izzat) — "saya nak editor masa daftar
@@ -68,7 +69,7 @@ export const LengkapkanProfilModal: React.FC<LengkapkanProfilProps> = ({ userId,
     <div className="fixed inset-0 z-[200] bg-stone-900/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-2xl border border-stone-300 max-w-lg w-full max-h-[92vh] overflow-y-auto p-6 space-y-4 text-xs font-sans">
         <div className="border-b border-stone-200 pb-3">
-          <h2 className="font-serif text-lg font-bold text-[#802334]">Lengkapkan Profil &amp; Terima Syarat</h2>
+          <h2 className="font-serif text-lg font-bold text-Adjung-maroon">Lengkapkan Profil &amp; Terima Syarat</h2>
           <p className="text-stone-500 text-[11px] mt-1">
             Sebelum meneruskan ke Editorium, sila lengkapkan butiran di bawah dan baca Syarat &amp; Peraturan
             Editor. Ini hanya perlu sekali sahaja.
@@ -108,7 +109,7 @@ export const LengkapkanProfilModal: React.FC<LengkapkanProfilProps> = ({ userId,
                 type="checkbox"
                 checked={bersetuju}
                 onChange={(e) => setBersetuju(e.target.checked)}
-                className="mt-0.5 rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer"
+                className="mt-0.5 rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer"
               />
               <span className="text-stone-700 text-[11px]">
                 Saya telah membaca dan bersetuju dengan Syarat &amp; Peraturan Editor di atas.
@@ -117,13 +118,13 @@ export const LengkapkanProfilModal: React.FC<LengkapkanProfilProps> = ({ userId,
           </div>
 
           {ralat && (
-            <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>
+            <MesejStatus tone="error">{ralat}</MesejStatus>
           )}
 
           <button
             type="submit"
             disabled={!bolehHantar}
-            className="w-full bg-[#802334] text-white px-4 py-2.5 rounded font-semibold text-xs hover:bg-[#6a1c2a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full bg-Adjung-maroon text-white px-4 py-2.5 rounded font-semibold text-xs hover:bg-Adjung-maroon-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {menyimpan ? 'Menyimpan…' : 'Sahkan & Teruskan'}
           </button>

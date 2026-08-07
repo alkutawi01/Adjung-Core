@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { MesejStatus } from '../common/MesejStatus';
 import { labelUi } from '../../config/istilah';
 
 // Profil Editor (2026-08-01, spesifikasi pemilik projek — aksesori header "Profil editor",
@@ -102,12 +103,12 @@ function BorangPengesahan({
           <button
             type="button"
             onClick={() => setDibuka(true)}
-            className="text-[10px] font-semibold text-[#802334] hover:underline cursor-pointer"
+            className="text-[10px] font-semibold text-Adjung-maroon hover:underline cursor-pointer"
           >
             Tukar
           </button>
         )}
-        {mesej && <span className="text-emerald-700 text-[11px] font-semibold">{mesej}</span>}
+        {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
       </div>
 
       {dibuka && (
@@ -136,7 +137,7 @@ function BorangPengesahan({
           </label>
 
           {ralat && (
-            <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>
+            <MesejStatus tone="error">{ralat}</MesejStatus>
           )}
 
           <div className="flex items-center justify-end gap-2 pt-1">
@@ -150,7 +151,7 @@ function BorangPengesahan({
             <button
               type="submit"
               disabled={menyimpan || !nilaiBaharu.trim() || !kataLaluanSemasa}
-              className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-[11px] hover:bg-[#6a1c2a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-[11px] hover:bg-Adjung-maroon-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {menyimpan ? 'Menyimpan…' : 'Simpan'}
             </button>
@@ -208,7 +209,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
         className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 text-xs font-sans"
       >
         <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 className="font-sans text-xs font-bold text-[#802334] uppercase tracking-wider">Profil Editor</h3>
+          <h3 className="font-serif text-lg font-bold text-Adjung-maroon">Profil Editor</h3>
           <button type="button" onClick={onTutup} className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
 
@@ -216,7 +217,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
           <label className="flex flex-col gap-1">
             <span className="flex justify-between font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
               <span>Nama Pena</span>
-              <span className={penName.length > HAD_PEN_NAME ? 'text-red-700' : 'text-stone-400'}>{penName.length}/{HAD_PEN_NAME}</span>
+              <span className={penName.length > HAD_PEN_NAME ? 'text-[var(--color-error)]' : 'text-stone-400'}>{penName.length}/{HAD_PEN_NAME}</span>
             </span>
             <input
               type="text"
@@ -245,15 +246,15 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
           </div>
 
           {ralat && (
-            <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>
+            <MesejStatus tone="error">{ralat}</MesejStatus>
           )}
 
           <div className="flex items-center justify-end gap-3 pt-1">
-            {mesej && <span className="text-emerald-700 text-[11px] font-semibold">{mesej}</span>}
+            {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
             <button
               type="submit"
               disabled={menyimpan || !penName.trim() || penName.length > HAD_PEN_NAME}
-              className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-[#6a1c2a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="bg-Adjung-maroon text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-Adjung-maroon-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {menyimpan ? 'Menyimpan…' : 'Simpan Profil'}
             </button>
