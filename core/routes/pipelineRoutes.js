@@ -1,16 +1,24 @@
 import express from 'express';
 import { validateContentBudget, validateBidangTopik, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/auth.js';
+import { getAmSettings } from './slotAmRoutes.js';
 
 // Thin route wrappers around runEditorialPipeline/runAllScheduledSlots — those stay defined in
 // server.js since the internal 5-minute scheduler also calls them directly, so they're passed in
 // here rather than moved.
+//
+// 2026-08-07: kedua-dua laluan AI kini menolak 403 tanpa syarat (lihat saluranAiDimatikan di
+// bawah), jadi parameter runEditorialPipeline/runAllScheduledSlots kekal dalam tandatangan
+// semata-mata untuk memudahkan pengaktifan semula kelak — ia tidak lagi dipanggil di sini.
 export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, runAllScheduledSlots) {
   const router = express.Router();
 
   // POST /api/system/pipeline/batch_paste
-  router.post('/pipeline/batch_paste', requireAuth, async (req, res) => {
+  // Gerbang `publish` (2026-08-07, Pelan 02 #1, keputusan Izzat S1) — tampal pukal memang saluran
+  // TERUS TERBIT (setiap item ditulis 'approved' tanpa singgah Menunggu), jadi ia alat pemegang
+  // kunci terbit sahaja, bukan laluan editor biasa.
+  router.post('/pipeline/batch_paste', requirePermission('publish'), async (req, res) => {
     try {
       const { text } = req.body;
       if (!text || !text.trim()) {
@@ -83,9 +91,20 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
       // Same hard-block as the per-slot manual save: every slot of the same geometry tier is
       // validated by the exact same budget rule (core/editorial/ContentBudget.js). Validate the
       // whole batch before writing anything, so one oversized item doesn't leave a partial paste.
+      // Bilangan item batch ini per slot — diperlukan untuk semakan hadKandunganSlot di bawah,
+      // kerana satu batch boleh menambah beberapa kandungan ke slot yang sama sekali gus.
+      const kiraanBatchSeslot = new Map();
+
       for (const item of parsedItems) {
         const slotIdx = item.slotIndex !== undefined ? parseInt(item.slotIndex, 10) : -1;
-        if (slotIdx < 0 || slotIdx >= 38) continue;
+        // Item luar julat ditolak terang-terangan (Pelan 02 #13) — dahulu ia digugurkan senyap
+        // dan pengguna tetap dapat success: true tanpa tahu item mana hilang.
+        if (Number.isNaN(slotIdx) || slotIdx < 0 || slotIdx >= 38) {
+          return res.status(400).json({
+            error: `Nombor slot tidak sah untuk "${(item.title || '(tanpa tajuk)').slice(0, 40)}" — guna nombor slot 1 hingga 38 sahaja.`,
+          });
+        }
+        kiraanBatchSeslot.set(slotIdx, (kiraanBatchSeslot.get(slotIdx) || 0) + 1);
         const budgetCheck = validateContentBudget(slotIdx, item.title, item.summary);
         if (!budgetCheck.isValid) {
           return res.status(400).json({ error: `Slot ${slotIdx + 1} — "${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason}` });
@@ -102,6 +121,27 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
           });
           if (!bidangTopikCheck.isValid) {
             return res.status(400).json({ error: `Slot ${slotIdx + 1} — "${(item.title || '').slice(0, 40)}...": ${bidangTopikCheck.reason}` });
+          }
+        }
+      }
+
+      // Had bilangan kandungan seslot (Tetapan Am Slot; 0 = tiada had) — dikuatkuasakan di sini
+      // sama seperti POST /content (Pelan 02 #1). Dahulu tampal pukal ialah satu-satunya laluan
+      // penciptaan yang boleh menolak slot melebihi hadnya.
+      const { hadKandunganSlot } = getAmSettings();
+      if (hadKandunganSlot > 0) {
+        for (const [slotIdx, tambahan] of kiraanBatchSeslot) {
+          const kiraan = await dbGet(`
+            SELECT COUNT(*) AS n FROM editorial_objects o
+            JOIN editorial_revisions r ON r.objectId = o.id
+            WHERE o.slotIndex = ? AND r.status IN ('approved', 'pending')
+              AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+          `, [slotIdx]);
+          const sedia = kiraan ? kiraan.n : 0;
+          if (sedia + tambahan > hadKandunganSlot) {
+            return res.status(400).json({
+              error: `Slot ${slotIdx + 1} sudah ada ${sedia} kandungan dan tampalan ini menambah ${tambahan} lagi — had maksimum ialah ${hadKandunganSlot} (Tetapan Am Slot). Arkibkan kandungan sedia ada dahulu.`,
+            });
           }
         }
       }
@@ -183,62 +223,20 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
     }
   });
 
+  // Saluran AI dimatikan (keputusan 2026-08-02, dikuatkuasakan 2026-08-07 — Pelan 02 #12,
+  // keputusan Izzat S2). Penjanaan kandungan AI automatik BUKAN saluran yang dibenarkan; saluran
+  // rasmi ialah Manual, API bukan-AI dan suapan RSS sahaja. Ditolak terus untuk SEMUA peranan —
+  // bukan sekadar digerbang kebenaran — supaya tiada sesiapa boleh memicunya secara tidak sengaja.
+  const saluranAiDimatikan = (req, res) => {
+    res.status(403).json({ error: 'Saluran AI dimatikan.', message: 'Saluran AI dimatikan.' });
+  };
+
   // POST /api/system/pipeline/run
-  router.post('/pipeline/run', requireAuth, async (req, res) => {
-    const currentRunId = `run-${Date.now()}`;
-
-    try {
-      const { slotIndex, force = false } = req.body;
-
-      if (slotIndex !== undefined) {
-        const slot = await dbGet("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [slotIndex]);
-        if (!slot) {
-          return res.status(404).json({ error: 'Slot not found.' });
-        }
-
-        const result = await runEditorialPipeline(slotIndex, currentRunId);
-        if (result && result.objectId) {
-          await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [result.objectId, slotIndex]);
-          return res.json({ success: true, objectId: result.objectId, status: result.status });
-        } else {
-          return res.status(400).json({ error: 'Gagal menjalankan pipeline (slot mungkin dilumpuhkan).' });
-        }
-      } else {
-        const { runId, results, stats } = await runAllScheduledSlots(force);
-        return res.json({ success: true, runId, results, stats });
-      }
-    } catch (err) {
-      console.error('Run pipeline error:', err);
-      res.status(500).json({ error: 'Gagal menjalankan pipeline editorial. ' + (err.message || '') });
-    }
-  });
+  router.post('/pipeline/run', saluranAiDimatikan);
 
   // POST /api/system/slots/run-now
-  router.post('/slots/run-now', requireAuth, async (req, res) => {
-    const { slotIndex } = req.body;
-    if (slotIndex === undefined || slotIndex === null) {
-      return res.status(400).json({ error: 'Parameter nombor slot tiada.' });
-    }
+  router.post('/slots/run-now', saluranAiDimatikan);
 
-    try {
-      const currentRunId = `manual-run-${Date.now()}`;
-      const result = await runEditorialPipeline(slotIndex, currentRunId, true);
-      if (result) {
-        if (result.status === 'CACHE_HIT' || result.status === 'SUCCESS') {
-          if (result.objectId) {
-            await dbRun("UPDATE slots_config SET activeObjectId = ? WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?", [result.objectId, slotIndex]);
-          }
-          return res.json({ success: true, status: result.status, message: 'Berjaya diaktifkan!' });
-        } else {
-          return res.status(400).json({ error: result.message || 'Penjanaan gagal.' });
-        }
-      }
-      res.status(400).json({ error: 'Gagal menjalankan pipeline.' });
-    } catch (err) {
-      console.error('Run slot now error:', err);
-      res.status(500).json({ error: err.message || 'Ralat pelayan.' });
-    }
-  });
 
   return router;
 }
