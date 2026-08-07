@@ -377,10 +377,11 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
         </div>
       </section>
 
-      <footer className="flex items-center gap-4 px-6 md:px-8 py-5 flex-wrap">
-        <span className="text-[11px] text-stone-400">Adjung Brief Editorium · Sistem Kawalan Editorial</span>
-        <span className="ml-auto font-mono text-[10px] text-stone-400">Dimuat semula {new Date().toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' })}</span>
-      </footer>
+      {/* Footer tempatan konsol ni dibuang (2026-08-07) — EditoriumLayout sudah ada footer
+          kongsi dengan baris "Adjung Brief Editorium · Sistem Kawalan Editorial" yang SAMA,
+          jadi Paparan Utama memaparkannya DUA kali serentak. Cap masa "Dimuat semula" turut
+          dibuang bersamanya — ia cap masa render (new Date() semasa paint), bukan masa data
+          sebenar diambil, jadi maklumatnya mengelirukan. */}
     </div>
   );
 };
