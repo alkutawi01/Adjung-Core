@@ -54,57 +54,39 @@ function useOverflowFade(): [React.RefObject<HTMLDivElement | null>, React.CSSPr
   return [ref, { maskImage: fade, WebkitMaskImage: fade }];
 }
 
-/** Muat-ke-kotak (fit-to-box) tajuk desktop (2026-08-07, permintaan Izzat). Tiga kehendak
- *  serentak: (1) lajur tajuk PAKAI SEPENUH ruang lajur kiri yang dikhaskan — bukan fon kecil
- *  tetap yang tinggalkan banyak ruang kosong di bawah cuma sebab tajuk pendek/sederhana; (2)
- *  tajuk TAK PERNAH menceroboh lebar lajur huraian sebelah; (3) TAK PERNAH sengkang atau potong
- *  tengah perkataan (`wordBreak:'normal'` di h1 sudah jamin ni — perkataan cuma boleh limpah
- *  lebar, tak pernah patah tengah). Gabungan tiga kehendak ni bermakna saiz fon TAK BOLEH
- *  tetap/tangga aksara sahaja — ia mesti diukur terhadap kotak SEBENAR (lebar DAN tinggi lajur
- *  kiri) untuk setiap tajuk, sebab tajuk pendek patut jadi BESAR (isi ruang menegak) manakala
- *  tajuk panjang atau tajuk dgn satu perkataan superpanjang patut jadi kecil (elak dua
- *  pelanggaran di atas).
+/** Susut-jika-perlu tajuk desktop (2026-08-07, permintaan Izzat). Percubaan pertama (muat-ke-
+ *  kotak, cari fon TERBESAR yang isi tinggi lajur) DIBUANG selepas verifikasi visual — Izzat
+ *  betul menolaknya: tajuk pendek jadi 64px "gedabak" manakala tajuk lain kekal ~26px, konsisten
+ *  fon merentasi kandungan JAUH lebih penting drpd mengisi ruang kosong bawah tajuk. Baris
+ *  kosong di bawah tajuk pendek BUKAN pepijat — ia natural bila tajuk & huraian bersebelahan tapi
+ *  panjang berbeza.
  *
- *  Gelung dedua (binary search) fontSize antara `minPx`-`maxPx`: bagi setiap saiz calon, uji
- *  `scrollWidth<=clientWidth` (tiada baris melimpah sebab satu perkataan tak muat) DAN
- *  `scrollHeight<=tinggi lajur kiri yang tersedia` (tak melimpah bawah kotak). Kedua-dua ukuran
- *  membesar seiring fontSize (monoton), jadi dedua sah — cari saiz TERBESAR yang masih lulus
- *  kedua-dua ujian, bukan cuma saiz terkecil yang muat.
- *
- *  `boxRef` ialah bekas lajur kiri PENUH (eyebrow + tajuk); `eyebrowRef` (pilihan) diukur &
- *  ditolak drpd tinggi tersedia supaya ruang eyebrow+jurang tak dikira sebagai ruang tajuk. */
-function useFitTitleToBox(
+ *  Kembali ke tangga saiz TETAP ikut kiraan aksara (`baseSizePx`, dikira pemanggil) — sama
+ *  fon utk semua tajuk sepanjang yang sama, konsisten. Hook ni HANYA susut (tak pernah besarkan)
+ *  drpd `baseSizePx`, dan HANYA bila satu perkataan tunggal terlalu panjang utk muat lebar lajur
+ *  (`scrollWidth>clientWidth`) — kes jarang, bukan tingkah laku biasa. Elak menceroboh lajur
+ *  huraian sebelah TANPA sengkang/potong tengah perkataan (wordBreak:'normal' di h1 jamin
+ *  perkataan tak pernah patah tengah — cuma limpah, yang hook ni cegah dgn susutkan fon). */
+function useShrinkTitleToFit(
   h1Ref: React.RefObject<HTMLElement | null>,
-  boxRef: React.RefObject<HTMLElement | null>,
-  eyebrowRef: React.RefObject<HTMLElement | null>,
+  baseSizePx: number,
   minPx: number,
-  maxPx: number,
   deps: React.DependencyList,
 ): void {
   React.useLayoutEffect(() => {
     const h1 = h1Ref.current;
-    const box = boxRef.current;
-    if (!h1 || !box) return;
+    if (!h1) return;
     const muatkan = () => {
-      const boxStyle = getComputedStyle(box);
-      const paddingTop = parseFloat(boxStyle.paddingTop) || 0;
-      const gap = parseFloat((boxStyle as any).rowGap || boxStyle.gap) || 0;
-      const eyebrowH = eyebrowRef.current ? eyebrowRef.current.getBoundingClientRect().height : 0;
-      const tinggiTersedia = box.clientHeight - paddingTop - eyebrowH - (eyebrowH > 0 ? gap : 0);
-      const muat = (px: number) => {
-        h1.style.fontSize = `${px}px`;
-        return h1.scrollWidth <= h1.clientWidth + 1 && h1.scrollHeight <= tinggiTersedia + 1;
-      };
-      let lo = minPx, hi = maxPx, terbaik = minPx;
-      while (lo <= hi) {
-        const mid = Math.floor((lo + hi) / 2);
-        if (muat(mid)) { terbaik = mid; lo = mid + 1; } else { hi = mid - 1; }
+      let s = baseSizePx;
+      h1.style.fontSize = `${s}px`;
+      while (s > minPx && h1.scrollWidth > h1.clientWidth + 1) {
+        s -= 1;
+        h1.style.fontSize = `${s}px`;
       }
-      h1.style.fontSize = `${terbaik}px`;
     };
     muatkan();
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(muatkan) : null;
-    if (ro) ro.observe(box);
+    if (ro) ro.observe(h1);
     window.addEventListener('resize', muatkan);
     return () => { if (ro) ro.disconnect(); window.removeEventListener('resize', muatkan); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -431,26 +413,23 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // aksara pada 20.7px dan bukan 27px, kerana 2.3vh pada tinggi 900px ialah 20.7px — clamp itu
   // memilih nilai tengah, bukan nilai maksimum. Jangan perkenalkan semula terma vh di sini.
   //
-  // Tangga aksara lama (44/37/31/27, kemudian 34/29/24/21) dibuang 2026-08-07 — permintaan Izzat
-  // ("kenapa tajuk mesti ada dua/tiga baris sahaja, kolum kiri masih kosong di bawah") — tangga
-  // tetap ikut kiraan aksara TAK PERNAH isi ruang menegak lajur sepenuhnya (tajuk pendek/sederhana
-  // dapat fon KECIL yang sama macam tajuk panjang, walhal lajur kiri ada banyak ruang kosong di
-  // bawah). Digantikan sepenuhnya oleh `useFitTitleToBox` (lihat definisi di atas) — dedua cari
-  // fon TERBESAR yang muat lebar DAN tinggi lajur kiri sebenar, jadi tajuk pendek automatik jadi
-  // besar (isi ruang), tajuk panjang/tajuk dgn perkataan superpanjang automatik jadi kecil secukup
-  // perlu sahaja. `titleSize` di bawah kekal cuma sbg NILAI AWAL render pertama (elak "flash"
-  // saiz salah sebelum useLayoutEffect ukur) — nilai sebenar sentiasa ditulis ganti oleh hook.
-  const titleSize = `${Math.round(38 * titleSizeScale)}px`;
+  // Tangga 44/37/31/27 (2026-07-29) ditentukur utk lajur tajuk LEBAR PENUH (min(64%,900px),
+  // susun atur satu-lajur lama). Susun atur dua-lajur (2026-08-07) sempitkan lajur tajuk kepada
+  // ~5/12 lebar helaian (~40%) — tangga diskalakan ÷1.28 (34/29/24/21) supaya perkataan tunggal
+  // biasa muat dalam lebar lajur baharu. (Percubaan "muat-ke-kotak" — fon automatik BESAR utk
+  // tajuk pendek, isi ruang menegak — dicuba & DITOLAK Izzat selepas verifikasi visual: fon jadi
+  // tak konsisten merentasi kandungan, "ada yg besar gedabak, ada yg kecil sangat". Konsisten
+  // lebih penting drpd isi ruang kosong bawah tajuk pendek — itu bukan pepijat.)
+  const n = String(title || '').length;
+  const titleSizeAsas = n <= 60 ? 34 : n <= 100 ? 29 : n <= 140 ? 24 : 21;
+  const titleSize = `${Math.round(titleSizeAsas * titleSizeScale)}px`;
   const bodySize = `${bodySizePx}px`;
 
-  // Refs muat-ke-kotak (lihat useFitTitleToBox di atas) — hanya BERKESAN pada susun atur desktop
-  // (lajur tajuk lebar+tinggi tetap); tiada kesan pada telefon (h1 telefon guna style literal
-  // sendiri, tak sambung hook ni — telefon satu lajur menatal, tiada "ruang kosong terkunci"
-  // utk diisi). `eyebrowRef` pilihan (label boleh tiada langsung — lihat prop `desk`/`topik`).
-  const titleBoxRef = React.useRef<HTMLDivElement>(null);
+  // Susut tambahan (lihat useShrinkTitleToFit di atas) — jaring keselamatan utk kes jarang
+  // perkataan tunggal superpanjang yang tak muat walau dah pada tangga terkecil; hanya BERKESAN
+  // pada susun atur desktop (lajur tajuk sempit tetap).
   const titleRef = React.useRef<HTMLHeadingElement>(null);
-  const eyebrowRef = React.useRef<HTMLSpanElement>(null);
-  useFitTitleToBox(titleRef, titleBoxRef, eyebrowRef, Math.round(14 * titleSizeScale), Math.round(64 * titleSizeScale), [title, titleSizeScale]);
+  useShrinkTitleToFit(titleRef, titleSizeAsas * titleSizeScale, 15, [title, titleSizeAsas, titleSizeScale]);
 
   // Karya seni DIMUATKAN, tidak pernah dipangkas: kekang nod yang dihantar itu sendiri, kerana
   // kotak plat cuma mengerat. Anak bukan-elemen (teks, fragmen) lalu tanpa disentuh.
@@ -931,9 +910,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 pada sempadan lajur sebenar. `overflow:'hidden'` dikekalkan sbg jaring keselamatan
                 lapisan kedua (permintaan Izzat — "jgn benarkan tajuk...menceroboh kolum milik yg
                 lain") utk kes ekstrem satu perkataan tunggal lebih lebar drpd lajur. */}
-            <div ref={titleBoxRef} style={{ minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 'clamp(8px, 1.4vh, 14px)', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
+            <div style={{ minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 'clamp(8px, 1.4vh, 14px)', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
               {label && (
-                <span ref={eyebrowRef} style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{label}</span>
+                <span style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{label}</span>
               )}
               {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-07 — lajur tajuk kini
                   sempit ~40% lebar helaian, sama alasan telefon di atas: titleRendered sisipkan
