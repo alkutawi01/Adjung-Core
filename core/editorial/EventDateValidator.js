@@ -63,6 +63,36 @@ export function extractOrganizerAcronym(item) {
   return acronym || upperText;
 }
 
+const NAMA_BULAN = [
+  'JAN', 'FEB', 'MAC', 'APR', 'MEI', 'JUN', 'JUL', 'OGOS', 'SEPT', 'OKT', 'NOV', 'DIS',
+];
+
+// Format satu tarikh ISO (yyyy-mm-dd, daripada <input type="date">) ke "21 OGOS 2026". Nilai
+// bukan-ISO (teks lama bebas, cth "21 Ogos 2026" ditaip terus sebelum pemetik kalendar wujud)
+// dipulangkan AS-IS, uppercase — tiada percubaan menghurai format bebas, elak paparan rosak.
+function formatSatuTarikh(iso) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec((iso || '').trim());
+  if (!match) return (iso || '').trim().toUpperCase();
+  const [, tahun, bulan, hari] = match;
+  const namaBulan = NAMA_BULAN[Number(bulan) - 1];
+  if (!namaBulan) return iso.toUpperCase();
+  return `${Number(hari)} ${namaBulan} ${tahun}`;
+}
+
+/**
+ * Format tarikh acara Slot Bar untuk paparan kad — satu tarikh, atau julat "21 - 23 OGOS 2026"
+ * (2026-08-07, permintaan Izzat: pemetik kalendar Mula/Tamat, boleh julat berbilang hari).
+ * dateEnd kosong atau sama dengan dateStart = paparan satu tarikh sahaja (acara sehari).
+ */
+export function formatEventDateRange(dateStart, dateEnd) {
+  const mula = (dateStart || '').trim();
+  const tamat = (dateEnd || '').trim();
+  if (!mula) return '';
+  if (!tamat || tamat === mula) return formatSatuTarikh(mula);
+  return `${formatSatuTarikh(mula)} - ${formatSatuTarikh(tamat)}`;
+}
+
 export default {
   extractOrganizerAcronym,
+  formatEventDateRange,
 };

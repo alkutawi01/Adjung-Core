@@ -28,7 +28,7 @@ interface BarSlotManagerModalProps {
 
 const labelCls = 'font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500';
 
-function Field({ label, value, onChange, rows, placeholder, maxLen, hint }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; hint?: string }) {
+function Field({ label, value, onChange, rows, placeholder, maxLen, hint, type }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; hint?: string; type?: 'text' | 'date' }) {
   const over = typeof maxLen === 'number' && value.length > maxLen;
   return (
     <label className="flex flex-col gap-1">
@@ -48,7 +48,7 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, hint }: { la
         />
       ) : (
         <input
-          type="text" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+          type={type || 'text'} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
           className="w-full border-0 border-b border-stone-300 focus:border-[var(--color-Adjung-maroon)] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
         />
       )}
@@ -99,7 +99,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
     // ada fallback 'Terbuka' sendiri di paparan, tapi lebih baik nilai SEBENAR tersimpan betul
     // daripada bergantung pada fallback berganda).
     title: '', organizer: '', location: '', access: 'Terbuka', penerangan: '',
-    date: '', source: '', url: '', image: '', note: '', penulis: '',
+    date: '', dateEnd: '', source: '', url: '', image: '', note: '', penulis: '',
   });
 
   const [items, setItems] = useState<any[]>(() => {
@@ -120,6 +120,12 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
   const patch = (i: number, key: string, value: string) => commit((prev) => (
     prev.length > 0 ? prev.map((it, n) => (n === i ? { ...it, [key]: value } : it)) : [{ ...blankItem(), [key]: value }]
   ));
+  // Tarikh Mula diubah: kalau Tamat masih kosong ATAU sepadan Mula LAMA (editor belum sengaja
+  // pilih julat berasingan), ikut serta ke tarikh baharu — "kalau satu hari, mula dan tamat hari
+  // yg sama" (permintaan Izzat) supaya acara sehari tak perlu isi dua kali.
+  const patchTarikhMula = (i: number, value: string) => commit((prev) => prev.map((it, n) => (
+    n === i ? { ...it, date: value, dateEnd: (!it.dateEnd || it.dateEnd === it.date) ? value : it.dateEnd } : it
+  )));
   const insert = () => { commit((prev) => [...prev, blankItem()]); setActive(items.length); };
   const remove = (i: number) => {
     if (!window.confirm('Padam acara ini daripada giliran? Tindakan ini tidak boleh dibuat asal selepas disimpan.')) return;
@@ -295,7 +301,8 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
                   <option value="Tertutup">Tertutup</option>
                 </select>
               </label>
-              <Field label="Tarikh" value={current.date || ''} placeholder="Cth: 21 Ogos 2026" onChange={(v) => patch(activeIndex, 'date', v)} />
+              <Field label="Tarikh mula" type="date" value={current.date || ''} onChange={(v) => patchTarikhMula(activeIndex, v)} />
+              <Field label="Tarikh tamat" type="date" value={current.dateEnd || current.date || ''} onChange={(v) => patch(activeIndex, 'dateEnd', v)} />
             </div>
             <Field label="Penerangan" rows={4} value={current.penerangan || ''} maxLen={MAX_PENERANGAN_CHARS} placeholder="Huraian tambahan acara — dipapar di panel akordion, bukan pada muka kad…" onChange={(v) => patch(activeIndex, 'penerangan', v)} />
 

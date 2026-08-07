@@ -1942,6 +1942,9 @@ const initEditorialOS = (dbConn) => {
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('imageUrl', 'URL Imej', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('briefLong', 'Huraian Panjang', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('originalDate', 'Tarikh Asal', 'text')", () => {});
+          // Tarikh tamat acara (2026-08-07, permintaan Izzat) — Slot BAR sahaja. 'originalDate'
+          // di atas dipakai semula sebagai "Tarikh Mula"; kosong untuk tier lain, tiada kesan.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('dateEnd', 'Tarikh Tamat', 'text')", () => {});
           // sourceType: turut disimpan oleh syncManualObjectsForSlot() (attrs array) tapi sebelum ni
           // tak pernah didaftar di sini — setiap simpan slot manual gagal senyap dgn
           // SQLITE_CONSTRAINT (FK), DELETE+INSERT sebelumnya rolled back, kandungan slot kekal kosong.
@@ -2315,6 +2318,10 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let desk = '';
     let topik = '';
     let date = '';
+    // Tarikh mula/tamat acara Bar (2026-08-07, permintaan Izzat: pemetik kalendar, boleh julat).
+    // Alias legasi "Tarikh sumber:"/"Tarikh:" (blok lama, satu tarikh sahaja) tetapkan KEDUA-DUA
+    // date DAN dateEnd sama nilai supaya paparan julat tak terputus untuk kandungan sedia ada.
+    let dateEnd = '';
     let source = '';
     let url = '';
     // Sumber berbilang (2026-08-05, permintaan Izzat) — sama corak macam ManualBlockFormat.js
@@ -2386,10 +2393,16 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         topik = buangPetunjukHad(trimmed.replace(/^Topik:\s*/i, ''));
       } else if (trimmed.startsWith('Jenis sumber:')) {
         sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Tarikh mula:')) {
+        date = trimmed.replace(/^Tarikh mula:\s*/i, '').trim();
+      } else if (trimmed.startsWith('Tarikh tamat:')) {
+        dateEnd = trimmed.replace(/^Tarikh tamat:\s*/i, '').trim();
       } else if (trimmed.startsWith('Tarikh sumber:')) {
         date = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
+        dateEnd = date;
       } else if (trimmed.startsWith('Tarikh:')) {
         date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
+        dateEnd = date;
       } else if (trimmed.startsWith('Penulis:')) {
         penulis = trimmed.replace(/^Penulis:\s*/i, '').trim();
       } else if (trimmed.startsWith('Nota:')) {
@@ -2471,6 +2484,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         // fallback '#' sendiri untuk paparan/pautan kad — cukup, tak perlu diulang di sini.
         url: url || '',
         originalDate: date || '',
+        dateEnd: dateEnd || date || '',
         publishedAt: date || ''
       });
     }
@@ -2692,6 +2706,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
           { key: 'sourceType', val: item.sourceType || 'web' },
           { key: 'briefLong', val: item.briefLong || '' },
           { key: 'originalDate', val: item.originalDate || '' },
+          { key: 'dateEnd', val: item.dateEnd || item.originalDate || '' },
           { key: 'topik', val: item.topik || '' },
           { key: 'editorName', val: slotConfig.editorName || '' },
           { key: 'organizer', val: item.organizer || '' },
@@ -2748,6 +2763,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig) =>
         { key: 'sourceType', val: item.sourceType || 'web' },
         { key: 'briefLong', val: item.briefLong || '' },
         { key: 'originalDate', val: item.originalDate || '' },
+        { key: 'dateEnd', val: item.dateEnd || item.originalDate || '' },
         // Topik: kosong untuk slot BAR (tak terpakai di sana), diabaikan macam Penerangan berikut.
         { key: 'topik', val: item.topik || '' },
         // Nama editor SEBENAR yang log masuk semasa Terbit (2026-07-29) — dihantar dari klien
@@ -2966,6 +2982,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
 
       const aiProv = avs.find(a => a.attributeId === 'aiProvider');
       const origDateAv = avs.find(a => a.attributeId === 'originalDate');
+      const dateEndAv = avs.find(a => a.attributeId === 'dateEnd');
       const topikAv = avs.find(a => a.attributeId === 'topik');
       // briefLong: dihurai daripada blok manual, disahkan terhadap had tier, dan disimpan ke
       // editorial_attribute_values — DIBACA SEMULA di sini sejak commit "pulangkan briefLong
@@ -3000,6 +3017,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         brief: approvedRevision.summary,
         publishedAt: approvedRevision.createdAt,
         originalDate: origDateAv ? origDateAv.valueText : '',
+        dateEnd: dateEndAv ? dateEndAv.valueText : '',
         briefLong: briefLongAv ? briefLongAv.valueText : '',
         desk: (renderToken.desk || 'UMUM').toUpperCase(),
         topik: topikAv ? topikAv.valueText : '',

@@ -158,16 +158,23 @@ const MALAY_MONTHS = [
   'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember',
 ];
 
-// Focus View sahaja: tarikh sumber gaya Melayu panjang ("29 Julai 26") bukan "29.07.26" biasa.
-// Hanya menukar bila raw padan TEPAT corak DD.MM.YY (konvensyen sebenar medan "Tarikh sumber" di
-// seluruh apl ni) — kalau tidak padan (tahun sahaja, teks bebas lama dll.), jatuh balik ke
-// getDisplayDate() tidak disentuh, ikut falsafah sama: jangan hilangkan/rosakkan tarikh separa.
+// Focus View sahaja: tarikh sumber gaya Melayu panjang ("29 Julai 26") bukan format mentah biasa.
+// Terima DUA corak: ISO yyyy-mm-dd (2026-08-07, medan "Tarikh sumber" di SlotManagerModal.tsx kini
+// <input type="date">, jadi ni format SEBENAR nilai baharu) dan DD.MM.YY legasi (kandungan lama
+// ditaip sebelum pemetik kalendar wujud). Tak padan mana-mana (teks bebas lama lain) — jatuh balik
+// ke getDisplayDate() tidak disentuh, ikut falsafah sama: jangan hilangkan/rosakkan tarikh separa.
 const formatTarikhSumberPanjang = (raw?: string): string => {
   const trimmed = getDisplayDate(raw);
   if (!trimmed) return '';
-  const m = trimmed.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
-  if (!m) return trimmed;
-  const [, dd, mm, yy] = m;
+  const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const [, yyyy, mm, dd] = iso;
+    const monthName = MALAY_MONTHS[parseInt(mm, 10) - 1];
+    return monthName ? `${parseInt(dd, 10)} ${monthName} ${yyyy}` : trimmed;
+  }
+  const legasi = trimmed.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+  if (!legasi) return trimmed;
+  const [, dd, mm, yy] = legasi;
   const monthName = MALAY_MONTHS[parseInt(mm, 10) - 1];
   if (!monthName) return trimmed;
   return `${parseInt(dd, 10)} ${monthName} ${yy}`;

@@ -39,7 +39,9 @@ export function parseManualBlockFields(block) {
   const lines = (block || '').split('\n');
   const fields = {
     uuid: '', title: '', brief: '', briefLong: '', desk: '', topik: '',
-    date: '', source: '', url: '', sourceType: '',
+    // dateEnd (2026-08-07, permintaan Izzat) — Slot BAR sahaja (acara boleh julat hari). Alias
+    // legasi "Tarikh sumber:"/"Tarikh:" (satu tarikh, blok lama) tetapkan date DAN dateEnd sama.
+    date: '', dateEnd: '', source: '', url: '', sourceType: '',
     // Sumber berbilang (2026-08-05, permintaan Izzat) — SETIAP baris "Sumber:" tolak entri
     // baharu ke `sources` (dipasangkan dengan "URL:" berikutnya, jika ada, ikut turutan
     // ditaip — editor sentiasa taip Sumber lalu URL bersebelahan dalam templat). `source`/`url`
@@ -95,10 +97,16 @@ export function parseManualBlockFields(block) {
       fields.topik = stripLimitHint(trimmed.replace(/^Topik:\s*/i, ''));
     } else if (trimmed.startsWith('Jenis sumber:')) {
       fields.sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
+    } else if (trimmed.startsWith('Tarikh mula:')) {
+      fields.date = trimmed.replace(/^Tarikh mula:\s*/i, '').trim();
+    } else if (trimmed.startsWith('Tarikh tamat:')) {
+      fields.dateEnd = trimmed.replace(/^Tarikh tamat:\s*/i, '').trim();
     } else if (trimmed.startsWith('Tarikh sumber:')) {
       fields.date = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
+      fields.dateEnd = fields.date;
     } else if (trimmed.startsWith('Tarikh:')) {
       fields.date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
+      fields.dateEnd = fields.date;
     } else if (trimmed.startsWith('Penulis:')) {
       fields.penulis = trimmed.replace(/^Penulis:\s*/i, '').trim();
     } else if (trimmed.startsWith('Nota:')) {
@@ -219,10 +227,12 @@ export function serializeManualBarItem(item) {
     `Lokasi: ${item.location || ''}`,
     `Akses: ${item.access || ''}`,
     `Penerangan: ${item.penerangan || ''}`,
-    // Label kanonikal "Tarikh sumber:" (2026-08-07, Pelan 02 #14) — selaras dengan
-    // serializeManualBentoItem dan serializeDraftBlock. Alias lama "Tarikh:" masih DIHURAI oleh
-    // parseManualBlockFields, jadi blok sedia ada dalam DB kekal terbaca.
-    `Tarikh sumber: ${item.date || ''}`,
+    // Tarikh mula/tamat (2026-08-07, permintaan Izzat — kalendar popup, boleh julat hari acara).
+    // Gantikan "Tarikh sumber:" tunggal sebelum ini. Alias lama "Tarikh sumber:"/"Tarikh:" masih
+    // DIHURAI oleh parseManualBlockFields (tetapkan kedua-dua medan sama), jadi blok Bar sedia ada
+    // dalam DB kekal terbaca — cuma tulisan BAHARU guna label julat ni.
+    `Tarikh mula: ${item.date || ''}`,
+    `Tarikh tamat: ${item.dateEnd || item.date || ''}`,
     `Sumber: ${item.source || ''}`,
     `URL: ${item.url || ''}`,
     `Imej: ${item.image || ''}`,

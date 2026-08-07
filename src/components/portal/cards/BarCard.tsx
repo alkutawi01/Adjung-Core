@@ -1,5 +1,5 @@
 import React from 'react';
-import { extractOrganizerAcronym } from '../../../../core/editorial/EventDateValidator.js';
+import { extractOrganizerAcronym, formatEventDateRange } from '../../../../core/editorial/EventDateValidator.js';
 
 interface BarCardProps {
   item: any;
@@ -25,7 +25,8 @@ export function extractAccessBadge(item: any): { label: string; isTerbuka: boole
 export const BarCard: React.FC<BarCardProps> = ({ item, onClick, isEditMode, onEditClick }) => {
   if (!item) return null;
 
-  const eventDate = (item.originalDate || item.date || item.publishedAt || '').toString().trim().toUpperCase();
+  const eventDate = formatEventDateRange(item.originalDate || item.date, item.dateEnd)
+    || (item.publishedAt || '').toString().trim().toUpperCase();
   // Peraturan Khas Slot Bar: kiri atas ialah Tarikh acara; jika tiada, jatuh balik ke nama desk
   // (bukan kosong) supaya baris atas tak pernah nampak "hilang" sebuah medan.
   const dateOrDeskLabel = eventDate || (item.desk || 'ADJUNG EDITORIAL').toString().toUpperCase();
