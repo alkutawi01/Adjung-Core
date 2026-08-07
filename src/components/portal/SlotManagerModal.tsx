@@ -55,7 +55,14 @@ const EDITOR_PLACEHOLDER = '—';
 
 // Assembles a copy-pasteable prompt for an external AI chatbox — same source fields used
 // elsewhere in this modal for the "Arahan AI" tab.
-function buildAiPrompt(fc: any, ceiling: { maxTitle: number; maxBrief: number; maxBriefLong: number }, hadTopik: number) {
+// titleTarget/briefTarget (2026-08-07, pepijat kritikal Izzat) — editor laraskan slider SATU
+// pasangan nombor yang SUDAH sah ikut formula bajet kongsi (titleTarget/maxTitle +
+// briefTarget/maxBrief <= 1, dikira di caller — lihat pengendali slider di JSX), bukan hantar
+// dua had solo (maxTitle, maxBrief) berasingan macam sebelum ni ke AI luaran seolah-olah kedua
+// boleh dicapai PENUH serentak — itu mustahil ikut formula sebenar, validateContentBudget tolak
+// 100% terjamin bila AI ikut arahan literal. AI cuma perlu DUA nombor mudah, bukan penjelasan
+// formula — pengiraan/keselarasan jadi tanggungjawab UI (slider), bukan tanggungjawab AI.
+function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: number, titleTarget: number, briefTarget: number) {
   const desk = fc.manualDesk || '';
   const lines = [
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
@@ -63,8 +70,8 @@ function buildAiPrompt(fc: any, ceiling: { maxTitle: number; maxBrief: number; m
     '[Arahan khas — slot ini]', fc.promptText || '-', '',
     '[Had aksara]',
     `Topik: maksimum ${hadTopik} aksara`,
-    `Tajuk: maksimum ${ceiling.maxTitle} aksara`,
-    `Huraian ringkas: maksimum ${ceiling.maxBrief} aksara`,
+    `Tajuk: maksimum ${titleTarget} aksara`,
+    `Huraian ringkas: maksimum ${briefTarget} aksara`,
     `Huraian panjang: minimum ${MIN_BRIEF_LONG_CHARS}, maksimum ${ceiling.maxBriefLong} aksara`, '',
     `[Had usia sumber]: ${fc.aiPromptRecency || '-'}`,
     `[Bahasa sumber]: ${fc.aiPromptLanguage || '-'}`,
@@ -331,6 +338,16 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const accent = bidang?.color || '#802334';
   const hadTopik = topikCeilingForSlot(editingSlotIndex);
 
+  // Slider bajet Tajuk/Huraian ringkas untuk prompt AI (2026-08-07, pepijat kritikal Izzat) —
+  // editor laraskan SATU nilai (Tajuk), Huraian ringkas dikira automatik ikut formula bajet kongsi
+  // sedia ada (sama formula BudgetMeter di atas: brief = (1 - title/maxTitle) * maxBrief), supaya
+  // pasangan yang dihantar ke AI SENTIASA sah, tak pernah minta dua had solo yang mustahil dicapai
+  // serentak. Sengaja state SESI modal ini sahaja (tak disimpan ke slots_config) — nilai selamat
+  // lalai (separuh-separuh) setiap kali modal dibuka semula.
+  const [aiTitleTarget, setAiTitleTarget] = useState<number | null>(null);
+  const titleTarget = Math.min(ceiling.maxTitle, aiTitleTarget ?? Math.floor(ceiling.maxTitle / 2));
+  const briefTarget = ceiling.maxBrief > 0 ? Math.max(0, Math.round((1 - titleTarget / ceiling.maxTitle) * ceiling.maxBrief)) : 0;
+
   // Giliran kandungan (items) hidup sebagai STATE TEMPATAN modal ni, BUKAN diterbitkan semula
   // daripada formConfig.manualSummary (rentetan teks) pada setiap keystroke. Menghurai SELURUH
   // blok teks (semua kandungan dalam giliran) + serialize semula pada SETIAP aksara ditaip di
@@ -496,7 +513,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
 
   const copyPrompt = async () => {
     try {
-      await navigator.clipboard.writeText(buildAiPrompt(formConfig, ceiling, hadTopik));
+      await navigator.clipboard.writeText(buildAiPrompt(formConfig, ceiling, hadTopik, titleTarget, briefTarget));
       setAiNote('Disalin');
     } catch (e) { setAiNote('Akses papan klip ditolak'); }
     setTimeout(() => setAiNote(''), 2400);
@@ -1029,11 +1046,28 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
               <>
                 <div>
                   <span className={labelCls}>Had aksara</span>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                  <div className="grid grid-cols-2 gap-4 mt-2">
                     <ReadOnlyField label="a. Topik" value={String(hadTopik)} />
-                    <ReadOnlyField label="b. Tajuk" value={String(ceiling.maxTitle)} />
-                    <ReadOnlyField label="c. Huraian ringkas" value={ceiling.maxBrief > 0 ? String(ceiling.maxBrief) : 'Tiada'} />
                     <ReadOnlyField label="d. Huraian panjang" value={ceiling.maxBrief > 0 ? String(ceiling.maxBriefLong) : 'Tiada'} />
+                  </div>
+                  {/* Slider bajet Tajuk/Huraian ringkas (2026-08-07, pepijat kritikal Izzat) —
+                      GANTIKAN dua had solo (b/c) yang sebelum ni dipapar bersebelahan seolah-olah
+                      boleh dicapai PENUH serentak (mustahil, kongsi satu bajet — lihat nota
+                      buildAiPrompt di atas fail ni). Laraskan Tajuk, Huraian ringkas bergerak
+                      automatik ikut nisbah — pasangan yang dihantar ke AI SENTIASA sah. */}
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between gap-3 mb-1">
+                      <span className={labelCls}>b+c. Tajuk / Huraian ringkas <span className="font-sans normal-case tracking-normal text-stone-400">— satu bajet kongsi</span></span>
+                    </div>
+                    <input
+                      type="range" min={0} max={ceiling.maxTitle} value={titleTarget}
+                      onChange={(e) => setAiTitleTarget(Number(e.target.value))}
+                      className="w-full cursor-pointer accent-[#802334]"
+                    />
+                    <div className="flex items-center justify-between font-mono text-[10px] tabular-nums text-stone-500">
+                      <span>Tajuk maksimum <strong className="text-stone-800">{titleTarget}</strong></span>
+                      <span>Huraian ringkas maksimum <strong className="text-stone-800">{briefTarget}</strong></span>
+                    </div>
                   </div>
                 </div>
 
