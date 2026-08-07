@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AlertTriangle, X, Search, Pin, Lock } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
+import { StatusBadge, StatusTone } from '../common/StatusBadge';
 import { labelMod, labelStatus } from '../../config/istilah';
 import { formatKlDisplay, klLocalToIso, isoToKlLocalInput } from '../../../core/editorial/Scheduling.js';
 
@@ -44,6 +45,15 @@ interface BriefRecord {
 // English/borrowed word — same rule and same source as PerlembagaanConsole.tsx's TierLabel.
 const TierLabel: React.FC<{ tier: string }> = ({ tier }) =>
   TIER_LABEL_IS_ENGLISH[tier] ? <em className="italic">{TIER_LABELS[tier]}</em> : <>{TIER_LABELS[tier]}</>;
+
+// Tona StatusBadge ikut status kandungan — Aktif/Dijadualkan = success, Menunggu = warning,
+// Arkib = neutral (status akhir normal, bukan kegagalan).
+const STATUS_TONE: Record<string, StatusTone> = {
+  Live: 'success',
+  Scheduled: 'success',
+  Pending: 'warning',
+  Archive: 'neutral',
+};
 
 interface IndeksConsoleProps {
   currentUserRole?: 'KETUA_EDITOR' | 'EDITOR';
@@ -551,9 +561,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         <div className="flex flex-wrap justify-end items-center gap-4">
           {/* Quick Counter Badges */}
           <div className="flex items-center gap-2 font-sans text-[10px]">
-            <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded font-bold">Menunggu: <span className="font-mono">{statusCounts.Pending}</span></span>
-            <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-bold">Aktif: <span className="font-mono">{statusCounts.Live}</span></span>
-            <span className="bg-stone-200 text-stone-700 px-2 py-1 rounded font-bold">Arkib: <span className="font-mono">{statusCounts.Archive}</span></span>
+            <StatusBadge tone="warning" label={`MENUNGGU: ${statusCounts.Pending}`} />
+            <StatusBadge tone="success" label={`AKTIF: ${statusCounts.Live}`} />
+            <StatusBadge tone="neutral" label={`ARKIB: ${statusCounts.Archive}`} />
           </div>
         </div>
 
@@ -722,7 +732,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <div className="flex items-end gap-2">
             <button
               onClick={handleApplyFilters}
-              className="flex-1 bg-[#802334] hover:bg-[#601824] text-white font-semibold px-3 py-1.5 rounded transition-colors text-[11px] relative"
+              className="flex-1 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white font-semibold px-3 py-1.5 rounded transition-colors text-[11px] relative"
             >
               Tapis
               {filtersDirty && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-white" title="Ada penapis belum ditapis" />}
@@ -743,7 +753,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <button
             onClick={() => setEditorViewMode('mine')}
             className={`px-4 py-1.5 rounded font-bold transition-all inline-flex items-center gap-1.5 ${
-              editorViewMode === 'mine' ? 'bg-[#802334] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              editorViewMode === 'mine' ? 'bg-[var(--color-Adjung-maroon)] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             <Pin className="w-3.5 h-3.5" /> Kandungan Saya (Boleh Sunting & Siar)
@@ -751,7 +761,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <button
             onClick={() => setEditorViewMode('all')}
             className={`px-4 py-1.5 rounded font-bold transition-all inline-flex items-center gap-1.5 ${
-              editorViewMode === 'all' ? 'bg-[#802334] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              editorViewMode === 'all' ? 'bg-[var(--color-Adjung-maroon)] text-white shadow-sm' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             <Lock className="w-3.5 h-3.5" /> Semua Kandungan (Baca Sahaja)
@@ -863,21 +873,14 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       </td>
                     </Tooltip>
                     <td className="p-2.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                        rec.status === 'Live' ? 'bg-emerald-100 text-emerald-800' :
-                        rec.status === 'Scheduled' ? 'bg-sky-100 text-sky-800' :
-                        rec.status === 'Pending' ? 'bg-amber-100 text-amber-800' :
-                        'bg-stone-200 text-stone-700'
-                      }`}>
-                        {labelStatus(rec.status)}
-                      </span>
+                      <StatusBadge tone={STATUS_TONE[rec.status] || 'neutral'} label={labelStatus(rec.status).toUpperCase()} />
                     </td>
                     <td
                       className="p-2.5 font-sans text-xs font-semibold"
                       // Warna terus daripada activeBidangList (dimuat hidup daripada
                       // CategoryRegistry) — bukan nilai tetap disalin ke sini, jadi tukar warna
                       // di Taksonomi automatik terpapar di sini juga tanpa kerja tambahan.
-                      style={{ color: activeBidangList.find(b => b.name.toLowerCase() === rec.desk.toLowerCase())?.color || '#44403c' }}
+                      style={{ color: activeBidangList.find(b => b.name.toLowerCase() === rec.desk.toLowerCase())?.color || 'var(--stone-700)' }}
                     >
                       {formatTitleCase(rec.desk)}
                     </td>
@@ -898,7 +901,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                             }
                             e.target.value = '';
                           }}
-                          className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 rounded px-1.5 py-1 font-sans text-[10px] font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#802334] max-w-full"
+                          className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 rounded px-1.5 py-1 font-sans text-[10px] font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--color-Adjung-maroon)] max-w-full"
                         >
                           <option value="" disabled hidden>Tindakan ▾</option>
                           {rec.status !== 'Live' && <option value="Live">Siar</option>}
@@ -1009,7 +1012,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <div className="col-span-2 md:col-span-3 min-w-0">
                 <span className="text-stone-500 text-[9px] block">URL</span>
                 {activeItemModal.url && activeItemModal.url !== '#' ? (
-                  <a href={activeItemModal.url} target="_blank" rel="noopener noreferrer" className="text-[#802334] underline break-all font-semibold">{activeItemModal.url}</a>
+                  <a href={activeItemModal.url} target="_blank" rel="noopener noreferrer" className="text-[var(--color-Adjung-maroon)] underline break-all font-semibold">{activeItemModal.url}</a>
                 ) : (
                   <strong className="text-stone-900">-</strong>
                 )}
@@ -1061,7 +1064,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                   <button
                     onClick={handleSimpanJadual}
                     disabled={savingJadual}
-                    className="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                    className="bg-sky-700 hover:bg-sky-800 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {savingJadual ? 'Menyimpan...' : 'Simpan Jadual'}
                   </button>
@@ -1116,7 +1119,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 <button
                   onClick={handleReactivate}
                   disabled={reactivating || !reactivateDesk || !reactivateTopik.trim() || reactivateSlotIndex === ''}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {reactivating ? 'Menyiarkan...' : 'Siarkan Semula'}
                 </button>
@@ -1131,20 +1134,20 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                   {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
                     <button
                       onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}
-                      className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                     >
                       Siar Brief
                     </button>
                   )}
                   <button
                     onClick={() => handleRejectToDraft(activeItemModal.id)}
-                    className="bg-[#c00000] hover:bg-red-800 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                    className="bg-[var(--color-error)] hover:bg-red-800 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                   >
                     Tolak (kembali jadi draf)
                   </button>
                   <button
                     onClick={() => setActiveItemModal(null)}
-                    className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                    className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                   >
                     Tutup
                   </button>
@@ -1152,7 +1155,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               ) : (
                 <button
                   onClick={() => setActiveItemModal(null)}
-                  className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded-md font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                  className="bg-stone-800 hover:bg-stone-900 text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors cursor-pointer"
                 >
                   Tutup
                 </button>

@@ -79,8 +79,8 @@ export const SistemRekaBentukConsole: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
-        <h2 className="font-serif text-base uppercase tracking-wider text-[#802334] font-bold mb-1">
+      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200">
+        <h2 className="font-serif text-base uppercase tracking-wider text-Adjung-maroon font-bold mb-1">
           Sistem Reka Bentuk Adjung Brief
         </h2>
         <p className="font-sans text-xs text-stone-600 max-w-2xl">
@@ -94,14 +94,14 @@ export const SistemRekaBentukConsole: React.FC = () => {
 
       {/* 01 — BRAND IDENTITY */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           01 — Identiti Jenama
         </span>
-        <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-xs">
+        <div className="bg-white p-6 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
           <div className="flex flex-col items-center text-center py-4 mb-5 border-b border-stone-150">
             <div className="flex items-center gap-3 mb-1">
               <img src="/adjung-symbol.svg" alt="Simbol Adjung" className="h-11 w-auto" />
-              <h1 className="font-serif font-normal tracking-tight text-5xl text-[#802334]">{BRAND.logoText}</h1>
+              <h1 className="font-serif font-normal tracking-tight text-5xl text-Adjung-maroon">{BRAND.logoText}</h1>
             </div>
             <div className="flex items-center justify-center gap-2.5 mt-2 mb-1">
               <div className="h-[1px] bg-[#b4b4b4] w-10"></div>
@@ -135,27 +135,27 @@ export const SistemRekaBentukConsole: React.FC = () => {
             </span>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="flex flex-col">
-                <div className="h-24 rounded-md border border-stone-200 bg-white flex items-center justify-center gap-2 p-3">
+                <div className="h-24 rounded-lg border border-stone-200 bg-white flex items-center justify-center gap-2 p-3">
                   <img src="/adjung-symbol.svg" alt="" className="h-6 w-auto" />
-                  <span className="font-serif text-xl text-[#802334]">{BRAND.logoText}</span>
+                  <span className="font-serif text-xl text-Adjung-maroon">{BRAND.logoText}</span>
                 </div>
                 <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Utama (Horizontal)</span>
               </div>
               <div className="flex flex-col">
-                <div className="h-24 rounded-md border border-stone-200 bg-white flex flex-col items-center justify-center gap-1 p-3">
+                <div className="h-24 rounded-lg border border-stone-200 bg-white flex flex-col items-center justify-center gap-1 p-3">
                   <img src="/adjung-symbol.svg" alt="" className="h-6 w-auto" />
-                  <span className="font-serif text-base text-[#802334]">{BRAND.logoText}</span>
+                  <span className="font-serif text-base text-Adjung-maroon">{BRAND.logoText}</span>
                 </div>
                 <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Menegak</span>
               </div>
               <div className="flex flex-col">
-                <div className="h-24 rounded-md border border-stone-200 bg-white flex items-center justify-center p-3">
+                <div className="h-24 rounded-lg border border-stone-200 bg-white flex items-center justify-center p-3">
                   <img src="/adjung-symbol.svg" alt="" className="h-10 w-auto" />
                 </div>
                 <span className="font-mono text-[9px] text-stone-500 uppercase tracking-wide mt-1.5 text-center">Ikon (Simbol)</span>
               </div>
               <div className="flex flex-col">
-                <div className="h-24 rounded-md border border-stone-200 bg-white flex items-center justify-center gap-2 p-3">
+                <div className="h-24 rounded-lg border border-stone-200 bg-white flex items-center justify-center gap-2 p-3">
                   <div className="h-6 w-3 bg-stone-900" />
                   <span className="font-serif text-xl text-stone-900">{BRAND.logoText}</span>
                 </div>
@@ -172,15 +172,15 @@ export const SistemRekaBentukConsole: React.FC = () => {
 
       {/* 02 — COLORS */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           02 — Warna
         </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs">
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
             {COLOR_TOKENS.map(t => (
               <Tooltip key={t.varName} text={t.usage}>
                 <div className="flex flex-col gap-1.5 cursor-help">
-                  <div className="h-14 rounded-md border border-stone-200" style={{ background: `var(${t.varName})` }} />
+                  <div className="h-14 rounded-lg border border-stone-200" style={{ background: `var(${t.varName})` }} />
                   <span className="font-mono text-[9px] text-stone-700 font-bold">{t.varName}</span>
                   <span className="font-mono text-[9px] text-stone-400 uppercase">{colorValues[t.varName] || '...'}</span>
                 </div>
@@ -210,10 +210,10 @@ export const SistemRekaBentukConsole: React.FC = () => {
 
       {/* 03 — TYPOGRAPHY */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           03 — Tipografi
         </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
           {FONT_TOKENS.map(f => (
             <div key={f.varName} className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-2 md:gap-4 items-start pb-4 border-b border-stone-100 last:border-0 last:pb-0">
               <div>
@@ -233,10 +233,10 @@ export const SistemRekaBentukConsole: React.FC = () => {
 
       {/* 04 — COMPONENTS */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           04 — Komponen Kongsi
         </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-6">
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-6">
           <div>
             <div className="font-serif text-sm font-bold text-stone-900 mb-1">Tooltip</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
@@ -244,7 +244,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
               (32 tempat, digantikan 2026-07-25). Halaman ni sendiri guna Tooltip — hover atas swatch warna di atas.
             </p>
             <Tooltip text="Contoh tooltip Adjung — opacity+blur, maroon, tiada border">
-              <button className="px-3 py-1.5 bg-[#802334] hover:bg-Adjung-maroon-dark text-white rounded text-xs font-semibold cursor-pointer shadow-sm">
+              <button className="px-3 py-1.5 bg-Adjung-maroon hover:bg-Adjung-maroon-dark text-white rounded text-xs font-semibold cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,.04)]">
                 Hover Saya
               </button>
             </Tooltip>
@@ -257,13 +257,13 @@ export const SistemRekaBentukConsole: React.FC = () => {
               kepada latar cream + jalur warna kiri, selari identiti Adjung.
             </p>
             <div className="flex flex-col gap-2 max-w-sm">
-              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-sm border border-l-4 bg-[#FDFDFD] text-[#292524] text-xs leading-relaxed border-stone-200 border-l-[#3d6b4c]">
+              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,.08)] border border-l-4 bg-Adjung-cream text-stone-800 text-xs leading-relaxed border-stone-200 border-l-[var(--color-success)]">
                 <span>Peraturan berjaya ditambah!</span>
               </div>
-              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-sm border border-l-4 bg-[#FDFDFD] text-[#292524] text-xs leading-relaxed border-stone-200 border-l-[#a8241f]">
+              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,.08)] border border-l-4 bg-Adjung-cream text-stone-800 text-xs leading-relaxed border-stone-200 border-l-[var(--color-error)]">
                 <span>Sila masukkan Nama Peraturan.</span>
               </div>
-              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-sm border border-l-4 bg-[#FDFDFD] text-[#292524] text-xs leading-relaxed border-stone-200 border-l-[#802334]">
+              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,.08)] border border-l-4 bg-Adjung-cream text-stone-800 text-xs leading-relaxed border-stone-200 border-l-Adjung-maroon">
                 <span>Peraturan telah dibuang.</span>
               </div>
             </div>

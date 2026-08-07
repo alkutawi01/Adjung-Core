@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, RotateCcw, Save } from 'lucide-react';
 import { muatPindaanTier } from '../../config/tierOverrides';
+import { StatusBadge } from '../common/StatusBadge';
 
 // Tier Kad (2026-07-30, permintaan pemilik projek) — tetapan yang dikongsi SEMUA slot yang sebentuk.
 // Buat masa ini: had aksara tajuk dan huraian ringkas.
@@ -164,7 +165,7 @@ export const TierKadConsole: React.FC = () => {
                           min={1}
                           value={d.tajuk}
                           onChange={e => setDraf(p => ({ ...p, [t.tierKey]: { ...d, tajuk: e.target.value } }))}
-                          className="w-20 px-2 py-1 border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-[#802334]"
+                          className="w-20 px-2 py-1 border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon"
                         />
                       </td>
                       <td className="p-2.5 text-right">
@@ -175,12 +176,12 @@ export const TierKadConsole: React.FC = () => {
                           disabled={barSahaja}
                           title={barSahaja ? 'Kad Bar tiada medan huraian langsung.' : undefined}
                           onChange={e => setDraf(p => ({ ...p, [t.tierKey]: { ...d, huraian: e.target.value } }))}
-                          className="w-20 px-2 py-1 border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-[#802334] disabled:bg-stone-100 disabled:text-stone-400"
+                          className="w-20 px-2 py-1 border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon disabled:bg-stone-100 disabled:text-stone-400"
                         />
                       </td>
                       <td className="p-2.5 font-mono text-[10px] text-stone-500">
                         {t.lalaiMaxTitleAlone} / {t.lalaiMaxBriefAlone}
-                        {t.dipinda && <span className="ml-1.5 text-amber-700 font-sans font-semibold">dipinda</span>}
+                        {t.dipinda && <StatusBadge tone="warning" label="DIPINDA" className="ml-1.5" />}
                       </td>
                       <td className="p-2.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
@@ -190,7 +191,7 @@ export const TierKadConsole: React.FC = () => {
                               onClick={() => kembaliLalai(t)}
                               disabled={menyimpan === t.tierKey}
                               title="Kembali ke nilai lalai"
-                              className="text-stone-500 hover:text-[#802334] disabled:opacity-40"
+                              className="text-stone-500 hover:text-Adjung-maroon disabled:opacity-40"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                             </button>
@@ -199,7 +200,7 @@ export const TierKadConsole: React.FC = () => {
                             type="button"
                             onClick={() => simpan(t)}
                             disabled={!adaPerubahan || menyimpan === t.tierKey}
-                            className="bg-[#802334] text-white px-2.5 py-1 rounded font-semibold text-[10px] disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                            className="bg-Adjung-maroon text-white px-2.5 py-1 rounded font-semibold text-[10px] disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
                           >
                             <Save className="w-3 h-3" /> {menyimpan === t.tierKey ? 'Menyimpan...' : 'Simpan'}
                           </button>

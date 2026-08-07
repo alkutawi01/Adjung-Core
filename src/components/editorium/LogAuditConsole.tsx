@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NotebookText, Hourglass, RefreshCw } from 'lucide-react';
+import { StatusBadge } from '../common/StatusBadge';
 
 // Log Sistem (2026-08-02, Fasa 4) — dahulu SIFAR: tiada jadual audit_log, tiada penulisan,
 // konsol ni cuma placeholder jujur. Kini baca GET /api/system/audit-log (jadual sebenar,
@@ -15,6 +16,34 @@ interface EntriLog {
   detail: string | null;
   createdAt: string;
 }
+
+// Nada visual (StatusBadge) ikut jenis tindakan — cipta/terbit/aktifkan = success,
+// tolak/arkib/ubah = warning, padam/ralat = error. Kod yang tiada dalam peta ni jatuh
+// balik ke 'neutral' (lihat tonTindakan di bawah).
+const TINDAKAN_TONE: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
+  'tolak-ke-draf': 'warning',
+  'padam-ticker': 'error',
+  'cipta-akaun': 'success',
+  'ubah-peranan': 'warning',
+  'daftar-bidang': 'success',
+  'namakan-semula-bidang': 'warning',
+  'gabung-bidang': 'warning',
+  'aktifkan-bidang': 'success',
+  'arkib-bidang': 'warning',
+  'cipta-nota': 'success',
+  'padam-nota': 'error',
+  'ralat-ambilan-rss': 'error',
+  'ambilan-rss-selesai': 'success',
+  'rss-huraian-dipendekkan': 'warning',
+  'ralat-pelayan': 'error',
+};
+
+export const tonTindakan = (action: string): 'success' | 'warning' | 'error' | 'neutral' => {
+  if (TINDAKAN_TONE[action]) return TINDAKAN_TONE[action];
+  if (action.startsWith('status-akaun:') && action.includes('nyahaktif')) return 'error';
+  if (action.startsWith('status:') || action.startsWith('status-akaun:') || action.startsWith('status-nota:')) return 'warning';
+  return 'neutral';
+};
 
 // Padanan kod tindakan dalaman -> label Bahasa Melayu dipaparkan. Kod yang tiada dalam
 // senarai ni dipaparkan mentah (fallback selamat untuk tindakan baharu yang belum dipadan).
@@ -61,9 +90,9 @@ export const LogAuditConsole: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
+      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200 flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h2 className="font-serif text-base uppercase tracking-wider text-[#802334] font-bold mb-1">
+          <h2 className="font-serif text-base uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-1">
             Log Sistem
           </h2>
           <p className="font-sans text-xs text-stone-600">
@@ -79,13 +108,17 @@ export const LogAuditConsole: React.FC = () => {
         </button>
       </div>
 
-      {ralat && <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded">{ralat}</div>}
+      {ralat && (
+        <div className="bg-red-50 border border-[var(--color-error)] text-[var(--color-error)] text-xs px-3 py-2 rounded">
+          {ralat}
+        </div>
+      )}
 
-      <div className="bg-white rounded-lg shadow-sm border border-stone-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200 overflow-hidden">
         <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse font-sans text-xs">
+        <table className="w-full text-left border-collapse font-sans text-xs min-w-[720px]">
           <thead>
-            <tr className="bg-stone-100 border-b border-stone-200 font-sans text-xs uppercase text-stone-600 font-semibold">
+            <tr className="border-b border-stone-200 font-mono text-[10px] uppercase tracking-wide text-stone-400" style={{ background: '#F7F5F2' }}>
               <th className="p-3">Masa</th>
               <th className="p-3">Pelaku</th>
               <th className="p-3">Tindakan</th>
@@ -93,7 +126,7 @@ export const LogAuditConsole: React.FC = () => {
               <th className="p-3">Butiran</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100 font-sans">
+          <tbody className="font-sans">
             {memuat && (
               <tr><td colSpan={5} className="p-12 text-center text-stone-400"><Hourglass className="w-5 h-5 mx-auto mb-2 animate-pulse" />Memuatkan...</td></tr>
             )}
@@ -107,12 +140,14 @@ export const LogAuditConsole: React.FC = () => {
               </tr>
             )}
             {!memuat && entri.map(e => (
-              <tr key={e.id} className="hover:bg-stone-50 transition-colors">
+              <tr key={e.id} className="hover:bg-stone-50 transition-colors" style={{ borderTop: '1px solid #F0EDE9' }}>
                 <td className="p-3 text-stone-500 font-mono text-xs whitespace-nowrap">
                   {new Date(e.createdAt).toLocaleString('ms-MY')}
                 </td>
-                <td className="p-3 text-stone-800 font-semibold">{e.actorName || 'Tidak diketahui'}</td>
-                <td className="p-3 text-stone-900">{labelTindakan(e.action)}</td>
+                <td className="p-3 text-stone-800 font-serif font-semibold">{e.actorName || 'Tidak diketahui'}</td>
+                <td className="p-3">
+                  <StatusBadge tone={tonTindakan(e.action)} label={labelTindakan(e.action)} />
+                </td>
                 <td className="p-3 text-stone-500 font-mono text-xs">
                   {e.targetType || ''}{e.targetId ? ` · ${e.targetId}` : ''}
                 </td>

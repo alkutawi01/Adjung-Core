@@ -156,8 +156,8 @@ export const PerlembagaanConsole: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
-        <h2 className="font-serif text-base uppercase tracking-wider text-[#802334] font-bold mb-1">
+      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200">
+        <h2 className="font-serif text-base uppercase tracking-wider text-Adjung-maroon font-bold mb-1">
           Perlembagaan Adjung Brief
         </h2>
         <p className="font-sans text-xs text-stone-600 max-w-2xl">
@@ -170,12 +170,12 @@ export const PerlembagaanConsole: React.FC = () => {
 
       {/* UNIVERSAL RULES */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           01 — Peraturan Sejagat (Semua Slot, Termasuk Ticker)
         </span>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {UNIVERSAL_RULES.map((rule, i) => (
-            <div key={i} className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
+            <div key={i} className="bg-white p-4 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
               <div className="flex items-start gap-2">
                 <span className="font-mono text-[10px] text-stone-400 font-bold pt-0.5">{String(i + 1).padStart(2, '0')}</span>
                 <div>
@@ -190,7 +190,7 @@ export const PerlembagaanConsole: React.FC = () => {
 
       {/* TIER CHART — live from GeometryConfig.js */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           02 — Carta Pembahagian Slot (Masa Nyata)
         </span>
 
@@ -198,7 +198,7 @@ export const PerlembagaanConsole: React.FC = () => {
             at 1280px width), to scale, side by side — not derived from grid units (that
             approach was tried first and produced a wrong, near-square MENEGAK box; see the
             TIER_SHAPE_PX comment above for what happened and why). */}
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs mb-3">
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] mb-3">
           <div className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold mb-3">
             Bentuk sebenar (diukur terus daripada kad sebenar, skala 1:{Math.round(1 / SHAPE_SCALE)})
           </div>
@@ -210,7 +210,7 @@ export const PerlembagaanConsole: React.FC = () => {
               const unitBox = (key: React.Key) => (
                 <Tooltip key={key} text={shape.measured ? 'Diukur terus dari kad sebenar' : 'Dianggar — tiada kandungan sebenar untuk diukur ketika ini'}>
                   <div
-                    className={`border-2 bg-[#f3e9d2] rounded-sm ${shape.measured ? 'border-[#802334]' : 'border-[#802334]/40 border-dashed'}`}
+                    className={`border-2 bg-[#f3e9d2] rounded ${shape.measured ? 'border-Adjung-maroon' : 'border-Adjung-maroon/40 border-dashed'}`}
                     style={{ width: boxW, height: boxH }}
                   />
                 </Tooltip>
@@ -236,7 +236,7 @@ export const PerlembagaanConsole: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
           {TIER_ORDER.map(tier => {
             const ratio = ratiosForTier(tier);
             const slots = tier === 'TICKER' ? null : (TIER_SLOTS as any)[tier];
@@ -253,7 +253,7 @@ export const PerlembagaanConsole: React.FC = () => {
                 <div>
                   <div className="h-6 bg-stone-100 rounded overflow-hidden">
                     <div
-                      className="h-full rounded bg-gradient-to-r from-[#5c1926] to-[#802334] flex items-center px-2"
+                      className="h-full rounded bg-gradient-to-r from-[#5c1926] to-Adjung-maroon flex items-center px-2"
                       style={{ width: `${pct}%` }}
                     >
                       <span className="font-mono text-[9px] text-[#E9D8A6] font-bold whitespace-nowrap">
@@ -281,10 +281,10 @@ export const PerlembagaanConsole: React.FC = () => {
           ialah konsep "Kategori"/desk sedia ada, kini terkunci kepada satu nilai tetap per slot;
           Topik ialah medan bebas-had per-kandungan yang mewarisi warna Bidang induknya. */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           03 — Bidang &amp; Topik
         </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
@@ -366,10 +366,10 @@ Nota:`}</pre>
           dibetulkan dulu sebelum peraturan ini ditulis, supaya apa yang tertulis di sini sentiasa
           padan dengan apa yang benar-benar berlaku, bukan spesifikasi angan-angan. */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           04 — Peraturan Khas Slot Bar
         </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
@@ -450,10 +450,10 @@ URL:`}</pre>
       {/* ALUR KERJA DRAF/TERBIT — diekstrak & disahkan terus daripada kod semasa (SlotManagerModal.tsx,
           useSlotEditor.ts, server.js syncManualObjectsForSlot, IndeksConsole.tsx). */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           05 — Alur Kerja Draf/Terbit
         </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Modal "Tulis Kandungan" ialah ruang draf peribadi sahaja</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
@@ -501,10 +501,10 @@ URL:`}</pre>
       {/* NAMA EDITOR & KAWALAN AKSES — diekstrak & disahkan terus daripada kod semasa
           (useSlotEditor.ts, server.js, IndeksConsole.tsx, TetapanConsole.tsx). */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           06 — Nama Editor &amp; Kawalan Akses
         </span>
-        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-xs space-y-4">
+        <div className="bg-white p-5 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] space-y-4">
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Nama editor sebenar dicatat semasa Terbit</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
@@ -539,10 +539,10 @@ URL:`}</pre>
 
       {/* LIVE CHANGE LOG */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           07 — Log Perubahan Peraturan (Masa Nyata, Daripada Git)
         </span>
-        <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] overflow-hidden">
           {loadingLog ? (
             <div className="p-8 text-center font-serif text-stone-500 text-xs">Memuatkan sejarah...</div>
           ) : changelogUnavailable ? (
@@ -585,10 +585,10 @@ URL:`}</pre>
           UI/UX-affecting change lands (scripts/log-ui-change.mjs), not deferred to commit time,
           and carries a full jam:minit:saat timestamp, not just a date. */}
       <div>
-        <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
           08 — Log Perubahan UI/UX (Masa Nyata)
         </span>
-        <div className="bg-white rounded-lg border border-stone-200 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] overflow-hidden">
           {loadingUiUxLog ? (
             <div className="p-8 text-center font-serif text-stone-500 text-xs">Memuatkan log...</div>
           ) : uiUxUnavailable ? (

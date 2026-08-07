@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ShieldCheck, ShieldAlert, Check, AlignLeft } from 'lucide-react';
+import { Check, AlignLeft } from 'lucide-react';
 import { TIER_LABELS, tierForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
 import { BidangIcon } from '../common/BidangIcon';
+import { StatusBadge } from '../common/StatusBadge';
 
 // "Draf Saya" (2026-08-01, permintaan pemilik projek) — sebelum ni seorang editor terpaksa membuka
 // slot yang dia kendalikan SATU PER SATU untuk mencari draf sendiri, sebab draf tidak pernah
@@ -115,7 +116,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
 
   return (
     <div className="space-y-4 font-sans">
-      <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 text-xs">
+      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200 space-y-4 text-xs">
         <div className="flex flex-wrap justify-between items-end gap-4">
           <div>
             <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Draf Saya</h3>
@@ -151,7 +152,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         )}
 
         {ralat && (
-          <div className="border border-red-200 bg-red-50 text-red-800 rounded px-3 py-2 text-[11px]">{ralat}</div>
+          <div className="border border-[var(--color-error)] bg-red-50 text-[var(--color-error)] rounded px-3 py-2 text-[11px]">{ralat}</div>
         )}
 
         {/* Carian + penapis Bidang — hanya berguna bila senarai dah mula panjang, jadi sengaja
@@ -190,9 +191,9 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-xs min-w-[860px]">
                 <thead>
-                  <tr className="bg-stone-100 border-b border-stone-200 font-sans text-[10px] uppercase text-stone-600 font-semibold">
+                  <tr className="border-b border-stone-200 font-mono text-[10px] uppercase tracking-wide text-stone-400" style={{ background: '#F7F5F2' }}>
                     <th className="p-2.5">Slot</th>
                     <th className="p-2.5">Bentuk</th>
                     <th className="p-2.5">Bidang</th>
@@ -203,7 +204,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                     <th className="p-2.5"><span className="sr-only">Tindakan</span></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody>
                   {drafTertapis.map((d) => {
                     const bidang = bidangFor(d.bidang);
                     const tier = d.tier || (tierForSlot(d.slotIndex) as string);
@@ -213,6 +214,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                       <tr
                         key={`${d.slotIndex}-${d.uuid || d.urutan}`}
                         className="hover:bg-stone-50 cursor-pointer"
+                        style={{ borderTop: '1px solid #F0EDE9' }}
                         onClick={() => onBukaDraf(d.slotIndex, d.uuid)}
                       >
                         <td className="p-2.5 font-mono font-bold text-stone-800">{d.slotIndex + 1}</td>
@@ -245,15 +247,15 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                         <td className="p-2.5">
                           <div className="flex flex-col gap-0.5">
                             {d.topik ? (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-stone-700">
-                                <Check className="w-2.5 h-2.5 text-emerald-600 shrink-0" /> Ada topik
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold" style={{ color: 'var(--color-success)' }}>
+                                <Check className="w-2.5 h-2.5 shrink-0" /> Ada topik
                               </span>
                             ) : (
                               <span className="text-[9px] text-stone-400">Tiada topik</span>
                             )}
                             {d.huraianPanjang ? (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-800">
-                                <AlignLeft className="w-2.5 h-2.5 text-emerald-600 shrink-0" /> Ada huraian panjang
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold" style={{ color: 'var(--color-success)' }}>
+                                <AlignLeft className="w-2.5 h-2.5 shrink-0" /> Ada huraian panjang
                               </span>
                             ) : (
                               <span className="text-[9px] text-stone-400">Ringkas sahaja</span>
@@ -262,20 +264,15 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                         </td>
                         <td className="p-2.5">
                           {bajet.isValid ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800">
-                              <ShieldCheck className="w-3 h-3" /> Lulus
-                            </span>
+                            <StatusBadge tone="success" label="Lulus" />
                           ) : (
-                            <span
-                              className="inline-flex items-center gap-1 text-[10px] font-bold text-red-800 cursor-help"
-                              title={bajet.reason}
-                            >
-                              <ShieldAlert className="w-3 h-3" /> Lebih had
+                            <span title={bajet.reason} className="cursor-help">
+                              <StatusBadge tone="error" label="Lebih had" />
                             </span>
                           )}
                         </td>
                         <td className="p-2.5 text-right">
-                          <span className="font-sans text-[10px] uppercase tracking-wider text-[#802334] font-semibold">Sambung</span>
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-semibold">Sambung</span>
                         </td>
                       </tr>
                     );

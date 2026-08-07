@@ -8,13 +8,13 @@ import React from 'react';
 // fail ni sengaja tidak menyalin semula nombor tersebut, cuma merujuk ke sana.
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="font-mono text-[10px] uppercase tracking-widest text-[#b8934a] font-bold block mb-3">
+  <span className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-warning)] font-bold block mb-3">
     {children}
   </span>
 );
 
 const Card: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs">
+  <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
     <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">{title}</h3>
     <div className="font-sans text-xs text-stone-600 leading-relaxed">{children}</div>
   </div>
@@ -46,11 +46,11 @@ const CartaAlirKandungan: React.FC = () => {
     </g>
   );
   return (
-    <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-xs overflow-x-auto">
+    <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] overflow-x-auto">
       <svg viewBox="0 0 830 320" className="w-full min-w-[700px]" style={{ maxHeight: 360 }}>
         <defs>
           <marker id="panahMaroon" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="#802334" />
+            <path d="M0,0 L6,3 L0,6 Z" fill="var(--color-Adjung-maroon)" />
           </marker>
           <marker id="panahMerah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
             <path d="M0,0 L6,3 L0,6 Z" fill="#b91c1c" />
@@ -66,15 +66,15 @@ const CartaAlirKandungan: React.FC = () => {
         <Kotak x={posisi.arkib} label="Arkib" sub="ARCHIVED" warna={warna.arkib} />
 
         {/* Aliran ke hadapan (maroon) — Terbitkan / Luluskan / Arkibkan */}
-        <line x1={posisi.draf + kotak.w} y1={y + 34} x2={posisi.menunggu - 4} y2={y + 34} stroke="#802334" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
-        <text x={(posisi.draf + kotak.w + posisi.menunggu) / 2} y={y + 20} textAnchor="middle" fontSize="9.5" fill="#802334" fontWeight={600}>Terbitkan</text>
+        <line x1={posisi.draf + kotak.w} y1={y + 34} x2={posisi.menunggu - 4} y2={y + 34} stroke="var(--color-Adjung-maroon)" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
+        <text x={(posisi.draf + kotak.w + posisi.menunggu) / 2} y={y + 20} textAnchor="middle" fontSize="9.5" fill="var(--color-Adjung-maroon)" fontWeight={600}>Terbitkan</text>
 
-        <line x1={posisi.menunggu + kotak.w} y1={y + 34} x2={posisi.aktif - 4} y2={y + 34} stroke="#802334" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
-        <text x={(posisi.menunggu + kotak.w + posisi.aktif) / 2} y={y + 20} textAnchor="middle" fontSize="9.5" fill="#802334" fontWeight={600}>Luluskan</text>
+        <line x1={posisi.menunggu + kotak.w} y1={y + 34} x2={posisi.aktif - 4} y2={y + 34} stroke="var(--color-Adjung-maroon)" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
+        <text x={(posisi.menunggu + kotak.w + posisi.aktif) / 2} y={y + 20} textAnchor="middle" fontSize="9.5" fill="var(--color-Adjung-maroon)" fontWeight={600}>Luluskan</text>
 
-        <line x1={posisi.aktif + kotak.w} y1={y + 34} x2={posisi.arkib - 4} y2={y + 34} stroke="#802334" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
-        <text x={(posisi.aktif + kotak.w + posisi.arkib) / 2} y={y + 20} textAnchor="middle" fontSize="9" fill="#802334" fontWeight={600}>Arkibkan /</text>
-        <text x={(posisi.aktif + kotak.w + posisi.arkib) / 2} y={y + 30} textAnchor="middle" fontSize="9" fill="#802334" fontWeight={600}>Luput berjadual</text>
+        <line x1={posisi.aktif + kotak.w} y1={y + 34} x2={posisi.arkib - 4} y2={y + 34} stroke="var(--color-Adjung-maroon)" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
+        <text x={(posisi.aktif + kotak.w + posisi.arkib) / 2} y={y + 20} textAnchor="middle" fontSize="9" fill="var(--color-Adjung-maroon)" fontWeight={600}>Arkibkan /</text>
+        <text x={(posisi.aktif + kotak.w + posisi.arkib) / 2} y={y + 30} textAnchor="middle" fontSize="9" fill="var(--color-Adjung-maroon)" fontWeight={600}>Luput berjadual</text>
 
         {/* Gelung Tolak (merah, lengkung bawah) — Menunggu/Aktif kembali ke Draf. Titik kawalan
             kongsi X dengan hujung (bukan satu puncak di tengah) — bentuk lengkung jadi RATA
@@ -105,8 +105,8 @@ const CartaAlirKandungan: React.FC = () => {
 export const PanduanConsole: React.FC = () => {
   return (
     <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
-        <h2 className="font-serif text-base uppercase tracking-wider text-[#802334] font-bold mb-1">
+      <div className="bg-white p-6 rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-stone-200">
+        <h2 className="font-serif text-base uppercase tracking-wider text-Adjung-maroon font-bold mb-1">
           Panduan Penggunaan Editorium
         </h2>
         <p className="font-sans text-xs text-stone-600 max-w-2xl">

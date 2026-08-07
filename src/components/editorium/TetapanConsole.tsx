@@ -5,6 +5,7 @@ import {
 import { SEMUA_LABEL_LALAI, labelUi } from '../../config/istilah';
 import { muatPindaanLabel } from '../../config/labelOverrides';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
+import { StatusBadge, StatusTone } from '../common/StatusBadge';
 
 
 interface BlockedCategory {
@@ -154,11 +155,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   // Badge colour must follow the REAL status, not default to green -- this panel used to hardcode
   // a green "ONLINE" badge even before any check ran (and the Holiday API side never actually
   // pinged anything at all). "Belum Disemak" (not yet checked) is the honest default state.
-  const apiStatusBadgeClass = (status: string | undefined): string => {
-    if (!status) return 'bg-stone-200 text-stone-600';
-    if (status.startsWith('ONLINE')) return 'bg-emerald-100 text-emerald-800';
-    if (status === 'DEGRADED') return 'bg-amber-100 text-amber-800';
-    return 'bg-red-100 text-red-800';
+  const apiStatusTone = (status: string | undefined): StatusTone => {
+    if (!status) return 'neutral';
+    if (status.startsWith('ONLINE')) return 'success';
+    if (status === 'DEGRADED') return 'warning';
+    return 'error';
   };
 
   const fetchApiStatus = async () => {
@@ -414,7 +415,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <button
             onClick={() => setSubTab('PolisiKandungan')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'PolisiKandungan' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'PolisiKandungan' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             1. Polisi Kandungan
@@ -423,7 +424,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <button
             onClick={() => setSubTab('HalamanAwam')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'HalamanAwam' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'HalamanAwam' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             2. Halaman Awam & Dalaman
@@ -432,7 +433,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <button
             onClick={() => setSubTab('Operasi')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'Operasi' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'Operasi' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             3. Operasi & Governance
@@ -441,7 +442,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <button
             onClick={() => setSubTab('RBAC')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'RBAC' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'RBAC' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             4. Kawalan Akses
@@ -450,7 +451,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <button
             onClick={() => setSubTab('LabelSistem')}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
-              subTab === 'LabelSistem' ? 'border-[#802334] text-[#802334] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+              subTab === 'LabelSistem' ? 'border-[var(--color-Adjung-maroon)] text-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
             5. Label Sistem
@@ -487,7 +488,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     checked={glosSelariEnabled}
                     onChange={handleToggleGlosSelari}
                     disabled={savingGlosSelari}
-                    className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50"
+                    className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50"
                   />
                   <span>Glos Selari (Anotasi Interlinear Dwibahasa / Arab-Melayu)</span>
                 </label>
@@ -538,7 +539,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 onChange={e => setNewBlockedCategoryInput(e.target.value)}
                 className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs flex-1"
               />
-              <button onClick={handleAddBlockedCategory} className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs">+ Tambah</button>
+              <button onClick={handleAddBlockedCategory} className="bg-[var(--color-Adjung-maroon)] text-white px-3 py-1.5 rounded font-semibold text-xs">+ Tambah</button>
             </div>
           </div>
 
@@ -554,10 +555,10 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   Nisbah Geometri & Belanjawan Aksara Spatial
                 </h4>
                 <p className="text-stone-500 text-[11px]">
-                  Carta penuh (live, terus dari <code className="bg-stone-100 text-[#802334] px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>) kini di tab <strong>Perlembagaan</strong> supaya tak pernah lapuk.
+                  Carta penuh (live, terus dari <code className="bg-stone-100 text-[var(--color-Adjung-maroon)] px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>) kini di tab <strong>Perlembagaan</strong> supaya tak pernah lapuk.
                 </p>
               </div>
-              <span className="font-mono text-[9px] uppercase tracking-widest text-[#802334] font-bold whitespace-nowrap">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-[var(--color-Adjung-maroon)] font-bold whitespace-nowrap">
                 → Perlembagaan
               </span>
             </div>
@@ -566,7 +567,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           {/* Tetapan Jam Dunia & Cuaca */}
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
-              <h4 className="font-sans text-xs uppercase tracking-wider text-[#802334] font-bold mb-0.5 flex items-center gap-1.5">
+              <h4 className="font-sans text-xs uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-0.5 flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5" /> TETAPAN JAM DUNIA, CUACA & API GOVERNANCE (15 BANDAR IBU NEGERI)
               </h4>
               <p className="text-stone-500 text-[11px]">
@@ -586,7 +587,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <select
                   value={worldClockIntervalSec}
                   onChange={(e) => setWorldClockIntervalSec(Number(e.target.value))}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[#802334]"
+                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                 >
                   <option value={30}>30 Saat</option>
                   <option value={60}>60 Saat / 1 Minit</option>
@@ -606,7 +607,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <select
                   value={worldClockBgClickEnabled ? '1' : '0'}
                   onChange={(e) => setWorldClockBgClickEnabled(e.target.value === '1')}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[#802334]"
+                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                 >
                   <option value="1">Aktif</option>
                   <option value="0">Tidak Aktif</option>
@@ -644,17 +645,17 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     <input
                       type="date" value={cuti.start}
                       onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, start: e.target.value } : c))}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[#802334]"
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                     />
                     <input
                       type="date" value={cuti.end}
                       onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, end: e.target.value } : c))}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[#802334]"
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                     />
                     <select
                       value={cuti.group}
                       onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, group: e.target.value } : c))}
-                      className="w-full bg-white border border-stone-300 rounded px-1.5 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[#802334]"
+                      className="w-full bg-white border border-stone-300 rounded px-1.5 py-1.5 font-mono text-[11px] focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                     >
                       <option value="A">Kump. A</option>
                       <option value="B">Kump. B</option>
@@ -662,7 +663,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     <input
                       type="text" value={cuti.name} placeholder="Nama cuti (cth. Cuti Penggal 1 Sekolah)"
                       onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, name: e.target.value } : c))}
-                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-sans text-[11px] focus:outline-none focus:border-[#802334]"
+                      className="w-full bg-white border border-stone-300 rounded px-2 py-1.5 font-sans text-[11px] focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                     />
                     <button
                       type="button"
@@ -681,7 +682,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <button
                 onClick={handleSaveWorldClockSettings}
                 disabled={savingWorldClock}
-                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
               >
                 {savingWorldClock ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Jam Dunia</>}
               </button>
@@ -696,7 +697,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   type="button"
                   onClick={fetchApiStatus}
                   disabled={isLoadingApiStatus}
-                  className="text-[10px] font-mono text-[#802334] hover:underline uppercase font-bold cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
+                  className="text-[10px] font-mono text-[var(--color-Adjung-maroon)] hover:underline uppercase font-bold cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
                 >
                   {isLoadingApiStatus ? 'Menyemak API...' : <><RefreshCw className="w-3 h-3" /> Semak Status API Live</>}
                 </button>
@@ -706,9 +707,10 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-stone-800">Open-Meteo Weather API</span>
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${apiStatusBadgeClass(apiHealthStatus?.openMeteo?.status)}`}>
-                      {apiHealthStatus?.openMeteo?.status || 'Belum Disemak'}
-                    </span>
+                    <StatusBadge
+                      tone={apiStatusTone(apiHealthStatus?.openMeteo?.status)}
+                      label={apiHealthStatus?.openMeteo?.status || 'Belum Disemak'}
+                    />
                   </div>
                   <div className="text-[10px] text-stone-500 space-y-0.5">
                     <div>Capaian Bandar: <strong className="text-stone-800">15 Bandar Ibu Negeri</strong></div>
@@ -721,9 +723,10 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <div className="bg-stone-50 p-3 rounded border border-stone-200 space-y-1.5">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-stone-800">Malaysia Holiday API</span>
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${apiStatusBadgeClass(apiHealthStatus?.holidayApi?.status)}`}>
-                      {apiHealthStatus?.holidayApi?.status || 'Belum Disemak'}
-                    </span>
+                    <StatusBadge
+                      tone={apiStatusTone(apiHealthStatus?.holidayApi?.status)}
+                      label={apiHealthStatus?.holidayApi?.status || 'Belum Disemak'}
+                    />
                   </div>
                   <div className="text-[10px] text-stone-500 space-y-0.5">
                     <div>Liputan Negeri: <strong className="text-stone-800">15 Negeri & Wilayah</strong></div>
@@ -741,7 +744,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               di sini; lalai 180 aksara kekal sehingga disunting. */}
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
-              <h4 className="font-sans text-xs uppercase tracking-wider text-[#802334] font-bold mb-0.5 flex items-center gap-1.5">
+              <h4 className="font-sans text-xs uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-0.5 flex items-center gap-1.5">
                 <Newspaper className="w-3.5 h-3.5" /> TETAPAN FOCUS VIEW (PAPARAN BACAAN SKRIN PENUH)
               </h4>
               <p className="text-stone-500 text-[11px]">
@@ -762,7 +765,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   type="number" min={20} max={2000} step={10}
                   value={focusViewNotaMaxAksara}
                   onChange={(e) => setFocusViewNotaMaxAksara(Math.max(20, Number(e.target.value) || 0))}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-mono text-xs font-semibold focus:outline-none focus:border-[#802334]"
+                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-mono text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                 />
                 <span className="text-[10px] text-stone-400 block">
                   Lalai 180 aksara. Tidak berkaitan bajet ruang tajuk/huraian kad bento (Tier Kad) — nota editor medan berasingan, tak dipapar pada kad.
@@ -774,7 +777,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <button
                 onClick={handleSaveFocusViewSettings}
                 disabled={savingFocusView}
-                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
               >
                 {savingFocusView ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Focus View</>}
               </button>
@@ -786,7 +789,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               dua overlay berlainan. Sebelum ni berkod keras, sifar tetapan. */}
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
-              <h4 className="font-sans text-xs uppercase tracking-wider text-[#802334] font-bold mb-0.5 flex items-center gap-1.5">
+              <h4 className="font-sans text-xs uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-0.5 flex items-center gap-1.5">
                 <Newspaper className="w-3.5 h-3.5" /> TETAPAN PAPARAN PENUH TICKER
               </h4>
               <p className="text-stone-500 text-[11px]">
@@ -806,7 +809,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <select
                   value={tickerOverlayTitleSize}
                   onChange={(e) => setTickerOverlayTitleSize(e.target.value)}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[#802334]"
+                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                 >
                   <option value="S">Kecil</option>
                   <option value="M">Sederhana</option>
@@ -822,7 +825,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <select
                   value={tickerOverlayBriefSize}
                   onChange={(e) => setTickerOverlayBriefSize(e.target.value)}
-                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[#802334]"
+                  className="w-full bg-white border border-stone-300 rounded px-3 py-1.5 font-sans text-xs font-semibold focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                 >
                   <option value="S">Kecil</option>
                   <option value="M">Sederhana (lalai)</option>
@@ -835,7 +838,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <button
                 onClick={handleSaveTickerOverlaySettings}
                 disabled={savingTickerOverlay}
-                className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
               >
                 {savingTickerOverlay ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Paparan Penuh Ticker</>}
               </button>
@@ -859,7 +862,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </div>
           <div className="flex flex-wrap justify-between items-center border-b border-stone-200 pb-3 gap-2">
             <div>
-              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase tracking-wider">
+              <h3 className="font-sans text-xs font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wider">
                 KAWALAN AKSES — MATRIKS KEBENARAN PERANAN
               </h3>
               <p className="text-stone-500 text-xs mt-0.5">
@@ -897,45 +900,45 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   return (
                   <tr key={row.roleId} className="hover:bg-stone-50 transition-colors">
                     <td className="p-3 font-bold text-stone-900 flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${row.roleId === 'ketua_editor' ? 'bg-[#802334]' : 'bg-stone-500'}`} />
+                      <span className={`w-2.5 h-2.5 rounded-full ${row.roleId === 'ketua_editor' ? 'bg-[var(--color-Adjung-maroon)]' : 'bg-stone-500'}`} />
                       <span>{row.roleName}</span>
                     </td>
 
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.viewAll} onChange={() => handleTogglePermission(row.roleId, 'viewAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.viewAll} onChange={() => handleTogglePermission(row.roleId, 'viewAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.editOwn} onChange={() => handleTogglePermission(row.roleId, 'editOwn')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.editOwn} onChange={() => handleTogglePermission(row.roleId, 'editOwn')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.editAll} onChange={() => handleTogglePermission(row.roleId, 'editAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.editAll} onChange={() => handleTogglePermission(row.roleId, 'editAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.publish} onChange={() => handleTogglePermission(row.roleId, 'publish')} disabled={kunciEditorial} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.publish} onChange={() => handleTogglePermission(row.roleId, 'publish')} disabled={kunciEditorial} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.reject} onChange={() => handleTogglePermission(row.roleId, 'reject')} disabled={kunciEditorial} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer disabled:opacity-50" />
+                      <input type="checkbox" checked={row.permissions.reject} onChange={() => handleTogglePermission(row.roleId, 'reject')} disabled={kunciEditorial} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.assignSlot} onChange={() => handleTogglePermission(row.roleId, 'assignSlot')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.assignSlot} onChange={() => handleTogglePermission(row.roleId, 'assignSlot')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageEditorial} onChange={() => handleTogglePermission(row.roleId, 'manageEditorial')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageEditorial} onChange={() => handleTogglePermission(row.roleId, 'manageEditorial')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageEditorNotes} onChange={() => handleTogglePermission(row.roleId, 'manageEditorNotes')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageEditorNotes} onChange={() => handleTogglePermission(row.roleId, 'manageEditorNotes')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.viewAuditLog} onChange={() => handleTogglePermission(row.roleId, 'viewAuditLog')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.viewAuditLog} onChange={() => handleTogglePermission(row.roleId, 'viewAuditLog')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageAccounts} onChange={() => handleTogglePermission(row.roleId, 'manageAccounts')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageAccounts} onChange={() => handleTogglePermission(row.roleId, 'manageAccounts')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageSettings} onChange={() => handleTogglePermission(row.roleId, 'manageSettings')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageSettings} onChange={() => handleTogglePermission(row.roleId, 'manageSettings')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.manageRbac} onChange={() => handleTogglePermission(row.roleId, 'manageRbac')} className="rounded border-stone-300 text-[#802334] w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" checked={row.permissions.manageRbac} onChange={() => handleTogglePermission(row.roleId, 'manageRbac')} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4 cursor-pointer" />
                     </td>
                   </tr>
                   );
@@ -948,7 +951,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             <button
               onClick={handleSaveRbac}
               disabled={savingRbac || !rbacDirty}
-              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+              className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-2 rounded font-semibold text-xs shadow-xs transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
             >
               {savingRbac ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : rbacDirty ? <><Save className="w-3.5 h-3.5" /> Simpan Kawalan Akses</> : <><Check className="w-3.5 h-3.5" /> Tersimpan</>}
             </button>
@@ -1063,7 +1066,7 @@ function HalamanAwamPanel() {
                 key={h.key}
                 onClick={() => setHalamanAktif(h.key)}
                 className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors ${
-                  halamanAktif === h.key ? 'bg-[#802334] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  halamanAktif === h.key ? 'bg-[var(--color-Adjung-maroon)] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
                 {h.label}
@@ -1081,7 +1084,7 @@ function HalamanAwamPanel() {
                 key={h.key}
                 onClick={() => setHalamanAktif(h.key)}
                 className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors ${
-                  halamanAktif === h.key ? 'bg-[#802334] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  halamanAktif === h.key ? 'bg-[var(--color-Adjung-maroon)] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                 }`}
               >
                 {h.label}
@@ -1110,7 +1113,7 @@ function HalamanAwamPanel() {
               <button
                 type="button"
                 onClick={() => setPratonton((p) => !p)}
-                className="font-mono text-[9px] uppercase tracking-wider font-bold text-[#802334] hover:underline cursor-pointer"
+                className="font-mono text-[9px] uppercase tracking-wider font-bold text-[var(--color-Adjung-maroon)] hover:underline cursor-pointer"
               >
                 {pratonton ? '✎ Sunting' : '👁 Pratonton'}
               </button>
@@ -1139,7 +1142,7 @@ function HalamanAwamPanel() {
             <button
               onClick={simpan}
               disabled={menyimpan || !tajuk.trim()}
-              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+              className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
             >
               {menyimpan ? 'Menyimpan...' : 'Simpan Halaman'}
             </button>
@@ -1282,7 +1285,7 @@ function LabelSistemPanel() {
                         <button
                           onClick={() => setSemula(item.kunci, item.lalai, kategori)}
                           disabled={menyimpan}
-                          className="shrink-0 text-stone-500 hover:text-[#802334] font-semibold text-[11px] px-2 py-1.5 rounded border border-stone-300 hover:border-[#802334] transition-colors disabled:opacity-50 cursor-pointer"
+                          className="shrink-0 text-stone-500 hover:text-[var(--color-Adjung-maroon)] font-semibold text-[11px] px-2 py-1.5 rounded border border-stone-300 hover:border-[var(--color-Adjung-maroon)] transition-colors disabled:opacity-50 cursor-pointer"
                           title={`Nilai asal: ${item.lalai}`}
                         >
                           Set semula
@@ -1300,7 +1303,7 @@ function LabelSistemPanel() {
             <button
               onClick={simpanSemua}
               disabled={menyimpan || !adaSuntingan}
-              className="bg-[#802334] hover:bg-[#601824] text-white px-4 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+              className="bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white px-4 py-1.5 rounded font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
             >
               {menyimpan ? 'Menyimpan...' : 'Simpan Label'}
             </button>

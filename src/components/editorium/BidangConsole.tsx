@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Zap, X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
+import { StatusBadge } from '../common/StatusBadge';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 
 // Bidang (2026-07-30) — DIPINDAHKAN daripada Tetapan → "2. Taksonomi" ke tab Slot, atas permintaan
@@ -529,13 +530,13 @@ export const BidangConsole: React.FC = () => {
             </span>
             <button
               onClick={() => { setMesejWarna(null); setRalatWarna(null); setShowWarnaModal(true); }}
-              className="bg-white border border-stone-300 hover:border-[#802334] hover:text-[#802334] text-stone-600 px-3 py-1.5 rounded font-semibold text-xs"
+              className="bg-white border border-stone-300 hover:border-Adjung-maroon hover:text-Adjung-maroon text-stone-600 px-3 py-1.5 rounded font-semibold text-xs"
             >
               Strategi Warna
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-[#802334] hover:bg-[#601824] text-white px-3 py-1.5 rounded font-semibold text-xs"
+              className="bg-Adjung-maroon hover:bg-Adjung-maroon-dark text-white px-3 py-1.5 rounded font-semibold text-xs"
             >
               + Tambah Bidang
             </button>
@@ -550,7 +551,7 @@ export const BidangConsole: React.FC = () => {
               type="button"
               onClick={() => setPaparanStatus(s)}
               className={`px-3 py-1 rounded font-semibold transition-all capitalize cursor-pointer ${
-                paparanStatus === s ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
+                paparanStatus === s ? 'bg-white text-stone-900 shadow-[0_1px_2px_rgba(0,0,0,.04)]' : 'text-stone-500 hover:text-stone-800'
               }`}
             >
               {s}
@@ -593,7 +594,7 @@ export const BidangConsole: React.FC = () => {
                             setiap satu modal. */}
                         {d.hasIllustration && (
                           <span
-                            className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#802334] border border-white"
+                            className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-Adjung-maroon border border-white"
                             title="Ada plat ilustrasi"
                           />
                         )}
@@ -609,8 +610,8 @@ export const BidangConsole: React.FC = () => {
                         title="Tukar warna Bidang"
                         className="inline-flex items-center gap-1.5 group cursor-pointer"
                       >
-                        <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-xs group-hover:ring-2 group-hover:ring-offset-1 group-hover:ring-stone-300 transition-shadow" style={{ backgroundColor: d.color }}></span>
-                        <span className="font-mono text-[10px] uppercase text-stone-400 group-hover:text-[#802334]">{d.color}</span>
+                        <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-[0_1px_2px_rgba(0,0,0,.04)] group-hover:ring-2 group-hover:ring-offset-1 group-hover:ring-stone-300 transition-shadow" style={{ backgroundColor: d.color }}></span>
+                        <span className="font-mono text-[10px] uppercase text-stone-400 group-hover:text-Adjung-maroon">{d.color}</span>
                       </button>
                     </td>
                     {/* Nama diklik terus untuk menamakan semula — corak sama seperti Senarai Slot
@@ -642,7 +643,7 @@ export const BidangConsole: React.FC = () => {
                           className="inline-flex items-center gap-1.5 group cursor-pointer text-left"
                         >
                           {d.name}
-                          <Pencil className="w-3 h-3 text-stone-300 group-hover:text-[#802334]" />
+                          <Pencil className="w-3 h-3 text-stone-300 group-hover:text-Adjung-maroon" />
                         </button>
                       )}
                     </td>
@@ -655,13 +656,9 @@ export const BidangConsole: React.FC = () => {
                         onClick={() => togolStatusBidang(d)}
                         disabled={menukarStatusId === d.id}
                         title={d.isActive === 1 ? 'Klik untuk arkibkan' : 'Klik untuk pulihkan'}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 ${
-                          d.isActive === 1
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-stone-100 text-stone-500 border border-stone-300 hover:bg-stone-200'
-                        }`}
+                        className="cursor-pointer disabled:opacity-50"
                       >
-                        {d.isActive === 1 ? 'Aktif' : 'Arkib'}
+                        <StatusBadge tone={d.isActive === 1 ? 'success' : 'neutral'} label={d.isActive === 1 ? 'AKTIF' : 'ARKIB'} />
                       </button>
                     </td>
                     <td className="p-3 text-stone-600 font-sans text-[11px]">
@@ -672,17 +669,17 @@ export const BidangConsole: React.FC = () => {
                         className="inline-flex items-center gap-1.5 group cursor-pointer text-left"
                       >
                         {d.slots.length === 0 ? (
-                          <span className="text-stone-400 italic group-hover:text-[#802334]">Tiada slot</span>
+                          <span className="text-stone-400 italic group-hover:text-Adjung-maroon">Tiada slot</span>
                         ) : (
                           <span className="flex flex-wrap gap-1">
                             {d.slots.map(s => (
-                              <span key={s} className="bg-stone-100 text-stone-600 border border-stone-200 rounded px-1.5 py-0.5 font-mono text-[9px] group-hover:border-[#802334] group-hover:text-[#802334]">{s + 1}</span>
+                              <span key={s} className="bg-stone-100 text-stone-600 border border-stone-200 rounded px-1.5 py-0.5 font-mono text-[9px] group-hover:border-Adjung-maroon group-hover:text-Adjung-maroon">{s + 1}</span>
                             ))}
                           </span>
                         )}
                         {expandedBidangId === d.id
                           ? <ChevronUp className="w-3 h-3 text-stone-400 shrink-0" />
-                          : <ChevronDown className="w-3 h-3 text-stone-300 group-hover:text-[#802334] shrink-0" />}
+                          : <ChevronDown className="w-3 h-3 text-stone-300 group-hover:text-Adjung-maroon shrink-0" />}
                       </button>
                     </td>
                     <td className="p-3 text-stone-600 text-[11px]">
@@ -709,9 +706,9 @@ export const BidangConsole: React.FC = () => {
 
                         {/* Petunjuk — tanpa ini slot milik Bidang lain nampak sama seperti slot kosong. */}
                         <div className="flex flex-wrap items-center gap-3 mb-2 text-[10px] text-stone-500">
-                          <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-xs bg-[#802334] border border-[#802334]" /> Bidang ini</span>
-                          <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-xs bg-white border border-stone-300" /> Kosong</span>
-                          <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded-xs bg-stone-200 border border-stone-400" /> Milik Bidang lain</span>
+                          <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-Adjung-maroon border border-Adjung-maroon" /> Bidang ini</span>
+                          <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-white border border-stone-300" /> Kosong</span>
+                          <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-stone-200 border border-stone-400" /> Milik Bidang lain</span>
                           <span className="inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-amber-600" /> Ada kandungan aktif</span>
                         </div>
 
@@ -726,10 +723,10 @@ export const BidangConsole: React.FC = () => {
                             const live = u?.liveCount || 0;
 
                             const gaya = dipilih
-                              ? 'bg-[#802334] text-white border-[#802334]'
+                              ? 'bg-Adjung-maroon text-white border-Adjung-maroon'
                               : milikOrangLain
                                 ? 'bg-stone-200 text-stone-500 border-stone-400 cursor-not-allowed'
-                                : 'bg-white text-stone-600 border-stone-300 hover:border-[#802334]';
+                                : 'bg-white text-stone-600 border-stone-300 hover:border-Adjung-maroon';
 
                             return (
                               <button
@@ -743,7 +740,7 @@ export const BidangConsole: React.FC = () => {
                               >
                                 {slotIndex + 1}
                                 {live > 0 && (
-                                  <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold border ${dipilih ? 'bg-white text-[#802334] border-[#802334]' : 'bg-amber-100 text-amber-800 border-amber-400'}`}>
+                                  <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold border ${dipilih ? 'bg-white text-Adjung-maroon border-Adjung-maroon' : 'bg-amber-100 text-amber-800 border-amber-400'}`}>
                                     {live}
                                   </span>
                                 )}
@@ -764,7 +761,7 @@ export const BidangConsole: React.FC = () => {
                             type="button"
                             disabled={!adaPerubahan || applyingSlots}
                             onClick={() => setSlotConfirmOpen(true)}
-                            className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             Sahkan Perubahan
                           </button>
@@ -820,7 +817,7 @@ export const BidangConsole: React.FC = () => {
                                 type="button"
                                 disabled={applyingSlots}
                                 onClick={() => applySlotChanges(d)}
-                                className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                                className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
                               >
                                 {applyingSlots ? 'Menyimpan...' : (jumlahArkib > 0 ? `Teruskan dan arkibkan ${jumlahArkib} kandungan` : 'Teruskan')}
                               </button>
@@ -854,7 +851,7 @@ export const BidangConsole: React.FC = () => {
           <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-lg w-full p-6 space-y-4 text-xs max-h-[85vh] overflow-y-auto">
               <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-                <h3 className="font-sans text-xs font-bold text-[#802334] uppercase flex items-center gap-2">
+                <h3 className="font-sans text-xs font-bold text-Adjung-maroon uppercase flex items-center gap-2">
                   <BidangIcon iconName={target.icon} iconSvg={target.iconSvg} color={target.color} />
                   Ikon, Warna &amp; Plat — {target.name}
                 </h3>
@@ -895,7 +892,7 @@ export const BidangConsole: React.FC = () => {
                       <button
                         onClick={() => handleSaveColor(target.id)}
                         disabled={simpanWarna}
-                        className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                        className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
                       >
                         {simpanWarna ? 'Menyimpan...' : 'Guna Warna Ini'}
                       </button>
@@ -918,7 +915,7 @@ export const BidangConsole: React.FC = () => {
                           disabled={savingIconFor === target.id}
                           onClick={() => handlePickLucideIcon(target.id, name)}
                           className={`flex items-center justify-center w-8 h-8 rounded border transition-colors disabled:opacity-40 ${
-                            isCurrent ? 'bg-[#802334] border-[#802334] text-white' : 'bg-stone-50 border-stone-200 text-stone-600 hover:border-[#802334] hover:text-[#802334]'
+                            isCurrent ? 'bg-Adjung-maroon border-Adjung-maroon text-white' : 'bg-stone-50 border-stone-200 text-stone-600 hover:border-Adjung-maroon hover:text-Adjung-maroon'
                           }`}
                         >
                           <Icon className="w-4 h-4" />
@@ -954,7 +951,7 @@ export const BidangConsole: React.FC = () => {
                     <button
                       onClick={() => handleUploadSvgIcon(target.id)}
                       disabled={uploadingSvg}
-                      className="mt-2 bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                      className="mt-2 bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
                     >
                       {uploadingSvg ? 'Memuat naik...' : 'Guna SVG Ini'}
                     </button>
@@ -998,7 +995,7 @@ export const BidangConsole: React.FC = () => {
                     {(illusPreview || illusCurrent) && (
                       <span
                         className="inline-flex items-center justify-center w-16 h-16 rounded border border-stone-200 bg-[#FDFDFD] [&_svg]:w-14 [&_svg]:h-14"
-                        style={{ color: '#802334' }}
+                        style={{ color: 'var(--color-Adjung-maroon)' }}
                         title={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}
                         dangerouslySetInnerHTML={{ __html: (illusPreview || illusCurrent) as string }}
                       />
@@ -1013,7 +1010,7 @@ export const BidangConsole: React.FC = () => {
                       <button
                         onClick={() => handleUploadIllustration(target.id)}
                         disabled={uploadingIllus}
-                        className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                        className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
                       >
                         {uploadingIllus ? 'Memuat naik...' : 'Guna Plat Ini'}
                       </button>
@@ -1044,7 +1041,7 @@ export const BidangConsole: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
+              <h3 className="font-sans text-xs font-bold text-Adjung-maroon uppercase">
                 + Tambah Bidang Baharu
               </h3>
               <button onClick={() => setShowAddModal(false)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
@@ -1066,7 +1063,7 @@ export const BidangConsole: React.FC = () => {
 
             <div className="pt-2 border-t border-stone-200 flex justify-end gap-2">
               <button onClick={() => setShowAddModal(false)} className="bg-stone-200 text-stone-700 px-3 py-1.5 rounded font-semibold text-xs">Batal</button>
-              <button onClick={handleAddDesk} disabled={addingDesk} className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50">
+              <button onClick={handleAddDesk} disabled={addingDesk} className="bg-Adjung-maroon text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50">
                 {addingDesk ? 'Menambah...' : 'Tambah Bidang'}
               </button>
             </div>
@@ -1079,7 +1076,7 @@ export const BidangConsole: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-              <h3 className="font-sans text-xs font-bold text-[#802334] uppercase">
+              <h3 className="font-sans text-xs font-bold text-Adjung-maroon uppercase">
                 Strategi Warna Bidang
               </h3>
               <button onClick={() => setShowWarnaModal(false)} className="text-stone-400 font-bold"><X className="w-3.5 h-3.5" /></button>
@@ -1096,7 +1093,7 @@ export const BidangConsole: React.FC = () => {
                 <button
                   onClick={selaraskanSatuWarna}
                   disabled={memprosesWarna !== null}
-                  className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
+                  className="bg-Adjung-maroon text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50"
                 >
                   {memprosesWarna === 'unify' ? 'Menyelaraskan...' : 'Selaraskan Semua'}
                 </button>

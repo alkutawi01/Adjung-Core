@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Search, Plus, X, Hourglass } from 'lucide-react';
+import { StatusBadge, StatusTone } from '../common/StatusBadge';
 
 // 2026-08-02 (Fasa 3) — Direktori disambungkan ke data SEBENAR (jadual `users` + `user_roles`,
 // core/routes/userAdminRoutes.js). Dahulu staffList array kosong berkod keras, "+ Tambah Anggota"
@@ -10,12 +11,18 @@ import { Search, Plus, X, Hourglass } from 'lucide-react';
 // bukan di sini.
 const ROLE_META: Record<string, { label: string; warna: string }> = {
   pentadbir: { label: 'Pentadbir', warna: 'bg-stone-800 text-white' },
-  ketua_editor: { label: 'Ketua Editor', warna: 'bg-[#802334] text-white' },
+  ketua_editor: { label: 'Ketua Editor', warna: 'bg-[var(--color-Adjung-maroon)] text-white' },
   penolong_ketua_editor: { label: 'Penolong Ketua Editor', warna: 'bg-amber-700 text-white' },
   editor: { label: 'Editor', warna: 'bg-stone-200 text-stone-800' },
 };
 const ROLE_ORDER = ['pentadbir', 'ketua_editor', 'penolong_ketua_editor', 'editor'];
 const STATUS_SAH = ['Aktif', 'Cuti', 'Tidak Aktif', 'Ditamatkan'] as const;
+const STATUS_TONE: Record<typeof STATUS_SAH[number], StatusTone> = {
+  Aktif: 'success',
+  Cuti: 'warning',
+  'Tidak Aktif': 'error',
+  Ditamatkan: 'neutral',
+};
 
 interface Staff {
   id: string;
@@ -156,7 +163,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h2 className="font-serif text-base uppercase tracking-wider text-[#802334] font-bold mb-1">
+          <h2 className="font-serif text-base uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold mb-1">
             Direktori Editorial Adjung Brief
           </h2>
           <p className="font-sans text-xs text-stone-600">
@@ -179,7 +186,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           {isPentadbir && (
             <button
               onClick={() => setTambahTerbuka(true)}
-              className="inline-flex items-center gap-1.5 bg-[#802334] hover:bg-[#601824] text-white font-mono text-xs px-4 py-2 rounded font-bold transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white font-mono text-xs px-4 py-2 rounded font-bold transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               TAMBAH ANGGOTA
@@ -229,13 +236,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                   </div>
                 </td>
                 <td className="p-4">
-                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${
-                    staff.status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' :
-                    staff.status === 'Cuti' ? 'bg-amber-100 text-amber-800' :
-                    staff.status === 'Tidak Aktif' ? 'bg-red-100 text-red-800' : 'bg-stone-900 text-white'
-                  }`}>
-                    {staff.status}
-                  </span>
+                  <StatusBadge tone={STATUS_TONE[staff.status]} label={staff.status} />
                 </td>
                 <td className="p-4 text-stone-700 font-mono text-xs">{staff.countPublished}</td>
                 <td className="p-4 text-stone-500 font-mono text-xs">{new Date(staff.createdAt).toLocaleDateString('ms-MY')}</td>
@@ -259,7 +260,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           <div className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-start border-b border-stone-200 pb-4">
               <div>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-[#802334] font-bold block mb-1">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-[var(--color-Adjung-maroon)] font-bold block mb-1">
                   PROFIL ANGGOTA EDITORIAL
                 </span>
                 <h3 className="font-serif text-xl font-bold text-stone-900">{selectedStaff.penName}</h3>
@@ -274,7 +275,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">MAKLUMAT IDENTITI</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Nama Pena</span><strong className="text-stone-900 font-semibold">{selectedStaff.penName}</strong></div>
-                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Status</span><strong className="text-stone-900 font-semibold">{selectedStaff.status}</strong></div>
+                <div><span className="text-stone-500 block text-[10px] font-semibold uppercase mb-1">Status</span><StatusBadge tone={STATUS_TONE[selectedStaff.status]} label={selectedStaff.status} /></div>
                 <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Akaun Dicipta</span><strong className="font-mono font-bold">{new Date(selectedStaff.createdAt).toLocaleDateString('ms-MY')}</strong></div>
               </div>
             </div>
@@ -283,13 +284,13 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">PERANAN (BOLEH BERBILANG)</h4>
               <div className="grid grid-cols-2 gap-2">
                 {ROLE_ORDER.map(roleId => (
-                  <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border ${isPentadbir ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'} ${selectedStaff.roles.includes(roleId) ? 'border-[#802334] bg-white' : 'border-stone-200 bg-stone-100'}`}>
+                  <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border ${isPentadbir ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'} ${selectedStaff.roles.includes(roleId) ? 'border-[var(--color-Adjung-maroon)] bg-white' : 'border-stone-200 bg-stone-100'}`}>
                     <input
                       type="checkbox"
                       checked={selectedStaff.roles.includes(roleId)}
                       onChange={() => isPentadbir && togolPeranan(selectedStaff, roleId)}
                       disabled={!isPentadbir}
-                      className="rounded border-stone-300 text-[#802334] w-4 h-4"
+                      className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4"
                     />
                     <span className="font-semibold text-stone-800">{ROLE_META[roleId].label}</span>
                   </label>
@@ -314,7 +315,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                       key={s}
                       onClick={() => s === 'Ditamatkan' ? klikTamatkan(selectedStaff) : ubahStatus(selectedStaff, s)}
                       disabled={selectedStaff.status === s || (s === 'Ditamatkan' && memuatKonfirmasi)}
-                      className="inline-flex items-center gap-1.5 bg-stone-700 hover:bg-stone-900 disabled:opacity-40 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-md font-semibold text-xs transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 bg-stone-700 hover:bg-stone-900 disabled:opacity-40 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded font-semibold text-xs transition-colors cursor-pointer"
                     >
                       {s === 'Ditamatkan' && memuatKonfirmasi ? 'Menyemak…' : s}
                     </button>
@@ -347,7 +348,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       {konfirmasiTamat && (
         <div className="fixed inset-0 z-[70] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => !memproses && setKonfirmasiTamat(null)}>
           <div onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs font-sans">
-            <h3 className="font-sans text-xs font-bold text-[#802334] uppercase tracking-wider border-b border-stone-200 pb-2">
+            <h3 className="font-sans text-xs font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wider border-b border-stone-200 pb-2">
               Tamatkan {konfirmasiTamat.staff.penName || konfirmasiTamat.staff.username}?
             </h3>
 
@@ -385,7 +386,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 type="button"
                 onClick={tamatkanDanPadam}
                 disabled={memproses}
-                className="bg-red-700 hover:bg-red-800 disabled:opacity-50 text-white px-3 py-2 rounded-md font-semibold text-xs cursor-pointer"
+                className="bg-[var(--color-error)] hover:opacity-90 disabled:opacity-50 text-white px-3 py-2 rounded font-semibold text-xs cursor-pointer"
               >
                 {memproses ? 'Memproses…' : 'Tamatkan + Padam draf/menunggu'}
               </button>
@@ -393,7 +394,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 type="button"
                 onClick={tamatkanSahaja}
                 disabled={memproses}
-                className="bg-stone-700 hover:bg-stone-900 disabled:opacity-50 text-white px-3 py-2 rounded-md font-semibold text-xs cursor-pointer"
+                className="bg-stone-700 hover:bg-stone-900 disabled:opacity-50 text-white px-3 py-2 rounded font-semibold text-xs cursor-pointer"
               >
                 Tamatkan sahaja (kekalkan draf/menunggu)
               </button>
@@ -401,7 +402,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 type="button"
                 onClick={() => setKonfirmasiTamat(null)}
                 disabled={memproses}
-                className="bg-stone-100 hover:bg-stone-200 disabled:opacity-50 text-stone-700 px-3 py-2 rounded-md font-semibold text-xs cursor-pointer"
+                className="bg-stone-100 hover:bg-stone-200 disabled:opacity-50 text-stone-700 px-3 py-2 rounded font-semibold text-xs cursor-pointer"
               >
                 Batal
               </button>
@@ -453,7 +454,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
     <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={onTutup}>
       <form onSubmit={hantar} onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-md w-full p-6 space-y-4 text-xs font-sans">
         <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 className="font-sans text-xs font-bold text-[#802334] uppercase tracking-wider">Tambah Anggota</h3>
+          <h3 className="font-sans text-xs font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wider">Tambah Anggota</h3>
           <button type="button" onClick={onTutup} className="text-stone-400 hover:text-stone-600"><X className="w-3.5 h-3.5" /></button>
         </div>
 
@@ -478,8 +479,8 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
           <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Peranan</span>
           <div className="grid grid-cols-2 gap-2">
             {ROLE_ORDER.map(roleId => (
-              <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer ${roles.includes(roleId) ? 'border-[#802334] bg-stone-50' : 'border-stone-200'}`}>
-                <input type="checkbox" checked={roles.includes(roleId)} onChange={() => togol(roleId)} className="rounded border-stone-300 text-[#802334] w-4 h-4" />
+              <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer ${roles.includes(roleId) ? 'border-[var(--color-Adjung-maroon)] bg-stone-50' : 'border-stone-200'}`}>
+                <input type="checkbox" checked={roles.includes(roleId)} onChange={() => togol(roleId)} className="rounded border-stone-300 text-[var(--color-Adjung-maroon)] w-4 h-4" />
                 <span className="font-semibold text-stone-800">{ROLE_META[roleId].label}</span>
               </label>
             ))}
@@ -489,7 +490,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
         {ralat && <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralat}</p>}
 
         <div className="flex justify-end pt-1 border-t border-stone-200">
-          <button type="submit" disabled={menyimpan || roles.length === 0} className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-[#6a1c2a] transition-colors disabled:opacity-50 cursor-pointer">
+          <button type="submit" disabled={menyimpan || roles.length === 0} className="bg-[var(--color-Adjung-maroon)] text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-[var(--color-Adjung-maroon-dark)] transition-colors disabled:opacity-50 cursor-pointer">
             {menyimpan ? 'Mencipta...' : 'Cipta Akaun'}
           </button>
         </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, RefreshCw, Plus, Trash2, Check, AlertTriangle, ShieldCheck, Zap, Save, Settings, ChevronDown, ChevronUp, Tag, Ban } from 'lucide-react';
 import { SystemSettings } from '../../types';
 import { Tooltip } from '../common/Tooltip';
+import { StatusBadge } from '../common/StatusBadge';
 
 interface TickerManagementModalProps {
   isOpen: boolean;
@@ -303,14 +304,14 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
   return (
     <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
       <div 
-        className="relative max-w-2xl w-full bg-white rounded-lg shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[90vh] animate-fade-in"
+        className="relative max-w-2xl w-full bg-white rounded-lg shadow-[0_4px_16px_rgba(0,0,0,.08)] border border-stone-200 overflow-hidden flex flex-col max-h-[90vh] animate-fade-in"
         style={{ contain: 'paint' }}
       >
         {/* Header - Adjung Maroon Brand */}
         <header className="px-6 py-4 border-b border-stone-200 flex justify-between items-center bg-[#FAF7F0] shrink-0">
           <div>
-            <h3 className="font-serif text-sm md:text-base font-bold text-[#802334] uppercase tracking-wide flex items-center gap-2">
-              <Settings size={16} className="text-[#802334]" />
+            <h3 className="font-serif text-sm md:text-base font-bold text-[var(--color-Adjung-maroon)] uppercase tracking-wide flex items-center gap-2">
+              <Settings size={16} className="text-[var(--color-Adjung-maroon)]" />
               Urus Ticker: Berita Terkini
             </h3>
             <p className="text-[10px] text-stone-500 font-sans mt-0.5 font-bold uppercase tracking-wider">
@@ -321,7 +322,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-stone-400 hover:text-[#802334] transition cursor-pointer rounded-full hover:bg-stone-200/60"
+              className="p-1 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition cursor-pointer rounded-full hover:bg-stone-200/60"
             >
               <X size={20} />
             </button>
@@ -337,7 +338,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
               <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-extrabold">
                 MOD LIVE:
               </span>
-              <span className="px-2.5 py-0.5 rounded text-[9px] font-mono font-extrabold uppercase tracking-widest bg-[#802334] text-white border border-[#601824]">
+              <span className="px-2.5 py-0.5 rounded text-[9px] font-mono font-extrabold uppercase tracking-widest bg-[var(--color-Adjung-maroon)] text-white border border-[var(--color-Adjung-maroon-dark)]">
                 {(liveMode || 'Manual').toUpperCase()}
               </span>
 
@@ -353,7 +354,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
 
             <div className="flex items-center gap-2">
               {failedCount > 0 ? (
-                <span className="px-2.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[#802334]/10 text-[#802334] border border-[#802334]/30 uppercase tracking-wider animate-pulse flex items-center gap-1">
+                <span className="px-2.5 py-0.5 rounded text-[9px] font-mono font-bold bg-[var(--color-Adjung-maroon)]/10 text-[var(--color-Adjung-maroon)] border border-[var(--color-Adjung-maroon)]/30 uppercase tracking-wider animate-pulse flex items-center gap-1">
                   <AlertTriangle size={11} /> {failedCount} GAGAL HAD AKSARA
                 </span>
               ) : (
@@ -379,8 +380,8 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       onClick={() => scrollToBlockInTextarea(item.index)}
                       className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
                         item.isValid
-                          ? 'bg-white hover:bg-stone-100 text-stone-800 border-stone-300 hover:border-[#802334]/50'
-                          : 'bg-[#802334]/10 hover:bg-[#802334]/20 text-[#802334] border-[#802334]/40 animate-pulse'
+                          ? 'bg-white hover:bg-stone-100 text-stone-800 border-stone-300 hover:border-[var(--color-Adjung-maroon)]/50'
+                          : 'bg-[var(--color-Adjung-maroon)]/10 hover:bg-[var(--color-Adjung-maroon)]/20 text-[var(--color-Adjung-maroon)] border-[var(--color-Adjung-maroon)]/40 animate-pulse'
                       }`}
                     >
                       <span className="font-extrabold">#{item.index}</span>
@@ -401,7 +402,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
               <select
                 value={formConfig.contentMode}
                 onChange={(e) => setFormConfig({ ...formConfig, contentMode: e.target.value })}
-                className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                className="w-full px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white font-sans text-xs font-semibold"
               >
                 <option value="Manual">Manual</option>
                 <option value="RSS Direct">Suapan RSS</option>
@@ -419,7 +420,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                 type="number" min={1}
                 value={formConfig.carouselInterval ?? 10}
                 onChange={(e) => setFormConfig({ ...formConfig, carouselInterval: Math.max(1, parseInt(e.target.value) || 10) })}
-                className="w-full max-w-[160px] px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs"
+                className="w-full max-w-[160px] px-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white font-mono text-xs"
               />
               <p className="font-sans text-[10px] text-stone-400">Selang masa antara satu berita bertukar ke berita seterusnya.</p>
             </div>
@@ -431,8 +432,8 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                 <div className="bg-[#F9F8F6] p-4 rounded-md border border-stone-200 space-y-3">
                   <div className="flex justify-between items-center flex-wrap gap-2">
                     <div>
-                      <h4 className="font-mono text-xs font-bold uppercase text-[#802334] tracking-wider flex items-center gap-1.5">
-                        <Zap size={14} className="text-[#802334]" />
+                      <h4 className="font-mono text-xs font-bold uppercase text-[var(--color-Adjung-maroon)] tracking-wider flex items-center gap-1.5">
+                        <Zap size={14} className="text-[var(--color-Adjung-maroon)]" />
                         ENJIN PENYERAPAN RSS DIRECT (TANPA API AI)
                       </h4>
                       <p className="font-sans text-[10px] text-stone-500 mt-0.5">
@@ -443,7 +444,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       type="button"
                       onClick={handleFetchDirectRss}
                       disabled={isFetchingRss}
-                      className="px-4 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-mono font-bold uppercase tracking-wider transition cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-4 py-2 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white rounded text-xs font-mono font-bold uppercase tracking-wider transition cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
                     >
                       <RefreshCw size={12} className={isFetchingRss ? "animate-spin" : ""} />
                       {isFetchingRss ? 'Menyerap RSS...' : 'Serap RSS Sekarang'}
@@ -473,7 +474,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
 
                 {/* Add RSS Source Form */}
                 <div className="bg-white p-4 rounded-md border border-stone-200 space-y-3">
-                  <h5 className="font-mono text-xs font-bold uppercase text-[#802334] tracking-wider flex items-center gap-1.5">
+                  <h5 className="font-mono text-xs font-bold uppercase text-[var(--color-Adjung-maroon)] tracking-wider flex items-center gap-1.5">
                     <Plus size={13} />
                     DAFTAR PAUTAN RSS FEED BAHARU
                   </h5>
@@ -485,7 +486,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                         placeholder="cth: Bernama / Utusan Malaysia"
                         value={newRssName}
                         onChange={(e) => setNewRssName(e.target.value)}
-                        className="w-full px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] font-sans text-xs"
+                        className="w-full px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] font-sans text-xs"
                       />
                     </div>
 
@@ -496,7 +497,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                         placeholder="https://www.bernama.com/bm/rss/news.php"
                         value={newRssUrl}
                         onChange={(e) => setNewRssUrl(e.target.value)}
-                        className="w-full px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] font-mono text-xs"
+                        className="w-full px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] font-mono text-xs"
                       />
                     </div>
 
@@ -508,7 +509,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                         max="100"
                         value={newRssTrust}
                         onChange={(e) => setNewRssTrust(Number(e.target.value))}
-                        className="w-full px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] font-mono text-xs"
+                        className="w-full px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] font-mono text-xs"
                       />
                     </div>
                   </div>
@@ -518,7 +519,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       type="button"
                       onClick={handleAddRssSource}
                       disabled={isAddingRss}
-                      className="px-4 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-4 py-2 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {isAddingRss ? <RefreshCw size={12} className="animate-spin" /> : <Plus size={12} />}
                       {isAddingRss ? 'Menyimpan...' : 'Simpan & Daftarkan Pautan RSS'}
@@ -540,9 +541,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                               <div className="text-[10px] text-stone-400 truncate">{src.rssUrl}</div>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[9px] font-bold uppercase">
-                                Aktif
-                              </span>
+                              <StatusBadge tone="success" label="AKTIF" />
                               <button
                                 type="button"
                                 onClick={() => handleDeleteRssSource(src.id, src.sourceName)}
@@ -559,7 +558,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
 
                   {/* Dynamic Editorial Settings */}
                   <div className="pt-3 border-t border-stone-200 space-y-3">
-                    <h5 className="font-mono text-xs font-bold uppercase text-[#802334] tracking-wider flex items-center gap-1.5">
+                    <h5 className="font-mono text-xs font-bold uppercase text-[var(--color-Adjung-maroon)] tracking-wider flex items-center gap-1.5">
                       <Settings size={13} /> TETAPAN & PERATURAN EDITORIAL RSS
                     </h5>
                     <p className="font-sans text-[11px] text-stone-500 leading-normal">
@@ -575,7 +574,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           max="100"
                           value={rssAutoLiveThreshold}
                           onChange={(e) => setRssAutoLiveThreshold(Number(e.target.value))}
-                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334]"
+                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                         />
                       </div>
 
@@ -587,16 +586,16 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           max="100"
                           value={rssReviewThreshold}
                           onChange={(e) => setRssReviewThreshold(Number(e.target.value))}
-                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334]"
+                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                         />
                       </div>
 
                       <div className="flex flex-col gap-1 md:col-span-2">
-                        <label className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">Had Maksimum Berita Live (Ranking Skor Tertinggi)</label>
+                        <label className="text-[9px] uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold">Had Maksimum Berita Live (Ranking Skor Tertinggi)</label>
                         <select
                           value={tickerMaxItems}
                           onChange={(e) => setTickerMaxItems(Number(e.target.value))}
-                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white font-sans text-xs font-semibold"
                         >
                           <option value={10}>10 Berita Teratas</option>
                           <option value={20}>20 Berita Teratas</option>
@@ -610,11 +609,11 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       </div>
 
                       <div className="flex flex-col gap-1 md:col-span-2">
-                        <label className="text-[9px] uppercase tracking-wider text-[#802334] font-bold">Had Usia Berita</label>
+                        <label className="text-[9px] uppercase tracking-wider text-[var(--color-Adjung-maroon)] font-bold">Had Usia Berita</label>
                         <select
                           value={rssMaxNewsAgeHours}
                           onChange={(e) => setRssMaxNewsAgeHours(Number(e.target.value))}
-                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-sans text-xs font-semibold"
+                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white font-sans text-xs font-semibold"
                         >
                           <option value={24}>24 Jam Terakhir (Berita Hari Ini)</option>
                           <option value={48}>48 Jam Terakhir (2 Hari)</option>
@@ -631,7 +630,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           placeholder="dasar, belanjawan, ekonomi, pendidikan, menteri, kerajaan"
                           value={rssPriorityKeywords}
                           onChange={(e) => setRssPriorityKeywords(e.target.value)}
-                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334]"
+                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                         />
                       </div>
 
@@ -642,7 +641,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           placeholder="gempar, viral, panas, terbongkar"
                           value={rssBlockedKeywords}
                           onChange={(e) => setRssBlockedKeywords(e.target.value)}
-                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334]"
+                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                         />
                       </div>
                     </div>
@@ -651,7 +650,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                     <div className="pt-3 border-t border-stone-200 space-y-3">
                       <div className="flex justify-between items-center flex-wrap gap-2">
                         <div>
-                          <h6 className="font-mono text-xs font-bold uppercase text-[#802334] tracking-wider flex items-center gap-1.5">
+                          <h6 className="font-mono text-xs font-bold uppercase text-[var(--color-Adjung-maroon)] tracking-wider flex items-center gap-1.5">
                             <Tag size={13} /> KAWALAN KATEGORI XML RSS TERSEKAT ({blockedCategories.length} TAG TERSEKAT)
                           </h6>
                           <p className="font-sans text-[10px] text-stone-500 mt-0.5">
@@ -667,12 +666,12 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           placeholder="cth: Hiburan / Sukan / Gosip / Keningau"
                           value={newBlockedCatInput}
                           onChange={(e) => setNewBlockedCatInput(e.target.value)}
-                          className="flex-1 px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[#802334] font-mono text-xs bg-white"
+                          className="flex-1 px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] font-mono text-xs bg-white"
                         />
                         <button
                           type="button"
                           onClick={() => handleAddBlockedCategory(newBlockedCatInput)}
-                          className="px-3 py-1.5 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer shadow-xs whitespace-nowrap"
+                          className="px-3 py-1.5 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer shadow-xs whitespace-nowrap"
                         >
                           + Sekat Tag Ini
                         </button>
@@ -686,7 +685,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                               key={cat.id}
                               className="px-2 py-1 bg-white border border-stone-300 text-stone-800 rounded font-mono text-[10px] font-bold flex items-center gap-1.5 shadow-2xs"
                             >
-                              <span className="text-[#802334] flex items-center gap-1">
+                              <span className="text-[var(--color-Adjung-maroon)] flex items-center gap-1">
                                 <Tag className="w-3 h-3" /> {cat.categoryName}
                               </span>
                               <Tooltip text="Buka Sekatan Tag Ini">
@@ -731,7 +730,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                     <button
                       type="button"
                       onClick={loadReviewQueue}
-                      className="text-[10px] font-mono uppercase text-[#802334] hover:underline cursor-pointer flex items-center gap-1"
+                      className="text-[10px] font-mono uppercase text-[var(--color-Adjung-maroon)] hover:underline cursor-pointer flex items-center gap-1"
                     >
                       <RefreshCw size={10} /> Muat Semula Queue
                     </button>
@@ -761,7 +760,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                                   <span className="font-mono text-[9px] text-stone-500 font-bold uppercase">
                                     {item.source}
                                   </span>
-                                  <span className="font-mono text-[9px] font-bold uppercase text-[#802334] bg-white px-2 py-0.5 rounded border border-stone-200">
+                                  <span className="font-mono text-[9px] font-bold uppercase text-[var(--color-Adjung-maroon)] bg-white px-2 py-0.5 rounded border border-stone-200">
                                     DESK: BERITA SEMASA
                                   </span>
 
@@ -824,7 +823,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                                 <button
                                   type="button"
                                   onClick={() => setOpenScoreAccordionId(isExpanded ? null : item.id)}
-                                  className="text-[9px] font-mono uppercase text-[#802334] hover:underline cursor-pointer flex items-center gap-1 mt-1"
+                                  className="text-[9px] font-mono uppercase text-[var(--color-Adjung-maroon)] hover:underline cursor-pointer flex items-center gap-1 mt-1"
                                 >
                                   {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                                   {isExpanded ? 'Sembunyi Skor' : 'Lihat Skor'}
@@ -855,7 +854,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                                 </div>
                                 <div>
                                   <span className="text-stone-400 block uppercase">Jumlah Skor</span>
-                                  <span className="font-bold text-[#802334]">{bd.totalScore || item.score}/100</span>
+                                  <span className="font-bold text-[var(--color-Adjung-maroon)]">{bd.totalScore || item.score}/100</span>
                                 </div>
                               </div>
                             )}
@@ -884,7 +883,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                     rows={8}
                     value={formConfig.manualSummary || ''}
                     onChange={(e) => setFormConfig({ ...formConfig, manualSummary: e.target.value })}
-                    className="w-full p-3 border border-stone-300 rounded font-mono text-xs focus:outline-none focus:border-[#802334] bg-white leading-relaxed"
+                    className="w-full p-3 border border-stone-300 rounded font-mono text-xs focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white leading-relaxed"
                     placeholder={`Desk: SEMASA\nTajuk: GAPENA Abadikan Tarikh Kelahiran Usman Awang Sebagai Hari Puisi\nHuraian ringkas: Gabungan Persatuan Penulis Nasional Malaysia meluluskan resolusi rasmi.\nSource: Utusan Malaysia\nUrl: https://www.utusan.com.my/berita/1`}
                   />
                 </div>
@@ -902,7 +901,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-[#802334] hover:bg-[#601824] text-white rounded text-xs font-mono font-bold uppercase tracking-wider shadow-sm cursor-pointer flex items-center gap-1.5"
+                className="px-5 py-2 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white rounded text-xs font-mono font-bold uppercase tracking-wider shadow-sm cursor-pointer flex items-center gap-1.5"
               >
                 <Save size={13} /> Simpan Kandungan Ticker
               </button>

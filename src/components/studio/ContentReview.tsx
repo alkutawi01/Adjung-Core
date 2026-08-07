@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Save, Search } from 'lucide-react';
+import { Button } from '../common/Button';
 
 interface ContentItem {
   id: string;
@@ -288,11 +289,11 @@ export function ContentReview() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] font-sans">
+    <div className="min-h-screen bg-[var(--color-Adjung-cream)] font-sans">
       <header className="border-b border-stone-200 bg-white sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-4 flex justify-between items-center">
           <div>
-            <h1 className="font-serif text-lg font-bold text-[#802334]">
+            <h1 className="font-serif text-lg font-bold text-[var(--color-Adjung-maroon)]">
               Semakan Kandungan
             </h1>
             <p className="text-[10px] text-stone-500 font-sans uppercase tracking-wider font-bold mt-0.5">
@@ -310,7 +311,7 @@ export function ContentReview() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari ikut tajuk, huraian, kategori, atau sumber..."
-              className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white text-xs"
+              className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white text-xs"
             />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -374,7 +375,7 @@ export function ContentReview() {
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
                 rows={30}
-                className="w-full px-3 py-3 border border-stone-300 rounded focus:outline-none focus:border-[#802334] bg-white font-mono text-xs leading-relaxed"
+                className="w-full px-3 py-3 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white font-mono text-xs leading-relaxed"
               />
               {bulkTotalPages > 1 && (
                 <div className="flex items-center justify-between gap-3 pt-3 font-sans text-xs">
@@ -395,14 +396,16 @@ export function ContentReview() {
               )}
               <div className="flex justify-between items-center pt-3">
                 <span className="text-[10px] text-stone-500 font-sans">{bulkStatus}</span>
-                <button
+                <Button
                   type="button"
+                  variant="primary"
+                  size="md"
                   onClick={saveBulk}
                   disabled={bulkSaving}
-                  className="px-4 py-2 text-xs font-bold text-white bg-[#802334] rounded hover:bg-[#601824] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  icon={<Save size={13} />}
                 >
-                  <Save size={13} /> {bulkSaving ? 'Menyimpan...' : 'Simpan Pukal'}
-                </button>
+                  {bulkSaving ? 'Menyimpan...' : 'Simpan Pukal'}
+                </Button>
               </div>
             </>
           )}

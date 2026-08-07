@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { Pin, PinOff, Archive, ArchiveRestore, Trash2, Pencil } from 'lucide-react';
 
 // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — tiga kategori nota yang Ketua
@@ -230,7 +230,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                 <option value="pengumuman">Pengumuman — disiarkan di Frontpage</option>
               </select>
               {skop !== 'dalaman' && (
-                <span className="text-[#802334] text-[10px] font-semibold">
+                <span className="text-[var(--color-Adjung-maroon)] text-[10px] font-semibold">
                   Nota ini akan disiarkan di Frontpage (pautan footer "{LABEL_SKOP[skop]}"). Pastikan tiada maklumat dalaman di dalamnya.
                 </span>
               )}
@@ -274,7 +274,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
             <button
               type="submit"
               disabled={menyimpan || !tajuk.trim() || !kandungan.trim() || bakiTajuk < 0 || bakiKandungan < 0}
-              className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-[#6a1c2a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="bg-[var(--color-Adjung-maroon)] text-white px-4 py-1.5 rounded font-semibold text-xs hover:bg-[var(--color-Adjung-maroon-dark)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {menyimpan ? 'Menyimpan…' : menyunting ? 'Simpan Perubahan' : 'Terbitkan Nota'}
             </button>
@@ -322,7 +322,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {n.disemat && (
-                        <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider font-bold text-[#802334]">
+                        <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider font-bold text-[var(--color-Adjung-maroon)]">
                           <Pin className="w-2.5 h-2.5" /> Disemat
                         </span>
                       )}
@@ -332,7 +332,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                       <span
                         className={`font-mono text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded border ${
                           n.skop !== 'dalaman'
-                            ? 'text-[#802334] border-[#802334]/30 bg-[#802334]/[0.06]'
+                            ? 'text-[var(--color-Adjung-maroon)] border-[var(--color-Adjung-maroon)]/30 bg-[var(--color-Adjung-maroon)]/[0.06]'
                             : 'text-stone-500 border-stone-200'
                         }`}
                       >
@@ -355,7 +355,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             type="button"
                             title={n.disemat ? 'Nyahsemat' : 'Semat di atas'}
                             onClick={() => ubah(n.id, { disemat: !n.disemat })}
-                            className="p-1.5 text-stone-400 hover:text-[#802334] transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition-colors cursor-pointer"
                           >
                             {n.disemat ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                           </button>
@@ -363,7 +363,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             type="button"
                             title="Sunting nota"
                             onClick={() => mulaSunting(n)}
-                            className="p-1.5 text-stone-400 hover:text-[#802334] transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition-colors cursor-pointer"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -371,7 +371,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             type="button"
                             title="Arkibkan nota"
                             onClick={() => ubah(n.id, { status: 'arkib' })}
-                            className="p-1.5 text-stone-400 hover:text-[#802334] transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition-colors cursor-pointer"
                           >
                             <Archive className="w-3.5 h-3.5" />
                           </button>
@@ -383,7 +383,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             type="button"
                             title="Pulihkan nota"
                             onClick={() => ubah(n.id, { status: 'aktif' })}
-                            className="p-1.5 text-stone-400 hover:text-[#802334] transition-colors cursor-pointer"
+                            className="p-1.5 text-stone-400 hover:text-[var(--color-Adjung-maroon)] transition-colors cursor-pointer"
                           >
                             <ArchiveRestore className="w-3.5 h-3.5" />
                           </button>

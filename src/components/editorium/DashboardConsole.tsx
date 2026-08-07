@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { labelTindakan } from './LogAuditConsole';
+import { SlotMatrixCell } from '../common/SlotMatrixCell';
 
 // Paparan Utama (2026-08-02, Fasa 5) — destinasi lalai selepas log masuk.
 //
@@ -270,22 +271,18 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
           {jumlahBermasalah > 0 && (
             <span className="font-mono text-[10.5px]" style={{ color: '#a8241f' }}>{jumlahBermasalah} / {JUMLAH_SLOT} memerlukan perhatian</span>
           )}
-          <button onClick={() => onTukarTab('kandungan')} className="ml-auto text-[11px] font-semibold text-[#802334] hover:text-[#9b2c41] cursor-pointer">
+          <button onClick={() => onTukarTab('kandungan')} className="ml-auto text-[11px] font-semibold text-[var(--color-Adjung-maroon)] hover:text-[var(--color-Adjung-maroon-dark)] cursor-pointer">
             Buka dalam Indeks →
           </button>
         </div>
         <div className="grid gap-px bg-stone-200 border border-stone-200" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))' }}>
           {slotMatrix.map(s => (
-            <button
+            <SlotMatrixCell
               key={s.slotIndex}
+              slotNombor={s.slotIndex + 1}
+              status={s.status}
               onClick={() => onTukarTab('kandungan')}
-              className="bg-[#FDFDFD] px-3 py-2.5 flex items-baseline gap-2 min-w-0 overflow-hidden hover:bg-[#802334]/5 transition-colors cursor-pointer"
-            >
-              <span className="font-mono text-[11px] font-semibold whitespace-nowrap" style={{ color: WARNA_STATUS[s.status] }}>
-                S-{String(s.slotIndex + 1).padStart(2, '0')}
-              </span>
-              <span className="ml-auto w-2 h-2 shrink-0" style={{ background: WARNA_STATUS[s.status] }} />
-            </button>
+            />
           ))}
         </div>
         <div className="flex gap-6 mt-3.5 text-[10.5px] text-stone-500 flex-wrap">

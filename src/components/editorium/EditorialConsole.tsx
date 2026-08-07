@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
+import { StatusBadge } from '../common/StatusBadge';
+import { Button } from '../common/Button';
 
 // Konsol Editorial (2026-08-01, spesifikasi pemilik projek) — peraturan BAHASA dan penjanaan AI,
 // berasingan daripada Tetapan (tetapan sistem) dan Slot (geometri kad).
@@ -234,9 +236,10 @@ export const EditorialConsole: React.FC = () => {
             onClick={() => setSubTab(t.id)}
             className={`px-4 py-2 font-semibold tracking-wide transition-all border-b-2 cursor-pointer ${
               subTab === t.id
-                ? 'border-[#802334] text-[#802334] bg-stone-50'
+                ? 'text-[var(--color-Adjung-maroon)] bg-stone-50'
                 : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
+            style={subTab === t.id ? { borderColor: 'var(--color-Adjung-maroon)' } : undefined}
           >
             {t.label}
           </button>
@@ -263,18 +266,19 @@ export const EditorialConsole: React.FC = () => {
               placeholder="Tambah istilah (contoh: machine learning)…"
               className="bg-stone-50 border border-stone-300 rounded px-3 py-1.5 text-xs flex-1"
             />
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={tambahIstilah}
               disabled={!istilahBaharu.trim()}
-              className="bg-[#802334] text-white px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               + Tambah
-            </button>
+            </Button>
           </div>
 
           {ralatIstilah && (
-            <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralatIstilah}</p>
+            <p className="text-[var(--color-error)] bg-[color-mix(in_srgb,var(--color-error)_8%,white)] border border-[color-mix(in_srgb,var(--color-error)_35%,white)] rounded px-3 py-2 text-[11px]">{ralatIstilah}</p>
           )}
 
           <div className="flex flex-wrap gap-2">
@@ -284,12 +288,12 @@ export const EditorialConsole: React.FC = () => {
               <span key={t.id} className="bg-stone-100 border border-stone-200 text-stone-800 px-2.5 py-1 rounded flex items-center gap-1.5">
                 <span className="italic font-semibold">{t.term}</span>
                 {t.status !== 'active' && (
-                  <span className="bg-amber-100 text-amber-800 border border-amber-200 px-1.5 rounded-sm text-[9px] font-mono uppercase">Belum Aktif</span>
+                  <StatusBadge tone="warning" label="Belum Aktif" />
                 )}
                 <button
                   type="button"
                   onClick={() => buangIstilah(t.id)}
-                  className="text-stone-400 hover:text-red-700 cursor-pointer"
+                  className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
                   title="Buang istilah"
                 >
                   <X className="w-3 h-3" />
@@ -337,17 +341,13 @@ export const EditorialConsole: React.FC = () => {
             </label>
 
             {ralatGlosari && (
-              <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralatGlosari}</p>
+              <p className="text-[var(--color-error)] bg-[color-mix(in_srgb,var(--color-error)_8%,white)] border border-[color-mix(in_srgb,var(--color-error)_35%,white)] rounded px-3 py-2 text-[11px]">{ralatGlosari}</p>
             )}
 
             <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={!gIstilah.trim()}
-                className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
+              <Button type="submit" variant="primary" size="md" disabled={!gIstilah.trim()}>
                 + Tambah ke Glosari
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -378,7 +378,7 @@ export const EditorialConsole: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => buangGlosari(g.id)}
-                            className="text-stone-400 hover:text-red-700 cursor-pointer"
+                            className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
                             title="Buang daripada glosari"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -436,17 +436,13 @@ export const EditorialConsole: React.FC = () => {
             </label>
 
             {ralatEjaan && (
-              <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralatEjaan}</p>
+              <p className="text-[var(--color-error)] bg-[color-mix(in_srgb,var(--color-error)_8%,white)] border border-[color-mix(in_srgb,var(--color-error)_35%,white)] rounded px-3 py-2 text-[11px]">{ralatEjaan}</p>
             )}
 
             <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={!eBetul.trim()}
-                className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
+              <Button type="submit" variant="primary" size="md" disabled={!eBetul.trim()}>
                 + Tambah ke Senarai Ejaan
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -479,7 +475,7 @@ export const EditorialConsole: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => buangEjaan(x.id)}
-                            className="text-stone-400 hover:text-red-700 cursor-pointer"
+                            className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
                             title="Buang daripada senarai ejaan"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -542,19 +538,14 @@ export const EditorialConsole: React.FC = () => {
               </label>
 
               {ralatAi && (
-                <p className="text-red-800 bg-red-50 border border-red-200 rounded px-3 py-2 text-[11px]">{ralatAi}</p>
+                <p className="text-[var(--color-error)] bg-[color-mix(in_srgb,var(--color-error)_8%,white)] border border-[color-mix(in_srgb,var(--color-error)_35%,white)] rounded px-3 py-2 text-[11px]">{ralatAi}</p>
               )}
 
               <div className="flex items-center justify-end gap-3">
-                {mesejAi && <span className="text-emerald-700 text-[11px] font-semibold">{mesejAi}</span>}
-                <button
-                  type="button"
-                  onClick={simpanAi}
-                  disabled={menyimpanAi}
-                  className="bg-[#802334] text-white px-4 py-1.5 rounded font-semibold text-xs disabled:opacity-50 cursor-pointer"
-                >
+                {mesejAi && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesejAi}</span>}
+                <Button type="button" variant="primary" size="md" onClick={simpanAi} disabled={menyimpanAi}>
                   {menyimpanAi ? 'Menyimpan…' : 'Simpan Templat'}
-                </button>
+                </Button>
               </div>
             </>
           )}

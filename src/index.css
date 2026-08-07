@@ -20,6 +20,12 @@
   --color-Adjung-dark: #111111;
   --color-Adjung-gray-light: #EAE8E3;
 
+  /* Warna semantik (2026-08-07, hasil audit reka bentuk Editorium — design_handoff_editorium_
+     redesign) — status Aktif/Lulus/Sihat, Menunggu, Kosong/Ralat merentasi Editorium. Dipakai
+     oleh src/components/common/StatusBadge.tsx; JANGAN taip semula hex ni di tempat lain. */
+  --color-success: #3D6B4C;
+  --color-warning: #B8934A;
+  --color-error: #A8241F;
 }
 
 /* Token semantik dari Adjung Brief Design System (tokens/colors.css + tokens/typography.css),

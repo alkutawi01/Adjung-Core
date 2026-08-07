@@ -37,18 +37,18 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, hint }: { la
           {hint && <span className="font-sans normal-case tracking-normal font-normal text-stone-400">{hint}</span>}
         </span>
         {typeof maxLen === 'number' && (
-          <span className={`font-mono text-[9px] tabular-nums ${over ? 'text-[#a8241f]' : 'text-stone-400'}`}>{value.length}/{maxLen}</span>
+          <span className={`font-mono text-[9px] tabular-nums ${over ? 'text-[var(--color-error)]' : 'text-stone-400'}`}>{value.length}/{maxLen}</span>
         )}
       </span>
       {rows ? (
         <textarea
           rows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
-          className="w-full resize-none border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm leading-relaxed text-stone-800 py-1.5 transition-colors"
+          className="w-full resize-none border-0 border-b border-stone-300 focus:border-[var(--color-Adjung-maroon)] outline-none bg-white font-serif text-sm leading-relaxed text-stone-800 py-1.5 transition-colors"
         />
       ) : (
         <input
           type="text" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
-          className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+          className="w-full border-0 border-b border-stone-300 focus:border-[var(--color-Adjung-maroon)] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
         />
       )}
     </label>
@@ -68,7 +68,7 @@ function ImageField({ label, value, onChange, onUploadFile, uploading, note }: {
       <span className="flex items-center gap-2">
         <input
           type="text" value={value} placeholder="Nama fail / URL imej…" onChange={(e) => onChange(e.target.value)}
-          className="w-0 flex-1 border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+          className="w-0 flex-1 border-0 border-b border-stone-300 focus:border-[var(--color-Adjung-maroon)] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
         />
         <button
           type="button" disabled={uploading} onClick={() => fileInputRef.current?.click()}
@@ -193,16 +193,16 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
-      <div className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in">
+      <div className="bg-white rounded-lg border border-stone-200 shadow-[0_4px_16px_rgba(0,0,0,.08)] w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in">
 
         <header className="flex-none px-6 md:px-8 pt-5 pb-3.5">
           <div className="flex items-start justify-between gap-6">
             <div>
               <h2 className="font-serif text-xl md:text-2xl font-medium tracking-tight text-stone-900">
-                Urus Slot Bar <span className="font-mono text-lg text-[#802334]">{editingSlotIndex + 1}</span>
+                Urus Slot Bar <span className="font-mono text-lg text-[var(--color-Adjung-maroon)]">{editingSlotIndex + 1}</span>
               </h2>
               <p className="mt-1.5 flex items-center gap-2.5 flex-wrap">
-                <span className="font-sans text-[10px] uppercase tracking-[0.15em] font-extrabold text-[#802334]">ACARA</span>
+                <span className="font-sans text-[10px] uppercase tracking-[0.15em] font-extrabold text-[var(--color-Adjung-maroon)]">ACARA</span>
                 <span className="text-stone-300">·</span>
                 <span className="font-sans text-[11px] text-stone-500">Event / Penganjur / Lokasi / Akses / Penerangan — bukan kad Tajuk/Huraian biasa</span>
               </p>
@@ -212,7 +212,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
                 <select
                   value={editingSlotIndex}
                   onChange={(e) => handleSwitchSlot(parseInt(e.target.value, 10))}
-                  className="border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold text-stone-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#802334]"
+                  className="border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold text-stone-600 bg-white cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--color-Adjung-maroon)]"
                 >
                   {slotOptions.map((opt) => (
                     <option key={opt.index} value={opt.index}>{opt.label}</option>
@@ -240,24 +240,24 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
                   <li
                     key={it.uuid || i}
                     onClick={() => setActive(i)}
-                    className={`group grid items-center gap-2.5 px-3 py-2.5 cursor-pointer border-b border-stone-150 last:border-b-0 transition-colors ${i === activeIndex ? 'bg-[#802334]/[0.04] shadow-[inset_2px_0_0_#802334]' : 'hover:bg-stone-50'}`}
+                    className={`group grid items-center gap-2.5 px-3 py-2.5 cursor-pointer border-b border-stone-150 last:border-b-0 transition-colors ${i === activeIndex ? 'bg-[var(--color-Adjung-maroon)]/[0.04] shadow-[inset_2px_0_0_var(--color-Adjung-maroon)]' : 'hover:bg-stone-50'}`}
                     style={{ gridTemplateColumns: '26px 1fr auto' }}
                   >
-                    <span className={`font-mono text-[11px] font-bold tabular-nums ${i === activeIndex ? 'text-[#802334]' : 'text-stone-400'}`}>{String(i + 1).padStart(2, '0')}</span>
+                    <span className={`font-mono text-[11px] font-bold tabular-nums ${i === activeIndex ? 'text-[var(--color-Adjung-maroon)]' : 'text-stone-400'}`}>{String(i + 1).padStart(2, '0')}</span>
                     <span className={`font-serif text-[13px] leading-snug truncate ${i === activeIndex ? 'text-stone-900 font-medium' : 'text-stone-600'}`}>
                       {it.title || <span className="text-stone-400 italic">Tiada nama acara</span>}
                     </span>
                     <span className="hidden group-hover:flex items-center gap-1.5">
-                      <button type="button" aria-label="Naik" onClick={(e) => { e.stopPropagation(); move(i, -1); }} className="text-stone-500 hover:text-[#802334] px-0.5">↑</button>
-                      <button type="button" aria-label="Turun" onClick={(e) => { e.stopPropagation(); move(i, 1); }} className="text-stone-500 hover:text-[#802334] px-0.5">↓</button>
-                      <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); remove(i); }} className="text-[#a8241f] px-0.5"><Trash2 size={12} /></button>
+                      <button type="button" aria-label="Naik" onClick={(e) => { e.stopPropagation(); move(i, -1); }} className="text-stone-500 hover:text-[var(--color-Adjung-maroon)] px-0.5">↑</button>
+                      <button type="button" aria-label="Turun" onClick={(e) => { e.stopPropagation(); move(i, 1); }} className="text-stone-500 hover:text-[var(--color-Adjung-maroon)] px-0.5">↓</button>
+                      <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); remove(i); }} className="text-[var(--color-error)] px-0.5"><Trash2 size={12} /></button>
                     </span>
                   </li>
                 ))}
               </ol>
             </div>
             <div className="flex-none border-t border-stone-150 p-2">
-              <button type="button" onClick={insert} className="w-full text-center py-1.5 rounded font-sans text-[11px] font-semibold text-stone-600 hover:text-[#802334] hover:bg-[#802334]/[0.08] transition-colors cursor-pointer">
+              <button type="button" onClick={insert} className="w-full text-center py-1.5 rounded font-sans text-[11px] font-semibold text-stone-600 hover:text-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon)]/[0.08] transition-colors cursor-pointer">
                 + Tambah Acara Baharu
               </button>
             </div>
@@ -275,7 +275,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
                 <select
                   value={current.access || 'Terbuka'}
                   onChange={(e) => patch(activeIndex, 'access', e.target.value)}
-                  className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5"
+                  className="w-full border-0 border-b border-stone-300 focus:border-[var(--color-Adjung-maroon)] outline-none bg-white font-serif text-sm text-stone-800 py-1.5"
                 >
                   <option value="Terbuka">Terbuka</option>
                   <option value="Tertutup">Tertutup</option>
@@ -306,12 +306,12 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
             <div className="flex items-center justify-between gap-4">
               <span className="flex flex-col gap-0.5">
                 {(localError || savedNote) && (
-                  <span className={`font-sans text-[10px] ${localError ? 'text-[#a8241f]' : 'text-stone-500'}`}>{localError || savedNote}</span>
+                  <span className={`font-sans text-[10px] ${localError ? 'text-[var(--color-error)]' : 'text-stone-500'}`}>{localError || savedNote}</span>
                 )}
               </span>
               <button
                 type="button" onClick={handleSave} disabled={saving || isSavingSlot}
-                className="px-4 py-1.5 bg-[#802334] hover:bg-[#601824] disabled:opacity-50 disabled:cursor-wait text-white rounded text-[11px] font-sans font-semibold cursor-pointer transition-colors"
+                className="px-4 py-1.5 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] disabled:opacity-50 disabled:cursor-wait text-white rounded text-[11px] font-sans font-semibold cursor-pointer transition-colors"
               >
                 {saving || isSavingSlot ? 'Menyimpan…' : 'Simpan giliran Bar'}
               </button>
