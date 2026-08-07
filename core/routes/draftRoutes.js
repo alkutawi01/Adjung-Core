@@ -29,8 +29,13 @@ export const createDraftRoutes = (dbAll) => {
   // langsung, sesiapa yang tahu ?penulis=<nama editor lain> boleh baca draf orang lain.
   router.get('/drafts', requireAuth, async (req, res) => {
     try {
-      const penulis = (req.query.penulis || '').toString().trim();
-      const editorId = (req.query.editorId || '').toString().trim();
+      // Identiti daripada SESI sahaja (2026-08-07, Pelan 02 #7) — dahulu `?penulis=` dan
+      // `?editorId=` diambil terus daripada query, jadi mana-mana akaun yang log masuk boleh
+      // membaca draf peribadi orang lain sekadar dengan menghantar nama pena atau id mereka.
+      // Parameter query lama masih diterima tanpa ralat (klien lama mungkin masih menghantarnya)
+      // tetapi DIABAIKAN sepenuhnya.
+      const penulis = (req.session.user.penName || req.session.user.username || '').toString().trim();
+      const editorId = (req.session.user.id || '').toString().trim();
       if (!penulis && !editorId) {
         return res.status(400).json({ error: 'Sesi editor diperlukan untuk membaca draf.' });
       }
