@@ -4,6 +4,7 @@ import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { safeParseInline } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
 import { terapFocusSeo, buangSemulaFocusSeo } from '../../utils/seoMeta';
+import { binaPetaGlosari, renderDenganGlosari, type EntriGlosari } from '../common/IstilahGlosari';
 
 // ============================================================================
 // FOCUS VIEW — permukaan bacaan skrin penuh yang dibuka bila kad bento diklik.
@@ -254,6 +255,22 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const warnaEyebrow = deskColor || 'var(--color-Adjung-maroon)';
   const isPhone = usePhoneViewport();
 
+  // Glosari sebagai tooltip hover (2026-08-07, permintaan Izzat) — lihat
+  // src/components/common/IstilahGlosari.tsx untuk penjelasan penuh. Dimuat SEKALI setiap Focus
+  // View dibuka (bukan setiap artikel — /api/system/glosari sama untuk semua artikel, senarai
+  // biasanya kecil, cache dalam-komponen cukup). `sudahDitandaRef` reset setiap kali ARTIKEL
+  // bertukar (kunci `objectId`, sandaran `title` kalau objectId tiada) supaya "kali pertama
+  // sahaja" dikira SEPANJANG SATU artikel (tajuk + semua perenggan), bukan berterusan merentasi
+  // artikel berlainan semasa navigasi sebelum/seterus.
+  const [petaGlosari, setPetaGlosari] = React.useState<Map<string, EntriGlosari>>(new Map());
+  React.useEffect(() => {
+    let dibatal = false;
+    fetch('/api/system/glosari')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => { if (!dibatal && Array.isArray(data)) setPetaGlosari(binaPetaGlosari(data)); })
+      .catch(() => { /* glosari cuma penambahbaikan bacaan — kegagalan tak menghalang artikel */ });
+    return () => { dibatal = true; };
+  }, []);
   // Kunci scroll halaman di belakang semasa Focus View terbuka (2026-08-05, permintaan Izzat —
   // "sepatutnya hanya boleh scroll Focus View"). Focus View sendiri `position: fixed` (bukan
   // sebahagian aliran dokumen), jadi ia TAK menghalang halaman induk di belakang menatal — badan
@@ -339,6 +356,30 @@ export const FocusView: React.FC<FocusViewProps> = ({
     () => text.split(/\n{2,}/).filter(Boolean),
     [text]
   );
+
+  // Susun atur mudah alih DAN desktop WUJUD SERENTAK dalam DOM (disorok/ditunjuk ikut CSS
+  // responsif, bukan syarat JS, disahkan ketiadaan `isPhone ?` bersyarat langsung dalam fail ni)
+  // — maka DUA pengiraan berasingan (bukan satu dikongsi). Set "sudah ditanda" dicipta SEGAR di
+  // dalam setiap useMemo (bukan useRef berterusan) supaya pengiraan kekal TULEN — React StrictMode
+  // panggil badan komponen DUA KALI setiap render; kalau Set dikongsi/berterusan merentasi
+  // panggilan, panggilan pertama (dibuang) "habiskan" istilah sebelum panggilan kedua (yang
+  // sebenarnya di-commit ke DOM) sempat menanda — disahkan pepijat sebenar semasa ujian browser
+  // (istilah "Warisan" langsung tak bertanda pada skrin, walaupun peta glosari + teks kedua-duanya
+  // betul).
+  const glosariMudahAlih = React.useMemo(() => {
+    const sudahDitanda = new Set<string>();
+    return {
+      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda),
+      perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, safeParseInline)),
+    };
+  }, [title, paragraphs, petaGlosari]);
+  const glosariDesktop = React.useMemo(() => {
+    const sudahDitanda = new Set<string>();
+    return {
+      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda),
+      perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, safeParseInline)),
+    };
+  }, [title, paragraphs, petaGlosari]);
 
   const [bodyRef, bodyFade] = useOverflowFade();
 
@@ -624,7 +665,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             margin: 0, fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 500,
             lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty',
             textAlign: 'center',
-          }}>{title}</h1>
+          }}>{glosariMudahAlih.tajuk}</h1>
 
           {publishedDate && (
             <span style={{
@@ -654,7 +695,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 padding: '0 10px',
               }}>
                 {paragraphs.map((para, j) => (
-                  <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{safeParseInline(para)}</p>
+                  <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{glosariMudahAlih.perenggan[j]}</p>
                 ))}
               </div>
             </div>
@@ -921,7 +962,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   perkataan, tak pernah potong tengah perkataan (cth "Dikem/udiankan"); ada cukup
                   ruang menegak di bawah tajuk utk baris tambahan, jadi tiada sebab paksa patah
                   tengah perkataan. */}
-              <h1 ref={titleRef} style={{ margin: 0, minWidth: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none', wordBreak: 'normal', overflowWrap: 'normal' }}>{title}</h1>
+              <h1 ref={titleRef} style={{ margin: 0, minWidth: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none', wordBreak: 'normal', overflowWrap: 'normal' }}>{glosariDesktop.tajuk}</h1>
             </div>
 
             {/* Lajur kanan — huraian panjang, SATU-SATUNYA bahagian Focus View yang menatal. */}
@@ -930,7 +971,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 {paragraphs.length > 0 && (
                   <div style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
                     {paragraphs.map((para, j) => (
-                      <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
+                      <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{glosariDesktop.perenggan[j]}</p>
                     ))}
                   </div>
                 )}

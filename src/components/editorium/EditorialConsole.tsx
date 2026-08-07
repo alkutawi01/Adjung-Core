@@ -373,9 +373,13 @@ export const EditorialConsole: React.FC = () => {
             <div>
               <SectionLabel>02 — Glosari</SectionLabel>
               <p className="text-stone-500 text-xs">
-                Senarai rujukan istilah dan maksud/nota penggunaannya untuk editor menulis manual. Ia rujukan
-                pasif sahaja — sistem tidak sesekali menulis-ganti kandungan sedia ada berdasarkan senarai ni.
-                Untuk bentuk ejaan betul vs dielakkan, guna tab <strong className="font-semibold">Penyelarasan Ejaan</strong>.
+                Senarai istilah dan maksudnya. Sistem TIDAK sesekali menulis-ganti kandungan sedia
+                ada berdasarkan senarai ni — tapi setiap istilah di sini DIPAPARKAN kepada pembaca:
+                kali pertama istilah muncul dalam tajuk/huraian sesuatu artikel (paparan penuh),
+                ia digaris putus-putus, hover papar maksudnya sebagai tooltip. Kosongkan medan
+                "Maksud/Nota Penggunaan" kalau istilah tu tak patut jadi tooltip pembaca (cth cuma
+                nota ejaan dalaman). Untuk bentuk ejaan betul vs dielakkan, guna tab{' '}
+                <strong className="font-semibold">Penyelarasan Ejaan</strong>.
               </p>
             </div>
 
