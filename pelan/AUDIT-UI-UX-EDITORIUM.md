@@ -1,7 +1,7 @@
 # AUDIT UI/UX EDITORIUM — Kelemahan & Cadangan Penyelesaian
 
 **Tarikh:** 2026-08-07 · **Kaedah:** audit kod tiga dimensi (kebolehcapaian, borang, navigasi) + ujian langsung dalam browser sebenar
-**Status:** LAPORAN SAHAJA — tiada apa dilaksanakan. Semua keputusan UI/UX menunggu kelulusan Izzat.
+**Status (2026-08-07, kemas kini):** Kebanyakan penemuan yang TAK perlukan keputusan citarasa Izzat telah DILAKSANA (lihat commit `859dd27` hingga `4f28397`). Dikecualikan sepenuhnya (menunggu kelulusan): **H1/H2** (saiz/kontras teks — perubahan visual merentas semua konsol), **D5** (salinan teks butang keadaan kosong), **C3** (sama ada sematkan jadi lalai log masuk pertama), **K1** (reka bentuk tindakan pukal per-tier). Beberapa item RENDAH (I2/I3/I4 pagination/isihan, J2/J3) turut dilangkau atas sebab keutamaan/masa — belum dilaksana, boleh disambung bila-bila.
 
 > Penemuan bertanda **[DISAHKAN MATA]** telah diuji sendiri dalam browser, bukan sekadar dibaca daripada kod.
 
