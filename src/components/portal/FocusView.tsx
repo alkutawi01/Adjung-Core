@@ -301,26 +301,6 @@ export const FocusView: React.FC<FocusViewProps> = ({
     [text]
   );
 
-  // Dua lajur pada DESKTOP untuk huraian panjang (2026-08-07, permintaan Izzat eksplisit — "untuk
-  // desktop, huraian panjang dlm focus view jadikan dua lajur"). Dahulu bersyarat ambang 300
-  // aksara (permintaan asal 2026-08-04, "susah nak baca panjang2 mcm tu") — ambang tu dibuang:
-  // data sebenar ada dua kandungan 294 dan 305 aksara, cuma 11 aksara beza, tapi terpapar
-  // BERBEZA (satu lajur vs dua lajur) semata-mata sebab robek sewenang-wenang di 300. Kini
-  // SETIAP huraian panjang berbilang perenggan jadi dua lajur — konsisten, bukan bergantung
-  // ambang. Perenggan TUNGGAL kekal satu lajur (tiada apa bermakna untuk dipecah).
-  //
-  // BUKAN CSS `columns` (pagination browser mendatar) — kawasan ni SATU-SATUNYA kotak scroll
-  // MENEGAK di seluruh Focus View (keputusan sengaja pemilik projek, lihat nota di bawah); `columns`
-  // pecah kandungan MENDATAR (scroll-x), berlanggar terus dgn seni bina scroll-y sedia ada.
-  // Sebaliknya: pecah SENARAI PERENGGAN kepada dua kumpulan (bukan CSS automatik), setiap kumpulan
-  // susun menegak seperti biasa dalam grid 2-lajur — keseluruhan kawasan kekal SATU tatal menegak.
-  const duaLajur = paragraphs.length > 1;
-  const [lajurKiri, lajurKanan] = React.useMemo(() => {
-    if (!duaLajur) return [paragraphs, [] as string[]];
-    const titikBelah = Math.ceil(paragraphs.length / 2);
-    return [paragraphs.slice(0, titikBelah), paragraphs.slice(titikBelah)];
-  }, [duaLajur, paragraphs]);
-
   const [bodyRef, bodyFade] = useOverflowFade();
 
   // Plat ilustrasi Bidang menutup kolum kanan HANYA apabila kolum itu benar-benar kosong. Ia
@@ -393,8 +373,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // TETAP dalam px, TIADA terma viewport. Versi clamp(..., vh, ...) terdahulu memapar tajuk 168
   // aksara pada 20.7px dan bukan 27px, kerana 2.3vh pada tinggi 900px ialah 20.7px — clamp itu
   // memilih nilai tengah, bukan nilai maksimum. Jangan perkenalkan semula terma vh di sini.
+  //
+  // Tangga 44/37/31/27 (2026-07-29) ditentukur utk lajur tajuk LEBAR PENUH (min(64%,900px),
+  // susun atur satu-lajur lama). Susun atur dua-lajur (2026-08-07) sempitkan lajur tajuk kepada
+  // ~5/12 lebar helaian (~40%) — pada saiz lama, perkataan Melayu panjang (cth "Dipersembahkan",
+  // 14 aksara) tak muat dalam satu baris lajur sempit itu dan patah TENGAH PERKATAAN (overflow-
+  // wrap:break-word terpaksa, bukan pilihan reka bentuk) — nampak rosak, bukan hanya lebih baris.
+  // Tangga diskalakan ÷1.28 supaya perkataan tunggal biasa muat dalam lebar lajur baharu.
   const n = String(title || '').length;
-  const titleSizeAsas = n <= 60 ? 44 : n <= 100 ? 37 : n <= 140 ? 31 : 27;
+  const titleSizeAsas = n <= 60 ? 34 : n <= 100 ? 29 : n <= 140 ? 24 : 21;
   // titleSizeScale (2026-08-04, Tetapan Am Slot — permintaan Izzat, satu tetapan global untuk
   // saiz fon Focus View) DARABKAN dgn tangga responsif SEDIA ADA (bukan gantikan) — kekalkan
   // logik adaptif ikut panjang tajuk (tajuk pendek tetap lebih besar drpd tajuk panjang), cuma
@@ -856,54 +843,47 @@ export const FocusView: React.FC<FocusViewProps> = ({
             dengan kandungan utama. Disahkan terhadap mockup rujukan: helaian ~51-65% lebar
             viewport, margin kiri/kanan cukup luas untuk preview + anak panah. */}
         <div style={{
-          width: 'min(64%, 900px)', height: '100%', maxHeight: '100%', boxSizing: 'border-box',
-          display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr) minmax(140px, auto)',
+          width: 'min(74%, 1040px)', height: '100%', maxHeight: '100%', boxSizing: 'border-box',
+          display: 'grid', gridTemplateRows: 'minmax(0, 1fr) minmax(140px, auto)',
         }}>
 
-          {/* EYEBROW — terus atas tajuk. Tanpa label "Siaran" (dibuang 2026-07-29). Jurang
-              atas lebih lapang (2026-07-29, disahkan terhadap mockup rujukan) — versi pertama
-              terlalu rapat dengan masthead berbanding rujukan. */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: 'clamp(28px, 5vh, 56px) 0 0' }}>
-            {label && (
-              <span style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any, whiteSpace: 'nowrap' }}>{label}</span>
-            )}
-          </div>
+          {/* TAJUK + HURAIAN — dua lajur bersebelahan (2026-08-07, permintaan Izzat eksplisit,
+              ikut mockup rujukan: tajuk lajur kiri statik rata kiri, huraian lajur kanan
+              menatal). Gantikan susun atur satu-lajur menegak terdahulu (eyebrow/tajuk/huraian
+              bertindan menegak, semua dipusatkan). Nisbah lajur ~5:7 (kasar 40/60) padan
+              mockup. Sub-pembahagian dua-lajur huraian yang lama (duaLajur, dan jaring
+              keselamatan pemusatan lajur tunggal yang menyertainya) turut dibuang — lajur kanan
+              di sini sendiri dah cukup sempit (~60% x 74% lebar viewport) utk satu aliran teks
+              rata kiri biasa; tak perlu dipecah/dipusatkan lagi. */}
+          <div style={{ minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 5fr) minmax(0, 7fr)', columnGap: 'clamp(28px, 4vw, 56px)' }}>
 
-          {/* TAJUK — statik, tiada scroll. Saiz melangkah 44/37/31/27 mengikut kiraan aksara. */}
-          <h1 style={{ margin: 'clamp(8px, 1.4vh, 14px) 0 0', fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'center', hyphens: 'none', WebkitHyphens: 'none' }}>{titleRendered ?? title}</h1>
+            {/* Lajur kiri — eyebrow + tajuk, statik (tak menatal), rata kiri. */}
+            <div style={{ minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'clamp(8px, 1.4vh, 14px)', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
+              {label && (
+                <span style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{label}</span>
+              )}
+              {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-07 — lajur tajuk kini
+                  sempit ~40% lebar helaian, sama alasan telefon di atas: titleRendered sisipkan
+                  pemenggalan suku kata/sengkang lembut yang jadi kelihatan sebagai "-" di tengah
+                  perkataan bila lajur sempit, permintaan Izzat "jgn hypen tajuk". wordBreak/
+                  overflowWrap 'normal' (bukan 'break-word') — biar tajuk patah HANYA di sempadan
+                  perkataan, tak pernah potong tengah perkataan (cth "Dikem/udiankan"); ada cukup
+                  ruang menegak di bawah tajuk utk baris tambahan, jadi tiada sebab paksa patah
+                  tengah perkataan. */}
+              <h1 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none', wordBreak: 'normal', overflowWrap: 'normal' }}>{title}</h1>
+            </div>
 
-          {/* HURAIAN PANJANG — SATU-SATUNYA bahagian Focus View yang menatal. Satu lajur,
-              perenggan berturutan (pembahagian dua-ukuran lama dibuang bersama huraian pendek). */}
-          <div style={{ minHeight: 0, margin: 'clamp(10px, 1.6vh, 18px) 0', overflow: 'hidden', display: 'flex' }}>
-            <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', scrollbarWidth: 'none', padding: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
-              {paragraphs.length > 0 && (
-                duaLajur ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 'clamp(24px, 3.2vw, 44px)', textAlign: 'left' }}>
-                    {[lajurKiri, lajurKanan].map((lajur, lajurI) => (
-                      <div key={lajurI} style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', hyphens: 'none', WebkitHyphens: 'none' }}>
-                        {lajur.map((para, j) => (
-                          <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  // Jaring keselamatan lajur tunggal (2026-08-07, permintaan Izzat eksplisit —
-                  // "kalau ada kurang perkataan/aksara... pastikan satu lajur tu align center
-                  // (bukan center kandungan dlm lajur, tp lajur tu sendiri di tengah2)"). Kes ni
-                  // ialah huraian SATU perenggan sahaja (duaLajur perlukan >1 perenggan) — dahulu
-                  // teks direntang PENUH lebar kotak dengan textAlign:center (setiap baris teks
-                  // dipusatkan berasingan, bukan blok lajur itu sendiri). Kini blok lajur
-                  // dihadkan ~separuh lebar (padan kasar satu lajur mod dua-lajur) dan
-                  // DIPUSATKAN sebagai SATU blok (margin auto) — teks di dalamnya kekal rata kiri
-                  // (bacaan biasa), bukan setiap baris dipusatkan.
-                  <div style={{ maxWidth: '50%', width: 'fit-content', minWidth: 'min(100%, 320px)', margin: '0 auto', fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
+            {/* Lajur kanan — huraian panjang, SATU-SATUNYA bahagian Focus View yang menatal. */}
+            <div style={{ minHeight: 0, overflow: 'hidden', display: 'flex', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
+              <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', scrollbarWidth: 'none', paddingRight: 'clamp(8px, 1vw, 16px)', paddingBottom: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
+                {paragraphs.length > 0 && (
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-light)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
                     {paragraphs.map((para, j) => (
                       <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{safeParseInline(para)}</p>
                     ))}
                   </div>
-                )
-              )}
+                )}
+              </div>
             </div>
           </div>
 
@@ -997,7 +977,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           pemanggil yang uruskan format, fail ni cuma papar apa yang diterima. */}
       <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ position: 'relative', flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) 0', display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: 'min(64%, 900px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px' }}>
+        <div style={{ width: 'min(74%, 1040px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px' }}>
           <span style={{ maxWidth: '70%', lineHeight: 1.5 }}>
             <span style={micro}>{sources.length > 1 ? 'Sumber-sumber' : 'Sumber'}</span>
             {/* Sumber berbilang (2026-08-05) — senaraikan SEMUA (`sources`), satu baris setiap
