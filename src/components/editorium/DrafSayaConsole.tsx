@@ -135,7 +135,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         tindakan={
           <Tooltip text="Muat semula">
             <span className="inline-flex shrink-0">
-              <Button variant="secondary" onClick={muatDraf} aria-label="Muat semula" icon={<RefreshCw className="w-3.5 h-3.5" />} />
+              <Button variant="secondary" size="sm" onClick={muatDraf} aria-label="Muat semula" icon={<RefreshCw className="w-3.5 h-3.5" />} />
             </span>
           </Tooltip>
         }
