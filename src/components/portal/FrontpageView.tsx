@@ -2240,107 +2240,21 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
 
 
-  // Helper to extract name initials (e.g. "Elena Vasquez" -> "E.V.")
-  const getInitials = (name: string): string => {
-    if (!name) return '';
-    return name
-      .split(/\s+/)
-      .map(w => w.charAt(0).toUpperCase())
-      .filter(c => /[A-Z]/.test(c))
-      .join('.') + '.';
-  };
-
-  // Helper to estimate reading duration
-  const estimateReadingTime = (content: string): number => {
-    if (!content) return 1;
-    const words = content.trim().split(/\s+/).length;
-    return Math.max(1, Math.ceil(words / 200));
-  };
-
-  // 2. Curated & Dynamic Content Prep (populated from published database entries)
-  const activeFeatured = React.useMemo(() => {
-    if (systemSettings.featuredEntryId) {
-      const resolved = entries.find(
-        (e) => (e.id === systemSettings.featuredEntryId || e.slug === systemSettings.featuredEntryId) && e.status === 'Published'
-      );
-      if (resolved) return resolved;
-    }
-    // Fallback: most recent Published Essay or Article
-    const newestPublish = [...entries]
-      .filter((e) => (e.contentType === 'Essay' || e.contentType === 'Article') && e.status === 'Published')
-      .sort((a, b) => new Date(b.publishedDate || b.createdDate).getTime() - new Date(a.publishedDate || a.createdDate).getTime())[0];
-    if (newestPublish) return newestPublish;
-
-    // Fallback static entry if nothing else exists
-    return {
-      id: 'fallback-featured',
-      authorId: null,
-      publisher: 'Elena Vasquez',
-      contentType: 'Essay' as const,
-      status: 'Published' as const,
-      visibility: 'Public' as const,
-      createdDate: new Date(2026, 6, 4).toISOString(),
-      updatedDate: new Date(2026, 6, 4).toISOString(),
-      publishedDate: new Date(2026, 6, 4).toISOString(),
-      title: 'On the Preservation of Human Knowledge in an Age of Impermanence',
-      slug: 'preservation-of-human-knowledge',
-      tags: ['Philosophy', 'Preservation', 'Institutions'],
-      canonicalUrl: 'https://adjung.com/essay/preservation-of-human-knowledge',
-      content: `A meditation on why civilizations forget, how libraries burn, and what it means to build institutions that outlast their founders. This essay traces the arc from Alexandria to the digital present, arguing that preservation is not passive but an active, moral commitment.`,
-      excerpt: `A meditation on why civilizations forget, how libraries burn, and what it means to build institutions that outlast their founders. This essay traces the arc from Alexandria to the digital present, arguing that preservation is not passive but an active, moral commitment.`,
-      url: ''
-    };
-  }, [entries, systemSettings.featuredEntryId]);
-
-  const featuredAuthorName = React.useMemo(() => {
-    if (!activeFeatured.authorId) return activeFeatured.publisher || 'Elena Vasquez';
-    const author = users.find((u) => u.id === activeFeatured.authorId);
-    return author?.penName || activeFeatured.publisher || 'Elena Vasquez';
-  }, [activeFeatured, users]);
-
-  const featuredAuthorSig = React.useMemo(() => {
-    return getInitials(featuredAuthorName);
-  }, [featuredAuthorName]);
-
-  // Editorial Note Aside (mapped to the newest published Editor's Note entry)
-  const dbEditorNote = React.useMemo(() => {
-    return [...entries]
-      .filter((e) => e.contentType === "Editor's Note" && e.status === 'Published')
-      .sort((a, b) => new Date(b.publishedDate || b.createdDate).getTime() - new Date(a.publishedDate || a.createdDate).getTime())[0] || null;
-  }, [entries]);
-
-  // News Ticker State & Logic (unaffected)
-  const [tickerIndex, setTickerIndex] = useState(0);
-  const notices = entries.filter((e) => e.contentType === 'Notice' && e.status === 'Published');
-  const fallbackTicker = [
-    "New archaeological findings reveal previously unknown trade routes across Central Asia during the 8th century.",
-    "Leading institutions establish consortium for digital preservation of endangered linguistic archives.",
-    "Study examines long-term effects of historical documentation practices on contemporary scholarship."
-  ];
-  const tickerItems = notices.length > 0
-    ? notices.map(n => `${n.title} - ${n.excerpt || n.content.substring(0, 100)}`)
-    : fallbackTicker;
-
-  useEffect(() => {
-    if (tickerItems.length <= 1) return;
-    const interval = setInterval(() => {
-      setTickerIndex((prev) => (prev + 1) % tickerItems.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [tickerItems.length]);
-
-  // Curation permissions
-  const canCurate = currentUser && (
-    currentUser.role === 'Chief Editor' || 
-    currentUser.role === 'Editor' || 
-    currentUser.role === 'Admin'
-  );
-
-  // Institutional Notice Board
-  const noticeBoardText = notices.length > 0
-    ? `${notices[0].title}: ${notices[0].excerpt || notices[0].content.substring(0, 150)}`
-    : "Adjung will begin accepting applications for the 2027 Fellowship Programme in September. Details will be published in the Directory.";
-
+  // Blok era mockDb dibuang (2026-08-07, Tier 3.3 audit inventori) — dahulu di sini juga
+  // `getInitials`/`estimateReadingTime` (pembantu untuk "Elena Vasquez"/anggaran masa bacaan
+  // blok mockDb di bawah), kedua-duanya turut sifar rujukan lain selepas blok itu dibuang.
+  // Yang tinggal:
+  // activeFeatured/featuredAuthorName/featuredAuthorSig/dbEditorNote/tickerIndex/notices/
+  // fallbackTicker/tickerItems/canCurate/noticeBoardText, kesemuanya dikira daripada prop
+  // `entries` (skema `Entry[]` lama, BUKAN `editorial_objects`/`editorial_revisions` yang
+  // sistem sebenar pakai sekarang). Disahkan MATI: `GET /api/db-state` sentiasa pulangkan
+  // `entries: []` kod keras (core/routes/dbStateRoutes.js) — tatasusunan kosong tapi TRUTHY
+  // dalam JS, jadi `entries` di App.tsx sentiasa `[]`, tak pernah fallback ke data palsu
+  // mockDb.ts pun. Kesan sebenar: `activeFeatured` sentiasa jatuh ke objek statik "Elena
+  // Vasquez"/"Alexandria" berkod keras, `notices`/`tickerItems`/`canCurate`/`noticeBoardText`
+  // sentiasa kosong/lalai — DAN tiada satu pun daripada nilai ni pernah dirujuk dalam JSX di
+  // bawah (disahkan grep sifar rujukan selain deklarasi sendiri). `setInterval` 4 saat yang
+  // tak pernah nampak kesan pun turut terbuang bersama.
 
   return (
     // JenisAnimasiContext.Provider (Fasa 7, 2026-08-04) — bekalkan jenisAnimasi (Tetapan Am Slot)
