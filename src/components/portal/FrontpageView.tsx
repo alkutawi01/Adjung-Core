@@ -146,10 +146,22 @@ const formatSiaranDate = (iso?: string): string => {
 // Tarikh sumber/asal dipaparkan PERSIS seperti ditaip (cth "1980", "20 Julai 2026") — tidak
 // dihurai semula sebagai Date, supaya tarikh separa/tahun sahaja (rujukan lama/tesis) tidak
 // hilang atau jadi "Invalid Date". "Tidak dinyatakan"/kosong terus disembunyikan.
+//
+// KECUALI corak ISO yyyy-mm-dd (2026-08-07, pepijat PRODUCTION sebenar Izzat — kad RTM papar
+// "2026-08-07" mentah, bukan "7 Ogo 2026") — medan "Tarikh sumber" di SlotManagerModal.tsx kini
+// <input type="date">, jadi nilai BAHARU sentiasa ISO, bukan lagi teks bebas macam sebelum ni.
+// Fungsi ni dipakai di ~30 tempat merentasi SEMUA kad bento (bukan cuma Focus View, yang sudah
+// dibetulkan berasingan di formatTarikhSumberPanjang) — tanpa pengecualian ni, SETIAP kad yang
+// tarikh sumbernya diisi guna kalendar baharu akan papar ISO mentah selama-lamanya.
 const getDisplayDate = (raw?: string): string => {
   if (!raw) return '';
   const trimmed = raw.trim();
   if (!trimmed || trimmed.toLowerCase() === 'tidak dinyatakan') return '';
+  const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d.toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
   return trimmed;
 };
 
