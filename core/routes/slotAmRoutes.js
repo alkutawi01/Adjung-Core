@@ -1,6 +1,6 @@
 import express from 'express';
 import { setMedanLimits } from '../editorial/ContentBudget.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
@@ -141,7 +141,9 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
     }
   });
 
-  router.post('/slot-am-settings', requireAuth, async (req, res) => {
+  // Tetapan Am Slot mengawal had medan, animasi dan panel transisi SEMUA slot sekali gus —
+  // kawalan editorial, jadi digerbang sama seperti Tetapan Tier.
+  router.post('/slot-am-settings', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const b = req.body || {};
       const nombor = (nilai, nama) => {

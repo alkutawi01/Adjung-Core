@@ -1,5 +1,6 @@
 import express from 'express';
 import { logAudit } from '../audit/AuditLog.js';
+import { requirePermission } from '../middleware/auth.js';
 
 export function createTranslationRoutes(dbAll, dbRun) {
   const router = express.Router();
@@ -34,7 +35,9 @@ export function createTranslationRoutes(dbAll, dbRun) {
   });
 
   // POST /api/translation/configs
-  router.post('/configs', async (req, res) => {
+  // Konfigurasi terjemahan ialah tetapan sistem (pembekal AI, bahasa aktif) — selaras dengan
+  // laluan kembar /api/ai yang sudah digerbang manageSettings.
+  router.post('/configs', requirePermission('manageSettings'), async (req, res) => {
     try {
       const list = req.body;
       for (const item of list) {
@@ -58,7 +61,7 @@ export function createTranslationRoutes(dbAll, dbRun) {
   });
 
   // DELETE /api/translation/configs/:code
-  router.delete('/configs/:code', async (req, res) => {
+  router.delete('/configs/:code', requirePermission('manageSettings'), async (req, res) => {
     try {
       const { code } = req.params;
       const hasil = await dbRun("DELETE FROM translation_configs WHERE languageCode = ?", [code]);
