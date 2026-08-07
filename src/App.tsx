@@ -7,6 +7,7 @@ import { muatPindaanTier } from './config/tierOverrides';
 import { muatPindaanLabel } from './config/labelOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { AmaranSambungan } from './components/common/AmaranSambungan';
 import { PERISTIWA_SESI_TAMAT } from './utils/pemintasSesi';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route, useParams, useLocation } from 'react-router-dom';
@@ -248,19 +249,7 @@ export default function App() {
               className="min-h-screen bg-[#FDFDFD]"
             >
               {dbConnectionError && (
-                <div role="alert" className="bg-red-700 text-white text-xs px-4 py-2.5 flex items-center justify-between shadow-md font-sans">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold tracking-wide uppercase bg-red-900 px-2 py-0.5 rounded">Amaran Sambungan</span>
-                    <span>Gagal menyambung ke pangkalan data SQLite (server.js). Mod Data Sementara Aktif — sebarang suntingan tidak akan disimpan ke database.</span>
-                  </div>
-                  <button
-                    onClick={fetchDbState}
-                    disabled={retryingDb}
-                    className="bg-white text-red-900 hover:bg-red-50 font-semibold px-3 py-1 rounded transition-colors text-xs disabled:opacity-50"
-                  >
-                    {retryingDb ? 'Menyemak...' : 'Cuba Semula Sambungan'}
-                  </button>
-                </div>
+                <AmaranSambungan sedangMenyemak={retryingDb} onCubaSemula={fetchDbState} />
               )}
               <main className="max-w-6xl w-full mx-auto">
                 <FrontpageView
@@ -302,19 +291,7 @@ export default function App() {
                   className="min-h-screen bg-[#FDFDFD]"
                 >
                   {dbConnectionError && (
-                    <div role="alert" className="bg-red-700 text-white text-xs px-4 py-2.5 flex items-center justify-between shadow-md font-sans">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold tracking-wide uppercase bg-red-900 px-2 py-0.5 rounded">Amaran Sambungan</span>
-                        <span>Gagal menyambung ke pangkalan data SQLite (server.js). Mod Data Sementara Aktif — sebarang suntingan tidak akan disimpan ke database.</span>
-                      </div>
-                      <button
-                        onClick={fetchDbState}
-                        disabled={retryingDb}
-                        className="bg-white text-red-900 hover:bg-red-50 font-semibold px-3 py-1 rounded transition-colors text-xs disabled:opacity-50"
-                      >
-                        {retryingDb ? 'Menyemak...' : 'Cuba Semula Sambungan'}
-                      </button>
-                    </div>
+                    <AmaranSambungan sedangMenyemak={retryingDb} onCubaSemula={fetchDbState} />
                   )}
                   <main className="max-w-6xl w-full mx-auto">
                     <FrontpageView
