@@ -56,21 +56,23 @@ const EDITOR_PLACEHOLDER = '—';
 // Assembles a copy-pasteable prompt for an external AI chatbox — same source fields used
 // elsewhere in this modal for the "Arahan AI" tab.
 function buildAiPrompt(fc: any, ceiling: { maxTitle: number; maxBrief: number; maxBriefLong: number }, hadTopik: number) {
+  const desk = fc.manualDesk || '';
   const lines = [
+    '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
     '[Peraturan am — sistem/global]', fc.masterPrompt || '-', '',
     '[Arahan khas — slot ini]', fc.promptText || '-', '',
     '[Had aksara]',
+    `Topik: maksimum ${hadTopik} aksara`,
     `Tajuk: maksimum ${ceiling.maxTitle} aksara`,
     `Huraian ringkas: maksimum ${ceiling.maxBrief} aksara`,
-    `Huraian panjang: minimum ${MIN_BRIEF_LONG_CHARS}, maksimum ${ceiling.maxBriefLong} aksara`,
-    `Topik: maksimum ${hadTopik} aksara`, '',
+    `Huraian panjang: minimum ${MIN_BRIEF_LONG_CHARS}, maksimum ${ceiling.maxBriefLong} aksara`, '',
     `[Had usia sumber]: ${fc.aiPromptRecency || '-'}`,
     `[Bahasa sumber]: ${fc.aiPromptLanguage || '-'}`,
     `[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`,
     `[Jumlah kandungan]: ${fc.generationLimit || 1}`,
     `[Mod janaan]: ${GEN_MODE_LABEL[fc.genMode] || fc.genMode || 'Bebas'}`, '',
     'Berikan output dalam format berikut sahaja, satu blok bagi setiap kandungan, dipisahkan dengan baris "____":',
-    'Tajuk:', 'Topik:', 'Huraian ringkas:', 'Huraian panjang:', 'Sumber:', 'URL:', 'Tarikh sumber:',
+    'Topik:', 'Tajuk:', 'Huraian ringkas:', 'Huraian panjang:', 'Sumber:', 'URL:', 'Tarikh sumber:',
   ];
   return lines.join('\n');
 }
@@ -1015,10 +1017,10 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <div>
                   <span className={labelCls}>Had aksara</span>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                    <ReadOnlyField label="a. Tajuk" value={String(ceiling.maxTitle)} />
-                    <ReadOnlyField label="b. Huraian ringkas" value={ceiling.maxBrief > 0 ? String(ceiling.maxBrief) : 'Tiada'} />
-                    <ReadOnlyField label="c. Huraian panjang" value={ceiling.maxBrief > 0 ? String(ceiling.maxBriefLong) : 'Tiada'} />
-                    <ReadOnlyField label="d. Topik" value={String(hadTopik)} />
+                    <ReadOnlyField label="a. Topik" value={String(hadTopik)} />
+                    <ReadOnlyField label="b. Tajuk" value={String(ceiling.maxTitle)} />
+                    <ReadOnlyField label="c. Huraian ringkas" value={ceiling.maxBrief > 0 ? String(ceiling.maxBrief) : 'Tiada'} />
+                    <ReadOnlyField label="d. Huraian panjang" value={ceiling.maxBrief > 0 ? String(ceiling.maxBriefLong) : 'Tiada'} />
                   </div>
                 </div>
 
@@ -1030,13 +1032,13 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   <span className="font-sans text-[9px] text-stone-400">Ditetapkan oleh Ketua Editor di Editorium · auto</span>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <span className={labelCls}>Arahan khas (slot ini) <span className="font-sans normal-case tracking-normal text-stone-400">· auto</span></span>
-                  <div className="font-serif text-[13px] leading-relaxed text-stone-500 bg-stone-50 rounded p-3">
-                    {formConfig.promptText || <span className="text-stone-400">Tiada arahan ditetapkan</span>}
-                  </div>
-                  <span className="font-sans text-[9px] text-stone-400">Ditetapkan oleh Ketua Editor — tidak boleh diubah suai di modal dialog ini.</span>
-                </div>
+                <Field
+                  label="Arahan khas (slot ini)" rows={3}
+                  value={formConfig.promptText || ''}
+                  placeholder="Cth. Fokus kepada pandangan pakar tempatan, elak sumber pendapat semata-mata…"
+                  onChange={(v) => setFormConfig((prev: any) => ({ ...prev, promptText: v }))}
+                  hint="disimpan bersama slot ini"
+                />
 
                 <div className="grid grid-cols-2 gap-5">
                   <Field label="Had usia sumber" value={formConfig.aiPromptRecency || ''} placeholder="Cth. 24 jam, 1 minggu" onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRecency: v }))} />
