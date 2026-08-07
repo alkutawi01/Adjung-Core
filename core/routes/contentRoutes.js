@@ -1111,7 +1111,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   });
 
   // DELETE /api/system/content/:id
-  router.delete('/content/:id', requireAuth, async (req, res) => {
+  // Dikunci sama seperti PATCH (2026-08-07, Pelan 02 #8): cabang ticker di bawah membuat
+  // baca-ubah-tulis pada satu medan teks `system_settings.inTheNewsText`, jadi dua permintaan
+  // serentak boleh menimpa satu sama lain dan item ticker hilang senyap.
+  router.delete('/content/:id', requireAuth, (req, res) => denganKunciKandungan(async () => {
     try {
       const { id } = req.params;
 
@@ -1162,10 +1165,13 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       console.error('Delete content item error:', err);
       res.status(500).json({ error: 'Gagal memadam kandungan. ' + (err.message || '') });
     }
-  });
+  }));
 
   // POST /api/system/content
-  router.post('/content', requireAuth, async (req, res) => {
+  // Dikunci sama seperti PATCH/DELETE (2026-08-07, Pelan 02 #8): cabang ticker menulis semula
+  // keseluruhan `inTheNewsText`, dan semakan hadKandunganSlot di bawah pula membaca kiraan
+  // sebelum menulis — kedua-duanya perlumbaan baca-ubah-tulis.
+  router.post('/content', requireAuth, (req, res) => denganKunciKandungan(async () => {
     try {
       const { slotIndex, title, summary, desk, source, url, imageUrl, topik } = req.body;
       if (slotIndex === undefined || slotIndex === null) {
@@ -1308,7 +1314,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       console.error('Create content item error:', err);
       res.status(500).json({ error: 'Gagal mencipta kandungan. ' + (err.message || '') });
     }
-  });
+  }));
 
   // (2026-08-06, audit "kegagalan senyap") Blok PENDUA GET /content/:id/revisions +
   // POST .../restore dibuang dari sini. Ia didaftar kali KEDUA selepas versi bergerbang di
