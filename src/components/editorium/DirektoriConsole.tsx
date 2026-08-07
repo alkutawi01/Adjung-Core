@@ -453,8 +453,18 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
     }
   };
 
+  // Pengesan backdrop (2026-08-07) — modal ni TERTINGGAL semasa pembetulan kelas pepijat
+  // "modal tertutup sendiri semasa drag-select teks" dibuat pada semua modal lain. Tanpa pengesan
+  // mousedown, drag-select dalam medan emel/nama yang berakhir di luar sempadan modal akan
+  // menutupnya dan membuang apa yang sudah ditaip. Lihat LoginModal.tsx untuk nota penuh.
+  const mousedownPadaBackdrop = React.useRef(false);
+
   return (
-    <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={onTutup}>
+    <div
+      className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={(e) => { mousedownPadaBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
+    >
       <form onSubmit={hantar} onClick={e => e.stopPropagation()} className="bg-white rounded-lg shadow-xl border border-stone-300 max-w-sm w-full p-6 space-y-4 text-xs font-sans">
         <div className="flex justify-between items-center border-b border-stone-200 pb-2">
           <h3 className="font-serif text-lg font-bold text-Adjung-maroon">Tambah Anggota</h3>

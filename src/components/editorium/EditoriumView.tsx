@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Radio, X } from 'lucide-react';
 import { BRAND } from '../../config/brand';
 import { EditoriumLayout } from './EditoriumLayout';
+import { ModulTajuk } from '../common/ModulTajuk';
+import { PanelCard } from '../common/PanelCard';
+import { Button } from '../common/Button';
 import { IndeksConsole } from './IndeksConsole';
 import { DrafSayaConsole } from './DrafSayaConsole';
 import { DashboardConsole } from './DashboardConsole';
@@ -419,15 +422,20 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         />
       )}
 
+      {/* Modul Khas dirender TERUS di sini (bukan fail *Console.tsx tersendiri) — sebab itulah ia
+          terlepas daripada audit reka bentuk 2026-08-07 yang mengimbas fail Console sahaja, lalu
+          tertinggal dengan tajuk sans-xs lama sedangkan 15 modul lain sudah bertukar. Kini ia
+          mengikut templat modul yang SAMA (Pelan 01 Fasa C/D1). */}
       {activeTab === 'modul_khas' && (
-        <div className="bg-white p-6 rounded-lg border border-stone-200 space-y-4 font-sans">
-          <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider">Modul Khas</h3>
-          <p className="text-xs text-stone-500">
-            Jam, Ticker, dan Slot Bar ada peraturan penyuntingan tersendiri, berasingan daripada kad bento biasa.
-          </p>
+        <div className="space-y-4 font-sans">
+          <ModulTajuk
+            tajuk="Modul Khas"
+            huraian="Jam, Ticker, dan Slot Bar ada peraturan penyuntingan tersendiri, berasingan daripada kad bento biasa."
+          />
+          <PanelCard className="space-y-4">
           <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <Radio className="w-4 h-4 text-[#802334]" />
+              <Radio className="w-4 h-4 text-Adjung-maroon" />
               <div>
                 <div className="text-sm font-semibold text-stone-800">Ticker (Berita Semasa)</div>
                 <div className="text-[11px] text-stone-500">RSS, animasi, status, tetapan penyuntingan khas.</div>
@@ -436,13 +444,12 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             {/* Modal Ticker (TickerManagementModal) kini render TERUS di Editorium (2026-08-02,
                 Fasa 7) — lihat useTickerEditor.ts. Sambungan URL "?openTicker=1" lama ke
                 FrontpageView.tsx dibuang; lihat nota di FrontpageView.tsx untuk sebab kekal. */}
-            <button
-              type="button"
+            <Button
               onClick={() => tickerEditor.openTickerEditor()}
-              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0 cursor-pointer"
-            >
+              className="shrink-0"
+              >
               Urus Ticker
-            </button>
+            </Button>
           </div>
           {/* 2026-08-02 (Fasa 7) — kad ni dulu kata "Belum disambungkan ke Editorium", tapi
               tetapan Jam Dunia (selang auto-slaid, suis klik latar, status API Cuaca/Kalendar
@@ -453,13 +460,12 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               <div className="text-sm font-semibold text-stone-800">Jam Dunia</div>
               <div className="text-[11px] text-stone-500">Selang auto-slaid, suis latar, status API Cuaca &amp; Kalendar Cuti.</div>
             </div>
-            <button
-              type="button"
+            <Button
               onClick={() => { setTetapanTujuSubTab('Operasi'); setActiveTab('tetapan'); }}
-              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0 cursor-pointer"
-            >
+              className="shrink-0"
+              >
               Urus Jam Dunia
-            </button>
+            </Button>
           </div>
           {/* Slot Bar (2026-08-02, Fasa 7) — kad ni dulu kata "Belum disambungkan ke Editorium",
               tapi laluan LAMA (klik kad Bar di FrontpageView semasa isEditMode) sudah tiada
@@ -468,19 +474,18 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               dalam TIER_SLOTS.BAR); dropdown dalam modal boleh tukar ke slot Bar lain. */}
           <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <Radio className="w-4 h-4 text-[#802334]" />
+              <Radio className="w-4 h-4 text-Adjung-maroon" />
               <div>
                 <div className="text-sm font-semibold text-stone-800">Slot Bar</div>
                 <div className="text-[11px] text-stone-500">Acara/Penganjur/Lokasi/Akses/Penerangan — {TIER_SLOTS.BAR.length} slot bar.</div>
               </div>
             </div>
-            <button
-              type="button"
+            <Button
               onClick={() => barSlotEditor.openSlotEditor(Math.min(...TIER_SLOTS.BAR))}
-              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0 cursor-pointer"
-            >
+              className="shrink-0"
+              >
               Urus Slot Bar
-            </button>
+            </Button>
           </div>
           {/* Penaja (2026-08-05, Fasa 12) — tajaan bulanan, Pentadbir sahaja (keputusan
               perniagaan/penempatan, bukan editorial harian — kunci manageSettings sama macam
@@ -492,14 +497,14 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               <div className="text-sm font-semibold text-stone-800">Penaja</div>
               <div className="text-[11px] text-stone-500">Tajaan bulanan — footer & halaman /penaja awam.</div>
             </div>
-            <button
-              type="button"
+            <Button
               onClick={() => setActiveTab('penaja')}
-              className="px-3 py-1.5 bg-[#802334] text-white rounded text-xs font-semibold hover:bg-[#6a1c2a] transition-colors shrink-0 cursor-pointer"
-            >
+              className="shrink-0"
+              >
               Urus Penaja
-            </button>
+            </Button>
           </div>
+          </PanelCard>
         </div>
       )}
 

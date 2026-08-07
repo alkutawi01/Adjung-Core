@@ -70,8 +70,11 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
   const muatDraf = useCallback(() => {
     setMemuat(true);
     setRalat('');
-    const q = new URLSearchParams({ penulis: editorName || '', editorId: editorId || '' });
-    fetch(`/api/system/drafts?${q.toString()}`)
+    // Identiti TIDAK lagi dihantar dari klien (2026-08-07, Pelan 02 #7) — server menerbitkannya
+    // daripada sesi (req.session.user). Dahulu `penulis`/`editorId` dihantar sebagai parameter
+    // query, jadi mana-mana akaun log masuk boleh membaca draf peribadi orang lain sekadar dengan
+    // menukar nilai tu. Server kini mengabaikan parameter tersebut; menghantarnya cuma mengelirukan.
+    fetch('/api/system/drafts')
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Gagal membaca senarai draf.');
@@ -80,6 +83,9 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
       .then((data) => setDraf(Array.isArray(data) ? data : []))
       .catch((e) => setRalat(e.message || 'Gagal membaca senarai draf.'))
       .finally(() => setMemuat(false));
+    // `editorId`/`editorName` dikekalkan sebagai kebergantungan (bukan dihantar ke server lagi) —
+    // ia pencetus muat semula apabila identiti sesi bertukar, cth log keluar lalu log masuk akaun
+    // lain tanpa muat semula halaman: senarai draf mesti berubah kepada milik pengguna baharu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorId, editorName, versi]);
 
