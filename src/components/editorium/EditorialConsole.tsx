@@ -8,6 +8,8 @@ import { PanelCard } from '../common/PanelCard';
 import { SectionLabel } from '../common/SectionLabel';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { FormColumn } from '../common/FormColumn';
+import { EditorDialog } from '../common/EditorDialog';
 import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
@@ -101,6 +103,9 @@ export const EditorialConsole: React.FC = () => {
   const [gMaksud, setGMaksud] = useState('');
   const [ralatGlosari, setRalatGlosari] = useState('');
   const [menghantarGlosari, setMenghantarGlosari] = useState(false);
+  // Borang "tambah istilah" dalam dialog, bukan terpampang kekal (2026-08-07, arahan Izzat —
+  // senarai yang utama; borang muncul hanya semasa mencipta).
+  const [dialogGlosari, setDialogGlosari] = useState(false);
   const [confirmBuangGlosari, setConfirmBuangGlosari] = useState('');
 
   const muatGlosari = useCallback(() => {
@@ -126,6 +131,7 @@ export const EditorialConsole: React.FC = () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan istilah.');
       setGIstilah(''); setGMaksud('');
+      setDialogGlosari(false);
       muatGlosari();
     } catch (err: any) {
       setRalatGlosari(err.message || 'Gagal menyimpan istilah.');
@@ -264,7 +270,7 @@ export const EditorialConsole: React.FC = () => {
     <div className="space-y-4 font-sans">
       <ModulTajuk
         tajuk="Editorial"
-        huraian="Peraturan bahasa dan templat penjanaan AI: istilah autocondong, glosari rujukan, penyelarasan ejaan, dan templat prompt."
+        huraian="Peraturan bahasa dan templat penjanaan AI: istilah autocondong, glosari pembaca, penyelarasan ejaan, dan templat prompt."
       />
 
       <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs">
@@ -371,55 +377,77 @@ export const EditorialConsole: React.FC = () => {
       {/* 2. GLOSARI */}
       {subTab === 'glosari' && (
         <div className="space-y-4">
-          <PanelCard>
-          <form onSubmit={tambahGlosari} className="space-y-4 text-xs">
-            <div>
-              <SectionLabel>02 — Glosari</SectionLabel>
-              <p className="text-stone-500 text-xs">
-                Istilah dan maksudnya, dipaparkan kepada pembaca. Kali pertama sesuatu istilah
-                muncul dalam tajuk atau huraian sebuah artikel, istilah itu digaris putus-putus dan
-                maksudnya dipaparkan sebagai tooltip apabila dihover. Untuk bentuk ejaan yang betul
-                berbanding bentuk yang dielakkan, gunakan tab{' '}
-                <strong className="font-semibold">Penyelarasan Ejaan</strong>.
-              </p>
-            </div>
+          {dialogGlosari && (
+            <EditorDialog
+              tajuk="Tambah Istilah Glosari"
+              onTutup={() => { setDialogGlosari(false); setRalatGlosari(''); }}
+              saiz="lg"
+              tindakan={
+                <>
+                  <Button variant="secondary" onClick={() => { setDialogGlosari(false); setRalatGlosari(''); }}>
+                    Batal
+                  </Button>
+                  {/* `form=` menyambung butang di kaki dialog kepada borang di dalam `children` —
+                      EditorDialog merender tindakan sebagai ADIK-BERADIK kepada children, jadi
+                      butang ni berada di luar <form> dan tidak boleh menghantarnya secara tersirat. */}
+                  <Button
+                    type="submit" form="borang-glosari" variant="primary"
+                    disabled={menghantarGlosari || !gIstilah.trim() || !gMaksud.trim()}
+                  >
+                    {menghantarGlosari ? 'Menambah…' : 'Tambah'}
+                  </Button>
+                </>
+              }
+            >
+              <form id="borang-glosari" onSubmit={tambahGlosari} className="space-y-4">
+                {/* Istilah lebih sempit daripada lajur borang — ia satu perkataan, bukan ayat.
+                    Medan yang kelihatan sepanjang textarea di bawahnya memberi isyarat salah
+                    tentang berapa panjang yang dijangka. */}
+                <FormColumn saiz="sm">
+                  <label className="block">
+                    <span className={LABEL_BORANG}>Istilah</span>
+                    <input
+                      type="text" value={gIstilah} onChange={(e) => setGIstilah(e.target.value)}
+                      placeholder="contoh: Bidang"
+                      className={INPUT_BORANG}
+                    />
+                  </label>
+                </FormColumn>
 
-            <label className="block">
-              <span className={LABEL_BORANG}>Istilah</span>
-              <input
-                type="text" value={gIstilah} onChange={(e) => setGIstilah(e.target.value)}
-                placeholder="contoh: Bidang"
-                className={INPUT_BORANG}
-              />
-            </label>
+                {/* Maksud WAJIB (2026-08-07) — dahulu dilabel "(pilihan)", tetapi sejak Glosari
+                    bertukar menjadi tooltip pembaca, binaPetaGlosari() (src/components/common/
+                    IstilahGlosari.tsx) MELANGKAU terus mana-mana entri tanpa maksud. Entri tanpa
+                    maksud tidak melakukan apa-apa langsung — data mati. */}
+                <label className="block">
+                  <span className={LABEL_BORANG}>Maksud</span>
+                  <textarea
+                    value={gMaksud} onChange={(e) => setGMaksud(e.target.value)} rows={3}
+                    placeholder="Penjelasan ringkas untuk pembaca…"
+                    className={`${INPUT_BORANG} resize-y`}
+                  />
+                </label>
 
-            {/* Maksud WAJIB (2026-08-07) — dahulu dilabel "(pilihan)", tetapi sejak Glosari
-                bertukar menjadi tooltip pembaca, binaPetaGlosari() (src/components/common/
-                IstilahGlosari.tsx) MELANGKAU terus mana-mana entri tanpa maksud. Entri tanpa
-                maksud tidak melakukan apa-apa langsung — data mati. Jadual `glosari_istilah`
-                hanya wujud untuk tooltip pembaca; bentuk ejaan betul/dielakkan ada jadualnya
-                sendiri (`ejaan_piawai`, tab Penyelarasan Ejaan). */}
-            <label className="block">
-              <span className={LABEL_BORANG}>Maksud</span>
-              <textarea
-                value={gMaksud} onChange={(e) => setGMaksud(e.target.value)} rows={2}
-                placeholder="Penjelasan ringkas untuk pembaca…"
-                className={`${INPUT_BORANG} resize-y`}
-              />
-            </label>
-
-            {ralatGlosari && <MesejStatus tone="error">{ralatGlosari}</MesejStatus>}
-
-            <div className="flex justify-end">
-              <Button type="submit" variant="primary" size="md" disabled={menghantarGlosari || !gIstilah.trim() || !gMaksud.trim()}>
-                {menghantarGlosari ? 'Menambah…' : '+ Tambah ke Glosari'}
-              </Button>
-            </div>
-          </form>
-          </PanelCard>
+                {ralatGlosari && <MesejStatus tone="error">{ralatGlosari}</MesejStatus>}
+              </form>
+            </EditorDialog>
+          )}
 
           <PanelCard className="space-y-3 text-xs">
-            <SectionLabel>03 — Senarai Glosari ({glosari.length})</SectionLabel>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <SectionLabel>02 — Glosari ({glosari.length})</SectionLabel>
+                <p className="text-stone-500 text-xs max-w-[680px]">
+                  Istilah dan maksudnya, dipaparkan kepada pembaca. Kali pertama sesuatu istilah
+                  muncul dalam tajuk atau huraian sebuah artikel, istilah itu digaris putus-putus
+                  dan maksudnya dipaparkan sebagai tooltip apabila dihover. Untuk bentuk ejaan yang
+                  betul berbanding bentuk yang dielakkan, gunakan tab{' '}
+                  <strong className="font-semibold">Penyelarasan Ejaan</strong>.
+                </p>
+              </div>
+              <Button variant="primary" onClick={() => setDialogGlosari(true)} className="shrink-0">
+                + Tambah Istilah
+              </Button>
+            </div>
             {memuatGlosari ? (
               <p className="text-stone-400 py-6 text-center">Memuatkan glosari…</p>
             ) : glosari.length === 0 ? (
@@ -489,9 +517,9 @@ export const EditorialConsole: React.FC = () => {
             <div>
               <SectionLabel>04 — Penyelarasan Ejaan</SectionLabel>
               <p className="text-stone-500 text-xs">
-                Senarai rujukan bentuk ejaan yang betul berbanding bentuk yang kerap tersilap tulis/dielakkan.
-                Ia rujukan pasif untuk editor — sistem tidak sesekali menulis-ganti kandungan sedia ada
-                berdasarkan senarai ni.
+                Bentuk ejaan yang betul berbanding bentuk yang kerap tersilap tulis. Berbeza
+                daripada <strong className="font-semibold">Glosari</strong>, senarai ini rujukan
+                dalaman untuk editor sahaja — ia tidak dipaparkan kepada pembaca.
               </p>
             </div>
 
