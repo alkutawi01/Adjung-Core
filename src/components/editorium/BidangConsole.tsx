@@ -254,8 +254,8 @@ export const BidangConsole: React.FC = () => {
   return (
     <div className="space-y-6 font-sans">
       <ModulTajuk
-        tajuk="Bidang (Senarai Tertutup)"
-        huraian="Senarai Bidang yang boleh dipilih untuk setiap slot (selain Ticker dan tier Bar) — dikurasi Ketua Editor sahaja. Menukar Bidang sesuatu slot akan mengarkibkan kandungan aktif sedia ada dalam slot tu."
+        tajuk="Bidang"
+        huraian="Bidang bagi setiap slot (kecuali Ticker dan Slot Bar) hanya boleh dipilih oleh Ketua Editor. Menukar Bidang sesuatu slot akan mengarkibkan kandungan aktif dalam slot tersebut."
         tindakan={
           <>
             <span className="font-sans text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded font-semibold flex items-center gap-1.5">
@@ -554,7 +554,7 @@ export const BidangConsole: React.FC = () => {
                                   ditukar kepada status <em>archived</em>. Ia tidak dipadam, tetapi tidak lagi terpapar.
                                 </>
                               ) : (
-                                <>Tiada kandungan aktif dalam slot yang terjejas — tiada apa akan diarkibkan.</>
+                                <>Tiada kandungan aktif dalam slot yang terjejas dan tiada kandungan yang akan diarkibkan.</>
                               )}
                             </p>
 
@@ -1052,7 +1052,7 @@ function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerj
         <div className="space-y-3 font-sans">
           <div>
             <label className={LABEL_BORANG}>Nama Bidang</label>
-            <input type="text" placeholder="Astronomi" value={newDeskName} onChange={e => setNewDeskName(e.target.value)} className={INPUT_BORANG} />
+            <input type="text" placeholder="Contoh: Astronomi" value={newDeskName} onChange={e => setNewDeskName(e.target.value)} className={INPUT_BORANG} />
           </div>
           <div>
             <label className={LABEL_BORANG}>Warna Bidang (Hex)</label>
@@ -1154,7 +1154,7 @@ function StrategiWarnaModal({
         <div className="space-y-4 font-sans">
           <div className="space-y-2 border-b border-stone-200 pb-4">
             <p className="font-semibold text-stone-800">Selaraskan ke SATU warna</p>
-            <p className="text-stone-500">Semua Bidang aktif ({jumlahAktif}) akan guna warna yang sama ini.</p>
+            <p className="text-stone-500">Semua Bidang aktif ({jumlahAktif}) akan menggunakan warna yang dipilih.</p>
             <div className="flex items-center gap-2">
               <input type="color" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className="w-9 h-8 shrink-0 rounded border border-stone-300 cursor-pointer p-0.5 bg-stone-50" />
               <input type="text" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className={`${INPUT_BORANG} font-mono font-bold`} />
@@ -1167,9 +1167,8 @@ function StrategiWarnaModal({
           <div className="space-y-2">
             <p className="font-semibold text-stone-800">Pelbagaikan semula</p>
             <p className="text-stone-500">
-              Bidang yang berkongsi warna sama diagihkan warna baharu berbeza dari palet — Bidang
-              paling lama dalam setiap kumpulan kekal dengan warna asalnya, Bidang yang warnanya
-              sudah unik langsung tak diusik.
+              Bidang yang berkongsi warna yang sama akan diberikan warna baharu daripada palet
+              sistem. Bidang yang sudah mempunyai warna unik tidak akan diubah.
             </p>
             <Button variant="secondary" onClick={pelbagaikanWarna} disabled={memprosesWarna !== null}>
               {memprosesWarna === 'diversify' ? 'Memproses...' : 'Pelbagaikan Semula'}

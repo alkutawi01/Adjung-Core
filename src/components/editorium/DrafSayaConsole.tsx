@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, AlignLeft } from 'lucide-react';
+import { Check, AlignLeft, RefreshCw } from 'lucide-react';
 import { TIER_LABELS, tierForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
 import { BidangIcon } from '../common/BidangIcon';
@@ -131,8 +131,14 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
     <div className="space-y-4 font-sans">
       <ModulTajuk
         tajuk="Draf Saya"
-        huraian="Semua draf yang belum diterbitkan, dikumpulkan daripada setiap slot. Klik satu baris untuk menyambung menulis."
-        tindakan={<Button variant="secondary" onClick={muatDraf}>Muat Semula</Button>}
+        huraian="Semua draf yang belum diterbitkan, dikumpulkan daripada setiap slot. Klik satu baris untuk sambung menulis."
+        tindakan={
+          <Tooltip text="Muat semula">
+            <span className="inline-flex shrink-0">
+              <Button variant="secondary" onClick={muatDraf} aria-label="Muat semula" icon={<RefreshCw className="w-3.5 h-3.5" />} />
+            </span>
+          </Tooltip>
+        }
       />
 
       <PanelCard className="space-y-4 text-xs">

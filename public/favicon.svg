@@ -1,4 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#802334"/>
-  <rect x="12" y="8" width="8" height="16" fill="#FFFFFF"/>
+<!-- Favicon Adjung (2026-08-07, permintaan Izzat — "inverted. Logo empat segi berwarna marun,
+     background transparent. Jika tab berwarna gelap, logo empat segi berwarna putih, background
+     transparent.") — Simbol Adjung rasmi (segi empat tegak, nisbah 1:2, sudut 0px, Sistem
+     Identiti Visual Adjung v1.0, lihat adjung-symbol.svg) terus di sini, BUKAN kotak bulat
+     berlatar marun + palang putih macam sebelum ni (versi lama terbalik: latar PEKAT, simbol
+     lubang). Latar SVG lalai lutsinar (tiada rect latar langsung) — @media prefers-color-scheme
+     tukar warna simbol sahaja (marun terang / putih gelap), disokong pelayar moden terus dalam
+     <link rel="icon"> tanpa JS. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 80">
+  <style>
+    rect { fill: #802334; }
+    @media (prefers-color-scheme: dark) {
+      rect { fill: #FDFDFD; }
+    }
+  </style>
+  <rect width="40" height="80"/>
 </svg>

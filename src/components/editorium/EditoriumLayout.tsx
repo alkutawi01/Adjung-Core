@@ -424,27 +424,25 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           {/* Butang semat — hanya bermakna (dan hanya kelihatan) bila sidebar sedang terbuka;
               bila terlipat rel ikon 72px tiada ruang untuk label, dan editor perlu bukanya dahulu
               untuk faham apa yang disemat. Ikon sahaja (2026-08-07, Izzat: "hapuskan perkataan
-              tu, guna icon sahaja") — label penuh dipindah ke Tooltip (juga memenuhi keperluan
-              nama boleh capai papan kekunci, bukan cuma hover tetikus). Bulatan ikon kecil
-              dipusatkan (bukan lagi kotak bersempadan lebar penuh, sisa gaya lama era butang
-              berlabel — nampak janggal/kosong bila cuma ikon kecil tinggal di tengahnya,
-              ditangkap Izzat "kenapa mesti ada kotak?"). */}
+              tu, guna icon sahaja") — Tooltip hover dibuang semula (2026-08-07, Izzat: "sudah
+              difahami") — ikon pin/pin-off sendiri dianggap cukup jelas tanpa penjelasan hover;
+              aria-label kekal untuk pembaca skrin (keperluan nama boleh capai, bukan label
+              paparan). Bulatan ikon kecil dipusatkan (bukan kotak bersempadan lebar penuh, sisa
+              gaya lama era butang berlabel). */}
           {sidebarTerbuka && (
-            <Tooltip text={disemat ? 'Nyahsemat sidebar' : 'Sematkan sidebar'}>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); togolSemat(); }}
-                aria-pressed={disemat}
-                aria-label={disemat ? 'Nyahsemat sidebar' : 'Sematkan sidebar'}
-                className={`shrink-0 mx-auto flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
-                  disemat
-                    ? 'text-Adjung-maroon bg-Adjung-maroon/[0.08]'
-                    : 'text-stone-500 hover:text-stone-800 hover:bg-black/[0.04]'
-                }`}
-              >
-                {disemat ? <PinOff className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} /> : <Pin className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} />}
-              </button>
-            </Tooltip>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); togolSemat(); }}
+              aria-pressed={disemat}
+              aria-label={disemat ? 'Nyahsemat sidebar' : 'Sematkan sidebar'}
+              className={`shrink-0 mx-auto flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
+                disemat
+                  ? 'text-Adjung-maroon bg-Adjung-maroon/[0.08]'
+                  : 'text-stone-500 hover:text-stone-800 hover:bg-black/[0.04]'
+              }`}
+            >
+              {disemat ? <PinOff className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} /> : <Pin className="w-3.5 h-3.5 shrink-0" strokeWidth={2.2} />}
+            </button>
           )}
         </aside>
 
