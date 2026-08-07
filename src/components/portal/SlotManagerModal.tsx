@@ -96,8 +96,12 @@ export function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: n
   const usedTitle = ceiling.maxTitle ? title.length / ceiling.maxTitle : 0;
   const usedBrief = ceiling.maxBrief ? brief.length / ceiling.maxBrief : 0;
   const used = usedTitle + usedBrief;
-  const remainingBrief = ceiling.maxTitle ? Math.max(0, Math.round((1 - title.length / ceiling.maxTitle) * ceiling.maxBrief)) : ceiling.maxBrief;
-  const remainingTitle = ceiling.maxBrief ? Math.max(0, Math.round((1 - brief.length / ceiling.maxBrief) * ceiling.maxTitle)) : ceiling.maxTitle;
+  // Math.floor (BUKAN Math.round) — round-KE-ATAS boleh papar "baki N aksara" yang sebenarnya
+  // SATU aksara lebih daripada had sebenar (ditemui semasa ujian 2026-08-07 pada slider serupa di
+  // buildAiPrompt), editor taip sampai angka yang dipaparkan lalu ditolak validateContentBudget
+  // walaupun ikut meter ni betul-betul. floor jamin baki yang dipapar SENTIASA selamat ditaip penuh.
+  const remainingBrief = ceiling.maxTitle ? Math.max(0, Math.floor((1 - title.length / ceiling.maxTitle) * ceiling.maxBrief)) : ceiling.maxBrief;
+  const remainingTitle = ceiling.maxBrief ? Math.max(0, Math.floor((1 - brief.length / ceiling.maxBrief) * ceiling.maxTitle)) : ceiling.maxTitle;
   const tone = !check.isValid ? 'text-[#a8241f]' : used > 0.9 ? 'text-amber-700' : 'text-emerald-700';
   const barTone = !check.isValid ? 'bg-[#a8241f]' : used > 0.9 ? 'bg-amber-600' : 'bg-emerald-600';
   return (
@@ -346,7 +350,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // lalai (separuh-separuh) setiap kali modal dibuka semula.
   const [aiTitleTarget, setAiTitleTarget] = useState<number | null>(null);
   const titleTarget = Math.min(ceiling.maxTitle, aiTitleTarget ?? Math.floor(ceiling.maxTitle / 2));
-  const briefTarget = ceiling.maxBrief > 0 ? Math.max(0, Math.round((1 - titleTarget / ceiling.maxTitle) * ceiling.maxBrief)) : 0;
+  // Math.floor (BUKAN Math.round) — dibuktikan perlu semasa ujian sebenar 2026-08-07: slider
+  // pernah tunjuk 43/61 (Tajuk/Huraian) untuk HERO (maxTitle 52, maxBrief 350) sebagai "sentiasa
+  // sah", tapi round-KE-ATAS 60.58 jadi 61 menolak titik sut sebenar (43/52 + 61/350 = 1.0012 >
+  // 1) — validateContentBudget tolak PATCH ujian sebenar walaupun ikut slider betul-betul. floor
+  // sentiasa bulat ke BAWAH, jamin jumlah nisbah <= 1 tanpa pengecualian.
+  const briefTarget = ceiling.maxBrief > 0 ? Math.max(0, Math.floor((1 - titleTarget / ceiling.maxTitle) * ceiling.maxBrief)) : 0;
 
   // Giliran kandungan (items) hidup sebagai STATE TEMPATAN modal ni, BUKAN diterbitkan semula
   // daripada formConfig.manualSummary (rentetan teks) pada setiap keystroke. Menghurai SELURUH

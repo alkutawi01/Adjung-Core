@@ -679,10 +679,20 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         const newTitle = title !== undefined ? title : rev.title;
         const newSummary = summary !== undefined ? summary : rev.summary;
         const newStatus = effectiveStatus !== undefined ? effectiveStatus : rev.status;
+        // createdBy (2026-08-07, pepijat kritikal Izzat) — token LALUAN ("manual-slot-save",
+        // "content-review", dll — jawab *macam mana* dicipta, bukan *siapa*, lihat nota
+        // pendaftaran attribute 'editorName' di server.js), BUKAN nama pengguna sebenar. Sebelum
+        // ni PATCH ni tulis ganti dengan `req.session.user.username` — kandungan Manual yang
+        // pernah diedit (cth Ketua Editor betulkan taip salah) dapat createdBy="izzatanas", tak
+        // sepadan senarai putih resolveSlotContent() (server.js, mod Manual: createdBy IN
+        // ('manual-slot-save', 'migration-manual-blob', 'content-review')) — kandungan tu terus
+        // TAK KELIHATAN pada frontpage LANGSUNG selepas diedit, walaupun status kekal 'approved'
+        // dan UI admin nampak normal. Warisi token ASAL revisi lama, bukan cipta baharu — identiti
+        // penyunting sebenar sudah direkod berasingan dalam attribute 'editorName'.
         const newRev = await dbRun(
           `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt, scheduledPublishAt, scheduledExpiresAt)
            VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, nextVersion, newTitle, newSummary, newStatus, req.session?.user?.username || 'edit-content', nowIso, nowIso, nextScheduledPublishAt, nextScheduledExpiresAt]
+          [id, nextVersion, newTitle, newSummary, newStatus, rev.createdBy || 'content-review', nowIso, nowIso, nextScheduledPublishAt, nextScheduledExpiresAt]
         );
         liveRevId = newRev.lastID;
 
