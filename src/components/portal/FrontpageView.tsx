@@ -536,6 +536,16 @@ const CarouselStableBlock: React.FC<{
   // bersebelahan dan gerakkan seluruh regangan.
   const [indeksLamaGerak, setIndeksLamaGerak] = useState(activeIndex);
   const [fasaGerak, setFasaGerak] = useState<'diam' | 'gerak'>('diam');
+  // Padding kad SEBENAR (2026-08-07, pepijat Izzat tangkap: "kedudukan topik menyentuh sempadan
+  // kad" semasa Gerak Susun) — renderItem() TIADA padding sendiri langsung; ia bergantung
+  // SEPENUHNYA pada padding bekas induk (p-4/md:p-6, berbeza-beza tiap 30 tapak panggilan kad).
+  // Overlay Gerak Susun guna `position:absolute inset-0` pada kadPenuhStabil — inset-0 diukur
+  // dari KOTAK PADDING induk (ikut spesifikasi CSS untuk anak posisi mutlak), bukan kotak
+  // kandungan, jadi ia SENYAP mengabaikan padding tu terus, kandungan terpampang rata dgn
+  // sempadan kad. Diukur SEKALI setiap kali overlay bermula (bukan setiap render — padding tak
+  // berubah dalam satu transisi) dan dipakai sebagai gaya inline pada DUA panel kandungan (bukan
+  // panel logo tengah, yang sengaja rata-tepi dgn logo dipusatkan).
+  const [padGerak, setPadGerak] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
 
   useEffect(() => {
     if (activeIndex === prevActiveIndexRef.current) return;
@@ -566,6 +576,13 @@ const CarouselStableBlock: React.FC<{
         if (getComputedStyle(kadPenuh).position === 'static') kadPenuh.style.position = 'relative';
         overflowAsal = kadPenuh.style.overflow || '';
         kadPenuh.style.overflow = 'hidden';
+        const gayaKad = getComputedStyle(kadPenuh);
+        setPadGerak({
+          top: parseFloat(gayaKad.paddingTop) || 0,
+          right: parseFloat(gayaKad.paddingRight) || 0,
+          bottom: parseFloat(gayaKad.paddingBottom) || 0,
+          left: parseFloat(gayaKad.paddingLeft) || 0,
+        });
       }
       setPortalTarget(kadPenuh);
       setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot'))));
@@ -813,23 +830,23 @@ const CarouselStableBlock: React.FC<{
           >
             {arahEfektif === 'kiri' ? (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden">{renderItem(list[activeIndex] || {})}</div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}>{renderItem(list[activeIndex] || {})}</div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden">{renderItem(list[indeksLamaGerak] || {})}</div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}>{renderItem(list[indeksLamaGerak] || {})}</div>
               </>
             ) : (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden">{renderItem(list[indeksLamaGerak] || {})}</div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}>{renderItem(list[indeksLamaGerak] || {})}</div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden">{renderItem(list[activeIndex] || {})}</div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}>{renderItem(list[activeIndex] || {})}</div>
               </>
             )}
           </div>
