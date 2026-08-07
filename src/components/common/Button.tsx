@@ -10,7 +10,7 @@ import React from 'react';
 // Bukan pengesahan seragam PAKSA — konsol sedia ada boleh terus guna className tangan sehingga
 // disunting satu-satu ikut audit; komponen ni cuma rumah bagi butang BAHARU/disunting supaya
 // tak reka corak baharu lagi.
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'bahaya';
 export type ButtonSize = 'sm' | 'md';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -19,10 +19,15 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   icon?: React.ReactNode;
 }
 
+// Ejaan maroon piawai (2026-08-07, Pelan 01 Fasa B): kelas Tailwind terbitan token
+// (`bg-Adjung-maroon`), bukan hex literal. Dahulu fail ni sendiri menaip #802334/#601824.
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: 'bg-[#802334] text-white border border-transparent hover:bg-[#601824]',
-  secondary: 'bg-white text-[#802334] border border-stone-200 hover:bg-stone-50 hover:border-stone-300',
+  primary: 'bg-Adjung-maroon text-white border border-transparent hover:bg-Adjung-maroon-dark',
+  secondary: 'bg-white text-Adjung-maroon border border-stone-200 hover:bg-stone-50 hover:border-stone-300',
   ghost: 'bg-transparent text-stone-500 border border-transparent hover:bg-stone-50 hover:text-stone-700',
+  // Tindakan merbahaya (padam/tamatkan akaun) — Pelan 01 Fasa D2 menetapkan butang begini WAJIB
+  // ada pengesahan dua langkah; varian ni cuma memberinya bahasa visual yang betul.
+  bahaya: 'bg-white text-[var(--color-error)] border border-[var(--color-error)]/40 hover:bg-red-50 hover:border-[var(--color-error)]',
 };
 
 const SIZE_CLASS: Record<ButtonSize, string> = {
