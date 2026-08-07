@@ -7,6 +7,7 @@ import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
+import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
 
 // Penaja (2026-08-05, Fasa 12 — permintaan Izzat). Tajaan BULANAN, boleh berbilang penaja
@@ -354,21 +355,25 @@ export const PenajaConsole: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {!paparanArkib && (
-                    <button
-                      type="button" onClick={() => mulaSunting(p)}
-                      title="Sunting" className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
+                    <Tooltip text="Sunting">
+                      <button
+                        type="button" onClick={() => mulaSunting(p)}
+                        aria-label="Sunting" className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </Tooltip>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => ubahStatus(p.id, paparanArkib ? 'aktif' : 'arkib')}
-                    title={paparanArkib ? 'Pulihkan' : 'Arkibkan'}
-                    className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
-                  >
-                    {paparanArkib ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-                  </button>
+                  <Tooltip text={paparanArkib ? 'Pulihkan' : 'Arkibkan'}>
+                    <button
+                      type="button"
+                      onClick={() => ubahStatus(p.id, paparanArkib ? 'aktif' : 'arkib')}
+                      aria-label={paparanArkib ? 'Pulihkan' : 'Arkibkan'}
+                      className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
+                    >
+                      {paparanArkib ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                    </button>
+                  </Tooltip>
                 </div>
               </li>
             ))}

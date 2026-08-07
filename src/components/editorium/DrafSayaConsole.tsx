@@ -9,6 +9,7 @@ import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
+import { Tooltip } from '../common/Tooltip';
 import { INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // "Draf Saya" (2026-08-01, permintaan pemilik projek) — sebelum ni seorang editor terpaksa membuka
@@ -265,9 +266,11 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                           {bajet.isValid ? (
                             <StatusBadge tone="success" label="Lulus" />
                           ) : (
-                            <span title={bajet.reason} className="cursor-help">
-                              <StatusBadge tone="error" label="Lebih had" />
-                            </span>
+                            <Tooltip text={bajet.reason}>
+                              <span aria-label={bajet.reason} className="cursor-help">
+                                <StatusBadge tone="error" label="Lebih had" />
+                              </span>
+                            </Tooltip>
                           )}
                         </td>
                         <td className="p-2.5 text-right">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Rss, Clock, CalendarDays, Handshake, X } from 'lucide-react';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { EditoriumLayout } from './EditoriumLayout';
+import { Tooltip } from '../common/Tooltip';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { Button } from '../common/Button';
@@ -62,24 +63,25 @@ function SubTabBar<T extends string>({ items, active, onChange }: {
   return (
     <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs">
       {items.map((it) => (
-        <button
-          key={it.id}
-          type="button"
-          onClick={() => !it.locked && onChange(it.id)}
-          disabled={it.locked}
-          aria-disabled={it.locked}
-          title={it.locked ? it.lockedTitle : undefined}
-          className={`flex items-center gap-1.5 px-4 py-2 font-semibold tracking-wide transition-all border-b-2 ${
-            active === it.id
-              ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50'
-              : it.locked
-              ? 'border-transparent text-stone-300 cursor-not-allowed'
-              : 'border-transparent text-stone-500 hover:text-stone-800'
-          }`}
-        >
-          {it.label}
-          {it.locked && <Lock className="w-2.5 h-2.5" strokeWidth={2.5} />}
-        </button>
+        <Tooltip key={it.id} text={it.locked ? it.lockedTitle : undefined}>
+          <button
+            type="button"
+            onClick={() => !it.locked && onChange(it.id)}
+            disabled={it.locked}
+            aria-disabled={it.locked}
+            aria-label={it.locked ? it.lockedTitle : undefined}
+            className={`flex items-center gap-1.5 px-4 py-2 font-semibold tracking-wide transition-all border-b-2 ${
+              active === it.id
+                ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50'
+                : it.locked
+                ? 'border-transparent text-stone-300 cursor-not-allowed'
+                : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            {it.label}
+            {it.locked && <Lock className="w-2.5 h-2.5" strokeWidth={2.5} />}
+          </button>
+        </Tooltip>
       ))}
     </div>
   );
@@ -737,18 +739,20 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                       {/* Tetapkan editor terus dari sini (2026-08-01) — sama data/peraturan macam
                           Editorium → Slot → Senarai Slot, cuma dibawa ke tempat editor sebenarnya
                           mula menulis, supaya tak perlu keluar konteks pemilih slot ni. */}
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setPopoverEditorSlot((prev) => (prev === i ? null : i)); }}
-                        title="Tetapkan editor yang menguruskan slot ini"
-                        className="shrink-0 max-w-[7.5rem] truncate font-sans text-[10px] text-right cursor-pointer hover:text-Adjung-maroon"
-                      >
-                        {editorSlot.length === 0 ? (
-                          <span className="text-stone-400 italic">+ Editor</span>
-                        ) : (
-                          <span className="text-stone-500">{editorSlot.map((p) => p.nama).join(', ')}</span>
-                        )}
-                      </button>
+                      <Tooltip text="Tetapkan editor yang menguruskan slot ini">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setPopoverEditorSlot((prev) => (prev === i ? null : i)); }}
+                          aria-label="Tetapkan editor yang menguruskan slot ini"
+                          className="shrink-0 max-w-[7.5rem] truncate font-sans text-[10px] text-right cursor-pointer hover:text-Adjung-maroon"
+                        >
+                          {editorSlot.length === 0 ? (
+                            <span className="text-stone-400 italic">+ Editor</span>
+                          ) : (
+                            <span className="text-stone-500">{editorSlot.map((p) => p.nama).join(', ')}</span>
+                          )}
+                        </button>
+                      </Tooltip>
                     </div>
                     {popoverEditorSlot === i && (
                       <PenugasanEditorPopover

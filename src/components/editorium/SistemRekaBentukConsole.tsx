@@ -231,9 +231,11 @@ export const SistemRekaBentukConsole: React.FC = () => {
               </div>
               <div>
                 <p className={`${f.twClass} text-lg text-stone-900`}>{f.sample}</p>
-                <p className="font-mono text-[9px] text-stone-400 mt-1 truncate" title={fontStacks[f.varName]}>
-                  {fontStacks[f.varName] || '...'}
-                </p>
+                <Tooltip text={fontStacks[f.varName]}>
+                  <p className="font-mono text-[9px] text-stone-400 mt-1 truncate">
+                    {fontStacks[f.varName] || '...'}
+                  </p>
+                </Tooltip>
               </div>
             </div>
           ))}
@@ -253,7 +255,9 @@ export const SistemRekaBentukConsole: React.FC = () => {
               (32 tempat, digantikan 2026-07-25). Halaman ni sendiri guna Tooltip — hover atas swatch warna di atas.
             </p>
             <Tooltip text="Contoh tooltip Adjung — opacity+blur, maroon, tiada border">
-              <Button>Hover Saya</Button>
+              <span className="inline-flex shrink-0">
+                <Button>Hover Saya</Button>
+              </span>
             </Tooltip>
           </div>
 

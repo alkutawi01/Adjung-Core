@@ -8,6 +8,7 @@ import { PanelCard } from '../common/PanelCard';
 import { SectionLabel } from '../common/SectionLabel';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // Konsol Editorial (2026-08-01, spesifikasi pemilik projek) — peraturan BAHASA dan penjanaan AI,
@@ -345,14 +346,16 @@ export const EditorialConsole: React.FC = () => {
                     </button>
                   </span>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmBuangIstilah(t.id)}
-                    className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
-                    title="Buang istilah"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+                  <Tooltip text="Buang istilah">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmBuangIstilah(t.id)}
+                      aria-label="Buang istilah"
+                      className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Tooltip>
                 )}
               </span>
             ))}
@@ -452,14 +455,16 @@ export const EditorialConsole: React.FC = () => {
                               </button>
                             </span>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => setConfirmBuangGlosari(g.id)}
-                              className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
-                              title="Buang daripada glosari"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
+                            <Tooltip text="Buang daripada glosari">
+                              <button
+                                type="button"
+                                onClick={() => setConfirmBuangGlosari(g.id)}
+                                aria-label="Buang daripada glosari"
+                                className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </Tooltip>
                           )}
                         </td>
                       </tr>
@@ -567,14 +572,16 @@ export const EditorialConsole: React.FC = () => {
                               </button>
                             </span>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => setConfirmBuangEjaan(x.id)}
-                              className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
-                              title="Buang daripada senarai ejaan"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
+                            <Tooltip text="Buang daripada senarai ejaan">
+                              <button
+                                type="button"
+                                onClick={() => setConfirmBuangEjaan(x.id)}
+                                aria-label="Buang daripada senarai ejaan"
+                                className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </Tooltip>
                           )}
                         </td>
                       </tr>

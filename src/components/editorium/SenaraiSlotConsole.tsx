@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Check } from 'lucide-react';
 import { BidangIcon } from '../common/BidangIcon';
+import { Tooltip } from '../common/Tooltip';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
@@ -436,8 +437,12 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                           <span className="text-stone-400">—</span>
                         )}
                       </td>
-                      <td className={`p-2.5 text-right font-mono ${dipinda ? 'text-amber-700 font-bold' : 'text-stone-700'}`} title={dipinda ? 'Had dipinda di Tier Kad' : undefined}>{had.maxTitleAlone}</td>
-                      <td className={`p-2.5 text-right font-mono ${dipinda ? 'text-amber-700 font-bold' : 'text-stone-700'}`} title={dipinda ? 'Had dipinda di Tier Kad' : undefined}>{had.maxBriefAlone}</td>
+                      <Tooltip text={dipinda ? 'Had dipinda di Tier Kad' : undefined}>
+                        <td className={`p-2.5 text-right font-mono ${dipinda ? 'text-amber-700 font-bold' : 'text-stone-700'}`}>{had.maxTitleAlone}</td>
+                      </Tooltip>
+                      <Tooltip text={dipinda ? 'Had dipinda di Tier Kad' : undefined}>
+                        <td className={`p-2.5 text-right font-mono ${dipinda ? 'text-amber-700 font-bold' : 'text-stone-700'}`}>{had.maxBriefAlone}</td>
+                      </Tooltip>
                       <td className="p-2.5 text-stone-600">
                         {selang ? (
                           <span className="font-mono text-[10px]">
@@ -484,20 +489,22 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                           (requirePermission('assignSlot'), core/routes/slotEditorRoutes.js). */}
                       <td className="p-2.5">
                         {bolehAgihSlot ? (
-                          <button
-                            type="button"
-                            onClick={() => bukaEditor(i)}
-                            title="Tetapkan editor yang menguruskan slot ini"
-                            className="text-left hover:text-Adjung-maroon cursor-pointer group"
-                          >
-                            {editorBagiSlot(i).length === 0 ? (
-                              <span className="text-stone-400 italic group-hover:text-Adjung-maroon">Belum ditugaskan</span>
-                            ) : (
-                              <span className="text-stone-700 group-hover:text-Adjung-maroon">
-                                {editorBagiSlot(i).map(p => p.nama).join(', ')}
-                              </span>
-                            )}
-                          </button>
+                          <Tooltip text="Tetapkan editor yang menguruskan slot ini">
+                            <button
+                              type="button"
+                              onClick={() => bukaEditor(i)}
+                              aria-label="Tetapkan editor yang menguruskan slot ini"
+                              className="text-left hover:text-Adjung-maroon cursor-pointer group"
+                            >
+                              {editorBagiSlot(i).length === 0 ? (
+                                <span className="text-stone-400 italic group-hover:text-Adjung-maroon">Belum ditugaskan</span>
+                              ) : (
+                                <span className="text-stone-700 group-hover:text-Adjung-maroon">
+                                  {editorBagiSlot(i).map(p => p.nama).join(', ')}
+                                </span>
+                              )}
+                            </button>
+                          </Tooltip>
                         ) : (
                           editorBagiSlot(i).length === 0 ? (
                             <span className="text-stone-400 italic">Belum ditugaskan</span>
@@ -768,27 +775,28 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
               // bingkai+skala, isyarat WARNA sahaja. Kini ada tanda semak (bentuk) DAN
               // `aria-pressed` supaya pengguna buta warna/pembaca skrin juga tahu mana dipilih.
               return (
-                <button
-                  key={opt.label}
-                  type="button"
-                  title={opt.label}
-                  aria-pressed={dipilih}
-                  onClick={() => setDraf(p => p ? { ...p, bgColor: opt.value } : p)}
-                  className={`relative w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
-                  style={{
-                    backgroundColor: opt.value === 'transparent' ? '#ffffff' : opt.value,
-                    backgroundImage: opt.value === 'transparent' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
-                    backgroundSize: opt.value === 'transparent' ? '6px 6px' : undefined,
-                  }}
-                >
-                  {dipilih && (
-                    <Check
-                      className="w-3.5 h-3.5 pointer-events-none"
-                      strokeWidth={3}
-                      style={{ color: (opt.value === 'transparent' || opt.value === '#FFFFFF') ? '#1F1F1F' : '#FFFFFF' }}
-                    />
-                  )}
-                </button>
+                <Tooltip key={opt.label} text={opt.label}>
+                  <button
+                    type="button"
+                    aria-label={opt.label}
+                    aria-pressed={dipilih}
+                    onClick={() => setDraf(p => p ? { ...p, bgColor: opt.value } : p)}
+                    className={`relative w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
+                    style={{
+                      backgroundColor: opt.value === 'transparent' ? '#ffffff' : opt.value,
+                      backgroundImage: opt.value === 'transparent' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
+                      backgroundSize: opt.value === 'transparent' ? '6px 6px' : undefined,
+                    }}
+                  >
+                    {dipilih && (
+                      <Check
+                        className="w-3.5 h-3.5 pointer-events-none"
+                        strokeWidth={3}
+                        style={{ color: (opt.value === 'transparent' || opt.value === '#FFFFFF') ? '#1F1F1F' : '#FFFFFF' }}
+                      />
+                    )}
+                  </button>
+                </Tooltip>
               );
             })}
           </div>
@@ -800,27 +808,28 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
             {[{ label: 'Auto', value: '' }, ...WARNA_PRATETAP].map(opt => {
               const dipilih = (draf.borderColor || '') === opt.value;
               return (
-                <button
-                  key={opt.label}
-                  type="button"
-                  title={opt.label}
-                  aria-pressed={dipilih}
-                  onClick={() => setDraf(p => p ? { ...p, borderColor: opt.value } : p)}
-                  className={`relative w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
-                  style={{
-                    backgroundColor: opt.value === '' ? '#ffffff' : opt.value,
-                    backgroundImage: opt.value === '' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
-                    backgroundSize: opt.value === '' ? '6px 6px' : undefined,
-                  }}
-                >
-                  {dipilih && (
-                    <Check
-                      className="w-3.5 h-3.5 pointer-events-none"
-                      strokeWidth={3}
-                      style={{ color: (opt.value === '' || opt.value === '#FFFFFF') ? '#1F1F1F' : '#FFFFFF' }}
-                    />
-                  )}
-                </button>
+                <Tooltip key={opt.label} text={opt.label}>
+                  <button
+                    type="button"
+                    aria-label={opt.label}
+                    aria-pressed={dipilih}
+                    onClick={() => setDraf(p => p ? { ...p, borderColor: opt.value } : p)}
+                    className={`relative w-7 h-7 rounded-full border-2 cursor-pointer flex items-center justify-center ${dipilih ? 'border-Adjung-maroon scale-110' : 'border-stone-300'}`}
+                    style={{
+                      backgroundColor: opt.value === '' ? '#ffffff' : opt.value,
+                      backgroundImage: opt.value === '' ? 'repeating-conic-gradient(#d6d3d1 0% 25%, #ffffff 0% 50%)' : undefined,
+                      backgroundSize: opt.value === '' ? '6px 6px' : undefined,
+                    }}
+                  >
+                    {dipilih && (
+                      <Check
+                        className="w-3.5 h-3.5 pointer-events-none"
+                        strokeWidth={3}
+                        style={{ color: (opt.value === '' || opt.value === '#FFFFFF') ? '#1F1F1F' : '#FFFFFF' }}
+                      />
+                    )}
+                  </button>
+                </Tooltip>
               );
             })}
           </div>

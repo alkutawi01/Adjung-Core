@@ -715,24 +715,26 @@ const CarouselStableBlock: React.FC<{
               (getCardTheme di atas, sudah kira kontras gelap/cerah setiap kad individu); ikon
               lucide default stroke=currentColor, jadi ia WARIS warna tajuk/huraian kad tu
               secara automatik — kontras terjamin tanpa perlu logik tema berasingan di sini. */}
-          <button
-            type="button"
-            aria-label="Kandungan sebelum"
-            title="Kandungan sebelum"
-            onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
-            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
-          >
-            <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
-          </button>
-          <button
-            type="button"
-            aria-label="Kandungan seterusnya"
-            title="Kandungan seterusnya"
-            onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
-            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
-          >
-            <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
-          </button>
+          <Tooltip text="Kandungan sebelum">
+            <button
+              type="button"
+              aria-label="Kandungan sebelum"
+              onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
+              className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
+            >
+              <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
+            </button>
+          </Tooltip>
+          <Tooltip text="Kandungan seterusnya">
+            <button
+              type="button"
+              aria-label="Kandungan seterusnya"
+              onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
+              className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
+            >
+              <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
+            </button>
+          </Tooltip>
           {/* Dot — visual sahaja (tak boleh diklik terus; onNavigate cuma sokong langkah
               relatif ±1, bukan lompat terus — cukup papar "berapa banyak / yang mana
               sekarang", tak perlu prop baharu merentasi 30 tapak panggilan sedia ada). */}
@@ -3719,7 +3721,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   <span className="flex flex-wrap items-center gap-2.5">
                     {penajaSemasa.map((p) => (
                       p.logoUrl ? (
-                        <img key={p.id} src={p.logoUrl} alt={p.nama} title={p.nama} className="h-5 object-contain grayscale group-hover:grayscale-0 transition-all" />
+                        <Tooltip key={p.id} text={p.nama}>
+                          <img src={p.logoUrl} alt={p.nama} className="h-5 object-contain grayscale group-hover:grayscale-0 transition-all" />
+                        </Tooltip>
                       ) : (
                         <span key={p.id} className="font-sans text-xs font-semibold text-stone-600 group-hover:text-[#802334] transition-colors">{p.nama}</span>
                       )

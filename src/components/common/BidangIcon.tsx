@@ -1,4 +1,5 @@
 import React from 'react';
+import { Tooltip } from './Tooltip';
 import {
   Star, Flag, Globe2, TrendingUp, Briefcase, Cpu, FlaskConical, Stethoscope, GraduationCap, Scale, MoonStar, BookMarked, Lightbulb, Brain,
   Languages, Feather, ScrollText, Map, Leaf, Rocket, Palette, Drama, Trophy, Sigma, Tag,
@@ -44,21 +45,24 @@ export const BidangIcon: React.FC<BidangIconProps> = ({ iconName, iconSvg, color
 
   if (iconSvg) {
     return (
-      <span
-        className={`${wrapperClass} bidang-icon-svg`}
-        style={{ ...wrapperStyle, ['--bidang-icon-size' as any]: `${size}px` }}
-        title={title ?? "Ikon custom (SVG dimuat naik)"}
-        // eslint-disable-next-line react/no-danger -- markup ditapis ketat di server
-        // (sanitizeSvgIcon di core/routes/categoryRoutes.js) sebelum sampai ke DB.
-        dangerouslySetInnerHTML={{ __html: iconSvg }}
-      />
+      <Tooltip text={title ?? "Ikon custom (SVG dimuat naik)"}>
+        <span
+          className={`${wrapperClass} bidang-icon-svg`}
+          style={{ ...wrapperStyle, ['--bidang-icon-size' as any]: `${size}px` }}
+          // eslint-disable-next-line react/no-danger -- markup ditapis ketat di server
+          // (sanitizeSvgIcon di core/routes/categoryRoutes.js) sebelum sampai ke DB.
+          dangerouslySetInnerHTML={{ __html: iconSvg }}
+        />
+      </Tooltip>
     );
   }
 
   const IconComponent = (iconName && BIDANG_ICON_MAP[iconName]) || Tag;
   return (
-    <span className={wrapperClass} style={wrapperStyle} title={title ?? (iconName || 'Tiada ikon lagi')}>
-      <IconComponent style={{ width: size, height: size }} />
-    </span>
+    <Tooltip text={title ?? (iconName || 'Tiada ikon lagi')}>
+      <span className={wrapperClass} style={wrapperStyle}>
+        <IconComponent style={{ width: size, height: size }} />
+      </span>
+    </Tooltip>
   );
 };

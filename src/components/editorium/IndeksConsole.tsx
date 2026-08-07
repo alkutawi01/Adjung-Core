@@ -751,7 +751,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <div className="flex items-end gap-2">
             <Button onClick={handleApplyFilters} size="sm" className="flex-1 relative">
               Tapis
-              {filtersDirty && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-white" title="Ada penapis belum ditapis" />}
+              {filtersDirty && (
+                <Tooltip text="Ada penapis belum ditapis">
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-white" />
+                </Tooltip>
+              )}
             </Button>
             <Button variant="secondary" size="sm" onClick={handleResetFilters} className="flex-1">
               Set Semula

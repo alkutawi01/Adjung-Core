@@ -4,6 +4,7 @@ import { validateContentBudget, validateBidangTopik } from '../../../core/editor
 import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
+import { Tooltip } from '../common/Tooltip';
 import { labelUi } from '../../config/istilah';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 
@@ -249,9 +250,11 @@ const SidebarItem = React.memo(function SidebarItem({
           <button type="button" aria-label="Turun" onClick={(e) => { e.stopPropagation(); onMoveDown(index); }} className="text-stone-500 hover:text-[#802334] px-0.5"><ChevronDown size={13} /></button>
           <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); onRemove(index); }} className="text-[#a8241f] px-0.5"><Trash2 size={12} /></button>
         </span>
-        <span className={`group-hover:hidden font-mono text-[9px] ${check.isValid ? 'text-emerald-700' : 'text-[#a8241f]'}`} title={check.isValid ? 'Sedia untuk Terbit' : check.reason}>
-          {check.isValid ? '✓' : '✕'}
-        </span>
+        <Tooltip text={check.isValid ? 'Sedia untuk Terbit' : check.reason}>
+          <span className={`group-hover:hidden font-mono text-[9px] ${check.isValid ? 'text-emerald-700' : 'text-[#a8241f]'}`}>
+            {check.isValid ? '✓' : '✕'}
+          </span>
+        </Tooltip>
       </span>
     </li>
   );

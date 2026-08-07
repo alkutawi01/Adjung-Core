@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NotebookText, Hourglass, RefreshCw } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
+import { Tooltip } from '../common/Tooltip';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
@@ -159,7 +160,9 @@ export const LogAuditConsole: React.FC = () => {
                 <td className="p-3 text-stone-500 font-mono text-xs">
                   {e.targetType || ''}{e.targetId ? ` · ${e.targetId}` : ''}
                 </td>
-                <td className="p-3 text-stone-600 max-w-xs truncate" title={e.detail || ''}>{e.detail || '-'}</td>
+                <Tooltip text={e.detail || ''}>
+                  <td className="p-3 text-stone-600 max-w-xs truncate">{e.detail || '-'}</td>
+                </Tooltip>
               </tr>
             ))}
           </tbody>

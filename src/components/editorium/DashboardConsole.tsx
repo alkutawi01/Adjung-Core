@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { labelTindakan } from './LogAuditConsole';
 import { SlotMatrixCell } from '../common/SlotMatrixCell';
 import { StatusBadge } from '../common/StatusBadge';
+import { Tooltip } from '../common/Tooltip';
 
 // Paparan Utama (2026-08-02, Fasa 5) — destinasi lalai selepas log masuk.
 //
@@ -232,9 +233,11 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
             <>
               <div className="flex items-end gap-1.5 h-32 border-b border-stone-100">
                 {jejakPengunjung.trenHarian.map(t => (
-                  <div key={t.tarikh} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5" title={`${t.tarikh}: ${t.jumlah}`}>
-                    <div className="w-full" style={{ height: `${Math.max(3, (t.jumlah / trenMaks) * 100)}%`, background: 'rgba(128,35,52,0.75)' }} />
-                  </div>
+                  <Tooltip key={t.tarikh} text={`${t.tarikh}: ${t.jumlah}`}>
+                    <div className="flex-1 flex flex-col items-center justify-end h-full gap-1.5">
+                      <div className="w-full" style={{ height: `${Math.max(3, (t.jumlah / trenMaks) * 100)}%`, background: 'rgba(128,35,52,0.75)' }} />
+                    </div>
+                  </Tooltip>
                 ))}
               </div>
               <div className="flex justify-between mt-2.5 font-mono text-[9.5px] text-stone-400">

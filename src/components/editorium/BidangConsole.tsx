@@ -7,6 +7,7 @@ import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
+import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 import { useModalFokus } from '../../hooks/useModalFokus';
@@ -313,37 +314,43 @@ export const BidangConsole: React.FC = () => {
                 <React.Fragment key={d.id}>
                   <tr className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                     <td className="p-3">
-                      <button
-                        type="button"
-                        onClick={() => openIconPicker(d)}
-                        className="hover:ring-2 hover:ring-offset-1 hover:ring-stone-300 rounded-full transition-shadow relative"
-                        title="Tukar ikon dan plat ilustrasi"
-                      >
-                        <BidangIcon iconName={d.icon} iconSvg={d.iconSvg} color={d.color} />
-                        {/* Titik marun kecil: tanda Bidang ini sudah ada plat ilustrasi. Tanpa
-                            ini tiada cara melihat Bidang mana yang sudah siap tanpa membuka
-                            setiap satu modal. */}
-                        {d.hasIllustration && (
-                          <span
-                            className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-Adjung-maroon border border-white"
-                            title="Ada plat ilustrasi"
-                          />
-                        )}
-                      </button>
+                      <Tooltip text="Tukar ikon dan plat ilustrasi">
+                        <button
+                          type="button"
+                          onClick={() => openIconPicker(d)}
+                          aria-label="Tukar ikon dan plat ilustrasi"
+                          className="hover:ring-2 hover:ring-offset-1 hover:ring-stone-300 rounded-full transition-shadow relative"
+                        >
+                          <BidangIcon iconName={d.icon} iconSvg={d.iconSvg} color={d.color} />
+                          {/* Titik marun kecil: tanda Bidang ini sudah ada plat ilustrasi. Tanpa
+                              ini tiada cara melihat Bidang mana yang sudah siap tanpa membuka
+                              setiap satu modal. */}
+                          {d.hasIllustration && (
+                            <Tooltip text="Ada plat ilustrasi">
+                              <span
+                                aria-label="Ada plat ilustrasi"
+                                className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-Adjung-maroon border border-white"
+                              />
+                            </Tooltip>
+                          )}
+                        </button>
+                      </Tooltip>
                     </td>
                     {/* Petak warna ini pintu kedua ke modal yang sama seperti ikon — dulu
                         satu-satunya jalan masuk ialah klik bulatan ikon, tanpa sebarang tanda ia
                         boleh diklik langsung. */}
                     <td className="p-3">
-                      <button
-                        type="button"
-                        onClick={() => openIconPicker(d)}
-                        title="Tukar warna Bidang"
-                        className="inline-flex items-center gap-1.5 group cursor-pointer"
-                      >
-                        <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-[0_1px_2px_rgba(0,0,0,.04)] group-hover:ring-2 group-hover:ring-offset-1 group-hover:ring-stone-300 transition-shadow" style={{ backgroundColor: d.color }}></span>
-                        <span className="font-mono text-[10px] uppercase text-stone-400 group-hover:text-Adjung-maroon">{d.color}</span>
-                      </button>
+                      <Tooltip text="Tukar warna Bidang">
+                        <button
+                          type="button"
+                          onClick={() => openIconPicker(d)}
+                          aria-label="Tukar warna Bidang"
+                          className="inline-flex items-center gap-1.5 group cursor-pointer"
+                        >
+                          <span className="inline-block w-4 h-4 rounded-full border border-stone-300 shadow-[0_1px_2px_rgba(0,0,0,.04)] group-hover:ring-2 group-hover:ring-offset-1 group-hover:ring-stone-300 transition-shadow" style={{ backgroundColor: d.color }}></span>
+                          <span className="font-mono text-[10px] uppercase text-stone-400 group-hover:text-Adjung-maroon">{d.color}</span>
+                        </button>
+                      </Tooltip>
                     </td>
                     {/* Nama diklik terus untuk menamakan semula — corak sama seperti Senarai Slot
                         (klik nilai) dan Tier Kad (nilai itu sendiri medan). Tiada lajur "Tindakan"
@@ -363,55 +370,65 @@ export const BidangConsole: React.FC = () => {
                             className={`${INPUT_BORANG} py-1 text-xs font-semibold`}
                             autoFocus
                           />
-                          <button onClick={() => handleRenameBidang(d.id)} className="text-emerald-700" title="Simpan"><Check className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setRenamingBidangId(null)} className="text-stone-400" title="Batal"><X className="w-3.5 h-3.5" /></button>
+                          <Tooltip text="Simpan">
+                            <button onClick={() => handleRenameBidang(d.id)} aria-label="Simpan" className="text-emerald-700"><Check className="w-3.5 h-3.5" /></button>
+                          </Tooltip>
+                          <Tooltip text="Batal">
+                            <button onClick={() => setRenamingBidangId(null)} aria-label="Batal" className="text-stone-400"><X className="w-3.5 h-3.5" /></button>
+                          </Tooltip>
                         </div>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => { setRenamingBidangId(d.id); setRenameValue(d.name); }}
-                          title="Klik untuk menamakan semula"
-                          className="inline-flex items-center gap-1.5 group cursor-pointer text-left"
-                        >
-                          {d.name}
-                          <Pencil className="w-3 h-3 text-stone-300 group-hover:text-Adjung-maroon" />
-                        </button>
+                        <Tooltip text="Klik untuk menamakan semula">
+                          <button
+                            type="button"
+                            onClick={() => { setRenamingBidangId(d.id); setRenameValue(d.name); }}
+                            aria-label="Klik untuk menamakan semula"
+                            className="inline-flex items-center gap-1.5 group cursor-pointer text-left"
+                          >
+                            {d.name}
+                            <Pencil className="w-3 h-3 text-stone-300 group-hover:text-Adjung-maroon" />
+                          </button>
+                        </Tooltip>
                       )}
                     </td>
                     <td className="p-3 text-stone-500 text-[11px]">
                       {d.originalName && d.originalName !== d.name ? d.originalName : <span className="text-stone-300">—</span>}
                     </td>
                     <td className="p-3">
-                      <button
-                        type="button"
-                        onClick={() => togolStatusBidang(d)}
-                        disabled={menukarStatusId === d.id}
-                        title={d.isActive === 1 ? 'Klik untuk arkibkan' : 'Klik untuk pulihkan'}
-                        className="cursor-pointer disabled:opacity-50"
-                      >
-                        <StatusBadge tone={d.isActive === 1 ? 'success' : 'neutral'} label={d.isActive === 1 ? 'AKTIF' : 'ARKIB'} />
-                      </button>
+                      <Tooltip text={d.isActive === 1 ? 'Klik untuk arkibkan' : 'Klik untuk pulihkan'}>
+                        <button
+                          type="button"
+                          onClick={() => togolStatusBidang(d)}
+                          disabled={menukarStatusId === d.id}
+                          aria-label={d.isActive === 1 ? 'Klik untuk arkibkan' : 'Klik untuk pulihkan'}
+                          className="cursor-pointer disabled:opacity-50"
+                        >
+                          <StatusBadge tone={d.isActive === 1 ? 'success' : 'neutral'} label={d.isActive === 1 ? 'AKTIF' : 'ARKIB'} />
+                        </button>
+                      </Tooltip>
                     </td>
                     <td className="p-3 text-stone-600 font-sans text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => toggleSlotPanel(d)}
-                        title="Klik untuk menetapkan slot bagi Bidang ini"
-                        className="inline-flex items-center gap-1.5 group cursor-pointer text-left"
-                      >
-                        {d.slots.length === 0 ? (
-                          <span className="text-stone-400 italic group-hover:text-Adjung-maroon">Tiada slot</span>
-                        ) : (
-                          <span className="flex flex-wrap gap-1">
-                            {d.slots.map(s => (
-                              <span key={s} className="bg-stone-100 text-stone-600 border border-stone-200 rounded px-1.5 py-0.5 font-mono text-[9px] group-hover:border-Adjung-maroon group-hover:text-Adjung-maroon">{s + 1}</span>
-                            ))}
-                          </span>
-                        )}
-                        {expandedBidangId === d.id
-                          ? <ChevronUp className="w-3 h-3 text-stone-400 shrink-0" />
-                          : <ChevronDown className="w-3 h-3 text-stone-300 group-hover:text-Adjung-maroon shrink-0" />}
-                      </button>
+                      <Tooltip text="Klik untuk menetapkan slot bagi Bidang ini">
+                        <button
+                          type="button"
+                          onClick={() => toggleSlotPanel(d)}
+                          aria-label="Klik untuk menetapkan slot bagi Bidang ini"
+                          className="inline-flex items-center gap-1.5 group cursor-pointer text-left"
+                        >
+                          {d.slots.length === 0 ? (
+                            <span className="text-stone-400 italic group-hover:text-Adjung-maroon">Tiada slot</span>
+                          ) : (
+                            <span className="flex flex-wrap gap-1">
+                              {d.slots.map(s => (
+                                <span key={s} className="bg-stone-100 text-stone-600 border border-stone-200 rounded px-1.5 py-0.5 font-mono text-[9px] group-hover:border-Adjung-maroon group-hover:text-Adjung-maroon">{s + 1}</span>
+                              ))}
+                            </span>
+                          )}
+                          {expandedBidangId === d.id
+                            ? <ChevronUp className="w-3 h-3 text-stone-400 shrink-0" />
+                            : <ChevronDown className="w-3 h-3 text-stone-300 group-hover:text-Adjung-maroon shrink-0" />}
+                        </button>
+                      </Tooltip>
                     </td>
                     <td className="p-3 text-stone-600 text-[11px]">
                       {(() => {
@@ -460,13 +477,12 @@ export const BidangConsole: React.FC = () => {
                                 : 'bg-white text-stone-600 border-stone-300 hover:border-Adjung-maroon';
 
                             return (
+                              <Tooltip key={slotIndex} text={milikOrangLain
+                                ? `Milik Bidang "${owner}"${live ? ` — ${live} kandungan aktif` : ''}`
+                                : live ? `${live} kandungan aktif dalam slot ini` : 'Slot kosong'}>
                               <button
-                                key={slotIndex}
                                 type="button"
                                 onClick={() => toggleSlot(slotIndex, d)}
-                                title={milikOrangLain
-                                  ? `Milik Bidang "${owner}"${live ? ` — ${live} kandungan aktif` : ''}`
-                                  : live ? `${live} kandungan aktif dalam slot ini` : 'Slot kosong'}
                                 className={`relative flex items-center justify-center border rounded px-1.5 py-1 text-[10px] font-mono transition-colors ${gaya}`}
                               >
                                 {slotIndex + 1}
@@ -476,6 +492,7 @@ export const BidangConsole: React.FC = () => {
                                   </span>
                                 )}
                               </button>
+                              </Tooltip>
                             );
                           })}
                         </div>
@@ -818,13 +835,15 @@ function IkonWarnaModal({
               tidak sesuai.
             </p>
             <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={warnaDraf || target.color || '#802334'}
-                onChange={e => { setWarnaDraf(e.target.value.toUpperCase()); setWarnaError(null); }}
-                className="w-10 h-8 rounded border border-stone-300 bg-white cursor-pointer p-0.5"
-                title="Pilih warna"
-              />
+              <Tooltip text="Pilih warna">
+                <input
+                  type="color"
+                  value={warnaDraf || target.color || '#802334'}
+                  onChange={e => { setWarnaDraf(e.target.value.toUpperCase()); setWarnaError(null); }}
+                  aria-label="Pilih warna"
+                  className="w-10 h-8 rounded border border-stone-300 bg-white cursor-pointer p-0.5"
+                />
+              </Tooltip>
               <input
                 type="text"
                 value={warnaDraf || target.color || ''}
@@ -855,18 +874,19 @@ function IkonWarnaModal({
                 const Icon = BIDANG_ICON_MAP[name];
                 const isCurrent = !target.iconSvg && target.icon === name;
                 return (
-                  <button
-                    key={name}
-                    type="button"
-                    title={name}
-                    disabled={savingIconFor === target.id}
-                    onClick={() => handlePickLucideIcon(target.id, name)}
-                    className={`flex items-center justify-center w-8 h-8 rounded border transition-colors disabled:opacity-40 ${
-                      isCurrent ? 'bg-Adjung-maroon border-Adjung-maroon text-white' : 'bg-stone-50 border-stone-200 text-stone-600 hover:border-Adjung-maroon hover:text-Adjung-maroon'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </button>
+                  <Tooltip key={name} text={name}>
+                    <button
+                      type="button"
+                      aria-label={name}
+                      disabled={savingIconFor === target.id}
+                      onClick={() => handlePickLucideIcon(target.id, name)}
+                      className={`flex items-center justify-center w-8 h-8 rounded border transition-colors disabled:opacity-40 ${
+                        isCurrent ? 'bg-Adjung-maroon border-Adjung-maroon text-white' : 'bg-stone-50 border-stone-200 text-stone-600 hover:border-Adjung-maroon hover:text-Adjung-maroon'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
                 );
               })}
             </div>
@@ -947,12 +967,14 @@ function IkonWarnaModal({
                 />
               </label>
               {(illusPreview || illusCurrent) && (
-                <span
-                  className="inline-flex items-center justify-center w-16 h-16 rounded border border-stone-200 bg-[#FDFDFD] [&_svg]:w-14 [&_svg]:h-14"
-                  style={{ color: 'var(--color-Adjung-maroon)' }}
-                  title={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}
-                  dangerouslySetInnerHTML={{ __html: (illusPreview || illusCurrent) as string }}
-                />
+                <Tooltip text={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}>
+                  <span
+                    className="inline-flex items-center justify-center w-16 h-16 rounded border border-stone-200 bg-[#FDFDFD] [&_svg]:w-14 [&_svg]:h-14"
+                    style={{ color: 'var(--color-Adjung-maroon)' }}
+                    aria-label={illusPreview ? 'Pratonton fail baharu' : 'Plat semasa'}
+                    dangerouslySetInnerHTML={{ __html: (illusPreview || illusCurrent) as string }}
+                  />
+                </Tooltip>
               )}
             </div>
 

@@ -313,26 +313,29 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                     (2026-08-07, permintaan Izzat) — lihat hujung fail. */}
                 {/* Peti Makluman — ikon sahaja ("✉️" sebagai simbol). */}
                 {onOpenMakluman && (
-                  <button
-                    type="button"
-                    onClick={onOpenMakluman}
-                    title="Peti Makluman — nota Ketua Editor"
-                    className="relative flex items-center justify-center w-7 h-7 border border-stone-200 rounded text-stone-500 hover:text-Adjung-maroon hover:border-stone-300 hover:bg-stone-50 transition-colors cursor-pointer"
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    {jumlahMakluman > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 font-mono text-[9px] font-bold bg-Adjung-maroon text-white rounded-full min-w-[16px] px-1 leading-4 text-center border-2 border-[#FDFDFD]">
-                        {jumlahMakluman}
-                      </span>
-                    )}
-                  </button>
+                  <Tooltip text="Peti Makluman — nota Ketua Editor">
+                    <button
+                      type="button"
+                      onClick={onOpenMakluman}
+                      aria-label="Peti Makluman — nota Ketua Editor"
+                      className="relative flex items-center justify-center w-7 h-7 border border-stone-200 rounded text-stone-500 hover:text-Adjung-maroon hover:border-stone-300 hover:bg-stone-50 transition-colors cursor-pointer"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      {jumlahMakluman > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 font-mono text-[9px] font-bold bg-Adjung-maroon text-white rounded-full min-w-[16px] px-1 leading-4 text-center border-2 border-[#FDFDFD]">
+                          {jumlahMakluman}
+                        </span>
+                      )}
+                    </button>
+                  </Tooltip>
                 )}
                 {/* Profil Editor — badge nama/peranan boleh diklik, buka modal lihat/sunting
                     identiti sendiri. Diletak dekat hujung kanan, bersebelahan Log Keluar. */}
+                <Tooltip text="Profil Editor">
                 <button
                   type="button"
                   onClick={onOpenProfil}
-                  title="Profil Editor"
+                  aria-label="Profil Editor"
                   disabled={!onOpenProfil}
                   className="flex items-center gap-2 border border-stone-200 px-2.5 py-1 rounded hover:bg-stone-50 hover:border-stone-300 transition-colors cursor-pointer disabled:cursor-default"
                 >
@@ -350,6 +353,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                       : (currentUser.role === 'KETUA_EDITOR' ? 'Ketua Editor' : 'Editor')
                   }</span>
                 </button>
+                </Tooltip>
                 {onLogout && (
                   <button
                     onClick={onLogout}
@@ -505,14 +509,16 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           pemilik projek disahkan 2026-08-03), diperbesar sikit (w-12 h-12) sebab kini sasaran
           sentuh berasingan, bukan sebahagian kelompok ikon kecil header. */}
       {currentUser && onOpenSlotPicker && (
-        <button
-          type="button"
-          onClick={onOpenSlotPicker}
-          title="Tulis Kandungan Baharu"
-          className="fixed bottom-16 right-6 z-40 flex items-center justify-center w-12 h-12 bg-Adjung-maroon text-white rounded-full shadow-[0_4px_16px_rgba(128,35,52,0.4)] hover:bg-Adjung-maroon-dark hover:shadow-[0_6px_20px_rgba(128,35,52,0.5)] transition-all cursor-pointer"
-        >
-          <PenLine className="w-5 h-5" />
-        </button>
+        <Tooltip text="Tulis Kandungan Baharu">
+          <button
+            type="button"
+            onClick={onOpenSlotPicker}
+            aria-label="Tulis Kandungan Baharu"
+            className="fixed bottom-16 right-6 z-40 flex items-center justify-center w-12 h-12 bg-Adjung-maroon text-white rounded-full shadow-[0_4px_16px_rgba(128,35,52,0.4)] hover:bg-Adjung-maroon-dark hover:shadow-[0_6px_20px_rgba(128,35,52,0.5)] transition-all cursor-pointer"
+          >
+            <PenLine className="w-5 h-5" />
+          </button>
+        </Tooltip>
       )}
     </div>
   );

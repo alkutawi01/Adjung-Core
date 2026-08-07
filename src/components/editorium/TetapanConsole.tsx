@@ -12,6 +12,7 @@ import { SectionLabel } from '../common/SectionLabel';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
+import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 
@@ -699,14 +700,16 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                       onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, name: e.target.value } : c))}
                       className={INPUT_BORANG}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setSchoolHolidays((p) => p.filter((_, n) => n !== i))}
-                      className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer p-1"
-                      title="Buang tempoh ini"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <Tooltip text="Buang tempoh ini">
+                      <button
+                        type="button"
+                        onClick={() => setSchoolHolidays((p) => p.filter((_, n) => n !== i))}
+                        className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer p-1"
+                        aria-label="Buang tempoh ini"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </Tooltip>
                   </div>
                 ))}
               </div>
@@ -1299,16 +1302,18 @@ function LabelSistemPanel() {
                         className={`${INPUT_BORANG} flex-1`}
                       />
                       {dipinda && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="shrink-0"
-                          onClick={() => setSemula(item.kunci, item.lalai, kategori)}
-                          disabled={menyimpan}
-                          title={`Nilai asal: ${item.lalai}`}
-                        >
-                          Set semula
-                        </Button>
+                        <Tooltip text={`Nilai asal: ${item.lalai}`}>
+                          <span className="inline-flex shrink-0">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setSemula(item.kunci, item.lalai, kategori)}
+                              disabled={menyimpan}
+                            >
+                              Set semula
+                            </Button>
+                          </span>
+                        </Tooltip>
                       )}
                     </div>
                   );

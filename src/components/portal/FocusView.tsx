@@ -5,6 +5,7 @@ import { safeParseInline } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
 import { terapFocusSeo, buangSemulaFocusSeo } from '../../utils/seoMeta';
 import { binaPetaGlosari, renderDenganGlosari, type EntriGlosari } from '../common/IstilahGlosari';
+import { Tooltip } from '../common/Tooltip';
 
 // ============================================================================
 // FOCUS VIEW — permukaan bacaan skrin penuh yang dibuka bila kad bento diklik.
@@ -127,18 +128,26 @@ function KongsiButtons({ title, url, disalinBerjaya, onSalin }: { title: string;
   const laluan = encodeURIComponent(url);
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-      <a href={`https://wa.me/?text=${teks}%20${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di WhatsApp" title="WhatsApp" className="fv-pill-btn" style={btnStyle}>
-        <MessageCircle size={13} strokeWidth={1.75} />
-      </a>
-      <a href={`https://www.facebook.com/sharer/sharer.php?u=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di Facebook" title="Facebook" className="fv-pill-btn" style={btnStyle}>
-        <Facebook size={13} strokeWidth={1.75} />
-      </a>
-      <a href={`https://twitter.com/intent/tweet?text=${teks}&url=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di X" title="X (Twitter)" className="fv-pill-btn" style={btnStyle}>
-        <Twitter size={13} strokeWidth={1.75} />
-      </a>
-      <button type="button" onClick={onSalin} aria-label="Salin pautan" title="Salin pautan" className="fv-pill-btn" style={btnStyle}>
-        {disalinBerjaya ? <Check size={13} strokeWidth={1.75} /> : <Link2 size={13} strokeWidth={1.75} />}
-      </button>
+      <Tooltip text="WhatsApp">
+        <a href={`https://wa.me/?text=${teks}%20${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di WhatsApp" className="fv-pill-btn" style={btnStyle}>
+          <MessageCircle size={13} strokeWidth={1.75} />
+        </a>
+      </Tooltip>
+      <Tooltip text="Facebook">
+        <a href={`https://www.facebook.com/sharer/sharer.php?u=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di Facebook" className="fv-pill-btn" style={btnStyle}>
+          <Facebook size={13} strokeWidth={1.75} />
+        </a>
+      </Tooltip>
+      <Tooltip text="X (Twitter)">
+        <a href={`https://twitter.com/intent/tweet?text=${teks}&url=${laluan}`} target="_blank" rel="noopener noreferrer" aria-label="Kongsi di X" className="fv-pill-btn" style={btnStyle}>
+          <Twitter size={13} strokeWidth={1.75} />
+        </a>
+      </Tooltip>
+      <Tooltip text="Salin pautan">
+        <button type="button" onClick={onSalin} aria-label="Salin pautan" className="fv-pill-btn" style={btnStyle}>
+          {disalinBerjaya ? <Check size={13} strokeWidth={1.75} /> : <Link2 size={13} strokeWidth={1.75} />}
+        </button>
+      </Tooltip>
     </span>
   );
 }
@@ -780,20 +789,21 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 display: 'inline-flex', alignItems: 'center', gap: '6px', zIndex: 5,
               }}>
                 {onToggleNavMode && (
-                  <button
-                    type="button" onClick={onToggleNavMode}
-                    aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
-                    title={navMode === 'rawak' ? 'Rawak' : 'Turutan'}
-                    className="fv-pill-btn"
-                    style={{
-                      appearance: 'none', background: 'var(--surface-page)', border: '1px solid var(--stone-300)',
-                      borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
-                      alignItems: 'center', justifyContent: 'center', minWidth: '30px', minHeight: '30px',
-                      padding: 0, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                    }}
-                  >
-                    {navMode === 'rawak' ? <Shuffle size={13} strokeWidth={1.75} /> : <ListOrdered size={13} strokeWidth={1.75} />}
-                  </button>
+                  <Tooltip text={navMode === 'rawak' ? 'Rawak' : 'Turutan'}>
+                    <button
+                      type="button" onClick={onToggleNavMode}
+                      aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
+                      className="fv-pill-btn"
+                      style={{
+                        appearance: 'none', background: 'var(--surface-page)', border: '1px solid var(--stone-300)',
+                        borderRadius: '999px', color: 'var(--stone-500)', display: 'inline-flex',
+                        alignItems: 'center', justifyContent: 'center', minWidth: '30px', minHeight: '30px',
+                        padding: 0, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                      }}
+                    >
+                      {navMode === 'rawak' ? <Shuffle size={13} strokeWidth={1.75} /> : <ListOrdered size={13} strokeWidth={1.75} />}
+                    </button>
+                  </Tooltip>
                 )}
                 {onNext && (
                   <button
@@ -876,32 +886,34 @@ export const FocusView: React.FC<FocusViewProps> = ({
               label rawak dan auto, kekalkan ikon sahaja") — ikon + title (tooltip hover) +
               aria-label (pembaca skrin) kekal cukup jelas tanpa teks kekal di sisi ikon. */}
           {onToggleNavMode && (
-            <button
-              type="button" onClick={onToggleNavMode}
-              aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
-              title={navMode === 'rawak' ? 'Rawak' : 'Turutan'}
-              className="fv-icon-btn"
-              style={{
-                display: 'inline-flex', alignItems: 'center', background: 'none', border: 0,
-                padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
-              }}
-            >
-              {navMode === 'rawak' ? <Shuffle size={13} strokeWidth={1.75} /> : <ListOrdered size={13} strokeWidth={1.75} />}
-            </button>
+            <Tooltip text={navMode === 'rawak' ? 'Rawak' : 'Turutan'}>
+              <button
+                type="button" onClick={onToggleNavMode}
+                aria-label={navMode === 'rawak' ? 'Tukar ke mod turutan' : 'Tukar ke mod rawak'}
+                className="fv-icon-btn"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', background: 'none', border: 0,
+                  padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
+                }}
+              >
+                {navMode === 'rawak' ? <Shuffle size={13} strokeWidth={1.75} /> : <ListOrdered size={13} strokeWidth={1.75} />}
+              </button>
+            </Tooltip>
           )}
           {onNext && (
-            <button
-              type="button" onClick={() => setAutoPlay(p => !p)}
-              aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
-              title={autoPlay ? 'Jeda' : 'Auto'}
-              className="fv-icon-btn"
-              style={{
-                display: 'inline-flex', alignItems: 'center', background: 'none', border: 0,
-                padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
-              }}
-            >
-              {autoPlay ? <Pause size={13} strokeWidth={1.75} /> : <Play size={13} strokeWidth={1.75} />}
-            </button>
+            <Tooltip text={autoPlay ? 'Jeda' : 'Auto'}>
+              <button
+                type="button" onClick={() => setAutoPlay(p => !p)}
+                aria-label={autoPlay ? 'Jeda tatal automatik' : 'Mainkan tatal automatik'}
+                className="fv-icon-btn"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', background: 'none', border: 0,
+                  padding: 0, cursor: 'pointer', lineHeight: 1, color: 'var(--stone-400)',
+                }}
+              >
+                {autoPlay ? <Pause size={13} strokeWidth={1.75} /> : <Play size={13} strokeWidth={1.75} />}
+              </button>
+            </Tooltip>
           )}
         </span>
         <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
@@ -1033,9 +1045,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   dahulu di bawah; susunan bertukar supaya nota (konteks editorial) dibaca dulu
                   sebelum pautan navigasi ke kandungan lain. */}
               {note && (
-                <p title={note} style={{ margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)' }}>
-                  <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText}
-                </p>
+                <Tooltip text={note}>
+                  <p style={{ margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)' }}>
+                    <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText}
+                  </p>
+                </Tooltip>
               )}
 
               {(prevPreviewTitle || nextPreviewTitle) && (

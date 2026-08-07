@@ -7,6 +7,7 @@ import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
+import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
 
 // Nota Ketua Editor (2026-08-01, spesifikasi pemilik projek) — tiga kategori nota yang Ketua
@@ -367,14 +368,16 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                     <div className="flex items-center gap-1 shrink-0">
                       {!paparanArkib && (
                         <>
-                          <button
-                            type="button"
-                            title={n.disemat ? 'Nyahsemat' : 'Semat di atas'}
-                            onClick={() => ubah(n.id, { disemat: !n.disemat })}
-                            className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
-                          >
-                            {n.disemat ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                          </button>
+                          <Tooltip text={n.disemat ? 'Nyahsemat' : 'Semat di atas'}>
+                            <button
+                              type="button"
+                              onClick={() => ubah(n.id, { disemat: !n.disemat })}
+                              aria-label={n.disemat ? 'Nyahsemat' : 'Semat di atas'}
+                              className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
+                            >
+                              {n.disemat ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                            </button>
+                          </Tooltip>
                           {confirmSuntingId === n.id ? (
                             <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-300 rounded px-2 py-1">
                               <span className="text-[10px] text-amber-800 font-semibold whitespace-nowrap">Buang draf semasa?</span>
@@ -394,35 +397,41 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                               </button>
                             </span>
                           ) : (
+                            <Tooltip text="Sunting nota">
+                              <button
+                                type="button"
+                                onClick={() => mintaSunting(n)}
+                                aria-label="Sunting nota"
+                                className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            </Tooltip>
+                          )}
+                          <Tooltip text="Arkibkan nota">
                             <button
                               type="button"
-                              title="Sunting nota"
-                              onClick={() => mintaSunting(n)}
+                              onClick={() => ubah(n.id, { status: 'arkib' })}
+                              aria-label="Arkibkan nota"
                               className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
                             >
-                              <Pencil className="w-3.5 h-3.5" />
+                              <Archive className="w-3.5 h-3.5" />
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            title="Arkibkan nota"
-                            onClick={() => ubah(n.id, { status: 'arkib' })}
-                            className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
-                          >
-                            <Archive className="w-3.5 h-3.5" />
-                          </button>
+                          </Tooltip>
                         </>
                       )}
                       {paparanArkib && (
                         <>
-                          <button
-                            type="button"
-                            title="Pulihkan nota"
-                            onClick={() => ubah(n.id, { status: 'aktif' })}
-                            className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
-                          >
-                            <ArchiveRestore className="w-3.5 h-3.5" />
-                          </button>
+                          <Tooltip text="Pulihkan nota">
+                            <button
+                              type="button"
+                              onClick={() => ubah(n.id, { status: 'aktif' })}
+                              aria-label="Pulihkan nota"
+                              className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
+                            >
+                              <ArchiveRestore className="w-3.5 h-3.5" />
+                            </button>
+                          </Tooltip>
                           {confirmPadamId === n.id ? (
                             <span className="flex items-center gap-1.5 bg-red-50 border border-[var(--color-error)]/40 rounded px-2 py-1">
                               <span className="text-[10px] text-[var(--color-error)] font-semibold whitespace-nowrap">Padam selamanya?</span>
@@ -442,14 +451,16 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                               </button>
                             </span>
                           ) : (
-                            <button
-                              type="button"
-                              title="Padam nota selamanya"
-                              onClick={() => setConfirmPadamId(n.id)}
-                              className="p-1.5 text-stone-400 hover:text-[var(--color-error)] transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <Tooltip text="Padam nota selamanya">
+                              <button
+                                type="button"
+                                onClick={() => setConfirmPadamId(n.id)}
+                                aria-label="Padam nota selamanya"
+                                className="p-1.5 text-stone-400 hover:text-[var(--color-error)] transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </Tooltip>
                           )}
                         </>
                       )}

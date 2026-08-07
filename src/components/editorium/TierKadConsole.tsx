@@ -7,6 +7,7 @@ import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
+import { Tooltip } from '../common/Tooltip';
 import { KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // Tier Kad (2026-07-30, permintaan pemilik projek) — tetapan yang dikongsi SEMUA slot yang sebentuk.
@@ -192,15 +193,19 @@ export const TierKadConsole: React.FC = () => {
                       <td className="p-2.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {t.dipinda && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => kembaliLalai(t)}
-                              disabled={menyimpan === t.tierKey}
-                              title="Kembali ke nilai lalai"
-                              className="hover:text-Adjung-maroon"
-                              icon={<RotateCcw className="w-3.5 h-3.5" />}
-                            />
+                            <Tooltip text="Kembali ke nilai lalai">
+                              <span className="inline-flex shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => kembaliLalai(t)}
+                                  disabled={menyimpan === t.tierKey}
+                                  aria-label="Kembali ke nilai lalai"
+                                  className="hover:text-Adjung-maroon"
+                                  icon={<RotateCcw className="w-3.5 h-3.5" />}
+                                />
+                              </span>
+                            </Tooltip>
                           )}
                           <Button
                             variant="primary"
