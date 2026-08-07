@@ -7,6 +7,7 @@ import { BidangIcon } from '../common/BidangIcon';
 import { Tooltip } from '../common/Tooltip';
 import { labelUi } from '../../config/istilah';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
+import { useModalFokus } from '../../hooks/useModalFokus';
 
 interface Bidang { name: string; color: string; icon: string | null; iconSvg: string | null }
 
@@ -669,9 +670,26 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
+  // Perangkap fokus + Escape + pulangkan fokus (2026-08-07) — modal ni TERBESAR dalam aplikasi
+  // tetapi satu-satunya yang terlepas semasa cangkuk `useModalFokus` diperkenalkan (Audit UI/UX
+  // §G1/G2 melengkapkan 15 tapak panggilan lain). Kesannya nyata: Tab boleh keluar terus ke
+  // frontpage di belakang, jadi pengguna papan kekunci menaip ke medan yang tidak kelihatan.
+  // Sengaja TIDAK dimigrasikan ke <EditorDialog> — modal ni ada susun atur tersendiri (tinggi
+  // tetap `h-[min(88vh,720px)]`, kepala/kaki flex-none dengan badan menatal, lebar 1080px yang
+  // lebih besar daripada mana-mana saiz EditorDialog). Memaksanya masuk akan menjadi reka
+  // bentuk semula, bukan penyatuan.
+  const refModal = useRef<HTMLDivElement>(null);
+  useModalFokus(refModal, onClose);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-md">
-      <div className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in">
+      <div
+        ref={refModal}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Urus Slot ${editingSlotIndex + 1}`}
+        className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in"
+      >
 
         <header className="flex-none px-4 md:px-8 pt-5 pb-3.5">
           {/* Telefon: tindan menegak (tajuk atas, kawalan slot+tutup bawah) — bukan sebelah-

@@ -24,7 +24,10 @@ const SAIZ_CLASS: Record<SaizDialog, string> = {
 };
 
 export interface EditorDialogProps {
-  tajuk: string;
+  /** ReactNode, bukan string — beberapa dialog sedia ada meletakkan glif dalam tajuknya (cth
+   *  BidangIcon dalam modal "Ikon & Warna"). Menerima nod mengelakkan dialog tersebut terpaksa
+   *  kekal ditulis tangan semata-mata kerana tajuknya bukan teks tulen. */
+  tajuk: React.ReactNode;
   onTutup: () => void;
   /** Lalai `lg` — kebanyakan pemanggil ialah borang. */
   saiz?: SaizDialog;
@@ -64,7 +67,7 @@ export const EditorDialog: React.FC<EditorDialogProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center border-b border-stone-200 pb-2">
-          <h3 id={idTajuk} className="font-serif text-lg font-bold text-Adjung-maroon">{tajuk}</h3>
+          <h3 id={idTajuk} className="font-serif text-lg font-bold text-Adjung-maroon flex items-center gap-2 min-w-0">{tajuk}</h3>
           <button
             type="button"
             onClick={onTutup}

@@ -161,6 +161,9 @@ export const EditorialConsole: React.FC = () => {
   const [eCatatan, setECatatan] = useState('');
   const [ralatEjaan, setRalatEjaan] = useState('');
   const [menghantarEjaan, setMenghantarEjaan] = useState(false);
+  // Borang "tambah ejaan" dalam dialog, bukan terpampang kekal (2026-08-07, arahan Izzat —
+  // senarai yang utama; borang muncul hanya semasa mencipta).
+  const [dialogEjaan, setDialogEjaan] = useState(false);
   const [confirmBuangEjaan, setConfirmBuangEjaan] = useState('');
 
   const muatEjaan = useCallback(() => {
@@ -186,6 +189,7 @@ export const EditorialConsole: React.FC = () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan bentuk ejaan.');
       setEBetul(''); setEElakkan(''); setECatatan('');
+      setDialogEjaan(false);
       muatEjaan();
     } catch (err: any) {
       setRalatEjaan(err.message || 'Gagal menyimpan bentuk ejaan.');
@@ -512,57 +516,82 @@ export const EditorialConsole: React.FC = () => {
       {/* 3. PENYELARASAN EJAAN */}
       {subTab === 'ejaan' && (
         <div className="space-y-4">
-          <PanelCard>
-          <form onSubmit={tambahEjaan} className="space-y-4 text-xs">
-            <div>
-              <SectionLabel>04 — Penyelarasan Ejaan</SectionLabel>
-              <p className="text-stone-500 text-xs">
-                Bentuk ejaan yang betul berbanding bentuk yang kerap tersilap tulis. Berbeza
-                daripada <strong className="font-semibold">Glosari</strong>, senarai ini rujukan
-                dalaman untuk editor sahaja — ia tidak dipaparkan kepada pembaca.
-              </p>
-            </div>
+          {dialogEjaan && (
+            <EditorDialog
+              tajuk="Tambah Bentuk Ejaan"
+              onTutup={() => { setDialogEjaan(false); setRalatEjaan(''); }}
+              saiz="lg"
+              tindakan={
+                <>
+                  <Button variant="secondary" onClick={() => { setDialogEjaan(false); setRalatEjaan(''); }}>
+                    Batal
+                  </Button>
+                  {/* `form=` menyambung butang di kaki dialog kepada borang di dalam `children` —
+                      EditorDialog merender tindakan sebagai ADIK-BERADIK kepada children, jadi
+                      butang ini berada di luar <form> dan tidak boleh menghantarnya secara tersirat. */}
+                  <Button
+                    type="submit" form="borang-ejaan" variant="primary"
+                    disabled={menghantarEjaan || !eBetul.trim()}
+                  >
+                    {menghantarEjaan ? 'Menambah…' : 'Tambah'}
+                  </Button>
+                </>
+              }
+            >
+              <form id="borang-ejaan" onSubmit={tambahEjaan} className="space-y-4">
+                {/* Kedua-dua medan ini satu perkataan sahaja — grid dua lajur dikekalkan, tetapi
+                    dihadkan kepada lebar lajur borang pendek supaya ia tidak terbentang. */}
+                <FormColumn saiz="md">
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="block">
+                      <span className={LABEL_BORANG}>Bentuk betul</span>
+                      <input
+                        type="text" value={eBetul} onChange={(e) => setEBetul(e.target.value)}
+                        placeholder="contoh: kerana"
+                        className={INPUT_BORANG}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={LABEL_BORANG}>Elakkan (pilihan)</span>
+                      <input
+                        type="text" value={eElakkan} onChange={(e) => setEElakkan(e.target.value)}
+                        placeholder="contoh: kerena, krn"
+                        className={INPUT_BORANG}
+                      />
+                    </label>
+                  </div>
+                </FormColumn>
 
-            <div className="grid grid-cols-2 gap-4">
-              <label className="block">
-                <span className={LABEL_BORANG}>Bentuk betul</span>
-                <input
-                  type="text" value={eBetul} onChange={(e) => setEBetul(e.target.value)}
-                  placeholder="contoh: kerana"
-                  className={INPUT_BORANG}
-                />
-              </label>
-              <label className="block">
-                <span className={LABEL_BORANG}>Elakkan (pilihan)</span>
-                <input
-                  type="text" value={eElakkan} onChange={(e) => setEElakkan(e.target.value)}
-                  placeholder="contoh: kerena, krn"
-                  className={INPUT_BORANG}
-                />
-              </label>
-            </div>
+                <FormColumn saiz="lg">
+                  <label className="block">
+                    <span className={LABEL_BORANG}>Catatan (pilihan)</span>
+                    <textarea
+                      value={eCatatan} onChange={(e) => setECatatan(e.target.value)} rows={2}
+                      placeholder="Nota ringkas, contoh sumber kesilapan biasa…"
+                      className={`${INPUT_BORANG} resize-y`}
+                    />
+                  </label>
+                </FormColumn>
 
-            <label className="block">
-              <span className={LABEL_BORANG}>Catatan (pilihan)</span>
-              <textarea
-                value={eCatatan} onChange={(e) => setECatatan(e.target.value)} rows={2}
-                placeholder="Nota ringkas, contoh sumber kesilapan biasa…"
-                className={`${INPUT_BORANG} resize-y`}
-              />
-            </label>
-
-            {ralatEjaan && <MesejStatus tone="error">{ralatEjaan}</MesejStatus>}
-
-            <div className="flex justify-end">
-              <Button type="submit" variant="primary" size="md" disabled={menghantarEjaan || !eBetul.trim()}>
-                {menghantarEjaan ? 'Menambah…' : '+ Tambah ke Senarai Ejaan'}
-              </Button>
-            </div>
-          </form>
-          </PanelCard>
+                {ralatEjaan && <MesejStatus tone="error">{ralatEjaan}</MesejStatus>}
+              </form>
+            </EditorDialog>
+          )}
 
           <PanelCard className="space-y-3 text-xs">
-            <SectionLabel>05 — Senarai Ejaan ({ejaan.length})</SectionLabel>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <SectionLabel>03 — Penyelarasan Ejaan ({ejaan.length})</SectionLabel>
+                <p className="text-stone-500 text-xs max-w-[680px]">
+                  Bentuk ejaan yang betul berbanding bentuk yang kerap tersilap tulis. Berbeza
+                  daripada <strong className="font-semibold">Glosari</strong>, senarai ini rujukan
+                  dalaman untuk editor sahaja — ia tidak dipaparkan kepada pembaca.
+                </p>
+              </div>
+              <Button variant="primary" onClick={() => setDialogEjaan(true)} className="shrink-0">
+                + Tambah Ejaan
+              </Button>
+            </div>
             {memuatEjaan ? (
               <p className="text-stone-400 py-6 text-center">Memuatkan senarai ejaan…</p>
             ) : ejaan.length === 0 ? (
@@ -626,11 +655,11 @@ export const EditorialConsole: React.FC = () => {
         </div>
       )}
 
-      {/* 3. TEMPLAT AI */}
+      {/* 4. TEMPLAT AI */}
       {subTab === 'ai' && (
         <PanelCard className="space-y-4 text-xs">
           <div>
-            <SectionLabel>06 — Templat Penjanaan AI</SectionLabel>
+            <SectionLabel>04 — Templat Penjanaan AI</SectionLabel>
             <p className="text-stone-500 text-xs">
               Peraturan am yang dimasukkan ke dalam setiap prompt AI. Templat kandungan di bawah ialah yang
               SAMA dipapar sebagai "Peraturan Am" dalam Urus Slot — menyuntingnya di sini mengubah prompt
@@ -642,35 +671,41 @@ export const EditorialConsole: React.FC = () => {
             <p className="text-stone-400 py-6 text-center">Memuatkan templat…</p>
           ) : (
             <>
-              <label className="block">
-                <span className={LABEL_BORANG}>
-                  Templat penjanaan kandungan
-                </span>
-                <textarea
-                  value={masterPrompt}
-                  onChange={(e) => setMasterPrompt(e.target.value)}
-                  rows={4}
-                  placeholder="Contoh: Gunakan bahasa Melayu baku, elakkan jargon, nada formal dan tidak emosional…"
-                  className={`${INPUT_BORANG} resize-y`}
-                />
-              </label>
+              {/* Borang sunting-di-tempat (bukan borang "tambah item"), jadi ia kekal terpampang —
+                  tetapi lebarnya dihadkan supaya textarea tidak terbentang seluruh skrin. */}
+              <FormColumn saiz="lg">
+                <label className="block">
+                  <span className={LABEL_BORANG}>
+                    Templat penjanaan kandungan
+                  </span>
+                  <textarea
+                    value={masterPrompt}
+                    onChange={(e) => setMasterPrompt(e.target.value)}
+                    rows={4}
+                    placeholder="Contoh: Gunakan bahasa Melayu baku, elakkan jargon, nada formal dan tidak emosional…"
+                    className={`${INPUT_BORANG} resize-y`}
+                  />
+                </label>
+              </FormColumn>
 
-              <label className="block">
-                <span className={LABEL_BORANG}>
-                  Templat semakan (ejaan, tatabahasa, gaya bahasa, format)
-                </span>
-                <textarea
-                  value={reviewPrompt}
-                  onChange={(e) => setReviewPrompt(e.target.value)}
-                  rows={4}
-                  placeholder="Contoh: Semak ejaan, tatabahasa, gaya bahasa akademik dan format perenggan teks berikut…"
-                  className={`${INPUT_BORANG} resize-y`}
-                />
-                <span className="block mt-1 text-stone-400 text-[10px]">
-                  Templat semakan disimpan tetapi belum disambungkan ke mana-mana butang semakan — belum ada
-                  alur kerja semakan AI dalam Editorium setakat ini.
-                </span>
-              </label>
+              <FormColumn saiz="lg">
+                <label className="block">
+                  <span className={LABEL_BORANG}>
+                    Templat semakan (ejaan, tatabahasa, gaya bahasa, format)
+                  </span>
+                  <textarea
+                    value={reviewPrompt}
+                    onChange={(e) => setReviewPrompt(e.target.value)}
+                    rows={4}
+                    placeholder="Contoh: Semak ejaan, tatabahasa, gaya bahasa akademik dan format perenggan teks berikut…"
+                    className={`${INPUT_BORANG} resize-y`}
+                  />
+                  <span className="block mt-1 text-stone-400 text-[10px]">
+                    Templat semakan disimpan tetapi belum disambungkan ke mana-mana butang semakan — belum ada
+                    alur kerja semakan AI dalam Editorium setakat ini.
+                  </span>
+                </label>
+              </FormColumn>
 
               {ralatAi && <MesejStatus tone="error">{ralatAi}</MesejStatus>}
 
