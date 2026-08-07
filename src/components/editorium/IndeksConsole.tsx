@@ -827,7 +827,15 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         </div>
       ) : sortedRecords.length === 0 ? (
         <PanelCard>
-          <KeadaanKosong>Tiada kandungan yang sepadan dengan kriteria filter pilihan anda.</KeadaanKosong>
+          <KeadaanKosong
+            tindakan={
+              <Button variant="secondary" size="sm" onClick={handleResetFilters}>
+                Kosongkan Penapis
+              </Button>
+            }
+          >
+            Tiada kandungan yang sepadan dengan kriteria filter pilihan anda.
+          </KeadaanKosong>
         </PanelCard>
       ) : (
         <PanelCard padding="p-0" className="overflow-x-auto">

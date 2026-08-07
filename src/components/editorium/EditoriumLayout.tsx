@@ -122,12 +122,19 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   // tempat lain tak menutupnya, dan sidebar MENOLAK kandungan (bukan melayang atasnya) — kalau
   // ia kekal terapung selamanya ia akan menutupi kandungan secara kekal, bukan sekejap.
   // Disimpan dalam localStorage supaya pilihan kekal antara sesi/muat semula.
+  // Lalai SEMAT untuk log masuk pertama (2026-08-07, Audit UI/UX §C3, diluluskan Izzat) — rel
+  // ikon terlipat perlukan 2-3 klik setiap tukar modul (klik pertama cuma buka, klik kedua
+  // pilih, sidebar tak tutup sendiri jadi klik ketiga perlu dapatkan semula ruang). Kunci ni
+  // TIADA (null) hanya pada log masuk pertama seorang editor pada peranti tu — selepas itu
+  // sentiasa '0' atau '1' eksplisit, jadi nyahsemat kekal dihormati selamanya (bukan reset
+  // balik ke semat setiap kali storan entah bagaimana kosong).
   const KUNCI_SEMAT = 'adjung-editorium-sidebar-disemat';
   const [disemat, setDisemat] = useState(() => {
     try {
-      return window.localStorage.getItem(KUNCI_SEMAT) === '1';
+      const tersimpan = window.localStorage.getItem(KUNCI_SEMAT);
+      return tersimpan === null ? true : tersimpan === '1';
     } catch {
-      return false;
+      return true;
     }
   });
 

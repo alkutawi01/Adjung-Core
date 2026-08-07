@@ -197,7 +197,15 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
             {!memuat && filteredStaff.length === 0 && (
               <tr>
                 <td colSpan={7}>
-                  <KeadaanKosong>Tiada Anggota Sepadan</KeadaanKosong>
+                  <KeadaanKosong
+                    tindakan={searchQuery && (
+                      <Button variant="secondary" size="sm" onClick={() => setSearchQuery('')}>
+                        Kosongkan Carian
+                      </Button>
+                    )}
+                  >
+                    Tiada Anggota Sepadan
+                  </KeadaanKosong>
                 </td>
               </tr>
             )}
