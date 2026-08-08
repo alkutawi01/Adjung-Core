@@ -251,45 +251,70 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     }
   });
 
-  // POST /api/system/settings
+  // Peta medan→serializer system_settings (2026-08-08, dapatan audit keselamatan ChatGPT P2-01
+  // susulan) — whitelist EKSPLISIT, jangan sekali-kali bina senarai lajur SQL terus drpd
+  // Object.keys(req.body). Setiap serializer pulangkan nilai sedia simpan (JSON.stringify utk
+  // array/objek, 0/1 utk boolean). Diletak di luar handler (bukan konstruk semula setiap
+  // permintaan) — peta statik, tiada sebab jadi baharu setiap panggilan.
+  const SETTINGS_SERIALIZER = {
+    frontpageTitle: (v) => v,
+    frontpageSubtitle: (v) => v,
+    rolePermissions: (v) => JSON.stringify(v || {}),
+    inTheNewsText: (v) => v,
+    inTheNewsGoogleDocUrl: (v) => v,
+    featuredScholarId: (v) => v,
+    featuredEntryId: (v) => v,
+    editorialSelectionIds: (v) => JSON.stringify(v || []),
+    announcementBanner: (v) => v,
+    enableArabicAccent: (v) => (v ? 1 : 0),
+    layoutDensity: (v) => v,
+    allowedSignatureFonts: (v) => JSON.stringify(v || []),
+    featuredEssayIds: (v) => JSON.stringify(v || []),
+    featuredNoteIds: (v) => JSON.stringify(v || []),
+    worldClockHolidaysText: (v) => v,
+    worldClockHolidaysGoogleDocUrl: (v) => v,
+    researchFindingsText: (v) => v,
+    researchFindingsGoogleDocUrl: (v) => v,
+    masterPrompt: (v) => v,
+    worldClockIntervalSec: (v) => Number(v),
+    worldClockBgClickEnabled: (v) => (v ? 1 : 0),
+    reviewPrompt: (v) => v,
+    glosSelariEnabled: (v) => (v ? 1 : 0),
+    schoolHolidaysJson: (v) => v,
+    focusViewNotaMaxAksara: (v) => Number(v),
+    tickerOverlayTitleSize: (v) => v,
+    tickerOverlayBriefSize: (v) => v,
+  };
+
+  // POST /api/system/settings — UPDATE separa berpandukan whitelist (2026-08-08, dapatan audit
+  // keselamatan ChatGPT P2-01 susulan), gantikan INSERT OR REPLACE penuh lama. SQLite REPLACE
+  // sebenarnya delete+insert di sebalik tabir, bukan "kemas kini beberapa medan" — sebarang medan
+  // TAK dihantar client lama tersilap dikodkan keras nilai lalai (worldClockIntervalSec=60 dll.),
+  // bukan dikekalkan. Reka bentuk baharu: medan tiada dlm badan permintaan (`undefined`) = KEKAL
+  // nilai sedia ada, bukan ditimpa lalai. Serasi belakang OTOMATIK tanpa kod cabang — client lama
+  // (TetapanConsole/EditorialConsole) hantar objek GABUNGAN PENUH (semua medan hadir) = semua
+  // lajur dikemas kini, kelakuan sama macam dulu; client baharu boleh hantar objek separa (cuma
+  // medan berubah) bila-bila nanti tanpa pelayan perlu tahu bezanya.
   router.post('/system/settings', requirePermission('manageSettings'), async (req, res) => {
     try {
       const s = req.body;
-      await dbRun(`
-        INSERT OR REPLACE INTO system_settings (
-          id, frontpageTitle, frontpageSubtitle, rolePermissions,
-          inTheNewsText, inTheNewsGoogleDocUrl, featuredScholarId, featuredEntryId,
-          editorialSelectionIds, announcementBanner, enableArabicAccent, layoutDensity,
-          allowedSignatureFonts, featuredEssayIds, featuredNoteIds, worldClockHolidaysText,
-          worldClockHolidaysGoogleDocUrl, researchFindingsText, researchFindingsGoogleDocUrl,
-          masterPrompt, worldClockIntervalSec, worldClockBgClickEnabled, reviewPrompt,
-          glosSelariEnabled, schoolHolidaysJson, focusViewNotaMaxAksara,
-          tickerOverlayTitleSize, tickerOverlayBriefSize
-        ) VALUES (
-          'settings-main', ?, ?, ?,
-          ?, ?, ?, ?,
-          ?, ?, ?, ?,
-          ?, ?, ?, ?,
-          ?, ?, ?, ?,
-          ?, ?, ?,
-          ?, ?, ?,
-          ?, ?
-        )
-      `, [
-        s.frontpageTitle, s.frontpageSubtitle, JSON.stringify(s.rolePermissions || {}),
-        s.inTheNewsText, s.inTheNewsGoogleDocUrl, s.featuredScholarId, s.featuredEntryId,
-        JSON.stringify(s.editorialSelectionIds || []), s.announcementBanner, s.enableArabicAccent ? 1 : 0, s.layoutDensity,
-        JSON.stringify(s.allowedSignatureFonts || []), JSON.stringify(s.featuredEssayIds || []), JSON.stringify(s.featuredNoteIds || []), s.worldClockHolidaysText,
-        s.worldClockHolidaysGoogleDocUrl, s.researchFindingsText, s.researchFindingsGoogleDocUrl, s.masterPrompt,
-        s.worldClockIntervalSec !== undefined ? Number(s.worldClockIntervalSec) : 60,
-        s.worldClockBgClickEnabled !== undefined ? (s.worldClockBgClickEnabled ? 1 : 0) : 1,
-        s.reviewPrompt,
-        s.glosSelariEnabled ? 1 : 0,
-        s.schoolHolidaysJson !== undefined ? s.schoolHolidaysJson : null,
-        s.focusViewNotaMaxAksara !== undefined ? Number(s.focusViewNotaMaxAksara) : 180,
-        s.tickerOverlayTitleSize || 'L',
-        s.tickerOverlayBriefSize || 'M'
-      ]);
+      const kolum = [];
+      const nilai = [];
+      for (const [medan, serial] of Object.entries(SETTINGS_SERIALIZER)) {
+        if (s[medan] === undefined) continue;
+        kolum.push(medan);
+        nilai.push(serial(s[medan]));
+      }
+      // Baris canonical 'settings-main' sepatutnya dah disemai server.js semasa boot — INSERT OR
+      // IGNORE di sini jaring kecemasan murah (UPDATE pada baris tak wujud senyap tak buat apa-apa,
+      // bukan ralat), bukan gantikan logik semai.
+      await dbRun("INSERT OR IGNORE INTO system_settings (id) VALUES ('settings-main')");
+      if (kolum.length > 0) {
+        await dbRun(
+          `UPDATE system_settings SET ${kolum.map((k) => `${k} = ?`).join(', ')} WHERE id = 'settings-main'`,
+          nilai
+        );
+      }
       // Matriks Kawalan Akses mungkin baru diubah — muat semula cache dalam-memori serta-merta
       // supaya perubahan kebenaran berkuat kuasa pada permintaan SETERUSNYA, bukan tunggu server
       // dimulakan semula (sama corak loadAmSettings/loadTierOverrides).
