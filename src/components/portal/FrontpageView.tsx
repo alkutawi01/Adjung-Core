@@ -1108,8 +1108,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // dan paling banyak 3 toast kelihatan serentak tanpa mengira berapa banyak dicetuskan.
   const MAKS_TOAST = 3;
   const addToast = (type: 'success' | 'error' | 'info', message: string) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev.filter((t) => t.message !== message), { id, type, message }].slice(-MAKS_TOAST));
+    setToasts((prev) => {
+      // Mesej serupa yang MASIH kelihatan diabaikan terus, bukan diganti dengan yang baharu:
+      // menggantinya bermakna satu toast keluar sementara satu lagi masuk, jadi pembaca nampak
+      // dua salinan bertindih memudar silang (disahkan hidup — opacity 0.18 lawan 0.82) yang
+      // kelihatan seperti pepijat paparan. Ia sudah pun terpampang; ulangan tiada apa nak tambah.
+      if (prev.some((t) => t.message === message)) return prev;
+      const id = Math.random().toString(36).substring(2, 9);
+      return [...prev, { id, type, message }].slice(-MAKS_TOAST);
+    });
   };
   const dismissToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
