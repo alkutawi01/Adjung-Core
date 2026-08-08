@@ -14,11 +14,11 @@ import {
   FOCUS_VIEW_EYEBROW_MAX_CHARS,
 } from './GeometryConfig.js';
 
-// Had minimum Huraian ringkas — nisbah minimum baki bajet huraian yang MESTI diisi (2026-08-08,
-// permintaan Izzat). 0.5 = huraian mesti guna sekurang-kurangnya separuh ruang yang tersedia
-// untuk tajuk semasa — cukup longgar untuk tajuk yang sengaja ringkas, cukup ketat untuk elak
-// huraian sekadar frasa pendek dalam kad yang boleh muat jauh lebih banyak.
-const MIN_BRIEF_USAGE_FRACTION = 0.5;
+// Had minimum bajet KESELURUHAN (tajuk + huraian bersama) — nisbah minimum jumlah ruang kad yang
+// MESTI diguna (2026-08-08, keputusan Izzat, gantikan pendekatan huraian-sahaja 50% sebelum ni).
+// 0.8 = tajuk+huraian bersama mesti isi sekurang-kurangnya 80% jumlah bajet kongsi kad, elak kad
+// nampak kosong tanpa mengira nisbah tajuk:huraian sendiri.
+const MIN_TOTAL_USAGE_FRACTION = 0.8;
 
 // Every slot of the same tier gets the exact same rule — there is no per-slot special-casing.
 const validateContentBudget = (slotIndex, title, summary) => {
@@ -78,22 +78,15 @@ const validateContentBudget = (slotIndex, title, summary) => {
       };
     }
 
-    // Had MINIMUM Huraian ringkas (2026-08-08, permintaan Izzat — "huraian pendek tidak terlalu
-    // pendek sehingga nampak kosong"). Ditemui semasa ujian sebenar: kad tier ketat (cth KOMPAK,
-    // had huraian 41 aksara) boleh diisi cuma 20 aksara ("Karya klasik Melayu.") — teknikal sah
-    // (dalam bajet), tapi tinggalkan ruang kosong ketara pada kad kerana saiz fizikal kad tetap
-    // tak kira berapa pendek kandungan diisi. Had dikira NISBAH terhadap baki bajet SEBENAR
-    // tajuk ini (bukan nombor tegar), sebab baki huraian berubah ikut panjang tajuk — tajuk
-    // panjang secara sah tinggalkan sedikit ruang huraian, itu bukan "terlalu pendek".
-    if (briefLen > 0 && maxBriefAlone > 0) {
-      const remainingBriefUntukTajukIni = Math.max(0, (1 - titleLen / maxTitleAlone) * maxBriefAlone);
-      const hadMinimumHuraian = Math.floor(remainingBriefUntukTajukIni * MIN_BRIEF_USAGE_FRACTION);
-      if (remainingBriefUntukTajukIni >= 10 && briefLen < hadMinimumHuraian) {
-        return {
-          isValid: false,
-          reason: `Huraian (${briefLen} aksara) terlalu pendek untuk ruang kad ${tier} — sekurang-kurangnya ${hadMinimumHuraian} aksara untuk tajuk sepanjang ${titleLen} aksara ini (elak kad nampak kosong). Panjangkan huraian, atau panjangkan tajuk untuk kurangkan baki ruang huraian.`,
-        };
-      }
+    // Had MINIMUM bajet KESELURUHAN (2026-08-08, keputusan Izzat — "had bajet mesti 80% ke atas,
+    // merangkumi tajuk DAN huraian", gantikan pendekatan huraian-sahaja 50% sebelum ni). Jumlah
+    // nisbah tajuk+huraian (usedFraction, dikira di atas) mesti sekurang-kurangnya 80% daripada
+    // bajet kongsi kad — elak kad nampak kosong tanpa kira nisbah tajuk:huraian sendiri.
+    if (usedFraction < MIN_TOTAL_USAGE_FRACTION) {
+      return {
+        isValid: false,
+        reason: `Kandungan (${Math.round(usedFraction * 100)}% bajet kad ${tier}) terlalu ringkas — sekurang-kurangnya ${Math.round(MIN_TOTAL_USAGE_FRACTION * 100)}% jumlah bajet tajuk+huraian mesti diguna (elak kad nampak kosong). Panjangkan tajuk dan/atau huraian.`,
+      };
     }
     return { isValid: true };
   }

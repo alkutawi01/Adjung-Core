@@ -153,7 +153,7 @@ export function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: n
         {/* Arah panduan bergantung jenis pelanggaran — "pendekkan" salah arah untuk kes huraian
             TERLALU PENDEK (2026-08-08, permintaan Izzat), yang perlu PANJANGKAN sebaliknya. */}
         {!check.isValid && (
-          <span className="text-[#a8241f]"> · {check.reason && check.reason.includes('terlalu pendek') ? 'panjangkan huraian ringkas' : 'pendekkan kandungan'}</span>
+          <span className="text-[#a8241f]"> · {check.reason && (check.reason.includes('terlalu pendek') || check.reason.includes('terlalu ringkas')) ? 'panjangkan tajuk/huraian' : 'pendekkan kandungan'}</span>
         )}
       </span>
     </div>
