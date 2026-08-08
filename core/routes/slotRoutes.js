@@ -53,11 +53,21 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       if (!semakan.selamat) {
         return res.status(400).json({ error: `URL RSS tidak sah: ${semakan.sebab}` });
       }
+      // Sahkan julat trustScore + normalkan enabled (2026-08-08, dapatan audit keselamatan
+      // ChatGPT) — dahulu `trustScore || 80` terima apa-apa nilai (negatif, >100, perpuluhan,
+      // rentetan bukan nombor jatuh ke NaN yang SQLite terima senyap); `enabled !== undefined ?
+      // enabled : 1` terima apa-apa jenis (rentetan "false" ialah truthy dlm JS).
+      const trustScoreNum = trustScore !== undefined && trustScore !== null && trustScore !== ''
+        ? Number(trustScore) : 80;
+      if (!Number.isFinite(trustScoreNum) || trustScoreNum < 0 || trustScoreNum > 100) {
+        return res.status(400).json({ error: 'Skor amanah mesti nombor antara 0 hingga 100.' });
+      }
+      const enabledVal = (enabled === false || enabled === 0 || enabled === '0' || enabled === 'false') ? 0 : 1;
       const sourceId = id || `rss-${Date.now()}`;
       await dbRun(`
         INSERT OR REPLACE INTO rss_sources_registry (id, sourceName, rssUrl, language, trustScore, edition, categoryMapping, enabled, createdAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [sourceId, sourceName, rssUrl, language || 'ms-MY', trustScore || 80, edition || 'Malaysia', categoryMapping || 'BERITA', enabled !== undefined ? enabled : 1, new Date().toISOString()]);
+      `, [sourceId, sourceName, rssUrl, language || 'ms-MY', Math.round(trustScoreNum), edition || 'Malaysia', categoryMapping || 'BERITA', enabledVal, new Date().toISOString()]);
       res.json({ success: true, id: sourceId });
     } catch (err) {
       console.error('Save RSS source error:', err);
@@ -120,6 +130,13 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
     try {
       const { itemId, action } = req.body; // action: 'approve' | 'reject'
       if (!itemId || !action) return res.status(400).json({ error: 'itemId atau tindakan tiada.' });
+      // Senarai terkawal, bukan andaian "bukan approve = reject" (2026-08-08, dapatan audit
+      // keselamatan ChatGPT) — dahulu apa-apa nilai action selain 'approve' (taip silap, medan
+      // rosak, "undefined" literal) senyap jadi 'rejected'. Tindakan destruktif kandungan editorial
+      // tak patut tercetus oleh input yang tidak sah/tak dikenali.
+      if (action !== 'approve' && action !== 'reject') {
+        return res.status(400).json({ error: `Tindakan tidak sah: "${action}". Guna 'approve' atau 'reject'.` });
+      }
       const newStatus = action === 'approve' ? 'approved' : 'rejected';
       const h = await dbRun("UPDATE rss_ticker_items SET status = ? WHERE id = ?", [newStatus, itemId]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Item Ticker tidak dijumpai.' });
@@ -164,21 +181,49 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
     try {
       const { autoLiveThreshold, reviewThreshold, priorityKeywords, blockedKeywords, priorityBonus, blockedPenalty, maxNewsAgeHours, tickerMaxItems } = req.body;
       const updatedAt = new Date().toISOString();
-      const limitVal = Number(tickerMaxItems) || 20;
+
+      // Sahkan julat + hubungan ambang (2026-08-08, dapatan audit keselamatan ChatGPT) — dahulu
+      // `Number(x) || lalai` terima apa-apa nilai (negatif, >100, NaN jatuh senyap ke lalai TAPI
+      // 0 turut jatuh ke lalai — sengaja tak dibenarkan tetapkan 0 langsung), dan reviewThreshold
+      // boleh > autoLiveThreshold (klasifikasi editorial jadi bercanggah dgn niat sistem).
+      const autoLiveVal = autoLiveThreshold !== undefined ? Number(autoLiveThreshold) : 80;
+      const reviewVal = reviewThreshold !== undefined ? Number(reviewThreshold) : 60;
+      const bonusVal = priorityBonus !== undefined ? Number(priorityBonus) : 15;
+      const penaltyVal = blockedPenalty !== undefined ? Number(blockedPenalty) : 40;
+      const ageVal = maxNewsAgeHours !== undefined ? Number(maxNewsAgeHours) : 48;
+      const limitVal = tickerMaxItems !== undefined ? Number(tickerMaxItems) : 20;
+      if (![autoLiveVal, reviewVal, bonusVal, penaltyVal, ageVal, limitVal].every(Number.isFinite)) {
+        return res.status(400).json({ error: 'Semua nilai tetapan RSS mesti nombor sah.' });
+      }
+      if (autoLiveVal < 0 || autoLiveVal > 100 || reviewVal < 0 || reviewVal > 100) {
+        return res.status(400).json({ error: 'Ambang auto-live/semakan mesti antara 0 hingga 100.' });
+      }
+      if (reviewVal > autoLiveVal) {
+        return res.status(400).json({ error: 'Ambang semakan tak boleh melebihi ambang auto-live (menyebabkan klasifikasi bercanggah).' });
+      }
+      if (bonusVal < 0 || penaltyVal < 0) {
+        return res.status(400).json({ error: 'Bonus keutamaan dan penalti sekatan tak boleh negatif.' });
+      }
+      if (ageVal <= 0) {
+        return res.status(400).json({ error: 'Had usia berita mesti lebih daripada 0 jam.' });
+      }
+      if (limitVal < 1 || limitVal > 100) {
+        return res.status(400).json({ error: 'Bilangan maksimum item Ticker mesti antara 1 hingga 100.' });
+      }
 
       await dbRun(`
         INSERT OR REPLACE INTO rss_editorial_settings (
           id, autoLiveThreshold, reviewThreshold, priorityKeywords, blockedKeywords, priorityBonus, blockedPenalty, maxNewsAgeHours, tickerMaxItems, updatedAt
         ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
-        Number(autoLiveThreshold) || 80,
-        Number(reviewThreshold) || 60,
+        Math.round(autoLiveVal),
+        Math.round(reviewVal),
         priorityKeywords || '',
         blockedKeywords || '',
-        Number(priorityBonus) || 15,
-        Number(blockedPenalty) || 40,
-        maxNewsAgeHours !== undefined ? Number(maxNewsAgeHours) : 48,
-        limitVal,
+        Math.round(bonusVal),
+        Math.round(penaltyVal),
+        Math.round(ageVal),
+        Math.round(limitVal),
         updatedAt
       ]);
 
