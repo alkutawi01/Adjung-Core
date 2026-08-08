@@ -586,7 +586,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               onClick={() => barSlotEditor.openSlotEditor(Math.min(...TIER_SLOTS.BAR))}
               className="shrink-0 w-[136px]"
               >
-              Urus Slot Bar
+              Tulis Acara
             </Button>
           </div>
           {/* Penaja (2026-08-05, Fasa 12) — tajaan bulanan, Pentadbir sahaja (keputusan

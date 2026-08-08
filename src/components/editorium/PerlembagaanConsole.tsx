@@ -319,7 +319,7 @@ export const PerlembagaanConsole: React.FC = () => {
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Format tampal-manual (10 medan standard)</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed mb-2">
               Format kanonikal yang dijana/dihurai oleh <code className="bg-stone-100 px-1 rounded text-[11px]">core/editorial/ManualBlockFormat.js</code> —
-              digunakan oleh butang "Tampal"/"Masukkan" di Urus Slot. <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">UUID:</span> pilihan
+              digunakan oleh butang "Tampal"/"Masukkan" di Tulis Kandungan. <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">UUID:</span> pilihan
               (dijana automatik jika kosong); baki medan boleh dibiar kosong tapi baris labelnya kekal.
             </p>
             <pre className="bg-stone-100 border border-stone-200 rounded p-3 font-mono text-[10px] text-stone-700 leading-relaxed overflow-x-auto">{`UUID:

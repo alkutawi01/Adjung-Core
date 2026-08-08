@@ -229,7 +229,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
           <div className="flex items-start justify-between gap-6">
             <div>
               <h2 id={headingId} className="font-serif text-xl md:text-2xl font-medium tracking-tight text-stone-900">
-                Urus Slot Bar <span className="font-mono text-lg text-[var(--color-Adjung-maroon)]">{editingSlotIndex + 1}</span>
+                Tulis Acara <span className="font-sans text-sm text-stone-400">Slot <em className="italic">Bar</em></span> <span className="font-mono text-lg text-[var(--color-Adjung-maroon)]">{editingSlotIndex + 1}</span>
               </h2>
               <p className="mt-1.5 flex items-center gap-2.5 flex-wrap">
                 <span className="font-sans text-[10px] uppercase tracking-[0.15em] font-extrabold text-[var(--color-Adjung-maroon)]">ACARA</span>

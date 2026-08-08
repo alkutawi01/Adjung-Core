@@ -662,7 +662,7 @@ export const EditorialConsole: React.FC = () => {
             <SectionLabel>04 — Templat Penjanaan AI</SectionLabel>
             <p className="text-stone-500 text-xs">
               Peraturan am yang dimasukkan ke dalam setiap prompt AI. Templat kandungan di bawah ialah yang
-              SAMA dipapar sebagai "Peraturan Am" dalam Urus Slot — menyuntingnya di sini mengubah prompt
+              SAMA dipapar sebagai "Peraturan Am" dalam Tulis Kandungan. Menyuntingnya di sini mengubah prompt
               sebenar yang editor salin.
             </p>
           </div>
@@ -721,7 +721,7 @@ export const EditorialConsole: React.FC = () => {
           <p className="text-stone-400 text-[10px] border-t border-stone-200 pt-3 leading-relaxed">
             Had aksara setiap tier kad diuruskan di Slot → Tier Kad; had aksara medan lain diuruskan di
             Slot → Tetapan Am. Selang masa putaran carousel (tempoh setiap kandungan dipaparkan sebelum
-            beralih) ditetapkan per-slot di borang Urus Slot (frontpage), bukan di sini atau di Tetapan Am —
+            beralih) ditetapkan per-slot di borang Tulis Kandungan, bukan di sini atau di Tetapan Am,
             ia sengaja tiada di sini supaya satu nilai tak ada dua tempat yang boleh bercanggah.
           </p>
         </PanelCard>

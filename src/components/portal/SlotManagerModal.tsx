@@ -805,21 +805,21 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
         ref={refModal}
         role="dialog"
         aria-modal="true"
-        aria-label={`Urus Slot ${editingSlotIndex + 1}`}
+        aria-label={`Tulis Kandungan, Slot ${editingSlotIndex + 1}`}
         className="bg-white rounded-lg border border-stone-200 shadow-2xl w-full max-w-[1080px] h-[min(88vh,720px)] max-h-full flex flex-col overflow-hidden animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
 
         <header className="flex-none px-4 md:px-8 pt-5 pb-3.5">
-          {/* Telefon: tindan menegak (tajuk atas, kawalan slot+tutup bawah) — bukan sebelah-
-              menyebelah `justify-between` desktop, yang paksa "Urus Slot 3" mengecut ke lajur
+          {/* Telefon: tindan menegak (tajuk atas, kawalan slot+tutup bawah), bukan sebelah-
+              menyebelah `justify-between` desktop, yang paksa tajuk mengecut ke lajur
               sempit (~100px) bila dropdown slot (teks panjang cth "Slot 3 — Teknologi Digital")
-              ambil baki ruang, punca "Urus / Slot / 3" patah 3 baris dalam skrin tangkap Izzat. */}
+              ambil baki ruang, punca tajuk patah 3 baris dalam skrin tangkap Izzat. */}
           {isPhone ? (
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-serif text-xl font-medium tracking-tight text-stone-900">
-                  Urus Slot <span className="font-mono text-lg" style={{ color: accent }}>{editingSlotIndex + 1}</span>
+                  Tulis Kandungan <span className="font-sans text-sm text-stone-400">Slot</span> <span className="font-mono text-lg" style={{ color: accent }}>{editingSlotIndex + 1}</span>
                 </h2>
                 <button type="button" aria-label="Tutup" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer shrink-0 mt-1">
                   <X size={20} />
@@ -849,7 +849,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
             <div className="flex items-start justify-between gap-6">
               <div>
                 <h2 className="font-serif text-xl md:text-2xl font-medium tracking-tight text-stone-900">
-                  Urus Slot <span className="font-mono text-lg" style={{ color: accent }}>{editingSlotIndex + 1}</span>
+                  Tulis Kandungan <span className="font-sans text-sm text-stone-400">Slot</span> <span className="font-mono text-lg" style={{ color: accent }}>{editingSlotIndex + 1}</span>
                 </h2>
                 <p className="mt-1.5 flex items-center gap-2.5 flex-wrap">
                   {bidang && <BidangIcon iconName={bidang.icon} iconSvg={bidang.iconSvg} color={accent} variant="bare" size={13} title={desk} />}
