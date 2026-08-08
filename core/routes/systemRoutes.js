@@ -1,5 +1,5 @@
 import express from 'express';
-import { requirePermission, loadRolePermissions } from '../middleware/auth.js';
+import { requireAuth, requirePermission, loadRolePermissions } from '../middleware/auth.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { logAudit } from '../audit/AuditLog.js';
 
@@ -15,7 +15,11 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   const router = express.Router();
 
   // GET /api/system/weather-status (Live Health Check & Governance Status for Open-Meteo & Holiday APIs)
-  router.get('/system/weather-status', async (req, res) => {
+  // requirePermission (2026-08-08, dapatan audit keselamatan ChatGPT) — dahulu tiada gerbang;
+  // "Live Health Check & Governance Status" (nota kod sedia ada) memang papan pemuka Editorium,
+  // bukan API awam, dan buat panggilan rangkaian sebenar + kemungkinan tulis notifikasi setiap
+  // permintaan — sesiapa boleh cetuskan side-effect ni tanpa had. Sifar pengguna awam disahkan.
+  router.get('/system/weather-status', requirePermission('manageSettings'), async (req, res) => {
     const currentYear = new Date().getFullYear();
 
     const meteoStart = Date.now();
@@ -78,7 +82,9 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   // weather-status di atas. Semakan sebenar berjalan latar (server.js setInterval, 12 jam) —
   // laluan ni cuma BACA keputusan tersimpan, tak sekali-kali semak URL secara langsung dalam
   // permintaan (elak permintaan pengguna tersekat menunggu pelayan luar yang perlahan/mati).
-  router.get('/system/link-checks', async (req, res) => {
+  // requirePermission (2026-08-08, dapatan audit keselamatan ChatGPT) — laluan run-now
+  // bersebelahan dah dikunci manageSettings, GET terlepas. Dedah URL sumber + ralat dalaman.
+  router.get('/system/link-checks', requirePermission('manageSettings'), async (req, res) => {
     try {
       const rows = await dbAll(
         "SELECT url, ok, httpStatus, errorMessage, checkedAt FROM source_link_checks ORDER BY checkedAt DESC"
@@ -125,7 +131,11 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     return Array.isArray(raw) ? raw : [];
   };
 
-  router.get('/system/editor-publish-policy', async (req, res) => {
+  // requireAuth (2026-08-08, dapatan audit keselamatan ChatGPT) — keterukan rendah (pulangkan
+  // satu boolean sahaja), tapi sifar pengguna awam disahkan (Editorium sahaja), jadi tiada sebab
+  // biarkan terbuka. requireAuth sahaja (bukan requirePermission), sebab setiap Editor log masuk
+  // memang perlu tahu dasar ni untuk gerbang UI Terbit Sendiri.
+  router.get('/system/editor-publish-policy', requireAuth, async (req, res) => {
     try {
       const matriks = await bacaMatriksRolePermissions();
       const barisEditor = matriks.find((r) => r.roleId === 'editor');

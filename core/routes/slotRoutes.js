@@ -30,8 +30,10 @@ async function beritahuPentadbirDanKetuaEditor(dbAll, dbRun, payload) {
 export function createSlotRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
 
-  // GET /api/system/rss-sources
-  router.get('/rss-sources', async (req, res) => {
+  // GET /api/system/rss-sources — requirePermission (2026-08-08, dapatan audit keselamatan
+  // ChatGPT) — dahulu tiada gerbang, walhal POST/DELETE bersebelahan dah dikunci manageEditorial.
+  // Dedah URL RSS/skor amanah sumber dalaman kepada sesiapa. Sifar pengguna awam disahkan.
+  router.get('/rss-sources', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const sources = await dbAll("SELECT * FROM rss_sources_registry ORDER BY createdAt DESC");
       res.json(sources);
@@ -91,7 +93,9 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // GET /api/system/ticker/status
-  router.get('/ticker/status', async (req, res) => {
+  // requirePermission (2026-08-08, dapatan audit keselamatan ChatGPT) — sama sebab macam
+  // /rss-sources di atas.
+  router.get('/ticker/status', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const activeSourcesRow = await dbGet("SELECT COUNT(*) as cnt FROM rss_sources_registry WHERE enabled = 1");
       const autoLiveRow = await dbGet("SELECT COUNT(*) as cnt FROM rss_ticker_items WHERE status = 'approved'");
@@ -127,7 +131,9 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   });
 
   // GET /api/system/rss-settings
-  router.get('/rss-settings', async (req, res) => {
+  // requirePermission (2026-08-08, dapatan audit keselamatan ChatGPT) — dedah formula operasi
+  // editorial (ambang skor, kata kunci diutamakan/disekat) kepada sesiapa.
+  router.get('/rss-settings', requirePermission('manageEditorial'), async (req, res) => {
     try {
       let settings = await dbGet("SELECT * FROM rss_editorial_settings WHERE id = 'main'");
       if (!settings) {
@@ -210,7 +216,9 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   }));
 
   // GET /api/system/rss-text-rules
-  router.get('/rss-text-rules', async (req, res) => {
+  // requirePermission (2026-08-08, dapatan audit keselamatan ChatGPT) — dedah peraturan
+  // transformasi teks editorial dalaman kepada sesiapa.
+  router.get('/rss-text-rules', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const rules = await dbAll("SELECT * FROM rss_text_rules ORDER BY orderIndex ASC, createdAt ASC");
       res.json(rules);

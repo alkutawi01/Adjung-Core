@@ -187,11 +187,26 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
       if (next === (userRow.username || '').toLowerCase()) {
         return res.status(400).json({ error: 'Username baharu sama dengan username semasa.' });
       }
-      const bertembung = await dbGet("SELECT id FROM users WHERE LOWER(username) = ? AND id != ?", [next, userRow.id]);
+      // Semak MERENTASI username DAN email (2026-08-08, dapatan audit keselamatan ChatGPT) —
+      // dahulu cuma semak lajur username, walhal log masuk padan `LOWER(username) = ? OR
+      // LOWER(email) = ?` (satu ruang nama gabungan) dan POST /users (cipta akaun) dah pun semak
+      // dua-dua. Tanpa ni, Editor B boleh tukar username kepada emel Editor A — log masuk lepas
+      // ni jadi taksa (dua baris padan carian yang sama).
+      const bertembung = await dbGet("SELECT id FROM users WHERE (LOWER(username) = ? OR LOWER(email) = ?) AND id != ?", [next, next, userRow.id]);
       if (bertembung) {
-        return res.status(409).json({ error: 'Username ini sudah digunakan akaun lain.' });
+        return res.status(409).json({ error: 'Username ini sudah digunakan akaun lain (sebagai username atau emel).' });
       }
-      await dbRun("UPDATE users SET username = ?, updatedAt = ? WHERE id = ?", [next, new Date().toISOString(), userRow.id]);
+      try {
+        await dbRun("UPDATE users SET username = ?, updatedAt = ? WHERE id = ?", [next, new Date().toISOString(), userRow.id]);
+      } catch (errUpdate) {
+        // Lapisan pertahanan kedua (2026-08-08) — indeks UNIQUE username peringkat DB (jaring
+        // terakhir) tangkap perlumbaan yang terlepas semakan di atas; pulangkan 409 mesra, bukan
+        // 500 mentah.
+        if (/UNIQUE constraint failed/i.test(errUpdate.message || '')) {
+          return res.status(409).json({ error: 'Username ini sudah digunakan akaun lain.' });
+        }
+        throw errUpdate;
+      }
       // Sesi server simpan salinan username untuk paparan header — segarkan serta-merta supaya
       // tak lapuk sehingga log masuk semula.
       if (req.session.user) req.session.user.username = next;
@@ -222,11 +237,21 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
       if (next === (userRow.email || '').toLowerCase()) {
         return res.status(400).json({ error: 'Emel baharu sama dengan emel semasa.' });
       }
-      const bertembung = await dbGet("SELECT id FROM users WHERE LOWER(email) = ? AND id != ?", [next, userRow.id]);
+      // Semak MERENTASI email DAN username — sama sebab macam change-username di atas.
+      const bertembung = await dbGet("SELECT id FROM users WHERE (LOWER(email) = ? OR LOWER(username) = ?) AND id != ?", [next, next, userRow.id]);
       if (bertembung) {
-        return res.status(409).json({ error: 'Emel ini sudah digunakan akaun lain.' });
+        return res.status(409).json({ error: 'Emel ini sudah digunakan akaun lain (sebagai emel atau username).' });
       }
-      await dbRun("UPDATE users SET email = ?, updatedAt = ? WHERE id = ?", [next, new Date().toISOString(), userRow.id]);
+      try {
+        await dbRun("UPDATE users SET email = ?, updatedAt = ? WHERE id = ?", [next, new Date().toISOString(), userRow.id]);
+      } catch (errUpdate) {
+        // Lapisan pertahanan kedua (2026-08-08) — indeks UNIQUE email peringkat DB (ditambah
+        // sesi ni) jaring terakhir; pulangkan 409 mesra, bukan 500 mentah.
+        if (/UNIQUE constraint failed/i.test(errUpdate.message || '')) {
+          return res.status(409).json({ error: 'Emel ini sudah digunakan akaun lain.' });
+        }
+        throw errUpdate;
+      }
       if (req.session.user) req.session.user.email = next;
       res.json({ success: true, email: next });
     } catch (err) {
