@@ -687,9 +687,9 @@ export const EditorialConsole: React.FC = () => {
           <div>
             <SectionLabel>04 — Templat Penjanaan AI</SectionLabel>
             <p className="text-stone-500 text-xs">
-              Peraturan am yang dimasukkan ke dalam setiap prompt AI. Templat kandungan di bawah ialah yang
-              SAMA dipapar sebagai "Peraturan Am" dalam Tulis Kandungan. Menyuntingnya di sini mengubah prompt
-              sebenar yang editor salin.
+              Peraturan am yang dimasukkan ke dalam setiap prompt AI. Templat kandungan di bawah digunakan
+              sebagai "Peraturan Am" dalam Tulis Kandungan. Perubahan pada templat ini akan mengubah arahan
+              yang digunakan oleh editor semasa menjana kandungan.
             </p>
           </div>
 
@@ -723,12 +723,11 @@ export const EditorialConsole: React.FC = () => {
                     value={reviewPrompt}
                     onChange={(e) => setReviewPrompt(e.target.value)}
                     rows={4}
-                    placeholder="Contoh: Semak ejaan, tatabahasa, gaya bahasa akademik dan format perenggan teks berikut"
+                    placeholder="Contoh arahan: Semak ejaan, tatabahasa, gaya bahasa akademik dan format perenggan teks berikut."
                     className={`${INPUT_BORANG} resize-y`}
                   />
                   <span className="block mt-1 text-stone-400 text-[10px]">
-                    Templat semakan disimpan tetapi belum disambungkan ke mana-mana butang semakan — belum ada
-                    alur kerja semakan AI dalam Editorium setakat ini.
+                    Templat semakan ini disimpan untuk kegunaan kemudian. Ciri semakan AI belum tersedia dalam Editorium.
                   </span>
                 </label>
               </FormColumn>
@@ -745,10 +744,11 @@ export const EditorialConsole: React.FC = () => {
           )}
 
           <p className="text-stone-400 text-[10px] border-t border-stone-200 pt-3 leading-relaxed">
-            Had aksara setiap tier kad diuruskan di Slot → Tier Kad; had aksara medan lain diuruskan di
-            Slot → Tetapan Am. Selang masa putaran carousel (tempoh setiap kandungan dipaparkan sebelum
-            beralih) ditetapkan per-slot di borang Tulis Kandungan, bukan di sini atau di Tetapan Am,
-            ia sengaja tiada di sini supaya satu nilai tak ada dua tempat yang boleh bercanggah.
+            Had aksara setiap kad ditetapkan di Slot → Tier Kad. Had aksara medan lain ditetapkan di
+            Slot → Tetapan Am.
+            <br />
+            Selang masa putaran karusel ditetapkan bagi setiap slot melalui borang Tulis Kandungan.
+            Tetapan ini tidak dikendalikan di sini bagi mengelakkan pertindihan konfigurasi.
           </p>
         </PanelCard>
       )}
