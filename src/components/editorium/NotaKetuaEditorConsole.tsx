@@ -387,8 +387,10 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                             </button>
                           </Tooltip>
                           {confirmSuntingId === n.id ? (
+                            // DLG-12 (2B, audit ChatGPT 2026-08-09) — dahulu "Buang draf semasa?"
+                            // tak sebut apa hilang.
                             <span className="flex items-center gap-1.5 bg-amber-50 border border-amber-300 rounded px-2 py-1">
-                              <span className="text-[10px] text-amber-800 font-semibold whitespace-nowrap">Buang draf semasa?</span>
+                              <span className="text-[10px] text-amber-800 font-semibold whitespace-nowrap">Draf belum disimpan akan dibuang. Teruskan?</span>
                               <button
                                 type="button"
                                 onClick={() => mulaSunting(n)}

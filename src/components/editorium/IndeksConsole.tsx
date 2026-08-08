@@ -619,13 +619,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // betul-betul PULANG jadi draf peribadi semula (server salin kandungan penuh balik ke
   // slots_config.manualSummary slot asal, arkib rekod Indeks lama) — hilang terus daripada
   // senarai Indeks (draf tak pernah terpapar di sini), muncul semula dalam modal Tulis Kandungan.
-  // Sebab penolakan (2026-08-02, Fasa 6) — dahulu Tolak pulangkan draf TANPA sebarang catatan
-  // kepada penulis. `window.prompt` sengaja BUKAN modal borang penuh — Tolak ialah tindakan
-  // pantas dalam senarai, bukan destinasi sendiri; sebab BOLEH dikosongkan (window.confirm
-  // sebelum ni pun tak wajibkan apa-apa input).
-  const handleRejectToDraft = async (id: string) => {
-    const sebab = window.prompt('Tolak kandungan ini? Ia akan kembali jadi draf dalam modal Tulis Kandungan. Nyatakan sebab (pilihan, dipaparkan kepada penulis):', '');
-    if (sebab === null) return; // Batal
+  // Sebab penolakan (2026-08-02, Fasa 6) — Tolak pulangkan draf, sebab (pilihan) dipaparkan
+  // kepada penulis. Dahulu window.prompt(); ditukar ke pengesahan sebaris (DLG-08, audit
+  // ChatGPT 2026-08-09) — sebab kekal PILIHAN sama macam sebelum ni.
+  const handleRejectToDraft = async (id: string, sebab: string) => {
+    setConfirmTolakId('');
+    setTolakSebab('');
     setActionError(null);
     const previous = items;
     setItems(prev => prev.filter(i => i.id !== id));
@@ -692,6 +691,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // aplikasi (confirmPadamKekalId, bukan window.confirm — lihat pepijat butang Tutup Urus Slot
   // hari ni: dialog native boleh disenyapkan pelayar) WAJIB sebelum panggil.
   const [confirmPadamKekalId, setConfirmPadamKekalId] = useState('');
+  // DLG-08 (2B, audit ChatGPT 2026-08-09) — dahulu window.prompt() utk Tolak (sebab pilihan).
+  // window.prompt native tak boleh distyle/disahkan input; ditukar ke pengesahan sebaris
+  // dalam-aplikasi, sama corak macam confirmPadamKekalId di atas.
+  const [confirmTolakId, setConfirmTolakId] = useState('');
+  const [tolakSebab, setTolakSebab] = useState('');
   const handlePadamKekal = async (id: string) => {
     setConfirmPadamKekalId('');
     setActionError(null);
@@ -1295,10 +1299,21 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     <td className="p-2.5 font-sans text-stone-500 text-[10px] whitespace-nowrap">{rec.date}</td>
                     <td className="p-2.5 text-right font-sans text-xs whitespace-nowrap" onClick={e => e.stopPropagation()}>
                       {confirmPadamKekalId === rec.id ? (
+                        // DLG-10 (2B, audit ChatGPT 2026-08-09) — dahulu label butang sahaja
+                        // ("Padam kekal?"), tak terangkan ia tak boleh dibuat asal.
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="text-[#a8241f] font-semibold">Padam kekal?</span>
-                          <button type="button" onClick={() => handlePadamKekal(rec.id)} className="font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-2 py-1 cursor-pointer">Ya</button>
+                          <span className="text-[#a8241f] font-semibold">Padam kekal, tak boleh dibuat asal?</span>
+                          <button type="button" onClick={() => handlePadamKekal(rec.id)} className="font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-2 py-1 cursor-pointer">Padam Kekal</button>
                           <button type="button" onClick={() => setConfirmPadamKekalId('')} className="font-semibold text-stone-500 hover:text-stone-700 cursor-pointer px-1">Batal</button>
+                        </span>
+                      ) : confirmTolakId === rec.id ? (
+                        // DLG-08 (2B, audit ChatGPT 2026-08-09) — pantas dari baris, tiada
+                        // ruang utk medan sebab; sebab penuh masih boleh diisi via modal
+                        // butiran ("Tolak (kembali jadi draf)").
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="text-[#a8241f] font-semibold">Tolak, jadi draf?</span>
+                          <button type="button" onClick={() => handleRejectToDraft(rec.id, '')} className="font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-2 py-1 cursor-pointer">Ya</button>
+                          <button type="button" onClick={() => setConfirmTolakId('')} className="font-semibold text-stone-500 hover:text-stone-700 cursor-pointer px-1">Batal</button>
                         </span>
                       ) : rec.slot !== 'Ticker' && !isReadOnly && rec.status === 'Dipadam' ? (
                         <span className="inline-flex items-center gap-1.5">
@@ -1315,7 +1330,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                             if (val === 'Live' || val === 'Archive') {
                               handleUpdateStatus(rec.id, val as any);
                             } else if (val === 'Tolak') {
-                              handleRejectToDraft(rec.id);
+                              setConfirmTolakId(rec.id);
+                              setTolakSebab('');
                             } else if (val === 'Padam') {
                               handlePadamLembut(rec.id);
                             }
@@ -1392,14 +1408,19 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           saiz="lg"
           badanMenatal
           tindakanKiri={<span className="text-stone-500">Tarikh: <strong>{activeItemModal.date}</strong></span>}
-          tindakan={activeItemModal.slot !== 'Ticker' ? (
+          tindakan={confirmTolakId === activeItemModal.id ? (
+            <Button variant="bahaya" onClick={() => handleRejectToDraft(activeItemModal.id, tolakSebab)}>
+              Ya, tolak kandungan
+            </Button>
+          ) : activeItemModal.slot !== 'Ticker' ? (
             // Susunan kaki modal (Pelan 01 Fasa D2): tindakan utama paling kanan, tindakan
-            // merbahaya di kiri. "Tolak" sudah ada pengesahannya sendiri (window.prompt).
+            // merbahaya di kiri. "Tolak" (DLG-08, audit ChatGPT 2026-08-09) — dahulu
+            // window.prompt(), kini pengesahan sebaris dalam-aplikasi (lihat blok di atas).
             <>
               <Button variant="ghost" onClick={() => setActiveItemModal(null)}>
                 Tutup
               </Button>
-              <Button variant="bahaya" onClick={() => handleRejectToDraft(activeItemModal.id)}>
+              <Button variant="bahaya" onClick={() => { setConfirmTolakId(activeItemModal.id); setTolakSebab(''); }}>
                 Tolak (kembali jadi draf)
               </Button>
               {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
@@ -1414,6 +1435,27 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </Button>
           )}
         >
+            {confirmTolakId === activeItemModal.id && (
+              <div className="flex flex-col gap-2 rounded-md border border-[#802334]/30 bg-[#802334]/5 p-3">
+                <span className="font-sans text-xs font-semibold text-stone-700">
+                  Tolak kandungan ini? Ia akan kembali jadi draf dalam modal Tulis Kandungan.
+                </span>
+                <label className="flex flex-col gap-1">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Sebab (pilihan, dipaparkan kepada penulis)</span>
+                  <textarea
+                    value={tolakSebab}
+                    onChange={(e) => setTolakSebab(e.target.value)}
+                    rows={2}
+                    className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-sans text-xs bg-white focus:outline-none focus:border-Adjung-maroon"
+                  />
+                </label>
+                <div>
+                  <button type="button" onClick={() => { setConfirmTolakId(''); setTolakSebab(''); }} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 cursor-pointer">
+                    Batal
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Huraian Ringkas</span>
               <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200">

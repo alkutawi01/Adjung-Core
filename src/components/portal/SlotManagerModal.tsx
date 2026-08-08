@@ -307,15 +307,34 @@ function itemFits(slotIndex: number, desk: string, item: { title?: string; brief
 // diedit (patch() hanya cipta objek baharu untuk index yang diedit) DAN onSelect/onMoveUp/
 // onMoveDown/onRemove kekal STABIL merentasi render (useCallback([items.length]) di bawah).
 const SidebarItem = React.memo(function SidebarItem({
-  item, index, isActive, slotIndex, desk, onSelect, onMoveUp, onMoveDown, onRemove,
+  item, index, isActive, slotIndex, desk, onSelect, onMoveUp, onMoveDown, onRemove, confirmingBuang, onMintaBuang, onBatalBuang,
 }: {
   item: any; index: number; isActive: boolean; slotIndex: number; desk: string;
   onSelect: (i: number) => void; onMoveUp: (i: number) => void; onMoveDown: (i: number) => void; onRemove: (i: number) => void;
+  // DLG-03 (2B, audit ChatGPT 2026-08-09) — window.confirm() bersarang dalam modal custom
+  // (useModalFokus focus-trap) ditukar ke pengesahan sebaris DALAM baris ni sendiri, sama
+  // corak macam konfirmTutup/konfirmTukarKe di komponen induk (bukan window.confirm).
+  confirmingBuang: boolean; onMintaBuang: (i: number) => void; onBatalBuang: () => void;
 }) {
   // Senarai ni HANYA draf (2026-07-29, permintaan pemilik projek) — ✓/✕ di sini sekadar
   // pratonton sama ada kandungan SUDAH sedia untuk ditekan Terbit (bajet+Topik lulus), bukan
   // status sebenar (tiada lagi "Tunggu"/"Live" — kesemuanya draf sehingga Terbit ditekan).
   const check = itemFits(slotIndex, desk, item);
+  if (confirmingBuang) {
+    return (
+      <li
+        className="grid items-center gap-2.5 px-3 py-2.5 border-b border-stone-150 last:border-b-0 bg-[#802334]/5"
+        style={{ gridTemplateColumns: '26px 1fr auto' }}
+      >
+        <span className="font-mono text-[11px] font-bold tabular-nums text-stone-400">{String(index + 1).padStart(2, '0')}</span>
+        <span className="font-sans text-[11px] text-stone-700 leading-snug">Padam kandungan ini? Tak boleh dibuat asal selepas disimpan.</span>
+        <span className="flex items-center gap-2 shrink-0">
+          <button type="button" onClick={onBatalBuang} className="font-sans text-[11px] font-semibold text-stone-500 hover:text-stone-700 cursor-pointer">Batal</button>
+          <button type="button" onClick={() => onRemove(index)} className="font-sans text-[11px] font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-2 py-1 cursor-pointer">Padam</button>
+        </span>
+      </li>
+    );
+  }
   return (
     <li
       onClick={() => onSelect(index)}
@@ -333,7 +352,7 @@ const SidebarItem = React.memo(function SidebarItem({
         <span className="hidden group-hover:flex group-focus-within:flex items-center gap-1.5">
           <button type="button" aria-label="Naik" onClick={(e) => { e.stopPropagation(); onMoveUp(index); }} className="text-stone-500 hover:text-[#802334] px-0.5"><ChevronUp size={13} /></button>
           <button type="button" aria-label="Turun" onClick={(e) => { e.stopPropagation(); onMoveDown(index); }} className="text-stone-500 hover:text-[#802334] px-0.5"><ChevronDown size={13} /></button>
-          <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); onRemove(index); }} className="text-[#a8241f] px-0.5"><Trash2 size={12} /></button>
+          <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); onMintaBuang(index); }} className="text-[#a8241f] px-0.5"><Trash2 size={12} /></button>
         </span>
         <Tooltip text={check.isValid ? 'Sedia untuk Terbit' : check.reason}>
           <span className={`group-hover:hidden group-focus-within:hidden font-mono text-[9px] ${check.isValid ? 'text-emerald-700' : 'text-[#a8241f]'}`}>
@@ -534,6 +553,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // langsung tanpa sebarang respons — ditemui 2026-08-08 semasa ujian sebenar Izzat.
   const [konfirmTutup, setKonfirmTutup] = useState(false);
   const [konfirmTukarKe, setKonfirmTukarKe] = useState<number | null>(null);
+  // DLG-03 (2B, audit ChatGPT 2026-08-09) — remove() guna window.confirm() bersarang DALAM
+  // modal custom ni yang dah pakai useModalFokus (focus-trap). Dialog native pelayar berada
+  // di luar kawalan focus-management aplikasi — boleh berlanggar dgn trap, dan sama isu
+  // "disenyapkan pelayar" macam konfirmTutup/konfirmTukarKe atas. Sama corak.
+  const [konfirmBuangIndex, setKonfirmBuangIndex] = useState<number | null>(null);
 
   const commit = (mutator: (prevItems: any[]) => any[]) => setItems((prev) => mutator(prev));
   const patch = (i: number, key: string, value: string) => commit((prevItems) => (
@@ -592,14 +616,17 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     setActive(j);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length]);
-  // Amaran sebelum padam — sebelum ni klik terus buang kandungan tanpa sebarang pengesahan,
-  // langkah senyap dan tak boleh dibuat asal dalam tab ni (cuma window.confirm ringkas, bukan
-  // mesej khusus nama kandungan — remove() perlu kekal stabil merentasi keystroke, lihat nota
-  // useCallback di atas, jadi ia sengaja tidak bergantung pada `items` penuh untuk baca tajuk).
+  // Amaran sebelum padam (DLG-03, audit ChatGPT 2026-08-09) — dahulu window.confirm() (lihat
+  // nota konfirmBuangIndex atas kenapa ditukar). mintaBuang() buka pengesahan SEBARIS dalam
+  // SidebarItem sendiri; remove() (dipanggil selepas "Padam" ditekan) yang benar-benar buang —
+  // kekal stabil merentasi keystroke, lihat nota useCallback asal, sengaja tak bergantung pada
+  // `items` penuh untuk baca tajuk.
+  const mintaBuang = useCallback((i: number) => setKonfirmBuangIndex(i), []);
+  const batalBuang = useCallback(() => setKonfirmBuangIndex(null), []);
   const remove = useCallback((i: number) => {
-    if (!window.confirm('Padam kandungan ini daripada giliran? Tindakan ini tidak boleh dibuat asal selepas disimpan.')) return;
     commit((prevItems) => prevItems.filter((_, n) => n !== i));
     setActive((a) => Math.max(0, Math.min(a, items.length - 2)));
+    setKonfirmBuangIndex(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length]);
   const moveUp = useCallback((i: number) => move(i, -1), [move]);
@@ -1076,6 +1103,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                       item={it} index={i} isActive={i === activeIndex}
                       slotIndex={editingSlotIndex} desk={desk}
                       onSelect={setActive} onMoveUp={moveUp} onMoveDown={moveDown} onRemove={remove}
+                      confirmingBuang={konfirmBuangIndex === i} onMintaBuang={mintaBuang} onBatalBuang={batalBuang}
                     />
                   ))}
                 </ol>

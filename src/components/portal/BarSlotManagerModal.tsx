@@ -146,6 +146,10 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
   // selepas beberapa kali tercetus, buat butang X "tak boleh ditekan" tanpa sebarang respons.
   const [konfirmTutup, setKonfirmTutup] = useState(false);
   const [konfirmTukarKe, setKonfirmTukarKe] = useState<number | null>(null);
+  // DLG-04 (2B, audit ChatGPT 2026-08-09) — window.confirm() bersarang dlm modal custom
+  // (useModalFokus focus-trap), sama isu macam SlotManagerModal (DLG-03). Pengesahan sebaris
+  // dalam baris giliran itu sendiri.
+  const [konfirmBuangIndex, setKonfirmBuangIndex] = useState<number | null>(null);
 
   const commit = (mutator: (prev: any[]) => any[]) => setItems((prev) => mutator(prev));
   const patch = (i: number, key: string, value: string) => commit((prev) => (
@@ -159,9 +163,9 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
   )));
   const insert = () => { commit((prev) => [...prev, blankItem()]); setActive(items.length); };
   const remove = (i: number) => {
-    if (!window.confirm('Padam acara ini daripada giliran? Tindakan ini tidak boleh dibuat asal selepas disimpan.')) return;
     commit((prev) => prev.filter((_, n) => n !== i));
     setActive((a) => Math.max(0, Math.min(a, items.length - 2)));
+    setKonfirmBuangIndex(null);
   };
   const move = (i: number, d: number) => {
     const j = i + d;
@@ -340,7 +344,20 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto border-t border-stone-150">
               <ol className="list-none m-0 p-0">
-                {items.map((it, i) => (
+                {items.map((it, i) => konfirmBuangIndex === i ? (
+                  <li
+                    key={it.uuid || i}
+                    className="grid items-center gap-2.5 px-3 py-2.5 border-b border-stone-150 last:border-b-0 bg-[var(--color-Adjung-maroon)]/5"
+                    style={{ gridTemplateColumns: '26px 1fr auto' }}
+                  >
+                    <span className="font-mono text-[11px] font-bold tabular-nums text-stone-400">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="font-sans text-[11px] text-stone-700 leading-snug">Padam acara ini? Tak boleh dibuat asal selepas disimpan.</span>
+                    <span className="flex items-center gap-2 shrink-0">
+                      <button type="button" onClick={() => setKonfirmBuangIndex(null)} className="font-sans text-[11px] font-semibold text-stone-500 hover:text-stone-700 cursor-pointer">Batal</button>
+                      <button type="button" onClick={() => remove(i)} className="font-sans text-[11px] font-semibold text-white bg-[var(--color-Adjung-maroon)] hover:opacity-90 rounded px-2 py-1 cursor-pointer">Padam</button>
+                    </span>
+                  </li>
+                ) : (
                   <li
                     key={it.uuid || i}
                     onClick={() => setActive(i)}
@@ -354,7 +371,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
                     <span className="hidden group-hover:flex items-center gap-1.5">
                       <button type="button" aria-label="Naik" onClick={(e) => { e.stopPropagation(); move(i, -1); }} className="text-stone-500 hover:text-[var(--color-Adjung-maroon)] px-0.5">↑</button>
                       <button type="button" aria-label="Turun" onClick={(e) => { e.stopPropagation(); move(i, 1); }} className="text-stone-500 hover:text-[var(--color-Adjung-maroon)] px-0.5">↓</button>
-                      <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); remove(i); }} className="text-[var(--color-error)] px-0.5"><Trash2 size={12} /></button>
+                      <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); setKonfirmBuangIndex(i); }} className="text-[var(--color-error)] px-0.5"><Trash2 size={12} /></button>
                     </span>
                   </li>
                 ))}
