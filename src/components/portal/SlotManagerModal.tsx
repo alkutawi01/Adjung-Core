@@ -74,7 +74,11 @@ interface SlotManagerModalProps {
   // sini — `onSave` ialah closure yang sudah tetap sejak render SEBELUM ia dipanggil, jadi ia
   // tetap membaca formConfig LAMA dari parent walau apa pun setFormConfig() buat pada render akan
   // datang. Hantar terus sebagai argumen elak kebergantungan pada timing React state sama sekali.
-  onSave: (e: React.FormEvent, manualSummaryOverride?: string, opts?: { closeOnSuccess?: boolean }) => Promise<boolean | void> | void;
+  // Pulangan (LIFE-01, audit ChatGPT 2026-08-08) — kejayaan kini array hasil publish SEBENAR
+  // (status approved/pending setiap item), bukan `true` kosong. Array (walaupun []) sentiasa
+  // truthy dlm JS, jadi semak `if (ok)` sedia ada kekal berfungsi; publishOne() di bawah baca
+  // kandungan array ni terus utk papar mesej toast yang tepat.
+  onSave: (e: React.FormEvent, manualSummaryOverride?: string, opts?: { closeOnSuccess?: boolean }) => Promise<{ objectId: string; title: string; status: string }[] | boolean | void> | void;
   // Toast kongsi Editorium (2026-08-08) — makluman SEBENAR selepas Terbit/Simpan draf, bukan
   // cuma mesej dalaman modal (draftNote/publishError) yang hilang dalam beberapa saat dan tak
   // kelihatan langsung kalau editor dah tutup modal.
@@ -707,7 +711,15 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
       setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
       buangDrafTempatan(kunciDrafTempatan);
-      onToast?.('success', 'Kandungan diterbitkan.');
+      // Mesej tepat ikut status SEBENAR (LIFE-01, audit ChatGPT 2026-08-08) — dahulu sentiasa
+      // papar "diterbitkan" walaupun kandungan mendarat 'pending' (Terbit Sendiri tak dibenarkan,
+      // jadi masuk giliran Menunggu Semakan Ketua Editor/Penolong). `outgoing` di atas tandakan
+      // SATU-SATUNYA item bukan-draf dlm penghantaran ni, jadi `ok` (array publishOutcomes)
+      // sentiasa ada tepat SATU hasil di sini.
+      const hasil = Array.isArray(ok) ? ok[0] : undefined;
+      onToast?.('success', hasil?.status === 'pending'
+        ? 'Kandungan dihantar dan kini Menunggu Semakan.'
+        : 'Kandungan diterbitkan.');
     } else {
       const mesej = saveError || labelUi('toast.gagal_terbit');
       setPublishError(mesej);

@@ -2742,6 +2742,11 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
   // dinotifikasikan SELEPAS COMMIT (2026-08-08) — bukan dalam transaksi: notifikasi ialah rekod
   // sampingan, tak patut memegang kunci tulis DB lebih lama atau menggagalkan penerbitan sebenar.
   const menungguKelulusan = [];
+  // Hasil sebenar setiap kandungan diterbitkan sesi ni (LIFE-01, audit ChatGPT 2026-08-08) —
+  // dahulu route caller cuma tahu "berjaya/gagal", tak tahu kandungan mendarat 'approved' atau
+  // 'pending'. Client (SlotManagerModal publishOne) sentiasa papar "Kandungan diterbitkan."
+  // walaupun status sebenar cuma Menunggu Semakan.
+  const publishOutcomes = [];
   await dbRun('BEGIN TRANSACTION');
   try {
     const nowIso = new Date().toISOString();
@@ -2813,6 +2818,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
             [objectId, currentRevId, a.key, a.val]
           );
         }
+        publishOutcomes.push({ objectId, title: item.title || '', status: item.status || 'approved' });
         continue;
       }
 
@@ -2843,6 +2849,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       if (finalStatus === 'pending') {
         menungguKelulusan.push({ objectId, title: item.title || '' });
       }
+      publishOutcomes.push({ objectId, title: item.title || '', status: finalStatus });
       const rev = await dbRun(
         `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
          VALUES (?, 1.0, 'ms', ?, ?, ?, 'manual-slot-save', ?, ?)`,
@@ -2917,13 +2924,31 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       detail: `Slot ${slotIndex + 1}: ${menunggu.title}`.slice(0, 150),
       targetType: 'kandungan',
       targetId: menunggu.objectId,
-    }).catch((e) => console.warn('Gagal beritahu pelulus kandungan:', e.message));
+    }).catch(async (e) => {
+      // LIFE-03 (audit ChatGPT 2026-08-08) — kegagalan notifikasi TETAP tak boleh menjejaskan
+      // penerbitan (prinsip sedia ada dikekalkan), tapi dahulu cuma console.warn — hilang bila
+      // proses restart, Ketua Editor tiada cara tahu kandungan ni "senyap" tanpa isyarat. Rekod
+      // kekal dlm log audit (dicari melalui Log Sistem) supaya kegagalan sekurang-kurangnya
+      // boleh dijumpai semula, bukan cuma isyarat retry automatik (di luar skop P3 ni).
+      console.warn('Gagal beritahu pelulus kandungan:', e.message);
+      try {
+        await logAudit(dbRun, {
+          action: 'gagal-notifikasi-kandungan-menunggu',
+          targetType: 'kandungan',
+          targetId: menunggu.objectId,
+          detail: `Slot ${slotIndex + 1}: ${menunggu.title} — ${e.message || ''}`.slice(0, 200),
+        });
+      } catch (logErr) {
+        console.error('Gagal rekod audit kegagalan notifikasi:', logErr.message);
+      }
+    });
   }
 
   // Slot Bar: manualSummary kekal sama macam dihantar (tiada pemisahan draf). Bukan Bar:
   // manualSummary yang PATUT disimpan balik ke slots_config ialah draf SAHAJA — item publishItems
   // dah jadi rekod Indeks rasmi, tak patut tersangkut dalam teks giliran modal lagi.
-  return isBar ? (manualSummary || '') : draftItems.map(serializeDraftBlock).join(DRAFT_BLOCK_SEPARATOR);
+  const persistedSummary = isBar ? (manualSummary || '') : draftItems.map(serializeDraftBlock).join(DRAFT_BLOCK_SEPARATOR);
+  return { manualSummary: persistedSummary, publishOutcomes };
 };
 
 const resolveSlotContent = async (slot, lang = 'ms') => {

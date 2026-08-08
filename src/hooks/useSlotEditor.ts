@@ -202,7 +202,11 @@ export function useSlotEditor(editorName?: string) {
       if (data.success) {
         fetchSlotsConfig();
         if (closeOnSuccess) closeSlotEditor();
-        return true;
+        // Pulangkan senarai hasil (LIFE-01, audit ChatGPT 2026-08-08) — bukan `true` kosong.
+        // Array (walaupun []) sentiasa truthy dalam JS, jadi semua `if (ok)` sedia ada di
+        // pemanggil (BarSlotManagerModal dll.) kekal berfungsi tanpa ubah — cuma publishOne()
+        // di SlotManagerModal yang perlu baca kandungan sebenar array ni.
+        return Array.isArray(data.publishOutcomes) ? data.publishOutcomes : [];
       } else {
         setSaveError(data.error || 'Gagal menyimpan slot.');
         setSaveErrorIsConflict(response.status === 409);

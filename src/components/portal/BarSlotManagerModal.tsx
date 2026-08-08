@@ -22,7 +22,10 @@ interface BarSlotManagerModalProps {
   isSavingSlot: boolean;
   saveError?: string;
   onClose: () => void;
-  onSave: (e: React.FormEvent, manualSummaryOverride?: string) => Promise<boolean | void> | void;
+  // LIFE-01 (audit ChatGPT 2026-08-08) — useSlotEditor.handleSaveSlot kini pulangkan array hasil
+  // publish pada kejayaan (bukan `true`); array (walaupun []) sentiasa truthy dlm JS jadi `if (ok)`
+  // di bawah kekal berfungsi tanpa ubah. Bar tak guna kandungan array ni (tiada mesej berbeza).
+  onSave: (e: React.FormEvent, manualSummaryOverride?: string) => Promise<{ objectId: string; title: string; status: string }[] | boolean | void> | void;
   slotOptions?: { index: number; label: string }[];
   onSwitchSlot?: (idx: number) => void;
   onToast?: (type: 'success' | 'error' | 'info', message: string) => void;

@@ -587,11 +587,23 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: LABEL_TO_STATUS[newStatus] }),
       });
+      const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Gagal kemas kini status (${res.status}).`);
       }
-      onToast?.('success', newStatus === 'Archive' ? 'Kandungan diarkibkan.' : 'Kandungan disiarkan.');
+      // LIFE-02 (audit ChatGPT 2026-08-08) — server dah pulangkan slotPenuh (Bidang lulus, cuma
+      // tiada ruang lagi, kandungan kekal 'pending' menunggu slot lapang), dahulu diabaikan terus
+      // di sini: mesej sentiasa papar "disiarkan" DAN status tempatan tersilap ditukar ke Live
+      // walaupun rekod sebenar masih Menunggu — betulkan kedua-duanya.
+      if (body.slotPenuh) {
+        setItems(prev => prev.map(i => i.id === id ? { ...i, status: 'Pending' } : i));
+        if (activeItemModal && activeItemModal.id === id) {
+          setActiveItemModal(prev => prev ? { ...prev, status: 'Pending' } : prev);
+        }
+        onToast?.('success', 'Kandungan menunggu — slot penuh.');
+      } else {
+        onToast?.('success', newStatus === 'Archive' ? 'Kandungan diarkibkan.' : 'Kandungan disiarkan.');
+      }
     } catch (err: any) {
       setItems(previous);
       if (activeItemModal && activeItemModal.id === id) {

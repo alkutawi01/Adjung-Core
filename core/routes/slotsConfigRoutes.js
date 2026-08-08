@@ -178,6 +178,12 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         }
       }
 
+      // Hasil sebenar setiap kandungan diterbitkan (LIFE-01) — dikumpul merentas semua slot
+      // dlm permintaan ni (biasanya satu, Terbit tunggal), dipulangkan dlm response supaya
+      // client boleh papar mesej tepat (Diterbitkan vs Menunggu Semakan), bukan sentiasa anggap
+      // berjaya = terus aktif.
+      const publishOutcomes = [];
+
       for (const slot of slots) {
         const providerId = slot.providerId && typeof slot.providerId === 'string' && slot.providerId.trim() !== '' && slot.providerId !== 'undefined' && slot.providerId !== 'null' ? slot.providerId : null;
         console.log(`Slot ${slot.slotIndex}: raw providerId = "${slot.providerId}", mapped = ${providerId}`);
@@ -254,7 +260,9 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         let persistedManualSummary = slot.manualSummary;
         if (slot.contentMode === 'Manual' && slot.slotIndex >= 0) {
           try {
-            persistedManualSummary = await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot, req.session?.user?.roles);
+            const syncResult = await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot, req.session?.user?.roles);
+            persistedManualSummary = syncResult.manualSummary;
+            if (Array.isArray(syncResult.publishOutcomes)) publishOutcomes.push(...syncResult.publishOutcomes);
           } catch (e) {
             if (e.isValidationError) {
               // Hard-block: abort the whole save (not just this slot) so the admin sees exactly
@@ -356,7 +364,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         detail: `${slots.length} slot disimpan`,
       });
 
-      res.json({ success: true });
+      res.json({ success: true, publishOutcomes });
     } catch (err) {
       console.error('Save slots config error:', err);
       res.status(500).json({ error: 'Gagal menyimpan konfigurasi slot. ' + (err.message || '') });
