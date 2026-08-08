@@ -14,6 +14,7 @@ import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../commo
 import { FormColumn } from '../common/FormColumn';
 import { labelMod, labelStatus } from '../../config/istilah';
 import { formatKlDisplay, klLocalToIso, isoToKlLocalInput } from '../../../core/editorial/Scheduling.js';
+import { useTapisanSesi } from '../../hooks/useTapisanSesi';
 
 interface BriefRecord {
   id: string;
@@ -71,6 +72,9 @@ const STATUS_TONE: Record<string, StatusTone> = {
 interface IndeksConsoleProps {
   currentUserRole?: 'KETUA_EDITOR' | 'EDITOR';
   currentUserName?: string;
+  // Tanda sesi log masuk (2026-08-08) — lihat src/hooks/useTapisanSesi.ts. Dibiarkan undefined
+  // sengaja bila belum sedia (bermakna tapisan tersimpan tak dipulihkan sehingga ia muncul).
+  sesiTanda?: string;
   // Toast kongsi Editorium (2026-08-08) — makluman SEBENAR selepas Arkib/Tolak/Siar, bukan
   // senyap-senyap macam sebelum ni (rec.status bertukar dalam jadual tanpa sebarang isyarat lain).
   onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
@@ -167,6 +171,7 @@ const cardTypeForSlot = (slotIndex: number): string => {
 export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   currentUserRole = 'KETUA_EDITOR',
   currentUserName = 'Izzat Anas',
+  sesiTanda,
   onToast,
 }) => {
   const [items, setItems] = useState<BriefRecord[]>([]);
@@ -213,9 +218,22 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         search: '', status: 'Pending', cardType: 'Semua', source: '', creator: 'Semua', desk: 'Semua',
         slot: 'SemuaKecualiTicker', editor: 'Semua', sort: 'newest',
       };
-  const [draftFilters, setDraftFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const patchDraft = (patch: Partial<FilterState>) => setDraftFilters(f => ({ ...f, ...patch }));
+  // Tapisan kekal sepanjang sesi log masuk (2026-08-08, permintaan pemilik projek) — "apabila
+  // saya ubah tetapan, kemudian saya refresh, ia kembali ke tetapan lalai... refresh ke tetapan
+  // lalai hanya apabila log masuk baru". Guna cangkuk kongsi (src/hooks/useTapisanSesi.ts) — TAPI
+  // hanya `appliedFilters` (tapisan yang BENAR-BENAR terpakai) yang disimpan; `draftFilters`
+  // (borang, sebelum "Tapis" ditekan) kekal state tempatan biasa, disegerakkan drpd appliedFilters
+  // bila sesi berubah. Kalau kedua-dua dipersist berasingan bawah kunci sama, setiap taip di
+  // borang (patchDraft) akan menimpa nilai TERSIMPAN sebelum "Tapis" ditekan — refresh lepas tu
+  // pulihkan tapisan separuh-taip, bukan yang sebenarnya terpakai. Kunci storan ikut peranan
+  // (lalai sendiri berbeza bagi EDITOR vs KETUA_EDITOR) supaya pertukaran akaun tak warisi
+  // tapisan peranan lain secara silap.
+  const [appliedFilters, setAppliedFilters] = useTapisanSesi<FilterState>(
+    `adjung-indeks-tapisan-${currentUserRole}`, sesiTanda, DEFAULT_FILTERS
+  );
+  const [draftFilters, setDraftFilters] = useState<FilterState>(appliedFilters);
+  useEffect(() => { setDraftFilters(appliedFilters); }, [sesiTanda]);
+  const patchDraft = (patch: Partial<FilterState>) => setDraftFilters({ ...draftFilters, ...patch });
   const filtersDirty = JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
 
   // Editor View Filter: Saya vs Semua (Read Only) — only meaningful once real EDITOR accounts

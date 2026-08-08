@@ -95,6 +95,89 @@
   height: var(--bidang-icon-size, 14px);
 }
 
+/* ===========================================================================================
+   RUPA EDITORIUM — skala teks + kepadatan boleh laras pentadbir (2026-08-08, permintaan Izzat)
+   ===========================================================================================
+   Punca masalah: 540+ pengisytiharan saiz font bertaburan merentas 23 fail Editorium
+   (text-xs/text-sm/text-[Npx], dsb.), tiada satu tempat pun mengawalnya — setiap kali saiz
+   tersasar, ia terpaksa dibetulkan sefail demi sefail dan sentiasa ada yang terlepas (lihat
+   audit em dash tempoh sama — corak carian tak lengkap yang sama akan berulang kalau tangga
+   saiz cuba diselaraskan dengan menaip semula setiap fail).
+
+   Pendekatan: BUKAN menulis semula 540 tempat itu satu-satu (risiko besar, sukar disahkan
+   "tiada yang terkecuali"). Sebaliknya, TANGKAP semula kelas utiliti Tailwind yang SUDAH
+   dipakai di sana pada peringkat CSS — diskop KETAT kepada `.editorium-root` (bukan frontpage)
+   supaya portal awam langsung tak tersentuh. Ini menjamin serata: kalau satu fail Editorium
+   guna `text-sm`, ia automatik ikut token `--ed-text-sm` di bawah, tiada pengecualian mungkin
+   berlaku sebab ia bukan pilihan setiap fail — ia peraturan CSS global untuk subtree tu.
+
+   `!important` diperlukan sebab kelas Tailwind sedia ada (dijana peringkat @theme, spesifikasi
+   sama) — tanpanya susunan import boleh menentukan siapa menang, bukan niat. Lihat nota
+   "Tailwind kalah CSS tanpa lapisan" di reference_tailwind_kalah_css_tanpa_lapisan.md.
+
+   Nilai lalai token ni SEPADAN nilai asal setiap kelas Tailwind (text-xs=12px sebenarnya
+   dipakai sbg 11-12px campuran di seluruh Editorium — tapi tangga sedia ada 9/10/11/12/13/
+   15/18px sudah munasabah dan dikekalkan; SATU perubahan lalai sengaja: --ed-text-sm 14px→13px,
+   sebab medan borang (INPUT_BORANG) pada 14px terlalu besar utk konsol padat ni). Pentadbir
+   boleh override kesemuanya di Tetapan → Rupa Editorium (TetapanConsole.tsx,
+   RupaEditoriumConsole.tsx) — nilai tersimpan disuntik sebagai inline style pada elemen akar
+   `.editorium-root` (EditoriumLayout.tsx), menindih nilai lalai di sini secara semula jadi
+   (kekhususan inline > kelas). */
+.editorium-root {
+  /* Skala teks — token bernama, bukan nombor takat, supaya suntikan pentadbir boleh naik/turun
+     SATU takat sekaligus tanpa perlu tahu nilai px setiap satu. */
+  --ed-text-mikro: 9px;    /* text-[9px], text-[8px], text-[7px] */
+  --ed-text-kecil: 10px;   /* text-[10px] */
+  --ed-text-label: 11px;   /* text-[11px], text-xs */
+  --ed-text-badan: 12px;   /* text-[12px] (jarang dipakai terus, tapi disediakan) */
+  --ed-text-medan: 13px;   /* text-sm — medan input/borang, DITURUNKAN drpd 14px asal Tailwind */
+  --ed-text-sederhana: 15px; /* text-[13px]/text-[15px]/text-base */
+  --ed-text-tajuk: 18px;   /* text-lg */
+  --ed-text-tajuk-besar: 20px; /* text-xl */
+  --ed-text-tajuk-utama: 24px; /* text-2xl */
+
+  /* Kepadatan — pekali jarak dalam kotak (PanelCard/FormColumn/EditorDialog) dan tinggi baris
+     jadual. 1 = lalai sedia ada; <1 padat, >1 lapang. Diskop kepada komponen KONGSI sahaja
+     (bukan setiap `p-2`/`gap-2` ad hoc merentas 23 fail — itu skop berasingan yang jauh lebih
+     besar dan berisiko, tak dilakukan di sini). */
+  --ed-kepadatan: 1;
+
+  /* Lebar maksimum kawasan kerja (jadual/borang) — elak terbentang jauh pada skrin lebar.
+     Terpakai pada <main> (kawasan kandungan), BUKAN elemen akar ni sendiri — akar merangkumi
+     bar sisi + header, mengehadkan lebarnya akan mengecutkan seluruh bingkai aplikasi. */
+  --ed-lebar-maks: none;
+
+  font-size: var(--ed-text-label);
+}
+
+.editorium-root > div > main {
+  max-width: var(--ed-lebar-maks);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.editorium-root .text-\[7px\],
+.editorium-root .text-\[8px\],
+.editorium-root .text-\[9px\] { font-size: var(--ed-text-mikro) !important; }
+.editorium-root .text-\[10px\] { font-size: var(--ed-text-kecil) !important; }
+.editorium-root .text-\[11px\],
+.editorium-root .text-xs { font-size: var(--ed-text-label) !important; }
+.editorium-root .text-\[12px\] { font-size: var(--ed-text-badan) !important; }
+.editorium-root .text-sm { font-size: var(--ed-text-medan) !important; }
+.editorium-root .text-\[13px\],
+.editorium-root .text-\[15px\],
+.editorium-root .text-base { font-size: var(--ed-text-sederhana) !important; }
+.editorium-root .text-lg { font-size: var(--ed-text-tajuk) !important; }
+.editorium-root .text-xl { font-size: var(--ed-text-tajuk-besar) !important; }
+.editorium-root .text-2xl { font-size: var(--ed-text-tajuk-utama) !important; }
+
+/* Kepadatan (--ed-kepadatan di atas) DISAMBUNG terus dalam className komponen — bukan di sini
+   — via nilai arbitrary Tailwind `[calc(...*var(--ed-kepadatan,1))]`. Lihat PanelCard.tsx dan
+   INPUT_BORANG (common/gayaKongsi.ts), dua-dua komponen kongsi sebenar. Nota jujur: sel jadual
+   (<td>) TIDAK termasuk — setiap jadual Editorium menulis padding `p-2.5` sendiri terus dalam
+   JSX (bukan melalui komponen kongsi), jadi mengawalnya dengan selamat bermakna sunting setiap
+   fail jadual dahulu (skop berasingan, belum dibuat). */
+
 /* Base resets & styles for Adjung scholarly magazine */
 html, body {
   background-color: #FDFDFD;

@@ -29,6 +29,7 @@ import { createMediaRoutes } from './core/routes/mediaRoutes.js';
 import { createAuthRoutes, hashPassword } from './core/routes/authRoutes.js';
 import { daftarStorSesi } from './core/auth/SesiPengguna.js';
 import { createDbStateRoutes } from './core/routes/dbStateRoutes.js';
+import { createEditoriumUiPrefsRoutes } from './core/routes/editoriumUiPrefsRoutes.js';
 import { createPipelineRoutes } from './core/routes/pipelineRoutes.js';
 import { createWorldClockRoutes } from './core/routes/worldClockRoutes.js';
 import { createSlotsConfigRoutes } from './core/routes/slotsConfigRoutes.js';
@@ -1740,6 +1741,21 @@ const initEditorialOS = (dbConn) => {
         )
       `);
 
+      // 6b. editorium_ui_prefs (2026-08-08, "Rupa Editorium" — Izzat: "saiz font dlm kotak2 tu
+      // terlalu besar... buat satu tempat pentadbir boleh laraskan"). SATU baris (id tetap
+      // 'global', global untuk semua kakitangan — keputusan Izzat, bukan per-editor), blob
+      // JSON supaya medan baharu (takat tangga font individu, dll.) tak perlukan migrasi lajur
+      // setiap kali. Jadual BERASINGAN drpd system_settings sengaja — elak sentuh rantaian
+      // ALTER TABLE bersarang dalam yang sedia ada di server.js (berpuluh peringkat dalam,
+      // mudah pecah kalau disunting tangan).
+      dbConn.run(`
+        CREATE TABLE IF NOT EXISTS editorium_ui_prefs (
+          id TEXT PRIMARY KEY,
+          json TEXT NOT NULL,
+          updatedAt TEXT
+        )
+      `);
+
       // 7. editorial_attributes
       dbConn.run(`
         CREATE TABLE IF NOT EXISTS editorial_attributes (
@@ -3162,6 +3178,7 @@ app.use('/api/system', createChangelogRoutes(__dirname));
 app.use('/api/media', requireAuthForWrites, createMediaRoutes(__dirname));
 app.use('/api/auth', createAuthRoutes(dbGet, dbRun, dbAll));
 app.use('/api', createDbStateRoutes(dbAll, dbGet));
+app.use('/api', createEditoriumUiPrefsRoutes(dbRun, dbGet));
 app.use('/api/system', createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, runAllScheduledSlots));
 app.use('/api/system', createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot, parseManualSummaryTemplate));
 app.use('/api/system', createLayoutRoutes(db, dbAll, resolveSlotContent));

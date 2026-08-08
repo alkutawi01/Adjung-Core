@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import {
   List, FileEdit, Bell, Zap, LayoutGrid, BookOpen, FolderOpen, Settings,
   LogOut, LogIn, PenLine, Mail, Lock, BookMarked, FileText, History, Home,
@@ -101,6 +101,33 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
   onOpenProfil,
   children
 }) => {
+  // Rupa Editorium (2026-08-08) — dimuat SEKALI di root supaya SEMUA konsol anak mewarisi
+  // token CSS yang sama (lihat .editorium-root, src/index.css). Disegarkan semula bila
+  // RupaEditoriumConsole (TetapanConsole.tsx) simpan tetapan baharu — dengar peristiwa custom
+  // supaya pentadbir nampak kesan LANGSUNG tanpa refresh penuh.
+  const [rupaPrefs, setRupaPrefs] = useState<Record<string, number | string> | null>(null);
+  useEffect(() => {
+    if (!currentUser) return;
+    let hidup = true;
+    const muat = () => fetch('/api/editorium-ui-prefs').then((r) => r.json()).then((d) => { if (hidup) setRupaPrefs(d); }).catch(() => {});
+    muat();
+    window.addEventListener('adjung-rupa-editorium-berubah', muat);
+    return () => { hidup = false; window.removeEventListener('adjung-rupa-editorium-berubah', muat); };
+  }, [currentUser]);
+  const rupaStyle: React.CSSProperties | undefined = rupaPrefs ? {
+    ['--ed-text-mikro' as any]: `${rupaPrefs.textMikro}px`,
+    ['--ed-text-kecil' as any]: `${rupaPrefs.textKecil}px`,
+    ['--ed-text-label' as any]: `${rupaPrefs.textLabel}px`,
+    ['--ed-text-badan' as any]: `${rupaPrefs.textBadan}px`,
+    ['--ed-text-medan' as any]: `${rupaPrefs.textMedan}px`,
+    ['--ed-text-sederhana' as any]: `${rupaPrefs.textSederhana}px`,
+    ['--ed-text-tajuk' as any]: `${rupaPrefs.textTajuk}px`,
+    ['--ed-text-tajuk-besar' as any]: `${rupaPrefs.textTajukBesar}px`,
+    ['--ed-text-tajuk-utama' as any]: `${rupaPrefs.textTajukUtama}px`,
+    ['--ed-kepadatan' as any]: rupaPrefs.kepadatan,
+    ['--ed-lebar-maks' as any]: rupaPrefs.lebarMaks,
+  } : undefined;
+
   // `activeTab` prop TERKAWAL sepenuhnya (2026-08-07, pepijat Audit UI/UX §A1) — dahulu
   // `currentTab` state SENDIRI dibaca sekali semasa lekapan sahaja, jadi apabila kandungan
   // menukar destinasi sendiri (pintasan Paparan Utama, "Urus Penaja", dll — lihat
@@ -270,7 +297,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
     // kandungan pendek (cth Indeks dengan 2 baris tapisan), footer terapung di tengah halaman
     // dengan ruang kosong terbiar di bawahnya sehingga hujung skrin. Kini footer SENTIASA di
     // bawah — melekat di hujung viewport bila kandungan pendek, turun ikut skrol bila panjang.
-    <div className="min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans antialiased flex flex-col">
+    <div className="editorium-root min-h-screen bg-[#FDFDFD] text-[#1F1F1F] font-sans antialiased flex flex-col" style={rupaStyle}>
       {/* Editorium Header — bar identiti. 2026-08-03: reskin warna/gaya ikon ikut mockup Claude
           Design Izzat ("ledger editorial" — latar cerah, garis rambut, aksen maroon), TAPI kekal
           DUA keputusan sengaja lama yang disahkan semula (bukan diguna pakai mockup 100%):

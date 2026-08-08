@@ -16,11 +16,20 @@ export interface PanelCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode;
 }
 
+// Kepadatan boleh laras pentadbir (2026-08-08, Rupa Editorium) — `p-6`/`p-4` diganti nilai
+// arbitrary terikat kepada --ed-kepadatan (src/index.css) supaya kotak panel kembang/kecut
+// ikut tetapan Tetapan → Rupa Editorium. --ed-kepadatan:1 (lalai) = tepat 24px/16px asal.
+const PADDING_CLASS: Record<PanelPadding, string> = {
+  'p-0': 'p-0',
+  'p-4': 'p-[calc(16px*var(--ed-kepadatan,1))]',
+  'p-6': 'p-[calc(24px*var(--ed-kepadatan,1))]',
+};
+
 export const PanelCard: React.FC<PanelCardProps> = ({
   padding = 'p-6', className = '', children, ...rest
 }) => (
   <div
-    className={`bg-white rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] ${padding} ${padding === 'p-0' ? 'overflow-hidden' : ''} ${className}`}
+    className={`bg-white rounded-lg border border-stone-200 shadow-[0_1px_2px_rgba(0,0,0,.04)] ${PADDING_CLASS[padding]} ${padding === 'p-0' ? 'overflow-hidden' : ''} ${className}`}
     {...rest}
   >
     {children}

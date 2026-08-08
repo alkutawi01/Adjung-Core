@@ -110,13 +110,13 @@ interface TetapanConsoleProps {
   // Mendarat terus pada sub-tab tertentu (2026-08-02, Fasa 7) — cth pautan "Jam Dunia" di
   // kad Modul Khas, yang tetapannya sebenar hidup di sini (sub-tab Operasi), bukan tempat
   // berasingan. Kosong = lalai PolisiKandungan seperti biasa.
-  initialSubTab?: 'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem';
+  initialSubTab?: 'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem' | 'RupaEditorium';
 }
 
 export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   isPentadbir = true, initialSubTab
 }) => {
-  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem'>(initialSubTab || 'PolisiKandungan');
+  const [subTab, setSubTab] = useState<'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem' | 'RupaEditorium'>(initialSubTab || 'PolisiKandungan');
 
   // Toast simpan (2026-08-07, Audit §D3) — butang simpan seksyen ni bertaburan beratus baris
   // (Jam Dunia, Focus View, Ticker Overlay, RBAC) dengan mesej inline jauh di bawah, mudah
@@ -500,6 +500,15 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           >
             5. Label Sistem
           </button>
+
+          <button
+            onClick={() => setSubTab('RupaEditorium')}
+            className={`px-4 py-2 font-semibold transition-all border-b-2 ${
+              subTab === 'RupaEditorium' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            6. Rupa Editorium
+          </button>
         </div>
       </div>
 
@@ -507,6 +516,10 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           sunting: MOD_KANDUNGAN_LABEL/STATUS_LABEL/MESEJ_SISTEM_LABEL di src/config/istilah.ts,
           disimpan di jadual `ui_labels` (core/routes/uiLabelRoutes.js). */}
       {subTab === 'LabelSistem' && <LabelSistemPanel />}
+
+      {/* 6. RUPA EDITORIUM (2026-08-08, Izzat: "buat satu tempat di mana pentadbir boleh
+          laraskan saiz font dan UI lain di editorium supaya tak perlu bantuan awak selalu"). */}
+      {subTab === 'RupaEditorium' && <RupaEditoriumPanel />}
 
       {/* 2. HALAMAN AWAM (2026-08-02, Fasa 6) — ruang edit kandungan Tentang/Hubungi/Polisi
           disediakan SEKARANG (Izzat: "sedia ruang edit sekarang"), papar di frontpage bila
@@ -1381,6 +1394,193 @@ function LabelSistemPanel() {
           </div>
         </div>
       )}
+    </PanelCard>
+  );
+}
+
+// Rupa Editorium (2026-08-08, Izzat: "saiz font dlm kotak2 tu terlalu besar sila guna saiz yg
+// sesuai... dan pastikan ia universal... buat satu tempat di mana pentadbir boleh laraskan saiz
+// font dan UI lain di editorium supaya tak perlu bantuan awak selalu untuk laraskan"). Token
+// dilaras di sini disuntik sebagai CSS custom properties pada `.editorium-root`
+// (EditoriumLayout.tsx) yang MENANGKAP SEMULA kelas Tailwind sedia ada (text-xs/text-sm/dll.,
+// lihat src/index.css) — jadi ia terpakai kepada SEMUA 23 fail Editorium serentak, bukan
+// tempat-tempat yang sempat disunting tangan. Global untuk semua kakitangan (keputusan Izzat,
+// bukan per-editor).
+const RUPA_LALAI = {
+  textMikro: 9, textKecil: 10, textLabel: 11, textBadan: 12, textMedan: 13,
+  textSederhana: 15, textTajuk: 18, textTajukBesar: 20, textTajukUtama: 24,
+  kepadatan: 1, lebarMaks: 'none',
+};
+
+const TAKAT_TEKS: { kunci: keyof typeof RUPA_LALAI; label: string; contoh: string }[] = [
+  { kunci: 'textMikro', label: 'Mikro', contoh: 'Label mono kecil (cth "KANDUNGAN DIHANTAR")' },
+  { kunci: 'textKecil', label: 'Kecil', contoh: 'Tarikh ringkas, catatan sampingan' },
+  { kunci: 'textLabel', label: 'Label', contoh: 'Label medan borang, tab, badge status' },
+  { kunci: 'textBadan', label: 'Badan', contoh: 'Perenggan huraian dalam jadual/kad' },
+  { kunci: 'textMedan', label: 'Medan borang', contoh: 'Teks ditaip dalam kotak input/textarea' },
+  { kunci: 'textSederhana', label: 'Sederhana', contoh: 'Perenggan huraian utama, isi modal' },
+  { kunci: 'textTajuk', label: 'Tajuk kecil', contoh: 'Tajuk seksyen dalam modal' },
+  { kunci: 'textTajukBesar', label: 'Tajuk besar', contoh: 'Tajuk modal/dialog' },
+  { kunci: 'textTajukUtama', label: 'Tajuk utama', contoh: 'Tajuk modul (cth "Indeks Kandungan")' },
+];
+
+const PRESET_KEPADATAN: { label: string; nilai: number }[] = [
+  { label: 'Padat', nilai: 0.75 },
+  { label: 'Sederhana (lalai)', nilai: 1 },
+  { label: 'Lapang', nilai: 1.35 },
+];
+
+function RupaEditoriumPanel() {
+  const [semasa, setSemasa] = useState<typeof RUPA_LALAI>(RUPA_LALAI);
+  const [suntingan, setSuntingan] = useState<typeof RUPA_LALAI | null>(null);
+  const [memuat, setMemuat] = useState(true);
+  const [menyimpan, setMenyimpan] = useState(false);
+  const [ralat, setRalat] = useState('');
+  const [mesej, setMesej] = useState('');
+
+  const muatSemula = () => {
+    setMemuat(true);
+    setRalat('');
+    fetch('/api/editorium-ui-prefs')
+      .then(async (r) => {
+        if (!r.ok) throw new Error('Gagal memuatkan tetapan rupa Editorium.');
+        return r.json();
+      })
+      .then((data) => { setSemasa({ ...RUPA_LALAI, ...data }); setSuntingan(null); })
+      .catch((e) => setRalat(e.message || 'Gagal memuatkan tetapan rupa Editorium.'))
+      .finally(() => setMemuat(false));
+  };
+
+  useEffect(() => { muatSemula(); }, []);
+
+  const nilaiPapar = suntingan ?? semasa;
+  const adaSuntingan = suntingan !== null;
+  const ubah = (patch: Partial<typeof RUPA_LALAI>) => setSuntingan({ ...nilaiPapar, ...patch });
+
+  const simpan = async () => {
+    if (!suntingan) return;
+    setMenyimpan(true);
+    setRalat('');
+    try {
+      const res = await fetch('/api/editorium-ui-prefs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(suntingan),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Gagal menyimpan tetapan rupa Editorium.');
+      }
+      setSemasa(suntingan);
+      setSuntingan(null);
+      // Semua tab Editorium terbuka (termasuk tab ni sendiri) dengar peristiwa ni supaya kesan
+      // kelihatan SERTA-MERTA, tanpa refresh — lihat EditoriumLayout.tsx.
+      window.dispatchEvent(new CustomEvent('adjung-rupa-editorium-berubah'));
+      setMesej(labelUi('toast.tetapan_disimpan'));
+      setTimeout(() => setMesej(''), 6000);
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal menyimpan tetapan rupa Editorium.');
+    } finally {
+      setMenyimpan(false);
+    }
+  };
+
+  const setSemulaLalai = () => setSuntingan(RUPA_LALAI);
+
+  if (memuat) {
+    return (
+      <PanelCard className="text-xs">
+        <p className="text-stone-400 py-6 text-center">Memuatkan tetapan rupa Editorium…</p>
+      </PanelCard>
+    );
+  }
+
+  return (
+    <PanelCard className="space-y-6 text-xs">
+      <div>
+        <SectionLabel>6.1 — Skala Teks</SectionLabel>
+        <p className="text-stone-500 text-xs max-w-[680px]">
+          Sembilan takat saiz teks yang dipakai merentas SEMUA konsol Editorium (jadual, borang,
+          modal, tab). Terpakai serta-merta kepada kesemua fail sekali gus — bukan perlu disunting
+          satu-satu. Tetapan ni global untuk semua kakitangan.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+        {TAKAT_TEKS.map((t) => (
+          <label key={t.kunci} className="block">
+            <span className={LABEL_BORANG}>
+              {t.label} <span className="text-stone-400 normal-case font-normal">({nilaiPapar[t.kunci]}px)</span>
+            </span>
+            <input
+              type="range"
+              min={7}
+              max={t.kunci === 'textTajukUtama' ? 32 : t.kunci === 'textMikro' ? 12 : 24}
+              step={1}
+              value={nilaiPapar[t.kunci] as number}
+              onChange={(e) => ubah({ [t.kunci]: Number(e.target.value) } as Partial<typeof RUPA_LALAI>)}
+              className="w-full accent-Adjung-maroon"
+            />
+            <span className="text-stone-400 text-[10px]">{t.contoh}</span>
+          </label>
+        ))}
+      </div>
+
+      <div className="border-t border-stone-200 pt-5">
+        <SectionLabel>6.2 — Kepadatan</SectionLabel>
+        <p className="text-stone-500 text-xs max-w-[680px] mb-3">
+          Jarak dalam kotak panel dan medan borang. Nota: ini setakat ni terpakai pada kotak panel
+          dan medan borang sahaja (komponen kongsi sebenar) — bukan setiap ruang dalam jadual
+          (setiap jadual masih tulis jaraknya sendiri, skop berasingan).
+        </p>
+        <div className="flex gap-2">
+          {PRESET_KEPADATAN.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => ubah({ kepadatan: p.nilai })}
+              className={`px-3 py-1.5 rounded border font-semibold transition-colors cursor-pointer ${
+                Math.abs(nilaiPapar.kepadatan - p.nilai) < 0.01
+                  ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50'
+                  : 'border-stone-300 text-stone-600 hover:border-stone-400'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t border-stone-200 pt-5">
+        <SectionLabel>6.3 — Lebar Kawasan Kerja</SectionLabel>
+        <p className="text-stone-500 text-xs max-w-[680px] mb-3">
+          Had lebar maksimum jadual/borang pada skrin lebar. "Tiada had" (lalai) guna lebar penuh
+          ruang yang ada.
+        </p>
+        <FormColumn saiz="sm">
+          <select
+            value={nilaiPapar.lebarMaks === 'none' ? 'none' : nilaiPapar.lebarMaks}
+            onChange={(e) => ubah({ lebarMaks: e.target.value })}
+            className={INPUT_BORANG}
+          >
+            <option value="none">Tiada had (lalai)</option>
+            <option value="1400px">1400px</option>
+            <option value="1200px">1200px</option>
+            <option value="1000px">1000px</option>
+          </select>
+        </FormColumn>
+      </div>
+
+      <div className="flex items-center justify-end gap-3 border-t border-stone-200 pt-4">
+        {ralat && <span className="text-[var(--color-error)] text-[11px] font-semibold">{ralat}</span>}
+        {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
+        <Button variant="secondary" size="md" onClick={setSemulaLalai} disabled={menyimpan}>
+          Set Semula Lalai
+        </Button>
+        <Button variant="primary" size="md" onClick={simpan} disabled={menyimpan || !adaSuntingan}>
+          {menyimpan ? 'Menyimpan…' : 'Simpan'}
+        </Button>
+      </div>
     </PanelCard>
   );
 }

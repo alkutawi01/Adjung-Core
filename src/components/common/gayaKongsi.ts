@@ -10,9 +10,15 @@ export const LABEL_BORANG =
   'block font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500 mb-1';
 
 /** Input/textarea/select piawai. Keadaan fokus maroon ni dahulunya HANYA wujud dalam
- *  TetapanConsole — borang lain langsung tiada maklum balas fokus. Kini sejagat. */
+ *  TetapanConsole — borang lain langsung tiada maklum balas fokus. Kini sejagat.
+ *
+ *  `py-[calc(...)]` (2026-08-08, Rupa Editorium — Izzat: "saiz font dlm kotak2 tu terlalu
+ *  besar") — terikat kepada --ed-kepadatan (src/index.css) supaya tetapan kepadatan pentadbir
+ *  (Tetapan → Rupa Editorium) turut kembang/kecut medan borang, bukan cuma kad panel.
+ *  --ed-kepadatan:1 (lalai) = tepat 8px asal (py-2). `text-sm` sendiri turut ditangkap semula
+ *  oleh index.css (--ed-text-medan, lalai 13px — diturunkan drpd 14px Tailwind asal). */
 export const INPUT_BORANG =
-  'w-full bg-stone-50 border border-stone-300 rounded px-3 py-2 font-sans text-sm text-stone-800 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+  'w-full bg-stone-50 border border-stone-300 rounded px-3 py-[calc(8px*var(--ed-kepadatan,1))] font-sans text-sm text-stone-800 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
 /** Kepala jadual — gaya mono (DrafSayaConsole/LogAuditConsole) dipilih sebagai pemenang sebab ia
  *  paling hampir bahasa label frontpage. Latar guna token `--color-Adjung-paper`, bukan hex
