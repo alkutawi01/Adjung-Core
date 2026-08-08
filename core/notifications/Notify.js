@@ -39,4 +39,20 @@ export async function notifyMany(dbRun, userIds, payload) {
   }
 }
 
+// Beritahu PELULUS kandungan (2026-08-08, audit aliran penerbitan) — Ketua Editor dan Penolong
+// Ketua Editor, iaitu peranan yang benar-benar boleh meluluskan kandungan Menunggu. SENGAJA bukan
+// beritahuPentadbirDanKetuaEditor() (slotRoutes.js/systemRoutes.js): Pentadbir tiada kebenaran
+// `manageEditorial` (lihat DEFAULT_ROLE_PERMISSIONS, core/middleware/auth.js), jadi memberitahunya
+// tentang giliran kelulusan cuma bunyi bising — dia tak boleh bertindak ke atasnya.
+//
+// Sebelum ni notifikasi kandungan HANYA pergi kepada editor slot dan penulis asal, jadi kandungan
+// boleh duduk dalam giliran Menunggu tanpa had sehingga Ketua Editor terfikir untuk semak Indeks
+// sendiri — tiada isyarat langsung yang ada kerja menunggu keputusan dia.
+export async function beritahuPelulusKandungan(dbAll, dbRun, payload) {
+  const rows = await dbAll(
+    "SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('ketua_editor', 'penolong_ketua_editor')"
+  );
+  await notifyMany(dbRun, (rows || []).map((r) => r.userId), payload);
+}
+
 export default notify;

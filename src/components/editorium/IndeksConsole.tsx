@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AlertTriangle, X, Search, Pin, Lock } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
@@ -284,7 +284,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   };
 
   // Load Real Data from SQLite Endpoint
-  useEffect(() => {
+  // Muat semula senarai kandungan sahaja (2026-08-08) — diasingkan daripada useEffect pemuatan
+  // awal supaya tindakan pukal boleh menyegarkan keadaan sebenar daripada server, bukan meneka
+  // kesan sampingan (naik taraf giliran slot-penuh, Tolak yang membuang rekod terus).
+  const muatSemula = useCallback(() => {
     setLoading(true);
     fetch('/api/system/content/all')
       .then(res => res.json())
@@ -326,6 +329,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         console.error('Error loading index data:', err);
         setLoading(false);
       });
+  }, []);
+
+  useEffect(() => {
+    muatSemula();
 
     fetch('/api/system/categories/active')
       .then(res => res.json())
@@ -336,7 +343,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setAllSlots(data.map((s: any) => ({ slotIndex: s.slotIndex, manualDesk: s.manualDesk || '' }))); })
       .catch(e => console.error('Error fetching slots:', e));
-  }, [currentUserName]);
+  }, [currentUserName, muatSemula]);
 
   // Status Counters
   const statusCounts = useMemo(() => {
@@ -476,6 +483,39 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     [sortedRecords, currentPage]
   );
 
+  // Pilihan pukal (2026-08-08, permintaan Izzat — "pilih kandungan supaya boleh ubah tindakan
+  // secara pukal"). Skop pilihan sengaja HALAMAN SEMASA sahaja (bukan seluruh keputusan tapisan):
+  // tindakan pukal ke atas rekod yang editor tak pernah lihat ialah cara paling mudah memusnahkan
+  // kandungan tanpa sedar. Ticker dan baris baca-sahaja tak boleh dipilih langsung.
+  const [pilihan, setPilihan] = useState<Set<string>>(new Set());
+  const [tindakanPukalBerjalan, setTindakanPukalBerjalan] = useState(false);
+  const [confirmPukal, setConfirmPukal] = useState<'' | 'Archive' | 'Live' | 'Padam'>('');
+  const idBolehPilihHalamanIni = useMemo(
+    () => pagedRecords
+      .filter(r => r.slot !== 'Ticker' && !(currentUserRole === 'EDITOR' && editorViewMode === 'all' && r.creator !== currentUserName))
+      .map(r => r.id),
+    [pagedRecords, currentUserRole, editorViewMode, currentUserName]
+  );
+  // Buang pilihan yang tak lagi kelihatan (tukar halaman/penapis) — kalau tidak, tindakan pukal
+  // boleh mengenai rekod yang dah lama hilang daripada skrin, tanpa editor sedar.
+  useEffect(() => {
+    setPilihan(prev => {
+      const dibenarkan = new Set(idBolehPilihHalamanIni);
+      const baharu = new Set([...prev].filter(id => dibenarkan.has(id)));
+      return baharu.size === prev.size ? prev : baharu;
+    });
+  }, [idBolehPilihHalamanIni]);
+  const togglePilih = (id: string) => {
+    setPilihan(prev => {
+      const baharu = new Set(prev);
+      if (baharu.has(id)) baharu.delete(id); else baharu.add(id);
+      return baharu;
+    });
+  };
+  const togglePilihSemua = (pilihSemua: boolean) => {
+    setPilihan(pilihSemua ? new Set(idBolehPilihHalamanIni) : new Set());
+  };
+
   const handleUpdateStatus = async (id: string, newStatus: BriefRecord['status']) => {
     setActionError(null);
     const previous = items;
@@ -597,6 +637,62 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     } catch (err: any) {
       setItems(previous);
       const mesej = err.message || 'Gagal padam kekal.';
+      setActionError(mesej);
+      onToast?.('error', mesej);
+    }
+  };
+
+  // Tindakan PUKAL (2026-08-08, permintaan Izzat). Dijalankan SATU-PERSATU, bukan serentak:
+  // server siri-kan setiap tulisan kandungan (denganKunciKandungan) jadi hantar serentak cuma
+  // memenuhkan baris gilirannya tanpa apa-apa keuntungan, DAN gerbang seperti hadKandunganSlot
+  // perlu melihat kesan item sebelumnya untuk memutuskan item berikutnya dengan betul.
+  //
+  // Kegagalan SATU item tidak membatalkan yang lain (setiap kandungan ialah keputusan editorial
+  // berasingan) — sebaliknya dikira dan dilaporkan sekali di hujung, jadi editor nampak dengan
+  // tepat berapa yang menjadi dan kenapa yang lain gagal.
+  const jalankanTindakanPukal = async (tindakan: 'Archive' | 'Live' | 'Tolak' | 'Padam') => {
+    const idTerpilih = [...pilihan];
+    if (idTerpilih.length === 0) return;
+    setConfirmPukal('');
+    setActionError(null);
+    setTindakanPukalBerjalan(true);
+    let berjaya = 0;
+    const gagal: string[] = [];
+    for (const id of idTerpilih) {
+      try {
+        let res: Response;
+        if (tindakan === 'Padam') {
+          res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        } else if (tindakan === 'Tolak') {
+          res = await fetch(`/api/system/content/${encodeURIComponent(id)}/reject-to-draft`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sebab: '' }),
+          });
+        } else {
+          res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: LABEL_TO_STATUS[tindakan] }),
+          });
+        }
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || `Ralat ${res.status}`);
+        berjaya++;
+      } catch (err: any) {
+        gagal.push(err.message || 'Ralat tidak diketahui');
+      }
+    }
+    setPilihan(new Set());
+    setTindakanPukalBerjalan(false);
+    // Muat semula daripada server, bukan tekaan optimistik: satu tindakan pukal boleh mencetuskan
+    // kesan sampingan yang klien tak boleh ramal (naik taraf giliran slot-penuh, Tolak buang
+    // rekod terus daripada Indeks) — mengagak keadaan baharu di sini pasti terpesong.
+    muatSemula();
+    if (gagal.length === 0) {
+      onToast?.('success', `${berjaya} kandungan dikemas kini.`);
+    } else {
+      const mesej = `${berjaya} berjaya, ${gagal.length} gagal. Sebab pertama: ${gagal[0]}`;
       setActionError(mesej);
       onToast?.('error', mesej);
     }
@@ -900,6 +996,40 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         </div>
       </div>
 
+      {/* Bar tindakan pukal (2026-08-08) — muncul HANYA bila ada pilihan, jadi jadual kekal bersih
+          dalam kerja harian biasa. Arkib/Siar boleh terus (kesan boleh diundur); Tolak dan Padam
+          minta pengesahan dahulu sebab kesannya lebih jauh (Tolak buang rekod daripada Indeks,
+          Padam pindah ke Tong Sampah). */}
+      {pilihan.size > 0 && (
+        <div className="flex items-center justify-between gap-4 flex-wrap rounded-md border border-[#802334]/30 bg-[#802334]/5 px-4 py-2.5">
+          <span className="font-sans text-xs font-semibold text-stone-700">
+            {pilihan.size} kandungan dipilih
+            <button type="button" onClick={() => setPilihan(new Set())} className="ml-2.5 font-normal text-stone-500 hover:text-stone-800 underline underline-offset-2 cursor-pointer">
+              Kosongkan
+            </button>
+          </span>
+          {tindakanPukalBerjalan ? (
+            <span className="font-sans text-xs text-stone-500">Memproses…</span>
+          ) : confirmPukal ? (
+            <span className="flex items-center gap-2 font-sans text-xs">
+              <span className="text-[#a8241f] font-semibold">
+                {confirmPukal === 'Padam' ? `Padam ${pilihan.size} kandungan ke Tong Sampah?` : `Siarkan ${pilihan.size} kandungan?`}
+              </span>
+              <button type="button" onClick={() => jalankanTindakanPukal(confirmPukal as any)} className="font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
+              <button type="button" onClick={() => setConfirmPukal('')} className="font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
+            </span>
+          ) : (
+            <span className="flex items-center gap-2 font-sans text-xs">
+              <button type="button" onClick={() => setConfirmPukal('Live')} className="font-semibold text-stone-700 hover:text-Adjung-maroon border border-stone-300 rounded px-2.5 py-1 cursor-pointer">Siar</button>
+              <button type="button" onClick={() => jalankanTindakanPukal('Archive')} className="font-semibold text-stone-700 hover:text-Adjung-maroon border border-stone-300 rounded px-2.5 py-1 cursor-pointer">Arkib</button>
+              {currentUserRole === 'KETUA_EDITOR' && (
+                <button type="button" onClick={() => setConfirmPukal('Padam')} className="font-semibold text-[#a8241f] hover:text-[#802334] border border-[#a8241f]/30 rounded px-2.5 py-1 cursor-pointer">Padam</button>
+              )}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Content List Table */}
       {loading ? (
         // Rangka pulsa (Fasa 18, 2026-08-05) — baris jadual kasar gantikan teks statik lama,
@@ -931,6 +1061,19 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <caption className="sr-only">Senarai kandungan mengikut slot dan status</caption>
             <thead>
               <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
+                <th scope="col" className="p-2.5 w-8">
+                  <input
+                    type="checkbox"
+                    aria-label="Pilih semua kandungan dalam halaman ini"
+                    checked={idBolehPilihHalamanIni.length > 0 && idBolehPilihHalamanIni.every(id => pilihan.has(id))}
+                    // Separa-pilih (indeterminate) tak boleh ditetapkan melalui atribut JSX —
+                    // hanya melalui DOM property, jadi ref callback.
+                    ref={(el) => { if (el) el.indeterminate = idBolehPilihHalamanIni.some(id => pilihan.has(id)) && !idBolehPilihHalamanIni.every(id => pilihan.has(id)); }}
+                    onChange={(e) => togglePilihSemua(e.target.checked)}
+                    disabled={idBolehPilihHalamanIni.length === 0}
+                    className="cursor-pointer accent-[#802334] disabled:cursor-not-allowed"
+                  />
+                </th>
                 <th scope="col" className="p-2.5 w-16">ID</th>
                 {/* Tajuk dikecilkan lagi + Editor (2026-07-29, permintaan pemilik projek) — Topik/
                     Kaedah/Jenis Kad dibuang terus daripada jadual (kekal di penapis + modal
@@ -978,8 +1121,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 return (
                   <tr
                     key={rec.id}
-                    className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS}`}
+                    className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS} ${pilihan.has(rec.id) ? 'bg-[#802334]/[0.04]' : ''}`}
                   >
+                    <td className="p-2.5" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Pilih: ${rec.title}`}
+                        checked={pilihan.has(rec.id)}
+                        onChange={() => togglePilih(rec.id)}
+                        disabled={rec.slot === 'Ticker' || isReadOnly}
+                        className="cursor-pointer accent-[#802334] disabled:cursor-not-allowed disabled:opacity-40"
+                      />
+                    </td>
                     <Tooltip text={rec.id}>
                       <td className="p-2.5 font-sans text-xs text-stone-500 font-semibold truncate max-w-[100px]">
                         {rec.id}

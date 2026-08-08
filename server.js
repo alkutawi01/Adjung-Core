@@ -55,7 +55,7 @@ import { createSponsorRoutes } from './core/routes/sponsorRoutes.js';
 import { semakKonfigSmtpStartup, hantarEmel } from './core/email/MailSender.js';
 import { requireAuthForWrites, loadRolePermissions, hasPermission } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
-import { notify, notifyMany } from './core/notifications/Notify.js';
+import { notify, notifyMany, beritahuPelulusKandungan } from './core/notifications/Notify.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2674,6 +2674,10 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
   // diarkibkan (status revisi='archived'), baris editorial_objects-nya turut KEKAL, bukan
   // dipadam — selaras peraturan padam/arkib projek. Item baharu (tiada uuid sepadan) dicipta
   // segar seperti biasa.
+  // Kandungan yang mendarat sebagai 'pending' (menunggu kelulusan) dikumpul di sini dan
+  // dinotifikasikan SELEPAS COMMIT (2026-08-08) — bukan dalam transaksi: notifikasi ialah rekod
+  // sampingan, tak patut memegang kunci tulis DB lebih lama atau menggagalkan penerbitan sebenar.
+  const menungguKelulusan = [];
   await dbRun('BEGIN TRANSACTION');
   try {
     const nowIso = new Date().toISOString();
@@ -2772,6 +2776,9 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       // luluskan kandungan sendiri!"). Slot Bar kekal guna status yang dihurai terus (lama).
       const bolehTerbitTerus = isBar || hasPermission(roles, 'manageEditorial') || hasPermission(roles, 'publish');
       const finalStatus = isBar ? (item.status || 'approved') : (bolehTerbitTerus ? 'approved' : 'pending');
+      if (finalStatus === 'pending') {
+        menungguKelulusan.push({ objectId, title: item.title || '' });
+      }
       const rev = await dbRun(
         `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
          VALUES (?, 1.0, 'ms', ?, ?, ?, 'manual-slot-save', ?, ?)`,
@@ -2833,6 +2840,20 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       console.error('Rollback failed after syncManualObjectsForSlot error:', rollbackErr.message);
     }
     throw e;
+  }
+
+  // Beritahu pelulus (2026-08-08, audit aliran penerbitan) — sebelum ni kandungan yang mendarat
+  // dalam giliran Menunggu langsung tiada isyarat kepada sesiapa yang boleh meluluskannya; Ketua
+  // Editor kena terfikir sendiri untuk pergi semak Indeks. Dilakukan selepas COMMIT dan sengaja
+  // tidak di-await bersama transaksi — kegagalan notifikasi tak boleh menjejaskan penerbitan.
+  for (const menunggu of menungguKelulusan) {
+    await beritahuPelulusKandungan(dbAll, dbRun, {
+      type: 'kandungan_menunggu_kelulusan',
+      title: 'Kandungan menunggu kelulusan anda',
+      detail: `Slot ${slotIndex + 1}: ${menunggu.title}`.slice(0, 150),
+      targetType: 'kandungan',
+      targetId: menunggu.objectId,
+    }).catch((e) => console.warn('Gagal beritahu pelulus kandungan:', e.message));
   }
 
   // Slot Bar: manualSummary kekal sama macam dihantar (tiada pemisahan draf). Bukan Bar:

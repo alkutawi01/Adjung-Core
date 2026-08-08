@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { StatusBadge } from '../common/StatusBadge';
-import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off } from 'lucide-react';
+import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock } from 'lucide-react';
 
 // Peti Makluman (2026-08-01, spesifikasi pemilik projek) — laci gelongsor yang memaparkan
 // makluman AKTIF tanpa editor perlu meninggalkan halaman yang sedang dibuka.
@@ -55,6 +55,7 @@ const LABEL_SKOP: Record<string, string> = { catatan_ketua_editor: 'Catatan Ketu
 const IKON_JENIS: Record<string, React.ReactNode> = {
   kandungan_disiar: <CheckCircle2 className="w-2.5 h-2.5" />,
   kandungan_ditolak: <XCircle className="w-2.5 h-2.5" />,
+  kandungan_menunggu_kelulusan: <Clock className="w-2.5 h-2.5" />,
   kandungan_terbit_berjadual: <CheckCircle2 className="w-2.5 h-2.5" />,
   kandungan_luput_berjadual: <XCircle className="w-2.5 h-2.5" />,
   kandungan_penugasan_slot: <LayoutGrid className="w-2.5 h-2.5" />,
@@ -75,6 +76,7 @@ const IKON_JENIS: Record<string, React.ReactNode> = {
 const LABEL_JENIS: Record<string, string> = {
   kandungan_disiar: 'Kandungan Disiarkan',
   kandungan_ditolak: 'Kandungan Ditolak',
+  kandungan_menunggu_kelulusan: 'Menunggu Kelulusan',
   kandungan_terbit_berjadual: 'Terbit Berjadual',
   kandungan_luput_berjadual: 'Luput Berjadual',
   kandungan_penugasan_slot: 'Penugasan Slot',
