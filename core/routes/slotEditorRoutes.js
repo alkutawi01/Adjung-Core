@@ -18,6 +18,22 @@ import { logAudit } from '../audit/AuditLog.js';
 // Ticker (-1) dan tier BAR tiada di sini — kedua-duanya diuruskan di Modul Khas.
 const BAR_SLOTS = new Set(TIER_SLOTS.BAR);
 
+// Kunci penggantian penugasan slot (2026-08-08, dapatan audit keselamatan ChatGPT) — DELETE
+// SELURUH baris slot ni + INSERT semula bukan satu operasi atomik. Dua permintaan berselang-seli
+// (cth Ketua Editor tugaskan Editor B, Penolong tugaskan Editor C pada slot SAMA hampir serentak)
+// boleh jadi: baca lama [A] → padam kedua-duanya → INSERT A+B → INSERT A+C, hasil akhir [A,B,C],
+// BUKAN [A,B] atau [A,C] yang mana-mana permintaan sebenarnya minta — "lost update" sebenar, bukan
+// cuma teori. Sama corak macam denganKunciKandungan (contentRoutes.js) — rantaian promise global,
+// bukan kunci per-slot: pelayan satu proses (PM2 mod fork), trafik penugasan slot sangat jarang
+// (tindakan pentadbiran, bukan trafik pembaca), jadi serialisasi global cukup dan lebih ringkas
+// drpd Map<slotIndex, Promise> tanpa faedah sebenar pada bebanan ni.
+let rantaianKunciPenugasanSlot = Promise.resolve();
+function denganKunciPenugasanSlot(fn) {
+  const giliran = rantaianKunciPenugasanSlot.catch(() => {}).then(fn);
+  rantaianKunciPenugasanSlot = giliran.catch(() => {});
+  return giliran;
+}
+
 export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
   const router = express.Router();
 
@@ -55,7 +71,7 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
   // Fasa 3 (lalai: Ketua Editor + Penolong ya, Pentadbir & Editor tidak) — cuma tak pernah
   // disambungkan ke laluan ni. Sekarang disambung; UI di SenaraiSlotConsole.tsx turut disorok
   // untuk peranan yang tiada kunci ni (bayang client, gerbang sebenar di sini).
-  router.post('/slot-editors', requirePermission('assignSlot'), async (req, res) => {
+  router.post('/slot-editors', requirePermission('assignSlot'), (req, res) => denganKunciPenugasanSlot(async () => {
     try {
       const { slotIndex, editorIds } = req.body || {};
       const slot = Number(slotIndex);
@@ -79,7 +95,8 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
 
       // Penugasan slot baharu (Fasa 6b notifikasi) — kira SEBELUM padam, supaya cuma editor yang
       // BAHARU ditambah terima notis (bukan editor sedia ada yang senarai dia dihantar semula
-      // tanpa perubahan sebenar).
+      // tanpa perubahan sebenar). Kini di dalam denganKunciPenugasanSlot() — baca+padam+tulis ni
+      // SATU unit atomik merentasi permintaan serentak, bukan cuma dalam satu permintaan.
       const seniorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [slot]);
       const seniorIds = new Set((seniorRows || []).map((r) => r.editorId));
       const editorBaharu = unik.filter((id) => !seniorIds.has(id));
@@ -115,7 +132,7 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
       console.error('POST slot-editors error:', err);
       res.status(500).json({ error: 'Gagal menyimpan penugasan editor. ' + (err.message || '') });
     }
-  });
+  }));
 
   return router;
 };
