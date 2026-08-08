@@ -19,3 +19,4 @@ public/uploads/
 # Skrip pembantu tempatan (cipta akaun ujian Editorium) — mengandungi kata laluan ujian
 # berkod-keras, jadi ia sengaja TIDAK dijejaki. Lihat sesi 2026-08-07.
 buat-akaun-ujian.js
+*.db-journal
