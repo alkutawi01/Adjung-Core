@@ -198,23 +198,24 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     }
   };
 
-  // Saving system_settings is a full INSERT OR REPLACE server-side (server.js POST
-  // /api/system/settings) — always fetch the current row and merge in just the field(s) being
-  // changed here, or unrelated settings saved elsewhere (frontpage title, banners, etc.) get
-  // silently wiped.
+  // POST /api/system/settings kini UPDATE separa berpandukan whitelist di pelayan (2026-08-08,
+  // Fasa 2 susulan audit keselamatan ChatGPT P2-01) — medan yang TAK dihantar dikekalkan terus
+  // di pelayan, jadi hantar CUMA medan yang berubah di sini sudah selamat. Dahulu (baca db-state
+  // penuh → gabung tempatan → hantar objek gabungan) perlu wujud sebab pelayan lama INSERT OR
+  // REPLACE seluruh baris setiap panggilan (medan tak disertakan hilang terus) — corak tu kini
+  // lapuk (dan ia sendiri punca db-state kekal terpaksa bawa systemSettings PENUH kepada semua
+  // pengguna log masuk, bukan cuma yang perlu).
   const saveSystemSettingsPatch = async (patch: Record<string, any>) => {
-    const current = await fetch('/api/db-state').then(r => r.json());
-    const merged = { ...(current.systemSettings || {}), ...patch };
     const res = await fetch('/api/system/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(merged)
+      body: JSON.stringify(patch)
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || 'Gagal menyimpan tetapan.');
     }
-    return merged;
+    return patch;
   };
 
   const handleToggleGlosSelari = async () => {

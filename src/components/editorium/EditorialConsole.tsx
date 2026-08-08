@@ -250,19 +250,17 @@ export const EditorialConsole: React.FC = () => {
       .finally(() => setMemuatAi(false));
   }, []);
 
-  // system_settings disimpan sebagai INSERT OR REPLACE penuh di pelayan — baca baris semasa dan
-  // gabungkan medan yang diubah sahaja, atau tetapan lain (tajuk frontpage, jam dunia, RBAC)
-  // terpadam senyap.
+  // POST /api/system/settings kini UPDATE separa berpandukan whitelist di pelayan (2026-08-08,
+  // Fasa 3 susulan audit keselamatan ChatGPT P2-01) — hantar CUMA medan yang diubah, medan lain
+  // (tajuk frontpage, jam dunia, RBAC) dikekalkan terus di pelayan, tak perlu baca+gabung lagi.
   const simpanAi = async () => {
     setMenyimpanAi(true);
     setRalatAi('');
     try {
-      const semasa = await fetch('/api/db-state').then((r) => r.json());
-      const gabung = { ...(semasa.systemSettings || {}), masterPrompt, reviewPrompt };
       const res = await fetch('/api/system/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(gabung),
+        body: JSON.stringify({ masterPrompt, reviewPrompt }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan templat AI.');
