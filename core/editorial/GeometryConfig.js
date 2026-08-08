@@ -64,18 +64,25 @@ export const FALLBACK_CEILINGS = {
 };
 
 // Canonical Malay tier labels — single source of truth, imported by PerlembagaanConsole.tsx and
-// IndeksConsole.tsx (no local copies). Derived from the Fasa 0 shape illustration (Full
-// horizontal/Vertical/Horizontal/Square/Compact/Bar) translated to Malay per project owner's
-// explicit instruction: "Horizontal" -> "Melintang", "Square" -> "Kiub", with Besar/Kecil added
-// to split SEGI_EMPAT_MEDIUM/SMALL since the illustration only had one "Square" label for what is
-// now two distinct tiers.
+// IndeksConsole.tsx (no local copies).
+//
+// PEMBETULAN PENAMAAN (2026-08-08, penemuan Izzat) — nama asal (Fasa 0, "Kiub Besar/Kecil" untuk
+// SEGI_EMPAT_MEDIUM/SMALL) silap: SEGI_EMPAT_MEDIUM (2x2) sebenarnya bentuk MELINTANG (lebar >
+// tinggi) apabila dibandingkan dengan grid sebenar, bukan kiub — cuma SEGI_EMPAT_SMALL (4x2) yang
+// betul-betul nisbah kiub. Diselaraskan ikut BENTUK SEBENAR pada grid, bukan nama warisan:
+//   HERO (4x4, 1 slot sahaja — tiada padanan lain, tak perlu perihal bentuk) -> "Hero"
+//   MENEGAK (8x1) -> "Menegak Panjang"
+//   STANDARD (4x3) -> "Melintang Panjang"
+//   SEGI_EMPAT_SMALL (4x2, nisbah kiub sebenar) -> "Kiub"
+//   SEGI_EMPAT_MEDIUM (2x2, melintang bukan kiub) -> "Melintang Sederhana"
+//   KOMPAK (2x1) -> "Melintang Pendek"
 export const TIER_LABELS = {
-  HERO: 'Melintang Penuh',
-  MENEGAK: 'Menegak',
-  STANDARD: 'Melintang',
-  SEGI_EMPAT_MEDIUM: 'Kiub Besar',
-  SEGI_EMPAT_SMALL: 'Kiub Kecil',
-  KOMPAK: 'Kompak',
+  HERO: 'Hero',
+  MENEGAK: 'Menegak Panjang',
+  STANDARD: 'Melintang Panjang',
+  SEGI_EMPAT_MEDIUM: 'Melintang Sederhana',
+  SEGI_EMPAT_SMALL: 'Kiub',
+  KOMPAK: 'Melintang Pendek',
   BAR: 'Bar',
   TICKER: 'Ticker',
 };
