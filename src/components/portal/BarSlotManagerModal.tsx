@@ -324,7 +324,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
           <section className="min-h-0 overflow-y-auto px-6 md:px-8 py-5 flex flex-col gap-5">
             <span className={labelCls}>Acara <span className="font-mono">{String(activeIndex + 1).padStart(2, '0')}</span></span>
 
-            <Field label="Event" value={current.title || ''} maxLen={ceiling.maxTitle} placeholder="Nama acara…" onChange={(v) => patch(activeIndex, 'title', v)} />
+            <Field label="Nama Acara" value={current.title || ''} maxLen={ceiling.maxTitle} placeholder="Nama acara…" onChange={(v) => patch(activeIndex, 'title', v)} />
             <div className="grid grid-cols-2 gap-5">
               <Field label="Penganjur" value={current.organizer || ''} placeholder="Cth: PPAS / DBP / PNM / KPM" onChange={(v) => patch(activeIndex, 'organizer', v)} />
               <Field label="Lokasi" value={current.location || ''} placeholder="Lokasi acara…" onChange={(v) => patch(activeIndex, 'location', v)} />

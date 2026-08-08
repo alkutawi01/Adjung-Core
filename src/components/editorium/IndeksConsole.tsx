@@ -777,7 +777,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
           <input
             type="text"
-            placeholder="Cari tajuk, ID, atau kata kunci brief..."
+            placeholder="Cari tajuk, ID, atau kata kunci kandungan..."
             value={draftFilters.search}
             onChange={e => patchDraft({ search: e.target.value })}
             onKeyDown={e => { if (e.key === 'Enter') handleApplyFilters(); }}
@@ -1080,7 +1080,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     perincian) supaya jadual tak lebar sampai sembunyikan lajur Tindakan. Tajuk
                     penuh (dipotong di sini) boleh dibaca melalui tooltip bila hover, sama corak
                     macam lajur ID. */}
-                <th scope="col" className="p-2.5 w-40">Tajuk Brief</th>
+                <th scope="col" className="p-2.5 w-40">Tajuk Kandungan</th>
                 <th scope="col" className="p-2.5 w-20">Status</th>
                 <th scope="col" className="p-2.5 w-24">Bidang</th>
                 <th scope="col" className="p-2.5 w-28">Sumber</th>
@@ -1281,7 +1281,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               </Button>
               {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
                 <Button onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}>
-                  Siar Brief
+                  Siar Kandungan
                 </Button>
               )}
             </>
