@@ -176,6 +176,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 }) => {
   const [items, setItems] = useState<BriefRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  // Bendera kegagalan (UX-08 lanjutan, audit ChatGPT 2026-08-08) — dahulu kegagalan fetch
+  // senyap tinggalkan `items` kosong, jadual terus papar "Tiada kandungan yang sepadan" macam
+  // senarai memang kosong, bukan gagal dimuatkan.
+  const [gagalMuatSenarai, setGagalMuatSenarai] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   // Smart Filter Bar States
@@ -334,6 +338,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // kesan sampingan (naik taraf giliran slot-penuh, Tolak yang membuang rekod terus).
   const muatSemula = useCallback(() => {
     setLoading(true);
+    setGagalMuatSenarai(false);
     fetch('/api/system/content/all')
       .then(res => res.json())
       .then(data => {
@@ -373,6 +378,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       })
       .catch(err => {
         console.error('Error loading index data:', err);
+        setGagalMuatSenarai(true);
         setLoading(false);
       });
   }, []);
@@ -1138,6 +1144,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </div>
           ))}
         </div>
+      ) : gagalMuatSenarai ? (
+        <PanelCard>
+          <KeadaanKosong
+            tindakan={
+              <Button variant="secondary" size="sm" onClick={muatSemula}>
+                Cuba Semula
+              </Button>
+            }
+          >
+            Gagal memuatkan senarai kandungan.
+          </KeadaanKosong>
+        </PanelCard>
       ) : sortedRecords.length === 0 ? (
         <PanelCard>
           <KeadaanKosong

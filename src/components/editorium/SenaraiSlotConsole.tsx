@@ -103,6 +103,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   const [penugasan, setPenugasan] = useState<PenugasanEditor[]>([]);
   const [pengguna, setPengguna] = useState<Pengguna[]>([]);
   const [loading, setLoading] = useState(true);
+  // Bendera kegagalan (UX-08 lanjutan, audit ChatGPT 2026-08-08) — Promise.all di bawah
+  // dahulu senyap jatuh balik ke [] bagi SETIAP fetch apabila gagal, lalu jadual terus papar
+  // "Aktif: 0, Menunggu: 0" utk semua slot — tak boleh dibezakan drpd sistem sihat yang
+  // memang kosong. Kini kegagalan disahkan status semula (bukan reka data).
+  const [gagalMuat, setGagalMuat] = useState(false);
 
   // Status Aktif/Menunggu per-slot (2026-08-06, permintaan Izzat: "editor tahu status setiap
   // slot dan bersedia tambah kandungan supaya setiap slot sentiasa mempunyai kandungan baharu")
@@ -268,16 +273,18 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
       .catch(() => {});
 
   useEffect(() => {
+    const GAGAL = Symbol('gagal');
     Promise.all([
-      fetch('/api/system/slots').then(r => r.json()).catch(() => []),
-      fetch('/api/system/categories/active').then(r => r.json()).catch(() => []),
-      fetch('/api/system/categories/slot-usage').then(r => r.json()).catch(() => []),
-      fetch('/api/system/tier-settings').then(r => r.json()).catch(() => []),
-      fetch('/api/db-state').then(r => r.json()).catch(() => ({})),
+      fetch('/api/system/slots').then(r => r.json()).catch(() => GAGAL),
+      fetch('/api/system/categories/active').then(r => r.json()).catch(() => GAGAL),
+      fetch('/api/system/categories/slot-usage').then(r => r.json()).catch(() => GAGAL),
+      fetch('/api/system/tier-settings').then(r => r.json()).catch(() => GAGAL),
+      fetch('/api/db-state').then(r => r.json()).catch(() => GAGAL),
       muatPenugasan(),
-      fetch('/api/system/content/all').then(r => r.json()).catch(() => []),
+      fetch('/api/system/content/all').then(r => r.json()).catch(() => GAGAL),
     ])
       .then(([slotRows, bidangRows, usageRows, tierRows, dbState, , semuaKandungan]) => {
+        setGagalMuat([slotRows, bidangRows, usageRows, tierRows, dbState, semuaKandungan].some(r => r === GAGAL));
         if (Array.isArray(slotRows)) setSlots(slotRows);
         if (Array.isArray(bidangRows)) setBidangList(bidangRows);
         if (Array.isArray(usageRows)) setUsage(usageRows);
@@ -378,6 +385,8 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
       <PanelCard className="space-y-4 text-xs">
         {loading ? (
           <KeadaanKosong>Memuatkan senarai slot...</KeadaanKosong>
+        ) : gagalMuat ? (
+          <KeadaanKosong>Gagal memuatkan sebahagian data slot. Sila muat semula halaman.</KeadaanKosong>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
