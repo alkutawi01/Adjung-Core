@@ -443,9 +443,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Struktur modul (Pelan 01 Fasa D1): satu kepala modul, kemudian seksyen bernombor
-          berterusan 01–09 merentas kelima-lima sub-tab sedia ada. Susunan dan teks tab TIDAK
-          diubah — struktur navigasi ialah keputusan pemilik projek. */}
+      {/* Struktur modul (Pelan 01 Fasa D1, dibetulkan 2026-08-08 — Izzat: "penomboran ...
+          memeningkan dan mengecewakan"). Nombor seksyen SEBELUM ni berterusan 01–09 merentas
+          kelima-lima sub-tab (cth sub-tab "3. Operasi & Governance" memaparkan seksyen "03"–"07"
+          — dua sistem nombor berlainan makna tapi rupa sama, mengelirukan). Kini seksyen bersarang
+          ikut nombor tab sendiri (3.1, 3.2, 3.3 ...), padan terus dengan apa yang dilihat editor. */}
       <ModulTajuk
         tajuk="Tetapan"
         huraian="Polisi kandungan, kandungan halaman awam dan dalaman, tetapan operasi (RSS, jam dunia, Focus View, Ticker), kawalan akses peranan, dan kamus label sistem."
@@ -478,7 +480,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               subTab === 'Operasi' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
-            3. Operasi & Governance
+            3. Operasi & Tadbir Urus
           </button>
 
           <button
@@ -515,7 +517,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {/* 1. POLISI KANDUNGAN */}
       {subTab === 'PolisiKandungan' && (
         <PanelCard className="space-y-4 text-xs">
-          <SectionLabel>01 — Polisi Teks &amp; Format Global</SectionLabel>
+          <SectionLabel>1.1 — Polisi Teks &amp; Format Global</SectionLabel>
           <div className="space-y-4 divide-y divide-stone-100">
             {/* Autocondong Istilah Asing & Pinjaman (2026-08-01) — DIPINDAHKAN ke Pentadbiran →
                 Editorial → Autocondong, sebahagian daripada spesifikasi konsol Editorial pemilik
@@ -544,8 +546,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         </PanelCard>
       )}
 
-      {/* 2. TAKSONOMI (BIDANG — SENARAI TERTUTUP) */}
-      {/* 2. OPERASI & GOVERNANCE */}
+      {/* 3. OPERASI & TADBIR URUS */}
       {subTab === 'Operasi' && (
         <PanelCard className="space-y-6 text-xs">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
@@ -555,7 +556,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           {/* Kategori RSS Tersekat — shared with the Frontpage Ticker Management modal */}
           <div className="space-y-3">
             <div>
-              <SectionLabel>03 — Kategori RSS Tersekat</SectionLabel>
+              <SectionLabel>3.1 — Kategori RSS Tersekat</SectionLabel>
               <p className="text-stone-500 text-[11px]">
                 Kategori mentah RSS yang disenaraikan di sini turut terpakai di modal Urus Ticker (Editorium → Modul Khas) — satu senarai kongsi.
               </p>
@@ -589,7 +590,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <div className="pt-4 border-t border-stone-100">
             <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 flex items-center justify-between gap-3">
               <div>
-                <SectionLabel>04 — Nisbah Geometri &amp; Belanjawan Aksara Spatial</SectionLabel>
+                <SectionLabel>3.2 — Had Aksara Ikut Bentuk Kad</SectionLabel>
                 <p className="text-stone-500 text-[11px]">
                   Carta penuh (live, terus dari <code className="bg-stone-100 text-Adjung-maroon px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>) kini di tab <strong>Perlembagaan</strong> supaya tak pernah lapuk.
                 </p>
@@ -604,7 +605,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
               <SectionLabel className="flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5" /> 05 — TETAPAN JAM DUNIA, CUACA &amp; API GOVERNANCE (15 BANDAR IBU NEGERI)
+                <Globe className="w-3.5 h-3.5" /> 3.3 — Tetapan Jam Dunia, Cuaca &amp; Status API (15 Bandar Ibu Negeri)
               </SectionLabel>
               <p className="text-stone-500 text-[11px]">
                 Kawalan masa pertukaran slaid Jam Dunia, suis pemicu klik latar belakang, dan status kesihatan API Cuaca & Kalendar Cuti.
@@ -785,7 +786,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
               <SectionLabel className="flex items-center gap-1.5">
-                <Newspaper className="w-3.5 h-3.5" /> 06 — TETAPAN FOCUS VIEW (PAPARAN BACAAN SKRIN PENUH)
+                <Newspaper className="w-3.5 h-3.5" /> 3.4 — Tetapan Focus View (Paparan Bacaan Skrin Penuh)
               </SectionLabel>
               <p className="text-stone-500 text-[11px]">
                 Had pemotongan Nota Editor yang dipapar di kolofon Focus View. Nota melebihi had ini dipotong pada sempadan perkataan terdekat.
@@ -828,7 +829,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           <div className="pt-6 border-t border-stone-200 space-y-4">
             <div>
               <SectionLabel className="flex items-center gap-1.5">
-                <Newspaper className="w-3.5 h-3.5" /> 07 — TETAPAN PAPARAN PENUH TICKER
+                <Newspaper className="w-3.5 h-3.5" /> 3.5 — Tetapan Paparan Penuh Ticker
               </SectionLabel>
               <p className="text-stone-500 text-[11px]">
                 Saiz fon tajuk dan huraian pada overlay skrin penuh yang terbuka bila jalur Ticker diklik. Berasingan daripada Focus View kad biasa.
@@ -900,7 +901,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </div>
           <div className="flex flex-wrap justify-between items-center border-b border-stone-200 pb-3 gap-2">
             <div>
-              <SectionLabel>08 — KAWALAN AKSES — MATRIKS KEBENARAN PERANAN</SectionLabel>
+              <SectionLabel>4.1 — Matriks Kebenaran Peranan</SectionLabel>
               <p className="text-stone-500 text-xs mt-0.5">
                 Pentadbir boleh menanda atau membatalkan kebenaran peranan mengikut keperluan tadbir urus sistem. Perubahan berkuat kuasa serta-merta selepas disimpan.
               </p>
@@ -1100,7 +1101,7 @@ function HalamanAwamPanel() {
   return (
     <PanelCard className="space-y-4 text-xs max-w-3xl mx-auto">
       <div>
-        <SectionLabel>02 — Kandungan Halaman Awam &amp; Dalaman</SectionLabel>
+        <SectionLabel>2.1 — Kandungan Halaman Awam &amp; Dalaman</SectionLabel>
         <p className="text-stone-500 text-xs mt-1">
           Ruang isi kandungan sahaja — halaman awam sebenar (URL, reka bentuk, pautan footer) belum
           dibina (Fasa 11). Kandungan yang disimpan di sini akan dipaparkan bila halaman tu siap.
@@ -1296,7 +1297,7 @@ function LabelSistemPanel() {
   return (
     <PanelCard className="space-y-6 text-xs">
       <div>
-        <SectionLabel>09 — Kamus Label Sistem</SectionLabel>
+        <SectionLabel>5.1 — Kamus Label Sistem</SectionLabel>
         <p className="text-stone-500 text-xs mt-1">
           Perkataan yang dipaparkan kepada editor (label Mod Kandungan, Status, dan mesej ringkas
           simpan/terbit). Menyunting di sini TIDAK mengubah apa yang disimpan dalam pangkalan
