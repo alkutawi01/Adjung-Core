@@ -9,6 +9,7 @@ import { hantarEmel } from '../email/MailSender.js';
 import { janaTokenTamatTempoh } from '../auth/TokenLaluan.js';
 import { TIER_SLOTS } from '../editorial/GeometryConfig.js';
 import { MANUAL_BLOCK_SPLIT_REGEX, parseManualSummaryBlocks } from '../editorial/ManualBlockFormat.js';
+import { padamSesiPengguna } from '../auth/SesiPengguna.js';
 
 // Direktori (2026-08-02, Fasa 3) — dahulu `staffList` konsol client array kosong berkod keras,
 // "+ Tambah Anggota" hiasan, tindakan status hanya state React (hilang bila muat semula). Laluan
@@ -220,6 +221,15 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       const isSuspended = (status === 'Tidak Aktif' || status === 'Ditamatkan') ? 1 : 0;
       await dbRun('UPDATE users SET status = ?, isSuspended = ?, updatedAt = ? WHERE id = ?', [status, isSuspended, new Date().toISOString(), id]);
 
+      // Batalkan sesi aktif sedia ada (2026-08-08, dapatan audit keselamatan ChatGPT) —
+      // isSuspended cuma disemak semasa log masuk (authRoutes.js), BUKAN pada setiap permintaan
+      // (requireAuth/requirePermission cuma semak sesi wujud, tak baca semula status DB). Tanpa
+      // ni, akaun yang baru digantung/ditamatkan kekal ada akses PENUH sehingga sesi tamat sendiri
+      // (sampai 12 jam) — sama falsafah macam padamSesiPengguna sedia ada selepas tukar kata laluan.
+      if (isSuspended === 1) {
+        await padamSesiPengguna(id);
+      }
+
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
         actorName: req.session?.user?.penName || req.session?.user?.username,
@@ -361,6 +371,14 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // `role` legasi diselaraskan sekali untuk paparan lama (Indeks dsb.) — bukan sumber
       // kebenaran, cuma elak label ketinggalan zaman.
       await dbRun('UPDATE users SET role = ?, updatedAt = ? WHERE id = ?', [roles.includes('ketua_editor') ? 'KETUA_EDITOR' : 'EDITOR', new Date().toISOString(), id]);
+
+      // Batalkan sesi aktif sedia ada (2026-08-08, dapatan audit keselamatan ChatGPT) —
+      // requirePermission() baca req.session.user.roles yang DICAP semasa log masuk, bukan baca
+      // semula jadual user_roles setiap permintaan. Tanpa ni, akaun yang baru DITURUNKAN peranan
+      // (cth Ketua Editor ditarik balik ke Editor sahaja) kekal ada kebenaran LAMA sepanjang sesi
+      // masih hidup (sampai 12 jam) — bukan sekadar UI lapuk, kebenaran sebenar di pelayan pun
+      // lapuk. Sama falsafah macam padamSesiPengguna sedia ada selepas tukar kata laluan.
+      await padamSesiPengguna(id);
 
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
