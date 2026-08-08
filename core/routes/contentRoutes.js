@@ -323,9 +323,19 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
       WHERE er.status = 'dipadam'
     `);
     for (const row of dueToPurge) {
-      // Kandungan lama yang jadi 'dipadam' sebelum atribut dipadamPada wujud (patut jarang/tak
-      // pernah, tapi jangan biar terperangkap Tong Sampah selama-lamanya) — layan macam dah tempoh.
-      if (row.dipadamPada && row.dipadamPada > ambangIso) continue;
+      // TIADA cap masa dipadamPada (tak sepatutnya berlaku — laluan DELETE sentiasa catat, dan
+      // PATCH disekat drpd menetapkan 'dipadam') — JANGAN padam kekal terus (2026-08-08, audit:
+      // versi awal layan baris tanpa cap masa sebagai "dah tamat tempoh", bermakna satu-satunya
+      // jaring keselamatan Tong Sampah terlepas serta-merta). Cap SEKARANG supaya kiraan 30 hari
+      // bermula dari saat ni, sama macam baru masuk Tong Sampah.
+      if (!row.dipadamPada) {
+        await dbRun(
+          "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, 'dipadamPada', ?)",
+          [row.objectId, row.revisionId, nowIso]
+        );
+        continue;
+      }
+      if (row.dipadamPada > ambangIso) continue;
       await dbRun("DELETE FROM editorial_attribute_values WHERE objectId = ?", [row.objectId]);
       await dbRun("DELETE FROM editorial_revisions WHERE objectId = ?", [row.objectId]);
       await dbRun("DELETE FROM editorial_objects WHERE id = ?", [row.objectId]);
@@ -483,6 +493,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       if (status !== undefined && !CONTENT_STATUSES.includes(status)) {
         return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${CONTENT_STATUSES.join(', ')}.` });
       }
+      // 'dipadam' TIDAK boleh ditetapkan melalui PATCH (2026-08-08, audit aliran penerbitan) —
+      // hanya laluan DELETE (yang berkunci manageEditorial DAN mencatat statusSebelumPadam +
+      // dipadamPada) boleh hantar kandungan ke Tong Sampah. Tanpa sekatan ni, sesiapa sahaja yang
+      // log masuk boleh PATCH status='dipadam' (pintas kunci), dan tanpa cap masa dipadamPada
+      // penjadual auto-padam layan ia sebagai dah tamat tempoh — padam KEKAL dalam 90 saat.
+      if (status === 'dipadam') {
+        return res.status(400).json({ error: 'Status "dipadam" hanya melalui tindakan Padam (Tong Sampah), bukan kemas kini status terus.' });
+      }
 
       if (id.startsWith('ticker-')) {
         if (status !== undefined) {
@@ -520,6 +538,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1", [id]);
       if (!rev) {
         return res.status(404).json({ error: 'Item tidak dijumpai.' });
+      }
+
+      // Kandungan dalam Tong Sampah dibekukan (2026-08-08, audit aliran penerbitan) — tiada
+      // suntingan/tukar status melalui PATCH; mesti Pulihkan dulu (POST /pulihkan-sampah, yang
+      // kembalikan statusSebelumPadam dengan betul) atau Padam Kekal. Tanpa sekatan ni, PATCH
+      // status='approved' terus boleh "menghidupkan" kandungan sampah sambil meninggalkan atribut
+      // statusSebelumPadam/dipadamPada tergantung — pulihan separa yang mengelirukan.
+      if (rev.status === 'dipadam') {
+        return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah — Pulihkan dahulu sebelum menyunting, atau Padam Kekal.' });
       }
 
       // Dasar Terbit Sendiri Editor (2026-08-06, permintaan Izzat) — "editor boleh terus publish,
@@ -917,6 +944,18 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         return res.status(404).json({ error: 'Versi tersebut tidak dijumpai untuk kandungan ini.' });
       }
 
+      // Kandungan dalam Tong Sampah dibekukan (2026-08-08, audit aliran penerbitan) — memulihkan
+      // VERSI lama akan mencipta revisi baharu (versi tertinggi) berstatus approved/pending,
+      // menghidupkan semula objek yang dipadam sambil memintas laluan Pulihkan rasmi. Sama
+      // sekatan macam PATCH: Pulihkan dulu, baru sunting/pulih versi.
+      const revTerkini = await dbGet(
+        "SELECT status FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1",
+        [id]
+      );
+      if (revTerkini && revTerkini.status === 'dipadam') {
+        return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah — Pulihkan dahulu sebelum memulihkan versi lama.' });
+      }
+
       // Versi lama berstatus 'approved' terus terbit semula apabila dipulihkan — jadi ia perlukan
       // kebenaran `publish` yang sama seperti laluan kelulusan lain.
       if (oldRev.status === 'approved' && !hasPermission(req.session?.user?.roles, 'publish')) {
@@ -1245,7 +1284,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // runSchedulingTick(). Dikunci Ketua Editor/Penolong Ketua Editor sahaja (manageEditorial,
       // sama kunci "Terbit sekarang" tanpa kelulusan) — tindakan padam kekal tak boleh dibuat
       // asal (tiada backup DB boleh dipercayai, CLAUDE.md), Editor biasa guna Arkib sahaja.
-      const wujud = await dbGet("SELECT id FROM editorial_objects WHERE id = ?", [id]);
+      const wujud = await dbGet("SELECT id, slotIndex FROM editorial_objects WHERE id = ?", [id]);
       if (!wujud) {
         return res.status(404).json({ error: 'Item tidak dijumpai.' });
       }
@@ -1292,6 +1331,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         targetId: id,
         detail: (revSemasa.title || '').slice(0, 100),
       });
+      // Slot berkosong (2026-08-08, audit aliran penerbitan) — padam-lembut kandungan Aktif
+      // bebaskan satu ruang 'approved', sama macam Arkib/Tolak/Luput (yang kesemuanya panggil
+      // promosi ni); tanpa panggilan ni kandungan beratur 'slot_penuh' kekal tersekat sampai
+      // peristiwa lain berlaku. Kunci promosi per-slot berasingan drpd kunci kandungan — selamat.
+      if (revSemasa.status === 'approved') {
+        await promosikanMenungguSlotKosong(dbAll, dbGet, dbRun, wujud.slotIndex).catch((e) => {
+          console.warn('Gagal naik taraf kandungan slot-berkosong (Padam):', e.message);
+        });
+      }
       return res.json({ success: true, kekal: false });
     } catch (err) {
       console.error('Delete content item error:', err);
