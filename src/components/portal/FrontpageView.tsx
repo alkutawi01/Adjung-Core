@@ -7,6 +7,7 @@ import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, X, Lock, Search } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
+import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 import { penggalSukuKata } from '../../../core/editorial/PemenggalSukuKata.js';
 import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRenderer';
 import { TypographyPreview } from '../editorial/TypographyPreview';
@@ -3893,32 +3894,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
             {(
               <div className="p-6 flex flex-col justify-between flex-grow">
-                <div className="font-serif text-sm leading-relaxed text-stone-700 whitespace-pre-wrap flex-grow">
+                <div className="font-serif text-sm leading-relaxed text-stone-700 whitespace-pre-wrap flex-grow flex flex-col gap-3">
                   {footerPageData?.content ? (
-                    footerPageData.content.split('\n\n').map((paragraph: string, idx: number) => {
-                      if (paragraph.trim().startsWith('*') || paragraph.trim().startsWith('-')) {
-                        const items = paragraph.split('\n').map((li: string) => li.replace(/^[\*\-]\s+/, '').trim());
-                        return (
-                          <ul key={idx} className="list-disc pl-5 my-3 flex flex-col gap-1.5">
-                            {items.map((item: string, liIdx: number) => {
-                              const parts = item.split(/\*\*([^*]+)\*\*/g);
-                              return (
-                                <li key={liIdx}>
-                                  {parts.map((part, pIdx) => pIdx % 2 === 1 ? <strong key={pIdx} className="text-[#802334] font-bold">{part}</strong> : part)}
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        );
-                      }
-                      
-                      const parts = paragraph.split(/\*\*([^*]+)\*\*/g);
-                      return (
-                        <p key={idx} className="mb-4">
-                          {parts.map((part, pIdx) => pIdx % 2 === 1 ? <strong key={pIdx} className="text-[#802334] font-bold">{part}</strong> : part)}
-                        </p>
-                      );
-                    })
+                    // Renderer ad-hoc lama di sini cuma faham **tebal** dan senarai — langsung tak
+                    // kenal "# "/"## " tajuk atau "---" garis pemisah, jadi kandungan yang ditulis
+                    // guna sintaks tu (semua halaman static_pages, ditulis di Tetapan > Halaman
+                    // Awam) terpapar sebagai teks mentah (2026-08-08, pepijat Izzat — tangkapan
+                    // skrin "# Mengenai Adjung" terpampang literal). Gantikan dengan
+                    // renderMarkdownRingkas SAMA yang HalamanStatik.tsx & pratonton Tetapan sudah
+                    // guna — satu penghurai, bukan tiga versi berlainan boleh terpesong.
+                    renderMarkdownRingkas(footerPageData.content, { kelasPerenggan: 'mb-1' })
                   ) : (
                     <div className="py-10 text-center text-stone-400 font-sans text-xs animate-pulse">
                       Memuatkan kandungan...
