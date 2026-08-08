@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Save, Search } from 'lucide-react';
+import { Save, Search, Copy, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface ContentItem {
@@ -123,6 +123,66 @@ export function ContentReview() {
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkStatus, setBulkStatus] = useState('');
 
+  // Perpustakaan Prompt Semakan (REVIEW-01, ChatGPT + spesifikasi Izzat 2026-08-08) — Ketua
+  // Editor tampal kandungan pukal di atas ke chatbox AI LUARAN (ChatGPT/Gemini/dll.) utk
+  // dibetulkan, bukan disunting terus dalam sistem. Perpustakaan ni sekadar arahan/prompt
+  // bernama yang boleh diklik salin ke papan klip — bukan pipeline AI (lihat
+  // core/routes/contentRoutes.js POST /semakan-prompts utk sebab guna jadual berasingan
+  // drpd masterPrompt/reviewPrompt).
+  const [promptSemakan, setPromptSemakan] = useState<{ id: string; name: string; templateText: string }[]>([]);
+  const [promptPanelTerbuka, setPromptPanelTerbuka] = useState(false);
+  const [promptDisalin, setPromptDisalin] = useState<string | null>(null);
+  const [namaPromptBaharu, setNamaPromptBaharu] = useState('');
+  const [teksPromptBaharu, setTeksPromptBaharu] = useState('');
+  const [menyimpanPrompt, setMenyimpanPrompt] = useState(false);
+
+  const muatPromptSemakan = () => {
+    fetch('/api/system/semakan-prompts')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setPromptSemakan(data); })
+      .catch(e => console.error('Error fetching semakan prompts:', e));
+  };
+
+  const salinPrompt = async (p: { id: string; templateText: string }) => {
+    try {
+      await navigator.clipboard.writeText(p.templateText);
+      setPromptDisalin(p.id);
+      setTimeout(() => setPromptDisalin(cur => (cur === p.id ? null : cur)), 2000);
+    } catch (e) {
+      console.error('Gagal menyalin prompt ke papan klip:', e);
+    }
+  };
+
+  const simpanPromptBaharu = async () => {
+    if (!namaPromptBaharu.trim() || !teksPromptBaharu.trim()) return;
+    setMenyimpanPrompt(true);
+    try {
+      const res = await fetch('/api/system/semakan-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: namaPromptBaharu.trim(), templateText: teksPromptBaharu.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      setNamaPromptBaharu('');
+      setTeksPromptBaharu('');
+      muatPromptSemakan();
+    } catch (e) {
+      console.error('Gagal menyimpan prompt semakan:', e);
+    } finally {
+      setMenyimpanPrompt(false);
+    }
+  };
+
+  const padamPrompt = async (id: string) => {
+    try {
+      const res = await fetch(`/api/system/semakan-prompts/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      setPromptSemakan(prev => prev.filter(p => p.id !== id));
+    } catch (e) {
+      console.error('Gagal memadam prompt semakan:', e);
+    }
+  };
+
   // Penapis (2026-07-29, permintaan pemilik projek) — sama konsep macam Indeks (IndeksConsole.tsx):
   // Status, Bidang, Slot, Sumber. Terpakai pada KEDUA-DUA paparan (Senarai Slot & Teks Pukal), guna
   // SATU senarai `filteredItems` kongsi (lihat di bawah). Berbeza daripada Indeks: di sini tapisan
@@ -158,6 +218,7 @@ export function ContentReview() {
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setActiveBidangListCR(data.map((c: any) => c.name).sort()); })
       .catch(e => console.error('Error fetching active Bidang:', e));
+    muatPromptSemakan();
   }, []);
 
   const filteredItems = useMemo(() => {
@@ -367,6 +428,82 @@ export function ContentReview() {
             Paparan ini untuk sunting kandungan sedia ada sahaja — tambah/padam item dibuat di tab "Slot".
             {bulkTotalPages > 1 && ` Menunjukkan ${pagedBulkItems.length} daripada ${sortedFilteredItems.length} kandungan lepas tapisan (had ${PAGE_SIZE} setiap halaman).`}
           </p>
+
+          <div className="border border-stone-200 rounded mb-4 bg-stone-50">
+            <button
+              type="button"
+              onClick={() => setPromptPanelTerbuka(v => !v)}
+              aria-expanded={promptPanelTerbuka}
+              aria-controls="panel-prompt-semakan"
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 font-sans text-xs font-semibold text-stone-700 cursor-pointer"
+            >
+              <span>Prompt Semakan (salin ke chatbox AI luaran)</span>
+              {promptPanelTerbuka ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+            {promptPanelTerbuka && (
+              <div id="panel-prompt-semakan" className="px-3 pb-3 space-y-3">
+                <p className="text-[10px] text-stone-500 font-sans leading-normal">
+                  Salin kandungan dalam kotak di bawah, tampal di chatbox AI (ChatGPT/Gemini/dll.) bersama satu prompt di bawah, kemudian tampal semula hasil yang dibetulkan.
+                </p>
+                {promptSemakan.length === 0 ? (
+                  <p className="text-[11px] text-stone-500 font-sans italic">Tiada prompt disimpan lagi.</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {promptSemakan.map(p => (
+                      <li key={p.id} className="flex items-center gap-2 bg-white border border-stone-200 rounded px-2.5 py-1.5">
+                        <span className="flex-1 min-w-0 font-sans text-xs font-semibold text-stone-800 truncate" title={p.templateText}>
+                          {p.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => salinPrompt(p)}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded border border-stone-300 font-sans text-[10px] font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer"
+                        >
+                          {promptDisalin === p.id ? <><Check size={11} /> Disalin</> : <><Copy size={11} /> Salin</>}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => padamPrompt(p.id)}
+                          aria-label={`Padam prompt ${p.name}`}
+                          className="text-stone-400 hover:text-[#a8241f] cursor-pointer p-1"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="border-t border-stone-200 pt-3 space-y-2">
+                  <input
+                    type="text"
+                    value={namaPromptBaharu}
+                    onChange={e => setNamaPromptBaharu(e.target.value)}
+                    placeholder="Nama prompt (cth: Betulkan ejaan Melayu baku)"
+                    className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-sans text-xs focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                  />
+                  <textarea
+                    value={teksPromptBaharu}
+                    onChange={e => setTeksPromptBaharu(e.target.value)}
+                    rows={2}
+                    placeholder="Kandungan prompt (cth: Sila betulkan semua ejaan mengikut ejaan bahasa Melayu baku)"
+                    className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-sans text-xs focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={simpanPromptBaharu}
+                      disabled={menyimpanPrompt || !namaPromptBaharu.trim() || !teksPromptBaharu.trim()}
+                    >
+                      {menyimpanPrompt ? 'Menyimpan...' : 'Simpan Prompt'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {loading ? (
             <p className="text-xs text-stone-500 text-center py-12">Memuatkan...</p>
           ) : (

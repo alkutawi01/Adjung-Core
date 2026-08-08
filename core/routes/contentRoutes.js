@@ -1608,6 +1608,70 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   // salinan GET yang mati tu TIADA requireAuth, jadi kalau versi bergerbang dipadam atau
   // susunan berubah, laluan terbuka hidup semula secara senyap.
 
+  // Perpustakaan Prompt Semakan (2026-08-08, ChatGPT REVIEW-01 + spesifikasi Izzat) — Ketua
+  // Editor tampal SEMUA kandungan dalam kotak Semakan Pukal ke chatbox AI luaran (ChatGPT/
+  // Gemini/dll.) utk dibetulkan (cth ejaan Melayu baku), bukan disunting terus dalam sistem.
+  // Perpustakaan ni simpan arahan/prompt bernama yang Ketua Editor klik utk salin terus ke
+  // papan klip, tampal di chatbox tu — bukan pipeline penjanaan AI (berbeza drpd masterPrompt/
+  // reviewPrompt di system_settings, yg wired ke Urus Slot). Guna jadual prompt_templates
+  // sedia ada (kosong/tak digunakan UI lain), gerbang manageEditorial (Ketua Editor/Penolong
+  // Ketua Editor — padanan sebenar penonton skrin Semakan Pukal), bukan manageSettings
+  // (Pentadbir sahaja, gerbang /api/ai/prompts yg berasingan utk konfigurasi AI provider).
+  router.get('/semakan-prompts', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const rows = await dbAll("SELECT id, name, templateText, updatedAt FROM prompt_templates WHERE id LIKE 'semakan_%' ORDER BY updatedAt DESC");
+      res.json(rows);
+    } catch (err) {
+      console.error('Fetch semakan prompts error:', err);
+      res.status(500).json({ error: 'Gagal membaca senarai prompt semakan.' });
+    }
+  });
+
+  router.post('/semakan-prompts', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const { name, templateText } = req.body || {};
+      if (!name || !String(name).trim() || !templateText || !String(templateText).trim()) {
+        return res.status(400).json({ error: 'Nama dan kandungan prompt wajib diisi.' });
+      }
+      const id = `semakan_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const now = new Date().toISOString();
+      await dbRun(
+        "INSERT INTO prompt_templates (id, name, templateText, version, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)",
+        [id, String(name).trim(), String(templateText).trim(), 'v1', now, now]
+      );
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cipta-prompt-semakan',
+        targetType: 'prompt-semakan',
+        targetId: id,
+        detail: String(name).trim(),
+      });
+      res.json({ success: true, id });
+    } catch (err) {
+      console.error('Create semakan prompt error:', err);
+      res.status(500).json({ error: 'Gagal menyimpan prompt semakan.' });
+    }
+  });
+
+  router.delete('/semakan-prompts/:id', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!id.startsWith('semakan_')) return res.status(404).json({ error: 'Prompt tidak ditemui.' });
+      await dbRun("DELETE FROM prompt_templates WHERE id = ?", [id]);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-prompt-semakan',
+        targetType: 'prompt-semakan',
+        targetId: id,
+      });
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Delete semakan prompt error:', err);
+      res.status(500).json({ error: 'Gagal memadam prompt semakan.' });
+    }
+  });
 
   return router;
 }

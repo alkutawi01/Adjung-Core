@@ -50,10 +50,15 @@ interface DirektoriConsoleProps {
   // vs 'EDITOR', tapi Ketua Editor pun tak automatik dapat akses Direktori lagi melainkan dia
   // turut dilantik Pentadbir — lihat EditoriumView.tsx pemanggil komponen ni).
   isPentadbir?: boolean;
+  // Pautan konteks ke Slot (TEAM-01, audit ChatGPT 2026-08-08, "Cara A" — kelulusan Izzat) —
+  // agihan editor↔slot SEBENAR diurus di destinasi Slot (lihat nota atas), bukan di sini.
+  // Direktori dahulu tiada laluan terus ke sana, jadi Ketua Editor terpaksa teka. Bukan
+  // penyusunan semula (RBAC/architecture kekal), sekadar pautan konteks dari profil anggota.
+  onTukarTab?: (tabId: string) => void;
 }
 
 export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
-  isPentadbir = true
+  isPentadbir = true, onTukarTab
 }) => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [memuat, setMemuat] = useState(true);
@@ -244,6 +249,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           onUpdated={kemaskiniStaff}
           onSiapUntukTamat={setKonfirmasiTamat}
           onBerjaya={setMesejBerjaya}
+          onUrusPenugasanSlot={onTukarTab ? () => { setSelectedStaff(null); onTukarTab('slot'); } : undefined}
         />
       )}
 
@@ -330,7 +336,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
 // konsol induk). ubahStatus/klikTamatkan/togolPeranan turut dipindahkan ke sini kerana
 // kesemuanya cuma dicetuskan daripada dalam modal ni.
 function ProfilAnggotaModal({
-  staff, isPentadbir, onTutup, onUpdated, onSiapUntukTamat, onBerjaya,
+  staff, isPentadbir, onTutup, onUpdated, onSiapUntukTamat, onBerjaya, onUrusPenugasanSlot,
 }: {
   staff: Staff;
   isPentadbir: boolean;
@@ -341,6 +347,8 @@ function ProfilAnggotaModal({
   // — togolPeranan() auto-simpan tiap kali diklik; sebelum ni SENYAP bila berjaya (cuma ralat
   // dipapar bila gagal). Guna toast kejayaan SEDIA ADA konsol induk (mesejBerjaya), bukan bina baharu.
   onBerjaya: (mesej: string) => void;
+  // Pautan konteks ke Slot (TEAM-01) — undefined kalau induk tak beri onTukarTab, butang tak papar.
+  onUrusPenugasanSlot?: () => void;
 }) {
   const [ralatStatus, setRalatStatus] = useState('');
   const [ralatPeranan, setRalatPeranan] = useState('');
@@ -451,6 +459,16 @@ function ProfilAnggotaModal({
             <span className="text-stone-500 text-[10px] uppercase font-semibold block mt-1">Kandungan Diterbitkan</span>
           </div>
         </div>
+
+        {onUrusPenugasanSlot && (
+          <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2 font-sans text-xs">
+            <h4 className="font-bold text-stone-800 uppercase tracking-wider text-[11px]">PENUGASAN SLOT</h4>
+            <p className="text-stone-500">Slot yang ditugaskan kepada anggota ini diurus di destinasi Slot, bukan di sini.</p>
+            <Button variant="secondary" size="sm" onClick={onUrusPenugasanSlot}>
+              Urus Penugasan Slot →
+            </Button>
+          </div>
+        )}
 
         {isPentadbir && (
           <div className="border-t border-stone-200 pt-4 space-y-2 font-sans text-xs">
