@@ -12,7 +12,7 @@
 // Jujukan (bukan serentak) sengaja — bilangan URL unik biasanya puluhan sahaja (bukan ribuan),
 // dan mengelak ledakan permintaan serentak ke banyak pelayan luar sekali gus.
 import { notifyMany } from '../notifications/Notify.js';
-import { sahkanUrlSelamatUntukFetch } from '../utils/urlSafety.js';
+import { fetchSelamat, RalatUrlTakSelamat } from '../utils/urlSafety.js';
 
 const HAD_MASA_SETIAP_URL_MS = 8000;
 const HAD_KELEWATAN_ANTARA_URL_MS = 150;
@@ -20,23 +20,24 @@ const HAD_KELEWATAN_ANTARA_URL_MS = 150;
 const tidur = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function semakSatuUrl(url) {
-  // Sekatan SSRF (2026-08-08, audit keselamatan) — url ni medan "URL" yang editor taip sendiri
-  // semasa simpan kandungan (citation), disemak berkala oleh penjadual pelayan. Lihat urlSafety.js.
-  const semakan = await sahkanUrlSelamatUntukFetch(url);
-  if (!semakan.selamat) {
-    return { ok: false, httpStatus: null, errorMessage: semakan.sebab };
-  }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), HAD_MASA_SETIAP_URL_MS);
   try {
-    let res = await fetch(url, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
+    // Sekatan SSRF + pelencongan (2026-08-08, audit keselamatan) — url ni medan "URL" yang
+    // editor taip sendiri semasa simpan kandungan (citation), disemak berkala oleh penjadual
+    // pelayan. `redirect:'follow'` LAMA ikut pelencongan tanpa sesahkan semula sasaran — lihat
+    // core/utils/urlSafety.js.
+    let res = await fetchSelamat(url, { method: 'HEAD', signal: controller.signal });
     // Sesetengah pelayan (terutama CMS berita) tolak HEAD dengan 403/405 walaupun GET berjaya —
     // cuba sekali lagi dengan GET sebelum anggap URL benar-benar mati.
     if (res.status === 403 || res.status === 405) {
-      res = await fetch(url, { method: 'GET', redirect: 'follow', signal: controller.signal });
+      res = await fetchSelamat(url, { method: 'GET', signal: controller.signal });
     }
     return { ok: res.status < 400, httpStatus: res.status, errorMessage: null };
   } catch (err) {
+    if (err instanceof RalatUrlTakSelamat) {
+      return { ok: false, httpStatus: null, errorMessage: err.message };
+    }
     return { ok: false, httpStatus: null, errorMessage: err.name === 'AbortError' ? 'Tamat masa' : (err.message || 'Ralat rangkaian') };
   } finally {
     clearTimeout(timeout);

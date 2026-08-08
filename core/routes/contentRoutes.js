@@ -553,6 +553,27 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah. Pulihkan dahulu sebelum menyunting, atau Padam Kekal.' });
       }
 
+      // Gerbang pemilikan kandungan (2026-08-08, dapatan audit keselamatan ChatGPT P1-01a) —
+      // SEBELUM ni laluan ni cuma `requireAuth`, jadi mana-mana Editor log masuk boleh PATCH
+      // title/summary/desk/topik/slotIndex/source/url kandungan EDITOR LAIN, bertentangan terus
+      // dengan keputusan Izzat 2026-08-08: "kandungan yg ditulis oleh editor A, hanya editor A
+      // yg boleh edit, terbit, atau draf". Corak sama macam gerbang Nota Editor di bawah — Ketua
+      // Editor/Penolong (manageEditorial) KEKAL penuh (tindakan Indeks — arkib/tolak/dsb. perlu
+      // terus berfungsi), Editor biasa hanya boleh sunting kandungan sendiri.
+      if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
+        const editorNameRowPemilik = await dbGet(
+          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'editorName'",
+          [id, rev.id]
+        );
+        const penulisSedia = ((editorNameRowPemilik && editorNameRowPemilik.valueText) || '').trim();
+        const namaSayaSedia = (req.session?.user?.penName || req.session?.user?.username || '').trim();
+        if (!penulisSedia || !namaSayaSedia || penulisSedia !== namaSayaSedia) {
+          return res.status(403).json({
+            error: 'Kandungan ni ditulis editor lain — anda tiada kebenaran menyuntingnya. Hubungi Ketua Editor/Penolong Ketua Editor.',
+          });
+        }
+      }
+
       // Gerbang Nota Editor (2026-08-08, Fasa 4 pemilikan kandungan, keputusan Izzat) — "ketua
       // editor dan penolong hanya boleh akses di indeks... jika perlu tulis nota editor, dia
       // boleh tulis kat situ. dan di nota editor tu perlu terpapar tandatangan Ketua Editor atau
@@ -1395,6 +1416,23 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       }
       if (!title || !title.trim()) {
         return res.status(400).json({ error: 'Tajuk diperlukan.' });
+      }
+
+      // Gerbang penugasan slot (2026-08-08, dapatan audit keselamatan ChatGPT P1-01b) — laluan
+      // legasi ni terus INSERT status='approved' tanpa semak slot_editors LANGSUNG, jadi mana-mana
+      // Editor log masuk boleh cipta kandungan aktif terus dalam slot SESIAPA sahaja (pintas
+      // sepenuhnya gerbang penugasan slot Fasa 2, POST /slots di slotsConfigRoutes.js). Tiada
+      // pemanggil UI sedia ada guna laluan ni (disahkan: sifar padanan fetch('/api/system/content')
+      // tanpa ID di src/), tapi endpoint tetap tercapai terus via API — gerbang yang sama diguna
+      // pakai di sini utk konsisten dgn laluan penulisan slot yang lain.
+      if (slotIndex !== -1 && !hasPermission(req.session?.user?.roles, 'manageEditorial')) {
+        const userId = req.session?.user?.id;
+        const ditugaskan = userId
+          ? await dbAll('SELECT 1 FROM slot_editors WHERE slotIndex = ? AND editorId = ?', [slotIndex, userId])
+          : [];
+        if (ditugaskan.length === 0) {
+          return res.status(403).json({ error: `Anda tidak ditugaskan untuk Slot ${slotIndex + 1}. Hubungi Ketua Editor kalau slot ni sepatutnya milik anda.` });
+        }
       }
 
       if (slotIndex === -1) {

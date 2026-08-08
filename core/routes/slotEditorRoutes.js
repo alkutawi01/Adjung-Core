@@ -1,6 +1,6 @@
 import express from 'express';
 import { TIER_SLOTS, tierForSlot } from '../editorial/GeometryConfig.js';
-import { requirePermission } from '../middleware/auth.js';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { logAudit } from '../audit/AuditLog.js';
 
@@ -21,8 +21,12 @@ const BAR_SLOTS = new Set(TIER_SLOTS.BAR);
 export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
   const router = express.Router();
 
-  // Semua penugasan + nama editor, sedia untuk dipaparkan terus.
-  router.get('/slot-editors', async (req, res) => {
+  // Semua penugasan + nama editor, sedia untuk dipaparkan terus. requireAuth (2026-08-08,
+  // dapatan audit keselamatan ChatGPT P2-03) — dahulu langsung tiada gerbang, sesiapa (termasuk
+  // pelawat tanpa log masuk) boleh baca ID/nama pena/username/peranan setiap editor yang
+  // ditugaskan slot. Semua 4 pemanggil UI sedia ada (BidangConsole/EditoriumView/
+  // SenaraiSlotConsole/SlotManagerModal) sememangnya Editorium sahaja, jadi ini tak pecahkan apa.
+  router.get('/slot-editors', requireAuth, async (req, res) => {
     try {
       const rows = await dbAll(`
         SELECT a.slotIndex, a.editorId, u.penName, u.username, u.role

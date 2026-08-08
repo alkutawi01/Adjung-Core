@@ -91,4 +91,39 @@ export async function sahkanUrlSelamatUntukFetch(url) {
   return { selamat: true };
 }
 
+const HAD_PELENCONGAN_LALAI = 5;
+
+/** Ralat khas — pelencongan (redirect) URL menghala ke alamat tak selamat, ATAU terlalu banyak
+ *  pelencongan berturut-turut. Pemanggil boleh tangkap `err instanceof RalatUrlTakSelamat` untuk
+ *  bezakan daripada ralat rangkaian biasa (tamat masa, DNS gagal, dsb.). */
+export class RalatUrlTakSelamat extends Error {}
+
+/**
+ * Ganti terus `fetch()` untuk apa-apa URL yang datang daripada input editor (sumber RSS, senarai
+ * rujukan slot, URL citation AI, semakan pautan mati) — sahkanUrlSelamatUntukFetch() SAHAJA
+ * (dipanggil sebelum fetch pertama) tak cukup: URL luaran yang lulus semakan awal masih boleh
+ * 302 ke `http://127.0.0.1/...` dan `fetch({redirect:'follow'})` akan ikut terus tanpa sesahkan
+ * semula sasaran (2026-08-08, dapatan audit keselamatan ChatGPT P1-02). Fungsi ni sahkan SETIAP
+ * URL dalam rantaian pelencongan (bukan cuma yang pertama) sebelum diikuti, dengan had bilangan
+ * pelencongan supaya tak berputar tanpa henti.
+ */
+export async function fetchSelamat(url, options = {}, { hadPelencongan = HAD_PELENCONGAN_LALAI } = {}) {
+  let urlSemasa = url;
+  for (let cubaan = 0; cubaan <= hadPelencongan; cubaan++) {
+    const semakan = await sahkanUrlSelamatUntukFetch(urlSemasa);
+    if (!semakan.selamat) {
+      throw new RalatUrlTakSelamat(semakan.sebab);
+    }
+    const res = await fetch(urlSemasa, { ...options, redirect: 'manual' });
+    const lokasi = (res.status >= 300 && res.status < 400) ? res.headers.get('location') : null;
+    if (!lokasi) return res;
+    try {
+      urlSemasa = new URL(lokasi, urlSemasa).toString();
+    } catch {
+      throw new RalatUrlTakSelamat('Pelencongan (redirect) ke URL tidak sah.');
+    }
+  }
+  throw new RalatUrlTakSelamat(`Terlalu banyak pelencongan (redirect), disekat selepas ${hadPelencongan} kali.`);
+}
+
 export default sahkanUrlSelamatUntukFetch;

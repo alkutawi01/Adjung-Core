@@ -961,7 +961,21 @@ const seedDatabase = async () => {
         hashPassword(defaultUserSeedPassword)
       ], (err) => {
         if (err) { console.error('Failed to seed Chief Editor account:', err.message); reject(err); return; }
-        console.log(`Seeded Chief Editor account "izzat" with a random temporary password: ${defaultUserSeedPassword} — change this after first login.`);
+        // Kata laluan sementara TAK ditulis ke console.log sejak 2026-08-08 (dapatan audit
+        // keselamatan ChatGPT P1-03) — teks jelas tu terus masuk log PM2/agregat log/backup log
+        // dan kekal di situ selama-lamanya untuk akaun pertama sistem (Pentadbir + Ketua Editor
+        // serentak). Ditulis ke fail tempatan sekali sahaja sebaliknya (bukan log berterusan);
+        // padam fail tu selepas log masuk pertama.
+        try {
+          fs.writeFileSync(
+            path.join(process.cwd(), 'KATA_LALUAN_PERTAMA.txt'),
+            `Akaun Chief Editor pertama: izzat\nKata laluan sementara: ${defaultUserSeedPassword}\n\nPADAM fail ni selepas log masuk pertama dan tukar kata laluan.\n`,
+            { mode: 0o600 }
+          );
+          console.log('Kata laluan sementara akaun Chief Editor pertama ditulis ke KATA_LALUAN_PERTAMA.txt (bukan log). Padam fail tu selepas log masuk pertama.');
+        } catch (writeErr) {
+          console.error('Gagal tulis fail kata laluan sementara — hubungi pentadbir server terus untuk tetapkan semula:', writeErr.message);
+        }
         resolve();
       });
     });

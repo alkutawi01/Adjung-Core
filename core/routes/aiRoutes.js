@@ -5,8 +5,10 @@ import { logAudit } from '../audit/AuditLog.js';
 export function createAIRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
 
-  // GET /api/ai/providers
-  router.get('/providers', async (req, res) => {
+  // GET /api/ai/providers — DAHULU tiada requireAuth langsung (2026-08-08, dapatan audit
+  // keselamatan ChatGPT P2-02) — laluan POST bersebelahan dah dikunci (nota di bawah) tapi GET
+  // ni terlepas, dedah secretName/model/budget/status kepada sesiapa tanpa log masuk.
+  router.get('/providers', requirePermission('manageSettings'), async (req, res) => {
     try {
       const providers = await dbAll("SELECT id, name, secretName, model, monthlyBudget, dailyBudget, status, lastTest, enabled FROM ai_providers");
       res.json(providers);
@@ -63,8 +65,8 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/ai/prompts
-  router.get('/prompts', async (req, res) => {
+  // GET /api/ai/prompts — sama pembetulan seperti /providers di atas (2026-08-08, ChatGPT P2-02).
+  router.get('/prompts', requirePermission('manageSettings'), async (req, res) => {
     try {
       const prompts = await dbAll("SELECT * FROM prompt_templates");
       res.json(prompts);

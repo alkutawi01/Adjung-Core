@@ -10,7 +10,7 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 import { validateContentBudget, validateBidangTopik } from './ContentBudget.js';
 import { TIER_SLOTS } from './GeometryConfig.js';
 import { gantiBlokModTicker } from '../routes/contentRoutes.js';
-import { sahkanUrlSelamatUntukFetch } from '../utils/urlSafety.js';
+import { fetchSelamat, RalatUrlTakSelamat } from '../utils/urlSafety.js';
 
 const CONTENT_POOL_MAX_ITEMS = 30; // Bound prompt token cost regardless of how many sources are configured.
 const CONTENT_POOL_MAX_CONTENT_CHARS = 400; // Per-item content cap — enough for editorial judgment, not full article reprint.
@@ -81,17 +81,16 @@ async function buildContentPool(sourcesListRaw) {
 // only "URL doesn't exist at all" — but costs nothing when combined with real grounding citations.
 async function verifyUrlReachable(url) {
   if (!url || url === '#' || !url.startsWith('http')) return false;
-  // Sekatan SSRF (2026-08-08, audit keselamatan) — url ni URL citation yang AI pulangkan;
-  // AI boleh "berhalusinasi" alamat dalaman sama seperti pautan biasa. Lihat urlSafety.js.
-  const semakan = await sahkanUrlSelamatUntukFetch(url);
-  if (!semakan.selamat) return false;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
-    let res = await fetch(url, { method: 'HEAD', redirect: 'follow', signal: controller.signal });
+    // Sekatan SSRF + pelencongan (2026-08-08, audit keselamatan) — url ni URL citation yang AI
+    // pulangkan; AI boleh "berhalusinasi" alamat dalaman sama seperti pautan biasa, dan
+    // `redirect:'follow'` LAMA ikut pelencongan tanpa sesahkan semula sasaran. Lihat urlSafety.js.
+    let res = await fetchSelamat(url, { method: 'HEAD', signal: controller.signal });
     if (res.status === 405 || res.status === 403) {
       // Some sites reject HEAD requests specifically; retry with GET before giving up.
-      res = await fetch(url, { method: 'GET', redirect: 'follow', signal: controller.signal });
+      res = await fetchSelamat(url, { method: 'GET', signal: controller.signal });
     }
     return res.ok;
   } catch (e) {
