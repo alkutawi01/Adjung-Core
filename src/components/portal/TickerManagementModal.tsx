@@ -593,7 +593,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                     </div>
 
                     <div className="flex flex-col gap-1 md:col-span-2">
-                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Trust Score (0 - 100)</label>
+                      <label className="font-mono text-[9px] uppercase tracking-wider text-stone-500 font-bold">Skor Amanah (0 - 100)</label>
                       <input
                         type="number"
                         min="0"
@@ -628,7 +628,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           <div key={src.id} className="p-2.5 bg-stone-50 rounded border border-stone-200 flex justify-between items-center text-xs font-mono gap-2">
                             <div className="min-w-0 flex-1 truncate">
                               <span className="font-bold text-stone-800">{src.sourceName}</span>
-                              <span className="text-[10px] text-stone-500 ml-2">Trust: {src.trustScore}/100</span>
+                              <span className="text-[10px] text-stone-500 ml-2">Skor Amanah: {src.trustScore}/100</span>
                               <div className="text-[10px] text-stone-400 truncate">{src.rssUrl}</div>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">

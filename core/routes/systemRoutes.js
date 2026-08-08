@@ -195,19 +195,43 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     }
   });
 
+  // GET /api/pages-status — peta ringkas {key: aktif} untuk SETIAP halaman statik (2026-08-08,
+  // permintaan Izzat: suis "Aktif di Footer"). Awam (bukan requireAuth) sebab footer perlu tahu
+  // pautan mana nak papar SEBELUM pembaca log masuk — sama taraf keterdedahan macam GET /pages/:key
+  // sedia ada (kandungan halaman awam itu sendiri, bukan medan dalaman).
+  router.get('/pages-status', async (req, res) => {
+    try {
+      const rows = await dbAll("SELECT key, aktif FROM static_pages");
+      const peta = {};
+      for (const r of rows) peta[r.key] = r.aktif !== 0;
+      res.json(peta);
+    } catch (err) {
+      console.error('Get pages-status error:', err);
+      res.status(500).json({ error: 'Gagal membaca status halaman. ' + err.message });
+    }
+  });
+
   // POST /api/pages/:key
   router.post('/pages/:key', requirePermission('manageSettings'), async (req, res) => {
     const { key } = req.params;
-    const { title, content } = req.body;
+    const { title, content, aktif } = req.body;
     if (!title || !content) {
       return res.status(400).json({ error: 'Tajuk atau kandungan tiada.' });
+    }
+    // aktif (suis footer) — INSERT OR REPLACE tanpa medan ni akan tulis-ganti dengan lalai
+    // SQLite (0/NULL) setiap kali disimpan, memadamkan status suis sedia ada secara senyap.
+    // Baca nilai semasa dulu kalau klien tak hantar (cth simpan lama sebelum suis wujud).
+    let aktifBaharu = typeof aktif === 'boolean' ? (aktif ? 1 : 0) : undefined;
+    if (aktifBaharu === undefined) {
+      const sedia = await dbGet("SELECT aktif FROM static_pages WHERE key = ?", [key]);
+      aktifBaharu = sedia ? sedia.aktif : 1;
     }
     const timestamp = new Date().toISOString();
     try {
       await dbRun(`
-        INSERT OR REPLACE INTO static_pages (key, title, content, updatedAt)
-        VALUES (?, ?, ?, ?)
-      `, [key, title, content, timestamp]);
+        INSERT OR REPLACE INTO static_pages (key, title, content, aktif, updatedAt)
+        VALUES (?, ?, ?, ?, ?)
+      `, [key, title, content, aktifBaharu, timestamp]);
 
       // Log Audit (2026-08-06, pembetulan audit) — halaman awam (Tentang, Terma Penggunaan, dll)
       // dibaca sesiapa di internet, patut ada jejak siapa ubah kandungannya bila.

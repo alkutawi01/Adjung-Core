@@ -1043,6 +1043,11 @@ function HalamanAwamPanel() {
   const [halamanAktif, setHalamanAktif] = useState(HALAMAN_AWAM_SENARAI[0].key);
   const [tajuk, setTajuk] = useState('');
   const [kandungan, setKandungan] = useState('');
+  // Suis "Aktif di Footer" (2026-08-08, permintaan Izzat — "macam mana nak nyahaktifkan Lembaga
+  // Editorial dan halaman lain untuk sementara?"). Lalai true untuk halaman BAHARU (tiada baris
+  // static_pages lagi) — sepatutnya nampak di footer sebaik disimpan kali pertama, bukan
+  // tersembunyi senyap sehingga editor perasan dan hidupkan sendiri.
+  const [aktifFooter, setAktifFooter] = useState(true);
   const [memuat, setMemuat] = useState(true);
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState('');
@@ -1065,6 +1070,7 @@ function HalamanAwamPanel() {
       .then((data) => {
         setTajuk(data?.title || HALAMAN_AWAM_SENARAI.find(h => h.key === halamanAktif)?.label || '');
         setKandungan(data?.content || '');
+        setAktifFooter(data ? data.aktif !== 0 : true);
       })
       .catch((e) => setRalat(e.message || 'Gagal memuatkan halaman.'))
       .finally(() => setMemuat(false));
@@ -1081,7 +1087,7 @@ function HalamanAwamPanel() {
       const res = await fetch(`/api/pages/${halamanAktif}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: tajuk, content: kandungan }),
+        body: JSON.stringify({ title: tajuk, content: kandungan, aktif: aktifFooter }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -1103,8 +1109,9 @@ function HalamanAwamPanel() {
       <div>
         <SectionLabel>2.1 — Kandungan Halaman Awam &amp; Dalaman</SectionLabel>
         <p className="text-stone-500 text-xs mt-1">
-          Ruang isi kandungan sahaja — halaman awam sebenar (URL, reka bentuk, pautan footer) belum
-          dibina (Fasa 11). Kandungan yang disimpan di sini akan dipaparkan bila halaman tu siap.
+          Halaman awam sudah hidup di footer portal sebenar. Halaman "Aktif di Footer" boleh
+          disunting sambil pautannya kekal kelihatan; nyahaktifkan suis untuk sembunyikan pautan
+          buat sementara tanpa kehilangan kandungan tersimpan.
         </p>
       </div>
 
@@ -1151,6 +1158,20 @@ function HalamanAwamPanel() {
         <p className="text-stone-400">Memuatkan...</p>
       ) : (
         <div className="space-y-3">
+          {HALAMAN_AWAM_SENARAI.find(h => h.key === halamanAktif)?.kumpulan === 'awam' && (
+            <label className="flex items-center gap-2 font-semibold text-stone-800 cursor-pointer bg-stone-50 border border-stone-200 rounded px-3 py-2">
+              <input
+                type="checkbox"
+                checked={aktifFooter}
+                onChange={(e) => setAktifFooter(e.target.checked)}
+                className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer"
+              />
+              <span className="text-xs">Aktif di Footer</span>
+              <span className="text-[10px] text-stone-500 font-normal ml-1">
+                {aktifFooter ? '— pautan kelihatan di footer portal' : '— pautan tersembunyi, kandungan kekal tersimpan'}
+              </span>
+            </label>
+          )}
           <label className="block">
             <span className={LABEL_BORANG}>Tajuk Halaman</span>
             <input

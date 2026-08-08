@@ -1125,6 +1125,19 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [articleFontSize, setArticleFontSize] = useState<'normal' | 'large' | 'xlarge'>('normal');
   const [showScrollToTop, setShowScrollToTop] = useState<boolean>(false);
 
+  // Suis "Aktif di Footer" (2026-08-08, Izzat: "macam mana nak nyahaktifkan Lembaga Editorial dan
+  // halaman lain untuk sementara?") — peta {key: aktif} setiap halaman statik footer. Lalai
+  // KOSONG (semua nampak) sementara dimuatkan, bukan semua tersembunyi — kegagalan rangkaian
+  // sepatutnya papar footer penuh macam biasa, bukan footer kosong.
+  const [halamanAktifPeta, setHalamanAktifPeta] = useState<Record<string, boolean>>({});
+  const halamanAktif = (key: string) => halamanAktifPeta[key] !== false;
+  useEffect(() => {
+    fetch('/api/pages-status')
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((data) => setHalamanAktifPeta(data || {}))
+      .catch(() => {});
+  }, []);
+
   // Jejak pengunjung (Fasa 14) — satu kiraan setiap muatan frontpage. Terlepas-pandang, sekali
   // sahaja setiap mount (bukan setiap perubahan state) — sengaja tanpa senarai dependensi lain.
   useEffect(() => {
@@ -3822,12 +3835,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             <div className="flex flex-col gap-2.5">
               <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Institusi</h3>
               <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
-                <li className="flex"><button onClick={() => handleFooterLinkClick('about')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Mengenai Adjung</button></li>
-                <li className="flex"><button onClick={() => handleFooterLinkClick('editorial-board')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Lembaga Editorial</button></li>
+                {halamanAktif('about') && <li className="flex"><button onClick={() => handleFooterLinkClick('about')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Mengenai Adjung</button></li>}
+                {halamanAktif('editorial-board') && <li className="flex"><button onClick={() => handleFooterLinkClick('editorial-board')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Lembaga Editorial</button></li>}
                 <li className="flex"><button onClick={() => handleFooterLinkClick('editors-notes')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Catatan Ketua Editor</button></li>
-                <li className="flex"><button onClick={() => handleFooterLinkClick('publishing-policies')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Dasar Penerbitan</button></li>
+                {halamanAktif('publishing-policies') && <li className="flex"><button onClick={() => handleFooterLinkClick('publishing-policies')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Dasar Penerbitan</button></li>}
                 <li className="flex"><button onClick={() => handleFooterLinkClick('notices')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Pengumuman</button></li>
-                <li className="flex"><button onClick={() => handleFooterLinkClick('version-history')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Sejarah Versi</button></li>
+                {halamanAktif('version-history') && <li className="flex"><button onClick={() => handleFooterLinkClick('version-history')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Sejarah Versi</button></li>}
               </ul>
             </div>
 
@@ -3835,10 +3848,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             <div className="flex flex-col gap-2.5">
               <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Maklumat</h3>
               <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
-                <li className="flex"><Link to="/hubungi" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Hubungi</Link></li>
-                <li className="flex"><Link to="/polisi-privasi" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Polisi Privasi</Link></li>
-                <li className="flex"><Link to="/terma-penggunaan" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Terma Penggunaan</Link></li>
-                <li className="flex"><Link to="/penafian" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Penafian</Link></li>
+                {halamanAktif('hubungi') && <li className="flex"><Link to="/hubungi" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Hubungi</Link></li>}
+                {halamanAktif('polisi-privasi') && <li className="flex"><Link to="/polisi-privasi" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Polisi Privasi</Link></li>}
+                {halamanAktif('terma-penggunaan') && <li className="flex"><Link to="/terma-penggunaan" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Terma Penggunaan</Link></li>}
+                {halamanAktif('penafian') && <li className="flex"><Link to="/penafian" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Penafian</Link></li>}
               </ul>
             </div>
           </div>

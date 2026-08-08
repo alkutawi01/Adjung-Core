@@ -2111,6 +2111,13 @@ const initEditorialOS = (dbConn) => {
                                                     updatedAt TEXT NOT NULL
                                                   )
                                                 `, () => {
+                                                  // aktif (2026-08-08, permintaan Izzat — "macam mana nak nyahaktifkan Lembaga
+                                                  // Editorial dan halaman lain untuk sementara?") — sebelum ni pautan footer
+                                                  // sentiasa terpapar tanpa syarat; kosongkan kandungan cuma tukar apa yang
+                                                  // muncul bila diklik ("belum diterbitkan lagi"), pautan sendiri tetap
+                                                  // kelihatan. Lalai 1 (aktif) supaya halaman sedia ada tak hilang senyap
+                                                  // lepas migrasi ni jalan.
+                                                  dbConn.run("ALTER TABLE static_pages ADD COLUMN aktif INTEGER NOT NULL DEFAULT 1", () => {});
                                                   dbConn.run(`
                                                     CREATE TABLE IF NOT EXISTS CategoryRegistry (
                                                       id TEXT PRIMARY KEY,
