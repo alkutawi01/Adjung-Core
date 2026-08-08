@@ -85,7 +85,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
     if (usedFraction < MIN_TOTAL_USAGE_FRACTION) {
       return {
         isValid: false,
-        reason: `Kandungan (${Math.round(usedFraction * 100)}% bajet kad ${tier}) terlalu ringkas — sekurang-kurangnya ${Math.round(MIN_TOTAL_USAGE_FRACTION * 100)}% jumlah bajet tajuk+huraian mesti diguna (elak kad nampak kosong). Panjangkan tajuk dan/atau huraian.`,
+        reason: `Kandungan (${Math.round(usedFraction * 100)}% bajet kad ${tier}) terlalu ringkas. Sekurang-kurangnya ${Math.round(MIN_TOTAL_USAGE_FRACTION * 100)}% jumlah bajet tajuk+huraian mesti diguna, elak kad nampak kosong. Panjangkan tajuk dan/atau huraian.`,
       };
     }
     return { isValid: true };
