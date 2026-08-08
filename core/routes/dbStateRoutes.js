@@ -125,19 +125,19 @@ export function createDbStateRoutes(dbAll, dbGet) {
       const usersRows = await dbAll("SELECT * FROM users");
       const settingsRow = await dbGet("SELECT * FROM system_settings WHERE id = 'settings-main'");
 
-      // JANGAN sebarkan lajur `password` (hash scrypt atau baris lama teks biasa), `resetToken`/
-      // `resetTokenExpiresAt` (token set-semula kata laluan — bahaya paling tinggi, ambil alih
-      // akaun), atau `email` (alamat sebenar kakitangan) — walaupun kepada kakitangan log masuk,
-      // sebab laluan ni bukan tempat kod klien membacanya (datang drpd respons log masuk sendiri).
-      const usersPenuh = usersRows.map(({
-        password: _omitKataLaluan,
-        resetToken: _omitToken,
-        resetTokenExpiresAt: _omitTokenLuput,
-        email: _omitEmel,
-        ...u
-      }) => ({
-        ...u,
-        suspended: u.isSuspended === 1
+      // Subset PEMILIH SAHAJA (2026-08-08, dapatan audit keselamatan ChatGPT P2-01) — dahulu
+      // `usersPenuh` bawa SEMUA lajur users (nama penuh, nombor telefon, kelulusan universiti,
+      // negeri menetap, dsb.) kepada MANA-MANA pengguna log masuk, walau cuma satu-satunya
+      // pemanggil sebenar (EditoriumView.tsx/SenaraiSlotConsole.tsx, pemilih editor penugasan
+      // slot) cuma perlukan id/penName/username/status. Direktori/Profil penuh sudah ada laluan
+      // sendiri terkunci betul (GET /api/system/users manageAccounts, GET /api/system/profile/:id
+      // diri sendiri/manageAccounts) — db-state tak perlu bawa data PII penuh langsung.
+      const usersPenuh = usersRows.map((u) => ({
+        id: u.id,
+        penName: u.penName,
+        username: u.username,
+        status: u.status,
+        suspended: u.isSuspended === 1,
       }));
 
       const profiles = [];
