@@ -95,11 +95,20 @@ export function useTickerEditor() {
   // kosong papar borang kosong sebenar.
   const openTickerEditor = useCallback(async () => {
     let segar: any = null;
+    // Arahan am (masterPrompt) — medan GLOBAL (system_settings), sama pepijat/pembetulan macam
+    // useSlotEditor.ts (Izzat, 2026-08-08): dikodkan keras '' sebelum ni, tab Arahan AI sentiasa
+    // papar "Tiada arahan ditetapkan" walau Templat AI dah diisi.
+    let masterPromptSegar = '';
     try {
-      const data = await fetchSlotsConfig();
+      const [data, resSettings] = await Promise.all([
+        fetchSlotsConfig(),
+        fetch('/api/db-state'),
+      ]);
       if (Array.isArray(data)) {
         segar = data.find((s: any) => s.slotIndex === -1) || null;
       }
+      const dataSettings = await resSettings.json();
+      masterPromptSegar = dataSettings?.systemSettings?.masterPrompt || '';
     } catch (e) {
       console.error('Failed to refresh ticker config before opening editor:', e);
     }
@@ -133,7 +142,7 @@ export function useTickerEditor() {
       maxTitle: limits.maxTitle,
       maxBrief: limits.maxBrief,
       maxBriefLong: limits.maxBriefLong,
-      masterPrompt: '',
+      masterPrompt: masterPromptSegar,
       refreshHour: config?.refreshHour || '00:00',
       refreshDay: config?.refreshDay || 'Isnin',
       eventExpiryFilter: '',

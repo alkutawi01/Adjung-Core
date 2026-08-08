@@ -75,13 +75,23 @@ export function useSlotEditor(editorName?: string) {
     // dan boleh ditimpa semula pada simpan berikutnya. Kalau panggilan gagal, jatuh balik pada
     // salinan dalam ingatan — lebih baik borang lama daripada borang kosong.
     let segar: any = null;
+    // Arahan am (masterPrompt) — medan GLOBAL (system_settings), BUKAN sebahagian rekod slot
+    // (`config` di bawah). Sebelum ni formConfig.masterPrompt dikodkan keras '' di sini, jadi
+    // tab Arahan AI (SlotManagerModal.tsx) sentiasa papar "Tiada arahan ditetapkan" walau Ketua
+    // Editor dah isi Templat AI (Editorial → 4. Templat AI) — pepijat ditemui Izzat 2026-08-08.
+    let masterPromptSegar = '';
     try {
-      const res = await fetch('/api/system/slots');
-      const data = await res.json();
+      const [resSlots, resSettings] = await Promise.all([
+        fetch('/api/system/slots'),
+        fetch('/api/db-state'),
+      ]);
+      const data = await resSlots.json();
       if (Array.isArray(data)) {
         setSlotsConfig(data);
         segar = data.find((s: any) => s.slotIndex === idx) || null;
       }
+      const dataSettings = await resSettings.json();
+      masterPromptSegar = dataSettings?.systemSettings?.masterPrompt || '';
     } catch (e) {
       console.error('Failed to refresh slot config before opening editor:', e);
     }
@@ -116,7 +126,7 @@ export function useSlotEditor(editorName?: string) {
       maxTitle: config?.maxTitle !== undefined && config?.maxTitle !== null ? config.maxTitle : limits.maxTitle,
       maxBrief: config?.maxBrief !== undefined && config?.maxBrief !== null ? config.maxBrief : limits.maxBrief,
       maxBriefLong: config?.maxBriefLong !== undefined && config?.maxBriefLong !== null ? config.maxBriefLong : limits.maxBriefLong,
-      masterPrompt: '',
+      masterPrompt: masterPromptSegar,
       refreshHour: config?.refreshHour || '00:00',
       refreshDay: config?.refreshDay || 'Isnin',
       eventExpiryFilter: config?.eventExpiryFilter || '',
