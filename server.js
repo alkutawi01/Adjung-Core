@@ -251,6 +251,21 @@ const initializeSchema = () => {
       db.run("ALTER TABLE users ADD COLUMN lastPublishedAt TEXT;", () => {});
       db.run("ALTER TABLE users ADD COLUMN amaranTakAktifTahap INTEGER DEFAULT 0;", () => {});
 
+      // Indeks UNIQUE email/penName (2026-08-08, dapatan audit keselamatan ChatGPT) — `username`
+      // sudah ada UNIQUE sejak skema asal (baris ni atas), tapi `email`/`penName` tak pernah ada
+      // jaring peringkat DB langsung — semakan pendua di POST /users (userAdminRoutes.js) cuma
+      // SELECT sebelum INSERT, TOCTOU sebenar tanpa kunci. Kini dikunci di peringkat aplikasi
+      // (denganKunciKandungan), tapi indeks ni jaring TERAKHIR (DB sentiasa lebih dipercayai
+      // drpd JS). `IGNORE (bukan gagal)` sengaja BUKAN digunakan di sini — kalau data sedia ada
+      // ADA pendua lama (akaun warisan sebelum peraturan ni), CREATE INDEX gagal senyap (ditangkap
+      // callback), server tetap boot — bukan crash tak dijangka pada pelayan produksi sedia ada.
+      db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unik ON users (email COLLATE NOCASE);", (errIdx) => {
+        if (errIdx) console.warn('AMARAN: Gagal cipta indeks UNIQUE email (mungkin ada pendua sedia ada, perlu dibersihkan manual):', errIdx.message);
+      });
+      db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_penname_unik ON users (penName COLLATE NOCASE) WHERE penName IS NOT NULL AND TRIM(penName) != '';", (errIdx) => {
+        if (errIdx) console.warn('AMARAN: Gagal cipta indeks UNIQUE penName (mungkin ada pendua sedia ada, perlu dibersihkan manual):', errIdx.message);
+      });
+
       // 2026-08-02 (Fasa 4) — Log Audit: dahulu SIFAR jejak, tiada jadual langsung. Rekod
       // tindakan editorial/pentadbiran penting (terbit/tolak/arkib kandungan, urus akaun,
       // Bidang, ambilan RSS, ralat pelayan) — lihat core/audit/AuditLog.js.

@@ -7,6 +7,7 @@ import { calculateDeskScores, classifyDesk } from '../sources/DeskClassifier.js'
 import { parseTypographyTokens } from '../sources/TypographyRulesEngine.js';
 import { requirePermission } from '../middleware/auth.js';
 import { gantiBlokModTicker } from './contentRoutes.js';
+import { denganKunciTicker } from '../utils/kunciKandungan.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { sahkanUrlSelamatUntukFetch } from '../utils/urlSafety.js';
@@ -75,8 +76,11 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/system/ticker/review-queue
-  router.get('/ticker/review-queue', async (req, res) => {
+  // GET /api/system/ticker/review-queue — requirePermission (2026-08-08, dapatan audit
+  // keselamatan ChatGPT) — dahulu TIADA gerbang langsung, walhal laluan tindakan bersebelahan
+  // (review-action) memang dikunci manageEditorial. Baca giliran semakan RSS (skor/pecahan
+  // Bidang/keputusan dalaman) sepatutnya sama terhad macam tindakan ke atasnya.
+  router.get('/ticker/review-queue', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const items = await dbAll("SELECT * FROM rss_ticker_items WHERE status = 'pending' ORDER BY publishedAt DESC LIMIT 50");
       res.json(items);
@@ -145,8 +149,12 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // POST /api/system/rss-settings
-  router.post('/rss-settings', requirePermission('manageEditorial'), async (req, res) => {
+  // POST /api/system/rss-settings — denganKunciTicker (2026-08-08, dapatan audit keselamatan
+  // ChatGPT) — dahulu baca-ubah-tulis system_settings.inTheNewsText TANPA kunci, sama medan yang
+  // executeDirectRssFetch() (tik penjadual RSS + POST /ticker/fetch-direct) turut tulis. Simpan
+  // tetapan RSS serentak dgn ambilan RSS auto boleh timpa satu sama lain. Laluan ni tiada
+  // panggilan rangkaian (semua dbRun/dbAll/dbGet), jadi selamat bungkus SELURUH pengendali.
+  router.post('/rss-settings', requirePermission('manageEditorial'), (req, res) => denganKunciTicker(async () => {
     try {
       const { autoLiveThreshold, reviewThreshold, priorityKeywords, blockedKeywords, priorityBonus, blockedPenalty, maxNewsAgeHours, tickerMaxItems } = req.body;
       const updatedAt = new Date().toISOString();
@@ -199,7 +207,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       console.error('Save RSS settings error:', err);
       res.status(500).json({ error: 'Gagal menyimpan tetapan RSS.' });
     }
-  });
+  }));
 
   // GET /api/system/rss-text-rules
   router.get('/rss-text-rules', async (req, res) => {
@@ -981,9 +989,14 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   }
 
   if (tickerBlocks.length > 0) {
-    const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
-    const formattedTickerText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'RSS Direct', tickerBlocks);
-    await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedTickerText]);
+    // denganKunciTicker (2026-08-08, dapatan audit keselamatan ChatGPT) — bahagian baca-ubah-
+    // tulis inTheNewsText SAHAJA (bukan seluruh fungsi ni, yang buat panggilan rangkaian PERLAHAN
+    // ke pelayan RSS luar sebelum sampai sini) — lihat nota di kunciKandungan.js.
+    await denganKunciTicker(async () => {
+      const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+      const formattedTickerText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'RSS Direct', tickerBlocks);
+      await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedTickerText]);
+    });
   }
 
   const lastFetchedAt = new Date().toISOString();

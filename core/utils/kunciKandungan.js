@@ -19,4 +19,20 @@ export function denganKunciKandungan(fn) {
   return giliran;
 }
 
+// Kunci Ticker BERASINGAN (2026-08-08, dapatan audit keselamatan ChatGPT) — `system_settings.
+// inTheNewsText` (Ticker/Modul Khas) ialah domain data lain sepenuhnya drpd kandungan editorial
+// (editorial_revisions/slots_config), jadi ia dapat rantaian sendiri, BUKAN kongsi
+// denganKunciKandungan. Sebabnya: pengambilan RSS (executeDirectRssFetch) buat panggilan rangkaian
+// PERLAHAN (fetch ke pelayan RSS luar) sebelum sampai ke bahagian tulis DB — kalau ia kongsi kunci
+// yang SAMA dgn suntingan kandungan, editor lain akan tersekat menunggu fetch RSS luaran siap,
+// yang boleh ambil beberapa saat. Kunci ni HANYA membalut bahagian baca-ubah-tulis inTheNewsText
+// sebenar (pantas, DB sahaja) di setiap pemanggil — bukan keseluruhan fungsi pengambilan RSS.
+let rantaianKunciTicker = Promise.resolve();
+
+export function denganKunciTicker(fn) {
+  const giliran = rantaianKunciTicker.catch(() => {}).then(fn);
+  rantaianKunciTicker = giliran.catch(() => {});
+  return giliran;
+}
+
 export default denganKunciKandungan;

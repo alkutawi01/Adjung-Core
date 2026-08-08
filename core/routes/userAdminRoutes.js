@@ -10,6 +10,7 @@ import { janaTokenTamatTempoh } from '../auth/TokenLaluan.js';
 import { TIER_SLOTS } from '../editorial/GeometryConfig.js';
 import { MANUAL_BLOCK_SPLIT_REGEX, parseManualSummaryBlocks } from '../editorial/ManualBlockFormat.js';
 import { padamSesiPengguna } from '../auth/SesiPengguna.js';
+import { denganKunciKandungan } from '../utils/kunciKandungan.js';
 
 // Direktori (2026-08-02, Fasa 3) — dahulu `staffList` konsol client array kosong berkod keras,
 // "+ Tambah Anggota" hiasan, tindakan status hanya state React (hilang bila muat semula). Laluan
@@ -126,7 +127,14 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
   // (`resetToken` yang tentukan pemilikan sebenar), emel jemputan dihantar ke editor baharu
   // dengan pautan `/tetapkan-kata-laluan?token=...` (sah 48 jam) supaya dia tetapkan kata
   // laluannya SENDIRI — lihat POST /api/auth/aktifkan-akaun di authRoutes.js.
-  router.post('/users', requirePermission('manageAccounts'), async (req, res) => {
+  // denganKunciKandungan (2026-08-08, dapatan audit keselamatan ChatGPT) — semakan pendua
+  // (SELECT username/email/penName) diikuti INSERT bukan atomik: dua Pentadbir cipta akaun
+  // hampir serentak dgn nama pena SAMA boleh dua-dua lulus semakan sebelum mana-mana INSERT.
+  // `username` ada UNIQUE peringkat DB (jaring terakhir), tapi `email`/`penName` TIADA — dua
+  // akaun kongsi penName sebenarnya BOLEH wujud tanpa kunci ni (rosakkan identiti "siapa tulis
+  // kandungan", lihat nota panjang di bawah). Cipta akaun jarang berlaku (tindakan Pentadbir,
+  // bukan trafik kerap), jadi guna kunci global sedia ada — bukan reka kunci berasingan.
+  router.post('/users', requirePermission('manageAccounts'), (req, res) => denganKunciKandungan(async () => {
     try {
       const { username, email, penName, roles } = req.body || {};
       const u = (username || '').trim().toLowerCase();
@@ -201,9 +209,15 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       res.json({ success: true, id, emelDihantar: hantaran.berjaya });
     } catch (err) {
       console.error('POST users error:', err);
+      // Lapisan pertahanan kedua (2026-08-08) — kalau semua di atas terlepas (patut mustahil di
+      // dalam denganKunciKandungan, tapi indeks UNIQUE username/email/penName di server.js jaring
+      // terakhir), pulangkan 409 mesra bukan 500 mentah.
+      if (/UNIQUE constraint failed/i.test(err.message || '')) {
+        return res.status(409).json({ error: 'Username, emel atau nama pena sudah digunakan akaun lain.' });
+      }
       res.status(500).json({ error: 'Gagal mencipta akaun. ' + (err.message || '') });
     }
-  });
+  }));
 
   // PATCH /api/system/users/:id/status — Aktif/Cuti/Tidak Aktif/Ditamatkan.
   router.patch('/users/:id/status', requirePermission('manageAccounts'), async (req, res) => {
@@ -287,7 +301,12 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
   // POST /api/system/users/:id/kandungan-belum-terbit/padam — padam SEBENAR Draf+Menunggu
   // kepunyaan akaun ni. Kandungan approved/archived (Arkib) TIDAK disentuh — itu rekod sejarah
   // kekal, "terbitan tak boleh padam" (peraturan projek) terpakai penuh di sini.
-  router.post('/users/:id/kandungan-belum-terbit/padam', requirePermission('manageAccounts'), async (req, res) => {
+  // denganKunciKandungan (2026-08-08, dapatan audit keselamatan ChatGPT) — dahulu TIADA kunci
+  // mutasi, walhal laluan ni baca-ubah-tulis slots_config.manualSummary (sama medan yang PATCH/
+  // reject-to-draft/pulihkan-sampah/POST-slots semua DAH dikunci) DAN DELETE editorial_objects
+  // pending. Editor simpan draf baharu SEMASA Pentadbir padam kandungan belum-terbit akaun sama:
+  // draf baharu boleh hilang senyap, ditimpa tulisan laluan ni yang baca versi lama.
+  router.post('/users/:id/kandungan-belum-terbit/padam', requirePermission('manageAccounts'), (req, res) => denganKunciKandungan(async () => {
     try {
       const { id } = req.params;
       const user = await dbGet('SELECT penName, username FROM users WHERE id = ?', [id]);
@@ -347,7 +366,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       console.error('POST kandungan-belum-terbit/padam error:', err);
       res.status(500).json({ error: 'Gagal memadam kandungan belum terbit. ' + (err.message || '') });
     }
-  });
+  }));
 
   // PATCH /api/system/users/:id/roles — ganti SELURUH set peranan akaun (satu akaun boleh
   // pegang berbilang — cth Izzat Pentadbir + Ketua Editor serentak).
