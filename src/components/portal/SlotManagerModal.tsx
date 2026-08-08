@@ -996,25 +996,6 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
               </div>
             </div>
           )}
-          {/* Pratonton kad SEBENAR (2026-08-08, "saya nak nampak persis rupa kad sebelum
-              terbit" — Pelan Pratonton Kad, bukti konsep pertama). Guna komponen KONGSI SEBENAR
-              (KompakCardPreview.tsx, dicabut drpd FrontpageView.tsx slot 4/5) — bukan tiruan.
-              Cuma tier KOMPAK setakat ni (bukti konsep); tier lain akan disambung SATU-SATU
-              ikut corak sama kemudian, bukan sekali gus (lihat nota di KompakCardPreview.tsx). */}
-          {tier === 'KOMPAK' && (
-            <div className="mt-3">
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">Pratonton Kad</span>
-              <div className="mt-1.5">
-                <KompakCardPreview
-                  item={{
-                    title: current.title, brief: current.brief, desk, topik: current.topik,
-                    source: current.source, originalDate: current.date, imageUrl: current.image,
-                  }}
-                  bidang={bidang}
-                />
-              </div>
-            </div>
-          )}
         </header>
         <hr className="border-stone-150" />
 
@@ -1147,6 +1128,30 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     <button type="button" onClick={paste} className="px-2.5 py-1 border border-stone-300 rounded text-[11px] font-sans font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer">Tampal</button>
                   </span>
                 </div>
+
+                {/* Pratonton kad SEBENAR (2026-08-08, "saya nak nampak persis rupa kad sebelum
+                    terbit" — Pelan Pratonton Kad, bukti konsep pertama). Guna komponen KONGSI
+                    SEBENAR (KompakCardPreview.tsx, dicabut drpd FrontpageView.tsx slot 4/5) —
+                    bukan tiruan. Diletak DALAM lajur borang (tatal bersama medan, bukan header
+                    tetap) — Izzat: "kalau slot tu tinggi, letak di bawah perlu scroll lebih
+                    elok" — header tetap akan membengkak ikut tinggi tier (Hero/Menegak boleh
+                    sampai 380px) dan sentiasa ambil ruang menegak tak kira tab mana dibuka.
+                    Cuma tier KOMPAK setakat ni (bukti konsep); tier lain disambung SATU-SATU
+                    ikut corak sama kemudian, bukan sekali gus. */}
+                {tier === 'KOMPAK' && (
+                  <div>
+                    <span className={labelCls}>Pratonton Kad</span>
+                    <div className="mt-1.5">
+                      <KompakCardPreview
+                        item={{
+                          title: current.title, brief: current.brief, desk, topik: current.topik,
+                          source: current.source, originalDate: current.date, imageUrl: current.image,
+                        }}
+                        bidang={bidang}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <Field label="Topik" value={current.topik || ''} maxLen={hadTopik} onChange={(v) => patch(activeIndex, 'topik', v)} />
                 <Field label="Tajuk" value={current.title || ''} maxLen={ceiling.maxTitle} onChange={(v) => patch(activeIndex, 'title', v)} />
