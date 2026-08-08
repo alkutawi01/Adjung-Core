@@ -315,6 +315,9 @@ const SidebarItem = React.memo(function SidebarItem({
   return (
     <li
       onClick={() => onSelect(index)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(index); } }}
       className={`group grid items-center gap-2.5 px-3 py-2.5 cursor-pointer border-b border-stone-150 last:border-b-0 transition-colors ${isActive ? 'bg-[#802334]/[0.04] shadow-[inset_2px_0_0_#802334]' : 'hover:bg-stone-50'}`}
       style={{ gridTemplateColumns: '26px 1fr auto' }}
     >
@@ -323,13 +326,13 @@ const SidebarItem = React.memo(function SidebarItem({
         {item.title || <span className="text-stone-400 italic">Tiada tajuk</span>}
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="hidden group-hover:flex items-center gap-1.5">
+        <span className="hidden group-hover:flex group-focus-within:flex items-center gap-1.5">
           <button type="button" aria-label="Naik" onClick={(e) => { e.stopPropagation(); onMoveUp(index); }} className="text-stone-500 hover:text-[#802334] px-0.5"><ChevronUp size={13} /></button>
           <button type="button" aria-label="Turun" onClick={(e) => { e.stopPropagation(); onMoveDown(index); }} className="text-stone-500 hover:text-[#802334] px-0.5"><ChevronDown size={13} /></button>
           <button type="button" aria-label="Buang" onClick={(e) => { e.stopPropagation(); onRemove(index); }} className="text-[#a8241f] px-0.5"><Trash2 size={12} /></button>
         </span>
         <Tooltip text={check.isValid ? 'Sedia untuk Terbit' : check.reason}>
-          <span className={`group-hover:hidden font-mono text-[9px] ${check.isValid ? 'text-emerald-700' : 'text-[#a8241f]'}`}>
+          <span className={`group-hover:hidden group-focus-within:hidden font-mono text-[9px] ${check.isValid ? 'text-emerald-700' : 'text-[#a8241f]'}`}>
             {check.isValid ? '✓' : '✕'}
           </span>
         </Tooltip>

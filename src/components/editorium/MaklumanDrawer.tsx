@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useRef } from 'react';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { StatusBadge } from '../common/StatusBadge';
 import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock } from 'lucide-react';
+import { useModalFokus } from '../../hooks/useModalFokus';
 
 // Peti Makluman (2026-08-01, spesifikasi pemilik projek) — laci gelongsor yang memaparkan
 // makluman AKTIF tanpa editor perlu meninggalkan halaman yang sedang dibuka.
@@ -110,13 +111,10 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
   // Backdrop-click guard (lihat LoginModal.tsx, pepijat Izzat 2026-08-07) — kekal false selagi
   // mousedown tak bermula terus pada backdrop.
   const mousedownPadaBackdrop = React.useRef(false);
-  // Escape menutup laci — ia menutupi kerja yang sedang dibuat, jadi mesti ada jalan keluar pantas
-  // yang tak perlu menyasarkan tetikus ke butang X.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onTutup(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onTutup]);
+  // Fokus-trap + Escape-tutup + pulang fokus (UX-06, audit ChatGPT 2026-08-08) — standard
+  // sama seperti modal Editorium lain (lihat useModalFokus.ts), laci ni dahulu tiada.
+  const refLaci = useRef<HTMLElement>(null);
+  useModalFokus(refLaci, onTutup);
 
   const [tab, setTab] = React.useState<'editorial' | 'sistem'>('editorial');
 
@@ -139,6 +137,10 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
       onClick={(e) => { if (e.target === e.currentTarget && mousedownPadaBackdrop.current) onTutup(); }}
     >
       <aside
+        ref={refLaci}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Peti Makluman"
         className="w-full max-w-md h-full bg-[#FDFDFD] border-l border-stone-200 shadow-2xl flex flex-col font-sans"
         onClick={(e) => e.stopPropagation()}
       >
@@ -151,6 +153,7 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
             type="button"
             onClick={onTutup}
             className="text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+            aria-label="Tutup"
             title="Tutup (Escape)"
           >
             <X size={18} />
@@ -200,6 +203,14 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                     <li
                       key={`notif-${n.id}`}
                       onClick={() => !n.dibaca && onKlikNotifikasi(n.id)}
+                      role={!n.dibaca ? 'button' : undefined}
+                      tabIndex={!n.dibaca ? 0 : undefined}
+                      onKeyDown={(e) => {
+                        if (!n.dibaca && (e.key === 'Enter' || e.key === ' ')) {
+                          e.preventDefault();
+                          onKlikNotifikasi(n.id);
+                        }
+                      }}
                       className={`px-5 py-4 space-y-1.5 ${!n.dibaca ? 'bg-Adjung-maroon/[0.04] cursor-pointer' : ''}`}
                     >
                       <div className="flex flex-wrap items-center gap-2">

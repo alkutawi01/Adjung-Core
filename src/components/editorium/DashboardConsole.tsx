@@ -37,6 +37,13 @@ const JUMLAH_SLOT = 38;
 
 export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }) => {
   const [memuat, setMemuat] = useState(true);
+  // Bendera kegagalan (UX-08, audit ChatGPT 2026-08-08) — bezakan "0 sebenar" drpd "gagal
+  // diambil". Sebelum ni, .catch() jatuh balik ke {items:[]}/{hariIni:0,...} lalu paparan
+  // terus tunjuk "0" macam ia bilangan sebenar, mengelirukan Ketua Editor semasa gangguan
+  // pelayan. Hanya medan berasaskan KIRAAN (statusKandungan, jejakPengunjung.hariIni)
+  // terjejas — medan berasaskan status (RSS/cuaca/pautan mati) sudah betul, terus `null`.
+  const [gagalMuatKandungan, setGagalMuatKandungan] = useState(false);
+  const [gagalMuatPengunjung, setGagalMuatPengunjung] = useState(false);
   const [statusKandungan, setStatusKandungan] = useState({ menunggu: 0, aktif: 0, arkib: 0 });
   const [maklumanTerbaru, setMaklumanTerbaru] = useState<Nota[]>([]);
   const [slotUsage, setSlotUsage] = useState<SlotUsage[]>([]);
@@ -59,15 +66,18 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
     setMemuat(true);
 
     Promise.all([
-      fetch('/api/system/content/all').then(r => r.json()).catch(() => ({ items: [] })),
+      fetch('/api/system/content/all').then(r => r.json()).catch(() => ({ items: [], __gagal: true })),
       fetch('/api/system/editor-notes?status=aktif').then(r => r.json()).catch(() => []),
       fetch('/api/system/categories/slot-usage').then(r => r.json()).catch(() => []),
       fetch('/api/system/audit-log?limit=200').then(r => r.json()).catch(() => []),
       fetch('/api/system/weather-status').then(r => r.json()).catch(() => null),
-      fetch('/api/system/view-stats?days=7').then(r => r.json()).catch(() => ({ hariIni: 0, trenHarian: [], kandunganPalingDiminati: [] })),
+      fetch('/api/system/view-stats?days=7').then(r => r.json()).catch(() => ({ hariIni: 0, trenHarian: [], kandunganPalingDiminati: [], __gagal: true })),
       fetch('/api/system/link-checks').then(r => r.json()).catch(() => null),
     ]).then(([kandungan, nota, slotUsageResp, logAudit, cuaca, statsView, pautan]) => {
       if (batal) return;
+
+      setGagalMuatKandungan(!!kandungan?.__gagal);
+      setGagalMuatPengunjung(!!statsView?.__gagal);
 
       const items = kandungan?.items || [];
       setStatusKandungan({
@@ -195,28 +205,30 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
       <section className="grid grid-cols-2 md:grid-cols-4 border-b border-stone-200">
         <div className="p-5 md:p-6 border-r border-b md:border-b-0 border-stone-200 text-center">
           <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Jumlah rekod</div>
-          <div className="font-serif text-4xl md:text-5xl font-normal text-stone-900">{jumlahRekod}</div>
-          <div className="text-[11px] text-stone-500 mt-2">Merentas {JUMLAH_SLOT} slot terbitan</div>
+          <div className="font-serif text-4xl md:text-5xl font-normal text-stone-900">{gagalMuatKandungan ? '—' : jumlahRekod}</div>
+          <div className="text-[11px] text-stone-500 mt-2">
+            {gagalMuatKandungan ? 'Gagal dimuatkan, cuba muat semula' : `Merentas ${JUMLAH_SLOT} slot terbitan`}
+          </div>
         </div>
         <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 border-b md:border-b-0 border-stone-200 text-center hover:bg-Adjung-maroon/5 transition-colors cursor-pointer">
           <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Aktif</div>
-          <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: 'var(--color-success)' }}>{statusKandungan.aktif}</div>
+          <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: 'var(--color-success)' }}>{gagalMuatKandungan ? '—' : statusKandungan.aktif}</div>
           <div className="flex items-center gap-2 mt-3 px-2">
             <span className="flex-1 h-[3px] bg-stone-200">
               <span className="block h-[3px]" style={{ width: `${jumlahRekod > 0 ? (statusKandungan.aktif / jumlahRekod) * 100 : 0}%`, background: 'var(--color-success)' }} />
             </span>
-            <span className="font-mono text-[10px] text-stone-500">{jumlahRekod > 0 ? Math.round((statusKandungan.aktif / jumlahRekod) * 100) : 0}%</span>
+            <span className="font-mono text-[10px] text-stone-500">{gagalMuatKandungan ? '—' : jumlahRekod > 0 ? `${Math.round((statusKandungan.aktif / jumlahRekod) * 100)}%` : '0%'}</span>
           </div>
         </button>
         <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 border-r md:border-r border-stone-200 text-center hover:bg-Adjung-maroon/5 transition-colors cursor-pointer">
           <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Menunggu semakan</div>
-          <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: 'var(--color-warning)' }}>{statusKandungan.menunggu}</div>
-          <div className="text-[11px] text-stone-500 mt-2">Dalam giliran semakan</div>
+          <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: 'var(--color-warning)' }}>{gagalMuatKandungan ? '—' : statusKandungan.menunggu}</div>
+          <div className="text-[11px] text-stone-500 mt-2">{gagalMuatKandungan ? 'Gagal dimuatkan' : 'Dalam giliran semakan'}</div>
         </button>
         <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 text-center hover:bg-Adjung-maroon/5 transition-colors cursor-pointer">
           <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Arkib</div>
-          <div className="font-serif text-4xl md:text-5xl font-normal text-stone-400">{statusKandungan.arkib}</div>
-          <div className="text-[11px] text-stone-500 mt-2">Ditarik daripada edaran</div>
+          <div className="font-serif text-4xl md:text-5xl font-normal text-stone-400">{gagalMuatKandungan ? '—' : statusKandungan.arkib}</div>
+          <div className="text-[11px] text-stone-500 mt-2">{gagalMuatKandungan ? 'Gagal dimuatkan' : 'Ditarik daripada edaran'}</div>
         </button>
       </section>
 
@@ -225,7 +237,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
         <div>
           <div className="flex items-baseline gap-3 mb-5 flex-wrap">
             <h2 className="font-mono text-[10px] uppercase tracking-widest font-semibold text-stone-400">Pengunjung frontpage (7 hari)</h2>
-            <span className="ml-auto font-mono text-[10.5px] text-stone-400">{jejakPengunjung.hariIni} muatan hari ini</span>
+            <span className="ml-auto font-mono text-[10.5px] text-stone-400">{gagalMuatPengunjung ? 'Gagal dimuatkan' : `${jejakPengunjung.hariIni} muatan hari ini`}</span>
           </div>
           {jejakPengunjung.trenHarian.length === 0 ? (
             <p className="text-xs text-stone-400">Belum ada rekod jejak.</p>
