@@ -7,6 +7,7 @@ import { requireAuth, requirePermission, hasPermission } from '../middleware/aut
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { isDue, hasReplacementForExpiry } from '../editorial/Scheduling.js';
+import { denganKunciKandungan } from '../utils/kunciKandungan.js';
 
 // Dua jenis Menunggu (2026-08-06, permintaan Izzat: "menunggu sepatutnya ada dua jenis, menunggu
 // semakan dan menunggu untuk disiarkan/aktif") — helper kongsi tulis/kemas kini attribute
@@ -65,12 +66,10 @@ const kunciPromosiSlot = new Map();
 //
 // Sama seperti kunci promosi di atas: cukup kerana pelayan satu proses (PM2 mod fork). Kalau
 // kelak diskalakan kepada berbilang tika, ini mesti jadi kunci peringkat pangkalan data.
-let rantaianKunciKandungan = Promise.resolve();
-function denganKunciKandungan(fn) {
-  const giliran = rantaianKunciKandungan.catch(() => {}).then(fn);
-  rantaianKunciKandungan = giliran.catch(() => {});
-  return giliran;
-}
+//
+// Dipindah ke ../utils/kunciKandungan.js (2026-08-08, dapatan audit keselamatan ChatGPT) — SATU
+// rantaian ni sekarang perlu dikongsi merentasi fail (slotsConfigRoutes.js POST /slots, tik
+// penjadual server.js), bukan cuma laluan dalam fail ni. Import di atas, bukan takrif tempatan.
 
 async function promosikanMenungguSlotKosong(dbAll, dbGet, dbRun, slotIndex) {
   const sebelumnya = kunciPromosiSlot.get(slotIndex) || Promise.resolve();
@@ -255,7 +254,15 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
         }
       }
 
-      await dbRun("UPDATE editorial_revisions SET status = ?, updatedAt = ? WHERE id = ?", [statusJadual, nowIso, row.revisionId]);
+      // Pengawal `AND status = 'scheduled'` (2026-08-08, dapatan audit keselamatan ChatGPT,
+      // lapisan pertahanan kedua) — tik ni kini dikunci merentasi denganKunciKandungan (utama),
+      // tapi pengawal ni pastikan UPDATE tak sekali-kali tulis-ganti status yang dah berubah
+      // sejak SELECT di atas tik ni bermula, walau atas sebab lain (bug masa depan/kunci gagal).
+      const hasilJadual = await dbRun(
+        "UPDATE editorial_revisions SET status = ?, updatedAt = ? WHERE id = ? AND status = 'scheduled'",
+        [statusJadual, nowIso, row.revisionId]
+      );
+      if (!hasilJadual || hasilJadual.changes === 0) continue;
       await tetapkanSebabMenunggu(dbGet, dbRun, row.objectId, row.revisionId, sebabJadual);
       await logAudit(dbRun, {
         actorId: null, actorName: 'Penjadual Sistem',
@@ -286,7 +293,12 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
       WHERE er.status = 'approved' AND er.scheduledExpiresAt IS NOT NULL AND er.scheduledExpiresAt <= ?
     `, [nowIso]);
     for (const row of dueToExpire) {
-      await dbRun("UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ?", [nowIso, row.revisionId]);
+      // Pengawal `AND status = 'approved'` — lihat nota sama di (1) Terbit berjadual di atas.
+      const hasilLuput = await dbRun(
+        "UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ? AND status = 'approved'",
+        [nowIso, row.revisionId]
+      );
+      if (!hasilLuput || hasilLuput.changes === 0) continue;
       const objRow = await dbGet('SELECT slotIndex FROM editorial_objects WHERE id = ?', [row.objectId]);
       await logAudit(dbRun, {
         actorId: null, actorName: 'Penjadual Sistem', action: 'kandungan-luput-berjadual',
@@ -336,6 +348,16 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
         continue;
       }
       if (row.dipadamPada > ambangIso) continue;
+      // Pengawal sesah-semula (2026-08-08, dapatan audit keselamatan ChatGPT, lapisan
+      // pertahanan kedua) — dueToPurge ialah snapshot dari SELECT awal tik ni; kunci
+      // denganKunciKandungan (utama) dah pastikan tiada Pulihkan boleh berselang-seli DALAM
+      // satu tik, tapi semak semula status di sini (bukan percaya snapshot buta) kekalkan invarian
+      // walau kunci gagal/diubah masa depan — padam kekal MESTI batal kalau status dah berubah.
+      const masihDipadam = await dbGet(
+        "SELECT id FROM editorial_revisions WHERE id = ? AND status = 'dipadam'",
+        [row.revisionId]
+      );
+      if (!masihDipadam) continue;
       await dbRun("DELETE FROM editorial_attribute_values WHERE objectId = ?", [row.objectId]);
       await dbRun("DELETE FROM editorial_revisions WHERE objectId = ?", [row.objectId]);
       await dbRun("DELETE FROM editorial_objects WHERE id = ?", [row.objectId]);
@@ -1134,9 +1156,13 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   // POST /api/system/content/:id/pulihkan-sampah — "Pulihkan" dalam Tong Sampah (2026-08-08,
   // permintaan Izzat). Cuma sah bila status SEMASA ialah 'dipadam'; kembalikan ke
   // statusSebelumPadam yang disimpan semasa DELETE /content/:id (bukan andaian tegar 'archived')
-  // supaya kandungan pulih tepat macam sebelum dipadam. Dikunci manageEditorial sama macam
-  // padam sendiri.
-  router.post('/content/:id/pulihkan-sampah', requirePermission('manageEditorial'), async (req, res) => {
+  // supaya kandungan pulih tepat macam sebelum dipadam. Dikunci manageEditorial (kebenaran) DAN
+  // denganKunciKandungan (mutasi) — dahulu cuma kebenaran, jadi auto-purge Tong Sampah (tik
+  // penjadual server.js, kini turut dalam kunci sama) boleh berselang-seli dengan Pulihkan ni:
+  // Pulihkan tukar status ke 'archived', tapi purge yang sedang mengimbas snapshot LAMA (masih
+  // nampak 'dipadam') terus PADAM KEKAL kandungan yang baru sahaja berjaya dipulihkan. Dapatan
+  // audit keselamatan ChatGPT 2026-08-08.
+  router.post('/content/:id/pulihkan-sampah', requirePermission('manageEditorial'), (req, res) => denganKunciKandungan(async () => {
     try {
       const { id } = req.params;
       const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1", [id]);
@@ -1167,7 +1193,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       console.error('Pulihkan Tong Sampah error:', err);
       res.status(500).json({ error: 'Gagal memulihkan kandungan. ' + (err.message || '') });
     }
-  });
+  }));
 
   // POST /api/system/content/:id/reject-to-draft — "Tolak" di Indeks (2026-07-29, permintaan
   // pemilik projek). Alur kerja Draf/Terbit: kandungan "Terbitkan" masuk Indeks sebagai Pending,
@@ -1180,7 +1206,13 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   // masuk boleh "Tolak" kandungan SESIAPA sahaja kembali jadi draf, walhal kunci `reject` sudah
   // wujud dalam matriks Kawalan Akses sejak Fasa 3 (lalai: Ketua Editor + Penolong ya, Pentadbir &
   // Editor tidak) — cuma tak pernah disambungkan ke laluan ni.
-  router.post('/content/:id/reject-to-draft', requirePermission('reject'), async (req, res) => {
+  // denganKunciKandungan (2026-08-08, dapatan audit keselamatan ChatGPT) — dahulu laluan ni
+  // TIADA kunci mutasi langsung (cuma gerbang kebenaran), walhal ia baca-ubah-tulis
+  // slots_config.manualSummary yang SAMA-SAMA disentuh PATCH/DELETE/POST kandungan lain (yang
+  // semuanya DAH dikunci). Dua Tolak berselang-seli pada slot SAMA (dua kandungan ditolak hampir
+  // serentak) baca manualSummary lama yang SAMA, tulis draf masing-masing berasingan — draf yang
+  // ditulis dulu HILANG terus, ditimpa draf kedua (bukan kedua-duanya tergabung).
+  router.post('/content/:id/reject-to-draft', requirePermission('reject'), (req, res) => denganKunciKandungan(async () => {
     try {
       const { id } = req.params;
       if (id.startsWith('ticker-')) {
@@ -1296,7 +1328,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       console.error('Reject-to-draft error:', err);
       res.status(500).json({ error: 'Gagal menolak kandungan ke draf. ' + (err.message || '') });
     }
-  });
+  }));
 
   // DELETE /api/system/content/:id
   // Dikunci sama seperti PATCH (2026-08-07, Pelan 02 #8): cabang ticker di bawah membuat

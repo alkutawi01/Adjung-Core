@@ -5,6 +5,7 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { MANUAL_BLOCK_SPLIT_REGEX, MANUAL_BLOCK_SEPARATOR, parseManualBlockFields } from '../editorial/ManualBlockFormat.js';
+import { denganKunciKandungan } from '../utils/kunciKandungan.js';
 
 // Gerbang Nota (2026-08-05, permintaan Ketua Editor) — medan "Nota editor" (Focus View)
 // sepatutnya HANYA boleh ditulis oleh (a) editor yang DITUGASKAN slot berkenaan (`slot_editors`,
@@ -116,8 +117,14 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
     }
   });
 
-  // POST /api/system/slots
-  router.post('/slots', requireAuth, async (req, res) => {
+  // POST /api/system/slots — denganKunciKandungan (2026-08-08, dapatan audit keselamatan
+  // ChatGPT) — pengesahan konkurensi optimistik (updatedAt) di bawah cuma "semak dulu, tulis
+  // kemudian", BUKAN atomik: dua permintaan pada slot SAMA boleh dua-dua BACA updatedAt lama yang
+  // sepadan, dua-dua LULUS semakan, sebelum mana-mana satu pun sempat menulis — 409 tak sekali-kali
+  // tercetus walau ini SEBENARNYA situasi yang gerbang tu direka untuk halang. Kunci kongsi ni
+  // (sama rantaian dgn PATCH/DELETE/reject-to-draft/pulihkan-sampah kandungan DAN tik penjadual)
+  // jadikan baca-semak-tulis SATU unit atomik merentasi permintaan serentak.
+  router.post('/slots', requireAuth, (req, res) => denganKunciKandungan(async () => {
     try {
       const slots = Array.isArray(req.body) ? req.body : [req.body];
 
@@ -354,7 +361,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
       console.error('Save slots config error:', err);
       res.status(500).json({ error: 'Gagal menyimpan konfigurasi slot. ' + (err.message || '') });
     }
-  });
+  }));
 
   return router;
 }

@@ -48,6 +48,7 @@ import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createUiLabelRoutes } from './core/routes/uiLabelRoutes.js';
 import { SEMUA_LABEL_LALAI } from './src/config/istilah.ts';
 import { createContentRoutes, runSchedulingTick } from './core/routes/contentRoutes.js';
+import { denganKunciKandungan } from './core/utils/kunciKandungan.js';
 import { createNotificationRoutes } from './core/routes/notificationRoutes.js';
 import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
@@ -3522,7 +3523,15 @@ app.listen(PORT, '0.0.0.0', () => {
   // runSchedulingTick untuk logik penuh).
   const JADUAL_TICK_INTERVAL_MS = 90 * 1000;
   setInterval(() => {
-    runSchedulingTick(dbAll, dbGet, dbRun).catch((err) => console.error('[Jadual Terbit/Luput] Ralat tik:', err.message));
+    // denganKunciKandungan (2026-08-08, dapatan audit keselamatan ChatGPT) — dahulu tik ni
+    // langsung TIADA kunci, walhal ia baca-status-dulu-tulis-status-kemudian sama macam
+    // PATCH/DELETE/reject-to-draft/pulihkan-sampah (yang semuanya DAH dikunci). Editor boleh
+    // arkib/padam kandungan yang sedang diproses tik ni ('scheduled'/'dipadam') SEBAIK sahaja
+    // antara SELECT dan UPDATE tik — tik boleh "hidupkan semula" kandungan yang baru sahaja
+    // diarkib/padam editor, atau padam-kekal kandungan yang baru sahaja dipulihkan. Satu rantaian
+    // kunci KONGSI merentasi semua laluan ni sekarang menutup jurang tu.
+    denganKunciKandungan(() => runSchedulingTick(dbAll, dbGet, dbRun))
+      .catch((err) => console.error('[Jadual Terbit/Luput] Ralat tik:', err.message));
   }, JADUAL_TICK_INTERVAL_MS);
   console.log(`Penjadual Terbit/Luput aktif (semak setiap ${JADUAL_TICK_INTERVAL_MS / 1000} saat).`);
 
