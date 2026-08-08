@@ -46,6 +46,9 @@ interface BriefRecord {
   // contentRoutes.js — sama medan yang dah dibetulkan di ContentReview.tsx punya paparan pukal).
   summaryLong: string;
   note: string;
+  // Tandatangan Nota (2026-08-08, Fasa 4) — peranan sahaja ("Ketua Editor"/"Penolong Ketua
+  // Editor"), kosong bila penulis asal kandungan sendiri yang menulis notanya.
+  notaOleh: string;
   originalDate: string;
   url: string;
 }
@@ -221,6 +224,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
   // Detail Modal State
   const [activeItemModal, setActiveItemModal] = useState<BriefRecord | null>(null);
+  // Nota Editor daripada Indeks (2026-08-08, Fasa 4 pemilikan kandungan) — draf sunting
+  // berasingan daripada activeItemModal.note supaya butang Simpan/Batal ada sesuatu jelas untuk
+  // dibandingkan. Direset setiap kali kandungan berbeza dibuka (lihat useEffect di bawah).
+  const [drafNota, setDrafNota] = useState('');
+  const [suntingNota, setSuntingNota] = useState(false);
+  const [menyimpanNota, setMenyimpanNota] = useState(false);
+  const [ralatNota, setRalatNota] = useState('');
+  useEffect(() => {
+    setDrafNota(activeItemModal?.note || '');
+    setSuntingNota(false);
+    setRalatNota('');
+  }, [activeItemModal?.id]);
   // Pengurusan fokus modal (Audit UI/UX Editorium §G1/G2/G6) — perangkap Tab, fokus elemen
   // pertama semasa buka, pulangkan fokus ke pencetus semasa tutup, Escape menutup modal.
 
@@ -315,6 +330,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             editorName: item.editorName || '',
             summaryLong: item.summaryLong || '',
             note: item.note || '',
+            notaOleh: item.notaOleh || '',
             originalDate: item.originalDate || '',
             url: item.url || '',
             scheduledPublishAt: item.scheduledPublishAt || null,
@@ -695,6 +711,36 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       const mesej = `${berjaya} berjaya, ${gagal.length} gagal. Sebab pertama: ${gagal[0]}`;
       setActionError(mesej);
       onToast?.('error', mesej);
+    }
+  };
+
+  // Nota Editor daripada Indeks (2026-08-08, Fasa 4). Gerbang SEBENAR di server
+  // (PATCH /content/:id) — UI di sini cuma sembunyi kawalan untuk yang tak layak, bukan
+  // keselamatan. Kandungan disegarkan optimistik lepas berjaya (nota + tandatangan) supaya
+  // editor nampak hasil serta-merta tanpa muat semula seluruh senarai.
+  const handleSimpanNota = async () => {
+    if (!activeItemModal) return;
+    setMenyimpanNota(true);
+    setRalatNota('');
+    try {
+      const res = await fetch(`/api/system/content/${encodeURIComponent(activeItemModal.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: drafNota }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || `Gagal simpan nota (${res.status}).`);
+      const notaOlehBaharu = body.notaOleh || '';
+      setItems(prev => prev.map(i => i.id === activeItemModal.id ? { ...i, note: drafNota, notaOleh: notaOlehBaharu } : i));
+      setActiveItemModal(prev => prev ? { ...prev, note: drafNota, notaOleh: notaOlehBaharu } : prev);
+      setSuntingNota(false);
+      onToast?.('success', 'Nota Editor disimpan.');
+    } catch (err: any) {
+      const mesej = err.message || 'Gagal simpan nota.';
+      setRalatNota(mesej);
+      onToast?.('error', mesej);
+    } finally {
+      setMenyimpanNota(false);
     }
   };
 
@@ -1311,14 +1357,68 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               </div>
             )}
 
-            {activeItemModal.note.trim() && (
-              <div className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Nota Editor</span>
-                <div className="font-serif text-sm text-stone-700 leading-relaxed bg-amber-50 p-4 rounded border border-amber-200">
-                  {activeItemModal.note}
+            {/* Nota Editor (2026-08-08, Fasa 4 pemilikan kandungan) — boleh disunting terus dari
+                sini oleh penulis asal kandungan (tiada tandatangan) atau Ketua Editor/Penolong
+                (tandatangan peranan sahaja, cth "— Ketua Editor"). Editor lain nampak nota
+                sedia ada (kalau ada) tapi TIADA kawalan sunting — gerbang sebenar di server. */}
+            {(() => {
+              const bolehSuntingNota = currentUserRole === 'KETUA_EDITOR' || activeItemModal.editorName === currentUserName;
+              if (!activeItemModal.note.trim() && !bolehSuntingNota) return null;
+              return (
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Nota Editor</span>
+                    {bolehSuntingNota && !suntingNota && (
+                      <button
+                        type="button"
+                        onClick={() => setSuntingNota(true)}
+                        className="font-mono text-[9px] uppercase tracking-wider font-bold text-Adjung-maroon hover:underline cursor-pointer"
+                      >
+                        {activeItemModal.note.trim() ? '✎ Sunting' : '+ Tambah nota'}
+                      </button>
+                    )}
+                  </div>
+                  {suntingNota ? (
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        value={drafNota}
+                        onChange={(e) => setDrafNota(e.target.value)}
+                        rows={3}
+                        maxLength={280}
+                        className="font-serif text-sm text-stone-700 leading-relaxed bg-amber-50 p-4 rounded border border-amber-200 resize-y focus:outline-none focus:ring-1 focus:ring-Adjung-maroon"
+                        placeholder="Nota untuk penulis kandungan ini"
+                      />
+                      {ralatNota && <MesejStatus tone="error">{ralatNota}</MesejStatus>}
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setSuntingNota(false); setDrafNota(activeItemModal.note); setRalatNota(''); }}
+                          disabled={menyimpanNota}
+                          className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-3 py-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSimpanNota}
+                          disabled={menyimpanNota}
+                          className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-[#6b1d2b] rounded px-3 py-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {menyimpanNota ? 'Menyimpan…' : 'Simpan Nota'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : activeItemModal.note.trim() ? (
+                    <div className="font-serif text-sm text-stone-700 leading-relaxed bg-amber-50 p-4 rounded border border-amber-200">
+                      {activeItemModal.note}
+                      {activeItemModal.notaOleh && (
+                        <div className="font-sans text-[10px] text-stone-500 mt-2 text-right">— {activeItemModal.notaOleh}</div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs bg-stone-100 p-3 rounded border border-stone-200">
               <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{labelStatus(activeItemModal.status)}</strong></div>

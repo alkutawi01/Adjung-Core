@@ -423,6 +423,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           summary: r.summary,
           summaryLong: attrs.briefLong || '',
           note: attrs.note || '',
+          // Tandatangan Nota (2026-08-08, Fasa 4 pemilikan kandungan) — PERANAN sahaja
+          // ("Ketua Editor"/"Penolong Ketua Editor"), bukan nama. Kosong bila penulis asal
+          // kandungan sendiri yang menulis notanya — lihat gerbang di PATCH /content/:id.
+          notaOleh: attrs.notaOleh || '',
           originalDate: attrs.originalDate || '',
           desk: attrs.desk || r.categoryId || '',
           topik: attrs.topik || '',
@@ -547,6 +551,34 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // statusSebelumPadam/dipadamPada tergantung — pulihan separa yang mengelirukan.
       if (rev.status === 'dipadam') {
         return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah — Pulihkan dahulu sebelum menyunting, atau Padam Kekal.' });
+      }
+
+      // Gerbang Nota Editor (2026-08-08, Fasa 4 pemilikan kandungan, keputusan Izzat) — "ketua
+      // editor dan penolong hanya boleh akses di indeks... jika perlu tulis nota editor, dia
+      // boleh tulis kat situ. dan di nota editor tu perlu terpapar tandatangan Ketua Editor atau
+      // Penolong Ketua Editor sahaja. kalau editor yg tulis kandungan tu sendiri yg buat nota,
+      // takyah tandatangan." Nota kandungan yang SUDAH TERBIT cuma boleh ditulis (a) penulis asal
+      // (attribute 'editorName', dicap semasa Terbit) — tiada tandatangan, ni suara dia sendiri,
+      // atau (b) Ketua Editor/Penolong (manageEditorial) — tandatangan PERANAN sahaja, bukan nama.
+      // Editor lain (bukan penulis, bukan KE/Penolong) tak boleh sentuh nota kandungan ni langsung.
+      let notaOlehBaharu;
+      if (note !== undefined) {
+        const editorNameRow = await dbGet(
+          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'editorName'",
+          [id, rev.id]
+        );
+        const penulisAsal = ((editorNameRow && editorNameRow.valueText) || '').trim();
+        const namaSaya = (req.session?.user?.penName || req.session?.user?.username || '').trim();
+        const sayaKetuaEditorAtauPenolong = hasPermission(req.session?.user?.roles, 'manageEditorial');
+        const sayaPenulisAsal = !!penulisAsal && !!namaSaya && penulisAsal === namaSaya;
+        if (!sayaPenulisAsal && !sayaKetuaEditorAtauPenolong) {
+          return res.status(403).json({
+            error: 'Nota Editor cuma boleh ditulis penulis asal kandungan ini atau Ketua Editor/Penolong Ketua Editor, daripada Indeks.',
+          });
+        }
+        notaOlehBaharu = sayaPenulisAsal
+          ? ''
+          : ((req.session?.user?.roles || []).includes('ketua_editor') ? 'Ketua Editor' : 'Penolong Ketua Editor');
       }
 
       // Dasar Terbit Sendiri Editor (2026-08-06, permintaan Izzat) — "editor boleh terus publish,
@@ -795,7 +827,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         }
       }
 
-      const attrCandidates = { desk, source, url, imageUrl, topik, briefLong, originalDate, note };
+      const attrCandidates = { desk, source, url, imageUrl, topik, briefLong, originalDate, note, notaOleh: notaOlehBaharu };
       for (const [key, val] of Object.entries(attrCandidates)) {
         if (val === undefined) continue;
         const existing = await dbGet(
@@ -886,7 +918,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         await tetapkanSebabMenunggu(dbGet, dbRun, id, liveRevId, nilaiSebab);
       }
 
-      res.json({ success: true, slotPenuh: sebabMenungguBaharu === 'slot_penuh' });
+      res.json({
+        success: true,
+        slotPenuh: sebabMenungguBaharu === 'slot_penuh',
+        ...(notaOlehBaharu !== undefined ? { notaOleh: notaOlehBaharu } : {}),
+      });
     } catch (err) {
       console.error('Patch content item error:', err);
       res.status(500).json({ error: 'Gagal mengemas kini kandungan. ' + (err.message || '') });

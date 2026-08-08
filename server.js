@@ -2012,6 +2012,11 @@ const initEditorialOS = (dbConn) => {
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('statusSebelumPadam', 'Status Sebelum Dipadam', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('dipadamPada', 'Dipadam Pada', 'text')", () => {});
 
+          // Tandatangan Nota Editor (2026-08-08, Fasa 4 pemilikan kandungan) — PERANAN sahaja
+          // ("Ketua Editor"/"Penolong Ketua Editor"), kosong bila penulis asal sendiri yang
+          // menulis. Ditetapkan di PATCH /api/system/content/:id (contentRoutes.js).
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('notaOleh', 'Nota Ditulis Oleh', 'text')", () => {});
+
           // sebabMenunggu: DUA jenis Menunggu (2026-08-06, permintaan Izzat — "menunggu sepatutnya
           // ada dua jenis, menunggu semakan dan menunggu untuk disiarkan/aktif"). Nilai 'semakan'
           // (lalai bagi setiap kandungan pending baharu — perlu keputusan MANUSIA, Ketua Editor/
