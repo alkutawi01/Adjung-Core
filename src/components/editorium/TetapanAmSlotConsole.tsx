@@ -158,7 +158,7 @@ function DasarTerbitSendiriField() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
-      setBerjaya(nilaiBaharu ? 'Dasar disimpan — Editor kini boleh terbit sendiri.' : 'Dasar disimpan — Editor kini perlu kelulusan.');
+      setBerjaya(nilaiBaharu ? 'Dasar disimpan. Editor kini boleh terbit sendiri.' : 'Dasar disimpan. Editor kini perlu kelulusan.');
       setTimeout(() => setBerjaya(null), 4000);
     } catch (e: any) {
       setBenarkanSelfPublish(asal);

@@ -77,6 +77,43 @@ export function createEjaanRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
+  router.patch('/ejaan/:id', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const sedia = await dbGet('SELECT id FROM ejaan_piawai WHERE id = ?', [req.params.id]);
+      if (!sedia) return res.status(404).json({ error: 'Bentuk ejaan tidak dijumpai.' });
+
+      const betul = (req.body?.betul || '').trim();
+      const elakkan = (req.body?.elakkan || '').trim();
+      const catatan = (req.body?.catatan || '').trim();
+
+      if (!betul) return res.status(400).json({ error: 'Bentuk betul wajib diisi.' });
+      if (betul.length > HAD_BETUL) return res.status(400).json({ error: `Bentuk betul tidak boleh melebihi ${HAD_BETUL} aksara.` });
+      if (elakkan.length > HAD_ELAKKAN) return res.status(400).json({ error: `Senarai "elakkan" tidak boleh melebihi ${HAD_ELAKKAN} aksara.` });
+      if (catatan.length > HAD_CATATAN) return res.status(400).json({ error: `Catatan tidak boleh melebihi ${HAD_CATATAN} aksara.` });
+
+      const pertindihan = await dbGet('SELECT id FROM ejaan_piawai WHERE LOWER(betul) = LOWER(?) AND id != ?', [betul, req.params.id]);
+      if (pertindihan) return res.status(400).json({ error: `Bentuk "${betul}" sudah ada dalam senarai ejaan.` });
+
+      await dbRun(
+        'UPDATE ejaan_piawai SET betul = ?, elakkan = ?, catatan = ? WHERE id = ?',
+        [betul, elakkan, catatan, req.params.id]
+      );
+      const baris = await dbGet('SELECT * FROM ejaan_piawai WHERE id = ?', [req.params.id]);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'sunting-ejaan-piawai',
+        targetType: 'ejaan',
+        targetId: req.params.id,
+        detail: betul,
+      });
+      res.json({ success: true, entri: barisKepadaEntri(baris) });
+    } catch (err) {
+      console.error('PATCH ejaan error:', err);
+      res.status(500).json({ error: 'Gagal mengemas kini bentuk ejaan. ' + (err.message || '') });
+    }
+  });
+
   router.delete('/ejaan/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const sedia = await dbGet('SELECT id FROM ejaan_piawai WHERE id = ?', [req.params.id]);

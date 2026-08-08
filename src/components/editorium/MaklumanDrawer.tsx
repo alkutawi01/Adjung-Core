@@ -80,14 +80,14 @@ const LABEL_JENIS: Record<string, string> = {
   kandungan_terbit_berjadual: 'Terbit Berjadual',
   kandungan_luput_berjadual: 'Luput Berjadual',
   kandungan_penugasan_slot: 'Penugasan Slot',
-  sistem_rss_gagal: 'Sistem — RSS',
-  sistem_cuaca_gagal: 'Sistem — Cuaca',
-  sistem_kata_laluan_ditukar: 'Sistem — Akaun',
-  sistem_akaun_digantung: 'Sistem — Akaun',
-  sistem_akaun_diaktifkan: 'Sistem — Akaun',
-  sistem_amaran_tak_aktif: 'Sistem — Dasar Aktif',
-  sistem_ralat_pelayan: 'Sistem — Ralat Pelayan',
-  sistem_pautan_mati: 'Sistem — Pautan Mati',
+  sistem_rss_gagal: 'Sistem: RSS',
+  sistem_cuaca_gagal: 'Sistem: Cuaca',
+  sistem_kata_laluan_ditukar: 'Sistem: Akaun',
+  sistem_akaun_digantung: 'Sistem: Akaun',
+  sistem_akaun_diaktifkan: 'Sistem: Akaun',
+  sistem_amaran_tak_aktif: 'Sistem: Dasar Aktif',
+  sistem_ralat_pelayan: 'Sistem: Ralat Pelayan',
+  sistem_pautan_mati: 'Sistem: Pautan Mati',
 };
 
 const tarikhRingkas = (iso: string) => {

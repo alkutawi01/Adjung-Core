@@ -313,7 +313,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                     (2026-08-07, permintaan Izzat) — lihat hujung fail. */}
                 {/* Peti Makluman — ikon sahaja ("✉️" sebagai simbol). */}
                 {onOpenMakluman && (
-                  <Tooltip text="Peti Makluman — nota Ketua Editor">
+                  <Tooltip text="Peti Makluman, nota Ketua Editor">
                     <button
                       type="button"
                       onClick={onOpenMakluman}

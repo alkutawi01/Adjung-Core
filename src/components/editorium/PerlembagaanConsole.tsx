@@ -90,7 +90,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: <>Definisi tier disegerakkan antara <em className="italic">client</em> dan <em className="italic">server</em>.</>,
-    body: 'GEOMETRY_RATIOS/TIER_SLOTS wujud di core/editorial/GeometryConfig.js dan diimport terus oleh kedua-dua server.js dan FrontpageView.tsx — satu sumber tunggal, bukan dua salinan berasingan.',
+    body: 'GEOMETRY_RATIOS/TIER_SLOTS wujud di core/editorial/GeometryConfig.js dan diimport terus oleh kedua-dua server.js dan FrontpageView.tsx, satu sumber tunggal, bukan dua salinan berasingan.',
   },
   {
     title: 'Isi kandungan editorial ialah tulisan sebenar.',
@@ -98,7 +98,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Penomboran slot bermula daripada 1, bukan 0.',
-    body: 'Manusia sentiasa nampak "Slot 1", "Slot 2" ... "Slot 38". TIADA "Slot 0" dipaparkan di mana-mana UI. Indeks dalaman kod (0-37) kekal tak berubah — ini peraturan PAPARAN sahaja, bukan skema data.',
+    body: 'Manusia sentiasa nampak "Slot 1", "Slot 2" ... "Slot 38". TIADA "Slot 0" dipaparkan di mana-mana UI. Indeks dalaman kod (0-37) kekal tak berubah. Ini peraturan PAPARAN sahaja, bukan skema data.',
   },
   {
     title: 'Label mesti 100% Bahasa Melayu.',
@@ -114,7 +114,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Senarai kandungan berskala besar wajib berkelompok (dipaginasi).',
-    body: 'Mana-mana paparan yang berpotensi memuatkan kandungan dalam jumlah besar (Indeks, Semakan Kandungan) mesti menghadkan bilangan rekod yang diproses/dipaparkan serentak pada satu had tetap (100 rekod sehalaman) — bukan memuatkan dan me-render kesemua rekod sekali gus tanpa had, tidak kira berapa banyak kandungan wujud dalam sistem.',
+    body: 'Mana-mana paparan yang berpotensi memuatkan kandungan dalam jumlah besar (Indeks, Semakan Kandungan) mesti menghadkan bilangan rekod yang diproses/dipaparkan serentak pada satu had tetap (100 rekod sehalaman), bukan memuatkan dan me-render kesemua rekod sekali gus tanpa had, tidak kira berapa banyak kandungan wujud dalam sistem.',
   },
 ];
 
@@ -213,7 +213,7 @@ export const PerlembagaanConsole: React.FC = () => {
               const boxW = Math.max(shape.w * SHAPE_SCALE, 4);
               const boxH = Math.max(shape.h * SHAPE_SCALE, 4);
               const unitBox = (key: React.Key) => (
-                <Tooltip key={key} text={shape.measured ? 'Diukur terus dari kad sebenar' : 'Dianggar — tiada kandungan sebenar untuk diukur ketika ini'}>
+                <Tooltip key={key} text={shape.measured ? 'Diukur terus dari kad sebenar' : 'Dianggar, tiada kandungan sebenar untuk diukur ketika ini'}>
                   <div
                     className={`border-2 bg-[#f3e9d2] rounded ${shape.measured ? 'border-Adjung-maroon' : 'border-Adjung-maroon/40 border-dashed'}`}
                     style={{ width: boxW, height: boxH }}
@@ -566,7 +566,7 @@ URL:`}</pre>
                 </thead>
                 <tbody>
                   {commits.map(c => (
-                    <Tooltip key={c.fullHash} text={`git revert ${c.hash} — untuk batalkan perubahan ini`}>
+                    <Tooltip key={c.fullHash} text={`git revert ${c.hash}, untuk batalkan perubahan ini`}>
                       <tr className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
                         <td className="p-3 font-mono text-[11px] text-stone-500">{c.hash}</td>
                         <td className="p-3 font-mono text-[10px] text-stone-500 whitespace-nowrap">{c.date}</td>

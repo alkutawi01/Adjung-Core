@@ -710,7 +710,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
        dua saiz, jadi saiz kandungan/borang panjang ialah pilihan yang betul. */
     <EditorDialog
       saiz="lg"
-      tajuk={`Tetapan Kad — Slot ${slotIndex + 1}`}
+      tajuk={`Tetapan Kad, Slot ${slotIndex + 1}`}
       onTutup={() => { if (!menyimpan) cubaTutup(); }}
       tindakan={
         <>
@@ -905,7 +905,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
             <span className="text-stone-400 text-[10px]">
               {draf.warnaPanelOverride
                 ? `Khusus slot ini: ${draf.warnaPanelOverride}`
-                : `Ikut Tetapan Am — kini ${amWarnaPanel}`}
+                : `Ikut Tetapan Am, kini ${amWarnaPanel}`}
             </span>
           </div>
           <div className="flex flex-col gap-1">
@@ -986,7 +986,7 @@ const PanelSenaraiModal: React.FC<PanelSenaraiModalProps> = ({ slotIndex, jenis,
   return (
     <EditorDialog
       saiz="lg"
-      tajuk={`Slot ${slotIndex + 1} — ${jenis === 'aktif' ? 'Kandungan Aktif' : 'Kandungan Menunggu'}`}
+      tajuk={`Slot ${slotIndex + 1}: ${jenis === 'aktif' ? 'Kandungan Aktif' : 'Kandungan Menunggu'}`}
       onTutup={onTutup}
     >
         <div>

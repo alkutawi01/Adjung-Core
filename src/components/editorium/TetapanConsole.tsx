@@ -1168,7 +1168,7 @@ function HalamanAwamPanel() {
               />
               <span className="text-xs">Aktif di Footer</span>
               <span className="text-[10px] text-stone-500 font-normal ml-1">
-                {aktifFooter ? '— pautan kelihatan di footer portal' : '— pautan tersembunyi, kandungan kekal tersimpan'}
+                {aktifFooter ? '(pautan kelihatan di footer portal)' : '(pautan tersembunyi, kandungan kekal tersimpan)'}
               </span>
             </label>
           )}

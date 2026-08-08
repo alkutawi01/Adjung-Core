@@ -80,7 +80,7 @@ export const TierKadConsole: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
-      setBerjaya(`Had ${t.label} dikemas kini — berkuat kuasa pada ${t.slots.length} slot.`);
+      setBerjaya(`Had ${t.label} dikemas kini, berkuat kuasa pada ${t.slots.length} slot.`);
       muat();
       muatPindaanTier();
     } catch (e: any) {

@@ -163,7 +163,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       panduan: 'Panduan', dokumentasi: 'Dokumentasi', log_sistem: 'Log Sistem', penaja: 'Penaja',
     };
     document.title = label[activeTab]
-      ? `${label[activeTab]} — Editorium · Adjung Brief`
+      ? `${label[activeTab]} · Editorium · Adjung Brief`
       : 'Adjung Brief';
     return () => { document.title = 'Adjung Brief'; };
   }, [activeTab]);
@@ -874,7 +874,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             .sort((a, b) => (a as number) - (b as number))
             .map((i) => ({
               index: i as number,
-              label: `Slot ${(i as number) + 1} — ${slotEditor.slotsConfig.find((s: any) => s.slotIndex === i)?.manualDesk || 'Belum ditetapkan'}`,
+              label: `Slot ${(i as number) + 1}: ${slotEditor.slotsConfig.find((s: any) => s.slotIndex === i)?.manualDesk || 'Belum ditetapkan'}`,
             }))}
           onSwitchSlot={(i) => { setDrafDibuka(''); slotEditor.openSlotEditor(i); }}
           initialUuid={drafDibuka}
@@ -903,7 +903,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             .filter((i: number) => slotBolehDicapai(i) || i === barSlotEditor.editingSlotIndex)
             .map((i: number) => ({
               index: i,
-              label: `Slot ${i + 1} — Bar`,
+              label: `Slot ${i + 1}: Bar`,
             }))}
           onSwitchSlot={(i) => barSlotEditor.openSlotEditor(i)}
           onToast={pushToast}

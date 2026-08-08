@@ -482,7 +482,7 @@ export const BidangConsole: React.FC = () => {
 
                             return (
                               <Tooltip key={slotIndex} text={milikOrangLain
-                                ? `Milik Bidang "${owner}"${live ? ` — ${live} kandungan aktif` : ''}`
+                                ? `Milik Bidang "${owner}"${live ? `, ${live} kandungan aktif` : ''}`
                                 : live ? `${live} kandungan aktif dalam slot ini` : 'Slot kosong'}>
                               <button
                                 type="button"

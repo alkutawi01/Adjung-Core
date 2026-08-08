@@ -797,7 +797,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           dirinya seperti modul lain, dengan kiraan status sebagai tindakan di hujung kanan. */}
       <ModulTajuk
         tajuk="Indeks Kandungan"
-        huraian="Senarai induk semua kandungan editorial yang sudah direkodkan — tapis mengikut status, Bidang, sumber, slot atau editor, dan uruskan penyiaran setiap kandungan."
+        huraian="Senarai induk semua kandungan editorial yang sudah direkodkan. Tapis mengikut status, Bidang, sumber, slot atau editor, dan uruskan penyiaran setiap kandungan."
         tindakan={
           <div className="flex items-center gap-2 font-sans text-[10px]">
             <StatusBadge tone="warning" label={`MENUNGGU: ${statusCounts.Pending}`} />
@@ -1253,7 +1253,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           {currentUserRole === 'KETUA_EDITOR' && <option value="Padam">Padam (ke Tong Sampah)</option>}
                         </select>
                       ) : (
-                        <span className="text-stone-400 text-[11px] font-sans">{rec.slot === 'Ticker' ? 'Ticker — urus di Modul Khas' : 'Baca Sahaja'}</span>
+                        <span className="text-stone-400 text-[11px] font-sans">{rec.slot === 'Ticker' ? 'Ticker, urus di Modul Khas' : 'Baca Sahaja'}</span>
                       )}
                     </td>
                   </tr>

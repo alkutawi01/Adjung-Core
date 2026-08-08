@@ -215,7 +215,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
     <div className="space-y-4 font-sans">
       <ModulTajuk
         tajuk="Nota Ketua Editor"
-        huraian="Nota, catatan, dan pengumuman Ketua Editor kepada pasukan — sebahagiannya turut disiarkan di Frontpage."
+        huraian="Nota, catatan, dan pengumuman Ketua Editor kepada pasukan. Sebahagiannya turut disiarkan di Frontpage."
       />
 
       {/* Borang penerbitan — Ketua Editor sahaja. */}

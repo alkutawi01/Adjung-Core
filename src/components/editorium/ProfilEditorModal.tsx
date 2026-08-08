@@ -33,9 +33,9 @@ interface ProfilEditor {
 // berbeza drpd username/emel/kata laluan di bawah).
 const MEDAN_BUTIRAN_PROFIL: { kunci: keyof ProfilEditor; label: string }[] = [
   { kunci: 'namaPenuh', label: 'Nama Penuh' },
-  { kunci: 'kelulusanKursus', label: 'Kelulusan — Nama Kursus' },
-  { kunci: 'kelulusanUniversiti', label: 'Kelulusan — Universiti' },
-  { kunci: 'kelulusanTahun', label: 'Kelulusan — Tahun Graduasi' },
+  { kunci: 'kelulusanKursus', label: 'Kelulusan: Nama Kursus' },
+  { kunci: 'kelulusanUniversiti', label: 'Kelulusan: Universiti' },
+  { kunci: 'kelulusanTahun', label: 'Kelulusan: Tahun Graduasi' },
   { kunci: 'negeriMenetap', label: 'Negeri Menetap' },
   { kunci: 'nomborTelefon', label: 'Nombor Telefon' },
 ];

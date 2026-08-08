@@ -24,7 +24,7 @@ export const TetapkanKataLaluan: React.FC = () => {
     e.preventDefault();
     setRalat('');
     if (!token) {
-      setRalat('Pautan ini tidak sah — token tiada.');
+      setRalat('Pautan ini tidak sah, token tiada.');
       return;
     }
     if (password.length < 8) {

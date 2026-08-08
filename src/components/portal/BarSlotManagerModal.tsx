@@ -169,7 +169,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
       patch(i, 'image', data.url);
       setImageNote('Dimuat naik');
     } catch (e) {
-      setImageNote('Muat naik gagal — cuba lagi');
+      setImageNote('Muat naik gagal, cuba lagi');
     } finally {
       setUploadingImage(false);
       setTimeout(() => setImageNote(''), 2400);

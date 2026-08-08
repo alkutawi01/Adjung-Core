@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Pencil } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
 import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
@@ -164,7 +164,23 @@ export const EditorialConsole: React.FC = () => {
   // Borang "tambah ejaan" dalam dialog, bukan terpampang kekal (2026-08-07, arahan Izzat —
   // senarai yang utama; borang muncul hanya semasa mencipta).
   const [dialogEjaan, setDialogEjaan] = useState(false);
+  // null = borang "tambah baharu"; id sedia ada = borang sunting entri tu (2026-08-08, permintaan Izzat).
+  const [editEjaanId, setEditEjaanId] = useState<string | null>(null);
   const [confirmBuangEjaan, setConfirmBuangEjaan] = useState('');
+
+  const bukaTambahEjaan = () => {
+    setEditEjaanId(null);
+    setEBetul(''); setEElakkan(''); setECatatan('');
+    setRalatEjaan('');
+    setDialogEjaan(true);
+  };
+
+  const bukaSuntingEjaan = (x: EntriEjaan) => {
+    setEditEjaanId(x.id);
+    setEBetul(x.betul); setEElakkan(x.elakkan); setECatatan(x.catatan);
+    setRalatEjaan('');
+    setDialogEjaan(true);
+  };
 
   const muatEjaan = useCallback(() => {
     setMemuatEjaan(true);
@@ -181,14 +197,14 @@ export const EditorialConsole: React.FC = () => {
     setRalatEjaan('');
     setMenghantarEjaan(true);
     try {
-      const res = await fetch('/api/system/ejaan', {
-        method: 'POST',
+      const res = await fetch(editEjaanId ? `/api/system/ejaan/${editEjaanId}` : '/api/system/ejaan', {
+        method: editEjaanId ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ betul: eBetul, elakkan: eElakkan, catatan: eCatatan }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan bentuk ejaan.');
-      setEBetul(''); setEElakkan(''); setECatatan('');
+      setEBetul(''); setEElakkan(''); setECatatan(''); setEditEjaanId(null);
       setDialogEjaan(false);
       muatEjaan();
     } catch (err: any) {
@@ -274,7 +290,7 @@ export const EditorialConsole: React.FC = () => {
     <div className="space-y-4 font-sans">
       <ModulTajuk
         tajuk="Editorial"
-        huraian="Peraturan bahasa dan templat penjanaan AI: istilah autocondong, glosari pembaca, penyelarasan ejaan, dan templat prompt."
+        huraian="Peraturan bahasa dan templat penjanaan AI: istilah autocondong, glosari pembaca, penyelarasan ejaan, dan templat arahan AI."
       />
 
       <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs">
@@ -518,12 +534,12 @@ export const EditorialConsole: React.FC = () => {
         <div className="space-y-4">
           {dialogEjaan && (
             <EditorDialog
-              tajuk="Tambah Bentuk Ejaan"
-              onTutup={() => { setDialogEjaan(false); setRalatEjaan(''); }}
+              tajuk={editEjaanId ? 'Sunting Bentuk Ejaan' : 'Tambah Bentuk Ejaan'}
+              onTutup={() => { setDialogEjaan(false); setEditEjaanId(null); setRalatEjaan(''); }}
               saiz="lg"
               tindakan={
                 <>
-                  <Button variant="secondary" onClick={() => { setDialogEjaan(false); setRalatEjaan(''); }}>
+                  <Button variant="secondary" onClick={() => { setDialogEjaan(false); setEditEjaanId(null); setRalatEjaan(''); }}>
                     Batal
                   </Button>
                   {/* `form=` menyambung butang di kaki dialog kepada borang di dalam `children` —
@@ -533,7 +549,7 @@ export const EditorialConsole: React.FC = () => {
                     type="submit" form="borang-ejaan" variant="primary"
                     disabled={menghantarEjaan || !eBetul.trim()}
                   >
-                    {menghantarEjaan ? 'Menambah…' : 'Tambah'}
+                    {menghantarEjaan ? 'Menyimpan…' : (editEjaanId ? 'Simpan' : 'Tambah')}
                   </Button>
                 </>
               }
@@ -588,7 +604,7 @@ export const EditorialConsole: React.FC = () => {
                   dalaman untuk editor sahaja — ia tidak dipaparkan kepada pembaca.
                 </p>
               </div>
-              <Button variant="primary" onClick={() => setDialogEjaan(true)} className="shrink-0">
+              <Button variant="primary" onClick={bukaTambahEjaan} className="shrink-0">
                 + Tambah Ejaan
               </Button>
             </div>
@@ -633,16 +649,28 @@ export const EditorialConsole: React.FC = () => {
                               </button>
                             </span>
                           ) : (
-                            <Tooltip text="Buang daripada senarai ejaan">
-                              <button
-                                type="button"
-                                onClick={() => setConfirmBuangEjaan(x.id)}
-                                aria-label="Buang daripada senarai ejaan"
-                                className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </Tooltip>
+                            <span className="inline-flex items-center gap-2.5">
+                              <Tooltip text="Sunting bentuk ejaan">
+                                <button
+                                  type="button"
+                                  onClick={() => bukaSuntingEjaan(x)}
+                                  aria-label="Sunting bentuk ejaan"
+                                  className="text-stone-400 hover:text-Adjung-maroon cursor-pointer"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              </Tooltip>
+                              <Tooltip text="Buang daripada senarai ejaan">
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmBuangEjaan(x.id)}
+                                  aria-label="Buang daripada senarai ejaan"
+                                  className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </Tooltip>
+                            </span>
                           )}
                         </td>
                       </tr>

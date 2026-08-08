@@ -137,7 +137,7 @@ export const PenajaConsole: React.FC = () => {
       setLogoUrl(data.url);
       setNotaLogo('Dimuat naik');
     } catch (e) {
-      setNotaLogo('Muat naik gagal — cuba lagi');
+      setNotaLogo('Muat naik gagal, cuba lagi');
     } finally {
       setMemuatNaik(false);
       setTimeout(() => setNotaLogo(''), 2400);
@@ -192,7 +192,7 @@ export const PenajaConsole: React.FC = () => {
     <div className="space-y-4 font-sans">
       <ModulTajuk
         tajuk="Penaja"
-        huraian="Urus tajaan bulanan portal — penaja bulan semasa dipapar di footer Frontpage, semua penaja aktif dipapar di halaman /penaja."
+        huraian="Urus tajaan bulanan portal. Penaja bulan semasa dipapar di footer Frontpage, semua penaja aktif dipapar di halaman /penaja."
       />
 
       <PanelCard className="text-xs">
@@ -320,7 +320,7 @@ export const PenajaConsole: React.FC = () => {
             <p className="text-stone-500 text-xs">
               {paparanArkib
                 ? 'Penaja yang ditarik balik. Boleh dipulihkan bila-bila.'
-                : 'Semua penaja aktif (lama & semasa) — susun bulan terbaru dahulu.'}
+                : 'Semua penaja aktif (lama & semasa), susun bulan terbaru dahulu.'}
             </p>
           </div>
           <Button variant="secondary" onClick={() => setPaparanArkib((v) => !v)}>

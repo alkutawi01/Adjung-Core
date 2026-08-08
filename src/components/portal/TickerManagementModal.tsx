@@ -164,7 +164,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         state,
         isValid: state === 'pass',
         reason: !recognized
-          ? 'Label "Tajuk:"/"Huraian ringkas:" tidak dikesan dalam blok ini — mungkin ditolak semasa disimpan.'
+          ? 'Label "Tajuk:"/"Huraian ringkas:" tidak dikesan dalam blok ini, mungkin ditolak semasa disimpan.'
           : check?.reason,
         titleSnippet: title ? (title.length > 25 ? title.substring(0, 25) + '...' : title) : `Artikel #${bIdx + 1}`
       };

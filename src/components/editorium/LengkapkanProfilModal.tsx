@@ -17,9 +17,9 @@ interface LengkapkanProfilProps {
 
 const MEDAN_PROFIL: { kunci: string; label: string; placeholder: string }[] = [
   { kunci: 'namaPenuh', label: 'Nama Penuh', placeholder: 'Seperti dalam kad pengenalan' },
-  { kunci: 'kelulusanKursus', label: 'Kelulusan — Nama Kursus', placeholder: 'cth. Sarjana Muda Komunikasi' },
-  { kunci: 'kelulusanUniversiti', label: 'Kelulusan — Universiti', placeholder: 'cth. Universiti Malaya' },
-  { kunci: 'kelulusanTahun', label: 'Kelulusan — Tahun Graduasi', placeholder: 'cth. 2022' },
+  { kunci: 'kelulusanKursus', label: 'Kelulusan: Nama Kursus', placeholder: 'cth. Sarjana Muda Komunikasi' },
+  { kunci: 'kelulusanUniversiti', label: 'Kelulusan: Universiti', placeholder: 'cth. Universiti Malaya' },
+  { kunci: 'kelulusanTahun', label: 'Kelulusan: Tahun Graduasi', placeholder: 'cth. 2022' },
   { kunci: 'negeriMenetap', label: 'Negeri Menetap', placeholder: 'cth. Selangor' },
   { kunci: 'nomborTelefon', label: 'Nombor Telefon', placeholder: 'cth. 012-3456789' },
 ];
