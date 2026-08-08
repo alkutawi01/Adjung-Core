@@ -519,6 +519,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           editorName={currentUser.name}
           onBukaDraf={bukaDraf}
           versi={drafVersi}
+          onTulisKandungan={() => slotEditor.setShowSlotPicker(true)}
         />
       )}
 

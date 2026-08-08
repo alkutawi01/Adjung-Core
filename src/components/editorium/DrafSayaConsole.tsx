@@ -55,12 +55,16 @@ interface DrafSayaConsoleProps {
   // supaya draf yang baru disimpan (atau baru diterbitkan, jadi bukan draf lagi) terus tepat,
   // tanpa editor perlu menekan "Muat Semula" sendiri.
   versi?: number;
+  // Buka pemilih slot utk mula draf BAHARU (FTU-02, audit ChatGPT 2026-08-08) — sebelum ni
+  // "Draf Saya" kosong ialah jalan buntu bagi editor pertama kali (senarai draf SEDIA ADA
+  // sahaja, tiada laluan cipta). Wajib supaya empty-state ada CTA "Tulis Kandungan" sebenar.
+  onTulisKandungan: () => void;
 }
 
 // Tier Bar & Ticker guna label Inggeris condong (istilah diluluskan, lihat src/config/istilah.ts).
 const TIER_LABEL_IS_ENGLISH: Record<string, boolean> = { BAR: true, TICKER: true };
 
-export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, editorName, onBukaDraf, versi = 0 }) => {
+export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, editorName, onBukaDraf, versi = 0, onTulisKandungan }) => {
   const [draf, setDraf] = useState<Draf[]>([]);
   const [bidangList, setBidangList] = useState<Bidang[]>([]);
   const [memuat, setMemuat] = useState(true);
@@ -188,8 +192,14 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         {memuat ? (
           <KeadaanKosong>Memuatkan draf...</KeadaanKosong>
         ) : draf.length === 0 ? (
-          <KeadaanKosong>
-            Tiada draf. Draf baharu muncul di sini sebaik anda menyimpannya dalam mana-mana slot.
+          <KeadaanKosong
+            tindakan={
+              <Button variant="primary" size="sm" onClick={onTulisKandungan}>
+                Tulis Kandungan
+              </Button>
+            }
+          >
+            Tiada draf lagi. Mulakan kandungan pertama anda dengan memilih slot.
           </KeadaanKosong>
         ) : drafTertapis.length === 0 ? (
           <KeadaanKosong>
