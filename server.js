@@ -56,6 +56,7 @@ import { createArticleUrlRoutes, createPublicArticleRoute } from './core/routes/
 import { createSearchRoutes } from './core/routes/searchRoutes.js';
 import { createSponsorRoutes } from './core/routes/sponsorRoutes.js';
 import { semakKonfigSmtpStartup, hantarEmel } from './core/email/MailSender.js';
+import { semakKonfigBaseUrlStartup } from './core/utils/baseUrl.js';
 import { requireAuthForWrites, loadRolePermissions, hasPermission } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
 import { notify, notifyMany, beritahuPelulusKandungan } from './core/notifications/Notify.js';
@@ -3518,6 +3519,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend API server running on http://localhost:${PORT}`);
   semakKonfigSmtpStartup();
+  semakKonfigBaseUrlStartup(logAudit, dbRun).catch(() => {});
 
   // Scheduler dalaman: server ni proses Node yang berjalan berterusan (bukan serverless).
   //
