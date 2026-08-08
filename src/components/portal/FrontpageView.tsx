@@ -778,26 +778,22 @@ const CarouselStableBlock: React.FC<{
               (getCardTheme di atas, sudah kira kontras gelap/cerah setiap kad individu); ikon
               lucide default stroke=currentColor, jadi ia WARIS warna tajuk/huraian kad tu
               secara automatik — kontras terjamin tanpa perlu logik tema berasingan di sini. */}
-          <Tooltip text="Kandungan sebelum">
-            <button
-              type="button"
-              aria-label="Kandungan sebelum"
-              onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
-              className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
-            >
-              <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
-            </button>
-          </Tooltip>
-          <Tooltip text="Kandungan seterusnya">
-            <button
-              type="button"
-              aria-label="Kandungan seterusnya"
-              onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
-              className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
-            >
-              <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
-            </button>
-          </Tooltip>
+          <button
+            type="button"
+            aria-label="Kandungan sebelum"
+            onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
+            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
+          >
+            <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
+          </button>
+          <button
+            type="button"
+            aria-label="Kandungan seterusnya"
+            onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
+            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
+          >
+            <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
+          </button>
           {/* Dot — visual sahaja (tak boleh diklik terus; onNavigate cuma sokong langkah
               relatif ±1, bukan lompat terus — cukup papar "berapa banyak / yang mana
               sekarang", tak perlu prop baharu merentasi 30 tapak panggilan sedia ada). */}
@@ -4022,36 +4018,34 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
           {/* Left Arrow */}
           {parsedTickerNewsItems.length > 1 && (
-            <Tooltip text="Berita Sebelum (Anak Panah Kiri)">
-              <button
-                type="button"
-                onClick={handlePrevNewsItem}
-                /* z-10 (2026-08-06, pembetulan audit) — WAJIB. Blok bacaan tengah di bawah ni
-                   `w-full` + `relative`: di telefon ia merentangi SELURUH lebar skrin dan, kerana
-                   ia datang KEMUDIAN dalam DOM dengan konteks penyusunannya sendiri, ia dicat DI
-                   ATAS anak panah ni — jadi anak panah kelihatan tetapi ketukan tak pernah sampai
-                   (disahkan: document.elementFromPoint di tengah butang pulangkan blok teks, bukan
-                   butang). Di desktop `max-w-2xl` meninggalkan ruang di tepi jadi masalah ni tak
-                   pernah kelihatan. */
-                className="absolute left-6 top-1/2 -translate-y-1/2 z-10 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
-              >
-                <ChevronLeft className="w-8 h-8" />
-              </button>
-            </Tooltip>
+            <button
+              type="button"
+              aria-label="Berita sebelum"
+              onClick={handlePrevNewsItem}
+              /* z-10 (2026-08-06, pembetulan audit) — WAJIB. Blok bacaan tengah di bawah ni
+                 `w-full` + `relative`: di telefon ia merentangi SELURUH lebar skrin dan, kerana
+                 ia datang KEMUDIAN dalam DOM dengan konteks penyusunannya sendiri, ia dicat DI
+                 ATAS anak panah ni — jadi anak panah kelihatan tetapi ketukan tak pernah sampai
+                 (disahkan: document.elementFromPoint di tengah butang pulangkan blok teks, bukan
+                 butang). Di desktop `max-w-2xl` meninggalkan ruang di tepi jadi masalah ni tak
+                 pernah kelihatan. */
+              className="absolute left-6 top-1/2 -translate-y-1/2 z-10 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </button>
           )}
 
           {/* Right Arrow */}
           {parsedTickerNewsItems.length > 1 && (
-            <Tooltip text="Berita Seterusnya (Anak Panah Kanan)">
-              <button
-                type="button"
-                onClick={handleNextNewsItem}
-                /* z-10 — lihat nota anak panah kiri di atas (sebab sama). */
-                className="absolute right-6 top-1/2 -translate-y-1/2 z-10 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
-              >
-                <ChevronRight className="w-8 h-8" />
-              </button>
-            </Tooltip>
+            <button
+              type="button"
+              aria-label="Berita seterusnya"
+              onClick={handleNextNewsItem}
+              /* z-10 — lihat nota anak panah kiri di atas (sebab sama). */
+              className="absolute right-6 top-1/2 -translate-y-1/2 z-10 p-3 text-stone-400 hover:text-[#802334] transition cursor-pointer hover:bg-stone-200/50 rounded-full animate-fade-in"
+            >
+              <ChevronRight className="w-8 h-8" />
+            </button>
           )}
 
           {/* Main Centered Reading block */}
@@ -4131,16 +4125,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         </div>
       )}
       {showScrollToTop && (
-        <Tooltip text="Kembali Ke Atas">
-          <button
-            type="button"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
-            aria-label="Kembali Ke Atas"
-          >
-            <ChevronLeft className="w-5 h-5 rotate-90 group-hover:-translate-y-0.5 transition-transform" />
-          </button>
-        </Tooltip>
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+          aria-label="Kembali ke atas"
+        >
+          <ChevronLeft className="w-5 h-5 rotate-90 group-hover:-translate-y-0.5 transition-transform" />
+        </button>
       )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
