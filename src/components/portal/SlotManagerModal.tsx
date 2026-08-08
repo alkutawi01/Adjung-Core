@@ -8,6 +8,7 @@ import { Tooltip } from '../common/Tooltip';
 import { labelUi } from '../../config/istilah';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { useModalFokus } from '../../hooks/useModalFokus';
+import { useAutoSimpanTempatan, bacaDrafTempatan, buangDrafTempatan, masaRelatifRingkas } from '../../hooks/useAutoSimpanTempatan';
 
 // Normalkan tarikh AI-tampal ke ISO yyyy-mm-dd (2026-08-08, pepijat Izzat — "kalau tampal output
 // AI, medan tarikh sumber tu kena isi sendiri jgk") — <input type="date"> HANYA papar nilai
@@ -483,6 +484,30 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   );
   const hasUnsavedWork = items.some(itemHasContent);
 
+  // Auto-simpan draf SENYAP (2026-08-08) — localStorage SAHAJA, tak pernah sentuh pelayan (lihat
+  // src/hooks/useAutoSimpanTempatan.ts untuk sebab). Kunci ikut slot+editor supaya draf tempatan
+  // seorang editor tak pernah tersilap dipulihkan untuk editor lain kongsi slot sama.
+  const kunciDrafTempatan = `adjung-draf-tempatan-slot-${editingSlotIndex}-${currentEditoriumName || 'tanpa-nama'}`;
+  const { disimpanPada } = useAutoSimpanTempatan(kunciDrafTempatan, items, hasUnsavedWork);
+  // Tawaran pulih SEKALI sahaja semasa mount — snapshot tempatan drpd sesi/tab lalu yang crash
+  // sebelum sempat "Simpan Draf"/"Terbit" (bukan drpd Draf Saya, yang datang terus daripada
+  // pelayan). Cuma tawar kalau snapshot BERBEZA drpd apa yang baru dimuat dari pelayan.
+  const [tawaranPulih, setTawaranPulih] = useState<{ items: any[]; pada: number } | null>(() => {
+    const snapshot = bacaDrafTempatan<any[]>(kunciDrafTempatan);
+    if (!snapshot) return null;
+    const sama = JSON.stringify(snapshot.nilai) === JSON.stringify(items);
+    return sama ? null : { items: snapshot.nilai, pada: snapshot.pada };
+  });
+  const pulihkanDrafTempatan = () => {
+    if (!tawaranPulih) return;
+    commit(() => tawaranPulih.items);
+    setTawaranPulih(null);
+  };
+  const buangTawaranPulih = () => {
+    buangDrafTempatan(kunciDrafTempatan);
+    setTawaranPulih(null);
+  };
+
   // Pengesahan dalam-aplikasi untuk Tutup/Tukar Slot (bukan `window.confirm`) — sama falsafah
   // audit UI/UX §E1/§B4 yang dah dipakai di NotaKetuaEditorConsole. window.confirm() blocking
   // native boleh disenyapkan pelayar selepas beberapa kali dicetuskan berturut-turut ("Prevent
@@ -673,6 +698,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       commit(() => remainingDrafts);
       setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
       setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
+      buangDrafTempatan(kunciDrafTempatan);
       onToast?.('success', 'Kandungan diterbitkan.');
     } else {
       const mesej = saveError || labelUi('toast.gagal_terbit');
@@ -695,6 +721,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     setSavingDraft(false);
     if (ok) {
       setFormConfig((prev: any) => ({ ...prev, manualSummary }));
+      buangDrafTempatan(kunciDrafTempatan);
       setDraftNote(labelUi('toast.draf_disimpan'));
       setTimeout(() => setDraftNote(''), 2400);
       onToast?.('success', 'Draf disimpan.');
@@ -899,6 +926,32 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
               </div>
             </div>
           )}
+          {/* Tawaran pulih draf tempatan (2026-08-08) — snapshot localStorage drpd sesi/tab lalu
+              yang tak sempat "Simpan Draf"/"Terbit" (cth crash pelayar/bekalan elektrik). Tak
+              pernah datang drpd pelayan — cuma peranti editor sendiri, jadi tak wujud kalau
+              editor buka slot ni di peranti/pelayar lain. */}
+          {tawaranPulih && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+              <span className="font-sans text-xs text-stone-700">
+                Draf tempatan drpd sesi lalu dijumpai (disimpan {masaRelatifRingkas(tawaranPulih.pada)}, tak sempat disimpan ke pelayan).
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button type="button" onClick={buangTawaranPulih} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">
+                  Buang
+                </button>
+                <button type="button" onClick={pulihkanDrafTempatan} className="font-sans text-xs font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">
+                  Pulihkan
+                </button>
+              </div>
+            </div>
+          )}
+          {/* Indikator auto-simpan tempatan — HANYA petunjuk "kerja anda selamat di peranti ni",
+              bukan pengesahan tersimpan ke pelayan (itu tetap "Simpan Draf"/"Terbit" eksplisit). */}
+          {!tawaranPulih && disimpanPada && hasUnsavedWork && (
+            <p className="mt-2 font-sans text-[10px] text-emerald-700">
+              Disimpan pada peranti ni {masaRelatifRingkas(disimpanPada)}.
+            </p>
+          )}
           {(konfirmTutup || konfirmTukarKe !== null) && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-[#802334]/30 bg-[#802334]/5 px-3 py-2">
               <span className="font-sans text-xs text-stone-700">
@@ -917,6 +970,9 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <button
                   type="button"
                   onClick={() => {
+                    // Editor sedar & sengaja buang kerja ni — buang draf tempatan sekali gus,
+                    // supaya ia tak terbit semula sebagai "tawaran pulih" kali lain slot ni dibuka.
+                    buangDrafTempatan(kunciDrafTempatan);
                     if (konfirmTutup) { setKonfirmTutup(false); onClose(); }
                     else if (konfirmTukarKe !== null) { const idx = konfirmTukarKe; setKonfirmTukarKe(null); onSwitchSlot?.(idx); }
                   }}

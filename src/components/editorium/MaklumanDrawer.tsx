@@ -97,6 +97,15 @@ const tarikhRingkas = (iso: string) => {
   return d.toLocaleDateString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+// Triage keterukan (2026-08-08, Gemini/audit UI-UX — kelesuan amaran: kegagalan teknikal gred
+// rendah macam "cuaca tempatan gagal diambil" bercampur dgn makluman tindakan sebenar macam "Draf
+// Ditolak" dlm SATU peti, editor mula abaikan kesemuanya sekali). Bukan bina sistem pemantauan
+// luaran berasingan (di luar skop projek ni) — kekal SATU peti, tapi asingkan tab. Sebarang jenis
+// notifikasi berawalan "sistem_" ialah kegagalan/status infrastruktur (RSS/cuaca/pautan mati/dsb.)
+// — bukan sesuatu editor PERLU bertindak ke atasnya secara peribadi. Nota Ketua Editor SENTIASA
+// tergolong Editorial (ia memang tindakan/arahan manusia, bukan kegagalan sistem).
+const isNotifikasiSistem = (n: ItemMakluman) => n.jenisSumber === 'notifikasi' && n.jenis.startsWith('sistem_');
+
 export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi, memuat, onTutup, onKlikNotifikasi }) => {
   // Backdrop-click guard (lihat LoginModal.tsx, pepijat Izzat 2026-08-07) — kekal false selagi
   // mousedown tak bermula terus pada backdrop.
@@ -109,14 +118,19 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
     return () => window.removeEventListener('keydown', onKey);
   }, [onTutup]);
 
+  const [tab, setTab] = React.useState<'editorial' | 'sistem'>('editorial');
+
   // Senarai gabungan, tersusun terbaharu dahulu — nota disemat tetap naik ke atas dalam
   // kumpulannya sendiri (peraturan sedia ada), notifikasi disisipkan ikut tarikh sahaja.
-  const senarai: ItemMakluman[] = [...nota, ...notifikasi].sort((a, b) => {
+  const senaraiPenuh: ItemMakluman[] = [...nota, ...notifikasi].sort((a, b) => {
     const semat = (a.jenisSumber === 'nota_ketua_editor' && a.disemat) ? 1 : 0;
     const sematB = (b.jenisSumber === 'nota_ketua_editor' && b.disemat) ? 1 : 0;
     if (semat !== sematB) return sematB - semat;
     return new Date(b.dibuatPada).getTime() - new Date(a.dibuatPada).getTime();
   });
+
+  const bilSistemBelumBaca = senaraiPenuh.filter((n) => isNotifikasiSistem(n) && n.jenisSumber === 'notifikasi' && !n.dibaca).length;
+  const senarai = senaraiPenuh.filter((n) => (tab === 'sistem' ? isNotifikasiSistem(n) : !isNotifikasiSistem(n)));
 
   return (
     <div
@@ -143,12 +157,40 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
           </button>
         </header>
 
+        <div className="flex-none flex border-b border-stone-200 text-xs">
+          <button
+            type="button"
+            onClick={() => setTab('editorial')}
+            className={`flex-1 px-4 py-2.5 font-semibold text-center border-b-2 transition-colors cursor-pointer ${
+              tab === 'editorial' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            Editorial
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('sistem')}
+            className={`flex-1 px-4 py-2.5 font-semibold text-center border-b-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 ${
+              tab === 'sistem' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            Sistem
+            {bilSistemBelumBaca > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-stone-400 text-white text-[9px] font-bold">
+                {bilSistemBelumBaca}
+              </span>
+            )}
+          </button>
+        </div>
+
         <div className="flex-1 min-h-0 overflow-y-auto">
           {memuat ? (
             <KeadaanKosong>Memuatkan makluman…</KeadaanKosong>
           ) : senarai.length === 0 ? (
             <KeadaanKosong className="px-6">
-              Tiada makluman semasa. Nota daripada Ketua Editor dan notifikasi akan muncul di sini.
+              {tab === 'editorial'
+                ? 'Tiada makluman editorial semasa. Nota daripada Ketua Editor dan notifikasi tindakan akan muncul di sini.'
+                : 'Tiada makluman sistem semasa. Kegagalan RSS/cuaca/pautan mati akan muncul di sini.'}
             </KeadaanKosong>
           ) : (
             <ul className="list-none m-0 p-0 divide-y divide-stone-100">

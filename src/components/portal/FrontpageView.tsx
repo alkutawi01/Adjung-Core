@@ -2726,7 +2726,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             {bentoNewsItems[0] && (
                 <div
                   data-slot={0}
-                  className={`col-span-6 md:col-span-6 p-4 md:p-8 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 group md:mb-4`}
+                  // min-h-[180px] (2026-08-08, audit "kad tak boleh overflow" — Hero ialah SATU-
+                  // SATUNYA slot antara 30 yang tiada min-h reservasi; setiap tier lain sudah ada
+                  // — lihat CarouselStableBlock, gerbang `list.length > 1` cuma kunci tinggi
+                  // ANTARA item carousel, bukan lantai minimum, jadi Hero satu-item boleh anjak
+                  // tinggi tanpa min-h sendiri). Nilai sama dengan STANDARD/SEGI_EMPAT_SMALL
+                  // (tier bersebelahan sedia ada), bukan diagak — diukur natural ~188px semasa
+                  // ujian.
+                  className={`col-span-6 md:col-span-6 p-4 md:p-8 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group md:mb-4`}
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
                 <BentoInner itemKey="0" className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">

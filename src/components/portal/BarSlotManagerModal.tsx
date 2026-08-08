@@ -3,6 +3,7 @@ import { X, Trash2, Upload } from 'lucide-react';
 import { ceilingForSlot, MAX_PENERANGAN_CHARS } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBarQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { useModalFokus } from '../../hooks/useModalFokus';
+import { useAutoSimpanTempatan, bacaDrafTempatan, buangDrafTempatan, masaRelatifRingkas } from '../../hooks/useAutoSimpanTempatan';
 
 // Borang native Editorium untuk slot Bar (Fasa 7, 2026-08-02) — dibina selepas laluan LAMA
 // (klik kad Bar di FrontpageView semasa isEditMode) jadi tak boleh dicapai langsung: pencetus
@@ -117,6 +118,26 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
   const current = items[activeIndex] || blankItem();
   const hasUnsavedWork = items.some((it) => (it.title || '').trim());
 
+  // Auto-simpan draf SENYAP (2026-08-08) — sama mekanisme/sebab macam SlotManagerModal.tsx, lihat
+  // src/hooks/useAutoSimpanTempatan.ts (localStorage sahaja, tak pernah sentuh pelayan).
+  const kunciDrafTempatan = `adjung-draf-tempatan-bar-slot-${editingSlotIndex}`;
+  const { disimpanPada } = useAutoSimpanTempatan(kunciDrafTempatan, items, hasUnsavedWork);
+  const [tawaranPulih, setTawaranPulih] = useState<{ items: any[]; pada: number } | null>(() => {
+    const snapshot = bacaDrafTempatan<any[]>(kunciDrafTempatan);
+    if (!snapshot) return null;
+    const sama = JSON.stringify(snapshot.nilai) === JSON.stringify(items);
+    return sama ? null : { items: snapshot.nilai, pada: snapshot.pada };
+  });
+  const pulihkanDrafTempatan = () => {
+    if (!tawaranPulih) return;
+    setItems(tawaranPulih.items);
+    setTawaranPulih(null);
+  };
+  const buangTawaranPulih = () => {
+    buangDrafTempatan(kunciDrafTempatan);
+    setTawaranPulih(null);
+  };
+
   // Pengesahan dalam-aplikasi untuk Tutup/Tukar Slot (bukan `window.confirm`) — sama sebab macam
   // SlotManagerModal.tsx (audit UI/UX §E1/§B4): window.confirm() boleh disenyapkan pelayar
   // selepas beberapa kali tercetus, buat butang X "tak boleh ditekan" tanpa sebarang respons.
@@ -186,6 +207,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
     const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary);
     setSaving(false);
     if (ok !== false) {
+      buangDrafTempatan(kunciDrafTempatan);
       setSavedNote('Giliran Bar disimpan.');
       setTimeout(() => setSavedNote(''), 2400);
       onToast?.('success', 'Giliran Bar disimpan.');
@@ -272,6 +294,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
                 <button
                   type="button"
                   onClick={() => {
+                    buangDrafTempatan(kunciDrafTempatan);
                     if (konfirmTutup) { setKonfirmTutup(false); onClose(); }
                     else if (konfirmTukarKe !== null) { const idx = konfirmTukarKe; setKonfirmTukarKe(null); onSwitchSlot?.(idx); }
                   }}
@@ -281,6 +304,26 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
                 </button>
               </div>
             </div>
+          )}
+          {tawaranPulih && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+              <span className="font-sans text-xs text-stone-700">
+                Draf tempatan drpd sesi lalu dijumpai (disimpan {masaRelatifRingkas(tawaranPulih.pada)}, tak sempat disimpan ke pelayan).
+              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button type="button" onClick={buangTawaranPulih} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">
+                  Buang
+                </button>
+                <button type="button" onClick={pulihkanDrafTempatan} className="font-sans text-xs font-semibold text-white bg-[var(--color-Adjung-maroon)] hover:opacity-90 rounded px-3 py-1 cursor-pointer">
+                  Pulihkan
+                </button>
+              </div>
+            </div>
+          )}
+          {!tawaranPulih && disimpanPada && hasUnsavedWork && (
+            <p className="mt-2 font-sans text-[10px] text-emerald-700">
+              Disimpan pada peranti ni {masaRelatifRingkas(disimpanPada)}.
+            </p>
           )}
         </header>
         <hr className="border-stone-150" />
