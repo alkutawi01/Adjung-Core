@@ -1008,6 +1008,16 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 const HALAMAN_AWAM_SENARAI: { key: string; label: string; kumpulan: 'awam' | 'dalaman' }[] = [
   { key: 'tentang', label: 'Tentang', kumpulan: 'awam' },
   { key: 'hubungi', label: 'Hubungi', kumpulan: 'awam' },
+  // Empat halaman modal footer (2026-08-08, pepijat Izzat: "kenapa keluar toast kalau klik semua
+  // menu tu?"). Pautannya wujud di footer sejak reka bentuk (FrontpageView.tsx —
+  // handleFooterLinkClick 'about'/'editorial-board'/'publishing-policies'/'version-history') tapi
+  // kuncinya TIDAK pernah disenaraikan di sini, jadi tiada satu skrin pun dalam Editorium boleh
+  // menciptanya — GET /api/pages/:key kekal 404 SELAMA-LAMANYA dan setiap klik pembaca memancarkan
+  // toast ralat. Bukan kandungan yang tertinggal: laluan menulisnya memang tak pernah wujud.
+  { key: 'about', label: 'Mengenai Adjung', kumpulan: 'awam' },
+  { key: 'editorial-board', label: 'Lembaga Editorial', kumpulan: 'awam' },
+  { key: 'publishing-policies', label: 'Dasar Penerbitan', kumpulan: 'awam' },
+  { key: 'version-history', label: 'Sejarah Versi', kumpulan: 'awam' },
   // "Polisi & Penafian" dipecah kepada TIGA halaman berasingan (2026-08-05, permintaan Izzat —
   // susun atur footer baharu). Kunci 'polisi-penafian' lama DIKEKALKAN wujud di static_pages
   // (tak dipadam) sekiranya ada kandungan lama tersimpan — cuma tak diedit/dipaparkan di sini

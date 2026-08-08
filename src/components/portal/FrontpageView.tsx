@@ -1102,9 +1102,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     idx26: useCollapsedHeightLock(expandedBarCluster2 !== null),
   };
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  // Nyah-duplikasi + had bilangan (2026-08-08, pepijat Izzat: klik beberapa pautan footer yang
+  // gagal menimbun 10+ toast SERUPA sehingga menutup separuh skrin). Mesej yang sama TIDAK
+  // ditimbun — ulangan cuma menyegarkan yang sedia ada (id baharu = pemasa 3 saat bermula semula),
+  // dan paling banyak 3 toast kelihatan serentak tanpa mengira berapa banyak dicetuskan.
+  const MAKS_TOAST = 3;
   const addToast = (type: 'success' | 'error' | 'info', message: string) => {
     const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, type, message }]);
+    setToasts((prev) => [...prev.filter((t) => t.message !== message), { id, type, message }].slice(-MAKS_TOAST));
   };
   const dismissToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -1387,6 +1392,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       // TIGA skop konkrit sepadan tepat 1:1 dengan destinasi Frontpage (lihat
       // core/routes/editorNotesRoutes.js) — dua pautan footer ni tarik terus daripada laluan
       // awam tu (bukan static_pages), guna slot footer sedia ada.
+      const TAJUK_HALAMAN_FOOTER: Record<string, string> = {
+        about: 'Mengenai Adjung',
+        'editorial-board': 'Lembaga Editorial',
+        'publishing-policies': 'Dasar Penerbitan',
+        'version-history': 'Sejarah Versi',
+      };
       const SKOP_FOOTER: Record<string, { skop: string; tajuk: string }> = {
         'editors-notes': { skop: 'catatan_ketua_editor', tajuk: 'Catatan Ketua Editor' },
         notices: { skop: 'pengumuman', tajuk: 'Pengumuman' },
@@ -1411,6 +1422,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       if (res.ok) {
         const data = await res.json();
         setFooterPageData(data);
+      } else if (res.status === 404) {
+        // Halaman belum diisi Ketua Editor (2026-08-08, pepijat Izzat) — BUKAN ralat: pautan
+        // footer wujud sejak reka bentuk, kandungannya ditulis kemudian di Editorium → Tetapan →
+        // Halaman Awam. Dahulu ni memancarkan toast "Gagal memuatkan kandungan halaman" dan
+        // menutup modal terus, jadi pembaca nampak kegagalan sistem sedangkan yang sebenarnya
+        // berlaku ialah kandungan belum ditulis. Buka modal macam biasa dengan nota jujur.
+        setFooterPageData({
+          title: TAJUK_HALAMAN_FOOTER[key] || 'Halaman',
+          content: 'Kandungan halaman ini belum diterbitkan lagi.',
+        });
       } else {
         addToast('error', 'Gagal memuatkan kandungan halaman.');
         setActiveFooterPageKey(null);
