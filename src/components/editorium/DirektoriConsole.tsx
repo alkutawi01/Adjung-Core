@@ -157,7 +157,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
               <input
                 type="text"
-                placeholder="Cari anggota, username, atau emel..."
+                placeholder="Cari anggota, username, atau emel…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className={`${INPUT_BORANG} pl-8 w-64`}
@@ -166,7 +166,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
 
             {isPentadbir && (
               <Button onClick={() => setTambahTerbuka(true)} icon={<Plus className="w-3.5 h-3.5" />}>
-                TAMBAH ANGGOTA
+                Tambah Anggota
               </Button>
             )}
           </>
@@ -194,7 +194,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           </thead>
           <tbody className="font-sans">
             {memuat && (
-              <tr><td colSpan={7} className="p-12 text-center text-stone-400"><Hourglass className="w-5 h-5 mx-auto mb-2 animate-pulse" />Memuatkan...</td></tr>
+              <tr><td colSpan={7} className="p-12 text-center text-stone-400"><Hourglass className="w-5 h-5 mx-auto mb-2 animate-pulse" />Memuatkan…</td></tr>
             )}
             {!memuat && filteredStaff.length === 0 && (
               <tr>
@@ -550,7 +550,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
         // merender `tindakan` sebagai ADIK-BERADIK kepada children, jadi penghantaran tersirat
         // tidak berfungsi tanpa atribut ni.
         <Button type="submit" form="borang-tambah-anggota" disabled={menyimpan || roles.length === 0}>
-          {menyimpan ? 'Mencipta...' : 'Cipta Akaun'}
+          {menyimpan ? 'Mencipta…' : 'Cipta Akaun'}
         </Button>
       }
     >

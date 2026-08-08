@@ -889,7 +889,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <h2 className="font-serif text-xl font-medium tracking-tight text-stone-900">
                   Tulis Kandungan <span className="font-sans text-sm text-stone-400">Slot</span> <span className="font-mono text-lg" style={{ color: accent }}>{editingSlotIndex + 1}</span>
                 </h2>
-                <button type="button" aria-label="Tutup" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer shrink-0 mt-1">
+                <button type="button" aria-label="Batal" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer shrink-0 mt-1">
                   <X size={20} />
                 </button>
               </div>
@@ -940,7 +940,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     ))}
                   </select>
                 )}
-                <button type="button" aria-label="Tutup" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
+                <button type="button" aria-label="Batal" onClick={handleClose} className="text-stone-400 hover:text-stone-600 cursor-pointer">
                   <X size={18} />
                 </button>
               </div>

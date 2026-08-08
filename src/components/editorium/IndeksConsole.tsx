@@ -313,7 +313,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         body: JSON.stringify(body),
       });
       const resBody = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(resBody.error || `Gagal simpan jadual (${res.status}).`);
+      if (!res.ok) throw new Error(resBody.error || 'Gagal menyimpan jadual terbit/luput. Cuba lagi.');
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
         ...i,
         scheduledPublishAt: body.scheduledPublishAt,
@@ -589,7 +589,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(body.error || `Gagal kemas kini status (${res.status}).`);
+        throw new Error(body.error || 'Gagal mengemas kini status kandungan. Cuba lagi.');
       }
       // LIFE-02 (audit ChatGPT 2026-08-08) — server dah pulangkan slotPenuh (Bidang lulus, cuma
       // tiada ruang lagi, kandungan kekal 'pending' menunggu slot lapang), dahulu diabaikan terus
@@ -638,7 +638,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Gagal tolak kandungan (${res.status}).`);
+        throw new Error(body.error || 'Gagal menolak kandungan. Cuba lagi.');
       }
       onToast?.('success', 'Kandungan ditolak, kembali jadi draf.');
     } catch (err: any) {
@@ -660,7 +660,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     try {
       const res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, { method: 'DELETE' });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error || `Gagal padam kandungan (${res.status}).`);
+      if (!res.ok) throw new Error(body.error || 'Gagal memindahkan kandungan ke Tong Sampah. Cuba lagi.');
       onToast?.('success', 'Kandungan dipindah ke Tong Sampah.');
     } catch (err: any) {
       setItems(previous);
@@ -677,7 +677,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     try {
       const res = await fetch(`/api/system/content/${encodeURIComponent(id)}/pulihkan-sampah`, { method: 'POST' });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error || `Gagal pulihkan kandungan (${res.status}).`);
+      if (!res.ok) throw new Error(body.error || 'Gagal memulihkan kandungan. Cuba lagi.');
       onToast?.('success', 'Kandungan dipulihkan.');
     } catch (err: any) {
       setItems(previous);
@@ -700,7 +700,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     try {
       const res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, { method: 'DELETE' });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error || `Gagal padam kekal (${res.status}).`);
+      if (!res.ok) throw new Error(body.error || 'Gagal memadam kandungan secara kekal. Cuba lagi.');
       onToast?.('success', 'Kandungan dipadam kekal.');
     } catch (err: any) {
       setItems(previous);
@@ -745,7 +745,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           });
         }
         const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body.error || `Ralat ${res.status}`);
+        if (!res.ok) throw new Error(body.error || 'Tindakan gagal untuk kandungan ini.');
         berjaya++;
       } catch (err: any) {
         gagal.push(err.message || 'Ralat tidak diketahui');
@@ -781,7 +781,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         body: JSON.stringify({ note: drafNota }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error || `Gagal simpan nota (${res.status}).`);
+      if (!res.ok) throw new Error(body.error || 'Gagal menyimpan nota. Cuba lagi.');
       const notaOlehBaharu = body.notaOleh || '';
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? { ...i, note: drafNota, notaOleh: notaOlehBaharu } : i));
       setActiveItemModal(prev => prev ? { ...prev, note: drafNota, notaOleh: notaOlehBaharu } : prev);
@@ -815,7 +815,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error || `Gagal siarkan semula (${res.status}).`);
+      if (!res.ok) throw new Error(body.error || 'Gagal menyiarkan semula kandungan. Cuba lagi.');
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
         ...i,
         status: 'Live',
@@ -878,7 +878,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               type="text"
-              placeholder="Cari tajuk, ID, atau kata kunci kandungan..."
+              placeholder="Cari tajuk, ID, atau kata kunci kandungan…"
               value={draftFilters.search}
               onChange={e => patchDraft({ search: e.target.value })}
               onKeyDown={e => { if (e.key === 'Enter') handleApplyFilters(); }}
@@ -1560,7 +1560,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 {jadualError && <MesejStatus tone="error">{jadualError}</MesejStatus>}
                 {currentUserRole === 'KETUA_EDITOR' && (
                   <Button onClick={handleSimpanJadual} disabled={savingJadual}>
-                    {savingJadual ? 'Menyimpan...' : 'Simpan Jadual'}
+                    {savingJadual ? 'Menyimpan…' : 'Simpan Jadual'}
                   </Button>
                 )}
               </div>
@@ -1614,7 +1614,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                   onClick={handleReactivate}
                   disabled={reactivating || !reactivateDesk || !reactivateTopik.trim() || reactivateSlotIndex === ''}
                 >
-                  {reactivating ? 'Menyiarkan...' : 'Siarkan Semula'}
+                  {reactivating ? 'Menyiarkan…' : 'Siarkan Semula'}
                 </Button>
               </div>
             )}

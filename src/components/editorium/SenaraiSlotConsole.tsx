@@ -384,7 +384,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
 
       <PanelCard className="space-y-4 text-xs">
         {loading ? (
-          <KeadaanKosong>Memuatkan senarai slot...</KeadaanKosong>
+          <KeadaanKosong>Memuatkan senarai slot…</KeadaanKosong>
         ) : gagalMuat ? (
           <KeadaanKosong>Gagal memuatkan sebahagian data slot. Sila muat semula halaman.</KeadaanKosong>
         ) : (
@@ -644,7 +644,7 @@ const EditorSlotModal: React.FC<EditorSlotModalProps> = ({
             Batal
           </Button>
           <Button variant="primary" onClick={onSimpan} disabled={menyimpan}>
-            {menyimpan ? 'Menyimpan...' : 'Simpan'}
+            {menyimpan ? 'Menyimpan…' : 'Simpan'}
           </Button>
         </>
       }
@@ -727,7 +727,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
             Batal
           </Button>
           <Button variant="primary" onClick={onSimpan} disabled={menyimpan}>
-            {menyimpan ? 'Menyimpan...' : 'Simpan'}
+            {menyimpan ? 'Menyimpan…' : 'Simpan'}
           </Button>
         </>
       }
