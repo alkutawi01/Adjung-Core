@@ -9,6 +9,7 @@ import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
+import { TIER_GRID_SIZE } from '../../../core/editorial/GeometryConfig.js';
 
 // Tier Kad (2026-07-30, permintaan pemilik projek) — tetapan yang dikongsi SEMUA slot yang sebentuk.
 // Buat masa ini: had aksara tajuk dan huraian ringkas.
@@ -162,6 +163,9 @@ export const TierKadConsole: React.FC = () => {
                       <td className="p-2.5">
                         <div className="font-semibold text-stone-800">
                           {TIER_LABEL_IS_ENGLISH[t.tierKey] ? <em>{t.label}</em> : t.label}
+                          {TIER_GRID_SIZE[t.tierKey] && (
+                            <span className="font-mono text-[10px] text-stone-400 font-normal"> ({TIER_GRID_SIZE[t.tierKey]})</span>
+                          )}
                         </div>
                         <div className="font-mono text-[9px] text-stone-400 uppercase">{t.tierKey}</div>
                       </td>

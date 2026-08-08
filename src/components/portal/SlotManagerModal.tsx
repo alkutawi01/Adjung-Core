@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, ChevronUp, ChevronDown, Trash2, Lock, Upload, AlertCircle } from 'lucide-react';
 import { validateContentBudget, validateBidangTopik } from '../../../core/editorial/ContentBudget.js';
-import { tierForSlot, ceilingForSlot, TIER_LABELS, topikCeilingForSlot, effectiveMinBriefLong } from '../../../core/editorial/GeometryConfig.js';
+import { tierForSlot, ceilingForSlot, TIER_LABELS, TIER_GRID_SIZE, topikCeilingForSlot, effectiveMinBriefLong } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
 import { Tooltip } from '../common/Tooltip';
@@ -372,6 +372,9 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // yang terhad; dibuka bila diklik sahaja.
   const [drafTerbukaPhone, setDrafTerbukaPhone] = useState(false);
   const tier = tierForSlot(editingSlotIndex) || 'STANDARD';
+  // Saiz grid dilekat pada nama tier (2026-08-08, permintaan Izzat) — supaya bentuk fizikal kad
+  // kelihatan terus, bukan cuma nama. TIER_GRID_SIZE tiada kunci TICKER (bukan kad bento).
+  const tierLabelDenganSaiz = `${TIER_LABELS[tier] || tier}${TIER_GRID_SIZE[tier] ? ` (${TIER_GRID_SIZE[tier]})` : ''}`;
   const ceiling = ceilingForSlot(editingSlotIndex);
   const desk = formConfig.manualDesk || '';
   const bidang = activeBidangList.find((b) => b.name.toLowerCase() === desk.toLowerCase());
@@ -807,7 +810,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 {bidang && <BidangIcon iconName={bidang.icon} iconSvg={bidang.iconSvg} color={accent} variant="bare" size={13} title={desk} />}
                 <span className="font-sans text-[10px] uppercase tracking-[0.15em] font-extrabold" style={{ color: accent }}>{desk || '— Belum ditetapkan —'}</span>
                 <span className="text-stone-300">·</span>
-                <span className="font-sans text-[11px] text-stone-500">{TIER_LABELS[tier] || tier}</span>
+                <span className="font-sans text-[11px] text-stone-500">{tierLabelDenganSaiz}</span>
               </p>
               {/* Tukar slot — lebar penuh di telefon (bukan sebelah butang Tutup, ruang tak cukup
                   untuk teks pilihan panjang cth "Slot 3 — Teknologi Digital"). */}
@@ -833,7 +836,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   {bidang && <BidangIcon iconName={bidang.icon} iconSvg={bidang.iconSvg} color={accent} variant="bare" size={13} title={desk} />}
                   <span className="font-sans text-[10px] uppercase tracking-[0.15em] font-extrabold" style={{ color: accent }}>{desk || '— Belum ditetapkan —'}</span>
                   <span className="text-stone-300">·</span>
-                  <span className="font-sans text-[11px] text-stone-500">{TIER_LABELS[tier] || tier}</span>
+                  <span className="font-sans text-[11px] text-stone-500">{tierLabelDenganSaiz}</span>
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -979,7 +982,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
             {tab === 'maklumat' && (
               <div className="grid grid-cols-2 gap-5">
                 <ReadOnlyField label="Nombor" value={String(editingSlotIndex + 1)} />
-                <ReadOnlyField label="Jenis" value={TIER_LABELS[tier] || tier} />
+                <ReadOnlyField label="Jenis" value={tierLabelDenganSaiz} />
                 <ReadOnlyField label="Bidang" value={desk} />
                 {/* Editor DITUGASKAN kepada slot (2026-08-01) — bukan lagi orang yang sedang log
                     masuk. Ditetapkan di Editorium → Slot → Senarai Slot, bukan di sini (lihat nota

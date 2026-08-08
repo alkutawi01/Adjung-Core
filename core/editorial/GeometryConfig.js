@@ -87,6 +87,20 @@ export const TIER_LABELS = {
   TICKER: 'Ticker',
 };
 
+// Saiz grid setiap tier (lajur×baris, unit sel bento) — permintaan Izzat 2026-08-08 supaya saiz
+// fizikal kad kelihatan terus di modal Urus Slot, bukan cuma nama tier. TICKER tiada saiz grid
+// (bukan kad bento, jalur teks berjalan) — sengaja tiada kunci di sini, pengguna semak isValid
+// sebelum papar.
+export const TIER_GRID_SIZE = {
+  HERO: '4×4',
+  MENEGAK: '8×1',
+  STANDARD: '4×3',
+  SEGI_EMPAT_MEDIUM: '2×2',
+  SEGI_EMPAT_SMALL: '4×2',
+  KOMPAK: '2×1',
+  BAR: '1×',
+};
+
 // Peraturan Perlembagaan: label mesti 100% Bahasa Melayu; Bahasa Inggeris hanya dibenarkan
 // bertulis condong (italic) bila tiada padanan Melayu yang diluluskan lagi. "Bar" dan "Ticker"
 // tiada terjemahan Melayu rasmi setakat ini — tandakan di sini supaya semua paparan (Perlembagaan,

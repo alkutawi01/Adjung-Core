@@ -274,7 +274,14 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                           ) : (
                             <Tooltip text={bajet.reason}>
                               <span aria-label={bajet.reason} className="cursor-help">
-                                <StatusBadge tone="error" label="Lebih had" />
+                                <StatusBadge
+                                  tone="error"
+                                  label={
+                                    bajet.reason && (bajet.reason.includes('terlalu pendek') || bajet.reason.includes('terlalu ringkas'))
+                                      ? 'Kurang bajet'
+                                      : 'Lebih had'
+                                  }
+                                />
                               </span>
                             </Tooltip>
                           )}
