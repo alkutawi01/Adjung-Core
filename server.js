@@ -2005,6 +2005,13 @@ const initEditorialOS = (dbConn) => {
           // Editor/Penolong sendiri yang luluskan, elak editor terbit semula tanpa semakan.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('pernahDitolak', 'Pernah Ditolak', 'text')", () => {});
 
+          // Tong Sampah (2026-08-08, permintaan Izzat) — statusSebelumPadam simpan status TEPAT
+          // sebelum dipadam-lembut (Aktif/Menunggu/Arkib) supaya Pulihkan kembalikan status betul,
+          // bukan andaian tegar. dipadamPada (ISO) dibaca runSchedulingTick() untuk auto-padam
+          // kekal lepas HARI_SIMPAN_TONG_SAMPAH hari (contentRoutes.js).
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('statusSebelumPadam', 'Status Sebelum Dipadam', 'text')", () => {});
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('dipadamPada', 'Dipadam Pada', 'text')", () => {});
+
           // sebabMenunggu: DUA jenis Menunggu (2026-08-06, permintaan Izzat — "menunggu sepatutnya
           // ada dua jenis, menunggu semakan dan menunggu untuk disiarkan/aktif"). Nilai 'semakan'
           // (lalai bagi setiap kandungan pending baharu — perlu keputusan MANUSIA, Ketua Editor/

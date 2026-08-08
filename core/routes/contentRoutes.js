@@ -185,7 +185,12 @@ export const gantiBlokModTicker = (teksSemasa, modSendiri, blokBaharu) => {
   return serializeTickerText([...dikekalkan.map((i) => i), ...blokBaharu]);
 };
 
-const CONTENT_STATUSES = ['approved', 'pending', 'rejected', 'archived', 'scheduled'];
+const CONTENT_STATUSES = ['approved', 'pending', 'rejected', 'archived', 'scheduled', 'dipadam'];
+
+// Tong Sampah — bilangan hari kandungan kekal di 'dipadam' sebelum dipadam KEKAL secara automatik
+// (2026-08-08, permintaan Izzat — "boleh restore semula atau padam terus dalam tempoh tertentu").
+// Dikuatkuasakan oleh runSchedulingTick() (tik sama macam Jadual Terbit/Luput).
+const HARI_SIMPAN_TONG_SAMPAH = 30;
 
 // Jadual Terbit/Luput (2026-08-02) — Keputusan Izzat #2: hanya Ketua Editor/Penolong Ketua Editor
 // (kunci kebenaran `manageEditorial` sedia ada, TIDAK cipta kunci baharu) boleh menetapkan
@@ -302,6 +307,35 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
     }
   } catch (err) {
     console.error('[Jadual Luput] Ralat tik penjadual:', err.message);
+  }
+
+  // (3) Tong Sampah — auto-padam KEKAL lepas HARI_SIMPAN_TONG_SAMPAH hari (2026-08-08,
+  // permintaan Izzat). Tiada laluan pulih lepas ni — betul-betul DELETE, bukan tanda status.
+  try {
+    const ambangIso = new Date(Date.now() - HARI_SIMPAN_TONG_SAMPAH * 24 * 60 * 60 * 1000).toISOString();
+    const dueToPurge = await dbAll(`
+      SELECT er.id as revisionId, er.objectId, er.title, av.valueText as dipadamPada
+      FROM editorial_revisions er
+      INNER JOIN (SELECT objectId, MAX(version) as mv FROM editorial_revisions GROUP BY objectId) lv
+        ON lv.objectId = er.objectId AND lv.mv = er.version
+      LEFT JOIN editorial_attribute_values av
+        ON av.objectId = er.objectId AND av.revisionId = er.id AND av.attributeId = 'dipadamPada'
+      WHERE er.status = 'dipadam'
+    `);
+    for (const row of dueToPurge) {
+      // Kandungan lama yang jadi 'dipadam' sebelum atribut dipadamPada wujud (patut jarang/tak
+      // pernah, tapi jangan biar terperangkap Tong Sampah selama-lamanya) — layan macam dah tempoh.
+      if (row.dipadamPada && row.dipadamPada > ambangIso) continue;
+      await dbRun("DELETE FROM editorial_attribute_values WHERE objectId = ?", [row.objectId]);
+      await dbRun("DELETE FROM editorial_revisions WHERE objectId = ?", [row.objectId]);
+      await dbRun("DELETE FROM editorial_objects WHERE id = ?", [row.objectId]);
+      await logAudit(dbRun, {
+        actorId: null, actorName: 'Penjadual Sistem', action: 'kandungan-padam-kekal-auto-tong-sampah',
+        targetType: 'kandungan', targetId: row.objectId, detail: (row.title || '').slice(0, 100),
+      });
+    }
+  } catch (err) {
+    console.error('[Tong Sampah] Ralat tik auto-padam kekal:', err.message);
   }
 }
 
@@ -1001,6 +1035,44 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
     }
   }));
 
+  // POST /api/system/content/:id/pulihkan-sampah — "Pulihkan" dalam Tong Sampah (2026-08-08,
+  // permintaan Izzat). Cuma sah bila status SEMASA ialah 'dipadam'; kembalikan ke
+  // statusSebelumPadam yang disimpan semasa DELETE /content/:id (bukan andaian tegar 'archived')
+  // supaya kandungan pulih tepat macam sebelum dipadam. Dikunci manageEditorial sama macam
+  // padam sendiri.
+  router.post('/content/:id/pulihkan-sampah', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1", [id]);
+      if (!rev) {
+        return res.status(404).json({ error: 'Item tidak dijumpai.' });
+      }
+      if (rev.status !== 'dipadam') {
+        return res.status(400).json({ error: 'Kandungan ni tiada dalam Tong Sampah.' });
+      }
+      const statusSebelumRow = await dbGet(
+        "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'statusSebelumPadam'",
+        [id, rev.id]
+      );
+      const statusPulihan = (statusSebelumRow && CONTENT_STATUSES.includes(statusSebelumRow.valueText))
+        ? statusSebelumRow.valueText
+        : 'archived';
+      await dbRun("UPDATE editorial_revisions SET status = ?, updatedAt = ? WHERE id = ?", [statusPulihan, new Date().toISOString(), rev.id]);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'pulihkan-kandungan-tong-sampah',
+        targetType: 'kandungan',
+        targetId: id,
+        detail: (rev.title || '').slice(0, 100),
+      });
+      res.json({ success: true, status: statusPulihan });
+    } catch (err) {
+      console.error('Pulihkan Tong Sampah error:', err);
+      res.status(500).json({ error: 'Gagal memulihkan kandungan. ' + (err.message || '') });
+    }
+  });
+
   // POST /api/system/content/:id/reject-to-draft — "Tolak" di Indeks (2026-07-29, permintaan
   // pemilik projek). Alur kerja Draf/Terbit: kandungan "Terbitkan" masuk Indeks sebagai Pending,
   // menunggu Ketua Editor. Tolak BUKAN sekadar tanda status='rejected' — ia betul-betul
@@ -1164,23 +1236,63 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         return res.json({ success: true });
       }
 
-      // PERATURAN EDITORIAL (2026-07-30, pemilik projek): kandungan yang sudah DITERBITKAN tidak
-      // boleh dipadam — termasuk yang sudah diarkibkan. Yang boleh dipadam hanyalah DRAF, iaitu
-      // editor membatalkan rancangan menerbitkan sesuatu.
-      //
-      // Draf tidak pernah punya baris editorial_objects: ia hidup sebagai teks dalam
-      // slots_config.manualSummary dan dipadam terus di modal Tulis Kandungan. Jadi setiap id yang
-      // sampai ke sini SUDAH diterbitkan, dan laluan ni tiada kes sah yang tinggal.
-      //
-      // Untuk mengeluarkan kandungan daripada frontpage, gunakan Arkib (PATCH status) — rekodnya
-      // kekal untuk jejak audit.
+      // TONG SAMPAH (diubah 2026-08-08, keputusan Izzat — sebelum ni kandungan diterbitkan/
+      // diarkibkan LANGSUNG tak boleh dipadam, cuma draf; kini boleh, tapi lembut dulu, bukan
+      // terus hilang — "boleh restore semula atau padam terus dalam tempoh tertentu"). Panggilan
+      // PERTAMA pada kandungan bukan-'dipadam' hantar ke Tong Sampah (status='dipadam', boleh
+      // dipulihkan). Panggilan KEDUA (kandungan yang DAH pun 'dipadam') padam KEKAL sebenar —
+      // tiada laluan pulih lepas ni. Auto-padam kekal lepas 30 hari dikuatkuasakan
+      // runSchedulingTick(). Dikunci Ketua Editor/Penolong Ketua Editor sahaja (manageEditorial,
+      // sama kunci "Terbit sekarang" tanpa kelulusan) — tindakan padam kekal tak boleh dibuat
+      // asal (tiada backup DB boleh dipercayai, CLAUDE.md), Editor biasa guna Arkib sahaja.
       const wujud = await dbGet("SELECT id FROM editorial_objects WHERE id = ?", [id]);
       if (!wujud) {
         return res.status(404).json({ error: 'Item tidak dijumpai.' });
       }
-      return res.status(400).json({
-        error: 'Kandungan yang sudah diterbitkan tidak boleh dipadam — arkibkannya sebaliknya. Hanya draf (dalam modal Tulis Kandungan) boleh dipadam.',
+      if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
+        return res.status(403).json({
+          error: 'Padam kandungan diterbitkan/diarkibkan hanya untuk Ketua Editor/Penolong Ketua Editor — Editor guna Arkib sebaliknya.',
+        });
+      }
+      const revSemasa = await dbGet(
+        "SELECT id, status, title FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1",
+        [id]
+      );
+      if (revSemasa && revSemasa.status === 'dipadam') {
+        // Panggilan KEDUA — dah dalam Tong Sampah, ni padam KEKAL sebenar.
+        await dbRun("DELETE FROM editorial_attribute_values WHERE objectId = ?", [id]);
+        await dbRun("DELETE FROM editorial_revisions WHERE objectId = ?", [id]);
+        await dbRun("DELETE FROM editorial_objects WHERE id = ?", [id]);
+        await logAudit(dbRun, {
+          actorId: req.session?.user?.id,
+          actorName: req.session?.user?.penName || req.session?.user?.username,
+          action: 'padam-kandungan-kekal',
+          targetType: 'kandungan',
+          targetId: id,
+          detail: (revSemasa.title || '').slice(0, 100),
+        });
+        return res.json({ success: true, kekal: true });
+      }
+      // Panggilan PERTAMA — hantar ke Tong Sampah. statusSebelumPadam disimpan supaya Pulihkan
+      // boleh kembalikan status TEPAT sebelum ni (Aktif/Menunggu/Arkib), bukan andaian tegar.
+      await dbRun("UPDATE editorial_revisions SET status = 'dipadam', updatedAt = ? WHERE id = ?", [new Date().toISOString(), revSemasa.id]);
+      await dbRun(
+        "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, 'statusSebelumPadam', ?)",
+        [id, revSemasa.id, revSemasa.status]
+      );
+      await dbRun(
+        "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, 'dipadamPada', ?)",
+        [id, revSemasa.id, new Date().toISOString()]
+      );
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-kandungan-tong-sampah',
+        targetType: 'kandungan',
+        targetId: id,
+        detail: (revSemasa.title || '').slice(0, 100),
       });
+      return res.json({ success: true, kekal: false });
     } catch (err) {
       console.error('Delete content item error:', err);
       res.status(500).json({ error: 'Gagal memadam kandungan. ' + (err.message || '') });

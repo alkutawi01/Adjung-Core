@@ -24,7 +24,7 @@ interface BriefRecord {
   // Draf SENGAJA tiada di sini (2026-07-29) — draf ialah ruang peribadi editor dalam modal Tulis
   // Kandungan sahaja (slots_config.manualSummary), tak pernah punya baris editorial_objects,
   // jadi tak sesekali muncul dalam Indeks. Lihat nota alur kerja di server.js.
-  status: 'Pending' | 'Live' | 'Archive' | 'Scheduled';
+  status: 'Pending' | 'Live' | 'Archive' | 'Scheduled' | 'Dipadam';
   // Jadual Terbit/Luput (2026-08-02) — ISO 8601, null bermakna tiada jadual ditetapkan.
   scheduledPublishAt: string | null;
   scheduledExpiresAt: string | null;
@@ -62,6 +62,7 @@ const STATUS_TONE: Record<string, StatusTone> = {
   Scheduled: 'success',
   Pending: 'warning',
   Archive: 'neutral',
+  Dipadam: 'error',
 };
 
 interface IndeksConsoleProps {
@@ -100,12 +101,14 @@ const STATUS_TO_LABEL: Record<string, BriefRecord['status']> = {
   pending: 'Pending',
   archived: 'Archive',
   scheduled: 'Scheduled',
+  dipadam: 'Dipadam',
 };
 const LABEL_TO_STATUS: Record<BriefRecord['status'], string> = {
   Live: 'approved',
   Pending: 'pending',
   Archive: 'archived',
   Scheduled: 'scheduled',
+  Dipadam: 'dipadam',
 };
 
 // Label yang DIPAPAR kepada editor tinggal di src/config/istilah.ts (labelStatus/labelMod) — satu
@@ -401,8 +404,14 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         if (!matches) return false;
       }
 
-      // Filter: Status
-      if (appliedFilters.status !== 'Semua' && item.status !== appliedFilters.status) return false;
+      // Filter: Status — "Semua" sengaja TAK termasuk Tong Sampah (Dipadam), sama macam sebarang
+      // bakul sampah lazim (kekal tersembunyi drpd senarai utama, kena pilih "Tong Sampah" terang-
+      // terang untuk lihat). Dipapar dalam Tong Sampah menunggu Pulihkan/Padam Kekal sahaja.
+      if (appliedFilters.status === 'Semua') {
+        if (item.status === 'Dipadam') return false;
+      } else if (item.status !== appliedFilters.status) {
+        return false;
+      }
 
       // Filter: Jenis Kad
       if (appliedFilters.cardType !== 'Semua' && item.cardType !== appliedFilters.cardType) return false;
@@ -532,6 +541,67 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     }
   };
 
+  // Tong Sampah (2026-08-08, permintaan Izzat — "boleh je yg dipadam tu masuk dlm satu tempat yg
+  // boleh restore semula"). Padam kandungan Aktif/Menunggu/Arkib tak lagi hilang terus — ia
+  // pindah ke status 'dipadam' (boleh Pulihkan), auto-padam KEKAL lepas 30 hari (server-side,
+  // runSchedulingTick). Reversible, jadi tiada keperluan pengesahan berat macam Padam Kekal.
+  const handlePadamLembut = async (id: string) => {
+    setActionError(null);
+    const previous = items;
+    setItems(prev => prev.map(i => i.id === id ? { ...i, status: 'Dipadam' } : i));
+    try {
+      const res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || `Gagal padam kandungan (${res.status}).`);
+      onToast?.('success', 'Kandungan dipindah ke Tong Sampah.');
+    } catch (err: any) {
+      setItems(previous);
+      const mesej = err.message || 'Gagal padam kandungan.';
+      setActionError(mesej);
+      onToast?.('error', mesej);
+    }
+  };
+
+  const handlePulihkanTongSampah = async (id: string) => {
+    setActionError(null);
+    const previous = items;
+    setItems(prev => prev.filter(i => i.id !== id));
+    try {
+      const res = await fetch(`/api/system/content/${encodeURIComponent(id)}/pulihkan-sampah`, { method: 'POST' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || `Gagal pulihkan kandungan (${res.status}).`);
+      onToast?.('success', 'Kandungan dipulihkan.');
+    } catch (err: any) {
+      setItems(previous);
+      const mesej = err.message || 'Gagal pulihkan kandungan.';
+      setActionError(mesej);
+      onToast?.('error', mesej);
+    }
+  };
+
+  // Padam KEKAL (2026-08-08) — tindakan kedua DELETE pada kandungan yang DAH pun 'Dipadam'
+  // (Tong Sampah). Betul-betul DELETE FROM, tiada laluan pulih lepas ni — pengesahan dalam-
+  // aplikasi (confirmPadamKekalId, bukan window.confirm — lihat pepijat butang Tutup Urus Slot
+  // hari ni: dialog native boleh disenyapkan pelayar) WAJIB sebelum panggil.
+  const [confirmPadamKekalId, setConfirmPadamKekalId] = useState('');
+  const handlePadamKekal = async (id: string) => {
+    setConfirmPadamKekalId('');
+    setActionError(null);
+    const previous = items;
+    setItems(prev => prev.filter(i => i.id !== id));
+    try {
+      const res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || `Gagal padam kekal (${res.status}).`);
+      onToast?.('success', 'Kandungan dipadam kekal.');
+    } catch (err: any) {
+      setItems(previous);
+      const mesej = err.message || 'Gagal padam kekal.';
+      setActionError(mesej);
+      onToast?.('error', mesej);
+    }
+  };
+
   // Siarkan Semula: kandungan archived boleh diaktifkan semula ke slot yang Bidangnya sepadan
   // (asal atau lain) — Bidang/Topik boleh diedit khusus di sini sebab item ni tak lagi terikat
   // slot aktif. validateBidangTopik() di server semak semula terhadap slot SASARAN.
@@ -638,6 +708,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <option value="Live">Aktif</option>
               <option value="Scheduled">Dijadualkan</option>
               <option value="Archive">Arkib</option>
+              <option value="Dipadam">Tong Sampah</option>
             </select>
           </div>
 
@@ -947,7 +1018,20 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     <td className="p-2.5 font-sans text-xs font-semibold text-stone-700">{rec.slot}</td>
                     <td className="p-2.5 font-sans text-stone-500 text-[10px] whitespace-nowrap">{rec.date}</td>
                     <td className="p-2.5 text-right font-sans text-xs whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                      {rec.slot !== 'Ticker' && !isReadOnly ? (
+                      {confirmPadamKekalId === rec.id ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="text-[#a8241f] font-semibold">Padam kekal?</span>
+                          <button type="button" onClick={() => handlePadamKekal(rec.id)} className="font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-2 py-1 cursor-pointer">Ya</button>
+                          <button type="button" onClick={() => setConfirmPadamKekalId('')} className="font-semibold text-stone-500 hover:text-stone-700 cursor-pointer px-1">Batal</button>
+                        </span>
+                      ) : rec.slot !== 'Ticker' && !isReadOnly && rec.status === 'Dipadam' ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <button type="button" onClick={() => handlePulihkanTongSampah(rec.id)} className="font-semibold text-stone-700 hover:text-Adjung-maroon cursor-pointer border border-stone-300 rounded px-2 py-1">Pulihkan</button>
+                          {currentUserRole === 'KETUA_EDITOR' && (
+                            <button type="button" onClick={() => setConfirmPadamKekalId(rec.id)} className="font-semibold text-[#a8241f] hover:text-[#802334] cursor-pointer border border-[#a8241f]/30 rounded px-2 py-1">Padam kekal</button>
+                          )}
+                        </span>
+                      ) : rec.slot !== 'Ticker' && !isReadOnly ? (
                         <select
                           value=""
                           onChange={(e) => {
@@ -956,6 +1040,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                               handleUpdateStatus(rec.id, val as any);
                             } else if (val === 'Tolak') {
                               handleRejectToDraft(rec.id);
+                            } else if (val === 'Padam') {
+                              handlePadamLembut(rec.id);
                             }
                             e.target.value = '';
                           }}
@@ -965,6 +1051,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           {rec.status !== 'Live' && <option value="Live">Siar</option>}
                           <option value="Tolak">Tolak (kembali jadi draf)</option>
                           {rec.status !== 'Archive' && <option value="Archive">Arkib</option>}
+                          {currentUserRole === 'KETUA_EDITOR' && <option value="Padam">Padam (ke Tong Sampah)</option>}
                         </select>
                       ) : (
                         <span className="text-stone-400 text-[11px] font-sans">{rec.slot === 'Ticker' ? 'Ticker — urus di Modul Khas' : 'Baca Sahaja'}</span>

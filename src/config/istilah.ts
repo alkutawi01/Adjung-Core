@@ -53,6 +53,8 @@ export const STATUS_LABEL: Record<string, string> = {
   // Dijadualkan (2026-08-02) — BEZA daripada Menunggu (Pending): Menunggu = tunggu kelulusan
   // Ketua Editor; Dijadualkan = SUDAH lulus, cuma tunggu masa terbit tiba (Jadual Terbit).
   Scheduled: 'Dijadualkan',
+  // Tong Sampah (2026-08-08) — status lembut sebelum padam KEKAL, boleh Pulihkan.
+  Dipadam: 'Dipadam',
 };
 
 export const labelStatus = (nilai?: string | null): string => {
