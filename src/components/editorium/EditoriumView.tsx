@@ -693,7 +693,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           masuk (Direktori) atau Ketua Editor (Tetapan) — kini dikunci betul-betul. */}
       {activeTab === 'direktori' && (
         isPentadbir
-          ? <DirektoriConsole isPentadbir={isPentadbir} onTukarTab={setActiveTab} />
+          ? <DirektoriConsole isPentadbir={isPentadbir} onTukarTab={setActiveTab} onToast={pushToast} />
           : <AksesDitolak mesej="Direktori khusus untuk Pentadbir." />
       )}
 

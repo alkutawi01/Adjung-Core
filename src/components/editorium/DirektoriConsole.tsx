@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Plus, Hourglass } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -55,10 +55,15 @@ interface DirektoriConsoleProps {
   // Direktori dahulu tiada laluan terus ke sana, jadi Ketua Editor terpaksa teka. Bukan
   // penyusunan semula (RBAC/architecture kekal), sekadar pautan konteks dari profil anggota.
   onTukarTab?: (tabId: string) => void;
+  // Toast kongsi Editorium (DIREKTORI-1, audit ChatGPT 2026-08-09) — dahulu Direktori bina
+  // toast sendiri (MesejStatus fixed-position + butang tutup manual) sebab tak terima prop
+  // ni langsung, dua pelaksanaan toast berbeza wujud serentak dlm aplikasi. Kini guna corak
+  // sedia ada IndeksConsole/SlotManagerModal.
+  onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
-  isPentadbir = true, onTukarTab
+  isPentadbir = true, onTukarTab, onToast
 }) => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [memuat, setMemuat] = useState(true);
@@ -66,7 +71,6 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [tambahTerbuka, setTambahTerbuka] = useState(false);
-  const [mesejBerjaya, setMesejBerjaya] = useState('');
   // Pengesahan "Ditamatkan" (2026-08-05, permintaan Izzat: "adakah kandungan yg berstatus
   // menunggu dan draf masih ada? saya rasa yg arkib sahaja dikekalkan") — tukar status ke
   // Ditamatkan dahulu papar kiraan Draf+Menunggu kepunyaan akaun tu, Pentadbir kena tekan pilihan
@@ -114,7 +118,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       if (!res.ok) throw new Error('Gagal mengemas kini status.');
       kemaskiniStaff({ ...konfirmasiTamat.staff, status: 'Ditamatkan' });
       setKonfirmasiTamat(null);
-      setMesejBerjaya('Akaun ditamatkan. Draf/Menunggu kepunyaannya dikekalkan.');
+      onToast?.('success', 'Akaun ditamatkan. Draf/Menunggu kepunyaannya dikekalkan.');
     } catch (e: any) {
       setRalatTamat(e.message || 'Gagal mengemas kini status.');
     } finally {
@@ -138,7 +142,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal memadam kandungan.');
       setKonfirmasiTamat(null);
-      setMesejBerjaya(`Akaun ditamatkan. ${data.drafDipadam} draf dan ${data.menungguDipadam} kandungan menunggu dipadam.`);
+      onToast?.('success', `Akaun ditamatkan. ${data.drafDipadam} draf dan ${data.menungguDipadam} kandungan menunggu dipadam.`);
     } catch (e: any) {
       setRalatTamat(e.message || 'Gagal memadam kandungan belum terbit.');
     } finally {
@@ -194,7 +198,10 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           </thead>
           <tbody className="font-sans">
             {memuat && (
-              <tr><td colSpan={7} className="p-12 text-center text-stone-400"><Hourglass className="w-5 h-5 mx-auto mb-2 animate-pulse" />Memuatkan…</td></tr>
+              // DIREKTORI-2 (2A, audit ChatGPT 2026-08-09) — dahulu ikon Hourglass berputar
+              // sendiri, gaya loading ke-3 dlm aplikasi. Selaraskan ke corak KeadaanKosong sedia
+              // ada dipakai Draf Saya/Senarai Slot/Peti Makluman/Nota Ketua Editor.
+              <tr><td colSpan={7}><KeadaanKosong>Memuatkan…</KeadaanKosong></td></tr>
             )}
             {!memuat && filteredStaff.length === 0 && (
               <tr>
@@ -248,16 +255,9 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           onTutup={() => setSelectedStaff(null)}
           onUpdated={kemaskiniStaff}
           onSiapUntukTamat={setKonfirmasiTamat}
-          onBerjaya={setMesejBerjaya}
+          onBerjaya={(mesej) => onToast?.('success', mesej)}
           onUrusPenugasanSlot={onTukarTab ? () => { setSelectedStaff(null); onTukarTab('slot'); } : undefined}
         />
-      )}
-
-      {mesejBerjaya && (
-        <MesejStatus tone="success" className="fixed bottom-4 right-4 z-[80] shadow-lg max-w-sm">
-          {mesejBerjaya}
-          <button type="button" onClick={() => setMesejBerjaya('')} className="ml-3 font-bold cursor-pointer">✕</button>
-        </MesejStatus>
       )}
 
       {tambahTerbuka && (
@@ -266,7 +266,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           onBerjaya={(emel: string) => {
             setTambahTerbuka(false);
             muatSemula();
-            setMesejBerjaya(`Akaun dicipta. E-mel jemputan telah dihantar ke ${emel} untuk tetapkan kata laluan.`);
+            onToast?.('success', `Akaun dicipta. E-mel jemputan telah dihantar ke ${emel} untuk tetapkan kata laluan.`);
           }}
         />
       )}

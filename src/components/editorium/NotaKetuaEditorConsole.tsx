@@ -302,7 +302,9 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
           {ralatBorang && <MesejStatus tone="error">{ralatBorang}</MesejStatus>}
 
           <div className="flex items-center justify-end gap-3 pt-1">
-            {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
+            {/* NOTA-1 (2A, audit ChatGPT 2026-08-09) — dahulu <span> bergaya sendiri walaupun
+                fail ni SUDAH import+guna MesejStatus utk ralat 2 baris di atas. */}
+            {mesej && <MesejStatus tone="success">{mesej}</MesejStatus>}
             <Button
               type="submit"
               variant="primary"

@@ -3,6 +3,7 @@ import { labelTindakan } from './LogAuditConsole';
 import { SlotMatrixCell } from '../common/SlotMatrixCell';
 import { StatusBadge } from '../common/StatusBadge';
 import { Tooltip } from '../common/Tooltip';
+import { KeadaanKosong } from '../common/KeadaanKosong';
 
 // Paparan Utama (2026-08-02, Fasa 5) — destinasi lalai selepas log masuk.
 //
@@ -240,7 +241,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
             <span className="ml-auto font-mono text-[10.5px] text-stone-400">{gagalMuatPengunjung ? 'Gagal dimuatkan' : `${jejakPengunjung.hariIni} muatan hari ini`}</span>
           </div>
           {jejakPengunjung.trenHarian.length === 0 ? (
-            <p className="text-xs text-stone-400">Belum ada rekod jejak.</p>
+            <KeadaanKosong className="py-4">Belum ada rekod jejak.</KeadaanKosong>
           ) : (
             <>
               <div className="flex items-end gap-1.5 h-32 border-b border-stone-100">
@@ -263,7 +264,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
         <div>
           <h2 className="font-mono text-[10px] uppercase tracking-widest font-semibold text-stone-400 mb-5">Taburan bidang</h2>
           {bidangTersusun.length === 0 ? (
-            <p className="text-xs text-stone-400">Belum ada kandungan aktif.</p>
+            <KeadaanKosong className="py-4">Belum ada kandungan aktif.</KeadaanKosong>
           ) : (
             bidangTersusun.map(b => (
               <div key={b.label} className="py-2.5 border-b border-stone-100">
@@ -313,7 +314,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
         <div>
           <h2 className="font-mono text-[10px] uppercase tracking-widest font-semibold text-stone-400 mb-4">Aktiviti editor</h2>
           {aktivitiTerkini.length === 0 ? (
-            <p className="text-xs text-stone-400">Tiada tindakan direkod lagi.</p>
+            <KeadaanKosong className="py-4">Tiada tindakan direkod lagi.</KeadaanKosong>
           ) : (
             aktivitiTerkini.map(a => (
               <div key={a.id} className="flex items-baseline gap-4 py-3 border-b border-stone-100">

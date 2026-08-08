@@ -388,7 +388,14 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
         if (batal || !Array.isArray(rows)) return;
         setEditorSlot(rows.filter((r: any) => r.slotIndex === editingSlotIndex));
       })
-      .catch(() => { if (!batal) { setEditorSlot([]); setGagalMuatEditorSlot(true); } });
+      .catch(() => {
+        if (batal) return;
+        setEditorSlot([]);
+        setGagalMuatEditorSlot(true);
+        // SLOT-3 (2A, audit ChatGPT 2026-08-09) — dahulu HANYA teks statik dlm medan, tak
+        // guna onToast walaupun modal ni dah terima+guna prop tu di tempat lain (Terbit/Simpan).
+        onToast?.('error', 'Gagal memuatkan senarai editor slot ini.');
+      });
     return () => { batal = true; };
   }, [editingSlotIndex]);
 

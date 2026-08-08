@@ -164,6 +164,13 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
     return () => { dibatal = true; };
   }, []);
   const [ralatTetapan, setRalatTetapan] = useState<string | null>(null);
+  // Kegagalan buka Tetapan Kad SEBELUM modal sempat mount (2A, audit ChatGPT 2026-08-09) —
+  // dahulu setRalatTetapan() dipanggil tapi TetapanSlotModal cuma render bila slotTetapan
+  // DAN drafTetapan kedua-duanya ada (baris 573), yang cuma ditetapkan pada KEJAYAAN. Jadi
+  // ralat tersimpan dalam state yang tak pernah dirender — kegagalan senyap sepenuhnya. Guna
+  // banner peringkat-halaman (sama corak macam gagalMuat) supaya sentiasa kelihatan + boleh
+  // cuba lagi tanpa muat semula seluruh halaman.
+  const [slotTetapanGagalUntuk, setSlotTetapanGagalUntuk] = useState<number | null>(null);
   // Konflik penyuntingan serentak (§F3) — true khusus apabila pelayan menolak simpan dengan 409
   // (slot ni sudah disimpan orang lain sejak dibuka). Menentukan sama ada butang "Salin draf
   // saya ke papan klip" dipapar di sebelah mesej ralat.
@@ -175,6 +182,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   const bukaTetapan = async (slotIndex: number) => {
     setRalatTetapan(null);
     setRalatTetapanKonflik(false);
+    setSlotTetapanGagalUntuk(null);
     try {
       const res = await fetch('/api/system/slots');
       const data = await res.json();
@@ -197,7 +205,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
       setDrafTetapanAwal(nilaiAwal);
       setSlotTetapan(slotIndex);
     } catch (e: any) {
+      // Modal Tetapan Kad TAK PERNAH mount (perlukan slotTetapan+drafTetapan kedua-duanya),
+      // jadi ralatTetapan sahaja senyap. Simpan slotIndex ni supaya banner halaman kekal
+      // kelihatan + "Cuba Lagi" boleh cuba slot yang SAMA semula.
       setRalatTetapan(e.message || 'Gagal memuatkan tetapan slot.');
+      setSlotTetapanGagalUntuk(slotIndex);
     }
   };
 
@@ -272,7 +284,12 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
       .then(d => { if (Array.isArray(d)) setPenugasan(d); })
       .catch(() => {});
 
-  useEffect(() => {
+  // Diasingkan jadi fungsi boleh panggil semula (2A, audit ChatGPT 2026-08-09, SLOT-1) —
+  // dahulu terus dalam useEffect, jadi satu-satunya jalan pulih bila gagal ialah muat semula
+  // SELURUH halaman pelayar. Kini boleh cuba semula tanpa refresh, ikut corak onCubaLagi
+  // sedia ada di IndeksConsole/DrafSayaConsole.
+  const muatSemuaData = () => {
+    setLoading(true);
     const GAGAL = Symbol('gagal');
     Promise.all([
       fetch('/api/system/slots').then(r => r.json()).catch(() => GAGAL),
@@ -315,7 +332,9 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
         }
       })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { muatSemuaData(); }, []);
 
   const formatTarikhMasa = (iso: string | null) => {
     if (!iso) return null;
@@ -382,11 +401,24 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
         }
       />
 
+      {/* Kegagalan buka Tetapan Kad (2A, audit ChatGPT 2026-08-09) — dahulu senyap, modal tak
+          pernah mount jadi ralat tak pernah kelihatan. Banner peringkat-halaman + Cuba Lagi. */}
+      {slotTetapanGagalUntuk !== null && ralatTetapan && (
+        <MesejStatus tone="error" onCubaLagi={() => bukaTetapan(slotTetapanGagalUntuk)}>
+          {ralatTetapan}
+        </MesejStatus>
+      )}
+
       <PanelCard className="space-y-4 text-xs">
         {loading ? (
           <KeadaanKosong>Memuatkan senarai slot…</KeadaanKosong>
         ) : gagalMuat ? (
-          <KeadaanKosong>Gagal memuatkan sebahagian data slot. Sila muat semula halaman.</KeadaanKosong>
+          // SLOT-1 (2A, audit ChatGPT 2026-08-09) — ini RALAT, bukan keadaan kosong; dahulu
+          // KeadaanKosong (salah semantik) + tiada jalan pulih selain muat semula seluruh
+          // halaman. MesejStatus + onCubaLagi ikut corak sedia ada di IndeksConsole/DrafSaya.
+          <MesejStatus tone="error" onCubaLagi={muatSemuaData}>
+            Gagal memuatkan sebahagian data slot.
+          </MesejStatus>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
