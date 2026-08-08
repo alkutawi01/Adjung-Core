@@ -382,7 +382,8 @@ export default function App() {
             </motion.div>
           } />
 
-          <Route path="/tentang" element={<HalamanStatik pageKey="tentang" labelSandaran="Tentang" />} />
+          {/* /tentang DIBUANG (2026-08-08, audit halaman mati) — tiada satu pautan pun ke sini
+              sejak "Mengenai Adjung" (modal footer, kunci 'about') menggantikannya. */}
           <Route path="/hubungi" element={<HalamanStatik pageKey="hubungi" labelSandaran="Hubungi" />} />
           {/* "Polisi & Penafian" dipecah kepada tiga laluan berasingan (2026-08-05, susun atur
               footer baharu) — /polisi-penafian lama sengaja tak dikekalkan sebagai alias, laluan

@@ -1006,7 +1006,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 // Dua kumpulan ni kongsi mekanisme belakang tabir SAMA (static_pages) sengaja untuk elak laluan
 // berganda, tapi perlu dibezakan SECARA VISUAL di sini supaya tak nampak macam salah kategori.
 const HALAMAN_AWAM_SENARAI: { key: string; label: string; kumpulan: 'awam' | 'dalaman' }[] = [
-  { key: 'tentang', label: 'Tentang', kumpulan: 'awam' },
+  // 'tentang' DIBUANG (2026-08-08, audit halaman mati Izzat) — laluan /tentang wujud dan boleh
+  // disunting sepenuhnya, tapi TIADA satu pautan/butang pun di seluruh kod yang membawa ke sana
+  // sejak "Mengenai Adjung" (kunci 'about', modal footer) menggantikannya semasa reka bentuk
+  // footer disusun semula. Cuma boleh dicapai dengan menaip URL terus — laluan mati sebenar,
+  // bukan halaman yang cuma belum diisi. Baris <Route path="/tentang"> di App.tsx turut dibuang.
   { key: 'hubungi', label: 'Hubungi', kumpulan: 'awam' },
   // Empat halaman modal footer (2026-08-08, pepijat Izzat: "kenapa keluar toast kalau klik semua
   // menu tu?"). Pautannya wujud di footer sejak reka bentuk (FrontpageView.tsx —
