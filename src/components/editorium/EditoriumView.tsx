@@ -391,6 +391,17 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const muatPenugasanSlot = () =>
     fetch('/api/system/slot-editors').then((r) => r.json()).then((d) => { if (Array.isArray(d)) setPenugasanSlot(d); }).catch(() => {});
 
+  // Penugasan dimuatkan semasa LEKAPAN, bukan lagi lazily bila pemilih dibuka (2026-08-08,
+  // Fasa 2) — ia kini menentukan slot mana editor boleh capai LANGSUNG, jadi ia diperlukan
+  // walaupun pemilih tak pernah dibuka (cth. masuk terus melalui "Draf Saya", atau dropdown
+  // tukar slot dalam ruang menulis). Senarai pengguna kekal lazy: ia cuma untuk popover
+  // "tetapkan editor", yang memang hanya wujud dalam pemilih.
+  useEffect(() => {
+    if (!currentUser) return;
+    muatPenugasanSlot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
+
   useEffect(() => {
     if (!slotEditor.showSlotPicker) return;
     muatPenugasanSlot();
@@ -401,6 +412,18 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   }, [slotEditor.showSlotPicker]);
 
   const editorBagiSlot = (i: number) => penugasanSlot.filter((p) => p.slotIndex === i);
+
+  // Gerbang akses slot di klien (2026-08-08, Fasa 2) — Ketua Editor/Penolong capai semua slot;
+  // Editor biasa hanya slot yang DIA ditugaskan. Slot tanpa tugasan langsung TIDAK terbuka
+  // kepada Editor biasa (keputusan Izzat) — ia milik Ketua Editor/Penolong sehingga ditugaskan.
+  // Ini penapis PAPARAN sahaja; gerbang sebenar di server (POST /api/system/slots).
+  const slotBolehDicapai = (i: number) =>
+    isEditorialAdmin || penugasanSlot.some((p) => p.slotIndex === i && p.editorId === currentUser?.id);
+
+  // Senarai slot bento (bukan Bar) yang pengguna semasa boleh tulis — dikongsi oleh pemilih slot
+  // dan dropdown "tukar slot" dalam ruang menulis supaya kedua-duanya tak boleh terpesong.
+  const slotBolehTulis = Array.from({ length: 38 }, (_, i) => i)
+    .filter((i) => !TIER_SLOTS.BAR.includes(i) && slotBolehDicapai(i));
 
   const simpanEditorSlot = async (i: number, editorIds: string[]) => {
     try {
@@ -582,12 +605,22 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                 <div className="text-[11px] text-stone-500">Acara/Penganjur/Lokasi/Akses/Penerangan — {TIER_SLOTS.BAR.length} slot bar.</div>
               </div>
             </div>
-            <Button
-              onClick={() => barSlotEditor.openSlotEditor(Math.min(...TIER_SLOTS.BAR))}
-              className="shrink-0 w-[136px]"
-              >
-              Tulis Acara
-            </Button>
+            {/* Buka slot Bar PERTAMA yang pengguna boleh capai (2026-08-08, Fasa 2) — bukan lagi
+                sentiasa indeks terkecil TIER_SLOTS.BAR tanpa syarat, sebab Editor biasa mungkin
+                tak ditugaskan slot Bar pertama langsung. Butang dilumpuhkan kalau tiada satu pun
+                slot Bar boleh dicapai. */}
+            {(() => {
+              const slotBarBoleh = TIER_SLOTS.BAR.filter((i: number) => slotBolehDicapai(i));
+              return (
+                <Button
+                  onClick={() => slotBarBoleh.length > 0 && barSlotEditor.openSlotEditor(slotBarBoleh[0])}
+                  disabled={slotBarBoleh.length === 0}
+                  className="shrink-0 w-[136px]"
+                  >
+                  Tulis Acara
+                </Button>
+              );
+            })()}
           </div>
           {/* Penaja (2026-08-05, Fasa 12) — tajaan bulanan, Pentadbir sahaja (keputusan
               perniagaan/penempatan, bukan editorial harian — kunci manageSettings sama macam
@@ -764,7 +797,13 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               className="flex-1 min-h-0 overflow-y-auto list-none m-0 p-0"
               onClick={() => setPopoverEditorSlot(null)}
             >
-              {Array.from({ length: 38 }, (_, i) => i).filter((i) => !TIER_SLOTS.BAR.includes(i)).map((i) => {
+              {slotBolehTulis.length === 0 && (
+                <li className="px-5 py-8 text-center">
+                  <p className="font-sans text-xs text-stone-500">Tiada slot ditugaskan kepada anda lagi.</p>
+                  <p className="font-sans text-[11px] text-stone-400 mt-1">Hubungi Ketua Editor untuk ditugaskan sebelum mula menulis.</p>
+                </li>
+              )}
+              {slotBolehTulis.map((i) => {
                 const cfg = slotEditor.slotsConfig.find((s: any) => s.slotIndex === i);
                 const editorSlot = editorBagiSlot(i);
                 return (
@@ -826,11 +865,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           saveError={slotEditor.saveError}
           onClose={tutupRuangMenulis}
           onSave={slotEditor.handleSaveSlot}
-          slotOptions={Array.from({ length: 38 }, (_, i) => i)
-            .filter((i) => !TIER_SLOTS.BAR.includes(i))
+          // Slot yang sedang dibuka SENTIASA disertakan walaupun ia di luar tugasan pengguna
+          // (cth. draf lama dalam slot yang kemudian ditugaskan kepada orang lain) — kalau
+          // tidak, dropdown akan hilang slot semasa dan nampak rosak. Server tetap gerbang
+          // sebenar bila cuba simpan.
+          slotOptions={Array.from(new Set([...slotBolehTulis, slotEditor.editingSlotIndex]))
+            .filter((i) => i !== null && !TIER_SLOTS.BAR.includes(i as number))
+            .sort((a, b) => (a as number) - (b as number))
             .map((i) => ({
-              index: i,
-              label: `Slot ${i + 1} — ${slotEditor.slotsConfig.find((s: any) => s.slotIndex === i)?.manualDesk || 'Belum ditetapkan'}`,
+              index: i as number,
+              label: `Slot ${(i as number) + 1} — ${slotEditor.slotsConfig.find((s: any) => s.slotIndex === i)?.manualDesk || 'Belum ditetapkan'}`,
             }))}
           onSwitchSlot={(i) => { setDrafDibuka(''); slotEditor.openSlotEditor(i); }}
           initialUuid={drafDibuka}
@@ -853,10 +897,14 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           saveError={barSlotEditor.saveError}
           onClose={barSlotEditor.closeSlotEditor}
           onSave={barSlotEditor.handleSaveSlot}
-          slotOptions={TIER_SLOTS.BAR.map((i: number) => ({
-            index: i,
-            label: `Slot ${i + 1} — Bar`,
-          }))}
+          // Slot Bar ikut peraturan tugasan yang SAMA (2026-08-08, Fasa 2). Slot semasa sentiasa
+          // disertakan atas sebab sama macam modal kandungan di atas.
+          slotOptions={TIER_SLOTS.BAR
+            .filter((i: number) => slotBolehDicapai(i) || i === barSlotEditor.editingSlotIndex)
+            .map((i: number) => ({
+              index: i,
+              label: `Slot ${i + 1} — Bar`,
+            }))}
           onSwitchSlot={(i) => barSlotEditor.openSlotEditor(i)}
           onToast={pushToast}
         />

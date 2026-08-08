@@ -88,6 +88,33 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
     try {
       const slots = Array.isArray(req.body) ? req.body : [req.body];
 
+      // Gerbang akses slot (2026-08-08, Fasa 2 pemilikan kandungan, keputusan Izzat) — Editor
+      // biasa hanya boleh menulis dalam slot yang DIA ditugaskan (`slot_editors`). Slot yang
+      // ditugaskan kepada orang lain DAN slot yang belum ada tugasan langsung dua-duanya
+      // tertutup kepadanya; slot tanpa tugasan terbuka kepada Ketua Editor/Penolong sahaja.
+      //
+      // Sebelum ni laluan ni cuma `requireAuth`: sesiapa yang log masuk boleh menulis dalam
+      // mana-mana slot antara 38, jadi tiada cara tahu siapa pemilik kandungan sebenar. Gerbang
+      // di klien (pemilih slot ditapis) TIDAK memadai — ia boleh dipintas terus dari API.
+      //
+      // Ticker (slotIndex -1) dikecualikan: ia diuruskan berasingan di Modul Khas dengan
+      // gerbangnya sendiri, bukan sebahagian pengagihan slot bento.
+      const bolehSemuaSlot = hasPermission(req.session?.user?.roles, 'manageEditorial');
+      if (!bolehSemuaSlot) {
+        const userId = req.session?.user?.id;
+        for (const slot of slots) {
+          if (slot.slotIndex === -1) continue;
+          const ditugaskan = userId
+            ? await dbAll('SELECT 1 FROM slot_editors WHERE slotIndex = ? AND editorId = ?', [slot.slotIndex, userId])
+            : [];
+          if (ditugaskan.length === 0) {
+            return res.status(403).json({
+              error: `Anda tidak ditugaskan untuk Slot ${slot.slotIndex + 1}. Hubungi Ketua Editor kalau slot ni sepatutnya milik anda.`,
+            });
+          }
+        }
+      }
+
       // Kawalan serentak (2026-08-02, Fasa 6) — SEMAK SEMUA slot dahulu sebelum tulis MANA-MANA
       // satu (sama corak seperti batch_paste — semua-atau-tiada, bukan simpanan separa). Dua
       // editor buka slot sama: yang kedua simpan mesti tahu orang lain dah ubah dulu, bukan
