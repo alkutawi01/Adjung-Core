@@ -263,7 +263,7 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
           type: 'kandungan_terbit_berjadual',
           title: sebabJadual === 'slot_penuh'
             ? 'Kandungan berjadual anda menunggu slot kosong'
-            : 'Kandungan berjadual anda kini disiar',
+            : 'Kandungan berjadual anda kini disiarkan',
           detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: row.objectId,
         });
       }
@@ -775,7 +775,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [notifySlotIndex]);
           await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
             type: 'kandungan_disiar',
-            title: 'Kandungan anda telah disiar',
+            title: 'Kandungan anda telah disiarkan',
             detail: (title !== undefined ? title : rev.title || '').slice(0, 150),
             targetType: 'kandungan',
             targetId: id,
