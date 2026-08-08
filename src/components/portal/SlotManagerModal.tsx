@@ -346,7 +346,13 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // render — kalau tidak, kandungan pertama sempat terpapar sekelip mata sebelum bertukar.
   const [active, setActive] = useState(() => {
     if (!initialUuid) return 0;
-    const i = parseManualSummaryBlocks(formConfig.manualSummary || '').findIndex((b: any) => b.uuid === initialUuid);
+    // Indeks mesti dikira daripada senarai DITAPIS sama macam `items` di bawah (2026-08-08,
+    // Fasa 3) — kalau tidak, indeks daripada senarai PENUH (termasuk blok orang lain yang
+    // tersembunyi) tak sepadan kedudukan sebenar dalam `items`, mendaratkan editor pada draf
+    // yang salah.
+    const i = parseManualSummaryBlocks(formConfig.manualSummary || '')
+      .filter((b: any) => !b.penulis || b.penulis === currentEditoriumName)
+      .findIndex((b: any) => b.uuid === initialUuid);
     return i >= 0 ? i : 0;
   });
   const [tab, setTab] = useState<'borang' | 'maklumat' | 'ai' | 'sejarah'>('borang');
@@ -439,8 +445,23 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // kosong) — sebelum ni borang PAPAR medan yang nampak boleh disunting walhal items=[] bermakna
   // patch() memetakan array KOSONG (tiada kesan, taipan hilang senyap) sehingga "+ Masukkan"
   // ditekan dulu. Reprodusi hidup: isi borang bila giliran kosong, tiada apa tersimpan.
+  // Draf peribadi (2026-08-08, Fasa 3 pemilikan kandungan, keputusan Izzat — "ketua editor tak
+  // boleh edit kandungan dlm modal urus slot tu jika ia ditulis oleh org lain. ni namanya
+  // pencerobohan"). Blok milik editor LAIN dibuang terus daripada giliran — bukan dipapar baca-
+  // sahaja, TAK KELIHATAN LANGSUNG. Ini termasuk Ketua Editor/Penolong; tiada pengecualian peranan
+  // di sini, cuma "siapa mula menaip". Blok tanpa `penulis` (belum dicap, sepatutnya tak berlaku
+  // sejak blankItem() cap serta-merta, tapi jaring keselamatan untuk keadaan pelik) dianggap
+  // "belum dituntut" — kelihatan kepada semua sehingga seseorang menyuntingnya.
+  //
+  // KRITIKAL: penapisan ni bermakna array `items` di sini TAK PERNAH memegang blok orang lain —
+  // simpanan (serializeManualBentoQueue(items)) yang dihantar ke server juga tak membawanya. Kalau
+  // server tulis-ganti manualSummary DENGAN blob ni SAHAJA, draf semua editor lain dalam slot yang
+  // sama akan PADAM. Server (slotsConfigRoutes.js) WAJIB gabung semula blok orang lain daripada
+  // versi tersimpan sebelum menulis — lihat kekalkanDrafOrangLain() di situ. Jangan alih keluar
+  // penapisan ni tanpa mengalih keluar gabungan server jugak, dan sebaliknya.
   const [items, setItems] = useState<any[]>(() => {
-    const parsed = parseManualSummaryBlocks(formConfig.manualSummary || '');
+    const parsed = parseManualSummaryBlocks(formConfig.manualSummary || '')
+      .filter((it) => !it.penulis || it.penulis === currentEditoriumName);
     return parsed.length > 0 ? parsed : [blankItem()];
   });
   const activeIndex = Math.max(0, Math.min(active, items.length - 1));

@@ -1,9 +1,10 @@
 import express from 'express';
-import { ceilingForSlot as getGeometryCeilingForSlot } from '../editorial/GeometryConfig.js';
+import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS } from '../editorial/GeometryConfig.js';
 import { detectSourceType } from '../editorial/SourceDetector.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { MANUAL_BLOCK_SPLIT_REGEX, MANUAL_BLOCK_SEPARATOR, parseManualBlockFields } from '../editorial/ManualBlockFormat.js';
 
 // Gerbang Nota (2026-08-05, permintaan Ketua Editor) — medan "Nota editor" (Focus View)
 // sepatutnya HANYA boleh ditulis oleh (a) editor yang DITUGASKAN slot berkenaan (`slot_editors`,
@@ -46,6 +47,38 @@ function kekalkanNotaLama(manualSummaryBaharu, notaLamaByUuid) {
     return `${block}\nNota: ${notaLama}`;
   });
   return diperbetul.join('\n\n________________________________________\n\n');
+}
+
+// Draf peribadi (2026-08-08, Fasa 3 pemilikan kandungan, keputusan Izzat — "kandungan yg
+// ditulis oleh editor A, hanya editor A yg boleh edit, terbit, atau draf"). SlotManagerModal.tsx
+// (klien) sudah tapis `items` supaya blok editor LAIN tak pernah kelihatan/disunting — tapi itu
+// makna payload yang dihantar client SECARA STRUKTUR tak membawa blok tersebut langsung. Kalau
+// server tulis-ganti manualSummary DENGAN payload tu SAHAJA, draf setiap editor lain dalam slot
+// yang sama PADAM. Fungsi ni gabung semula: ambil blok "bukan milik saya" daripada versi
+// TERSIMPAN (bukan yang client hantar), lekatkan pada penghujung payload baharu.
+//
+// Pemilikan blok = medan `penulis` (dicap sekali semasa blok dicipta, lihat ManualBlockFormat.js).
+// Blok tanpa `penulis` (belum dituntut) dianggap KEPUNYAAN SAYA di sini — sepadan tapisan klien,
+// supaya blok tak berpemilik yang seseorang sedang mula isi tak "hilang" (sebenarnya cuma
+// terkeluar daripada gabungan ni sebab ia memang sepatutnya ada dalam payload client).
+//
+// Slot Bar DIKECUALIKAN — tiada pemisahan draf/terbit untuk tier tu, seluruh giliran ialah SATU
+// hantaran keseluruhan setiap Simpan (lihat nota isBarLikeRemoval/isBarUpdate di server.js).
+function kekalkanDrafOrangLain(manualSummaryBaharu, manualSummaryLama, namaPenggunaSemasa) {
+  if (!manualSummaryLama || !manualSummaryLama.includes('UUID:')) return manualSummaryBaharu;
+  const blokLama = manualSummaryLama.split(MANUAL_BLOCK_SPLIT_REGEX).filter((b) => b.trim().length > 0);
+  const drafOrangLain = blokLama.filter((block) => {
+    const fields = parseManualBlockFields(block);
+    // Cuma draf (status !== 'draft' bermakna dah TERBIT — direkodkan di editorial_objects,
+    // bukan dalam manualSummary lagi, jadi tak sepatutnya muncul di sini pun; disemak untuk
+    // selamat) DAN penulis SAH bukan pengguna semasa.
+    return fields.status === 'draft' && fields.penulis && fields.penulis !== namaPenggunaSemasa;
+  });
+  if (drafOrangLain.length === 0) return manualSummaryBaharu;
+  const bahagianBaharu = (manualSummaryBaharu || '').trim();
+  return bahagianBaharu
+    ? `${bahagianBaharu}${MANUAL_BLOCK_SEPARATOR}${drafOrangLain.join(MANUAL_BLOCK_SEPARATOR)}`
+    : drafOrangLain.join(MANUAL_BLOCK_SEPARATOR);
 }
 
 // Ticker Manual mode is genuinely freeform text (the Chief Editor types the whole
@@ -190,6 +223,25 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
             console.warn(`Gagal hurai manualSummary sedia ada slot ${slot.slotIndex} utk semak Nota:`, e.message);
           }
           slot.manualSummary = kekalkanNotaLama(slot.manualSummary, notaLamaByUuid);
+        }
+
+        // Gabung draf orang lain (2026-08-08, Fasa 3 pemilikan kandungan) — SELEPAS gerbang Nota
+        // (yang boleh ubah suai medan Nota dalam blok SEDIA ADA payload), SEBELUM
+        // syncManualObjectsForSlot (yang proses payload sebagai senarai LENGKAP giliran slot).
+        // Bukan tier Bar (tiada pemisahan draf/terbit di situ) dan bukan slot Ticker
+        // (slotIndex -1, format berasingan sepenuhnya).
+        if (slot.contentMode === 'Manual' && slot.slotIndex >= 0 && typeof slot.manualSummary === 'string'
+            && !TIER_SLOTS.BAR.includes(slot.slotIndex)) {
+          const semasaUntukGabung = await dbAll(
+            "SELECT manualSummary FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?",
+            [slot.slotIndex]
+          );
+          const namaSemasa = req.session?.user?.penName || req.session?.user?.username || '';
+          slot.manualSummary = kekalkanDrafOrangLain(
+            slot.manualSummary,
+            (semasaUntukGabung[0] && semasaUntukGabung[0].manualSummary) || '',
+            namaSemasa
+          );
         }
 
         let persistedManualSummary = slot.manualSummary;
