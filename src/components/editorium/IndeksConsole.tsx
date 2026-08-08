@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { AlertTriangle, X, Search, Pin, Lock } from 'lucide-react';
+import { AlertTriangle, X, Search, Pin, Lock, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
 import { EditorDialog } from '../common/EditorDialog';
@@ -236,6 +236,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const patchDraft = (patch: Partial<FilterState>) => setDraftFilters({ ...draftFilters, ...patch });
   const filtersDirty = JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
 
+  // Panel "Penapis" boleh lipat (2026-08-08, dapatan audit UI/UX ChatGPT) — dahulu 9 kawalan
+  // tapisan terpapar serentak tiap kali Indeks dibuka, walhal majoriti editor cuma perlukan
+  // carian pada kunjungan harian biasa (lalai peranan dah tapiskan Status/Editor/Slot yang
+  // munasabah). Carian kekal SENTIASA nampak; 8 kawalan lain (7 dropdown + Susunan) di sebalik
+  // satu butang, dgn lencana bilangan tapisan bukan-lalai supaya editor tetap sedar tapisan
+  // aktif walau panel tertutup.
+  const [panelTapisanTerbuka, setPanelTapisanTerbuka] = useState(false);
+  const bilanganTapisanAktif = useMemo(() => {
+    const medanDikira: (keyof FilterState)[] = ['status', 'cardType', 'source', 'creator', 'editor', 'desk', 'slot'];
+    return medanDikira.filter((k) => appliedFilters[k] !== DEFAULT_FILTERS[k]).length;
+  }, [appliedFilters]);
+
   // Editor View Filter: Saya vs Semua (Read Only) — only meaningful once real EDITOR accounts
   // exist; KETUA_EDITOR always sees and can act on everything.
   const [editorViewMode, setEditorViewMode] = useState<'mine' | 'all'>(currentUserRole === 'EDITOR' ? 'mine' : 'all');
@@ -426,12 +438,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // Smart Filtering Logic
   const filteredRecords = useMemo(() => {
     return items.filter(item => {
-      // Editor View Mode Filter — NOT enforced: item.creator is a machine token (which save path
-      // wrote it — Manual/AI Generated/RSS Direct/dll., see formatCreatedBy above), not a real per-account
-      // author, so it can never equal currentUserName. Without real multi-editor sign-in there is no
-      // way to know which content belongs to which editor, so "Kandungan Saya" intentionally shows
-      // the same set as "Semua Kandungan" for now (see the notice banner rendered when this mode is
-      // active) rather than silently filtering everything out.
+      // Tapisan "Kandungan Saya" (2026-08-08, dapatan audit UI/UX ChatGPT + pembetulan) — dahulu
+      // langsung tak dikuatkuasakan (banding `item.creator`, TOKEN MESIN cth "Manual"/"AI
+      // Generated", bukan identiti orang, jadi mustahil sama dgn currentUserName). Guna
+      // `item.editorName` sebaliknya — medan SAMA yang dropdown "Editor" di bawah dan seluruh
+      // Fasa pemilikan kandungan sesi ni dah guna berjaya (nama editor sebenar, dicap semasa
+      // Terbit). Sistem log masuk berbilang editor pun DAH wujud (express-session sebenar) —
+      // premis lama "belum dibina" dah lapuk.
+      if (currentUserRole === 'EDITOR' && editorViewMode === 'mine' && item.editorName !== currentUserName) {
+        return false;
+      }
 
       // Search Query
       if (appliedFilters.search.trim()) {
@@ -526,7 +542,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const [confirmPukal, setConfirmPukal] = useState<'' | 'Archive' | 'Live' | 'Padam'>('');
   const idBolehPilihHalamanIni = useMemo(
     () => pagedRecords
-      .filter(r => r.slot !== 'Ticker' && !(currentUserRole === 'EDITOR' && editorViewMode === 'all' && r.creator !== currentUserName))
+      .filter(r => r.slot !== 'Ticker' && !(currentUserRole === 'EDITOR' && editorViewMode === 'all' && r.editorName !== currentUserName))
       .map(r => r.id),
     [pagedRecords, currentUserRole, editorViewMode, currentUserName]
   );
@@ -836,29 +852,51 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       <PanelCard className="space-y-4">
         <SectionLabel>01 — Penapis Kandungan</SectionLabel>
 
-        {/* Search Input — draf sahaja, ditapis bila "Tapis" ditekan (lihat nota FilterState). */}
-        <FormColumn saiz="md" className="relative">
-          <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-          <input
-            type="text"
-            placeholder="Cari tajuk, ID, atau kata kunci kandungan..."
-            value={draftFilters.search}
-            onChange={e => patchDraft({ search: e.target.value })}
-            onKeyDown={e => { if (e.key === 'Enter') handleApplyFilters(); }}
-            className={`${INPUT_BORANG} pl-10`}
-          />
-        </FormColumn>
+        {/* Search Input — draf sahaja, ditapis bila "Tapis" ditekan (lihat nota FilterState).
+            Carian kekal SENTIASA nampak (bukan sebahagian panel boleh lipat di bawah) — ini
+            tindakan paling kerap editor buat, tak patut perlu satu klik tambahan. */}
+        <div className="flex items-center gap-2">
+          <FormColumn saiz="md" className="relative flex-1">
+            <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              type="text"
+              placeholder="Cari tajuk, ID, atau kata kunci kandungan..."
+              value={draftFilters.search}
+              onChange={e => patchDraft({ search: e.target.value })}
+              onKeyDown={e => { if (e.key === 'Enter') handleApplyFilters(); }}
+              className={`${INPUT_BORANG} pl-10`}
+            />
+          </FormColumn>
+          <Button
+            variant="secondary" size="sm"
+            onClick={() => setPanelTapisanTerbuka((v) => !v)}
+            className="relative shrink-0"
+            aria-expanded={panelTapisanTerbuka}
+            aria-controls="panel-tapisan-lanjutan"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5 inline" />
+            Penapis
+            {panelTapisanTerbuka ? <ChevronUp className="w-3.5 h-3.5 ml-1.5 inline" /> : <ChevronDown className="w-3.5 h-3.5 ml-1.5 inline" />}
+            {bilanganTapisanAktif > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-Adjung-maroon text-white text-[9px] font-bold flex items-center justify-center">
+                {bilanganTapisanAktif}
+              </span>
+            )}
+          </Button>
+        </div>
 
-        {/* 7 Dropdown Smart Filters + Susunan */}
-        {/* lg:grid-cols-5 (bukan 9) — 2026-07-29, permintaan pemilik projek: paksa kesemua 9
-            kawalan dalam SATU baris buat setiap kotak terlalu sempit/kecil pada lebar skrin
-            biasa. 5 lajur bermakna 9 kawalan lipat jadi DUA baris (5+4) — lebih selesa dibaca
-            tanpa mengira lebar tetingkap. */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 font-sans text-xs">
+        {/* 7 Dropdown Smart Filters + Susunan — di sebalik butang "Penapis" (2026-08-08, dapatan
+            audit UI/UX ChatGPT: "9 kawalan tapisan terpapar serentak" terlalu ramai keputusan
+            sebelum editor boleh mula kerja; lalai peranan (Status=Menunggu utk Ketua Editor,
+            Editor=nama sendiri utk Editor) dah tapiskan yang munasabah tanpa perlu editor nampak
+            lapan kotak lagi setiap kunjungan). */}
+        {panelTapisanTerbuka && (
+        <div id="panel-tapisan-lanjutan" className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 font-sans text-xs">
           {/* 1. Status Filter */}
           <div>
-            <label className={LABEL_BORANG}>STATUS</label>
+            <label className={LABEL_BORANG} htmlFor="tapis-status">STATUS</label>
             <select
+              id="tapis-status"
               value={draftFilters.status}
               onChange={e => patchDraft({ status: e.target.value })}
               className={INPUT_BORANG}
@@ -874,8 +912,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
           {/* 2. Jenis Kad Filter */}
           <div>
-            <label className={LABEL_BORANG}>JENIS KAD</label>
+            <label className={LABEL_BORANG} htmlFor="tapis-jenis-kad">JENIS KAD</label>
             <select
+              id="tapis-jenis-kad"
               value={draftFilters.cardType}
               onChange={e => patchDraft({ cardType: e.target.value })}
               className={INPUT_BORANG}
@@ -897,8 +936,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               akhir teks bebas (padanan separa, lihat filteredRecords) — senarai sumber sebenar
               boleh cecah ratusan/ribuan bila sistem berkembang, dropdown biasa tak lagi praktikal. */}
           <div>
-            <label className={LABEL_BORANG}>SUMBER</label>
+            <label className={LABEL_BORANG} htmlFor="tapis-sumber">SUMBER</label>
             <input
+              id="tapis-sumber"
               type="text"
               list="sumber-datalist"
               placeholder="Cari sumber"
@@ -913,8 +953,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
           {/* 3b. Kaedah (cara kandungan dicipta — Manual/AI Generated/RSS Direct/dll.) Filter */}
           <div>
-            <label className={LABEL_BORANG}>KAEDAH</label>
+            <label className={LABEL_BORANG} htmlFor="tapis-kaedah">KAEDAH</label>
             <select
+              id="tapis-kaedah"
               value={draftFilters.creator}
               onChange={e => patchDraft({ creator: e.target.value })}
               className={INPUT_BORANG}
@@ -928,8 +969,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               untuk kandungan sedia ada sebelum ciri ni wujud (papar "Tidak diketahui", bukan reka
               nama) — sebab tu editorNameOptions tak sumbang opsyen kosong. */}
           <div>
-            <label className={LABEL_BORANG}>EDITOR</label>
+            <label className={LABEL_BORANG} htmlFor="tapis-editor">EDITOR</label>
             <select
+              id="tapis-editor"
               value={draftFilters.editor}
               onChange={e => patchDraft({ editor: e.target.value })}
               className={INPUT_BORANG}
@@ -943,8 +985,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               berasingan (lihat nota deskOptions/orphanDeskOptions di atas) untuk cari kandungan
               lama yang masih guna bidang yang dah dimansuhkan. */}
           <div>
-            <label className={LABEL_BORANG}>BIDANG</label>
+            <label className={LABEL_BORANG} htmlFor="tapis-bidang">BIDANG</label>
             <select
+              id="tapis-bidang"
               value={draftFilters.desk}
               onChange={e => patchDraft({ desk: e.target.value })}
               className={INPUT_BORANG}
@@ -963,8 +1006,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
           {/* 5. Slot Filter */}
           <div>
-            <label className={LABEL_BORANG}>SLOT</label>
+            <label className={LABEL_BORANG} htmlFor="tapis-slot">SLOT</label>
             <select
+              id="tapis-slot"
               value={draftFilters.slot}
               onChange={e => patchDraft({ slot: e.target.value })}
               className={INPUT_BORANG}
@@ -977,8 +1021,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
           {/* 6. Susunan */}
           <div>
-            <label className={LABEL_BORANG}>SUSUNAN</label>
+            <label className={LABEL_BORANG} htmlFor="tapis-susunan">SUSUNAN</label>
             <select
+              id="tapis-susunan"
               value={draftFilters.sort}
               onChange={e => patchDraft({ sort: e.target.value as FilterState['sort'] })}
               className={INPUT_BORANG}
@@ -1006,6 +1051,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </Button>
           </div>
         </div>
+        )}
       </PanelCard>
 
       {/* Editor View Switcher (Kandungan Saya vs Semua Read Only) — relevant once real EDITOR accounts exist */}
@@ -1027,21 +1073,6 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           >
             <Lock className="w-3.5 h-3.5" /> Semua Kandungan (Baca Sahaja)
           </button>
-        </div>
-      )}
-
-      {/* Jujur tentang had semasa: "Kandungan Saya" perlukan pengecaman siapa cipta apa mengikut
-          akaun sebenar — sistem log masuk berbilang editor belum dibina (lihat formatCreatedBy di
-          atas), jadi tapisan ni tak dapat dikuatkuasakan lagi. Papar penjelasan terus dan bukan
-          senyap tunjuk 0 keputusan, yang lebih mengelirukan. */}
-      {currentUserRole === 'EDITOR' && editorViewMode === 'mine' && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs font-sans px-4 py-3 rounded flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span>
-            Ciri "Kandungan Saya" memerlukan sistem log masuk berbilang editor yang belum dibina --
-            sistem semasa tak dapat kenal pasti kandungan mana milik akaun anda secara individu.
-            Buat masa ini, semua kandungan dipaparkan di bawah tab "Semua Kandungan".
-          </span>
         </div>
       )}
 
@@ -1156,12 +1187,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </thead>
             <tbody className="font-sans">
               {pagedRecords.map(rec => {
-                // Same caveat as the Editor View Mode filter above: rec.creator !== currentUserName
-                // is always true today (no real per-account authorship yet), so this always evaluates
-                // to read-only for an Editor browsing "Semua Kandungan" — treated as an acceptable
-                // conservative default (better to under-permit than let an Editor edit content that
-                // might not be theirs) rather than something to "fix" until real ownership exists.
-                const isReadOnly = currentUserRole === 'EDITOR' && editorViewMode === 'all' && rec.creator !== currentUserName;
+                // Guna rec.editorName (2026-08-08, pembetulan sama macam tapisan Kandungan Saya
+                // di atas) — kandungan editor lain baca sahaja dlm tab "Semua Kandungan", tapi
+                // kandungan sendiri kekal boleh sunting walau dalam tab tu.
+                const isReadOnly = currentUserRole === 'EDITOR' && editorViewMode === 'all' && rec.editorName !== currentUserName;
 
                 // Buka modal detail kandungan — dahulu dicetuskan hanya oleh onClick pada <tr>,
                 // langsung tidak boleh dicapai papan kekunci (Audit UI/UX Editorium §G3, laluan

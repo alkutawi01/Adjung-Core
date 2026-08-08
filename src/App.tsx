@@ -8,7 +8,7 @@ import { muatPindaanMedanLimit } from './config/medanLimitOverrides';
 import { muatPindaanLabel } from './config/labelOverrides';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { AmaranSambungan } from './components/common/AmaranSambungan';
+import { SkrinDegradasiDB } from './components/common/SkrinDegradasiDB';
 import { PERISTIWA_SESI_TAMAT } from './utils/pemintasSesi';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route, useParams, useLocation } from 'react-router-dom';
@@ -203,11 +203,17 @@ export default function App() {
         setRetryingDb(false);
       })
       .catch((err) => {
-        console.error('Failed to sync state from database, using client defaults:', err);
-        // Fallback to mockDb in-memory defaults
-        setUsers(db.getUsers());
-        setEntries(db.getEntries());
-        setSystemSettings(db.getSystemSettings());
+        console.error('Failed to sync state from database:', err);
+        // Skrin cuba-semula kosong (2026-08-08, dapatan audit UI/UX ChatGPT + kelulusan Izzat) —
+        // dahulu jatuh balik kepada kandungan REKAAN (mockDb, entri demo "Tentang Adjung" dll.)
+        // bersama amaran "kandungan mungkin tak terkini". Tapi data mock bukan lapuk, ia REKAAN
+        // sepenuhnya — banner tu (walau dah ditulis semula sekali sebelum ni) sebenarnya masih
+        // mengelirukan pembaca yang tak boleh bezakan kandungan palsu drpd kandungan sebenar yang
+        // stale. Kini: TIADA kandungan dipaparkan langsung semasa gangguan — skrin degradasi
+        // (lihat render di bawah) sahaja, bukan FrontpageView diisi data reka.
+        setUsers([]);
+        setEntries([]);
+        setSystemSettings(null);
         setDbConnectionError(true);
         setInitializing(false);
         setRetryingDb(false);
@@ -258,9 +264,9 @@ export default function App() {
               transition={{ duration: 0.4, ease: 'easeOut' }}
               className="min-h-screen bg-[#FDFDFD]"
             >
-              {dbConnectionError && (
-                <AmaranSambungan sedangMenyemak={retryingDb} onCubaSemula={fetchDbState} />
-              )}
+              {dbConnectionError ? (
+                <SkrinDegradasiDB sedangMenyemak={retryingDb} onCubaSemula={fetchDbState} />
+              ) : (
               <main className="max-w-6xl w-full mx-auto">
                 <FrontpageView
                   entries={entries}
@@ -280,6 +286,7 @@ export default function App() {
                   setIndexSearchQuery={() => {}}
                 />
               </main>
+              )}
             </motion.div>
           } />
           {/* Pautan mendalam per-kandungan (Fasa 9, 2026-08-05, keputusan Izzat) — sepadan skema
@@ -300,9 +307,9 @@ export default function App() {
                   transition={{ duration: 0.4, ease: 'easeOut' }}
                   className="min-h-screen bg-[#FDFDFD]"
                 >
-                  {dbConnectionError && (
-                    <AmaranSambungan sedangMenyemak={retryingDb} onCubaSemula={fetchDbState} />
-                  )}
+                  {dbConnectionError ? (
+                    <SkrinDegradasiDB sedangMenyemak={retryingDb} onCubaSemula={fetchDbState} />
+                  ) : (
                   <main className="max-w-6xl w-full mx-auto">
                     <FrontpageView
                       entries={entries}
@@ -323,6 +330,7 @@ export default function App() {
                       deepLinkKodPendek={kodPendek}
                     />
                   </main>
+                  )}
                 </motion.div>
               )}
             </LaluanKandungan>
