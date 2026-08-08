@@ -126,6 +126,11 @@ function DasarTerbitSendiriField() {
   const [benarkanSelfPublish, setBenarkanSelfPublish] = useState<boolean | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState<string | null>(null);
+  // Maklum balas kejayaan (2026-08-08, Izzat: "byk tempat yg ada kotak tick... takde butang atau
+  // makluman sama ada aktif/nyahaktif tu berjaya atau tak") — togol auto-simpan ni SEBELUM ni cuma
+  // papar RALAT bila gagal, senyap sepenuhnya bila berjaya. Kotak tercentang/nyahtanda sendiri
+  // bukan bukti cukup — itu keadaan OPTIMISTIK, ditulis SEBELUM permintaan server pun bermula.
+  const [berjaya, setBerjaya] = useState<string | null>(null);
 
   // 2026-08-07 (Audit §D6) — muatDasar() ditakrif berasingan supaya boleh dipanggil semula
   // daripada butang "Cuba Lagi" dalam MesejStatus, bukan hanya sekali semasa lekapan.
@@ -142,6 +147,7 @@ function DasarTerbitSendiriField() {
   const tukar = async (nilaiBaharu: boolean) => {
     setMenyimpan(true);
     setRalat(null);
+    setBerjaya(null);
     const asal = benarkanSelfPublish;
     setBenarkanSelfPublish(nilaiBaharu); // optimistik, dipulihkan kalau gagal
     try {
@@ -152,6 +158,8 @@ function DasarTerbitSendiriField() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
+      setBerjaya(nilaiBaharu ? 'Dasar disimpan — Editor kini boleh terbit sendiri.' : 'Dasar disimpan — Editor kini perlu kelulusan.');
+      setTimeout(() => setBerjaya(null), 4000);
     } catch (e: any) {
       setBenarkanSelfPublish(asal);
       setRalat(e.message || 'Gagal menyimpan dasar terbit sendiri.');
@@ -180,6 +188,7 @@ function DasarTerbitSendiriField() {
         </label>
       )}
       {ralat && <MesejStatus tone="error" onCubaLagi={muatDasar}>{ralat}</MesejStatus>}
+      {berjaya && <MesejStatus tone="success">{berjaya}</MesejStatus>}
       <p className="text-stone-400 text-[10px] leading-relaxed">
         Bila dinyahtanda, SEMUA kandungan Editor (bukan Ketua Editor/Penolong) kekal Menunggu
         sehingga diluluskan secara manual di Kandungan → Indeks — tak kira kandungan tu pernah

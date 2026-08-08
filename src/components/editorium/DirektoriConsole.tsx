@@ -243,6 +243,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           onTutup={() => setSelectedStaff(null)}
           onUpdated={kemaskiniStaff}
           onSiapUntukTamat={setKonfirmasiTamat}
+          onBerjaya={setMesejBerjaya}
         />
       )}
 
@@ -329,13 +330,17 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
 // konsol induk). ubahStatus/klikTamatkan/togolPeranan turut dipindahkan ke sini kerana
 // kesemuanya cuma dicetuskan daripada dalam modal ni.
 function ProfilAnggotaModal({
-  staff, isPentadbir, onTutup, onUpdated, onSiapUntukTamat,
+  staff, isPentadbir, onTutup, onUpdated, onSiapUntukTamat, onBerjaya,
 }: {
   staff: Staff;
   isPentadbir: boolean;
   onTutup: () => void;
   onUpdated: (updated: Staff) => void;
   onSiapUntukTamat: (payload: { staff: Staff; draf: any[]; menunggu: any[] }) => void;
+  // 2026-08-08, Izzat: "byk tempat yg ada kotak tick... takde makluman sama ada berjaya atau tak"
+  // — togolPeranan() auto-simpan tiap kali diklik; sebelum ni SENYAP bila berjaya (cuma ralat
+  // dipapar bila gagal). Guna toast kejayaan SEDIA ADA konsol induk (mesejBerjaya), bukan bina baharu.
+  onBerjaya: (mesej: string) => void;
 }) {
   const [ralatStatus, setRalatStatus] = useState('');
   const [ralatPeranan, setRalatPeranan] = useState('');
@@ -387,6 +392,7 @@ function ProfilAnggotaModal({
       });
       if (!res.ok) throw new Error();
       onUpdated({ ...staff, roles });
+      onBerjaya('Peranan dikemas kini.');
     } catch {
       setRalatPeranan('Gagal mengemas kini peranan.');
     }

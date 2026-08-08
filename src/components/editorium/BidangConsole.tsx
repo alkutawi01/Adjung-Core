@@ -80,20 +80,31 @@ export const BidangConsole: React.FC = () => {
     semua: desks.length,
   };
   const [menukarStatusId, setMenukarStatusId] = useState<string | null>(null);
+  // Maklum balas togol arkib/pulihkan (2026-08-08, Izzat: "byk tempat yg ada kotak tick... takde
+  // makluman sama ada berjaya atau tak") — togolStatusBidang() SEBELUM ni guna alert() nyahaktifkan
+  // bila gagal (kotak native pelayar, luar gaya reka bentuk Adjung sepenuhnya, sama isu fragile
+  // macam window.confirm ditemui hari ni), dan TIADA apa-apa langsung bila berjaya.
+  const [ralatTogolStatus, setRalatTogolStatus] = useState<string | null>(null);
+  const [berjayaTogolStatus, setBerjayaTogolStatus] = useState<string | null>(null);
 
   const togolStatusBidang = async (d: ActiveBidang) => {
     setMenukarStatusId(d.id);
+    setRalatTogolStatus(null);
+    setBerjayaTogolStatus(null);
+    const jadiAktif = d.isActive !== 1;
     try {
       const res = await fetch('/api/system/categories/set-active', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: d.id, isActive: d.isActive !== 1 }),
+        body: JSON.stringify({ id: d.id, isActive: jadiAktif }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini status Bidang.');
       fetchActiveBidang();
+      setBerjayaTogolStatus(jadiAktif ? `"${d.name}" dipulihkan.` : `"${d.name}" diarkibkan.`);
+      setTimeout(() => setBerjayaTogolStatus(null), 4000);
     } catch (e: any) {
-      alert('Ralat: ' + (e.message || ''));
+      setRalatTogolStatus(e.message || 'Gagal mengemas kini status Bidang.');
     } finally {
       setMenukarStatusId(null);
     }
@@ -277,6 +288,8 @@ export const BidangConsole: React.FC = () => {
       />
 
       <PanelCard className="space-y-4 text-xs">
+        {ralatTogolStatus && <MesejStatus tone="error">{ralatTogolStatus}</MesejStatus>}
+        {berjayaTogolStatus && <MesejStatus tone="success">{berjayaTogolStatus}</MesejStatus>}
         {/* Togol paparan status (2026-08-01) — lalai Aktif sahaja, sama kelakuan seperti dulu. */}
         <div className="flex items-center bg-stone-100 p-0.5 rounded border border-stone-200 text-xs w-max">
           {(['aktif', 'arkib', 'semua'] as const).map(s => (
