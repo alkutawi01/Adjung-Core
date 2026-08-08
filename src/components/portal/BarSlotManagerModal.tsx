@@ -24,6 +24,7 @@ interface BarSlotManagerModalProps {
   onSave: (e: React.FormEvent, manualSummaryOverride?: string) => Promise<boolean | void> | void;
   slotOptions?: { index: number; label: string }[];
   onSwitchSlot?: (idx: number) => void;
+  onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 const labelCls = 'font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500';
@@ -87,7 +88,7 @@ function ImageField({ label, value, onChange, onUploadFile, uploading, note }: {
 }
 
 export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
-  editingSlotIndex, formConfig, isSavingSlot, saveError, onClose, onSave, slotOptions, onSwitchSlot,
+  editingSlotIndex, formConfig, isSavingSlot, saveError, onClose, onSave, slotOptions, onSwitchSlot, onToast,
 }) => {
   const ceiling = ceilingForSlot(editingSlotIndex);
 
@@ -187,9 +188,12 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
     if (ok !== false) {
       setSavedNote('Giliran Bar disimpan.');
       setTimeout(() => setSavedNote(''), 2400);
+      onToast?.('success', 'Giliran Bar disimpan.');
     } else {
-      setLocalError(saveError || 'Gagal menyimpan slot Bar.');
+      const mesej = saveError || 'Gagal menyimpan slot Bar.';
+      setLocalError(mesej);
       setTimeout(() => setLocalError(''), 5000);
+      onToast?.('error', mesej);
     }
   };
 

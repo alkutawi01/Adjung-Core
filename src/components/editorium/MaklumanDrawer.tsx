@@ -199,9 +199,6 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
           )}
         </div>
 
-        <footer className="flex-none px-5 py-3 border-t border-stone-200 text-stone-400 text-[10px] leading-relaxed">
-          Nota Ketua Editor diuruskan di Kandungan → Nota Ketua Editor.
-        </footer>
       </aside>
     </div>
   );

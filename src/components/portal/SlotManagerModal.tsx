@@ -73,6 +73,10 @@ interface SlotManagerModalProps {
   // tetap membaca formConfig LAMA dari parent walau apa pun setFormConfig() buat pada render akan
   // datang. Hantar terus sebagai argumen elak kebergantungan pada timing React state sama sekali.
   onSave: (e: React.FormEvent, manualSummaryOverride?: string, opts?: { closeOnSuccess?: boolean }) => Promise<boolean | void> | void;
+  // Toast kongsi Editorium (2026-08-08) — makluman SEBENAR selepas Terbit/Simpan draf, bukan
+  // cuma mesej dalaman modal (draftNote/publishError) yang hilang dalam beberapa saat dan tak
+  // kelihatan langsung kalau editor dah tutup modal.
+  onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 const TAB_LABEL: Record<string, string> = { borang: 'Borang kandungan', maklumat: 'Maklumat slot', ai: 'Arahan AI', sejarah: 'Sejarah versi' };
@@ -95,14 +99,23 @@ const EDITOR_PLACEHOLDER = '—';
 // formula — pengiraan/keselarasan jadi tanggungjawab UI (slider), bukan tanggungjawab AI.
 function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: number, titleTarget: number, briefTarget: number) {
   const desk = fc.manualDesk || '';
+  // Minimum tajuk/huraian ringkas (2026-08-08, pepijat Izzat) — sebelum ni prompt cuma nyatakan
+  // "maksimum", tiada minimum langsung, jadi AI boleh (dan kerap) pulangkan teks jauh lebih
+  // pendek daripada target dan masih "ikut arahan" secara literal. Selepas had minimum bajet
+  // KESELURUHAN 80% (validateContentBudget) wujud, output pendek macam tu terus ditolak simpan.
+  // Minimum dikira 80% drpd target (bukan agakan) — kalau tajuk DAN huraian sama-sama capai
+  // sekurang-kurangnya 80% sasaran masing-masing, jumlah bajet pasti >=80% (titleTarget/maxTitle
+  // + briefTarget/maxBrief sudah dikira ~1.0 di caller, lihat pengendali slider di JSX).
+  const minTitleTarget = Math.max(1, Math.ceil(titleTarget * 0.8));
+  const minBriefTarget = briefTarget > 0 ? Math.max(1, Math.ceil(briefTarget * 0.8)) : 0;
   const lines = [
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
     '[Peraturan am — sistem/global]', fc.masterPrompt || '-', '',
     '[Arahan khas — slot ini]', fc.promptText || '-', '',
     '[Had aksara]',
     `Topik: maksimum ${hadTopik} aksara`,
-    `Tajuk: maksimum ${titleTarget} aksara`,
-    `Huraian ringkas: maksimum ${briefTarget} aksara`,
+    `Tajuk: minimum ${minTitleTarget}, maksimum ${titleTarget} aksara`,
+    `Huraian ringkas: minimum ${minBriefTarget}, maksimum ${briefTarget} aksara`,
     `Huraian panjang: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong} aksara`, '',
     `[Had usia sumber]: ${fc.aiPromptRecency || '-'}`,
     `[Bahasa sumber]: ${fc.aiPromptLanguage || '-'}`,
@@ -325,7 +338,7 @@ const SidebarItem = React.memo(function SidebarItem({
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, onClose, onSave,
-  slotOptions, onSwitchSlot, initialUuid, saveError,
+  slotOptions, onSwitchSlot, initialUuid, saveError, onToast,
 }) => {
   // Kandungan mana yang terbuka dahulu. Lalai yang pertama; bila dibuka daripada "Draf Saya"
   // (initialUuid), terus mendarat pada draf yang diklik. Sengaja dikira dalam initializer useState
@@ -639,9 +652,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       commit(() => remainingDrafts);
       setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
       setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
+      onToast?.('success', 'Kandungan diterbitkan.');
     } else {
-      setPublishError(saveError || labelUi('toast.gagal_terbit'));
+      const mesej = saveError || labelUi('toast.gagal_terbit');
+      setPublishError(mesej);
       setTimeout(() => setPublishError(''), 5000);
+      onToast?.('error', mesej);
     }
   };
 
@@ -660,9 +676,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       setFormConfig((prev: any) => ({ ...prev, manualSummary }));
       setDraftNote(labelUi('toast.draf_disimpan'));
       setTimeout(() => setDraftNote(''), 2400);
+      onToast?.('success', 'Draf disimpan.');
     } else {
-      setPublishError(saveError || labelUi('toast.gagal_simpan_draf'));
+      const mesej = saveError || labelUi('toast.gagal_simpan_draf');
+      setPublishError(mesej);
       setTimeout(() => setPublishError(''), 5000);
+      onToast?.('error', mesej);
     }
   };
 

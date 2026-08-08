@@ -67,6 +67,9 @@ const STATUS_TONE: Record<string, StatusTone> = {
 interface IndeksConsoleProps {
   currentUserRole?: 'KETUA_EDITOR' | 'EDITOR';
   currentUserName?: string;
+  // Toast kongsi Editorium (2026-08-08) — makluman SEBENAR selepas Arkib/Tolak/Siar, bukan
+  // senyap-senyap macam sebelum ni (rec.status bertukar dalam jadual tanpa sebarang isyarat lain).
+  onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 // Format ringkas DD/MM/YY untuk jadual Indeks (2026-07-29, permintaan pemilik projek) — jimat
@@ -157,7 +160,8 @@ const cardTypeForSlot = (slotIndex: number): string => {
 
 export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   currentUserRole = 'KETUA_EDITOR',
-  currentUserName = 'Izzat Anas'
+  currentUserName = 'Izzat Anas',
+  onToast,
 }) => {
   const [items, setItems] = useState<BriefRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -482,12 +486,15 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Gagal kemas kini status (${res.status}).`);
       }
+      onToast?.('success', newStatus === 'Archive' ? 'Kandungan diarkibkan.' : 'Kandungan disiarkan.');
     } catch (err: any) {
       setItems(previous);
       if (activeItemModal && activeItemModal.id === id) {
         setActiveItemModal(previous.find(i => i.id === id) || null);
       }
-      setActionError(err.message || 'Gagal kemas kini status.');
+      const mesej = err.message || 'Gagal kemas kini status.';
+      setActionError(mesej);
+      onToast?.('error', mesej);
     }
   };
 
@@ -516,9 +523,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Gagal tolak kandungan (${res.status}).`);
       }
+      onToast?.('success', 'Kandungan ditolak, kembali jadi draf.');
     } catch (err: any) {
       setItems(previous);
-      setActionError(err.message || 'Gagal tolak kandungan.');
+      const mesej = err.message || 'Gagal tolak kandungan.';
+      setActionError(mesej);
+      onToast?.('error', mesej);
     }
   };
 
@@ -545,14 +555,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
         ...i,
         status: 'Live',
-        desk: formatTitleCase(reactivateDesk),
+        // reactivateDesk sumber terus daripada activeBidangList (dropdown) — sudah betul kes
+        // hurufnya, formatTitleCase() di sini dulu SILAP tekabalik nama yang dah pun betul.
+        desk: reactivateDesk,
         topik: reactivateTopik,
         slotIndex: Number(reactivateSlotIndex),
         slot: `Slot ${Number(reactivateSlotIndex) + 1}`,
       } : i));
+      onToast?.('success', 'Kandungan disiarkan semula.');
       setActiveItemModal(null);
     } catch (err: any) {
       setActionError(err.message || 'Gagal siarkan semula.');
+      onToast?.('error', err.message || 'Gagal siarkan semula.');
     } finally {
       setReactivating(false);
     }
@@ -883,6 +897,13 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                   setReactivateSlotIndex(rec.slotIndex);
                 };
 
+                // Nama & warna Bidang sebenar (2026-08-08, pepijat "Al-quran Dan Sunnah") — rec.desk
+                // disimpan HURUF BESAR di DB (lihat finalCategory di contentRoutes.js), formatTitleCase()
+                // lama cuma tekaan naif (tak tahu "Al-Quran" ada huruf besar lepas sengkang, capitalize
+                // "dan" buta). Cari nama SEBENAR daripada Taksonomi (activeBidangList) dahulu — cuma
+                // fallback ke tekaan kalau Bidang tu dah tak wujud/didaftar (kandungan lapuk).
+                const bidangSepadanRec = activeBidangList.find(b => b.name.toLowerCase() === rec.desk.toLowerCase());
+
                 return (
                   <tr
                     key={rec.id}
@@ -917,9 +938,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       // Warna terus daripada activeBidangList (dimuat hidup daripada
                       // CategoryRegistry) — bukan nilai tetap disalin ke sini, jadi tukar warna
                       // di Taksonomi automatik terpapar di sini juga tanpa kerja tambahan.
-                      style={{ color: activeBidangList.find(b => b.name.toLowerCase() === rec.desk.toLowerCase())?.color || 'var(--stone-700)' }}
+                      style={{ color: bidangSepadanRec?.color || 'var(--stone-700)' }}
                     >
-                      {formatTitleCase(rec.desk)}
+                      {bidangSepadanRec?.name || formatTitleCase(rec.desk)}
                     </td>
                     <td className="p-2.5 font-serif text-stone-800 text-xs truncate">{rec.source || '-'}</td>
                     <td className="p-2.5 font-sans text-[10px] text-stone-500 truncate">{rec.editorName || 'Tidak diketahui'}</td>
@@ -1061,7 +1082,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs bg-stone-100 p-3 rounded border border-stone-200">
               <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{labelStatus(activeItemModal.status)}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">BIDANG</span><strong className="text-stone-900">{formatTitleCase(activeItemModal.desk)}</strong></div>
+              <div><span className="text-stone-500 text-[9px] block">BIDANG</span><strong className="text-stone-900">{activeBidangList.find(b => b.name.toLowerCase() === activeItemModal.desk.toLowerCase())?.name || formatTitleCase(activeItemModal.desk)}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik ? formatTitleCase(activeItemModal.topik) : '-'}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
               <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>

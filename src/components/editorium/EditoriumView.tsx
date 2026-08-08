@@ -239,13 +239,17 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Ticker (2026-08-02, Fasa 7, item terakhir) — native Editorium, gantikan sambungan URL
   // "?openTicker=1" lama ke FrontpageView.tsx. Lihat useTickerEditor.ts untuk sejarah penuh.
   const tickerEditor = useTickerEditor();
-  const [tickerToasts, setTickerToasts] = useState<ToastMessage[]>([]);
-  const addTickerToast = (type: 'success' | 'error' | 'info', message: string) => {
+  // Toast KONGSI seluruh Editorium (2026-08-08, Izzat: "terbit senyap-senyap tanpa makluman") —
+  // dahulu skop hanya untuk Modul Ticker (tickerToasts), diselaraskan supaya mana-mana konsol
+  // (Kandungan, Urus Slot) boleh papar toast SEBENAR selepas tindakan (Terbit/Arkib/Tolak), bukan
+  // cuma mesej dalaman modal yang hilang lepas beberapa saat.
+  const [editoriumToasts, setEditoriumToasts] = useState<ToastMessage[]>([]);
+  const pushToast = (type: 'success' | 'error' | 'info', message: string) => {
     const id = Math.random().toString(36).substring(2, 9);
-    setTickerToasts((prev) => [...prev, { id, type, message }]);
+    setEditoriumToasts((prev) => [...prev, { id, type, message }]);
   };
-  const dismissTickerToast = (id: string) => {
-    setTickerToasts((prev) => prev.filter((t) => t.id !== id));
+  const dismissToast = (id: string) => {
+    setEditoriumToasts((prev) => prev.filter((t) => t.id !== id));
   };
   // Draf yang diklik di "Draf Saya" (2026-08-01) — dihantar ke SlotManagerModal supaya modal
   // terbuka betul-betul pada draf itu, bukan pada kandungan pertama slot. Dikosongkan setiap kali
@@ -478,6 +482,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             <IndeksConsole
               currentUserRole={effectiveEditorialRole}
               currentUserName={currentUser.name}
+              onToast={pushToast}
             />
           )}
           {kandunganSubTab === 'semakan' && <ContentReview />}
@@ -718,11 +723,11 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         loadReviewQueue={tickerEditor.loadReviewQueue}
         rssStatus={tickerEditor.rssStatus}
         adjungDesks={tickerEditor.adjungDesks}
-        addToast={addTickerToast}
+        addToast={pushToast}
         validateContentBudget={validateContentBudget}
         handleOverrideTickerDesk={tickerEditor.handleOverrideTickerDesk}
       />
-      <ToastContainer toasts={tickerToasts} onDismiss={dismissTickerToast} />
+      <ToastContainer toasts={editoriumToasts} onDismiss={dismissToast} />
 
       {profilTerbuka && profilData && (
         <ProfilEditorModal
@@ -829,6 +834,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             }))}
           onSwitchSlot={(i) => { setDrafDibuka(''); slotEditor.openSlotEditor(i); }}
           initialUuid={drafDibuka}
+          onToast={pushToast}
         />
       )}
       {slotEditor.saveError && (
@@ -852,6 +858,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             label: `Slot ${i + 1} — Bar`,
           }))}
           onSwitchSlot={(i) => barSlotEditor.openSlotEditor(i)}
+          onToast={pushToast}
         />
       )}
       {barSlotEditor.saveError && (
