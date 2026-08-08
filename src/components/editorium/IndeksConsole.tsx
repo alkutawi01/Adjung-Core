@@ -837,7 +837,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <input
               type="text"
               list="sumber-datalist"
-              placeholder="Cari sumber…"
+              placeholder="Cari sumber"
               value={draftFilters.source}
               onChange={e => patchDraft({ source: e.target.value })}
               className={INPUT_BORANG}
@@ -1430,7 +1430,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       .map(s => <option key={s.slotIndex} value={s.slotIndex}>Slot {s.slotIndex + 1}</option>)}
                   </select>
                   {reactivateDesk && allSlots.filter(s => s.manualDesk.toLowerCase() === reactivateDesk.toLowerCase()).length === 0 && (
-                    <p className="text-[9px] text-amber-700 mt-1">Tiada slot ditetapkan untuk Bidang ni lagi — tetapkan dulu di Tetapan &gt; Taksonomi.</p>
+                    <p className="text-[9px] text-amber-700 mt-1">Tiada slot ditetapkan untuk Bidang ni lagi. Tetapkan dulu di Tetapan &gt; Taksonomi.</p>
                   )}
                 </div>
                 <Button

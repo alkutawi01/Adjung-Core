@@ -74,11 +74,11 @@ const formatLogTime = (iso: string) => {
 const UNIVERSAL_RULES = [
   {
     title: 'Saiz kad tetap. Tiada pengecualian.',
-    body: <>Setiap slot ada saiz fizikal tetap ikut tier geometrinya. Kandungan mesti muat dalam saiz itu — ini dikuatkuasakan di peringkat SIMPAN (server menolak kandungan yang tak muat), bukan diselesaikan lepas fakta dengan CSS <em className="italic">clipping</em> atau memotong teks sedia ada.</>,
+    body: <>Setiap slot ada saiz fizikal tetap ikut tier geometrinya. Kandungan mesti muat dalam saiz itu. Ini dikuatkuasakan di peringkat SIMPAN (server menolak kandungan yang tak muat), bukan diselesaikan lepas fakta dengan CSS <em className="italic">clipping</em> atau memotong teks sedia ada.</>,
   },
   {
     title: 'Tajuk dan huraian berkongsi SATU bajet ruang.',
-    body: 'Bukan dua had berasingan. Formula: tajuk/maxTajukSendiri + huraian/maxHuraianSendiri ≤ 1. Tajuk panjang dan huraian pendek boleh muat, dan sebaliknya — tapi kedua-duanya panjang serentak tak boleh.',
+    body: 'Bukan dua had berasingan. Formula: tajuk/maxTajukSendiri + huraian/maxHuraianSendiri ≤ 1. Tajuk panjang dan huraian pendek boleh muat, dan sebaliknya, tapi kedua-duanya panjang serentak tak boleh.',
   },
   {
     title: 'Semua slot dalam tier yang sama dilayan secara seragam.',
@@ -86,7 +86,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Semakan diwajibkan bagi SEMUA laluan simpan.',
-    body: <>Manual paste, batch paste, <em className="italic">pipeline</em> AI, dan edit terus (PATCH/POST) semua dikenakan validateContentBudget yang sama — tiada laluan istimewa yang dikecualikan.</>,
+    body: <>Manual paste, batch paste, <em className="italic">pipeline</em> AI, dan edit terus (PATCH/POST) semua dikenakan validateContentBudget yang sama. Tiada laluan istimewa yang dikecualikan.</>,
   },
   {
     title: <>Definisi tier disegerakkan antara <em className="italic">client</em> dan <em className="italic">server</em>.</>,
@@ -94,7 +94,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Isi kandungan editorial ialah tulisan sebenar.',
-    body: <>Jangan potong atau tulis-ganti secara mekanikal tanpa kelulusan eksplisit pemilik projek — itu vandalisme editorial, bukan <em className="italic">"fix"</em>.</>,
+    body: <>Jangan potong atau tulis-ganti secara mekanikal tanpa kelulusan eksplisit pemilik projek. Itu vandalisme editorial, bukan <em className="italic">"fix"</em>.</>,
   },
   {
     title: 'Penomboran slot bermula daripada 1, bukan 0.',
@@ -102,15 +102,15 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Label mesti 100% Bahasa Melayu.',
-    body: <>Kalau terpaksa guna Bahasa Inggeris (tiada padanan Melayu yang diluluskan lagi), tulis dengan huruf condong (<em className="italic">italic</em>). Lihat carta tier di bawah — Bar dan Ticker kini bertulis condong kerana sebab ini.</>,
+    body: <>Kalau terpaksa guna Bahasa Inggeris (tiada padanan Melayu yang diluluskan lagi), tulis dengan huruf condong (<em className="italic">italic</em>). Lihat carta tier di bawah: Bar dan Ticker kini bertulis condong kerana sebab ini.</>,
   },
   {
     title: 'Fon tajuk tak boleh lebih kecil daripada fon huraian.',
-    body: <>Saiz fon huraian tetap pada 14px (inline style yang mengatasi mana-mana class Tailwind) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier dan <em className="italic">breakpoint</em> (class Tailwind sahaja, tiada paksaan). Oleh sebab tajuk bersifat dinamik (panjang & saiz berubah ikut tier) tapi huraian bersifat tetap, setiap kombinasi tier dan breakpoint MESTI disemak: fon tajuk {'>='} 14px pada semua saiz skrin. (Diketahui melanggar setakat ini: kad Kompak guna text-xs [12px] untuk tajuk di bawah breakpoint md — belum dibetulkan, tunggu arahan.)</>,
+    body: <>Saiz fon huraian tetap pada 14px (inline style yang mengatasi mana-mana class Tailwind) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier dan <em className="italic">breakpoint</em> (class Tailwind sahaja, tiada paksaan). Oleh sebab tajuk bersifat dinamik (panjang & saiz berubah ikut tier) tapi huraian bersifat tetap, setiap kombinasi tier dan breakpoint MESTI disemak: fon tajuk {'>='} 14px pada semua saiz skrin. (Diketahui melanggar setakat ini: kad Kompak guna text-xs [12px] untuk tajuk di bawah breakpoint md, belum dibetulkan, tunggu arahan.)</>,
   },
   {
     title: 'Akordion Bar: kad kekal statik, panel dipaparkan secara berasingan di bawahnya.',
-    body: <>Klik kad Bar (maroon) di luar Mod Sunting membuka/tutup panel Penerangan sebagai ELEMEN BAHARU selepas kad tu — kad Bar itu sendiri TIDAK diubah langsung (tiada saiz/rupa berbeza apabila terbuka). Hanya SATU kad boleh terbuka pada satu masa PER KLUSTER (4 kad); klik kad lain dalam kluster yang sama tutup yang sebelum, buka yang baharu. Dua kad yang berkongsi baris <em className="italic">grid</em> dengan kluster Bar (row-span-2 menegak + satu lagi) WAJIB kekal statik (tinggi/kedudukan tak berubah) walaupun kluster Bar membesar — dikuatkuasakan melalui height-lock JS (ukur tinggi semula jadi sebelum terbuka, bekukan nilai tu semasa terbuka), BUKAN ubah struktur <em className="italic">grid</em> (lihat peraturan "jangan ubah grid bento"). Medan Penerangan dihadkan 460 aksara (core/editorial/GeometryConfig.js MAX_PENERANGAN_CHARS, dikuatkuasakan server.js syncManualObjectsForSlot) — diukur empirik daripada lebar panel sebenar.</>,
+    body: <>Klik kad Bar (maroon) di luar Mod Sunting membuka/tutup panel Penerangan sebagai ELEMEN BAHARU selepas kad tu. Kad Bar itu sendiri TIDAK diubah langsung (tiada saiz/rupa berbeza apabila terbuka). Hanya SATU kad boleh terbuka pada satu masa PER KLUSTER (4 kad); klik kad lain dalam kluster yang sama tutup yang sebelum, buka yang baharu. Dua kad yang berkongsi baris <em className="italic">grid</em> dengan kluster Bar (row-span-2 menegak + satu lagi) WAJIB kekal statik (tinggi/kedudukan tak berubah) walaupun kluster Bar membesar, dikuatkuasakan melalui height-lock JS (ukur tinggi semula jadi sebelum terbuka, bekukan nilai tu semasa terbuka), BUKAN ubah struktur <em className="italic">grid</em> (lihat peraturan "jangan ubah grid bento"). Medan Penerangan dihadkan 460 aksara (core/editorial/GeometryConfig.js MAX_PENERANGAN_CHARS, dikuatkuasakan server.js syncManualObjectsForSlot), diukur empirik daripada lebar panel sebenar.</>,
   },
   {
     title: 'Senarai kandungan berskala besar wajib berkelompok (dipaginasi).',
@@ -424,20 +424,20 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Skim warna (<em className="italic">theme</em> Adjung sahaja)</h3>
             <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
-              <li>Lencana <strong>Penganjur</strong>: putih krim <em className="italic">glassmorphism</em> — <code className="bg-stone-100 px-1 rounded text-[11px]">bg-white/15 text-white border-white/30</code>.</li>
-              <li>Lencana <strong>Akses: Terbuka</strong>: emas Adjung — <code className="bg-stone-100 px-1 rounded text-[11px]">bg-amber-400/20 text-amber-300 border-amber-300/30</code>.</li>
-              <li>Lencana <strong>Akses: Tertutup</strong>: marun gelap — <code className="bg-stone-100 px-1 rounded text-[11px]">bg-rose-950/60 text-rose-300 border-rose-500/40</code>.</li>
-              <li>Prinsip am: lencana Penganjur dan lencana Akses TIDAK BOLEH kongsi warna — fungsi semantik berbeza (entiti vs status).</li>
+              <li>Lencana <strong>Penganjur</strong>: putih krim <em className="italic">glassmorphism</em>, kod <code className="bg-stone-100 px-1 rounded text-[11px]">bg-white/15 text-white border-white/30</code>.</li>
+              <li>Lencana <strong>Akses: Terbuka</strong>: emas Adjung, kod <code className="bg-stone-100 px-1 rounded text-[11px]">bg-amber-400/20 text-amber-300 border-amber-300/30</code>.</li>
+              <li>Lencana <strong>Akses: Tertutup</strong>: marun gelap, kod <code className="bg-stone-100 px-1 rounded text-[11px]">bg-rose-950/60 text-rose-300 border-rose-500/40</code>.</li>
+              <li>Prinsip am: lencana Penganjur dan lencana Akses TIDAK BOLEH kongsi warna. Fungsi semantik berbeza (entiti vs status).</li>
             </ul>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Jaminan <em className="italic">Pipeline</em> (wajib, setiap laluan simpan Bar)</h3>
             <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
-              <li>Kunci atribut <code className="bg-stone-100 px-1 rounded text-[11px]">organizer</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">location</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">access</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">penerangan</code> mesti didaftar dalam <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attributes</code> sebelum disimpan (FK constraint — kalau tidak, INSERT gagal senyap).</li>
+              <li>Kunci atribut <code className="bg-stone-100 px-1 rounded text-[11px]">organizer</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">location</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">access</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">penerangan</code> mesti didaftar dalam <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attributes</code> sebelum disimpan (FK constraint, kalau tidak INSERT gagal senyap).</li>
               <li>Laluan simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">syncManualObjectsForSlot</code>) mesti tulis kesemua 4 medan ke <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attribute_values</code>.</li>
-              <li>Laluan baca (<code className="bg-stone-100 px-1 rounded text-[11px]">resolveSlotContent</code>, KEDUA-DUA laluan — blob mentah belum-dimigrasi DAN baris DB sebenar) mesti ekstrak semula kesemua 4 medan.</li>
+              <li>Laluan baca (<code className="bg-stone-100 px-1 rounded text-[11px]">resolveSlotContent</code>, KEDUA-DUA laluan, blob mentah belum-dimigrasi DAN baris DB sebenar) mesti ekstrak semula kesemua 4 medan.</li>
               <li>Parser teks (<code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Lokasi:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Akses:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Penerangan:</code>) case-insensitive.</li>
-              <li>4 slot Bar dalam satu kumpulan (Slot 8,9,10,11 / Slot 22,23,24,25) setiap satu SLOT BERASINGAN dengan kandungan sendiri — bukan satu carousel dikongsi bersama.</li>
+              <li>4 slot Bar dalam satu kumpulan (Slot 8,9,10,11 / Slot 22,23,24,25) setiap satu SLOT BERASINGAN dengan kandungan sendiri, bukan satu carousel dikongsi bersama.</li>
             </ul>
           </div>
           <div>

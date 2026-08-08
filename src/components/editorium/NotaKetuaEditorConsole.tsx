@@ -259,9 +259,9 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                 onChange={(e) => setSkop(e.target.value as Nota['skop'])}
                 className={`${INPUT_BORANG} cursor-pointer`}
               >
-                <option value="dalaman">Nota (Dalaman) — Editorium sahaja</option>
-                <option value="catatan_ketua_editor">Catatan Ketua Editor — disiarkan di Frontpage</option>
-                <option value="pengumuman">Pengumuman — disiarkan di Frontpage</option>
+                <option value="dalaman">Nota (Dalaman, Editorium sahaja)</option>
+                <option value="catatan_ketua_editor">Catatan Ketua Editor (disiarkan di Frontpage)</option>
+                <option value="pengumuman">Pengumuman (disiarkan di Frontpage)</option>
               </select>
               {skop !== 'dalaman' && (
                 <span className="text-Adjung-maroon text-[10px] font-semibold">
@@ -280,7 +280,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
               type="text"
               value={tajuk}
               onChange={(e) => setTajuk(e.target.value)}
-              placeholder="Tajuk nota…"
+              placeholder="Tajuk nota"
               className={INPUT_BORANG}
             />
           </label>
@@ -294,7 +294,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
               value={kandungan}
               onChange={(e) => setKandungan(e.target.value)}
               rows={5}
-              placeholder="Kandungan nota…"
+              placeholder="Kandungan nota"
               className={`${INPUT_BORANG} resize-y`}
             />
           </label>

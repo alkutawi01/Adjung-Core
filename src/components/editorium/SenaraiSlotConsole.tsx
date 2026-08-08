@@ -1004,7 +1004,7 @@ const PanelSenaraiModal: React.FC<PanelSenaraiModalProps> = ({ slotIndex, jenis,
                     // Dua jenis Menunggu (2026-08-06) — dah lulus keputusan, cuma tunggu ruang
                     // kosong dalam slot (hadKandunganSlot). Naik taraf AUTOMATIK bila ruang
                     // wujud (Arkib/Tolak/Luput berjadual) — tiada tindakan manusia diperlukan.
-                    <span className="text-amber-700 font-semibold">Sudah lulus — menunggu slot kosong (naik taraf automatik)</span>
+                    <span className="text-amber-700 font-semibold">Sudah lulus, menunggu slot kosong (naik taraf automatik)</span>
                   ) : (
                     'Menunggu kelulusan Ketua Editor/Penolong (tiada jadual)'
                   )}

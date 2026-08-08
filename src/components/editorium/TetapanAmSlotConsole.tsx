@@ -300,7 +300,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
     <div className="space-y-4 font-sans">
       <ModulTajuk
         tajuk="Tetapan Am Slot"
-        huraian={<>Terpakai pada SEMUA slot bento sekali gus — tidak termasuk Ticker dan tier <em>Bar</em>.</>}
+        huraian={<>Terpakai pada SEMUA slot bento sekali gus, tidak termasuk Ticker dan tier <em>Bar</em>.</>}
       />
 
       <PanelCard className="space-y-5 text-xs">
@@ -518,7 +518,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
               </div>
             ))}
           </div>
-          <p className="text-stone-400 text-[10px]"><strong className="font-semibold">0 = tiada had.</strong> Kandungan sedia ada tidak disemak semula — had hanya menahan simpanan baharu.</p>
+          <p className="text-stone-400 text-[10px]"><strong className="font-semibold">0 = tiada had.</strong> Kandungan sedia ada tidak disemak semula. Had hanya menahan simpanan baharu.</p>
         </div>
 
         <div className="border-t border-Adjung-line pt-3 flex items-center gap-3">

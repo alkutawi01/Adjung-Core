@@ -170,7 +170,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
               type="text"
               value={carian}
               onChange={(e) => setCarian(e.target.value)}
-              placeholder="Cari tajuk, huraian, atau topik…"
+              placeholder="Cari tajuk, huraian, atau topik"
               className={`${INPUT_BORANG} flex-1 min-w-[200px]`}
             />
             {senaraiBidang.length > 2 && (

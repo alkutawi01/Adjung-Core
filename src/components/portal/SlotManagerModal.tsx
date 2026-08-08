@@ -257,7 +257,7 @@ function ImageField({ label, value, onChange, onUploadFile, uploading, note }: {
       </span>
       <span className="flex items-center gap-2">
         <input
-          type="text" value={value} placeholder="Nama fail / URL imej…" onChange={(e) => onChange(e.target.value)}
+          type="text" value={value} placeholder="Nama fail / URL imej" onChange={(e) => onChange(e.target.value)}
           className="w-0 flex-1 border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
         />
         <button
@@ -928,7 +928,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
         {formConfig.isDemoContent && (
           <div className="flex-none bg-amber-50 border-b border-amber-200 px-6 md:px-8 py-2 flex items-center gap-2 text-amber-900 font-sans text-[11px]">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span><strong>Kandungan contoh</strong> — slot ni belum ada kandungan tersimpan. Medan di bawah diisi teks demo "Tentang Adjung" sebagai templat sahaja; gantikan sebelum Simpan.</span>
+            <span><strong>Kandungan contoh.</strong> Slot ni belum ada kandungan tersimpan. Medan di bawah diisi teks demo "Tentang Adjung" sebagai templat sahaja; gantikan sebelum Simpan.</span>
           </div>
         )}
 
@@ -1051,12 +1051,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   </span>
                 </div>
 
-                <Field label="Topik" value={current.topik || ''} placeholder="Topik kandungan…" maxLen={hadTopik} onChange={(v) => patch(activeIndex, 'topik', v)} />
-                <Field label="Tajuk" value={current.title || ''} placeholder="Tajuk kandungan…" maxLen={ceiling.maxTitle} onChange={(v) => patch(activeIndex, 'title', v)} />
+                <Field label="Topik" value={current.topik || ''} maxLen={hadTopik} onChange={(v) => patch(activeIndex, 'topik', v)} />
+                <Field label="Tajuk" value={current.title || ''} maxLen={ceiling.maxTitle} onChange={(v) => patch(activeIndex, 'title', v)} />
                 {ceiling.maxBrief > 0 && (
                   <>
-                    <Field label="Huraian ringkas" rows={4} value={current.brief || ''} placeholder="Huraian ringkas, dipapar pada kad…" onChange={(v) => patch(activeIndex, 'brief', v)} />
-                    <Field label="Huraian panjang" rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh — hanya di Focus View…" maxLen={ceiling.maxBriefLong} minLen={effectiveMinBriefLong()} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
+                    <Field label="Huraian ringkas" rows={4} value={current.brief || ''} onChange={(v) => patch(activeIndex, 'brief', v)} />
+                    <Field label="Huraian panjang" rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh, hanya di Focus View" maxLen={ceiling.maxBriefLong} minLen={effectiveMinBriefLong()} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
                   </>
                 )}
 
@@ -1068,7 +1068,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     lebih) senaraikan SEMUA. */}
                 <div className="flex flex-col gap-3">
                   <div className="flex items-baseline justify-between">
-                    <span className={labelCls}>Sumber {(current.sources && current.sources.length > 1) && <span className="font-sans normal-case tracking-normal font-normal text-stone-400">— kad papar "Editorial Adjung" (&gt;1 sumber)</span>}</span>
+                    <span className={labelCls}>Sumber {(current.sources && current.sources.length > 1) && <span className="font-sans normal-case tracking-normal font-normal text-stone-400">(kad papar "Editorial Adjung" bila &gt;1 sumber)</span>}</span>
                     <button type="button" onClick={() => tambahSumber(activeIndex)} className="text-[11px] font-sans font-semibold text-[#802334] hover:underline cursor-pointer">+ Tambah sumber</button>
                   </div>
                   {((current.sources && current.sources.length > 0) ? current.sources : [{ name: current.source || '', url: current.url || '' }]).map((s: any, sIdx: number) => (
@@ -1085,7 +1085,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                         <label className="flex-1 flex flex-col gap-1">
                           {sIdx === 0 && <span className={labelCls}>URL</span>}
                           <input
-                            type="text" value={s.url || ''} placeholder="https://…"
+                            type="text" value={s.url || ''} placeholder="https://"
                             onChange={(e) => patchSumber(activeIndex, sIdx, 'url', e.target.value)}
                             className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
                           />
@@ -1104,7 +1104,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   <Field label="Tarikh sumber" type="date" value={current.date || ''} onChange={(v) => patch(activeIndex, 'date', v)} />
                   <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
                 </div>
-                <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor (pilihan) — hanya di Focus View…" maxLen={280} onChange={(v) => patch(activeIndex, 'note', v)} />
+                <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor (pilihan), hanya di Focus View" maxLen={280} onChange={(v) => patch(activeIndex, 'note', v)} />
                 {/* Penulis KANDUNGAN INI (2026-08-01, permintaan pemilik projek) — bukan lagi
                     sesiapa yang kebetulan sedang log masuk. Satu slot boleh dikendalikan lebih
                     seorang editor, jadi memapar nama pembuka borang di sini menipu: ia nampak
@@ -1161,7 +1161,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                       automatik ikut nisbah — pasangan yang dihantar ke AI SENTIASA sah. */}
                   <div className="mt-3">
                     <div className="flex items-baseline justify-between gap-3 mb-1">
-                      <span className={labelCls}>b+c. Tajuk / Huraian ringkas <span className="font-sans normal-case tracking-normal text-stone-400">— satu bajet kongsi</span></span>
+                      <span className={labelCls}>b+c. Tajuk / Huraian ringkas <span className="font-sans normal-case tracking-normal text-stone-400">(satu bajet kongsi)</span></span>
                     </div>
                     <input
                       type="range" min={0} max={ceiling.maxTitle} value={titleTarget}
@@ -1186,7 +1186,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <Field
                   label="Arahan khas (slot ini)" rows={3}
                   value={formConfig.promptText || ''}
-                  placeholder="Cth. Fokus kepada pandangan pakar tempatan, elak sumber pendapat semata-mata…"
+                  placeholder="Cth. Fokus kepada pandangan pakar tempatan, elak sumber pendapat semata-mata"
                   onChange={(v) => setFormConfig((prev: any) => ({ ...prev, promptText: v }))}
                   hint="disimpan bersama slot ini"
                 />

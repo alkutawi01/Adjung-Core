@@ -1061,7 +1061,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               {note && (
                 <Tooltip text={note}>
                   <p style={{ margin: 0, paddingLeft: '12px', borderLeft: '2px solid var(--color-Adjung-maroon)', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', lineHeight: 1.6, color: 'var(--stone-600)' }}>
-                    <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota — </span>{notaText}
+                    <span style={{ color: 'var(--color-Adjung-maroon)', fontWeight: 'var(--weight-semibold)' as any }}>Nota: </span>{notaText}
                   </p>
                 </Tooltip>
               )}

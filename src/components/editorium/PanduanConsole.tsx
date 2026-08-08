@@ -84,7 +84,7 @@ const CartaAlirKandungan: React.FC = () => {
             — isu ditemui semasa sahkan visual sebenar (dua percubaan pertama masih bertindih,
             baris kod ni jarak diperbesar sehingga disahkan bersih). */}
         <path d={`M ${posisi.aktif + kotak.w / 2} ${y + kotak.h} C ${posisi.aktif + kotak.w / 2} ${y + kotak.h + 70}, ${posisi.draf + kotak.w / 2} ${y + kotak.h + 70}, ${posisi.draf + kotak.w / 2} ${y + kotak.h}`} fill="none" stroke="#b91c1c" strokeWidth={1.5} strokeDasharray="4,3" markerEnd="url(#panahMerah)" />
-        <text x={(posisi.draf + posisi.aktif) / 2 + kotak.w / 2} y={y + kotak.h + 92} textAnchor="middle" fontSize="9.5" fill="#b91c1c" fontWeight={600}>Tolak (sebab dicatat, kekal Menunggu selepas Terbitkan semula —</text>
+        <text x={(posisi.draf + posisi.aktif) / 2 + kotak.w / 2} y={y + kotak.h + 92} textAnchor="middle" fontSize="9.5" fill="#b91c1c" fontWeight={600}>Tolak (sebab dicatat, kekal Menunggu selepas Terbitkan semula,</text>
         <text x={(posisi.draf + posisi.aktif) / 2 + kotak.w / 2} y={y + kotak.h + 104} textAnchor="middle" fontSize="9.5" fill="#b91c1c" fontWeight={600}>perlu kelulusan Ketua Editor/Penolong)</text>
 
         {/* Gelung Siarkan Semula (kelabu, lengkung atas) — Arkib kembali ke Aktif */}

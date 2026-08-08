@@ -311,7 +311,7 @@ export const EditorialConsole: React.FC = () => {
               value={istilahBaharu}
               onChange={(e) => setIstilahBaharu(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); tambahIstilah(); } }}
-              placeholder="Tambah istilah (contoh: machine learning)…"
+              placeholder="Tambah istilah (contoh: machine learning)"
               className={`${INPUT_BORANG} flex-1`}
             />
             <Button
@@ -426,7 +426,7 @@ export const EditorialConsole: React.FC = () => {
                   <span className={LABEL_BORANG}>Maksud</span>
                   <textarea
                     value={gMaksud} onChange={(e) => setGMaksud(e.target.value)} rows={3}
-                    placeholder="Penjelasan ringkas untuk pembaca…"
+                    placeholder="Penjelasan ringkas untuk pembaca"
                     className={`${INPUT_BORANG} resize-y`}
                   />
                 </label>
@@ -567,7 +567,7 @@ export const EditorialConsole: React.FC = () => {
                     <span className={LABEL_BORANG}>Catatan (pilihan)</span>
                     <textarea
                       value={eCatatan} onChange={(e) => setECatatan(e.target.value)} rows={2}
-                      placeholder="Nota ringkas, contoh sumber kesilapan biasa…"
+                      placeholder="Nota ringkas, contoh sumber kesilapan biasa"
                       className={`${INPUT_BORANG} resize-y`}
                     />
                   </label>
@@ -682,7 +682,7 @@ export const EditorialConsole: React.FC = () => {
                     value={masterPrompt}
                     onChange={(e) => setMasterPrompt(e.target.value)}
                     rows={4}
-                    placeholder="Contoh: Gunakan bahasa Melayu baku, elakkan jargon, nada formal dan tidak emosional…"
+                    placeholder="Contoh: Gunakan bahasa Melayu baku, elakkan jargon, nada formal dan tidak emosional"
                     className={`${INPUT_BORANG} resize-y`}
                   />
                 </label>
@@ -697,7 +697,7 @@ export const EditorialConsole: React.FC = () => {
                     value={reviewPrompt}
                     onChange={(e) => setReviewPrompt(e.target.value)}
                     rows={4}
-                    placeholder="Contoh: Semak ejaan, tatabahasa, gaya bahasa akademik dan format perenggan teks berikut…"
+                    placeholder="Contoh: Semak ejaan, tatabahasa, gaya bahasa akademik dan format perenggan teks berikut"
                     className={`${INPUT_BORANG} resize-y`}
                   />
                   <span className="block mt-1 text-stone-400 text-[10px]">

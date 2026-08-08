@@ -69,7 +69,7 @@ function ImageField({ label, value, onChange, onUploadFile, uploading, note }: {
       </span>
       <span className="flex items-center gap-2">
         <input
-          type="text" value={value} placeholder="Nama fail / URL imej…" onChange={(e) => onChange(e.target.value)}
+          type="text" value={value} placeholder="Nama fail / URL imej" onChange={(e) => onChange(e.target.value)}
           className="w-0 flex-1 border-0 border-b border-stone-300 focus:border-[var(--color-Adjung-maroon)] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
         />
         <button
@@ -234,7 +234,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
               <p className="mt-1.5 flex items-center gap-2.5 flex-wrap">
                 <span className="font-sans text-[10px] uppercase tracking-[0.15em] font-extrabold text-[var(--color-Adjung-maroon)]">ACARA</span>
                 <span className="text-stone-300">·</span>
-                <span className="font-sans text-[11px] text-stone-500">Event / Penganjur / Lokasi / Akses / Penerangan — bukan kad Tajuk/Huraian biasa</span>
+                <span className="font-sans text-[11px] text-stone-500">Acara / Penganjur / Lokasi / Akses / Penerangan, bukan kad Tajuk/Huraian biasa</span>
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -324,10 +324,10 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
           <section className="min-h-0 overflow-y-auto px-6 md:px-8 py-5 flex flex-col gap-5">
             <span className={labelCls}>Acara <span className="font-mono">{String(activeIndex + 1).padStart(2, '0')}</span></span>
 
-            <Field label="Nama Acara" value={current.title || ''} maxLen={ceiling.maxTitle} placeholder="Nama acara…" onChange={(v) => patch(activeIndex, 'title', v)} />
+            <Field label="Nama Acara" value={current.title || ''} maxLen={ceiling.maxTitle} onChange={(v) => patch(activeIndex, 'title', v)} />
             <div className="grid grid-cols-2 gap-5">
               <Field label="Penganjur" value={current.organizer || ''} placeholder="Cth: PPAS / DBP / PNM / KPM" onChange={(v) => patch(activeIndex, 'organizer', v)} />
-              <Field label="Lokasi" value={current.location || ''} placeholder="Lokasi acara…" onChange={(v) => patch(activeIndex, 'location', v)} />
+              <Field label="Lokasi" value={current.location || ''} onChange={(v) => patch(activeIndex, 'location', v)} />
               <label className="flex flex-col gap-1">
                 <span className={labelCls}>Akses</span>
                 <select
@@ -342,12 +342,12 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
               <Field label="Tarikh mula" type="date" value={current.date || ''} onChange={(v) => patchTarikhMula(activeIndex, v)} />
               <Field label="Tarikh tamat" type="date" value={current.dateEnd || current.date || ''} onChange={(v) => patch(activeIndex, 'dateEnd', v)} />
             </div>
-            <Field label="Penerangan" rows={4} value={current.penerangan || ''} maxLen={MAX_PENERANGAN_CHARS} placeholder="Huraian tambahan acara — dipapar di panel akordion, bukan pada muka kad…" onChange={(v) => patch(activeIndex, 'penerangan', v)} />
+            <Field label="Penerangan" rows={4} value={current.penerangan || ''} maxLen={MAX_PENERANGAN_CHARS} placeholder="Huraian tambahan acara, dipapar di panel akordion, bukan pada muka kad" onChange={(v) => patch(activeIndex, 'penerangan', v)} />
 
             <hr className="border-stone-150" />
             <div className="grid grid-cols-2 gap-5">
               <Field label="Sumber" value={current.source || ''} maxLen={60} onChange={(v) => patch(activeIndex, 'source', v)} />
-              <Field label="URL" value={current.url || ''} placeholder="https://…" onChange={(v) => patch(activeIndex, 'url', v)} />
+              <Field label="URL" value={current.url || ''} placeholder="https://" onChange={(v) => patch(activeIndex, 'url', v)} />
               {/* Imej DIMATIKAN sengaja (2026-08-02) — medan ni disimpan tapi BarCard.tsx/
                   BarCardExpandedPanel.tsx tak pernah papar imej langsung, jadi muat naik di
                   sini tak buat apa-apa kesan kelihatan. Disahkan Izzat: matikan dulu (bukan
@@ -359,7 +359,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
                 </span>
               </label>
             </div>
-            <Field label="Nota" rows={2} value={current.note || ''} maxLen={280} placeholder="Nota editor (pilihan)…" onChange={(v) => patch(activeIndex, 'note', v)} />
+            <Field label="Nota" rows={2} value={current.note || ''} maxLen={280} placeholder="Nota editor (pilihan)" onChange={(v) => patch(activeIndex, 'note', v)} />
 
             <hr className="border-stone-150" />
             <div className="flex items-center justify-between gap-4">

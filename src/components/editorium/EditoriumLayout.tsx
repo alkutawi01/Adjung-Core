@@ -317,7 +317,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                     <button
                       type="button"
                       onClick={onOpenMakluman}
-                      aria-label="Peti Makluman — nota Ketua Editor"
+                      aria-label="Peti Makluman, nota Ketua Editor"
                       className="relative flex items-center justify-center w-7 h-7 border border-stone-200 rounded text-stone-500 hover:text-Adjung-maroon hover:border-stone-300 hover:bg-stone-50 transition-colors cursor-pointer"
                     >
                       <Mail className="w-3.5 h-3.5" />

@@ -2391,7 +2391,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
-                placeholder="Cari kandungan…"
+                placeholder="Cari kandungan"
                 tabIndex={searchExpanded ? 0 : -1}
                 className={`min-w-0 bg-transparent outline-none font-sans text-xs text-stone-700 placeholder:text-stone-400 transition-opacity duration-200 ${
                   searchExpanded ? 'w-full opacity-100 delay-150' : 'w-0 opacity-0'

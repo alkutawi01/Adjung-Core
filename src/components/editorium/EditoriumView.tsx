@@ -599,7 +599,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               <Handshake className="w-4 h-4 text-Adjung-maroon" />
               <div>
                 <div className="text-sm font-semibold text-stone-800">Penaja</div>
-                <div className="text-[11px] text-stone-500">Tajaan bulanan — footer & halaman /penaja awam.</div>
+                <div className="text-[11px] text-stone-500">Tajaan bulanan: footer & halaman /penaja awam.</div>
               </div>
             </div>
             <Button

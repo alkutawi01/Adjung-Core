@@ -356,7 +356,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
           </div>
 
           <div className="pt-5 border-t border-stone-100">
-            <div className="font-serif text-sm font-bold text-stone-900 mb-1">Button — empat varian</div>
+            <div className="font-serif text-sm font-bold text-stone-900 mb-1">Button (empat varian)</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
               Varian <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">bahaya</code> ditambah
               2026-08-07 untuk tindakan yang tidak boleh dibatalkan (padam, tamatkan akaun) — ia WAJIB
