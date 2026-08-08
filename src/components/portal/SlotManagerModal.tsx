@@ -372,15 +372,19 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // bukan satu nama. Dimuatkan sekali sahaja bila slot dibuka (key={editingSlotIndex} di
   // EditoriumView memaksa remount setiap tukar slot, sama corak macam `items` di atas).
   const [editorSlot, setEditorSlot] = useState<{ nama: string }[] | null>(null);
+  // Bendera kegagalan (SLOT-02, audit ChatGPT 2026-08-08) — dahulu kegagalan fetch senyap jatuh
+  // balik ke [] sama macam "memang tiada editor ditugaskan", tak boleh dibezakan editor tengok.
+  const [gagalMuatEditorSlot, setGagalMuatEditorSlot] = useState(false);
   useEffect(() => {
     let batal = false;
+    setGagalMuatEditorSlot(false);
     fetch('/api/system/slot-editors')
       .then((res) => res.json())
       .then((rows) => {
         if (batal || !Array.isArray(rows)) return;
         setEditorSlot(rows.filter((r: any) => r.slotIndex === editingSlotIndex));
       })
-      .catch(() => { if (!batal) setEditorSlot([]); });
+      .catch(() => { if (!batal) { setEditorSlot([]); setGagalMuatEditorSlot(true); } });
     return () => { batal = true; };
   }, [editingSlotIndex]);
 
@@ -1092,9 +1096,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   value={
                     editorSlot === null
                       ? 'Memuatkan…'
-                      : editorSlot.length > 0
-                        ? editorSlot.map((e) => e.nama).join(', ')
-                        : 'Belum ditugaskan'
+                      : gagalMuatEditorSlot
+                        ? 'Gagal dimuatkan'
+                        : editorSlot.length > 0
+                          ? editorSlot.map((e) => e.nama).join(', ')
+                          : 'Belum ditugaskan'
                   }
                 />
                 <ReadOnlyField label="Bilangan kandungan" value={String(items.length)} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Save, Search, Copy, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../common/Button';
+import { MesejStatus } from '../common/MesejStatus';
 
 interface ContentItem {
   id: string;
@@ -135,27 +136,33 @@ export function ContentReview() {
   const [namaPromptBaharu, setNamaPromptBaharu] = useState('');
   const [teksPromptBaharu, setTeksPromptBaharu] = useState('');
   const [menyimpanPrompt, setMenyimpanPrompt] = useState(false);
+  // Ralat kelihatan (PROMPT-01, audit ChatGPT 2026-08-08) — dahulu SEMUA kegagalan (muat/simpan/
+  // padam/salin) senyap ke console.error sahaja, tiada mesej nampak kepada pengguna.
+  const [ralatPrompt, setRalatPrompt] = useState('');
 
   const muatPromptSemakan = () => {
     fetch('/api/system/semakan-prompts')
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setPromptSemakan(data); })
-      .catch(e => console.error('Error fetching semakan prompts:', e));
+      .catch(e => { console.error('Error fetching semakan prompts:', e); setRalatPrompt('Gagal memuatkan senarai prompt.'); });
   };
 
   const salinPrompt = async (p: { id: string; templateText: string }) => {
+    setRalatPrompt('');
     try {
       await navigator.clipboard.writeText(p.templateText);
       setPromptDisalin(p.id);
       setTimeout(() => setPromptDisalin(cur => (cur === p.id ? null : cur)), 2000);
     } catch (e) {
       console.error('Gagal menyalin prompt ke papan klip:', e);
+      setRalatPrompt('Gagal menyalin ke papan klip. Sunting/salin terus dari kandungan prompt di bawah.');
     }
   };
 
   const simpanPromptBaharu = async () => {
     if (!namaPromptBaharu.trim() || !teksPromptBaharu.trim()) return;
     setMenyimpanPrompt(true);
+    setRalatPrompt('');
     try {
       const res = await fetch('/api/system/semakan-prompts', {
         method: 'POST',
@@ -168,18 +175,21 @@ export function ContentReview() {
       muatPromptSemakan();
     } catch (e) {
       console.error('Gagal menyimpan prompt semakan:', e);
+      setRalatPrompt('Prompt gagal disimpan.');
     } finally {
       setMenyimpanPrompt(false);
     }
   };
 
   const padamPrompt = async (id: string) => {
+    setRalatPrompt('');
     try {
       const res = await fetch(`/api/system/semakan-prompts/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       setPromptSemakan(prev => prev.filter(p => p.id !== id));
     } catch (e) {
       console.error('Gagal memadam prompt semakan:', e);
+      setRalatPrompt('Prompt gagal dipadam.');
     }
   };
 
@@ -445,6 +455,7 @@ export function ContentReview() {
                 <p className="text-[10px] text-stone-500 font-sans leading-normal">
                   Salin kandungan dalam kotak di bawah, tampal di chatbox AI (ChatGPT/Gemini/dll.) bersama satu prompt di bawah, kemudian tampal semula hasil yang dibetulkan.
                 </p>
+                {ralatPrompt && <MesejStatus tone="error" onCubaLagi={muatPromptSemakan}>{ralatPrompt}</MesejStatus>}
                 {promptSemakan.length === 0 ? (
                   <p className="text-[11px] text-stone-500 font-sans italic">Tiada prompt disimpan lagi.</p>
                 ) : (

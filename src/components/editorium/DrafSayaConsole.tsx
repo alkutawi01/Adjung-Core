@@ -164,7 +164,9 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
           </div>
         )}
 
-        {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
+        {/* onCubaLagi (DRAFT-02, audit ChatGPT 2026-08-08) — dahulu tiada jalan pulih di sini,
+            editor terpaksa muat semula seluruh halaman bila senarai draf gagal dimuatkan. */}
+        {ralat && <MesejStatus tone="error" onCubaLagi={muatDraf}>{ralat}</MesejStatus>}
 
         {/* Carian + penapis Bidang — hanya berguna bila senarai dah mula panjang, jadi sengaja
             tersembunyi sehingga ada sesuatu untuk ditapis. */}

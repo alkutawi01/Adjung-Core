@@ -126,7 +126,14 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
   // POST /api/system/editor-notes — cipta nota baharu.
   router.post('/system/editor-notes', requirePermission('manageEditorNotes'), async (req, res) => {
     try {
-      const { tajuk, kandungan, kategori = 'am', skop = 'dalaman', penulis, penulisId } = req.body || {};
+      const { tajuk, kandungan, kategori = 'am', skop = 'dalaman' } = req.body || {};
+      // Identiti penulis (NOTE-02, audit ChatGPT 2026-08-08) — DAHULU diambil terus daripada
+      // req.body.penulis/penulisId (client-supplied), jadi sesiapa dgn manageEditorNotes boleh
+      // hantar nama editor LAIN dlm medan tu, memalsukan "Penulis: <sesiapa>" dlm rekod sedangkan
+      // sesi sebenar akaun berbeza. Sumber kebenaran identiti MESTI sesi pelayan, sama corak
+      // seperti actorId/actorName di logAudit() bawah — bukan payload klien.
+      const penulisId = req.session?.user?.id || '';
+      const penulis = req.session?.user?.penName || req.session?.user?.username || '';
 
       const t = (tajuk || '').trim();
       const k = (kandungan || '').trim();
