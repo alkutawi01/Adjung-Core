@@ -291,7 +291,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
   if (loading || !draf) {
     return (
       <PanelCard className="font-sans">
-        <KeadaanKosong>Memuatkan tetapan...</KeadaanKosong>
+        <KeadaanKosong>Memuatkan tetapan…</KeadaanKosong>
       </PanelCard>
     );
   }
@@ -528,7 +528,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
             disabled={!berubah || menyimpan}
             icon={<Save className="w-3.5 h-3.5" />}
           >
-            {menyimpan ? 'Menyimpan...' : 'Simpan Tetapan'}
+            {menyimpan ? 'Menyimpan…' : 'Simpan Tetapan'}
           </Button>
           <span className="text-[10px] text-stone-500">{berubah ? 'Ada perubahan belum disimpan' : 'Tiada perubahan'}</span>
         </div>

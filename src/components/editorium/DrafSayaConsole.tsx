@@ -192,7 +192,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         )}
 
         {memuat ? (
-          <KeadaanKosong>Memuatkan draf...</KeadaanKosong>
+          <KeadaanKosong>Memuatkan draf…</KeadaanKosong>
         ) : draf.length === 0 ? (
           <KeadaanKosong
             tindakan={

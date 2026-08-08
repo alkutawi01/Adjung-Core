@@ -167,7 +167,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
               disabled={loading}
               className="w-full bg-Adjung-maroon text-white text-sm font-semibold py-2 rounded hover:bg-Adjung-maroon-dark transition-colors disabled:opacity-50"
             >
-              {loading ? 'Mengesahkan...' : 'Log Masuk'}
+              {loading ? 'Mengesahkan…' : 'Log Masuk'}
             </button>
 
             <button
@@ -203,7 +203,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
               disabled={menghantarLupa}
               className="w-full bg-Adjung-maroon text-white text-sm font-semibold py-2 rounded hover:bg-Adjung-maroon-dark transition-colors disabled:opacity-50"
             >
-              {menghantarLupa ? 'Menghantar...' : 'Hantar Pautan Set Semula'}
+              {menghantarLupa ? 'Menghantar…' : 'Hantar Pautan Set Semula'}
             </button>
 
             <button

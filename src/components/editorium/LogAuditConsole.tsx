@@ -137,7 +137,7 @@ export const LogAuditConsole: React.FC = () => {
           </thead>
           <tbody className="font-sans">
             {memuat && (
-              <tr><td colSpan={5} className="p-12 text-center text-stone-400"><Hourglass className="w-5 h-5 mx-auto mb-2 animate-pulse" />Memuatkan...</td></tr>
+              <tr><td colSpan={5} className="p-12 text-center text-stone-400"><Hourglass className="w-5 h-5 mx-auto mb-2 animate-pulse" />Memuatkan…</td></tr>
             )}
             {!memuat && entri.length === 0 && (
               <tr>

@@ -587,7 +587,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             <div className="flex gap-2 max-w-md">
               <input
                 type="text"
-                placeholder="Cth: Hiburan, Gosip..."
+                placeholder="Cth: Hiburan, Gosip…"
                 value={newBlockedCategoryInput}
                 onChange={e => setNewBlockedCategoryInput(e.target.value)}
                 className={`${INPUT_BORANG} flex-1`}
@@ -739,7 +739,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
             <div className="flex justify-end">
               <Button variant="primary" size="md" onClick={handleSaveWorldClockSettings} disabled={savingWorldClock}>
-                {savingWorldClock ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Jam Dunia</>}
+                {savingWorldClock ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan…</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Jam Dunia</>}
               </Button>
             </div>
 
@@ -832,7 +832,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
             <div className="flex justify-end">
               <Button variant="primary" size="md" onClick={handleSaveFocusViewSettings} disabled={savingFocusView}>
-                {savingFocusView ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Focus View</>}
+                {savingFocusView ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan…</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Focus View</>}
               </Button>
             </div>
           </div>
@@ -893,7 +893,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
             <div className="flex justify-end">
               <Button variant="primary" size="md" onClick={handleSaveTickerOverlaySettings} disabled={savingTickerOverlay}>
-                {savingTickerOverlay ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Paparan Penuh Ticker</>}
+                {savingTickerOverlay ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan…</> : <><Save className="w-3.5 h-3.5" /> Simpan Tetapan Paparan Penuh Ticker</>}
               </Button>
             </div>
           </div>
@@ -1000,7 +1000,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
           <div className="flex justify-end pt-2">
             <Button variant="primary" size="md" onClick={handleSaveRbac} disabled={savingRbac || !rbacDirty}>
-              {savingRbac ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan...</> : rbacDirty ? <><Save className="w-3.5 h-3.5" /> Simpan Kawalan Akses</> : <><Check className="w-3.5 h-3.5" /> Tersimpan</>}
+              {savingRbac ? <><Hourglass className="w-3.5 h-3.5" /> Menyimpan…</> : rbacDirty ? <><Save className="w-3.5 h-3.5" /> Simpan Kawalan Akses</> : <><Check className="w-3.5 h-3.5" /> Tersimpan</>}
             </Button>
           </div>
         </PanelCard>
@@ -1169,7 +1169,7 @@ function HalamanAwamPanel() {
       </div>
 
       {memuat ? (
-        <p className="text-stone-400">Memuatkan...</p>
+        <p className="text-stone-400">Memuatkan…</p>
       ) : (
         <div className="space-y-3">
           {HALAMAN_AWAM_SENARAI.find(h => h.key === halamanAktif)?.kumpulan === 'awam' && (
@@ -1228,7 +1228,7 @@ function HalamanAwamPanel() {
           <div className="flex items-center justify-end gap-3">
             {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
             <Button variant="primary" size="md" onClick={simpan} disabled={menyimpan || !tajuk.trim()}>
-              {menyimpan ? 'Menyimpan...' : 'Simpan Halaman'}
+              {menyimpan ? 'Menyimpan…' : 'Simpan Halaman'}
             </Button>
           </div>
         </div>
@@ -1344,7 +1344,7 @@ function LabelSistemPanel() {
       {ralat && <MesejStatus tone="error" onCubaLagi={muatSemula}>{ralat}</MesejStatus>}
 
       {memuat ? (
-        <p className="text-stone-400">Memuatkan...</p>
+        <p className="text-stone-400">Memuatkan…</p>
       ) : (
         <div className="space-y-6">
           {Object.entries(kumpulan).map(([kategori, senarai]) => (
@@ -1390,7 +1390,7 @@ function LabelSistemPanel() {
           <div className="flex items-center justify-end gap-3 border-t border-stone-200 pt-4">
             {mesej && <span className="text-[var(--color-success)] text-[11px] font-semibold">{mesej}</span>}
             <Button variant="primary" size="md" onClick={simpanSemua} disabled={menyimpan || !adaSuntingan}>
-              {menyimpan ? 'Menyimpan...' : 'Simpan Label'}
+              {menyimpan ? 'Menyimpan…' : 'Simpan Label'}
             </Button>
           </div>
         </div>

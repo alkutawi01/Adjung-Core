@@ -549,7 +549,7 @@ URL:`}</pre>
         </SectionLabel>
         <PanelCard padding="p-0">
           {loadingLog ? (
-            <KeadaanKosong>Memuatkan sejarah...</KeadaanKosong>
+            <KeadaanKosong>Memuatkan sejarah…</KeadaanKosong>
           ) : changelogUnavailable ? (
             <KeadaanKosong>Sejarah git tidak tersedia dalam persekitaran ini.</KeadaanKosong>
           ) : commits.length === 0 ? (
@@ -593,7 +593,7 @@ URL:`}</pre>
         </SectionLabel>
         <PanelCard padding="p-0">
           {loadingUiUxLog ? (
-            <KeadaanKosong>Memuatkan log...</KeadaanKosong>
+            <KeadaanKosong>Memuatkan log…</KeadaanKosong>
           ) : uiUxUnavailable ? (
             <KeadaanKosong>Log UI/UX tidak tersedia.</KeadaanKosong>
           ) : uiUxEntries.length === 0 ? (

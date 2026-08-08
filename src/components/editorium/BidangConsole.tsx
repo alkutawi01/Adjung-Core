@@ -307,7 +307,7 @@ export const BidangConsole: React.FC = () => {
         </div>
 
         {desksLoading ? (
-          <KeadaanKosong>Memuatkan Bidang...</KeadaanKosong>
+          <KeadaanKosong>Memuatkan Bidang…</KeadaanKosong>
         ) : desksTertapis.length === 0 ? (
           <KeadaanKosong>Tiada Bidang dalam paparan ini.</KeadaanKosong>
         ) : (
@@ -568,7 +568,7 @@ export const BidangConsole: React.FC = () => {
                                 disabled={applyingSlots}
                                 onClick={() => applySlotChanges(d)}
                               >
-                                {applyingSlots ? 'Menyimpan...' : (jumlahArkib > 0 ? `Teruskan dan arkibkan ${jumlahArkib} kandungan` : 'Teruskan')}
+                                {applyingSlots ? 'Menyimpan…' : (jumlahArkib > 0 ? `Teruskan dan arkibkan ${jumlahArkib} kandungan` : 'Teruskan')}
                               </Button>
                               <Button
                                 variant="secondary"
@@ -761,7 +761,7 @@ function IkonWarnaModal({
               </span>
               {warnaDraf && warnaDraf.toUpperCase() !== (target.color || '').toUpperCase() && (
                 <Button variant="primary" onClick={() => handleSaveColor(target.id)} disabled={simpanWarna}>
-                  {simpanWarna ? 'Menyimpan...' : 'Guna Warna Ini'}
+                  {simpanWarna ? 'Menyimpan…' : 'Guna Warna Ini'}
                 </Button>
               )}
             </div>
@@ -869,7 +869,7 @@ function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerj
         <>
           <Button variant="secondary" onClick={onTutup}>Batal</Button>
           <Button variant="primary" onClick={handleAddDesk} disabled={addingDesk}>
-            {addingDesk ? 'Menambah...' : 'Tambah Bidang'}
+            {addingDesk ? 'Menambah…' : 'Tambah Bidang'}
           </Button>
         </>
       }
@@ -976,7 +976,7 @@ function StrategiWarnaModal({
               sistem. Bidang yang sudah mempunyai warna unik tidak akan diubah.
             </p>
             <Button variant="secondary" onClick={pelbagaikanWarna} disabled={memprosesWarna !== null}>
-              {memprosesWarna === 'diversify' ? 'Memproses...' : 'Pelbagaikan Semula'}
+              {memprosesWarna === 'diversify' ? 'Memproses…' : 'Pelbagaikan Semula'}
             </Button>
           </div>
 

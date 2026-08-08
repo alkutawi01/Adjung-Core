@@ -139,7 +139,7 @@ export const TierKadConsole: React.FC = () => {
         {berjaya && <MesejStatus tone="success">{berjaya}</MesejStatus>}
 
         {loading ? (
-          <KeadaanKosong>Memuatkan tetapan tier...</KeadaanKosong>
+          <KeadaanKosong>Memuatkan tetapan tier…</KeadaanKosong>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
@@ -218,7 +218,7 @@ export const TierKadConsole: React.FC = () => {
                             disabled={!adaPerubahan || menyimpan === t.tierKey}
                             icon={<Save className="w-3 h-3" />}
                           >
-                            {menyimpan === t.tierKey ? 'Menyimpan...' : 'Simpan'}
+                            {menyimpan === t.tierKey ? 'Menyimpan…' : 'Simpan'}
                           </Button>
                         </div>
                       </td>
