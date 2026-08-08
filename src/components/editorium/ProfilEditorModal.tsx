@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
+import { KataLaluanInput } from '../common/KataLaluanInput';
 import { labelUi } from '../../config/istilah';
 import { useModalFokus } from '../../hooks/useModalFokus';
 import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
@@ -118,19 +119,28 @@ function BorangPengesahan({
         <form onSubmit={hantar} className="space-y-2 bg-stone-50 border border-stone-200 rounded p-3">
           <label className="flex flex-col gap-1">
             <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500">{labelMedan}</span>
-            <input
-              type={jenisInput === 'password' ? 'password' : jenisInput}
-              value={nilaiBaharu}
-              onChange={(e) => setNilaiBaharu(e.target.value)}
-              placeholder={placeholder}
-              autoComplete="off"
-              className="bg-white border border-stone-300 rounded px-3 py-1.5 text-xs"
-            />
+            {jenisInput === 'password' ? (
+              <KataLaluanInput
+                value={nilaiBaharu}
+                onChange={(e) => setNilaiBaharu(e.target.value)}
+                placeholder={placeholder}
+                autoComplete="off"
+                className="bg-white border border-stone-300 rounded px-3 py-1.5 text-xs"
+              />
+            ) : (
+              <input
+                type={jenisInput}
+                value={nilaiBaharu}
+                onChange={(e) => setNilaiBaharu(e.target.value)}
+                placeholder={placeholder}
+                autoComplete="off"
+                className="bg-white border border-stone-300 rounded px-3 py-1.5 text-xs"
+              />
+            )}
           </label>
           <label className="flex flex-col gap-1">
             <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500">Kata Laluan Semasa</span>
-            <input
-              type="password"
+            <KataLaluanInput
               value={kataLaluanSemasa}
               onChange={(e) => setKataLaluanSemasa(e.target.value)}
               placeholder="Untuk pengesahan"

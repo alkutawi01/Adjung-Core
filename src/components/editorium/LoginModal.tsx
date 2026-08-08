@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
+import { KataLaluanInput } from '../common/KataLaluanInput';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
 import { useModalFokus } from '../../hooks/useModalFokus';
 
@@ -140,8 +141,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
             </div>
             <div>
               <label className={LABEL_BORANG}>Kata Laluan</label>
-              <input
-                type="password"
+              <KataLaluanInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={INPUT_BORANG}

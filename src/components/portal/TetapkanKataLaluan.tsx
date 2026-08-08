@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
+import { KataLaluanInput } from '../common/KataLaluanInput';
 
 // Halaman awam "Tetapkan Kata Laluan" (2026-08-03, Fasa 1) — destinasi SATU pautan
 // `/tetapkan-kata-laluan?token=...` dikongsi oleh DUA aliran token emel sebenar:
@@ -60,7 +61,7 @@ export const TetapkanKataLaluan: React.FC = () => {
         <span className={`font-serif ${LOGO_SIZE.gate} font-semibold tracking-wider text-[#FDFDFD]`}>
           {BRAND.logoText}
         </span>
-        <h1 className="font-serif text-2xl md:text-3xl font-normal tracking-tight">
+        <h1 className="font-serif text-lg md:text-xl font-normal tracking-tight">
           Tetapkan Kata Laluan
         </h1>
 
@@ -98,25 +99,23 @@ export const TetapkanKataLaluan: React.FC = () => {
               <label className="block font-mono text-[9px] uppercase tracking-wider font-bold text-stone-200 mb-1">
                 Kata Laluan Baharu
               </label>
-              <input
-                type="password"
+              <KataLaluanInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={8}
                 autoFocus
-                className="w-full rounded px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-white"
+                className="w-full rounded px-3 py-2 text-sm text-stone-900 bg-[#FDFDFD] focus:outline-none focus:ring-2 focus:ring-white"
               />
             </div>
             <div>
               <label className="block font-mono text-[9px] uppercase tracking-wider font-bold text-stone-200 mb-1">
                 Sahkan Kata Laluan
               </label>
-              <input
-                type="password"
+              <KataLaluanInput
                 value={sahkan}
                 onChange={(e) => setSahkan(e.target.value)}
                 minLength={8}
-                className="w-full rounded px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-white"
+                className="w-full rounded px-3 py-2 text-sm text-stone-900 bg-[#FDFDFD] focus:outline-none focus:ring-2 focus:ring-white"
               />
             </div>
 
