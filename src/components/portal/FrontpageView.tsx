@@ -511,8 +511,22 @@ const CarouselStableBlock: React.FC<{
     if (getComputedStyle(kad).position === 'static') {
       kad.style.position = 'relative';
     }
+    // Ruang tempahan untuk titik carousel (2026-08-08, pepijat Izzat) — titik dot dilukis via
+    // Portal terus ke kad PENUH ni sendiri dengan `position:absolute bottom-1.5` (di bawah,
+    // bukan sebahagian aliran biasa — sengaja, lihat nota Portal di atas), supaya ia sentiasa
+    // duduk di footer kad tak kira berapa banyak kandungan lain dalam kad. Tapi sebab tu jugak
+    // ia TAK PERNAH mengambil ruang sendiri: kad hero yang mengembang penuh (tajuk+huraian
+    // panjang, tepat sehingga tepi bawah kotak yang dikira daripada TEKS sahaja) biarkan baris
+    // teks terakhir rapat/bertindih dengan titik carousel — tiada margin dikira untuknya. Padding
+    // bawah tetap di sini (bukan ubah struktur carousel yang fragile) tempah ruang kekal untuk
+    // titik, jadi kad sentiasa ada jurang minimum tak kira panjang kandungan.
+    if (list.length > 1 && onNavigate && !kad.dataset.ruangDot) {
+      kad.dataset.ruangDot = '1';
+      const pbSediaAda = getComputedStyle(kad).paddingBottom;
+      kad.style.paddingBottom = `calc(${pbSediaAda} + 14px)`;
+    }
     setKadPenuhStabil(kad);
-  }, []);
+  }, [list.length, onNavigate]);
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
   // Leret (swipe) tangan — hanya bertindak balas leret yang cukup mendatar (elak konflik dengan
   // skrol menegak biasa halaman) dan cukup jauh (elak leret tak sengaja yang kecil).
