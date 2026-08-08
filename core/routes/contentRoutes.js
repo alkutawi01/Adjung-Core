@@ -550,9 +550,19 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           }
         }
 
+        // Cuma sah semula bajet bila tajuk/huraian/slot BENAR-BENAR disentuh PATCH ni (2026-08-08,
+        // pepijat kritikal Izzat) — sebelum ni disemak semula pada SETIAP PATCH termasuk tindakan
+        // status-sahaja (Arkib/Tolak/Siar tanpa ubah kandungan). Akibatnya: kandungan lama yang
+        // dicipta SEBELUM had minimum huraian (MIN_BRIEF_USAGE_FRACTION) wujud terperangkap —
+        // langsung tak boleh diarkibkan/ditolak, sebab semakan retroaktif tu gagal walaupun
+        // kandungan sebenarnya tak disentuh. Status-sahaja tak pernah boleh menyebabkan limpahan
+        // kad (teks tak berubah), jadi tiada sebab sah semula bajet untuk laluan tu.
         const nextTitle = title !== undefined ? title : rev.title;
         const nextSummary = summary !== undefined ? summary : rev.summary;
-        const budgetCheck = validateContentBudget(targetSlotIndex, nextTitle, nextSummary);
+        const sentuhKandunganAtauSlot = title !== undefined || summary !== undefined || slotIndex !== undefined;
+        const budgetCheck = sentuhKandunganAtauSlot
+          ? validateContentBudget(targetSlotIndex, nextTitle, nextSummary)
+          : { isValid: true };
         if (!budgetCheck.isValid) {
           return res.status(400).json({ error: budgetCheck.reason });
         }
