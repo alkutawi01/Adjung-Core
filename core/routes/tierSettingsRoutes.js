@@ -82,7 +82,7 @@ export const createTierSettingsRoutes = (dbAll, dbRun) => {
       // Tier BAR memang tiada medan huraian pada kadnya — membenarkan had bukan sifar di sini
       // bermakna pengesahan simpan akan menerima huraian yang tiada tempat untuk dipaparkan.
       if (tierKey === 'BAR' && huraian !== 0) {
-        return res.status(400).json({ error: 'Kad Bar tiada medan huraian — had huraian mesti kekal 0.' });
+        return res.status(400).json({ error: 'Kad Bar tiada medan huraian, jadi had huraian mesti kekal 0.' });
       }
 
       await dbRun(`

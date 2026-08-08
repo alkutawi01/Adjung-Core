@@ -54,7 +54,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
 
       if (!istilah) return res.status(400).json({ error: 'Istilah wajib diisi.' });
       // Maksud wajib sejak Glosari menjadi tooltip pembaca (2026-08-07) — lihat nota kepala fail.
-      if (!maksud) return res.status(400).json({ error: 'Maksud wajib diisi — tanpanya istilah tidak akan dipaparkan kepada pembaca.' });
+      if (!maksud) return res.status(400).json({ error: 'Maksud wajib diisi. Tanpanya istilah tidak akan dipaparkan kepada pembaca.' });
       if (istilah.length > HAD_ISTILAH) return res.status(400).json({ error: `Istilah tidak boleh melebihi ${HAD_ISTILAH} aksara.` });
       if (elakkan.length > HAD_ELAKKAN) return res.status(400).json({ error: `Senarai "elakkan" tidak boleh melebihi ${HAD_ELAKKAN} aksara.` });
       if (maksud.length > HAD_MAKSUD) return res.status(400).json({ error: `Maksud tidak boleh melebihi ${HAD_MAKSUD} aksara.` });

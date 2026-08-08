@@ -59,7 +59,7 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
         return res.status(400).json({ error: 'Nombor slot tidak sah.' });
       }
       if (BAR_SLOTS.has(slot)) {
-        return res.status(400).json({ error: `Slot ${slot + 1} ialah kad Bar — diuruskan di Modul Khas, bukan di sini.` });
+        return res.status(400).json({ error: `Slot ${slot + 1} ialah kad Bar, diuruskan di Modul Khas, bukan di sini.` });
       }
       if (!Array.isArray(editorIds)) {
         return res.status(400).json({ error: 'editorIds mesti senarai.' });

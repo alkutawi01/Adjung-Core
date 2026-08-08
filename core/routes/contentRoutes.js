@@ -508,10 +508,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
       if (id.startsWith('ticker-')) {
         if (status !== undefined) {
-          return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah — buang baris tu terus daripada tetapan ticker untuk menariknya balik.' });
+          return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah. Buang baris tu terus daripada tetapan ticker untuk menariknya balik.' });
         }
         if (scheduledPublishAt !== undefined || scheduledExpiresAt !== undefined) {
-          return res.status(400).json({ error: 'Item ticker tidak menyokong Jadual Terbit/Luput — ia disegarkan terus daripada suapan RSS.' });
+          return res.status(400).json({ error: 'Item ticker tidak menyokong Jadual Terbit/Luput, sebab ia disegarkan terus daripada suapan RSS.' });
         }
         const idx = parseInt(id.slice('ticker-'.length), 10);
         const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
@@ -550,7 +550,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // status='approved' terus boleh "menghidupkan" kandungan sampah sambil meninggalkan atribut
       // statusSebelumPadam/dipadamPada tergantung — pulihan separa yang mengelirukan.
       if (rev.status === 'dipadam') {
-        return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah — Pulihkan dahulu sebelum menyunting, atau Padam Kekal.' });
+        return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah. Pulihkan dahulu sebelum menyunting, atau Padam Kekal.' });
       }
 
       // Gerbang Nota Editor (2026-08-08, Fasa 4 pemilikan kandungan, keputusan Izzat) — "ketua
@@ -597,7 +597,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         && !hasPermission(req.session?.user?.roles, 'manageEditorial')) {
         if (!hasPermission(req.session?.user?.roles, 'publish')) {
           return res.status(403).json({
-            error: 'Dasar semasa: Editor perlu kelulusan Ketua Editor/Penolong Ketua Editor untuk terbit — kandungan kekal Menunggu sehingga disemak.',
+            error: 'Dasar semasa: Editor perlu kelulusan Ketua Editor/Penolong Ketua Editor untuk terbit. Kandungan kekal Menunggu sehingga disemak.',
           });
         }
         const bendera = await dbGet(
@@ -606,7 +606,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         );
         if (bendera && bendera.valueText === '1') {
           return res.status(403).json({
-            error: 'Kandungan ni pernah ditolak sebelum ini — perlu kelulusan Ketua Editor/Penolong Ketua Editor untuk terbit semula, bukan Editor sendiri.',
+            error: 'Kandungan ni pernah ditolak sebelum ini, jadi perlu kelulusan Ketua Editor/Penolong Ketua Editor untuk terbit semula, bukan Editor sendiri.',
           });
         }
       }
@@ -638,7 +638,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           `, [targetSlotIndex, id]);
           if (!hasReplacementForExpiry(lainDalamSlot.map((r) => r.status))) {
             return res.status(400).json({
-              error: 'Tak boleh tetapkan tarikh luput — ni satu-satunya kandungan slot ni. Sedia kandungan gantian dalam giliran dulu.',
+              error: 'Tak boleh tetapkan tarikh luput sebab ni satu-satunya kandungan slot ni. Sedia kandungan gantian dalam giliran dulu.',
             });
           }
         }
@@ -936,7 +936,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
     try {
       const { id } = req.params;
       if (id.startsWith('ticker-')) {
-        return res.status(400).json({ error: 'Item ticker tiada sejarah versi — ia disegarkan terus daripada suapan RSS.' });
+        return res.status(400).json({ error: 'Item ticker tiada sejarah versi, sebab ia disegarkan terus daripada suapan RSS.' });
       }
       const objRow = await dbGet("SELECT id FROM editorial_objects WHERE id = ?", [id]);
       if (!objRow) {
@@ -989,20 +989,20 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         [id]
       );
       if (revTerkini && revTerkini.status === 'dipadam') {
-        return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah — Pulihkan dahulu sebelum memulihkan versi lama.' });
+        return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah. Pulihkan dahulu sebelum memulihkan versi lama.' });
       }
 
       // Versi lama berstatus 'approved' terus terbit semula apabila dipulihkan — jadi ia perlukan
       // kebenaran `publish` yang sama seperti laluan kelulusan lain.
       if (oldRev.status === 'approved' && !hasPermission(req.session?.user?.roles, 'publish')) {
         return res.status(403).json({
-          error: 'Anda tiada kebenaran untuk memulihkan versi yang terus terbit — minta Ketua Editor/Penolong Ketua Editor.',
+          error: 'Anda tiada kebenaran untuk memulihkan versi yang terus terbit. Minta Ketua Editor/Penolong Ketua Editor.',
         });
       }
 
       const budgetCheck = validateContentBudget(objRow.slotIndex, oldRev.title || '', oldRev.summary || '');
       if (!budgetCheck.isValid) {
-        return res.status(400).json({ error: `Versi ini tak boleh dipulihkan — ${budgetCheck.reason}` });
+        return res.status(400).json({ error: `Versi ini tak boleh dipulihkan: ${budgetCheck.reason}` });
       }
 
       if (!TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
@@ -1023,7 +1023,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           slotIndex: objRow.slotIndex,
         });
         if (!bidangTopikCheck.isValid) {
-          return res.status(400).json({ error: `Versi ini tak boleh dipulihkan — ${bidangTopikCheck.reason}` });
+          return res.status(400).json({ error: `Versi ini tak boleh dipulihkan: ${bidangTopikCheck.reason}` });
         }
       }
 
@@ -1191,7 +1191,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // semula, jadi digabung dengan pemisah dalam-baris, bukan \n\n.
       const sebab = (req.body?.sebab || '').toString().trim().replace(/\r?\n/g, ' ');
       const notaGabungan = sebab
-        ? `Sebab ditolak: ${sebab}${attrs.note ? ` — ${attrs.note}` : ''}`
+        ? `Sebab ditolak: ${sebab}${attrs.note ? `. Nota: ${attrs.note}` : ''}`
         : (attrs.note || '');
 
       const draftBlock = [
@@ -1229,7 +1229,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         ON CONFLICT(layoutTemplateId, slotIndex) DO UPDATE SET manualSummary = excluded.manualSummary
       `, [objRow.slotIndex, nextSummary]);
       if (!tulisDraf || tulisDraf.changes === 0) {
-        return res.status(500).json({ error: 'Draf gagal disimpan — kandungan asal TIDAK diarkibkan, tiada apa hilang. Cuba lagi.' });
+        return res.status(500).json({ error: 'Draf gagal disimpan. Kandungan asal TIDAK diarkibkan, tiada apa hilang. Cuba lagi.' });
       }
       await dbRun("UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ?", [new Date().toISOString(), rev.id]);
       await tetapkanSebabMenunggu(dbGet, dbRun, id, rev.id, '');
@@ -1326,7 +1326,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       }
       if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
         return res.status(403).json({
-          error: 'Padam kandungan diterbitkan/diarkibkan hanya untuk Ketua Editor/Penolong Ketua Editor — Editor guna Arkib sebaliknya.',
+          error: 'Padam kandungan diterbitkan/diarkibkan hanya untuk Ketua Editor/Penolong Ketua Editor. Editor guna Arkib sebaliknya.',
         });
       }
       const revSemasa = await dbGet(
@@ -1459,7 +1459,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         `, [slotIndex]);
         if (kiraan && kiraan.n >= hadKandunganSlot) {
           return res.status(400).json({
-            error: `Slot ${slotIndex + 1} sudah ada ${kiraan.n} kandungan — had maksimum ialah ${hadKandunganSlot} (Tetapan Am Slot). Arkibkan kandungan sedia ada dahulu.`,
+            error: `Slot ${slotIndex + 1} sudah ada ${kiraan.n} kandungan. Had maksimum ialah ${hadKandunganSlot} (Tetapan Am Slot). Arkibkan kandungan sedia ada dahulu.`,
           });
         }
       }

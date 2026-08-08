@@ -101,13 +101,13 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
         // dan pengguna tetap dapat success: true tanpa tahu item mana hilang.
         if (Number.isNaN(slotIdx) || slotIdx < 0 || slotIdx >= 38) {
           return res.status(400).json({
-            error: `Nombor slot tidak sah untuk "${(item.title || '(tanpa tajuk)').slice(0, 40)}" — guna nombor slot 1 hingga 38 sahaja.`,
+            error: `Nombor slot tidak sah untuk "${(item.title || '(tanpa tajuk)').slice(0, 40)}". Guna nombor slot 1 hingga 38 sahaja.`,
           });
         }
         kiraanBatchSeslot.set(slotIdx, (kiraanBatchSeslot.get(slotIdx) || 0) + 1);
         const budgetCheck = validateContentBudget(slotIdx, item.title, item.summary);
         if (!budgetCheck.isValid) {
-          return res.status(400).json({ error: `Slot ${slotIdx + 1} — "${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason}` });
+          return res.status(400).json({ error: `Slot ${slotIdx + 1}, "${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason}` });
         }
         // Bidang terkunci per-slot, Topik wajib untuk kandungan baharu — kecuali slot BAR.
         if (!TIER_SLOTS.BAR.includes(slotIdx)) {
@@ -120,7 +120,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
             slotIndex: slotIdx,
           });
           if (!bidangTopikCheck.isValid) {
-            return res.status(400).json({ error: `Slot ${slotIdx + 1} — "${(item.title || '').slice(0, 40)}...": ${bidangTopikCheck.reason}` });
+            return res.status(400).json({ error: `Slot ${slotIdx + 1}, "${(item.title || '').slice(0, 40)}...": ${bidangTopikCheck.reason}` });
           }
         }
       }
@@ -140,7 +140,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
           const sedia = kiraan ? kiraan.n : 0;
           if (sedia + tambahan > hadKandunganSlot) {
             return res.status(400).json({
-              error: `Slot ${slotIdx + 1} sudah ada ${sedia} kandungan dan tampalan ini menambah ${tambahan} lagi — had maksimum ialah ${hadKandunganSlot} (Tetapan Am Slot). Arkibkan kandungan sedia ada dahulu.`,
+              error: `Slot ${slotIdx + 1} sudah ada ${sedia} kandungan dan tampalan ini menambah ${tambahan} lagi. Had maksimum ialah ${hadKandunganSlot} (Tetapan Am Slot). Arkibkan kandungan sedia ada dahulu.`,
             });
           }
         }

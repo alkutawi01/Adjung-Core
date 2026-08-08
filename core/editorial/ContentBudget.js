@@ -160,7 +160,7 @@ const validateMedanTambahan = ({ summaryLong, source, topik, note } = {}) => {
     if (min && nilai.trim() && nilai.length < min) {
       return {
         isValid: false,
-        reason: `${nama} (${nilai.length} aksara) terlalu pendek — minimum ${min} aksara yang ditetapkan di Tetapan Am Slot (atau kosongkan terus medan ni). Kandungan tidak disiarkan.`,
+        reason: `${nama} (${nilai.length} aksara) terlalu pendek. Minimum ${min} aksara yang ditetapkan di Tetapan Am Slot (atau kosongkan terus medan ni). Kandungan tidak disiarkan.`,
       };
     }
   }

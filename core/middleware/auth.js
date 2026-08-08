@@ -16,7 +16,7 @@ const isSafeMethod = (method) => method === 'GET' || method === 'HEAD' || method
 
 export function requireAuth(req, res, next) {
   if (!req.session || !req.session.user) {
-    return res.status(401).json({ error: 'Sesi anda telah tamat — sila log masuk semula.', message: 'Log masuk diperlukan.' });
+    return res.status(401).json({ error: 'Sesi anda telah tamat. Sila log masuk semula.', message: 'Log masuk diperlukan.' });
   }
   next();
 }
@@ -108,7 +108,7 @@ export const hasPermission = (roles, permKey) => {
 export function requirePermission(permKey) {
   return (req, res, next) => {
     if (!req.session || !req.session.user) {
-      return res.status(401).json({ error: 'Sesi anda telah tamat — sila log masuk semula.', message: 'Log masuk diperlukan.' });
+      return res.status(401).json({ error: 'Sesi anda telah tamat. Sila log masuk semula.', message: 'Log masuk diperlukan.' });
     }
     if (!hasPermission(req.session.user.roles, permKey)) {
       return res.status(403).json({ error: 'Anda tiada kebenaran untuk tindakan ini.', message: 'Tiada kebenaran untuk tindakan ini.' });

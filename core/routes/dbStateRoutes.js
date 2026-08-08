@@ -95,29 +95,41 @@ async function fetchGoogleDocText(docUrl) {
 export function createDbStateRoutes(dbAll, dbGet) {
   const router = express.Router();
 
-  // GET /api/db-state
+  // GET /api/db-state (2026-08-08, audit keselamatan — laporan luaran)
+  //
+  // Laluan ni TERBUKA tanpa sesi (portal awam sendiri membacanya semasa muat), jadi apa-apa yang
+  // dipulangkan di sini terdedah kepada SESIAPA di internet, bukan sahaja kakitangan log masuk.
+  // Dua pepijat kritikal ditemui dan dibetulkan hari ni:
+  //
+  //   1. Header `x-session-id` DIANGGAP sebagai identiti pengguna tanpa sebarang pengesahan kuki
+  //      sesi sebenar — sesiapa boleh hantar ID pengguna sendiri terka/curi dan terima balik
+  //      objek `currentUser` orang itu. Disahkan medan `currentUser`/`isSuspended` yang terhasil
+  //      TAK PERNAH dibaca mana-mana kod klien (grep kosong) — dibuang terus, bukan "dibetulkan"
+  //      guna sesi sebenar, sebab tiada apa yang perlukannya.
+  //
+  //   2. Jadual `users` PENUH (nama sebenar, nombor telefon, peranan, status gantung) dan medan
+  //      dalaman `system_settings` (masterPrompt/reviewPrompt AI, URL Google Doc dalaman, matriks
+  //      rolePermissions) dihantar kepada SEMUA pelawat tanpa mengira sesi. Disahkan dengan jejak
+  //      setiap medan sampai ke kod klien (FrontpageView.tsx dan App.tsx, laluan portal awam):
+  //      cuma teks Google Doc yang SUDAH DISELESAIKAN (inTheNewsGoogleDocText dll.) dan segelintir
+  //      tetapan kosmetik (glosSelariEnabled, tickerOverlay*, worldClock*, focusViewNotaMaxAksara,
+  //      dsb.) yang benar-benar dipaparkan; `users`, `masterPrompt`/`reviewPrompt`,
+  //      `rolePermissions`, dan URL Google Doc mentah TIDAK pernah dirujuk portal awam — ia cuma
+  //      dibawa sekali oleh `...u`/pemetaan lapuk drpd rangka kerja lama. Sekarang: subset selamat
+  //      (SELAMAT_AWAM di bawah) sentiasa dipulangkan; `users` penuh dan medan dalaman HANYA
+  //      dipulangkan bila `req.session.user` (kuki sesi SEBENAR, bukan header) wujud.
   router.get('/db-state', async (req, res) => {
     try {
-      const sessionId = req.headers['x-session-id'];
+      const disahkan = !!(req.session && req.session.user);
 
       const usersRows = await dbAll("SELECT * FROM users");
       const settingsRow = await dbGet("SELECT * FROM system_settings WHERE id = 'settings-main'");
 
-      // 2026-08-02 (Fasa 1 keselamatan) — JANGAN sebarkan lajur `password` (hash scrypt atau
-      // baris lama teks biasa) ke laluan ini. `db-state` dibaca oleh pelbagai konsol Editorium
-      // dan sebelum ini `...u` menyalin SEMUA lajur users terus ke respons awam.
-      //
-      // 2026-08-05 (audit) — laluan ni TERBUKA tanpa sesi (portal awam sendiri membacanya semasa
-      // muat), jadi apa-apa lajur `users` di sini terdedah kepada SESIAPA di internet. Pusingan
-      // Fasa 1 cuma buang `password`; TIGA lajur sensitif lain tertinggal:
-      //   - `resetToken` / `resetTokenExpiresAt` — token set-semula kata laluan. Ini yang paling
-      //     bahaya: semasa token aktif (editor tekan "lupa kata laluan"), sesiapa boleh baca
-      //     token tu di sini lalu tetapkan kata laluan akaun orang itu = ambil alih akaun penuh.
-      //   - `email` — alamat emel sebenar setiap anggota sidang editorial.
-      // Ketiga-tiganya disahkan TIDAK pernah dibaca mana-mana kod klien (grep `resetToken` dalam
-      // src/ kosong; `email` yang dipakai UI datang daripada respons LOG MASUK/authUser, bukan
-      // daripada laluan ni), jadi dibuang tanpa syarat — bukan cuma disorok bila tiada sesi.
-      const users = usersRows.map(({
+      // JANGAN sebarkan lajur `password` (hash scrypt atau baris lama teks biasa), `resetToken`/
+      // `resetTokenExpiresAt` (token set-semula kata laluan — bahaya paling tinggi, ambil alih
+      // akaun), atau `email` (alamat sebenar kakitangan) — walaupun kepada kakitangan log masuk,
+      // sebab laluan ni bukan tempat kod klien membacanya (datang drpd respons log masuk sendiri).
+      const usersPenuh = usersRows.map(({
         password: _omitKataLaluan,
         resetToken: _omitToken,
         resetTokenExpiresAt: _omitTokenLuput,
@@ -135,16 +147,14 @@ export function createDbStateRoutes(dbAll, dbGet) {
       const releaseLogs = [];
       const policies = [];
 
-      const systemSettings = settingsRow ? {
+      // Subset SELAMAT UNTUK AWAM — hanya medan yang disahkan benar-benar dipaparkan/dipakai oleh
+      // portal awam tanpa sesi (lihat nota audit di atas). Jangan tambah medan baharu di sini
+      // tanpa jejak dahulu sama ada ia benar-benar sampai ke kod portal awam.
+      const settingsAwam = settingsRow ? {
         id: settingsRow.id,
         frontpageTitle: settingsRow.frontpageTitle,
         frontpageSubtitle: settingsRow.frontpageSubtitle,
-        rolePermissions: safeJsonParse(settingsRow.rolePermissions, {}),
         inTheNewsText: settingsRow.inTheNewsText || '',
-        inTheNewsGoogleDocUrl: settingsRow.inTheNewsGoogleDocUrl || '',
-        featuredScholarId: settingsRow.featuredScholarId || '',
-        featuredEntryId: settingsRow.featuredEntryId || '',
-        editorialSelectionIds: safeJsonParse(settingsRow.editorialSelectionIds, []),
         announcementBanner: settingsRow.announcementBanner || '',
         enableArabicAccent: settingsRow.enableArabicAccent === 1,
         layoutDensity: settingsRow.layoutDensity || 'Standard',
@@ -152,40 +162,37 @@ export function createDbStateRoutes(dbAll, dbGet) {
         featuredEssayIds: safeJsonParse(settingsRow.featuredEssayIds, []),
         featuredNoteIds: safeJsonParse(settingsRow.featuredNoteIds, []),
         worldClockHolidaysText: settingsRow.worldClockHolidaysText || '',
-        worldClockHolidaysGoogleDocUrl: settingsRow.worldClockHolidaysGoogleDocUrl || '',
-        researchFindingsText: settingsRow.researchFindingsText || '',
-        researchFindingsGoogleDocUrl: settingsRow.researchFindingsGoogleDocUrl || '',
-        masterPrompt: settingsRow.masterPrompt || '',
-        // reviewPrompt (2026-08-01) — templat semakan AI, konsol Editorial. WAJIB disenaraikan di
-        // sini: pemetaan ni eksplisit medan demi medan, jadi lajur baharu yang tak ditambah akan
-        // tersimpan dalam DB tapi tak pernah sampai ke klien — dan penyimpanan seterusnya
-        // (INSERT OR REPLACE penuh, digabung daripada objek ni) akan memadamnya semula.
-        reviewPrompt: settingsRow.reviewPrompt || '',
         worldClockIntervalSec: settingsRow.worldClockIntervalSec !== undefined && settingsRow.worldClockIntervalSec !== null ? settingsRow.worldClockIntervalSec : 60,
         worldClockBgClickEnabled: settingsRow.worldClockBgClickEnabled !== undefined && settingsRow.worldClockBgClickEnabled !== null ? settingsRow.worldClockBgClickEnabled === 1 : true,
         glosSelariEnabled: settingsRow.glosSelariEnabled === 1,
-        schoolHolidaysJson: settingsRow.schoolHolidaysJson || '',
         focusViewNotaMaxAksara: settingsRow.focusViewNotaMaxAksara !== undefined && settingsRow.focusViewNotaMaxAksara !== null ? settingsRow.focusViewNotaMaxAksara : 180,
         tickerOverlayTitleSize: settingsRow.tickerOverlayTitleSize || 'L',
         tickerOverlayBriefSize: settingsRow.tickerOverlayBriefSize || 'M'
       } : {};
 
-      let currentUser = null;
-      let isSuspended = false;
-      if (sessionId) {
-        const u = users.find(user => user.id === sessionId);
-        if (u) {
-          if (u.suspended) {
-            isSuspended = true;
-          } else {
-            currentUser = u;
-          }
-        }
-      }
+      // Medan DALAMAN — URL Google Doc mentah, prompt AI, matriks kebenaran — hanya untuk kakitangan
+      // log masuk (Editorium). Portal awam terima teks Google Doc yang SUDAH diselesaikan sahaja
+      // (inTheNewsGoogleDocText dll. di bawah), tak pernah URL sumbernya.
+      const settingsDalaman = settingsRow ? {
+        rolePermissions: safeJsonParse(settingsRow.rolePermissions, {}),
+        inTheNewsGoogleDocUrl: settingsRow.inTheNewsGoogleDocUrl || '',
+        featuredScholarId: settingsRow.featuredScholarId || '',
+        featuredEntryId: settingsRow.featuredEntryId || '',
+        editorialSelectionIds: safeJsonParse(settingsRow.editorialSelectionIds, []),
+        worldClockHolidaysGoogleDocUrl: settingsRow.worldClockHolidaysGoogleDocUrl || '',
+        researchFindingsText: settingsRow.researchFindingsText || '',
+        researchFindingsGoogleDocUrl: settingsRow.researchFindingsGoogleDocUrl || '',
+        masterPrompt: settingsRow.masterPrompt || '',
+        reviewPrompt: settingsRow.reviewPrompt || '',
+        schoolHolidaysJson: settingsRow.schoolHolidaysJson || ''
+      } : {};
 
-      const rawNewsText = await fetchGoogleDocTextCached(systemSettings.inTheNewsGoogleDocUrl);
-      const rawHolidaysText = await fetchGoogleDocTextCached(systemSettings.worldClockHolidaysGoogleDocUrl);
-      const rawFindingsText = await fetchGoogleDocTextCached(systemSettings.researchFindingsGoogleDocUrl);
+      const users = disahkan ? usersPenuh : [];
+      const systemSettings = disahkan ? { ...settingsAwam, ...settingsDalaman } : settingsAwam;
+
+      const rawNewsText = await fetchGoogleDocTextCached(settingsDalaman.inTheNewsGoogleDocUrl);
+      const rawHolidaysText = await fetchGoogleDocTextCached(settingsDalaman.worldClockHolidaysGoogleDocUrl);
+      const rawFindingsText = await fetchGoogleDocTextCached(settingsDalaman.researchFindingsGoogleDocUrl);
 
       const checkStatus = (text, url) => {
         if (!url) return 'empty';
@@ -196,9 +203,9 @@ export function createDbStateRoutes(dbAll, dbGet) {
         return 'success';
       };
 
-      const inTheNewsGoogleDocStatus = checkStatus(rawNewsText, systemSettings.inTheNewsGoogleDocUrl);
-      const worldClockHolidaysGoogleDocStatus = checkStatus(rawHolidaysText, systemSettings.worldClockHolidaysGoogleDocUrl);
-      const researchFindingsGoogleDocStatus = checkStatus(rawFindingsText, systemSettings.researchFindingsGoogleDocUrl);
+      const inTheNewsGoogleDocStatus = checkStatus(rawNewsText, settingsDalaman.inTheNewsGoogleDocUrl);
+      const worldClockHolidaysGoogleDocStatus = checkStatus(rawHolidaysText, settingsDalaman.worldClockHolidaysGoogleDocUrl);
+      const researchFindingsGoogleDocStatus = checkStatus(rawFindingsText, settingsDalaman.researchFindingsGoogleDocUrl);
 
       const inTheNewsGoogleDocText = inTheNewsGoogleDocStatus === 'success' ? rawNewsText : '';
       const worldClockHolidaysGoogleDocText = worldClockHolidaysGoogleDocStatus === 'success' ? rawHolidaysText : '';
@@ -213,8 +220,6 @@ export function createDbStateRoutes(dbAll, dbGet) {
         logs,
         releaseLogs,
         policies,
-        currentUser,
-        isSuspended,
         inTheNewsGoogleDocText,
         worldClockHolidaysGoogleDocText,
         researchFindingsGoogleDocText,

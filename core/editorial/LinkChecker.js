@@ -12,6 +12,7 @@
 // Jujukan (bukan serentak) sengaja — bilangan URL unik biasanya puluhan sahaja (bukan ribuan),
 // dan mengelak ledakan permintaan serentak ke banyak pelayan luar sekali gus.
 import { notifyMany } from '../notifications/Notify.js';
+import { sahkanUrlSelamatUntukFetch } from '../utils/urlSafety.js';
 
 const HAD_MASA_SETIAP_URL_MS = 8000;
 const HAD_KELEWATAN_ANTARA_URL_MS = 150;
@@ -19,6 +20,12 @@ const HAD_KELEWATAN_ANTARA_URL_MS = 150;
 const tidur = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function semakSatuUrl(url) {
+  // Sekatan SSRF (2026-08-08, audit keselamatan) — url ni medan "URL" yang editor taip sendiri
+  // semasa simpan kandungan (citation), disemak berkala oleh penjadual pelayan. Lihat urlSafety.js.
+  const semakan = await sahkanUrlSelamatUntukFetch(url);
+  if (!semakan.selamat) {
+    return { ok: false, httpStatus: null, errorMessage: semakan.sebab };
+  }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), HAD_MASA_SETIAP_URL_MS);
   try {

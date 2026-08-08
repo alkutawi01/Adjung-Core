@@ -285,7 +285,7 @@ export function createCategoryRoutes(db) {
       // jadual. (Ticker ialah slotIndex -1 tetapi diuruskan di Modul Khas, bukan laluan ni.)
       const slotNum = Number(slotIndex);
       if (!Number.isInteger(slotNum) || slotNum < 0 || slotNum > 37) {
-        return res.status(400).json({ error: 'Nombor slot tidak sah — mesti antara slot 1 hingga 38.' });
+        return res.status(400).json({ error: 'Nombor slot tidak sah. Mesti antara slot 1 hingga 38.' });
       }
       const trimmed = (bidangName || '').trim();
       if (trimmed) {
@@ -311,7 +311,7 @@ export function createCategoryRoutes(db) {
         ON CONFLICT(layoutTemplateId, slotIndex) DO UPDATE SET manualDesk = excluded.manualDesk
       `, [slotNum, trimmed]);
       if (!hasilTulis || hasilTulis.changes === 0) {
-        return res.status(500).json({ error: `Slot ${slotNum + 1} gagal disimpan — tiada baris ditulis.` });
+        return res.status(500).json({ error: `Slot ${slotNum + 1} gagal disimpan, tiada baris ditulis.` });
       }
 
       // Bidang slot betul-betul berubah — kandungan live/pending lama dalam slot ni tak lagi

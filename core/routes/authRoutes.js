@@ -317,12 +317,12 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         const pautan = `${baseUrl}/tetapkan-kata-laluan?token=${token}`;
         await hantarEmel({
           to: userRow.email,
-          subject: 'Set Semula Kata Laluan — Adjung Brief',
+          subject: 'Set Semula Kata Laluan · Adjung Brief',
           html: `<p>Salam ${userRow.penName || userRow.username},</p>` +
             `<p>Kami menerima permohonan untuk menetapkan semula kata laluan akaun Adjung Brief anda. ` +
             `Klik pautan berikut (sah selama 2 jam):</p>` +
             `<p><a href="${pautan}">${pautan}</a></p>` +
-            `<p>Jika anda tidak memohon set semula ini, abaikan sahaja emel ini — kata laluan anda kekal tidak berubah.</p>`,
+            `<p>Jika anda tidak memohon set semula ini, abaikan sahaja emel ini. Kata laluan anda kekal tidak berubah.</p>`,
         });
       }
       res.json(mesejGeneric);

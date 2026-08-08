@@ -80,7 +80,7 @@ export function createProfileRoutes(dbGet, dbRun) {
         // (bukan diri sendiri — editor boleh "tukar" ke nama sama dia sendiri, cth ubah huruf
         // besar/kecil sahaja).
         const lain = await dbGet('SELECT id FROM users WHERE LOWER(TRIM(penName)) = LOWER(?) AND id != ?', [v, id]);
-        if (lain) return res.status(409).json({ error: `Nama pena "${v}" sudah digunakan akaun lain — pilih nama pena lain.` });
+        if (lain) return res.status(409).json({ error: `Nama pena "${v}" sudah digunakan akaun lain. Pilih nama pena lain.` });
         set.push('penName = ?'); params.push(v);
       }
 

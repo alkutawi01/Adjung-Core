@@ -38,7 +38,7 @@ export async function getOrCreateUrlKod(dbGet, dbRun, objectId) {
   // dikongsi keluar, kemudian membawa ke halaman tiada.
   const hasil = await dbRun('UPDATE editorial_objects SET urlKod = ? WHERE id = ?', [kod, objectId]);
   if (!hasil || hasil.changes === 0) {
-    throw new Error('Kandungan tidak dijumpai — kod URL tidak dapat disimpan.');
+    throw new Error('Kandungan tidak dijumpai, kod URL tidak dapat disimpan.');
   }
   return kod;
 }

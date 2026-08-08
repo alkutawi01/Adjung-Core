@@ -152,7 +152,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // mekanisme identiti sedia ada yang dah lama guna corak ni.
       const penNameSedia = await dbGet('SELECT id FROM users WHERE LOWER(TRIM(penName)) = LOWER(?)', [pn]);
       if (penNameSedia) {
-        return res.status(409).json({ error: `Nama pena "${pn}" sudah digunakan akaun lain — pilih nama pena lain (dipakai sebagai identiti penulis kandungan, mesti unik).` });
+        return res.status(409).json({ error: `Nama pena "${pn}" sudah digunakan akaun lain. Pilih nama pena lain (dipakai sebagai identiti penulis kandungan, mesti unik).` });
       }
 
       const id = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -194,7 +194,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         action: 'cipta-akaun',
         targetType: 'akaun',
         targetId: id,
-        detail: `${pn} (${u}) — peranan: ${rolesToAssign.join(', ')}`,
+        detail: `${pn} (${u}), peranan: ${rolesToAssign.join(', ')}`,
       });
 
       res.json({ success: true, id, emelDihantar: hantaran.berjaya });

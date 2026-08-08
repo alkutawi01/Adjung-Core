@@ -17,6 +17,7 @@ import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
 import { checkAllSourceLinks } from './core/editorial/LinkChecker.js';
+import { sahkanUrlSelamatUntukFetch } from './core/utils/urlSafety.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
 import { createCategoryRoutes } from './core/routes/categoryRoutes.js';
 import { createSystemRoutes } from './core/routes/systemRoutes.js';
@@ -2238,38 +2239,43 @@ const normalizeContent = (content) => {
     .replace(/\d{10,13}/g, '');
 };
 
+// 2026-08-08 (audit keselamatan) — dua pepijat ditemui di sini semasa audit URL:
+//   1. Cabang "bukan http(s)" baca fail TEMPATAN terus (`path.resolve` + `fs.readFileSync`
+//      tanpa sekatan direktori) — pendedahan fail sewenang-wenangnya (LFI) kalau sourceUri
+//      dikawal pengguna. Disahkan fungsi ni TIDAK dipanggil di mana-mana laluan (grep
+//      `fetchSourceWithCache(` kosong selain takrifan sendiri) — kod mati sejak
+//      SourceFetcher.js/EditorialPipeline.js menggantikannya. Dibetulkan juga, bukan dibiar,
+//      sebab kod mati yang berbahaya ialah bom jangka bila disambung semula kelak.
+//   2. Cabang http(s) fetch terus tanpa semak SSRF (alamat dalaman/localhost/metadata cloud).
 const fetchSourceWithCache = async (sourceUri) => {
   if (!sourceUri) return { rawContent: '', fromCache: false };
   const trimmedUri = sourceUri.trim();
-  
+
   if (!trimmedUri.startsWith('http://') && !trimmedUri.startsWith('https://')) {
-    try {
-      const filePath = path.resolve(trimmedUri);
-      if (fs.existsSync(filePath)) {
-        return { rawContent: fs.readFileSync(filePath, 'utf8'), fromCache: true };
-      }
-    } catch (e) {
-      // Ignore
-    }
-    return { rawContent: trimmedUri, fromCache: true };
+    return { rawContent: '', fromCache: false };
   }
-  
+
+  const semakanKeselamatan = await sahkanUrlSelamatUntukFetch(trimmedUri);
+  if (!semakanKeselamatan.selamat) {
+    return { rawContent: '', fromCache: false };
+  }
+
   const now = new Date().toISOString();
   const cacheEntry = await dbGet("SELECT * FROM source_fetch_cache WHERE sourceUri = ?", [trimmedUri]);
-  
+
   if (cacheEntry) {
     const ageMs = Date.now() - new Date(cacheEntry.fetchedAt).getTime();
     if (ageMs < 15 * 60 * 1000) {
       return { rawContent: cacheEntry.rawContent, fromCache: true };
     }
   }
-  
+
   const headers = {};
   if (cacheEntry) {
     if (cacheEntry.etag) headers['If-None-Match'] = cacheEntry.etag;
     if (cacheEntry.lastModified) headers['If-Modified-Since'] = cacheEntry.lastModified;
   }
-  
+
   try {
     const res = await fetch(trimmedUri, { headers, timeout: 8000 });
     
@@ -2602,7 +2608,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
     // panjang", praktikalnya cuma huraian ringkas dipanjangkan sikit, bukan bacaan Focus View
     // dua-lajur yang medan ni dimaksudkan.
     if (item.briefLong && item.briefLong.trim() && item.briefLong.length < effectiveMinBriefLong()) {
-      const err = new Error(`Huraian panjang bagi "${(item.title || '').slice(0, 40)}..." terlalu pendek (${item.briefLong.length} aksara, minimum ${effectiveMinBriefLong()}). Kandungan tidak disiarkan — panjangkan huraian atau kosongkan terus medan ni.`);
+      const err = new Error(`Huraian panjang bagi "${(item.title || '').slice(0, 40)}..." terlalu pendek (${item.briefLong.length} aksara, minimum ${effectiveMinBriefLong()}). Kandungan tidak disiarkan. Panjangkan huraian atau kosongkan terus medan ni.`);
       err.isValidationError = true;
       throw err;
     }
@@ -2625,14 +2631,14 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       throw err;
     }
     if (effectiveMaxBriefLong && item.briefLong && item.briefLong.length > effectiveMaxBriefLong) {
-      const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan — pendekkan huraian dahulu.`);
+      const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan. Pendekkan huraian dahulu.`);
       err.isValidationError = true;
       throw err;
     }
     // Peraturan Khas Slot Bar — Penerangan diisi ke panel akordion (BarCardExpandedPanel.tsx),
     // jadi perlu had ruang sebenar sama macam Huraian Panjang di atas.
     if (isBar && item.penerangan && item.penerangan.length > MAX_PENERANGAN_CHARS) {
-      const err = new Error(`Penerangan bagi "${(item.title || '').slice(0, 40)}..." melebihi had ${MAX_PENERANGAN_CHARS} aksara (semasa: ${item.penerangan.length}). Kandungan tidak disiarkan — pendekkan penerangan dahulu.`);
+      const err = new Error(`Penerangan bagi "${(item.title || '').slice(0, 40)}..." melebihi had ${MAX_PENERANGAN_CHARS} aksara (semasa: ${item.penerangan.length}). Kandungan tidak disiarkan. Pendekkan penerangan dahulu.`);
       err.isValidationError = true;
       throw err;
     }
@@ -3331,8 +3337,8 @@ const PERANAN_TERPAKAI_DASAR_AKTIF = ['editor', 'ketua_editor', 'penolong_ketua_
 
 const emelAmaranTakAktif = (namaPena, hariTakAktif, tahap) => {
   const tajuk = tahap === 3
-    ? 'Notis Penamatan — Akaun Adjung Brief Anda Digantung'
-    : `Amaran Tidak Aktif (Hari ke-${hariTakAktif >= 14 ? 14 : 7}) — Adjung Brief`;
+    ? 'Notis Penamatan: Akaun Adjung Brief Anda Digantung'
+    : `Amaran Tidak Aktif (Hari ke-${hariTakAktif >= 14 ? 14 : 7}) · Adjung Brief`;
   const mesejUtama = tahap === 3
     ? `Akaun anda kini <strong>digantung automatik</strong> (status "Tidak Aktif") kerana tiada kandungan diterbitkan sejak ${hariTakAktif} hari. Log masuk telah disekat. Sidang Pentadbir/Ketua Editor akan menyemak akaun ini untuk keputusan seterusnya (aktifkan semula atau tamatkan rasmi).`
     : `Kami perhatikan akaun anda tiada kandungan diterbitkan sejak <strong>${hariTakAktif} hari</strong>. Sila terbitkan kandungan baharu tidak lama lagi untuk mengekalkan status akaun anda.`;
@@ -3397,8 +3403,8 @@ const runSemakanTakAktif = async (dbAll, dbRun) => {
       const penerimaTiadaEmel = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
       await notifyMany(dbRun, (penerimaTiadaEmel || []).map((r) => r.userId), {
         type: 'sistem_amaran_tak_aktif',
-        title: `${u.penName || u.id}: tiada emel berdaftar — amaran tak aktif tahap ${tahapBaharu} tak dapat dihantar`,
-        detail: `Tak aktif ${hariTakAktif} hari. Editor ni tiada emel dalam sistem — sila hubungi secara manual di luar sistem sebelum ${tahapBaharu === 3 ? 'gantungan berlaku' : 'eskalasi seterusnya'}.`,
+        title: `${u.penName || u.id}: tiada emel berdaftar, amaran tak aktif tahap ${tahapBaharu} tak dapat dihantar`,
+        detail: `Tak aktif ${hariTakAktif} hari. Editor ni tiada emel dalam sistem. Sila hubungi secara manual di luar sistem sebelum ${tahapBaharu === 3 ? 'gantungan berlaku' : 'eskalasi seterusnya'}.`,
         targetType: 'akaun', targetId: u.id,
       });
     }
@@ -3408,7 +3414,7 @@ const runSemakanTakAktif = async (dbAll, dbRun) => {
       await logAudit(dbRun, {
         actorId: null, actorName: 'Sistem (Dasar Aktif)',
         action: 'akaun-digantung-tak-aktif', targetType: 'akaun', targetId: u.id,
-        detail: `${u.penName || u.id}: tiada kandungan diterbitkan sejak ${hariTakAktif} hari — digantung automatik.`,
+        detail: `${u.penName || u.id}: tiada kandungan diterbitkan sejak ${hariTakAktif} hari, digantung automatik.`,
       });
       await notify(dbRun, {
         userId: u.id, type: 'sistem_akaun_digantung',

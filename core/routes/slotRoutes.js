@@ -9,6 +9,7 @@ import { requirePermission } from '../middleware/auth.js';
 import { gantiBlokModTicker } from './contentRoutes.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
+import { sahkanUrlSelamatUntukFetch } from '../utils/urlSafety.js';
 
 // Notifikasi Sistem (Fasa 6b) — RSS/cuaca gagal ditujukan kepada Pentadbir/Ketua Editor sahaja
 // (mereka yang boleh bertindak ke atas kegagalan infrastruktur, bukan setiap editor biasa).
@@ -43,6 +44,12 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.post('/rss-sources', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id, sourceName, rssUrl, language, trustScore, edition, categoryMapping, enabled } = req.body;
+      // Sekatan SSRF (2026-08-08, audit keselamatan) — tolak awal-awal semasa daftar, bukan
+      // senyap gagal semasa fetch, supaya editor nampak sebab ditolak.
+      const semakan = await sahkanUrlSelamatUntukFetch(rssUrl);
+      if (!semakan.selamat) {
+        return res.status(400).json({ error: `URL RSS tidak sah: ${semakan.sebab}` });
+      }
       const sourceId = id || `rss-${Date.now()}`;
       await dbRun(`
         INSERT OR REPLACE INTO rss_sources_registry (id, sourceName, rssUrl, language, trustScore, edition, categoryMapping, enabled, createdAt)
@@ -824,6 +831,11 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
 
   await Promise.allSettled(activeSources.map(async (source) => {
     try {
+      // Sekatan SSRF (2026-08-08, audit keselamatan) — rssUrl didaftar sendiri oleh Ketua
+      // Editor/Penolong (manageEditorial), tapi tetap input manusia; semak sebelum ambil.
+      const semakan = await sahkanUrlSelamatUntukFetch(source.rssUrl);
+      if (!semakan.selamat) return;
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s max wait per source
 
@@ -918,7 +930,7 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
               action: 'rss-huraian-dipendekkan',
               targetType: 'rss_ticker_item',
               targetId: itemId,
-              detail: `${source.sourceName}: "${cleanedTitle}" — huraian dipendekkan pada 220 aksara semasa auto-siar Ticker.`,
+              detail: `${source.sourceName}: "${cleanedTitle}". Huraian dipendekkan pada 220 aksara semasa auto-siar Ticker.`,
             });
           }
         } catch (dbErr) {
@@ -937,7 +949,7 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
       });
       await beritahuPentadbirDanKetuaEditor(dbAll, dbRun, {
         type: 'sistem_rss_gagal',
-        title: `Ambilan RSS gagal — ${source.sourceName}`,
+        title: `Ambilan RSS gagal: ${source.sourceName}`,
         detail: fetchErr.message || fetchErr.name || 'Ralat tidak diketahui',
         targetType: 'rss_source',
         targetId: source.id,
