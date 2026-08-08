@@ -14,6 +14,7 @@ import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
 import { BarCard } from './cards/BarCard';
 import { BarCardExpandedPanel } from './cards/BarCardExpandedPanel';
+import { KompakCardTeks } from './cards/KompakCardTeks';
 import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
 import { BidangIcon } from '../common/BidangIcon';
@@ -125,7 +126,7 @@ export function HoverWords({ text, className }: { text: string; className?: stri
   );
 }
 
-const formatBentoDate = (iso?: string): string => {
+export const formatBentoDate = (iso?: string): string => {
   if (!iso) return '';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
@@ -134,7 +135,7 @@ const formatBentoDate = (iso?: string): string => {
 
 // Tarikh siaran (bila kandungan disimpan ke Adjung) — DD.MM.YY, ditunjuk di bucu kad, sengaja
 // berbeza format daripada tarikh sumber (formatBentoDate) supaya kedua-dua tarikh tidak keliru.
-const formatSiaranDate = (iso?: string): string => {
+export const formatSiaranDate = (iso?: string): string => {
   if (!iso) return '';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
@@ -154,7 +155,7 @@ const formatSiaranDate = (iso?: string): string => {
 // Fungsi ni dipakai di ~30 tempat merentasi SEMUA kad bento (bukan cuma Focus View, yang sudah
 // dibetulkan berasingan di formatTarikhSumberPanjang) — tanpa pengecualian ni, SETIAP kad yang
 // tarikh sumbernya diisi guna kalendar baharu akan papar ISO mentah selama-lamanya.
-const getDisplayDate = (raw?: string): string => {
+export const getDisplayDate = (raw?: string): string => {
   if (!raw) return '';
   const trimmed = raw.trim();
   if (!trimmed || trimmed.toLowerCase() === 'tidak dinyatakan') return '';
@@ -215,7 +216,7 @@ const formatTarikhSumberPanjang = (raw?: string): string => {
 // Ikon mewarisi currentColor, jadi ia mengambil warna Bidang daripada deskStyle secara automatik.
 const EYEBROW_GUNA_IKON = true;
 
-const EyebrowKad: React.FC<{
+export const EyebrowKad: React.FC<{
   item: { desk?: string; topik?: string };
   bidang?: { icon: string | null; iconSvg: string | null };
   saiz?: number;
@@ -302,7 +303,7 @@ const EyebrowKad: React.FC<{
   );
 };
 
-const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: string; children: React.ReactNode }> = ({ itemKey, className = '', aiProvider, children }) => {
+export const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvider?: string; children: React.ReactNode }> = ({ itemKey, className = '', aiProvider, children }) => {
   // JARING KECEMASAN LIMPAHAN (2026-07-31, permintaan pemilik projek).
   //
   // Pertahanan utama kekal di peringkat SIMPAN — validateContentBudget() menolak kandungan yang
@@ -983,7 +984,7 @@ const isColorDark = (hexColor: string | undefined): boolean => {
   return true;
 };
 
-const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
+export const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
   const bg = item.bgColor || defaultBg;
   const isDark = isColorDark(bg);
   const textColor = item.textColor || (isDark ? '#FDFDFD' : '#1F1F1F');
@@ -2865,10 +2866,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           activeIndex={bentoNewsItems[4].carouselIndex || 0}
                           onNavigate={(dir) => majuKarusel(4, bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]], dir)}
                           renderItem={(it) => (
-                            <>
-                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[4]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                            </>
+                            <KompakCardTeks
+                              title={it.title}
+                              brief={it.brief}
+                              briefStyle={getCardTheme(bentoNewsItems[4]).briefStyle}
+                              onClickTajuk={focusClick(it)}
+                              onClickHuraian={focusClick(it)}
+                            />
                           )}
                         />
                       </div>
@@ -2892,10 +2896,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           activeIndex={bentoNewsItems[5].carouselIndex || 0}
                           onNavigate={(dir) => majuKarusel(5, bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]], dir)}
                           renderItem={(it) => (
-                            <>
-                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[5]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                            </>
+                            <KompakCardTeks
+                              title={it.title}
+                              brief={it.brief}
+                              briefStyle={getCardTheme(bentoNewsItems[5]).briefStyle}
+                              onClickTajuk={focusClick(it)}
+                              onClickHuraian={focusClick(it)}
+                            />
                           )}
                         />
                       </div>

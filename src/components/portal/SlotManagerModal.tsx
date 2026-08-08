@@ -9,6 +9,7 @@ import { labelUi } from '../../config/istilah';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { useModalFokus } from '../../hooks/useModalFokus';
 import { useAutoSimpanTempatan, bacaDrafTempatan, buangDrafTempatan, masaRelatifRingkas } from '../../hooks/useAutoSimpanTempatan';
+import { KompakCardPreview } from './cards/KompakCardPreview';
 
 // Normalkan tarikh AI-tampal ke ISO yyyy-mm-dd (2026-08-08, pepijat Izzat — "kalau tampal output
 // AI, medan tarikh sumber tu kena isi sendiri jgk") — <input type="date"> HANYA papar nilai
@@ -992,6 +993,25 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
               <span className="font-mono text-[10px] text-stone-400">UUID <span className="text-stone-500">{current.uuid || '—'}</span></span>
               <div className="w-full max-w-[360px]">
                 <BudgetMeter slotIndex={editingSlotIndex} ceiling={ceiling} title={current.title || ''} brief={current.brief || ''} />
+              </div>
+            </div>
+          )}
+          {/* Pratonton kad SEBENAR (2026-08-08, "saya nak nampak persis rupa kad sebelum
+              terbit" — Pelan Pratonton Kad, bukti konsep pertama). Guna komponen KONGSI SEBENAR
+              (KompakCardPreview.tsx, dicabut drpd FrontpageView.tsx slot 4/5) — bukan tiruan.
+              Cuma tier KOMPAK setakat ni (bukti konsep); tier lain akan disambung SATU-SATU
+              ikut corak sama kemudian, bukan sekali gus (lihat nota di KompakCardPreview.tsx). */}
+          {tier === 'KOMPAK' && (
+            <div className="mt-3">
+              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">Pratonton Kad</span>
+              <div className="mt-1.5">
+                <KompakCardPreview
+                  item={{
+                    title: current.title, brief: current.brief, desk, topik: current.topik,
+                    source: current.source, originalDate: current.date, imageUrl: current.image,
+                  }}
+                  bidang={bidang}
+                />
               </div>
             </div>
           )}
