@@ -37,8 +37,8 @@ export const HalamanStatik: React.FC<HalamanStatikProps> = ({ pageKey, labelSand
       .then((json) => {
         if (!dibatalkan) setData(json);
       })
-      .catch((e) => {
-        if (!dibatalkan) setRalat(e.message || 'Gagal memuatkan halaman.');
+      .catch(() => {
+        if (!dibatalkan) setRalat('Gagal memuatkan halaman. Cuba lagi.');
       })
       .finally(() => {
         if (!dibatalkan) setMemuat(false);
