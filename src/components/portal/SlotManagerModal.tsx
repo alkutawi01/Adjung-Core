@@ -5,6 +5,7 @@ import { tierForSlot, ceilingForSlot, TIER_LABELS, TIER_GRID_SIZE, topikCeilingF
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
 import { Tooltip } from '../common/Tooltip';
+import { Button } from '../common/Button';
 import { labelUi } from '../../config/istilah';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { useModalFokus } from '../../hooks/useModalFokus';
@@ -732,6 +733,54 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // pertengahan yang kelihatan).
   const [publishingIndex, setPublishingIndex] = useState<number | null>(null);
   const [publishError, setPublishError] = useState('');
+
+  // WF-03 (Pusingan 5, audit ChatGPT 2026-08-09; skop+wording disahkan Izzat) — "Terbit Semua"
+  // dalam giliran slot SEMASA sahaja. Endpoint POST /api/system/slots ialah SATU transaksi
+  // semua-atau-tiada (server.js, BEGIN TRANSACTION tanpa try/catch per-item) — jadi "kegagalan
+  // separa" TIDAK bermaksud sesetengah item ditolak pelayan walau dihantar bersama; ia bermaksud
+  // item yang TAK LULUS itemFits() langsung TAK dihantar (kekal draf), manakala yang lulus
+  // dihantar SEKALI dan sama ada semua berjaya atau semua gagal (ralat rangkaian/kebenaran/
+  // konflik). Ini konsisten dgn seni bina sebenar, bukan reka andaian baharu.
+  const [terbitSemuaBerjalan, setTerbitSemuaBerjalan] = useState(false);
+  const [confirmTerbitSemua, setConfirmTerbitSemua] = useState(false);
+  const [ringkasanTerbitSemua, setRingkasanTerbitSemua] = useState<{ berjaya: number; pending: number; gagal: { title: string; reason: string }[] } | null>(null);
+  const itemsLulus = items.filter((it) => itemFits(editingSlotIndex, desk, it).isValid);
+  const itemsGagal = items
+    .map((it) => ({ it, check: itemFits(editingSlotIndex, desk, it) }))
+    .filter(({ check }) => !check.isValid)
+    .map(({ it, check }) => ({ title: it.title || '(tiada tajuk)', reason: check.reason || 'Tidak lulus bajet ruang kad atau Topik.' }));
+  const terbitSemua = async () => {
+    setConfirmTerbitSemua(false);
+    if (itemsLulus.length === 0) return;
+    setTerbitSemuaBerjalan(true);
+    const lulusSet = new Set(itemsLulus);
+    const outgoing = items.map((it) => (lulusSet.has(it) ? { ...it, status: 'pending' } : it));
+    const remainingDrafts = items.filter((it) => !lulusSet.has(it));
+    const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, serializeManualBentoQueue(outgoing), { closeOnSuccess: false });
+    setTerbitSemuaBerjalan(false);
+    if (ok) {
+      const hasil = Array.isArray(ok) ? ok : [];
+      const berjaya = hasil.filter((h: any) => h?.status !== 'pending').length;
+      const pending = hasil.filter((h: any) => h?.status === 'pending').length;
+      commit(() => remainingDrafts);
+      setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
+      setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
+      buangDrafTempatan(kunciDrafTempatan);
+      setRingkasanTerbitSemua({ berjaya, pending, gagal: itemsGagal });
+      onLihatIndeks && onToast?.(
+        'success',
+        `${hasil.length} kandungan diterbitkan.`,
+        { label: 'Lihat di Indeks →', onClick: () => onLihatIndeks({ slot: `Slot ${editingSlotIndex + 1}` }) }
+      );
+      if (!onLihatIndeks) onToast?.('success', `${hasil.length} kandungan diterbitkan.`);
+    } else {
+      const mesej = saveError || labelUi('toast.gagal_terbit');
+      setPublishError(mesej);
+      setTimeout(() => setPublishError(''), 5000);
+      onToast?.('error', mesej);
+    }
+  };
+
   const publishOne = async (i: number) => {
     const item = items[i];
     const check = itemFits(editingSlotIndex, desk, item);
@@ -1099,7 +1148,50 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
             ) : (
               <div className="flex-none flex items-baseline justify-between px-3 pt-3 pb-2">
                 <span className={labelCls}>Draf</span>
-                <span className="font-mono text-[10px] text-stone-400">{items.length}</span>
+                <span className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] text-stone-400">{items.length}</span>
+                  {itemsLulus.length > 0 && (
+                    <Button type="button" variant="secondary" size="sm" disabled={terbitSemuaBerjalan} onClick={() => setConfirmTerbitSemua(true)}>
+                      Terbit Semua
+                    </Button>
+                  )}
+                </span>
+              </div>
+            )}
+            {/* WF-03 (Pusingan 5, audit ChatGPT 2026-08-09) — pengesahan sebaris (bukan native
+                dialog), papar jumlah SEBENAR sebelum tindakan, dan sengaja TIDAK sembunyikan item
+                yang tak lulus — pengguna nampak skop penuh sebelum terbit pukal. */}
+            {confirmTerbitSemua && (
+              <div className="mx-3 mb-2 flex flex-col gap-1.5 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2">
+                <span className="font-sans text-[11px] text-stone-700">
+                  Terbit {itemsLulus.length} kandungan yang lulus?
+                  {itemsGagal.length > 0 && ` ${itemsGagal.length} kandungan tidak memenuhi syarat dan tidak akan disentuh.`}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmTerbitSemua(false)}>Batal</Button>
+                  <Button type="button" variant="primary" size="sm" onClick={terbitSemua}>Terbit Semua</Button>
+                </div>
+              </div>
+            )}
+            {ringkasanTerbitSemua && (
+              <div className="mx-3 mb-2 flex flex-col gap-1.5 rounded-md border border-stone-200 bg-stone-50 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-sans text-[11px] text-stone-700">
+                    {ringkasanTerbitSemua.berjaya > 0 && `${ringkasanTerbitSemua.berjaya} kandungan diterbitkan. `}
+                    {ringkasanTerbitSemua.pending > 0 && `${ringkasanTerbitSemua.pending} kandungan dihantar untuk Menunggu Semakan. `}
+                    {ringkasanTerbitSemua.gagal.length > 0 && `${ringkasanTerbitSemua.gagal.length} kandungan tidak diterbitkan.`}
+                  </span>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setRingkasanTerbitSemua(null)}>Tutup</Button>
+                </div>
+                {ringkasanTerbitSemua.gagal.length > 0 && (
+                  <ul className="list-none m-0 p-0 space-y-1">
+                    {ringkasanTerbitSemua.gagal.map((g, idx) => (
+                      <li key={idx} className="font-mono text-[10px] text-stone-500">
+                        <span className="text-stone-700 font-semibold">{g.title}</span> — {g.reason}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
             {/* Modal ni RUANG DRAF PERIBADI SAHAJA (2026-07-29, permintaan pemilik projek) —
