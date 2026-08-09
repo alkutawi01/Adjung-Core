@@ -433,9 +433,9 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Jaminan <em className="italic">Pipeline</em> (wajib, setiap laluan simpan Bar)</h3>
             <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
-              <li>Kunci atribut <code className="bg-stone-100 px-1 rounded text-[11px]">organizer</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">location</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">access</code>, <code className="bg-stone-100 px-1 rounded text-[11px]">penerangan</code> mesti didaftar dalam <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attributes</code> sebelum disimpan (FK constraint, kalau tidak INSERT gagal senyap).</li>
-              <li>Laluan simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">syncManualObjectsForSlot</code>) mesti tulis kesemua 4 medan ke <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_attribute_values</code>.</li>
-              <li>Laluan baca (<code className="bg-stone-100 px-1 rounded text-[11px]">resolveSlotContent</code>, KEDUA-DUA laluan, blob mentah belum-dimigrasi DAN baris DB sebenar) mesti ekstrak semula kesemua 4 medan.</li>
+              <li>Medan Penganjur, Lokasi, Akses dan Penerangan mesti mempunyai rujukan atribut yang sah dalam sistem sebelum boleh disimpan. Jika rujukan itu tiada, perubahan akan GAGAL DISIMPAN SECARA SENYAP — tiada mesej ralat dipaparkan. (Kawalan ini dilaksanakan melalui kekangan rujukan dalam pangkalan data.)</li>
+              <li>Apabila kandungan Bar disimpan, kesemua 4 medan (Penganjur, Lokasi, Akses, Penerangan) direkodkan bersama sebagai satu set nilai atribut editorial — bukan medan berasingan.</li>
+              <li>Kandungan Bar lama dan baharu kedua-duanya dipaparkan dengan lengkap dan tepat, tanpa mengira bagaimana ia disimpan asalnya.</li>
               <li>Parser teks (<code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Lokasi:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Akses:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Penerangan:</code>) case-insensitive.</li>
               <li>4 slot Bar dalam satu kumpulan (Slot 8,9,10,11 / Slot 22,23,24,25) setiap satu SLOT BERASINGAN dengan kandungan sendiri, bukan satu carousel dikongsi bersama.</li>
             </ul>

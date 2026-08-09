@@ -44,7 +44,7 @@ function AksesDitolak({ mesej }: { mesej: string }) {
   return (
     <div className="bg-white p-6 rounded-lg border border-stone-200 text-center py-16 font-sans">
       <div className="mb-2 flex justify-center"><Lock className="w-6 h-6 text-stone-400" /></div>
-      <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider mb-2">Tiada Kebenaran</h3>
+      <h3 className="font-sans text-xs font-bold text-stone-800 uppercase tracking-wider mb-2">Akses Terhad</h3>
       <p className="text-xs text-stone-500 max-w-sm mx-auto">{mesej}</p>
     </div>
   );
