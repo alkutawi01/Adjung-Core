@@ -754,7 +754,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   onClick={fetchApiStatus}
                   disabled={isLoadingApiStatus}
                 >
-                  {isLoadingApiStatus ? 'Menyemak API...' : <><RefreshCw className="w-3 h-3" /> Semak Status API Live</>}
+                  {isLoadingApiStatus ? 'Menyemak API…' : <><RefreshCw className="w-3 h-3" /> Semak Status API Live</>}
                 </Button>
               </div>
 

@@ -235,7 +235,7 @@ const KadBandar: React.FC<{
           cuma mengulanginya dan menjadikan tiga kad berbeza bentuk daripada dua belas yang lain. */}
       {!isPhone && (
         <p className="font-serif text-[10px] sm:text-[11px] md:text-xs text-[#1F1F1F] font-light tracking-tight whitespace-nowrap">
-          {timeData ? timeData.timeStr : 'Loading...'}
+          {timeData ? timeData.timeStr : 'Memuatkan…'}
         </p>
       )}
     </div>

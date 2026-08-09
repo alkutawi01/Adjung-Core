@@ -974,7 +974,7 @@ function StrategiWarnaModal({
               <input type="text" value={warnaSeragam} onChange={e => setWarnaSeragam(e.target.value)} className={`${INPUT_BORANG} font-mono font-bold`} />
             </div>
             <Button variant="primary" onClick={selaraskanSatuWarna} disabled={memprosesWarna !== null}>
-              {memprosesWarna === 'unify' ? 'Menyelaraskan...' : 'Selaraskan Semua'}
+              {memprosesWarna === 'unify' ? 'Menyelaraskan…' : 'Selaraskan Semua'}
             </Button>
           </div>
 

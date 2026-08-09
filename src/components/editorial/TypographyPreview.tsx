@@ -33,7 +33,7 @@ export const TypographyPreview: React.FC<{
         type="text"
         value={sampleText}
         onChange={(e) => setSampleText(e.target.value)}
-        placeholder="Taip sampel ayat untuk diuji..."
+        placeholder="Taip sampel ayat untuk diuji…"
         className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-serif text-xs bg-white"
       />
 

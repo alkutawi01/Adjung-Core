@@ -381,7 +381,7 @@ export function ContentReview() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari ikut tajuk, huraian, kategori, atau sumber..."
+              placeholder="Cari ikut tajuk, huraian, kategori, atau sumber…"
               className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white text-xs"
             />
           </div>
@@ -516,7 +516,7 @@ export function ContentReview() {
           </div>
 
           {loading ? (
-            <p className="text-xs text-stone-500 text-center py-12">Memuatkan...</p>
+            <p className="text-xs text-stone-500 text-center py-12">Memuatkan…</p>
           ) : (
             <>
               <textarea

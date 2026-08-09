@@ -245,7 +245,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
     fetch('/api/system/slot-am-settings')
       .then(r => r.json())
       .then(d => { setDraf(d); setAsal(d); })
-      .catch(e => setRalat('Gagal memuatkan tetapan: ' + (e.message || '')))
+      .catch(() => setRalat('Gagal memuatkan tetapan. Cuba lagi.'))
       .finally(() => setLoading(false));
   };
 

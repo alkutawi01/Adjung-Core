@@ -55,7 +55,7 @@ export const TierKadConsole: React.FC = () => {
           ])));
         }
       })
-      .catch(e => setRalat('Gagal memuatkan tetapan tier: ' + (e.message || '')))
+      .catch(() => setRalat('Gagal memuatkan tetapan tier. Cuba lagi.'))
       .finally(() => setLoading(false));
   };
 

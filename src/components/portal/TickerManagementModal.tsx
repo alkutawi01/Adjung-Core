@@ -167,7 +167,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         reason: !recognized
           ? 'Label "Tajuk:"/"Huraian ringkas:" tidak dikesan dalam blok ini, mungkin ditolak semasa disimpan.'
           : check?.reason,
-        titleSnippet: title ? (title.length > 25 ? title.substring(0, 25) + '...' : title) : `Artikel #${bIdx + 1}`
+        titleSnippet: title ? (title.length > 25 ? title.substring(0, 25) + '…' : title) : `Artikel #${bIdx + 1}`
       };
     });
   }, [formConfig.contentMode, manualBlocks, validateContentBudget]);
@@ -550,7 +550,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       className="px-4 py-2 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white rounded text-xs font-mono font-bold uppercase tracking-wider transition cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
                     >
                       <RefreshCw size={12} className={isFetchingRss ? "animate-spin" : ""} />
-                      {isFetchingRss ? 'Menyerap RSS...' : 'Serap RSS Sekarang'}
+                      {isFetchingRss ? 'Menyerap RSS…' : 'Serap RSS Sekarang'}
                     </button>
                   </div>
 
@@ -829,7 +829,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                         className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
                       >
                         {isSavingSettings ? <RefreshCw size={12} className="animate-spin" /> : <Save size={12} />}
-                        {isSavingSettings ? 'Menyimpan...' : 'Simpan Tetapan Editorial Dinamik'}
+                        {isSavingSettings ? 'Menyimpan…' : 'Simpan Tetapan Editorial Dinamik'}
                       </button>
                     </div>
                   </div>
