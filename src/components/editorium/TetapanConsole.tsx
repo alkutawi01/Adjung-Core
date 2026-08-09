@@ -20,6 +20,11 @@ import { FormColumn } from '../common/FormColumn';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 
 
+// Corak ARIA tab sebenar (2026-08-09, F1-1 Pusingan 3B, audit ChatGPT) — 6 sub-tab ni menukar
+// PANEL dalam halaman yang sama, jadi tab sebenar ikut definisi ARIA. Urutan tetap ikut susunan
+// paparan (1-6) untuk navigasi Arrow Left/Right/Home/End.
+const TETAPAN_SUBTAB_ORDER = ['PolisiKandungan', 'HalamanAwam', 'Operasi', 'RBAC', 'LabelSistem', 'RupaEditorium'] as const;
+
 interface BlockedCategory {
   id: string;
   categoryName: string;
@@ -119,6 +124,20 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   isPentadbir = true, initialSubTab
 }) => {
   const [subTab, setSubTab] = useState<'PolisiKandungan' | 'HalamanAwam' | 'Operasi' | 'RBAC' | 'LabelSistem' | 'RupaEditorium'>(initialSubTab || 'PolisiKandungan');
+
+  const kendaliPapanKekunciSubTab = (e: React.KeyboardEvent) => {
+    const i = TETAPAN_SUBTAB_ORDER.indexOf(subTab);
+    let sasaran: typeof TETAPAN_SUBTAB_ORDER[number] | null = null;
+    if (e.key === 'ArrowRight') sasaran = TETAPAN_SUBTAB_ORDER[(i + 1) % TETAPAN_SUBTAB_ORDER.length];
+    else if (e.key === 'ArrowLeft') sasaran = TETAPAN_SUBTAB_ORDER[(i - 1 + TETAPAN_SUBTAB_ORDER.length) % TETAPAN_SUBTAB_ORDER.length];
+    else if (e.key === 'Home') sasaran = TETAPAN_SUBTAB_ORDER[0];
+    else if (e.key === 'End') sasaran = TETAPAN_SUBTAB_ORDER[TETAPAN_SUBTAB_ORDER.length - 1];
+    if (sasaran) {
+      e.preventDefault();
+      setSubTab(sasaran);
+      requestAnimationFrame(() => document.getElementById(`tetapan-subtab-${sasaran}`)?.focus());
+    }
+  };
 
   // Toast simpan (2026-08-07, Audit §D3) — butang simpan seksyen ni bertaburan beratus baris
   // (Jam Dunia, Focus View, Ticker Overlay, RBAC) dengan mesej inline jauh di bawah, mudah
@@ -458,9 +477,14 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
 
       {/* Submodule Navigation Bar */}
       <div className="flex flex-wrap justify-between items-center border-b border-stone-200 pb-3 text-xs gap-2">
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1" role="tablist">
           <button
+            id="tetapan-subtab-PolisiKandungan"
+            role="tab"
+            aria-selected={subTab === 'PolisiKandungan'}
+            tabIndex={subTab === 'PolisiKandungan' ? 0 : -1}
             onClick={() => setSubTab('PolisiKandungan')}
+            onKeyDown={kendaliPapanKekunciSubTab}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
               subTab === 'PolisiKandungan' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
@@ -469,7 +493,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </button>
 
           <button
+            id="tetapan-subtab-HalamanAwam"
+            role="tab"
+            aria-selected={subTab === 'HalamanAwam'}
+            tabIndex={subTab === 'HalamanAwam' ? 0 : -1}
             onClick={() => setSubTab('HalamanAwam')}
+            onKeyDown={kendaliPapanKekunciSubTab}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
               subTab === 'HalamanAwam' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
@@ -478,7 +507,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </button>
 
           <button
+            id="tetapan-subtab-Operasi"
+            role="tab"
+            aria-selected={subTab === 'Operasi'}
+            tabIndex={subTab === 'Operasi' ? 0 : -1}
             onClick={() => setSubTab('Operasi')}
+            onKeyDown={kendaliPapanKekunciSubTab}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
               subTab === 'Operasi' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
@@ -487,7 +521,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </button>
 
           <button
+            id="tetapan-subtab-RBAC"
+            role="tab"
+            aria-selected={subTab === 'RBAC'}
+            tabIndex={subTab === 'RBAC' ? 0 : -1}
             onClick={() => setSubTab('RBAC')}
+            onKeyDown={kendaliPapanKekunciSubTab}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
               subTab === 'RBAC' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
@@ -496,7 +535,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </button>
 
           <button
+            id="tetapan-subtab-LabelSistem"
+            role="tab"
+            aria-selected={subTab === 'LabelSistem'}
+            tabIndex={subTab === 'LabelSistem' ? 0 : -1}
             onClick={() => setSubTab('LabelSistem')}
+            onKeyDown={kendaliPapanKekunciSubTab}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
               subTab === 'LabelSistem' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
@@ -505,7 +549,12 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
           </button>
 
           <button
+            id="tetapan-subtab-RupaEditorium"
+            role="tab"
+            aria-selected={subTab === 'RupaEditorium'}
+            tabIndex={subTab === 'RupaEditorium' ? 0 : -1}
             onClick={() => setSubTab('RupaEditorium')}
+            onKeyDown={kendaliPapanKekunciSubTab}
             className={`px-4 py-2 font-semibold transition-all border-b-2 ${
               subTab === 'RupaEditorium' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}

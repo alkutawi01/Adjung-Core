@@ -160,10 +160,21 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
           </button>
         </header>
 
-        <div className="flex-none flex border-b border-stone-200 text-xs">
+        <div className="flex-none flex border-b border-stone-200 text-xs" role="tablist">
           <button
+            id="makluman-tab-editorial"
             type="button"
+            role="tab"
+            aria-selected={tab === 'editorial'}
+            tabIndex={tab === 'editorial' ? 0 : -1}
             onClick={() => setTab('editorial')}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'Home' || e.key === 'End') {
+                e.preventDefault();
+                setTab('sistem');
+                requestAnimationFrame(() => document.getElementById('makluman-tab-sistem')?.focus());
+              }
+            }}
             className={`flex-1 px-4 py-2 font-semibold text-center border-b-2 transition-colors cursor-pointer ${
               tab === 'editorial' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
@@ -171,8 +182,19 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
             Editorial
           </button>
           <button
+            id="makluman-tab-sistem"
             type="button"
+            role="tab"
+            aria-selected={tab === 'sistem'}
+            tabIndex={tab === 'sistem' ? 0 : -1}
             onClick={() => setTab('sistem')}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'Home' || e.key === 'End') {
+                e.preventDefault();
+                setTab('editorial');
+                requestAnimationFrame(() => document.getElementById('makluman-tab-editorial')?.focus());
+              }
+            }}
             className={`flex-1 px-4 py-2 font-semibold text-center border-b-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 ${
               tab === 'sistem' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}

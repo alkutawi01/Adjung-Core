@@ -55,18 +55,57 @@ function AksesDitolak({ mesej }: { mesej: string }) {
 // gantikan 2 salinan JSX serupa yang terpisah sebelum ni. `locked` untuk sub-tab bersekat peranan
 // (cth Tetapan, Ketua Editor sahaja) — dipaparkan kelabu + ikon kunci, klik tiada kesan, sama gaya
 // visual macam sekatan peringkat kategori yang wujud dulu.
+// Corak ARIA tab sebenar (2026-08-09, F1-1 Pusingan 3B, audit ChatGPT) — klik menukar PANEL
+// kandungan dalam konteks halaman yang sama (bukan navigasi ke destinasi lain), jadi ini tab
+// sebenar mengikut definisi ARIA, bukan navigasi. role="tablist"/"tab"/aria-selected + navigasi
+// papan kekunci Arrow Left/Right + Home/End (roving tabindex — hanya tab aktif dalam urutan Tab
+// biasa, Arrow pindah fokus antara tab). aria-controls/aria-labelledby ke panel TIDAK disambung
+// di sini kerana panel dirender berasingan di setiap tapak panggilan tanpa id sepadan — menambah
+// aria-controls menghala ke id yang tak wujud lebih teruk daripada tiada langsung.
 function SubTabBar<T extends string>({ items, active, onChange }: {
   items: { id: T; label: string; locked?: boolean; lockedTitle?: string }[];
   active: T;
   onChange: (id: T) => void;
 }) {
+  const kendaliPapanKekunci = (e: React.KeyboardEvent, index: number) => {
+    const bolehDipilih = items.filter((it) => !it.locked);
+    if (bolehDipilih.length === 0) return;
+    let sasaran: T | null = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      const arah = e.key === 'ArrowRight' ? 1 : -1;
+      let i = index;
+      for (let langkah = 0; langkah < items.length; langkah++) {
+        i = (i + arah + items.length) % items.length;
+        if (!items[i].locked) { sasaran = items[i].id; break; }
+      }
+    } else if (e.key === 'Home') {
+      sasaran = bolehDipilih[0].id;
+    } else if (e.key === 'End') {
+      sasaran = bolehDipilih[bolehDipilih.length - 1].id;
+    }
+    if (sasaran) {
+      e.preventDefault();
+      onChange(sasaran);
+      // Pindahkan fokus papan kekunci sekali dengan pertukaran tab (roving tabindex) — tanpa ni
+      // fokus kekal pada tab lama walaupun tab baharu kini aktif secara visual/logik.
+      requestAnimationFrame(() => {
+        document.getElementById(`subtab-${sasaran}`)?.focus();
+      });
+    }
+  };
+
   return (
-    <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs">
-      {items.map((it) => (
+    <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs" role="tablist">
+      {items.map((it, index) => (
         <Tooltip key={it.id} text={it.locked ? it.lockedTitle : undefined}>
           <button
+            id={`subtab-${it.id}`}
             type="button"
+            role="tab"
+            aria-selected={active === it.id}
+            tabIndex={active === it.id ? 0 : -1}
             onClick={() => !it.locked && onChange(it.id)}
+            onKeyDown={(e) => kendaliPapanKekunci(e, index)}
             disabled={it.locked}
             aria-disabled={it.locked}
             aria-label={it.locked ? it.lockedTitle : undefined}

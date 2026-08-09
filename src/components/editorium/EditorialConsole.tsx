@@ -293,12 +293,28 @@ export const EditorialConsole: React.FC = () => {
         huraian="Peraturan bahasa dan templat penjanaan AI: istilah autocondong, glosari pembaca, penyelarasan ejaan, dan templat arahan AI."
       />
 
-      <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs">
-        {SUB_TABS.map((t) => (
+      <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs" role="tablist">
+        {SUB_TABS.map((t, index) => (
           <button
             key={t.id}
+            id={`editorial-subtab-${t.id}`}
             type="button"
+            role="tab"
+            aria-selected={subTab === t.id}
+            tabIndex={subTab === t.id ? 0 : -1}
             onClick={() => setSubTab(t.id)}
+            onKeyDown={(e) => {
+              let sasaran: SubTab | null = null;
+              if (e.key === 'ArrowRight') sasaran = SUB_TABS[(index + 1) % SUB_TABS.length].id;
+              else if (e.key === 'ArrowLeft') sasaran = SUB_TABS[(index - 1 + SUB_TABS.length) % SUB_TABS.length].id;
+              else if (e.key === 'Home') sasaran = SUB_TABS[0].id;
+              else if (e.key === 'End') sasaran = SUB_TABS[SUB_TABS.length - 1].id;
+              if (sasaran) {
+                e.preventDefault();
+                setSubTab(sasaran);
+                requestAnimationFrame(() => document.getElementById(`editorial-subtab-${sasaran}`)?.focus());
+              }
+            }}
             className={`px-4 py-2 font-semibold tracking-wide transition-all border-b-2 cursor-pointer ${
               subTab === t.id
                 ? 'text-Adjung-maroon border-Adjung-maroon bg-stone-50'

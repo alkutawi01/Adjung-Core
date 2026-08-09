@@ -267,6 +267,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 onClick={() => { if (sidebarTerbuka) handleNavClick(item.id); }}
                 disabled={isLocked}
                 aria-disabled={isLocked}
+                aria-current={isActive ? 'page' : undefined}
                 aria-label={!sidebarTerbuka ? item.label : undefined}
                 className={`w-full flex items-center gap-2 text-xs font-medium py-2 rounded transition-colors duration-150 ${
                   !sidebarTerbuka ? 'justify-center px-2' : 'justify-between px-3'
@@ -488,6 +489,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 type="button"
                 onClick={() => handleNavClick(item.id)}
                 disabled={isLocked}
+                aria-current={isActive ? 'page' : undefined}
                 className={`shrink-0 flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${
                   isActive ? 'bg-Adjung-maroon text-white font-semibold' : isLocked ? 'text-stone-300' : 'text-stone-600 bg-white border border-stone-200'
                 }`}
