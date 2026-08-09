@@ -3,17 +3,16 @@ import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { SectionLabel } from '../common/SectionLabel';
 
-// Panduan (Fasa 16, 2026-08-02) — panduan operasi harian untuk editor sebenar, bukan spesifikasi
-// teknikal. Setiap dakwaan di bawah disemak terus terhadap kod semasa (EditoriumView.tsx,
-// useSlotEditor.ts, server.js, IndeksConsole.tsx, TetapanConsole.tsx) sebelum ditulis — jangan
-// tambah langkah/ciri yang belum wujud dalam sistem sebenar. Untuk peraturan teknikal penuh
-// (had aksara, format medan, dsb.) rujuk Dokumentasi → Peraturan Am (PerlembagaanConsole.tsx);
-// fail ni sengaja tidak menyalin semula nombor tersebut, cuma merujuk ke sana.
+// Panduan (tulis semula dari kosong, 2026-08-09, audit ChatGPT). Ditulis dari sudut pandang
+// Editor baharu yang tiada latar belakang sistem langsung — bukan spesifikasi teknikal, bukan
+// "cheat sheet" untuk orang yang dah faham. Setiap dakwaan di bawah disemak terus terhadap kod
+// semasa (LengkapkanProfilModal.tsx, EditoriumLayout.tsx, contentRoutes.js, slotsConfigRoutes.js,
+// SlotManagerModal.tsx, useSlotEditor.ts, DrafSayaConsole.tsx, IndeksConsole.tsx,
+// SenaraiSlotConsole.tsx, TetapanAmSlotConsole.tsx) sebelum ditulis — jangan tambah langkah/ciri
+// yang belum wujud dalam sistem sebenar. Untuk peraturan teknikal penuh (had aksara, format
+// medan, dsb.) rujuk Dokumentasi → Peraturan Am (PerlembagaanConsole.tsx); fail ni sengaja tidak
+// menyalin semula nombor tersebut, cuma merujuk ke sana.
 
-// Kad panduan bertajuk — chrome kad (sempadan/bayang/radius) datang daripada PanelCard kongsi;
-// yang tinggal di sini hanyalah corak tajuk + badan khusus muka panduan. Padding dikekalkan p-4
-// (bukan lalai p-6) kerana kad rujukan di sini padat dan berbilang dalam satu grid, sama seperti
-// kad peraturan Perlembagaan.
 const Card: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <PanelCard padding="p-4">
     <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">{title}</h3>
@@ -21,87 +20,12 @@ const Card: React.FC<{ title: string; children: React.ReactNode }> = ({ title, c
   </PanelCard>
 );
 
-// Carta Alir Kandungan (2026-08-06, permintaan Izzat) — status SEBENAR dalam kod
-// (core/routes/contentRoutes.js CONTENT_STATUSES + runSchedulingTick): Draf (blok teks,
-// TIADA baris DB — lihat draftRoutes.js) -> Menunggu ('pending') -> Aktif ('approved') ->
-// Arkib ('archived'). 'rejected'/'scheduled' turut wujud dalam kod tapi bukan status HENTIAN
-// yang editor nampak sendiri secara kekal — 'rejected' legasi tak pernah ditulis sesiapa
-// (Tolak sebenar guna mekanisme draf-semula, lihat nota di bawah), 'scheduled' singkatan
-// automatik sebelum Aktif (Jadual Terbit) jadi tak ditunjukkan sebagai kotak berasingan supaya
-// carta ni kekal mudah dibaca peringkat harian, bukan spesifikasi teknikal penuh.
-const CartaAlirKandungan: React.FC = () => {
-  const kotak = { w: 148, h: 68 };
-  const y = 118;
-  const posisi = { draf: 24, menunggu: 232, aktif: 440, arkib: 648 };
-  const warna = {
-    draf: { bg: '#f5f5f4', border: '#a8a29e', teks: '#57534e' },
-    menunggu: { bg: '#fffbeb', border: '#b45309', teks: '#92400e' },
-    aktif: { bg: '#ecfdf5', border: '#065f46', teks: '#065f46' },
-    arkib: { bg: '#f5f5f4', border: '#78716c', teks: '#44403c' },
-  };
-  const Kotak: React.FC<{ x: number; label: string; sub: string; warna: { bg: string; border: string; teks: string } }> = ({ x, label, sub, warna: w }) => (
-    <g>
-      <rect x={x} y={y} width={kotak.w} height={kotak.h} rx={8} fill={w.bg} stroke={w.border} strokeWidth={1.5} />
-      <text x={x + kotak.w / 2} y={y + 28} textAnchor="middle" fontSize="13" fontWeight={700} fill={w.teks} fontFamily="ui-serif, Georgia, serif">{label}</text>
-      <text x={x + kotak.w / 2} y={y + 46} textAnchor="middle" fontSize="9" fill={w.teks} fontFamily="ui-monospace, monospace" letterSpacing="0.03em">{sub}</text>
-    </g>
-  );
-  return (
-    <PanelCard padding="p-4" className="overflow-x-auto">
-      <svg viewBox="0 0 830 320" className="w-full min-w-[700px]" style={{ maxHeight: 360 }}>
-        <defs>
-          <marker id="panahMaroon" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="var(--color-Adjung-maroon)" />
-          </marker>
-          <marker id="panahMerah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="#b91c1c" />
-          </marker>
-          <marker id="panahKelabu" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill="#78716c" />
-          </marker>
-        </defs>
-
-        <Kotak x={posisi.draf} label="Draf" sub="TEKS SAHAJA" warna={warna.draf} />
-        <Kotak x={posisi.menunggu} label="Menunggu" sub="PENDING" warna={warna.menunggu} />
-        <Kotak x={posisi.aktif} label="Aktif" sub="APPROVED · DI FRONTPAGE" warna={warna.aktif} />
-        <Kotak x={posisi.arkib} label="Arkib" sub="ARCHIVED" warna={warna.arkib} />
-
-        {/* Aliran ke hadapan (maroon) — Terbitkan / Luluskan / Arkibkan */}
-        <line x1={posisi.draf + kotak.w} y1={y + 34} x2={posisi.menunggu - 4} y2={y + 34} stroke="var(--color-Adjung-maroon)" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
-        <text x={(posisi.draf + kotak.w + posisi.menunggu) / 2} y={y + 20} textAnchor="middle" fontSize="9.5" fill="var(--color-Adjung-maroon)" fontWeight={600}>Terbitkan</text>
-
-        <line x1={posisi.menunggu + kotak.w} y1={y + 34} x2={posisi.aktif - 4} y2={y + 34} stroke="var(--color-Adjung-maroon)" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
-        <text x={(posisi.menunggu + kotak.w + posisi.aktif) / 2} y={y + 20} textAnchor="middle" fontSize="9.5" fill="var(--color-Adjung-maroon)" fontWeight={600}>Luluskan</text>
-
-        <line x1={posisi.aktif + kotak.w} y1={y + 34} x2={posisi.arkib - 4} y2={y + 34} stroke="var(--color-Adjung-maroon)" strokeWidth={1.75} markerEnd="url(#panahMaroon)" />
-        <text x={(posisi.aktif + kotak.w + posisi.arkib) / 2} y={y + 20} textAnchor="middle" fontSize="9" fill="var(--color-Adjung-maroon)" fontWeight={600}>Arkibkan /</text>
-        <text x={(posisi.aktif + kotak.w + posisi.arkib) / 2} y={y + 30} textAnchor="middle" fontSize="9" fill="var(--color-Adjung-maroon)" fontWeight={600}>Luput berjadual</text>
-
-        {/* Gelung Tolak (merah, lengkung bawah) — Menunggu/Aktif kembali ke Draf. Titik kawalan
-            kongsi X dengan hujung (bukan satu puncak di tengah) — bentuk lengkung jadi RATA
-            melintasi keseluruhan lebar, bukan melengkung ke bawah cuma di tengah. Label DUA
-            baris diletak SELEPAS bahagian rata tu sepenuhnya (bukan cuma bawah puncak anggapan)
-            — isu ditemui semasa sahkan visual sebenar (dua percubaan pertama masih bertindih,
-            baris kod ni jarak diperbesar sehingga disahkan bersih). */}
-        <path d={`M ${posisi.aktif + kotak.w / 2} ${y + kotak.h} C ${posisi.aktif + kotak.w / 2} ${y + kotak.h + 70}, ${posisi.draf + kotak.w / 2} ${y + kotak.h + 70}, ${posisi.draf + kotak.w / 2} ${y + kotak.h}`} fill="none" stroke="#b91c1c" strokeWidth={1.5} strokeDasharray="4,3" markerEnd="url(#panahMerah)" />
-        <text x={(posisi.draf + posisi.aktif) / 2 + kotak.w / 2} y={y + kotak.h + 92} textAnchor="middle" fontSize="9.5" fill="#b91c1c" fontWeight={600}>Tolak (sebab dicatat, kekal Menunggu selepas Terbitkan semula,</text>
-        <text x={(posisi.draf + posisi.aktif) / 2 + kotak.w / 2} y={y + kotak.h + 104} textAnchor="middle" fontSize="9.5" fill="#b91c1c" fontWeight={600}>perlu kelulusan Ketua Editor/Penolong)</text>
-
-        {/* Gelung Siarkan Semula (kelabu, lengkung atas) — Arkib kembali ke Aktif */}
-        <path d={`M ${posisi.arkib + kotak.w / 2} ${y} C ${posisi.arkib + kotak.w / 2} ${y - 42}, ${posisi.aktif + kotak.w / 2} ${y - 42}, ${posisi.aktif + kotak.w / 2} ${y}`} fill="none" stroke="#78716c" strokeWidth={1.5} strokeDasharray="4,3" markerEnd="url(#panahKelabu)" />
-        <text x={(posisi.aktif + posisi.arkib) / 2 + kotak.w / 2} y={y - 50} textAnchor="middle" fontSize="9.5" fill="#78716c" fontWeight={600}>Siarkan Semula (boleh pindah slot lain, Bidang sepadan)</text>
-      </svg>
-      <p className="font-sans text-[10px] text-stone-400 mt-1 px-1">
-        Draf ialah blok teks peribadi (belum jadi rekod rasmi) — semua status lain rekod
-        sebenar dalam Indeks. Aktif/Menunggu boleh diklik terus di <strong>Slot → Senarai
-        Slot</strong> untuk lihat senarai tajuk + tarikh jadual (kalau ada). "Luluskan" boleh
-        dibuat Editor SENDIRI atau perlu Ketua Editor/Penolong, ikut <strong>Dasar Terbit
-        Sendiri Editor</strong> (Slot → 4. Tetapan Am); kandungan yang lulus tapi slot penuh
-        kekal Menunggu (naik taraf automatik bila ruang terbuka) — lihat seksyen 01 di atas.
-      </p>
-    </PanelCard>
-  );
-};
+const Kamus: React.FC<{ istilah: string; maksud: React.ReactNode }> = ({ istilah, maksud }) => (
+  <div className="grid grid-cols-[minmax(120px,auto)_1fr] gap-3 py-2 border-b border-stone-100 last:border-0">
+    <dt className="font-mono text-[11px] font-bold text-stone-800 uppercase tracking-wide">{istilah}</dt>
+    <dd className="font-sans text-xs text-stone-600 leading-relaxed">{maksud}</dd>
+  </div>
+);
 
 export const PanduanConsole: React.FC = () => {
   return (
@@ -110,176 +34,355 @@ export const PanduanConsole: React.FC = () => {
         tajuk="Panduan Penggunaan Editorium"
         huraian={
           <span className="block max-w-2xl">
-            Rujukan ringkas cara menulis, menerbit, dan mengurus kandungan di Adjung Brief —
-            langkah demi langkah, ikut apa yang sebenarnya wujud dalam sistem hari ini. Untuk
-            peraturan teknikal penuh (had aksara kad, format medan, dsb.), rujuk{' '}
+            Panduan lengkap untuk Editor baharu — dari log masuk pertama sehingga kandungan
+            anda tersiar. Baca ikut turutan seksyen kalau ini kali pertama anda guna sistem
+            ni. Untuk peraturan teknikal penuh (had aksara kad, format medan, dsb.), rujuk{' '}
             <span className="font-semibold text-stone-800">Dokumentasi → 1. Peraturan Am</span>.
           </span>
         }
       />
 
-      {/* 01 — ALUR KERJA TULIS/TERBIT */}
+      {/* 00 — SELAMAT DATANG */}
       <div>
-        <SectionLabel>01 — Tulis, Simpan Draf, dan Terbit Kandungan</SectionLabel>
+        <SectionLabel>00 — Selamat Datang</SectionLabel>
+        <Card title="Apa Adjung Brief">
+          Adjung Brief ialah portal berita/kandungan yang memaparkan kandungan editorial —
+          berita, ilmu, kebudayaan — dalam bentuk kad-kad bersaiz berbeza (bento grid) di
+          muka depan. Sebagai Editor, kerja anda ialah menulis kandungan, menghantarnya untuk
+          disemak, dan mengurus kandungan yang sudah tersiar dalam slot yang ditugaskan
+          kepada anda. Panduan ni akan bawa anda dari log masuk pertama sampai kandungan
+          pertama anda tersiar.
+        </Card>
+      </div>
+
+      {/* 01 — HARI PERTAMA ANDA */}
+      <div>
+        <SectionLabel>01 — Hari Pertama Anda</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Card title="1. Buka ruang menulis">
-            Klik <strong>Tulis Kandungan</strong> (butang di Paparan Utama atau menu Slot),
-            pilih slot yang mahu diisi. Ruang ni ruang draf peribadi anda sahaja — kandungan
-            Aktif/Menunggu sedia ada dalam slot tu tidak dipaparkan di sini.
+          <Card title="1. Lengkapkan profil (wajib)">
+            Kali pertama log masuk, satu tetingkap akan muncul meminta Nama Penuh, Kelulusan
+            (nama kursus, universiti, tahun graduasi), Negeri Menetap, dan Nombor Telefon —
+            semua wajib diisi. Tetingkap ni <strong>tiada butang tutup, tiada Escape</strong> —
+            anda tidak boleh langkau atau tunda langkah ni. Sistem tidak akan benarkan anda
+            masuk ke Editorium sehingga profil lengkap.
           </Card>
-          <Card title="2. Simpan sebagai draf">
-            Klik <strong>Simpan sebagai draf</strong> untuk simpan kerja belum siap. Tiada
-            semakan bajet ruang atau Bidang/Topik dikuatkuasakan pada peringkat ni — boleh
-            simpan separuh jalan, sambung kemudian. Draf boleh dilihat semula di{' '}
-            <strong>Draf Saya</strong>.
+          <Card title="2. Baca dan setuju Syarat & Peraturan Editor">
+            Dalam tetingkap yang sama, teks Syarat & Peraturan Editor dipaparkan untuk dibaca.
+            Tandakan kotak "Saya telah membaca dan bersetuju" — butang "Sahkan & Teruskan"
+            hanya aktif selepas semua medan profil diisi DAN kotak ini ditanda.
           </Card>
-          <Card title="3. Terbit sekarang">
-            Apabila kandungan siap, klik <strong>Terbit sekarang</strong>. Sistem akan
-            menyemak dua perkara sebelum benarkan terbit: (a) tajuk + huraian muat dalam
-            bajet ruang kad tu (lihat seksyen 03 di bawah), dan (b) Bidang serta Topik
-            sudah diisi. Kalau gagal semakan, sistem tolak dan tunjuk sebab — bukan
-            terbit dengan kandungan terpotong.
+          <Card title="3. Kenali empat kumpulan menu">
+            Selepas profil lengkap, anda akan nampak sisi navigasi Editorium disusun dalam 4
+            kumpulan: <strong>Utama</strong> (Paparan Utama), <strong>Penerbitan</strong> (Draf
+            Saya, Kandungan, Slot, Modul Khas, Editorial), <strong>Pengurusan</strong> (Nota
+            Ketua Editor, Direktori, Tetapan), dan <strong>Rujukan</strong> (Panduan,
+            Dokumentasi, Log Sistem). Sebagai Editor biasa, sesetengah destinasi dalam
+            Pengurusan dan Rujukan tidak akan kelihatan pada menu anda — lihat seksyen 11 di
+            bawah untuk sebab.
           </Card>
-          <Card title="4. Status selepas terbit">
-            Kandungan yang berjaya diterbitkan mendarat sebagai <strong>Menunggu</strong> (bukan
-            terus Aktif). Ikut <strong>Dasar Terbit Sendiri Editor</strong> semasa (Slot → 4.
-            Tetapan Am, ditetapkan Ketua Editor) — Editor SENDIRI boleh terus luluskan kandungan
-            dia di Indeks (lalai), ATAU dimatikan supaya SEMUA kandungan Editor wajib lalui Ketua
-            Editor/Penolong dahulu. Pengecualian: slot Bar (jalur acara/program) kekal ikut
-            peraturan tersendiri, lihat Dokumentasi → Peraturan Am seksyen 04.
-          </Card>
-          <Card title="Kelulusan di Indeks">
-            Sesiapa yang berkelayakan (Editor sendiri kalau dasar benarkan, atau Ketua
-            Editor/Penolong) semak kandungan Menunggu di <strong>Kandungan → Indeks</strong>,
-            boleh Lulus (jadi Aktif) atau Tolak. Kandungan yang PERNAH ditolak sekali sentiasa
-            wajib lalui Ketua Editor/Penolong untuk terbit semula, tak kira dasar terbit sendiri
-            — lihat seksyen 02 (Carta Alir) di atas. Tolak BUKAN buang kandungan — ia pulangkan
-            semula sebagai draf yang boleh disunting di Tulis Kandungan/Draf Saya.
-          </Card>
-          <Card title="Menunggu semakan vs menunggu slot kosong">
-            "Lulus" tak semestinya terus jadikan kandungan Aktif — kalau slot dah penuh (Had
-            Bilangan Kandungan, Tetapan Am Slot), kandungan tu kekal Menunggu dengan status
-            "sudah lulus, tunggu slot kosong". Ia naik taraf ke Aktif SECARA AUTOMATIK sebaik
-            ruang terbuka (kandungan lain diarkibkan/ditolak/luput) — tiada tindakan manusia
-            kedua diperlukan. Lihat status ni terus di <strong>Slot → Senarai Slot</strong>
-            (klik angka Menunggu).
-          </Card>
-          <Card title="Draf Saya">
-            Senarai semua draf peribadi anda merentasi slot, dengan siapa pemiliknya
-            (ditandai baris "Penulis:"). Klik mana-mana draf untuk terus buka semula
-            di ruang menulis, sambung dari tempat terhenti.
+          <Card title="4. Semak slot yang ditugaskan kepada anda">
+            Pergi ke <strong>Direktori</strong> atau tanya Ketua Editor/Penolong untuk tahu
+            slot mana yang menjadi tanggungjawab anda — hanya Ketua Editor/Penolong boleh
+            tugaskan/tanggalkan editor pada slot. Setiap slot terkunci kepada satu Bidang
+            tetap (cth. Ekonomi, Kebudayaan) — lihat seksyen 03.
           </Card>
         </div>
       </div>
 
-      {/* 02 — CARTA ALIR KANDUNGAN (2026-08-06, permintaan Izzat) */}
+      {/* 02 — KENALI EDITORIUM */}
       <div>
-        <SectionLabel>02 — Carta Alir Kandungan: Draf sampai Arkib</SectionLabel>
-        <CartaAlirKandungan />
+        <SectionLabel>02 — Kenali Editorium</SectionLabel>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card title="Draf Saya">
+            Senarai semua draf peribadi anda merentasi slot — di sinilah anda semak kerja
+            belum siap, atau kandungan yang baru sahaja ditolak Ketua Editor (ia kembali ke
+            sini sebagai draf, bukan hilang). Klik "Sambung" untuk terus buka semula di ruang
+            menulis.
+          </Card>
+          <Card title="Kandungan → Indeks">
+            Senarai penuh SEMUA kandungan (Aktif, Menunggu, Arkib) merentasi seluruh sistem —
+            bukan cuma slot anda. Kalau anda ada kebenaran terbit sendiri, di sinilah anda
+            luluskan/tolak kandungan Menunggu.
+          </Card>
+          <Card title="Slot → Senarai Slot">
+            Senarai semua 38 slot bento — status terisi/kosong, Bidang semasa, editor
+            ditugaskan, dan bilangan kandungan Menunggu bagi setiap slot (klik angka tu untuk
+            lihat senarai penuh).
+          </Card>
+          <Card title="Modul Khas & Editorial">
+            Modul Khas: ruang untuk jenis kandungan tersendiri di luar slot bento biasa.
+            Editorial: alat sokongan penulisan (Autocondong, Glosari, Templat AI) — hanya
+            kelihatan untuk Ketua Editor/Penolong.
+          </Card>
+        </div>
       </div>
 
-      {/* 03 — BAJET RUANG KAD */}
+      {/* 03 — FAHAMI STRUKTUR KANDUNGAN */}
       <div>
-        <SectionLabel>03 — Kenapa Kandungan Kadang Ditolak: Bajet Ruang Kad</SectionLabel>
-        <Card title="Satu bajet, dua medan">
+        <SectionLabel>03 — Fahami Struktur Kandungan: Bidang &amp; Topik</SectionLabel>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card title="Bidang terkunci per-slot">
+            Setiap slot (kecuali Ticker dan tier Bar) terkunci kepada SATU Bidang tetap
+            (cth. Ekonomi, Kebudayaan). Semua kandungan yang anda tulis untuk slot tu mesti
+            dalam Bidang yang sama — anda tidak pilih Bidang setiap kali menulis, ia sudah
+            ditetapkan pada slot.
+          </Card>
+          <Card title="Topik bebas, tapi wajib diisi">
+            Topik pula medan bebas yang anda isi sendiri setiap kali menulis kandungan baharu
+            — boleh berbeza-beza dalam slot yang sama asalkan masih dalam Bidang terkunci tu
+            (cth. Bidang Ekonomi tetap, Topik boleh Kewangan/Perbankan/dll.). Topik wajib
+            diisi — sistem akan tolak simpanan kalau kosong.
+          </Card>
+        </div>
+      </div>
+
+      {/* 04 — MENULIS KANDUNGAN */}
+      <div>
+        <SectionLabel>04 — Menulis Kandungan</SectionLabel>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card title="1. Buka ruang menulis">
+            Klik <strong>Tulis Kandungan</strong>, pilih slot yang mahu diisi. Ruang ni ruang
+            draf peribadi anda — kandungan Aktif/Menunggu sedia ada dalam slot tu tidak
+            dipaparkan di sini, ia tidak terjejas sehingga anda benar-benar terbitkan draf
+            baharu.
+          </Card>
+          <Card title="2. Medan yang perlu diisi">
+            <strong>Topik</strong> (wajib), <strong>Tajuk</strong> (wajib), <strong>Huraian
+            ringkas</strong> (wajib), <strong>Huraian panjang</strong> (pilihan — tapi kalau
+            diisi, ada had MINIMUM aksara, tak boleh separuh jalan), <strong>Sumber</strong>{' '}
+            (boleh lebih daripada satu), <strong>Jenis sumber</strong>, <strong>Tarikh
+            sumber</strong>, <strong>Imej</strong> (muat naik atau URL), dan <strong>Nota</strong>{' '}
+            (pilihan, ruang untuk catatan dalaman). Nama anda dicatat automatik sebagai
+            Penulis — tak perlu diisi.
+          </Card>
+          <Card title="3. Perhati Bajet Ruang semasa menaip">
+            Petak biru/hijau di bawah borang menunjukkan peratus ruang kad yang digunakan —
+            lihat seksyen 08 untuk maksud penuh warna dan angka ni.
+          </Card>
+          <Card title="4. Simpan sebagai draf">
+            Klik <strong>Simpan sebagai draf</strong> untuk simpan kerja belum siap. Bajet
+            ruang dan Bidang/Topik TIDAK dikuatkuasakan pada peringkat draf — boleh simpan
+            separuh jalan, sambung kemudian di <strong>Draf Saya</strong>.
+          </Card>
+        </div>
+      </div>
+
+      {/* 05 — DRAF SAYA */}
+      <div>
+        <SectionLabel>05 — Draf Saya</SectionLabel>
+        <Card title="Apa yang anda nampak dan boleh buat">
+          Draf Saya senaraikan semua draf peribadi anda merentasi slot — setiap baris tunjuk
+          slot, tier kad, Bidang, Topik, tajuk (atau "Draf kosong" kalau belum ditulis), status
+          kelengkapan (ada/tiada Topik, ada huraian panjang atau ringkas sahaja), dan status
+          Bajet Ruang (Lulus / Kurang bajet / Lebih had). Klik <strong>Sambung</strong> untuk
+          terus buka draf tu semula di ruang menulis dan teruskan dari mana anda berhenti.
+          Draf yang ditanda "Ikut slot" (bukan "Ikut nama anda") ialah draf lama yang tiada
+          rekod penulis asal — ia dipaparkan ikut slot sebagai gantian. Tiada butang Terbit
+          atau Padam di sini — kedua-dua tindakan tu hanya boleh dibuat di dalam ruang menulis
+          slot itu sendiri (SlotManagerModal), sebab di sanalah sistem nampak SEMUA draf lain
+          yang berkongsi slot yang sama.
+        </Card>
+      </div>
+
+      {/* 06 — MENERBITKAN KANDUNGAN */}
+      <div>
+        <SectionLabel>06 — Menerbitkan Kandungan</SectionLabel>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card title="Terbit sekarang">
+            Apabila kandungan siap, klik <strong>Terbit sekarang</strong>. Sistem semak dua
+            perkara sebelum benarkan: (a) tajuk + huraian muat dalam bajet ruang kad tu, dan
+            (b) Bidang serta Topik sudah diisi. Kalau gagal semakan, sistem TOLAK dan tunjuk
+            sebab — kandungan tidak dihantar langsung, tiada terbit dengan teks terpotong.
+          </Card>
+          <Card title="Terbit Semua">
+            Kalau slot anda ada beberapa draf sekaligus, butang <strong>Terbit Semua</strong>{' '}
+            akan hantar semua draf yang LULUS bajet ruang dalam satu tindakan. Draf yang gagal
+            semakan tidak dihantar — ia kekal sebagai draf, dan senarai sebab kegagalan
+            dipaparkan supaya anda tahu apa perlu dibaiki.
+          </Card>
+          <Card title="Status selepas hantar: bukan terus Aktif">
+            Kandungan yang berjaya dihantar TIDAK terus jadi Aktif di muka depan — ia mendarat
+            sebagai <strong>Menunggu</strong> dahulu. Ada 4 kemungkinan hasil akhir; lihat
+            seksyen 07 di bawah untuk penjelasan setiap satu.
+          </Card>
+          <Card title="Dasar Terbit Sendiri Editor">
+            Sama ada anda sendiri boleh luluskan kandungan anda, atau perlu tunggu Ketua
+            Editor/Penolong, bergantung kepada satu suis yang ditetapkan Ketua Editor di{' '}
+            <strong>Tetapan → Tetapan Am Slot</strong> ("Dasar Terbit Sendiri Editor"). Tanya
+            Ketua Editor/Penolong anda kalau tak pasti dasar semasa. Pengecualian: kandungan
+            yang PERNAH ditolak sekali WAJIB lalui Ketua Editor/Penolong untuk terbit semula,
+            tak kira dasar semasa. Slot Bar (jalur acara/program) turut ikut peraturan
+            tersendiri — lihat Dokumentasi → Peraturan Am seksyen 04.
+          </Card>
+        </div>
+      </div>
+
+      {/* 07 — EMPAT STATUS SELEPAS HANTAR */}
+      <div>
+        <SectionLabel>07 — "Terbit" Bukan "Aktif": Empat Kemungkinan Status</SectionLabel>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card title="Menunggu Semakan">
+            Kandungan anda perlu kelulusan manusia (anda sendiri jika dasar benarkan, atau
+            Ketua Editor/Penolong) sebelum tersiar. Semak status ni di{' '}
+            <strong>Kandungan → Indeks</strong>.
+          </Card>
+          <Card title="Menunggu Slot Kosong">
+            Kandungan anda SUDAH lulus semakan, tapi slot tu sudah penuh (had bilangan
+            kandungan tercapai). Ia akan naik taraf ke Aktif SECARA AUTOMATIK sebaik ruang
+            terbuka (kandungan lain diarkibkan/ditolak/luput) — tiada tindakan tambahan
+            diperlukan daripada anda. Lihat status ni di <strong>Slot → Senarai Slot</strong>{' '}
+            (klik angka Menunggu bagi slot berkenaan).
+          </Card>
+          <Card title="Aktif">
+            Kandungan anda sudah tersiar di muka depan. Boleh disemak bila-bila di{' '}
+            <strong>Kandungan → Indeks</strong> atau <strong>Slot → Senarai Slot</strong>.
+          </Card>
+          <Card title="Ditolak — lihat seksyen 08">
+            Kandungan tidak diluluskan. Ia TIDAK hilang — ia kembali kepada anda sebagai draf
+            boleh sunting.
+          </Card>
+        </div>
+      </div>
+
+      {/* 08 — JIKA KANDUNGAN DITOLAK */}
+      <div>
+        <SectionLabel>08 — Jika Kandungan Anda Ditolak</SectionLabel>
+        <Card title="Apa berlaku dan apa perlu anda buat">
+          Tolak BUKAN buang kandungan. Apabila Ketua Editor/Penolong menolak kandungan anda,
+          ia dipulangkan semula sebagai draf boleh sunting — cari di <strong>Draf Saya</strong>{' '}
+          (ditandakan dengan nama anda sebagai Penulis). Sebab penolakan (kalau dicatat oleh
+          penyemak) akan kelihatan dalam medan Nota draf tu apabila anda buka semula. Baiki
+          isu yang disebut, kemudian hantar semula ikut langkah di seksyen 06. Ambil perhatian:
+          kandungan yang PERNAH ditolak sekali akan sentiasa wajib lalui semakan Ketua
+          Editor/Penolong bila dihantar semula — walaupun dasar terbit sendiri anda dibenarkan.
+        </Card>
+      </div>
+
+      {/* 09 — BAJET RUANG KAD */}
+      <div>
+        <SectionLabel>09 — Bajet Ruang Kad</SectionLabel>
+        <Card title="Satu bajet, dua medan — dan apa maksud warna petak">
           <>
-            Setiap kad bento (Hero, Menegak, Standard, dll.) ada saiz fizikal tetap — kad
-            TAK boleh melimpah. Tajuk dan huraian satu kad berkongsi SATU bajet ruang, bukan
-            dua had berasingan: tajuk panjang + huraian pendek boleh muat, huraian panjang +
-            tajuk pendek pun boleh — tapi kedua-duanya panjang serentak tak boleh. Sistem
-            semak ini secara automatik semasa Simpan/Terbit; kalau tak muat, ia tolak dan
-            minta anda pendekkan salah satu medan sendiri — sistem TIDAK memotong tulisan
-            anda secara automatik.
+            Setiap kad bento (Hero, Menegak, Standard, dll.) ada saiz fizikal tetap — kad TAK
+            boleh melimpah. Tajuk dan huraian satu kad berkongsi SATU bajet ruang, bukan dua
+            had berasingan: tajuk panjang + huraian pendek boleh muat, huraian panjang + tajuk
+            pendek pun boleh — tapi kedua-duanya panjang serentak tak boleh.
+            <br /><br />
+            Petak Bajet Ruang di ruang menulis tunjuk peratus ruang digunakan, dengan tiga
+            warna: <strong className="text-emerald-700">hijau</strong> (selamat, di bawah 90%),{' '}
+            <strong className="text-amber-700">kuning/ambar</strong> (hampir penuh, di atas 90%
+            tapi masih muat — sempat dihantar), dan <strong style={{ color: '#a8241f' }}>merah</strong>{' '}
+            (TIDAK muat — sama ada terlalu panjang, atau kalau huraian panjang diisi, mungkin
+            terlalu pendek daripada had minimum). Pada warna merah, sistem tunjuk panduan
+            ringkas sama ada perlu panjangkan atau pendekkan kandungan.
+            <br /><br />
+            Pada warna merah, <strong>butang Terbit tidak akan berfungsi</strong> — sistem
+            menyekat penghantaran, bukan sekadar beri amaran. Anda perlu edit tajuk/huraian
+            sendiri sehingga petak jadi hijau/kuning sebelum boleh terbit. Sistem TIDAK
+            memotong tulisan anda secara automatik.
             <br /><br />
             Had sebenar berbeza ikut saiz/tier kad (kad besar macam Hero lapang lebih
-            berbanding kad kecil macam Kompak). Untuk lihat had tepat setiap tier serta
-            carta visual saiz kad, rujuk <strong>Dokumentasi → 1. Peraturan Am</strong>{' '}
-            (carta dijana terus daripada nombor sebenar sistem, sentiasa terkini).
+            berbanding kad kecil macam Kompak). Untuk lihat had tepat setiap tier serta carta
+            visual saiz kad, rujuk <strong>Dokumentasi → 1. Peraturan Am</strong>.
           </>
         </Card>
       </div>
 
-      {/* 04 — BIDANG & TOPIK */}
+      {/* 10 — MENGURUS KANDUNGAN ANDA */}
       <div>
-        <SectionLabel>04 — Bidang &amp; Topik</SectionLabel>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Card title="Bidang terkunci per-slot">
-            Setiap slot (kecuali Ticker dan tier Bar) terkunci kepada SATU Bidang tetap
-            (cth. Ekonomi, Kebudayaan) — semua kandungan dalam slot tu, termasuk semua
-            item carousel, mesti dalam Bidang yang sama. Bidang slot boleh ditukar bila-bila
-            masa di <strong>Slot → 3. Bidang</strong>, tapi pertukaran itu tidak retroaktif —
-            hanya kandungan baharu selepas perubahan ikut Bidang baharu.
-          </Card>
-          <Card title="Topik bebas per-kandungan">
-            Topik pula medan bebas, boleh berbeza-beza dalam slot yang sama asalkan masih
-            dalam Bidang terkunci tu (cth. Bidang Ekonomi tetap, Topik boleh Kewangan/
-            Perbankan/dll.). Topik wajib diisi untuk kandungan baharu atau yang diedit —
-            kandungan lama tanpa Topik kekal seadanya, tiada migrasi paksa.
-          </Card>
-        </div>
-      </div>
-
-      {/* 05 — MENGURUS SLOT SEDIA ADA */}
-      <div>
-        <SectionLabel>05 — Mengurus Slot Sedia Ada</SectionLabel>
+        <SectionLabel>10 — Mengurus Kandungan Anda</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Senarai Slot">
-            <strong>Slot → 1. Senarai Slot</strong> — senarai semua 38 slot bento, tunjuk
-            slot mana kosong/terisi, Bidang semasa, dan editor yang ditugaskan. Dari sini
-            boleh buka <strong>Tetapan Kad</strong> untuk sunting kandungan sedia ada slot
-            tertentu terus (bukan melalui Tulis Kandungan/draf).
+            <strong>Slot → 1. Senarai Slot</strong> — senarai semua 38 slot bento, tunjuk slot
+            mana kosong/terisi, Bidang semasa, dan editor yang ditugaskan. Dari sini boleh
+            buka <strong>Tetapan Kad</strong> untuk sunting kandungan sedia ada slot tertentu
+            terus (bukan melalui Tulis Kandungan/draf).
           </Card>
           <Card title="Tier Kad">
-            <strong>Slot → 2. Tier Kad</strong> — rujukan/tetapan geometri tier (saiz kad,
-            had aksara) untuk pentadbir yang perlu laraskan bajet ruang sesuatu tier.
+            <strong>Slot → 2. Tier Kad</strong> — rujukan geometri tier (saiz kad, had aksara)
+            untuk yang perlu laraskan bajet ruang sesuatu tier. Biasanya bukan urusan Editor
+            harian.
           </Card>
         </div>
       </div>
 
-      {/* 06 — PERANAN & KEBENARAN */}
+      {/* 11 — JIKA SESUATU TIDAK BERJALAN */}
       <div>
-        <SectionLabel>06 — Peranan &amp; Kebenaran (RBAC)</SectionLabel>
+        <SectionLabel>11 — Jika Sesuatu Tidak Berjalan</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Card title="Pentadbir">
-            Domain teknikal: Direktori (urus akaun), Tetapan Sistem, dan Kawalan Akses.
-            BUKAN automatik dapat kuasa editorial (lulus/tolak kandungan) melainkan akaun
-            sama turut dilantik sebagai Ketua Editor/Penolong.
+          <Card title='"Slot ni telah disimpan oleh orang lain"'>
+            Mesej merah ni muncul kalau ada editor/Ketua Editor lain menyimpan slot yang sama
+            selepas anda membukanya. Kerja anda dalam borang TIDAK hilang serta-merta — ruang
+            menulis kekal terbuka. Salin dahulu apa yang anda taip (secara manual) sebelum
+            tutup, kemudian buka semula slot tu supaya anda dapat versi terkini, dan masukkan
+            semula kandungan anda dari situ. Sistem belum gabungkan perubahan secara automatik.
           </Card>
-          <Card title="Ketua Editor">
-            Kuasa editorial penuh (lulus/tolak semua kandungan, urus semua slot) DAN
-            satu-satunya peranan yang boleh menulis <strong>Nota Ketua Editor</strong>.
-            Peranan pentadbir urus (immutable) — kuasa teras editorial tak boleh ditarik
-            semula daripada akaun sendiri.
+          <Card title="Simpanan gagal / kandungan hilang">
+            Semak dahulu Bajet Ruang dan medan Topik/Bidang — punca paling biasa ialah salah
+            satu daripada dua semakan tu gagal senyap. Kalau masih tak pasti, atau kandungan
+            yang sepatutnya ada tiba-tiba hilang, minta Ketua Editor/Penolong semak{' '}
+            <strong>Log Sistem</strong> (destinasi ni khusus untuk Pentadbir/Ketua
+            Editor/Penolong — Editor biasa tak nampak dalam menu sendiri).
           </Card>
-          <Card title="Penolong/Timbalan Ketua Editor">
-            Kongsi kuasa editorial penuh yang sama dengan Ketua Editor (lulus/tolak,
-            urus semua slot), KECUALI Nota Ketua Editor (Ketua Editor sahaja) dan urus
-            akaun (Pentadbir sahaja).
+          <Card title="Tak pasti kenapa kandungan ditolak">
+            Buka draf tu di <strong>Draf Saya</strong> — sebab penolakan (kalau dicatat)
+            tertera dalam medan Nota. Kalau tiada catatan, tanya terus Ketua Editor/Penolong
+            yang menolak.
           </Card>
-          <Card title="Editor">
-            Peranan asas — tulis dan terbit kandungan (mendarat sebagai Menunggu,
-            tunggu kelulusan). TIDAK boleh tugaskan/tanggalkan editor pada slot (Ketua
-            Editor/Penolong sahaja, kunci <em>Agihan Slot</em>) dan TIDAK boleh baca
-            Log Sistem (lihat 06 di bawah).
+          <Card title="Bila perlu hubungi Ketua Editor/Penolong">
+            Untuk: tugaskan/tanggalkan editor pada slot, tukar Bidang slot, tukar Dasar Terbit
+            Sendiri Editor, semak Log Sistem, atau apa-apa keputusan yang di luar kebenaran
+            Editor (seksyen 12). Untuk isu teknikal berulang, laporkan kepada Pentadbir.
           </Card>
         </div>
-        <p className="font-sans text-[10px] text-stone-400 mt-2">
-          Satu akaun boleh pegang lebih daripada satu peranan serentak. Butiran penuh
-          matriks kebenaran: <strong>Tetapan → Kawalan Akses</strong> (Pentadbir sahaja).
-        </p>
       </div>
 
-      {/* 07 — BILA SESUATU TAK KENA */}
+      {/* 12 — PERANAN & HAD ANDA */}
       <div>
-        <SectionLabel>07 — Bila Sesuatu Tak Kena</SectionLabel>
-        <Card title="Log Sistem">
-          Kalau kandungan hilang tiba-tiba, simpanan gagal, atau tindakan tak seperti
-          dijangka — semak <strong>Log Sistem</strong> (nav bawah, kumpulan Rujukan).
-          Ia papar jejak audit sebenar daripada pangkalan data (siapa buat apa, bila) —
-          bukan log teknikal pelayan. Khusus untuk <strong>Pentadbir/Ketua Editor/
-          Penolong Ketua Editor</strong> (2026-08-05) — Editor biasa tak nampak destinasi
-          ni langsung dalam nav; kalau perlu semak jejak, minta Ketua Editor/Pentadbir.
-        </Card>
+        <SectionLabel>12 — Peranan &amp; Had Anda (RBAC)</SectionLabel>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card title="Editor (peranan anda, lazimnya)">
+            Boleh: tulis dan terbit kandungan untuk slot yang ditugaskan, urus draf sendiri,
+            luluskan kandungan sendiri JIKA dasar terbit sendiri dibenarkan. TIDAK boleh:
+            tugaskan/tanggalkan editor pada slot mana-mana (kunci Agihan Slot, Ketua
+            Editor/Penolong sahaja), baca Log Sistem, akses Direktori/Tetapan (Pentadbir
+            sahaja), atau tulis Nota Ketua Editor.
+          </Card>
+          <Card title="Ketua Editor & Penolong/Timbalan">
+            Kuasa editorial penuh — lulus/tolak SEMUA kandungan (bukan cuma slot sendiri),
+            urus semua slot, tetapkan Dasar Terbit Sendiri Editor, baca Log Sistem. Ketua
+            Editor sahaja yang boleh menulis Nota Ketua Editor.
+          </Card>
+          <Card title="Pentadbir">
+            Domain teknikal: Direktori (urus akaun), Tetapan Sistem, Kawalan Akses. BUKAN
+            automatik dapat kuasa editorial (lulus/tolak kandungan) melainkan akaun sama turut
+            dilantik sebagai Ketua Editor/Penolong.
+          </Card>
+          <Card title="Satu akaun, banyak peranan">
+            Satu akaun boleh pegang lebih daripada satu peranan serentak. Butiran penuh
+            matriks kebenaran: <strong>Tetapan → Kawalan Akses</strong> (Pentadbir sahaja).
+          </Card>
+        </div>
+      </div>
+
+      {/* 13 — KAMUS ADJUNG BRIEF */}
+      <div>
+        <SectionLabel>13 — Kamus Adjung Brief</SectionLabel>
+        <PanelCard padding="p-4">
+          <dl>
+            <Kamus istilah="Slot" maksud="Satu daripada 38 ruang kad tetap di muka depan (+ Ticker). Setiap slot terkunci kepada satu Bidang." />
+            <Kamus istilah="Bidang" maksud="Kategori tetap satu slot (cth. Ekonomi, Kebudayaan) — semua kandungan dalam slot tu mesti sepadan." />
+            <Kamus istilah="Topik" maksud="Sub-label bebas per-kandungan dalam Bidang yang sama, wajib diisi setiap kali menulis." />
+            <Kamus istilah="Draf" maksud="Kerja belum siap/belum dihantar — hanya anda (atau pemilik) boleh nampak dan sunting di Draf Saya." />
+            <Kamus istilah="Menunggu" maksud="Sudah dihantar, belum jadi kandungan Aktif — sama ada tunggu semakan manusia atau tunggu slot kosong (lihat seksyen 07)." />
+            <Kamus istilah="Aktif" maksud="Kandungan yang sedang tersiar di muka depan." />
+            <Kamus istilah="Arkib" maksud="Kandungan yang pernah Aktif tapi sudah ditarik/luput — masih ada rekod, tidak dipaparkan." />
+            <Kamus istilah="Ditolak" maksud="Keputusan penyemak menolak kandungan Menunggu — ia pulang jadi draf boleh sunting, bukan dipadam." />
+            <Kamus istilah="Bajet Ruang" maksud="Had aksara kongsi tajuk+huraian ikut saiz fizikal kad tu (tier)." />
+            <Kamus istilah="Dasar Terbit Sendiri Editor" maksud="Suis (Tetapan → Tetapan Am Slot) yang tentukan sama ada Editor boleh luluskan kandungan sendiri tanpa Ketua Editor/Penolong." />
+            <Kamus istilah="Terbit Semua" maksud="Hantar semua draf yang lulus bajet ruang dalam satu slot sekaligus." />
+          </dl>
+        </PanelCard>
       </div>
     </div>
   );
