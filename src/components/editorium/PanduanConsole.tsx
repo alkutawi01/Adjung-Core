@@ -200,19 +200,25 @@ export const PanduanConsole: React.FC = () => {
             semakan tidak dihantar — ia kekal sebagai draf, dan senarai sebab kegagalan
             dipaparkan supaya anda tahu apa perlu dibaiki.
           </Card>
-          <Card title="Status selepas hantar: bukan terus Aktif">
-            Kandungan yang berjaya dihantar TIDAK terus jadi Aktif di muka depan — ia mendarat
-            sebagai <strong>Menunggu</strong> dahulu. Ada 4 kemungkinan hasil akhir; lihat
-            seksyen 07 di bawah untuk penjelasan setiap satu.
+          <Card title="Status selepas hantar: bergantung kepada kebenaran anda">
+            Kandungan anda boleh terus menjadi <strong>Aktif</strong> sebaik sahaja dihantar —
+            JIKA anda mempunyai kebenaran terbit (dasar Terbit Sendiri Editor dibenarkan),
+            kandungan tu belum pernah ditolak sebelum ini, dan slot masih ada ruang. Jika
+            anda TIDAK mempunyai kebenaran terbit, ATAU kandungan tu pernah ditolak
+            sebelum ini, ia akan mendarat sebagai <strong>Menunggu Semakan</strong> dahulu.
+            Jika slot penuh, kandungan yang sepatutnya boleh terus diterbitkan akan menunggu
+            sebagai <strong>Menunggu Slot Kosong</strong>. Lihat seksyen 07 di bawah untuk
+            penjelasan penuh setiap kemungkinan hasil.
           </Card>
           <Card title="Dasar Terbit Sendiri Editor">
             Sama ada anda sendiri boleh luluskan kandungan anda, atau perlu tunggu Ketua
             Editor/Penolong, bergantung kepada satu suis yang ditetapkan Ketua Editor di{' '}
             <strong>Tetapan → Tetapan Am Slot</strong> ("Dasar Terbit Sendiri Editor"). Tanya
             Ketua Editor/Penolong anda kalau tak pasti dasar semasa. Pengecualian: kandungan
-            yang PERNAH ditolak sekali WAJIB lalui Ketua Editor/Penolong untuk terbit semula,
-            tak kira dasar semasa. Slot Bar (jalur acara/program) turut ikut peraturan
-            tersendiri — lihat Dokumentasi → Peraturan Am seksyen 04.
+            yang PERNAH ditolak sekali WAJIB mendarat sebagai Menunggu Semakan dan lalui Ketua
+            Editor/Penolong untuk terbit semula, walaupun dasar terbit sendiri dibenarkan.
+            Slot Bar (jalur acara/program) turut ikut peraturan tersendiri — lihat Dokumentasi
+            → Peraturan Am seksyen 04.
           </Card>
         </div>
       </div>

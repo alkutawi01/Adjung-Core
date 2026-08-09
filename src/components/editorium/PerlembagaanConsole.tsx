@@ -479,11 +479,20 @@ URL:`}</pre>
             </p>
           </div>
           <div>
-            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Kandungan diterbitkan mendarat sebagai Pending, bukan Live</h3>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Hasil selepas Terbit bergantung kepada Dasar Terbit Sendiri Editor</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Menunggu kelulusan Ketua Editor di Indeks (atau auto-terbit, sistem itu belum wujud) —
-              KECUALI slot Bar, yang kekal guna status yang dihurai terus daripada teks (lihat "04 —
-              Peraturan Khas Slot Bar", tidak terjejas oleh alur kerja ni).
+              Editor yang mempunyai kebenaran terbit (dasar Terbit Sendiri Editor dibenarkan,
+              Tetapan → Tetapan Am Slot) boleh terus menjadikan kandungan sendiri Aktif —
+              KECUALI kandungan tu pernah ditolak sebelum ini, yang sentiasa wajib mendarat
+              sebagai Menunggu Semakan tak kira dasar semasa. Editor tanpa kebenaran terbit
+              sentiasa mendarat sebagai Menunggu Semakan. Kandungan yang sepatutnya boleh
+              terus Aktif tapi slot sudah penuh menunggu sebagai Menunggu Slot Kosong, dan
+              naik taraf secara AUTOMATIK sebaik ruang terbuka — tiada tindakan manusia kedua
+              diperlukan. Nota teknikal: status pangkalan data ialah <code className="bg-stone-100 px-1 rounded text-[11px]">approved</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">pending</code>,
+              dikawal medan <code className="bg-stone-100 px-1 rounded text-[11px]">sebabMenunggu</code> ('semakan'/'slot_penuh') dan gerbang kebenaran{' '}
+              <code className="bg-stone-100 px-1 rounded text-[11px]">publish</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">manageEditorial</code> — semua ini KECUALI slot Bar, yang kekal
+              guna status yang dihurai terus daripada teks (lihat "04 — Peraturan Khas Slot
+              Bar", tidak terjejas oleh alur kerja ni).
             </p>
           </div>
           <div>
@@ -532,12 +541,13 @@ URL:`}</pre>
             </p>
           </div>
           <div>
-            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Matriks disimpan, belum dikuatkuasakan</h3>
+            <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Matriks Kawalan Akses dikuatkuasakan oleh pelayan</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Kebenaran yang ditanda di Kawalan Akses disimpan betul-betul ke pangkalan data, tapi
-              BELUM dikuatkuasakan di mana-mana bahagian sistem sebenar — semua semakan akses semasa
-              (Indeks, Direktori, Tetapan sendiri) terus banding peranan dengan Ketua Editor secara
-              tegar dalam kod, tanpa rujuk matriks ni langsung. Ini KIV sehingga arahan lanjut.
+              Kebenaran yang ditetapkan melalui Kawalan Akses dikuatkuasakan oleh pelayan.
+              Semakan kebenaran seperti terbit, urus editorial, dan tindakan lain membaca
+              terus daripada matriks kebenaran yang disimpan dalam sistem — bukan banding
+              peranan secara tegar dalam kod. Perubahan pada matriks dimuat semula secara
+              automatik selepas Tetapan disimpan.
             </p>
           </div>
         </PanelCard>
