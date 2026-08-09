@@ -77,7 +77,7 @@ const IKON_JENIS: Record<string, React.ReactNode> = {
 const LABEL_JENIS: Record<string, string> = {
   kandungan_disiar: 'Kandungan Disiarkan',
   kandungan_ditolak: 'Kandungan Ditolak',
-  kandungan_menunggu_kelulusan: 'Menunggu Kelulusan',
+  kandungan_menunggu_kelulusan: 'Menunggu Semakan',
   kandungan_terbit_berjadual: 'Terbit Berjadual',
   kandungan_luput_berjadual: 'Luput Berjadual',
   kandungan_penugasan_slot: 'Penugasan Slot',
