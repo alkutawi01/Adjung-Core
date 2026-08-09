@@ -383,8 +383,9 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 </Tooltip>
                 {onLogout && (
                   <button
+                    type="button"
                     onClick={onLogout}
-                    className="flex items-center gap-1 border border-stone-200 px-2.5 py-1 rounded text-stone-500 hover:text-Adjung-maroon hover:border-stone-300 hover:bg-stone-50 transition-colors"
+                    className="flex items-center gap-1 border border-stone-200 px-2.5 py-1 rounded text-stone-500 hover:text-Adjung-maroon hover:border-stone-300 hover:bg-stone-50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon"
                   >
                     <LogOut className="w-3 h-3" /> Log Keluar
                   </button>
@@ -393,8 +394,9 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
             ) : (
               onRequestLogin && (
                 <button
+                  type="button"
                   onClick={onRequestLogin}
-                  className="flex items-center gap-1.5 bg-Adjung-maroon px-3 py-1 rounded text-white hover:bg-Adjung-maroon-dark transition-colors font-medium"
+                  className="flex items-center gap-1.5 bg-Adjung-maroon px-3 py-1 rounded text-white hover:bg-Adjung-maroon-dark transition-colors font-medium cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-white"
                 >
                   <LogIn className="w-3.5 h-3.5" /> Log Masuk
                 </button>

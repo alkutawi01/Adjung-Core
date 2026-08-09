@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { Check } from 'lucide-react';
 import { BidangIcon } from '../common/BidangIcon';
 import { Tooltip } from '../common/Tooltip';
@@ -187,7 +188,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
     setSlotTetapanGagalUntuk(null);
     try {
       const res = await fetch('/api/system/slots');
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       const baris = Array.isArray(data) ? data.find((s: any) => s.slotIndex === slotIndex) : null;
       if (!baris) throw new Error('Slot tidak dijumpai.');
       setSlots((prev) => prev.map((s) => (s.slotIndex === slotIndex ? baris : s)));
@@ -239,7 +240,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(gabungan),
       });
-      const hasil = await res.json();
+      const hasil = await bacaJsonSelamat(res);
       if (!res.ok) {
         setRalatTetapanKonflik(res.status === 409);
         throw new Error(hasil.error || 'Gagal menyimpan tetapan slot.');
@@ -371,7 +372,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slotIndex: slotDisunting, editorIds: drafEditor }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan penugasan.');
       await muatPenugasan();
       setSlotDisunting(null);

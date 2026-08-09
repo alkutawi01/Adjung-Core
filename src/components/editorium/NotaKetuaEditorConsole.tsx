@@ -1,4 +1,5 @@
 ﻿import React, { useCallback, useEffect, useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { Pin, PinOff, Archive, ArchiveRestore, Trash2, Pencil } from 'lucide-react';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -106,7 +107,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
     setRalat('');
     fetch(`/api/system/editor-notes?status=${paparanArkib ? 'arkib' : 'aktif'}`)
       .then(async (res) => {
-        const data = await res.json();
+        const data = await bacaJsonSelamat(res);
         if (!res.ok) throw new Error(data.error || 'Gagal membaca senarai nota.');
         return data;
       })
@@ -161,7 +162,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
           body: JSON.stringify({ tajuk, kandungan, kategori, skop, penulis: editorName, penulisId: editorId }),
         }
       );
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan nota.');
       kosongkanBorang();
       setMesej(menyuntingSedia ? 'Nota dikemas kini' : 'Nota diterbitkan');
@@ -182,7 +183,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini nota.');
       muat();
       onBerubah?.();
@@ -194,7 +195,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
   const padam = async (id: string) => {
     try {
       const res = await fetch(`/api/system/editor-notes/${id}`, { method: 'DELETE' });
-      const data = await res.json().catch(() => ({}));
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal memadam nota.');
       if (menyunting === id) kosongkanBorang();
       muat();

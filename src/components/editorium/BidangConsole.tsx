@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
 import { StatusBadge } from '../common/StatusBadge';
@@ -100,7 +101,7 @@ export const BidangConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: d.id, isActive: jadiAktif }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini status Bidang.');
       fetchActiveBidang();
       setBerjayaTogolStatus(jadiAktif ? `"${d.name}" dipulihkan.` : `"${d.name}" diarkibkan.`);
@@ -217,7 +218,7 @@ export const BidangConsole: React.FC = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slotIndex, bidangName })
     });
-    const data = await res.json();
+    const data = await bacaJsonSelamat(res);
     if (!res.ok) throw new Error(data.error || `Gagal menetapkan slot ${slotIndex + 1}.`);
   };
 
@@ -261,7 +262,7 @@ export const BidangConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, newName: renameValue.trim() })
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menamakan semula Bidang.');
       setRenamingBidangId(null);
       fetchActiveBidang();
@@ -656,7 +657,7 @@ function IkonWarnaModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, color: warnaDraf })
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menetapkan warna.');
       setWarnaDraf(null);
       onUpdated();
@@ -676,7 +677,7 @@ function IkonWarnaModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, icon: iconName })
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menetapkan ikon.');
       onUpdated();
       onTutup();
@@ -715,7 +716,7 @@ function IkonWarnaModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, svg: svgUploadPreview })
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal memuat naik SVG.');
       onUpdated();
       onTutup();
@@ -859,7 +860,7 @@ function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerj
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newDeskName.trim(), color: newDeskColor })
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menambah Bidang.');
       onBerjaya();
     } catch (e: any) {
@@ -927,7 +928,7 @@ function StrategiWarnaModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ color: warnaSeragam }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyelaraskan warna.');
       setMesejWarna(`${data.dikemas} Bidang aktif kini guna warna yang sama.`);
       fetchActiveBidang();
@@ -944,7 +945,7 @@ function StrategiWarnaModal({
     setMesejWarna(null);
     try {
       const res = await fetch('/api/system/categories/diversify-colors', { method: 'POST' });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mempelbagaikan warna.');
       setMesejWarna(
         data.dikemas > 0

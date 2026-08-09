@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { X } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
 import { KataLaluanInput } from '../common/KataLaluanInput';
@@ -47,7 +48,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usernameOrEmail, password }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) {
         setError(data.message || 'Log masuk gagal.');
         return;
@@ -78,7 +79,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emelLupa }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       setMesejLupa(data.message || 'Jika emel ini berdaftar, pautan set semula telah dihantar.');
     } catch {
       setMesejLupa('Jika emel ini berdaftar, pautan set semula telah dihantar.');
@@ -122,7 +123,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
           <h2 id="login-modal-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon text-center">
             {modLupa ? 'Lupa Kata Laluan' : 'Log Masuk ke Editorium'}
           </h2>
-          <button type="button" onClick={onClose} aria-label="Tutup" className="justify-self-end text-stone-400 hover:text-stone-700">
+          <button type="button" onClick={onClose} aria-label="Tutup" className="justify-self-end text-stone-400 hover:text-stone-700 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -165,7 +166,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-Adjung-maroon text-white text-sm font-semibold py-2 rounded hover:bg-Adjung-maroon-dark transition-colors disabled:opacity-50"
+              className="w-full bg-Adjung-maroon text-white text-sm font-semibold py-2 rounded hover:bg-Adjung-maroon-dark transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Mengesahkan…' : 'Log Masuk'}
             </button>
@@ -173,7 +174,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
             <button
               type="button"
               onClick={() => { setModLupa(true); setMesejLupa(''); setEmelLupa(usernameOrEmail.includes('@') ? usernameOrEmail : ''); }}
-              className="w-full text-center text-xs text-stone-500 hover:text-Adjung-maroon underline underline-offset-2"
+              className="w-full text-center text-xs text-stone-500 hover:text-Adjung-maroon underline underline-offset-2 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"
             >
               Lupa kata laluan?
             </button>
@@ -201,7 +202,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
             <button
               type="submit"
               disabled={menghantarLupa}
-              className="w-full bg-Adjung-maroon text-white text-sm font-semibold py-2 rounded hover:bg-Adjung-maroon-dark transition-colors disabled:opacity-50"
+              className="w-full bg-Adjung-maroon text-white text-sm font-semibold py-2 rounded hover:bg-Adjung-maroon-dark transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {menghantarLupa ? 'Menghantar…' : 'Hantar Pautan Set Semula'}
             </button>
@@ -209,7 +210,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
             <button
               type="button"
               onClick={() => setModLupa(false)}
-              className="w-full text-center text-xs text-stone-500 hover:text-Adjung-maroon underline underline-offset-2"
+              className="w-full text-center text-xs text-stone-500 hover:text-Adjung-maroon underline underline-offset-2 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"
             >
               Kembali ke log masuk
             </button>

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { Check, AlignLeft, RefreshCw } from 'lucide-react';
 import { TIER_LABELS, tierForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
@@ -82,7 +83,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
     // menukar nilai tu. Server kini mengabaikan parameter tersebut; menghantarnya cuma mengelirukan.
     fetch('/api/system/drafts')
       .then(async (res) => {
-        const data = await res.json();
+        const data = await bacaJsonSelamat(res);
         if (!res.ok) throw new Error(data.error || 'Gagal membaca senarai draf.');
         return data;
       })

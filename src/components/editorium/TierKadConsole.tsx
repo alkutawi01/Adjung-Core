@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { AlertTriangle, RotateCcw, Save } from 'lucide-react';
 import { muatPindaanTier } from '../../config/tierOverrides';
 import { StatusBadge } from '../common/StatusBadge';
@@ -78,7 +79,7 @@ export const TierKadConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tierKey: t.tierKey, maxTitleAlone: Number(d.tajuk), maxBriefAlone: Number(d.huraian) }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
       setBerjaya(`Had ${t.label} dikemas kini, berkuat kuasa pada ${t.slots.length} slot.`);
       muat();
@@ -100,7 +101,7 @@ export const TierKadConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tierKey: t.tierKey }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mengembalikan nilai lalai.');
       setBerjaya(`Had ${t.label} dikembalikan kepada nilai lalai.`);
       muat();

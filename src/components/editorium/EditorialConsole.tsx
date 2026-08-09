@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { X, Pencil } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
 import { StatusBadge } from '../common/StatusBadge';
@@ -72,7 +73,7 @@ export const EditorialConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ term, style: 'italic', category: 'foreign_term' }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menambah istilah.');
       setIstilahBaharu('');
       muatIstilah();
@@ -129,7 +130,7 @@ export const EditorialConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ istilah: gIstilah, maksud: gMaksud }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan istilah.');
       setGIstilah(''); setGMaksud('');
       setDialogGlosari(false);
@@ -203,7 +204,7 @@ export const EditorialConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ betul: eBetul, elakkan: eElakkan, catatan: eCatatan }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan bentuk ejaan.');
       setEBetul(''); setEElakkan(''); setECatatan(''); setEditEjaanId(null);
       setDialogEjaan(false);
@@ -263,7 +264,7 @@ export const EditorialConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ masterPrompt, reviewPrompt }),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan templat AI.');
       setMesejAi(labelUi('toast.templat_ai_disimpan'));
       setTimeout(() => setMesejAi(''), 2400);

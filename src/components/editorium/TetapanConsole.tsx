@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import {
   Lock, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
 } from 'lucide-react';
@@ -189,7 +190,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     try {
       const res = await fetch('/api/system/weather-status');
       if (res.ok) {
-        const data = await res.json();
+        const data = await bacaJsonSelamat(res);
         setApiHealthStatus(data);
       }
     } catch (e) {
@@ -213,7 +214,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       body: JSON.stringify(patch)
     });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
+      const body = await bacaJsonSelamat(res).catch(() => ({}));
       throw new Error(body.error || 'Gagal menyimpan tetapan.');
     }
     return patch;
@@ -300,7 +301,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     try {
       const res = await fetch('/api/system/rss-blocked-categories');
       if (res.ok) {
-        const rows = await res.json();
+        const rows = await bacaJsonSelamat(res);
         setBlockedCategories((rows || []).map((r: any) => ({ id: r.id, categoryName: r.categoryName, enabled: r.enabled === 1 || r.enabled === true })));
       }
     } catch (e) {
@@ -321,7 +322,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         setNewBlockedCategoryInput('');
         fetchBlockedCategories();
       } else {
-        const body = await res.json().catch(() => ({}));
+        const body = await bacaJsonSelamat(res).catch(() => ({}));
         addToast('error', body.error || 'Gagal menambah kategori.');
       }
     } catch (e) {
@@ -580,7 +581,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               {blockedCategories.map(c => (
                 <span key={c.id} className="bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs flex items-center gap-1.5">
                   <span>{c.categoryName}</span>
-                  <button onClick={() => handleRemoveBlockedCategory(c.id)} className="text-stone-400 hover:text-[var(--color-error)] font-bold"><X className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => handleRemoveBlockedCategory(c.id)} className="text-stone-400 hover:text-[var(--color-error)] font-bold cursor-pointer"><X className="w-3 h-3" /></button>
                 </span>
               ))}
               {blockedCategories.length === 0 && <KeadaanKosong className="w-full">Tiada kategori disekat lagi.</KeadaanKosong>}
@@ -1105,7 +1106,7 @@ function HalamanAwamPanel() {
         body: JSON.stringify({ title: tajuk, content: kandungan, aktif: aktifFooter }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = await bacaJsonSelamat(res).catch(() => ({}));
         throw new Error(body.error || 'Gagal menyimpan halaman.');
       }
       setMesej(labelUi('toast.tetapan_disimpan'));
@@ -1280,7 +1281,7 @@ function LabelSistemPanel() {
         body: JSON.stringify(suntingan),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = await bacaJsonSelamat(res).catch(() => ({}));
         throw new Error(body.error || 'Gagal menyimpan label.');
       }
       setSuntingan({});
@@ -1306,7 +1307,7 @@ function LabelSistemPanel() {
         body: JSON.stringify({ key: kunci, lalai, kategori }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = await bacaJsonSelamat(res).catch(() => ({}));
         throw new Error(body.error || 'Gagal mengembalikan nilai lalai.');
       }
       setSuntingan((prev) => {
@@ -1470,7 +1471,7 @@ function RupaEditoriumPanel() {
         body: JSON.stringify(suntingan),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = await bacaJsonSelamat(res).catch(() => ({}));
         throw new Error(body.error || 'Gagal menyimpan tetapan rupa Editorium.');
       }
       setSemasa(suntingan);

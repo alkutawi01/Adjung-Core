@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { AlertTriangle, X, Search, Pin, Lock, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
@@ -312,7 +313,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const resBody = await res.json().catch(() => ({}));
+      const resBody = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(resBody.error || 'Gagal menyimpan jadual terbit/luput. Cuba lagi.');
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
         ...i,
@@ -587,7 +588,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: LABEL_TO_STATUS[newStatus] }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) {
         throw new Error(body.error || 'Gagal mengemas kini status kandungan. Cuba lagi.');
       }
@@ -636,7 +637,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         body: JSON.stringify({ sebab }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = await bacaJsonSelamat(res).catch(() => ({}));
         throw new Error(body.error || 'Gagal menolak kandungan. Cuba lagi.');
       }
       onToast?.('success', 'Kandungan ditolak, kembali jadi draf.');
@@ -658,7 +659,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     setItems(prev => prev.map(i => i.id === id ? { ...i, status: 'Dipadam' } : i));
     try {
       const res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      const body = await res.json().catch(() => ({}));
+      const body = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'Gagal memindahkan kandungan ke Tong Sampah. Cuba lagi.');
       onToast?.('success', 'Kandungan dipindah ke Tong Sampah.');
     } catch (err: any) {
@@ -675,7 +676,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     setItems(prev => prev.filter(i => i.id !== id));
     try {
       const res = await fetch(`/api/system/content/${encodeURIComponent(id)}/pulihkan-sampah`, { method: 'POST' });
-      const body = await res.json().catch(() => ({}));
+      const body = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'Gagal memulihkan kandungan. Cuba lagi.');
       onToast?.('success', 'Kandungan dipulihkan.');
     } catch (err: any) {
@@ -703,7 +704,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     setItems(prev => prev.filter(i => i.id !== id));
     try {
       const res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      const body = await res.json().catch(() => ({}));
+      const body = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'Gagal memadam kandungan secara kekal. Cuba lagi.');
       onToast?.('success', 'Kandungan dipadam kekal.');
     } catch (err: any) {
@@ -748,7 +749,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             body: JSON.stringify({ status: LABEL_TO_STATUS[tindakan] }),
           });
         }
-        const body = await res.json().catch(() => ({}));
+        const body = await bacaJsonSelamat(res).catch(() => ({}));
         if (!res.ok) throw new Error(body.error || 'Tindakan gagal untuk kandungan ini.');
         berjaya++;
       } catch (err: any) {
@@ -784,7 +785,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ note: drafNota }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'Gagal menyimpan nota. Cuba lagi.');
       const notaOlehBaharu = body.notaOleh || '';
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? { ...i, note: drafNota, notaOleh: notaOlehBaharu } : i));
@@ -818,7 +819,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           slotIndex: reactivateSlotIndex,
         }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'Gagal menyiarkan semula kandungan. Cuba lagi.');
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
         ...i,

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { MesejStatus } from '../common/MesejStatus';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 import { useModalFokus } from '../../hooks/useModalFokus';
@@ -61,7 +62,7 @@ export const LengkapkanProfilModal: React.FC<LengkapkanProfilProps> = ({ userId,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...nilai, terimaTerma: true }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan profil.');
       onSelesai({ ...nilai, termaDipersetujuiPada: data.user?.termaDipersetujuiPada || new Date().toISOString() });
     } catch (err: any) {

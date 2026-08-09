@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { X } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
 import { Button } from '../common/Button';
@@ -213,7 +214,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ penName, ...butiran }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan profil.');
       onKemasKini({ penName, ...butiran });
       setMesej(labelUi('toast.profil_disimpan'));
@@ -242,7 +243,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
       >
         <div className="flex justify-between items-center border-b border-stone-200 pb-2">
           <h3 id="profil-editor-modal-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">Profil Editor</h3>
-          <button type="button" onClick={cubaTutup} aria-label="Tutup Profil Editor" className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={cubaTutup} aria-label="Tutup Profil Editor" className="text-stone-400 hover:text-stone-600 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"><X className="w-3.5 h-3.5" /></button>
         </div>
 
         {tunjukAmaran && <AmaranBelumSimpan onBatal={batalTutup} onSahkan={sahkanTutup} />}
@@ -318,7 +319,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ newUsername: nilaiBaharu, currentPassword: kataLaluanSemasa }),
                 });
-                const data = await res.json();
+                const data = await bacaJsonSelamat(res);
                 if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar username.' };
                 setUsername(data.username);
                 return { ok: true };
@@ -345,7 +346,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ newEmail: nilaiBaharu, currentPassword: kataLaluanSemasa }),
                 });
-                const data = await res.json();
+                const data = await bacaJsonSelamat(res);
                 if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar emel.' };
                 setEmail(data.email);
                 return { ok: true };
@@ -368,7 +369,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ newPassword: nilaiBaharu, currentPassword: kataLaluanSemasa }),
                 });
-                const data = await res.json();
+                const data = await bacaJsonSelamat(res);
                 if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar kata laluan.' };
                 return { ok: true };
               } catch {

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { Archive, ArchiveRestore, Pencil, Upload } from 'lucide-react';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -76,7 +77,7 @@ export const PenajaConsole: React.FC = () => {
     setRalat('');
     fetch('/api/system/sponsors')
       .then(async (res) => {
-        const data = await res.json();
+        const data = await bacaJsonSelamat(res);
         if (!res.ok) throw new Error(data.error || 'Gagal membaca senarai penaja.');
         return data;
       })
@@ -134,7 +135,7 @@ export const PenajaConsole: React.FC = () => {
         body: JSON.stringify({ filename: file.name, fileData }),
       });
       if (!res.ok) throw new Error('Muat naik gagal');
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       setLogoUrl(data.url);
       setNotaLogo('Dimuat naik');
     } catch (e) {
@@ -159,7 +160,7 @@ export const PenajaConsole: React.FC = () => {
           body: JSON.stringify({ nama, logoUrl, url, bulan, tayangSemasaTransisi, jumlahBayaran: jumlahBayaran === '' ? 0 : Number(jumlahBayaran) }),
         }
       );
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan penaja.');
       kosongkanBorang();
       setMesej(menyuntingSedia ? 'Penaja dikemas kini' : 'Penaja ditambah');
@@ -179,7 +180,7 @@ export const PenajaConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini penaja.');
       muat();
     } catch (err: any) {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { Search, Plus } from 'lucide-react';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -141,7 +142,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       if (!resStatus.ok) throw new Error('Gagal mengemas kini status.');
       kemaskiniStaff({ ...konfirmasiTamat.staff, status: 'Ditamatkan' });
       const res = await fetch(`/api/system/users/${konfirmasiTamat.staff.id}/kandungan-belum-terbit/padam`, { method: 'POST' });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal memadam kandungan.');
       setKonfirmasiTamat(null);
       onToast?.('success', `Akaun ditamatkan. ${data.drafDipadam} draf dan ${data.menungguDipadam} kandungan menunggu dipadam.`);
@@ -379,7 +380,7 @@ function ProfilAnggotaModal({
     setRalatStatus('');
     try {
       const res = await fetch(`/api/system/users/${staff.id}/kandungan-belum-terbit`);
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyemak kandungan.');
       onSiapUntukTamat({ staff, draf: data.draf || [], menunggu: data.menunggu || [] });
     } catch (e: any) {
@@ -527,7 +528,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, penName, roles }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mencipta akaun.');
       onBerjaya(email);
     } catch (err: any) {

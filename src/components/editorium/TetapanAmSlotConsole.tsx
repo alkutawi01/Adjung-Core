@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { AlertTriangle, Save } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -156,7 +157,7 @@ function DasarTerbitSendiriField() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ benarkanSelfPublish: nilaiBaharu }),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
       setBerjaya(nilaiBaharu ? 'Dasar disimpan. Editor kini boleh terbit sendiri.' : 'Dasar disimpan. Editor kini perlu kelulusan.');
       setTimeout(() => setBerjaya(null), 4000);
@@ -219,7 +220,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
     setBerjaya(null);
     try {
       const res = await fetch('/api/system/slots');
-      const semua = await res.json();
+      const semua = await bacaJsonSelamat(res);
       if (!Array.isArray(semua)) throw new Error('Gagal membaca senarai slot.');
       // Ticker (slotIndex -1) tiada carousel — langkau, jangan sentuh.
       const dikemas = semua
@@ -264,7 +265,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(draf),
       });
-      const data = await res.json();
+      const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan.');
       setBerjaya(labelUi('toast.tetapan_am_disimpan'));
       muat();
