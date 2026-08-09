@@ -79,6 +79,13 @@ interface IndeksConsoleProps {
   // Toast kongsi Editorium (2026-08-08) — makluman SEBENAR selepas Arkib/Tolak/Siar, bukan
   // senyap-senyap macam sebelum ni (rec.status bertukar dalam jadual tanpa sebarang isyarat lain).
   onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
+  // Penapis awal terarah (WF-01/WF-06, Pusingan 5, audit ChatGPT 2026-08-09) — bila permukaan
+  // lain (SlotManagerModal lepas Terbit, Senarai Slot lepas klik kiraan Menunggu) mahu bawa
+  // pembaca terus ke Indeks yang SUDAH ditapis, bukan suruh cari semula secara manual.
+  // `generasi` WAJIB bertambah setiap permintaan (bukan objek sama literal) supaya klik kedua
+  // pada slot/status yang SAMA tetap mencetuskan semula useEffect (dependency array React
+  // bandingkan rujukan/nilai primitif, bukan "adakah ini permintaan baharu").
+  penapisAwal?: { slot?: string; status?: string; generasi: number };
 }
 
 // Format ringkas DD/MM/YY untuk jadual Indeks (2026-07-29, permintaan pemilik projek) — jimat
@@ -174,6 +181,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   currentUserName = 'Izzat Anas',
   sesiTanda,
   onToast,
+  penapisAwal,
 }) => {
   const [items, setItems] = useState<BriefRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -238,6 +246,19 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   );
   const [draftFilters, setDraftFilters] = useState<FilterState>(appliedFilters);
   useEffect(() => { setDraftFilters(appliedFilters); }, [sesiTanda]);
+  // Terapkan penapis awal terarah (WF-01/WF-06) — timpa draf DAN applied sekali gus supaya
+  // pembaca nampak senarai TERUS ditapis, bukan penapis diisi tetapi belum "Tapis" ditekan.
+  useEffect(() => {
+    if (!penapisAwal) return;
+    const gabung = (asas: FilterState): FilterState => ({
+      ...asas,
+      ...(penapisAwal.slot !== undefined ? { slot: penapisAwal.slot } : {}),
+      ...(penapisAwal.status !== undefined ? { status: penapisAwal.status } : {}),
+    });
+    setAppliedFilters(gabung(appliedFilters));
+    setDraftFilters((prev) => gabung(prev));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [penapisAwal?.generasi]);
   const patchDraft = (patch: Partial<FilterState>) => setDraftFilters({ ...draftFilters, ...patch });
   const filtersDirty = JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
 

@@ -82,7 +82,12 @@ interface SlotManagerModalProps {
   // Toast kongsi Editorium (2026-08-08) — makluman SEBENAR selepas Terbit/Simpan draf, bukan
   // cuma mesej dalaman modal (draftNote/publishError) yang hilang dalam beberapa saat dan tak
   // kelihatan langsung kalau editor dah tutup modal.
-  onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
+  onToast?: (type: 'success' | 'error' | 'info', message: string, action?: { label: string; onClick: () => void }) => void;
+  // Navigasi terarah ke Indeks yang sudah ditapis (WF-01, Pusingan 5, audit ChatGPT 2026-08-09)
+  // — lepas Terbit, editor boleh terus lihat rekod baharu di Indeks tanpa tutup modal & cari
+  // sendiri. Pilihan — modal tetap berfungsi penuh tanpanya (cth BarSlotManagerModal berkongsi
+  // sebahagian pola sama tapi tiada konteks Indeks yang sama).
+  onLihatIndeks?: (opts: { slot?: string; status?: string }) => void;
 }
 
 const TAB_LABEL: Record<string, string> = { borang: 'Borang kandungan', maklumat: 'Maklumat slot', ai: 'Arahan AI', sejarah: 'Sejarah versi' };
@@ -366,7 +371,7 @@ const SidebarItem = React.memo(function SidebarItem({
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, onClose, onSave,
-  slotOptions, onSwitchSlot, initialUuid, saveError, onToast,
+  slotOptions, onSwitchSlot, initialUuid, saveError, onToast, onLihatIndeks,
 }) => {
   // Kandungan mana yang terbuka dahulu. Lalai yang pertama; bila dibuka daripada "Draf Saya"
   // (initialUuid), terus mendarat pada draf yang diklik. Sengaja dikira dalam initializer useState
@@ -751,9 +756,17 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       // SATU-SATUNYA item bukan-draf dlm penghantaran ni, jadi `ok` (array publishOutcomes)
       // sentiasa ada tepat SATU hasil di sini.
       const hasil = Array.isArray(ok) ? ok[0] : undefined;
-      onToast?.('success', hasil?.status === 'pending'
-        ? 'Kandungan dihantar dan kini Menunggu Semakan.'
-        : 'Kandungan diterbitkan.');
+      const statusSebenar = hasil?.status === 'pending' ? 'Pending' : 'Live';
+      // WF-01 (Pusingan 5, audit ChatGPT 2026-08-09) — "Lihat di Indeks ->" bawa editor terus
+      // ke rekod baharu, ditapis ikut STATUS SEBENAR respons pelayan (bukan andaian tetap),
+      // sepadan pelajaran LIFE-01: pelayan ialah sumber kebenaran, bukan satu mesej hardcode.
+      onToast?.(
+        'success',
+        hasil?.status === 'pending'
+          ? 'Kandungan dihantar dan kini Menunggu Semakan.'
+          : 'Kandungan diterbitkan.',
+        onLihatIndeks ? { label: 'Lihat di Indeks →', onClick: () => onLihatIndeks({ slot: `Slot ${editingSlotIndex + 1}`, status: statusSebenar }) } : undefined
+      );
     } else {
       const mesej = saveError || labelUi('toast.gagal_terbit');
       setPublishError(mesej);

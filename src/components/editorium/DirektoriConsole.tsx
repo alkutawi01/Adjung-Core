@@ -63,10 +63,15 @@ interface DirektoriConsoleProps {
   // ni langsung, dua pelaksanaan toast berbeza wujud serentak dlm aplikasi. Kini guna corak
   // sedia ada IndeksConsole/SlotManagerModal.
   onToast?: (type: 'success' | 'error' | 'info', message: string) => void;
+  // WF-05 (Pusingan 5, audit ChatGPT 2026-08-09) — "Urus Penugasan Slot" dahulu cuma tukar tab,
+  // TIADA konteks editor dibawa — Ketua Editor kena scan 38 baris Senarai Slot sendiri cari
+  // editor tu. Bila prop ni hadir, dipilih dahulu drpd onTukarTab supaya konteks (nama editor)
+  // turut dibawa, bukan cuma nombor tab.
+  onUrusPenugasanSlotUntuk?: (namaEditor: string) => void;
 }
 
 export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
-  isPentadbir = true, onTukarTab, onToast
+  isPentadbir = true, onTukarTab, onToast, onUrusPenugasanSlotUntuk
 }) => {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [memuat, setMemuat] = useState(true);
@@ -260,7 +265,12 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           onUpdated={kemaskiniStaff}
           onSiapUntukTamat={setKonfirmasiTamat}
           onBerjaya={(mesej) => onToast?.('success', mesej)}
-          onUrusPenugasanSlot={onTukarTab ? () => { setSelectedStaff(null); onTukarTab('slot'); } : undefined}
+          onUrusPenugasanSlot={onTukarTab ? () => {
+            const nama = selectedStaff.penName;
+            setSelectedStaff(null);
+            if (onUrusPenugasanSlotUntuk) onUrusPenugasanSlotUntuk(nama);
+            else onTukarTab('slot');
+          } : undefined}
         />
       )}
 

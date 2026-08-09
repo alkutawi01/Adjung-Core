@@ -91,9 +91,24 @@ interface DrafTetapan {
 
 interface Props {
   currentEditoriumRole?: string;
+  // Navigasi terarah ke Indeks yang sudah ditapis (WF-06, Pusingan 5, audit ChatGPT
+  // 2026-08-09) — klik kiraan "Menunggu" terus ke Indeks (Slot + Status=Menunggu Semakan)
+  // dgn tindakan Lulus/Tolak sebenar, gantikan panel baca-sahaja lama yang cuma senaraikan
+  // tajuk tanpa apa-apa boleh dibuat terhadapnya.
+  onLihatIndeks?: (opts: { slot?: string; status?: string }) => void;
+  // Konteks editor dibawa dari Direktori (WF-05, Pusingan 5, audit ChatGPT 2026-08-09) —
+  // "Urus Penugasan Slot" dahulu cuma tukar tab, Ketua Editor kena scan 38 baris sendiri cari
+  // editor tu. `generasi` bertambah setiap panggilan supaya klik pada editor SAMA dua kali
+  // berturut-turut tetap mencetuskan semula penapis (cth selepas "Kosongkan" ditekan).
+  editorAwal?: { nama: string; generasi: number };
 }
 
-export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) => {
+export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLihatIndeks, editorAwal }) => {
+  const [filterEditor, setFilterEditor] = useState<string | null>(null);
+  useEffect(() => {
+    if (editorAwal?.nama) setFilterEditor(editorAwal.nama);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorAwal?.generasi]);
   // `currentEditoriumRole` ialah peranan BERKESAN yang dipadankan di EditoriumView.tsx
   // (`effectiveEditorialRole`): Ketua Editor DAN Penolong Ketua Editor kedua-duanya sampai sini
   // sebagai 'KETUA_EDITOR', peranan lain sebagai 'EDITOR'. Sepadan lalai kunci `assignSlot` /
@@ -347,6 +362,9 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
   };
 
   const editorBagiSlot = (slotIndex: number) => penugasan.filter(p => p.slotIndex === slotIndex);
+  const barisDipapar = filterEditor
+    ? SLOT_INDEXES.filter(i => editorBagiSlot(i).some(p => p.nama === filterEditor))
+    : SLOT_INDEXES;
 
   const bukaEditor = (slotIndex: number) => {
     setRalat(null);
@@ -423,6 +441,16 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
             Gagal memuatkan sebahagian data slot.
           </MesejStatus>
         ) : (
+          <>
+            {filterEditor && (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2 mb-3 text-xs">
+                <span className="text-stone-700">
+                  Menapis slot kepunyaan: <span className="font-semibold">{filterEditor}</span>
+                  {' '}({barisDipapar.length} slot)
+                </span>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setFilterEditor(null)}>Kosongkan</Button>
+              </div>
+            )}
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -444,7 +472,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                 </tr>
               </thead>
               <tbody>
-                {SLOT_INDEXES.map(i => {
+                {barisDipapar.map(i => {
                   const tier = tierForSlot(i) as keyof typeof GEOMETRY_RATIOS;
                   // Nilai berkuat kuasa (termasuk pindaan Tier Kad); GEOMETRY_RATIOS cuma sandaran
                   // sekiranya panggilan API gagal.
@@ -517,7 +545,9 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
                         {(menungguPerSlot[i]?.length || 0) > 0 ? (
                           <button
                             type="button"
-                            onClick={() => setPanelSenarai({ slotIndex: i, jenis: 'menunggu' })}
+                            onClick={() => onLihatIndeks
+                              ? onLihatIndeks({ slot: `Slot ${i + 1}`, status: 'Pending' })
+                              : setPanelSenarai({ slotIndex: i, jenis: 'menunggu' })}
                             className="font-mono font-bold text-amber-700 hover:underline cursor-pointer"
                           >
                             {menungguPerSlot[i].length}
@@ -571,6 +601,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         <div className="border-t border-Adjung-line pt-3 space-y-1.5 text-[10px] text-stone-500 leading-relaxed">

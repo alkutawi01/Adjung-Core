@@ -283,12 +283,29 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // (Kandungan, Urus Slot) boleh papar toast SEBENAR selepas tindakan (Terbit/Arkib/Tolak), bukan
   // cuma mesej dalaman modal yang hilang lepas beberapa saat.
   const [editoriumToasts, setEditoriumToasts] = useState<ToastMessage[]>([]);
-  const pushToast = (type: 'success' | 'error' | 'info', message: string) => {
+  const pushToast = (type: 'success' | 'error' | 'info', message: string, action?: { label: string; onClick: () => void }) => {
     const id = Math.random().toString(36).substring(2, 9);
-    setEditoriumToasts((prev) => [...prev, { id, type, message }]);
+    setEditoriumToasts((prev) => [...prev, { id, type, message, action }]);
   };
   const dismissToast = (id: string) => {
     setEditoriumToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+  // Navigasi terarah ke Indeks yang SUDAH ditapis (WF-01/WF-06, Pusingan 5, audit ChatGPT
+  // 2026-08-09) — gantikan corak lama "keluar dari sini, tukar tab sendiri, cari semula secara
+  // manual". `generasi` bertambah setiap panggilan supaya klik kedua pada slot/status SAMA
+  // tetap mencetuskan semula useEffect IndeksConsole.
+  const [penapisIndeksAwal, setPenapisIndeksAwal] = useState<{ slot?: string; status?: string; generasi: number }>({ generasi: 0 });
+  const lihatDiIndeks = (opts: { slot?: string; status?: string }) => {
+    setPenapisIndeksAwal((prev) => ({ ...opts, generasi: prev.generasi + 1 }));
+    setKandunganSubTab('indeks');
+    setActiveTab('kandungan');
+  };
+  // Konteks editor Direktori -> Senarai Slot (WF-05, Pusingan 5, audit ChatGPT 2026-08-09).
+  const [editorAwalSlot, setEditorAwalSlot] = useState<{ nama: string; generasi: number }>({ nama: '', generasi: 0 });
+  const urusPenugasanSlotUntuk = (nama: string) => {
+    setEditorAwalSlot((prev) => ({ nama, generasi: prev.generasi + 1 }));
+    setSlotSubTab('senarai');
+    setActiveTab('slot');
   };
   // Draf yang diklik di "Draf Saya" (2026-08-01) — dihantar ke SlotManagerModal supaya modal
   // terbuka betul-betul pada draf itu, bukan pada kandungan pertama slot. Dikosongkan setiap kali
@@ -546,6 +563,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               currentUserName={currentUser.name}
               sesiTanda={currentUser.sesiTanda}
               onToast={pushToast}
+              penapisAwal={penapisIndeksAwal}
             />
           )}
           {kandunganSubTab === 'semakan' && <ContentReview />}
@@ -708,7 +726,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             active={slotSubTab}
             onChange={setSlotSubTab}
           />
-          {slotSubTab === 'senarai' && <SenaraiSlotConsole currentEditoriumRole={effectiveEditorialRole} />}
+          {slotSubTab === 'senarai' && <SenaraiSlotConsole currentEditoriumRole={effectiveEditorialRole} onLihatIndeks={lihatDiIndeks} editorAwal={editorAwalSlot} />}
           {slotSubTab === 'tier' && <TierKadConsole />}
           {slotSubTab === 'bidang' && <BidangConsole />}
           {slotSubTab === 'tetapan_am' && <TetapanAmSlotConsole />}
@@ -732,7 +750,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           masuk (Direktori) atau Ketua Editor (Tetapan) — kini dikunci betul-betul. */}
       {activeTab === 'direktori' && (
         isPentadbir
-          ? <DirektoriConsole isPentadbir={isPentadbir} onTukarTab={setActiveTab} onToast={pushToast} />
+          ? <DirektoriConsole isPentadbir={isPentadbir} onTukarTab={setActiveTab} onToast={pushToast} onUrusPenugasanSlotUntuk={urusPenugasanSlotUntuk} />
           : <AksesDitolak mesej="Direktori khusus untuk Pentadbir." />
       )}
 
@@ -920,6 +938,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           onSwitchSlot={(i) => { setDrafDibuka(''); slotEditor.openSlotEditor(i); }}
           initialUuid={drafDibuka}
           onToast={pushToast}
+          onLihatIndeks={lihatDiIndeks}
         />
       )}
       {slotEditor.saveError && (

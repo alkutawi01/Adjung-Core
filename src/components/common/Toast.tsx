@@ -6,6 +6,10 @@ export interface ToastMessage {
   id: string;
   type: 'success' | 'error' | 'info';
   message: string;
+  // Pautan tindakan pilihan (WF-01, Pusingan 5, audit ChatGPT 2026-08-09) — cth "Lihat di
+  // Indeks →" lepas Terbit, supaya pembaca tak perlu keluar & cari semula secara manual. Bila
+  // hadir, toast kekal lebih lama (lihat MASA_AUTO_TUTUP di bawah) supaya sempat diklik.
+  action?: { label: string; onClick: () => void };
 }
 
 // Reka bentuk semula KEDUA (2026-08-08, Izzat: "yg awak ckp versi baru tu orang dah tau AI yg
@@ -55,9 +59,9 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
   useEffect(() => {
     const timer = setTimeout(() => {
       onDismissRef.current(toast.id);
-    }, 3000);
+    }, toast.action ? 8000 : 3000);
     return () => clearTimeout(timer);
-  }, [toast.id]);
+  }, [toast.id, toast.action]);
 
   const isError = toast.type === 'error';
   // Audit UI/UX §G10 — Toast ialah animasi PALING kerap muncul dalam kerja harian Editorium,
@@ -79,6 +83,15 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
           {LABEL_JENIS[toast.type]}
         </span>
         <span className="block font-serif text-[13px] leading-snug">{toast.message}</span>
+        {toast.action && (
+          <button
+            type="button"
+            onClick={() => { toast.action?.onClick(); onDismiss(toast.id); }}
+            className="mt-1.5 block font-mono text-[10px] font-bold uppercase tracking-wider underline underline-offset-2 opacity-90 hover:opacity-100 cursor-pointer"
+          >
+            {toast.action.label}
+          </button>
+        )}
       </div>
       <button
         onClick={() => onDismiss(toast.id)}

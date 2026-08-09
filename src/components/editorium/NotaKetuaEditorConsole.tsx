@@ -176,7 +176,12 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
     }
   };
 
-  const ubah = async (id: string, patch: Record<string, any>) => {
+  // WF-07 (Pusingan 5, audit ChatGPT 2026-08-09) — dahulu ubah()/padam() (Pin/Nyahpin/Arkib/
+  // Pulih/Padam) TIADA maklum balas kejayaan langsung, tak macam hantar()/simpan borang yang
+  // dah ada mesej hijau — satu-satunya isyarat ialah senarai tersusun semula senyap. Sekarang
+  // pesan mesej khusus tindakan (bukan "berjaya" generik) guna corak mesej sedia ada; kegagalan
+  // kekal jatuh balik ke ralat MesejStatus seperti biasa.
+  const ubah = async (id: string, patch: Record<string, any>, mesejBerjaya?: string) => {
     try {
       const res = await fetch(`/api/system/editor-notes/${id}`, {
         method: 'PATCH',
@@ -185,6 +190,10 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
       });
       const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini nota.');
+      if (mesejBerjaya) {
+        setMesej(mesejBerjaya);
+        setTimeout(() => setMesej(''), 4000);
+      }
       muat();
       onBerubah?.();
     } catch (err: any) {
@@ -198,6 +207,8 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
       const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal memadam nota.');
       if (menyunting === id) kosongkanBorang();
+      setMesej('Nota dipadam');
+      setTimeout(() => setMesej(''), 4000);
       muat();
       onBerubah?.();
     } catch (err: any) {
@@ -381,7 +392,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                           <Tooltip text={n.disemat ? 'Nyahsemat' : 'Semat di atas'}>
                             <button
                               type="button"
-                              onClick={() => ubah(n.id, { disemat: !n.disemat })}
+                              onClick={() => ubah(n.id, { disemat: !n.disemat }, n.disemat ? 'Nota dinyahsematkan' : 'Nota disematkan')}
                               aria-label={n.disemat ? 'Nyahsemat' : 'Semat di atas'}
                               className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
                             >
@@ -423,7 +434,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                           <Tooltip text="Arkibkan nota">
                             <button
                               type="button"
-                              onClick={() => ubah(n.id, { status: 'arkib' })}
+                              onClick={() => ubah(n.id, { status: 'arkib' }, 'Nota diarkibkan')}
                               aria-label="Arkibkan nota"
                               className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
                             >
@@ -437,7 +448,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                           <Tooltip text="Pulihkan nota">
                             <button
                               type="button"
-                              onClick={() => ubah(n.id, { status: 'aktif' })}
+                              onClick={() => ubah(n.id, { status: 'aktif' }, 'Nota dipulihkan')}
                               aria-label="Pulihkan nota"
                               className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
                             >
