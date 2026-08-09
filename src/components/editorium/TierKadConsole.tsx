@@ -5,7 +5,7 @@ import { StatusBadge } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
-import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
@@ -139,7 +139,7 @@ export const TierKadConsole: React.FC = () => {
         {berjaya && <MesejStatus tone="success">{berjaya}</MesejStatus>}
 
         {loading ? (
-          <KeadaanKosong>Memuatkan tetapan tier…</KeadaanKosong>
+          <KeadaanMemuat baris={6} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">

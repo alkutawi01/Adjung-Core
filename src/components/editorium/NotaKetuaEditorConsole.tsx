@@ -5,6 +5,7 @@ import { PanelCard } from '../common/PanelCard';
 import { SectionLabel } from '../common/SectionLabel';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
@@ -337,7 +338,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
         {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
 
         {memuat ? (
-          <KeadaanKosong>Memuatkan nota…</KeadaanKosong>
+          <KeadaanMemuat baris={4} />
         ) : nota.length === 0 ? (
           <KeadaanKosong>
             {paparanArkib ? 'Tiada nota diarkibkan.' : 'Tiada nota aktif.'}

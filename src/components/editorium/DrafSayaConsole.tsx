@@ -8,6 +8,7 @@ import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
@@ -192,7 +193,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         )}
 
         {memuat ? (
-          <KeadaanKosong>Memuatkan draf…</KeadaanKosong>
+          <KeadaanMemuat baris={4} />
         ) : draf.length === 0 ? (
           <KeadaanKosong
             tindakan={

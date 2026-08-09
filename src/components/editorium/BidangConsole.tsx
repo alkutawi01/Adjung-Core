@@ -6,6 +6,7 @@ import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
@@ -310,7 +311,7 @@ export const BidangConsole: React.FC = () => {
         </div>
 
         {desksLoading ? (
-          <KeadaanKosong>Memuatkan Bidang…</KeadaanKosong>
+          <KeadaanMemuat baris={5} />
         ) : desksTertapis.length === 0 ? (
           <KeadaanKosong>Tiada Bidang dalam paparan ini.</KeadaanKosong>
         ) : (

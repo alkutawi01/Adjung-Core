@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { NotebookText, Hourglass, RefreshCw } from 'lucide-react';
+import { NotebookText, RefreshCw } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
 import { Tooltip } from '../common/Tooltip';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
 import { KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
@@ -137,7 +138,7 @@ export const LogAuditConsole: React.FC = () => {
           </thead>
           <tbody className="font-sans">
             {memuat && (
-              <tr><td colSpan={5} className="p-12 text-center text-stone-400"><Hourglass className="w-5 h-5 mx-auto mb-2 animate-pulse" />Memuatkan…</td></tr>
+              <tr><td colSpan={5}><KeadaanMemuat baris={5} /></td></tr>
             )}
             {!memuat && entri.length === 0 && (
               <tr>

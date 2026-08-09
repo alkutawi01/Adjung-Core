@@ -5,6 +5,7 @@ import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { EditorDialog } from '../common/EditorDialog';
@@ -198,10 +199,11 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           </thead>
           <tbody className="font-sans">
             {memuat && (
-              // DIREKTORI-2 (2A, audit ChatGPT 2026-08-09) — dahulu ikon Hourglass berputar
-              // sendiri, gaya loading ke-3 dlm aplikasi. Selaraskan ke corak KeadaanKosong sedia
-              // ada dipakai Draf Saya/Senarai Slot/Peti Makluman/Nota Ketua Editor.
-              <tr><td colSpan={7}><KeadaanKosong>Memuatkan…</KeadaanKosong></td></tr>
+              // DIREKTORI-2 (2A, audit ChatGPT 2026-08-09; disegar semula DS-02, VR-01
+              // 2026-08-09) — dahulu ikon Hourglass berputar sendiri, kemudian KeadaanKosong
+              // (sama rupa dengan keadaan KOSONG sebenar, editor tak dapat bezakan sistem
+              // sedang bekerja atau data memang tiada). Kini KeadaanMemuat (rangka berdenyut).
+              <tr><td colSpan={7}><KeadaanMemuat baris={5} /></td></tr>
             )}
             {!memuat && filteredStaff.length === 0 && (
               <tr>

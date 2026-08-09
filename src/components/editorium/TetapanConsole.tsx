@@ -11,6 +11,7 @@ import { PanelCard } from '../common/PanelCard';
 import { SectionLabel } from '../common/SectionLabel';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
@@ -1169,7 +1170,7 @@ function HalamanAwamPanel() {
       </div>
 
       {memuat ? (
-        <p className="text-stone-400">Memuatkan…</p>
+        <KeadaanMemuat baris={4} />
       ) : (
         <div className="space-y-3">
           {HALAMAN_AWAM_SENARAI.find(h => h.key === halamanAktif)?.kumpulan === 'awam' && (
@@ -1344,7 +1345,7 @@ function LabelSistemPanel() {
       {ralat && <MesejStatus tone="error" onCubaLagi={muatSemula}>{ralat}</MesejStatus>}
 
       {memuat ? (
-        <p className="text-stone-400">Memuatkan…</p>
+        <KeadaanMemuat baris={4} />
       ) : (
         <div className="space-y-6">
           {Object.entries(kumpulan).map(([kategori, senarai]) => (
@@ -1491,7 +1492,7 @@ function RupaEditoriumPanel() {
   if (memuat) {
     return (
       <PanelCard className="text-xs">
-        <p className="text-stone-400 py-6 text-center">Memuatkan tetapan rupa Editorium…</p>
+        <KeadaanMemuat baris={5} />
       </PanelCard>
     );
   }

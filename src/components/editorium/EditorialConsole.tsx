@@ -8,6 +8,7 @@ import { PanelCard } from '../common/PanelCard';
 import { SectionLabel } from '../common/SectionLabel';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { FormColumn } from '../common/FormColumn';
 import { EditorDialog } from '../common/EditorDialog';
 import { Tooltip } from '../common/Tooltip';
@@ -467,7 +468,7 @@ export const EditorialConsole: React.FC = () => {
               </Button>
             </div>
             {memuatGlosari ? (
-              <p className="text-stone-400 py-6 text-center">Memuatkan glosari…</p>
+              <KeadaanMemuat baris={4} />
             ) : glosari.length === 0 ? (
               <KeadaanKosong>Glosari masih kosong.</KeadaanKosong>
             ) : (
@@ -607,7 +608,7 @@ export const EditorialConsole: React.FC = () => {
               </Button>
             </div>
             {memuatEjaan ? (
-              <p className="text-stone-400 py-6 text-center">Memuatkan senarai ejaan…</p>
+              <KeadaanMemuat baris={4} />
             ) : ejaan.length === 0 ? (
               <KeadaanKosong>Senarai ejaan masih kosong.</KeadaanKosong>
             ) : (
@@ -694,7 +695,7 @@ export const EditorialConsole: React.FC = () => {
           </div>
 
           {memuatAi ? (
-            <p className="text-stone-400 py-6 text-center">Memuatkan templat…</p>
+            <KeadaanMemuat baris={4} />
           ) : (
             <>
               {/* Borang sunting-di-tempat (bukan borang "tambah item"), jadi ia kekal terpampang —

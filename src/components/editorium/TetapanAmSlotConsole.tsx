@@ -4,7 +4,7 @@ import { labelUi } from '../../config/istilah';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
-import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
 import { FormColumn } from '../common/FormColumn';
 import { tierForSlot, TIER_LABELS } from '../../../core/editorial/GeometryConfig.js';
@@ -172,7 +172,7 @@ function DasarTerbitSendiriField() {
     <div className="border border-stone-200 rounded p-4 space-y-2">
       <div className="font-semibold text-stone-800">2a. Dasar Terbit Sendiri Editor</div>
       {benarkanSelfPublish === null ? (
-        <p className="text-stone-400 text-[11px]">Memuatkan…</p>
+        <KeadaanMemuat baris={1} className="py-0" />
       ) : (
         <label className="flex items-center gap-2.5 cursor-pointer w-fit">
           <input
@@ -291,7 +291,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
   if (loading || !draf) {
     return (
       <PanelCard className="font-sans">
-        <KeadaanKosong>Memuatkan tetapan…</KeadaanKosong>
+        <KeadaanMemuat baris={5} />
       </PanelCard>
     );
   }

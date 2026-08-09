@@ -6,6 +6,7 @@ import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
 import { FormColumn } from '../common/FormColumn';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
@@ -411,7 +412,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole }) =>
 
       <PanelCard className="space-y-4 text-xs">
         {loading ? (
-          <KeadaanKosong>Memuatkan senarai slot…</KeadaanKosong>
+          <KeadaanMemuat baris={6} />
         ) : gagalMuat ? (
           // SLOT-1 (2A, audit ChatGPT 2026-08-09) — ini RALAT, bukan keadaan kosong; dahulu
           // KeadaanKosong (salah semantik) + tiada jalan pulih selain muat semula seluruh

@@ -5,6 +5,7 @@ import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { SectionLabel } from '../common/SectionLabel';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 
 // Everything under CHART DATA below is read directly from core/editorial/GeometryConfig.js --
@@ -549,7 +550,7 @@ URL:`}</pre>
         </SectionLabel>
         <PanelCard padding="p-0">
           {loadingLog ? (
-            <KeadaanKosong>Memuatkan sejarah…</KeadaanKosong>
+            <KeadaanMemuat baris={4} />
           ) : changelogUnavailable ? (
             <KeadaanKosong>Sejarah git tidak tersedia dalam persekitaran ini.</KeadaanKosong>
           ) : commits.length === 0 ? (
@@ -593,7 +594,7 @@ URL:`}</pre>
         </SectionLabel>
         <PanelCard padding="p-0">
           {loadingUiUxLog ? (
-            <KeadaanKosong>Memuatkan log…</KeadaanKosong>
+            <KeadaanMemuat baris={4} />
           ) : uiUxUnavailable ? (
             <KeadaanKosong>Log UI/UX tidak tersedia.</KeadaanKosong>
           ) : uiUxEntries.length === 0 ? (
