@@ -1340,10 +1340,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           }}
                           className="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 rounded px-1.5 py-1 font-sans text-[10px] font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-Adjung-maroon max-w-full"
                         >
+                          {/* IH-01 (Pusingan 4, audit ChatGPT 2026-08-09) — susunan progresif
+                              tindakan penerbitan -> pengurusan kandungan -> tindakan editorial ->
+                              tindakan paling merosakkan (sepadan bar tindakan pukal Siar->Arkib->
+                              Padam sebelah). Dahulu "Tolak" (agak berkesan) diselitkan antara Siar
+                              dan Arkib, dua tindakan rutin selamat -- <select> native tiada beza
+                              warna/berat visual antara opsyen, jadi susunan sahaja pembeza. */}
                           <option value="" disabled hidden>Tindakan ▾</option>
                           {rec.status !== 'Live' && <option value="Live">Siar</option>}
-                          <option value="Tolak">Tolak (kembali jadi draf)</option>
                           {rec.status !== 'Archive' && <option value="Archive">Arkib</option>}
+                          <option value="Tolak">Tolak (kembali jadi draf)</option>
                           {currentUserRole === 'KETUA_EDITOR' && <option value="Padam">Padam (ke Tong Sampah)</option>}
                         </select>
                       ) : (

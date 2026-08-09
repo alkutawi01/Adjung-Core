@@ -171,8 +171,11 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         {ralat && <MesejStatus tone="error" onCubaLagi={muatDraf}>{ralat}</MesejStatus>}
 
         {/* Carian + penapis Bidang — hanya berguna bila senarai dah mula panjang, jadi sengaja
-            tersembunyi sehingga ada sesuatu untuk ditapis. */}
-        {!memuat && draf.length > 0 && (
+            tersembunyi sehingga ada sesuatu untuk ditapis (IH-02, Pusingan 4, audit ChatGPT
+            2026-08-09: draf.length<=1 tak berbaloi ditapis — "Bidang: Semua" atas satu draf tak
+            membantu). Kekal kelihatan jika penapis SEDANG aktif walaupun draf.length susut
+            kepada <=1 selepas itu — elak kawalan hilang senyap semasa editor sedang menapis. */}
+        {!memuat && (draf.length > 1 || carian.trim() !== '' || bidangDipilih !== 'Semua') && (
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="text"
