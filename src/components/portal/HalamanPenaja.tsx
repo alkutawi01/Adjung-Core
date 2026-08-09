@@ -37,7 +37,7 @@ export const HalamanPenaja: React.FC = () => {
         return r.json();
       })
       .then((data) => { if (!dibatalkan) setPenaja(Array.isArray(data) ? data : []); })
-      .catch((e) => { if (!dibatalkan) setRalat(e.message || 'Gagal memuatkan senarai penaja.'); })
+      .catch(() => { if (!dibatalkan) setRalat('Gagal memuatkan senarai penaja. Cuba lagi.'); })
       .finally(() => { if (!dibatalkan) setMemuat(false); });
     return () => { dibatalkan = true; };
   }, []);

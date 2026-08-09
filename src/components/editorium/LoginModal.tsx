@@ -61,8 +61,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         roles: Array.isArray(data.user.roles) ? data.user.roles : [],
         termaDipersetujuiPada: data.user.termaDipersetujuiPada || null,
       }, rememberMe);
-    } catch (err: any) {
-      setError('Ralat sambungan: ' + (err.message || ''));
+    } catch {
+      setError('Log masuk gagal. Sila semak sambungan anda dan cuba lagi.');
     } finally {
       setLoading(false);
     }

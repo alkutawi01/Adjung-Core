@@ -48,8 +48,8 @@ export const TetapkanKataLaluan: React.FC = () => {
         return;
       }
       setBerjaya(true);
-    } catch (err: any) {
-      setRalat('Ralat sambungan: ' + (err.message || ''));
+    } catch {
+      setRalat('Ralat sambungan. Sila cuba sekali lagi.');
     } finally {
       setMenghantar(false);
     }
@@ -130,7 +130,7 @@ export const TetapkanKataLaluan: React.FC = () => {
               disabled={menghantar}
               className="w-full font-sans text-xs font-semibold bg-[#FDFDFD] text-[#802334] py-2 rounded hover:bg-stone-100 transition-colors disabled:opacity-50"
             >
-              {menghantar ? 'Menyimpan...' : 'Tetapkan Kata Laluan'}
+              {menghantar ? 'Menyimpan…' : 'Tetapkan Kata Laluan'}
             </button>
           </form>
         )}

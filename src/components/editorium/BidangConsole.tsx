@@ -48,6 +48,7 @@ export const BidangConsole: React.FC = () => {
   const [expandedBidangId, setExpandedBidangId] = useState<string | null>(null);
   const [renamingBidangId, setRenamingBidangId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [ralatBidang, setRalatBidang] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWarnaModal, setShowWarnaModal] = useState(false);
 
@@ -234,7 +235,7 @@ export const BidangConsole: React.FC = () => {
       fetchActiveBidang();
       fetchSlotUsage();
     } catch (e: any) {
-      alert('Ralat: ' + (e.message || ''));
+      setRalatBidang(e.message || 'Gagal mengemas kini slot.');
       fetchActiveBidang();
       fetchSlotUsage();
     } finally {
@@ -252,6 +253,7 @@ export const BidangConsole: React.FC = () => {
 
   const handleRenameBidang = async (id: string) => {
     if (!renameValue.trim()) return;
+    setRalatBidang(null);
     try {
       const res = await fetch('/api/system/categories/rename-active', {
         method: 'POST',
@@ -263,7 +265,7 @@ export const BidangConsole: React.FC = () => {
       setRenamingBidangId(null);
       fetchActiveBidang();
     } catch (e: any) {
-      alert('Ralat: ' + (e.message || ''));
+      setRalatBidang(e.message || 'Gagal menamakan semula Bidang.');
     }
   };
 
@@ -288,6 +290,7 @@ export const BidangConsole: React.FC = () => {
       />
 
       <PanelCard className="space-y-4 text-xs">
+        {ralatBidang && <MesejStatus tone="error">{ralatBidang}</MesejStatus>}
         {ralatTogolStatus && <MesejStatus tone="error">{ralatTogolStatus}</MesejStatus>}
         {berjayaTogolStatus && <MesejStatus tone="success">{berjayaTogolStatus}</MesejStatus>}
         {/* Togol paparan status (2026-08-01) — lalai Aktif sahaja, sama kelakuan seperti dulu. */}
@@ -631,6 +634,7 @@ function IkonWarnaModal({
   onUpdated: () => void;
 }) {
   const [savingIconFor, setSavingIconFor] = useState<string | null>(null);
+  const [ikonError, setIkonError] = useState<string | null>(null);
   const [svgUploadPreview, setSvgUploadPreview] = useState<string | null>(null);
   const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
   const [uploadingSvg, setUploadingSvg] = useState(false);
@@ -664,6 +668,7 @@ function IkonWarnaModal({
 
   const handlePickLucideIcon = async (id: string, iconName: string) => {
     setSavingIconFor(id);
+    setIkonError(null);
     try {
       const res = await fetch('/api/system/categories/set-icon', {
         method: 'POST',
@@ -675,7 +680,7 @@ function IkonWarnaModal({
       onUpdated();
       onTutup();
     } catch (e: any) {
-      alert('Ralat: ' + (e.message || ''));
+      setIkonError(e.message || 'Gagal menetapkan ikon.');
     } finally {
       setSavingIconFor(null);
     }
@@ -791,6 +796,7 @@ function IkonWarnaModal({
                 );
               })}
             </div>
+            {ikonError && <MesejStatus tone="error" className="mt-1">{ikonError}</MesejStatus>}
           </div>
 
           <div className="pt-3 border-t border-stone-200">
@@ -825,7 +831,7 @@ function IkonWarnaModal({
                 disabled={uploadingSvg}
                 className="mt-2"
               >
-                {uploadingSvg ? 'Memuat naik...' : 'Guna SVG Ini'}
+                {uploadingSvg ? 'Memuat naik…' : 'Guna SVG Ini'}
               </Button>
             )}
           </div>
@@ -840,10 +846,12 @@ function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerj
   const [newDeskName, setNewDeskName] = useState('');
   const [newDeskColor, setNewDeskColor] = useState('#802334');
   const [addingDesk, setAddingDesk] = useState(false);
+  const [ralatTambahDesk, setRalatTambahDesk] = useState<string | null>(null);
 
   const handleAddDesk = async () => {
     if (!newDeskName.trim()) return;
     setAddingDesk(true);
+    setRalatTambahDesk(null);
     try {
       const res = await fetch('/api/system/categories/activate', {
         method: 'POST',
@@ -854,7 +862,7 @@ function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerj
       if (!res.ok) throw new Error(data.error || 'Gagal menambah Bidang.');
       onBerjaya();
     } catch (e: any) {
-      alert('Ralat: ' + (e.message || ''));
+      setRalatTambahDesk(e.message || 'Gagal menambah Bidang.');
     } finally {
       setAddingDesk(false);
     }
@@ -886,6 +894,7 @@ function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerj
               <input type="text" value={newDeskColor} onChange={e => setNewDeskColor(e.target.value)} className={`${INPUT_BORANG} font-mono font-bold`} />
             </div>
           </div>
+          {ralatTambahDesk && <MesejStatus tone="error">{ralatTambahDesk}</MesejStatus>}
         </div>
     </EditorDialog>
   );

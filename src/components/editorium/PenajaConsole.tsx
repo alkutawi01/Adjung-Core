@@ -293,7 +293,7 @@ export const PenajaConsole: React.FC = () => {
             className="cursor-pointer"
           />
           <span className="text-stone-600 text-xs">
-            Papar semasa transisi carousel <span className="text-stone-400">(akan datang, togol data sahaja, belum aktif secara visual)</span>
+            Papar semasa transisi karusel <span className="text-stone-400">(akan datang dan belum tersedia dalam antara muka)</span>
           </span>
         </label>
 
