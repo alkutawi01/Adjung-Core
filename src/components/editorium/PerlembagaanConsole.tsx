@@ -559,7 +559,7 @@ URL:`}</pre>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse font-sans text-xs min-w-[480px]">
                 <thead>
-                  <tr className={`${KEPALA_JADUAL} border-b border-Adjung-line`}>
+                  <tr className={KEPALA_JADUAL}>
                     <th className="p-3 w-24">Rujukan</th>
                     <th className="p-3 w-28">Tarikh</th>
                     <th className="p-3">Perubahan</th>
@@ -603,7 +603,7 @@ URL:`}</pre>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse font-sans text-xs min-w-[480px]">
                 <thead>
-                  <tr className={`${KEPALA_JADUAL} border-b border-Adjung-line`}>
+                  <tr className={KEPALA_JADUAL}>
                     <th className="p-3 w-40">Masa</th>
                     <th className="p-3">Perubahan</th>
                     <th className="p-3 w-56">Fail</th>

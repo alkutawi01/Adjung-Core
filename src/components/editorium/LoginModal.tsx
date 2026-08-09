@@ -123,7 +123,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
             {modLupa ? 'Lupa Kata Laluan' : 'Log Masuk ke Editorium'}
           </h2>
           <button type="button" onClick={onClose} aria-label="Tutup" className="justify-self-end text-stone-400 hover:text-stone-700">
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 

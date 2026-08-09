@@ -387,7 +387,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
             </div>
             <table className="w-full text-left border-collapse font-sans text-xs">
               <thead>
-                <tr className={`${KEPALA_JADUAL} border-b border-Adjung-line`}>
+                <tr className={KEPALA_JADUAL}>
                   <th className="p-2.5">KEPALA_JADUAL</th>
                   <th className="p-2.5">Latar token --color-Adjung-paper</th>
                 </tr>

@@ -156,7 +156,7 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
             aria-label="Tutup"
             title="Tutup (Escape)"
           >
-            <X size={18} />
+            <X className="w-3.5 h-3.5" />
           </button>
         </header>
 

@@ -188,7 +188,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
         <table className="w-full text-left border-collapse font-sans text-xs">
           <caption className="sr-only">Senarai anggota editorial</caption>
           <thead>
-            <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
+            <tr className={KEPALA_JADUAL}>
               <th scope="col" className="p-4">Nama Anggota</th>
               <th scope="col" className="p-4">ID Pengguna</th>
               <th scope="col" className="p-4">Peranan</th>

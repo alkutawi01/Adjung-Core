@@ -27,9 +27,12 @@ export const INPUT_BORANG =
  *  baris di bawahnya tidak lutsinar menerusinya.
  *  text-stone-600 pada 11px (2026-08-07, Audit §H1, diluluskan Izzat) — stone-400 atas
  *  --color-Adjung-paper diukur nisbah kontras 2.32, jauh gagal WCAG AA (ambang 4.5). stone-600
- *  beri 7.01, lulus selesa. */
+ *  beri 7.01, lulus selesa.
+ *  `border-b border-Adjung-line` dibakar terus di sini (DS-09, VR-01 2026-08-09) — dahulu setiap
+ *  pemanggil tambah (atau lupa tambah) sempadan sendiri secara berasingan, 3 jadual terlepas
+ *  langsung dan 2 lagi guna stone-200 (bukan token) bukan Adjung-line. Satu tempat, satu nilai. */
 export const KEPALA_JADUAL =
-  'font-mono text-[11px] uppercase tracking-wider text-stone-600 bg-Adjung-paper sticky top-0 z-10';
+  'font-mono text-[11px] uppercase tracking-wider text-stone-600 bg-Adjung-paper sticky top-0 z-10 border-b border-Adjung-line';
 
 /** Garis pemisah baris jadual — dahulu `style={{borderTop:'1px solid #F0EDE9'}}` sebaris atau
  *  `divide-y divide-stone-100`, bergantung fail. */

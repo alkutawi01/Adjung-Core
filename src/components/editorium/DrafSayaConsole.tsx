@@ -214,7 +214,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
               <table className="w-full text-left border-collapse text-xs min-w-[860px]">
                 <caption className="sr-only">Senarai draf mengikut slot dan status kelengkapan</caption>
                 <thead>
-                  <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
+                  <tr className={KEPALA_JADUAL}>
                     <th scope="col" className="p-2.5">Slot</th>
                     <th scope="col" className="p-2.5">Bentuk</th>
                     <th scope="col" className="p-2.5">Bidang</th>

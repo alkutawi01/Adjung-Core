@@ -793,7 +793,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           >
             <div className="flex-none px-5 py-4 border-b border-stone-150 flex items-center justify-between">
               <h2 id="pilih-slot-modal-tajuk" className="font-serif text-lg font-medium text-stone-900">Pilih Slot</h2>
-              <button type="button" onClick={() => slotEditor.setShowSlotPicker(false)} aria-label="Tutup" className="text-stone-400 hover:text-stone-600 cursor-pointer"><X size={18} /></button>
+              <button type="button" onClick={() => slotEditor.setShowSlotPicker(false)} aria-label="Tutup" className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
             </div>
             <ol
               className="flex-1 min-h-0 overflow-y-auto list-none m-0 p-0"

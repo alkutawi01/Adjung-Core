@@ -128,7 +128,7 @@ export const LogAuditConsole: React.FC = () => {
         <table className="w-full text-left border-collapse font-sans text-xs min-w-[720px]">
           <caption className="sr-only">Log tindakan sistem dan editorial</caption>
           <thead>
-            <tr className={`border-b border-stone-200 ${KEPALA_JADUAL}`}>
+            <tr className={KEPALA_JADUAL}>
               <th scope="col" className="p-3">Masa</th>
               <th scope="col" className="p-3">Pelaku</th>
               <th scope="col" className="p-3">Tindakan</th>
