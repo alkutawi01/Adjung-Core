@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
+import { Button } from '../common/Button';
 import { KataLaluanInput } from '../common/KataLaluanInput';
 import { labelUi } from '../../config/istilah';
 import { useModalFokus } from '../../hooks/useModalFokus';
@@ -247,8 +248,8 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
           <div className="flex items-center justify-between gap-3 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2">
             <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
             <div className="flex items-center gap-2 shrink-0">
-              <button type="button" onClick={batalTutup} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
-              <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
+              <Button type="button" variant="ghost" size="sm" onClick={batalTutup}>Batal</Button>
+              <Button type="button" variant="primary" size="sm" onClick={sahkanTutup}>Ya, teruskan</Button>
             </div>
           </div>
         )}

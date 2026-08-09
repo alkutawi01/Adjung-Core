@@ -1132,15 +1132,15 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <span className="text-[var(--color-error)] font-semibold">
                 {confirmPukal === 'Padam' ? `Padam ${pilihan.size} kandungan ke Tong Sampah?` : `Siarkan ${pilihan.size} kandungan?`}
               </span>
-              <button type="button" onClick={() => jalankanTindakanPukal(confirmPukal as any)} className="font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
-              <button type="button" onClick={() => setConfirmPukal('')} className="font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
+              <Button type="button" variant="primary" size="sm" onClick={() => jalankanTindakanPukal(confirmPukal as any)}>Ya, teruskan</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmPukal('')}>Batal</Button>
             </span>
           ) : (
             <span className="flex items-center gap-2 font-sans text-xs">
-              <button type="button" onClick={() => setConfirmPukal('Live')} className="font-semibold text-stone-700 hover:text-Adjung-maroon border border-stone-300 rounded px-2.5 py-1 cursor-pointer">Siar</button>
-              <button type="button" onClick={() => jalankanTindakanPukal('Archive')} className="font-semibold text-stone-700 hover:text-Adjung-maroon border border-stone-300 rounded px-2.5 py-1 cursor-pointer">Arkib</button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmPukal('Live')}>Siar</Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => jalankanTindakanPukal('Archive')}>Arkib</Button>
               {currentUserRole === 'KETUA_EDITOR' && (
-                <button type="button" onClick={() => setConfirmPukal('Padam')} className="font-semibold text-[var(--color-error)] hover:text-Adjung-maroon border border-[var(--color-error)]/30 rounded px-2.5 py-1 cursor-pointer">Padam</button>
+                <Button type="button" variant="bahaya" size="sm" onClick={() => setConfirmPukal('Padam')}>Padam</Button>
               )}
             </span>
           )}
@@ -1303,8 +1303,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         // ("Padam kekal?"), tak terangkan ia tak boleh dibuat asal.
                         <span className="inline-flex items-center gap-1.5">
                           <span className="text-[var(--color-error)] font-semibold">Padam kekal, tak boleh dibuat asal?</span>
-                          <button type="button" onClick={() => handlePadamKekal(rec.id)} className="font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-2 py-1 cursor-pointer">Padam Kekal</button>
-                          <button type="button" onClick={() => setConfirmPadamKekalId('')} className="font-semibold text-stone-500 hover:text-stone-700 cursor-pointer px-1">Batal</button>
+                          <Button type="button" variant="primary" size="sm" onClick={() => handlePadamKekal(rec.id)}>Padam Kekal</Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmPadamKekalId('')}>Batal</Button>
                         </span>
                       ) : confirmTolakId === rec.id ? (
                         // DLG-08 (2B, audit ChatGPT 2026-08-09) — pantas dari baris, tiada
@@ -1312,14 +1312,14 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         // butiran ("Tolak (kembali jadi draf)").
                         <span className="inline-flex items-center gap-1.5">
                           <span className="text-[var(--color-error)] font-semibold">Tolak, jadi draf?</span>
-                          <button type="button" onClick={() => handleRejectToDraft(rec.id, '')} className="font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-2 py-1 cursor-pointer">Ya</button>
-                          <button type="button" onClick={() => setConfirmTolakId('')} className="font-semibold text-stone-500 hover:text-stone-700 cursor-pointer px-1">Batal</button>
+                          <Button type="button" variant="primary" size="sm" onClick={() => handleRejectToDraft(rec.id, '')}>Ya</Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmTolakId('')}>Batal</Button>
                         </span>
                       ) : rec.slot !== 'Ticker' && !isReadOnly && rec.status === 'Dipadam' ? (
                         <span className="inline-flex items-center gap-1.5">
-                          <button type="button" onClick={() => handlePulihkanTongSampah(rec.id)} className="font-semibold text-stone-700 hover:text-Adjung-maroon cursor-pointer border border-stone-300 rounded px-2 py-1">Pulihkan</button>
+                          <Button type="button" variant="secondary" size="sm" onClick={() => handlePulihkanTongSampah(rec.id)}>Pulihkan</Button>
                           {currentUserRole === 'KETUA_EDITOR' && (
-                            <button type="button" onClick={() => setConfirmPadamKekalId(rec.id)} className="font-semibold text-[var(--color-error)] hover:text-Adjung-maroon cursor-pointer border border-[var(--color-error)]/30 rounded px-2 py-1">Padam kekal</button>
+                            <Button type="button" variant="bahaya" size="sm" onClick={() => setConfirmPadamKekalId(rec.id)}>Padam kekal</Button>
                           )}
                         </span>
                       ) : rec.slot !== 'Ticker' && !isReadOnly ? (
@@ -1450,9 +1450,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                   />
                 </label>
                 <div>
-                  <button type="button" onClick={() => { setConfirmTolakId(''); setTolakSebab(''); }} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 cursor-pointer">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => { setConfirmTolakId(''); setTolakSebab(''); }}>
                     Batal
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
