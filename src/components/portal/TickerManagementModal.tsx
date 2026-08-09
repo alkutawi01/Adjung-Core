@@ -98,7 +98,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         addToast('error', data.error || 'Gagal menyekat tag kategori.');
       }
     } catch (e) {
-      addToast('error', 'Gagal menyambung ke pelayan.');
+      addToast('error', 'Gagal menyambung ke pelayan. Cuba lagi.');
     }
   };
 
@@ -210,7 +210,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         addToast('error', data.error || 'Gagal menyerap Suapan RSS.');
       }
     } catch (err) {
-      addToast('error', 'Gagal menyambung ke pelayan Suapan RSS.');
+      addToast('error', 'Gagal menyambung ke pelayan RSS. Cuba lagi.');
     } finally {
       setIsFetchingRss(false);
     }
@@ -245,7 +245,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         addToast('error', data.error || 'Gagal mendaftar sumber RSS.');
       }
     } catch (err) {
-      addToast('error', 'Gagal menyambung ke pelayan RSS.');
+      addToast('error', 'Gagal menyambung ke pelayan. Cuba lagi.');
     } finally {
       setIsAddingRss(false);
     }
@@ -295,7 +295,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         addToast('error', data.error || 'Gagal menyimpan tetapan.');
       }
     } catch (err) {
-      addToast('error', 'Gagal menyambung ke pelayan.');
+      addToast('error', 'Gagal menyambung ke pelayan. Cuba lagi.');
     } finally {
       setIsSavingSettings(false);
     }
@@ -317,7 +317,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         addToast('error', data.error || 'Gagal memproses keputusan.');
       }
     } catch (err) {
-      addToast('error', 'Gagal menyambung ke pelayan.');
+      addToast('error', 'Gagal menyambung ke pelayan. Cuba lagi.');
     } finally {
       setActionLoadingMap(prev => ({ ...prev, [itemId]: false }));
     }
@@ -525,7 +525,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                     <div>
                       <h4 className="font-mono text-xs font-bold uppercase text-[var(--color-Adjung-maroon)] tracking-wider flex items-center gap-1.5">
                         <Zap size={14} className="text-[var(--color-Adjung-maroon)]" />
-                        ENJIN PENYERAPAN RSS DIRECT (TANPA API AI)
+                        ENJIN PENYERAPAN RSS TERUS (TANPA BANTUAN AI)
                       </h4>
                       <p className="font-sans text-[10px] text-stone-500 mt-0.5">
                         Menyerap terus berita RSS/Atom Feed, menapis bahasa ms-MY, dan mengira skor wajaran editorial.

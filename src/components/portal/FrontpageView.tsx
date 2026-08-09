@@ -1474,7 +1474,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       }
     } catch (err) {
       console.error(err);
-      addToast('error', 'Ralat memuatkan kandungan halaman.');
+      addToast('error', 'Gagal memuatkan kandungan halaman.');
       setActiveFooterPageKey(null);
     } finally {
       setIsLoadingLoadingFooterPage(false);
@@ -3934,7 +3934,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     renderMarkdownRingkas(footerPageData.content, { kelasPerenggan: 'mb-1' })
                   ) : (
                     <div className="py-10 text-center text-stone-400 font-sans text-xs animate-pulse">
-                      Memuatkan kandungan...
+                      Memuatkan kandungan…
                     </div>
                   )}
                 </div>

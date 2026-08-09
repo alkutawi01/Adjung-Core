@@ -191,7 +191,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
                 <div className="flex flex-col gap-1.5 cursor-help">
                   <div className="h-14 rounded-lg border border-stone-200" style={{ background: `var(${t.varName})` }} />
                   <span className="font-mono text-[9px] text-stone-700 font-bold">{t.varName}</span>
-                  <span className="font-mono text-[9px] text-stone-400 uppercase">{colorValues[t.varName] || '...'}</span>
+                  <span className="font-mono text-[9px] text-stone-400 uppercase">{colorValues[t.varName] || '…'}</span>
                 </div>
               </Tooltip>
             ))}
@@ -233,7 +233,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
                 <p className={`${f.twClass} text-lg text-stone-900`}>{f.sample}</p>
                 <Tooltip text={fontStacks[f.varName]}>
                   <p className="font-mono text-[9px] text-stone-400 mt-1 truncate">
-                    {fontStacks[f.varName] || '...'}
+                    {fontStacks[f.varName] || '…'}
                   </p>
                 </Tooltip>
               </div>

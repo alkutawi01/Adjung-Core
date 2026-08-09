@@ -64,7 +64,7 @@ export const HalamanStatik: React.FC<HalamanStatikProps> = ({ pageKey, labelSand
 
       <main className="flex-1 w-full max-w-2xl mx-auto px-6 py-10">
         {memuat ? (
-          <p className="font-sans text-sm text-stone-400">Memuatkan...</p>
+          <p className="font-sans text-sm text-stone-400">Memuatkan…</p>
         ) : ralat ? (
           <p className="font-sans text-sm text-red-700">{ralat}</p>
         ) : (
