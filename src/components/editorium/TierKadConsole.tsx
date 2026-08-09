@@ -176,7 +176,7 @@ export const TierKadConsole: React.FC = () => {
                           min={1}
                           value={d.tajuk}
                           onChange={e => setDraf(p => ({ ...p, [t.tierKey]: { ...d, tajuk: e.target.value } }))}
-                          className="w-20 px-2 py-1 border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon"
+                          className="w-20 px-2 py-[calc(4px*var(--ed-kepadatan,1))] border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors"
                         />
                       </td>
                       <td className="p-2.5 text-right">
@@ -187,7 +187,7 @@ export const TierKadConsole: React.FC = () => {
                           disabled={barSahaja}
                           title={barSahaja ? 'Kad Bar tiada medan huraian langsung.' : undefined}
                           onChange={e => setDraf(p => ({ ...p, [t.tierKey]: { ...d, huraian: e.target.value } }))}
-                          className="w-20 px-2 py-1 border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon disabled:bg-stone-100 disabled:text-stone-400"
+                          className="w-20 px-2 py-[calc(4px*var(--ed-kepadatan,1))] border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors disabled:bg-stone-100 disabled:text-stone-400"
                         />
                       </td>
                       <td className="p-2.5 font-mono text-[10px] text-stone-500">

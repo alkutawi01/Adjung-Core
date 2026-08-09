@@ -98,7 +98,7 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
         <select
           value={draf.nisbahPenajaTransisi}
           onChange={e => setDraf(p => p ? { ...p, nisbahPenajaTransisi: Number(e.target.value) } : p)}
-          className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+          className="px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-semibold text-xs bg-stone-50 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors"
         >
           {(draf.nisbahPenajaTransisiPilihan || [{ nilai: 0, label: 'Logo Adjung sahaja (tiada logo penaja)' }]).map(n => (
             <option key={n.nilai} value={n.nilai}>{n.label}</option>
@@ -284,7 +284,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
       min={0}
       value={String(draf?.[kunci] ?? 0)}
       onChange={e => setDraf(p => p ? { ...p, [kunci]: Number(e.target.value) } : p)}
-      className="w-24 px-2 py-1 border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon"
+      className="w-24 px-2 py-[calc(4px*var(--ed-kepadatan,1))] border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors"
     />
   );
 
@@ -401,7 +401,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
                 value={draf.jenisAnimasi}
                 onChange={e => setDraf(p => p ? { ...p, jenisAnimasi: e.target.value } : p)}
                 disabled={!draf.animasiAktif}
-                className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50 disabled:opacity-40"
+                className="px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-semibold text-xs bg-stone-50 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors disabled:opacity-40"
               >
                 {(draf.jenisAnimasiPilihan || [{ nilai: 'pudar', label: 'Pudar (1 saat)' }]).map(j => (
                   <option key={j.nilai} value={j.nilai}>{j.label}</option>
@@ -414,7 +414,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
                 value={draf.arahAnimasi}
                 onChange={e => setDraf(p => p ? { ...p, arahAnimasi: e.target.value } : p)}
                 disabled={!draf.animasiAktif}
-                className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50 disabled:opacity-40"
+                className="px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-semibold text-xs bg-stone-50 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors disabled:opacity-40"
               >
                 {(draf.arahAnimasiPilihan || [{ nilai: 'kanan', label: 'Kanan (masuk dari kanan, keluar ke kiri)' }]).map(a => (
                   <option key={a.nilai} value={a.nilai}>{a.label}</option>
@@ -464,7 +464,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
               <select
                 value={draf.focusViewTitleScale}
                 onChange={e => setDraf(p => p ? { ...p, focusViewTitleScale: Number(e.target.value) } : p)}
-                className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+                className="px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-semibold text-xs bg-stone-50 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors"
               >
                 {PILIHAN_SAIZ_TAJUK_FOCUS.map(o => (
                   <option key={o.nilai} value={o.nilai}>{o.label}</option>
@@ -476,7 +476,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
               <select
                 value={draf.focusViewBodySize}
                 onChange={e => setDraf(p => p ? { ...p, focusViewBodySize: Number(e.target.value) } : p)}
-                className="px-2.5 py-1.5 border border-stone-300 rounded font-semibold text-xs bg-stone-50"
+                className="px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-semibold text-xs bg-stone-50 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors"
               >
                 {PILIHAN_SAIZ_HURAIAN_FOCUS.map(o => (
                   <option key={o.nilai} value={o.nilai}>{o.label}</option>

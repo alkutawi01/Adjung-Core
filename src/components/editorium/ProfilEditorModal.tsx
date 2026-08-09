@@ -119,7 +119,7 @@ function BorangPengesahan({
       {dibuka && (
         <form onSubmit={hantar} className="space-y-2 bg-stone-50 border border-stone-200 rounded p-3">
           <label className="flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500">{labelMedan}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500">{labelMedan}</span>
             {jenisInput === 'password' ? (
               <KataLaluanInput
                 value={nilaiBaharu}
@@ -140,7 +140,7 @@ function BorangPengesahan({
             )}
           </label>
           <label className="flex flex-col gap-1">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500">Kata Laluan Semasa</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500">Kata Laluan Semasa</span>
             <KataLaluanInput
               value={kataLaluanSemasa}
               onChange={(e) => setKataLaluanSemasa(e.target.value)}
@@ -275,7 +275,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
             <p className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">Butiran Profil</p>
             {MEDAN_BUTIRAN_PROFIL.map((m) => (
               <label key={m.kunci} className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-stone-500">{m.label}</span>
+                <span className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500">{m.label}</span>
                 <input
                   type="text"
                   value={butiran[m.kunci] || ''}

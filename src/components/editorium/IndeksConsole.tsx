@@ -1441,12 +1441,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                   Tolak kandungan ini? Ia akan kembali jadi draf dalam modal Tulis Kandungan.
                 </span>
                 <label className="flex flex-col gap-1">
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Sebab (pilihan, dipaparkan kepada penulis)</span>
+                  <span className={LABEL_BORANG}>Sebab (pilihan, dipaparkan kepada penulis)</span>
                   <textarea
                     value={tolakSebab}
                     onChange={(e) => setTolakSebab(e.target.value)}
                     rows={2}
-                    className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-sans text-xs bg-white focus:outline-none focus:border-Adjung-maroon"
+                    className={INPUT_BORANG}
                   />
                 </label>
                 <div>
@@ -1457,7 +1457,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               </div>
             )}
             <div className="flex flex-col gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Huraian Ringkas</span>
+              <span className={LABEL_BORANG}>Huraian Ringkas</span>
               <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200">
                 {activeItemModal.summary}
               </div>
@@ -1469,7 +1469,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 bertambah panjang tanpa faedah untuk kandungan yang tak pernah isi medan ni. */}
             {activeItemModal.summaryLong.trim() && (
               <div className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Huraian Panjang</span>
+                <span className={LABEL_BORANG}>Huraian Panjang</span>
                 <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200">
                   {activeItemModal.summaryLong}
                 </div>
@@ -1486,7 +1486,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               return (
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Nota Editor</span>
+                    <span className={LABEL_BORANG}>Nota Editor</span>
                     {bolehSuntingNota && !suntingNota && (
                       <button
                         type="button"

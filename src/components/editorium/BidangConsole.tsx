@@ -756,7 +756,7 @@ function IkonWarnaModal({
                 value={warnaDraf || target.color || ''}
                 onChange={e => { setWarnaDraf(e.target.value.toUpperCase()); setWarnaError(null); }}
                 placeholder="#802334"
-                className="w-24 px-2 py-1 border border-stone-300 rounded font-mono text-[11px] uppercase"
+                className="w-24 px-2 py-[calc(4px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-mono text-[11px] uppercase focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors"
               />
               {/* Pratonton dalam bentuk sebenar ia akan dipakai */}
               <span

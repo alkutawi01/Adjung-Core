@@ -93,7 +93,7 @@ export const LengkapkanProfilModal: React.FC<LengkapkanProfilProps> = ({ userId,
             <p className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">Butiran Profil</p>
             {MEDAN_PROFIL.map((m) => (
               <label key={m.kunci} className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">{m.label}</span>
+                <span className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-500">{m.label}</span>
                 <input
                   type="text"
                   value={nilai[m.kunci]}
