@@ -65,6 +65,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
   // Individual Loading States
   const [isFetchingRss, setIsFetchingRss] = useState(false);
   const [isAddingRss, setIsAddingRss] = useState(false);
+  const [konfirmBuangSumberId, setKonfirmBuangSumberId] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [actionLoadingMap, setActionLoadingMap] = useState<Record<string, boolean>>({});
 
@@ -252,11 +253,12 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
   };
 
   const handleDeleteRssSource = async (sourceId: string, sourceName: string) => {
-    // Pengesahan sebelum padam (2026-08-07, Audit UI/UX §E4) — sebelum ni klik terus buang sumber
-    // RSS tanpa sebarang amaran. Keparahan rendah (senarai boleh didaftar semula), jadi confirm()
-    // asli pelayar memadai di sini — tidak seperti tindakan memusnah keparahan tinggi lain dalam
-    // projek ni yang guna panel pengesahan aplikasi sendiri.
-    if (!window.confirm(`Buang sumber RSS '${sourceName}'? Berita daripada sumber ni akan berhenti diserap.`)) return;
+    // Pengesahan sebelum padam (2026-08-07, Audit UI/UX §E4; disegar semula 2026-08-09, DLG-02
+    // Pusingan 2B) — sebelum ni klik terus buang sumber RSS tanpa sebarang amaran, kemudian
+    // window.confirm() asli pelayar. Ditukar kepada pengesahan sebaris dalam-aplikasi supaya
+    // konsisten dengan corak konfirmBuang di seluruh Editorium/portal (elak isu focus-trap +
+    // dialog "disenyapkan pelayar" yang sama seperti DLG-01).
+    setKonfirmBuangSumberId(null);
     try {
       const res = await fetch(`/api/system/rss-sources/${sourceId}`, { method: 'DELETE' });
       const data = await res.json();
@@ -623,7 +625,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       className="px-4 py-2 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {isAddingRss ? <RefreshCw size={12} className="animate-spin" /> : <Plus size={12} />}
-                      {isAddingRss ? 'Menyimpan...' : 'Simpan & Daftarkan Pautan RSS'}
+                      {isAddingRss ? 'Menyimpan…' : 'Simpan & Daftarkan Pautan RSS'}
                     </button>
                   </div>
 
@@ -635,22 +637,33 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       </label>
                       <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                         {registeredRssSources.map((src) => (
-                          <div key={src.id} className="p-2.5 bg-stone-50 rounded border border-stone-200 flex justify-between items-center text-xs font-mono gap-2">
-                            <div className="min-w-0 flex-1 truncate">
-                              <span className="font-bold text-stone-800">{src.sourceName}</span>
-                              <span className="text-[10px] text-stone-500 ml-2">Skor Amanah: {src.trustScore}/100</span>
-                              <div className="text-[10px] text-stone-400 truncate">{src.rssUrl}</div>
+                          <div key={src.id} className="p-2.5 bg-stone-50 rounded border border-stone-200 flex flex-col gap-1.5 text-xs font-mono">
+                            <div className="flex justify-between items-center gap-2">
+                              <div className="min-w-0 flex-1 truncate">
+                                <span className="font-bold text-stone-800">{src.sourceName}</span>
+                                <span className="text-[10px] text-stone-500 ml-2">Skor Amanah: {src.trustScore}/100</span>
+                                <div className="text-[10px] text-stone-400 truncate">{src.rssUrl}</div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <StatusBadge tone="success" label="AKTIF" />
+                                <button
+                                  type="button"
+                                  onClick={() => setKonfirmBuangSumberId(src.id)}
+                                  className="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[9px] font-bold uppercase cursor-pointer flex items-center gap-1"
+                                >
+                                  <Trash2 size={10} /> Buang
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <StatusBadge tone="success" label="AKTIF" />
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteRssSource(src.id, src.sourceName)}
-                                className="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[9px] font-bold uppercase cursor-pointer flex items-center gap-1"
-                              >
-                                <Trash2 size={10} /> Buang
-                              </button>
-                            </div>
+                            {konfirmBuangSumberId === src.id && (
+                              <div className="flex items-center justify-between gap-2 rounded border border-rose-300 bg-rose-50 px-2 py-1.5">
+                                <span className="text-[10px] font-sans text-rose-800">Buang sumber ni? Berita daripadanya akan berhenti diserap.</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button type="button" onClick={() => setKonfirmBuangSumberId(null)} className="font-sans text-[10px] font-semibold text-stone-500 hover:text-stone-700 cursor-pointer">Batal</button>
+                                  <button type="button" onClick={() => handleDeleteRssSource(src.id, src.sourceName)} className="font-sans text-[10px] font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded px-2 py-0.5 cursor-pointer">Buang</button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

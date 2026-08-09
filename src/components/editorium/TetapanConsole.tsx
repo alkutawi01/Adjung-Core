@@ -321,7 +321,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         fetchBlockedCategories();
       } else {
         const body = await res.json().catch(() => ({}));
-        alert(body.error || 'Gagal menambah kategori.');
+        addToast('error', body.error || 'Gagal menambah kategori.');
       }
     } catch (e) {
       console.error('Add blocked category error:', e);
@@ -396,7 +396,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         // kuasa editorial supaya Ketua Editor tak sesekali terkunci keluar daripada kerja
         // editorial sendiri melalui klik tersilap).
         if (row.isImmutableAdmin && (permKey === 'viewAll' || permKey === 'editAll' || permKey === 'publish' || permKey === 'reject')) {
-          alert('Ketua Editor tidak dibenarkan menarik semula kuasa editorial teras daripada akaun sendiri.');
+          addToast('error', 'Ketua Editor tidak dibenarkan menarik semula kuasa editorial teras daripada akaun sendiri.');
           return row;
         }
         return {
