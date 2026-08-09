@@ -538,7 +538,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
   // peranan lalai (`editor` sahaja) sudah ditukar. Sebelum ni klik latar/X menutup borang terus
   // walaupun editor sudah menaip nama/emel.
   const kotor = !!(username || email || penName) || roles.length !== 1 || roles[0] !== 'editor';
-  const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
+  const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onTutup);
 
   return (
     <EditorDialog
@@ -555,6 +555,15 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
       }
     >
       <form id="borang-tambah-anggota" onSubmit={hantar} className="space-y-4">
+        {tunjukAmaran && (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2">
+            <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button type="button" onClick={batalTutup} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
+              <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
+            </div>
+          </div>
+        )}
         <label className="block">
           <span className={LABEL_BORANG}>Nama Pena</span>
           <input type="text" value={penName} onChange={e => setPenName(e.target.value)} required className={INPUT_BORANG} />

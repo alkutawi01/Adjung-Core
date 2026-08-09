@@ -663,7 +663,7 @@ const EditorSlotModal: React.FC<EditorSlotModalProps> = ({
   slotIndex, pengguna, drafEditor, setDrafEditor, drafEditorAwal, menyimpan, ralat, onSimpan, onTutup,
 }) => {
   const kotor = drafEditor.length !== drafEditorAwal.length || !drafEditor.every(id => drafEditorAwal.includes(id));
-  const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
+  const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onTutup);
 
   return (
     <EditorDialog
@@ -682,6 +682,15 @@ const EditorSlotModal: React.FC<EditorSlotModalProps> = ({
       }
     >
       <div className="space-y-3">
+        {tunjukAmaran && (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2">
+            <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button type="button" onClick={batalTutup} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
+              <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
+            </div>
+          </div>
+        )}
         <p className="text-stone-500 text-[10px] leading-relaxed">
           Tanda setiap editor yang diamanahkan menguruskan slot ini. Mereka juga secara automatik
           bertanggungjawab ke atas Bidang slot ini.
@@ -743,7 +752,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
   onSalinDraf, onSimpan, onTutup,
 }) => {
   const kotor = JSON.stringify(draf) !== JSON.stringify(drafAwal);
-  const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
+  const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onTutup);
 
   return (
     /* saiz="lg" (max-w-2xl, bukan "sm") — modal ni borang tetapan berbilang medan, dan Pelan 03
@@ -765,6 +774,15 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
       }
     >
       <div className="space-y-4">
+        {tunjukAmaran && (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2">
+            <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button type="button" onClick={batalTutup} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
+              <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
+            </div>
+          </div>
+        )}
         <div className="flex flex-col gap-1">
           <span className={LABEL_BORANG}>Bidang</span>
           {/* `sm` — senarai Bidang ialah nama pendek satu perkataan ("Ekonomi", "Kebudayaan");

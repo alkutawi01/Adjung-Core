@@ -198,7 +198,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
     MEDAN_BUTIRAN_PROFIL.some((m) => (butiran[m.kunci] || '') !== (profil[m.kunci] || ''));
 
   const refModal = React.useRef<HTMLDivElement>(null);
-  const cubaTutup = useAmaranBelumSimpan(kotor, onTutup);
+  const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onTutup);
   useModalFokus(refModal, cubaTutup);
 
   const simpan = async (e: React.FormEvent) => {
@@ -242,6 +242,16 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
           <h3 id="profil-editor-modal-tajuk" className="font-serif text-lg font-bold text-Adjung-maroon">Profil Editor</h3>
           <button type="button" onClick={cubaTutup} aria-label="Tutup Profil Editor" className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
+
+        {tunjukAmaran && (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2">
+            <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button type="button" onClick={batalTutup} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
+              <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={simpan} className="space-y-3">
           <label className="flex flex-col gap-1">
