@@ -852,7 +852,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                                     {item.source}
                                   </span>
                                   <span className="font-mono text-[9px] font-bold uppercase text-[var(--color-Adjung-maroon)] bg-white px-2 py-0.5 rounded border border-stone-200">
-                                    DESK: {item.category || 'TIADA DESK'}
+                                    DESK: BERITA SEMASA
                                   </span>
 
                                   {/* TAG ASAL RSS XML BADGE */}
