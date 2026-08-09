@@ -8,6 +8,7 @@ import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
+import { AmaranBelumSimpan } from '../common/AmaranBelumSimpan';
 import { FormColumn } from '../common/FormColumn';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { EditorDialog } from '../common/EditorDialog';
@@ -683,15 +684,7 @@ const EditorSlotModal: React.FC<EditorSlotModalProps> = ({
       }
     >
       <div className="space-y-3">
-        {tunjukAmaran && (
-          <div className="flex items-center justify-between gap-3 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2">
-            <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button type="button" variant="ghost" size="sm" onClick={batalTutup}>Batal</Button>
-              <Button type="button" variant="primary" size="sm" onClick={sahkanTutup}>Ya, teruskan</Button>
-            </div>
-          </div>
-        )}
+        {tunjukAmaran && <AmaranBelumSimpan onBatal={batalTutup} onSahkan={sahkanTutup} />}
         <p className="text-stone-500 text-[10px] leading-relaxed">
           Tanda setiap editor yang diamanahkan menguruskan slot ini. Mereka juga secara automatik
           bertanggungjawab ke atas Bidang slot ini.
@@ -775,15 +768,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
       }
     >
       <div className="space-y-4">
-        {tunjukAmaran && (
-          <div className="flex items-center justify-between gap-3 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2">
-            <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button type="button" variant="ghost" size="sm" onClick={batalTutup}>Batal</Button>
-              <Button type="button" variant="primary" size="sm" onClick={sahkanTutup}>Ya, teruskan</Button>
-            </div>
-          </div>
-        )}
+        {tunjukAmaran && <AmaranBelumSimpan onBatal={batalTutup} onSahkan={sahkanTutup} />}
         <div className="flex flex-col gap-1">
           <span className={LABEL_BORANG}>Bidang</span>
           {/* `sm` — senarai Bidang ialah nama pendek satu perkataan ("Ekonomi", "Kebudayaan");

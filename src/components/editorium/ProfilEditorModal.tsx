@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
 import { Button } from '../common/Button';
+import { AmaranBelumSimpan } from '../common/AmaranBelumSimpan';
 import { KataLaluanInput } from '../common/KataLaluanInput';
 import { labelUi } from '../../config/istilah';
 import { useModalFokus } from '../../hooks/useModalFokus';
@@ -244,15 +245,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
           <button type="button" onClick={cubaTutup} aria-label="Tutup Profil Editor" className="text-stone-400 hover:text-stone-600 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
 
-        {tunjukAmaran && (
-          <div className="flex items-center justify-between gap-3 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-3 py-2">
-            <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button type="button" variant="ghost" size="sm" onClick={batalTutup}>Batal</Button>
-              <Button type="button" variant="primary" size="sm" onClick={sahkanTutup}>Ya, teruskan</Button>
-            </div>
-          </div>
-        )}
+        {tunjukAmaran && <AmaranBelumSimpan onBatal={batalTutup} onSahkan={sahkanTutup} />}
 
         <form onSubmit={simpan} className="space-y-3">
           <label className="flex flex-col gap-1">

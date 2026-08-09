@@ -5,6 +5,7 @@ import { Tooltip } from '../common/Tooltip';
 import { StatusBadge } from '../common/StatusBadge';
 import { useModalFokus } from '../../hooks/useModalFokus';
 import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
+import { AmaranBelumSimpan } from '../common/AmaranBelumSimpan';
 import { BudgetMeter } from './SlotManagerModal';
 import { ceilingForSlot } from '../../../core/editorial/GeometryConfig.js';
 
@@ -387,15 +388,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         {/* Scrollable Body Container with contain: paint */}
         <div className="overflow-y-auto p-6 space-y-6 flex-1 text-xs font-sans overscroll-contain">
 
-          {tunjukAmaran && (
-            <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--color-Adjung-maroon)]/30 bg-[var(--color-Adjung-maroon)]/5 px-3 py-2">
-              <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
-              <div className="flex items-center gap-2 shrink-0">
-                <button type="button" onClick={batalTutup} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
-                <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-[var(--color-Adjung-maroon)] hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
-              </div>
-            </div>
-          )}
+          {tunjukAmaran && <AmaranBelumSimpan onBatal={batalTutup} onSahkan={sahkanTutup} />}
 
           {/* Mod Live Status & Compliance Bar */}
           <div className="bg-[#F9F8F6] p-3.5 rounded-md border border-stone-200 flex flex-wrap items-center justify-between gap-3 text-xs select-none">
