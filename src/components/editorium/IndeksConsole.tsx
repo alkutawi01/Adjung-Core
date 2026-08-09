@@ -1567,23 +1567,45 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               );
             })()}
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs bg-stone-100 p-3 rounded border border-stone-200">
-              <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{labelStatus(activeItemModal.status)}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">BIDANG</span><strong className="text-stone-900">{activeBidangList.find(b => b.name.toLowerCase() === activeItemModal.desk.toLowerCase())?.name || formatTitleCase(activeItemModal.desk)}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik ? formatTitleCase(activeItemModal.topik) : '-'}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">SUMBER</span><strong className="text-stone-900">{activeItemModal.source || '-'}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">KAEDAH</span><strong className="text-stone-900">{labelMod(activeItemModal.creator) || '-'}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">EDITOR</span><strong className="text-stone-900">{activeItemModal.editorName || 'Tidak diketahui'}</strong></div>
-              <div><span className="text-stone-500 text-[9px] block">TARIKH SUMBER</span><strong className="text-stone-900">{activeItemModal.originalDate || '-'}</strong></div>
-              <div className="col-span-2 md:col-span-3 min-w-0">
-                <span className="text-stone-500 text-[9px] block">URL</span>
-                {activeItemModal.url && activeItemModal.url !== '#' ? (
-                  <a href={activeItemModal.url} target="_blank" rel="noopener noreferrer" className="text-Adjung-maroon underline break-all font-semibold">{activeItemModal.url}</a>
-                ) : (
-                  <strong className="text-stone-900">-</strong>
-                )}
+            {/* IH-03 (Pusingan 6, audit ChatGPT 2026-08-09) — dahulu 9 medan grid seragam,
+                berat visual sama walau kepentingan keputusan berbeza nyata (Status/Bidang/Topik
+                menggerak tindakan Siar/Tolak; Sumber/Tarikh Sumber/URL cuma provenans, relevan
+                terutamanya kandungan asal RSS). Dikumpul 3 klasifikasi semantik yang disokong
+                kod sedia ada (bukan kumpulan reka-reka) — tiada medan dibuang, tiada data/logik
+                diubah, cuma susunan+heading kumpulan. Tahap primary/secondary dalam setiap
+                kumpulan KEKAL sama (belum keputusan Izzat), semua guna heading konsisten. */}
+            <div className="space-y-3 font-mono text-xs bg-stone-100 p-3 rounded border border-stone-200">
+              <div>
+                <span className="text-stone-400 text-[9px] uppercase tracking-widest font-bold block mb-1.5 border-b border-stone-200 pb-1">Kandungan</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{labelStatus(activeItemModal.status)}</strong></div>
+                  <div><span className="text-stone-500 text-[9px] block">BIDANG</span><strong className="text-stone-900">{activeBidangList.find(b => b.name.toLowerCase() === activeItemModal.desk.toLowerCase())?.name || formatTitleCase(activeItemModal.desk)}</strong></div>
+                  <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik ? formatTitleCase(activeItemModal.topik) : '-'}</strong></div>
+                </div>
+              </div>
+              <div>
+                <span className="text-stone-400 text-[9px] uppercase tracking-widest font-bold block mb-1.5 border-b border-stone-200 pb-1">Penerbitan</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div><span className="text-stone-500 text-[9px] block">JENIS KAD</span><strong className="text-stone-900">{activeItemModal.cardType === '-' ? '-' : <TierLabel tier={activeItemModal.cardType} />}</strong></div>
+                  <div><span className="text-stone-500 text-[9px] block">SLOT</span><strong className="text-stone-900">{activeItemModal.slot}</strong></div>
+                  <div><span className="text-stone-500 text-[9px] block">KAEDAH</span><strong className="text-stone-900">{labelMod(activeItemModal.creator) || '-'}</strong></div>
+                  <div><span className="text-stone-500 text-[9px] block">EDITOR</span><strong className="text-stone-900">{activeItemModal.editorName || 'Tidak diketahui'}</strong></div>
+                </div>
+              </div>
+              <div>
+                <span className="text-stone-400 text-[9px] uppercase tracking-widest font-bold block mb-1.5 border-b border-stone-200 pb-1">Sumber</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div><span className="text-stone-500 text-[9px] block">SUMBER</span><strong className="text-stone-900">{activeItemModal.source || '-'}</strong></div>
+                  <div><span className="text-stone-500 text-[9px] block">TARIKH SUMBER</span><strong className="text-stone-900">{activeItemModal.originalDate || '-'}</strong></div>
+                  <div className="col-span-2 md:col-span-2 min-w-0">
+                    <span className="text-stone-500 text-[9px] block">URL</span>
+                    {activeItemModal.url && activeItemModal.url !== '#' ? (
+                      <a href={activeItemModal.url} target="_blank" rel="noopener noreferrer" className="text-Adjung-maroon underline break-all font-semibold">{activeItemModal.url}</a>
+                    ) : (
+                      <strong className="text-stone-900">-</strong>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

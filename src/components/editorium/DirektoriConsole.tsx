@@ -490,18 +490,32 @@ function ProfilAnggotaModal({
               <span className="text-stone-500 font-semibold text-xs">TUKAR STATUS PERKHIDMATAN:</span>
               <div className="flex items-center gap-2 flex-wrap">
                 {/* "Ditamatkan" ialah tindakan merbahaya — varian `bahaya`, dan pengesahan dua
-                    langkah sedia ada (klikTamatkan → modal konfirmasiTamat) dikekalkan. */}
-                {STATUS_SAH.map(s => (
+                    langkah sedia ada (klikTamatkan → modal konfirmasiTamat) dikekalkan.
+                    IH-04 (Pusingan 6, audit ChatGPT 2026-08-09) — pemisah ruang+garis (bukan
+                    warna sahaja) supaya kedudukan fizikal turut mencerminkan kelas tindakan
+                    berbeza yang SUDAH wujud dalam logik (laluan/konfirmasi/consequence berbeza,
+                    lihat komen di atas dan ubahStatus vs klikTamatkan). Tiada warna/logik/label/
+                    susunan 3 status rutin diubah. */}
+                {STATUS_SAH.filter(s => s !== 'Ditamatkan').map(s => (
                   <Button
                     key={s}
-                    variant={s === 'Ditamatkan' ? 'bahaya' : 'secondary'}
+                    variant="secondary"
                     size="sm"
-                    onClick={() => s === 'Ditamatkan' ? klikTamatkan() : ubahStatus(s)}
-                    disabled={staff.status === s || (s === 'Ditamatkan' && memuatKonfirmasi)}
+                    onClick={() => ubahStatus(s)}
+                    disabled={staff.status === s}
                   >
-                    {s === 'Ditamatkan' && memuatKonfirmasi ? 'Menyemak…' : s}
+                    {s}
                   </Button>
                 ))}
+                <span className="w-px self-stretch bg-stone-200 mx-1" aria-hidden="true" />
+                <Button
+                  variant="bahaya"
+                  size="sm"
+                  onClick={klikTamatkan}
+                  disabled={staff.status === 'Ditamatkan' || memuatKonfirmasi}
+                >
+                  {memuatKonfirmasi ? 'Menyemak…' : 'Ditamatkan'}
+                </Button>
               </div>
             </div>
             {ralatStatus && <MesejStatus tone="error">{ralatStatus}</MesejStatus>}
