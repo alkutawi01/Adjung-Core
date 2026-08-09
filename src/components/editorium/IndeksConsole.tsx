@@ -1118,7 +1118,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           minta pengesahan dahulu sebab kesannya lebih jauh (Tolak buang rekod daripada Indeks,
           Padam pindah ke Tong Sampah). */}
       {pilihan.size > 0 && (
-        <div className="flex items-center justify-between gap-4 flex-wrap rounded-md border border-[#802334]/30 bg-[#802334]/5 px-4 py-2.5">
+        <div className="flex items-center justify-between gap-4 flex-wrap rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-4 py-2.5">
           <span className="font-sans text-xs font-semibold text-stone-700">
             {pilihan.size} kandungan dipilih
             <button type="button" onClick={() => setPilihan(new Set())} className="ml-2.5 font-normal text-stone-500 hover:text-stone-800 underline underline-offset-2 cursor-pointer">
@@ -1129,10 +1129,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <span className="font-sans text-xs text-stone-500">Memproses…</span>
           ) : confirmPukal ? (
             <span className="flex items-center gap-2 font-sans text-xs">
-              <span className="text-[#a8241f] font-semibold">
+              <span className="text-[var(--color-error)] font-semibold">
                 {confirmPukal === 'Padam' ? `Padam ${pilihan.size} kandungan ke Tong Sampah?` : `Siarkan ${pilihan.size} kandungan?`}
               </span>
-              <button type="button" onClick={() => jalankanTindakanPukal(confirmPukal as any)} className="font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
+              <button type="button" onClick={() => jalankanTindakanPukal(confirmPukal as any)} className="font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
               <button type="button" onClick={() => setConfirmPukal('')} className="font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
             </span>
           ) : (
@@ -1140,7 +1140,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <button type="button" onClick={() => setConfirmPukal('Live')} className="font-semibold text-stone-700 hover:text-Adjung-maroon border border-stone-300 rounded px-2.5 py-1 cursor-pointer">Siar</button>
               <button type="button" onClick={() => jalankanTindakanPukal('Archive')} className="font-semibold text-stone-700 hover:text-Adjung-maroon border border-stone-300 rounded px-2.5 py-1 cursor-pointer">Arkib</button>
               {currentUserRole === 'KETUA_EDITOR' && (
-                <button type="button" onClick={() => setConfirmPukal('Padam')} className="font-semibold text-[#a8241f] hover:text-[#802334] border border-[#a8241f]/30 rounded px-2.5 py-1 cursor-pointer">Padam</button>
+                <button type="button" onClick={() => setConfirmPukal('Padam')} className="font-semibold text-[var(--color-error)] hover:text-Adjung-maroon border border-[var(--color-error)]/30 rounded px-2.5 py-1 cursor-pointer">Padam</button>
               )}
             </span>
           )}
@@ -1200,7 +1200,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     ref={(el) => { if (el) el.indeterminate = idBolehPilihHalamanIni.some(id => pilihan.has(id)) && !idBolehPilihHalamanIni.every(id => pilihan.has(id)); }}
                     onChange={(e) => togglePilihSemua(e.target.checked)}
                     disabled={idBolehPilihHalamanIni.length === 0}
-                    className="cursor-pointer accent-[#802334] disabled:cursor-not-allowed"
+                    className="cursor-pointer accent-Adjung-maroon disabled:cursor-not-allowed"
                   />
                 </th>
                 <th scope="col" className="p-2.5 w-16">ID</th>
@@ -1248,7 +1248,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 return (
                   <tr
                     key={rec.id}
-                    className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS} ${pilihan.has(rec.id) ? 'bg-[#802334]/[0.04]' : ''}`}
+                    className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS} ${pilihan.has(rec.id) ? 'bg-Adjung-maroon/[0.04]' : ''}`}
                   >
                     <td className="p-2.5" onClick={e => e.stopPropagation()}>
                       <input
@@ -1257,7 +1257,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         checked={pilihan.has(rec.id)}
                         onChange={() => togglePilih(rec.id)}
                         disabled={rec.slot === 'Ticker' || isReadOnly}
-                        className="cursor-pointer accent-[#802334] disabled:cursor-not-allowed disabled:opacity-40"
+                        className="cursor-pointer accent-Adjung-maroon disabled:cursor-not-allowed disabled:opacity-40"
                       />
                     </td>
                     <Tooltip text={rec.id}>
@@ -1302,8 +1302,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         // DLG-10 (2B, audit ChatGPT 2026-08-09) — dahulu label butang sahaja
                         // ("Padam kekal?"), tak terangkan ia tak boleh dibuat asal.
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="text-[#a8241f] font-semibold">Padam kekal, tak boleh dibuat asal?</span>
-                          <button type="button" onClick={() => handlePadamKekal(rec.id)} className="font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-2 py-1 cursor-pointer">Padam Kekal</button>
+                          <span className="text-[var(--color-error)] font-semibold">Padam kekal, tak boleh dibuat asal?</span>
+                          <button type="button" onClick={() => handlePadamKekal(rec.id)} className="font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-2 py-1 cursor-pointer">Padam Kekal</button>
                           <button type="button" onClick={() => setConfirmPadamKekalId('')} className="font-semibold text-stone-500 hover:text-stone-700 cursor-pointer px-1">Batal</button>
                         </span>
                       ) : confirmTolakId === rec.id ? (
@@ -1311,15 +1311,15 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         // ruang utk medan sebab; sebab penuh masih boleh diisi via modal
                         // butiran ("Tolak (kembali jadi draf)").
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="text-[#a8241f] font-semibold">Tolak, jadi draf?</span>
-                          <button type="button" onClick={() => handleRejectToDraft(rec.id, '')} className="font-semibold text-white bg-[#802334] hover:bg-[#6b1d2b] rounded px-2 py-1 cursor-pointer">Ya</button>
+                          <span className="text-[var(--color-error)] font-semibold">Tolak, jadi draf?</span>
+                          <button type="button" onClick={() => handleRejectToDraft(rec.id, '')} className="font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-2 py-1 cursor-pointer">Ya</button>
                           <button type="button" onClick={() => setConfirmTolakId('')} className="font-semibold text-stone-500 hover:text-stone-700 cursor-pointer px-1">Batal</button>
                         </span>
                       ) : rec.slot !== 'Ticker' && !isReadOnly && rec.status === 'Dipadam' ? (
                         <span className="inline-flex items-center gap-1.5">
                           <button type="button" onClick={() => handlePulihkanTongSampah(rec.id)} className="font-semibold text-stone-700 hover:text-Adjung-maroon cursor-pointer border border-stone-300 rounded px-2 py-1">Pulihkan</button>
                           {currentUserRole === 'KETUA_EDITOR' && (
-                            <button type="button" onClick={() => setConfirmPadamKekalId(rec.id)} className="font-semibold text-[#a8241f] hover:text-[#802334] cursor-pointer border border-[#a8241f]/30 rounded px-2 py-1">Padam kekal</button>
+                            <button type="button" onClick={() => setConfirmPadamKekalId(rec.id)} className="font-semibold text-[var(--color-error)] hover:text-Adjung-maroon cursor-pointer border border-[var(--color-error)]/30 rounded px-2 py-1">Padam kekal</button>
                           )}
                         </span>
                       ) : rec.slot !== 'Ticker' && !isReadOnly ? (
@@ -1436,7 +1436,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           )}
         >
             {confirmTolakId === activeItemModal.id && (
-              <div className="flex flex-col gap-2 rounded-md border border-[#802334]/30 bg-[#802334]/5 p-3">
+              <div className="flex flex-col gap-2 rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 p-3">
                 <span className="font-sans text-xs font-semibold text-stone-700">
                   Tolak kandungan ini? Ia akan kembali jadi draf dalam modal Tulis Kandungan.
                 </span>
@@ -1521,7 +1521,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           type="button"
                           onClick={handleSimpanNota}
                           disabled={menyimpanNota}
-                          className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-[#6b1d2b] rounded px-3 py-1.5 cursor-pointer disabled:opacity-50"
+                          className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-3 py-1.5 cursor-pointer disabled:opacity-50"
                         >
                           {menyimpanNota ? 'Menyimpan…' : 'Simpan Nota'}
                         </button>

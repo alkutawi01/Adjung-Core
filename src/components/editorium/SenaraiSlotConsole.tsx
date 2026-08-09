@@ -688,7 +688,7 @@ const EditorSlotModal: React.FC<EditorSlotModalProps> = ({
             <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
             <div className="flex items-center gap-2 shrink-0">
               <button type="button" onClick={batalTutup} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
-              <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
+              <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
             </div>
           </div>
         )}
@@ -780,7 +780,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
             <span className="font-sans text-xs text-stone-700">Ada perubahan belum disimpan. Tutup dan buang perubahan ini?</span>
             <div className="flex items-center gap-2 shrink-0">
               <button type="button" onClick={batalTutup} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">Batal</button>
-              <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-[#6b1d2b] rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
+              <button type="button" onClick={sahkanTutup} className="font-sans text-xs font-semibold text-white bg-Adjung-maroon hover:bg-Adjung-maroon-dark rounded px-3 py-1 cursor-pointer">Ya, teruskan</button>
             </div>
           </div>
         )}
