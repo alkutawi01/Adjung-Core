@@ -344,7 +344,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
             {paparanArkib ? 'Tiada nota diarkibkan.' : 'Tiada nota aktif.'}
           </KeadaanKosong>
         ) : (
-          <ul className="list-none m-0 p-0 divide-y divide-stone-100">
+          <ul className="list-none m-0 p-0 divide-y divide-Adjung-line">
             {nota.map((n) => (
               <li key={n.id} className="py-3 first:pt-0 last:pb-0">
                 <div className="flex items-start justify-between gap-4">

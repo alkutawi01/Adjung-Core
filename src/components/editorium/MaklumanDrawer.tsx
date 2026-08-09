@@ -164,7 +164,7 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
           <button
             type="button"
             onClick={() => setTab('editorial')}
-            className={`flex-1 px-4 py-2.5 font-semibold text-center border-b-2 transition-colors cursor-pointer ${
+            className={`flex-1 px-4 py-2 font-semibold text-center border-b-2 transition-colors cursor-pointer ${
               tab === 'editorial' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
@@ -173,7 +173,7 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
           <button
             type="button"
             onClick={() => setTab('sistem')}
-            className={`flex-1 px-4 py-2.5 font-semibold text-center border-b-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 ${
+            className={`flex-1 px-4 py-2 font-semibold text-center border-b-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 ${
               tab === 'sistem' ? 'border-Adjung-maroon text-Adjung-maroon bg-stone-50' : 'border-transparent text-stone-500 hover:text-stone-800'
             }`}
           >
@@ -196,7 +196,7 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                 : 'Tiada makluman sistem semasa. Kegagalan RSS/cuaca/pautan mati akan muncul di sini.'}
             </KeadaanKosong>
           ) : (
-            <ul className="list-none m-0 p-0 divide-y divide-stone-100">
+            <ul className="list-none m-0 p-0 divide-y divide-Adjung-line">
               {senarai.map((n) => {
                 if (n.jenisSumber === 'notifikasi') {
                   return (

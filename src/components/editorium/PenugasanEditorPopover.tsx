@@ -59,7 +59,7 @@ export const PenugasanEditorPopover: React.FC<PenugasanEditorPopoverProps> = ({
       {pengguna.length === 0 ? (
         <p className="text-stone-400 italic py-2">Tiada pengguna dalam sistem.</p>
       ) : (
-        <div className="max-h-52 overflow-y-auto divide-y divide-stone-100 border border-stone-200 rounded">
+        <div className="max-h-52 overflow-y-auto divide-y divide-Adjung-line border border-stone-200 rounded">
           {pengguna.map((u) => {
             const ditanda = draf.includes(u.id);
             return (

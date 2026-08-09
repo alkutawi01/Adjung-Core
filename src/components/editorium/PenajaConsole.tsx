@@ -336,7 +336,7 @@ export const PenajaConsole: React.FC = () => {
         ) : senaraiDipapar.length === 0 ? (
           <KeadaanKosong>{paparanArkib ? 'Tiada penaja diarkibkan.' : 'Tiada penaja aktif.'}</KeadaanKosong>
         ) : (
-          <ul className="list-none m-0 p-0 divide-y divide-stone-100">
+          <ul className="list-none m-0 p-0 divide-y divide-Adjung-line">
             {senaraiDipapar.map((p) => (
               <li key={p.id} className="py-3 first:pt-0 last:pb-0 flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 flex items-center gap-3">

@@ -293,7 +293,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                   belum pernah diterbitkan. Kandungan yang SUDAH diterbitkan (aktif/arkib) tidak terjejas — cuma
                   yang belum terbit ni pilihan awak.
                 </p>
-                <div className="max-h-32 overflow-y-auto border border-stone-200 rounded divide-y divide-stone-100">
+                <div className="max-h-32 overflow-y-auto border border-stone-200 rounded divide-y divide-Adjung-line">
                   {konfirmasiTamat.draf.map((d, i) => (
                     <div key={`draf-${i}`} className="px-3 py-1.5 flex justify-between gap-2">
                       <span className="text-stone-700 truncate">{d.tajuk}</span>

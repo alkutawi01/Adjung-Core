@@ -533,7 +533,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {subTab === 'PolisiKandungan' && (
         <PanelCard className="space-y-4 text-xs">
           <SectionLabel>1.1 — Polisi Teks &amp; Format Global</SectionLabel>
-          <div className="space-y-4 divide-y divide-stone-100">
+          <div className="space-y-4 divide-y divide-Adjung-line">
             {/* Autocondong Istilah Asing & Pinjaman (2026-08-01) — DIPINDAHKAN ke Pentadbiran →
                 Editorial → Autocondong, sebahagian daripada spesifikasi konsol Editorial pemilik
                 projek. Bukan dibuang; jangan cipta semula di sini. */}
