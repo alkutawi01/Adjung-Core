@@ -349,7 +349,7 @@ export const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvi
   return (
     <div
       ref={rujukKotak}
-      className={`w-full flex-1 relative flex flex-col justify-between overflow-hidden${terlimpah ? ' kad-limpah' : ''}`}
+      className={`w-full flex-1 min-h-0 relative flex flex-col justify-between overflow-hidden${terlimpah ? ' kad-limpah' : ''}`}
     >
       <AnimatePresence mode="sync">
         <motion.div
