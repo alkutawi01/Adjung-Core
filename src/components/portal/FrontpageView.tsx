@@ -2803,7 +2803,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`}
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
-                    <div className="md:flex-1">
+                    <div className="flex-1">
                       <CarouselStableBlock
                         items={bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]]}
                         activeIndex={bentoNewsItems[2].carouselIndex || 0}
