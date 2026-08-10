@@ -1577,7 +1577,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
     const fallbacks = Array.from({ length: 38 }, (_, i) => {
       const pool = BAR_SLOTS.has(i) ? SHORT_TITLE_SAFE.map(idx => ABOUT_ADJUNG_ITEMS[idx]) : ABOUT_ADJUNG_ITEMS;
-      const item = pool[i % pool.length];
+      // GEOMETRY-13C (2026-08-10, ujian sementara SAHAJA): paksa slot 4 papar item1 (tajuk
+      // worst-case KOMPAK yg dikenal pasti GEOMETRY-13B) utk ujian A/B production. BUANG baris
+      // ni selepas nilai min-height stabil dikenal pasti.
+      const item = i === 4 ? ABOUT_ADJUNG_ITEMS[1] : pool[i % pool.length];
       return {
         desk: item.desk,
         title: item.title,
@@ -2877,7 +2880,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[4] && (
                 <div 
                   data-slot={4}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1 group`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[140px] md:min-h-[120px] flex-1 group`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
