@@ -2742,6 +2742,17 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             #bento-news-grid [data-bento-inner] {
               min-height: auto !important;
             }
+            /* Pasangan KOMPAK (dua kad bertindan dalam satu lajur) perlukan satu langkah tambahan:
+               kad-kadnya guna kelas flex-1, iaitu flex: 1 1 0%. Basis 0% bermakna saiz asasnya
+               SIFAR dan tinggi datang SEPENUHNYA daripada membahagi tinggi lajur 50/50 — jadi
+               height:auto di atas diabaikan begitu sahaja, dan kad yang tajuknya panjang tetap
+               dipotong (disahkan pada iPhone 428px: limpah 10px, sumber terkeluar). Tukar kepada
+               basis auto supaya saiz asas = tinggi KANDUNGAN sebenar; flex-grow:1 masih dikekalkan
+               jadi kad tetap meregang mengisi baki ruang lajur (jurang bawah kekal 0), cuma kini
+               dua kad boleh berbeza tinggi mengikut kandungan masing-masing. */
+            #bento-news-grid [data-kompak-pair] [data-slot] {
+              flex: 1 0 auto !important;
+            }
             /* Huraian 12px seragam pada telefon (permintaan Izzat) — !important wajib:
                getCardTheme().briefStyle tetapkan fontSize:14px terus sebagai gaya INLINE pada
                setiap <p> huraian, gaya inline menewaskan kelas Tailwind (termasuk text-[12px])
@@ -2893,7 +2904,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Right/Bottom-Right: Two Stacked Compacts (Indices 4 & 5) */}
               {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
                   telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="col-span-2 flex flex-col md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
+              <div data-kompak-pair className="col-span-2 flex flex-col md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[4] && (
                 <div 
                   data-slot={4}
@@ -3235,7 +3246,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Two Stacked Compacts (Indices 17 & 18) */}
               {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
                   telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="col-span-2 flex flex-col md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
+              <div data-kompak-pair className="col-span-2 flex flex-col md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[17] && (
                 <div 
                   data-slot={17}
@@ -3611,7 +3622,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {/* Two Stacked Compacts (Indices 31 & 32) */}
               {/* Pasangan KOMPAK: bertindan menegak pada desktop, dua kolum bersebelahan pada
                   telefon (rujuk PHONE_TIER_BOX.KOMPAK — nisbah 1:1 berpasangan). */}
-              <div className="col-span-2 flex flex-col md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
+              <div data-kompak-pair className="col-span-2 flex flex-col md:col-span-2 md:flex md:flex-col md:gap-4 h-full">
                 {bentoNewsItems[31] && (
                 <div 
                   data-slot={31}
