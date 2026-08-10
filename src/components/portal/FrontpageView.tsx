@@ -2880,7 +2880,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[4] && (
                 <div 
                   data-slot={4}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[150px] md:min-h-[120px] flex-1 group`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[160px] md:min-h-[120px] flex-1 group`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
