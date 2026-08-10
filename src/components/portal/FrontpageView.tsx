@@ -2706,15 +2706,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             #bento-news-grid [data-bar-cluster] {
               background-color: #fff !important;
             }
-            /* WEBKIT-07 Keadaan A (2026-08-10) -- ujian sementara SAHAJA, keluarkan slot 1,3,4,5
-               drpd flow grid supaya PENERBITAN (slot 2) keseorangan dalam row1 (tiada item lain
-               boleh alir masuk isi ruang berbaki). BUANG selepas data diambil. */
-            #bento-news-grid [data-slot="1"],
-            #bento-news-grid [data-slot="3"],
-            #bento-news-grid [data-slot="4"],
-            #bento-news-grid [data-slot="5"] {
-              display: none !important;
-            }
             /* Huraian 12px seragam pada telefon (permintaan Izzat) — !important wajib:
                getCardTheme().briefStyle tetapkan fontSize:14px terus sebagai gaya INLINE pada
                setiap <p> huraian, gaya inline menewaskan kelas Tailwind (termasuk text-[12px])
