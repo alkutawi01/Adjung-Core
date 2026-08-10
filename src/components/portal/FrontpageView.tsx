@@ -1727,7 +1727,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         itemToPush.categoryColor = categoryColors[itemToPush.desk.toLowerCase()];
       }
       itemToPush.index = i;
-      result.push(itemToPush);
+      // BAR ialah kluster "PROGRAM-PROGRAM BERMANFAAT" -- kontrak produk 100% acara sebenar
+      // (Perlembagaan, PerlembagaanConsole.tsx: "BUKAN untuk berita"), bukan tier generik. Slot
+      // BAR yang tiada kandungan acara sebenar dari DB TIDAK dapat placeholder Adjung Brief
+      // (undefined, bukan fallback) supaya seluruh kluster boleh disorok apabila tiada satu acara
+      // pun (lihat render kluster di bawah) — cipta "acara" rekaan atau fakta produk tak berkaitan
+      // di sini lebih mengelirukan daripada seksyen yang tidak wujud langsung.
+      const isBarWithoutRealContent = TIER_SLOTS.BAR.includes(i) && !hasRealContent;
+      result.push(isBarWithoutRealContent ? undefined : itemToPush);
     }
 
     return result;
@@ -2049,6 +2056,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   }, [rawBentoNewsItems, carouselIndices]);
 
 
+
+  // Kluster "PROGRAM-PROGRAM BERMANFAAT" (BAR) 100% acara sebenar (Perlembagaan) — sorok
+  // SELURUH kluster (label + kad) apabila tiada satu acara pun, bukan papar label dgn ruang
+  // kosong. Slot BAR tanpa acara sebenar ialah `undefined` (lihat rawBentoNewsItems), jadi
+  // `.some(Boolean)` cukup — tiada keperluan semak medan tambahan.
+  const hasAnyBarEvent = TIER_SLOTS.BAR.some((idx) => !!bentoNewsItems[idx]);
 
   const activeNewsItem = bentoNewsItems[0];
 
@@ -3096,6 +3109,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
               )}
 
+              {hasAnyBarEvent && (
               <div className="col-span-2 flex flex-col h-full md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2" data-bar-cluster="">
                 <div className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 -translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
@@ -3123,6 +3137,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   );
                 })}
               </div>
+              )}
 
               {/* Left Bottom Right: Square (Index 11) */}
               {bentoNewsItems[11] && (
@@ -3508,6 +3523,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
               )}
 
+              {hasAnyBarEvent && (
               <div className="col-span-2 flex flex-col h-full md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2" data-bar-cluster="">
                 <div className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-0 whitespace-nowrap">
@@ -3535,6 +3551,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   );
                 })}
               </div>
+              )}
 
             </div>
 
