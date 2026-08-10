@@ -333,7 +333,12 @@ export const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvi
     const pemerhati = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(semak) : null;
     pemerhati?.observe(el);
     window.addEventListener('resize', semak);
-    return () => { pemerhati?.disconnect(); window.removeEventListener('resize', semak); };
+    // Fon web (Source Serif 4, index.css:1) dimuat guna display:swap — teks boleh reflow SELEPAS
+    // pengukuran awal di atas siap. ResizeObserver cuma perhati saiz KOTAK elemen, bukan reflow
+    // kandungan dalaman, jadi limpahan akibat font swap lewat tak pernah diukur semula tanpa ni.
+    let dibatal = false;
+    document.fonts?.ready?.then(() => { if (!dibatal) semak(); });
+    return () => { dibatal = true; pemerhati?.disconnect(); window.removeEventListener('resize', semak); };
   }, [itemKey, children]);
 
   let providerName = aiProvider;
