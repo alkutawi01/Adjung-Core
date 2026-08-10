@@ -2706,15 +2706,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             #bento-news-grid [data-bar-cluster] {
               background-color: #fff !important;
             }
-            /* WEBKIT-08 (2026-08-10) -- ujian sementara SAHAJA, keluarkan slot 1,3,4,5 drpd flow
-               grid supaya PENERBITAN (slot 2, kini col-span-2 sementara) keseorangan. BUANG
-               selepas data diambil -- className col-span pun perlu pulih berasingan. */
-            #bento-news-grid [data-slot="1"],
-            #bento-news-grid [data-slot="3"],
-            #bento-news-grid [data-slot="4"],
-            #bento-news-grid [data-slot="5"] {
-              display: none !important;
-            }
             /* Huraian 12px seragam pada telefon (permintaan Izzat) — !important wajib:
                getCardTheme().briefStyle tetapkan fontSize:14px terus sebagai gaya INLINE pada
                setiap <p> huraian, gaya inline menewaskan kelas Tailwind (termasuk text-[12px])
@@ -2809,7 +2800,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[2] && (
                 <div
                   data-slot={2}
-                  className={`col-span-2 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`}
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="flex-1">
