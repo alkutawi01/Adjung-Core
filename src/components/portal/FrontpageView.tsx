@@ -216,6 +216,23 @@ const formatTarikhSumberPanjang = (raw?: string): string => {
 // Ikon mewarisi currentColor, jadi ia mengambil warna Bidang daripada deskStyle secara automatik.
 const EYEBROW_GUNA_IKON = true;
 
+// Ikon eyebrow untuk kandungan PEMEGANG TEMPAT (2026-08-10). Semua placeholder menerangkan Adjung
+// Brief itu sendiri, jadi memakai ikon Bidang sebenar (Malaysiana/Sains/Ekonomi dsb) akan memberi
+// konteks PALSU kepada dataset. Sebaliknya guna simbol rasmi Adjung — segi empat tegak nisbah 1:2,
+// sudut 0px, Sistem Identiti Visual Adjung v1.0, sama seperti public/adjung-symbol.svg.
+//
+// fill="currentColor" (BUKAN #802334 seperti fail asal): supaya ikon mewarisi warna daripada
+// deskStyle PERSIS seperti ikon Bidang sebenar. Tujuan dataset ini ialah menguji mekanisme ikon
+// production, bukan memperkenalkan warna khas placeholder — kalau warna ikon Bidang berubah
+// kemudian, placeholder ikut secara automatik tanpa perlu dikecualikan.
+//
+// Markup ni PEMALAR SUMBER, bukan input pengguna, jadi ia tidak melalui sanitizeSvgIcon di server
+// (yang menapis SVG dimuat naik ke DB). Jangan jadikan laluan ni titik masuk SVG dinamik.
+const IKON_PLACEHOLDER_ADJUNG = {
+  icon: null,
+  iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 80"><rect width="40" height="80" fill="currentColor"/></svg>',
+};
+
 export const EyebrowKad: React.FC<{
   item: { desk?: string; topik?: string };
   bidang?: { icon: string | null; iconSvg: string | null };
@@ -1551,25 +1568,37 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
   const rawBentoNewsItems = React.useMemo(() => {
     const list = [...parsedNewsItems];
-    // Editorial "About Adjung" placeholder pool — shown for any of the 38 slots that has no real
-    // content (never configured, or deleted) instead of the old character-limit dev-reference text.
-    // Cycled across slots by size category so nothing overflows: BAR/KOMPAK slot types render title
-    // only (no brief in their JSX template), and BAR's title cap is a tight 40 chars, so only the
-    // items whose title already fits 40 chars are used there.
+    // Kumpulan kandungan pemegang tempat ADJUNG BRIEF (2026-08-10) — menggantikan set lama yang
+    // sebenarnya menerangkan Adjung PLATFORM (produk berbeza), bukan Brief. Dipaparkan pada
+    // mana-mana daripada 38 slot yang belum ada kandungan sebenar, supaya muka depan tidak
+    // pernah kosong DAN bakal editor terus nampak apa sistem ni sebenarnya.
+    //
+    // Ia juga dataset UJIAN BEBAN yang disengajakan, bukan teks pengisi: setiap item membawa
+    // tajuk + huraian ringkas + huraian panjang penuh, dan panjangnya sengaja dipelbagaikan
+    // merentasi spektrum bajet ruang (0.61 hingga 1.00 daripada had tier tersempit yang boleh
+    // didarati item itu) supaya had aksara, bajet ruang, geometri tier, Focus View dan tingkah
+    // laku responsif benar-benar diuji SEBELUM kandungan editorial sebenar dimasukkan. Jangan
+    // pendekkan mana-mana item semata-mata supaya kad nampak kemas — kalau sistem pecah dengan
+    // dataset ni, kita memang mahu jumpa sekarang.
+    //
+    // Semua fakta di sini boleh disahkan daripada kod/Panduan/Perlembagaan — jangan tambah ciri
+    // yang belum wujud. Kitaran i % 10 kekal: satu item mendarat pada beberapa tier berbeza,
+    // jadi setiap item disemak terhadap tier TERSEMPIT yang boleh mendaratinya.
     const ABOUT_ADJUNG_ITEMS = [
-      { title: 'Selamat Datang ke Adjung', brief: 'Adjung mengutamakan ilmu dan penulisan berkualiti.', desk: 'Mengenai Adjung', source: 'Adjung Editorial', url: '/about' },
-      { title: "Mengapa Adjung Tidak Memaparkan Bilangan 'Like'", brief: 'Adjung menilai penerbitan, bukan jumlah reaksi.', desk: 'Falsafah', source: 'Adjung Editorial', url: '/about/philosophy' },
-      { title: 'Setiap Penerbitan Mempunyai Tempatnya', brief: 'Artikel, esei, nota dan karya ilmiah dipersembahkan mengikut susun atur editorial yang konsisten supaya pembacaan kekal jelas dan selesa.', desk: 'Penerbitan', source: 'Adjung Editorial', url: '/about/publication-model' },
-      { title: 'Membina Semula Peradaban Bermula dengan Pengetahuan', brief: 'Adjung menghimpunkan pengetahuan pelbagai bidang.', desk: 'Visi', source: 'Adjung Editorial', url: '/about/vision' },
-      { title: 'Editorial Didahulukan, Algoritma Dikemudiankan', brief: 'Kandungan disusun mengikut pertimbangan editorial, bukan algoritma.', desk: 'Editorial', source: 'Adjung Editorial', url: '/about/editorial' },
-      { title: 'Satu Platform, Pelbagai Bidang Ilmu', brief: 'Menghimpunkan penerbitan pelbagai disiplin ilmu.', desk: 'Bidang Ilmu', source: 'Adjung Editorial', url: '/about/domains' },
-      { title: 'Direka untuk Pembacaan Jangka Panjang', brief: 'Reka bentuk menumpukan tipografi dan keselesaan bacaan.', desk: 'Reka Bentuk', source: 'Adjung Editorial', url: '/about/design' },
-      { title: 'Setiap Penulis Mempunyai Ruang Sendiri', brief: 'Setiap penulis mempunyai laman peribadi untuk memuatkan karya dan biografi.', desk: 'Keahlian', source: 'Adjung Editorial', url: '/about/membership' },
-      { title: 'Pengetahuan Layak Dipersembahkan dengan Baik', brief: 'Susun atur kemas dan tipografi teliti membantu pemahaman pembaca.', desk: 'Tipografi', source: 'Adjung Editorial', url: '/about/typography' },
-      { title: 'Masih Tiada Kandungan untuk Bahagian Ini', brief: 'Bahagian ini akan memaparkan penerbitan apabila kandungan tersedia. Sementara itu, teruskan meneroka pelbagai bidang ilmu lain di Adjung.', desk: 'Makluman', source: 'Adjung Editorial', url: '' },
+      { desk: 'Adjung Brief', topik: 'Identiti', title: 'Portal Kandungan Bergaya Majalah', brief: 'Berita, ilmu dan kebudayaan sekali.', briefLong: 'Adjung Brief ialah portal kandungan berbahasa Melayu yang mempersembahkan bahan editorial dalam susunan kad bersaiz berbeza di muka depan. Setiap kad mempunyai ruang fizikal tetap mengikut bentuknya, dan kandungan disusun mengikut pertimbangan editorial. Bahan boleh diisi secara manual oleh editor atau ditarik daripada suapan RSS bagi jalur berita semasa. Yang dipaparkan sekarang ialah kandungan pemegang tempat: ia muncul pada mana-mana ruang yang belum diisi kandungan sebenar, supaya muka depan tidak pernah kelihatan kosong.', source: 'Adjung Brief', url: '' },
+      { desk: 'Berita Semasa', topik: 'Ticker', title: 'Ticker Berita Semasa', brief: 'Tajuk terkini bergerak di atas.', briefLong: 'Jalur Berita Semasa di bahagian atas muka depan memaparkan tajuk terkini yang ditarik daripada suapan RSS sumber berita luar, berbeza daripada kad bento yang diisi oleh editor. Kerana sumbernya pelbagai dan istilah desk antara portal berita tidak seragam, jalur ini tidak memaparkan Bidang seperti kad lain. Ia juga dikecualikan daripada peraturan Bidang dan Topik yang terpakai pada slot biasa. Tajuk dipaparkan bergilir supaya pembaca dapat mengimbas perkembangan terkini tanpa meninggalkan muka depan.', source: 'Adjung Brief', url: '' },
+      { desk: 'Bidang', topik: 'Pengelasan', title: 'Setiap Slot Menggunakan Satu Bidang pada Satu Masa', brief: 'Semua kandungan dalam slot itu, termasuk item carousel, mesti berada dalam Bidang sama; Topik pula bebas berbeza asalkan masih dalam Bidang tersebut.', briefLong: 'Bidang ialah kategori yang ditetapkan pada sesuatu slot, contohnya Ekonomi atau Kebudayaan. Editor tidak memilih Bidang setiap kali menulis kerana Bidang slot telah ditetapkan terlebih dahulu. Topik pula medan bebas bagi setiap kandungan dan boleh berbeza-beza dalam slot yang sama, asalkan masih berada dalam Bidang tersebut. Label pada kad memaparkan Bidang diikuti Topik. Ketua Editor boleh menukar Bidang sesuatu slot melalui tetapan slot; kandungan sedia ada yang tidak lagi sepadan akan diarkibkan automatik, manakala kandungan baharu terus mengikut Bidang yang dikemas kini.', source: 'Adjung Brief', url: '' },
+      { desk: 'Susun Atur', topik: 'Slot dan Tier', title: 'Tiga Puluh Lapan Slot, Lapan Tier Kad', brief: 'Setiap tier ada saiz tetap.', briefLong: 'Muka depan Adjung Brief disusun daripada tiga puluh lapan slot, dan setiap slot tergolong dalam salah satu daripada lapan tier bentuk kad. Tier menentukan saiz fizikal kad, dan daripada saiz itulah had ruang kandungan diperoleh. Kad besar memberi ruang lebih lapang berbanding kad padat yang hanya memaparkan tajuk. Peraturan penting di sini ialah semua slot dalam tier yang sama dilayan sama rata: sebarang had atau pembetulan dikenakan pada peringkat tier, tidak pernah pada satu slot secara berasingan.', source: 'Adjung Brief', url: '' },
+      { desk: 'Kandungan', topik: 'Bajet Ruang', title: 'Tajuk dan Huraian Berkongsi Satu Bajet Ruang Kad', brief: 'Tajuk panjang bermakna huraian perlu lebih ringkas.', briefLong: 'Tajuk dan huraian sesebuah kad tidak mempunyai dua had berasingan, sebaliknya berkongsi satu bajet ruang yang sama. Ini bermakna tajuk panjang berpasangan dengan huraian pendek boleh muat, begitu juga sebaliknya, tetapi kedua-duanya panjang serentak tidak akan diterima. Semasa menulis, penunjuk bajet memaparkan peratusan ruang yang telah digunakan dan bertukar warna apabila menghampiri atau melepasi had. Apabila bajet dilepasi, penerbitan disekat sehingga salah satu medan dipendekkan oleh editor sendiri.', source: 'Adjung Brief', url: '' },
+      { desk: 'Kandungan', topik: 'Had Aksara', title: 'Had Aksara Ikut Tier', brief: 'Disemak semasa simpan.', briefLong: 'Had aksara bagi tajuk dan huraian berbeza mengikut tier kad kerana ia diperoleh daripada saiz fizikal kad yang sebenar, bukan angka yang ditetapkan secara sewenang-wenangnya. Semakan dilakukan pada peringkat simpan, iaitu sebelum kandungan menjadi rekod, dan berlaku pada setiap laluan penyimpanan tanpa pengecualian. Jika kandungan tidak muat, sistem menolak simpanan dan menyatakan sebabnya supaya editor boleh memendekkan sendiri bahagian yang perlu. Sistem tidak sekali-kali memotong tulisan editor secara automatik.', source: 'Adjung Brief', url: '' },
+      { desk: 'Editorial', topik: 'Semakan', title: 'Kandungan Melalui Semakan', brief: 'Editor hantar, Ketua Editor luluskan.', briefLong: 'Kandungan yang dihantar oleh editor tidak semestinya terus tersiar. Jika editor mempunyai kebenaran terbit dan kandungan itu belum pernah ditolak, ia boleh terus menjadi Aktif. Jika tidak, ia mendarat sebagai Menunggu Semakan untuk keputusan Ketua Editor atau Penolong. Sekiranya ruang dalam slot sudah penuh, kandungan yang telah lulus akan menunggu sebagai Menunggu Slot Kosong dan naik taraf secara automatik apabila ruang terbuka. Kandungan yang ditolak tidak hilang, sebaliknya dipulangkan sebagai draf yang boleh disunting semula.', source: 'Adjung Brief', url: '' },
+      { desk: 'Editorial', topik: 'Sumber', title: 'Setiap Kandungan Menyatakan Sumbernya', brief: 'Sumber dan tarikh asal direkodkan bersama setiap kandungan yang diterbitkan.', briefLong: 'Setiap kandungan yang diterbitkan membawa maklumat sumbernya. Nama sumber, pautan rujukan dan tarikh asal (jika ada) dipaparkan pada kad dan Focus View, bukan sekadar hiasan pada paparan. Jenis sumber turut direkodkan tetapi buat masa ini kekal maklumat dalaman, tidak dipaparkan kepada pembaca. Nama editor yang menerbitkan turut dicatat secara berasingan daripada kaedah kandungan itu dicipta, supaya jelas siapa bertanggungjawab dan bagaimana bahan itu masuk ke dalam sistem. Kandungan lama yang wujud sebelum medan ini diperkenalkan dipaparkan seadanya tanpa nama direka.', source: 'Adjung Brief', url: '' },
+      { desk: 'Paparan', topik: 'Tiga Pengalaman', title: 'Frontpage, Ticker dan Focus View Ialah Tiga Pengalaman Membaca Berbeza', brief: 'Setiap satu ada peranannya.', briefLong: 'Muka depan memaparkan susunan kad bento yang membolehkan pembaca mengimbas pelbagai bidang sekali pandang. Jalur Berita Semasa di bahagian atas pula bergerak memaparkan tajuk terkini daripada suapan luar, sesuai untuk perkembangan yang cepat berubah. Focus View ialah paparan penuh skrin yang dibuka apabila sesuatu kandungan diklik, dan di situlah huraian panjang dipaparkan sepenuhnya bersama lampiran visual jika ada. Ketiga-tiganya menyampaikan bahan yang sama daripada sudut berlainan mengikut cara pembaca mahu membacanya.', source: 'Adjung Brief', url: '' },
+      { desk: 'Prinsip', topik: 'Penerbitan', title: 'Kad Tidak Boleh Melimpah, Tiada Pengecualian', brief: 'Peraturan ini dikuatkuasakan pada peringkat simpan: kandungan yang tidak muat ditolak terus, bukan dipotong secara automatik selepas ia diterbitkan.', briefLong: 'Prinsip paling asas dalam Adjung Brief ialah kandungan mesti muat dalam ruang kad yang disediakan. Peraturan ini dikuatkuasakan semasa penyimpanan, bukan diselesaikan kemudian dengan memotong paparan. Sebabnya mudah: tulisan editorial ialah tulisan sebenar, dan memotongnya secara mekanikal bermakna sebahagian maksud hilang tanpa disedari sesiapa. Oleh itu sistem memilih untuk menolak dan menyatakan sebab, supaya keputusan memendekkan dibuat oleh manusia yang memahami kandungan itu, bukan oleh peraturan susun atur.', source: 'Adjung Brief', url: '' },
     ];
-    // Indices (into ABOUT_ADJUNG_ITEMS) whose title is short enough (<=40 chars) for BAR-type slots.
-    const SHORT_TITLE_SAFE = [0, 2, 5, 6, 7, 9];
+    // Indeks (dalam ABOUT_ADJUNG_ITEMS) yang tajuknya cukup pendek (<=40 aksara) untuk slot BAR.
+    // Diselaraskan dengan dataset semasa — jangan tetapkan tangan tanpa semak semula panjang tajuk.
+    const SHORT_TITLE_SAFE = [0, 1, 3, 5, 6, 7];
     const BAR_SLOTS = new Set(TIER_SLOTS.BAR);
     // Diterbitkan daripada TIER_SLOTS (2026-08-06, audit tier) — dahulu senarai ini ditaip
     // tangan. Nilainya memang betul, tapi kalau satu slot bertukar tier di GeometryConfig.js,
@@ -1581,8 +1610,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       const item = pool[i % pool.length];
       return {
         desk: item.desk,
+        topik: item.topik,
         title: item.title,
         brief: NO_BRIEF_SLOTS.has(i) ? '' : item.brief,
+        // briefLong hanya dipapar dalam Focus View (bukan pada kad) — disertakan supaya laluan
+        // penuh placeholder -> Focus View turut diuji, bukan separuh sistem sahaja.
+        briefLong: item.briefLong,
         source: item.source,
         url: item.url,
         rawIndex: -(i + 1)
@@ -2344,7 +2377,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     for (const b of activeBidangList) m[b.name.toLowerCase()] = { icon: b.icon, iconSvg: b.iconSvg };
     return m;
   }, [activeBidangList]);
-  const bidangUntuk = (item: any) => bidangByName[(item?.desk || '').toLowerCase()];
+  // Kandungan pemegang tempat (rawIndex negatif — lihat pembina `fallbacks`) SENTIASA memakai
+  // simbol Adjung, walaupun nama desknya kebetulan sepadan dengan satu Bidang sebenar dalam DB.
+  // Sengaja: kandungan tentang Adjung Brief tidak sepatutnya memakai ikon bidang yang tidak
+  // berkaitan. Kandungan editorial SEBENAR tidak disentuh — ia terus guna Bidang DB masing-masing.
+  const bidangUntuk = (item: any) =>
+    (item?.rawIndex < 0) ? IKON_PLACEHOLDER_ADJUNG : bidangByName[(item?.desk || '').toLowerCase()];
 
   const focusBidang = focusItem
     ? activeBidangList.find(b => b.name.toLowerCase() === (focusItem.desk || '').toLowerCase())
