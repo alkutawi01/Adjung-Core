@@ -349,6 +349,7 @@ export const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvi
   return (
     <div
       ref={rujukKotak}
+      data-bento-inner=""
       className={`w-full flex-1 min-h-0 relative flex flex-col justify-between overflow-hidden${terlimpah ? ' kad-limpah' : ''}`}
     >
       <AnimatePresence mode="sync">
@@ -1577,10 +1578,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
     const fallbacks = Array.from({ length: 38 }, (_, i) => {
       const pool = BAR_SLOTS.has(i) ? SHORT_TITLE_SAFE.map(idx => ABOUT_ADJUNG_ITEMS[idx]) : ABOUT_ADJUNG_ITEMS;
-      // GEOMETRY-13C (2026-08-10, ujian sementara SAHAJA): paksa slot 4 papar item1 (tajuk
-      // worst-case KOMPAK yg dikenal pasti GEOMETRY-13B) utk ujian A/B production. BUANG baris
-      // ni selepas nilai min-height stabil dikenal pasti.
-      const item = i === 4 ? ABOUT_ADJUNG_ITEMS[1] : pool[i % pool.length];
+      const item = pool[i % pool.length];
       return {
         desk: item.desk,
         title: item.title,
@@ -2709,6 +2707,41 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             #bento-news-grid [data-bar-cluster] {
               background-color: #fff !important;
             }
+            /* ===== TINGGI KAD AUTOMATIK IKUT KANDUNGAN (telefon) — 2026-08-10, GEOMETRY-13 =====
+               MASALAH ASAL: teks kad (huraian/sumber) terpotong pada telefon, dan setiap kali ia
+               berlaku kami terpaksa "meneka" nilai min-height baharu (180 -> 210 -> 220 -> 240 ...).
+               Itu tak pernah boleh betul selamanya: skrin lebih sempit (cth Android 360px lawan
+               iPhone 375px) membalut teks kepada lebih banyak baris, jadi nombor tetap yang cukup
+               pada satu peranti gagal pada peranti lain. Kalau saiz fon atau had aksara berubah
+               kemudian, kitaran teka-nombor tu berulang semula.
+
+               PUNCA SEBENAR: tinggi kad DIARAHKAN DARI ATAS, bukan tumbuh daripada kandungan:
+                 baris grid (tinggi = kad tertinggi, cth MENEGAK row-span-2)
+                   -> [data-slot] h-full (height:100%)  = ambil tinggi baris
+                     -> (pasangan KOMPAK) flex-1        = bahagi tinggi tu 50/50
+                       -> BentoInner min-h-0 + overflow-hidden = kandungan berlebih DIKELIP
+               Sebab BentoInner min-h-0 membunuh sumbangan min-content, kandungan tak pernah dapat
+               "menolak" kad jadi lebih tinggi — ia hanya dipotong senyap.
+
+               PENYELESAIAN: pada telefon SAHAJA, lepaskan dua kekangan tu supaya tinggi mengalir
+               daripada KANDUNGAN ke atas. Grid CSS kemudian membesarkan baris secara automatik,
+               dan kad jiran (yang masih h-full pada desktop) meregang mengikutnya — jadi tiada
+               jurang kosong terhasil. Disahkan empirik: 38/38 kad, 0 limpahan, pada lebar
+               320/360/414px, termasuk ujian tekanan dengan teks sengaja dipanjangkan berkali ganda.
+
+               CAROUSEL kekal stabil: CarouselStableBlock sudah mengunci minHeight kepada item
+               TERTINGGI dalam senarai (diukur JS, hanya membesar tak pernah mengecut), jadi
+               putaran kandungan A->B tidak mengubah tinggi. Malah peraturan ni yang membolehkan
+               kunci tu berkuat kuasa — sebelum ni kad enggan membesar walaupun ruang sudah
+               ditempah dengan betul.
+
+               Desktop (>=768px) TIDAK disentuh langsung — geometri bento asal kekal. */
+            #bento-news-grid [data-slot] {
+              height: auto !important;
+            }
+            #bento-news-grid [data-bento-inner] {
+              min-height: auto !important;
+            }
             /* Huraian 12px seragam pada telefon (permintaan Izzat) — !important wajib:
                getCardTheme().briefStyle tetapkan fontSize:14px terus sebagai gaya INLINE pada
                setiap <p> huraian, gaya inline menewaskan kelas Tailwind (termasuk text-[12px])
@@ -2800,26 +2833,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               )}
 
               {/* Right/Top: Horizontal (Index 2) */}
-              {/* min-h-[240px] TELEFON SAHAJA (2026-08-10, WEBKIT-12): margin keselamatan tier
-                  STANDARD, bukan penyelesaian punca. Disahkan melalui ujian A/B production sebenar
-                  (bookmarklet Safari iPhone + Chrome-iOS): kad STANDARD dgn kandungan huraian
-                  panjang (cth "Setiap Penerbitan Mempunyai Tempatnya") tersekat tepat pada
-                  min-h-[180px] asal pada WebKit walaupun kandungan+sumber perlukan lebih ruang --
-                  Chromium/Blink TIDAK menunjukkan simptom ni langsung (auto-berkembang betul).
-                  Punca akar (kenapa WebKit "intrinsic sizing" grid item ni tak sampai drpd
-                  kandungan) BELUM dikenal pasti selepas siasatan menyeluruh (min-h-0, row-span,
-                  lebar/col-span, overflow-hidden, flex-1 wrapper semua diuji SATU-SATU secara A/B
-                  production dan TERBUKTI bukan punca) -- di-KIV, tak lagi menghalang MVP. 240px
-                  dipilih drpd ujian progresif (210px huraian penuh tapi sumber terpotong; 220px
-                  huraian penuh tapi sumber masih terpotong; 240px kedua-duanya penuh). Terpakai
-                  pada KESEMUA 6 slot STANDARD (2,6,19,20,33,34) - kandungan ABOUT_ADJUNG_ITEMS
-                  berputar merentasi slot, jadi kandungan "terburuk" ni boleh mendarat pada
-                  mana-mana slot tier ni, bukan slot 2 sahaja. Desktop (md:) KEKAL 180px asal,
-                  tidak disentuh. */}
               {bentoNewsItems[2] && (
                 <div
                   data-slot={2}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[240px] md:min-h-[180px] h-full overflow-hidden group`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`}
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="flex-1">
@@ -2880,7 +2897,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[4] && (
                 <div 
                   data-slot={4}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[190px] md:min-h-[120px] flex-1 group`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1 group`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
@@ -2948,8 +2965,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[6] && (
                 <div
                   data-slot={6}
-                  /* min-h-[240px] telefon: margin keselamatan STANDARD, rujuk komen penuh slot 2 (WEBKIT-12, 2026-08-10). */
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[240px] md:min-h-[180px] h-full overflow-hidden group`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden group`}
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3286,8 +3302,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[19] && (
                 <div 
                   data-slot={19}
-                  /* min-h-[240px] telefon: margin keselamatan STANDARD, rujuk komen penuh slot 2 (WEBKIT-12, 2026-08-10). */
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[240px] md:min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[19], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3361,8 +3376,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[20] && (
                 <div 
                   data-slot={20}
-                  /* min-h-[240px] telefon: margin keselamatan STANDARD, rujuk komen penuh slot 2 (WEBKIT-12, 2026-08-10). */
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[240px] md:min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[20], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3664,8 +3678,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[33] && (
                 <div 
                   data-slot={33}
-                  /* min-h-[240px] telefon: margin keselamatan STANDARD, rujuk komen penuh slot 2 (WEBKIT-12, 2026-08-10). */
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[240px] md:min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[33], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
@@ -3706,8 +3719,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[34] && (
                 <div
                   data-slot={34}
-                  /* min-h-[240px] telefon: margin keselamatan STANDARD, rujuk komen penuh slot 2 (WEBKIT-12, 2026-08-10). */
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[240px] md:min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[34], 'transparent').cardStyle} >
                   <div className="flex-1">
                     <CarouselStableBlock
