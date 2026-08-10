@@ -2706,12 +2706,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             #bento-news-grid [data-bar-cluster] {
               background-color: #fff !important;
             }
-            /* WEBKIT-06A (2026-08-10) -- ujian sementara SAHAJA, keluarkan FALSAFAH (slot 1,
-               row-span-2) drpd flow grid utk uji sama ada row1 punya auto-height WebKit
-               dipengaruhi kehadiran jiran row-span-2. BUANG baris ni selepas data diambil. */
-            #bento-news-grid [data-slot="1"] {
-              display: none !important;
-            }
             /* Huraian 12px seragam pada telefon (permintaan Izzat) — !important wajib:
                getCardTheme().briefStyle tetapkan fontSize:14px terus sebagai gaya INLINE pada
                setiap <p> huraian, gaya inline menewaskan kelas Tailwind (termasuk text-[12px])
