@@ -44,10 +44,10 @@ export function useSlotEditor(editorName?: string) {
   const [saveErrorIsConflict, setSaveErrorIsConflict] = useState(false);
 
   const fetchSlotsConfig = useCallback(() => {
-    fetch('/api/system/slots')
+    return fetch('/api/system/slots')
       .then((res) => res.json())
-      .then((data) => { if (Array.isArray(data)) setSlotsConfig(data); })
-      .catch((e) => console.error('Failed to load slots config:', e));
+      .then((data) => { if (Array.isArray(data)) setSlotsConfig(data); return data; })
+      .catch((e) => { console.error('Failed to load slots config:', e); return null; });
   }, []);
 
   const fetchActiveBidangList = useCallback(() => {
@@ -200,7 +200,22 @@ export function useSlotEditor(editorName?: string) {
       });
       const data = await response.json();
       if (data.success) {
-        fetchSlotsConfig();
+        // Segarkan token konkurensi (updatedAt) client SELEPAS simpan sendiri berjaya --
+        // pelayan sentiasa tulis updatedAt BAHARU pada setiap simpanan (slotsConfigRoutes.js),
+        // tapi formConfig.updatedAt yang ditangkap semasa openSlotEditor jadi lapuk sebaik
+        // simpan pertama berjaya bila modal kekal terbuka (closeOnSuccess:false — Simpan Draf,
+        // Terbit satu, Terbit Semua). Simpanan SETERUSNYA dlm sesi modal sama (paling kerap:
+        // Terbit lepas Simpan) sebelum ni sentiasa ditolak 409 "diambil orang lain" walaupun
+        // sesi sama -- pepijat palsu-positif ditemui simulasi UX 2026-08-11. GET /api/system/slots
+        // (dipanggil fetchSlotsConfig di bawah) pulangkan updatedAt sebenar setiap slot, jadi
+        // tiada perubahan endpoint/respons POST diperlukan.
+        const freshSlots = await fetchSlotsConfig();
+        if (Array.isArray(freshSlots)) {
+          const freshSlot = freshSlots.find((s: any) => s.slotIndex === formConfig.slotIndex);
+          if (freshSlot) {
+            setFormConfig((prev: any) => (prev ? { ...prev, updatedAt: freshSlot.updatedAt } : prev));
+          }
+        }
         if (closeOnSuccess) closeSlotEditor();
         // Pulangkan senarai hasil (LIFE-01, audit ChatGPT 2026-08-08) — bukan `true` kosong.
         // Array (walaupun []) sentiasa truthy dalam JS, jadi semua `if (ok)` sedia ada di
