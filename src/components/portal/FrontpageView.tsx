@@ -1727,14 +1727,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         itemToPush.categoryColor = categoryColors[itemToPush.desk.toLowerCase()];
       }
       itemToPush.index = i;
-      // BAR ialah kluster "PROGRAM-PROGRAM BERMANFAAT" -- kontrak produk 100% acara sebenar
-      // (Perlembagaan, PerlembagaanConsole.tsx: "BUKAN untuk berita"), bukan tier generik. Slot
-      // BAR yang tiada kandungan acara sebenar dari DB TIDAK dapat placeholder Adjung Brief
-      // (undefined, bukan fallback) supaya seluruh kluster boleh disorok apabila tiada satu acara
-      // pun (lihat render kluster di bawah) — cipta "acara" rekaan atau fakta produk tak berkaitan
-      // di sini lebih mengelirukan daripada seksyen yang tidak wujud langsung.
-      const isBarWithoutRealContent = TIER_SLOTS.BAR.includes(i) && !hasRealContent;
-      result.push(isBarWithoutRealContent ? undefined : itemToPush);
+      // Slot Bar tanpa kandungan acara sebenar TIDAK guna fallback fakta abstrak ABOUT_ADJUNG_GROUPS
+      // (label/lencana "Terbuka" tu direka utk kad berita generik, mengelirukan pada kad acara --
+      // sebab asal S1 ditarik balik). undefined di sini diisi balik oleh barEmptyItem semasa render
+      // (Tarikh=hari ini, Penganjur=Adjung Brief, Tajuk=Belum Ada Acara, keputusan Izzat 2026-08-11)
+      // -- kluster/label kekal SENTIASA papar, cuma kandungan kad yg berbeza.
+      result.push(TIER_SLOTS.BAR.includes(i) && !hasRealContent ? undefined : itemToPush);
     }
 
     return result;
@@ -2057,13 +2055,17 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
 
 
-  // Kluster "PROGRAM-PROGRAM BERMANFAAT" (BAR) 100% acara sebenar (Perlembagaan) — sorok
-  // SELURUH kluster (label + kad) apabila tiada satu acara pun, bukan papar label dgn ruang
-  // kosong. Slot BAR tanpa acara sebenar ialah `undefined` (lihat rawBentoNewsItems), jadi
-  // `.some(Boolean)` cukup — tiada keperluan semak medan tambahan.
-  const hasAnyBarEvent = TIER_SLOTS.BAR.some((idx) => !!bentoNewsItems[idx]);
 
   const activeNewsItem = bentoNewsItems[0];
+
+  // Slot Bar tanpa acara sebenar — kad papar TETAP (bentuk BarCard biasa, bukan disorok/neutral),
+  // dgn Tarikh=hari ini, Penganjur="Adjung Brief", Tajuk="Belum Ada Acara" (keputusan Izzat
+  // 2026-08-11, satu kad per slot kosong — gantikan pendekatan sorok kluster S1 yg ditarik balik).
+  const barEmptyItem = {
+    title: 'Belum Ada Acara',
+    organizer: 'Adjung Brief',
+    originalDate: new Date().toISOString().slice(0, 10),
+  };
 
   // ==========================================================================
   // FOCUS VIEW — logik sahaja. Persembahan ada di src/components/portal/FocusView.tsx
@@ -3109,7 +3111,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
               )}
 
-              {hasAnyBarEvent && (
               <div className="col-span-2 flex flex-col h-full md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2" data-bar-cluster="">
                 <div className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 -translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
@@ -3117,8 +3118,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </span>
                 </div>
                 {TIER_SLOTS.BAR.slice(0, 4).map((idx) => {
-                  const barItem = bentoNewsItems[idx];
-                  if (!barItem) return null;
+                  const barItem = bentoNewsItems[idx] || barEmptyItem;
                   const isExpanded = expandedBarCluster1 === idx;
                   return (
                     <div key={idx} data-slot={idx} className="flex-1 md:flex-none flex flex-col">
@@ -3137,7 +3137,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   );
                 })}
               </div>
-              )}
 
               {/* Left Bottom Right: Square (Index 11) */}
               {bentoNewsItems[11] && (
@@ -3523,7 +3522,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   )}</div>
               )}
 
-              {hasAnyBarEvent && (
               <div className="col-span-2 flex flex-col h-full md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2" data-bar-cluster="">
                 <div className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 translate-x-full items-center justify-center pointer-events-none select-none">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold [writing-mode:vertical-lr] rotate-0 whitespace-nowrap">
@@ -3531,8 +3529,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </span>
                 </div>
                 {TIER_SLOTS.BAR.slice(4).map((idx) => {
-                  const barItem = bentoNewsItems[idx];
-                  if (!barItem) return null;
+                  const barItem = bentoNewsItems[idx] || barEmptyItem;
                   const isExpanded = expandedBarCluster2 === idx;
                   return (
                     <div key={idx} data-slot={idx} className="flex-1 md:flex-none flex flex-col">
@@ -3551,7 +3548,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   );
                 })}
               </div>
-              )}
 
             </div>
 
