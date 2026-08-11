@@ -124,6 +124,8 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
     '[Peraturan am — sistem/global]', fc.masterPrompt || '-', '',
     '[Arahan khas — slot ini]', fc.promptText || '-', '',
+    '[Fungsi huraian panjang]',
+    'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai huraian mengalir secara natural — JANGAN guna subtajuk atau format berasingan (cth "Apa:"/"Kenapa penting:"/"Konteks:"). Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.', '',
     '[Had aksara]',
     `Topik: maksimum ${hadTopik} aksara`,
     `Tajuk: minimum ${minTitleTarget}, maksimum ${titleTarget} aksara`,
