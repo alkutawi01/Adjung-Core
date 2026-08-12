@@ -503,7 +503,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
 
         {/* pl-[4.5rem] tetap (SAMA seperti lebar rel ikon) tak kira dilipat atau dikembang —
             itulah yang menghalang kandungan daripada bergerak bila togol ditekan. */}
-        <main className={`min-w-0 p-4 md:py-8 md:pr-8 transition-[padding] duration-150 ${disemat ? 'md:pl-60' : 'md:pl-[4.5rem]'}`}>
+        <main className={`w-full min-w-0 p-4 md:py-8 md:pr-8 transition-[padding] duration-150 ${disemat ? 'md:pl-60' : 'md:pl-[4.5rem]'}`}>
           {/* Had lebar kongsi SEMUA modul Editorium (2026-08-07, maklum balas Izzat: kandungan
               regang sepenuh skrin tanpa sebab pada skrin lebar — borang/jadual jadi payah dibaca/
               imbas). Satu titik tetap di sini (bukan per-modul) supaya semua modul dilayan sama
