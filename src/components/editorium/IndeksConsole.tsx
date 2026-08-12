@@ -320,6 +320,56 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     }
   }, [activeItemModal?.id]);
 
+  // SEJARAH VERSI (2026-08-12, keputusan Izzat selepas simulasi UX #20) — data revisi, API
+  // (/revisions) dan komponen paparan semuanya SUDAH wujud, cuma tiada laluan UI yang membawa
+  // kandungan TERBIT kepadanya: tab "Sejarah versi" hanya hidup dalam SlotManagerModal, yang
+  // memuatkan giliran DRAF sahaja (kandungan terbit keluar daripada `items` sebaik diterbitkan),
+  // jadi syarat isPublished di sana praktikalnya tak pernah benar untuk 30 slot biasa. Modal
+  // butiran Indeks inilah tempat kandungan terbit memang sudah dibuka, jadi sejarah disambung
+  // di sini — guna semula endpoint sedia ada, bukan bina mekanisme baharu.
+  const [revisions, setRevisions] = useState<any[] | null>(null);
+  const [revisionsLoading, setRevisionsLoading] = useState(false);
+  const [revisionsError, setRevisionsError] = useState('');
+  const [restoringId, setRestoringId] = useState<number | null>(null);
+  const muatSejarah = useCallback((id: string) => {
+    setRevisionsLoading(true);
+    setRevisionsError('');
+    fetch(`/api/system/content/${encodeURIComponent(id)}/revisions`)
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) { setRevisionsError(data?.error || 'Gagal memuatkan sejarah versi.'); setRevisions([]); return; }
+        setRevisions(Array.isArray(data) ? data : []);
+      })
+      .catch(() => { setRevisionsError('Gagal memuatkan sejarah versi.'); setRevisions([]); })
+      .finally(() => setRevisionsLoading(false));
+  }, []);
+  useEffect(() => {
+    if (!activeItemModal) { setRevisions(null); setRevisionsError(''); return; }
+    // Ticker tiada rekod editorial_objects, jadi tiada sejarah untuk dimuatkan.
+    if (activeItemModal.slot === 'Ticker') { setRevisions(null); return; }
+    muatSejarah(activeItemModal.id);
+  }, [activeItemModal?.id]);
+
+  // Pulih versi lama — endpoint SAMA yang SlotManagerModal guna. Server mencipta revisi BAHARU
+  // daripada versi lama (bukan memadam sejarah), jadi tindakan ini boleh diundur dengan memulihkan
+  // versi lain sekali lagi. Senarai dimuat semula selepas berjaya supaya nombor versi terkini betul.
+  const handlePulihVersi = async (revisionId: number) => {
+    if (!activeItemModal) return;
+    setRestoringId(revisionId);
+    setRevisionsError('');
+    try {
+      const res = await fetch(`/api/system/content/${encodeURIComponent(activeItemModal.id)}/revisions/${revisionId}/restore`, { method: 'POST' });
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
+      if (!res.ok) { setRevisionsError(data?.error || 'Gagal memulihkan versi.'); return; }
+      muatSejarah(activeItemModal.id);
+      muatSemula();
+    } catch {
+      setRevisionsError('Gagal memulihkan versi.');
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
   const handleSimpanJadual = async () => {
     if (!activeItemModal) return;
     setSavingJadual(true);
@@ -1598,6 +1648,54 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 </div>
               );
             })()}
+
+            {/* SEJARAH VERSI (2026-08-12, keputusan Izzat selepas simulasi UX #20) — lihat nota
+                penuh di sisi state `revisions` di atas: data/API/paparan semuanya sudah wujud,
+                cuma tiada laluan UI ke kandungan TERBIT. Ticker dikecualikan (tiada rekod
+                editorial_objects, jadi tiada revisi). */}
+            {activeItemModal.slot !== 'Ticker' && (
+              <div className="space-y-2">
+                <span className="text-stone-400 text-[9px] uppercase tracking-widest font-bold block border-b border-stone-200 pb-1">Sejarah Versi</span>
+                {revisionsLoading && <span className="font-sans text-xs text-stone-500">Memuatkan sejarah versi…</span>}
+                {!revisionsLoading && revisionsError && <MesejStatus tone="error">{revisionsError}</MesejStatus>}
+                {!revisionsLoading && !revisionsError && revisions && revisions.length === 0 && (
+                  <span className="font-sans text-xs text-stone-500">Tiada sejarah versi direkodkan.</span>
+                )}
+                {!revisionsLoading && revisions && revisions.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {revisions.map((r, i) => {
+                      const isTerkini = i === 0;
+                      return (
+                        <div key={r.id} className="flex items-start justify-between gap-4 border border-stone-200 rounded p-3">
+                          <div className="flex flex-col gap-1 min-w-0">
+                            <span className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Versi {r.version}</span>
+                              {isTerkini && <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-emerald-700">· Semasa</span>}
+                              <span className="font-sans text-[10px] text-stone-400">{new Date(r.updatedAt || r.createdAt).toLocaleString('ms-MY')}</span>
+                            </span>
+                            <span className="font-serif text-[13px] text-stone-800 truncate">{r.title || <span className="text-stone-400">(tiada tajuk)</span>}</span>
+                            <span className="font-sans text-[11px] text-stone-500 truncate">{r.summary || ''}</span>
+                            <span className="font-mono text-[9px] text-stone-400">{r.createdBy || '—'} · {r.status}</span>
+                          </div>
+                          {/* Editor biasa yang melihat kandungan orang lain (mod "Semua
+                              Kandungan", baca sahaja) tidak boleh memulihkan versi — sama gerbang
+                              pemilikan macam baris senarai di atas. */}
+                          {!isTerkini && !(currentUserRole === 'EDITOR' && editorViewMode === 'all' && activeItemModal.editorName !== currentUserName) && (
+                            <Button
+                              type="button" variant="secondary" size="sm"
+                              onClick={() => handlePulihVersi(r.id)}
+                              disabled={restoringId !== null}
+                            >
+                              {restoringId === r.id ? 'Memulihkan…' : 'Pulih versi ini'}
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* IH-03 (Pusingan 6, audit ChatGPT 2026-08-09) — dahulu 9 medan grid seragam,
                 berat visual sama walau kepentingan keputusan berbeza nyata (Status/Bidang/Topik

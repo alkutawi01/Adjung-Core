@@ -4,6 +4,7 @@ import { citationStyleRegistry, HarvardStylePlugin } from './services/citationSt
 import { Tooltip } from './components/common/Tooltip';
 import { penggalSukuKata } from '../core/editorial/PemenggalSukuKata.js';
 import { parseTypographyTokensClient, TypographyRule } from './components/editorial/TypographyRenderer';
+import { GLOSS_RENDERING_ENABLED } from '../core/editorial/ContentBudget.js';
 
 const ARABIC_REGEX = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
 const LATIN_REGEX = /[a-zA-Z]/g;
@@ -134,6 +135,9 @@ export function markdownToHtml(md: string): string {
     .replace(/\+\+(.*?)\+\+/g, '<u>$1</u>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
       if (url.startsWith('gloss:')) {
+        // Laluan paparan KEDUA (mod WYSIWYG) — mesti hormati suis yang sama seperti parseTokens(),
+        // kalau tidak gloss "hilang" di kad/Focus View tetapi masih muncul di sini.
+        if (!GLOSS_RENDERING_ENABLED) return label;
         const glossVal = url.substring(6);
         return `<span class="interlinear-word"><span class="interlinear-gloss">${glossVal}</span>${label}</span>`;
       }
@@ -347,6 +351,16 @@ function parseTokens(tokens: Token[], keyPrefix: string = 'token'): React.ReactN
 
     if (token.type === 'INTERLINEAR') {
       const elementKey = `${keyPrefix}-${keyIdx++}`;
+      // Paparan gloss dimatikan (2026-08-12, keputusan Izzat — lihat GLOSS_RENDERING_ENABLED di
+      // core/editorial/ContentBudget.js). Papar perkataan rujukan sebagai teks biasa sahaja:
+      // unit interlinear (inline-flex + anotasi di atas) langsung tidak dibina, jadi aliran dan
+      // jarak baris perenggan kembali normal sepenuhnya. Sintaks asal KEKAL dalam pangkalan data
+      // — tiada kandungan dipadam, cukup tukar suis itu untuk hidupkan semula.
+      if (!GLOSS_RENDERING_ENABLED) {
+        result.push(<React.Fragment key={elementKey}>{token.text}</React.Fragment>);
+        i++;
+        continue;
+      }
       const isGlossAr = isArabicText(token.gloss);
       result.push(
         <span key={elementKey} className="interlinear-word">

@@ -235,6 +235,19 @@ const GLOSS_MAX_WORDS = 2;
 //   - Tukar GLOSS_AUTHORING_ENABLED ke true bila ciri ni sedia dibuka semula.
 const GLOSS_AUTHORING_ENABLED = false;
 
+// Paparan gloss (2026-08-12, keputusan Izzat susulan) — mematikan PENULISAN sahaja masih
+// meninggalkan gloss LAMA terpapar, dan Izzat sahkan drpd telefon+desktop bahawa unit interlinear
+// itu merosakkan jarak baris perenggan walaupun ciri sudah "dimatikan". Jadi ada DUA suis
+// berasingan, sengaja:
+//   - GLOSS_AUTHORING_ENABLED: bolehkah gloss BAHARU disimpan?
+//   - GLOSS_RENDERING_ENABLED: adakah gloss sedia ada DIPAPARKAN?
+// Bila paparan dimatikan, perkataan rujukan tetap dipapar sebagai teks biasa (aliran perenggan
+// kembali normal sepenuhnya) manakala sintaks [label](gloss:...) KEKAL dalam pangkalan data —
+// tiada kandungan dipadam, tiada migrasi, dan cukup tukar suis ni ke true untuk hidupkan semula.
+// Diletak bersebelahan suis penulisan supaya "kill switch" gloss ada di SATU tempat dan dua
+// keadaan itu tidak boleh terpesong sesama sendiri.
+const GLOSS_RENDERING_ENABLED = false;
+
 const extractGlossPairs = (text) => {
   if (typeof text !== 'string' || !text) return [];
   const pairs = [];
@@ -384,4 +397,5 @@ export {
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
   validateContentBudget, validateBidangTopik, validateSourceUrl,
   setMedanLimits, getMedanLimits, validateMedanTambahan, validateGlossLength,
+  GLOSS_RENDERING_ENABLED,
 };
