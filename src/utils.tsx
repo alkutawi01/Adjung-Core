@@ -193,6 +193,11 @@ interface Token {
   gloss?: string;
 }
 
+// Had imbasan carian penutup ')' bagi [label](gloss:...)/[label](url) -- gloss ialah
+// anotasi PENDEK (definisi satu-dua ayat), bukan perenggan; had ni jadi sempadan selamat
+// bila penutup tiada langsung, elak imbasan tanpa henti sepanjang baki dokumen.
+const GLOSS_LOOKAHEAD_MAX = 300;
+
 function tokenize(text: string): Token[] {
   const tokens: Token[] = [];
   let i = 0;
@@ -250,7 +255,24 @@ function tokenize(text: string): Token[] {
     } else if (text.startsWith('[', i)) {
       const closeBracket = text.indexOf('](', i);
       if (closeBracket !== -1) {
-        const closeParen = text.indexOf(')', closeBracket);
+        // Padanan kurungan SEIMBANG (bukan indexOf ')' pertama) — gloss/link boleh ada
+        // '(...)' wajar dalam maksudnya sendiri (cth "(rujuk...)"), dan carian naif ambil
+        // ')' PERTAMA akan potong separuh nilai + bocorkan baki teks sbg literal (pepijat
+        // sebenar ditemui simulasi UX, audit ChatGPT 2026-08-12). Had skop carian
+        // (GLOSS_LOOKAHEAD_MAX) elak imbasan tanpa henti sepanjang baki dokumen bila
+        // penutup sengaja/tak sengaja tiada — gloss ialah anotasi PENDEK, bukan perenggan.
+        let depth = 1;
+        let j = closeBracket + 2;
+        let closeParen = -1;
+        const scanLimit = Math.min(len, closeBracket + 2 + GLOSS_LOOKAHEAD_MAX);
+        while (j < scanLimit) {
+          if (text[j] === '(') depth++;
+          else if (text[j] === ')') {
+            depth--;
+            if (depth === 0) { closeParen = j; break; }
+          }
+          j++;
+        }
         if (closeParen !== -1) {
           flushText();
           const label = text.substring(i + 1, closeBracket);
@@ -264,6 +286,16 @@ function tokenize(text: string): Token[] {
           i = closeParen + 1;
           continue;
         }
+        // Sintaks rosak (tiada penutup seimbang dlm skop) — JANGAN bocorkan markup mentah
+        // '[label](gloss:...' kpd pembaca (kontrak dikunci selepas audit: renderer perlu
+        // fallback selamat, bukan pindah beban kpd editor via validation simpan). Papar
+        // label sahaja sbg teks biasa, sambung imbas TERUS lepas '](' — elak "makan" baki
+        // kandungan/format sah yg menyusul (cth *italic* lepas gloss rosak).
+        flushText();
+        const label = text.substring(i + 1, closeBracket);
+        currentText += label;
+        i = closeBracket + 2;
+        continue;
       }
       currentText += text[i];
       i += 1;
