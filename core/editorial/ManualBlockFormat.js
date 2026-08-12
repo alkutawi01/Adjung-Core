@@ -35,6 +35,28 @@ export const stripLimitHint = (s) =>
 //
 // "Tarikh sumber:" ialah label KANONIKAL untuk tarikh bahan asal (originalDate) — "Tarikh:" masih
 // dikenali sebagai alias legasi.
+// Medan yang BOLEH menyimpan berbilang baris/perenggan (2026-08-12, pepijat kehilangan data
+// ditemui simulasi UX #21). Sempadan ni sepadan TEPAT dgn jenis input UI: medan yang dirender
+// sebagai <textarea> dlm SlotManagerModal/BarSlotManagerModal (Huraian ringkas rows=4, Huraian
+// panjang rows=5, Nota rows=2, Penerangan bagi Bar) boleh mengandungi perenggan; medan lain
+// ialah <input> satu-baris (Tajuk, Topik, Sumber, URL, tarikh, dll) dan MESTI kekal satu baris —
+// baris berikutnya selepasnya bukan sambungan, ia baris sesat yang patut terus diabaikan.
+const MEDAN_BERBILANG_BARIS = new Set(['brief', 'briefLong', 'note', 'penerangan']);
+
+// SEMUA label yang dikenali parser di bawah — satu senarai, dipakai utk menentukan sama ada satu
+// baris ialah permulaan medan BAHARU (tamatkan medan berbilang-baris semasa) atau cuma baris
+// sambungan. Senarai ni MESTI kekal segerak dgn rantaian else-if dalam parseManualBlockFields;
+// kalau label baharu ditambah di sana tapi terlupa di sini, baris label itu akan tersalah anggap
+// sebagai teks sambungan dan tenggelam ke dalam medan sebelumnya.
+const LABEL_DIKENALI = [
+  'UUID:', 'Status:', 'Tajuk:', 'Event:', 'Huraian panjang:', 'Huraian ringkas:', 'Huraian:',
+  'Bidang:', 'Kategori:', 'Topik:', 'Jenis sumber:', 'Tarikh mula:', 'Tarikh tamat:',
+  'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Imej:', 'Penganjur:', 'Lokasi:', 'Akses:',
+  'Penerangan:', 'Sumber:', 'URL:',
+];
+const ADA_LABEL_DIKENALI = (trimmed) =>
+  LABEL_DIKENALI.some((label) => trimmed.toLowerCase().startsWith(label.toLowerCase()));
+
 export function parseManualBlockFields(block) {
   const lines = (block || '').split('\n');
   const fields = {
@@ -68,8 +90,25 @@ export function parseManualBlockFields(block) {
     status: 'approved',
   };
 
+  // Medan berbilang-baris yang sedang dikumpul (null = tiada). Ditetapkan bila label medan
+  // berbilang-baris dijumpai, DIKOSONGKAN semula oleh SETIAP label lain yang dikenali — supaya
+  // label seterusnya sentiasa menamatkan medan semasa, tak kira medan apa.
+  let medanSemasa = null;
   for (const line of lines) {
     const trimmed = line.trim();
+    // Baris sambungan (2026-08-12, pembetulan pepijat #21) — baris yang BUKAN label dikenali.
+    // Sebelum ni ia jatuh melalui semua else-if TANPA else dan HILANG SENYAP: editor taip/tampal
+    // Huraian panjang berbilang perenggan, simpan, buka semula -> perenggan 2 ke atas lenyap tanpa
+    // amaran (disahkan 0 drpd 40 kandungan produksi ada pemisah perenggan, walhal FocusView.tsx
+    // memang pecah `\n{2,}` jadi <p> berasingan — kod render tu praktikalnya mati). Baris kosong
+    // turut dikekalkan supaya sempadan perenggan (`\n\n`) sampai ke renderer.
+    if (medanSemasa && !ADA_LABEL_DIKENALI(trimmed)) {
+      fields[medanSemasa] += '\n' + trimmed;
+      continue;
+    }
+    // Label dikenali dijumpai -> medan berbilang-baris sebelumnya (jika ada) TAMAT di sini.
+    // Cabang medan berbilang-baris di bawah menetapkan semula `medanSemasa` selepas ni.
+    medanSemasa = null;
     if (trimmed.startsWith('UUID:')) {
       fields.uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
     } else if (trimmed.startsWith('Status:')) {
@@ -85,10 +124,16 @@ export function parseManualBlockFields(block) {
       fields.isEventBlock = true;
     } else if (trimmed.startsWith('Huraian panjang:')) {
       fields.briefLong = stripLimitHint(trimmed.replace(/^Huraian panjang:\s*/i, ''));
+      medanSemasa = 'briefLong';
+      continue;
     } else if (trimmed.startsWith('Huraian ringkas:')) {
       fields.brief = stripLimitHint(trimmed.replace(/^Huraian ringkas:\s*/i, ''));
+      medanSemasa = 'brief';
+      continue;
     } else if (trimmed.startsWith('Huraian:')) {
       fields.brief = stripLimitHint(trimmed.replace(/^Huraian:\s*/i, ''));
+      medanSemasa = 'brief';
+      continue;
     } else if (trimmed.startsWith('Bidang:')) {
       fields.desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
     } else if (trimmed.startsWith('Kategori:')) {
@@ -111,6 +156,8 @@ export function parseManualBlockFields(block) {
       fields.penulis = trimmed.replace(/^Penulis:\s*/i, '').trim();
     } else if (trimmed.startsWith('Nota:')) {
       fields.note = trimmed.replace(/^Nota:\s*/i, '').trim();
+      medanSemasa = 'note';
+      continue;
     } else if (trimmed.startsWith('Imej:')) {
       fields.image = trimmed.replace(/^Imej:\s*/i, '').trim();
     } else if (trimmed.startsWith('Penganjur:')) {
@@ -121,6 +168,8 @@ export function parseManualBlockFields(block) {
       fields.access = trimmed.replace(/^Akses:\s*/i, '').trim();
     } else if (trimmed.startsWith('Penerangan:')) {
       fields.penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
+      medanSemasa = 'penerangan';
+      continue;
     } else if (trimmed.startsWith('Sumber:')) {
       const nama = trimmed.replace(/^Sumber:\s*/i, '').trim();
       if (fields.sources.length === 0) fields.source = nama; // entri pertama = medan tunggal legasi.
@@ -136,6 +185,13 @@ export function parseManualBlockFields(block) {
       }
       if (fields.sources.length === 1) fields.url = url; // entri pertama = medan tunggal legasi.
     }
+  }
+
+  // Kemas hujung medan berbilang-baris — baris kosong sebelum label seterusnya (cth "Huraian
+  // panjang: ...\n\nSumber: X") tinggalkan '\n' berlebihan di hujung nilai. Sempadan perenggan
+  // DALAM teks kekal utuh; cuma ekor yang dipangkas.
+  for (const medan of MEDAN_BERBILANG_BARIS) {
+    if (typeof fields[medan] === 'string') fields[medan] = fields[medan].replace(/\s+$/, '');
   }
 
   return fields;
