@@ -385,7 +385,13 @@ blockquote {
   top: -0.58em;
   transform: translate(-50%, 0) scale(1);
   font-family: "Caveat", "Chalkboard SE", "Comic Sans MS", sans-serif;
-  font-size: 0.85rem;
+  /* em bukan rem (2026-08-12, Izzat lapor nisbah font gloss:teks tak sama di telefon vs
+     desktop) -- rem ialah saiz TETAP (0.85rem = 13.6px, tak kira konteks), jadi pada kad
+     tier kecil di telefon (teks badan serendah 12px) gloss jadi LEBIH BESAR drpd teks yang
+     dianotasinya -- terbalik drpd tujuan asal "gloss lebih kecil drpd teks". em kekal
+     0.85x SAIZ TEKS SEKELILING (diwarisi drpd .interlinear-word induk), jadi nisbah kekal
+     konsisten tak kira kad/viewport yang mana. */
+  font-size: 0.85em;
   color: rgba(128, 35, 52, 0.92);
   line-height: 1;
   white-space: nowrap;
