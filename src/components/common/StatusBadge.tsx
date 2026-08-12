@@ -54,7 +54,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ tone, label, hideIcon,
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full font-mono text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 ${className}`}
+      className={`inline-flex items-center gap-1 rounded-full font-mono text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 whitespace-nowrap ${className}`}
       style={style}
     >
       {!hideIcon && TONE_ICON[tone]}
