@@ -195,19 +195,29 @@ const validateSourceUrl = (url) => {
   return { isValid: true };
 };
 
-// Had nisbah panjang gloss interlinear (2026-08-12, keputusan Izzat + audit ChatGPT) — sintaks
-// `[label](gloss:makna)` (src/utils.tsx tokenize()) papar `makna` sebagai anotasi kecil terapung
-// di atas `label` (CSS position:absolute, tiada had lebar — lihat src/index.css .interlinear-gloss).
-// Gloss jauh lebih panjang drpd label yang dianotasi melimpah keluar kad/bertindih kandungan
-// jiran, terutama pada kad telefon sempit (bukti: simulasi UX #8, screenshot produksi Izzat
-// 2026-08-12). Ni GUARD DATA (halang gloss terlalu panjang drpd disimpan terus), BUKAN
-// penyelesaian CSS/reka bentuk render (kerja berasingan, KIV — lihat nota Perlembagaan).
+// Had panjang gloss interlinear (2026-08-12, keputusan Izzat + audit ChatGPT) — sintaks
+// `[label](gloss:makna)` (src/utils.tsx tokenize()) papar `makna` sebagai anotasi kecil di atas
+// `label`. Gloss terlalu panjang buat kad/Focus View nampak berselerak (bukti: simulasi UX #8,
+// screenshot produksi Izzat 2026-08-12). Ni GUARD DATA (halang gloss terlalu panjang drpd
+// disimpan terus), BUKAN penyelesaian CSS/reka bentuk render (kerja berasingan — lihat
+// src/index.css .interlinear-gloss/.interlinear-word, Pendekatan B).
+//
+// Kontrak TEPAT (2026-08-12, pembetulan Izzat lepas nisbah 1.5:1 sahaja didapati tak cukup ketat
+// utk cegah overflow sebenar) — gloss mesti patuhi KETIGA-TIGA had serentak (paling ketat yang
+// menahan dahulu):
+//   1. Maksimum 2 PERKATAAN dlm gloss (bukan ayat/frasa panjang);
+//   2. Maksimum 30 AKSARA mutlak, tak kira apa panjang label;
+//   3. Maksimum 1.5x panjang LABEL (label pendek -> gloss kena lagi pendek drpd 30 aksara).
+// Cth: label "ini adalah" (10 aksara) -> had nisbah bagi 15 aksara, jadi 15 yg terpakai (lagi
+// ketat drpd 30), BUKAN 30.
 //
 // Pengesanan pasangan [label](gloss:makna) guna padanan kurungan SEIMBANG yang SAMA dgn
 // tokenize() client (src/utils.tsx) — bukan indexOf ')' naif, elak salah kesan bila makna sendiri
 // ada '(...)' wajar (cth "(rujuk...)"). GLOSS_LOOKAHEAD_MAX sama nilai/sebab spt versi client.
 const GLOSS_LOOKAHEAD_MAX = 300;
 const GLOSS_MAX_RATIO = 1.5;
+const GLOSS_MAX_CHARS_ABSOLUTE = 30;
+const GLOSS_MAX_WORDS = 2;
 
 const extractGlossPairs = (text) => {
   if (typeof text !== 'string' || !text) return [];
@@ -248,21 +258,33 @@ const extractGlossPairs = (text) => {
 };
 
 /**
- * Semak SETIAP pasangan [label](gloss:makna) dalam medan yang dihantar — makna gloss tak boleh
- * melebihi 1.5x panjang label yang dianotasinya. `fields` ialah { 'Nama Medan': teks }; medan
- * bukan-rentetan/kosong dilangkau (selaras falsafah validateMedanTambahan — kemas kini separa tak
- * ditolak sebab medan yang tak disentuh).
+ * Semak SETIAP pasangan [label](gloss:makna) dalam medan yang dihantar terhadap KETIGA-TIGA had
+ * serentak (lihat nota kontrak di atas GLOSS_MAX_RATIO) — perkataan, aksara mutlak, DAN nisbah;
+ * paling ketat yang menahan dahulu. `fields` ialah { 'Nama Medan': teks }; medan bukan-rentetan/
+ * kosong dilangkau (selaras falsafah validateMedanTambahan — kemas kini separa tak ditolak sebab
+ * medan yang tak disentuh).
  */
 const validateGlossLength = (fields) => {
   for (const [namaMedan, teks] of Object.entries(fields || {})) {
     if (typeof teks !== 'string' || !teks) continue;
     const pasangan = extractGlossPairs(teks);
     for (const { label, gloss } of pasangan) {
-      const hadGloss = Math.floor(label.length * GLOSS_MAX_RATIO);
-      if (gloss.length > hadGloss) {
+      const bilPerkataanGloss = gloss.trim() ? gloss.trim().split(/\s+/).length : 0;
+      if (bilPerkataanGloss > GLOSS_MAX_WORDS) {
         return {
           isValid: false,
-          reason: `Gloss untuk "${label}" (${namaMedan}) terlalu panjang (${gloss.length} aksara). Maksimum ${hadGloss} aksara (1.5x panjang perkataan "${label}").`,
+          reason: `Gloss untuk "${label}" (${namaMedan}) ada ${bilPerkataanGloss} perkataan. Maksimum ${GLOSS_MAX_WORDS} perkataan sahaja.`,
+        };
+      }
+      const hadNisbah = Math.floor(label.length * GLOSS_MAX_RATIO);
+      const hadTerpakai = Math.min(GLOSS_MAX_CHARS_ABSOLUTE, hadNisbah);
+      if (gloss.length > hadTerpakai) {
+        const sebab = hadTerpakai === hadNisbah
+          ? `1.5x panjang perkataan "${label}"`
+          : `had mutlak ${GLOSS_MAX_CHARS_ABSOLUTE} aksara`;
+        return {
+          isValid: false,
+          reason: `Gloss untuk "${label}" (${namaMedan}) terlalu panjang (${gloss.length} aksara). Maksimum ${hadTerpakai} aksara (${sebab}).`,
         };
       }
     }

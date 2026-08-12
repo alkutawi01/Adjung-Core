@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, ChevronUp, ChevronDown, Trash2, Lock, Upload, AlertCircle } from 'lucide-react';
-import { validateContentBudget, validateBidangTopik } from '../../../core/editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateGlossLength } from '../../../core/editorial/ContentBudget.js';
 import { tierForSlot, ceilingForSlot, TIER_LABELS, TIER_GRID_SIZE, topikCeilingForSlot, effectiveMinBriefLong } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
@@ -302,9 +302,14 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 // (validateBidangTopik) — bukan bajet sahaja. Dua-dua pengesahan ini KEKAL menyekat Simpan Slot di
 // server.js (syncManualObjectsForSlot), jadi meter/lulus di sini mesti guna formula SAMA supaya
 // tiada kandungan nampak "lulus" di modal tapi ditolak server semasa simpan.
-function itemFits(slotIndex: number, desk: string, item: { title?: string; brief?: string; topik?: string }) {
+function itemFits(slotIndex: number, desk: string, item: { title?: string; brief?: string; briefLong?: string; topik?: string }) {
   const budget = validateContentBudget(slotIndex, item.title || '', item.brief || '');
   if (!budget.isValid) return budget;
+  // Had gloss (2026-08-12, keputusan Izzat) — semak SEBELUM Terbit, SAMA fungsi live spt
+  // budget/Topik di atas (itemFits dipanggil setiap render sidebar + setiap klik Terbit), supaya
+  // editor nampak mesej sebelum cuba hantar ke server, bukan cuma selepas 400 pulang.
+  const gloss = validateGlossLength({ Tajuk: item.title, 'Huraian ringkas': item.brief, 'Huraian panjang': item.briefLong });
+  if (!gloss.isValid) return gloss;
   return validateBidangTopik({ slotBidang: desk, itemBidang: desk, topik: item.topik || '', requireTopik: true, slotIndex });
 }
 

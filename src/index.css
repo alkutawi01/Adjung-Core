@@ -400,10 +400,19 @@ blockquote {
      tier kecil di telefon (teks badan serendah 12px) gloss jadi LEBIH BESAR drpd teks yang
      dianotasinya -- terbalik drpd tujuan asal "gloss lebih kecil drpd teks". em kekal
      0.85x SAIZ TEKS SEKELILING (diwarisi drpd .interlinear-word induk), jadi nisbah kekal
-     konsisten tak kira kad/viewport yang mana. */
-  font-size: 0.85em;
+     konsisten tak kira kad/viewport yang mana.
+     0.85em->0.8em + line-height 1.15->1.02 + margin-bottom (2026-08-12, Pendekatan B2, PoC
+     lokal disahkan ChatGPT) — Izzat lapor unit gloss+perkataan buat "bump" spacing hodoh dlm
+     perenggan bila gloss balut byrs baris. Diukur: tinggi unit kes 3-baris terburuk 66px->58px
+     (~12% lebih padat). Bump asas (unit >1 baris teks dlm 1 baris perenggan) TAK boleh hilang
+     terus tanpa balik ke position:absolute (yg kita dah tolak sbb clip/overflow) -- ni
+     penambahbaikan tipografi, bukan penyelesaian struktur baharu. Kesan sampingan (bonus): had
+     panjang gloss baharu (max 2 perkataan/30 aksara/1.5x nisbah, ContentBudget.js) jadikan kes
+     3-baris jauh lebih jarang berlaku drpd sebelum ni. */
+  font-size: 0.8em;
   color: rgba(128, 35, 52, 0.92);
-  line-height: 1.15;
+  line-height: 1.02;
+  margin-bottom: -0.08em;
   /* normal + max-width GANTI nowrap tanpa had (2026-08-12, Pendekatan B) — gloss panjang kini
      BALUT ke 2-3 baris kecil di atas perkataan drpd melimpah/terpotong sehala; 22ch cukup
      lapang utk kebanyakan gloss sah (had validator 1.5:1 pun hadkan panjang maksimum) tanpa
@@ -414,7 +423,7 @@ blockquote {
   pointer-events: none;
   opacity: 1;
   visibility: visible;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
   font-weight: 600;
   user-select: none;
   text-transform: lowercase;
