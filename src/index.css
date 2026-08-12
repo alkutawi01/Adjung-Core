@@ -413,12 +413,17 @@ blockquote {
   color: rgba(128, 35, 52, 0.92);
   line-height: 1.02;
   margin-bottom: -0.08em;
-  /* normal + max-width GANTI nowrap tanpa had (2026-08-12, Pendekatan B) — gloss panjang kini
-     BALUT ke 2-3 baris kecil di atas perkataan drpd melimpah/terpotong sehala; 22ch cukup
-     lapang utk kebanyakan gloss sah (had validator 1.5:1 pun hadkan panjang maksimum) tanpa
-     jadi terlalu lebar pada kad kecil 375px. */
-  white-space: normal;
-  max-width: 22ch;
+  /* nowrap KEMBALI (2026-08-12, keputusan Izzat lepas had aksara ketat dipasang) — dgn had
+     gloss baharu (maks 2 perkataan/30 aksara/1.5x nisbah, ContentBudget.js) gloss sepatutnya
+     CUKUP PENDEK utk x perlukan balut byrs baris lagi; wrap byrs baris (Pendekatan B asal)
+     ditinggalkan sbb Izzat lebih suka satu baris kemas + terima risiko overflow jarang
+     drpd bump spacing kerap. max-width:22ch turut dibuang (x releven bila nowrap — unit
+     inline-flex ambil lebar ikut kandungan sebenar, bukan had ch tetap). Struktur ALIRAN
+     (inline-flex, BUKAN position:absolute) KEKAL — overflowX:hidden kontena luar (Tiket A)
+     masih jaring keselamatan kalau unit ni sendiri lebih lebar drpd kad sangat sempit;
+     kalau ujian sebenar (kad 114px + gloss 30 aksara) masih nampak overflow/terpotong,
+     langkah seterusnya kurangkan font-size lagi (BUKAN wrap semula) — lihat arahan Izzat. */
+  white-space: nowrap;
   text-align: center;
   pointer-events: none;
   opacity: 1;
