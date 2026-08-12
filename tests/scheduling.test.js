@@ -58,3 +58,47 @@ test('Scheduling - formatKlDisplay produces a non-empty Malay-locale string', ()
   assert.ok(label.length > 0);
   assert.equal(formatKlDisplay(null), '');
 });
+
+// Regresi zon waktu (simulasi UX #29, 2026-08-12) — jadual terbit/luput tersangkut dan hanya
+// menyala kira-kira 8 JAM lewat. Puncanya BUKAN isDue(), tetapi penapisan masa yang dahulu
+// dibuat sebagai perbandingan RENTETAN dalam SQL:
+//
+//   WHERE er.scheduledPublishAt <= ?      -- parameter = new Date().toISOString(), UTC 'Z'
+//
+// klLocalToIso() menulis nilai sebagai waktu tempatan KL berserta ofset ('...T15:09:00+08:00'),
+// manakala parameternya UTC ('...T07:11:40.713Z'). SQLite membanding TEKS aksara demi aksara,
+// jadi '15:09' tidak pernah dikira <= '07:11' walaupun detik itu SUDAH berlalu.
+//
+// Ujian ini mengunci dua perkara: (a) isDue() menilai ofset dengan betul, dan (b) perbandingan
+// rentetan mentah memang salah — supaya sesiapa yang tergoda "mengoptimumkan" penapisan itu
+// kembali ke dalam SQL akan nampak sebabnya gagal.
+test('Scheduling - jadual berofset +08:00 yang sudah matang dikira due (regresi #29)', () => {
+  // 15:09 waktu KL = 07:09 UTC. Jam sekarang 07:11 UTC, jadi ia SUDAH matang 2 minit lalu.
+  const jadualKl = '2026-08-12T15:09:00+08:00';
+  const nowMs = new Date('2026-08-12T07:11:40.713Z').getTime();
+  assert.equal(isDue(jadualKl, nowMs), true);
+});
+
+test('Scheduling - perbandingan rentetan mentah gagal untuk ofset KL (sebab #29 berlaku)', () => {
+  const jadualKl = '2026-08-12T15:09:00+08:00';
+  const nowIso = '2026-08-12T07:11:40.713Z';
+  // Inilah kelakuan lama: rentetan kata "belum sampai" sedangkan masanya sudah berlalu.
+  assert.equal(jadualKl <= nowIso, false);
+  // Perbandingan sebagai DETIK MASA pula betul — jurang inilah puncanya.
+  assert.equal(new Date(jadualKl) <= new Date(nowIso), true);
+});
+
+test('Scheduling - jadual berofset +08:00 yang belum matang tidak dikira due', () => {
+  const jadualKl = '2026-08-12T15:09:00+08:00'; // = 07:09 UTC
+  const nowMs = new Date('2026-08-12T07:00:00.000Z').getTime(); // 9 minit sebelum
+  assert.equal(isDue(jadualKl, nowMs), false);
+});
+
+test('Scheduling - klLocalToIso menghasilkan nilai yang isDue() boleh nilai dengan betul', () => {
+  // Ikat helper penulis kepada helper pembaca: apa yang ditulis mesti boleh dinilai semula.
+  const ditulis = klLocalToIso('2026-08-12T15:09');
+  const sudahLalu = new Date('2026-08-12T07:30:00.000Z').getTime(); // 07:09 UTC sudah berlalu
+  const belumSampai = new Date('2026-08-12T06:30:00.000Z').getTime();
+  assert.equal(isDue(ditulis, sudahLalu), true);
+  assert.equal(isDue(ditulis, belumSampai), false);
+});

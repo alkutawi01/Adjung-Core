@@ -220,14 +220,31 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
 
   // (1) Terbit berjadual
   try {
+    // Penapisan masa dibuat dalam JS (isDue), BUKAN perbandingan rentetan SQL (2026-08-12,
+    // pepijat disahkan simulasi UX #29). Dahulu klausa `er.scheduledPublishAt <= ?` membanding
+    // DUA FORMAT BERBEZA sebagai TEKS: nilai tersimpan ialah waktu tempatan KL berserta ofset
+    // ('2026-08-12T15:09:00+08:00', ditulis oleh klLocalToIso) manakala parameternya ialah UTC 'Z'
+    // (new Date().toISOString(), cth '2026-08-12T07:11:40.713Z'). SQLite membanding TEKS aksara
+    // demi aksara, bukan sebagai detik masa — jadi '...T15:09...' tidak pernah dikira <=
+    // '...T07:11...' walaupun saat itu SUDAH tiba. Kesannya jadual terbit tersangkut sehingga jam
+    // UTC sendiri melepasi angka itu, iaitu LEWAT ~8 jam (dan boleh terlangkau ke hari berikutnya
+    // untuk jadual lewat malam) — senyap sepenuhnya, UI tetap papar "scheduled" dengan yakin.
+    //
+    // `scheduledPublishAt` kini turut DIPILIH (dahulu tidak) supaya isDue() benar-benar dapat
+    // menilainya; sebelum ni row.scheduledPublishAt sentiasa undefined lalu jatuh ke `?? nowIso`
+    // yang sentiasa benar — semakan "pertahanan" itu tidak pernah menyemak apa-apa.
+    // isDue() guna Date.getTime(), jadi ofset zon waktu ditafsir betul tidak kira formatnya.
+    //
+    // Baris 'scheduled' sentiasa sedikit (skala editorial, bukan trafik pembaca — lihat nota kunci
+    // di atas), jadi menapis dalam JS tidak membebankan.
     const dueToPublish = await dbAll(`
-      SELECT er.id as revisionId, er.objectId, er.title FROM editorial_revisions er
+      SELECT er.id as revisionId, er.objectId, er.title, er.scheduledPublishAt FROM editorial_revisions er
       INNER JOIN (SELECT objectId, MAX(version) as mv FROM editorial_revisions GROUP BY objectId) lv
         ON lv.objectId = er.objectId AND lv.mv = er.version
-      WHERE er.status = 'scheduled' AND er.scheduledPublishAt IS NOT NULL AND er.scheduledPublishAt <= ?
-    `, [nowIso]);
+      WHERE er.status = 'scheduled' AND er.scheduledPublishAt IS NOT NULL
+    `);
     for (const row of dueToPublish) {
-      if (!isDue(row.scheduledPublishAt ?? nowIso)) { /* defensive no-op, SQL already filtered */ }
+      if (!isDue(row.scheduledPublishAt)) continue;
       const objRow = await dbGet('SELECT slotIndex FROM editorial_objects WHERE id = ?', [row.objectId]);
 
       // Had kandungan seslot terpakai pada terbitan BERJADUAL juga (2026-08-06, audit). Dahulu
@@ -286,13 +303,19 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
 
   // (2) Luput/arkib berjadual
   try {
+    // Sama pepijat, sama pembetulan seperti (1) Terbit berjadual di atas — lihat nota penuh di
+    // sana. Ini BUKAN andaian daripada corak kod yang serupa: disahkan bahawa scheduledExpiresAt
+    // ditulis oleh helper YANG SAMA (klLocalToIso, IndeksConsole.tsx:329-330 menetapkan kedua-dua
+    // medan sekali gus), jadi formatnya juga waktu tempatan KL + ofset '+08:00' dan perbandingan
+    // rentetan terhadap UTC 'Z' rosak dengan cara yang sama persis (luput lewat ~8 jam).
     const dueToExpire = await dbAll(`
-      SELECT er.id as revisionId, er.objectId, er.title FROM editorial_revisions er
+      SELECT er.id as revisionId, er.objectId, er.title, er.scheduledExpiresAt FROM editorial_revisions er
       INNER JOIN (SELECT objectId, MAX(version) as mv FROM editorial_revisions GROUP BY objectId) lv
         ON lv.objectId = er.objectId AND lv.mv = er.version
-      WHERE er.status = 'approved' AND er.scheduledExpiresAt IS NOT NULL AND er.scheduledExpiresAt <= ?
-    `, [nowIso]);
+      WHERE er.status = 'approved' AND er.scheduledExpiresAt IS NOT NULL
+    `);
     for (const row of dueToExpire) {
+      if (!isDue(row.scheduledExpiresAt)) continue;
       // Pengawal `AND status = 'approved'` — lihat nota sama di (1) Terbit berjadual di atas.
       const hasilLuput = await dbRun(
         "UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ? AND status = 'approved'",
