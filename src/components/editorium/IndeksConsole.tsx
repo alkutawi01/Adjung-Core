@@ -529,7 +529,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
 
       // Search Query
       if (appliedFilters.search.trim()) {
-        const q = appliedFilters.search.toLowerCase();
+        const q = appliedFilters.search.trim().toLowerCase();
         const matches =
           item.title.toLowerCase().includes(q) ||
           item.summary.toLowerCase().includes(q) ||
