@@ -722,9 +722,22 @@ export const FocusView: React.FC<FocusViewProps> = ({
 
         {/* Badan yang menatal — `overscrollBehavior: contain` elak tatal "rantai" ke halaman di
             belakang bila pembaca sampai hujung atas/bawah huraian (bonus kepada kunci
-            html/body overflow di atas — dua lapis perlindungan sama konsep). */}
+            html/body overflow di atas — dua lapis perlindungan sama konsep).
+            overflowX:'hidden' EKSPLISIT (2026-08-12, Izzat lapor drpd telefon sebenar + audit
+            ChatGPT) — bila hanya overflowY dinyatakan, kuirk CSS piawai tukar overflowX yang tak
+            dinyatakan drpd 'visible' kepada 'auto' SENDIRI (bukan pepijat React/kod ni — sifat
+            asas `overflow` shorthand). Gloss interlinear (white-space:nowrap, tiada max-width,
+            Tiket B berasingan, belum selesai) kadangkala terjulur lebih lebar drpd kontena ni,
+            dan overflowX:auto yang tersalah dedah tu benarkan iOS Safari leret/heret MENDATAR
+            seluruh badan bacaan utk "lihat" bahagian terjulur — pembaca boleh heret kandungan ke
+            kiri/kanan sehingga ruang kosong terbentuk, persis screenshot Izzat. Ni acceptance
+            criterion serta-merta: badan bacaan TAK BOLEH ada scroll mendatar tak kira apa
+            kandungan dalamnya — gloss yang terjulur mungkin nampak terpotong buat sementara
+            (Tiket B, PoC wrapping/reka bentuk penuh, KIV berasingan), tapi itu diterima sbg
+            keadaan sementara, BUKAN penyelesaian akhir gloss. */}
         <div style={{
-          position: 'relative', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain',
+          position: 'relative', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
+          overscrollBehavior: 'contain',
           padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: '18px',
         }}>
           {text && (
