@@ -195,6 +195,81 @@ const validateSourceUrl = (url) => {
   return { isValid: true };
 };
 
+// Had nisbah panjang gloss interlinear (2026-08-12, keputusan Izzat + audit ChatGPT) — sintaks
+// `[label](gloss:makna)` (src/utils.tsx tokenize()) papar `makna` sebagai anotasi kecil terapung
+// di atas `label` (CSS position:absolute, tiada had lebar — lihat src/index.css .interlinear-gloss).
+// Gloss jauh lebih panjang drpd label yang dianotasi melimpah keluar kad/bertindih kandungan
+// jiran, terutama pada kad telefon sempit (bukti: simulasi UX #8, screenshot produksi Izzat
+// 2026-08-12). Ni GUARD DATA (halang gloss terlalu panjang drpd disimpan terus), BUKAN
+// penyelesaian CSS/reka bentuk render (kerja berasingan, KIV — lihat nota Perlembagaan).
+//
+// Pengesanan pasangan [label](gloss:makna) guna padanan kurungan SEIMBANG yang SAMA dgn
+// tokenize() client (src/utils.tsx) — bukan indexOf ')' naif, elak salah kesan bila makna sendiri
+// ada '(...)' wajar (cth "(rujuk...)"). GLOSS_LOOKAHEAD_MAX sama nilai/sebab spt versi client.
+const GLOSS_LOOKAHEAD_MAX = 300;
+const GLOSS_MAX_RATIO = 1.5;
+
+const extractGlossPairs = (text) => {
+  if (typeof text !== 'string' || !text) return [];
+  const pairs = [];
+  const len = text.length;
+  let i = 0;
+  while (i < len) {
+    if (text[i] === '[') {
+      const closeBracket = text.indexOf('](', i);
+      if (closeBracket === -1) { i += 1; continue; }
+      let depth = 1;
+      let j = closeBracket + 2;
+      let closeParen = -1;
+      const scanLimit = Math.min(len, closeBracket + 2 + GLOSS_LOOKAHEAD_MAX);
+      while (j < scanLimit) {
+        if (text[j] === '(') depth++;
+        else if (text[j] === ')') { depth--; if (depth === 0) { closeParen = j; break; } }
+        j++;
+      }
+      if (closeParen !== -1) {
+        const label = text.substring(i + 1, closeBracket);
+        const url = text.substring(closeBracket + 2, closeParen);
+        if (url.startsWith('gloss:')) {
+          pairs.push({ label, gloss: url.substring(6) });
+        }
+        i = closeParen + 1;
+        continue;
+      }
+      // Sintaks rosak (tiada penutup seimbang) — sama spt client, bukan tanggungjawab pengesahan
+      // ni; tokenize() client dah handle fallback selamat pada paparan. Langkau, jangan tolak simpan
+      // atas sintaks tak lengkap yang bukan gloss langsung.
+      i = closeBracket + 2;
+      continue;
+    }
+    i += 1;
+  }
+  return pairs;
+};
+
+/**
+ * Semak SETIAP pasangan [label](gloss:makna) dalam medan yang dihantar — makna gloss tak boleh
+ * melebihi 1.5x panjang label yang dianotasinya. `fields` ialah { 'Nama Medan': teks }; medan
+ * bukan-rentetan/kosong dilangkau (selaras falsafah validateMedanTambahan — kemas kini separa tak
+ * ditolak sebab medan yang tak disentuh).
+ */
+const validateGlossLength = (fields) => {
+  for (const [namaMedan, teks] of Object.entries(fields || {})) {
+    if (typeof teks !== 'string' || !teks) continue;
+    const pasangan = extractGlossPairs(teks);
+    for (const { label, gloss } of pasangan) {
+      const hadGloss = Math.floor(label.length * GLOSS_MAX_RATIO);
+      if (gloss.length > hadGloss) {
+        return {
+          isValid: false,
+          reason: `Gloss untuk "${label}" (${namaMedan}) terlalu panjang (${gloss.length} aksara). Maksimum ${hadGloss} aksara (1.5x panjang perkataan "${label}").`,
+        };
+      }
+    }
+  }
+  return { isValid: true };
+};
+
 // Bidang (kategori/desk) is locked per-slot: every item saved into a slot must share that slot's
 // Bidang. Topik is a free-text per-item field, mandatory only for new/edited content (not for
 // status-only actions on legacy content that predates this rule — pass requireTopik accordingly).
@@ -264,5 +339,5 @@ export {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
   validateContentBudget, validateBidangTopik, validateSourceUrl,
-  setMedanLimits, getMedanLimits, validateMedanTambahan,
+  setMedanLimits, getMedanLimits, validateMedanTambahan, validateGlossLength,
 };

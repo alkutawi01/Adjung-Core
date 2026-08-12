@@ -12,7 +12,7 @@ import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
-import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl } from './core/editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, validateGlossLength } from './core/editorial/ContentBudget.js';
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS, effectiveMinBriefLong } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
@@ -2667,6 +2667,15 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
     });
     if (!medanCheck.isValid) {
       const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${medanCheck.reason}`);
+      err.isValidationError = true;
+      throw err;
+    }
+    // Had nisbah gloss interlinear (2026-08-12, keputusan Izzat) — lihat nota ContentBudget.js.
+    const glossCheck = validateGlossLength({
+      Tajuk: item.title, 'Huraian ringkas': item.summary, 'Huraian panjang': item.briefLong,
+    });
+    if (!glossCheck.isValid) {
+      const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${glossCheck.reason}`);
       err.isValidationError = true;
       throw err;
     }

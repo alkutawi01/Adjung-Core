@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, TIER_SLOTS } from '../editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, validateGlossLength, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import { effectiveMinBriefLong } from '../editorial/GeometryConfig.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
@@ -717,6 +717,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         const medanCheck = validateMedanTambahan({ summaryLong: briefLong, source, topik, note });
         if (!medanCheck.isValid) {
           return res.status(400).json({ error: medanCheck.reason });
+        }
+
+        // Had nisbah gloss interlinear (2026-08-12, keputusan Izzat) — lihat nota ContentBudget.js.
+        // Hanya medan yang benar-benar dihantar dlm PATCH ni disemak (selaras medanCheck di atas).
+        const glossCheck = validateGlossLength({
+          Tajuk: title, 'Huraian ringkas': summary, 'Huraian panjang': briefLong,
+        });
+        if (!glossCheck.isValid) {
+          return res.status(400).json({ error: glossCheck.reason });
         }
 
         // Format sumber (Fasa 8b) — URL sumber mesti sekurang-kurangnya rupa URL sah kalau diisi.
@@ -1510,6 +1519,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const medanCheck = validateMedanTambahan({ source, topik });
       if (!medanCheck.isValid) {
         return res.status(400).json({ error: medanCheck.reason });
+      }
+
+      // Had nisbah gloss interlinear (2026-08-12, keputusan Izzat) — lihat nota ContentBudget.js.
+      // Laluan cipta ni tiada medan briefLong (PATCH berasingan selepas cipta), jadi Tajuk+Huraian
+      // ringkas sahaja disemak di sini.
+      const glossCheck = validateGlossLength({ Tajuk: title, 'Huraian ringkas': summary });
+      if (!glossCheck.isValid) {
+        return res.status(400).json({ error: glossCheck.reason });
       }
 
       const urlCheck = validateSourceUrl(url);

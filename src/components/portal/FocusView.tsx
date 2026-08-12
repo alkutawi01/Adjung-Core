@@ -634,6 +634,13 @@ export const FocusView: React.FC<FocusViewProps> = ({
           // DOM tu (bukan Portal), jadi warisi sekatan tu turut sekali walhal ni permukaan
           // BACAAN, bukan kad. Ditulis-ganti eksplisit di sini supaya pembaca boleh salin teks.
           userSelect: 'text', WebkitUserSelect: 'text',
+          // touchAction:pan-y (2026-08-12, Izzat lapor drpd telefon sebenar + audit ChatGPT) —
+          // userSelect:text di atas + leret mendatar next/prev (onTouchStart/onTouchEnd bawah)
+          // pada permukaan yang SAMA buat Safari iOS kadang tafsir leret menegak perlahan sbg
+          // gesture PILIH TEKS drpd tatal biasa. pan-y beritahu browser leret menegak ialah
+          // tatal-native (serah terus kpd Safari), bukan gesture aplikasi utk dirampas — tekan
+          // lama (long-press) utk salin teks kekal berfungsi spt biasa, cuma leret licin je diperbetulkan.
+          touchAction: 'pan-y',
         }}
         onTouchStart={kendaliSentuhMula}
         onTouchEnd={kendaliSentuhTamat}
