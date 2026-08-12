@@ -6,7 +6,7 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, requirePermission, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
-import { isDue, hasReplacementForExpiry } from '../editorial/Scheduling.js';
+import { isDue, hasReplacementForExpiry, resolveEffectiveStatus } from '../editorial/Scheduling.js';
 import { denganKunciKandungan } from '../utils/kunciKandungan.js';
 
 // Dua jenis Menunggu (2026-08-06, permintaan Izzat: "menunggu sepatutnya ada dua jenis, menunggu
@@ -833,13 +833,12 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const nowIso = new Date().toISOString();
       let liveRevId = rev.id;
 
-      // Jadual Terbit — kalau editor tetapkan scheduledPublishAt TANPA hantar `status` eksplisit,
-      // status secara automatik jadi 'scheduled' (kandungan kekal tersembunyi drpd pembaca sehingga
-      // masa tiba — lihat runSchedulingTick). Hantar `status` eksplisit sekali tetap dihormati
-      // (cth padam jadual serentak paksa 'approved').
-      let effectiveStatus = (scheduledPublishAt !== undefined && scheduledPublishAt && status === undefined)
-        ? 'scheduled'
-        : status;
+      // Jadual Terbit — status berkesan bagi kedua-dua arah (SET automatik jadi 'scheduled', BATAL
+      // pulih ke 'approved') dikira oleh resolveEffectiveStatus() (core/editorial/Scheduling.js) —
+      // satu sumber kebenaran kongsi supaya diuji terus tanpa DB/HTTP (tests/scheduling.test.js).
+      // Status eksplisit yang client hantar sentiasa dihormati (cth padam jadual serentak paksa
+      // 'approved') — lihat komen di fungsi tu utk sejarah pepijat #36.2.
+      let effectiveStatus = resolveEffectiveStatus({ scheduledPublishAt, status, currentStatus: rev.status });
       // Slot penuh (dua jenis Menunggu, lihat nota di atas) — tulis-ganti niat 'approved' kepada
       // 'pending' SEBELUM apa-apa penulisan DB berlaku, supaya SETIAP laluan tulis di bawah
       // (edit kandungan MAHUPUN status-sahaja) secara automatik hormati sekatan ni tanpa perlu

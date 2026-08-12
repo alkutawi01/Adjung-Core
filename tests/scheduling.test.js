@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isDue, hasReplacementForExpiry, klLocalToIso, isoToKlLocalInput, formatKlDisplay } from '../core/editorial/Scheduling.js';
+import { isDue, hasReplacementForExpiry, klLocalToIso, isoToKlLocalInput, formatKlDisplay, resolveEffectiveStatus } from '../core/editorial/Scheduling.js';
 
 test('Scheduling - isDue returns false for null/empty timestamp', () => {
   assert.equal(isDue(null), false);
@@ -101,4 +101,36 @@ test('Scheduling - klLocalToIso menghasilkan nilai yang isDue() boleh nilai deng
   const belumSampai = new Date('2026-08-12T06:30:00.000Z').getTime();
   assert.equal(isDue(ditulis, sudahLalu), true);
   assert.equal(isDue(ditulis, belumSampai), false);
+});
+
+// Regresi status jadual (simulasi UX #36.2, 2026-08-12) — batal jadual (kosongkan
+// scheduledPublishAt tanpa hantar status eksplisit) meninggalkan rekod anak yatim
+// status='scheduled' selama-lamanya, kandungan hilang drpd pembaca tanpa amaran. Tiga
+// senario dikunci di sini supaya sesiapa yang sentuh semula resolveEffectiveStatus() nampak
+// terus kalau simetri SET/BATAL terlanggar.
+test('Scheduling - resolveEffectiveStatus: tetapkan jadual (approved -> scheduled)', () => {
+  const hasil = resolveEffectiveStatus({
+    scheduledPublishAt: '2026-08-12T20:00:00+08:00',
+    status: undefined,
+    currentStatus: 'approved',
+  });
+  assert.equal(hasil, 'scheduled');
+});
+
+test('Scheduling - resolveEffectiveStatus: batal jadual (scheduled -> approved, bukan anak yatim)', () => {
+  const hasil = resolveEffectiveStatus({
+    scheduledPublishAt: null,
+    status: undefined,
+    currentStatus: 'scheduled',
+  });
+  assert.equal(hasil, 'approved');
+});
+
+test('Scheduling - resolveEffectiveStatus: status eksplisit sentiasa dihormati, tak diganggu logik automatik', () => {
+  const hasil = resolveEffectiveStatus({
+    scheduledPublishAt: null,
+    status: 'pending',
+    currentStatus: 'scheduled',
+  });
+  assert.equal(hasil, 'pending');
 });

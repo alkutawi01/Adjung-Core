@@ -62,6 +62,35 @@ export const hasReplacementForExpiry = (otherStatuses) => {
   return (otherStatuses || []).some((s) => STATUS_MASIH_HIDUP.includes(s));
 };
 
+// Status berkesan bagi PATCH kandungan bila medan jadual terbit turut dihantar (pepijat sebenar
+// disahkan simulasi UX #36.2, 2026-08-12). Dua arah mesti simetri:
+//   SET:   tiada status eksplisit + scheduledPublishAt baharu (bukan kosong) -> 'scheduled'.
+//   BATAL: tiada status eksplisit + scheduledPublishAt dikosongkan + rekod SEDANG 'scheduled'
+//          -> 'approved'.
+// Sebelum tambahan cabang BATAL, arah tu jatuh ke `status` (undefined kalau client tak hantar),
+// jadi rekod warisi currentStatus LAMA ('scheduled') — anak yatim status='scheduled' +
+// scheduledPublishAt=null yang tak pernah disemak semula oleh runSchedulingTick (hanya proses
+// baris yg ADA scheduledPublishAt), sebabkan kandungan hilang drpd pembaca selama-lamanya sehingga
+// editor perasan & guna Tindakan->Siar secara manual.
+// Status eksplisit yang client hantar (cth 'draft', atau 'approved' semasa padam jadual serentak)
+// SENTIASA dihormati tanpa syarat — dua cabang automatik di bawah hanya bertindak bila client
+// TIDAK hantar status langsung.
+export const resolveEffectiveStatus = ({ scheduledPublishAt, status, currentStatus }) => {
+  if (scheduledPublishAt !== undefined && scheduledPublishAt && status === undefined) {
+    return 'scheduled';
+  }
+  if (
+    scheduledPublishAt !== undefined &&
+    !scheduledPublishAt &&
+    status === undefined &&
+    currentStatus === 'scheduled'
+  ) {
+    return 'approved';
+  }
+  return status;
+};
+
 export default {
   KL_OFFSET, klLocalToIso, isoToKlLocalInput, formatKlDisplay, isDue, hasReplacementForExpiry,
+  resolveEffectiveStatus,
 };
