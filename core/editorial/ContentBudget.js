@@ -219,6 +219,22 @@ const GLOSS_MAX_RATIO = 1.5;
 const GLOSS_MAX_CHARS_ABSOLUTE = 30;
 const GLOSS_MAX_WORDS = 2;
 
+// Gloss authoring KIV (2026-08-12, keputusan Izzat + audit ChatGPT) — bukan ciri gagal secara
+// teknikal (had panjang + tipografi B2/nowrap dah selesai betul, lihat sejarah git di atas), tapi
+// ia jadi "confounding variable" yang asyik ganggu round simulasi UX 50 pusingan yang sedang
+// berjalan. Izzat minta gloss dimatikan buat editor SEHINGGA ia benar² stabil digunakan, TANPA
+// padam sintaks/parser/kandungan sedia ada:
+//   - Gloss SEDIA ADA (kandungan lama) TERUS dirender macam biasa (src/utils.tsx tokenize() TAK
+//     disentuh — ini penggera SIMPAN, bukan PAPAR, jadi regression corpus kekal utuh).
+//   - Cubaan SIMPAN (cipta baharu ATAU edit) kandungan yg ada sintaks [label](gloss:...) DITOLAK
+//     dgn mesej jelas, tak kira gloss tu baru ditaip atau kandungan lama yg kebetulan disimpan
+//     semula (edit medan lain dlm item yg dah ada gloss pun turut disekat — trade-off SENGAJA
+//     demi kesederhanaan drpd logik diff lama-vs-baharu yg jauh lebih kompleks merentasi 3 laluan
+//     simpan; item ujian gloss sedia ada (Slot 1-3) memang tak dijangka disunting sehingga
+//     pusingan simulasi #50 selesai — lihat nota Perlembagaan).
+//   - Tukar GLOSS_AUTHORING_ENABLED ke true bila ciri ni sedia dibuka semula.
+const GLOSS_AUTHORING_ENABLED = false;
+
 const extractGlossPairs = (text) => {
   if (typeof text !== 'string' || !text) return [];
   const pairs = [];
@@ -268,6 +284,12 @@ const validateGlossLength = (fields) => {
   for (const [namaMedan, teks] of Object.entries(fields || {})) {
     if (typeof teks !== 'string' || !teks) continue;
     const pasangan = extractGlossPairs(teks);
+    if (!GLOSS_AUTHORING_ENABLED && pasangan.length > 0) {
+      return {
+        isValid: false,
+        reason: `Gloss interlinear (${namaMedan}) dimatikan buat sementara (KIV) sehingga ciri ni stabil sepenuhnya. Kandungan gloss sedia ada terus dipaparkan seperti biasa — sekatan ni cuma pada simpanan baharu. Buang sintaks [label](gloss:...) drpd medan ni utk simpan.`,
+      };
+    }
     for (const { label, gloss } of pasangan) {
       const bilPerkataanGloss = gloss.trim() ? gloss.trim().split(/\s+/).length : 0;
       if (bilPerkataanGloss > GLOSS_MAX_WORDS) {
