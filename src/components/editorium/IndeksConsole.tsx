@@ -717,6 +717,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // window.prompt native tak boleh distyle/disahkan input; ditukar ke pengesahan sebaris
   // dalam-aplikasi, sama corak macam confirmPadamKekalId di atas.
   const [confirmTolakId, setConfirmTolakId] = useState('');
+  // Pengesahan Siar (2026-08-12, keputusan Izzat selepas simulasi UX #28) — Siar ialah SATU-SATUNYA
+  // tindakan dalam dropdown ni yang MENDEDAHKAN kandungan kepada pembaca awam serta-merta, tetapi
+  // dahulu ia satu-satunya yang bertindak tanpa sebarang pengesahan (Tolak dan Padam kekal sudah
+  // ada). Arkib sengaja TIDAK diberi pengesahan: ia menyembunyikan, bukan mendedahkan, jadi salah
+  // klik di situ tidak menjejaskan pembaca dan kerja harian kekal pantas.
+  const [confirmSiarId, setConfirmSiarId] = useState('');
   const [tolakSebab, setTolakSebab] = useState('');
   const handlePadamKekal = async (id: string) => {
     setConfirmPadamKekalId('');
@@ -1333,9 +1339,17 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         // ruang utk medan sebab; sebab penuh masih boleh diisi via modal
                         // butiran ("Tolak (kembali jadi draf)").
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="text-[var(--color-error)] font-semibold">Tolak, jadi draf?</span>
+                          <span className="text-[var(--color-error)] font-semibold">Arkib &amp; pulangkan draf?</span>
                           <Button type="button" variant="primary" size="sm" onClick={() => handleRejectToDraft(rec.id, '')}>Ya</Button>
                           <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmTolakId('')}>Batal</Button>
+                        </span>
+                      ) : confirmSiarId === rec.id ? (
+                        // Siar sahaja yang disahkan (lihat nota confirmSiarId) — ia mendedahkan
+                        // kandungan kepada pembaca awam serta-merta.
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="text-[var(--color-error)] font-semibold">Siar kepada pembaca?</span>
+                          <Button type="button" variant="primary" size="sm" onClick={() => { setConfirmSiarId(''); handleUpdateStatus(rec.id, 'Live' as any); }}>Ya, siar</Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmSiarId('')}>Batal</Button>
                         </span>
                       ) : rec.slot !== 'Ticker' && !isReadOnly && rec.status === 'Dipadam' ? (
                         <span className="inline-flex items-center gap-1.5">
@@ -1349,7 +1363,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           value=""
                           onChange={(e) => {
                             const val = e.target.value;
-                            if (val === 'Live' || val === 'Archive') {
+                            if (val === 'Live') {
+                              // Siar minta pengesahan (lihat nota confirmSiarId) — Arkib tidak.
+                              setConfirmSiarId(rec.id);
+                            } else if (val === 'Archive') {
                               handleUpdateStatus(rec.id, val as any);
                             } else if (val === 'Tolak') {
                               setConfirmTolakId(rec.id);
@@ -1370,7 +1387,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           <option value="" disabled hidden>Tindakan ▾</option>
                           {rec.status !== 'Live' && <option value="Live">Siar</option>}
                           {rec.status !== 'Archive' && <option value="Archive">Arkib</option>}
-                          <option value="Tolak">Tolak (kembali jadi draf)</option>
+                          <option value="Tolak">Tolak — arkib &amp; pulangkan draf</option>
                           {currentUserRole === 'KETUA_EDITOR' && <option value="Padam">Padam (ke Tong Sampah)</option>}
                         </select>
                       ) : (
@@ -1440,6 +1457,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <Button variant="bahaya" onClick={() => handleRejectToDraft(activeItemModal.id, tolakSebab)}>
               Ya, tolak kandungan
             </Button>
+          ) : confirmSiarId === activeItemModal.id ? (
+            // Pengesahan Siar dalam modal (lihat nota confirmSiarId) — sama corak dgn Tolak.
+            <>
+              <Button variant="ghost" onClick={() => setConfirmSiarId('')}>
+                Batal
+              </Button>
+              <Button onClick={() => { setConfirmSiarId(''); handleUpdateStatus(activeItemModal.id, 'Live'); }}>
+                Ya, siar kepada pembaca
+              </Button>
+            </>
           ) : activeItemModal.slot !== 'Ticker' ? (
             // Susunan kaki modal (Pelan 01 Fasa D2): tindakan utama paling kanan, tindakan
             // merbahaya di kiri. "Tolak" (DLG-08, audit ChatGPT 2026-08-09) — dahulu
@@ -1448,11 +1475,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <Button variant="ghost" onClick={() => setActiveItemModal(null)}>
                 Tutup
               </Button>
+              {/* Teks tepat (2026-08-12, keputusan Izzat selepas simulasi UX #27) — dahulu
+                  "Tolak (kembali jadi draf)" menjanjikan SATU kandungan bertukar status, walhal
+                  laluan /reject-to-draft sebenarnya ARKIBKAN rekod asal DAN cipta salinan draf
+                  BAHARU (uuid '...-reject') untuk penulis asal. Editor yang percaya label lama
+                  akan tercari-cari kandungan asalnya dalam senarai draf. */}
               <Button variant="bahaya" onClick={() => { setConfirmTolakId(activeItemModal.id); setTolakSebab(''); }}>
-                Tolak (kembali jadi draf)
+                Tolak — arkib &amp; pulangkan draf
               </Button>
               {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
-                <Button onClick={() => handleUpdateStatus(activeItemModal.id, 'Live')}>
+                <Button onClick={() => setConfirmSiarId(activeItemModal.id)}>
                   Siar Kandungan
                 </Button>
               )}
