@@ -2809,7 +2809,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                kunci tu berkuat kuasa — sebelum ni kad enggan membesar walaupun ruang sudah
                ditempah dengan betul.
 
-               Desktop (>=768px) TIDAK disentuh langsung — geometri bento asal kekal. */
+               Desktop (>=768px) DAHULU tidak disentuh di sini — tapi pepijat sama (kad KOMPAK
+               limpah, warisi tinggi drpd Slot MENEGAK jiran via grid row-stretch) disahkan
+               berlaku juga di desktop/tablet 768-1440px 2026-08-12 (audit ChatGPT + pengukuran
+               empirik). Pembetulan dibuat pada className teras (bukan override media-query ni) —
+               lihat kelas flex-[1_0_auto] pada kad KOMPAK di JSX — kini merentasi SEMUA lebar
+               skrin sekali gus (jaring keselamatan layout, arahan Izzat; nombor bajet aksara
+               KOMPAK belum disentuh, tunggu Content Budget Engine berasingan). */
             #bento-news-grid [data-slot] {
               height: auto !important;
             }
@@ -2982,7 +2988,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[4] && (
                 <div 
                   data-slot={4}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1 group`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto] group`} 
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
@@ -3012,7 +3018,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[5] && (
                 <div 
                   data-slot={5}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1 group`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto] group`} 
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
                     <BentoInner itemKey="5" className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
@@ -3323,7 +3329,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[17] && (
                 <div 
                   data-slot={17}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
                    style={getCardTheme(bentoNewsItems[17], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[17]).deskStyle}>{<EyebrowKad item={bentoNewsItems[17]} bidang={bidangUntuk(bentoNewsItems[17])} onCari={cariDariEyebrow} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[17].publishedAt)}</span>
@@ -3353,7 +3359,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[18] && (
                 <div 
                   data-slot={18}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
                    style={getCardTheme(bentoNewsItems[18], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[18]).deskStyle}>{<EyebrowKad item={bentoNewsItems[18]} bidang={bidangUntuk(bentoNewsItems[18])} onCari={cariDariEyebrow} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[18].publishedAt)}</span>
@@ -3698,7 +3704,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[31] && (
                 <div 
                   data-slot={31}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
                    style={getCardTheme(bentoNewsItems[31], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[31]).deskStyle}>{<EyebrowKad item={bentoNewsItems[31]} bidang={bidangUntuk(bentoNewsItems[31])} onCari={cariDariEyebrow} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[31].publishedAt)}</span>
@@ -3728,7 +3734,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[32] && (
                 <div 
                   data-slot={32}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-1`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
                    style={getCardTheme(bentoNewsItems[32], 'transparent').cardStyle} >
                     <div>
                       <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[32]).deskStyle}>{<EyebrowKad item={bentoNewsItems[32]} bidang={bidangUntuk(bentoNewsItems[32])} onCari={cariDariEyebrow} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[32].publishedAt)}</span>
