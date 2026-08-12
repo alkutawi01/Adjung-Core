@@ -372,18 +372,28 @@ blockquote {
   content: "(" counter(margin-note-badge, lower-roman) ")";
 }
 
-/* Interlinear Note / Gloss Styling */
+/* Interlinear Note / Gloss Styling — Pendekatan B: inline-flex ALIRAN, bukan absolute terapung
+   (2026-08-12, Izzat tolak clipping overflowX:hidden sbg penyelesaian, audit ChatGPT "Tiket B").
+   PUNCA versi lama (position:absolute + left:50% + white-space:nowrap): gloss jadi kotak
+   TERAPUNG di luar aliran teks biasa — tak diambil kira oleh pengukuran lebar aliran teks
+   (browser x tahu ia "sebahagian" perkataan), jadi ia boleh (a) terjulur keluar kontena
+   (punca leret mendatar tak sengaja, dah ditutup overflowX:hidden) atau (b) terpotong separuh
+   perkataan bila overflowX:hidden aktif (aduan Izzat terbaru — TAK BOLEH DITERIMA).
+   Pendekatan B: .interlinear-word jadi UNIT ALIRAN sebenar (inline-flex column) — gloss+
+   perkataan bergerak/wrap BERSAMA sbg SATU unit atomik dlm aliran teks biasa, gloss ambil
+   RUANG SEBENAR (bukan terapung), dan gloss sendiri dibenar wrap (white-space:normal + max-
+   width) drpd sekadar melimpah sehala tanpa henti. */
 .interlinear-word {
-  position: relative;
-  display: inline-block;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: bottom;
   color: inherit;
+  max-width: 100%;
 }
 
 .interlinear-gloss {
-  position: absolute;
-  left: 50%;
-  top: -0.58em;
-  transform: translate(-50%, 0) scale(1);
+  display: block;
   font-family: "Caveat", "Chalkboard SE", "Comic Sans MS", sans-serif;
   /* em bukan rem (2026-08-12, Izzat lapor nisbah font gloss:teks tak sama di telefon vs
      desktop) -- rem ialah saiz TETAP (0.85rem = 13.6px, tak kira konteks), jadi pada kad
@@ -393,8 +403,14 @@ blockquote {
      konsisten tak kira kad/viewport yang mana. */
   font-size: 0.85em;
   color: rgba(128, 35, 52, 0.92);
-  line-height: 1;
-  white-space: nowrap;
+  line-height: 1.15;
+  /* normal + max-width GANTI nowrap tanpa had (2026-08-12, Pendekatan B) — gloss panjang kini
+     BALUT ke 2-3 baris kecil di atas perkataan drpd melimpah/terpotong sehala; 22ch cukup
+     lapang utk kebanyakan gloss sah (had validator 1.5:1 pun hadkan panjang maksimum) tanpa
+     jadi terlalu lebar pada kad kecil 375px. */
+  white-space: normal;
+  max-width: 22ch;
+  text-align: center;
   pointer-events: none;
   opacity: 1;
   visibility: visible;
@@ -402,7 +418,7 @@ blockquote {
   font-weight: 600;
   user-select: none;
   text-transform: lowercase;
-  transition: color 0.2s ease, transform 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 /* Constant, elegant line-height for the manifesto text so there is zero layout jump */
@@ -420,7 +436,6 @@ blockquote {
 
 .interlinear-word:hover .interlinear-gloss {
   color: rgba(128, 35, 52, 0.95);
-  transform: translate(-50%, -0.02em) scale(1.05);
 }
 
 /* Smooth highlights for citation jumping */
