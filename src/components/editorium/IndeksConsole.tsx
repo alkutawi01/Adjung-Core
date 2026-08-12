@@ -1263,7 +1263,15 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           </KeadaanKosong>
         </PanelCard>
       ) : (
-        <PanelCard padding="p-0" className="overflow-x-auto">
+        <PanelCard padding="p-0">
+          {/* Bekas skrol mendatar (2026-08-13, dapatan #38.3 mobile) -- w-full + min-w-0 di SINI
+              (bukan pada PanelCard, komponen kongsi merentasi banyak konsol lain) supaya bekas ni
+              sendiri terikat pada lebar induk dahulu sebelum overflow-x-auto berkuat kuasa. Tanpa
+              w-full+min-w-0, bekas cuma besar ikut kandungan (table min-w-[850px]) dan limpahan
+              merambat naik ke <main>, cetuskan pelayar mudah alih zum KELUAR SELURUH halaman
+              Editorium (disahkan window.innerWidth jadi 930 pada peranti 375px) -- bukan cuma
+              jadual skrol dlm sempadannya sendiri spt patut. */}
+          <div className="w-full min-w-0 overflow-x-auto">
           <table className="w-full text-left border-collapse font-sans text-xs min-w-[850px] table-fixed">
             <caption className="sr-only">Senarai kandungan mengikut slot dan status</caption>
             <thead>
@@ -1449,6 +1457,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               })}
             </tbody>
           </table>
+          </div>
           {/* Kawalan pagination (2026-07-29, permintaan pemilik projek) — 100 rekod setiap
               paparan, lihat nota PAGE_SIZE/pagedRecords di atas. Papar hanya bila lebih 1
               halaman — satu halaman sahaja tak perlu sebarang kawalan. */}
