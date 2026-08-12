@@ -229,7 +229,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
         <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 text-center hover:bg-Adjung-maroon/5 transition-colors cursor-pointer">
           <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Arkib</div>
           <div className="font-serif text-4xl md:text-5xl font-normal text-stone-400">{gagalMuatKandungan ? '—' : statusKandungan.arkib}</div>
-          <div className="text-[11px] text-stone-500 mt-2">{gagalMuatKandungan ? 'Gagal dimuatkan' : 'Ditarik daripada edaran'}</div>
+          <div className="text-[11px] text-stone-500 mt-2">{gagalMuatKandungan ? 'Gagal dimuatkan' : 'Disimpan dalam arkib'}</div>
         </button>
       </section>
 
