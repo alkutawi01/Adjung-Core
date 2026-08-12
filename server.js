@@ -2443,8 +2443,36 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       .replace(/\s{2,}/g, ' ')
       .trim();
 
+    // Medan berbilang baris/perenggan (2026-08-12, pepijat #21 — SALINAN KEDUA). Nilai kekal
+    // dalam pemboleh ubah tempatan di sini (bukan objek `fields` seperti ManualBlockFormat.js),
+    // jadi guna penyetel bernama supaya baris sambungan tahu ke mana hendak ditambah.
+    let medanSemasa = null;
+    const tambahSambungan = (teks) => {
+      if (medanSemasa === 'briefLong') briefLong += '\n' + teks;
+      else if (medanSemasa === 'brief') brief += '\n' + teks;
+      else if (medanSemasa === 'note') note += '\n' + teks;
+      else if (medanSemasa === 'penerangan') penerangan += '\n' + teks;
+    };
+    // MESTI kekal segerak dengan LABEL_DIKENALI dalam ManualBlockFormat.js — lihat nota di sana.
+    const LABEL_DIKENALI_SRV = [
+      'UUID:', 'Status:', 'Tajuk:', 'Event:', 'Huraian panjang:', 'Huraian ringkas:', 'Huraian:',
+      'Bidang:', 'Kategori:', 'Topik:', 'Jenis sumber:', 'Tarikh mula:', 'Tarikh tamat:',
+      'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Imej:', 'Penganjur:', 'Lokasi:',
+      'Akses:', 'Penerangan:', 'Sumber:', 'URL:',
+    ];
+    const adaLabelDikenaliSrv = (t) =>
+      LABEL_DIKENALI_SRV.some((label) => t.toLowerCase().startsWith(label.toLowerCase()));
+
     for (const line of lines) {
       const trimmed = line.trim();
+      // Baris sambungan — lihat nota penuh dalam ManualBlockFormat.js. Tanpa ini, perenggan kedua
+      // ke atas hilang senyap pada laluan SIMPAN SLOT (syncManualObjectsForSlot), iaitu laluan
+      // yang butang "Simpan sebagai draf"/"Terbit" dalam modal editor benar-benar gunakan.
+      if (medanSemasa && !adaLabelDikenaliSrv(trimmed)) {
+        tambahSambungan(trimmed);
+        continue;
+      }
+      medanSemasa = null;
       if (trimmed.startsWith('UUID:')) {
         uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
       } else if (trimmed.startsWith('Status:')) {
@@ -2460,10 +2488,16 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         isEventBlock = true;
       } else if (trimmed.startsWith('Huraian panjang:')) {
         briefLong = buangPetunjukHad(trimmed.replace(/^Huraian panjang:\s*/i, ''));
+        medanSemasa = 'briefLong';
+        continue;
       } else if (trimmed.startsWith('Huraian ringkas:')) {
         brief = buangPetunjukHad(trimmed.replace(/^Huraian ringkas:\s*/i, ''));
+        medanSemasa = 'brief';
+        continue;
       } else if (trimmed.startsWith('Huraian:')) {
         brief = buangPetunjukHad(trimmed.replace(/^Huraian:\s*/i, ''));
+        medanSemasa = 'brief';
+        continue;
       } else if (trimmed.startsWith('Bidang:')) {
         desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
       } else if (trimmed.startsWith('Kategori:')) {
@@ -2486,6 +2520,8 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         penulis = trimmed.replace(/^Penulis:\s*/i, '').trim();
       } else if (trimmed.startsWith('Nota:')) {
         note = trimmed.replace(/^Nota:\s*/i, '').trim();
+        medanSemasa = 'note';
+        continue;
       } else if (trimmed.startsWith('Imej:')) {
         image = trimmed.replace(/^Imej:\s*/i, '').trim();
       } else if (trimmed.startsWith('Penganjur:')) {
@@ -2496,6 +2532,8 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         access = trimmed.replace(/^Akses:\s*/i, '').trim();
       } else if (trimmed.startsWith('Penerangan:')) {
         penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
+        medanSemasa = 'penerangan';
+        continue;
       } else if (trimmed.startsWith('Sumber:')) {
         const nama = trimmed.replace(/^Sumber:\s*/i, '').trim();
         if (sources.length === 0) source = nama;
@@ -2510,6 +2548,13 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         if (sources.length === 1) url = u;
       }
     }
+
+    // Kemas ekor medan berbilang-baris (baris kosong sebelum label seterusnya) — sempadan
+    // perenggan DALAM teks kekal utuh, sama seperti ManualBlockFormat.js.
+    briefLong = briefLong.replace(/\s+$/, '');
+    brief = brief.replace(/\s+$/, '');
+    note = note.replace(/\s+$/, '');
+    penerangan = penerangan.replace(/\s+$/, '');
 
     // Resolve sourceType from text or fallback to auto-detection
     let finalSourceType = 'web';
