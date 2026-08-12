@@ -679,8 +679,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
             menatal), supaya kekal kelihatan sepanjang pembaca menatal huraian panjang. Tarikh
             siaran TANPA label "Siaran" (permintaan Izzat) — cuma tarikh sahaja. */}
         <div style={{
+          // gap 8px->12px (2026-08-12, permintaan Izzat — "spacing ... tak cantik") — Topik/Tajuk/
+          // Tarikh ialah TIGA aras maklumat berbeza, 8px seragam buat semuanya nampak satu blok
+          // rapat (audit ChatGPT). 12px bukan keputusan muktamad — Izzat sahkan pada telefon
+          // sebenar selepas deploy, boleh dilaras lagi.
           flex: '0 0 auto', padding: '20px 16px 14px', display: 'flex', flexDirection: 'column',
-          alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-subtle)',
+          alignItems: 'center', gap: '12px', borderBottom: '1px solid var(--border-subtle)',
         }}>
           {/* Glif Bidang sengaja TIDAK dirender di sini — lihat nota `icon` dalam FocusViewProps. */}
           {label && (
@@ -718,7 +722,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
         }}>
           {text && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <hr style={{ ...rule, borderTopColor: 'var(--border-subtle)' }} />
+              {/* <hr> pemisah dibuang (2026-08-12, permintaan Izzat) — kepala melekat di atas
+                  (baris ~683) sudah ada borderBottom sendiri; hr di sini jadi pemisah BERGANDA
+                  serta-merta lepas border tu (audit ChatGPT: "dua pemisah berturut-turut" antara
+                  metadata/tajuk dgn kandungan). Border kepala kekal sbg SATU-SATUNYA pemisah. */}
               {/* Margin kiri/kanan tambahan (2026-08-05, permintaan Izzat) — kolum huraian
                   panjang dikecilkan drpd lebar penuh badan (padding 16px sedia ada), sengaja
                   berasingan drpd bahagian lain (Sumber/Nota kekal lebar asal) — huraian panjang
