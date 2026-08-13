@@ -8,6 +8,7 @@ import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { isDue, hasReplacementForExpiry, resolveEffectiveStatus } from '../editorial/Scheduling.js';
 import { denganKunciKandungan } from '../utils/kunciKandungan.js';
+import { kutipNamaFailDariAtribut, padamFailMuatNaikYatim } from '../utils/failMuatNaik.js';
 
 // Dua jenis Menunggu (2026-08-06, permintaan Izzat: "menunggu sepatutnya ada dua jenis, menunggu
 // semakan dan menunggu untuk disiarkan/aktif") — helper kongsi tulis/kemas kini attribute
@@ -381,9 +382,19 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
         [row.revisionId]
       );
       if (!masihDipadam) continue;
+      // Kutip nama fail muat naik SEBELUM baris atribut dipadam (selepas itu nilainya hilang) —
+      // STORAGE-002. Fail sebenar dipadam SELEPAS penulisan DB berjaya, di bawah.
+      const atributSebelumPadam = await dbAll(
+        "SELECT valueText FROM editorial_attribute_values WHERE objectId = ?",
+        [row.objectId]
+      );
+      const failCalon = kutipNamaFailDariAtribut(atributSebelumPadam);
       await dbRun("DELETE FROM editorial_attribute_values WHERE objectId = ?", [row.objectId]);
       await dbRun("DELETE FROM editorial_revisions WHERE objectId = ?", [row.objectId]);
       await dbRun("DELETE FROM editorial_objects WHERE id = ?", [row.objectId]);
+      if (failCalon.length > 0) {
+        await padamFailMuatNaikYatim(dbGet, failCalon, { konteks: 'auto-padam-tong-sampah' });
+      }
       await logAudit(dbRun, {
         actorId: null, actorName: 'Penjadual Sistem', action: 'kandungan-padam-kekal-auto-tong-sampah',
         targetType: 'kandungan', targetId: row.objectId, detail: (row.title || '').slice(0, 100),
@@ -1438,9 +1449,19 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       );
       if (revSemasa && revSemasa.status === 'dipadam') {
         // Panggilan KEDUA — dah dalam Tong Sampah, ni padam KEKAL sebenar.
+        // Kutip nama fail muat naik SEBELUM baris atribut dipadam (selepas itu nilainya hilang)
+        // — STORAGE-002. Fail sebenar dipadam SELEPAS penulisan DB berjaya, di bawah.
+        const atributSebelumPadam = await dbAll(
+          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ?",
+          [id]
+        );
+        const failCalon = kutipNamaFailDariAtribut(atributSebelumPadam);
         await dbRun("DELETE FROM editorial_attribute_values WHERE objectId = ?", [id]);
         await dbRun("DELETE FROM editorial_revisions WHERE objectId = ?", [id]);
         await dbRun("DELETE FROM editorial_objects WHERE id = ?", [id]);
+        if (failCalon.length > 0) {
+          await padamFailMuatNaikYatim(dbGet, failCalon, { konteks: 'padam-kekal-manual' });
+        }
         await logAudit(dbRun, {
           actorId: req.session?.user?.id,
           actorName: req.session?.user?.penName || req.session?.user?.username,

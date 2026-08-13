@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { sanitizeSvgMarkup } from '../utils/sanitizeSvg.js';
@@ -46,8 +47,18 @@ export function createMediaRoutes(rootDir) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
+      // Nama fail RAWAK (STORAGE-002, audit #48.9.5, 2026-08-13) — sebelum ni
+      // `${Date.now()}-${namaAsal}` sahaja: cap masa julatnya sempit dan selalunya boleh
+      // dikaitkan dengan waktu terbit/sunting yang diketahui umum, manakala nama asal fail
+      // selalunya boleh diteka (image.jpg, photo.png, gambar1.jpg). Kerana /uploads dihidang
+      // statik tanpa auth (imej kandungan terbitan MESTI boleh dilihat pembaca awam), nama yang
+      // boleh diteka ialah SATU-SATUNYA perlindungan bagi lampiran kandungan yang belum terbit
+      // atau sudah diarkib — dan ia terlalu nipis. 16 aksara hex (64-bit) menjadikan tekaan
+      // tidak praktikal. Cap masa DIKEKALKAN di hadapan (berguna untuk susunan/operasi cakera),
+      // nama asal dikekalkan di belakang (editor masih boleh cam failnya).
       const namaAsas = filename.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9-]/g, '_').slice(0, 80);
-      const cleanFilename = `${Date.now()}-${namaAsas}${sambungan}`;
+      const rawak = crypto.randomBytes(8).toString('hex');
+      const cleanFilename = `${Date.now()}-${rawak}-${namaAsas}${sambungan}`;
       const filePath = path.join(uploadDir, cleanFilename);
 
       // SVG ditapis SEBELUM ditulis (2026-08-06, audit keselamatan). Format lain ialah imej

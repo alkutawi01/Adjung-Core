@@ -148,6 +148,70 @@ const aktifkanAkaunRateLimiter = rateLimit({
 });
 app.use('/api/auth/aktifkan-akaun', aktifkanAkaunRateLimiter);
 
+// Had kadar API AM (GENERAL-API-RATE-LIMIT, audit #48.12, 2026-08-13) — sebelum ni HANYA tiga
+// laluan auth di atas berhad; carian awam, muat naik fail dan setiap laluan mutasi kandungan
+// langsung tiada kawalan berasaskan KADAR (cuma auth/RBAC/validasi, yang menyekat SIAPA boleh
+// buat apa, bukan BERAPA KERAP). Empat had berasingan di bawah, sengaja bukan satu had global:
+// setiap laluan ada profil guna sah yang sangat berbeza, dan had tunggal yang cukup longgar
+// untuk yang paling sibuk tak akan melindungi yang lain langsung.
+
+// (1) Carian awam — tanpa sesi, dan setiap panggilan buat imbasan LIKE merentasi jadual
+// kandungan. 60 seminit sangat longgar untuk manusia menaip (kotak carian hantar bila Enter/
+// klik, bukan setiap ketikan) tapi menutup spam automatik.
+const hadKadarCarian = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak carian. Cuba lagi sebentar lagi.' },
+});
+app.use('/api/system/search', hadKadarCarian);
+
+// (2) Muat naik fail — digerbang sesi, tapi paling mahal setiap permintaan (sehingga 5MB
+// dinyahkod + ditulis ke cakera, SVG turut ditapis). 60 setiap 15 minit muat sesi menyunting
+// gambar yang sibuk sekalipun.
+const hadKadarMuatNaik = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak muat naik. Cuba lagi selepas beberapa minit.' },
+});
+app.use('/api/media/upload', hadKadarMuatNaik);
+
+// (3) Jejak pengunjung — POST AWAM tanpa sesi yang SETIAP pemuatan frontpage hantar. Had mesti
+// LONGGAR: ramai pembaca sah boleh berkongsi satu IP (pejabat, NAT mudah alih, sekolah), dan
+// menyekat ini secara agresif akan merosakkan statistik pengunjung sendiri — bukan melindungi
+// apa-apa. Had ni cuma menahan banjir yang ketara.
+const hadKadarJejakLihat = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 240,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak permintaan.' },
+});
+app.use('/api/system/track-view', hadKadarJejakLihat);
+
+// (4) Mutasi API am — SEMUA kaedah tak selamat (POST/PATCH/PUT/DELETE) di bawah /api yang belum
+// ada had sendiri. Kaedah selamat (GET/HEAD/OPTIONS) DILANGKAU sepenuhnya: frontpage awam
+// menembak beberapa GET setiap muatan, dan menghadkannya akan memecahkan pembacaan biasa tanpa
+// menghalang penyalahgunaan sebenar. 300 setiap 15 minit ≈ satu simpanan setiap 3 saat berterusan
+// — jauh di luar kadar manusia menyunting, jadi editor sah takkan sesekali menyentuhnya.
+const LALUAN_HAD_SENDIRI = new Set([
+  '/auth/login', '/auth/lupa-kata-laluan', '/auth/aktifkan-akaun',
+  '/system/search', '/media/upload', '/system/track-view',
+]);
+const hadKadarMutasiApi = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS'
+    || LALUAN_HAD_SENDIRI.has(req.path),
+  message: { error: 'Terlalu banyak permintaan. Cuba lagi selepas beberapa minit.' },
+});
+app.use('/api', hadKadarMutasiApi);
+
 // ADJUNG_DB_PATH (2026-08-07) — membolehkan pelayan dihidupkan terhadap pangkalan data BUANGAN
 // untuk simulasi/ujian, tanpa menyentuh adjung.db sebenar. Lalai kekal betul-betul sama seperti
 // dahulu, jadi produksi tak terjejas langsung. Ini yang membolehkan ujian "DB BAHARU" — satu
