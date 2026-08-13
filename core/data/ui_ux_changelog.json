@@ -1,5 +1,13 @@
 [
   {
+    "time": "2026-08-13T13:46:40.731Z",
+    "summary": "Tetapan 3.3: amaran kitaran hayat cuti sekolah — beritahu bila senarai hampir tamat (120 hari) atau sudah tamat, supaya Jam Dunia tak berhenti papar cuti sekolah secara senyap",
+    "files": [
+      "src/components/editorium/TetapanConsole.tsx",
+      "core/utils/kitaranCutiSekolah.js"
+    ]
+  },
+  {
     "time": "2026-08-13T13:37:21.414Z",
     "summary": "Tetapan 3.3: label API cuti dibetulkan — dulu tertulis 'Group A & Group B' yang mengelirukan (nampak macam API bekalkan cuti sekolah); API tu bekalkan CUTI UMUM sahaja, cuti sekolah datang drpd senarai lalai berkod keras/suntingan manual",
     "files": [

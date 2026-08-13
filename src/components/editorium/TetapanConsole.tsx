@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { statusLuputCutiSekolah } from '../../../core/utils/kitaranCutiSekolah.js';
 import {
   Lock, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
 } from 'lucide-react';
@@ -183,6 +184,33 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     barisAkhir.scrollIntoView({ behavior: 'smooth', block: 'center' });
     (barisAkhir.querySelector('input') as HTMLInputElement | null)?.focus({ preventScroll: true });
   }, [fokusTempohBaharu, schoolHolidays.length]);
+
+  // Kitaran hayat senarai cuti sekolah (SCHOOL-HOLIDAY-SOURCE-001, 2026-08-13). Cuti sekolah
+  // TIDAK datang daripada API — API cuti yang disambungkan bekalkan cuti UMUM sahaja (disahkan
+  // dgn panggilan sebenar: 49 rekod, sifar menyebut sekolah). Bila DB kosong, sistem jatuh balik
+  // ke SCHOOL_HOLIDAYS_LALAI, senarai berkod keras dalam worldClockRoutes.js yang entri
+  // terakhirnya tamat pertengahan Feb 2027. Selepas tarikh itu Jam Dunia berhenti memapar cuti
+  // sekolah SECARA SENYAP — tiada amaran, tiada sandaran, dan komen kod sendiri sudah akui ini.
+  // Masalah teras bukan "berkod keras" (sandaran berkod keras kadang wajar) tetapi TIADA
+  // pengurusan kitaran hayat: tiada sesiapa tahu bila ia tamat. Amaran di bawah menutup jurang
+  // SENYAP itu; ia sengaja TIDAK memilih strategi sumber (manual/KPM/hibrid) — itu keputusan
+  // pemilik projek, bukan keputusan kod.
+  // Logik sebenar hidup dalam core/utils/kitaranCutiSekolah.js sebagai fungsi TULEN supaya ia
+  // boleh diuji (lihat tests/kitaranCutiSekolah.test.js) — dengan data semasa amaran ni belum
+  // tercetus (~185 hari lagi), jadi cabang "hampir tamat"/"sudah tamat" mustahil disahkan
+  // dengan mata pada skrin hari ni. Komponen cuma memformat hasilnya.
+  const statusLuputCuti = useMemo(() => {
+    const hariIni = new Date().toISOString().slice(0, 10);
+    const asas = statusLuputCutiSekolah(schoolHolidays, hariIni);
+    if (!asas) return null;
+    return {
+      ...asas,
+      tone: asas.tamat ? ('error' as const) : ('neutral' as const),
+      dipapar: new Date(`${asas.tarikhAkhir}T00:00:00`).toLocaleDateString('ms-MY', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      }),
+    };
+  }, [schoolHolidays]);
 
   // Glos Selari (2026-08-02, Fasa 6) — dahulu checkbox hiasan tanpa kesan. Ciri anotasi
   // interlinear (`[kata](gloss:makna)`, utils.tsx parseInlineFormatting) SUDAH aktif tanpa
@@ -785,6 +813,13 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <span className="text-[10px] text-stone-400 block">
                 Cuti sekolah dimasukkan manual: API cuti yang disambungkan hanya membekalkan <strong className="text-stone-500">cuti umum</strong> (kebangsaan/negeri), bukan takwim persekolahan KPM.
               </span>
+              {statusLuputCuti && (
+                <MesejStatus tone={statusLuputCuti.tone}>
+                  {statusLuputCuti.tamat
+                    ? `Senarai cuti sekolah ini sudah tamat pada ${statusLuputCuti.dipapar}. Jam Dunia tidak lagi memapar sebarang cuti sekolah sehingga tempoh baharu dimasukkan.`
+                    : `Senarai cuti sekolah ini tamat pada ${statusLuputCuti.dipapar} (${statusLuputCuti.bezaHari} hari lagi). Masukkan tempoh tahun berikutnya sebelum tarikh itu — selepas tamat, Jam Dunia berhenti memapar cuti sekolah tanpa sebarang amaran lain.`}
+                </MesejStatus>
+              )}
               {schoolHolidays.length === 0 && (
                 <KeadaanKosong>Tiada tempoh cuti sekolah ditetapkan.</KeadaanKosong>
               )}
