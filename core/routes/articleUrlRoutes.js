@@ -134,11 +134,31 @@ export function createArticleUrlRoutes(dbAll, dbGet, dbRun) {
   // objectId tunggal dalam seni bina sedia ada (kandungan manual/RSS bercampur), jadi pembaca
   // mendarat pada SLOT yang betul walaupun mungkin bukan kedudukan carousel tepat kalau sudah
   // berputar. Cukup baik untuk pautan kongsi (kebanyakan slot satu kandungan sahaja).
+  //
+  // Pulangkan `objectId` SEKALI GUS (2026-08-13, PUBLIC-URL-001) — dahulu cuma `slotIndex`
+  // dipulangkan, jadi klien padankan pembaca ikut SLOT sahaja (`focusAllLocations.find(l =>
+  // l.slotIndex === data.slotIndex)`). Selepas kandungan asal kodPendek ni diarkib dan slot yang
+  // sama diisi kandungan BAHARU, padanan-ikut-slot tu jumpa kandungan baharu itu dan buka ia
+  // secara SENYAP di bawah URL lama — pautan kekal/dikongsi/diindeks enjin carian bertukar makna
+  // tanpa notis. Slot cuma LOKASI paparan, bukan identiti kandungan; objectId itulah identiti
+  // sebenar. Sahkan juga objek ni MASIH approved (guna semula pengesahan "revision terkini
+  // sebenar" yang sama seperti resolveSlotContent()/searchRoutes.js, CONTENT-LIFECYCLE-005) —
+  // pautan kandungan yang telah diarkib/dipadam kini pulangkan 404 dgn jelas, bukan terus
+  // terbuka kandungan lain.
   router.get('/system/content/by-kod/:kodPendek', async (req, res) => {
     try {
       const obj = await dbGet('SELECT id, slotIndex FROM editorial_objects WHERE urlKod = ?', [req.params.kodPendek]);
       if (!obj) return res.status(404).json({ error: 'Kandungan tidak dijumpai.' });
-      res.json({ slotIndex: obj.slotIndex, itemIndex: 0 });
+      const revTerkini = await dbGet(
+        `SELECT status FROM editorial_revisions er1
+         WHERE er1.objectId = ?
+           AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.version > er1.version)`,
+        [obj.id]
+      );
+      if (!revTerkini || revTerkini.status !== 'approved') {
+        return res.status(404).json({ error: 'Kandungan ni tidak lagi tersedia (mungkin diarkib atau dipadam).' });
+      }
+      res.json({ objectId: obj.id, slotIndex: obj.slotIndex, itemIndex: 0 });
     } catch (err) {
       console.error('GET content/by-kod error:', err);
       res.status(500).json({ error: 'Gagal cari kandungan. ' + err.message });

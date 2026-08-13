@@ -2145,7 +2145,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .then(r => (r.ok ? r.json() : null))
       .then(data => {
         if (!data) return;
-        const loc = focusAllLocations.find(l => l.slotIndex === data.slotIndex) || null;
+        // Padan ikut objectId (2026-08-13, PUBLIC-URL-001), BUKAN slotIndex sahaja — slot cuma
+        // lokasi paparan semasa, bukan identiti kandungan tetap. Kalau kandungan asal kodPendek
+        // ni dah diarkib dan slot yang sama diisi kandungan BAHARU, padanan-ikut-slot lama akan
+        // buka kandungan baharu tu secara SENYAP di bawah URL kekal kandungan lama. by-kod (server)
+        // dah sahkan objek ni masih approved sebelum pulangkan objectId, jadi kalau tiada padanan
+        // objectId ditemui di sini (patut jarang berlaku — mungkin cache klien tertinggal), gagal
+        // senyap sahaja (pembaca lihat muka depan biasa) dgn tak sengaja buka kandungan salah.
+        const loc = data.objectId
+          ? focusAllLocations.find(l => focusItemsForSlot(l.slotIndex)[l.itemIndex]?.objectId === data.objectId)
+          : focusAllLocations.find(l => l.slotIndex === data.slotIndex);
         if (loc) { setFocusLoc(loc); setFocusHistory([loc]); }
       })
       .catch(() => {});
