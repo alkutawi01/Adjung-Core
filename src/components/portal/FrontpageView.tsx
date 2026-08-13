@@ -1011,11 +1011,16 @@ export const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
   const bg = item.bgColor || defaultBg;
   const isDark = isColorDark(bg);
   const textColor = item.textColor || (isDark ? '#FDFDFD' : '#1F1F1F');
-  const hasImage = !!item.imageUrl;
-  
+  // Kandungan Manual (ManualBlockFormat.js baris "Imej:") tersimpan sebagai `image`,
+  // bukan `imageUrl` -- dua nama medan berlainan bagi laluan ingest berlainan (RSS/lain
+  // isi imageUrl terus). imageUrl diutamakan (kontrak asal renderer ini) supaya kandungan
+  // yg ada kedua-dua medan (migrasi masa depan) tak tertutup oleh nilai lama di `image`.
+  const resolvedImageUrl = item.imageUrl || item.image;
+  const hasImage = !!resolvedImageUrl;
+
   const finalTextColor = hasImage ? '#FDFDFD' : textColor;
   const finalIsDark = hasImage ? true : isDark;
-  
+
   return {
     cardStyle: {
       backgroundColor: bg,
@@ -1023,7 +1028,7 @@ export const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
       borderWidth: '1px',
       borderStyle: 'solid',
       color: finalTextColor,
-      backgroundImage: hasImage ? `linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8)), url(${item.imageUrl})` : undefined,
+      backgroundImage: hasImage ? `linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8)), url(${resolvedImageUrl})` : undefined,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       position: 'relative' as const,
