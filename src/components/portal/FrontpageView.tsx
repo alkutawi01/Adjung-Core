@@ -1011,15 +1011,6 @@ export const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
   const bg = item.bgColor || defaultBg;
   const isDark = isColorDark(bg);
   const textColor = item.textColor || (isDark ? '#FDFDFD' : '#1F1F1F');
-  // Kandungan Manual (ManualBlockFormat.js baris "Imej:") tersimpan sebagai `image`,
-  // bukan `imageUrl` -- dua nama medan berlainan bagi laluan ingest berlainan (RSS/lain
-  // isi imageUrl terus). imageUrl diutamakan (kontrak asal renderer ini) supaya kandungan
-  // yg ada kedua-dua medan (migrasi masa depan) tak tertutup oleh nilai lama di `image`.
-  const resolvedImageUrl = item.imageUrl || item.image;
-  const hasImage = !!resolvedImageUrl;
-
-  const finalTextColor = hasImage ? '#FDFDFD' : textColor;
-  const finalIsDark = hasImage ? true : isDark;
 
   return {
     cardStyle: {
@@ -1027,27 +1018,24 @@ export const getCardTheme = (item: any, defaultBg: string = 'transparent') => {
       borderColor: item.borderColor || (bg === 'transparent' ? '#E5E7EB' : 'transparent'),
       borderWidth: '1px',
       borderStyle: 'solid',
-      color: finalTextColor,
-      backgroundImage: hasImage ? `linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8)), url(${resolvedImageUrl})` : undefined,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
+      color: textColor,
       position: 'relative' as const,
     },
     deskStyle: {
-      color: finalIsDark ? '#E9D8A6' : '#802334'
+      color: isDark ? '#E9D8A6' : '#802334'
     },
     titleStyle: {
-      color: finalTextColor
+      color: textColor
     },
     briefStyle: {
-      color: finalIsDark ? 'rgba(253, 253, 253, 0.95)' : '#1F1F1F',
+      color: isDark ? 'rgba(253, 253, 253, 0.95)' : '#1F1F1F',
       fontSize: '14px'
     },
     sourceStyle: {
-      color: finalIsDark ? '#d6d3d1' : '#78716c',
-      borderColor: finalIsDark ? 'rgba(253, 253, 253, 0.2)' : '#e7e5e4'
+      color: isDark ? '#d6d3d1' : '#78716c',
+      borderColor: isDark ? 'rgba(253, 253, 253, 0.2)' : '#e7e5e4'
     },
-    finalIsDark
+    finalIsDark: isDark
   };
 };
 const padToLimit = (text: string, maxLen: number): string => {
