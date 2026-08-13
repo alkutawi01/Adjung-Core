@@ -37,7 +37,11 @@ const CORAK = [
   /\bJOIN\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi,
 ];
 // Perkataan yang tersilap tangkap oleh regex (bukan jadual sebenar).
-const BUKAN_JADUAL = new Set(['sqlite_master', 'select', 'SELECT', 'pragma', 'dual']);
+// `sessions` SENGAJA dikecualikan (2026-08-14) -- jadual tu wujud dalam sessions.db BERASINGAN
+// (connect-sqlite3 urus + cipta sendiri, lihat server.js baris ~99), bukan dalam adjung.db yang
+// simulasi ni imbas. Rujukan kod (DELETE FROM sessions) sah, tapi jadual tu tak patut/tak
+// pernah wujud dalam adjung.db -- pengesahan ni salah tempat, bukan gap skema sebenar.
+const BUKAN_JADUAL = new Set(['sqlite_master', 'select', 'SELECT', 'pragma', 'dual', 'sessions']);
 
 // Hanya imbas dalam RENTETAN (backtick/petikan) — bukan seluruh fail. Tanpa ini, corak `FROM x`
 // tertangkap prosa Inggeris dalam komen ("apart FROM the ...") dan melaporkan puluhan "jadual"

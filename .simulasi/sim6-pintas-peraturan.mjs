@@ -9,7 +9,8 @@
 import path from 'node:path';
 import os from 'node:os';
 import sqlite3 from 'sqlite3';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5204;
 const DBF = path.join(os.tmpdir(), 'sim-adjung-pintas.db');
@@ -88,7 +89,7 @@ try {
   // Cipta satu kandungan SAH dahulu, kemudian cuba rosakkan melalui PATCH.
   await api('POST', '/api/system/slots', [{
     slotIndex: SLOT, contentMode: 'Manual', manualDesk: BIDANG,
-    manualSummary: blok({ uuid: 'sah1', tajuk: 'Tajuk Sah Untuk Edit', huraian: 'Huraian sah.', bidang: BIDANG, topik: 'Kewangan' }),
+    manualSummary: blok({ uuid: 'sah1', tajuk: 'Tajuk Sah Untuk Edit', huraian: isiHuraianCukup(ceilingForSlot, SLOT, 'Tajuk Sah Untuk Edit'.length), bidang: BIDANG, topik: 'Kewangan' }),
   }]);
   const objSah = await dbGet(db, 'SELECT id FROM editorial_objects ORDER BY createdAt DESC LIMIT 1');
   if (!objSah) {

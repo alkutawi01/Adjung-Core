@@ -8,7 +8,8 @@
 import path from 'node:path';
 import os from 'node:os';
 import sqlite3 from 'sqlite3';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, bukaDb } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5206;
 const DBF = path.join(os.tmpdir(), 'sim-adjung-awam.db');
@@ -34,7 +35,7 @@ try {
   const blok = [
     'UUID: awam-0001',
     'Tajuk: Dasar Ekonomi Negara Dikemas Kini',
-    'Huraian ringkas: Ringkasan awam yang memang patut dibaca orang ramai.',
+    'Huraian ringkas: ' + isiHuraianCukup(ceilingForSlot, SLOT, 'Dasar Ekonomi Negara Dikemas Kini'.length),
     'Bidang: ' + BIDANG,
     'Topik: Kewangan',
     'Sumber: Berita Harian',

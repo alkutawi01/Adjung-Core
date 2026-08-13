@@ -8,7 +8,8 @@
 // Peraturan: HANYA 'approved' boleh dilihat pembaca. draf/menunggu/dijadualkan/arkib TIDAK.
 import path from 'node:path';
 import os from 'node:os';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5210;
 const DBF = path.join(os.tmpdir(), 'sim-adjung-status.db');
@@ -25,8 +26,8 @@ try {
 
   await api('POST', '/api/system/categories/activate', { name: BIDANG, color: '#802334', icon: 'TrendingUp' });
 
-  const blok = (uuid, tajuk, status) => [
-    `UUID: ${uuid}`, `Tajuk: ${tajuk}`, 'Huraian ringkas: Ujian status.',
+  const blok = (uuid, tajuk, status, slotIndex = 1) => [
+    `UUID: ${uuid}`, `Tajuk: ${tajuk}`, 'Huraian ringkas: ' + isiHuraianCukup(ceilingForSlot, slotIndex, tajuk.length),
     'Bidang: ' + BIDANG, 'Topik: Kewangan', `Status: ${status}`,
   ].join('\n');
 
@@ -70,14 +71,17 @@ try {
   ];
   for (const [slot, tajuk, status] of KES_BARIS) {
     await api('POST', '/api/system/categories/assign-slot', { slotIndex: slot, bidangName: BIDANG });
-    await api('POST', '/api/system/slots', [{ slotIndex: slot, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok(`baris-${slot}`, tajuk, 'terbit') }]);
+    await api('POST', '/api/system/slots', [{ slotIndex: slot, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok(`baris-${slot}`, tajuk, 'terbit', slot) }]);
     const o = await dbGet(db, 'SELECT id FROM editorial_objects WHERE slotIndex=? ORDER BY createdAt DESC LIMIT 1', [slot]);
-    if (o && status !== 'pending') await api('PATCH', `/api/system/content/${o.id}`, { status });
+    // Akaun ujian ialah ketua_editor -- Terbitkan sendiri mendarat terus 'approved' (dasar
+    // self-publish 2026-08-08, sama penemuan spt sim4), jadi kes 'pending' pun MESTI di-PATCH
+    // eksplisit turun semula, bukan diandaikan kekal 'pending' selepas cipta.
+    if (o) await api('PATCH', `/api/system/content/${o.id}`, { status });
   }
 
   // Kandungan DIJADUALKAN (belum tiba masa) — tidak boleh dilihat awal.
   await api('POST', '/api/system/categories/assign-slot', { slotIndex: 17, bidangName: BIDANG });
-  await api('POST', '/api/system/slots', [{ slotIndex: 17, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok('baris-17', 'BARIS-DIJADUALKAN-RAHSIA', 'terbit') }]);
+  await api('POST', '/api/system/slots', [{ slotIndex: 17, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok('baris-17', 'BARIS-DIJADUALKAN-RAHSIA', 'terbit', 17) }]);
   const objJadual = await dbGet(db, 'SELECT id FROM editorial_objects WHERE slotIndex=17 ORDER BY createdAt DESC LIMIT 1');
   if (objJadual) {
     const esok = new Date(Date.now() + 86400000).toISOString();

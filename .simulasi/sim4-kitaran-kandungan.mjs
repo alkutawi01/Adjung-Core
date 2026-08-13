@@ -9,7 +9,8 @@
 import path from 'node:path';
 import os from 'node:os';
 import sqlite3 from 'sqlite3';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, dbRun, bukaDb } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, dbRun, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5202;
 const DBF = path.join(os.tmpdir(), 'sim-adjung-kitaran.db');
@@ -38,7 +39,7 @@ try {
   const blokTerbit = [
     'UUID: sim-uuid-0001',
     'Tajuk: Dasar Fiskal Baharu Diumumkan',
-    'Huraian ringkas: Kerajaan umum pakej rangsangan ekonomi.',
+    'Huraian ringkas: ' + isiHuraianCukup(ceilingForSlot, SLOT, 'Dasar Fiskal Baharu Diumumkan'.length),
     'Bidang: ' + BIDANG,
     'Topik: Kewangan',
     'Sumber: Berita Harian',
@@ -56,9 +57,14 @@ try {
     if (!obj) {
       lap.gagal('Terbitkan lapor berjaya tapi TIADA kandungan dicipta', 'editorial_objects kosong');
     } else {
+      // ciptaPentadbir() sentiasa cipta akaun ketua_editor -- sejak pembetulan 2026-08-08
+      // ("Ketua Editor pun kena tunggu luluskan kandungan sendiri!"), Ketua Editor/Penolong
+      // dikecualikan drpd dasar semakan (bolehTerbitTerus di server.js), jadi Terbitkan sendiri
+      // mendarat terus 'approved', BUKAN 'pending'/sebabMenunggu='semakan' (tu untuk Editor biasa
+      // yg belum dibenarkan self-publish -- akaun ni bukan Editor biasa).
       const st = await statusTerkini(obj.id);
-      if (st !== 'pending') lap.gagal('Terbitkan sepatutnya jadi Menunggu', `status=${st}`);
-      else lap.lulus('Terbitkan mencipta kandungan Menunggu');
+      if (st !== 'approved') lap.gagal('Terbitkan oleh Ketua Editor sepatutnya terus Aktif', `status=${st}`);
+      else lap.lulus('Terbitkan oleh Ketua Editor terus Aktif (dasar self-publish 2026-08-08)');
 
       const attrs = Object.fromEntries((await dbAll(db,
         'SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId=?', [obj.id]))
@@ -66,10 +72,6 @@ try {
       const hilang = ['desk', 'topik', 'source', 'url'].filter(k => !attrs[k]);
       if (hilang.length) lap.gagal('medan hilang selepas Terbitkan', hilang.join(', '));
       else lap.lulus('semua medan bertahan selepas Terbitkan');
-
-      const sebab = attrs.sebabMenunggu;
-      if (sebab !== 'semakan') lap.gagal('sebabMenunggu salah selepas Terbitkan', `dijangka 'semakan', dapat ${JSON.stringify(sebab)}`);
-      else lap.lulus("sebabMenunggu='semakan' ditetapkan");
 
       globalThis.OBJ1 = obj.id;
     }
@@ -88,18 +90,20 @@ try {
   // =====================================================================================
   // C. HAD KAPASITI — kandungan kedua sepatutnya BERATUR, bukan hilang
   // =====================================================================================
-  await api('POST', '/api/system/slot-am-settings', {
+  const amSet = await api('POST', '/api/system/slot-am-settings', {
     mulaIkutMasa: false, hadKandunganSlot: 1, jenisAnimasi: 'colophon', arahAnimasi: 'kanan',
-    hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0, logoPenaja: '',
+    hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0,
+    hadHuraianPanjangMin: 0, hadSumberMin: 0, hadTopikMin: 0, hadNotaEditorMin: 0, logoPenaja: '',
     warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0, focusViewTitleScale: 1, focusViewBodySize: 15,
   });
+  if (!amSet.ok) throw new Error('slot-am-settings gagal ditetapkan: ' + JSON.stringify(amSet.json));
 
   // Guna laluan SEBENAR editor (Terbitkan melalui POST /slots) — bukan POST /content, yang
   // disahkan TIDAK pernah dipanggil mana-mana skrin (laluan API sahaja).
   const blokKedua = [
     'UUID: sim-uuid-0002',
     'Tajuk: Kandungan Kedua Menunggu Ruang',
-    'Huraian ringkas: Sepatutnya beratur sebab slot penuh.',
+    'Huraian ringkas: ' + isiHuraianCukup(ceilingForSlot, SLOT, 'Kandungan Kedua Menunggu Ruang'.length),
     'Bidang: ' + BIDANG,
     'Topik: Perbankan',
     'Sumber: Utusan',

@@ -98,6 +98,20 @@ export function buatKlien(base, cookie) {
   };
 }
 
+// Isi huraian ringkas yang cukup panjang utk lulus had MINIMUM 80% bajet kad (ContentBudget.js,
+// keputusan Izzat 2026-08-08) -- fixture lama guna teks pendek tetap yang gagal lulus peraturan
+// ni, menggagalkan simulasi di langkah PERSEDIAAN sebelum sempat sampai bahagian yg sebenarnya
+// diuji (2026-08-14, ditemui semasa siasat sim10). Panjang dikira ikut tier fizikal slot sebenar
+// (ceilingForSlot), bukan nilai tetap -- tier berbeza (MENEGAK vs KOMPAK) ada had sangat berbeza.
+export function isiHuraianCukup(ceilingForSlot, slotIndex, tajukLen) {
+  const { maxTitle, maxBrief } = ceilingForSlot(slotIndex);
+  const bakiFraction = Math.max(0, 0.86 - tajukLen / maxTitle);
+  const sasaran = Math.min(maxBrief, Math.max(20, Math.round(bakiFraction * maxBrief)));
+  let huraian = 'Ujian simulasi bagi kandungan editorial. ';
+  while (huraian.length < sasaran) huraian += 'Tambah teks. ';
+  return huraian.slice(0, sasaran).trim();
+}
+
 export function pelapor(namaSim) {
   const penemuan = [];
   return {

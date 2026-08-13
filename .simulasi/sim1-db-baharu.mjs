@@ -6,7 +6,8 @@
 import path from 'node:path';
 import os from 'node:os';
 import sqlite3 from 'sqlite3';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, dbRun, bukaDb } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, dbRun, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5199;
 const DBF = path.join(os.tmpdir(), 'sim-adjung-baharu.db');
@@ -42,7 +43,7 @@ try {
   const HANTAR = {
     slotIndex: SLOT,
     title: 'Ujian Ketahanan Medan Kandungan',
-    summary: 'Huraian ringkas untuk ujian ketahanan medan.',
+    summary: isiHuraianCukup(ceilingForSlot, SLOT, 'Ujian Ketahanan Medan Kandungan'.length),
     desk: BIDANG,
     topik: 'Kewangan',
     source: 'Berita Harian',

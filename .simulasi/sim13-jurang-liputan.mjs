@@ -7,7 +7,8 @@
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, dbRun, hashPassword, bukaDb } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, dbRun, hashPassword, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5212;
 const DBF = path.join(os.tmpdir(), 'sim-adjung-jurang.db');
@@ -35,7 +36,7 @@ try {
   const bilAsal = (await dbGet(db, 'SELECT COUNT(*) n FROM editorial_objects')).n;
   const rBatchSah = await api('POST', '/api/system/pipeline/batch_paste', {
     text: JSON.stringify([{
-      slotIndex: 1, title: 'Kandungan Pukal Sah', summary: 'Ringkasan pendek.',
+      slotIndex: 1, title: 'Kandungan Pukal Sah', summary: isiHuraianCukup(ceilingForSlot, 1, 'Kandungan Pukal Sah'.length),
       category: BIDANG, topik: 'Kewangan', source_url: 'https://ujian.test/pukal',
     }]),
   });
@@ -102,7 +103,8 @@ try {
   // Kandungan AKTIF milik editor lain TIDAK boleh terpadam oleh operasi "belum terbit".
   await api('POST', '/api/system/slots', [{
     slotIndex: 1, contentMode: 'Manual', manualDesk: BIDANG,
-    manualSummary: ['UUID: jurang-aktif', 'Tajuk: Kandungan Aktif Jangan Padam', 'Huraian ringkas: Aktif.',
+    manualSummary: ['UUID: jurang-aktif', 'Tajuk: Kandungan Aktif Jangan Padam',
+      'Huraian ringkas: ' + isiHuraianCukup(ceilingForSlot, 1, 'Kandungan Aktif Jangan Padam'.length),
       `Bidang: ${BIDANG}`, 'Topik: Kewangan', 'Status: terbit'].join('\n'),
   }]);
   const objAktif = await dbGet(db, 'SELECT id FROM editorial_objects ORDER BY createdAt DESC LIMIT 1');

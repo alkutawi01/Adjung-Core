@@ -16,7 +16,6 @@ const DBF = path.join(os.tmpdir(), 'sim-adjung-tulis.db');
 const lap = pelapor('SIM 3 — TULISAN SAH');
 
 const SVG_IKON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
-const SVG_PLAT = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M8 8h240v240H8z"/></svg>';
 
 const srv = await bootServer({ port: PORT, dbFile: DBF, freshDb: true });
 try {
@@ -49,11 +48,10 @@ try {
   await semak('set-icon-svg menulis SVG', () => api('POST', '/api/system/categories/set-icon-svg', { id: BID, svg: SVG_IKON }),
     async () => { const r = await dbGet(db, 'SELECT iconSvg FROM CategoryRegistry WHERE id=?', [BID]); return r.iconSvg ? null : 'iconSvg masih kosong'; });
 
-  await semak('set-illustration-svg menulis plat', () => api('POST', '/api/system/categories/set-illustration-svg', { id: BID, svg: SVG_PLAT }),
-    async () => { const r = await dbGet(db, 'SELECT illustrationSvg FROM CategoryRegistry WHERE id=?', [BID]); return r.illustrationSvg ? null : 'illustrationSvg masih kosong'; });
-
-  await semak('clear-illustration-svg membuang plat', () => api('POST', '/api/system/categories/clear-illustration-svg', { id: BID }),
-    async () => { const r = await dbGet(db, 'SELECT illustrationSvg FROM CategoryRegistry WHERE id=?', [BID]); return r.illustrationSvg ? 'plat masih ada' : null; });
+  // set-illustration-svg / clear-illustration-svg DIBUANG (2026-08-14) -- ciri "Plat Ilustrasi
+  // Bidang" sengaja dibuang dari produk 2026-08-07 (categoryRoutes.js baris ~118, lajur DB
+  // illustrationSvg kekal sbg warisan tapi tak lagi ditulis melalui laluan API); ujian ni
+  // fixture lapuk yg terus panggil endpoint yg dah tak wujud (404), bukan regresi sebenar.
 
   await semak('rename-active menukar nama', () => api('POST', '/api/system/categories/rename-active', { id: BID, newName: 'Ekonomi Global' }),
     async () => { const r = await dbGet(db, 'SELECT name FROM CategoryRegistry WHERE id=?', [BID]); return r.name === 'Ekonomi Global' ? null : `nama DB "${r.name}"`; });
@@ -83,7 +81,8 @@ try {
 
   await semak('slot-am-settings menulis had', () => api('POST', '/api/system/slot-am-settings', {
     mulaIkutMasa: false, hadKandunganSlot: 7, jenisAnimasi: 'colophon', arahAnimasi: 'kanan',
-    hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0, logoPenaja: '',
+    hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0,
+    hadHuraianPanjangMin: 0, hadSumberMin: 0, hadTopikMin: 0, hadNotaEditorMin: 0, logoPenaja: '',
     warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0, focusViewTitleScale: 1, focusViewBodySize: 15,
   }),
     async () => { const r = await dbGet(db, 'SELECT hadKandunganSlot FROM slot_am_settings LIMIT 1'); return Number(r?.hadKandunganSlot) === 7 ? null : `DB=${JSON.stringify(r)}`; });
@@ -95,7 +94,7 @@ try {
   await semak('ejaan menulis entri', () => api('POST', '/api/system/ejaan', { betul: 'kerana', elakkan: 'kerena' }),
     async () => { const r = await dbGet(db, "SELECT betul FROM ejaan_piawai WHERE betul='kerana'"); return r ? null : 'tiada baris ejaan_piawai'; });
 
-  await semak('glosari menulis entri', () => api('POST', '/api/system/glosari', { istilah: 'pautan', elakkan: 'link' }),
+  await semak('glosari menulis entri', () => api('POST', '/api/system/glosari', { istilah: 'pautan', maksud: 'Rujukan yang membawa pembaca ke halaman atau sumber lain.' }),
     async () => { const r = await dbGet(db, "SELECT istilah FROM glosari_istilah WHERE istilah='pautan'"); return r ? null : 'tiada baris glosari_istilah'; });
 
   // ---- Penaja & nota ------------------------------------------------------------------
