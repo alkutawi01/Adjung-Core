@@ -784,6 +784,18 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // klik di situ tidak menjejaskan pembaca dan kerja harian kekal pantas.
   const [confirmSiarId, setConfirmSiarId] = useState('');
   const [tolakSebab, setTolakSebab] = useState('');
+
+  // Pengesahan tindakan baris sebagai DIALOG, bukan inline dalam sel jadual (keputusan Izzat
+  // 2026-08-13: "terbit dan padam draf" perlu pengesahan; punca asal ialah tiket "Mobile Action
+  // Confirmation Pattern"). Pengesahan inline dahulu MELEBARKAN jadual yang boleh diskrol
+  // mendatar, jadi di telefon butang "Ya, siar" terdorong KELUAR skrin — editor perlu meneka
+  // yang dia kena skrol lagi ke kanan, tanpa sebarang petunjuk. Dialog berpusat tidak boleh
+  // terdorong keluar pada mana-mana lebar, dan EditorDialog saiz `sm` memang direka untuk
+  // pengesahan (perangkap fokus + Escape sudah terbina).
+  //
+  // Pengesahan dalam MODAL butiran (confirmSiarId di bawah) sengaja DIKEKALKAN inline — ia sudah
+  // berada dalam dialog, bukan dalam jadual boleh skrol, jadi masalah asal tak terpakai di situ.
+  const [dialogSah, setDialogSah] = useState<{ jenis: 'siar' | 'padam'; id: string; tajuk: string } | null>(null);
   const handlePadamKekal = async (id: string) => {
     setConfirmPadamKekalId('');
     setActionError(null);
@@ -1411,14 +1423,6 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           <Button type="button" variant="primary" size="sm" onClick={() => handleRejectToDraft(rec.id, '')}>Ya</Button>
                           <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmTolakId('')}>Batal</Button>
                         </span>
-                      ) : confirmSiarId === rec.id ? (
-                        // Siar sahaja yang disahkan (lihat nota confirmSiarId) — ia mendedahkan
-                        // kandungan kepada pembaca awam serta-merta.
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="text-[var(--color-error)] font-semibold">Siar kepada pembaca?</span>
-                          <Button type="button" variant="primary" size="sm" onClick={() => { setConfirmSiarId(''); handleUpdateStatus(rec.id, 'Live' as any); }}>Ya, siar</Button>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmSiarId('')}>Batal</Button>
-                        </span>
                       ) : rec.slot !== 'Ticker' && !isReadOnly && rec.status === 'Dipadam' ? (
                         <span className="inline-flex items-center gap-1.5">
                           <Button type="button" variant="secondary" size="sm" onClick={() => handlePulihkanTongSampah(rec.id)}>Pulihkan</Button>
@@ -1432,15 +1436,17 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           onChange={(e) => {
                             const val = e.target.value;
                             if (val === 'Live') {
-                              // Siar minta pengesahan (lihat nota confirmSiarId) — Arkib tidak.
-                              setConfirmSiarId(rec.id);
+                              // Terbit & Padam disahkan melalui dialog (lihat nota dialogSah).
+                              // Arkib sengaja TIDAK — ia menyembunyikan, bukan mendedahkan, dan
+                              // boleh dibuat asal terus dari baris yang sama.
+                              setDialogSah({ jenis: 'siar', id: rec.id, tajuk: rec.title });
                             } else if (val === 'Archive') {
                               handleUpdateStatus(rec.id, val as any);
                             } else if (val === 'Tolak') {
                               setConfirmTolakId(rec.id);
                               setTolakSebab('');
                             } else if (val === 'Padam') {
-                              handlePadamLembut(rec.id);
+                              setDialogSah({ jenis: 'padam', id: rec.id, tajuk: rec.title });
                             }
                             e.target.value = '';
                           }}
@@ -1495,6 +1501,46 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             </div>
           )}
         </PanelCard>
+      )}
+
+      {/* Pengesahan Terbit / Padam draf (keputusan Izzat 2026-08-13) — dialog berpusat, BUKAN
+          inline dalam sel jadual. Lihat nota dialogSah: pengesahan inline dahulu melebarkan
+          jadual boleh skrol dan menolak butang sahkan keluar skrin telefon. */}
+      {dialogSah && (
+        <EditorDialog
+          saiz="sm"
+          tajuk={dialogSah.jenis === 'siar' ? 'Siarkan kepada pembaca?' : 'Padam kandungan ini?'}
+          onTutup={() => setDialogSah(null)}
+          tindakan={
+            <>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setDialogSah(null)}>
+                Batal
+              </Button>
+              <Button
+                type="button"
+                variant={dialogSah.jenis === 'siar' ? 'primary' : 'bahaya'}
+                size="sm"
+                onClick={() => {
+                  const { jenis, id } = dialogSah;
+                  setDialogSah(null);
+                  if (jenis === 'siar') handleUpdateStatus(id, 'Live' as any);
+                  else handlePadamLembut(id);
+                }}
+              >
+                {dialogSah.jenis === 'siar' ? 'Ya, siarkan' : 'Ya, padam'}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-2 font-sans text-xs text-stone-600">
+            <p className="font-semibold text-stone-800 break-words">{dialogSah.tajuk || '(tiada tajuk)'}</p>
+            <p>
+              {dialogSah.jenis === 'siar'
+                ? 'Kandungan ini akan terus kelihatan kepada pembaca di muka depan sebaik sahaja disiarkan.'
+                : 'Kandungan ini dihantar ke Tong Sampah. Ia masih boleh dipulihkan dari sana sebelum dipadam kekal.'}
+            </p>
+          </div>
+        </EditorDialog>
       )}
 
       {/* BRIEF DETAIL MODAL */}

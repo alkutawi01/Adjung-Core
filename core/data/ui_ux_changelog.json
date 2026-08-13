@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-13T14:11:50.218Z",
+    "summary": "Indeks: pengesahan Terbit dan Padam kini dialog berpusat (dulu inline dalam sel jadual, butang sahkan terdorong keluar skrin telefon); Padam draf kini ada pengesahan yang sebelum ni langsung tiada",
+    "files": [
+      "src/components/editorium/IndeksConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-08-13T13:46:40.731Z",
     "summary": "Tetapan 3.3: amaran kitaran hayat cuti sekolah — beritahu bila senarai hampir tamat (120 hari) atau sudah tamat, supaya Jam Dunia tak berhenti papar cuti sekolah secara senyap",
     "files": [
