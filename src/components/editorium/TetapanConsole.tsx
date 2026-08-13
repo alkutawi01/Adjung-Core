@@ -782,14 +782,25 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                       />
                     </div>
                     <div className="flex items-center gap-2 sm:contents">
-                      <select
-                        value={cuti.group} aria-label="Kumpulan cuti"
-                        onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, group: e.target.value } : c))}
-                        className={`${INPUT_BORANG} w-[92px] shrink-0 sm:w-full`}
-                      >
-                        <option value="A">Kump. A</option>
-                        <option value="B">Kump. B</option>
-                      </select>
+                      {/* Pembalut lebar tetap, BUKAN `w-[92px]` terus pada <select> — INPUT_BORANG
+                          sudah membawa `w-full`, dan dua utiliti lebar Tailwind pada elemen SAMA
+                          ada kekhususan sama, jadi `w-full` menang senyap (disahkan dgn ukuran:
+                          select jadi 311px, bukan 92px, lalu menolak baris ke 369px pada skrin
+                          375px — persis pepijat yang sepatutnya dibaiki). Melawan `w-full` dgn
+                          utiliti lebar lain tak boleh dipercayai; letak had pada IBU supaya
+                          `w-full` bermakna "penuh 92px itu". Pada sm ke atas pembalut ni jadi
+                          anak grid (trek 70px) via `sm:contents` ibunya, jadi desktop kekal sama.
+                          Lihat juga nota Tailwind-kalah-CSS dalam dokumentasi projek. */}
+                      <div className="w-[92px] shrink-0 sm:w-auto">
+                        <select
+                          value={cuti.group} aria-label="Kumpulan cuti"
+                          onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, group: e.target.value } : c))}
+                          className={INPUT_BORANG}
+                        >
+                          <option value="A">Kump. A</option>
+                          <option value="B">Kump. B</option>
+                        </select>
+                      </div>
                       <input
                         type="text" value={cuti.name} placeholder="Nama cuti (cth. Cuti Penggal 1 Sekolah)"
                         aria-label="Nama cuti"
