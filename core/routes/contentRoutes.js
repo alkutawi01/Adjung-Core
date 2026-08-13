@@ -850,75 +850,94 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const nextScheduledPublishAt = scheduledPublishAt !== undefined ? (scheduledPublishAt || null) : rev.scheduledPublishAt;
       const nextScheduledExpiresAt = scheduledExpiresAt !== undefined ? (scheduledExpiresAt || null) : rev.scheduledExpiresAt;
 
-      if (isContentEdit) {
-        const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
-        const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
-        const newTitle = title !== undefined ? title : rev.title;
-        const newSummary = summary !== undefined ? summary : rev.summary;
-        const newStatus = effectiveStatus !== undefined ? effectiveStatus : rev.status;
-        // createdBy (2026-08-07, pepijat kritikal Izzat) — token LALUAN ("manual-slot-save",
-        // "content-review", dll — jawab *macam mana* dicipta, bukan *siapa*, lihat nota
-        // pendaftaran attribute 'editorName' di server.js), BUKAN nama pengguna sebenar. Sebelum
-        // ni PATCH ni tulis ganti dengan `req.session.user.username` — kandungan Manual yang
-        // pernah diedit (cth Ketua Editor betulkan taip salah) dapat createdBy="izzatanas", tak
-        // sepadan senarai putih resolveSlotContent() (server.js, mod Manual: createdBy IN
-        // ('manual-slot-save', 'migration-manual-blob', 'content-review')) — kandungan tu terus
-        // TAK KELIHATAN pada frontpage LANGSUNG selepas diedit, walaupun status kekal 'approved'
-        // dan UI admin nampak normal. Warisi token ASAL revisi lama, bukan cipta baharu — identiti
-        // penyunting sebenar sudah direkod berasingan dalam attribute 'editorName'.
-        const newRev = await dbRun(
-          `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt, scheduledPublishAt, scheduledExpiresAt)
-           VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, nextVersion, newTitle, newSummary, newStatus, rev.createdBy || 'content-review', nowIso, nowIso, nextScheduledPublishAt, nextScheduledExpiresAt]
-        );
-        liveRevId = newRev.lastID;
+      // Satu transaksi untuk keseluruhan fasa tulis PATCH: revisi baharu (edit kandungan) +
+      // salinan atribut lama + kemas kini atribut + kemas kini objek (PIPELINE-TRANSACTION-001,
+      // audit #46.10/#47.7, dibaiki 2026-08-13). Sebelum ni setiap penulisan auto-commit
+      // sendiri — kegagalan separuh jalan tinggalkan revisi baharu TANPA atribut (Bidang/URL/
+      // sumber hilang senyap) sambil editor nampak "Gagal kemas kini" dan berkemungkinan cuba
+      // lagi. Corak sama seperti laluan pulih-versi di bawah (BEGIN/COMMIT/ROLLBACK). Nota:
+      // incrementCategoryUsage kekal try/catch dalaman (kegagalan kaunter TIDAK menggagalkan
+      // transaksi — kelakuan sedia ada dikekalkan).
+      await dbRun('BEGIN TRANSACTION');
+      try {
+        if (isContentEdit) {
+          const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
+          const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
+          const newTitle = title !== undefined ? title : rev.title;
+          const newSummary = summary !== undefined ? summary : rev.summary;
+          const newStatus = effectiveStatus !== undefined ? effectiveStatus : rev.status;
+          // createdBy (2026-08-07, pepijat kritikal Izzat) — token LALUAN ("manual-slot-save",
+          // "content-review", dll — jawab *macam mana* dicipta, bukan *siapa*, lihat nota
+          // pendaftaran attribute 'editorName' di server.js), BUKAN nama pengguna sebenar. Sebelum
+          // ni PATCH ni tulis ganti dengan `req.session.user.username` — kandungan Manual yang
+          // pernah diedit (cth Ketua Editor betulkan taip salah) dapat createdBy="izzatanas", tak
+          // sepadan senarai putih resolveSlotContent() (server.js, mod Manual: createdBy IN
+          // ('manual-slot-save', 'migration-manual-blob', 'content-review')) — kandungan tu terus
+          // TAK KELIHATAN pada frontpage LANGSUNG selepas diedit, walaupun status kekal 'approved'
+          // dan UI admin nampak normal. Warisi token ASAL revisi lama, bukan cipta baharu — identiti
+          // penyunting sebenar sudah direkod berasingan dalam attribute 'editorName'.
+          const newRev = await dbRun(
+            `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt, scheduledPublishAt, scheduledExpiresAt)
+             VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [id, nextVersion, newTitle, newSummary, newStatus, rev.createdBy || 'content-review', nowIso, nowIso, nextScheduledPublishAt, nextScheduledExpiresAt]
+          );
+          liveRevId = newRev.lastID;
 
-        // Bawa semua atribut lama daripada revisi sebelumnya ke revisi baharu (revisionId baharu),
-        // supaya medan yang TIDAK disentuh oleh PATCH ni (mis. sumber, imej) tak "hilang" —
-        // laluan baca tapis atribut ikut revisionId semasa sahaja.
-        const oldAttrs = await dbAll(
-          "SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?",
-          [id, rev.id]
-        );
-        for (const a of oldAttrs) {
+          // Bawa semua atribut lama daripada revisi sebelumnya ke revisi baharu (revisionId baharu),
+          // supaya medan yang TIDAK disentuh oleh PATCH ni (mis. sumber, imej) tak "hilang" —
+          // laluan baca tapis atribut ikut revisionId semasa sahaja.
+          const oldAttrs = await dbAll(
+            "SELECT attributeId, valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ?",
+            [id, rev.id]
+          );
+          for (const a of oldAttrs) {
+            await dbRun(
+              "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
+              [id, liveRevId, a.attributeId, a.valueText]
+            );
+          }
+        } else if (effectiveStatus !== undefined || scheduleFieldsChanged) {
           await dbRun(
-            "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
-            [id, liveRevId, a.attributeId, a.valueText]
+            `UPDATE editorial_revisions SET status = ?, scheduledPublishAt = ?, scheduledExpiresAt = ?, updatedAt = ? WHERE id = ?`,
+            [effectiveStatus !== undefined ? effectiveStatus : rev.status, nextScheduledPublishAt, nextScheduledExpiresAt, nowIso, rev.id]
           );
         }
-      } else if (effectiveStatus !== undefined || scheduleFieldsChanged) {
-        await dbRun(
-          `UPDATE editorial_revisions SET status = ?, scheduledPublishAt = ?, scheduledExpiresAt = ?, updatedAt = ? WHERE id = ?`,
-          [effectiveStatus !== undefined ? effectiveStatus : rev.status, nextScheduledPublishAt, nextScheduledExpiresAt, nowIso, rev.id]
-        );
-      }
 
-      if (desk !== undefined && desk.trim() !== '') {
+        if (desk !== undefined && desk.trim() !== '') {
+          try {
+            await CategoryRegistry.incrementCategoryUsage(db, desk);
+          } catch (e) {
+            console.warn("Failed to register category:", e.message);
+          }
+        }
+
+        const attrCandidates = { desk, source, url, imageUrl, topik, briefLong, originalDate, note, notaOleh: notaOlehBaharu };
+        for (const [key, val] of Object.entries(attrCandidates)) {
+          if (val === undefined) continue;
+          const existing = await dbGet(
+            "SELECT id FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = ?",
+            [id, liveRevId, key]
+          );
+          if (existing) {
+            await dbRun("UPDATE editorial_attribute_values SET valueText = ? WHERE id = ?", [val, existing.id]);
+          } else {
+            await dbRun(
+              "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
+              [id, liveRevId, key, val]
+            );
+          }
+        }
+
+        await dbRun("UPDATE editorial_objects SET updatedAt = ? WHERE id = ?", [new Date().toISOString(), id]);
+        await dbRun('COMMIT');
+      } catch (e) {
         try {
-          await CategoryRegistry.incrementCategoryUsage(db, desk);
-        } catch (e) {
-          console.warn("Failed to register category:", e.message);
+          await dbRun('ROLLBACK');
+        } catch (rollbackErr) {
+          console.error('Rollback gagal selepas ralat kemas kini kandungan:', rollbackErr.message);
         }
+        throw e;
       }
-
-      const attrCandidates = { desk, source, url, imageUrl, topik, briefLong, originalDate, note, notaOleh: notaOlehBaharu };
-      for (const [key, val] of Object.entries(attrCandidates)) {
-        if (val === undefined) continue;
-        const existing = await dbGet(
-          "SELECT id FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = ?",
-          [id, liveRevId, key]
-        );
-        if (existing) {
-          await dbRun("UPDATE editorial_attribute_values SET valueText = ? WHERE id = ?", [val, existing.id]);
-        } else {
-          await dbRun(
-            "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
-            [id, liveRevId, key, val]
-          );
-        }
-      }
-
-      await dbRun("UPDATE editorial_objects SET updatedAt = ? WHERE id = ?", [new Date().toISOString(), id]);
 
       // Log Audit (Fasa 4) — cuma catat bila STATUS berubah (terbit/tolak/arkib/siar-semula),
       // sebab itulah tindakan editorial yang bermakna untuk jejak; edit teks semata-mata
@@ -1599,30 +1618,49 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       }
       const objectId = `object-manual-slot${slotIndex}-${Date.now()}-new`;
 
-      await dbRun(
-        `INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
-         VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?)`,
-        [objectId, finalCategory, slotIndex, timestamp, timestamp]
-      );
-      const rev = await dbRun(
-        `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-         VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'content-review', ?, ?)`,
-        [objectId, title.trim(), (summary || '').trim(), timestamp, timestamp]
-      );
-      const revisionId = rev.lastID;
-
-      const attrs = [
-        { key: 'desk', val: finalCategory },
-        { key: 'url', val: url || '#' },
-        { key: 'source', val: source || '' },
-        { key: 'topik', val: topik || '' },
-      ];
-      if (imageUrl) attrs.push({ key: 'imageUrl', val: imageUrl });
-      for (const a of attrs) {
+      // Satu transaksi untuk keseluruhan penciptaan: objek + revisi + atribut (PIPELINE-
+      // TRANSACTION-001, audit #46.10/#47.7, dibaiki 2026-08-13). Sebelum ni tiga INSERT
+      // berasingan auto-commit sendiri-sendiri — kegagalan separuh jalan (cth kunci DB, FK)
+      // tinggalkan objek+revisi TANPA atribut tersimpan SENYAP sambil editor nampak mesej
+      // "Gagal mencipta" dan berkemungkinan cuba lagi (objek berganda). Corak sama seperti
+      // laluan pulih-versi di atas (BEGIN/COMMIT/ROLLBACK) — operasi editorial sama ada
+      // berjaya sepenuhnya atau tidak wujud langsung.
+      await dbRun('BEGIN TRANSACTION');
+      let revisionId;
+      try {
         await dbRun(
-          "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
-          [objectId, revisionId, a.key, a.val]
+          `INSERT INTO editorial_objects (id, type, categoryId, priority, slotIndex, createdAt, updatedAt)
+           VALUES (?, 'Brief', ?, 'Medium', ?, ?, ?)`,
+          [objectId, finalCategory, slotIndex, timestamp, timestamp]
         );
+        const rev = await dbRun(
+          `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
+           VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'content-review', ?, ?)`,
+          [objectId, title.trim(), (summary || '').trim(), timestamp, timestamp]
+        );
+        revisionId = rev.lastID;
+
+        const attrs = [
+          { key: 'desk', val: finalCategory },
+          { key: 'url', val: url || '#' },
+          { key: 'source', val: source || '' },
+          { key: 'topik', val: topik || '' },
+        ];
+        if (imageUrl) attrs.push({ key: 'imageUrl', val: imageUrl });
+        for (const a of attrs) {
+          await dbRun(
+            "INSERT INTO editorial_attribute_values (objectId, revisionId, attributeId, valueText) VALUES (?, ?, ?, ?)",
+            [objectId, revisionId, a.key, a.val]
+          );
+        }
+        await dbRun('COMMIT');
+      } catch (e) {
+        try {
+          await dbRun('ROLLBACK');
+        } catch (rollbackErr) {
+          console.error('Rollback gagal selepas ralat cipta kandungan:', rollbackErr.message);
+        }
+        throw e;
       }
 
       await logAudit(dbRun, {

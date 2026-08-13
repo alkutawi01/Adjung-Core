@@ -1814,6 +1814,21 @@ const initEditorialOS = (dbConn) => {
       dbConn.run("CREATE INDEX IF NOT EXISTS idx_eav_attribute ON editorial_attribute_values(attributeId)");
       dbConn.run("CREATE INDEX IF NOT EXISTS idx_editorial_objects_category ON editorial_objects(categoryId, createdAt)");
       dbConn.run("CREATE INDEX IF NOT EXISTS idx_editorial_revisions_lookup ON editorial_revisions(objectId, status, version)");
+      // UNIQUE(objectId, version, language) (SCHEMA-CONSTRAINT-001, audit #47.4/#47.5, dibaiki
+      // 2026-08-13) — jaring keselamatan KEDUA di peringkat DB untuk invarian "satu nombor versi
+      // sekali sahaja per objek (per bahasa)". Sebelum ni invarian tu 100% bergantung logik
+      // aplikasi (MAX(version)+1 dalam JS, dilindungi mutex denganKunciKandungan()) TANPA
+      // sokongan DB langsung — selamat dalam deployment satu-proses semasa, tapi sifar
+      // pertahanan-berlapis kalau laluan baharu terlepas bungkus mutex atau deployment jadi
+      // multi-proses kelak. `language` MESTI dalam indeks: laluan terjemahan AI (baris ~1510)
+      // memasukkan version 1.0 dengan `language` BERBEZA untuk objectId SAMA secara sah —
+      // indeks dua-lajur sahaja akan pecahkan terjemahan DAN gagal dicipta pada DB yang sudah
+      // ada baris terjemahan. Corak amaran sama seperti indeks UNIQUE penName di atas: kalau
+      // data lama kebetulan ada pendua (tak dijangka — audit #47.4 sahkan tiada), log amaran
+      // untuk pembersihan manual, JANGAN ranap.
+      dbConn.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_editorial_revisions_unik_versi ON editorial_revisions(objectId, version, language)", (err) => {
+        if (err) console.warn('AMARAN: Gagal cipta indeks UNIQUE (objectId, version, language) — mungkin ada versi pendua sedia ada, perlu dibersihkan manual:', err.message);
+      });
       dbConn.run("CREATE INDEX IF NOT EXISTS idx_rss_ticker_category ON rss_ticker_items(category, publishedAt)");
       // idx_rss_ticker_status (2026-08-07, Tier 1 audit inventori) — jadual ni SATU-SATUNYA
       // kandungan editorial SEBENAR (2,295+ baris, bertambah setiap 3 jam TANPA pemangkasan,
