@@ -49,8 +49,16 @@ export async function getOrCreateUrlKod(dbGet, dbRun, objectId) {
 async function ambilKandunganUntukSeo(dbGet, dbAll, objectId) {
   const obj = await dbGet('SELECT * FROM editorial_objects WHERE id = ?', [objectId]);
   if (!obj) return null;
+  // "status='approved' ORDER BY version DESC LIMIT 1" alone matches the highest-versioned
+  // APPROVED row even when a NEWER row of any status (e.g. archived) exists on top of it — a
+  // stale pre-edit approved revision would resurface via this public article page after the
+  // object was edited then archived (CONTENT-LIFECYCLE-005C, found 2026-08-13). The NOT EXISTS
+  // guard requires this candidate to genuinely be the object's latest revision.
   const rev = await dbGet(
-    "SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' ORDER BY version DESC LIMIT 1",
+    `SELECT * FROM editorial_revisions er1
+     WHERE er1.objectId = ? AND er1.status = 'approved'
+       AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.version > er1.version)
+     ORDER BY er1.version DESC LIMIT 1`,
     [objectId]
   );
   if (!rev) return null;

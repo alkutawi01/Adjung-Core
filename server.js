@@ -3152,9 +3152,26 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       const obj = await dbGet("SELECT * FROM editorial_objects WHERE id = ?", [objectId]);
       if (!obj) continue;
       editorialObj = obj;
-      let rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' AND language = ? ORDER BY version DESC LIMIT 1", [objectId, lang]);
+      // "status='approved' ORDER BY version DESC LIMIT 1" alone picks the highest-versioned
+      // APPROVED row even when a NEWER row of any status (e.g. archived) exists on top of it —
+      // a stale pre-edit approved revision silently resurfaces after the object was edited then
+      // archived (CONTENT-LIFECYCLE-005, found 2026-08-13 via simulasi #41 sanity check: an
+      // archived test object kept rendering live because an OLDER revision was still 'approved').
+      // The NOT EXISTS guard requires this candidate to genuinely be the object's latest revision
+      // (no newer row of ANY status on top of it) before treating it as the current live content.
+      let rev = await dbGet(`
+        SELECT * FROM editorial_revisions er1
+        WHERE er1.objectId = ? AND er1.status = 'approved' AND er1.language = ?
+          AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.version > er1.version)
+        ORDER BY er1.version DESC LIMIT 1
+      `, [objectId, lang]);
       if (!rev && lang !== 'ms') {
-        rev = await dbGet("SELECT * FROM editorial_revisions WHERE objectId = ? AND status = 'approved' AND language = 'ms' ORDER BY version DESC LIMIT 1", [objectId]);
+        rev = await dbGet(`
+          SELECT * FROM editorial_revisions er1
+          WHERE er1.objectId = ? AND er1.status = 'approved' AND er1.language = 'ms'
+            AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.version > er1.version)
+          ORDER BY er1.version DESC LIMIT 1
+        `, [objectId]);
       }
       if (!rev) continue;
       approvedRevision = rev;

@@ -17,23 +17,27 @@ export function createSearchRoutes(dbAll) {
         return res.json({ results: [] });
       }
       const like = `%${q}%`;
-      // `latest` mesti dikira HANYA daripada revisi 'approved' (bukan MAX(version) merentasi
-      // SEMUA status) — kandungan yang pernah diedit lagi lepas Terbit (edit terbaharu masih
-      // 'pending' semakan, atau ditolak/diarkibkan) akan ada version lebih tinggi yang BUKAN
-      // approved; join terhadap MAX(version) tanpa syarat status tersalah padan ke revisi bukan
-      // approved itu dan pulangkan SIFAR baris walaupun kandungan tu sebenarnya aktif/live.
-      // Ditemui semasa ujian langsung ciri ni (2026-08-05) — carian pulangkan kosong untuk
-      // tajuk yang disahkan wujud di DB sebelum dibetulkan ke bentuk di bawah.
+      // `latest` mesti dikira daripada MAX(version) MERENTASI SEMUA status (bukan hanya di
+      // kalangan revisi 'approved') — join tadi (sebelum 2026-08-13) cari revisi berversi
+      // tertinggi DALAM KALANGAN yang approved sahaja, jadi bila kandungan diedit lagi lepas
+      // terbit lalu diarkib, revisi approved LAMA (yang dah digantikan) tetap sepadan syarat tu
+      // dan terus terpapar dalam carian awam — CONTENT-LIFECYCLE-005B, ditemui 2026-08-13 semasa
+      // simulasi #41 (kandungan archived kekal boleh dijumpai pembaca melalui carian). Baris asal
+      // 2026-08-05 (join thd MAX(version) WHERE status='approved') sendiri fix bug bertentangan
+      // (carian kosong sebab edit terbaharu belum approved dianggap versi "terkini") — bentuk di
+      // bawah selesaikan KEDUA-DUA arah serentak: cari revisi TERKINI SEBENAR (version tertinggi
+      // tanpa syarat status), papar HANYA jika revisi terkini SEBENAR itu approved.
       const rows = await dbAll(`
         SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, er.title, er.summary,
                (SELECT valueText FROM editorial_attribute_values
                 WHERE objectId = eo.id AND revisionId = er.id AND attributeId = 'topik') as topik
         FROM editorial_objects eo
-        INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.status = 'approved'
+        INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
-          SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions WHERE status = 'approved' GROUP BY objectId
+          SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions GROUP BY objectId
         ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
         WHERE eo.slotIndex >= 0
+          AND er.status = 'approved'
           AND (
             er.title LIKE ? OR er.summary LIKE ?
             OR EXISTS (
