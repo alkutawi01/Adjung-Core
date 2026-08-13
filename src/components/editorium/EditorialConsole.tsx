@@ -332,7 +332,7 @@ export const EditorialConsole: React.FC = () => {
           <div>
             <SectionLabel>01 — Istilah Autocondong</SectionLabel>
             <p className="text-stone-500 text-xs">
-              Perkataan di sini dicondongkan secara automatik semasa paparan. Ia mengubah PAPARAN sahaja —
+              Perkataan di sini dicondongkan secara automatik semasa paparan. Ia mengubah PAPARAN sahaja;
               kandungan editorial yang tersimpan tidak pernah disentuh.
             </p>
           </div>
@@ -405,7 +405,7 @@ export const EditorialConsole: React.FC = () => {
 
           <p className="text-stone-400 text-[10px] border-t border-stone-200 pt-3 leading-relaxed">
             Untuk skop, bahasa, keutamaan, dan kekecualian setiap peraturan, guna panel Peraturan Tipografi penuh
-            di Tetapan Slot (frontpage) — senarai di sini dan di sana ialah data yang sama.
+            di Tetapan Slot (frontpage); senarai di sini dan di sana ialah data yang sama.
           </p>
         </PanelCard>
       )}
@@ -617,7 +617,7 @@ export const EditorialConsole: React.FC = () => {
                 <p className="text-stone-500 text-xs max-w-[680px]">
                   Bentuk ejaan yang betul berbanding bentuk yang kerap tersilap tulis. Berbeza
                   daripada <strong className="font-semibold">Glosari</strong>, senarai ini rujukan
-                  dalaman untuk editor sahaja — ia tidak dipaparkan kepada pembaca.
+                  dalaman untuk editor sahaja, ia tidak dipaparkan kepada pembaca.
                 </p>
               </div>
               <Button variant="primary" onClick={bukaTambahEjaan} className="shrink-0">

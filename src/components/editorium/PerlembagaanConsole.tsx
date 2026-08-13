@@ -167,7 +167,7 @@ export const PerlembagaanConsole: React.FC = () => {
         huraian={
           <span className="block max-w-2xl">
             Rujukan tunggal bagi peraturan kad bento serta sejarah perubahannya. Carta di bawah dijana
-            terus daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">core/editorial/GeometryConfig.js</code> —
+            terus daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">core/editorial/GeometryConfig.js</code>;
             apabila fail itu berubah, carta ini turut dikemas kini secara automatik. Peraturan bertulis
             pula dikemas kini oleh editor setiap kali seni bina sebenar berubah.
           </span>
@@ -295,7 +295,7 @@ export const PerlembagaanConsole: React.FC = () => {
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Setiap slot (selain Ticker dan tier <TierLabel tier="BAR" />) terkunci kepada SATU
-              Bidang tetap — semua kandungan dalam slot tu (termasuk semua item carousel) mesti
+              Bidang tetap. Semua kandungan dalam slot tu (termasuk semua item carousel) mesti
               dalam Bidang yang sama. Topik ialah medan per-kandungan yang boleh berbeza-beza
               dalam slot yang sama asalkan masih dalam Bidang terkunci tu. Contoh:
               Bidang <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Ekonomi</span> tetap
@@ -304,7 +304,7 @@ export const PerlembagaanConsole: React.FC = () => {
               <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Perbankan</span>, dll.
               Warna Topik mewarisi warna Bidang induknya (tiada storan warna berasingan). Topik
               tiada had aksara tetap sendiri, tapi berkongsi SATU baris eyebrow kad dengan
-              Bidang ("Bidang | Topik", lihat "Label kad" di bawah) — gabungan yang terlalu
+              Bidang ("Bidang | Topik", lihat "Label kad" di bawah); gabungan yang terlalu
               panjang untuk tier kad itu ditolak semasa simpan (<code className="bg-stone-100 px-1 rounded text-[11px]">validateBidangTopik()</code>).
             </p>
           </div>
@@ -313,13 +313,13 @@ export const PerlembagaanConsole: React.FC = () => {
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Dipaparkan sebagai <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Bidang | Topik</span> (cth:{' '}
               <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">Ekonomi | Perbankan</span>).
-              Kandungan lama yang belum mempunyai Topik hanya memaparkan Bidang — tiada <em className="italic">backfill</em> automatik.
+              Kandungan lama yang belum mempunyai Topik hanya memaparkan Bidang, tiada <em className="italic">backfill</em> automatik.
             </p>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Format tampal-manual (10 medan standard)</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed mb-2">
-              Format kanonikal yang dijana/dihurai oleh <code className="bg-stone-100 px-1 rounded text-[11px]">core/editorial/ManualBlockFormat.js</code> —
+              Format kanonikal yang dijana/dihurai oleh <code className="bg-stone-100 px-1 rounded text-[11px]">core/editorial/ManualBlockFormat.js</code>,
               digunakan oleh butang "Tampal"/"Masukkan" di Tulis Kandungan. <span className="font-mono text-[11px] bg-stone-100 px-1 rounded">UUID:</span> pilihan
               (dijana automatik jika kosong); baki medan boleh dibiar kosong tapi baris labelnya kekal.
             </p>
@@ -349,7 +349,7 @@ Nota:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Pertukaran Bidang slot</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Bidang slot boleh ditukar pada bila-bila masa dari Tetapan Slot — tiada kunci keras.
+              Bidang slot boleh ditukar pada bila-bila masa dari Tetapan Slot, tiada kunci keras.
               Pertukaran ni HANYA mempengaruhi kandungan baharu yang diterbitkan selepas perubahan;
               kandungan lama dalam slot tu kekal dengan Bidang yang dah tersimpan, tidak berubah
               retroaktif.
@@ -358,7 +358,7 @@ Nota:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Pengecualian</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Ticker dan tier <TierLabel tier="BAR" /> dikecualikan sepenuhnya daripada ciri ni —
+              Ticker dan tier <TierLabel tier="BAR" /> dikecualikan sepenuhnya daripada ciri ni:
               tiada Bidang terkunci, tiada Topik, label kad tidak berubah.
             </p>
           </div>
@@ -379,7 +379,7 @@ Nota:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Fungsi</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Slot Bar 100% untuk acara/program (seminar, pesta buku, majlis anugerah, dll.) —
+              Slot Bar 100% untuk acara/program (seminar, pesta buku, majlis anugerah, dll.),
               BUKAN untuk berita. <em className="italic">Pipeline</em> AI (<code className="bg-stone-100 px-1 rounded text-[11px]">EditorialPipeline.js</code>) dihadkan kepada kandungan acara sahaja untuk tier ini.
             </p>
           </div>
@@ -403,21 +403,21 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Penjanaan akronim Penganjur</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Ikut urutan: (1) teks dalam kurungan — cth. <em className="italic">"Dewan Bahasa dan Pustaka (DBP)"</em> → "DBP"; (2) kamus akronim rasmi (DBP, PPAS, PNM, KPM, DBKL, ITBM, MAIS, JAIS, JAKIM, UM, UKM, UPM, USM, UiTM, UIAM, YWI) apabila nama penuh ditaip tanpa kurungan; (3) input yang sedia pendek (≤2 patah perkataan / ≤10 aksara) dikekalkan terus; (4) jika tiada padanan, bina akronim daripada huruf pertama setiap perkataan utama. Sebab: lencana terlalu kecil untuk nama penuh.
+              Ikut urutan: (1) teks dalam kurungan, cth. <em className="italic">"Dewan Bahasa dan Pustaka (DBP)"</em> → "DBP"; (2) kamus akronim rasmi (DBP, PPAS, PNM, KPM, DBKL, ITBM, MAIS, JAIS, JAKIM, UM, UKM, UPM, USM, UiTM, UIAM, YWI) apabila nama penuh ditaip tanpa kurungan; (3) input yang sedia pendek (≤2 patah perkataan / ≤10 aksara) dikekalkan terus; (4) jika tiada padanan, bina akronim daripada huruf pertama setiap perkataan utama. Sebab: lencana terlalu kecil untuk nama penuh.
             </p>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Medan Akses</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Hanya 2 nilai sah: <em className="italic">Terbuka</em> / <em className="italic">Tertutup</em>. Dipaparkan sebagai lencana jatuh balik SAHAJA apabila <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> tiada — bukan dipaparkan serentak dengan lencana Penganjur.
+              Hanya 2 nilai sah: <em className="italic">Terbuka</em> / <em className="italic">Tertutup</em>. Dipaparkan sebagai lencana jatuh balik SAHAJA apabila <code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur</code> tiada, bukan dipaparkan serentak dengan lencana Penganjur.
             </p>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Medan Penerangan</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Huraian tambahan pilihan, disimpan sepenuhnya tetapi <strong>TIDAK dipaparkan pada kad</strong> —
+              Huraian tambahan pilihan, disimpan sepenuhnya tetapi <strong>TIDAK dipaparkan pada kad</strong>,
               disediakan untuk ciri akordion (panel boleh dikembangkan) akan datang, belum dibina. Tiada had aksara
-              dikuatkuasakan setakat ini (tiada panel sebenar untuk diukur) — sama prinsip dengan
+              dikuatkuasakan setakat ini (tiada panel sebenar untuk diukur), sama prinsip dengan
               <code className="bg-stone-100 px-1 rounded text-[11px] mx-1">briefLong</code>
               tier lain sebelum ciri spotlight dibina.
             </p>
@@ -434,8 +434,8 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Jaminan <em className="italic">Pipeline</em> (wajib, setiap laluan simpan Bar)</h3>
             <ul className="font-sans text-xs text-stone-600 leading-relaxed list-disc pl-4 space-y-1">
-              <li>Medan Penganjur, Lokasi, Akses dan Penerangan mesti mempunyai rujukan atribut yang sah dalam sistem sebelum boleh disimpan. Jika rujukan itu tiada, perubahan akan GAGAL DISIMPAN SECARA SENYAP — tiada mesej ralat dipaparkan. (Kawalan ini dilaksanakan melalui kekangan rujukan dalam pangkalan data.)</li>
-              <li>Apabila kandungan Bar disimpan, kesemua 4 medan (Penganjur, Lokasi, Akses, Penerangan) direkodkan bersama sebagai satu set nilai atribut editorial — bukan medan berasingan.</li>
+              <li>Medan Penganjur, Lokasi, Akses dan Penerangan mesti mempunyai rujukan atribut yang sah dalam sistem sebelum boleh disimpan. Jika rujukan itu tiada, perubahan akan GAGAL DISIMPAN SECARA SENYAP, tiada mesej ralat dipaparkan. (Kawalan ini dilaksanakan melalui kekangan rujukan dalam pangkalan data.)</li>
+              <li>Apabila kandungan Bar disimpan, kesemua 4 medan (Penganjur, Lokasi, Akses, Penerangan) direkodkan bersama sebagai satu set nilai atribut editorial, bukan medan berasingan.</li>
               <li>Kandungan Bar lama dan baharu kedua-duanya dipaparkan dengan lengkap dan tepat, tanpa mengira bagaimana ia disimpan asalnya.</li>
               <li>Parser teks (<code className="bg-stone-100 px-1 rounded text-[11px]">Penganjur:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Lokasi:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Akses:</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">Penerangan:</code>) case-insensitive.</li>
               <li>4 slot Bar dalam satu kumpulan (Slot 8,9,10,11 / Slot 22,23,24,25) setiap satu SLOT BERASINGAN dengan kandungan sendiri, bukan satu carousel dikongsi bersama.</li>
@@ -463,17 +463,17 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Modal "Tulis Kandungan" ialah ruang draf peribadi sahaja</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Draf disimpan sebagai teks dalam <code className="bg-stone-100 px-1 rounded text-[11px]">slots_config.manualSummary</code> —
+              Draf disimpan sebagai teks dalam <code className="bg-stone-100 px-1 rounded text-[11px]">slots_config.manualSummary</code>,
               TIDAK pernah wujud sebagai baris <code className="bg-stone-100 px-1 rounded text-[11px]">editorial_objects</code> sehingga
-              diterbitkan. Modal ni tidak sesekali memaparkan kandungan Live/Pending sedia ada — hanya draf yang belum diterbitkan.
+              diterbitkan. Modal ni tidak sesekali memaparkan kandungan Live/Pending sedia ada, hanya draf yang belum diterbitkan.
             </p>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Dua tindakan berasingan bagi setiap kandungan draf</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              <strong>"Simpan sebagai draf"</strong> — simpan senarai draf semasa ke pangkalan data,
+              <strong>"Simpan sebagai draf"</strong>: simpan senarai draf semasa ke pangkalan data,
               modal kekal terbuka, tiada pengesahan bajet/Topik dikuatkuasakan (kerja belum siap).{' '}
-              <strong>"Terbit sekarang"</strong> — aksi segera (bukan togol status): kandungan disahkan
+              <strong>"Terbit sekarang"</strong>: aksi segera (bukan togol status), kandungan disahkan
               penuh (bajet ruang kad dan Bidang/Topik), terus dicipta sebagai rekod Indeks rasmi, dan
               serta-merta keluar daripada senarai draf modal.
             </p>
@@ -482,15 +482,15 @@ URL:`}</pre>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Hasil selepas Terbit bergantung kepada Dasar Terbit Sendiri Editor</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Editor yang mempunyai kebenaran terbit (dasar Terbit Sendiri Editor dibenarkan,
-              Tetapan → Tetapan Am Slot) boleh terus menjadikan kandungan sendiri Aktif —
+              Tetapan → Tetapan Am Slot) boleh terus menjadikan kandungan sendiri Aktif,
               KECUALI kandungan tu pernah ditolak sebelum ini, yang sentiasa wajib mendarat
               sebagai Menunggu Semakan tak kira dasar semasa. Editor tanpa kebenaran terbit
               sentiasa mendarat sebagai Menunggu Semakan. Kandungan yang sepatutnya boleh
               terus Aktif tapi slot sudah penuh menunggu sebagai Menunggu Slot Kosong, dan
-              naik taraf secara AUTOMATIK sebaik ruang terbuka — tiada tindakan manusia kedua
+              naik taraf secara AUTOMATIK sebaik ruang terbuka; tiada tindakan manusia kedua
               diperlukan. Nota teknikal: status pangkalan data ialah <code className="bg-stone-100 px-1 rounded text-[11px]">approved</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">pending</code>,
               dikawal medan <code className="bg-stone-100 px-1 rounded text-[11px]">sebabMenunggu</code> ('semakan'/'slot_penuh') dan gerbang kebenaran{' '}
-              <code className="bg-stone-100 px-1 rounded text-[11px]">publish</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">manageEditorial</code> — semua ini KECUALI slot Bar, yang kekal
+              <code className="bg-stone-100 px-1 rounded text-[11px]">publish</code>/<code className="bg-stone-100 px-1 rounded text-[11px]">manageEditorial</code>, semua ini KECUALI slot Bar, yang kekal
               guna status yang dihurai terus daripada teks (lihat "04 — Peraturan Khas Slot
               Bar", tidak terjejas oleh alur kerja ni).
             </p>
@@ -499,14 +499,14 @@ URL:`}</pre>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">"Tolak" di Indeks memulangkan kandungan jadi draf semula</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               BUKAN sekadar menukar status kepada Rejected. Rekod Indeks lama diarkibkan (jejak audit),
-              dan kandungan penuh disalin balik sebagai blok draf ke slot asal — kandungan tu hilang
+              dan kandungan penuh disalin balik sebagai blok draf ke slot asal; kandungan tu hilang
               terus daripada Indeks dan muncul semula, boleh disunting, dalam modal Tulis Kandungan.
             </p>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Indeks tidak pernah memaparkan status "Draf"</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Draf ialah ruang kerja peribadi editor sahaja — tak pernah punya baris rekod editorial,
+              Draf ialah ruang kerja peribadi editor sahaja, tak pernah punya baris rekod editorial,
               jadi tak sesekali muncul dalam senarai/tapisan Indeks walau apa jua keadaan.
             </p>
           </div>
@@ -524,18 +524,18 @@ URL:`}</pre>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Nama editor sebenar dicatat semasa Terbit</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Setiap kandungan yang diterbitkan mencatat nama editor yang log masuk semasa itu
-              (atribut <code className="bg-stone-100 px-1 rounded text-[11px]">editorName</code>) — berasingan
+              (atribut <code className="bg-stone-100 px-1 rounded text-[11px]">editorName</code>), berasingan
               daripada Kaedah (cara kandungan dicipta: Manual/AI Generated/RSS Direct, yang jawab
               "macam mana dicipta", bukan "siapa"). Kandungan sedia ada sebelum ciri ni wujud kekal
-              kosong (papar "Tidak diketahui" — jujur tentang jurang data, bukan nama direka).
+              kosong (papar "Tidak diketahui", jujur tentang jurang data, bukan nama direka).
             </p>
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Empat peranan editorial</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Pentadbir, Ketua Editor, Penolong Ketua Editor, dan Editor — dikawal melalui matriks
+              Pentadbir, Ketua Editor, Penolong Ketua Editor, dan Editor. Dikawal melalui matriks
               "Kawalan Akses" di Tetapan (Ketua Editor sahaja boleh menanda/membatalkan kebenaran).
-              Ketua Editor ialah peranan pentadbir tak boleh diubah suai (<em className="italic">immutable</em>) —
+              Ketua Editor ialah peranan pentadbir tak boleh diubah suai (<em className="italic">immutable</em>);
               kuasa tadbir urus utamanya (lihat semua/sunting semua/urus tetapan/urus Kawalan Akses)
               tidak boleh ditarik semula daripada akaun sendiri.
             </p>
@@ -545,7 +545,7 @@ URL:`}</pre>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Kebenaran yang ditetapkan melalui Kawalan Akses dikuatkuasakan oleh pelayan.
               Semakan kebenaran seperti terbit, urus editorial, dan tindakan lain membaca
-              terus daripada matriks kebenaran yang disimpan dalam sistem — bukan banding
+              terus daripada matriks kebenaran yang disimpan dalam sistem, bukan banding
               peranan secara tegar dalam kod. Perubahan pada matriks dimuat semula secara
               automatik selepas Tetapan disimpan.
             </p>

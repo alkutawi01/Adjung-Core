@@ -256,7 +256,7 @@ export const PenajaConsole: React.FC = () => {
               className={INPUT_BORANG}
             />
             <span className="text-stone-400 text-[10px]">
-              Untuk kegunaan dalaman — akan tentukan saiz visual penaja di /penaja apabila ciri visualisasi dibina. Tidak dipaparkan kepada awam.
+              Untuk kegunaan dalaman: akan tentukan saiz visual penaja di /penaja apabila ciri visualisasi dibina. Tidak dipaparkan kepada awam.
             </span>
           </label>
         </FormColumn>

@@ -1,5 +1,23 @@
 [
   {
+    "time": "2026-08-13T23:16:22.167Z",
+    "summary": "Perlembagaan/Tetapan/Sistem Reka Bentuk/Senarai Slot/Editorial/Bidang/Penaja/Direktori/Tier Kad/Log Audit/Editorium: sambungan pembersihan em dash berlebihan dalam ayat prosa (kesemua 12 fail baki).",
+    "files": [
+      "src/components/editorium/PerlembagaanConsole.tsx",
+      "src/components/editorium/TetapanConsole.tsx",
+      "src/components/editorium/SistemRekaBentukConsole.tsx",
+      "src/components/editorium/SenaraiSlotConsole.tsx",
+      "src/components/editorium/TetapanAmSlotConsole.tsx",
+      "src/components/editorium/EditorialConsole.tsx",
+      "src/components/editorium/BidangConsole.tsx",
+      "src/components/editorium/PenajaConsole.tsx",
+      "src/components/editorium/DirektoriConsole.tsx",
+      "src/components/editorium/TierKadConsole.tsx",
+      "src/components/editorium/LogAuditConsole.tsx",
+      "src/components/editorium/EditoriumView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-13T18:15:29.174Z",
     "summary": "Panduan + Indeks: kurangkan penggunaan em dash berlebihan dalam ayat prosa (guna koma/noktah/kurungan ikut konteks) -- pembaris seksyen bernombor (cth '00 -- Selamat Datang') dan label ringkas dikekalkan.",
     "files": [

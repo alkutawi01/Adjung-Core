@@ -321,7 +321,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     const barisDisentuh = schoolHolidays.filter(adaIsi);
     const cutiSah = barisDisentuh.filter(lengkap);
     if (cutiSah.length !== barisDisentuh.length) {
-      setWorldClockSaveError('Ada tempoh cuti yang separuh diisi — setiap satu mesti ada Tarikh Mula, Tarikh Tamat dan Nama. Baris yang langsung kosong tidak mengapa, ia digugurkan sendiri.');
+      setWorldClockSaveError('Ada tempoh cuti yang separuh diisi. Setiap satu mesti ada Tarikh Mula, Tarikh Tamat dan Nama. Baris yang langsung kosong tidak mengapa, ia digugurkan sendiri.');
       setSavingWorldClock(false);
       return;
     }
@@ -664,7 +664,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </label>
                 <p className="text-stone-500 text-xs">
                   Benarkan editor guna sintaks <code className="bg-stone-100 px-1 rounded">[kata](gloss:makna)</code> dalam
-                  tajuk/huraian — makna terpapar sebagai anotasi kecil di atas kata pada frontpage. Dimatikan lalai;
+                  tajuk/huraian. Makna terpapar sebagai anotasi kecil di atas kata pada frontpage. Dimatikan lalai;
                   sintaks yang wujud dipapar sebagai teks biasa (anotasi diabaikan) selagi togol ni tak dihidupkan.
                 </p>
                 {glosSelariSaveError && <MesejStatus tone="error">{glosSelariSaveError}</MesejStatus>}
@@ -678,7 +678,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       {subTab === 'Operasi' && (
         <PanelCard className="space-y-6 text-xs">
           <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-900">
-            <Newspaper className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Modul Khas → Urus Ticker</strong>, bukan di sini — supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
+            <Newspaper className="inline w-3.5 h-3.5 -mt-0.5 mr-1" /> Tetapan RSS &amp; penapisan Ticker (had berita live, kata kunci diharamkan, ambang skor) diuruskan di <strong>Modul Khas → Urus Ticker</strong>, bukan di sini, supaya tiada dua tempat berasingan yang boleh terkeluar segerak antara satu sama lain.
           </div>
 
           {/* Kategori RSS Tersekat — shared with the Frontpage Ticker Management modal */}
@@ -686,7 +686,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
             <div>
               <SectionLabel>3.1 — Kategori RSS Tersekat</SectionLabel>
               <p className="text-stone-500 text-[11px]">
-                Kategori mentah RSS yang disenaraikan di sini turut terpakai di modal Urus Ticker (Editorium → Modul Khas) — satu senarai kongsi.
+                Kategori mentah RSS yang disenaraikan di sini turut terpakai di modal Urus Ticker (Editorium → Modul Khas), satu senarai kongsi.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -808,7 +808,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </Button>
               </div>
               <span className="text-[10px] text-stone-400 block -mt-1.5">
-                Kumpulan A/B ialah pembahagian rasmi Kementerian Pendidikan (negeri berlainan cuti pada tarikh sedikit berbeza) — ia BUKAN jenis cuti. Senarai kosong = Jam Dunia tidak papar cuti sekolah langsung.
+                Kumpulan A/B ialah pembahagian rasmi Kementerian Pendidikan (negeri berlainan cuti pada tarikh sedikit berbeza), ia BUKAN jenis cuti. Senarai kosong = Jam Dunia tidak papar cuti sekolah langsung.
               </span>
               <span className="text-[10px] text-stone-400 block">
                 Cuti sekolah dimasukkan manual: API cuti yang disambungkan hanya membekalkan <strong className="text-stone-500">cuti umum</strong> (kebangsaan/negeri), bukan takwim persekolahan KPM.
@@ -817,7 +817,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <MesejStatus tone={statusLuputCuti.tone}>
                   {statusLuputCuti.tamat
                     ? `Senarai cuti sekolah ini sudah tamat pada ${statusLuputCuti.dipapar}. Jam Dunia tidak lagi memapar sebarang cuti sekolah sehingga tempoh baharu dimasukkan.`
-                    : `Senarai cuti sekolah ini tamat pada ${statusLuputCuti.dipapar} (${statusLuputCuti.bezaHari} hari lagi). Masukkan tempoh tahun berikutnya sebelum tarikh itu — selepas tamat, Jam Dunia berhenti memapar cuti sekolah tanpa sebarang amaran lain.`}
+                    : `Senarai cuti sekolah ini tamat pada ${statusLuputCuti.dipapar} (${statusLuputCuti.bezaHari} hari lagi). Masukkan tempoh tahun berikutnya sebelum tarikh itu. Selepas tamat, Jam Dunia berhenti memapar cuti sekolah tanpa sebarang amaran lain.`}
                 </MesejStatus>
               )}
               {schoolHolidays.length === 0 && (
@@ -958,7 +958,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                         langsung tidak menyentuh cuti sekolah — cuti sekolah datang daripada
                         system_settings.schoolHolidaysJson yang disunting tangan di atas. */}
                     <div>Liputan: <strong className="text-stone-800">Cuti umum {apiHealthStatus?.holidayApi?.calendarYear || new Date().getFullYear()} (kebangsaan &amp; negeri)</strong></div>
-                    <div className="text-stone-400">Tidak termasuk cuti sekolah — itu disunting manual di 3.3 di atas.</div>
+                    <div className="text-stone-400">Tidak termasuk cuti sekolah, itu disunting manual di 3.3 di atas.</div>
                     <div>Latensi Rangkaian: <strong className="text-emerald-700">{apiHealthStatus?.holidayApi?.latencyMs !== undefined ? `${apiHealthStatus.holidayApi.latencyMs} ms` : '—'}</strong></div>
                     <div className="text-stone-400 truncate">Endpoint: {apiHealthStatus?.holidayApi?.endpoint || 'malaysia-holiday.dydxsoft.my/api/v1/holidays'}</div>
                   </div>
@@ -998,7 +998,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   />
                 </FormColumn>
                 <span className="text-[10px] text-stone-400 block">
-                  Lalai 180 aksara. Tidak berkaitan bajet ruang tajuk/huraian kad bento (Tier Kad) — nota editor medan berasingan, tak dipapar pada kad.
+                  Lalai 180 aksara. Tidak berkaitan bajet ruang tajuk/huraian kad bento (Tier Kad); nota editor medan berasingan, tak dipapar pada kad.
                 </span>
               </div>
 
@@ -1015,7 +1015,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   />
                 </FormColumn>
                 <span className="text-[10px] text-stone-400 block">
-                  Lalai 14 saat. Masa sebelum Focus View lompat sendiri ke kandungan seterusnya — pembaca boleh jeda bila-bila (butang Auto atau kekunci Space).
+                  Lalai 14 saat. Masa sebelum Focus View lompat sendiri ke kandungan seterusnya; pembaca boleh jeda bila-bila (butang Auto atau kekunci Space).
                 </span>
               </div>
             </div>
@@ -1099,7 +1099,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 core/middleware/auth.js), disegarkan serta-merta selepas simpan — tiada perlu
                 mulakan semula server. Menanda/menyahtanda kebenaran DI BAWAH mengubah apa
                 setiap peranan BENAR-BENAR boleh buat, serta-merta selepas "Simpan Kawalan Akses". */}
-            Matriks ni <strong>sumber kebenaran sebenar</strong> — setiap laluan API tulis semak
+            Matriks ni <strong>sumber kebenaran sebenar</strong>: setiap laluan API tulis semak
             terus daripada sini, berkuat kuasa serta-merta selepas disimpan. Berhati-hati menanda/
             menyahtanda: kesannya nyata pada apa setiap peranan boleh buat.
           </div>
@@ -1322,7 +1322,7 @@ function HalamanAwamPanel() {
       <div className="space-y-2 border-b border-stone-200 pb-3">
         <div>
           <span className={LABEL_BORANG}>
-            Halaman awam — pembaca portal boleh nampak
+            Halaman awam: pembaca portal boleh nampak
           </span>
           <div className="flex flex-wrap gap-1.5">
             {HALAMAN_AWAM_SENARAI.filter(h => h.kumpulan === 'awam').map(h => (
@@ -1340,7 +1340,7 @@ function HalamanAwamPanel() {
         </div>
         <div>
           <span className={LABEL_BORANG}>
-            Dalaman — editor sahaja, tak dipaparkan kepada pembaca
+            Dalaman: editor sahaja, tak dipaparkan kepada pembaca
           </span>
           <div className="flex flex-wrap gap-1.5">
             {HALAMAN_AWAM_SENARAI.filter(h => h.kumpulan === 'dalaman').map(h => (
@@ -1526,7 +1526,7 @@ function LabelSistemPanel() {
         <p className="text-stone-500 text-xs mt-1">
           Perkataan yang dipaparkan kepada editor (label Mod Kandungan, Status, dan mesej ringkas
           simpan/terbit). Menyunting di sini TIDAK mengubah apa yang disimpan dalam pangkalan
-          data — cuma perkataan yang dipaparkan. Guna "Set semula" untuk kembalikan satu label
+          data, cuma perkataan yang dipaparkan. Guna "Set semula" untuk kembalikan satu label
           kepada perkataan asal.
         </p>
       </div>
@@ -1692,7 +1692,7 @@ function RupaEditoriumPanel() {
         <SectionLabel>6.1 — Skala Teks</SectionLabel>
         <p className="text-stone-500 text-xs max-w-[680px]">
           Sembilan takat saiz teks yang dipakai merentas SEMUA konsol Editorium (jadual, borang,
-          modal, tab). Terpakai serta-merta kepada kesemua fail sekali gus — bukan perlu disunting
+          modal, tab). Terpakai serta-merta kepada kesemua fail sekali gus, bukan perlu disunting
           satu-satu. Tetapan ni global untuk semua kakitangan.
         </p>
       </div>
@@ -1721,7 +1721,7 @@ function RupaEditoriumPanel() {
         <SectionLabel>6.2 — Kepadatan</SectionLabel>
         <p className="text-stone-500 text-xs max-w-[680px] mb-3">
           Jarak dalam kotak panel dan medan borang. Nota: ini setakat ni terpakai pada kotak panel
-          dan medan borang sahaja (komponen kongsi sebenar) — bukan setiap ruang dalam jadual
+          dan medan borang sahaja (komponen kongsi sebenar), bukan setiap ruang dalam jadual
           (setiap jadual masih tulis jaraknya sendiri, skop berasingan).
         </p>
         <div className="flex gap-2">

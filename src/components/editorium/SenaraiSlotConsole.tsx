@@ -416,7 +416,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
         tajuk="Senarai Slot"
         huraian={
           <>
-            {SLOT_INDEXES.length} slot bento — tidak termasuk Ticker dan tier <em>Bar</em>, yang diuruskan di Modul Khas.
+            {SLOT_INDEXES.length} slot bento, tidak termasuk Ticker dan tier <em>Bar</em>, yang diuruskan di Modul Khas.
             Jumlah {jumlahAktif} kandungan aktif, {jumlahMenunggu} menunggu kelulusan.
           </>
         }
@@ -607,17 +607,17 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
         <div className="border-t border-Adjung-line pt-3 space-y-1.5 text-[10px] text-stone-500 leading-relaxed">
           <p>
             <strong className="font-semibold text-stone-700">Had aksara ikut bentuk, bukan ikut slot.</strong>{' '}
-            Semua slot yang sama bentuk berkongsi had yang sama — ia datang daripada saiz fizikal kad itu sendiri.
+            Semua slot yang sama bentuk berkongsi had yang sama, ia datang daripada saiz fizikal kad itu sendiri.
             Tajuk dan huraian pula berkongsi SATU bajet ruang: tajuk panjang mengecilkan ruang huraian, dan sebaliknya.
             Nombor di atas ialah had setiap medan apabila medan satu lagi kosong. Untuk meminda, pergi ke
-            sub-menu <strong className="font-semibold text-stone-700">Tier Kad</strong> — nilai yang dipinda dipapar
+            sub-menu <strong className="font-semibold text-stone-700">Tier Kad</strong>; nilai yang dipinda dipapar
             berwarna kuning air di sini.
           </p>
           <p>
             <strong className="font-semibold text-stone-700">Editor.</strong>{' '}
             Klik nama (atau "Belum ditugaskan") untuk menetapkan siapa menguruskan slot itu. Satu slot boleh
             diuruskan lebih seorang editor, dan seorang editor boleh menguruskan lebih satu slot. Editor sesuatu
-            Bidang tidak ditetapkan berasingan — ia terus mengikut slot milik Bidang tersebut.
+            Bidang tidak ditetapkan berasingan, ia terus mengikut slot milik Bidang tersebut.
           </p>
         </div>
       </PanelCard>
@@ -819,7 +819,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
             </select>
           </FormColumn>
           <p className="text-stone-400 text-[9px] leading-relaxed">
-            Pertukaran Bidang tidak retroaktif — kandungan sedia ada dalam slot ini akan diarkibkan
+            Pertukaran Bidang tidak retroaktif; kandungan sedia ada dalam slot ini akan diarkibkan
             secara automatik jika Bidang ditukar (tidak lagi sepadan Bidang terkunci baharu).
           </p>
         </div>
@@ -950,7 +950,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
           </div>
         </div>
         <p className="text-stone-400 text-[10px] leading-relaxed -mt-1">
-          Gerak Susun cuma sokong arah Kanan/Kiri — Atas/Bawah jatuh balik ke Kanan utknya.
+          Gerak Susun cuma sokong arah Kanan/Kiri; Atas/Bawah jatuh balik ke Kanan utknya.
           Animasi cuma berlaku bila slot ni ada &gt;1 kandungan (carousel) DAN togol animasi
           di Tetapan Am aktif.
         </p>
@@ -1018,7 +1018,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
           </FormColumn>
           <span className="text-stone-400 text-[10px] leading-relaxed">
             &quot;Logo penaja sahaja&quot; jatuh balik ke logo Adjung apabila tiada penaja
-            bertanda tayang bagi bulan semasa — panel tidak pernah kosong.
+            bertanda tayang bagi bulan semasa; panel tidak pernah kosong.
           </span>
         </div>
 

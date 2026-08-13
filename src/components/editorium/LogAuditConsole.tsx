@@ -103,7 +103,7 @@ export const LogAuditConsole: React.FC = () => {
         tajuk="Log Sistem"
         huraian={
           <>
-            Jejak tindakan editorial dan pentadbiran — terbit/tolak/arkib kandungan, urus akaun,
+            Jejak tindakan editorial dan pentadbiran: terbit/tolak/arkib kandungan, urus akaun,
             perubahan Bidang, ambilan RSS, ralat pelayan. Terkini di atas.
           </>
         }
@@ -144,7 +144,7 @@ export const LogAuditConsole: React.FC = () => {
               <tr>
                 <td colSpan={5}>
                   <KeadaanKosong ikon={<NotebookText className="w-6 h-6" />}>
-                    Log Kosong — belum ada tindakan direkod lagi.
+                    Log Kosong. Belum ada tindakan direkod lagi.
                   </KeadaanKosong>
                 </td>
               </tr>

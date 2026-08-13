@@ -92,10 +92,10 @@ export const SistemRekaBentukConsole: React.FC = () => {
         tajuk="Sistem Reka Bentuk Adjung Brief"
         huraian={
           <span className="block max-w-2xl">
-            Rujukan tunggal identiti visual — jenama, warna, tipografi, komponen kongsi. Nilai di
+            Rujukan tunggal identiti visual: jenama, warna, tipografi, komponen kongsi. Nilai di
             bawah dibaca TERUS daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/index.css</code> dan{' '}
             <code className="bg-stone-100 px-1 py-0.5 rounded text-[11px]">src/config/brand.ts</code> semasa
-            muka ni dimuatkan — bukan salinan tangan. Peraturan geometri kad (saiz slot, had aksara)
+            muka ni dimuatkan, bukan salinan tangan. Peraturan geometri kad (saiz slot, had aksara)
             kekal di <span className="font-semibold text-stone-800">Perlembagaan</span>, tak diulang di sini.
           </span>
         }
@@ -131,7 +131,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
           </table>
           <p className="font-sans text-[10px] text-stone-500 mt-3 italic">
             Simbol (segi empat tegak, nisbah 1:2, sudut 0px) ikut Sistem Identiti Visual Adjung
-            v1.0 (Mei 2025) — <code className="not-italic bg-stone-100 px-1 py-0.5 rounded">public/adjung-symbol.svg</code>.
+            v1.0 (Mei 2025): <code className="not-italic bg-stone-100 px-1 py-0.5 rounded">public/adjung-symbol.svg</code>.
             Favicon dikemas kini guna simbol ni (bukan lagi segi empat rata tanpa reka bentuk).
           </p>
 
@@ -173,7 +173,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
             </div>
             <p className="font-sans text-[10px] text-stone-500 mt-3 italic">
               Senarai ini disusun drpd imej panduan yang dikongsi Izzat (bukan fail hidup boleh
-              dirujuk semula) — sahkan label tepat kalau ada silap.
+              dirujuk semula), sahkan label tepat kalau ada silap.
             </p>
           </div>
         </PanelCard>
@@ -199,7 +199,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
 
           <div className="pt-4 border-t border-stone-150">
             <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold block mb-2.5">
-              Warna semantik — belum jadi token @theme, hex terus dlm komponen
+              Warna semantik: belum jadi token @theme, hex terus dlm komponen
             </span>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {SEMANTIC_COLORS_UNTOKENIZED.map(c => (
@@ -252,7 +252,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
             <div className="font-serif text-sm font-bold text-stone-900 mb-1">Tooltip</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
               Ganti sepenuhnya atribut <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">title=</code> native
-              (32 tempat, digantikan 2026-07-25). Halaman ni sendiri guna Tooltip — hover atas swatch warna di atas.
+              (32 tempat, digantikan 2026-07-25). Halaman ni sendiri guna Tooltip, hover atas swatch warna di atas.
             </p>
             <Tooltip text="Contoh tooltip Adjung — opacity+blur, maroon, tiada border">
               <span className="inline-flex shrink-0">
@@ -290,7 +290,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
         <PanelCard padding="p-6" className="space-y-6">
           <p className="font-sans text-xs text-stone-600 leading-relaxed">
             Komponen di bawah ialah rangka piawai setiap modul Editorium. Peraturannya mudah:
-            modul TIDAK menulis gaya kad, tajuk, ralat, atau keadaan kosong sendiri lagi — semuanya
+            modul TIDAK menulis gaya kad, tajuk, ralat, atau keadaan kosong sendiri lagi, semuanya
             diimport daripada <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">src/components/common/</code>.
             Apabila sesuatu corak perlu berubah, ia diubah sekali di situ, bukan 16 kali.
           </p>
@@ -298,7 +298,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
           <div className="pt-5 border-t border-stone-100">
             <div className="font-serif text-sm font-bold text-stone-900 mb-1">ModulTajuk</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
-              Kepala modul piawai — tajuk serif-maroon, huraian pilihan, dan slot tindakan di hujung
+              Kepala modul piawai: tajuk serif-maroon, huraian pilihan, dan slot tindakan di hujung
               kanan. Kepala setiap muka Editorium (termasuk muka ni) ialah komponen ni.
             </p>
             <ModulTajuk
@@ -337,7 +337,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
             <div className="font-serif text-sm font-bold text-stone-900 mb-1">MesejStatus</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
               Kotak mesej ralat/kejayaan/neutral. Menggantikan tiga merah berlainan yang dahulunya
-              membawa maksud sama — kini satu token semantik sahaja.
+              membawa maksud sama, kini satu token semantik sahaja.
             </p>
             <div className="flex flex-col gap-2 max-w-sm">
               <MesejStatus tone="error">Kandungan melebihi bajet ruang kad.</MesejStatus>
@@ -349,7 +349,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
           <div className="pt-5 border-t border-stone-100">
             <div className="font-serif text-sm font-bold text-stone-900 mb-1">KeadaanKosong</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
-              Nada tunggal bagi senarai kosong. Keadaan kosong bukan ralat, jadi ia kecil dan tenang —
+              Nada tunggal bagi senarai kosong. Keadaan kosong bukan ralat, jadi ia kecil dan tenang,
               bukan blok besar berwarna.
             </p>
             <PanelCard padding="p-0"><KeadaanKosong>Tiada rekod setakat ini.</KeadaanKosong></PanelCard>
@@ -359,7 +359,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
             <div className="font-serif text-sm font-bold text-stone-900 mb-1">Button (empat varian)</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
               Varian <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">bahaya</code> ditambah
-              2026-08-07 untuk tindakan yang tidak boleh dibatalkan (padam, tamatkan akaun) — ia WAJIB
+              2026-08-07 untuk tindakan yang tidak boleh dibatalkan (padam, tamatkan akaun); ia WAJIB
               berpasangan dengan pengesahan dua langkah, bukan sekadar warna merah. Dua saiz sahaja:{' '}
               <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">sm</code> dan{' '}
               <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">md</code>.

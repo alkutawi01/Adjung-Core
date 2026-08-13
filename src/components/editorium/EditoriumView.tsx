@@ -661,7 +661,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               <CalendarDays className="w-4 h-4 text-Adjung-maroon" />
               <div>
                 <div className="text-sm font-semibold text-stone-800">Slot Bar</div>
-                <div className="text-[11px] text-stone-500">Acara/Penganjur/Lokasi/Akses/Penerangan — {TIER_SLOTS.BAR.length} slot bar.</div>
+                <div className="text-[11px] text-stone-500">Acara/Penganjur/Lokasi/Akses/Penerangan: {TIER_SLOTS.BAR.length} slot bar.</div>
               </div>
             </div>
             {/* Buka slot Bar PERTAMA yang pengguna boleh capai (2026-08-08, Fasa 2) — bukan lagi

@@ -559,7 +559,7 @@ export const BidangConsole: React.FC = () => {
                               {jumlahArkib > 0 ? (
                                 <>
                                   <strong className="font-bold">{jumlahArkib} kandungan akan diarkibkan</strong> dan hilang daripada frontpage.
-                                  Setiap slot yang bertukar Bidang akan dikosongkan — kandungan approved dan pending di dalamnya
+                                  Setiap slot yang bertukar Bidang akan dikosongkan: kandungan approved dan pending di dalamnya
                                   ditukar kepada status <em>archived</em>. Ia tidak dipadam, tetapi tidak lagi terpapar.
                                 </>
                               ) : (
@@ -950,7 +950,7 @@ function StrategiWarnaModal({
       setMesejWarna(
         data.dikemas > 0
           ? `${data.dikemas} Bidang diagihkan warna baharu (yang sudah unik tak diusik).`
-          : 'Semua Bidang aktif sudah ada warna unik — tiada perubahan diperlukan.'
+          : 'Semua Bidang aktif sudah ada warna unik, tiada perubahan diperlukan.'
       );
       fetchActiveBidang();
     } catch (e: any) {

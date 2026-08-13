@@ -81,7 +81,7 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
       <div className="font-semibold text-stone-800">3d. Warna panel &amp; giliran logo</div>
       <p className="text-stone-500 text-[11px] leading-relaxed">
         Panel semasa animasi Colophon/Sapuan Lajur papar logo Adjung sendiri secara lalai (kekal
-        walaupun "Pudar" dipilih — cuma tak dipaparkan sehingga jenis lain diaktifkan). Tanda
+        walaupun "Pudar" dipilih (cuma tak dipaparkan sehingga jenis lain diaktifkan). Tanda
         penaja "Tayang semasa transisi" di Urus Penaja supaya ia layak masuk giliran.
       </p>
       <label className="flex items-center gap-2">
@@ -107,7 +107,7 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
         </select>
       </label>
       <p className="text-stone-400 text-[10px] leading-relaxed">
-        Berbilang penaja layak (tayangSemasaTransisi) berputar round-robin — setiap giliran
+        Berbilang penaja layak (tayangSemasaTransisi) berputar round-robin; setiap giliran
         "penaja" dalam nisbah papar penaja SETERUSNYA dalam senarai, bukan penaja yang sama
         berulang. Tiada penaja layak = kembali papar logo Adjung sahaja, panel tak pernah kosong.
       </p>
@@ -192,7 +192,7 @@ function DasarTerbitSendiriField() {
       {berjaya && <MesejStatus tone="success">{berjaya}</MesejStatus>}
       <p className="text-stone-400 text-[10px] leading-relaxed">
         Bila dinyahtanda, SEMUA kandungan Editor (bukan Ketua Editor/Penolong) kekal Menunggu
-        sehingga diluluskan secara manual di Kandungan → Indeks — tak kira kandungan tu pernah
+        sehingga diluluskan secara manual di Kandungan → Indeks, tak kira kandungan tu pernah
         ditolak atau tidak. Kandungan yang pernah ditolak sekali sentiasa perlu kelulusan Ketua
         Editor/Penolong, tak kira tetapan ni (lihat Panduan → 01).
       </p>
@@ -323,7 +323,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
               className="w-3.5 h-3.5 mt-0.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer"
             />
             <span className="text-stone-600 leading-relaxed">
-              Kandungan mana yang muncul dahulu ditentukan oleh jam semasa pembaca melawat — pelawat pada 9.01
+              Kandungan mana yang muncul dahulu ditentukan oleh jam semasa pembaca melawat: pelawat pada 9.01
               dan 9.05 pagi tidak melihat kandungan yang sama. Bila dimatikan, setiap lawatan sentiasa bermula
               pada kandungan pertama.
             </span>
@@ -335,7 +335,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
           <div className="font-semibold text-stone-800">1b. Agih lengah carousel bertingkat</div>
           <p className="text-stone-500 text-[11px] leading-relaxed">
             Klik untuk agih Slot 1 → lengah 0 saat, Slot 2 → 1 saat, Slot 3 → 2 saat, dan
-            seterusnya — supaya carousel bertukar SATU-SATU merentasi masa (bukan semua serentak),
+            seterusnya, supaya carousel bertukar SATU-SATU merentasi masa (bukan semua serentak),
             tanpa perlu laras setiap slot satu-satu di "Tetapan Kad". Boleh diklik semula bila-bila
             untuk agih semula; laras individu selepas itu (Senarai Slot → Tetapan Kad) tetap
             berfungsi seperti biasa.
@@ -354,8 +354,8 @@ export const TetapanAmSlotConsole: React.FC = () => {
           </div>
           <p className="text-stone-400 text-[10px] leading-relaxed">
             Dikira daripada kandungan yang masih hidup sahaja; kandungan arkib tidak mengambil ruang.
-            Had ini menahan kandungan BAHARU sahaja — slot yang sudah melebihi had tidak dikosongkan sendiri.
-            Had ni turut kawal <strong>bila kandungan Menunggu boleh jadi Aktif</strong> (2026-08-06) —
+            Had ini menahan kandungan BAHARU sahaja; slot yang sudah melebihi had tidak dikosongkan sendiri.
+            Had ni turut kawal <strong>bila kandungan Menunggu boleh jadi Aktif</strong> (2026-08-06);
             kalau slot dah penuh dengan kandungan Aktif sedia ada, kandungan yang cuba diluluskan
             kekal Menunggu (ditanda "tunggu slot kosong") dan naik taraf AUTOMATIK sebaik ada
             ruang, tanpa perlu keputusan manusia kedua.
@@ -385,7 +385,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
               className="w-3.5 h-3.5 mt-0.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer"
             />
             <span className="text-stone-700">
-              <strong className="font-semibold">3. Animasi transisi aktif</strong> — bila
+              <strong className="font-semibold">3. Animasi transisi aktif</strong>: bila
               dinyahtanda, SEMUA slot carousel guna pertukaran pudar ringkas (kelakuan asal),
               tak kira jenis animasi dipilih di sini atau di Senarai Slot per-slot.
             </span>
@@ -496,7 +496,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
           <div>
             <div className="font-semibold text-stone-800">5. Had aksara medan lain</div>
             <p className="text-stone-500 text-[11px] leading-relaxed mt-0.5">
-              Tajuk dan huraian ringkas tiada di sini — kedua-duanya dikawal oleh ruang fizikal kad, di sub-menu
+              Tajuk dan huraian ringkas tiada di sini; kedua-duanya dikawal oleh ruang fizikal kad, di sub-menu
               <strong className="font-semibold"> Tier Kad</strong>. Medan di bawah tidak dipapar pada muka kad,
               jadi hadnya dasar editorial, bukan geometri.
             </p>

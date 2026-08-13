@@ -120,7 +120,7 @@ export const TierKadConsole: React.FC = () => {
         huraian={
           <>
             Tetapan yang dikongsi semua slot yang sama bentuk. Menukar had di sini berkuat kuasa serentak
-            pada setiap slot dalam tier itu — tiada pengecualian per-slot.
+            pada setiap slot dalam tier itu; tiada pengecualian per-slot.
           </>
         }
       />
@@ -235,7 +235,7 @@ export const TierKadConsole: React.FC = () => {
           <p>
             <strong className="font-semibold text-stone-700">Menaikkan had tidak membesarkan kad.</strong>{' '}
             Nilai lalai diukur daripada ruang sebenar yang ada pada kad itu. Menaikkannya bermakna teks yang
-            lebih panjang akan diterima semasa simpan — dan teks itu terpaksa muat dalam kad yang saiznya tidak berubah.
+            lebih panjang akan diterima semasa simpan, dan teks itu terpaksa muat dalam kad yang saiznya tidak berubah.
             Selepas meminda, tinjau kad berkenaan di frontpage untuk pastikan tiada yang terkeluar.
           </p>
           <p>

@@ -294,14 +294,14 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           <div className="space-y-4">
             {(konfirmasiTamat.draf.length === 0 && konfirmasiTamat.menunggu.length === 0) ? (
               <p className="text-stone-600 leading-relaxed">
-                Tiada draf atau kandungan menunggu kepunyaan akaun ni — selamat ditamatkan.
+                Tiada draf atau kandungan menunggu kepunyaan akaun ni, selamat ditamatkan.
               </p>
             ) : (
               <>
                 <p className="text-stone-600 leading-relaxed">
                   Akaun ni ada <strong className="text-stone-900">{konfirmasiTamat.draf.length} draf</strong> dan{' '}
                   <strong className="text-stone-900">{konfirmasiTamat.menunggu.length} kandungan menunggu</strong> yang
-                  belum pernah diterbitkan. Kandungan yang SUDAH diterbitkan (aktif/arkib) tidak terjejas — cuma
+                  belum pernah diterbitkan. Kandungan yang SUDAH diterbitkan (aktif/arkib) tidak terjejas, cuma
                   yang belum terbit ni pilihan awak.
                 </p>
                 <div className="max-h-32 overflow-y-auto border border-stone-200 rounded divide-y divide-Adjung-line">
@@ -597,7 +597,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className={INPUT_BORANG} />
         </label>
         <p className="text-[10px] text-stone-500 leading-relaxed">
-          Kata laluan tak ditetapkan di sini — e-mel jemputan bertoken akan dihantar ke alamat
+          Kata laluan tak ditetapkan di sini; e-mel jemputan bertoken akan dihantar ke alamat
           emel di atas supaya anggota baharu menetapkan kata laluannya sendiri.
         </p>
 
