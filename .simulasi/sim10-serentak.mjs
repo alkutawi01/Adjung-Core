@@ -9,6 +9,7 @@ import path from 'node:path';
 import os from 'node:os';
 import sqlite3 from 'sqlite3';
 import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb } from './sim-lib.mjs';
+import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5209;
 const DBF = path.join(os.tmpdir(), 'sim-adjung-serentak.db');
@@ -25,10 +26,25 @@ try {
   const db = bukaDb(DBF);
 
   await api('POST', '/api/system/categories/activate', { name: BIDANG, color: '#802334', icon: 'TrendingUp' });
-  for (const s of [SLOT, 2, 3]) await api('POST', '/api/system/categories/assign-slot', { slotIndex: s, bidangName: BIDANG });
+  for (const s of [SLOT, 2, 3, 6]) await api('POST', '/api/system/categories/assign-slot', { slotIndex: s, bidangName: BIDANG });
 
-  const blok = (uuid, tajuk) => [
-    `UUID: ${uuid}`, `Tajuk: ${tajuk}`, 'Huraian ringkas: Ujian serentak.',
+  // Isi huraian sekadar cukup utk lulus had MINIMUM 80% bajet kad (ContentBudget.js) --
+  // panjang berbeza ikut tier fizikal slot, bukan nilai tetap (2026-08-14, harness bit-rot
+  // ditemui semasa siasat konkurensi: fixture lama guna huraian pendek tetap yg gagal lulus
+  // peraturan minimum-fill ditambah kemudian, jadi ujian serentak tak sempat sampai bahagian
+  // perlumbaan langsung).
+  const isiHuraian = (slotIndex, sudahDipakai) => {
+    const { maxTitle, maxBrief } = ceilingForSlot(slotIndex);
+    const bakiFraction = Math.max(0, 0.86 - sudahDipakai / maxTitle);
+    const sasaran = Math.min(maxBrief, Math.max(20, Math.round(bakiFraction * maxBrief)));
+    const teras = 'Ujian serentak bagi konkurensi editorial. ';
+    let huraian = teras;
+    while (huraian.length < sasaran) huraian += 'Tambah teks. ';
+    return huraian.slice(0, sasaran).trim();
+  };
+
+  const blok = (uuid, tajuk, slotIndex = SLOT) => [
+    `UUID: ${uuid}`, `Tajuk: ${tajuk}`, 'Huraian ringkas: ' + isiHuraian(slotIndex, tajuk.length),
     'Bidang: ' + BIDANG, 'Topik: Kewangan', 'Status: terbit',
   ].join('\n');
 
@@ -37,8 +53,8 @@ try {
   // kerja seorang lagi secara senyap.
   const sebelum = await dbGet(db, "SELECT updatedAt FROM slots_config WHERE layoutTemplateId='frontpage' AND slotIndex=?", [2]);
   const [a, b] = await Promise.all([
-    api('POST', '/api/system/slots', [{ slotIndex: 2, contentMode: 'Manual', manualDesk: BIDANG, updatedAt: sebelum?.updatedAt, manualSummary: blok('serentak-A', 'Versi Editor A') }]),
-    api('POST', '/api/system/slots', [{ slotIndex: 2, contentMode: 'Manual', manualDesk: BIDANG, updatedAt: sebelum?.updatedAt, manualSummary: blok('serentak-B', 'Versi Editor B') }]),
+    api('POST', '/api/system/slots', [{ slotIndex: 2, contentMode: 'Manual', manualDesk: BIDANG, updatedAt: sebelum?.updatedAt, manualSummary: blok('serentak-A', 'Versi Editor A', 2) }]),
+    api('POST', '/api/system/slots', [{ slotIndex: 2, contentMode: 'Manual', manualDesk: BIDANG, updatedAt: sebelum?.updatedAt, manualSummary: blok('serentak-B', 'Versi Editor B', 2) }]),
   ]);
   const bilBerjaya = [a, b].filter(r => r.ok).length;
   const bilKonflik = [a, b].filter(r => r.status === 409).length;
@@ -49,7 +65,7 @@ try {
   }
 
   // --- (2) HANTAR-DUA-KALI kelulusan (double submit) -----------------------------------
-  await api('POST', '/api/system/slots', [{ slotIndex: SLOT, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok('dua-kali', 'Kandungan Hantar Dua Kali') }]);
+  await api('POST', '/api/system/slots', [{ slotIndex: SLOT, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok('dua-kali', 'Kandungan Hantar Dua Kali', SLOT) }]);
   const objDua = await dbGet(db, "SELECT id FROM editorial_objects WHERE slotIndex=? ORDER BY createdAt DESC LIMIT 1", [SLOT]);
   if (objDua) {
     const [x, y] = await Promise.all([
@@ -73,7 +89,7 @@ try {
 
   const idBeratur = [];
   for (let i = 0; i < 3; i++) {
-    await api('POST', '/api/system/slots', [{ slotIndex: 3, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok(`beratur-${i}`, `Kandungan Beratur ${i}`) }]);
+    await api('POST', '/api/system/slots', [{ slotIndex: 3, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok(`beratur-${i}`, `Kandungan Beratur ${i}`, 3) }]);
     const o = await dbGet(db, "SELECT id FROM editorial_objects WHERE slotIndex=3 ORDER BY createdAt DESC LIMIT 1");
     if (o) idBeratur.push(o.id);
   }
@@ -116,7 +132,7 @@ try {
   await api('POST', '/api/system/categories/assign-slot', { slotIndex: 6, bidangName: BIDANG });
   const idSerentak = [];
   for (let i = 0; i < 2; i++) {
-    await api('POST', '/api/system/slots', [{ slotIndex: 6, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok(`lulus-serentak-${i}`, `Kelulusan Serentak ${i}`) }]);
+    await api('POST', '/api/system/slots', [{ slotIndex: 6, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok(`lulus-serentak-${i}`, `Kelulusan Serentak ${i}`, 6) }]);
     const o = await dbGet(db, 'SELECT id FROM editorial_objects WHERE slotIndex=6 ORDER BY createdAt DESC LIMIT 1');
     if (o) idSerentak.push(o.id);
   }
