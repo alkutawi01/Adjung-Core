@@ -49,6 +49,7 @@ import { createUiLabelRoutes } from './core/routes/uiLabelRoutes.js';
 import { SEMUA_LABEL_LALAI } from './src/config/istilah.ts';
 import { createContentRoutes, runSchedulingTick } from './core/routes/contentRoutes.js';
 import { denganKunciKandungan } from './core/utils/kunciKandungan.js';
+import { pilihBackupUntukDibuang, HAD_SAIZ_BACKUP_BYTES } from './core/utils/hadBackup.js';
 import { createNotificationRoutes } from './core/routes/notificationRoutes.js';
 import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
@@ -220,6 +221,78 @@ app.use('/api', hadKadarMutasiApi);
 const dbPath = process.env.ADJUNG_DB_PATH
   ? path.resolve(process.env.ADJUNG_DB_PATH)
   : path.join(__dirname, 'adjung.db');
+// Backup SEBELUM MIGRASI (keputusan Izzat 2026-08-13, OPS-BACKUP-001). Skema projek ni
+// dikuatkuasakan pada SETIAP boot melalui rantaian CREATE TABLE IF NOT EXISTS + ALTER TABLE
+// di bawah — jadi "sebelum migrasi" secara praktikalnya bermakna "sebelum server mula", dan
+// salinan mesti diambil SEBELUM fail dibuka/diubah, bukan selepas.
+//
+// Pengawal banjir: deploy/crash-loop boleh memulakan semula proses berkali-kali dalam beberapa
+// minit; tanpa pengawal, setiap restart mencipta satu lagi salinan penuh. Langkau kalau sudah
+// ada salinan boot dalam tempoh JEDA_BACKUP_BOOT_MS — masa itu cukup untuk menangkap sebarang
+// perubahan skema sebenar (yang datang bersama deploy), tanpa menyalin berulang kali.
+const JEDA_BACKUP_BOOT_MS = 60 * 60 * 1000; // 1 jam
+
+// Had saiz backup (keputusan Izzat 2026-08-13: "letak limit 5gb, selebihnya padam") —
+// menggantikan dasar lama "simpan 7 salinan terkini". Had SAIZ lebih sesuai daripada had
+// KIRAAN sebab saiz DB akan membesar: 7 salinan hari ni ~45MB, tapi 7 salinan bila DB dah
+// 500MB ialah 3.5GB. Had saiz mengekalkan siling yang boleh diramal tanpa mengira fail.
+//
+// SALINAN MANUAL SENGAJA TIDAK DISENTUH. Ia dicipta seseorang dengan niat khusus sebelum
+// operasi berisiko (CLAUDE.md #4) — memadamnya secara automatik boleh memusnahkan satu-satunya
+// salinan yang seseorang sengaja simpan. Had ni cuma mengawal salinan yang SISTEM cipta
+// sendiri (awalan `.backup-auto-` dan `.backup-boot-`).
+// Keputusan "fail mana patut dibuang" hidup dalam core/utils/hadBackup.js sebagai fungsi TULEN
+// dan diuji (tests/hadBackup.test.js) — di sini cuma kerja fail sebenar. Memadam backup ialah
+// kod paling berisiko dalam projek ni, jadi logiknya diuji, bukan diandaikan betul.
+const kuatkuasakanHadSaizBackup = (dirDb, namaDb) => {
+  try {
+    const salinanSistem = fs.readdirSync(dirDb)
+      .filter((f) => f.startsWith(`${namaDb}.backup-auto-`) || f.startsWith(`${namaDb}.backup-boot-`))
+      .map((f) => {
+        try {
+          const st = fs.statSync(path.join(dirDb, f));
+          return { nama: f, saiz: st.size, masa: st.mtimeMs };
+        } catch { return null; }
+      })
+      .filter(Boolean);
+
+    for (const nama of pilihBackupUntukDibuang(salinanSistem, HAD_SAIZ_BACKUP_BYTES)) {
+      try {
+        fs.unlinkSync(path.join(dirDb, nama));
+        console.log(`[Backup] Buang salinan lama (had ${Math.round(HAD_SAIZ_BACKUP_BYTES / 1024 ** 3)}GB): ${nama}`);
+      } catch (e) {
+        console.error(`[Backup] Gagal buang ${nama}:`, e.message);
+      }
+    }
+  } catch (err) {
+    console.error('[Backup] Gagal kuatkuasakan had saiz:', err.message);
+  }
+};
+
+try {
+  if (fs.existsSync(dbPath)) {
+    const dirDb = path.dirname(dbPath);
+    const namaDb = path.basename(dbPath);
+    const adaBaharu = fs.readdirSync(dirDb)
+      .filter((f) => f.startsWith(`${namaDb}.backup-boot-`))
+      .some((f) => {
+        try {
+          return Date.now() - fs.statSync(path.join(dirDb, f)).mtimeMs < JEDA_BACKUP_BOOT_MS;
+        } catch { return false; }
+      });
+    if (!adaBaharu) {
+      const capMasa = new Date().toISOString().replace(/[:.]/g, '-');
+      const laluanBoot = path.join(dirDb, `${namaDb}.backup-boot-${capMasa}`);
+      fs.copyFileSync(dbPath, laluanBoot);
+      console.log(`[Backup Pra-Migrasi] Salinan sebelum skema dikuatkuasakan: ${laluanBoot}`);
+      kuatkuasakanHadSaizBackup(dirDb, namaDb);
+    }
+  }
+} catch (err) {
+  // Backup gagal TIDAK boleh menghalang server bermula — sama falsafah macam backup berjadual.
+  console.error('[Backup Pra-Migrasi] Gagal cipta salinan:', err.message);
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error connecting to SQLite database:', err.message);
@@ -3743,39 +3816,26 @@ app.listen(PORT, '0.0.0.0', () => {
   // (~beberapa MB) hampir seketika, tapi tetap dibalut cuba/tangkap penuh — backup gagal MESTI
   // tak sekali-kali rebahkan server.
   const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // sekali sehari
-  const BACKUP_RETENTION_COUNT = 7; // simpan 7 salinan terkini, buang yang lebih lama
   const runScheduledBackup = () => {
     try {
       if (!fs.existsSync(dbPath)) return;
       const ts = new Date().toISOString().replace(/[:.]/g, '-');
-      const backupPath = path.join(__dirname, `adjung.db.backup-auto-${ts}`);
+      const dirDb = path.dirname(dbPath);
+      const namaDb = path.basename(dbPath);
+      const backupPath = path.join(dirDb, `${namaDb}.backup-auto-${ts}`);
       fs.copyFileSync(dbPath, backupPath);
       console.log(`[Backup Automatik] Salinan dicipta: ${backupPath}`);
 
-      // Kuatkuasakan dasar pengekalan — buang salinan AUTOMATIK lama sahaja (awalan
-      // `adjung.db.backup-auto-`), jangan sentuh backup MANUAL sedia ada (pelbagai corak nama,
-      // dicipta sendiri sebelum operasi destruktif — lihat CLAUDE.md #4) supaya tak padam
-      // sejarah pemulihan yang mungkin masih diperlukan.
-      const files = fs.readdirSync(__dirname)
-        .filter(f => f.startsWith('adjung.db.backup-auto-'))
-        .sort(); // nama ISO-timestamp menaik secara leksikal = menaik ikut masa
-      const excess = files.length - BACKUP_RETENTION_COUNT;
-      if (excess > 0) {
-        files.slice(0, excess).forEach(f => {
-          try {
-            fs.unlinkSync(path.join(__dirname, f));
-            console.log(`[Backup Automatik] Buang salinan lapuk: ${f}`);
-          } catch (unlinkErr) {
-            console.error(`[Backup Automatik] Gagal buang ${f}:`, unlinkErr.message);
-          }
-        });
-      }
+      // Dasar pengekalan kini ikut SAIZ (had 5GB), bukan kiraan 7 salinan — lihat nota
+      // kuatkuasakanHadSaizBackup di atas. Ia turut mengambil kira salinan pra-migrasi
+      // (`.backup-boot-`), dan tetap TIDAK menyentuh salinan manual.
+      kuatkuasakanHadSaizBackup(dirDb, namaDb);
     } catch (err) {
       console.error('[Backup Automatik] Gagal cipta backup:', err.message);
     }
   };
   setInterval(runScheduledBackup, BACKUP_INTERVAL_MS);
-  console.log(`Backup automatik adjung.db aktif (sekali setiap ${BACKUP_INTERVAL_MS / 3600000} jam, simpan ${BACKUP_RETENTION_COUNT} salinan terkini).`);
+  console.log(`Backup automatik adjung.db aktif (sekali setiap ${BACKUP_INTERVAL_MS / 3600000} jam; salinan sistem dihadkan ${Math.round(HAD_SAIZ_BACKUP_BYTES / 1024 ** 3)}GB, salinan manual tidak disentuh).`);
 
   // Dasar aktif editorial — Semakan Tak Aktif (2026-08-05, permintaan Izzat). Sama corak macam
   // penjadual lain di sini: setInterval dibalut cuba/tangkap penuh, kegagalan TIDAK sekali-kali
