@@ -166,6 +166,7 @@ export function createDbStateRoutes(dbAll, dbGet) {
         worldClockBgClickEnabled: settingsRow.worldClockBgClickEnabled !== undefined && settingsRow.worldClockBgClickEnabled !== null ? settingsRow.worldClockBgClickEnabled === 1 : true,
         glosSelariEnabled: settingsRow.glosSelariEnabled === 1,
         focusViewNotaMaxAksara: settingsRow.focusViewNotaMaxAksara !== undefined && settingsRow.focusViewNotaMaxAksara !== null ? settingsRow.focusViewNotaMaxAksara : 180,
+        focusViewAutoAdvanceSec: settingsRow.focusViewAutoAdvanceSec !== undefined && settingsRow.focusViewAutoAdvanceSec !== null ? settingsRow.focusViewAutoAdvanceSec : 14,
         tickerOverlayTitleSize: settingsRow.tickerOverlayTitleSize || 'L',
         tickerOverlayBriefSize: settingsRow.tickerOverlayBriefSize || 'M'
       } : {};

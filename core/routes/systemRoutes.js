@@ -292,6 +292,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     glosSelariEnabled: (v) => (v ? 1 : 0),
     schoolHolidaysJson: (v) => v,
     focusViewNotaMaxAksara: (v) => Number(v),
+    focusViewAutoAdvanceSec: (v) => Number(v),
     tickerOverlayTitleSize: (v) => v,
     tickerOverlayBriefSize: (v) => v,
   };

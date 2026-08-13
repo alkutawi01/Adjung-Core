@@ -245,11 +245,16 @@ export interface FocusViewProps {
    *  (sebelum ni jatuh balik ke window.location.href — lihat nota terapFocusSeo di bawah).
    *  Draf tak-diterbitkan tiada objectId sebenar — butang Kongsi tak dirender langsung. */
   objectId?: string;
+  /** Tempoh tatal automatik, saat (2026-08-13, Tetapan Am — keputusan Izzat kekalkan model
+   *  tempoh TETAP, boleh dilaraskan Ketua Editor/Pentadbir, bukan skala ikut panjang artikel).
+   *  Jatuh balik ke AUTOSCROLL_DEFAULT_SEC (14) kalau tiada (keserasian ke belakang, dan kalau
+   *  pemanggil tak sambung system_settings.focusViewAutoAdvanceSec langsung). */
+  autoAdvanceSec?: number;
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
   wordmark = 'Adjung', icon, desk, topik, onCariEyebrow, deskColor, title, titleRendered, body,
-  visual, visualCaption, related = [], note, notaMaxAksara = NOTA_MAX,
+  visual, visualCaption, related = [], note, notaMaxAksara = NOTA_MAX, autoAdvanceSec,
   source, sourceUrl, sources = [], sourceDate, publishedDate,
   backdropImage, backdropOpacity = 0.06,
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
@@ -359,7 +364,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // dirender langsung, sama macam anak panah sedia ada. Boleh dijeda oleh pembaca (butang Auto);
   // keadaan main/jeda kekal sepanjang sesi Focus View dibuka (komponen sama, bukan remount setiap
   // navigasi), tak reset ke "main" semula pada tiap kandungan.
-  const AUTOSCROLL_MS = 14000;
+  // Tempoh boleh laras Ketua Editor/Pentadbir (2026-08-13, Tetapan Am) — `autoAdvanceSec` prop
+  // datang dari system_settings.focusViewAutoAdvanceSec (FrontpageView.tsx). Jatuh balik ke 14
+  // saat kalau prop tiada (keserasian ke belakang).
+  const AUTOSCROLL_MS = (autoAdvanceSec && autoAdvanceSec > 0 ? autoAdvanceSec : 14) * 1000;
   const [autoPlay, setAutoPlay] = React.useState(true);
   React.useEffect(() => {
     if (!autoPlay || !onNext) return;
@@ -368,7 +376,25 @@ export const FocusView: React.FC<FocusViewProps> = ({
     // `title` dalam dependency: reset pemasa apabila kandungan bertukar (auto ATAU navigasi
     // manual pembaca sendiri klik Sebelum/Seterusnya) supaya pembaca sentiasa dapat tempoh
     // penuh untuk baca kandungan yang baru dipaparkan, bukan baki pemasa kandungan lama.
-  }, [autoPlay, onNext, title]);
+  }, [autoPlay, onNext, title, AUTOSCROLL_MS]);
+
+  // Kekunci Space jeda/main tatal automatik (2026-08-13, permintaan Izzat — "benarkan pembaca
+  // guna keyboard, contohnya tekan butang space untuk pause-kan masa"). Diabaikan bila fokus
+  // sedang pada medan boleh taip (input/textarea/contenteditable — cth kotak carian eyebrow)
+  // supaya Space tak dipintas daripada kegunaan biasanya (taip ruang). preventDefault elak
+  // Space skrol badan Focus View (kelakuan lalai pelayar bagi Space di luar medan taip).
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== ' ' && e.code !== 'Space') return;
+      const sasaran = e.target as HTMLElement | null;
+      const tag = sasaran?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || sasaran?.isContentEditable) return;
+      e.preventDefault();
+      setAutoPlay((p) => !p);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Leret (swipe) untuk navigasi Focus View telefon (2026-08-05, permintaan Izzat — "user boleh
   // swap je di skrin"). MENDATAR (kiri/kanan) sengaja, BUKAN menegak — badan Focus View sendiri

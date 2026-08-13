@@ -2113,6 +2113,14 @@ const initEditorialOS = (dbConn) => {
                             // berasingan, tiada kaitan sistem tier kad. NULL/undefined = guna
                             // lalai 180 (tiada perubahan kelakuan sehingga Ketua Editor sunting).
                             dbConn.run("ALTER TABLE system_settings ADD COLUMN focusViewNotaMaxAksara INTEGER DEFAULT 180", () => {});
+                            // focusViewAutoAdvanceSec (2026-08-13, keputusan Izzat) — tempoh tatal
+                            // automatik Focus View, sebelum ni berkod keras `AUTOSCROLL_MS = 14000`
+                            // di FocusView.tsx. Izzat pilih kekalkan model tempoh tetap (bukan skala
+                            // ikut panjang artikel), tapi boleh dilaraskan Ketua Editor/Pentadbir
+                            // (sama gerbang manageSettings macam tetapan Focus View lain di sini).
+                            // NULL/undefined = guna lalai 14 saat (tiada perubahan kelakuan sehingga
+                            // disunting).
+                            dbConn.run("ALTER TABLE system_settings ADD COLUMN focusViewAutoAdvanceSec INTEGER DEFAULT 14", () => {});
                             // tickerOverlayTitleSize/tickerOverlayBriefSize (2026-08-02) — saiz fon
                             // tajuk/huraian paparan PENUH Ticker (overlay skrin penuh bila marquee
                             // Ticker diklik, `showNewsOverlay` di FrontpageView.tsx — BUKAN Focus

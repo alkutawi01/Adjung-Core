@@ -260,74 +260,6 @@ button:not(:disabled):active {
   background-image: linear-gradient(to right, transparent, rgba(128, 35, 52, 0.3) 15%, rgba(128, 35, 52, 0.3) 85%, transparent);
 }
 
-/* Footnote hover glow */
-.footnote-ref {
-  color: #802334;
-  font-weight: 500;
-  text-decoration: none;
-  padding: 0 2px;
-  border-radius: 2px;
-  transition: background-color 0.15s ease;
-}
-.footnote-ref:hover {
-  background-color: rgba(128, 35, 52, 0.08);
-}
-
-/* Editor Badge Counters for Footnotes and Margin Notes */
-#editorial-canvas-editor, .manifesto-container {
-  counter-reset: footnote-badge margin-note-badge;
-}
-
-.footnote-badge {
-  counter-increment: footnote-badge;
-  color: var(--color-Adjung-maroon);
-  font-weight: 600;
-  font-family: var(--font-mono);
-  font-size: 0.75em;
-  vertical-align: super;
-  line-height: 0;
-  cursor: pointer;
-  padding: 0 2px;
-  margin-left: 0px;
-  margin-right: 2px;
-  border-radius: 2px;
-  user-select: none;
-  transition: all 0.2s ease;
-}
-
-.footnote-badge:hover {
-  background-color: rgba(128, 35, 52, 0.12);
-}
-
-.footnote-badge::before {
-  content: counter(footnote-badge);
-}
-
-.margin-note-badge {
-  counter-increment: margin-note-badge;
-  color: var(--color-Adjung-maroon);
-  font-weight: 600;
-  font-family: var(--font-mono);
-  font-size: 0.75em;
-  vertical-align: super;
-  line-height: 0;
-  cursor: pointer;
-  padding: 0 2px;
-  margin-left: 0px;
-  margin-right: 2px;
-  border-radius: 2px;
-  user-select: none;
-  transition: all 0.2s ease;
-}
-
-.margin-note-badge:hover {
-  background-color: rgba(128, 35, 52, 0.12);
-}
-
-.margin-note-badge::before {
-  content: counter(margin-note-badge, lower-roman);
-}
-
 /* Styled elements inside the editor canvas */
 #editorial-canvas-editor blockquote,
 blockquote {
@@ -357,19 +289,6 @@ blockquote {
   margin-top: 1.25rem;
   margin-bottom: 0.6rem;
   font-family: var(--font-serif);
-}
-
-/* Landing page manifesto custom styling for margin note badges */
-.manifesto-container .margin-note-badge {
-  color: #802334;
-  font-family: var(--font-sans), sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 0 0.5px;
-}
-
-.manifesto-container .margin-note-badge::before {
-  content: "(" counter(margin-note-badge, lower-roman) ")";
 }
 
 /* Interlinear Note / Gloss Styling — Pendekatan B: inline-flex ALIRAN, bukan absolute terapung
@@ -457,10 +376,6 @@ blockquote {
   animation: flash-citation 2.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.footnote-dest-flash {
-  animation: flash-footnote 2.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 @keyframes flash-citation {
   0% {
     background-color: rgba(128, 35, 52, 0.35);
@@ -469,17 +384,6 @@ blockquote {
   35% {
     background-color: rgba(128, 35, 52, 0.2);
     box-shadow: 0 0 0 2px rgba(128, 35, 52, 0.05);
-  }
-  100% {
-    background-color: transparent;
-    box-shadow: none;
-  }
-}
-
-@keyframes flash-footnote {
-  0% {
-    background-color: rgba(128, 35, 52, 0.12);
-    box-shadow: 0 0 0 8px rgba(128, 35, 52, 0.06);
   }
   100% {
     background-color: transparent;

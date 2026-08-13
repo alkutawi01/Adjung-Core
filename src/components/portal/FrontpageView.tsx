@@ -2338,13 +2338,18 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     });
   }, [focusNavMode, prevTurutanLoc]);
 
-  // Kekunci: Esc tutup, atas/bawah gerak (mod rawak) — sama seperti paparan penuh Ticker.
+  // Kekunci: Esc tutup, atas/bawah ATAU kiri/kanan gerak (mod rawak) — sama seperti paparan
+  // penuh Ticker. Kiri/kanan ditambah 2026-08-13 (permintaan Izzat, "kawal focus view dgn
+  // lebih baik") sebagai alias atas/bawah sedia ada — padan arah leret (swipe) telefon yang
+  // sudah guna mendatar (kendaliSentuhTamat di FocusView.tsx), supaya kekunci desktop dan
+  // gerak isyarat mudah alih konsisten dari segi arah. Atas/bawah dikekalkan (keserasian ke
+  // belakang), bukan digantikan.
   useEffect(() => {
     if (!focusLoc) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeFocus();
-      else if (e.key === 'ArrowDown') focusNext();
-      else if (e.key === 'ArrowUp') focusPrev();
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') focusNext();
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') focusPrev();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -4171,6 +4176,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           bodySizePx={tetapanFontFocusView.bodySizePx}
           navMode={focusNavMode}
           onToggleNavMode={() => setFocusNavMode(m => m === 'rawak' ? 'turutan' : 'rawak')}
+          autoAdvanceSec={systemSettings?.focusViewAutoAdvanceSec}
         />
       )}
 

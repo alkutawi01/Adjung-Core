@@ -179,6 +179,10 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   // `NOTA_MAX = 180` di FocusView.tsx, sifar tetapan. Bukan sebahagian bajet ruang tajuk/huraian
   // (GeometryConfig/ContentBudget) — nota editor medan berasingan, tak muncul di kad bento.
   const [focusViewNotaMaxAksara, setFocusViewNotaMaxAksara] = useState<number>(180);
+  // Tatal automatik Focus View (2026-08-13, keputusan Izzat) — tempoh sebelum ni berkod keras
+  // `AUTOSCROLL_MS = 14000` di FocusView.tsx. Izzat pilih kekalkan model tempoh TETAP (bukan
+  // skala ikut panjang artikel), tapi boleh dilaraskan Ketua Editor/Pentadbir di sini.
+  const [focusViewAutoAdvanceSec, setFocusViewAutoAdvanceSec] = useState<number>(14);
   const [savingFocusView, setSavingFocusView] = useState(false);
   const [focusViewSaveError, setFocusViewSaveError] = useState<string | null>(null);
 
@@ -284,7 +288,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     setSavingFocusView(true);
     setFocusViewSaveError(null);
     try {
-      await saveSystemSettingsPatch({ focusViewNotaMaxAksara });
+      await saveSystemSettingsPatch({ focusViewNotaMaxAksara, focusViewAutoAdvanceSec });
       addToast('success', 'Tetapan Focus View disimpan.');
     } catch (e: any) {
       const mesejRalat = e.message || 'Gagal menyimpan tetapan Focus View.';
@@ -369,6 +373,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         if (s.worldClockBgClickEnabled !== undefined) setWorldClockBgClickEnabled(!!s.worldClockBgClickEnabled);
         if (s.glosSelariEnabled !== undefined) setGlosSelariEnabled(!!s.glosSelariEnabled);
         if (s.focusViewNotaMaxAksara !== undefined && s.focusViewNotaMaxAksara !== null) setFocusViewNotaMaxAksara(Number(s.focusViewNotaMaxAksara));
+        if (s.focusViewAutoAdvanceSec !== undefined && s.focusViewAutoAdvanceSec !== null) setFocusViewAutoAdvanceSec(Number(s.focusViewAutoAdvanceSec));
         if (s.tickerOverlayTitleSize) setTickerOverlayTitleSize(s.tickerOverlayTitleSize);
         if (s.tickerOverlayBriefSize) setTickerOverlayBriefSize(s.tickerOverlayBriefSize);
         fetch('/api/system/clock-holidays')
@@ -877,6 +882,23 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 </FormColumn>
                 <span className="text-[10px] text-stone-400 block">
                   Lalai 180 aksara. Tidak berkaitan bajet ruang tajuk/huraian kad bento (Tier Kad) — nota editor medan berasingan, tak dipapar pada kad.
+                </span>
+              </div>
+
+              <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
+                <label className={LABEL_BORANG}>
+                  Tempoh Tatal Automatik (saat)
+                </label>
+                <FormColumn saiz="sm">
+                  <input
+                    type="number" min={3} max={120} step={1}
+                    value={focusViewAutoAdvanceSec}
+                    onChange={(e) => setFocusViewAutoAdvanceSec(Math.max(3, Number(e.target.value) || 0))}
+                    className={INPUT_BORANG}
+                  />
+                </FormColumn>
+                <span className="text-[10px] text-stone-400 block">
+                  Lalai 14 saat. Masa sebelum Focus View lompat sendiri ke kandungan seterusnya — pembaca boleh jeda bila-bila (butang Auto atau kekunci Space).
                 </span>
               </div>
             </div>

@@ -88,105 +88,10 @@ export function handleMarkdownShortcut(
   }
 }
 
-export function markdownToHtml(md: string): string {
-  if (!md) return '';
-  let content = md.replace(/\r\n/g, '\n');
-  
-  // Split by double newline to separate blocks
-  const blocks = content.split('\n\n');
-  
-  const htmlBlocks = blocks.map(block => {
-    let trimmed = block.trim();
-    if (!trimmed) return '';
-    
-    // Check if it is a heading
-    if (trimmed.startsWith('# ')) {
-      return `<h1>${trimmed.slice(2)}</h1>`;
-    }
-    if (trimmed.startsWith('## ')) {
-      return `<h2>${trimmed.slice(3)}</h2>`;
-    }
-    
-    // Check if it is a blockquote
-    if (trimmed.startsWith('> ')) {
-      const quoteContent = trimmed.split('\n')
-        .map(line => line.startsWith('> ') ? line.slice(2) : line)
-        .join('<br>');
-      return `<blockquote>${quoteContent}</blockquote>`;
-    }
-    
-    // Otherwise it is a paragraph
-    const paraContent = trimmed.replace(/\n/g, '<br>');
-    return `<p>${paraContent}</p>`;
-  });
-  
-  const html = htmlBlocks.filter(Boolean).join('');
-
-  return html
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/\[\^(fn-[a-zA-Z0-9-]+)\]/g, '<span class="footnote-badge" data-id="$1" contenteditable="false"></span>')
-    .replace(/\[\^(mn-[a-zA-Z0-9-]+)\]/g, '<span class="margin-note-badge" data-id="$1" contenteditable="false"></span>')
-    .replace(/\[\^(\d+)\]/g, '<span class="footnote-badge" data-id="fn-legacy-$1" contenteditable="false"></span>')
-    .replace(/(\*\*\*|___)(.*?)\1/g, '<strong><em>$2</em></strong>')
-    .replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>')
-    .replace(/(\*|_)(.*?)\1/g, '<em>$2</em>')
-    .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/\+\+(.*?)\+\+/g, '<u>$1</u>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
-      if (url.startsWith('gloss:')) {
-        // Laluan paparan KEDUA (mod WYSIWYG) — mesti hormati suis yang sama seperti parseTokens(),
-        // kalau tidak gloss "hilang" di kad/Focus View tetapi masih muncul di sini.
-        if (!GLOSS_RENDERING_ENABLED) return label;
-        const glossVal = url.substring(6);
-        return `<span class="interlinear-word"><span class="interlinear-gloss">${glossVal}</span>${label}</span>`;
-      }
-      return `<a href="${url}">${label}</a>`;
-    });
-}
-
-export function htmlToMarkdown(html: string): string {
-  if (!html) return '';
-  let md = html
-    .replace(/<span[^>]+class="[^"]*(footnote-badge|margin-note-badge)[^"]*"[^>]*>([\s\S]*?)<\/span>/gi, (match) => {
-      const idMatch = match.match(/data-id="([^"]+)"/i);
-      return idMatch ? `[^${idMatch[1]}]` : '';
-    })
-    .replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (match, p1) => {
-      const lines = p1.split(/<br\s*\/?>|<\/?p[^>]*>|<\/?div[^>]*>/i)
-        .map((line: string) => line.trim())
-        .filter(Boolean);
-      return lines.map((line: string) => `> ${line}`).join('\n\n') + '\n\n';
-    })
-    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n# $1\n')
-    .replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n## $1\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<\/div>/gi, '\n\n')
-    .replace(/<div[^>]*>/gi, '\n')
-    .replace(/<p[^>]*>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<strong[^>]*><em[^>]*>(.*?)<\/em><\/strong>/gi, '***$1***')
-    .replace(/<em[^>]*><strong[^>]*>(.*?)<\/strong><\/em>/gi, '***$1***')
-    .replace(/<b[^>]*><i[^>]*>(.*?)<\/i><\/b>/gi, '***$1***')
-    .replace(/<i[^>]*><b[^>]*>(.*?)<\/b><\/i>/gi, '***$1***')
-    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
-    .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
-    .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
-    .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*')
-    .replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`')
-    .replace(/<u[^>]*>(.*?)<\/u>/gi, '++$1++')
-    .replace(/<span[^>]*class="interlinear-word"[^>]*><span[^>]*class="interlinear-gloss"[^>]*>(.*?)<\/span>(.*?)<\/span>/gi, '[$2](gloss:$1)')
-    .replace(/<a[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\n\n\n+/g, '\n\n')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"');
-    
-  return md.trim();
-}
+// markdownToHtml()/htmlToMarkdown() (WYSIWYG contenteditable round-trip, footnote/margin-note
+// badge conversion included) dibuang 2026-08-13 (arahan Izzat: "nota kaki dan nota pinggir
+// tiada dalam Brief, itu wujud dlm Adjung Platform sahaja") — disahkan sifar pemanggil di
+// seluruh src/ sebelum dibuang (kod mati sepenuhnya, bukan cuma ciri dimatikan).
 
 type TokenType = 'TRIPLE_AST' | 'TRIPLE_UND' | 'DOUBLE_AST' | 'DOUBLE_UND' | 'SINGLE_AST' | 'SINGLE_UND' | 'BACKTICK' | 'TEXT' | 'DOUBLE_PLUS' | 'HTML_U_OPEN' | 'HTML_U_CLOSE' | 'LINK' | 'INTERLINEAR';
 
@@ -436,21 +341,12 @@ function parseTokens(tokens: Token[], keyPrefix: string = 'token'): React.ReactN
   return result;
 }
 
-const UNIFIED_REGEX = /(\[\^((?:fn|mn)-[a-zA-Z0-9-]+)\]|\[\^(\d+)\]|\[cite:([^\]]+)\]|\[@(fig|tbl|sec|fn):([a-zA-Z0-9-]+)\])/g;
-
-export function toRoman(num: number): string {
-  const val = [10, 9, 5, 4, 1];
-  const syb = ["x", "ix", "v", "iv", "i"];
-  let roman = "";
-  let n = num;
-  for (let i = 0; i < val.length; i++) {
-    while (n >= val[i]) {
-      roman += syb[i];
-      n -= val[i];
-    }
-  }
-  return roman;
-}
+// Nota kaki/nota pinggir (`[^fn-...]`/`[^mn-...]`/`[^123]`) dibuang daripada regex ni 2026-08-13
+// (arahan Izzat: ciri tu wujud di Adjung Platform sahaja, bukan Brief) — `[@fn:...]` (rujukan
+// silang KE nota kaki) turut dibuang serentak, tak bermakna tanpa nota kaki wujud. `[cite:...]`
+// dan `[@fig/tbl/sec:...]` (rujukan silang rajah/jadual/seksyen) KEKAL — ciri berasingan, bukan
+// sebahagian ciri nota kaki yang dibuang.
+const UNIFIED_REGEX = /(\[cite:([^\]]+)\]|\[@(fig|tbl|sec):([a-zA-Z0-9-]+)\])/g;
 
 /**
  * Semantic Inline Markdown Parser:
@@ -467,76 +363,6 @@ function renderPartNode(
   citationStyle: string,
   marginNotesMap: Record<string, number>
 ): React.ReactNode {
-  if (part.type === 'fn-stable') {
-    let num: number | string | undefined = footnotesMap[part.content] || footnotesMap[`fn-${part.content}`];
-    if (!num) {
-      num = part.content.startsWith('fn-legacy-') ? part.content.replace('fn-legacy-', '') : '?';
-    }
-    return (
-      <Tooltip key={part.key} text={`Jump to footnote ${num}`}>
-        <span
-          className="footnote-ref text-[10px] font-medium align-super select-none hover:text-Adjung-maroon font-sans px-0.5 cursor-pointer scroll-mt-24 transition-all duration-350"
-          id={`fnref-${part.content}`}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const target = document.getElementById(`footnote-dest-${part.content}`);
-            if (target) {
-              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              target.classList.remove('footnote-dest-flash');
-              void target.offsetWidth;
-              target.classList.add('footnote-dest-flash');
-              setTimeout(() => target.classList.remove('footnote-dest-flash'), 2500);
-            }
-          }}
-        >
-          ({num})
-        </span>
-      </Tooltip>
-    );
-  }
-
-  if (part.type === 'fn-legacy') {
-    const num = footnotesMap[part.content] || part.content;
-    return (
-      <Tooltip key={part.key} text={`Jump to footnote ${num}`}>
-        <span
-          className="footnote-ref text-[10px] font-medium align-super select-none hover:text-Adjung-maroon font-sans px-0.5 cursor-pointer scroll-mt-24 transition-all duration-350"
-          id={`fnref-legacy-${part.content}`}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const target = document.getElementById(`footnote-dest-legacy-${part.content}`);
-            if (target) {
-              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              target.classList.remove('footnote-dest-flash');
-              void target.offsetWidth;
-              target.classList.add('footnote-dest-flash');
-              setTimeout(() => target.classList.remove('footnote-dest-flash'), 2500);
-            }
-          }}
-        >
-          ({num})
-        </span>
-      </Tooltip>
-    );
-  }
-
-  if (part.type === 'mn-stable') {
-    const num = marginNotesMap[part.content] || '?';
-    const roman = typeof num === 'number' ? toRoman(num).toLowerCase() : num;
-    return (
-      <Tooltip key={part.key} text={`Margin Note ${roman}`}>
-        <span
-          id={`mn-marker-${part.content}`}
-          className="margin-note-ref text-[10px] font-medium align-super select-none text-Adjung-maroon font-sans px-0.5 cursor-default"
-        >
-          ({roman})
-        </span>
-      </Tooltip>
-    );
-  }
-
   if (part.type === 'cite') {
     const citation = citations.find(c => c.id === part.content);
     if (!citation) {
@@ -565,14 +391,10 @@ function renderPartNode(
   }
 
   if (part.type === 'cross-ref') {
+    // Sub-jenis 'fn' (rujukan silang KE nota kaki) dibuang 2026-08-13 bersama ciri nota kaki
+    // itu sendiri — UNIFIED_REGEX di atas kini cuma pernah hasilkan 'fig'/'tbl'/'sec' di sini.
     const [refType, refId] = part.content.split(':');
-    let label = '';
-    if (refType === 'fn') {
-      const num = footnotesMap[refId] || footnotesMap[`fn-${refId}`] || '?';
-      label = `Footnote ${num}`;
-    } else {
-      label = crossRefMap[refId] || `${refType.charAt(0).toUpperCase() + refType.slice(1)} ?`;
-    }
+    const label = crossRefMap[refId] || `${refType.charAt(0).toUpperCase() + refType.slice(1)} ?`;
     return (
       <span
         key={part.key}
@@ -606,7 +428,7 @@ export function parseInlineFormatting(
 ): React.ReactNode {
   if (!text) return '';
 
-  const parts: { type: 'text' | 'fn-stable' | 'fn-legacy' | 'mn-stable' | 'cite' | 'cross-ref'; content: string; key: string }[] = [];
+  const parts: { type: 'text' | 'cite' | 'cross-ref'; content: string; key: string }[] = [];
   let lastIndex = 0;
   let match;
   let keyIdx = 0;
@@ -621,21 +443,11 @@ export function parseInlineFormatting(
     }
 
     if (match[2]) {
-      const fnId = match[2];
-      if (fnId.startsWith('mn-')) {
-        parts.push({ type: 'mn-stable', content: fnId, key: `mn-stable-${fnId}-${keyIdx++}` });
-      } else {
-        parts.push({ type: 'fn-stable', content: fnId, key: `fn-stable-${fnId}-${keyIdx++}` });
-      }
-    } else if (match[3]) {
-      const fnNum = match[3];
-      parts.push({ type: 'fn-legacy', content: fnNum, key: `fn-legacy-${fnNum}-${keyIdx++}` });
-    } else if (match[4]) {
-      const citeId = match[4];
+      const citeId = match[2];
       parts.push({ type: 'cite', content: citeId, key: `cite-${citeId}-${keyIdx++}` });
-    } else if (match[5] && match[6]) {
-      const refType = match[5];
-      const refId = match[6];
+    } else if (match[3] && match[4]) {
+      const refType = match[3];
+      const refId = match[4];
       parts.push({ type: 'cross-ref', content: `${refType}:${refId}`, key: `cross-${refType}-${refId}-${keyIdx++}` });
     }
     lastIndex = UNIFIED_REGEX.lastIndex;
@@ -655,46 +467,11 @@ export function parseInlineFormatting(
     const part = parts[i];
     
     if (part.type === 'text') {
-      const nextPart = parts[i + 1];
-      const isNextBadge = nextPart && (nextPart.type === 'fn-stable' || nextPart.type === 'fn-legacy' || nextPart.type === 'mn-stable');
-      
-      if (isNextBadge) {
-        const textContent = part.content;
-        const lastWordMatch = textContent.match(/(\s+)([^\s]+)\s*$/);
-        
-        if (lastWordMatch) {
-          const lastWord = lastWordMatch[2];
-          const lastWordIndex = textContent.lastIndexOf(lastWord);
-          const mainText = textContent.substring(0, lastWordIndex);
-          
-          nodes.push(
-            <React.Fragment key={part.key}>
-              {parseTokens(tokenize(mainText))}
-            </React.Fragment>
-          );
-          
-          const badgeNode = renderPartNode(nextPart, citations, sortOrder, citationsMap, footnotesMap, crossRefMap, citationStyle, marginNotesMap);
-          nodes.push(
-            <span key={`nowrap-${part.key}`} className="inline-block whitespace-nowrap">
-              {parseTokens(tokenize(lastWord))}
-              {badgeNode}
-            </span>
-          );
-          
-          i++;
-        } else {
-          const badgeNode = renderPartNode(nextPart, citations, sortOrder, citationsMap, footnotesMap, crossRefMap, citationStyle, marginNotesMap);
-          nodes.push(
-            <span key={`nowrap-${part.key}`} className="inline-block whitespace-nowrap">
-              {parseTokens(tokenize(textContent))}
-              {badgeNode}
-            </span>
-          );
-          i++;
-        }
-      } else {
-        nodes.push(<React.Fragment key={part.key}>{parseTokens(tokenize(part.content))}</React.Fragment>);
-      }
+      // Nota: cabang "isNextBadge" (rekatkan badge nota kaki/pinggir pada perkataan terakhir
+      // supaya tak wrap sendirian) dibuang 2026-08-13 bersama ciri nota kaki/pinggir itu sendiri
+      // — `cite`/`cross-ref` (satu-satunya jenis bukan-teks yang tinggal) tak perlukan tingkah
+      // laku sama, jadi laluan ini kini sentiasa jalan lurus.
+      nodes.push(<React.Fragment key={part.key}>{parseTokens(tokenize(part.content))}</React.Fragment>);
     } else {
       nodes.push(renderPartNode(part, citations, sortOrder, citationsMap, footnotesMap, crossRefMap, citationStyle, marginNotesMap));
     }
@@ -1600,50 +1377,9 @@ export function serializeASTToText(blocks: EditorBlock[]): string {
   return serializeBlocks(contentBlocks);
 }
 
-/**
- * Scans AST blocks for inline stable footnotes [^fn-xxx] and builds occurrence map.
- */
-export function buildFootnotesMap(blocks: EditorBlock[]): { map: Record<string, number>; order: string[] } {
-  const map: Record<string, number> = {};
-  const order: string[] = [];
-  let currentNumber = 1;
-  const fnRegex = /\[\^(fn-[a-zA-Z0-9-]+)\]/g;
-
-  blocks.forEach(b => {
-    let text = '';
-    if (b.type === 'paragraph') {
-      text = b.data.text || '';
-    } else if (b.type === 'heading') {
-      text = b.data.text || '';
-    } else if (b.type === 'callout') {
-      text = b.data.text || '';
-    } else if (b.type === 'latin-quote' || b.type === 'quote') {
-      text = (b.data.text || '') + ' ' + (b.data.translation || '');
-    } else if (b.type === 'arabic-quote') {
-      text = (b.data.arabic || '') + ' ' + (b.data.translation || '');
-    } else if (b.type === 'list') {
-      const items = b.data.items || [];
-      text = items.map((it: {text: string, checked?: boolean}) => it.text).join(' ');
-    }
-    if (b.type === 'table') {
-      const headers = b.data.headers || [];
-      const rows = b.data.rows || [];
-      text = headers.join(' ') + ' ' + rows.map((r: string[]) => r.join(' ')).join(' ');
-    }
-
-    let match;
-    fnRegex.lastIndex = 0;
-    while ((match = fnRegex.exec(text)) !== null) {
-      const fnId = match[1];
-      if (map[fnId] === undefined) {
-        map[fnId] = currentNumber++;
-        order.push(fnId);
-      }
-    }
-  });
-
-  return { map, order };
-}
+// buildFootnotesMap() (pengimbas AST cari `[^fn-xxx]`, bina peta nombor rujukan) dibuang
+// 2026-08-13 bersama ciri nota kaki/pinggir keseluruhannya (arahan Izzat) — disahkan sifar
+// pemanggil di seluruh src/ sebelum dibuang.
 
 /**
  * Scans AST blocks and returns cross-reference labels mapped by target block ID.
