@@ -2145,16 +2145,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .then(r => (r.ok ? r.json() : null))
       .then(data => {
         if (!data) return;
-        // Padan ikut objectId (2026-08-13, PUBLIC-URL-001), BUKAN slotIndex sahaja — slot cuma
-        // lokasi paparan semasa, bukan identiti kandungan tetap. Kalau kandungan asal kodPendek
-        // ni dah diarkib dan slot yang sama diisi kandungan BAHARU, padanan-ikut-slot lama akan
-        // buka kandungan baharu tu secara SENYAP di bawah URL kekal kandungan lama. by-kod (server)
-        // dah sahkan objek ni masih approved sebelum pulangkan objectId, jadi kalau tiada padanan
-        // objectId ditemui di sini (patut jarang berlaku — mungkin cache klien tertinggal), gagal
-        // senyap sahaja (pembaca lihat muka depan biasa) dgn tak sengaja buka kandungan salah.
-        const loc = data.objectId
-          ? focusAllLocations.find(l => focusItemsForSlot(l.slotIndex)[l.itemIndex]?.objectId === data.objectId)
-          : focusAllLocations.find(l => l.slotIndex === data.slotIndex);
+        // Padanan ikut slotIndex kekal di sini (kelakuan asal) — pertahanan SEBENAR terhadap
+        // PUBLIC-URL-001 (2026-08-13) ialah SERVER by-kod yang kini sahkan objek masih approved
+        // sebelum pulangkan apa-apa, 404 terus kalau diarkib/dipadam (lihat komen di
+        // articleUrlRoutes.js). Bila by-kod pulangkan 404, `data` di sini `null`, effect keluar
+        // awal — URL lama tak pernah sampai peringkat cari lokasi langsung, jadi tak pernah
+        // terbuka kandungan salah. Percubaan padan ikut objectId terus di client (draf pertama
+        // pembetulan ni) pecahkan deep-link untuk kes BIASA disebabkan isu pemasaan/rujukan yang
+        // tak sempat didiagnosis under tekanan masa — server-side check sahaja sudah cukup untuk
+        // tutup lubang keselamatan/kepercayaan URL, jadi client dikekalkan ringkas macam asal.
+        const loc = focusAllLocations.find(l => l.slotIndex === data.slotIndex) || null;
         if (loc) { setFocusLoc(loc); setFocusHistory([loc]); }
       })
       .catch(() => {});
