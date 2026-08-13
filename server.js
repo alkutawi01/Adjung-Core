@@ -3060,7 +3060,28 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       // — pepijat kritikal ditemui Izzat semasa ujian sebenar ("Ketua Editor pun kena tunggu
       // luluskan kandungan sendiri!"). Slot Bar kekal guna status yang dihurai terus (lama).
       const bolehTerbitTerus = isBar || hasPermission(roles, 'manageEditorial') || hasPermission(roles, 'publish');
-      const finalStatus = isBar ? (item.status || 'approved') : (bolehTerbitTerus ? 'approved' : 'pending');
+      let finalStatus = isBar ? (item.status || 'approved') : (bolehTerbitTerus ? 'approved' : 'pending');
+      // Had bilangan kandungan AKTIF seslot (2026-08-14, ditemui oleh sim10-serentak.mjs) — gerbang
+      // capacity yang sama sudah wujud di PATCH /content/:id (contentRoutes.js baris ~822) TAPI
+      // tak pernah disambung ke sini, jadi Ketua Editor/Penolong/Editor-dibenarkan-self-publish
+      // yang simpan slot terus (bukan lalu Indeks) langsung memintas hadKandunganSlot -- sim10
+      // buktikan 3 kandungan jadi Aktif serentak pada slot berhad 1. Semakan sama macam PATCH:
+      // kira APPROVED sedia ada dalam slot, kalau dah penuh, kandungan baharu jatuh ke 'pending'
+      // (bukan gagal) supaya ia beratur menunggu ruang, sama macam laluan Indeks.
+      if (finalStatus === 'approved' && !isBar) {
+        const { hadKandunganSlot } = getAmSettings();
+        if (hadKandunganSlot > 0) {
+          const kiraanAktif = await dbGet(`
+            SELECT COUNT(*) AS n FROM editorial_objects o
+            JOIN editorial_revisions r ON r.objectId = o.id
+            WHERE o.slotIndex = ? AND r.status = 'approved'
+              AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+          `, [slotIndex]);
+          if (kiraanAktif && kiraanAktif.n >= hadKandunganSlot) {
+            finalStatus = 'pending';
+          }
+        }
+      }
       if (finalStatus === 'pending') {
         menungguKelulusan.push({ objectId, title: item.title || '' });
       }

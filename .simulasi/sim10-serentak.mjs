@@ -81,11 +81,13 @@ try {
   // --- (3) PERLUMBAAN naik-taraf automatik ---------------------------------------------
   // Had=1. Cipta 1 aktif + 3 beratur, kemudian arkibkan yang aktif — HANYA SATU sepatutnya
   // naik taraf. Kalau logik naik-taraf berlumba, lebih daripada satu boleh jadi Aktif.
-  await api('POST', '/api/system/slot-am-settings', {
+  const amSet = await api('POST', '/api/system/slot-am-settings', {
     mulaIkutMasa: false, hadKandunganSlot: 1, jenisAnimasi: 'colophon', arahAnimasi: 'kanan',
-    hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0, logoPenaja: '',
+    hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0,
+    hadHuraianPanjangMin: 0, hadSumberMin: 0, hadTopikMin: 0, hadNotaEditorMin: 0, logoPenaja: '',
     warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0, focusViewTitleScale: 1, focusViewBodySize: 15,
   });
+  if (!amSet.ok) throw new Error('slot-am-settings gagal ditetapkan: ' + JSON.stringify(amSet.json));
 
   const idBeratur = [];
   for (let i = 0; i < 3; i++) {
