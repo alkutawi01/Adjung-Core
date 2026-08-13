@@ -682,7 +682,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         if (activeItemModal && activeItemModal.id === id) {
           setActiveItemModal(prev => prev ? { ...prev, status: 'Pending' } : prev);
         }
-        onToast?.('success', 'Kandungan menunggu — slot penuh.');
+        onToast?.('success', 'Kandungan menunggu, slot penuh.');
       } else {
         onToast?.('success', newStatus === 'Archive' ? 'Kandungan diarkibkan.' : 'Kandungan disiarkan.');
       }
@@ -1469,7 +1469,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           <option value="" disabled hidden>Tindakan ▾</option>
                           {rec.status !== 'Live' && <option value="Live">Siar</option>}
                           {rec.status !== 'Archive' && <option value="Archive">Arkib</option>}
-                          <option value="Tolak">Tolak — arkib &amp; pulangkan draf</option>
+                          <option value="Tolak">Tolak (arkib &amp; pulangkan draf)</option>
                           {currentUserRole === 'KETUA_EDITOR' && <option value="Padam">Padam (ke Tong Sampah)</option>}
                         </select>
                       ) : (
@@ -1604,7 +1604,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                   BAHARU (uuid '...-reject') untuk penulis asal. Editor yang percaya label lama
                   akan tercari-cari kandungan asalnya dalam senarai draf. */}
               <Button variant="bahaya" onClick={() => { setConfirmTolakId(activeItemModal.id); setTolakSebab(''); }}>
-                Tolak — arkib &amp; pulangkan draf
+                Tolak (arkib &amp; pulangkan draf)
               </Button>
               {activeItemModal.status !== 'Live' && activeItemModal.status !== 'Archive' && (
                 <Button onClick={() => setConfirmSiarId(activeItemModal.id)}>
@@ -1870,7 +1870,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             {activeItemModal.status === 'Archive' && activeItemModal.slot !== 'Ticker' && (
               <div className="space-y-3 font-sans bg-amber-50 border border-amber-200 rounded p-4">
                 <div className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">
-                  Siar Semula — Bidang kandungan ni tak lagi sepadan slot asal. Pilih Bidang dan slot sasaran (Bidang boleh diubah supaya sepadan slot lain).
+                  Siar Semula. Bidang kandungan ni tak lagi sepadan slot asal, pilih Bidang dan slot sasaran (Bidang boleh diubah supaya sepadan slot lain).
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
