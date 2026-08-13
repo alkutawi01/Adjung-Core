@@ -1277,11 +1277,19 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           <KeadaanKosong
             tindakan={
               <Button variant="secondary" size="sm" onClick={handleResetFilters}>
-                Kosongkan Penapis
+                Kembali ke Paparan Lalai
               </Button>
             }
           >
-            Tiada kandungan yang sepadan dengan kriteria filter pilihan anda.
+            {/* Paparan lalai (2026-08-14, dapatan #52 -- audit ChatGPT) -- "Kosongkan Penapis"
+                sebelum ni membawa maksud tersirat "tunjuk semua", tapi Set Semula sebenarnya
+                kembali ke penapis LALAI PERANAN (Ketua Editor = status Pending sahaja, "baris
+                giliran kelulusan"), bukan "Semua". Bila giliran memang kosong, editor nampak
+                "0 keputusan" lepas tekan set semula dan sangka sistem rosak. Mesej + label
+                butang kini jelaskan ini ialah paparan LALAI, bukan hasil carian yang gagal. */}
+            {appliedFilters.status === 'Pending' && !appliedFilters.search.trim()
+              ? 'Tiada kandungan menunggu kelulusan buat masa ini -- paparan lalai anda ialah baris giliran kelulusan. Pilih status lain (cth "Semua Status") untuk lihat kandungan yang sudah diterbitkan.'
+              : 'Tiada kandungan yang sepadan dengan kriteria filter pilihan anda.'}
           </KeadaanKosong>
         </PanelCard>
       ) : (
@@ -1740,7 +1748,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                             </span>
                             <span className="font-serif text-[13px] text-stone-800 truncate">{r.title || <span className="text-stone-400">(tiada tajuk)</span>}</span>
                             <span className="font-sans text-[11px] text-stone-500 truncate">{r.summary || ''}</span>
-                            <span className="font-mono text-[9px] text-stone-400">{r.createdBy || '—'} · {r.status}</span>
+                            {/* Label manusia, bukan token mentah (2026-08-14, dapatan #54 -- audit
+                                ChatGPT) -- sebelum ni papar terus "manual-slot-save · approved",
+                                lebih teknikal drpd senarai induk yang dah lalu formatCreatedBy()/
+                                STATUS_TO_LABEL() konsisten. Selaraskan sejarah versi dgn senarai. */}
+                            <span className="font-mono text-[9px] text-stone-400">{formatCreatedBy(r.createdBy || '')} · {STATUS_TO_LABEL[r.status] || r.status}</span>
                           </div>
                           {/* Editor biasa yang melihat kandungan orang lain (mod "Semua
                               Kandungan", baca sahaja) tidak boleh memulihkan versi — sama gerbang
@@ -1820,6 +1832,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       type="datetime-local"
                       value={draftJadualTerbit}
                       disabled={currentUserRole !== 'KETUA_EDITOR'}
+                      title={currentUserRole !== 'KETUA_EDITOR' ? 'Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan jadual penerbitan.' : undefined}
                       onChange={e => setDraftJadualTerbit(e.target.value)}
                       className={`${INPUT_BORANG} bg-white`}
                     />
@@ -1833,6 +1846,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       type="datetime-local"
                       value={draftJadualLuput}
                       disabled={currentUserRole !== 'KETUA_EDITOR'}
+                      title={currentUserRole !== 'KETUA_EDITOR' ? 'Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan jadual penerbitan.' : undefined}
                       onChange={e => setDraftJadualLuput(e.target.value)}
                       className={`${INPUT_BORANG} bg-white`}
                     />

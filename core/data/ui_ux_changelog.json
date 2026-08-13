@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-13T17:56:04.659Z",
+    "summary": "Indeks: 3 pembaikan mikro-UX drpd audit #52-54 -- butang 'Kosongkan Penapis' -> 'Kembali ke Paparan Lalai' + mesej kosong beza utk queue-kelulusan-kosong vs tapisan-tak-sepadan; tooltip pada medan Jadual Terbit/Luput yg disabled utk bukan Ketua Editor; Sejarah Versi kini papar label manusia (formatCreatedBy/STATUS_TO_LABEL) bukan token mentah spt 'manual-slot-save · approved'.",
+    "files": [
+      "src/components/editorium/IndeksConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-08-13T14:11:50.218Z",
     "summary": "Indeks: pengesahan Terbit dan Padam kini dialog berpusat (dulu inline dalam sel jadual, butang sahkan terdorong keluar skrin telefon); Padam draf kini ada pengesahan yang sebelum ni langsung tiada",
     "files": [
