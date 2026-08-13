@@ -309,6 +309,28 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   router.post('/system/settings', requirePermission('manageSettings'), async (req, res) => {
     try {
       const s = req.body;
+
+      // Julat sah medan berangka (SETTINGS-VALIDATION-001, audit #44.4, 2026-08-13) — sebelum ni
+      // medan ni cuma `Number(v)` tanpa sebarang semakan: rentetan sampah jadi NaN dan tersimpan
+      // senyap, nilai gila (0 saat, 999999) diterima bulat-bulat. Bukan lubang keselamatan (laluan
+      // digerbang manageSettings, aktor dipercayai) tapi satu salah taip boleh merosakkan kelakuan
+      // portal awam tanpa amaran. DITOLAK dengan sebab jelas, BUKAN diapit senyap — mengapit
+      // menukar niat editor tanpa dia sedar; falsafah sama seperti validateContentBudget.
+      const JULAT_NOMBOR = {
+        worldClockIntervalSec: { min: 0, max: 3600, nama: 'Selang masa auto-slaid Jam Dunia', unit: 'saat (0 = matikan)' },
+        focusViewNotaMaxAksara: { min: 20, max: 2000, nama: 'Had aksara Nota Editor', unit: 'aksara' },
+        focusViewAutoAdvanceSec: { min: 3, max: 120, nama: 'Tempoh tatal automatik Focus View', unit: 'saat' },
+      };
+      for (const [medan, julat] of Object.entries(JULAT_NOMBOR)) {
+        if (s[medan] === undefined) continue;
+        const n = Number(s[medan]);
+        if (!Number.isFinite(n) || !Number.isInteger(n) || n < julat.min || n > julat.max) {
+          return res.status(400).json({
+            error: `${julat.nama} mesti nombor bulat antara ${julat.min} dan ${julat.max} ${julat.unit}. Tetapan tidak disimpan.`,
+          });
+        }
+      }
+
       const kolum = [];
       const nilai = [];
       for (const [medan, serial] of Object.entries(SETTINGS_SERIALIZER)) {

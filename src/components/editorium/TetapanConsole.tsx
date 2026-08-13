@@ -753,41 +753,60 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <KeadaanKosong>Tiada tempoh cuti sekolah ditetapkan.</KeadaanKosong>
               )}
               <div className="space-y-2">
+                {/* Susun atur telefon (SETTINGS-MOBILE-001, dibaiki 2026-08-13) — baris ni dahulu
+                    satu grid 5 lajur TETAP pada semua lebar. Lebar minimum intrinsik dua medan
+                    tarikh + pilihan Kumpulan + medan nama melebihi 375px, dan trek grid `1fr`
+                    tidak boleh susut bawah kandungannya — jadi baris ni memaksa SELURUH halaman
+                    Editorium melebar lalu pelayar telefon zum keluar keseluruhan antara muka
+                    (simptom sama seperti pepijat `<main>` 2026-08-13, punca berbeza).
+                    Kini: telefon dapat DUA baris (tarikh berpasangan, kemudian kumpulan+nama+buang),
+                    desktop kekal SATU baris 5 lajur yang sama macam sebelum ni — `sm:contents`
+                    melarutkan pembalut telefon supaya kelima-lima medan kembali jadi anak terus
+                    grid pada sm ke atas. `min-w-0` pada medan fleks WAJIB: input teks ada lebar
+                    minimum intrinsik sendiri dan takkan susut tanpanya. */}
                 {schoolHolidays.map((cuti, i) => (
-                  <div key={i} className="grid grid-cols-[1fr_1fr_70px_1.4fr_auto] gap-2 items-center">
-                    <input
-                      type="date" value={cuti.start}
-                      onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, start: e.target.value } : c))}
-                      className={INPUT_BORANG}
-                    />
-                    <input
-                      type="date" value={cuti.end}
-                      onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, end: e.target.value } : c))}
-                      className={INPUT_BORANG}
-                    />
-                    <select
-                      value={cuti.group}
-                      onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, group: e.target.value } : c))}
-                      className={INPUT_BORANG}
-                    >
-                      <option value="A">Kump. A</option>
-                      <option value="B">Kump. B</option>
-                    </select>
-                    <input
-                      type="text" value={cuti.name} placeholder="Nama cuti (cth. Cuti Penggal 1 Sekolah)"
-                      onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, name: e.target.value } : c))}
-                      className={INPUT_BORANG}
-                    />
-                    <Tooltip text="Buang tempoh ini">
-                      <button
-                        type="button"
-                        onClick={() => setSchoolHolidays((p) => p.filter((_, n) => n !== i))}
-                        className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer p-1"
-                        aria-label="Buang tempoh ini"
+                  <div
+                    key={i}
+                    className="grid grid-cols-1 gap-2 border-b border-stone-200 pb-2.5 last:border-0 last:pb-0 sm:grid-cols-[1fr_1fr_70px_1.4fr_auto] sm:items-center sm:border-0 sm:pb-0"
+                  >
+                    <div className="flex gap-2 sm:contents">
+                      <input
+                        type="date" value={cuti.start} aria-label="Tarikh mula cuti"
+                        onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, start: e.target.value } : c))}
+                        className={`${INPUT_BORANG} min-w-0 flex-1 sm:flex-none`}
+                      />
+                      <input
+                        type="date" value={cuti.end} aria-label="Tarikh tamat cuti"
+                        onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, end: e.target.value } : c))}
+                        className={`${INPUT_BORANG} min-w-0 flex-1 sm:flex-none`}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 sm:contents">
+                      <select
+                        value={cuti.group} aria-label="Kumpulan cuti"
+                        onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, group: e.target.value } : c))}
+                        className={`${INPUT_BORANG} w-[92px] shrink-0 sm:w-full`}
                       >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </Tooltip>
+                        <option value="A">Kump. A</option>
+                        <option value="B">Kump. B</option>
+                      </select>
+                      <input
+                        type="text" value={cuti.name} placeholder="Nama cuti (cth. Cuti Penggal 1 Sekolah)"
+                        aria-label="Nama cuti"
+                        onChange={(e) => setSchoolHolidays((p) => p.map((c, n) => n === i ? { ...c, name: e.target.value } : c))}
+                        className={`${INPUT_BORANG} min-w-0 flex-1 sm:flex-none`}
+                      />
+                      <Tooltip text="Buang tempoh ini">
+                        <button
+                          type="button"
+                          onClick={() => setSchoolHolidays((p) => p.filter((_, n) => n !== i))}
+                          className="shrink-0 text-stone-400 hover:text-[var(--color-error)] cursor-pointer p-1"
+                          aria-label="Buang tempoh ini"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                    </div>
                   </div>
                 ))}
               </div>

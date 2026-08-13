@@ -869,6 +869,20 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // lagi. Corak sama seperti laluan pulih-versi di bawah (BEGIN/COMMIT/ROLLBACK). Nota:
       // incrementCategoryUsage kekal try/catch dalaman (kegagalan kaunter TIDAK menggagalkan
       // transaksi — kelakuan sedia ada dikekalkan).
+      // Nilai Bidang/Topik SEBELUM tulisan (AUDIT-003, audit #45.12) — dibaca di luar transaksi
+      // supaya masih boleh dirujuk selepas COMMIT untuk log audit di bawah. Baca daripada revisi
+      // SEMASA (rev.id): itulah nilai yang editor sebenarnya lihat sebelum menyunting.
+      const bidangSebelumRow = await dbGet(
+        "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'desk'",
+        [id, rev.id]
+      );
+      const topikSebelumRow = await dbGet(
+        "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'topik'",
+        [id, rev.id]
+      );
+      const bidangSebelum = (bidangSebelumRow?.valueText || objRow?.categoryId || '').trim();
+      const topikSebelum = (topikSebelumRow?.valueText || '').trim();
+
       await dbRun('BEGIN TRANSACTION');
       try {
         if (isContentEdit) {
@@ -948,6 +962,32 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           console.error('Rollback gagal selepas ralat kemas kini kandungan:', rollbackErr.message);
         }
         throw e;
+      }
+
+      // Log Audit taksonomi (AUDIT-003, audit #45.12, ditambah 2026-08-13) — pertukaran Bidang
+      // atau Topik MENGUBAH MAKNA EDITORIAL kandungan (ia berpindah kategori di mata pembaca,
+      // tukar warna identiti, tukar hasil carian) tapi dahulu langsung tiada jejak: gerbang audit
+      // sedia ada cuma memicu pada perubahan STATUS, jadi tukar Bidang tanpa tukar status
+      // meninggalkan sifar rekod siapa/bila/dari-apa-ke-apa. Ini BUKAN sama dengan sejarah versi —
+      // versi menyimpan KEADAAN kandungan, audit menjawab siapa membuat TINDAKAN dan bila.
+      // Dicatat hanya bila nilai benar-benar BERUBAH (bukan setiap simpanan yang kebetulan
+      // menghantar semula nilai sama), selaras falsafah "jangan satu baris log setiap ketikan".
+      const bidangSelepas = desk !== undefined ? String(desk).trim() : bidangSebelum;
+      const topikSelepas = topik !== undefined ? String(topik).trim() : topikSebelum;
+      const bidangBerubah = bidangSelepas.toUpperCase() !== bidangSebelum.toUpperCase();
+      const topikBerubah = topikSelepas !== topikSebelum;
+      if (bidangBerubah || topikBerubah) {
+        const bahagian = [];
+        if (bidangBerubah) bahagian.push(`Bidang: ${bidangSebelum || '(kosong)'} -> ${bidangSelepas || '(kosong)'}`);
+        if (topikBerubah) bahagian.push(`Topik: ${topikSebelum || '(kosong)'} -> ${topikSelepas || '(kosong)'}`);
+        await logAudit(dbRun, {
+          actorId: req.session?.user?.id,
+          actorName: req.session?.user?.penName || req.session?.user?.username,
+          action: 'kemas-kini-taksonomi',
+          targetType: 'kandungan',
+          targetId: id,
+          detail: bahagian.join(' | ').slice(0, 200),
+        });
       }
 
       // Log Audit (Fasa 4) — cuma catat bila STATUS berubah (terbit/tolak/arkib/siar-semula),
