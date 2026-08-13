@@ -1062,8 +1062,25 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         await tetapkanSebabMenunggu(dbGet, dbRun, id, liveRevId, nilaiSebab);
       }
 
+      // Pulangkan status MUKTAMAD (#33.2-A, 2026-08-13) — sebelum ni respons PATCH tak sebut
+      // status langsung, jadi client terpaksa MENEKA peraturan peralihan status server sendiri.
+      // Tekaan itu tidak lengkap: IndeksConsole hanya menaik taraf baris ke 'Scheduled' bila
+      // status semasa 'Pending', sedangkan server menjadikan kandungan 'scheduled' walaupun ia
+      // sedang 'approved' — jadi menetapkan jadual pada kandungan AKTIF meninggalkan senarai
+      // Indeks memapar "Aktif" sedangkan rekod sebenar sudah 'scheduled' (baris kekal dalam
+      // penapis Aktif sehingga muat semula penuh). Dibaca terus daripada revisi TERKINI SEBENAR
+      // (corak NOT EXISTS sama seperti laluan awam) supaya betul untuk KEDUA-DUA cabang: edit
+      // kandungan (revisi baharu) dan tindakan status-sahaja (kemas kini di tempat).
+      const revStatusAkhir = await dbGet(
+        `SELECT status FROM editorial_revisions er1
+         WHERE er1.objectId = ?
+           AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.version > er1.version)`,
+        [id]
+      );
+
       res.json({
         success: true,
+        status: revStatusAkhir ? revStatusAkhir.status : undefined,
         slotPenuh: sebabMenungguBaharu === 'slot_penuh',
         ...(notaOlehBaharu !== undefined ? { notaOleh: notaOlehBaharu } : {}),
       });

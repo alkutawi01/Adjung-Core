@@ -386,16 +386,26 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       });
       const resBody = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(resBody.error || 'Gagal menyimpan jadual terbit/luput. Cuba lagi.');
+      // Status diambil daripada RESPONS SERVER (#33.2-A, dibaiki 2026-08-13), bukan diteka di
+      // sini. Baris lama: `body.scheduledPublishAt && i.status === 'Pending' ? 'Scheduled' :
+      // i.status` — ia hanya menaik taraf kandungan yang sedang MENUNGGU, sedangkan server
+      // menjadikan kandungan 'scheduled' walaupun ia sedang AKTIF. Akibatnya menetapkan jadual
+      // pada kandungan aktif meninggalkan baris Indeks memapar "Aktif" (dan kekal dalam penapis
+      // Aktif) sedangkan rekod sebenar sudah 'scheduled', sehingga muat semula penuh. Client
+      // TIDAK sepatutnya menyalin peraturan peralihan status server — ia akan terpesong setiap
+      // kali peraturan server berubah.
+      const statusMuktamad = resBody.status ? STATUS_TO_LABEL[resBody.status] : undefined;
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
         ...i,
         scheduledPublishAt: body.scheduledPublishAt,
         scheduledExpiresAt: body.scheduledExpiresAt,
-        status: body.scheduledPublishAt && i.status === 'Pending' ? 'Scheduled' : i.status,
+        status: statusMuktamad || i.status,
       } : i));
       setActiveItemModal({
         ...activeItemModal,
         scheduledPublishAt: body.scheduledPublishAt,
         scheduledExpiresAt: body.scheduledExpiresAt,
+        status: statusMuktamad || activeItemModal.status,
       });
     } catch (err: any) {
       setJadualError(err.message || 'Gagal simpan jadual.');

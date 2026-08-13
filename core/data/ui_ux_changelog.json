@@ -1,5 +1,44 @@
 [
   {
+    "time": "2026-08-13T12:59:26.232Z",
+    "summary": "Indeks: baris & modal kini papar status betul selepas Simpan Jadual pada kandungan AKTIF (dulu kekal 'Aktif' walaupun rekod sudah 'Dijadualkan') — status diambil drpd respons server, bukan diteka di client",
+    "files": [
+      "src/components/editorium/IndeksConsole.tsx",
+      "core/routes/contentRoutes.js"
+    ]
+  },
+  {
+    "time": "2026-08-13T12:54:19.052Z",
+    "summary": "Tetapan: nilai berangka tak sah kini ditolak dgn mesej ralat jelas (bukan diterima senyap jadi NaN) — tempoh tatal 3-120s, nota 20-2000 aksara, jam dunia 0-3600s",
+    "files": [
+      "core/routes/systemRoutes.js"
+    ]
+  },
+  {
+    "time": "2026-08-13T12:54:18.877Z",
+    "summary": "Tetapan 3.3: borang Tempoh Cuti Sekolah tak lagi paksa Editorium zum keluar di telefon — telefon 2 baris (tarikh berpasangan, kemudian Kumpulan+nama+buang), desktop kekal 1 baris 5 lajur; tambah aria-label setiap medan (dulu tiada)",
+    "files": [
+      "src/components/editorium/TetapanConsole.tsx"
+    ]
+  },
+  {
+    "time": "2026-08-13T12:54:18.719Z",
+    "summary": "Buang ciri nota kaki/nota pinggir sepenuhnya daripada Brief (milik Adjung Platform, bukan Brief) — lencana rujukan, penomboran (?), gaya CSS berkaitan. Petikan [cite:] dan rujukan silang rajah/jadual/seksyen KEKAL",
+    "files": [
+      "src/utils.tsx",
+      "src/index.css"
+    ]
+  },
+  {
+    "time": "2026-08-13T12:54:18.570Z",
+    "summary": "Focus View: tempoh tatal automatik kini boleh dilaras Ketua Editor/Pentadbir (Tetapan 3.4, lalai 14s kekal) + kawalan papan kekunci pembaca — Space jeda/main, kiri/kanan sebagai alias atas/bawah (padan arah leret telefon)",
+    "files": [
+      "src/components/portal/FocusView.tsx",
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/editorium/TetapanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-07-26T16:54:25.772Z",
     "summary": "Perlembagaan: perhalusi bahasa (rujukan cadangan ChatGPT, disemak dulu satu-satu) -- betulkan adalah/ialah, bila/apabila (termasuk 2 lagi yg terlepas dari cadangan asal), buang '+' dalam prosa, Body->Isi kandungan, Live->Masa Nyata, condongkan istilah teknikal (pipeline/client/server/breakpoint/grid) konsisten dgn Peraturan 08 dokumen sendiri.",
     "files": [
