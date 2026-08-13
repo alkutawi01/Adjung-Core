@@ -1,5 +1,19 @@
 [
   {
+    "time": "2026-08-13T13:37:21.414Z",
+    "summary": "Tetapan 3.3: label API cuti dibetulkan — dulu tertulis 'Group A & Group B' yang mengelirukan (nampak macam API bekalkan cuti sekolah); API tu bekalkan CUTI UMUM sahaja, cuti sekolah datang drpd senarai lalai berkod keras/suntingan manual",
+    "files": [
+      "src/components/editorium/TetapanConsole.tsx"
+    ]
+  },
+  {
+    "time": "2026-08-13T13:37:21.259Z",
+    "summary": "Tetapan 3.3 Cuti Sekolah: butang '+ Tambah Tempoh' kini gulung baris baharu ke pandangan + fokus medan pertama (dulu tiada maklum balas, editor tekan berulang kali); jarak dalam-tempoh diketatkan lawan antara-tempoh dilonggarkan supaya setiap tempoh terbaca satu blok (Kumpulan A/B tak lagi nampak macam kategori cuti); baris kosong kini digugurkan sendiri bukan menahan simpanan",
+    "files": [
+      "src/components/editorium/TetapanConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-08-13T12:59:26.232Z",
     "summary": "Indeks: baris & modal kini papar status betul selepas Simpan Jadual pada kandungan AKTIF (dulu kekal 'Aktif' walaupun rekod sudah 'Dijadualkan') — status diambil drpd respons server, bukan diteka di client",
     "files": [

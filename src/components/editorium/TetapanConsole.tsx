@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
 import {
   Lock, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
@@ -166,6 +166,24 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   // apa yang Jam Dunia SEBENARNYA guna sekarang, bukan cuma apa yang tersimpan.
   const [schoolHolidays, setSchoolHolidays] = useState<{ start: string; end: string; group: string; name: string }[]>([]);
 
+  // Maklum balas "+ Tambah Tempoh" (aduan Izzat 2026-08-13) — butang tu duduk di ATAS senarai,
+  // tetapi tempoh baharu ditambah di HUJUNG. Dengan lapan tempoh sedia ada, baris kosong baharu
+  // muncul jauh di bawah skrin dan editor langsung tak nampak apa-apa berlaku — Izzat tekan tiga
+  // kali (tiga baris kosong dalam screenshotnya) sebab ingat butang tu tak berfungsi. Kini baris
+  // baharu digulung ke pandangan dan medan pertamanya difokus, jadi tindakan itu ada kesan yang
+  // JELAS tanpa memindahkan butang atau menyongsangkan susunan senarai.
+  const senaraiCutiRef = useRef<HTMLDivElement>(null);
+  const [fokusTempohBaharu, setFokusTempohBaharu] = useState(false);
+  useEffect(() => {
+    if (!fokusTempohBaharu) return;
+    setFokusTempohBaharu(false);
+    const bekas = senaraiCutiRef.current;
+    const barisAkhir = bekas?.lastElementChild as HTMLElement | undefined;
+    if (!barisAkhir) return;
+    barisAkhir.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    (barisAkhir.querySelector('input') as HTMLInputElement | null)?.focus({ preventScroll: true });
+  }, [fokusTempohBaharu, schoolHolidays.length]);
+
   // Glos Selari (2026-08-02, Fasa 6) — dahulu checkbox hiasan tanpa kesan. Ciri anotasi
   // interlinear (`[kata](gloss:makna)`, utils.tsx parseInlineFormatting) SUDAH aktif tanpa
   // syarat pada setiap tajuk/huraian kad — togol ni kini benar-benar kawal ia (FrontpageView.tsx
@@ -261,9 +279,21 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   const handleSaveWorldClockSettings = async () => {
     setSavingWorldClock(true);
     setWorldClockSaveError(null);
-    const cutiSah = schoolHolidays.filter((c) => c.start.trim() && c.end.trim() && c.name.trim());
-    if (cutiSah.length !== schoolHolidays.length) {
-      setWorldClockSaveError('Setiap baris cuti sekolah mesti ada Tarikh Mula, Tarikh Tamat, dan Nama diisi (baris kosong dibuang).');
+    // Baris KOSONG SEPENUHNYA digugurkan senyap; baris SEPARUH diisi sahaja yang menahan simpanan
+    // (dibaiki 2026-08-13 selepas aduan Izzat). Dahulu mana-mana baris tak lengkap — termasuk baris
+    // yang betul-betul kosong — menolak keseluruhan simpanan, dengan mesej yang JANJI "baris kosong
+    // dibuang" sedangkan ia sebenarnya enggan menyimpan. Itu perangkap berlapis: butang "+ Tambah
+    // Tempoh" tiada maklum balas kelihatan, jadi editor menekannya beberapa kali, dan setiap tekanan
+    // tambahan itu terus mengunci butang Simpan tanpa sebab yang jelas. Baris kosong ialah kesan
+    // sampingan klik, bukan niat editor — gugurkan sahaja, seperti yang mesej asal sendiri janjikan.
+    const adaIsi = (c: { start: string; end: string; name: string }) =>
+      !!(c.start.trim() || c.end.trim() || c.name.trim());
+    const lengkap = (c: { start: string; end: string; name: string }) =>
+      !!(c.start.trim() && c.end.trim() && c.name.trim());
+    const barisDisentuh = schoolHolidays.filter(adaIsi);
+    const cutiSah = barisDisentuh.filter(lengkap);
+    if (cutiSah.length !== barisDisentuh.length) {
+      setWorldClockSaveError('Ada tempoh cuti yang separuh diisi — setiap satu mesti ada Tarikh Mula, Tarikh Tamat dan Nama. Baris yang langsung kosong tidak mengapa, ia digugurkan sendiri.');
       setSavingWorldClock(false);
       return;
     }
@@ -741,18 +771,32 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => setSchoolHolidays((p) => [...p, { start: '', end: '', group: 'A', name: '' }])}
+                  onClick={() => {
+                    setSchoolHolidays((p) => [...p, { start: '', end: '', group: 'A', name: '' }]);
+                    setFokusTempohBaharu(true);
+                  }}
                 >
                   + Tambah Tempoh
                 </Button>
               </div>
               <span className="text-[10px] text-stone-400 block -mt-1.5">
-                Kumpulan A/B ialah pembahagian rasmi Kementerian Pendidikan (negeri berlainan cuti pada tarikh sedikit berbeza). Senarai kosong = Jam Dunia tidak papar cuti sekolah langsung.
+                Kumpulan A/B ialah pembahagian rasmi Kementerian Pendidikan (negeri berlainan cuti pada tarikh sedikit berbeza) — ia BUKAN jenis cuti. Senarai kosong = Jam Dunia tidak papar cuti sekolah langsung.
+              </span>
+              <span className="text-[10px] text-stone-400 block">
+                Cuti sekolah dimasukkan manual: API cuti yang disambungkan hanya membekalkan <strong className="text-stone-500">cuti umum</strong> (kebangsaan/negeri), bukan takwim persekolahan KPM.
               </span>
               {schoolHolidays.length === 0 && (
                 <KeadaanKosong>Tiada tempoh cuti sekolah ditetapkan.</KeadaanKosong>
               )}
-              <div className="space-y-2">
+              {/* Kedekatan menentukan pengumpulan (aduan Izzat 2026-08-13: "pembahagi antara
+                  tempoh cuti dan kumpulan tak jelas... seolah-olah Kumpulan A dan B tu sendiri
+                  kategori cuti"). Sebabnya jarak DALAM satu tempoh (gap-2 = 8px, antara baris
+                  tarikh dan baris kumpulan+nama) hampir SAMA dengan jarak ANTARA tempoh
+                  (space-y-2 = 8px) — mata tiada petunjuk mana yang satu unit. Kini 4px di dalam
+                  lawan 20px di antara: nisbah 1:5 menjadikan setiap tempoh terbaca sebagai SATU
+                  blok, tanpa menambah kotak/border baharu (pemilik projek tak suka chrome bekas
+                  yang tak perlu — lihat nota "no unnecessary boxes"). */}
+              <div ref={senaraiCutiRef} className="space-y-5">
                 {/* Susun atur telefon (SETTINGS-MOBILE-001, dibaiki 2026-08-13) — baris ni dahulu
                     satu grid 5 lajur TETAP pada semua lebar. Lebar minimum intrinsik dua medan
                     tarikh + pilihan Kumpulan + medan nama melebihi 375px, dan trek grid `1fr`
@@ -767,7 +811,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 {schoolHolidays.map((cuti, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-1 gap-2 border-b border-stone-200 pb-2.5 last:border-0 last:pb-0 sm:grid-cols-[1fr_1fr_70px_1.4fr_auto] sm:items-center sm:border-0 sm:pb-0"
+                    className="grid grid-cols-1 gap-1 sm:grid-cols-[1fr_1fr_70px_1.4fr_auto] sm:items-center sm:gap-2"
                   >
                     <div className="flex gap-2 sm:contents">
                       <input
@@ -871,7 +915,15 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   </div>
                   <div className="text-[10px] text-stone-500 space-y-0.5">
                     <div>Liputan Negeri: <strong className="text-stone-800">15 Negeri & Wilayah</strong></div>
-                    <div>Tahun Kalendar: <strong className="text-stone-800">{apiHealthStatus?.holidayApi?.calendarYear || new Date().getFullYear()} (Group A &amp; Group B)</strong></div>
+                    {/* Label lama berbunyi "(Group A & Group B)" — SALAH dan mengelirukan
+                        (dilaporkan Izzat 2026-08-13: dia ingat cuti sekolah dikemas kini
+                        automatik oleh API ni). "Kumpulan A/B" ialah istilah takwim PERSEKOLAHAN
+                        KPM; API ni (malaysia-holiday.dydxsoft.my, lihat worldClockRoutes.js
+                        /clock-holidays) membekalkan CUTI UMUM sahaja berserta state_codes, dan
+                        langsung tidak menyentuh cuti sekolah — cuti sekolah datang daripada
+                        system_settings.schoolHolidaysJson yang disunting tangan di atas. */}
+                    <div>Liputan: <strong className="text-stone-800">Cuti umum {apiHealthStatus?.holidayApi?.calendarYear || new Date().getFullYear()} (kebangsaan &amp; negeri)</strong></div>
+                    <div className="text-stone-400">Tidak termasuk cuti sekolah — itu disunting manual di 3.3 di atas.</div>
                     <div>Latensi Rangkaian: <strong className="text-emerald-700">{apiHealthStatus?.holidayApi?.latencyMs !== undefined ? `${apiHealthStatus.holidayApi.latencyMs} ms` : '—'}</strong></div>
                     <div className="text-stone-400 truncate">Endpoint: {apiHealthStatus?.holidayApi?.endpoint || 'malaysia-holiday.dydxsoft.my/api/v1/holidays'}</div>
                   </div>
