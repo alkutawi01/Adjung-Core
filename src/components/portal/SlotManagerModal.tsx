@@ -182,35 +182,35 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
       ]
     : [
         '[Peraturan sumber & URL]',
-        'AI-pilih-sumber-sendiri ialah PENEMUAN BANTUAN AI, bukan penerbitan yang disahkan -- editor MESTI sahkan URL sebelum simpan. Jangan gunakan pengetahuan sendiri, ingatan model, atau anggaran. Jangan cipta URL baharu -- hanya guna URL yang anda benar-benar tahu wujud daripada carian sebenar. Jika tidak pasti URL tepat sesuatu sumber, KOSONGKAN URL dan nyatakan nama sumber sahaja tanpa pautan (lebih baik tiada URL daripada URL rekaan). URL mesti bermula dengan http:// atau https://. Kalau ada lebih daripada satu sumber, senaraikan sumber UTAMA sahaja pada baris Sumber/URL (satu sumber sahaja setiap blok, format ni tak sokong berbilang URL serentak).',
+        'Mod pemilihan sumber oleh AI ialah bantuan penemuan kandungan, bukan penerbitan yang telah disahkan. Editor mesti mengesahkan URL sebelum menyimpan kandungan. Jangan gunakan pengetahuan sendiri, ingatan model, atau anggaran. Jangan menghasilkan URL baharu — hanya gunakan URL yang anda benar-benar tahu wujud daripada carian sebenar. Jika tidak pasti URL tepat sesuatu sumber, kosongkan URL dan nyatakan nama sumber sahaja tanpa pautan (tiada URL yang lebih baik daripada URL yang tidak dapat disahkan). URL mesti bermula dengan http:// atau https://. Jika terdapat lebih daripada satu sumber, senaraikan sumber utama sahaja pada baris Sumber/URL (satu sumber sahaja setiap blok, format ini tidak menyokong penggunaan berbilang URL secara serentak).',
       ];
   const lines = [
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
     '[Bidang vs Topik — kedua-dua medan WAJIB diisi, jangan keliru]',
-    'Bidang ialah kategori TETAP untuk slot ini (dinyatakan di atas, TIDAK boleh diubah/dipilih semula). Topik pula label BEBAS yang anda tulis sendiri untuk kandungan ni, mesti spesifik dan masih dalam skop Bidang tu — bukan ulang semula nama Bidang. Contoh: Bidang "Ekonomi" tetap, Topik boleh "Kadar Faedah" atau "Perbankan Digital", bukan "Ekonomi" atau "Berita Ekonomi".', '',
+    'Bidang ialah kategori TETAP untuk slot ini (dinyatakan di atas, TIDAK boleh diubah atau dipilih semula). Topik pula label BEBAS yang anda tulis sendiri untuk kandungan ini, mesti spesifik dan masih dalam skop Bidang tersebut — bukan ulang semula nama Bidang. Contoh: Bidang "Ekonomi" kekal, Topik boleh "Kadar Faedah" atau "Perbankan Digital", bukan "Ekonomi" atau "Berita Ekonomi".', '',
     '[Peraturan am — sistem/global]', fc.masterPrompt || '-', '',
     '[Arahan khas — slot ini]', fc.promptText || 'Tiada arahan khas untuk slot ini. Ikut sepenuhnya Peraturan am di atas.', '',
     '[Fungsi huraian panjang]',
-    'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai huraian mengalir secara natural — JANGAN guna subtajuk atau format berasingan (cth "Apa:"/"Kenapa penting:"/"Konteks:"). Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.', '',
+    'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai huraian mengalir secara lancar — JANGAN gunakan subtajuk atau format berasingan (contoh "Apa:"/"Kenapa penting:"/"Konteks:"). Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.', '',
     ...sumberSection, '',
     '[Format teks]',
-    'Guna teks biasa sahaja. JANGAN guna Markdown (tiada **tebal**, *condong*, atau simbol _ untuk penekanan) — medan borang Adjung paparkan teks mentah, simbol Markdown akan terpapar literal kepada pembaca, bukan diformat.', '',
+    'Gunakan teks biasa sahaja. JANGAN gunakan Markdown (tiada **tebal**, *condong*, atau simbol _ untuk penekanan) — medan borang Adjung paparkan teks mentah, simbol Markdown akan terpapar literal kepada pembaca, bukan diformat.', '',
     '[Had usia sumber — WAJIB, bukan pilihan]',
-    `Sumber MESTI diterbitkan dalam tempoh ${fc.aiPromptRecency || '-'} sebelum hari ini. Kira tarikh dengan teliti sebelum pilih sumber — kalau sumber yang anda jumpa lebih lama daripada had ini, JANGAN guna, cari sumber lain yang lebih baharu.`, '',
+    `Sumber MESTI diterbitkan dalam tempoh ${fc.aiPromptRecency || '-'} sebelum hari ini. Kira tarikh dengan teliti sebelum pilih sumber — kalau sumber yang anda jumpa lebih lama daripada had ini, JANGAN gunakan, cari sumber lain yang lebih baharu.`, '',
     '[Had aksara — sasaran SELAMAT, bukan had maksimum]',
-    'Had di bawah ialah SEMPADAN KERAS (langgar = kandungan ditolak sistem). Tapi JANGAN sasarkan tepat pada angka maksimum — AI kerap silap anggaran sendiri beberapa aksara. Sasarkan ke arah angka "selamat" di bawah, biar ada ruang lapang:',
+    'Had di bawah ialah SEMPADAN KERAS (langgar = kandungan ditolak sistem). Namun, JANGAN sasarkan tepat pada angka maksimum — AI kerap silap anggaran sendiri beberapa aksara. Sasarkan ke arah angka "selamat" di bawah, supaya ada ruang lapang:',
     `Topik: sasarkan sekitar ${topikSafeMax} aksara (sempadan keras: maksimum ${hadTopik})`,
     `Tajuk: sasarkan antara ${minTitleTarget}–${titleSafeMax} aksara (sempadan keras: minimum ${minTitleTarget}, maksimum ${titleTarget})`,
     `Huraian ringkas: sasarkan antara ${minBriefTarget}–${briefSafeMax} aksara (sempadan keras: minimum ${minBriefTarget}, maksimum ${briefTarget})`,
     `Huraian panjang: sasarkan antara ${effectiveMinBriefLong()}–${briefLongSafeMax} aksara (sempadan keras: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong})`, '',
-    '[Semakan sendiri — buat SEBELUM tulis output akhir, jangan papar kiraan dalam output]',
-    'Sebelum berikan jawapan akhir, kira semula aksara SETIAP medan (Topik/Tajuk/Huraian ringkas/Huraian panjang) satu-persatu dan bandingkan dengan sasaran di atas. Kalau mana-mana medan melebihi had maksimum atau kurang daripada minimum, tulis semula medan tu sahaja sehingga masuk julat. Kandungan output akhir MESTI teks tulen sahaja (Topik/Tajuk/dst.) — jangan sertakan kiraan aksara atau nota semakan dalam jawapan akhir.', '',
+    '[Semakan sendiri — lakukan sebelum menghasilkan output akhir, jangan paparkan kiraan dalam output]',
+    'Sebelum berikan jawapan akhir, kira semula aksara setiap medan (Topik/Tajuk/Huraian ringkas/Huraian panjang) satu-persatu dan bandingkan dengan sasaran di atas. Jika mana-mana medan melebihi had maksimum atau kurang daripada minimum, hasilkan semula medan tersebut sahaja sehingga memenuhi julat ditetapkan. Kandungan output akhir mesti teks tulen sahaja (Topik/Tajuk/Huraian ringkas/Huraian panjang) — jangan sertakan kiraan aksara atau nota semakan dalam jawapan akhir.', '',
     `[Bahasa sumber]: ${fc.aiPromptLanguage || '-'}`,
     `[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`,
     `[Jumlah kandungan]: ${fc.generationLimit || 1}`,
     `[Mod janaan]: ${GEN_MODE_LABEL[fc.genMode] || fc.genMode || 'Bebas'}`, '',
     'Berikan output dalam format berikut sahaja, satu blok bagi setiap kandungan, dipisahkan dengan baris "____":',
-    '(Tarikh sumber MESTI format YYYY-MM-DD, cth 2026-08-08 — format lain tidak dikenali oleh borang)',
+    '(Tarikh sumber MESTI format YYYY-MM-DD, contoh 2026-08-08 — format lain tidak dikenali oleh borang)',
     'Topik:', 'Tajuk:', 'Huraian ringkas:', 'Huraian panjang:', 'Sumber:', 'URL:', 'Tarikh sumber:', '',
     '[Contoh format (rujukan struktur SAHAJA — jangan salin isi atau fakta di bawah, ganti dengan kandungan sebenar anda)]',
     'Topik: Dasar Data Awam',
@@ -779,7 +779,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
         return;
       }
       if (!urlFormatSah(url)) {
-        setReferenceUrlNote('URL tidak sah -- mesti bermula dengan http:// atau https://.');
+        setReferenceUrlNote('URL tidak sah — mesti bermula dengan http:// atau https://.');
         setTimeout(() => setReferenceUrlNote(''), 3200);
         return;
       }
@@ -1596,7 +1596,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                         value={formConfig.aiPromptSource || ''}
                         placeholder="https://..."
                         onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptSource: v }))}
-                        hint="AI akan guna URL ni sahaja, tak cari sumber lain"
+                        hint="AI akan menggunakan URL ini sahaja, tanpa mencari sumber lain"
                       />
                       {referenceUrlNote && <span className="font-sans text-[9px] text-[#a8241f]">{referenceUrlNote}</span>}
                     </div>

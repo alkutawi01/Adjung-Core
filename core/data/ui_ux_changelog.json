@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T05:49:01.480Z",
+    "summary": "Baiki daftar bahasa/profesionalisme buildAiPrompt() dan mesej ralat URL rujukan (audit ChatGPT 2026-08-15)",
+    "files": [
+      "src/components/portal/SlotManagerModal.tsx"
+    ]
+  },
+  {
     "time": "2026-08-14T05:07:12.149Z",
     "summary": "Tulis Kandungan (Arahan AI): siapkan ciri 'Dengan rujukan' yg sebelum ni cuma togol hiasan -- medan URL sumber (wajib) kini muncul bila mod dipilih, disambung ke aiPromptSource sedia ada, dan buildAiPrompt() sertakan URL tu sbg satu-satunya sumber dibenarkan (elak AI reka URL). Salin prompt disekat kalau URL kosong/tak sah.",
     "files": [
