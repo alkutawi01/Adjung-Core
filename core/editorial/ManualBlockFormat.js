@@ -114,7 +114,17 @@ export function parseManualBlockFields(block) {
   // legasi seperti biasa — serasi mundur penuh, tiada kandungan sedia ada terjejas.
   let sumberDateArmed = false;
   for (const line of lines) {
-    const trimmed = line.trim();
+    // Label bernombor (2026-08-16, pepijat simulasi tambahan Izzat — "betul2 tiada ralat
+    // langsung?") — prompt SISTEM sendiri (buildAiPrompt) guna label bernombor "URL sumber 1:"/
+    // "URL sumber 2:" utk SENARAI sumber diberi kpd AI (bukan arahan format output — output rasmi
+    // sentiasa minta label polos "Sumber:"/"URL:"), tapi AI luaran boleh tiru corak input tu bila
+    // menjana output sendiri (belum diperhatikan di ChatGPT dlm ujian sebenar, tapi projek ni ada
+    // sejarah "diuji sebenar terhadap 4 AI, KESEMUA langgar sekurang-kurangnya SATU had" -- model
+    // lain (Gemini/DeepSeek/Grok) berkemungkinan tak sama). "Sumber 1:"/"URL 2:" TANPA normalize
+    // ni gagal padan ADA_LABEL_DIKENALI terus -> baris hilang senyap/tersasar jadi teks sambungan.
+    // Normalize di sini (SEBELUM apa-apa logik lain) supaya "Sumber 1:"/"URL 2:"/"Tarikh sumber 3:"
+    // dilayan SAMA macam label polos, tanpa ubah tingkah laku label yang sedia betul.
+    const trimmed = line.trim().replace(/^(Sumber|URL|Tarikh sumber)\s+\d+\s*:/i, '$1:');
     // Baris sambungan (2026-08-12, pembetulan pepijat #21) — baris yang BUKAN label dikenali.
     // Sebelum ni ia jatuh melalui semua else-if TANPA else dan HILANG SENYAP: editor taip/tampal
     // Huraian panjang berbilang perenggan, simpan, buka semula -> perenggan 2 ke atas lenyap tanpa

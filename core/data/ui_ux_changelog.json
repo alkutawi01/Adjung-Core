@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T09:13:48.983Z",
+    "summary": "Parser Tampal terima label bernombor (Sumber 1:/URL 2:/Tarikh sumber 3:) sebagai polos -- AI luaran boleh tiru corak bernombor drpd senarai sumber prompt sistem sendiri walaupun arahan output minta label polos",
+    "files": [
+      "core/editorial/ManualBlockFormat.js"
+    ]
+  },
+  {
     "time": "2026-08-14T09:03:05.359Z",
     "summary": "Baiki 2 pepijat kritikal parser 'Tampal' output AI: (1) baris kosong antara Topik:/Tajuk: silap dianggap sempadan kandungan baharu, pecahkan 1 kandungan AI jadi 2 blok; (2) baris kosong antara URL:/Tarikh sumber: reset sumberDateArmed, tarikh per-sumber hilang jatuh balik ke medan legasi kongsi. Kedua-dua berlaku SETIAP kali tampal output AI (format semula jadi copy-paste chat)",
     "files": [
