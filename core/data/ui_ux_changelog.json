@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T07:55:59.145Z",
+    "summary": "Baiki bug 'Sumber: Editorial Adjung' (label patut dikira sistem, bukan ditulis AI) + tarikh per-sumber (sources[] kini {name,url,date}) merentasi borang manual, parser tampal, prompt AI, Focus View dan label kad",
+    "files": [
+      "src/components/portal/SlotManagerModal.tsx src/components/portal/FocusView.tsx src/components/portal/FrontpageView.tsx core/editorial/ManualBlockFormat.js server.js"
+    ]
+  },
+  {
     "time": "2026-08-14T06:58:44.402Z",
     "summary": "Mod 'Dengan rujukan': sokong berbilang sumber rujukan (guna semula corak sources[] sedia ada), semakan keserasian (tolak jika tak berkaitan, banding/attribute jika fakta beza), label Editorial Adjung bila >1 sumber (audit ChatGPT, simulasi Izzat pusingan 4)",
     "files": [

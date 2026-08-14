@@ -220,13 +220,13 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
           'SEBAB: (terangkan secara ringkas mengapa sumber tidak boleh digabungkan)',
           '',
           'Jika sumber-sumber tersebut membincangkan perkara yang SAMA tetapi mempunyai perbezaan fakta tertentu (contoh: bilangan mangsa berbeza), JANGAN tolak sumber tersebut. Sebaliknya:',
-          '- Bandingkan maklumat yang diberikan.',
-          '- Nyatakan perbezaan dengan atribusi kepada sumber masing-masing jika perbezaan itu penting (contoh: "Utusan Malaysia melaporkan 6 orang terbunuh, manakala Berita Harian melaporkan 5 orang terbunuh.").',
-          '- Jika perbezaan kecil atau tidak perlu dihuraikan, gunakan bahasa berhati-hati yang tidak memilih satu dakwaan secara mutlak (contoh: "Sumber melaporkan sekurang-kurangnya 5 orang terbunuh.").',
+          '- Bandingkan maklumat yang diberikan. Jangan elak/kaburkan angka atau fakta khusus yang berbeza semata-mata kerana ia bercanggah — pembaca perlukan maklumat itu.',
+          '- Nyatakan perbezaan dengan atribusi kepada sumber masing-masing jika perbezaan itu penting (contoh: "Bernama melaporkan bacaan 183, manakala NST melaporkan 190.").',
+          '- Jika perbezaan kecil atau tidak perlu dihuraikan, gunakan bahasa berhati-hati yang tetap menyatakan angka sebenar, tidak memilih satu dakwaan secara mutlak (contoh: "Sumber melaporkan bacaan sekitar 183 hingga 190.").',
           '- Jangan hasilkan fakta baharu yang tidak terdapat dalam mana-mana sumber, dan jangan satukan angka berbeza menjadi satu angka baharu tanpa justifikasi (contoh: jangan pilih angka tertinggi sebagai "sekurang-kurangnya" semata-mata kerana ia tertinggi).',
           '',
           '[Penggunaan medan Sumber]',
-          'Jika kandungan akhir hanya berdasarkan SATU sumber (selepas semakan keserasian di atas), gunakan nama sumber tersebut pada medan Sumber. Jika kandungan menggabungkan maklumat daripada DUA atau lebih sumber, gunakan "Sumber: Editorial Adjung" dan ulang baris Sumber:/URL: untuk SETIAP sumber yang digunakan (bukan satu nama sumber sahaja) — kandungan sedemikian ialah sintesis Adjung, bukan cetakan semula satu penerbit.',
+          'Sentiasa gunakan nama SEBENAR sumber (contoh "Bernama", "NST") pada setiap baris Sumber:/URL: — JANGAN sekali-kali tulis "Editorial Adjung" sebagai nama sumber; itu label yang dipaparkan sistem Adjung SENDIRI secara automatik pada kad bila lebih daripada satu sumber digunakan, BUKAN nama untuk anda tulis. Kalau kandungan menggabungkan DUA atau lebih sumber, ulang KETIGA-TIGA baris Sumber:/URL:/Tarikh sumber: untuk SETIAP sumber (dengan nama, URL dan tarikh terbitan SEBENAR masing-masing — sumber berbeza selalunya diterbitkan pada tarikh berbeza, jangan kongsi satu tarikh untuk semua) — jangan gugurkan mana-mana.',
         ] : []),
       ]
     : [
@@ -717,18 +717,21 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       : [{ ...blankItem(), [key]: value }]
   ));
 
-  // Sumber berbilang (2026-08-05, permintaan Izzat) — `it.sources` senarai {name,url}[]. `source`/
-  // `url` tunggal legasi diselaraskan SEKALI di sini (entri pertama) supaya kad/pautan lama yang
-  // masih baca medan tunggal terus betul tanpa perlu ubah kod lain — satu tempat sahaja.
+  // Sumber berbilang (2026-08-05, permintaan Izzat) — `it.sources` senarai {name,url,date}[].
+  // `source`/`url`/`date` tunggal legasi diselaraskan SEKALI di sini (entri pertama) supaya kad/
+  // pautan lama yang masih baca medan tunggal terus betul tanpa perlu ubah kod lain — satu tempat
+  // sahaja. Medan `date` per-sumber (2026-08-15, permintaan Izzat — sumber berbeza boleh ada
+  // tarikh terbitan berbeza, satu tarikh dikongsi mengelirukan/kehilangan maklumat).
   const selarasSumberLegasi = (it: any) => ({
     ...it,
     source: (it.sources && it.sources[0]?.name) || '',
     url: (it.sources && it.sources[0]?.url) || '',
+    date: (it.sources && it.sources[0]?.date) || it.date || '',
   });
-  const patchSumber = (i: number, sIdx: number, field: 'name' | 'url', value: string) => commit((prevItems) => (
+  const patchSumber = (i: number, sIdx: number, field: 'name' | 'url' | 'date', value: string) => commit((prevItems) => (
     prevItems.map((it, n) => {
       if (n !== i) return it;
-      const sources = (it.sources && it.sources.length > 0) ? [...it.sources] : [{ name: it.source || '', url: it.url || '' }];
+      const sources = (it.sources && it.sources.length > 0) ? [...it.sources] : [{ name: it.source || '', url: it.url || '', date: it.date || '' }];
       sources[sIdx] = { ...sources[sIdx], [field]: value };
       return selarasSumberLegasi({ ...it, sources });
     })
@@ -736,17 +739,17 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const tambahSumber = (i: number) => commit((prevItems) => (
     prevItems.map((it, n) => {
       if (n !== i) return it;
-      const sources = (it.sources && it.sources.length > 0) ? [...it.sources] : [{ name: it.source || '', url: it.url || '' }];
-      sources.push({ name: '', url: '' });
+      const sources = (it.sources && it.sources.length > 0) ? [...it.sources] : [{ name: it.source || '', url: it.url || '', date: it.date || '' }];
+      sources.push({ name: '', url: '', date: '' });
       return selarasSumberLegasi({ ...it, sources });
     })
   ));
   const buangSumber = (i: number, sIdx: number) => commit((prevItems) => (
     prevItems.map((it, n) => {
       if (n !== i) return it;
-      const sources = (it.sources && it.sources.length > 0) ? [...it.sources] : [{ name: it.source || '', url: it.url || '' }];
+      const sources = (it.sources && it.sources.length > 0) ? [...it.sources] : [{ name: it.source || '', url: it.url || '', date: it.date || '' }];
       const next = sources.filter((_: any, idx: number) => idx !== sIdx);
-      return selarasSumberLegasi({ ...it, sources: next.length > 0 ? next : [{ name: '', url: '' }] });
+      return selarasSumberLegasi({ ...it, sources: next.length > 0 ? next : [{ name: '', url: '', date: '' }] });
     })
   ));
   // useCallback([items.length]): identiti KEKAL STABIL sepanjang menaip biasa (panjang giliran tak
@@ -1506,14 +1509,19 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     daripada satu sumber untuk SATU kandungan (cth digubah drpd pelbagai bahan).
                     Kad terhad ruang: label kad papar "Editorial Adjung" secara automatik bila
                     >1 sumber (lihat FrontpageView.tsx), bukan senarai penuh. Focus View (ruang
-                    lebih) senaraikan SEMUA. */}
+                    lebih) senaraikan SEMUA. Tarikh kini PER-SUMBER (2026-08-15, permintaan Izzat
+                    — "setiap sumber ada: nama sumber, URL, dan tarikh, mana boleh kongsi/
+                    permudahkan" -- sumber berbeza boleh diterbitkan pada tarikh berbeza, satu
+                    medan tarikh dikongsi kehilangan maklumat). Medan "Tarikh sumber" tunggal
+                    yang dulu berasingan di bawah dibuang -- sekarang sebahagian setiap baris
+                    sumber, current.date terus diselaraskan drpd sources[0].date (selarasSumberLegasi). */}
                 <div className="flex flex-col gap-3">
                   <div className="flex items-baseline justify-between">
                     <span className={labelCls}>Sumber {(current.sources && current.sources.length > 1) && <span className="font-sans normal-case tracking-normal font-normal text-stone-400">(kad papar "Editorial Adjung" bila &gt;1 sumber)</span>}</span>
                     <button type="button" onClick={() => tambahSumber(activeIndex)} className="text-[11px] font-sans font-semibold text-[#802334] hover:underline cursor-pointer">+ Tambah sumber</button>
                   </div>
-                  {((current.sources && current.sources.length > 0) ? current.sources : [{ name: current.source || '', url: current.url || '' }]).map((s: any, sIdx: number) => (
-                    <div key={sIdx} className="grid grid-cols-2 gap-3 items-end">
+                  {((current.sources && current.sources.length > 0) ? current.sources : [{ name: current.source || '', url: current.url || '', date: current.date || '' }]).map((s: any, sIdx: number) => (
+                    <div key={sIdx} className="grid grid-cols-[1.2fr_1.6fr_1fr_auto] gap-3 items-end">
                       <label className="flex flex-col gap-1">
                         {sIdx === 0 && <span className={labelCls}>Nama sumber</span>}
                         <input
@@ -1522,27 +1530,32 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
                         />
                       </label>
-                      <span className="flex items-end gap-2">
-                        <label className="flex-1 flex flex-col gap-1">
-                          {sIdx === 0 && <span className={labelCls}>URL</span>}
-                          <input
-                            type="text" value={s.url || ''} placeholder="https://"
-                            onChange={(e) => patchSumber(activeIndex, sIdx, 'url', e.target.value)}
-                            className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
-                          />
-                        </label>
-                        {(current.sources && current.sources.length > 1) && (
-                          <button type="button" onClick={() => buangSumber(activeIndex, sIdx)} aria-label="Buang sumber ini" className="text-stone-400 hover:text-[#a8241f] cursor-pointer pb-1.5">
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </span>
+                      <label className="flex flex-col gap-1">
+                        {sIdx === 0 && <span className={labelCls}>URL</span>}
+                        <input
+                          type="text" value={s.url || ''} placeholder="https://"
+                          onChange={(e) => patchSumber(activeIndex, sIdx, 'url', e.target.value)}
+                          className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        {sIdx === 0 && <span className={labelCls}>Tarikh sumber</span>}
+                        <input
+                          type="date" value={s.date || ''}
+                          onChange={(e) => patchSumber(activeIndex, sIdx, 'date', e.target.value)}
+                          className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+                        />
+                      </label>
+                      {(current.sources && current.sources.length > 1) ? (
+                        <button type="button" onClick={() => buangSumber(activeIndex, sIdx)} aria-label="Buang sumber ini" className="text-stone-400 hover:text-[#a8241f] cursor-pointer pb-1.5">
+                          <Trash2 size={14} />
+                        </button>
+                      ) : <span />}
                     </div>
                   ))}
                 </div>
                 <div className="grid grid-cols-2 gap-5">
                   <SelectField label="Jenis sumber" value={current.sourceType || ''} options={JENIS_SUMBER_PILIHAN} onChange={(v) => patch(activeIndex, 'sourceType', v)} />
-                  <Field label="Tarikh sumber" type="date" value={current.date || ''} onChange={(v) => patch(activeIndex, 'date', v)} />
                   <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
                 </div>
                 <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor (pilihan), hanya di Focus View" maxLen={280} onChange={(v) => patch(activeIndex, 'note', v)} />

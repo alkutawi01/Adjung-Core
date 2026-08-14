@@ -1705,12 +1705,19 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       // bilangan sumber BERBEZA, jadi mesti disemak satu-satu, bukan warisi keputusan item
       // pertama). Tanpa baris kedua ni, kandungan carousel BUKAN item pertama slot yang ada >1
       // sumber tak pernah dapat label "Editorial Adjung" walaupun betul patut.
+      // Tarikh kad bila >1 sumber (2026-08-15, permintaan Izzat) — sumber berbeza boleh ada
+      // tarikh terbitan berbeza (lihat sources[].date, ManualBlockFormat.js), jadi papar tarikh
+      // SATU sumber tunggal pada kad mengelirukan (sama isu macam label "Editorial Adjung" di
+      // bawah). Kosongkan originalDate terus supaya jatuh balik ke publishedAt (tarikh kandungan
+      // ni SENDIRI dicipta/disunting di Adjung) melalui fallback getDisplayDate||formatBentoDate
+      // yang MEMANG sudah wujud di setiap tapak render (tiada medan/logik baharu diperlukan).
       if (Array.isArray(itemToPush.sources) && itemToPush.sources.length > 1) {
         itemToPush.source = 'Editorial Adjung';
+        itemToPush.originalDate = '';
       }
       if (Array.isArray(itemToPush.items)) {
         itemToPush.items = itemToPush.items.map((it: any) => (
-          Array.isArray(it.sources) && it.sources.length > 1 ? { ...it, source: 'Editorial Adjung' } : it
+          Array.isArray(it.sources) && it.sources.length > 1 ? { ...it, source: 'Editorial Adjung', originalDate: '' } : it
         ));
       }
       if (itemToPush.desk === 'BELUM DIKELASKAN') {

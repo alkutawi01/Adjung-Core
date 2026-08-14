@@ -208,9 +208,13 @@ export interface FocusViewProps {
   /** Sumber berbilang (2026-08-05, permintaan Izzat) — kad papar label generik "Editorial
    *  Adjung" bila >1 (ruang terhad, lihat FrontpageView.tsx), tapi Focus View (ruang lebih)
    *  SENARAIKAN SEMUA sumber di sini, sama ada satu atau lebih. Bila dibekalkan (panjang > 0),
-   *  MENGATASI `source`/`sourceUrl` tunggal di atas untuk paparan kolofon. */
-  sources?: { name: string; url?: string }[];
-  /** Tarikh sumber — tarikh bahan asal, dipapar di sebelah Sumber. */
+   *  MENGATASI `source`/`sourceUrl` tunggal di atas untuk paparan kolofon. `date` per-sumber
+   *  (2026-08-15, permintaan Izzat — sumber berbeza boleh diterbitkan pada tarikh berbeza,
+   *  Focus View catat SEMUA, bukan satu tarikh dikongsi). */
+  sources?: { name: string; url?: string; date?: string }[];
+  /** Tarikh sumber — tarikh bahan asal, dipapar di sebelah Sumber. Jatuh balik/keserasian ke
+   *  belakang bila `sources[].date` (di atas) tiada — kandungan lama sebelum tarikh per-sumber
+   *  wujud, atau kes sumber tunggal legasi (`source`/`sourceUrl`). */
   sourceDate?: string;
   /** Tarikh siaran — tarikh penyiaran Adjung, dipapar sebaris dengan eyebrow atas tajuk. */
   publishedDate?: string;
@@ -791,16 +795,25 @@ export const FocusView: React.FC<FocusViewProps> = ({
           {/* Tarikh siaran dipindah ke kepala melekat (di atas, bawah tajuk) — lihat nota di sana.
               Tarikh SUMBER (bukan siaran) kekal di sini, di bawah nama Sumber (permintaan Izzat).
               Sumber berbilang (2026-08-05) — Focus View senaraikan SEMUA (`sources`), bukan cuma
-              satu (`source`/`sourceUrl`) — ruang lebih drpd kad, tiada sebab hadkan di sini. */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '2px' }}>
+              satu (`source`/`sourceUrl`) — ruang lebih drpd kad, tiada sebab hadkan di sini.
+              Tarikh PER-sumber (2026-08-15) — setiap sumber papar tarikh SENDIRI terus di bawah
+              namanya (bukan satu sourceDate dikongsi semua), sebab sumber berbeza selalunya
+              diterbitkan pada tarikh berbeza. `sourceDate` kekal jatuh balik untuk kes sumber
+              tunggal legasi (sources[] tiada). */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '6px' }}>
             {sources.length > 0 ? (
               sources.map((s, i) => (
-                <a key={i} href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5, wordBreak: 'break-all' }}>{s.name || '—'}</a>
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                  <a href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5, wordBreak: 'break-all' }}>{s.name || '—'}</a>
+                  {s.date && (
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}>{s.date}</span>
+                  )}
+                </div>
               ))
             ) : (
               <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5, wordBreak: 'break-all' }}>{source || '—'}</a>
             )}
-            {sourceDate && (
+            {sources.length === 0 && sourceDate && (
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}>{sourceDate}</span>
             )}
           </div>
@@ -1164,12 +1177,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <span style={micro}>{sources.length > 1 ? 'Sumber-sumber' : 'Sumber'}</span>
             {/* Sumber berbilang (2026-08-05) — senaraikan SEMUA (`sources`), satu baris setiap
                 sumber; jatuh balik ke medan tunggal (`source`/`sourceUrl`) bila `sources` tiada
-                (kandungan lama). */}
+                (kandungan lama). Tarikh PER-sumber (2026-08-15) — SEBELUM NI cuma sumber PERTAMA
+                (i===0) papar sourceDate dikongsi, sumber lain terus tiada tarikh langsung; kini
+                setiap sumber papar s.date SENDIRI (jatuh balik ke sourceDate kongsi untuk sumber
+                pertama sahaja, kandungan lama sebelum tarikh per-sumber wujud). */}
             {sources.length > 0 ? (
               sources.map((s, i) => (
                 <span key={i} style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
                   <a href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{s.name || '—'}</a>
-                  {i === 0 && sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
+                  {(s.date || (i === 0 && sourceDate)) && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {s.date || sourceDate}</span>}
                 </span>
               ))
             ) : (

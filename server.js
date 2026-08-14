@@ -2565,8 +2565,10 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let url = '';
     // Sumber berbilang (2026-08-05, permintaan Izzat) — sama corak macam ManualBlockFormat.js
     // (salinan client) — SETIAP baris "Sumber:" tolak entri baharu, dipasangkan dengan "URL:"
-    // berikutnya. `source`/`url` tunggal kekal = entri PERTAMA (keserasian ke belakang).
+    // berikutnya. `source`/`url` tunggal kekal = entri PERTAMA (keserasian ke belakang). Tarikh
+    // per-sumber (2026-08-15) — lihat sumberDateArmed di bawah, sama corak ManualBlockFormat.js.
     let sources = [];
+    let sumberDateArmed = false;
     let sourceType = '';
     let isEventBlock = false;
     // LALAI 'approved' (BUKAN 'draft') bila tiada baris "Status:" — blok lama yang disimpan
@@ -2633,6 +2635,14 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         continue;
       }
       medanSemasa = null;
+      if (trimmed.startsWith('Tarikh sumber:') && sumberDateArmed && sources.length > 0) {
+        const tarikhSumber = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
+        sources[sources.length - 1].date = tarikhSumber;
+        if (sources.length === 1) { date = tarikhSumber; dateEnd = tarikhSumber; }
+        sumberDateArmed = false;
+        continue;
+      }
+      sumberDateArmed = false;
       if (trimmed.startsWith('UUID:')) {
         uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
       } else if (trimmed.startsWith('Status:')) {
@@ -2697,15 +2707,16 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       } else if (trimmed.startsWith('Sumber:')) {
         const nama = trimmed.replace(/^Sumber:\s*/i, '').trim();
         if (sources.length === 0) source = nama;
-        sources.push({ name: nama, url: '' });
+        sources.push({ name: nama, url: '', date: '' });
       } else if (trimmed.startsWith('URL:')) {
         const u = trimmed.replace(/^URL:\s*/i, '').trim();
         if (sources.length === 0) {
-          sources.push({ name: '', url: u });
+          sources.push({ name: '', url: u, date: '' });
         } else {
           sources[sources.length - 1].url = u;
         }
         if (sources.length === 1) url = u;
+        sumberDateArmed = true;
       }
     }
 
@@ -2791,23 +2802,37 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
 // ManualBlockFormat.js's serializeManualBentoItem (client copy), kept in sync manually (same
 // existing duplication pattern as parseManualSummaryTemplate above). Only used for items staying
 // in slots_config.manualSummary as drafts; published items never round-trip through this.
-const serializeDraftBlock = (item) => [
-  `UUID: ${item.uuid || ''}`,
-  `Status: draf`,
-  `Tajuk: ${item.title || ''}`,
-  `Topik: ${item.topik || ''}`,
-  `Huraian ringkas: ${item.summary || ''}`,
-  `Huraian panjang: ${item.briefLong || ''}`,
-  `Sumber: ${item.source || ''}`,
-  `URL: ${item.url || ''}`,
-  // Jenis sumber (Fasa 8b, 2026-08-05) — sepadan pembetulan ManualBlockFormat.js's
-  // serializeManualBentoItem (baris ni hilang senyap di sana sebelum ni juga).
-  `Jenis sumber: ${item.sourceType || ''}`,
-  `Tarikh sumber: ${item.originalDate || ''}`,
-  `Imej: ${item.image || ''}`,
-  `Nota: ${item.note || ''}`,
-  `Penulis: ${item.penulis || ''}`,
-].join('\n');
+const serializeDraftBlock = (item) => {
+  // Sumber berbilang + tarikh per-sumber (2026-08-15) — SEBELUM NI fungsi ni cuma tulis
+  // item.source/item.url TUNGGAL, jadi draf orang lain yang ada >1 sumber runtuh senyap kepada
+  // SATU sumber setiap kali giliran digabung semula (kekalkanDrafOrangLain). Kini ikut corak
+  // sama macam serializeManualBentoItem (ManualBlockFormat.js) -- ulang Sumber:/URL:/Tarikh
+  // sumber: bagi setiap entri item.sources.
+  const sumberBaris = [];
+  const sourcesList = Array.isArray(item.sources) && item.sources.length > 0
+    ? item.sources
+    : [{ name: item.source || '', url: item.url || '', date: item.originalDate || '' }];
+  for (const s of sourcesList) {
+    sumberBaris.push(`Sumber: ${s.name || ''}`);
+    sumberBaris.push(`URL: ${s.url || ''}`);
+    sumberBaris.push(`Tarikh sumber: ${s.date || ''}`);
+  }
+  return [
+    `UUID: ${item.uuid || ''}`,
+    `Status: draf`,
+    `Tajuk: ${item.title || ''}`,
+    `Topik: ${item.topik || ''}`,
+    `Huraian ringkas: ${item.summary || ''}`,
+    `Huraian panjang: ${item.briefLong || ''}`,
+    ...sumberBaris,
+    // Jenis sumber (Fasa 8b, 2026-08-05) — sepadan pembetulan ManualBlockFormat.js's
+    // serializeManualBentoItem (baris ni hilang senyap di sana sebelum ni juga).
+    `Jenis sumber: ${item.sourceType || ''}`,
+    `Imej: ${item.image || ''}`,
+    `Nota: ${item.note || ''}`,
+    `Penulis: ${item.penulis || ''}`,
+  ].join('\n');
+};
 const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n';
 
 // Keeps editorial_objects/editorial_revisions/editorial_attribute_values in sync with a Manual-mode

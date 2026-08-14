@@ -68,7 +68,11 @@ export function parseManualBlockFields(block) {
     // baharu ke `sources` (dipasangkan dengan "URL:" berikutnya, jika ada, ikut turutan
     // ditaip — editor sentiasa taip Sumber lalu URL bersebelahan dalam templat). `source`/`url`
     // tunggal di atas KEKAL = entri PERTAMA sahaja (keserasian ke belakang untuk pengguna
-    // sedia ada yang cuma baca satu sumber, cth kad bento sebelum ciri ni wujud).
+    // sedia ada yang cuma baca satu sumber, cth kad bento sebelum ciri ni wujud). Setiap entri
+    // sources[] kini bawa `date` sendiri (2026-08-15, permintaan Izzat -- sumber berbeza boleh
+    // ada tarikh terbitan berbeza, satu medan `date` kongsi di peringkat blok mengelirukan/
+    // kehilangan maklumat). `date`/`dateEnd` tunggal di bawah KEKAL sebagai medan legasi
+    // (BAR julat tarikh acara, dan cermin sumber PERTAMA untuk kandungan lama pra-ciri ni).
     sources: [],
     organizer: '', location: '', access: '', penerangan: '',
     note: '', image: '', isEventBlock: false,
@@ -94,6 +98,11 @@ export function parseManualBlockFields(block) {
   // berbilang-baris dijumpai, DIKOSONGKAN semula oleh SETIAP label lain yang dikenali — supaya
   // label seterusnya sentiasa menamatkan medan semasa, tak kira medan apa.
   let medanSemasa = null;
+  // Tarikh per-sumber (2026-08-15) — "Tarikh sumber:" yang muncul SEJURUS SELEPAS baris "URL:"
+  // diikat kepada sumber tu (bukan medan tunggal legasi). "Tarikh sumber:" yang muncul di
+  // tempat lain (cth. hujung blok, corak SEMUA kandungan sebelum ciri ni) jatuh ke cabang
+  // legasi seperti biasa — serasi mundur penuh, tiada kandungan sedia ada terjejas.
+  let sumberDateArmed = false;
   for (const line of lines) {
     const trimmed = line.trim();
     // Baris sambungan (2026-08-12, pembetulan pepijat #21) — baris yang BUKAN label dikenali.
@@ -109,6 +118,14 @@ export function parseManualBlockFields(block) {
     // Label dikenali dijumpai -> medan berbilang-baris sebelumnya (jika ada) TAMAT di sini.
     // Cabang medan berbilang-baris di bawah menetapkan semula `medanSemasa` selepas ni.
     medanSemasa = null;
+    if (trimmed.startsWith('Tarikh sumber:') && sumberDateArmed && fields.sources.length > 0) {
+      const tarikhSumber = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
+      fields.sources[fields.sources.length - 1].date = tarikhSumber;
+      if (fields.sources.length === 1) { fields.date = tarikhSumber; fields.dateEnd = tarikhSumber; }
+      sumberDateArmed = false;
+      continue;
+    }
+    sumberDateArmed = false;
     if (trimmed.startsWith('UUID:')) {
       fields.uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
     } else if (trimmed.startsWith('Status:')) {
@@ -173,17 +190,18 @@ export function parseManualBlockFields(block) {
     } else if (trimmed.startsWith('Sumber:')) {
       const nama = trimmed.replace(/^Sumber:\s*/i, '').trim();
       if (fields.sources.length === 0) fields.source = nama; // entri pertama = medan tunggal legasi.
-      fields.sources.push({ name: nama, url: '' });
+      fields.sources.push({ name: nama, url: '', date: '' });
     } else if (trimmed.startsWith('URL:')) {
       const url = trimmed.replace(/^URL:\s*/i, '').trim();
       if (fields.sources.length === 0) {
         // Baris "URL:" muncul sebelum "Sumber:" (jarang, tapi templat tak kuatkuasa turutan) —
         // cipta entri sumber kosong supaya URL ni tak hilang.
-        fields.sources.push({ name: '', url });
+        fields.sources.push({ name: '', url, date: '' });
       } else {
         fields.sources[fields.sources.length - 1].url = url;
       }
       if (fields.sources.length === 1) fields.url = url; // entri pertama = medan tunggal legasi.
+      sumberDateArmed = true; // "Tarikh sumber:" sejurus selepas ni (jika ada) diikat ke sumber ni.
     }
   }
 
@@ -232,13 +250,17 @@ export function serializeManualBentoItem(item) {
   // baca balik SEMUA entri, bukan cuma yang pertama. Jatuh balik ke medan tunggal kalau
   // `item.sources` tiada/kosong (item lama sebelum ciri ni wujud, atau editor cuma isi medan
   // tunggal — UI SlotManagerModal.tsx sentiasa isi `sources`, ni jaring keselamatan sahaja).
+  // Tarikh per-sumber (2026-08-15, permintaan Izzat) — ditulis SEJURUS SELEPAS URL: sumber
+  // masing-masing (bukan satu baris "Tarikh sumber:" tunggal di hujung blok macam sebelum ni),
+  // supaya parseManualBlockFields ikat balik tarikh yang betul kepada sumber yang betul.
   const sumberBaris = [];
   const sourcesList = Array.isArray(item.sources) && item.sources.length > 0
     ? item.sources
-    : [{ name: item.source || '', url: item.url || '' }];
+    : [{ name: item.source || '', url: item.url || '', date: item.date || '' }];
   for (const s of sourcesList) {
     sumberBaris.push(`Sumber: ${s.name || ''}`);
     sumberBaris.push(`URL: ${s.url || ''}`);
+    sumberBaris.push(`Tarikh sumber: ${s.date || ''}`);
   }
 
   return [
@@ -255,7 +277,6 @@ export function serializeManualBentoItem(item) {
     // kosong), sebab serialize tak pernah tulis baris ni balik ke teks. Ditemui semasa sambung
     // dropdown UI (SlotManagerModal.tsx) — pepijat sedia ada, bukan diperkenalkan ciri baharu ni.
     `Jenis sumber: ${item.sourceType || ''}`,
-    `Tarikh sumber: ${item.date || ''}`,
     `Imej: ${item.image || ''}`,
     `Nota: ${item.note || ''}`,
     `Penulis: ${item.penulis || ''}`,
