@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T08:57:17.815Z",
+    "summary": "Baiki tarikh per-sumber hilang lepas 'Tampal' output AI (sources[].date tak dinormalize ke ISO, cuma medan date legasi tunggal) + perluaskan normalkanTarikhISO terima nama bulan Inggeris, yyyy/mm/dd, d-m-yyyy, ordinal (13th), koma",
+    "files": [
+      "src/components/portal/SlotManagerModal.tsx"
+    ]
+  },
+  {
     "time": "2026-08-14T07:55:59.145Z",
     "summary": "Baiki bug 'Sumber: Editorial Adjung' (label patut dikira sistem, bukan ditulis AI) + tarikh per-sumber (sources[] kini {name,url,date}) merentasi borang manual, parser tampal, prompt AI, Focus View dan label kad",
     "files": [

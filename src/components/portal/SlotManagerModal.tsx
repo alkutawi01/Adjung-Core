@@ -20,23 +20,53 @@ import { KompakCardPreview } from './cards/KompakCardPreview';
 // input date, jadi editor terpaksa isi semula secara manual. Cuba beberapa corak biasa; kalau
 // tiada padanan, pulangkan teks asal tak disentuh (falsafah sedia ada: jangan hilangkan tarikh
 // separa/tidak dikenali).
+// Nama bulan Melayu DAN Inggeris (2026-08-16, permintaan Izzat -- "borang sepatutnya direka utk
+// menerima pelbagai format secara fleksibel utk mengurangkan ralat") -- AI luaran (ChatGPT/Gemini/
+// dll) tak selalu ikut arahan Bahasa Melayu sepenuhnya utk tarikh walaupun sisa kandungan betul,
+// jadi terima kedua-dua bahasa di sini tak buat kerosakan (nama bulan unik, tiada perlanggaran).
 const NAMA_BULAN_KE_NOMBOR: Record<string, string> = {
-  januari: '01', februari: '02', mac: '03', april: '04', mei: '05', jun: '06',
-  julai: '07', ogos: '08', september: '09', oktober: '10', november: '11', disember: '12',
+  januari: '01', january: '01', jan: '01',
+  februari: '02', february: '02', feb: '02',
+  mac: '03', march: '03', mar: '03',
+  april: '04', apr: '04',
+  mei: '05', may: '05',
+  jun: '06', june: '06',
+  julai: '07', july: '07', jul: '07',
+  ogos: '08', august: '08', aug: '08',
+  september: '09', sept: '09', sep: '09',
+  oktober: '10', october: '10', oct: '10',
+  november: '11', nov: '11',
+  disember: '12', december: '12', dec: '12',
 };
 function normalkanTarikhISO(raw: string): string {
   const t = (raw || '').trim();
   if (!t) return t;
   if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-  const dmy = t.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})$/);
+  // yyyy/mm/dd atau yyyy.mm.dd (tahun dulu, bukan ISO tepat tapi corak biasa AI/lokal lain).
+  const ymd = t.match(/^(\d{4})[.\/](\d{1,2})[.\/](\d{1,2})$/);
+  if (ymd) {
+    const [, y, m, d] = ymd;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  // d/m/yyyy, d.m.yyyy, ATAU d-m-yyyy (sengaja SELEPAS semakan ISO di atas supaya "2026-08-13"
+  // tak pernah tersalah anggap sebagai d-m-y dgn tahun 2 digit).
+  const dmy = t.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})$/);
   if (dmy) {
     const [, d, m, y] = dmy;
     const yyyy = y.length === 2 ? `20${y}` : y;
     return `${yyyy}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
   }
-  const namaBulan = t.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
-  if (namaBulan) {
-    const [, d, bulanNama, y] = namaBulan;
+  // "13 Ogos 2026" / "13 Ogos, 2026" / "August 13, 2026" / "13th Ogos 2026" — nama bulan boleh
+  // sebelum atau selepas nombor hari, koma pilihan, sufiks ordinal (st/nd/rd/th) pilihan.
+  const dNamaBulanY = t.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\.?,?\s+(\d{4})$/i);
+  if (dNamaBulanY) {
+    const [, d, bulanNama, y] = dNamaBulanY;
+    const bulan = NAMA_BULAN_KE_NOMBOR[bulanNama.toLowerCase()];
+    if (bulan) return `${y}-${bulan}-${d.padStart(2, '0')}`;
+  }
+  const namaBulanDY = t.match(/^([A-Za-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/i);
+  if (namaBulanDY) {
+    const [, bulanNama, d, y] = namaBulanDY;
     const bulan = NAMA_BULAN_KE_NOMBOR[bulanNama.toLowerCase()];
     if (bulan) return `${y}-${bulan}-${d.padStart(2, '0')}`;
   }
@@ -805,7 +835,16 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           // "pending" separa-terbit tersembunyi sebelum Terbit ditekan).
           status: 'draft',
           title: b.title, topik: b.topik, brief: b.brief, briefLong: b.briefLong,
-          source: b.source, url: b.url, sources: b.sources, sourceType: b.sourceType, date: normalkanTarikhISO(b.date), note: b.note, image: b.image,
+          // sources[].date (2026-08-16, pepijat simulasi "Tampal" Izzat) — normalkanTarikhISO()
+          // sebelum ni cuma diguna pada medan `date` legasi TUNGGAL (di bawah), tapi kandungan
+          // berbilang sumber (mod "Dengan rujukan" >1 URL) bawa tarikh SEBENAR dalam sources[].date
+          // setiap entri, bukan `date` (yang kekal kosong bila sources.length > 1, lihat
+          // ManualBlockFormat.js). Tanpa normalize di sini, tarikh AI-tulis (cth "13 Ogos 2026")
+          // tersalin mentah ke sources[i].date, <input type="date"> native papar KOSONG sebab
+          // format tak sepadan ISO tepat — editor sangka tarikh hilang, bukan cuma tak dipaparkan.
+          source: b.source, url: b.url,
+          sources: (b.sources || []).map((s: any) => ({ ...s, date: normalkanTarikhISO(s.date) })),
+          sourceType: b.sourceType, date: normalkanTarikhISO(b.date), note: b.note, image: b.image,
           // Blok yang ditampal biasanya datang daripada AI luaran (tiada baris Penulis:) — yang
           // menampal itulah penulisnya. Kalau teks yang ditampal MEMANG sudah membawa nama
           // (cth. draf disalin daripada slot lain), nama asal itu dikekalkan.
