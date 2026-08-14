@@ -96,6 +96,17 @@ const GEN_MODE_LABEL: Record<string, string> = { bebas: 'Bebas', dengan_rujukan:
 
 const labelCls = 'font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500';
 
+// Semakan format URL ringan di client (cermin validateSourceUrl, core/editorial/ContentBudget.js)
+// -- utk medan "URL sumber" mod Dengan rujukan sahaja. Tak fetch/sahkan URL wujud sebenar (elak
+// kerumitan/latensi, audit ChatGPT 2026-08-15) -- cuma tapis kesilapan taip jelas (http/https,
+// bukan skema pelik cth javascript:) sebelum editor sempat salin prompt yg akan gagal.
+const urlFormatSah = (url: string): boolean => {
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch { return false; }
+};
+
 // Placeholder jujur untuk medan "Editor" bila `currentEditoriumName` tak dihantar (cth. sesi
 // belum log masuk) — papar "—", bukan nama palsu.
 const EDITOR_PLACEHOLDER = '—';
@@ -145,6 +156,34 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
   const briefSafeMax = Math.max(minBriefTarget, briefTarget - safeBuffer(briefTarget));
   const topikSafeMax = Math.max(1, hadTopik - safeBuffer(hadTopik));
   const briefLongSafeMax = Math.max(effectiveMinBriefLong(), ceiling.maxBriefLong - safeBuffer(ceiling.maxBriefLong));
+  // Mod "Dengan rujukan" (2026-08-15, simulasi Izzat pusingan 3 -- ciri "Dengan rujukan" DITEMUI
+  // pincang: togol + label prompt wujud sejak dahulu, TAPI genMode cuma dibaca di 2 tempat dalam
+  // fail ni (gaya togol, satu baris label "[Mod janaan]") -- TIADA medan URL, TIADA sambungan ke
+  // aiPromptSource (medan sedia wujud dalam skema DB + useSlotEditor.ts/useTickerEditor.ts, tapi
+  // yatim, tak pernah dipaparkan sebagai input). Punca sebenar URL palsu (2/4 AI ujian sebenar)
+  // bukan wording sahaja -- AI diminta CARI sumber sendiri tanpa cara sistem beri sumber SEBENAR.
+  // Reka bentuk (audit ChatGPT selepas keputusan ujian): DUA falsafah berasingan, jangan campur --
+  // "Bebas" (AI pilih sumber sendiri, risiko URL palsu KEKAL, cuma dikurangkan) lawan "Dengan
+  // rujukan" (editor tentukan SATU sumber wajib, AI cuma meringkaskan, provenance jelas+audit-
+  // able). URL kosong pada mod "Dengan rujukan" TIDAK jatuh balik ke "AI cari sendiri" (itu cipta
+  // mod ketiga tersembunyi yang mengelirukan) -- copyPrompt() sekat sepenuhnya sehingga URL diisi.
+  const isReferenceMode = fc.genMode === 'dengan_rujukan';
+  const referenceUrl = (fc.aiPromptSource || '').trim();
+  const sumberSection = isReferenceMode && referenceUrl
+    ? [
+        '[Rujukan sumber wajib]',
+        `Gunakan HANYA sumber berikut untuk kandungan ini:`,
+        `URL sumber: ${referenceUrl}`,
+        'Peraturan:',
+        '- URL di atas ialah satu-satunya sumber yang dibenarkan.',
+        '- Jangan gunakan pengetahuan sendiri, ingatan model, atau sumber lain.',
+        '- Jangan cipta URL baharu; medan Sumber dan URL dalam output MESTI menggunakan URL ini sahaja.',
+        '- Jika maklumat dalam sumber tidak mencukupi untuk sesuatu medan, nyatakan keterbatasan itu dalam Huraian panjang, jangan reka tambahan.',
+      ]
+    : [
+        '[Peraturan sumber & URL]',
+        'AI-pilih-sumber-sendiri ialah PENEMUAN BANTUAN AI, bukan penerbitan yang disahkan -- editor MESTI sahkan URL sebelum simpan. Jangan gunakan pengetahuan sendiri, ingatan model, atau anggaran. Jangan cipta URL baharu -- hanya guna URL yang anda benar-benar tahu wujud daripada carian sebenar. Jika tidak pasti URL tepat sesuatu sumber, KOSONGKAN URL dan nyatakan nama sumber sahaja tanpa pautan (lebih baik tiada URL daripada URL rekaan). URL mesti bermula dengan http:// atau https://. Kalau ada lebih daripada satu sumber, senaraikan sumber UTAMA sahaja pada baris Sumber/URL (satu sumber sahaja setiap blok, format ni tak sokong berbilang URL serentak).',
+      ];
   const lines = [
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
     '[Bidang vs Topik — kedua-dua medan WAJIB diisi, jangan keliru]',
@@ -153,12 +192,11 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     '[Arahan khas — slot ini]', fc.promptText || 'Tiada arahan khas untuk slot ini. Ikut sepenuhnya Peraturan am di atas.', '',
     '[Fungsi huraian panjang]',
     'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai huraian mengalir secara natural — JANGAN guna subtajuk atau format berasingan (cth "Apa:"/"Kenapa penting:"/"Konteks:"). Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.', '',
-    '[Peraturan sumber & URL]',
-    'JANGAN sekali-kali reka/anggar URL. Setiap URL mesti pautan SEBENAR yang wujud dan anda sahkan daripada carian/pengetahuan anda sendiri — kalau tidak pasti URL tepat sesuatu sumber, jangan sertakan sumber tu langsung. URL mesti bermula dengan http:// atau https://. Kalau ada lebih daripada satu sumber, senaraikan sumber UTAMA sahaja pada baris Sumber/URL (satu sumber sahaja setiap blok, format ni tak sokong berbilang URL serentak).', '',
+    ...sumberSection, '',
     '[Format teks]',
     'Guna teks biasa sahaja. JANGAN guna Markdown (tiada **tebal**, *condong*, atau simbol _ untuk penekanan) — medan borang Adjung paparkan teks mentah, simbol Markdown akan terpapar literal kepada pembaca, bukan diformat.', '',
     '[Had usia sumber — WAJIB, bukan pilihan]',
-    `Sumber MESTI diterbitkan dalam tempoh ${fc.aiPromptRecency || '-'} sebelum hari ini. Kira tarikh dengan teliti sebelum pilih sumber — kalau sumber yang anda jumpa lebih lama drpd had ni, JANGAN guna, cari sumber lain yang lebih baharu.`, '',
+    `Sumber MESTI diterbitkan dalam tempoh ${fc.aiPromptRecency || '-'} sebelum hari ini. Kira tarikh dengan teliti sebelum pilih sumber — kalau sumber yang anda jumpa lebih lama daripada had ini, JANGAN guna, cari sumber lain yang lebih baharu.`, '',
     '[Had aksara — sasaran SELAMAT, bukan had maksimum]',
     'Had di bawah ialah SEMPADAN KERAS (langgar = kandungan ditolak sistem). Tapi JANGAN sasarkan tepat pada angka maksimum — AI kerap silap anggaran sendiri beberapa aksara. Sasarkan ke arah angka "selamat" di bawah, biar ada ruang lapang:',
     `Topik: sasarkan sekitar ${topikSafeMax} aksara (sempadan keras: maksimum ${hadTopik})`,
@@ -166,7 +204,7 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     `Huraian ringkas: sasarkan antara ${minBriefTarget}–${briefSafeMax} aksara (sempadan keras: minimum ${minBriefTarget}, maksimum ${briefTarget})`,
     `Huraian panjang: sasarkan antara ${effectiveMinBriefLong()}–${briefLongSafeMax} aksara (sempadan keras: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong})`, '',
     '[Semakan sendiri — buat SEBELUM tulis output akhir, jangan papar kiraan dalam output]',
-    'Sebelum berikan jawapan akhir, kira semula aksara SETIAP medan (Topik/Tajuk/Huraian ringkas/Huraian panjang) satu-persatu dan bandingkan dengan sasaran di atas. Kalau mana-mana medan melebihi had maksimum atau kurang drpd minimum, tulis semula medan tu sahaja sehingga masuk julat. Kandungan output akhir MESTI teks tulen sahaja (Topik/Tajuk/dst.) — jangan sertakan kiraan aksara atau nota semakan dalam jawapan akhir.', '',
+    'Sebelum berikan jawapan akhir, kira semula aksara SETIAP medan (Topik/Tajuk/Huraian ringkas/Huraian panjang) satu-persatu dan bandingkan dengan sasaran di atas. Kalau mana-mana medan melebihi had maksimum atau kurang daripada minimum, tulis semula medan tu sahaja sehingga masuk julat. Kandungan output akhir MESTI teks tulen sahaja (Topik/Tajuk/dst.) — jangan sertakan kiraan aksara atau nota semakan dalam jawapan akhir.', '',
     `[Bahasa sumber]: ${fc.aiPromptLanguage || '-'}`,
     `[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`,
     `[Jumlah kandungan]: ${fc.generationLimit || 1}`,
@@ -174,7 +212,7 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     'Berikan output dalam format berikut sahaja, satu blok bagi setiap kandungan, dipisahkan dengan baris "____":',
     '(Tarikh sumber MESTI format YYYY-MM-DD, cth 2026-08-08 — format lain tidak dikenali oleh borang)',
     'Topik:', 'Tajuk:', 'Huraian ringkas:', 'Huraian panjang:', 'Sumber:', 'URL:', 'Tarikh sumber:', '',
-    '[Contoh format (rujukan struktur SAHAJA — jangan salin isi atau fakta di bawah, ganti dgn kandungan sebenar anda)]',
+    '[Contoh format (rujukan struktur SAHAJA — jangan salin isi atau fakta di bawah, ganti dengan kandungan sebenar anda)]',
     'Topik: Dasar Data Awam',
     'Tajuk: Portal data terbuka kerajaan tambah 200 set data baharu bulan ini',
     'Huraian ringkas: Kerajaan memperluas portal data terbuka dengan 200 set data baharu merangkumi sektor kesihatan dan pengangkutan bagi galak penyelidikan awam.',
@@ -442,6 +480,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const [tab, setTab] = useState<'borang' | 'maklumat' | 'ai' | 'sejarah'>('borang');
   const [pasteNote, setPasteNote] = useState('');
   const [aiNote, setAiNote] = useState('');
+  const [referenceUrlNote, setReferenceUrlNote] = useState('');
   const [imageNote, setImageNote] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -729,6 +768,22 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   };
 
   const copyPrompt = async () => {
+    // Mod "Dengan rujukan" WAJIB ada URL sah -- kosong TIDAK jatuh balik senyap ke "AI cari
+    // sendiri" (audit ChatGPT 2026-08-15: itu cipta mod ketiga tersembunyi yang mengelirukan,
+    // dan bagi editor ilusi kawalan yang sebenarnya tiada -- severity Tinggi kalau tak dikuatkuasakan).
+    if (formConfig.genMode === 'dengan_rujukan') {
+      const url = (formConfig.aiPromptSource || '').trim();
+      if (!url) {
+        setReferenceUrlNote('URL sumber diperlukan untuk mod "Dengan rujukan".');
+        setTimeout(() => setReferenceUrlNote(''), 3200);
+        return;
+      }
+      if (!urlFormatSah(url)) {
+        setReferenceUrlNote('URL tidak sah -- mesti bermula dengan http:// atau https://.');
+        setTimeout(() => setReferenceUrlNote(''), 3200);
+        return;
+      }
+    }
     try {
       await navigator.clipboard.writeText(buildAiPrompt(formConfig, ceiling, hadTopik, titleTarget, briefTarget));
       setAiNote('Disalin');
@@ -1099,7 +1154,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           {tawaranPulih && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
               <span className="font-sans text-xs text-stone-700">
-                Draf tempatan drpd sesi lalu dijumpai (disimpan {masaRelatifRingkas(tawaranPulih.pada)}, tak sempat disimpan ke pelayan).
+                Draf tempatan daripada sesi lalu dijumpai (disimpan {masaRelatifRingkas(tawaranPulih.pada)}, tak sempat disimpan ke pelayan).
               </span>
               <div className="flex items-center gap-2 shrink-0">
                 <button type="button" onClick={buangTawaranPulih} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">
@@ -1530,6 +1585,22 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                       </button>
                     ))}
                   </div>
+                  {/* Medan URL rujukan (2026-08-15, simulasi Izzat pusingan 3) -- HANYA muncul bila
+                      "Dengan rujukan" dipilih, supaya tak clash dgn mod "Bebas" (mod tu sengaja
+                      TIADA medan URL -- AI cari sendiri). Wajib, bukan pilihan -- kosong tak jatuh
+                      balik senyap ke "AI cari sendiri", copyPrompt() sekat terus (lihat di bawah). */}
+                  {formConfig.genMode === 'dengan_rujukan' && (
+                    <div className="mt-1">
+                      <Field
+                        label="URL sumber (wajib untuk mod ini)"
+                        value={formConfig.aiPromptSource || ''}
+                        placeholder="https://..."
+                        onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptSource: v }))}
+                        hint="AI akan guna URL ni sahaja, tak cari sumber lain"
+                      />
+                      {referenceUrlNote && <span className="font-sans text-[9px] text-[#a8241f]">{referenceUrlNote}</span>}
+                    </div>
+                  )}
                 </div>
 
                 <hr className="border-stone-150" />
