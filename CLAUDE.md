@@ -94,6 +94,26 @@ Uji dengan teliti (visual, bukan cuma tsc) selepas ubah struktur kad.
   originalDate, topik) — attributeId MESTI didaftar dulu dalam `editorial_attributes`
   (FK constraint), jika tidak INSERT gagal senyap (`console.warn`, bukan crash).
 
+### Log Audit — actorId ialah kontrak pembeza manusia vs sistem (2026-08-16)
+Setiap panggilan `logAudit()` (`core/audit/AuditLog.js`) MESTI ikut konvensyen ni:
+- **Tindakan editor sebenar** (terbit, sunting, urus akaun, urus Bidang, dll — apa-apa
+  yang berlaku kerana seseorang klik sesuatu dalam Editorium): `actorId: req.session.user.id`.
+- **Event automasi/sistem** (RSS Direct, Penjadual Sistem terbit/luput berjadual, amaran
+  konfigurasi, dll): JANGAN sertakan `actorId` langsung (jatuh ke `NULL` — jangan reka ID
+  "pengguna sistem" palsu spt `'system'`/`'rss-bot'`, itu akan pecahkan konvensyen ni).
+
+`actorId IS NOT NULL` ialah SATU-SATUNYA cara sistem bezakan "tindakan manusia" drpd
+"automasi" (bukan teks `action`/`actorName`, yang boleh berubah/bertambah bila laluan
+baharu ditambah) — dipakai oleh panel "Aktiviti Editor" (`DashboardConsole.tsx`, tapis
+`logs.filter(l => l.actorId != null)` sebelum papar, elak event RSS/Penjadual Sistem
+tenggelamkan tindakan editor sebenar). Kalau tambah laluan `logAudit()` baharu, WAJIB ikut
+konvensyen ni — kalau tidak, "Aktiviti Editor" akan silap papar/sorok item.
+
+Bila ciri masa depan melibatkan AI bertindak ATAS ARAHAN editor (cth "editor klik Jana
+Ringkasan, AI isi borang"), `actorId` KEKAL editor yang klik (bukan kosong/AI) — tambah
+medan berasingan (cth `source: 'ai'`) kalau perlu bezakan cara tindakan tercetus, jangan
+sesekali biar tindakan yang dicetus editor hilang daripada `actorId IS NOT NULL`.
+
 ### Bidang & Topik
 Setiap slot (selain Ticker dan tier `BAR`) terkunci kepada SATU **Bidang** tetap
 (konsep "Kategori"/`desk` sedia ada) — semua kandungan dalam slot tu, termasuk semua
