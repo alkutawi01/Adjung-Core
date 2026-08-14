@@ -120,12 +120,25 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
   // + briefTarget/maxBrief sudah dikira ~1.0 di caller, lihat pengendali slider di JSX).
   const minTitleTarget = Math.max(1, Math.ceil(titleTarget * 0.8));
   const minBriefTarget = briefTarget > 0 ? Math.max(1, Math.ceil(briefTarget * 0.8)) : 0;
+  // Kelemahan prompt (2026-08-15, simulasi "Arahan AI" Izzat + audit ChatGPT) — AI luaran (tiada
+  // konteks Perlembagaan/kod Adjung langsung) sebelum ni terima prompt yang: (a) tak pernah
+  // terangkan beza Bidang vs Topik walaupun kedua-dua medan wajib diisi, (b) tiada peraturan
+  // langsung pasal URL/sumber (boleh reka URL palsu tanpa disekat prompt, walaupun
+  // validateSourceUrl tolak URL tak sah semasa simpan — lebih baik cegah di sumber drpd
+  // bergantung semata pada penolakan lewat). Sintaks gloss [label](gloss:makna) SENGAJA tidak
+  // disebut langsung (bukan "elakkan", terus tiada) — ciri tu dimatikan sepenuhnya buat masa ini
+  // (GLOSS_AUTHORING_ENABLED=false, ContentBudget.js), dan AI luaran tak akan tahu ciri ni wujud
+  // pun kalau tak disebut — jadi tiada risiko ia cuba guna sintaks yang akan ditolak simpan.
   const lines = [
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
+    '[Bidang vs Topik — kedua-dua medan WAJIB diisi, jangan keliru]',
+    'Bidang ialah kategori TETAP untuk slot ini (dinyatakan di atas, TIDAK boleh diubah/dipilih semula). Topik pula label BEBAS yang anda tulis sendiri untuk kandungan ni, mesti spesifik dan masih dalam skop Bidang tu — bukan ulang semula nama Bidang. Contoh: Bidang "Ekonomi" tetap, Topik boleh "Kadar Faedah" atau "Perbankan Digital", bukan "Ekonomi" atau "Berita Ekonomi".', '',
     '[Peraturan am — sistem/global]', fc.masterPrompt || '-', '',
-    '[Arahan khas — slot ini]', fc.promptText || '-', '',
+    '[Arahan khas — slot ini]', fc.promptText || 'Tiada arahan khas untuk slot ini. Ikut sepenuhnya Peraturan am di atas.', '',
     '[Fungsi huraian panjang]',
     'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai huraian mengalir secara natural — JANGAN guna subtajuk atau format berasingan (cth "Apa:"/"Kenapa penting:"/"Konteks:"). Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.', '',
+    '[Peraturan sumber & URL]',
+    'JANGAN sekali-kali reka/anggar URL. Setiap URL mesti pautan SEBENAR yang wujud dan anda sahkan daripada carian/pengetahuan anda sendiri — kalau tidak pasti URL tepat sesuatu sumber, jangan sertakan sumber tu langsung. URL mesti bermula dengan http:// atau https://. Kalau ada lebih daripada satu sumber, senaraikan sumber UTAMA sahaja pada baris Sumber/URL (satu sumber sahaja setiap blok, format ni tak sokong berbilang URL serentak).', '',
     '[Had aksara]',
     `Topik: maksimum ${hadTopik} aksara`,
     `Tajuk: minimum ${minTitleTarget}, maksimum ${titleTarget} aksara`,

@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T03:28:54.985Z",
+    "summary": "Tulis Kandungan (Arahan AI): prompt tersalin kini terangkan beza Bidang vs Topik, tambah peraturan URL/sumber (jangan reka URL, satu sumber sahaja per blok), dan baiki placeholder Arahan Khas kosong (ayat jelas drpd '-'). Gloss sengaja tidak disebut (ciri dimatikan).",
+    "files": [
+      "src/components/portal/SlotManagerModal.tsx"
+    ]
+  },
+  {
     "time": "2026-08-13T23:16:22.167Z",
     "summary": "Perlembagaan/Tetapan/Sistem Reka Bentuk/Senarai Slot/Editorial/Bidang/Penaja/Direktori/Tier Kad/Log Audit/Editorium: sambungan pembersihan em dash berlebihan dalam ayat prosa (kesemua 12 fail baki).",
     "files": [
