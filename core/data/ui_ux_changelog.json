@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T09:27:48.755Z",
+    "summary": "Paksa Node fetch()/undici cuba IPv4 dahulu (dns.setDefaultResultOrder('ipv4first')) -- Droplet DigitalOcean tiada laluan IPv6 keluar berfungsi, punca sebenar 'Gagal menghantar emel: ENETUNREACH/timeout' bila cuba jemput editor baharu (Resend API guna rekod AAAA)",
+    "files": [
+      "server.js"
+    ]
+  },
+  {
     "time": "2026-08-14T09:13:48.983Z",
     "summary": "Parser Tampal terima label bernombor (Sumber 1:/URL 2:/Tarikh sumber 3:) sebagai polos -- AI luaran boleh tiru corak bernombor drpd senarai sumber prompt sistem sendiri walaupun arahan output minta label polos",
     "files": [

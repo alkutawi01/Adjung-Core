@@ -1,4 +1,13 @@
 import 'dotenv/config';
+import dns from 'dns';
+// Paksa IPv4 dahulu untuk SEMUA lookup DNS keluar pelayan ni (2026-08-16, pepijat jemputan
+// editor Izzat) — Droplet DigitalOcean ni tiada laluan IPv6 keluar berfungsi (disahkan: `curl -6`
+// gagal terus, HTTP 000), tapi Node fetch()/undici cuba alamat IPv6 DULU secara lalai (susunan DNS
+// piawai Node), jadi setiap panggilan luar (Resend API emel jemputan, dan mana-mana fetch() lain
+// pada domain yang ada rekod AAAA) gagal senyap dengan ENETUNREACH/timeout sebelum sempat fallback
+// ke IPv4. `ipv4first` (bukan `ipv4only` -- kekalkan IPv6 sebagai pilihan kedua kalau laluan keluar
+// berubah di masa depan) memastikan Node cuba IPv4 dahulu, elak isu ni terus tanpa ubah kod caller.
+dns.setDefaultResultOrder('ipv4first');
 import fs from 'fs';
 import express from 'express';
 import session from 'express-session';
