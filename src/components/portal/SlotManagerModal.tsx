@@ -111,6 +111,23 @@ const urlFormatSah = (url: string): boolean => {
 // belum log masuk) — papar "—", bukan nama palsu.
 const EDITOR_PLACEHOLDER = '—';
 
+// Sumber rujukan berbilang (2026-08-15, simulasi Izzat pusingan 4 + audit ChatGPT --
+// "berbilang URL boleh masuk v1, bukan sebagai senarai pautan bebas, tapi koleksi sumber
+// dengan peraturan keserasian"). aiPromptSource (kolum DB sedia ada, TEXT bebas format,
+// server tak validate/urus kandungannya) kini simpan JSON array [{name,url}] di sisi client
+// -- BUKAN skema DB baharu, cuma tafsiran baharu bagi medan sedia ada. Serasi mundur: nilai
+// lama (URL tunggal ditaip terus, bukan JSON) ditafsir sebagai satu entri {name:'',url}.
+const parseReferenceSources = (raw: string | undefined | null): { name: string; url: string }[] => {
+  const s = (raw || '').trim();
+  if (!s) return [];
+  try {
+    const parsed = JSON.parse(s);
+    if (Array.isArray(parsed)) return parsed.filter((x) => x && typeof x.url === 'string').map((x) => ({ name: String(x.name || ''), url: String(x.url || '') }));
+  } catch { /* nilai legasi bukan JSON -- URL tunggal ditaip terus sebelum ciri berbilang sumber wujud */ }
+  return [{ name: '', url: s }];
+};
+const serializeReferenceSources = (list: { name: string; url: string }[]): string => JSON.stringify(list);
+
 // Assembles a copy-pasteable prompt for an external AI chatbox — same source fields used
 // elsewhere in this modal for the "Arahan AI" tab.
 // titleTarget/briefTarget (2026-08-07, pepijat kritikal Izzat) — editor laraskan slider SATU
@@ -168,20 +185,24 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
   // able). URL kosong pada mod "Dengan rujukan" TIDAK jatuh balik ke "AI cari sendiri" (itu cipta
   // mod ketiga tersembunyi yang mengelirukan) -- copyPrompt() sekat sepenuhnya sehingga URL diisi.
   const isReferenceMode = fc.genMode === 'dengan_rujukan';
-  const referenceUrl = (fc.aiPromptSource || '').trim();
-  const sumberSection = isReferenceMode && referenceUrl
+  const referenceSources = parseReferenceSources(fc.aiPromptSource).filter((s) => s.url.trim());
+  const isMultiSource = referenceSources.length > 1;
+  const sumberSection = isReferenceMode && referenceSources.length > 0
     ? [
         '[Rujukan sumber wajib]',
-        `Gunakan HANYA sumber berikut untuk kandungan ini:`,
-        `URL sumber: ${referenceUrl}`,
+        isMultiSource ? `Gunakan HANYA sumber-sumber berikut untuk kandungan ini:` : `Gunakan HANYA sumber berikut untuk kandungan ini:`,
+        ...referenceSources.map((s, i) => {
+          const label = isMultiSource ? `URL sumber ${i + 1}` : 'URL sumber';
+          return s.name.trim() ? `${label}: ${s.url.trim()} (${s.name.trim()})` : `${label}: ${s.url.trim()}`;
+        }),
         'Peraturan:',
-        '- Kandungan ini hendaklah berdasarkan maklumat yang terdapat dalam URL di atas sahaja; jangan tambah fakta luar yang tidak terdapat dalam sumber tersebut.',
-        '- URL di atas ialah satu-satunya sumber yang dibenarkan.',
+        '- Kandungan ini hendaklah berdasarkan maklumat yang terdapat dalam sumber di atas sahaja; jangan tambah fakta luar yang tidak terdapat dalam sumber-sumber tersebut.',
+        '- Sumber di atas ialah satu-satunya sumber yang dibenarkan.',
         '- Jangan gunakan pengetahuan sendiri, ingatan model, atau sumber lain.',
-        '- Jangan cipta URL baharu; medan Sumber dan URL dalam output MESTI menggunakan URL ini sahaja.',
+        '- Jangan cipta URL baharu; medan Sumber dan URL dalam output MESTI menggunakan URL yang diberikan sahaja.',
         '- Jika maklumat dalam sumber tidak mencukupi untuk sesuatu medan, nyatakan keterbatasan itu dalam Huraian panjang, jangan reka tambahan.',
         '',
-        '[Jika anda TIDAK boleh mengakses URL di atas — audit ChatGPT AI-PROVENANCE-003]',
+        '[Jika anda TIDAK boleh mengakses mana-mana URL di atas — audit ChatGPT AI-PROVENANCE-003]',
         'Sesetengah AI tiada keupayaan membuka pautan web secara langsung. Jika anda TIDAK dapat mengakses/fetch URL di atas:',
         '- Jangan teka kandungan sumber daripada domain, tajuk laman atau corak URL sahaja.',
         '- Jangan hasilkan kandungan pengganti berdasarkan andaian atau pengetahuan am tentang topik berkaitan.',
@@ -189,6 +210,24 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
         '- Balas HANYA dengan format berikut, tiada tambahan lain (ini mengatasi arahan "Berikan output dalam format berikut sahaja" di bawah untuk kes ini):',
         'STATUS: Sumber tidak dapat disahkan',
         'SEBAB: (nyatakan sebab sebenar — contoh "Saya tiada keupayaan mengakses pautan web")',
+        ...(isMultiSource ? [
+          '',
+          '[Keserasian sumber]',
+          'Sebelum menghasilkan kandungan, semak hubungan antara semua sumber yang diberikan.',
+          '',
+          'Jika sumber-sumber tersebut membincangkan perkara yang TIDAK berkaitan atau berada di luar konteks yang sama, JANGAN menghasilkan kandungan. Contoh: satu sumber membincangkan ekonomi, satu lagi membincangkan sukan; atau sumber merujuk kepada peristiwa, tempat atau isu yang berbeza. Dalam keadaan ini, balas HANYA dengan:',
+          'STATUS: Sumber tidak berkaitan',
+          'SEBAB: (terangkan secara ringkas mengapa sumber tidak boleh digabungkan)',
+          '',
+          'Jika sumber-sumber tersebut membincangkan perkara yang SAMA tetapi mempunyai perbezaan fakta tertentu (contoh: bilangan mangsa berbeza), JANGAN tolak sumber tersebut. Sebaliknya:',
+          '- Bandingkan maklumat yang diberikan.',
+          '- Nyatakan perbezaan dengan atribusi kepada sumber masing-masing jika perbezaan itu penting (contoh: "Utusan Malaysia melaporkan 6 orang terbunuh, manakala Berita Harian melaporkan 5 orang terbunuh.").',
+          '- Jika perbezaan kecil atau tidak perlu dihuraikan, gunakan bahasa berhati-hati yang tidak memilih satu dakwaan secara mutlak (contoh: "Sumber melaporkan sekurang-kurangnya 5 orang terbunuh.").',
+          '- Jangan hasilkan fakta baharu yang tidak terdapat dalam mana-mana sumber, dan jangan satukan angka berbeza menjadi satu angka baharu tanpa justifikasi (contoh: jangan pilih angka tertinggi sebagai "sekurang-kurangnya" semata-mata kerana ia tertinggi).',
+          '',
+          '[Penggunaan medan Sumber]',
+          'Jika kandungan akhir hanya berdasarkan SATU sumber (selepas semakan keserasian di atas), gunakan nama sumber tersebut pada medan Sumber. Jika kandungan menggabungkan maklumat daripada DUA atau lebih sumber, gunakan "Sumber: Editorial Adjung" dan ulang baris Sumber:/URL: untuk SETIAP sumber yang digunakan (bukan satu nama sumber sahaja) — kandungan sedemikian ialah sintesis Adjung, bukan cetakan semula satu penerbit.',
+        ] : []),
       ]
     : [
         '[Peraturan sumber & URL]',
@@ -781,19 +820,39 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     setTimeout(() => setPasteNote(''), 2400);
   };
 
+  // Urus sources[] mod "Dengan rujukan" (formConfig.aiPromptSource, JSON-encoded) -- selari
+  // dgn tambahSumber/patchSumber/buangSumber sedia ada utk borang kandungan (items), tapi
+  // target formConfig bukan items sebab ni tetapan slot, bukan draf kandungan.
+  const tambahSumberRujukan = () => setFormConfig((prev: any) => {
+    const list = parseReferenceSources(prev.aiPromptSource);
+    return { ...prev, aiPromptSource: serializeReferenceSources([...list, { name: '', url: '' }]) };
+  });
+  const patchSumberRujukan = (sIdx: number, field: 'name' | 'url', value: string) => setFormConfig((prev: any) => {
+    const list = parseReferenceSources(prev.aiPromptSource);
+    if (list.length === 0) list.push({ name: '', url: '' });
+    const next = list.map((s, i) => (i === sIdx ? { ...s, [field]: value } : s));
+    return { ...prev, aiPromptSource: serializeReferenceSources(next) };
+  });
+  const buangSumberRujukan = (sIdx: number) => setFormConfig((prev: any) => {
+    const list = parseReferenceSources(prev.aiPromptSource);
+    return { ...prev, aiPromptSource: serializeReferenceSources(list.filter((_, i) => i !== sIdx)) };
+  });
+
   const copyPrompt = async () => {
     // Mod "Dengan rujukan" WAJIB ada URL sah -- kosong TIDAK jatuh balik senyap ke "AI cari
     // sendiri" (audit ChatGPT 2026-08-15: itu cipta mod ketiga tersembunyi yang mengelirukan,
     // dan bagi editor ilusi kawalan yang sebenarnya tiada -- severity Tinggi kalau tak dikuatkuasakan).
     if (formConfig.genMode === 'dengan_rujukan') {
-      const url = (formConfig.aiPromptSource || '').trim();
-      if (!url) {
-        setReferenceUrlNote('URL sumber diperlukan untuk mod "Dengan rujukan".');
+      const sources = parseReferenceSources(formConfig.aiPromptSource);
+      const urls = sources.map((s) => s.url.trim()).filter(Boolean);
+      if (urls.length === 0) {
+        setReferenceUrlNote('Sekurang-kurangnya satu URL sumber diperlukan untuk mod "Dengan rujukan".');
         setTimeout(() => setReferenceUrlNote(''), 3200);
         return;
       }
-      if (!urlFormatSah(url)) {
-        setReferenceUrlNote('URL tidak sah — mesti bermula dengan http:// atau https://.');
+      const takSah = urls.find((u) => !urlFormatSah(u));
+      if (takSah) {
+        setReferenceUrlNote(`URL tidak sah (${takSah}) — mesti bermula dengan http:// atau https://.`);
         setTimeout(() => setReferenceUrlNote(''), 3200);
         return;
       }
@@ -1617,19 +1676,52 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                       </button>
                     ))}
                   </div>
-                  {/* Medan URL rujukan (2026-08-15, simulasi Izzat pusingan 3) -- HANYA muncul bila
-                      "Dengan rujukan" dipilih, supaya tak clash dgn mod "Bebas" (mod tu sengaja
-                      TIADA medan URL -- AI cari sendiri). Wajib, bukan pilihan -- kosong tak jatuh
-                      balik senyap ke "AI cari sendiri", copyPrompt() sekat terus (lihat di bawah). */}
+                  {/* Sumber rujukan berbilang (2026-08-15, simulasi Izzat pusingan 4 + audit ChatGPT)
+                      -- HANYA muncul bila "Dengan rujukan" dipilih. Guna SEMULA corak "+ Tambah
+                      sumber" sedia ada (nama+URL, lihat sources[] borang kandungan di atas) --
+                      BUKAN reka bentuk "Jenis: Utama/Sokongan/Data" baharu (ChatGPT tarik balik
+                      cadangan tu selepas semak kod: infra sources[]/parser/label "Editorial Adjung"
+                      dah wujud penuh, tambah peranan sumber cuma cipta keputusan editorial yang
+                      belum diperlukan). Sekurang-kurangnya SATU URL wajib -- kosong tak jatuh balik
+                      senyap ke "AI cari sendiri", copyPrompt() sekat terus (lihat di atas). */}
                   {formConfig.genMode === 'dengan_rujukan' && (
-                    <div className="mt-1">
-                      <Field
-                        label="URL sumber (wajib untuk mod ini)"
-                        value={formConfig.aiPromptSource || ''}
-                        placeholder="https://..."
-                        onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptSource: v }))}
-                        hint="AI akan menggunakan URL ini sahaja, tanpa mencari sumber lain"
-                      />
+                    <div className="mt-1 flex flex-col gap-3">
+                      <div className="flex items-baseline justify-between">
+                        <span className={labelCls}>Sumber rujukan (wajib untuk mod ini)</span>
+                        <button type="button" onClick={tambahSumberRujukan} className="text-[11px] font-sans font-semibold text-[#802334] hover:underline cursor-pointer">+ Tambah sumber</button>
+                      </div>
+                      {(() => {
+                        const sources = parseReferenceSources(formConfig.aiPromptSource);
+                        const list = sources.length > 0 ? sources : [{ name: '', url: '' }];
+                        return list.map((s, sIdx) => (
+                          <div key={sIdx} className="grid grid-cols-2 gap-3 items-end">
+                            <label className="flex flex-col gap-1">
+                              {sIdx === 0 && <span className={labelCls}>Nama sumber (pilihan)</span>}
+                              <input
+                                type="text" value={s.name} placeholder="cth. Bernama" maxLength={60}
+                                onChange={(e) => patchSumberRujukan(sIdx, 'name', e.target.value)}
+                                className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+                              />
+                            </label>
+                            <span className="flex items-end gap-2">
+                              <label className="flex-1 flex flex-col gap-1">
+                                {sIdx === 0 && <span className={labelCls}>URL</span>}
+                                <input
+                                  type="text" value={s.url} placeholder="https://..."
+                                  onChange={(e) => patchSumberRujukan(sIdx, 'url', e.target.value)}
+                                  className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
+                                />
+                              </label>
+                              {list.length > 1 && (
+                                <button type="button" onClick={() => buangSumberRujukan(sIdx)} aria-label="Buang sumber ini" className="text-stone-400 hover:text-[#a8241f] cursor-pointer pb-1.5">
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </span>
+                          </div>
+                        ));
+                      })()}
+                      <span className="font-sans text-[9px] text-stone-400">AI akan menggunakan sumber di atas sahaja, tanpa mencari sumber lain. Lebih daripada satu sumber: AI banding & attribute/hedge kandungan yang bertindih, kad papar "Editorial Adjung" bila &gt;1 sumber digunakan.</span>
                       {referenceUrlNote && <span className="font-sans text-[9px] text-[#a8241f]">{referenceUrlNote}</span>}
                     </div>
                   )}
