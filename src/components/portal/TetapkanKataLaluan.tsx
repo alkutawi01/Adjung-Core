@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { KataLaluanInput } from '../common/KataLaluanInput';
@@ -10,21 +10,44 @@ import { KataLaluanInput } from '../common/KataLaluanInput';
 // yang tentukan aliran mana — halaman ni cuma minta kata laluan baharu + sahkan, hantar ke
 // POST /api/auth/aktifkan-akaun. Gaya visual sama seperti TidakDijumpai.tsx (maroon #802334,
 // serif tajuk) supaya konsisten dengan seluruh laman awam — lihat CLAUDE.md.
-
+//
+// Nama Pena/ID Pengguna (2026-08-16, permintaan Izzat) — Ketua Editor tak lagi tetapkan
+// identiti ni semasa jemput (cuma emel+peranan); anggota baharu tetapkan sendiri DI SINI sekali
+// dengan kata laluan. GET /api/auth/token-info panggil awal (sebelum borang dipapar) untuk tahu
+// SAMA ADA token ni jemputan baharu (perlu medan identiti) atau set-semula akaun sedia ada
+// (jangan papar/sentuh identiti sedia ada langsung) — lihat perluTetapkanIdentiti(),
+// core/auth/TokenLaluan.js.
 export const TetapkanKataLaluan: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
   const [password, setPassword] = useState('');
   const [sahkan, setSahkan] = useState('');
+  const [penName, setPenName] = useState('');
+  const [username, setUsername] = useState('');
+  const [perluIdentiti, setPerluIdentiti] = useState(false);
+  const [semakToken, setSemakToken] = useState(true);
   const [ralat, setRalat] = useState('');
   const [menghantar, setMenghantar] = useState(false);
   const [berjaya, setBerjaya] = useState(false);
+
+  useEffect(() => {
+    if (!token) { setSemakToken(false); return; }
+    fetch(`/api/auth/token-info?token=${encodeURIComponent(token)}`)
+      .then((r) => r.json())
+      .then((d) => setPerluIdentiti(!!d.requiresIdentity))
+      .catch(() => {})
+      .finally(() => setSemakToken(false));
+  }, [token]);
 
   const hantar = async (e: React.FormEvent) => {
     e.preventDefault();
     setRalat('');
     if (!token) {
       setRalat('Pautan ini tidak sah, token tiada.');
+      return;
+    }
+    if (perluIdentiti && (!penName.trim() || !username.trim())) {
+      setRalat('Nama pena dan ID pengguna diperlukan.');
       return;
     }
     if (password.length < 8) {
@@ -40,7 +63,7 @@ export const TetapkanKataLaluan: React.FC = () => {
       const res = await fetch('/api/auth/aktifkan-akaun', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify(perluIdentiti ? { token, password, penName, username } : { token, password }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -93,8 +116,42 @@ export const TetapkanKataLaluan: React.FC = () => {
           </>
         )}
 
-        {token && !berjaya && (
+        {token && !berjaya && semakToken && (
+          <p className="font-serif text-stone-200 text-[13px] md:text-[14px] tracking-wide">Memuatkan…</p>
+        )}
+
+        {token && !berjaya && !semakToken && (
           <form onSubmit={hantar} className="w-full text-left space-y-3 select-text">
+            {perluIdentiti && (
+              <>
+                <p className="font-serif text-stone-200 text-[12px] md:text-[13px] tracking-wide -mt-1 mb-1">
+                  Tetapkan nama pena dan ID pengguna anda sebelum meneruskan.
+                </p>
+                <div>
+                  <label className="block font-mono text-[9px] uppercase tracking-wider font-bold text-stone-200 mb-1">
+                    Nama Pena
+                  </label>
+                  <input
+                    type="text"
+                    value={penName}
+                    onChange={(e) => setPenName(e.target.value)}
+                    autoFocus
+                    className="w-full rounded px-3 py-2 text-sm text-stone-900 bg-[#FDFDFD] focus:outline-none focus:ring-2 focus:ring-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-mono text-[9px] uppercase tracking-wider font-bold text-stone-200 mb-1">
+                    ID Pengguna
+                  </label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full rounded px-3 py-2 text-sm text-stone-900 bg-[#FDFDFD] focus:outline-none focus:ring-2 focus:ring-white"
+                  />
+                </div>
+              </>
+            )}
             <div>
               <label className="block font-mono text-[9px] uppercase tracking-wider font-bold text-stone-200 mb-1">
                 Kata Laluan Baharu
@@ -103,7 +160,7 @@ export const TetapkanKataLaluan: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={8}
-                autoFocus
+                autoFocus={!perluIdentiti}
                 className="w-full rounded px-3 py-2 text-sm text-stone-900 bg-[#FDFDFD] focus:outline-none focus:ring-2 focus:ring-white"
               />
             </div>

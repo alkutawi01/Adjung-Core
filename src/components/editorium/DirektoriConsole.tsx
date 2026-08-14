@@ -527,9 +527,7 @@ function ProfilAnggotaModal({
 }
 
 function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerjaya: (emel: string) => void }) {
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [penName, setPenName] = useState('');
   const [roles, setRoles] = useState<string[]>(['editor']);
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralat, setRalat] = useState('');
@@ -542,6 +540,11 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
   // kata laluan editor baharu (bocor keselamatan luar talian). Sistem hantar emel jemputan
   // bertoken supaya editor baharu tetapkan kata laluannya sendiri — lihat POST /api/system/users
   // (userAdminRoutes.js) & halaman awam /tetapkan-kata-laluan.
+  //
+  // Nama Pena/ID Pengguna DIBUANG juga (2026-08-16, permintaan Izzat — "ni menyusahkan ketua
+  // editor utk fikir nama pena editor") — Ketua Editor cuma perlu Emel+Peranan; anggota baharu
+  // tetapkan identiti (username+nama pena) sendiri sekali dengan kata laluan di
+  // /tetapkan-kata-laluan (lihat perluTetapkanIdentiti(), TokenLaluan.js).
   const hantar = async (e: React.FormEvent) => {
     e.preventDefault();
     setMenyimpan(true);
@@ -550,7 +553,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
       const res = await fetch('/api/system/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, penName, roles }),
+        body: JSON.stringify({ email, roles }),
       });
       const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mencipta akaun.');
@@ -565,7 +568,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
   // Amaran belum-simpan (Audit UI/UX §B2) — kotor apabila mana-mana medan sudah diisi, atau
   // peranan lalai (`editor` sahaja) sudah ditukar. Sebelum ni klik latar/X menutup borang terus
   // walaupun editor sudah menaip nama/emel.
-  const kotor = !!(username || email || penName) || roles.length !== 1 || roles[0] !== 'editor';
+  const kotor = !!email || roles.length !== 1 || roles[0] !== 'editor';
   const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onTutup);
 
   return (
@@ -585,20 +588,12 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
       <form id="borang-tambah-anggota" onSubmit={hantar} className="space-y-4">
         {tunjukAmaran && <AmaranBelumSimpan onBatal={batalTutup} onSahkan={sahkanTutup} />}
         <label className="block">
-          <span className={LABEL_BORANG}>Nama Pena</span>
-          <input type="text" value={penName} onChange={e => setPenName(e.target.value)} required className={INPUT_BORANG} />
-        </label>
-        <label className="block">
-          <span className={LABEL_BORANG}>ID Pengguna</span>
-          <input type="text" value={username} onChange={e => setUsername(e.target.value)} required className={INPUT_BORANG} />
-        </label>
-        <label className="block">
           <span className={LABEL_BORANG}>Emel</span>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className={INPUT_BORANG} />
         </label>
         <p className="text-[10px] text-stone-500 leading-relaxed">
-          Kata laluan tak ditetapkan di sini; e-mel jemputan bertoken akan dihantar ke alamat
-          emel di atas supaya anggota baharu menetapkan kata laluannya sendiri.
+          Nama pena, ID pengguna dan kata laluan tak ditetapkan di sini; e-mel jemputan bertoken
+          akan dihantar ke alamat emel di atas supaya anggota baharu menetapkan ketiga-tiganya sendiri.
         </p>
 
         <div>

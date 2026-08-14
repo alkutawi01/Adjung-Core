@@ -1,5 +1,16 @@
 [
   {
+    "time": "2026-08-14T09:47:37.683Z",
+    "summary": "Ketua Editor tak lagi tetapkan Nama Pena/ID Pengguna semasa jemput anggota (borang Tambah Anggota kini emel+peranan sahaja) -- anggota baharu tetapkan identiti sendiri di /tetapkan-kata-laluan sekali dgn kata laluan. GET /api/auth/token-info baharu bezakan jemputan baharu vs set-semula kata laluan sedia ada",
+    "files": [
+      "src/components/editorium/DirektoriConsole.tsx",
+      "src/components/portal/TetapkanKataLaluan.tsx",
+      "core/routes/userAdminRoutes.js",
+      "core/routes/authRoutes.js",
+      "core/auth/TokenLaluan.js"
+    ]
+  },
+  {
     "time": "2026-08-14T09:27:48.755Z",
     "summary": "Paksa Node fetch()/undici cuba IPv4 dahulu (dns.setDefaultResultOrder('ipv4first')) -- Droplet DigitalOcean tiada laluan IPv6 keluar berfungsi, punca sebenar 'Gagal menghantar emel: ENETUNREACH/timeout' bila cuba jemput editor baharu (Resend API guna rekod AAAA)",
     "files": [

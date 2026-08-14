@@ -6,7 +6,7 @@ import { logAudit } from '../audit/AuditLog.js';
 import { baseUrlEmel } from '../utils/baseUrl.js';
 import { notify, notifyMany } from '../notifications/Notify.js';
 import { hantarEmel } from '../email/MailSender.js';
-import { janaTokenTamatTempoh } from '../auth/TokenLaluan.js';
+import { janaTokenTamatTempoh, AWALAN_USERNAME_SEMENTARA } from '../auth/TokenLaluan.js';
 import { TIER_SLOTS } from '../editorial/GeometryConfig.js';
 import { MANUAL_BLOCK_SPLIT_REGEX, parseManualSummaryBlocks } from '../editorial/ManualBlockFormat.js';
 import { padamSesiPengguna } from '../auth/SesiPengguna.js';
@@ -136,37 +136,31 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
   // bukan trafik kerap), jadi guna kunci global sedia ada — bukan reka kunci berasingan.
   router.post('/users', requirePermission('manageAccounts'), (req, res) => denganKunciKandungan(async () => {
     try {
-      const { username, email, penName, roles } = req.body || {};
-      const u = (username || '').trim().toLowerCase();
+      const { email, roles } = req.body || {};
       const e = (email || '').trim().toLowerCase();
-      const pn = (penName || '').trim();
-      if (!u || !e || !pn) {
-        return res.status(400).json({ error: 'Username, emel dan nama pena diperlukan.' });
+      if (!e) {
+        return res.status(400).json({ error: 'Emel diperlukan.' });
       }
       const rolesToAssign = Array.isArray(roles) ? roles.filter((r) => ROLE_IDS_SAH.includes(r)) : [];
       if (rolesToAssign.length === 0) {
         return res.status(400).json({ error: 'Pilih sekurang-kurangnya satu peranan.' });
       }
 
-      const existing = await dbGet('SELECT id FROM users WHERE LOWER(username) = ? OR LOWER(email) = ?', [u, e]);
+      const existing = await dbGet('SELECT id FROM users WHERE LOWER(email) = ?', [e]);
       if (existing) {
-        return res.status(409).json({ error: 'Username atau emel sudah digunakan.' });
+        return res.status(409).json({ error: 'Emel sudah digunakan.' });
       }
-      // Nama pena unik (2026-08-06, pembetulan audit) — `penName` DIPAKAI sebagai identiti
-      // "siapa tulis kandungan ni" di seluruh sistem (attribute `editorName`, "Draf Saya", dan
-      // kini `lastPublishedAt` dasar aktif — lihat contentRoutes.js), bukan `users.id`. Dua
-      // editor bernama pena SAMA akan berkongsi jam tak aktif SATU SAMA LAIN (kandungan editor
-      // A "diterbitkan" tersilap direset jam editor B) — bukan andaian, ini padanan LOWER(TRIM())
-      // tulen tanpa gerbang, jadi cegah di punca (cipta akaun) senang drpd tulis semula seluruh
-      // mekanisme identiti sedia ada yang dah lama guna corak ni.
-      const penNameSedia = await dbGet('SELECT id FROM users WHERE LOWER(TRIM(penName)) = LOWER(?)', [pn]);
-      if (penNameSedia) {
-        return res.status(409).json({ error: `Nama pena "${pn}" sudah digunakan akaun lain. Pilih nama pena lain (dipakai sebagai identiti penulis kandungan, mesti unik).` });
-      }
-
+      // Username/nama pena TIDAK LAGI ditetapkan Ketua Editor di sini (2026-08-16, permintaan
+      // Izzat — "ni menyusahkan ketua editor utk fikir nama pena editor", diorang isi sendiri).
+      // Username sementara (berawalan AWALAN_USERNAME_SEMENTARA + token) UNIK secara terjamin
+      // (token 32-bait rawak), jadi tiada semakan pendua diperlukan di sini. penName kosong DAN
+      // tiada semakan pendua di sini juga — semakan keunikan sebenar (penName SEBENAR editor
+      // pilih) berlaku di POST /api/auth/aktifkan-akaun bila mereka tetapkan identiti sendiri
+      // (lihat perluTetapkanIdentiti(), TokenLaluan.js).
       const id = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const kini = new Date().toISOString();
       const tokenJemputan = crypto.randomBytes(32).toString('hex');
+      const usernameSementara = `${AWALAN_USERNAME_SEMENTARA}${tokenJemputan.slice(0, 16)}`;
       const tamatTempoh = janaTokenTamatTempoh(48);
       // Hash kata laluan rawak sekali-lalu — lajur `password` DB tak boleh NULL, tapi nilai ni
       // tak pernah diketahui/dimasukkan sesiapa jadi mustahil dipadankan verifyPassword() sehingga
@@ -176,8 +170,9 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         `INSERT INTO users (id, username, email, role, penName, isSuspended, status, password, resetToken, resetTokenExpiresAt, createdAt, updatedAt)
          VALUES (?, ?, ?, ?, ?, 0, 'Aktif', ?, ?, ?, ?, ?)`,
         // `role` legasi diisi ikut peranan tertinggi yang dipilih, sekadar untuk paparan lama —
-        // sumber kebenaran sebenar ialah user_roles di bawah.
-        [id, u, e, rolesToAssign.includes('ketua_editor') ? 'KETUA_EDITOR' : 'EDITOR', pn, kataLaluanSementara, tokenJemputan, tamatTempoh, kini, kini]
+        // sumber kebenaran sebenar ialah user_roles di bawah. `penName` kosong (bukan NULL,
+        // lajur nullable tapi kod lain di seluruh sistem anggap ia string) sehingga aktivasi.
+        [id, usernameSementara, e, rolesToAssign.includes('ketua_editor') ? 'KETUA_EDITOR' : 'EDITOR', '', kataLaluanSementara, tokenJemputan, tamatTempoh, kini, kini]
       );
       for (const roleId of rolesToAssign) {
         await dbRun('INSERT OR IGNORE INTO user_roles (userId, roleId) VALUES (?, ?)', [id, roleId]);
@@ -191,9 +186,9 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       const hantaran = await hantarEmel({
         to: e,
         subject: 'Jemputan Sertai Adjung Brief',
-        html: `<p>Salam ${pn},</p>` +
+        html: `<p>Salam,</p>` +
           `<p>Anda telah dijemput sertai Adjung Brief sebagai ${rolesToAssign.join(', ')}.</p>` +
-          `<p>Klik pautan berikut untuk menetapkan kata laluan akaun anda (sah selama 48 jam):</p>` +
+          `<p>Klik pautan berikut untuk menetapkan nama pena, ID pengguna dan kata laluan akaun anda (sah selama 48 jam):</p>` +
           `<p><a href="${pautanJemputan}">${pautanJemputan}</a></p>`,
       });
 
@@ -203,7 +198,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         action: 'cipta-akaun',
         targetType: 'akaun',
         targetId: id,
-        detail: `${pn} (${u}), peranan: ${rolesToAssign.join(', ')}`,
+        detail: `${e}, peranan: ${rolesToAssign.join(', ')}`,
       });
 
       res.json({ success: true, id, emelDihantar: hantaran.berjaya });

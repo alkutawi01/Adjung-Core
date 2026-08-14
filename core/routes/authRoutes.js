@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { notify } from '../notifications/Notify.js';
 import { hantarEmel } from '../email/MailSender.js';
-import { semakStatusToken, janaTokenTamatTempoh, STATUS_TOKEN } from '../auth/TokenLaluan.js';
+import { semakStatusToken, janaTokenTamatTempoh, STATUS_TOKEN, perluTetapkanIdentiti } from '../auth/TokenLaluan.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { baseUrlEmel } from '../utils/baseUrl.js';
 import { padamSesiPengguna } from '../auth/SesiPengguna.js';
@@ -357,14 +357,39 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
     }
   });
 
+  // GET /api/auth/token-info (2026-08-16, permintaan Izzat — username/nama pena kini ditetapkan
+  // editor sendiri, bukan Ketua Editor) — laluan AWAM, dipanggil oleh /tetapkan-kata-laluan
+  // SEBELUM borang dipapar supaya klien tahu SAMA ADA nak tunjukkan medan Nama Pena/ID Pengguna
+  // (jemputan editor baharu) atau tidak (set semula kata laluan akaun sedia ada). Tak dedah
+  // apa-apa maklumat akaun (bukan email/penName sedia ada) — cuma dua boolean.
+  router.get('/token-info', async (req, res) => {
+    try {
+      const token = (req.query.token || '').toString();
+      const userRow = await dbGet("SELECT username, penName, resetToken, resetTokenExpiresAt FROM users WHERE resetToken = ?", [token]);
+      const status = semakStatusToken(userRow);
+      if (status !== STATUS_TOKEN.SAH) {
+        return res.json({ valid: false, requiresIdentity: false });
+      }
+      res.json({ valid: true, requiresIdentity: perluTetapkanIdentiti(userRow) });
+    } catch (err) {
+      console.error('Token info error:', err);
+      res.status(500).json({ valid: false, requiresIdentity: false });
+    }
+  });
+
   // POST /api/auth/aktifkan-akaun (2026-08-03, Fasa 1) — laluan AWAM (tiada sesi log masuk),
   // dipakai oleh DUA aliran: tetapkan kata laluan buat pertama kali (jemputan editor baharu,
   // lihat POST /api/system/users di userAdminRoutes.js) DAN set semula kata laluan sendiri
   // (POST /lupa-kata-laluan di atas). Kedua guna token+kata laluan sahaja — token itu sendiri
   // yang membuktikan pemilikan akaun, disahkan oleh semakStatusToken().
+  //
+  // username/penName pilihan (2026-08-16) — HANYA diminta/disemak bila perluTetapkanIdentiti()
+  // kata akaun ni jemputan baharu (username sementara/penName kosong, lihat TokenLaluan.js).
+  // Akaun sedia ada (aliran lupa-kata-laluan) tak sentuh identiti langsung walaupun body ada
+  // medan ni — elak identiti sedia ada tertindih tanpa sengaja oleh permintaan tersasar/lapuk.
   router.post('/aktifkan-akaun', async (req, res) => {
     try {
-      const { token, password } = req.body || {};
+      const { token, password, username, penName } = req.body || {};
       if (!token || !password) {
         return res.status(400).json({ error: 'Token dan kata laluan diperlukan.' });
       }
@@ -381,10 +406,34 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         return res.status(410).json({ error: 'Pautan ini sudah tamat tempoh. Sila mohon pautan baharu.' });
       }
 
-      await dbRun(
-        "UPDATE users SET password = ?, resetToken = NULL, resetTokenExpiresAt = NULL WHERE id = ?",
-        [hashPassword(password), userRow.id]
-      );
+      if (perluTetapkanIdentiti(userRow)) {
+        const u = (username || '').trim().toLowerCase();
+        const pn = (penName || '').trim();
+        if (!u || !pn) {
+          return res.status(400).json({ error: 'ID pengguna dan nama pena diperlukan.' });
+        }
+        // Semakan pendua sama seperti dahulu di POST /api/system/users (userAdminRoutes.js) —
+        // kini berlaku DI SINI sebab identiti sebenar baru wujud pada langkah ni. `!= ?` kecuali
+        // baris sendiri, supaya kalau editor hantar semula/klik dua kali borang yang sama, ia
+        // tak sengaja tolak diri sendiri sebagai "pendua".
+        const usernameSedia = await dbGet('SELECT id FROM users WHERE LOWER(username) = ? AND id != ?', [u, userRow.id]);
+        if (usernameSedia) {
+          return res.status(409).json({ error: 'ID pengguna sudah digunakan akaun lain.' });
+        }
+        const penNameSedia = await dbGet('SELECT id FROM users WHERE LOWER(TRIM(penName)) = LOWER(?) AND id != ?', [pn, userRow.id]);
+        if (penNameSedia) {
+          return res.status(409).json({ error: `Nama pena "${pn}" sudah digunakan akaun lain. Pilih nama pena lain (dipakai sebagai identiti penulis kandungan, mesti unik).` });
+        }
+        await dbRun(
+          "UPDATE users SET username = ?, penName = ?, password = ?, resetToken = NULL, resetTokenExpiresAt = NULL WHERE id = ?",
+          [u, pn, hashPassword(password), userRow.id]
+        );
+      } else {
+        await dbRun(
+          "UPDATE users SET password = ?, resetToken = NULL, resetTokenExpiresAt = NULL WHERE id = ?",
+          [hashPassword(password), userRow.id]
+        );
+      }
       // Laluan awam (tiada sesi log masuk) — batalkan SEMUA sesi akaun tu. Inilah kes paling
       // penting: kalau penceroboh sudah log masuk dengan kata laluan lama, pemilik sah yang
       // menetapkan semula kata laluannya mesti mengusir penceroboh itu serta-merta.
@@ -392,6 +441,9 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
       res.json({ success: true });
     } catch (err) {
       console.error('Aktifkan akaun error:', err);
+      if (/UNIQUE constraint failed/i.test(err.message || '')) {
+        return res.status(409).json({ error: 'ID pengguna sudah digunakan akaun lain.' });
+      }
       res.status(500).json({ error: 'Gagal menetapkan kata laluan.' });
     }
   });
