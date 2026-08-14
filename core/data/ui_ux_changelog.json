@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T06:33:07.407Z",
+    "summary": "Mod 'Dengan rujukan': asing medan per-mod (had usia/negara sembunyi, jumlah kandungan kunci 1) + mukadimah Peranan AI + status kegagalan rasmi bila AI tak boleh akses URL (audit ChatGPT AI-PROVENANCE-002/003)",
+    "files": [
+      "src/components/portal/SlotManagerModal.tsx"
+    ]
+  },
+  {
     "time": "2026-08-14T05:49:01.480Z",
     "summary": "Baiki daftar bahasa/profesionalisme buildAiPrompt() dan mesej ralat URL rujukan (audit ChatGPT 2026-08-15)",
     "files": [

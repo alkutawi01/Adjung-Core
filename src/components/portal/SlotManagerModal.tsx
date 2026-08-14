@@ -175,16 +175,28 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
         `Gunakan HANYA sumber berikut untuk kandungan ini:`,
         `URL sumber: ${referenceUrl}`,
         'Peraturan:',
+        '- Kandungan ini hendaklah berdasarkan maklumat yang terdapat dalam URL di atas sahaja; jangan tambah fakta luar yang tidak terdapat dalam sumber tersebut.',
         '- URL di atas ialah satu-satunya sumber yang dibenarkan.',
         '- Jangan gunakan pengetahuan sendiri, ingatan model, atau sumber lain.',
         '- Jangan cipta URL baharu; medan Sumber dan URL dalam output MESTI menggunakan URL ini sahaja.',
         '- Jika maklumat dalam sumber tidak mencukupi untuk sesuatu medan, nyatakan keterbatasan itu dalam Huraian panjang, jangan reka tambahan.',
+        '',
+        '[Jika anda TIDAK boleh mengakses URL di atas — audit ChatGPT AI-PROVENANCE-003]',
+        'Sesetengah AI tiada keupayaan membuka pautan web secara langsung. Jika anda TIDAK dapat mengakses/fetch URL di atas:',
+        '- Jangan teka kandungan sumber daripada domain, tajuk laman atau corak URL sahaja.',
+        '- Jangan hasilkan kandungan pengganti berdasarkan andaian atau pengetahuan am tentang topik berkaitan.',
+        '- Jangan teruskan ke format Topik/Tajuk/dsb di bawah.',
+        '- Balas HANYA dengan format berikut, tiada tambahan lain (ini mengatasi arahan "Berikan output dalam format berikut sahaja" di bawah untuk kes ini):',
+        'STATUS: Sumber tidak dapat disahkan',
+        'SEBAB: (nyatakan sebab sebenar — contoh "Saya tiada keupayaan mengakses pautan web")',
       ]
     : [
         '[Peraturan sumber & URL]',
         'Mod pemilihan sumber oleh AI ialah bantuan penemuan kandungan, bukan penerbitan yang telah disahkan. Editor mesti mengesahkan URL sebelum menyimpan kandungan. Jangan gunakan pengetahuan sendiri, ingatan model, atau anggaran. Jangan menghasilkan URL baharu — hanya gunakan URL yang anda benar-benar tahu wujud daripada carian sebenar. Jika tidak pasti URL tepat sesuatu sumber, kosongkan URL dan nyatakan nama sumber sahaja tanpa pautan (tiada URL yang lebih baik daripada URL yang tidak dapat disahkan). URL mesti bermula dengan http:// atau https://. Jika terdapat lebih daripada satu sumber, senaraikan sumber utama sahaja pada baris Sumber/URL (satu sumber sahaja setiap blok, format ini tidak menyokong penggunaan berbilang URL secara serentak).',
       ];
   const lines = [
+    '[Peranan AI]',
+    'Anda membantu Adjung Brief, sebuah portal penerbitan editorial berbahasa Melayu. Tugas anda ialah menyediakan SATU kandungan editorial dalam Bahasa Melayu formal, neutral dan tepat, berdasarkan spesifikasi berstruktur di bawah. Ketepatan fakta lebih penting daripada melengkapkan semua medan — jika anda tidak mempunyai maklumat yang mencukupi untuk menghasilkan kandungan yang tepat, nyatakan keterbatasan tersebut; jangan hasilkan kandungan berdasarkan andaian, tajuk, ingatan model atau anggaran.', '',
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
     '[Bidang vs Topik — kedua-dua medan WAJIB diisi, jangan keliru]',
     'Bidang ialah kategori TETAP untuk slot ini (dinyatakan di atas, TIDAK boleh diubah atau dipilih semula). Topik pula label BEBAS yang anda tulis sendiri untuk kandungan ini, mesti spesifik dan masih dalam skop Bidang tersebut — bukan ulang semula nama Bidang. Contoh: Bidang "Ekonomi" kekal, Topik boleh "Kadar Faedah" atau "Perbankan Digital", bukan "Ekonomi" atau "Berita Ekonomi".', '',
@@ -195,8 +207,10 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     ...sumberSection, '',
     '[Format teks]',
     'Gunakan teks biasa sahaja. JANGAN gunakan Markdown (tiada **tebal**, *condong*, atau simbol _ untuk penekanan) — medan borang Adjung paparkan teks mentah, simbol Markdown akan terpapar literal kepada pembaca, bukan diformat.', '',
-    '[Had usia sumber — WAJIB, bukan pilihan]',
-    `Sumber MESTI diterbitkan dalam tempoh ${fc.aiPromptRecency || '-'} sebelum hari ini. Kira tarikh dengan teliti sebelum pilih sumber — kalau sumber yang anda jumpa lebih lama daripada had ini, JANGAN gunakan, cari sumber lain yang lebih baharu.`, '',
+    ...(isReferenceMode ? [] : [
+      '[Had usia sumber — WAJIB, bukan pilihan]',
+      `Sumber MESTI diterbitkan dalam tempoh ${fc.aiPromptRecency || '-'} sebelum hari ini. Kira tarikh dengan teliti sebelum pilih sumber — kalau sumber yang anda jumpa lebih lama daripada had ini, JANGAN gunakan, cari sumber lain yang lebih baharu.`, '',
+    ]),
     '[Had aksara — sasaran SELAMAT, bukan had maksimum]',
     'Had di bawah ialah SEMPADAN KERAS (langgar = kandungan ditolak sistem). Namun, JANGAN sasarkan tepat pada angka maksimum — AI kerap silap anggaran sendiri beberapa aksara. Sasarkan ke arah angka "selamat" di bawah, supaya ada ruang lapang:',
     `Topik: sasarkan sekitar ${topikSafeMax} aksara (sempadan keras: maksimum ${hadTopik})`,
@@ -205,9 +219,9 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     `Huraian panjang: sasarkan antara ${effectiveMinBriefLong()}–${briefLongSafeMax} aksara (sempadan keras: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong})`, '',
     '[Semakan sendiri — lakukan sebelum menghasilkan output akhir, jangan paparkan kiraan dalam output]',
     'Sebelum berikan jawapan akhir, kira semula aksara setiap medan (Topik/Tajuk/Huraian ringkas/Huraian panjang) satu-persatu dan bandingkan dengan sasaran di atas. Jika mana-mana medan melebihi had maksimum atau kurang daripada minimum, hasilkan semula medan tersebut sahaja sehingga memenuhi julat ditetapkan. Kandungan output akhir mesti teks tulen sahaja (Topik/Tajuk/Huraian ringkas/Huraian panjang) — jangan sertakan kiraan aksara atau nota semakan dalam jawapan akhir.', '',
-    `[Bahasa sumber]: ${fc.aiPromptLanguage || '-'}`,
-    `[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`,
-    `[Jumlah kandungan]: ${fc.generationLimit || 1}`,
+    `[Bahasa kandungan]: ${fc.aiPromptLanguage || '-'}`,
+    ...(isReferenceMode ? [] : [`[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`]),
+    `[Jumlah kandungan]: ${isReferenceMode ? 1 : (fc.generationLimit || 1)}`,
     `[Mod janaan]: ${GEN_MODE_LABEL[fc.genMode] || fc.genMode || 'Bebas'}`, '',
     'Berikan output dalam format berikut sahaja, satu blok bagi setiap kandungan, dipisahkan dengan baris "____":',
     '(Tarikh sumber MESTI format YYYY-MM-DD, contoh 2026-08-08 — format lain tidak dikenali oleh borang)',
@@ -1559,16 +1573,34 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   hint="disimpan bersama slot ini"
                 />
 
+                {/* Had usia sumber/Negara asal sumber disembunyikan dalam mod "Dengan rujukan"
+                    (audit ChatGPT AI-PROVENANCE-002, 2026-08-15) -- kedua medan ni kriteria
+                    PEMILIHAN sumber (untuk mod "Bebas" bila AI sendiri cari & tapis sumber),
+                    bukan sifat kandungan. Bila editor dah tetapkan URL terus, medan ni jadi
+                    bukan cuma tak relevan tapi BERCANGGAH dgn arahan "guna URL ini sahaja"
+                    (lihat buildAiPrompt di atas). "Jumlah kandungan" pula dikunci ke 1 (bukan
+                    disembunyi) -- editor patut nampak SEBAB, bukan tertanya-tanya ke mana medan
+                    tu hilang; mod rujukan reka bentuk untuk SATU URL -> SATU kandungan sahaja. */}
                 <div className="grid grid-cols-2 gap-5">
-                  <SelectField label="Had usia sumber" value={formConfig.aiPromptRecency || ''} options={HAD_USIA_SUMBER_PILIHAN} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRecency: v }))} />
-                  <Field label="Bahasa sumber" value={formConfig.aiPromptLanguage || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptLanguage: v }))} />
-                  <Field label="Negara asal sumber" value={formConfig.aiPromptRegion || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRegion: v }))} />
+                  {formConfig.genMode !== 'dengan_rujukan' && (
+                    <SelectField label="Had usia sumber" value={formConfig.aiPromptRecency || ''} options={HAD_USIA_SUMBER_PILIHAN} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRecency: v }))} />
+                  )}
+                  <Field label="Bahasa kandungan" value={formConfig.aiPromptLanguage || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptLanguage: v }))} />
+                  {formConfig.genMode !== 'dengan_rujukan' && (
+                    <Field label="Negara asal sumber" value={formConfig.aiPromptRegion || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRegion: v }))} />
+                  )}
                   <label className="flex flex-col gap-1">
-                    <span className={labelCls}>Jumlah kandungan</span>
+                    <span className={`${labelCls} flex items-center gap-1`}>
+                      Jumlah kandungan
+                      {formConfig.genMode === 'dengan_rujukan' && <Lock className="w-3 h-3 text-stone-400" />}
+                    </span>
                     <input
-                      type="number" min={1} value={formConfig.generationLimit || 1}
+                      type="number" min={1}
+                      value={formConfig.genMode === 'dengan_rujukan' ? 1 : (formConfig.generationLimit || 1)}
+                      disabled={formConfig.genMode === 'dengan_rujukan'}
+                      title={formConfig.genMode === 'dengan_rujukan' ? 'Mod "Dengan rujukan" hasilkan SATU kandungan bagi SATU sumber.' : undefined}
                       onChange={(e) => setFormConfig((prev: any) => ({ ...prev, generationLimit: Number(e.target.value) }))}
-                      className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-mono text-sm text-stone-800 py-1.5"
+                      className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-mono text-sm text-stone-800 py-1.5 disabled:bg-stone-50 disabled:text-stone-400"
                     />
                   </label>
                 </div>
