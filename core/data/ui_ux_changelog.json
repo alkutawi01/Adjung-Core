@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T09:03:05.359Z",
+    "summary": "Baiki 2 pepijat kritikal parser 'Tampal' output AI: (1) baris kosong antara Topik:/Tajuk: silap dianggap sempadan kandungan baharu, pecahkan 1 kandungan AI jadi 2 blok; (2) baris kosong antara URL:/Tarikh sumber: reset sumberDateArmed, tarikh per-sumber hilang jatuh balik ke medan legasi kongsi. Kedua-dua berlaku SETIAP kali tampal output AI (format semula jadi copy-paste chat)",
+    "files": [
+      "core/editorial/ManualBlockFormat.js"
+    ]
+  },
+  {
     "time": "2026-08-14T08:57:17.815Z",
     "summary": "Baiki tarikh per-sumber hilang lepas 'Tampal' output AI (sources[].date tak dinormalize ke ISO, cuma medan date legasi tunggal) + perluaskan normalkanTarikhISO terima nama bulan Inggeris, yyyy/mm/dd, d-m-yyyy, ordinal (13th), koma",
     "files": [

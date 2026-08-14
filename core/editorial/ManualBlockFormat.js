@@ -9,7 +9,17 @@
 // Splits a manualSummary blob into per-item blocks. Tolerates several separator conventions the
 // UI has used over time (____, ----, ====, or a blank-line boundary right before a new UUID:/
 // Tajuk:/Event: line) so old and new content keep parsing the same way.
-export const MANUAL_BLOCK_SPLIT_REGEX = /(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i;
+//
+// Lookbehind (2026-08-16, pepijat simulasi "Tampal" Izzat -- ujian sebenar ChatGPT) -- "Topik:"
+// SENTIASA baris terus sebelum "Tajuk:" dalam templat semasa (lihat buildAiPrompt di
+// SlotManagerModal.tsx), dan AI luaran (ChatGPT/Gemini/dll) sentiasa letak baris kosong antara
+// SETIAP medan bila teks disalin dari antara muka chat -- corak tu (blank line selepas "Topik:
+// ...") sepadan TEPAT dengan lookahead \n{2,}(?=Tajuk:) di bawah, jadi SETIAP kandungan AI TUNGGAL
+// terbelah dua secara silap: blok 1 nyaris kosong (cuma Topik), blok 2 segala-galanya lain (TANPA
+// Topik). Bukan kes jarang -- berlaku SETIAP kali editor tampal output AI ikut templat semasa.
+// Lookbehind (?<!Topik:[^\n]*) sekat split kalau baris SEBELUM baris kosong tu ialah "Topik:" --
+// kes legasi (UUID:/Tajuk:/Event: selepas teks LAIN, bukan Topik:) kekal pecah macam biasa.
+export const MANUAL_BLOCK_SPLIT_REGEX = /(?<!Topik:[^\n]*)(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i;
 
 // Canonical separator used when serializing a fresh block list back into one text blob.
 export const MANUAL_BLOCK_SEPARATOR = '\n\n________________________________________\n\n';
@@ -115,6 +125,13 @@ export function parseManualBlockFields(block) {
       fields[medanSemasa] += '\n' + trimmed;
       continue;
     }
+    // Baris kosong DI ANTARA label (2026-08-16, pepijat simulasi "Tampal" Izzat) — AI luaran
+    // sentiasa letak baris kosong antara SETIAP medan (termasuk antara "URL:" dan "Tarikh
+    // sumber:") bila teks disalin dari antara muka chat. Tanpa baris ni, blank line tu jatuh ke
+    // cabang di bawah dan reset `sumberDateArmed` SEBELUM baris "Tarikh sumber:" sempat diproses
+    // — tarikh per-sumber hilang senyap, jatuh balik ke medan legasi kongsi (tepat masalah yang
+    // ciri tarikh-per-sumber cuba elak). Baris kosong di sini cuma no-op, tak reset apa-apa state.
+    if (trimmed === '') continue;
     // Label dikenali dijumpai -> medan berbilang-baris sebelumnya (jika ada) TAMAT di sini.
     // Cabang medan berbilang-baris di bawah menetapkan semula `medanSemasa` selepas ni.
     medanSemasa = null;
