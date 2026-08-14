@@ -129,6 +129,22 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
   // disebut langsung (bukan "elakkan", terus tiada) — ciri tu dimatikan sepenuhnya buat masa ini
   // (GLOSS_AUTHORING_ENABLED=false, ContentBudget.js), dan AI luaran tak akan tahu ciri ni wujud
   // pun kalau tak disebut — jadi tiada risiko ia cuba guna sintaks yang akan ditolak simpan.
+  //
+  // Prompt v3 (2026-08-15, simulasi Izzat pusingan 2 -- prompt v2 di atas diuji SEBENAR terhadap
+  // 4 AI buta konteks (ChatGPT/Gemini/Grok/DeepSeek), keputusan: KESEMUA 4 langgar sekurang-
+  // kurangnya SATU had aksara walaupun had dinyatakan eksplisit sebagai nombor -- corak
+  // merentasi SEMUA model, bukan satu AI sahaja. Pengajaran (audit ChatGPT selepas keputusan
+  // sebenar): AI BUKAN validator deterministik, prompt boleh KURANGKAN kadar ralat tapi tak
+  // boleh jadi lapisan terakhir jamin had -- validateContentBudget (ContentBudget.js) KEKAL
+  // sebagai gerbang sebenar, prompt ni cuma kurangkan kerja pembetulan manual editor. Teknik
+  // yang diuji sebenar sebelum ni gagal sebab AI diberi HAD MAKSIMUM sebagai sasaran ("maksimum
+  // 75") -- AI "berjalan atas tali", kerap terlajak sikit. Sasaran SELAMAT (di bawah had
+  // maksimum, bukan tepat pada had) beri ruang untuk anggaran aksara AI yang tak tepat.
+  const safeBuffer = (max: number) => Math.max(2, Math.round(max * 0.08));
+  const titleSafeMax = Math.max(minTitleTarget, titleTarget - safeBuffer(titleTarget));
+  const briefSafeMax = Math.max(minBriefTarget, briefTarget - safeBuffer(briefTarget));
+  const topikSafeMax = Math.max(1, hadTopik - safeBuffer(hadTopik));
+  const briefLongSafeMax = Math.max(effectiveMinBriefLong(), ceiling.maxBriefLong - safeBuffer(ceiling.maxBriefLong));
   const lines = [
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
     '[Bidang vs Topik — kedua-dua medan WAJIB diisi, jangan keliru]',
@@ -139,19 +155,33 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai huraian mengalir secara natural — JANGAN guna subtajuk atau format berasingan (cth "Apa:"/"Kenapa penting:"/"Konteks:"). Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.', '',
     '[Peraturan sumber & URL]',
     'JANGAN sekali-kali reka/anggar URL. Setiap URL mesti pautan SEBENAR yang wujud dan anda sahkan daripada carian/pengetahuan anda sendiri — kalau tidak pasti URL tepat sesuatu sumber, jangan sertakan sumber tu langsung. URL mesti bermula dengan http:// atau https://. Kalau ada lebih daripada satu sumber, senaraikan sumber UTAMA sahaja pada baris Sumber/URL (satu sumber sahaja setiap blok, format ni tak sokong berbilang URL serentak).', '',
-    '[Had aksara]',
-    `Topik: maksimum ${hadTopik} aksara`,
-    `Tajuk: minimum ${minTitleTarget}, maksimum ${titleTarget} aksara`,
-    `Huraian ringkas: minimum ${minBriefTarget}, maksimum ${briefTarget} aksara`,
-    `Huraian panjang: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong} aksara`, '',
-    `[Had usia sumber]: ${fc.aiPromptRecency || '-'}`,
+    '[Format teks]',
+    'Guna teks biasa sahaja. JANGAN guna Markdown (tiada **tebal**, *condong*, atau simbol _ untuk penekanan) — medan borang Adjung paparkan teks mentah, simbol Markdown akan terpapar literal kepada pembaca, bukan diformat.', '',
+    '[Had usia sumber — WAJIB, bukan pilihan]',
+    `Sumber MESTI diterbitkan dalam tempoh ${fc.aiPromptRecency || '-'} sebelum hari ini. Kira tarikh dengan teliti sebelum pilih sumber — kalau sumber yang anda jumpa lebih lama drpd had ni, JANGAN guna, cari sumber lain yang lebih baharu.`, '',
+    '[Had aksara — sasaran SELAMAT, bukan had maksimum]',
+    'Had di bawah ialah SEMPADAN KERAS (langgar = kandungan ditolak sistem). Tapi JANGAN sasarkan tepat pada angka maksimum — AI kerap silap anggaran sendiri beberapa aksara. Sasarkan ke arah angka "selamat" di bawah, biar ada ruang lapang:',
+    `Topik: sasarkan sekitar ${topikSafeMax} aksara (sempadan keras: maksimum ${hadTopik})`,
+    `Tajuk: sasarkan antara ${minTitleTarget}–${titleSafeMax} aksara (sempadan keras: minimum ${minTitleTarget}, maksimum ${titleTarget})`,
+    `Huraian ringkas: sasarkan antara ${minBriefTarget}–${briefSafeMax} aksara (sempadan keras: minimum ${minBriefTarget}, maksimum ${briefTarget})`,
+    `Huraian panjang: sasarkan antara ${effectiveMinBriefLong()}–${briefLongSafeMax} aksara (sempadan keras: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong})`, '',
+    '[Semakan sendiri — buat SEBELUM tulis output akhir, jangan papar kiraan dalam output]',
+    'Sebelum berikan jawapan akhir, kira semula aksara SETIAP medan (Topik/Tajuk/Huraian ringkas/Huraian panjang) satu-persatu dan bandingkan dengan sasaran di atas. Kalau mana-mana medan melebihi had maksimum atau kurang drpd minimum, tulis semula medan tu sahaja sehingga masuk julat. Kandungan output akhir MESTI teks tulen sahaja (Topik/Tajuk/dst.) — jangan sertakan kiraan aksara atau nota semakan dalam jawapan akhir.', '',
     `[Bahasa sumber]: ${fc.aiPromptLanguage || '-'}`,
     `[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`,
     `[Jumlah kandungan]: ${fc.generationLimit || 1}`,
     `[Mod janaan]: ${GEN_MODE_LABEL[fc.genMode] || fc.genMode || 'Bebas'}`, '',
     'Berikan output dalam format berikut sahaja, satu blok bagi setiap kandungan, dipisahkan dengan baris "____":',
     '(Tarikh sumber MESTI format YYYY-MM-DD, cth 2026-08-08 — format lain tidak dikenali oleh borang)',
-    'Topik:', 'Tajuk:', 'Huraian ringkas:', 'Huraian panjang:', 'Sumber:', 'URL:', 'Tarikh sumber:',
+    'Topik:', 'Tajuk:', 'Huraian ringkas:', 'Huraian panjang:', 'Sumber:', 'URL:', 'Tarikh sumber:', '',
+    '[Contoh format (rujukan struktur SAHAJA — jangan salin isi atau fakta di bawah, ganti dgn kandungan sebenar anda)]',
+    'Topik: Dasar Data Awam',
+    'Tajuk: Portal data terbuka kerajaan tambah 200 set data baharu bulan ini',
+    'Huraian ringkas: Kerajaan memperluas portal data terbuka dengan 200 set data baharu merangkumi sektor kesihatan dan pengangkutan bagi galak penyelidikan awam.',
+    'Huraian panjang: (contoh dipendekkan) ... huraian penuh mengalir tanpa subtajuk, jelaskan apa berlaku dan kenapa ia penting ...',
+    'Sumber: (nama sebenar sumber anda)',
+    'URL: (pautan sebenar yang anda sahkan wujud)',
+    'Tarikh sumber: YYYY-MM-DD',
   ];
   return lines.join('\n');
 }

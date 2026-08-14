@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T04:02:53.042Z",
+    "summary": "Tulis Kandungan (Arahan AI): prompt v3 -- sasaran aksara SELAMAT (bukan had maksimum literal, elak AI terlajak), semakan sendiri sebelum output, satu contoh format rujukan, larangan Markdown, dan pengetatan wording had usia sumber jadi WAJIB. Ditemui via ujian sebenar 4 AI (ChatGPT/Gemini/Grok/DeepSeek) yg SEMUA langgar sekurang-kurangnya satu had dgn prompt v2.",
+    "files": [
+      "src/components/portal/SlotManagerModal.tsx"
+    ]
+  },
+  {
     "time": "2026-08-14T03:28:54.985Z",
     "summary": "Tulis Kandungan (Arahan AI): prompt tersalin kini terangkan beza Bidang vs Topik, tambah peraturan URL/sumber (jangan reka URL, satu sumber sahaja per blok), dan baiki placeholder Arahan Khas kosong (ayat jelas drpd '-'). Gloss sengaja tidak disebut (ciri dimatikan).",
     "files": [
