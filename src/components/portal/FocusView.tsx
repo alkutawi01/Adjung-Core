@@ -1208,19 +1208,28 @@ export const FocusView: React.FC<FocusViewProps> = ({
         <div style={{ width: 'min(74%, 1040px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px' }}>
           <span style={{ maxWidth: '70%', lineHeight: 1.5 }}>
             <span style={micro}>{sources.length > 1 ? 'Sumber-sumber' : 'Sumber'}</span>
-            {/* Sumber berbilang (2026-08-05) — senaraikan SEMUA (`sources`), satu baris setiap
-                sumber; jatuh balik ke medan tunggal (`source`/`sourceUrl`) bila `sources` tiada
-                (kandungan lama). Tarikh PER-sumber (2026-08-15) — SEBELUM NI cuma sumber PERTAMA
-                (i===0) papar sourceDate dikongsi, sumber lain terus tiada tarikh langsung; kini
-                setiap sumber papar s.date SENDIRI (jatuh balik ke sourceDate kongsi untuk sumber
-                pertama sahaja, kandungan lama sebelum tarikh per-sumber wujud). */}
+            {/* Sumber berbilang (2026-08-05) — senaraikan SEMUA (`sources`), dipisah "|"; jatuh
+                balik ke medan tunggal (`source`/`sourceUrl`) bila `sources` tiada (kandungan
+                lama). Tarikh PER-sumber (2026-08-15) — SEBELUM NI cuma sumber PERTAMA (i===0)
+                papar sourceDate dikongsi, sumber lain terus tiada tarikh langsung; kini setiap
+                sumber papar s.date SENDIRI (jatuh balik ke sourceDate kongsi untuk sumber pertama
+                sahaja, kandungan lama sebelum tarikh per-sumber wujud).
+                Susun atur (2026-08-16, permintaan Izzat — "tak nak terus disusun bertingkat2")
+                — SEBELUM NI setiap sumber `display:'block'` (satu per baris menegak, makin
+                panjang makin tinggi senarai). Kini inline, dipisah "|", dalam kontena flex-wrap —
+                sumber yang tak muat pada baris semasa turun ke baris bawah SEBAGAI SATU UNIT UTUH
+                (whiteSpace:'nowrap' pada setiap unit sumber, BUKAN wordBreak:'break-all' macam
+                dahulu) — elak "Sumber 2" terbelah jadi "Sumb"/"er 2" merentasi baris. */}
             {sources.length > 0 ? (
-              sources.map((s, i) => (
-                <span key={i} style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
-                  <a href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{s.name || '—'}</a>
-                  {(s.date || (i === 0 && sourceDate)) && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {s.date || sourceDate}</span>}
-                </span>
-              ))
+              <span style={{ display: 'flex', flexWrap: 'wrap', columnGap: '10px', rowGap: '2px' }}>
+                {sources.map((s, i) => (
+                  <span key={i} style={{ display: 'inline-flex', alignItems: 'baseline', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
+                    <a href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)' }}>{s.name || '—'}</a>
+                    {(s.date || (i === 0 && sourceDate)) && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {s.date || sourceDate}</span>}
+                    {i < sources.length - 1 && <span style={{ color: 'var(--stone-300)', marginLeft: '10px' }}>|</span>}
+                  </span>
+                ))}
+              </span>
             ) : (
               <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
                 <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
