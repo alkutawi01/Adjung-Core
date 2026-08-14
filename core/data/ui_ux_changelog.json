@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T10:06:53.653Z",
+    "summary": "Baiki panel 'Aktiviti Editor' (Papan Pemuka) papar event sistem RSS/automasi bukan tindakan manusia -- tapis ikut actorId (sedia ada, bukan skema baharu): event sistem sentiasa actorId null, tindakan editor sentiasa actorId dari sesi",
+    "files": [
+      "src/components/editorium/DashboardConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-08-14T09:47:37.683Z",
     "summary": "Ketua Editor tak lagi tetapkan Nama Pena/ID Pengguna semasa jemput anggota (borang Tambah Anggota kini emel+peranan sahaja) -- anggota baharu tetapkan identiti sendiri di /tetapkan-kata-laluan sekali dgn kata laluan. GET /api/auth/token-info baharu bezakan jemputan baharu vs set-semula kata laluan sedia ada",
     "files": [

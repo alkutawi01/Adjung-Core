@@ -30,7 +30,15 @@ interface DashboardConsoleProps {
 }
 
 interface SlotUsage { slotIndex: number; bidang: string; liveCount: number; }
-interface EntriLog { id: number; actorName: string | null; action: string; createdAt: string; detail?: string | null; }
+// actorId (2026-08-16, pepijat "Aktiviti Editor papar event sistem" — audit ChatGPT) — signal
+// SEDIA ADA yang bezakan tindakan manusia drpd automasi TANPA perlu medan/skema baharu: setiap
+// panggilan logAudit() (core/audit/AuditLog.js) untuk laluan yang ubah data ATAS NAMA editor
+// (terbit/tolak/urus akaun/Bidang, dll) hantar actorId=req.session.user.id; SEMUA event automasi
+// (RSS Direct, Penjadual Sistem terbit/luput berjadual, amaran konfigurasi) TIDAK PERNAH hantar
+// actorId (jatuh ke `null` di logAudit — lihat AuditLog.js baris 10). Jangan klasifikasi ikut teks
+// `action`/`actorName` (ChatGPT: "Klasifikasi mesti datang daripada sumber event", bukan corak
+// teks yang boleh berubah/bertambah bila laluan baharu ditambah).
+interface EntriLog { id: number; actorId: string | number | null; actorName: string | null; action: string; createdAt: string; detail?: string | null; }
 interface Nota { id: string; tajuk: string; kategori: string; dibuatPada: string; }
 interface ItemRingkas { slotIndex: number; status: string; }
 
@@ -118,7 +126,10 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
           ralat: larianRss.action === 'ralat-ambilan-rss',
         });
       }
-      setAktivitiTerkini(logs.slice(0, 6));
+      // Cuma tindakan MANUSIA (actorId hadir) — event sistem/automasi (RSS, Penjadual Sistem, dll,
+      // lihat nota EntriLog di atas) tenggelamkan tindakan editor sebenar dalam 6 slot terhad ni
+      // kalau tak ditapis (RSS boleh log berpuluh kali sejam, editor mungkin cuma sekali sehari).
+      setAktivitiTerkini(logs.filter((l) => l.actorId != null).slice(0, 6));
 
       if (cuaca?.openMeteo) {
         setStatusCuaca({ status: cuaca.openMeteo.status, sihat: (cuaca.openMeteo.status || '').includes('ONLINE') });
