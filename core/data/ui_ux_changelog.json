@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T11:31:07.069Z",
+    "summary": "Focus View desktop: bar Sumber/Kongsi/Tarikh tukar alignItems flex-end->flex-start -- Kongsi/Tarikh tak lagi ikut turun bila senarai Sumber wrap jadi lebih tinggi (berbilang sumber)",
+    "files": [
+      "src/components/portal/FocusView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-14T11:26:24.000Z",
     "summary": "Focus View desktop: senarai Sumber-sumber tukar dari menegak (satu baris setiap sumber) kepada inline dipisah '|', wrap ikut unit sumber utuh (bukan mid-word) bila tak muat",
     "files": [

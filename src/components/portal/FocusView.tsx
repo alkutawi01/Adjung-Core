@@ -1205,7 +1205,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
           pemanggil yang uruskan format, fail ni cuma papar apa yang diterima. */}
       <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ position: 'relative', flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) 0', display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: 'min(74%, 1040px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px' }}>
+        {/* alignItems flex-end -> flex-start (2026-08-16, permintaan Izzat -- "butang kongsi tak
+            boleh diusik walaupun sumber ada 10 pun") -- flex-end selaraskan BAWAH ketiga-tiga
+            lajur (Sumber/Kongsi/Tarikh) sesama sendiri; bila senarai Sumber wrap ke berbilang
+            baris (lebih tinggi), bawahnya turun, dan Kongsi/Tarikh (lebih pendek, tak pernah
+            wrap) terikut turun sekali untuk kekal sejajar bawah dgn Sumber -- kedudukan Kongsi
+            jadi bergantung berapa banyak sumber, tepat yang Izzat tak nak. flex-start jangkarkan
+            ketiga-tiga di ATAS baris ni sebaliknya -- Sumber boleh tumbuh ke bawah sepuas-puasnya
+            (10 sumber, 20 sumber) tanpa sentuh kedudukan Kongsi/Tarikh langsung. */}
+        <div style={{ width: 'min(74%, 1040px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
           <span style={{ maxWidth: '70%', lineHeight: 1.5 }}>
             <span style={micro}>{sources.length > 1 ? 'Sumber-sumber' : 'Sumber'}</span>
             {/* Sumber berbilang (2026-08-05) — senaraikan SEMUA (`sources`), dipisah "|"; jatuh
