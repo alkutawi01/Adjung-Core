@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-14T11:18:48.019Z",
+    "summary": "Focus View: (1) logo panel transisi 26px->32px (2) butang Jeda/Space tak lagi reset kiraan tatal-automatik -- kini simpan baki masa sebenar dan sambung dari situ, progress bar kekal beku di kedudukan (animationPlayState) bukan hilang/reset",
+    "files": [
+      "src/components/portal/FocusView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-14T10:56:25.046Z",
     "summary": "Notification hygiene: (1) RSS gagal berulang kini kumpul jadi SATU baris dengan kiraan (bukan banjir baris baharu setiap 5 min) (2) kandungan_disiar/kandungan_ditolak tak lagi notify orang yang buat tindakan sendiri (dah nampak toast, elak maklumat berganda)",
     "files": [

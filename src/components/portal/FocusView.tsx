@@ -373,14 +373,33 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // saat kalau prop tiada (keserasian ke belakang).
   const AUTOSCROLL_MS = (autoAdvanceSec && autoAdvanceSec > 0 ? autoAdvanceSec : 14) * 1000;
   const [autoPlay, setAutoPlay] = React.useState(true);
+  // Baki masa jeda (2026-08-16, permintaan Izzat — "tekan space, saya tak nak kiraan detik tu
+  // direset... tekan space sekali lagi, progress bar kembali bergerak") — SEBELUM ni toggle
+  // autoPlay off/on cuma clear+setTimeout PENUH (AUTOSCROLL_MS) semula, jadi jeda-sambung nampak
+  // macam mula dari kosong balik, bukan sambung dari tempat ditinggalkan. Kini jejak baki masa
+  // eksplisit: bila jeda (cleanup effect di bawah bila autoPlay jadi false), kira baki (AUTOSCROLL_MS
+  // tolak masa berlalu) dan simpan; bila sambung, guna baki tu (bukan AUTOSCROLL_MS penuh).
+  const bakiMsRef = React.useRef(AUTOSCROLL_MS);
+  const mulaMasaRef = React.useRef(Date.now());
+  React.useEffect(() => {
+    // Kandungan bertukar (title baharu, auto ATAU navigasi manual) — mula semula PENUH, bukan
+    // sambung baki kandungan LAMA (effect ni jalan SEBELUM effect pemasa di bawah bila title
+    // berubah, urutan deklarasi React).
+    bakiMsRef.current = AUTOSCROLL_MS;
+  }, [title, AUTOSCROLL_MS]);
   React.useEffect(() => {
     if (!autoPlay || !onNext) return;
-    const t = setTimeout(onNext, AUTOSCROLL_MS);
-    return () => clearTimeout(t);
-    // `title` dalam dependency: reset pemasa apabila kandungan bertukar (auto ATAU navigasi
-    // manual pembaca sendiri klik Sebelum/Seterusnya) supaya pembaca sentiasa dapat tempoh
-    // penuh untuk baca kandungan yang baru dipaparkan, bukan baki pemasa kandungan lama.
-  }, [autoPlay, onNext, title, AUTOSCROLL_MS]);
+    mulaMasaRef.current = Date.now();
+    const t = setTimeout(onNext, bakiMsRef.current);
+    return () => {
+      clearTimeout(t);
+      // Simpan baki HANYA bila effect ni dibersih sebab autoPlay bertukar false (jeda) — bila
+      // sebabnya title bertukar, effect atas dah reset bakiMsRef ke penuh; overwrite di sini
+      // (dgn pengiraan drpd title LAMA) tak apa sebab effect atas akan timpa balik ke penuh
+      // lepas ni ikut urutan deklarasi, nilai sini cuma sekejap.
+      bakiMsRef.current = Math.max(0, bakiMsRef.current - (Date.now() - mulaMasaRef.current));
+    };
+  }, [autoPlay, onNext, title]);
 
   // Kekunci Space jeda/main tatal automatik (2026-08-13, permintaan Izzat — "benarkan pembaca
   // guna keyboard, contohnya tekan butang space untuk pause-kan masa"). Diabaikan bila fokus
@@ -618,7 +637,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
         animation: 'focusViewTransitionPanel 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards',
       }}
     >
-      <span style={{ fontFamily: 'var(--font-serif)', fontSize: '26px', letterSpacing: 'var(--tracking-tight)', color: '#FDFDFD' }}>
+      {/* 26px -> 32px (2026-08-16, permintaan Izzat). Nombor terus (bukan LOGO_SIZE, brand.ts) —
+          fail ni guna inline style di seluruh tempat (bukan className Tailwind macam LOGO_SIZE
+          eksport), dan 32px tak sepadan tepat mana-mana 4 peringkat sedia ada (mini 18px / gate
+          30px-36px). Sistem LOGO_SIZE sendiri wujud sebab masalah ni (setiap skrin pilih saiz
+          sendiri, lihat nota brand.ts) — panel transisi penuh-skrin ni (konteks "gate" dari segi
+          penonjolan, tapi "mini" dari segi lockup satu-baris) tak muat kemas dalam mana-mana
+          peringkat sedia ada. Kalau lebih tempat perlukan ~32px penuh-skrin macam ni, patut jadi
+          peringkat ke-5 LOGO_SIZE eksplisit, bukan nombor bersendirian macam ni. */}
+      <span style={{ fontFamily: 'var(--font-serif)', fontSize: '32px', letterSpacing: 'var(--tracking-tight)', color: '#FDFDFD' }}>
         {wordmark}
       </span>
     </div>
@@ -704,9 +731,14 @@ export const FocusView: React.FC<FocusViewProps> = ({
             </button>
           )}
         </div>
-        {autoPlay && onNext && (
+        {onNext && (
+          // Kekal mounted walau jeda (2026-08-16, permintaan Izzat) — SEBELUM ni bar ni tersembunyi
+          // sepenuhnya bila autoPlay=false (unmount, hilang kedudukan animasi), lalu remount dari
+          // kosong bila sambung. animationPlayState:'paused' bekukan animasi CSS TEPAT di kedudukan
+          // semasa (kelakuan asli pelayar), 'running' sambung dari situ — tiada jejak masa manual
+          // diperlukan utk bahagian visual ni (jejak masa sebenar utk onNext() di useEffect atas).
           <div key={`bar-${title}`} style={{ height: '2px', flex: '0 0 auto', background: 'var(--stone-200)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards` }} />
+            <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards`, animationPlayState: autoPlay ? 'running' : 'paused' }} />
           </div>
         )}
 
@@ -1019,9 +1051,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
           </button>
         )}
       </div>
-      {autoPlay && onNext && (
+      {onNext && (
+        // Kekal mounted walau jeda — lihat nota sepadan di susun atur telefon di atas.
         <div key={`bar-${title}`} style={{ height: '2px', flex: '0 0 auto', width: '100%', background: 'var(--border-subtle)', overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards` }} />
+          <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards`, animationPlayState: autoPlay ? 'running' : 'paused' }} />
         </div>
       )}
       <hr style={{ ...rule, flex: '0 0 auto' }} />
