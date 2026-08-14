@@ -1010,7 +1010,13 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         if (effectiveStatus === 'approved' && objRow) {
           const notifySlotIndex = slotIndex !== undefined ? slotIndex : objRow.slotIndex;
           const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [notifySlotIndex]);
-          await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
+          // Elak notifikasi bertindih dgn toast (2026-08-16, "notification hygiene" — permintaan
+          // Izzat + audit ChatGPT) — editor yang SENDIRI tekan Terbit dah nampak toast serta-merta,
+          // notifikasi lewat dalam Peti Makluman untuk perkara sama cuma bunyi bising berganda.
+          // Editor LAIN yang diamanahkan slot sama (kongsi slot) TETAP terima — mereka tak nampak
+          // toast tu.
+          const penerimaBukanDiri = (editorRows || []).map((r) => r.editorId).filter((eid) => eid !== req.session?.user?.id);
+          await notifyMany(dbRun, penerimaBukanDiri, {
             type: 'kandungan_disiar',
             title: 'Kandungan anda telah disiarkan',
             detail: (title !== undefined ? title : rev.title || '').slice(0, 150),
@@ -1430,9 +1436,13 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const penulisRow = attrs.editorName
         ? await dbGet('SELECT id FROM users WHERE penName = ?', [attrs.editorName])
         : null;
-      const penerimaIds = penulisRow
+      const penerimaIds = (penulisRow
         ? [penulisRow.id]
-        : (await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [objRow.slotIndex])).map((r) => r.editorId);
+        : (await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [objRow.slotIndex])).map((r) => r.editorId))
+        // Elak notifikasi bertindih dgn toast (2026-08-16, "notification hygiene") — kalau penulis
+        // asal sendiri yang tolak kandungannya (retract sendiri), dia dah nampak toast, tak perlu
+        // notifikasi lewat untuk perkara sama.
+        .filter((eid) => eid !== req.session?.user?.id);
       await notifyMany(dbRun, penerimaIds, {
         type: 'kandungan_ditolak',
         title: 'Kandungan anda ditolak',

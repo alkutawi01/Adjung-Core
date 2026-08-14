@@ -1,5 +1,14 @@
 [
   {
+    "time": "2026-08-14T10:56:25.046Z",
+    "summary": "Notification hygiene: (1) RSS gagal berulang kini kumpul jadi SATU baris dengan kiraan (bukan banjir baris baharu setiap 5 min) (2) kandungan_disiar/kandungan_ditolak tak lagi notify orang yang buat tindakan sendiri (dah nampak toast, elak maklumat berganda)",
+    "files": [
+      "core/notifications/Notify.js",
+      "core/routes/slotRoutes.js",
+      "core/routes/contentRoutes.js"
+    ]
+  },
+  {
     "time": "2026-08-14T10:06:53.653Z",
     "summary": "Baiki panel 'Aktiviti Editor' (Papan Pemuka) papar event sistem RSS/automasi bukan tindakan manusia -- tapis ikut actorId (sedia ada, bukan skema baharu): event sistem sentiasa actorId null, tindakan editor sentiasa actorId dari sesi",
     "files": [

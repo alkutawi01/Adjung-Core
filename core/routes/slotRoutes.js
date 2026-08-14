@@ -14,9 +14,11 @@ import { sahkanUrlSelamatUntukFetch } from '../utils/urlSafety.js';
 
 // Notifikasi Sistem (Fasa 6b) — RSS/cuaca gagal ditujukan kepada Pentadbir/Ketua Editor sahaja
 // (mereka yang boleh bertindak ke atas kegagalan infrastruktur, bukan setiap editor biasa).
-async function beritahuPentadbirDanKetuaEditor(dbAll, dbRun, payload) {
+// dbGet opsyenal (2026-08-16, "notification hygiene") — diteruskan ke notifyMany()/notify() untuk
+// sokong `kumpul` (kegagalan berulang sumber SAMA kemaskini SATU baris, bukan banjir baris baharu).
+async function beritahuPentadbirDanKetuaEditor(dbAll, dbRun, payload, dbGet) {
   const rows = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
-  await notifyMany(dbRun, (rows || []).map((r) => r.userId), payload);
+  await notifyMany(dbRun, (rows || []).map((r) => r.userId), payload, dbGet);
 }
 
 // NOTE: this router used to also define GET/POST /slots and POST /slots/run-now, plus a whole
@@ -1014,7 +1016,8 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
         detail: fetchErr.message || fetchErr.name || 'Ralat tidak diketahui',
         targetType: 'rss_source',
         targetId: source.id,
-      });
+        kumpul: true,
+      }, dbGet);
     }
   }));
 
