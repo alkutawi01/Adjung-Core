@@ -128,6 +128,31 @@ laluan simpan yang sama seperti `validateContentBudget()` di atas. Pertukaran Bi
 slot tidak retroaktif — cuma mempengaruhi kandungan baharu selepas perubahan. Rujuk
 seksyen "03 — Bidang & Topik" dalam Perlembagaan (Editorium) untuk butiran penuh.
 
+### Dua laluan "edit selepas terbit" — JANGAN campur (2026-08-16)
+Adjung Brief ada DUA laluan berasingan untuk ubah kandungan yang sudah AKTIF — kedua-duanya
+sengaja, jangan cuba "seragamkan" tanpa faham beza tujuan (disahkan hujung-ke-hujung, Slot 3
+simulasi, guna kandungan sebenar):
+
+- **Semakan Kandungan / Simpan Pukal** (`ContentReview.tsx` -> `PATCH /content/:id` dgn
+  `title`/`summary`, `contentRoutes.js` ~baris 888 `isContentEdit`) — **Revision Editing**.
+  objectId KEKAL SAMA, `editorial_revisions.version` naik (1->2->3...), semua atribut lama
+  dibawa ke revisi baharu. Ini laluan "editor jumpa typo/fakta berubah, betulkan cepat".
+  `POST /content/:id/revisions/:revisionId/restore` (Pulih versi lama) berfungsi PENUH di
+  sini — restore v1 CIPTA version baharu (bukan literal kembali ke v1), sejarah tak pernah
+  padam. Tab "Sejarah Versi" (IndeksConsole.tsx) tepat & bermakna untuk laluan ni.
+- **Tolak (arkib & pulangkan draf) -> edit draf -> Terbit semula** (`SlotManagerModal.tsx`,
+  slot picker "Tulis Kandungan Baharu") — **Publication Redraft**. Objek lama jadi
+  `status='archived'` (KEKAL dlm DB, bukan padam — sejarah selamat), draf pulang dgn UUID
+  BAHARU, Terbit semula cipta objectId BAHARU sepenuhnya (version SENTIASA 1). Ini laluan
+  untuk kandungan yang perlu SEMAKAN SEMULA (ditolak sbb dasar/fakta salah), bukan pembetulan
+  pantas. Tab "Sejarah Versi" untuk objek yang lahir drpd laluan ni akan SENTIASA papar
+  "Versi 1" sahaja walaupun kandungan tu kitaran ke-2/3 — BUKAN pepijat, cuma laluan ni
+  memang tak guna version chain.
+
+View count (`daily_view_counts`) TAK terjejas oleh mana-mana laluan — dikira ikut
+`targetType='slot', targetId=slotIndex`, bukan objectId, jadi kekal berterusan tak kira
+laluan edit yang dipakai.
+
 ### Peti Makluman — kontrak UX pusat makluman (2026-08-16)
 Ditulis selepas Izzat melaporkan kekecewaan sebenar kat ChatGPT: buka Peti Makluman selepas
 nampak lencana bell, tapi tab yang terbuka (Editorial, hardcoded) papar mesej LAMA — mesej
