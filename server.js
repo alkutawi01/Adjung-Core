@@ -3236,9 +3236,20 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       // Exclude Manual-origin rows: a slot can be switched between Manual and AI Generated over
       // time, and old rows from the OTHER mode can still share the same slotIndex — without this
       // filter, stale content from a previous mode silently bleeds into the current mode's carousel.
+      //
+      // `er.version = MAX(version)` (2026-08-16, pepijat kritikal Izzat — kad SATU kandungan
+      // papar anak panah + titik carousel palsu) — TANPA had ni, JOIN kena SETIAP baris revisi
+      // 'approved' bagi objek yang sama, bukan cuma yang TERKINI. Objek yang pernah diedit
+      // berbilang kali via Semakan Kandungan (version chain — version 1/2/3 semuanya kekal
+      // status='approved') pulangkan objectId yang SAMA berulang kali (satu baris setiap
+      // versi), CarouselStableBlock (FrontpageView.tsx) anggap tu N kandungan BERBEZA dlm satu
+      // slot — kandungan tunggal papar carousel palsu (kandungan sama diulang beberapa kali).
+      // Disahkan sebenar: HaramMute (slot 0, 3 versi via Semakan Kandungan) pulangkan objectId
+      // sama 3 kali sebelum fix ni.
       const dbObjects = await dbAll(`
         SELECT eo.id FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.status = 'approved'
+          AND er.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = eo.id)
         WHERE eo.slotIndex = ? AND er.createdBy NOT IN ('manual-slot-save', 'migration-manual-blob', 'content-review')
         ORDER BY eo.createdAt DESC LIMIT ?
       `, [slot.slotIndex, limit]);
@@ -3263,6 +3274,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       const dbObjects = await dbAll(`
         SELECT eo.id FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.status = 'approved'
+          AND er.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = eo.id)
         WHERE eo.slotIndex = ? AND er.createdBy IN ('manual-slot-save', 'migration-manual-blob', 'content-review')
         ORDER BY eo.createdAt ASC
       `, [slot.slotIndex]);
