@@ -82,6 +82,16 @@ interface BulkParsedEntry {
 // disimpan, nombor siri bergeser — dan simpan pukal akan menampal perubahan pada ARTIKEL YANG
 // SALAH tanpa amaran. UUID (dah pun dipaparkan, cuma tak digunakan) ialah identiti STABIL yang
 // betul-betul patut jadi kunci padanan; nombor #Slot-Siri kekal sebagai label paparan sahaja.
+// Label dikenali (2026-08-16, pepijat kritikal Izzat — "cuba betulkan pemerengganan huraian
+// panjang... lepas tekan simpan pukal ia reset kepada yg asal semula") — dipakai SEBELUM parser
+// utama untuk kesan baris SAMBUNGAN medan berbilang-baris (Huraian/Huraian Panjang/Nota).
+const LABEL_BULK_DIKENALI = [
+  'UUID:', 'Tajuk:', 'Huraian Panjang:', 'Huraian:', 'Bidang:', 'Kategori:', 'Topik:',
+  'Sumber:', 'URL:', 'Tarikh Sumber:', 'Nota:',
+];
+const adaLabelBulkDikenali = (t: string) => LABEL_BULK_DIKENALI.some((l) => t.toLowerCase().startsWith(l.toLowerCase()));
+const MEDAN_BULK_BERBILANG_BARIS = new Set(['summary', 'summaryLong', 'note']);
+
 const parseBulkText = (text: string): BulkParsedEntry[] => {
   const blocks = text.split(/\n(?=#\d+-\d+\s*$)/m);
   const entries: BulkParsedEntry[] = [];
@@ -90,22 +100,42 @@ const parseBulkText = (text: string): BulkParsedEntry[] => {
     if (!headerMatch) continue;
     const slotNumber = parseInt(headerMatch[1], 10);
     const seriesNumber = parseInt(headerMatch[2], 10);
-    let uuid = '', title = '', summary = '', summaryLong = '', desk = '', topik = '', source = '', url = '', originalDate = '', note = '';
+    const medan: Record<string, string> = { uuid: '', title: '', summary: '', summaryLong: '', desk: '', topik: '', source: '', url: '', originalDate: '', note: '' };
+    // medanSemasa (2026-08-16) — SEBELUM ni parser ni TIADA konsep medan berbilang-baris
+    // langsung: "Huraian Panjang:" cuma tangkap SATU baris (baris label itu sendiri), setiap
+    // baris SAMBUNGAN (perenggan kedua, ketiga) jatuh melalui SEMUA else-if tanpa padan mana-mana
+    // label lalu HILANG SENYAP — bukan cuma paparan reset, "Simpan Pukal" hantar versi
+    // TERPANGKAS (perenggan pertama sahaja) ke server, kehilangan data sebenar kalau save
+    // berjaya. Corak sama macam pembetulan pepijat #21 ManualBlockFormat.js (fail berasingan,
+    // format berbeza, tapi punca serupa: label dikesan, sambungan tak dikendali).
+    let medanSemasa: string | null = null;
     for (const line of block.split('\n')) {
       const trimmed = line.trim();
-      if (trimmed.startsWith('UUID:')) uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
-      else if (trimmed.startsWith('Tajuk:')) title = trimmed.replace(/^Tajuk:\s*/i, '').trim();
-      else if (trimmed.startsWith('Huraian Panjang:')) summaryLong = trimmed.replace(/^Huraian Panjang:\s*/i, '').trim();
-      else if (trimmed.startsWith('Huraian:')) summary = trimmed.replace(/^Huraian:\s*/i, '').trim();
-      else if (trimmed.startsWith('Bidang:')) desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
-      else if (trimmed.startsWith('Kategori:')) desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
-      else if (trimmed.startsWith('Topik:')) topik = trimmed.replace(/^Topik:\s*/i, '').trim();
-      else if (trimmed.startsWith('Sumber:')) source = trimmed.replace(/^Sumber:\s*/i, '').trim();
-      else if (trimmed.startsWith('URL:')) url = trimmed.replace(/^URL:\s*/i, '').trim();
-      else if (trimmed.startsWith('Tarikh Sumber:')) originalDate = trimmed.replace(/^Tarikh Sumber:\s*/i, '').trim();
-      else if (trimmed.startsWith('Nota:')) note = trimmed.replace(/^Nota:\s*/i, '').trim();
+      if (medanSemasa && MEDAN_BULK_BERBILANG_BARIS.has(medanSemasa) && !adaLabelBulkDikenali(trimmed)) {
+        medan[medanSemasa] += '\n' + trimmed;
+        continue;
+      }
+      medanSemasa = null;
+      if (trimmed.startsWith('UUID:')) medan.uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
+      else if (trimmed.startsWith('Tajuk:')) medan.title = trimmed.replace(/^Tajuk:\s*/i, '').trim();
+      else if (trimmed.startsWith('Huraian Panjang:')) { medan.summaryLong = trimmed.replace(/^Huraian Panjang:\s*/i, '').trim(); medanSemasa = 'summaryLong'; }
+      else if (trimmed.startsWith('Huraian:')) { medan.summary = trimmed.replace(/^Huraian:\s*/i, '').trim(); medanSemasa = 'summary'; }
+      else if (trimmed.startsWith('Bidang:')) medan.desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
+      else if (trimmed.startsWith('Kategori:')) medan.desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
+      else if (trimmed.startsWith('Topik:')) medan.topik = trimmed.replace(/^Topik:\s*/i, '').trim();
+      else if (trimmed.startsWith('Sumber:')) medan.source = trimmed.replace(/^Sumber:\s*/i, '').trim();
+      else if (trimmed.startsWith('URL:')) medan.url = trimmed.replace(/^URL:\s*/i, '').trim();
+      else if (trimmed.startsWith('Tarikh Sumber:')) medan.originalDate = trimmed.replace(/^Tarikh Sumber:\s*/i, '').trim();
+      else if (trimmed.startsWith('Nota:')) { medan.note = trimmed.replace(/^Nota:\s*/i, '').trim(); medanSemasa = 'note'; }
     }
-    entries.push({ slotNumber, seriesNumber, uuid, title, summary, summaryLong, desk, topik, source, url, originalDate, note });
+    // Kemas ekor baris kosong tertinggal (cth "Huraian Panjang: ...\n\nBidang: X" tinggalkan '\n'
+    // berlebihan di hujung) — sempadan perenggan DALAM teks kekal utuh, cuma ekor dipangkas.
+    for (const m of MEDAN_BULK_BERBILANG_BARIS) medan[m] = medan[m].replace(/\s+$/, '');
+    entries.push({
+      slotNumber, seriesNumber, uuid: medan.uuid, title: medan.title, summary: medan.summary,
+      summaryLong: medan.summaryLong, desk: medan.desk, topik: medan.topik, source: medan.source,
+      url: medan.url, originalDate: medan.originalDate, note: medan.note,
+    });
   }
   return entries;
 };

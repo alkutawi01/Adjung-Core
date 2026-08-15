@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-15T03:29:58.284Z",
+    "summary": "KRITIKAL: parseBulkText (Semakan Kandungan) tiada sokongan medan berbilang-baris langsung -- Huraian/Huraian Panjang/Nota cuma tangkap SATU baris pertama, perenggan seterusnya hilang senyap semasa parse, Simpan Pukal boleh hantar versi TERPANGKAS ke server (risiko kehilangan data sebenar, bukan cuma reset UI). Tambah state machine medanSemasa sama pattern ManualBlockFormat.js",
+    "files": [
+      "src/components/studio/ContentReview.tsx"
+    ]
+  },
+  {
     "time": "2026-08-15T03:19:15.795Z",
     "summary": "Semakan Kandungan (Studio): mesej 'Selesai: N disimpan' selepas Simpan Pukal SEBELUM ni terpadam serta-merta oleh muat-semula senarai lepas save -- kini kekal kelihatan sehingga penapis/halaman ditukar. Mesej juga jadi lebih ketara (warna hijau/merah ikut keputusan, bukan 10px kelabu senyap), dan wording 'Gagal' bila sifar berjaya (bukan 'Selesai' yang berbunyi macam kejayaan separa)",
     "files": [
