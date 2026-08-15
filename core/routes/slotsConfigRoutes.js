@@ -364,6 +364,27 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         detail: `${slots.length} slot disimpan`,
       });
 
+      // Log KHUSUS setiap kandungan yang BARU diterbitkan/dihantar sesi simpan ni (2026-08-16,
+      // permintaan Izzat -- "Aktiviti Editor takde apa2" lepas dia terbitkan kandungan sebenar
+      // pertama). Entri generik "kemas-kini-konfigurasi-slot" di atas sengaja KEKAL (jejak audit
+      // teknikal, "N slot disimpan") tapi tak sebut tajuk & label mentah kod -- tak berguna
+      // sebagai bukti "saya baru terbitkan X" utk Ketua Editor semak sendiri. publishOutcomes
+      // (dikumpul di atas drpd syncManualObjectsForSlot) cuma kandungan yang BARU
+      // diterbitkan/cuba terbit SESI NI (bukan seluruh giliran slot -- lihat nota "objectId
+      // SENTIASA baharu" di server.js), jadi selamat log satu baris setiap satu tanpa risiko
+      // pendua bila editor sekadar edit kandungan LAMA yang tak berubah status.
+      for (const outcome of publishOutcomes) {
+        if (!outcome.title) continue;
+        await logAudit(dbRun, {
+          actorId: req.session?.user?.id,
+          actorName: req.session?.user?.penName || req.session?.user?.username,
+          action: outcome.status === 'approved' ? 'menerbit-kandungan' : 'kandungan-menunggu-kelulusan',
+          targetType: 'kandungan',
+          targetId: outcome.objectId,
+          detail: outcome.title,
+        });
+      }
+
       res.json({ success: true, publishOutcomes });
     } catch (err) {
       console.error('Save slots config error:', err);

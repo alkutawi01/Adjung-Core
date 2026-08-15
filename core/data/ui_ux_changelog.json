@@ -1,5 +1,13 @@
 [
   {
+    "time": "2026-08-15T03:11:30.209Z",
+    "summary": "Aktiviti Editor: penerbitan kandungan kini log baris KHUSUS 'Menerbitkan kandungan: <tajuk>' (bukan cuma entri generik 'kemas-kini-konfigurasi-slot: N slot disimpan' yang tak sebut tajuk/label mentah kod)",
+    "files": [
+      "core/routes/slotsConfigRoutes.js",
+      "src/components/editorium/LogAuditConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-08-15T02:14:18.875Z",
     "summary": "Parser Tampal nyahbungkus URL gaya Markdown '[url](url)' secara automatik -- AI kadang tetap bungkus URL macam ni walaupun prompt larang Markdown, sebelum ni gagal validasi 'bukan URL yang sah'",
     "files": [

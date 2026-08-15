@@ -71,6 +71,14 @@ const TINDAKAN_LABEL: Record<string, string> = {
   'ambilan-rss-selesai': 'Ambilan RSS selesai',
   'rss-huraian-dipendekkan': 'Huraian RSS dipendekkan (Ticker)',
   'ralat-pelayan': 'Ralat pelayan',
+  // 2026-08-16 (permintaan Izzat — "Aktiviti Editor takde apa2" lepas penerbitan sebenar
+  // pertama) — 'menerbit-kandungan'/'kandungan-menunggu-kelulusan' baris KHUSUS baharu
+  // (slotsConfigRoutes.js, guna publishOutcomes), 'kemas-kini-konfigurasi-slot' label lama
+  // yang jatuh balik ke teks mentah kod sebelum ni (Pilihan A ChatGPT/Izzat — label mesra
+  // walaupun entri generik ni sendiri tak sebut tajuk).
+  'menerbit-kandungan': 'Menerbitkan kandungan',
+  'kandungan-menunggu-kelulusan': 'Kandungan menunggu kelulusan',
+  'kemas-kini-konfigurasi-slot': 'Kemas kini slot',
 };
 
 export const labelTindakan = (action: string): string => {
