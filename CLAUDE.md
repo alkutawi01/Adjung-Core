@@ -184,6 +184,29 @@ medan ni, walau nampak "lebih tepat/jujur" — identiti penyunting sebenar sudah
 berasingan dalam attribute `editorName`, `createdBy` ialah token LALUAN (macam mana
 dicipta), bukan SIAPA.
 
+### Arahan AI — huraian panjang berperenggan + had Sumber realistik (2026-08-16)
+Simulasi "Dengan rujukan" SEBENAR (sumber sebenar, AI sebenar via ChatGPT, bukan cuma baca kod)
+dedah dua isu, kedua-dua dibaiki + disahkan hujung-ke-hujung (publish sebenar, DB, API awam,
+kad frontpage/mobile):
+
+- **Huraian panjang satu blok teks** — arahan `[Fungsi huraian panjang]` (`buildAiPrompt()`,
+  `SlotManagerModal.tsx`) lama cuma larang subtajuk, tak pernah eksplisit minta perenggan. AI
+  tafsir "mengalir lancar" = SATU blok tanpa `\n\n` langsung. Fix: eksplisit minta pecah ikut
+  PERUBAHAN IDEA (bukan bilangan tetap), guna `\n\n` antara perenggan, kekal satu naratif
+  bersambung (bukan nota gaya blog). **Nota**: arahan `[Semakan sendiri]` (AI kira semula aksara
+  sendiri) TAK 100% dipatuhi dlm ujian sebenar (AI hasilkan 1962 aksara, langgar had 1800) —
+  `validateContentBudget()` di server KEKAL gerbang sebenar, prompt cuma kurangkan kadar ralat.
+  Jangan sekali-kali anggap arahan prompt sahaja cukup jamin had — sentiasa uji publish SEBENAR.
+- **hadSumber (Tetapan Am Slot) 20 aksara terlalu ketat** — nama penerbit berita SEBENAR yang
+  biasa (bukan reka/pelik) melebihi 20 aksara: "The Malaysian Reserve"=21, "South China Morning
+  Post"=25, "New Straits Times"=17 dan "The Star Malaysia"=18 pun dah hampir had. Naikkan ke 50
+  (nilai DATA di `slot_am_settings`, bukan kod — laras di Editorium → Slot → Tetapan Am, BUKAN
+  edit terus DB supaya cache dalam-memori `ContentBudget.js` turut segar). Disahkan visual
+  (desktop + mobile 375px): lajur nama sumber TIADA `overflow-hidden`/`truncate`/`nowrap` sengaja
+  — teks lebih panjang WRAP secara semula jadi (kad tumbuh, bukan potong), sepadan falsafah "kad
+  tak boleh overflow" CLAUDE.md. Kalau nama sumber masih tak muat 50 aksara di masa depan,
+  singkatan biasa (NST, SCMP) ialah jalan keluar pertama sebelum naikkan had lagi.
+
 ### Peti Makluman — kontrak UX pusat makluman (2026-08-16)
 Ditulis selepas Izzat melaporkan kekecewaan sebenar kat ChatGPT: buka Peti Makluman selepas
 nampak lencana bell, tapi tab yang terbuka (Editorial, hardcoded) papar mesej LAMA — mesej
