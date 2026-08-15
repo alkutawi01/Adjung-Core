@@ -3983,8 +3983,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           {/* Susun atur footer (2026-08-05, permintaan Izzat) — DUA kolum pautan sahaja (dahulu
               tiga: Institusi/Adjung/Am terpisah tanpa sebab jelas). Institusi kini gabung modal
               "Adjung" lama (Mengenai Adjung, Lembaga Editorial) + modal "Institusi" lama (Catatan
-              Ketua Editor, Dasar Penerbitan, Pengumuman, Sejarah Versi) — enam pautan modal dalam
-              SATU kolum. Maklumat ialah laluan halaman sebenar (bukan modal): Hubungi + tiga
+              Ketua Editor, Dasar Penerbitan, Pengumuman) — lima pautan modal dalam SATU kolum
+              ("Sejarah Versi" dibuang 2026-08-16, lihat komen berhampiran li Pengumuman di bawah).
+              Maklumat ialah laluan halaman sebenar (bukan modal): Hubungi + tiga
               halaman polisi berasingan (Polisi Privasi/Terma Penggunaan/Penafian, dipecah drpd
               "Polisi & Penafian" tunggal lama). "Tentang" (laluan /tentang lama) sengaja tak
               dipaut lagi di sini — "Mengenai Adjung" (modal) sekarang satu-satunya pautan
@@ -4036,7 +4037,17 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 <li className="flex"><button onClick={() => handleFooterLinkClick('editors-notes')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Catatan Ketua Editor</button></li>
                 {halamanAktif('publishing-policies') && <li className="flex"><button onClick={() => handleFooterLinkClick('publishing-policies')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Dasar Penerbitan</button></li>}
                 <li className="flex"><button onClick={() => handleFooterLinkClick('notices')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Pengumuman</button></li>
-                {halamanAktif('version-history') && <li className="flex"><button onClick={() => handleFooterLinkClick('version-history')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Sejarah Versi</button></li>}
+                {/* "Sejarah Versi" DIBUANG dari footer (2026-08-16, keputusan Izzat selepas audit
+                    ChatGPT) — bukan pepijat, keputusan positioning sengaja. Kandungan awam yang
+                    sesuai untuk nama "Sejarah Versi" ialah sejarah PERKEMBANGAN PRODUK (release
+                    history gaya "Versi 1.0/1.1..."), bukan esei institusi umum (itu domain
+                    "Mengenai Adjung") mahupun changelog teknikal komit-demi-komit (itu sudah wujud
+                    DALAMAN di /api/system/rules-changelog + /api/system/ui-ux-changelog). Buat masa
+                    ni platform belum ada milestone versi awam yang cukup matang untuk didokumen —
+                    isi ruang dengan kandungan tanggung-tanggung lebih buruk drpd tiada langsung.
+                    Laluan /api/pages/version-history + static_pages KEKAL wujud (tak dipadam,
+                    sama corak /tentang), pautan footer sahaja dibuang — hidupkan semula bila
+                    sudah ada milestone versi awam yang jelas untuk didokumen. */}
               </ul>
             </div>
 
