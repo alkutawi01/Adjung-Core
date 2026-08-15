@@ -153,6 +153,37 @@ View count (`daily_view_counts`) TAK terjejas oleh mana-mana laluan — dikira i
 `targetType='slot', targetId=slotIndex`, bukan objectId, jadi kekal berterusan tak kira
 laluan edit yang dipakai.
 
+**AMARAN WAJIB — mana-mana query `editorial_revisions WHERE status='approved'` yang
+JOIN ke `editorial_objects` (bukan SELECT ke SATU baris `id` diketahui) MESTI sertakan
+`AND version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = eo.id)`.**
+Tanpa had ni, objek yang ada >1 revisi berstatus 'approved' (version chain via Semakan
+Kandungan di atas) pulangkan objectId SAMA berulang kali — SATU baris bagi SETIAP versi
+approved, bukan satu baris seobjek. Pepijat sebenar 2026-08-16: `resolveSlotContent()`
+(server.js, mod AI Generated + Manual) terlepas had ni, kandungan yang diedit >1 kali
+papar carousel PALSU (anak panah + titik) di frontpage walaupun cuma SATU kandungan
+sebenar — CarouselStableBlock (FrontpageView.tsx) baca N baris objectId sama sbg N
+kandungan berbeza. Pepijat ni SENYAP bertahun sebab version chain (>1 revisi approved
+seobjek) jarang berlaku sebelum ciri tu disahkan berfungsi penuh (lihat bahagian atas).
+`searchRoutes.js`/`sitemapRoutes.js` sudah betul (guna corak `MAX(version)` sama) —
+disahkan bukan pepijat merata, terhad kepada `resolveSlotContent()` sahaja pada masa
+penemuan.
+
+Sambungan pepijat sama: laluan `POST /content/:id/revisions/:revisionId/restore`
+(Pulih versi) turut ada pepijat BERASINGAN yang cuma nampak SELEPAS fix `MAX(version)`
+di atas — ia tulis `createdBy` = nama pengguna sesi sebenar (cth `"izzat"`), bukan
+token laluan pipeline (`manual-slot-save`/`migration-manual-blob`/`content-review`).
+Sama pepijat kritikal 2026-08-07 yang dibaiki di `PATCH /content/:id`
+(`rev.createdBy || 'content-review'`, WARIS token asal — lihat komen di situ), tapi
+laluan pulih-versi terlepas fix asal tu. Kandungan yang dipulihkan tak lulus senarai
+putih Mod Manual (`resolveSlotContent()`), terus TAK KELIHATAN pada frontpage awam
+walau status kekal `'approved'` dan UI admin nampak biasa. Dibaiki (warisi
+`oldRev.createdBy`). **Peraturan am**: mana-mana laluan yang INSERT baris
+`editorial_revisions` baharu (edit, pulih, dsb.) MESTI warisi `createdBy` daripada
+revisi ASAL yang dijadikan asas — JANGAN sekali-kali tulis nama pengguna sesi terus ke
+medan ni, walau nampak "lebih tepat/jujur" — identiti penyunting sebenar sudah direkod
+berasingan dalam attribute `editorName`, `createdBy` ialah token LALUAN (macam mana
+dicipta), bukan SIAPA.
+
 ### Peti Makluman — kontrak UX pusat makluman (2026-08-16)
 Ditulis selepas Izzat melaporkan kekecewaan sebenar kat ChatGPT: buka Peti Makluman selepas
 nampak lencana bell, tapi tab yang terbuka (Editorial, hardcoded) papar mesej LAMA — mesej
