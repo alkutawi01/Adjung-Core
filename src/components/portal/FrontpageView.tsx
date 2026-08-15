@@ -2572,23 +2572,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             )}
           </div>
 
-          {/* Belum log masuk: butang ni buka borang log masuk TERUS di atas frontpage (modal),
-              bukan bawa ke skrin pagar "log masuk diperlukan" di Editorium — dulu pengguna kena
-              klik "Log Masuk" DUA kali untuk sampai borang yang sama. Lepas berjaya, barulah
-              masuk Editorium. Skrin pagar tu kekal untuk sesiapa yang taip /editorium terus.
-              Sudah log masuk: pautan biasa ke Editorium. */}
-          <button
-            onClick={() => {
-              if (currentEditoriumRole) {
-                navigate('/editorium');
-                return;
-              }
-              onRequestEditLogin?.(() => navigate('/editorium'));
-            }}
-            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs transition-all border font-sans cursor-pointer bg-white text-stone-600 border-stone-300 hover:text-[#802334] hover:border-[#802334] shrink-0"
-          >
-            <Lock size={12} /> {currentEditoriumRole ? 'Editorium' : 'Log Masuk'}
-          </button>
         </div>
 
         {/* Wordmark Hero */}
@@ -4069,10 +4052,33 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             </div>
           </div>
 
-          <div className="pt-6 text-center">
+          <div className="pt-6 flex items-center justify-center gap-3">
             <p className="font-mono text-[9px] tracking-widest text-stone-400 uppercase font-bold">
               {BRAND.copyright}
             </p>
+            {/* Pintu masuk Editorium (2026-08-16, permintaan Izzat — "butang log masuk editorium
+                terlalu terdedah skrg kepada orang awam"). Dahulu butang penuh + teks "Log Masuk"
+                duduk terang di header utama sebelah carian, terus kelihatan pengunjung awam. Kini
+                dipindah ke footer, IKON SAHAJA (tiada teks/label kelihatan) — kurang menonjol,
+                tapi masih fungsional untuk editor yang tahu ke mana nak cari. aria-label kekal
+                untuk pembaca skrin walau teks visual dibuang. Skrin pagar /editorium terus kekal
+                wujud untuk sesiapa yang taip URL terus — ni cuma kurangkan pendedahan VISUAL,
+                bukan sekatan akses sebenar (RBAC/sesi kekal gerbang sebenar). */}
+            <Tooltip text={currentEditoriumRole ? 'Editorium' : 'Log Masuk Editorial'}>
+              <button
+                onClick={() => {
+                  if (currentEditoriumRole) {
+                    navigate('/editorium');
+                    return;
+                  }
+                  onRequestEditLogin?.(() => navigate('/editorium'));
+                }}
+                aria-label={currentEditoriumRole ? 'Editorium' : 'Log Masuk Editorial'}
+                className="text-stone-300 hover:text-[#802334] transition-colors cursor-pointer"
+              >
+                <Lock size={11} />
+              </button>
+            </Tooltip>
           </div>
         </footer>
 
