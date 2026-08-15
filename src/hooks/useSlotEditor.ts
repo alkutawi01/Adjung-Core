@@ -132,7 +132,13 @@ export function useSlotEditor(editorName?: string) {
       eventExpiryFilter: config?.eventExpiryFilter || '',
       aiPromptTopic: config?.aiPromptTopic || '',
       aiPromptRecency: config?.aiPromptRecency || '1 minggu',
-      aiPromptLanguage: config?.aiPromptLanguage || 'Bahasa Melayu',
+      // Lalai "Bebas" (2026-08-16, permintaan Izzat) -- medan ni kini "Bahasa Sumber" (panduan
+      // bahasa AI patut CARI sumber, mod "Bebas" sahaja -- lihat SlotManagerModal.tsx), BUKAN lagi
+      // bahasa OUTPUT (output kandungan SENTIASA Bahasa Melayu, dikunci hardcode buildAiPrompt()
+      // [Peranan AI], tak pernah bergantung medan ni). Lalai lama "Bahasa Melayu" mengelirukan --
+      // seolah-olah AI cuma dibenarkan cari sumber Bahasa Melayu, sedangkan niat sebenar ialah
+      // "tiada had bahasa sumber" melainkan editor sengaja hadkan.
+      aiPromptLanguage: config?.aiPromptLanguage || 'Bebas',
       aiPromptRegion: config?.aiPromptRegion || 'Global, Malaysia',
       // aiPromptSource/aiPromptJournalName SENGAJA TIDAK dibaca daripada `config` (2026-08-16,
       // soalan Izzat: "apabila saya dah tutup modul, dan buka semula, borang arahan AI ni

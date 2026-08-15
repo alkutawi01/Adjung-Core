@@ -299,7 +299,7 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
       ];
   const lines = [
     '[Peranan AI]',
-    'Anda membantu Adjung Brief, sebuah portal penerbitan editorial berbahasa Melayu. Tugas anda ialah menyediakan SATU kandungan editorial dalam Bahasa Melayu formal, neutral dan tepat, berdasarkan spesifikasi berstruktur di bawah. Ketepatan fakta lebih penting daripada melengkapkan semua medan — jika anda tidak mempunyai maklumat yang mencukupi untuk sesuatu fakta, JANGAN masukkan fakta tersebut dan JANGAN hasilkan kandungan berdasarkan andaian, tajuk, ingatan model atau anggaran. Tulis hanya apa yang disokong oleh maklumat yang anda ada — jangan sertakan sebarang nota, disclaimer atau penjelasan tentang keterbatasan maklumat/pengetahuan anda sendiri dalam kandungan; kandungan akhir mesti berdiri sebagai artikel editorial untuk pembaca, bukan laporan tentang proses anda menghasilkannya.', '',
+    'Anda membantu Adjung Brief, sebuah portal penerbitan editorial berbahasa Melayu. Tugas anda ialah menyediakan SATU kandungan editorial dalam Bahasa Melayu formal, neutral dan tepat, berdasarkan spesifikasi berstruktur di bawah. Kandungan akhir MESTI ditulis dalam Bahasa Melayu — ini tidak berubah tidak kira bahasa sumber/rujukan yang anda guna (sumber Bahasa Inggeris, Arab, dsb. semuanya diterjemah/diolah menjadi Bahasa Melayu dalam output akhir). Gunakan Bahasa Melayu penerbitan yang natural dan profesional — elakkan terjemahan langsung daripada istilah teknikal Bahasa Inggeris, gunakan ungkapan yang lazim digunakan dalam penulisan editorial (portal berita/majalah), BUKAN gaya manual perisian atau dokumentasi teknikal. Ketepatan fakta lebih penting daripada melengkapkan semua medan — jika anda tidak mempunyai maklumat yang mencukupi untuk sesuatu fakta, JANGAN masukkan fakta tersebut dan JANGAN hasilkan kandungan berdasarkan andaian, tajuk, ingatan model atau anggaran. Tulis hanya apa yang disokong oleh maklumat yang anda ada — jangan sertakan sebarang nota, disclaimer atau penjelasan tentang keterbatasan maklumat/pengetahuan anda sendiri dalam kandungan; kandungan akhir mesti berdiri sebagai artikel editorial untuk pembaca, bukan laporan tentang proses anda menghasilkannya.', '',
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
     '[Bidang vs Topik — kedua-dua medan WAJIB diisi, jangan keliru]',
     'Bidang ialah kategori TETAP untuk slot ini (dinyatakan di atas, TIDAK boleh diubah atau dipilih semula). Topik pula label BEBAS yang anda tulis sendiri untuk kandungan ini, mesti spesifik dan masih dalam skop Bidang tersebut — bukan ulang semula nama Bidang. Contoh: Bidang "Ekonomi" kekal, Topik boleh "Kadar Faedah" atau "Perbankan Digital", bukan "Ekonomi" atau "Berita Ekonomi".', '',
@@ -335,7 +335,13 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     `Huraian panjang: sasarkan antara ${effectiveMinBriefLong()}–${briefLongSafeMax} aksara (sempadan keras: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong})`, '',
     '[Semakan sendiri — lakukan sebelum menghasilkan output akhir, jangan paparkan kiraan dalam output]',
     'Sebelum berikan jawapan akhir, kira semula aksara setiap medan (Topik/Tajuk/Huraian ringkas/Huraian panjang) satu-persatu dan bandingkan dengan sasaran di atas. Jika mana-mana medan melebihi had maksimum atau kurang daripada minimum, hasilkan semula medan tersebut sahaja sehingga memenuhi julat ditetapkan. Kandungan output akhir mesti teks tulen sahaja (Topik/Tajuk/Huraian ringkas/Huraian panjang) — jangan sertakan kiraan aksara atau nota semakan dalam jawapan akhir.', '',
-    `[Bahasa kandungan]: ${fc.aiPromptLanguage || '-'}`,
+    // "Bahasa sumber" (2026-08-16, dinamakan semula drpd "Bahasa kandungan" — soalan Izzat:
+    // "bukan ke bahasa kandungan dah confirm2 dlm bahasa melayu?"). Output SENTIASA Bahasa
+    // Melayu (dikunci di [Peranan AI] di atas, TAK PERNAH dikawal medan ni) — medan ni panduan
+    // bahasa SUMBER yang AI patut cari, relevan HANYA mod "Bebas" (mod Dengan Rujukan sumbernya
+    // dah TETAP, soalan "bahasa sumber apa nak dicari" dah tak bermakna — sama gerbang
+    // isSingleSourceMode macam Had usia sumber/Negara asal sumber di atas).
+    ...(isSingleSourceMode ? [] : [`[Bahasa sumber — panduan carian sahaja, BUKAN bahasa output]: ${fc.aiPromptLanguage || 'Bebas'}. "Bebas" bermaksud sumber apa-apa bahasa dibenarkan. Output akhir KEKAL Bahasa Melayu tidak kira nilai ini.`]),
     ...(isSingleSourceMode ? [] : [`[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`]),
     `[Jumlah kandungan]: ${isSingleSourceMode ? 1 : (fc.generationLimit || 1)}`,
     `[Mod janaan]: ${GEN_MODE_LABEL[fc.genMode] || fc.genMode || 'Bebas'}`, '',
@@ -1740,10 +1746,26 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     disembunyi) -- editor patut nampak SEBAB, bukan tertanya-tanya ke mana medan
                     tu hilang; mod rujukan reka bentuk untuk SATU URL -> SATU kandungan sahaja. */}
                 <div className="grid grid-cols-2 gap-5">
-                  {formConfig.genMode !== 'dengan_rujukan' && (
+                  {/* Had usia sumber (2026-08-16, pepijat Izzat: medan ni masih terpapar dalam mod
+                      "Artikel Jurnal" walau sepatutnya sembunyi sama macam "Dengan rujukan" —
+                      gerbang lama cuma semak 'dengan_rujukan', terlepas 'artikel_jurnal' bila mod
+                      tu ditambah. PDF akademik pun tak relevan diukur "kebaruan hari" macam
+                      URL berita — sepatutnya ikut gerbang SAMA seperti Negara asal sumber di
+                      bawah, bukan gerbang berasingan yang boleh terpesong. */}
+                  {formConfig.genMode !== 'dengan_rujukan' && formConfig.genMode !== 'artikel_jurnal' && (
                     <SelectField label="Had usia sumber" value={formConfig.aiPromptRecency || ''} options={HAD_USIA_SUMBER_PILIHAN} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRecency: v }))} />
                   )}
-                  <Field label="Bahasa kandungan" value={formConfig.aiPromptLanguage || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptLanguage: v }))} />
+                  {/* "Bahasa sumber" (2026-08-16, dinamakan semula drpd "Bahasa kandungan" —
+                      soalan Izzat: "bukan ke bahasa kandungan dah confirm2 dlm bahasa melayu?").
+                      Output SENTIASA Bahasa Melayu (dikunci hardcode di [Peranan AI], TAK PERNAH
+                      dikawal medan ni) -- medan ni kini panduan bahasa SUMBER yang AI patut cari,
+                      relevan HANYA utk mod "Bebas" (AI cari sumber sendiri). Mod "Dengan Rujukan"
+                      (Pautan/Artikel Jurnal) sumbernya dah TETAP ditentukan editor -- soalan
+                      "bahasa sumber apa nak dicari" dah tak bermakna, sama sebab macam Negara
+                      asal sumber/Had usia sumber disembunyikan utk kedua-dua sub-mod tu. */}
+                  {formConfig.genMode !== 'dengan_rujukan' && formConfig.genMode !== 'artikel_jurnal' && (
+                    <Field label="Bahasa sumber" value={formConfig.aiPromptLanguage || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptLanguage: v }))} />
+                  )}
                   {formConfig.genMode !== 'dengan_rujukan' && formConfig.genMode !== 'artikel_jurnal' && (
                     <Field label="Negara asal sumber" value={formConfig.aiPromptRegion || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRegion: v }))} />
                   )}
@@ -1860,7 +1882,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   {formConfig.genMode === 'artikel_jurnal' && (
                     <div className="mt-1 flex flex-col gap-2">
                       <Field label="Nama jurnal (pilihan)" value={formConfig.aiPromptJournalName || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptJournalName: v }))} />
-                      <span className="font-sans text-[9px] text-stone-400">Editor lampirkan fail PDF artikel jurnal secara manual dalam sesi ChatGPT/Claude/Gemini sendiri, kemudian salin prompt di bawah untuk ditampal bersama. Adjung Brief tidak memuat naik atau menyimpan fail PDF.</span>
+                      {/* Wording diperhalusi (2026-08-16, audit ChatGPT selepas Izzat tegur bahasa
+                          Melayu asal "macam terjemahan dokumentasi perisian") — gaya editorial
+                          penerbitan, bukan manual perisian teknikal: "lampirkan"→"muat naik",
+                          "bahan PDF"→"artikel tersebut", "kandungan yang dijana"→"hasil tersebut". */}
+                      <span className="font-sans text-[9px] text-stone-400">Muat naik artikel tersebut dalam sesi AI pilihan anda (ChatGPT, Claude atau Gemini) bersama arahan di bawah. Selepas kandungan dijana, salin hasil tersebut ke Borang Kandungan untuk semakan dan penerbitan. Adjung Brief tidak menyimpan fail PDF — fail tersebut kekal dalam sesi AI yang digunakan.</span>
                     </div>
                   )}
                 </div>

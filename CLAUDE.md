@@ -291,6 +291,34 @@ jawapan sebelum ni ialah "kena minta Claude edit kod". Dipindah ke `core/routes/
   mesti menaik (amaran pertama < amaran kedua < gantung automatik), kalau tidak eskalasi tiga-
   tahap jadi tak bermakna.
 
+### "Bahasa Kandungan" → "Bahasa Sumber" + gerbang Had usia sumber terlepas mod jurnal (2026-08-16)
+Izzat tangkap dua isu lagi pada UI Mod Janaan (screenshot): (1) "Had usia sumber" masih terpapar
+dalam mod "Artikel Jurnal" — gerbang lama (`SlotManagerModal.tsx`) cuma semak
+`genMode !== 'dengan_rujukan'`, TERLEPAS `'artikel_jurnal'` bila mod tu ditambah sesi lepas
+(Negara asal sumber betul sejak awal, Had usia sumber tak diselaraskan sama). Dibaiki — gerbang
+SAMA (`!== 'dengan_rujukan' && !== 'artikel_jurnal'`) untuk KEDUA-DUA medan.
+
+(2) Soalan: "apa fungsi tulis 'bahasa kandungan' untuk 'bebas'? bukan ke bahasa kandungan dah
+confirm2 dlm bahasa melayu?" — betul, `[Peranan AI]` SUDAH kunci output Bahasa Melayu hardcode,
+medan `aiPromptLanguage` sebenarnya tak pernah kawal bahasa OUTPUT (vestigial). Dinamakan semula
+**"Bahasa Sumber"** — sekarang genuine panduan bahasa AI patut CARI sumber (relevan HANYA mod
+"Bebas", disembunyikan utk Dengan Rujukan/Artikel Jurnal — sumber dah tetap, soalan tu dah tak
+bermakna, sama gerbang `isSingleSourceMode`). Lalai ditukar `'Bahasa Melayu'` → `'Bebas'` (tiada
+had bahasa sumber, `useSlotEditor.ts`). Prompt output diperkukuh eksplisit: "Kandungan akhir MESTI
+ditulis dalam Bahasa Melayu — ini tidak berubah tidak kira bahasa sumber/rujukan". **Jangan
+sekali-kali biarkan medan UI kawal sesuatu yang SUDAH dikunci hardcode di tempat lain** —
+mengelirukan editor (nampak macam boleh diubah, sebenarnya tidak).
+
+### Gaya bahasa AI — Melayu penerbitan, bukan terjemahan manual perisian (2026-08-16)
+Izzat: "bahasa melayu claude terlalu teruk... macam terjemahan dokumentasi perisian." Dua tempat
+dibaiki (audit ChatGPT beri wording pengganti konkrit): (1) Teks bantuan UI mod "Dengan Artikel
+Jurnal" (`SlotManagerModal.tsx`) ditulis semula — "lampirkan"→"muat naik", "bahan PDF"→"artikel
+tersebut", "kandungan yang dijana"→"hasil tersebut", nada lebih dekat gaya penerbitan bukan manual
+teknikal. (2) Arahan GLOBAL baharu ditambah `[Peranan AI]` (buildAiPrompt()) — "Gunakan Bahasa
+Melayu penerbitan yang natural dan profesional. Elakkan terjemahan langsung daripada istilah
+teknikal Bahasa Inggeris, gunakan ungkapan yang lazim digunakan dalam penulisan editorial, BUKAN
+gaya manual perisian." — terpakai pada SEMUA kandungan dijana AI, bukan cuma halaman ni.
+
 ### Sumber rujukan AI mesti reset setiap kali borang dibuka — bukan dasar slot (2026-08-16)
 Izzat tangkap DUA pepijat berkait dalam sesi yang sama, punca sama: `aiPromptSource` (medan
 DB/formConfig LAMA) dikongsi antara sub-mod "Pautan" (JSON berstruktur, `serializeReferenceSources`)
