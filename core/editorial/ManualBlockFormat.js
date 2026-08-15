@@ -67,6 +67,21 @@ const LABEL_DIKENALI = [
 const ADA_LABEL_DIKENALI = (trimmed) =>
   LABEL_DIKENALI.some((label) => trimmed.toLowerCase().startsWith(label.toLowerCase()));
 
+// Nyahbungkus pautan gaya Markdown "[teks](url)" (2026-08-16, pepijat kandungan sebenar pertama
+// Izzat) — prompt buildAiPrompt() eksplisit larang Markdown ("JANGAN gunakan Markdown"), tapi AI
+// luaran kadangkala tetap bungkus URL ikut tabiat (terutama bila URL panjang berulang sebagai
+// "teks paparan" dan "sasaran pautan" sekali, cth "[https://x.com/...](https://x.com/...)").
+// Tanpa ni, keseluruhan "[https://...](https://...)" tersimpan sebagai URL, gagal validateSourceUrl
+// (ContentBudget.js, minta skema http(s):// di AWAL rentetan) — editor sangka pautan salah walhal
+// URL sebenar (dalam kurungan) memang sah. Guna bahagian DALAM KURUNGAN (href sebenar Markdown),
+// bukan teks label — kedua-dua bahagian selalunya sama untuk kes ni, tapi kalau berbeza, kurungan
+// mewakili sasaran pautan sebenar mengikut spesifikasi Markdown.
+const nyahBungkusMarkdownLink = (raw) => {
+  const t = (raw || '').trim();
+  const m = t.match(/^\[([^\]]*)\]\(([^)]*)\)$/);
+  return m ? m[2].trim() : t;
+};
+
 export function parseManualBlockFields(block) {
   const lines = (block || '').split('\n');
   const fields = {
@@ -219,7 +234,7 @@ export function parseManualBlockFields(block) {
       if (fields.sources.length === 0) fields.source = nama; // entri pertama = medan tunggal legasi.
       fields.sources.push({ name: nama, url: '', date: '' });
     } else if (trimmed.startsWith('URL:')) {
-      const url = trimmed.replace(/^URL:\s*/i, '').trim();
+      const url = nyahBungkusMarkdownLink(trimmed.replace(/^URL:\s*/i, ''));
       if (fields.sources.length === 0) {
         // Baris "URL:" muncul sebelum "Sumber:" (jarang, tapi templat tak kuatkuasa turutan) —
         // cipta entri sumber kosong supaya URL ni tak hilang.

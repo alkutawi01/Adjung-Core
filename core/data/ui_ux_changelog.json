@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-15T02:14:18.875Z",
+    "summary": "Parser Tampal nyahbungkus URL gaya Markdown '[url](url)' secara automatik -- AI kadang tetap bungkus URL macam ni walaupun prompt larang Markdown, sebelum ni gagal validasi 'bukan URL yang sah'",
+    "files": [
+      "core/editorial/ManualBlockFormat.js"
+    ]
+  },
+  {
     "time": "2026-08-15T02:02:34.536Z",
     "summary": "Focus View: (1) perenggan Huraian panjang kini terbentuk dari SATU newline (Enter sekali), bukan perlu baris kosong (2) lajur kanan bar kolofon desktop kini label 'Editor' + nama editor sebenar kandungan + tarikh siaran, seragam dgn lajur Sumber/Kongsi (3) tarikh setiap sumber dalam sources[] kini diformat '15 Ogo 2026' sama macam kad, bukan ISO mentah. editorName per-kandungan (attribute sedia ada) kini dihantar ke item awam buat kali pertama",
     "files": [
