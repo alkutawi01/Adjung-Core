@@ -291,6 +291,20 @@ jawapan sebelum ni ialah "kena minta Claude edit kod". Dipindah ke `core/routes/
   mesti menaik (amaran pertama < amaran kedua < gantung automatik), kalau tidak eskalasi tiga-
   tahap jadi tak bermakna.
 
+### Simpan Pukal — sebab kegagalan SEBENAR kini dipaparkan (2026-08-16)
+Izzat: "kenapa tak boleh padam?...dia kata gagal simpan" — cuba padam satu perenggan huraian
+panjang (nota meta/epistemik yang dibaiki sesi lepas) dalam kotak teks pukal `ContentReview.tsx`,
+klik "Simpan Pukal", dapat "Gagal: 1 kandungan tidak dapat disimpan. Sila cuba semula." — tiada
+petunjuk SEBAB. Punca: `saveBulk()` (`ContentReview.tsx`) buang ralat pelayan SENYAP —
+`if (!res.ok) throw new Error()` (KOSONG, tiada mesej), `catch { failed++; }` cuma kira bilangan.
+Pelayan (`contentRoutes.js` PATCH `/content/:id`) SEBENARNYA hantar `{ error: '...' }` sebab
+tepat (cth had minimum huraian panjang, Bidang tak sepadan slot, dsb — lihat rantaian semakan di
+situ), tapi klien tak pernah baca/papar ia. **Dibaiki**: baca `data.error` daripada respons
+sebenar, papar terus ditanda `#Slot-Siri` blok yang gagal (bukan cuma "1 kandungan gagal").
+**Peraturan am**: mana-mana laluan yang panggil `fetch()` dan `throw new Error()` KOSONG bila
+`!res.ok` MESTI baca `error` sebenar daripada `res.json()` dahulu — corak `throw new Error()`
+tanpa mesej ialah bendera merah, cari dan baiki bila ternampak semasa kerja lain.
+
 ### Semakan Kandungan — tapisan lalai: Aktif, semua slot KECUALI Ticker (2026-08-16)
 Izzat: "jadikan tapisan default: aktif, semua selain ticker" — `ContentReview.tsx` dahulu buka
 dengan `statusFilter='Semua'`/`slotFilter='Semua'`, jadi paparan pertama borang "Semakan

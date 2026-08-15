@@ -385,6 +385,13 @@ export function ContentReview() {
 
     let done = 0;
     let failed = 0;
+    // Sebab kegagalan SEBENAR (2026-08-16, soalan Izzat: "kenapa tak boleh padam? ...dia kata
+    // gagal simpan" — sebelum ni ralat pelayan SENYAP dibuang (`throw new Error()` kosong, catch
+    // cuma kira `failed++`), jadi editor (dan Claude semasa siasat) tak nampak SEBAB sebenar
+    // (contoh: had aksara minimum, Bidang tak sepadan slot, dsb) — cuma "gagal", kena teka. Kini
+    // baca `error` sebenar daripada respons pelayan dan papar terus, ditanda dengan #Slot-Siri
+    // blok yang gagal supaya editor tahu MANA satu, bukan cuma BERAPA banyak.
+    const sebabGagal: string[] = [];
     for (const { p, original } of changed) {
       setBulkStatus(`Menyimpan ${done + failed + 1}/${changed.length}...`);
       try {
@@ -398,7 +405,11 @@ export function ContentReview() {
             source: p.source, url: p.url, originalDate: p.originalDate, note: p.note,
           })
         });
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          sebabGagal.push(`#${p.slotNumber}-${p.seriesNumber}: ${data.error || `HTTP ${res.status}`}`);
+          throw new Error();
+        }
         done++;
       } catch {
         failed++;
@@ -410,8 +421,8 @@ export function ContentReview() {
     // separa walhal tiada satu pun berjaya.
     setBulkStatus(
       done === 0 && failed > 0
-        ? `Gagal: ${failed} kandungan tidak dapat disimpan. Sila cuba semula.`
-        : `Selesai: ${done} disimpan${failed > 0 ? `, ${failed} gagal` : ''}.`
+        ? `Gagal: ${sebabGagal.join(' | ')}`
+        : `Selesai: ${done} disimpan${failed > 0 ? `, ${failed} gagal (${sebabGagal.join(' | ')})` : ''}.`
     );
     langkauResetStatusRef.current = true;
     loadItems();
@@ -611,7 +622,11 @@ export function ContentReview() {
                     lepas tekan butang ni?") — SEBELUM ni 10px kelabu senyap, mudah terlepas
                     pandang walaupun tak dipadam awal (bug di atas). Warna ikut keputusan: hijau
                     (semua berjaya), merah (ada gagal/gagal semua), kelabu neutral (dlm proses). */}
-                <span className={`text-xs font-sans font-semibold ${
+                {/* flex-1 + mr-3 (2026-08-16) -- mesej ralat kini boleh bawa sebab SEBENAR
+                    daripada pelayan (lihat saveBulk), boleh jadi lebih panjang drpd kiraan
+                    ringkas lama -- mesti boleh balut ke baris seterusnya, bukan tersepit/
+                    terpotong sebelah butang Simpan Pukal. */}
+                <span className={`text-xs font-sans font-semibold flex-1 mr-3 ${
                   bulkStatus.startsWith('Gagal') || bulkStatus.includes(', ') && bulkStatus.includes('gagal')
                     ? 'text-[#a8241f]'
                     : bulkStatus.startsWith('Selesai')
