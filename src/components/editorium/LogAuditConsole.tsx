@@ -81,9 +81,27 @@ const TINDAKAN_LABEL: Record<string, string> = {
   'kemas-kini-konfigurasi-slot': 'Kemas kini slot',
 };
 
+// Label Bahasa Melayu bagi kod status DALAMAN kandungan (CONTENT_STATUSES, contentRoutes.js) —
+// nilai mentah 'approved'/'archived'/dsb. TIDAK PERNAH patut sampai ke paparan (2026-08-16,
+// Izzat: "ni teruk. sangat teruk. bahasa rojak" — Log Audit dahulu papar terus "approved →
+// archived" tanpa terjemah, bahasa Inggeris+Melayu bercampur dalam SATU ayat). Sama label yang
+// dipakai di ContentReview.tsx/IndeksConsole.tsx supaya konsisten merentasi sistem.
+const STATUS_KANDUNGAN_LABEL: Record<string, string> = {
+  approved: 'Aktif',
+  pending: 'Menunggu',
+  rejected: 'Ditolak',
+  archived: 'Arkib',
+  scheduled: 'Berjadual',
+  dipadam: 'Dipadam',
+};
+const labelStatusKandungan = (kod: string) => STATUS_KANDUNGAN_LABEL[kod.trim()] || kod.trim();
+
 export const labelTindakan = (action: string): string => {
   if (TINDAKAN_LABEL[action]) return TINDAKAN_LABEL[action];
-  if (action.startsWith('status:')) return `Tukar status: ${action.slice('status:'.length).replace('->', ' → ')}`;
+  if (action.startsWith('status:')) {
+    const [lama, baharu] = action.slice('status:'.length).split('->');
+    return `Tukar status: ${labelStatusKandungan(lama || '')} → ${labelStatusKandungan(baharu || '')}`;
+  }
   if (action.startsWith('status-akaun:')) return `Tukar status akaun: ${action.slice('status-akaun:'.length)}`;
   if (action.startsWith('status-nota:')) return `Tukar status nota: ${action.slice('status-nota:'.length)}`;
   return action;

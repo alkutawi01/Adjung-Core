@@ -224,7 +224,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
               <input
                 type="text"
-                placeholder="Cari anggota, username, atau emel…"
+                placeholder="Cari anggota, nama pengguna atau e-mel…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className={`${INPUT_BORANG} pl-8 w-64`}

@@ -299,7 +299,16 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
       ];
   const lines = [
     '[Peranan AI]',
-    'Anda membantu Adjung Brief, sebuah portal penerbitan editorial berbahasa Melayu. Tugas anda ialah menyediakan SATU kandungan editorial dalam Bahasa Melayu formal, neutral dan tepat, berdasarkan spesifikasi berstruktur di bawah. Kandungan akhir MESTI ditulis dalam Bahasa Melayu — ini tidak berubah tidak kira bahasa sumber/rujukan yang anda guna (sumber Bahasa Inggeris, Arab, dsb. semuanya diterjemah/diolah menjadi Bahasa Melayu dalam output akhir). Gunakan Bahasa Melayu penerbitan yang natural dan profesional — elakkan terjemahan langsung daripada istilah teknikal Bahasa Inggeris, gunakan ungkapan yang lazim digunakan dalam penulisan editorial (portal berita/majalah), BUKAN gaya manual perisian atau dokumentasi teknikal. Ketepatan fakta lebih penting daripada melengkapkan semua medan — jika anda tidak mempunyai maklumat yang mencukupi untuk sesuatu fakta, JANGAN masukkan fakta tersebut dan JANGAN hasilkan kandungan berdasarkan andaian, tajuk, ingatan model atau anggaran. Tulis hanya apa yang disokong oleh maklumat yang anda ada — jangan sertakan sebarang nota, disclaimer atau penjelasan tentang keterbatasan maklumat/pengetahuan anda sendiri dalam kandungan; kandungan akhir mesti berdiri sebagai artikel editorial untuk pembaca, bukan laporan tentang proses anda menghasilkannya.', '',
+    // [Bahasa dan gaya penulisan] disusun semula (2026-08-16, audit bahasa 10 pusingan dgn
+    // ChatGPT selepas teguran Izzat -- "bahasa melayu awak pun sangat teruk") -- versi lama
+    // ayat pertama guna struktur terjemahan terus Inggeris ("ini tidak berubah tidak kira...")
+    // yang sesuai jadi contoh KESILAPAN dalam audit tu sendiri. Susunan baharu: prinsip utama
+    // -> keadaan pengecualian -> gaya bahasa -> larangan gaya, ikut cadangan ChatGPT.
+    'Anda membantu Adjung Brief, sebuah portal penerbitan editorial berbahasa Melayu. Tugas anda ialah menyediakan SATU kandungan editorial dalam Bahasa Melayu formal, neutral dan tepat, berdasarkan spesifikasi berstruktur di bawah.'
+      + ' Kandungan akhir MESTI ditulis dalam Bahasa Melayu, tanpa mengira bahasa sumber atau rujukan yang digunakan. Jika bahan rujukan tersedia dalam bahasa lain seperti Bahasa Inggeris atau Bahasa Arab, terjemahkan dan olah semula maklumat tersebut dalam Bahasa Melayu yang sesuai untuk pembaca Adjung Brief.'
+      + ' Gunakan Bahasa Melayu penerbitan yang lancar, profesional dan mudah difahami. Gunakan istilah serta ungkapan yang lazim dalam penulisan editorial seperti portal berita dan majalah. Elakkan terjemahan langsung daripada struktur bahasa asing atau penggunaan istilah teknikal yang janggal jika terdapat ungkapan Bahasa Melayu yang lebih sesuai.'
+      + ' Jangan hasilkan kandungan dalam gaya manual perisian, dokumentasi teknikal atau nota dalaman. Kandungan mesti dibaca sebagai tulisan editorial untuk pembaca umum.'
+      + ' Ketepatan fakta lebih penting daripada melengkapkan semua medan — jika anda tidak mempunyai maklumat yang mencukupi untuk sesuatu fakta, JANGAN masukkan fakta tersebut dan JANGAN hasilkan kandungan berdasarkan andaian, tajuk, ingatan model atau anggaran. Tulis hanya apa yang disokong oleh maklumat yang anda ada — jangan sertakan sebarang nota, penafian atau penjelasan tentang keterbatasan maklumat/pengetahuan anda sendiri dalam kandungan; kandungan akhir mesti berdiri sebagai artikel editorial untuk pembaca, bukan laporan tentang proses anda menghasilkannya.', '',
     '[Bidang — subjek terkunci untuk slot ini, kandungan MESTI berkaitan]', desk || '(belum ditetapkan — hubungi Ketua Editor sebelum jana)', '',
     '[Bidang vs Topik — kedua-dua medan WAJIB diisi, jangan keliru]',
     'Bidang ialah kategori TETAP untuk slot ini (dinyatakan di atas, TIDAK boleh diubah atau dipilih semula). Topik pula label BEBAS yang anda tulis sendiri untuk kandungan ini, mesti spesifik dan masih dalam skop Bidang tersebut — bukan ulang semula nama Bidang. Contoh: Bidang "Ekonomi" kekal, Topik boleh "Kadar Faedah" atau "Perbankan Digital", bukan "Ekonomi" atau "Berita Ekonomi".', '',
@@ -1893,8 +1902,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
 
                 <hr className="border-stone-150" />
                 <div className="flex items-center justify-between gap-4">
-                  <span className="font-sans text-[11px] text-stone-500">Salin arahan ini untuk ditampal ke chatbox AI. Output AI ditampal semula di "Borang kandungan" (butang Tampal).</span>
-                  <button type="button" onClick={copyPrompt} className="px-2.5 py-1 border border-stone-300 rounded text-[11px] font-sans font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer shrink-0">{aiNote || 'Salin prompt'}</button>
+                  {/* Istilah rasmi "Arahan AI"/"sesi AI" (2026-08-16, audit bahasa 10 pusingan
+                      dgn ChatGPT selepas teguran Izzat) -- "prompt"/"chatbox" ialah istilah
+                      teknikal, bukan bahasa produk. Nama fungsi/pemboleh ubah kod (copyPrompt)
+                      KEKAL -- kod ada konvensyen sendiri, cuma teks yg dipaparkan ditukar. */}
+                  <span className="font-sans text-[11px] text-stone-500">Salin Arahan AI ini dan tampalkan ke sesi AI pilihan anda. Selepas kandungan dijana, salin hasilnya semula ke "Borang Kandungan" melalui butang "Tampal".</span>
+                  <button type="button" onClick={copyPrompt} className="px-2.5 py-1 border border-stone-300 rounded text-[11px] font-sans font-semibold text-stone-600 hover:bg-stone-50 cursor-pointer shrink-0">{aiNote || 'Salin Arahan AI'}</button>
                 </div>
               </>
             )}

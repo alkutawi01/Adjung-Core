@@ -183,7 +183,7 @@ export function ContentReview() {
     fetch('/api/system/semakan-prompts')
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setPromptSemakan(data); })
-      .catch(e => { console.error('Error fetching semakan prompts:', e); setRalatPrompt('Gagal memuatkan senarai prompt.'); });
+      .catch(e => { console.error('Error fetching semakan prompts:', e); setRalatPrompt('Gagal memuatkan senarai Arahan AI.'); });
   };
 
   const salinPrompt = async (p: { id: string; templateText: string }) => {
@@ -522,17 +522,21 @@ export function ContentReview() {
               aria-controls="panel-prompt-semakan"
               className="w-full flex items-center justify-between gap-2 px-3 py-2 font-sans text-xs font-semibold text-stone-700 cursor-pointer"
             >
-              <span>Prompt Semakan (salin ke chatbox AI luaran)</span>
+              {/* Istilah rasmi "Arahan AI"/"sesi AI" (2026-08-16, audit bahasa 10 pusingan dgn
+                  ChatGPT) -- "prompt"/"chatbox" ialah istilah teknikal dalaman sahaja, bukan
+                  bahasa produk dipaparkan kpd editor. Nama produk AI tertentu turut dibuang
+                  (keputusan sesi sebelum ni). */}
+              <span>Arahan AI untuk Semakan (salin ke sesi AI pilihan)</span>
               {promptPanelTerbuka ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
             {promptPanelTerbuka && (
               <div id="panel-prompt-semakan" className="px-3 pb-3 space-y-3">
                 <p className="text-[10px] text-stone-500 font-sans leading-normal">
-                  Salin kandungan dalam kotak di bawah, tampal di chatbox AI (ChatGPT/Gemini/dll.) bersama satu prompt di bawah, kemudian tampal semula hasil yang dibetulkan.
+                  Salin kandungan dalam kotak di bawah, tampalkan ke sesi AI pilihan anda bersama satu Arahan AI di bawah, kemudian tampal semula hasil yang telah dibetulkan.
                 </p>
                 {ralatPrompt && <MesejStatus tone="error" onCubaLagi={muatPromptSemakan}>{ralatPrompt}</MesejStatus>}
                 {promptSemakan.length === 0 ? (
-                  <p className="text-[11px] text-stone-500 font-sans italic">Tiada prompt disimpan lagi.</p>
+                  <p className="text-[11px] text-stone-500 font-sans italic">Tiada Arahan AI disimpan lagi.</p>
                 ) : (
                   <ul className="space-y-1.5">
                     {promptSemakan.map(p => (

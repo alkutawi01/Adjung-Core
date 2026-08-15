@@ -41,6 +41,75 @@ istilah teknikal; terangkan kesan visual/fungsian, bukan jargon kod.
    operasi bulk/destructive pada data, backup dulu (`cp adjung.db adjung.db.backup-<ts>`)
    dan uji dengan sangat berhati-hati.
 
+5. **Bahasa Melayu ialah sebahagian daripada identiti penerbitan Adjung, bukan kosmetik.**
+   Izzat sangat menitikberatkan bahasa (2026-08-16: "bahasa melayu awak pun sangat teruk...
+   sila belajar dengan chatgpt"). Lihat "Panduan Bahasa Melayu Adjung" di bawah untuk
+   peraturan penuh (imbuhan, lapisan istilah Inggeris, istilah rasmi produk) — SEBELUM
+   tulis mana-mana teks Bahasa Melayu dipaparkan kepada pengguna (label UI, mesej ralat,
+   Arahan AI, dokumentasi awam), semak peraturan tu dahulu. Jangan bawa gaya ringkas
+   commit message/log teknikal Inggeris terus ke ayat Melayu (contoh: "Fix ini dah
+   dibaiki" salah, "Pepijat ini telah dibaiki" betul).
+
+## Panduan Bahasa Melayu Adjung
+
+Disusun 2026-08-16 selepas audit 10 pusingan bersama ChatGPT (thread "Audit Adjung Brief"),
+dicetuskan oleh teguran langsung Izzat tentang kualiti Bahasa Melayu Claude (imbuhan lemah,
+struktur ayat janggal) dan bahasa UI sistem (istilah Inggeris tercampur tanpa kawalan —
+"bahasa rojak", contoh sebenar: Log Audit papar "Tukar status: approved → archived" mentah
+sebelum dibaiki). Rujukan penuh SEMUA istilah produk rasmi (Arahan AI, sesi AI, dll.) ada di
+`docs/language-glossary.md` — bahagian ni fokus PERATURAN, bukan senarai istilah.
+
+### Prinsip umum
+Bahasa Melayu Adjung hendaklah: tepat dari segi tatabahasa; mudah difahami pembaca umum;
+kemas seperti bahasa portal berita/majalah/penerbitan profesional; TIDAK berbunyi seperti
+terjemahan langsung daripada Bahasa Inggeris; TIDAK berbunyi seperti log teknikal pembangun
+("fix dah siap, deploy berjaya" — sesuai nota ringkas dalaman, TIDAK sesuai UI/dokumentasi).
+
+Gaya **santai-profesional** untuk komunikasi kerja harian dengan Izzat: bentuk pendek ("tak",
+"ni", "tu") boleh digunakan SECARA SEDERHANA dalam perbualan — bukan salah, tapi jangan setiap
+ayat bergantung padanya (contoh gagal: "Yang ni saya dah betulkan. Yang tu pula belum. Benda
+ni sebab yang tu punya logic lain." — terlalu banyak kata tunjuk buat ayat nampak malas). Untuk
+UI, dokumentasi (CLAUDE.md, komen kod formal), Arahan AI dan teks awam, guna bentuk penuh
+("tidak", "ini", "itu"). Elak dua ekstrem: terlalu formal macam surat rasmi, ATAU terlalu
+percakapan macam sembang media sosial.
+
+### Lapisan istilah Inggeris (bila condong/terjemah/kekal)
+Bukan peraturan "semua perkataan Inggeris = condong/terjemah" — tiga lapisan:
+1. **Istilah teknikal antarabangsa berbentuk singkatan** (API, IP, RSS, URL, PDF, AI, USB,
+   HTML) — kekalkan, TANPA condong. Singkatan huruf besar bukan lagi "perkataan asing", ia
+   istilah standard (cth: "API cuaca", BUKAN "*API* cuaca").
+2. **Istilah pinjaman lazim dalam Bahasa Melayu** (status, draf, slot, animasi, modul) —
+   kekalkan tanpa condong/terjemah paksa. "Slot" khususnya ialah konsep produk Adjung sendiri
+   (cth "Slot 3: Syariah") — JANGAN paksa tukar ke "ruang".
+3. **Istilah Inggeris belum mantap/konsep sementara** — terjemah ke Bahasa Melayu (workflow →
+   aliran kerja, cookie → kuki, dashboard → papan pemuka jika bukan nama produk) ATAU condong
+   kalau memang perlu dikekalkan sebagai istilah asing eksplisit.
+Jangan campur istilah Inggeris+Melayu untuk SATU konsep kalau bentuk Melayu tepat dah ada
+(punca "bahasa rojak" — kod status dalaman `approved`/`archived` MESTI dipetakan ke label
+Melayu `Aktif`/`Arkib` sebelum dipaparkan, jangan sekali-kali bocor terus ke UI/Log Audit).
+
+### 5 pola imbuhan paling kerap silap
+1. **Awalan meN- untuk kata kerja aktif berpelaku.** "Sistem baca data" ❌ →
+   "Sistem membaca data" ✅. Formula: Pelaku + meN- + kata kerja (membaca, menjana, menyemak,
+   memaparkan, menghasilkan).
+2. **Awalan di- MESTI dicantumkan** (bukan kata sendi berasingan). "perlu di semak" ❌ →
+   "perlu disemak" ✅. Kekecualian: "di" sebagai kata sendi TEMPAT kekal berasingan ("di dalam
+   sistem", "di atas halaman").
+3. **-kan vs -i.** "-kan" = membawa sesuatu kepada objek/menyebabkan perubahan ("editor
+   menambahkan sumber baharu"). "-i" = tindakan pada tempat/objek ("editor meneliti kandungan",
+   BUKAN "menelitikan"). Jangan gandakan ("mengemaskinikan" ❌ → "mengemas kini" ✅).
+4. **peN-...-an (proses) vs peN- (pelaku) — jangan keliru.** Pelaku: penerbit, penyunting,
+   pengguna. Proses: penerbitan, penyuntingan, penggunaan. "Modul Pengurusan Penerbit" (kalau
+   maksud PROSES penerbitan) ❌ → "Modul Pengurusan Penerbitan" ✅.
+5. **Jangan gandakan imbuhan memper-...-kan.** "memperbaiki-kan" ❌ → "memperbaiki" atau
+   "membaiki" ✅. "mempertingkatkan lagi penambahbaikan" (berlebihan) ❌ → "meningkatkan
+   penambahbaikan" ✅.
+
+Senarai semak pantas sebelum hantar ayat teknikal/UI: (1) Ada pelaku? Semak meN-. (2) Sesuatu
+menerima tindakan? Semak di- dicantum. (3) Proses atau pelaku yang dimaksudkan? Semak
+peN-...-an vs peN-. (4) Ayat tergantung tanpa objek? ("sistem telah menyediakan" — sediakan
+APA?) — lengkapkan objeknya.
+
 ## Konsep teknikal utama
 
 ### Geometry tiers (saiz kad)
