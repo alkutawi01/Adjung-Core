@@ -291,6 +291,18 @@ jawapan sebelum ni ialah "kena minta Claude edit kod". Dipindah ke `core/routes/
   mesti menaik (amaran pertama < amaran kedua < gantung automatik), kalau tidak eskalasi tiga-
   tahap jadi tak bermakna.
 
+### Semakan Kandungan — tapisan lalai: Aktif, semua slot KECUALI Ticker (2026-08-16)
+Izzat: "jadikan tapisan default: aktif, semua selain ticker" — `ContentReview.tsx` dahulu buka
+dengan `statusFilter='Semua'`/`slotFilter='Semua'`, jadi paparan pertama borang "Semakan
+Kandungan" bercampur draf/menunggu/arkib/Ticker sekali gus, tak sepadan tujuan sebenar (semak
+kandungan AKTIF sedia ada; Ticker terlalu kerap berubah/banyak untuk semakan pukal macam ni).
+Lalai kini `statusFilter='approved'` (Aktif), `slotFilter='SemuaBukanTicker'` (nilai sentinel
+baharu, slotIndex -1 = Ticker dikecualikan). **"Semua Slot (termasuk Ticker)" KEKAL wujud** sebagai
+pilihan eksplisit dalam dropdown — editor boleh tukar bila-bila kalau memang nak semak Ticker,
+cuma bukan lagi paparan PERTAMA yang dilihat. `slotIndexes`/kiraan ringkasan atas ("N daripada M
+item · K slot lepas tapisan") terbit daripada `filteredItems`, jadi ikut lalai baharu secara
+automatik tanpa perlu ubah kod berasingan.
+
 ### "Bahasa Kandungan" → "Bahasa Sumber" + gerbang Had usia sumber terlepas mod jurnal (2026-08-16)
 Izzat tangkap dua isu lagi pada UI Mod Janaan (screenshot): (1) "Had usia sumber" masih terpapar
 dalam mod "Artikel Jurnal" — gerbang lama (`SlotManagerModal.tsx`) cuma semak

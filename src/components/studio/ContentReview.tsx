@@ -237,9 +237,15 @@ export function ContentReview() {
   // SATU senarai `filteredItems` kongsi (lihat di bawah). Berbeza daripada Indeks: di sini tapisan
   // terus terpakai (tiada butang "Tapis" berasingan) — paparan ni dah kecil skopnya (tapisan >
   // pagination, bukan carian merentas beribu rekod), jadi lapisan Tapis-on-demand tak diperlukan.
-  const [statusFilter, setStatusFilter] = useState('Semua');
+  // Tapisan LALAI (2026-08-16, permintaan Izzat: "jadikan tapisan default: aktif, semua selain
+  // ticker") — dahulu "Semua Status"/"Semua Slot" (termasuk Ticker), jadi paparan pertama borang
+  // ni bercampur draf/arkib/Ticker sekali gus, tak sepadan tujuan sebenar "Semakan Kandungan"
+  // (semak kandungan AKTIF sedia ada, bukan Ticker — item Ticker terlalu banyak/kerap berubah
+  // untuk semakan pukal macam ni). "Semua Slot" (termasuk Ticker) KEKAL sebagai pilihan eksplisit
+  // dalam dropdown, editor boleh tukar bila-bila kalau memang nak semak Ticker.
+  const [statusFilter, setStatusFilter] = useState('approved');
   const [deskFilter, setDeskFilter] = useState('Semua');
-  const [slotFilter, setSlotFilter] = useState<number | 'Semua'>('Semua');
+  const [slotFilter, setSlotFilter] = useState<number | 'Semua' | 'SemuaBukanTicker'>('SemuaBukanTicker');
   const [sourceFilter, setSourceFilter] = useState('');
   // Bidang berdaftar (2026-07-29, permintaan pemilik projek) — dropdown BIDANG di sini mesti
   // sepadan peraturan sama macam IndeksConsole.tsx: HANYA bidang aktif berdaftar (activeBidangList,
@@ -283,7 +289,9 @@ export function ContentReview() {
       }
       if (statusFilter !== 'Semua' && i.status !== statusFilter) return false;
       if (deskFilter !== 'Semua' && (i.desk || '').toLowerCase() !== deskFilter.toLowerCase()) return false;
-      if (slotFilter !== 'Semua' && i.slotIndex !== slotFilter) return false;
+      if (slotFilter === 'SemuaBukanTicker') {
+        if (i.slotIndex === -1) return false;
+      } else if (slotFilter !== 'Semua' && i.slotIndex !== slotFilter) return false;
       if (sourceFilter.trim() && !(i.source || '').toLowerCase().includes(sourceFilter.trim().toLowerCase())) return false;
       return true;
     });
@@ -457,10 +465,15 @@ export function ContentReview() {
             </select>
             <select
               value={slotFilter}
-              onChange={e => setSlotFilter(e.target.value === 'Semua' ? 'Semua' : Number(e.target.value))}
+              onChange={e => setSlotFilter(
+                e.target.value === 'Semua' || e.target.value === 'SemuaBukanTicker'
+                  ? e.target.value
+                  : Number(e.target.value)
+              )}
               className="bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold"
             >
-              <option value="Semua">Semua Slot</option>
+              <option value="SemuaBukanTicker">Semua Slot (kecuali Ticker)</option>
+              <option value="Semua">Semua Slot (termasuk Ticker)</option>
               {slotOptionsCR.map(s => <option key={s} value={s}>{s === -1 ? 'Ticker' : `Slot ${s + 1}`}</option>)}
             </select>
             {/* TIADA <datalist> di sini (2026-07-29, permintaan pemilik projek) — medan ni duduk
