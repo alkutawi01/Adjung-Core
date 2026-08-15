@@ -1760,16 +1760,44 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
 
                 <div className="flex flex-col gap-1.5">
                   <span className={labelCls}>Mod janaan</span>
+                  {/* Togol DUA PERINGKAT (2026-08-16, arahan Izzat — "kurang profesional" dgn tiga
+                      butang sejajar rata; togol asal mendedahkan "Dengan Rujukan" dan "Dengan
+                      Artikel Jurnal" sebagai dua pilihan SETARA, walhal kedua-duanya sebenarnya DUA
+                      CARA sumber di bawah SATU falsafah "Dengan Rujukan" (SATU sumber wajib
+                      ditentukan editor, bukan AI cari sendiri) — cuma bezanya jenis sumber (pautan
+                      web vs PDF jurnal). Peringkat luar: Bebas / Dengan Rujukan. Peringkat dalam
+                      (muncul cuma bila "Dengan Rujukan" dipilih): Pautan / Artikel Jurnal — masing2
+                      terus memetakan genMode SEDIA ADA ('dengan_rujukan'/'artikel_jurnal', TIADA
+                      nilai baharu dicipta, buildAiPrompt()/copyPrompt() tak berubah langsung). */}
                   <div className="inline-flex border border-stone-300 rounded overflow-hidden w-fit">
-                    {(['bebas', 'dengan_rujukan', 'artikel_jurnal'] as const).map((v, i) => (
-                      <button
-                        key={v} type="button" onClick={() => setFormConfig((prev: any) => ({ ...prev, genMode: v }))}
-                        className={`px-3.5 py-1.5 font-sans text-[11px] font-semibold cursor-pointer transition-colors ${i ? 'border-l border-stone-300' : ''} ${(formConfig.genMode || 'bebas') === v ? 'bg-[#802334] text-white' : 'bg-transparent text-stone-600'}`}
-                      >
-                        {GEN_MODE_LABEL[v]}
-                      </button>
-                    ))}
+                    {(['bebas', 'rujukan'] as const).map((v, i) => {
+                      const aktif = v === 'bebas' ? (formConfig.genMode || 'bebas') === 'bebas' : (formConfig.genMode || 'bebas') !== 'bebas';
+                      return (
+                        <button
+                          key={v} type="button"
+                          onClick={() => setFormConfig((prev: any) => ({
+                            ...prev,
+                            genMode: v === 'bebas' ? 'bebas' : ((prev.genMode || 'bebas') === 'bebas' ? 'dengan_rujukan' : prev.genMode),
+                          }))}
+                          className={`px-3.5 py-1.5 font-sans text-[11px] font-semibold cursor-pointer transition-colors ${i ? 'border-l border-stone-300' : ''} ${aktif ? 'bg-[#802334] text-white' : 'bg-transparent text-stone-600'}`}
+                        >
+                          {v === 'bebas' ? 'Bebas' : 'Dengan Rujukan'}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {(formConfig.genMode || 'bebas') !== 'bebas' && (
+                    <div className="inline-flex border border-stone-200 rounded overflow-hidden w-fit mt-0.5">
+                      {(['dengan_rujukan', 'artikel_jurnal'] as const).map((v, i) => (
+                        <button
+                          key={v} type="button" onClick={() => setFormConfig((prev: any) => ({ ...prev, genMode: v }))}
+                          className={`px-3 py-1 font-sans text-[10px] font-semibold cursor-pointer transition-colors ${i ? 'border-l border-stone-200' : ''} ${formConfig.genMode === v ? 'bg-stone-700 text-white' : 'bg-stone-50 text-stone-500'}`}
+                        >
+                          {v === 'dengan_rujukan' ? 'Pautan' : 'Artikel Jurnal'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {/* Sumber rujukan berbilang (2026-08-15, simulasi Izzat pusingan 4 + audit ChatGPT)
                       -- HANYA muncul bila "Dengan rujukan" dipilih. Guna SEMULA corak "+ Tambah
                       sumber" sedia ada (nama+URL, lihat sources[] borang kandungan di atas) --
