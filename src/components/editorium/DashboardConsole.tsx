@@ -269,7 +269,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
               </div>
             </>
           )}
-          <p className="text-[10px] text-stone-400 mt-3">Anonim, tiada cookie, tiada IP direkod.</p>
+          <p className="text-[10px] text-stone-400 mt-3">Anonim, tiada kuki dan tiada alamat IP direkodkan.</p>
         </div>
 
         <div>

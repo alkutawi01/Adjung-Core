@@ -303,12 +303,12 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
           <p className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 pt-1">Kelayakan Akaun</p>
 
           <div className="flex items-center justify-between text-[11px] text-stone-500">
-            <span>Username semasa</span>
+            <span>Nama pengguna semasa</span>
             <span className="font-semibold text-stone-700">{username || '—'}</span>
           </div>
           <BorangPengesahan
-            tajuk="Tukar Username"
-            labelMedan="Username Baharu"
+            tajuk="Tukar Nama Pengguna"
+            labelMedan="Nama Pengguna Baharu"
             jenisInput="text"
             placeholder="cth. izzat_editor"
             mesejBerjaya={labelUi('toast.username_ditukar')}
@@ -320,22 +320,22 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
                   body: JSON.stringify({ newUsername: nilaiBaharu, currentPassword: kataLaluanSemasa }),
                 });
                 const data = await bacaJsonSelamat(res);
-                if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar username.' };
+                if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar nama pengguna.' };
                 setUsername(data.username);
                 return { ok: true };
               } catch {
-                return { ok: false, ralat: 'Gagal menukar username. Semak sambungan rangkaian.' };
+                return { ok: false, ralat: 'Gagal menukar nama pengguna. Semak sambungan rangkaian.' };
               }
             }}
           />
 
           <div className="flex items-center justify-between text-[11px] text-stone-500 pt-1">
-            <span>Emel semasa</span>
+            <span>E-mel semasa</span>
             <span className="font-semibold text-stone-700">{email || '—'}</span>
           </div>
           <BorangPengesahan
-            tajuk="Tukar Emel"
-            labelMedan="Emel Baharu"
+            tajuk="Tukar E-mel"
+            labelMedan="E-mel Baharu"
             jenisInput="email"
             placeholder="cth. nama@contoh.com"
             mesejBerjaya={labelUi('toast.emel_ditukar')}
@@ -347,11 +347,11 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
                   body: JSON.stringify({ newEmail: nilaiBaharu, currentPassword: kataLaluanSemasa }),
                 });
                 const data = await bacaJsonSelamat(res);
-                if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar emel.' };
+                if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar e-mel.' };
                 setEmail(data.email);
                 return { ok: true };
               } catch {
-                return { ok: false, ralat: 'Gagal menukar emel. Semak sambungan rangkaian.' };
+                return { ok: false, ralat: 'Gagal menukar e-mel. Semak sambungan rangkaian.' };
               }
             }}
           />

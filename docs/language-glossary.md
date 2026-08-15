@@ -79,16 +79,30 @@ pernah wujud dalam kod Adjung Brief sebelum dibaiki:
 | `ContentReview.tsx`, keadaan kosong | "Tiada prompt disimpan lagi." | "Tiada Arahan AI disimpan lagi." |
 | `DirektoriConsole.tsx`, placeholder carian | "Cari anggota, username, atau emel…" | "Cari anggota, nama pengguna atau e-mel…" |
 | `LogAuditConsole.tsx`/Dashboard Aktiviti Editor | "Tukar status: approved → archived" | "Tukar status: Aktif → Arkib" |
+| `DashboardConsole.tsx`, nota privasi statistik | "Anonim, tiada cookie, tiada IP direkod." | "Anonim, tiada kuki dan tiada alamat IP direkodkan." |
+| `LoginModal.tsx`, borang lupa kata laluan (×3) | "emel"/"Emel" | "e-mel"/"E-mel" |
+| `ProfilEditorModal.tsx`, Kelayakan Akaun (×~10) | "Username"/"username", "Emel"/"emel" | "Nama Pengguna"/"nama pengguna", "E-mel"/"e-mel" |
+
+## Audit Zon 1: Editorium, Tetapan, Modal, Dashboard — selesai 2026-08-16
+
+Ekstrak menyeluruh teks Bahasa Melayu daripada 18 fail (`EditoriumView.tsx`, `EditoriumLayout.tsx`,
+`DashboardConsole.tsx`, `TetapanConsole.tsx`, `TetapanAmSlotConsole.tsx`, `LoginModal.tsx`,
+`LengkapkanProfilModal.tsx`, `ProfilEditorModal.tsx`, `MaklumanDrawer.tsx`, `PanduanConsole.tsx`,
++ komponen kongsi `common/` — `AmaranBelumSimpan`/`KeadaanKosong`/`KeadaanMemuat`/`MesejStatus`/
+`Toast`/`LoadingScreen`/`ErrorBoundary`/`SkrinDegradasiDB`). Majoriti teks SUDAH kualiti baik
+(banyak fail, terutama `PanduanConsole.tsx`, sudah melalui beberapa pusingan penghalusan bahasa
+sebelum audit ni) — 5 pembetulan konkrit disenaraikan di atas (baris `DashboardConsole.tsx`/
+`LoginModal.tsx`/`ProfilEditorModal.tsx`) ialah SEMUA isu sebenar yang ditemui zon ni, bukan
+senarai separa.
 
 ## Kerja belum selesai (dilaporkan kepada Izzat, belum dijadualkan)
 
 ChatGPT mencadangkan audit bahasa penuh merentasi seluruh repo, dibahagikan ikut zon supaya
 tidak terlepas konteks istilah (bukan "lint bahasa" rawak):
 
-1. Editorium, Tetapan, Modal, Papan Pemuka (Dashboard)
+1. ~~Editorium, Tetapan, Modal, Papan Pemuka (Dashboard)~~ — **selesai 2026-08-16**, lihat di atas
 2. Editor Kandungan, Slot
 3. Log Masuk/Auth, Onboarding, mesej ralat
 4. Halaman awam (frontpage, Focus View, halaman statik)
 
-Ini BUKAN sebahagian sesi 10-pusingan belajar bahasa (2026-08-16) — skop terlalu besar untuk
-gabung dengan kerja lain. Perlu tugas berasingan bila Izzat bersedia.
+Zon 2-4 masih belum dijadualkan — tugas berasingan bila Izzat bersedia.

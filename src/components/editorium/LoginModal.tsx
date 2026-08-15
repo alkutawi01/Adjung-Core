@@ -80,9 +80,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         body: JSON.stringify({ email: emelLupa }),
       });
       const data = await bacaJsonSelamat(res);
-      setMesejLupa(data.message || 'Jika emel ini berdaftar, pautan set semula telah dihantar.');
+      setMesejLupa(data.message || 'Jika e-mel ini berdaftar, pautan set semula telah dihantar.');
     } catch {
-      setMesejLupa('Jika emel ini berdaftar, pautan set semula telah dihantar.');
+      setMesejLupa('Jika e-mel ini berdaftar, pautan set semula telah dihantar.');
     } finally {
       setMenghantarLupa(false);
     }
@@ -182,10 +182,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         ) : (
           <form onSubmit={hantarLupaKataLaluan} className="space-y-3">
             <p className="text-xs text-stone-600">
-              Masukkan emel akaun anda. Jika berdaftar, pautan set semula kata laluan akan dihantar.
+              Masukkan e-mel akaun anda. Jika berdaftar, pautan set semula kata laluan akan dihantar.
             </p>
             <div>
-              <label className={LABEL_BORANG}>Emel</label>
+              <label className={LABEL_BORANG}>E-mel</label>
               <input
                 type="email"
                 value={emelLupa}
