@@ -21,7 +21,35 @@
 // TINGKAP MASA (baris sama jenis+sasaran diCIPTA/dikemaskini dlm KUMPUL_TINGKAP_MS lepas) — tak
 // kisah dibaca ke tidak — jauh lebih tahan terhadap corak sebenar editor kerap semak inbox.
 const KUMPUL_TINGKAP_MS = 6 * 60 * 60 * 1000; // 6 jam — kegagalan RSS di luar tingkap ni dikira insiden BAHARU, bukan sambungan lama.
-const padanKiraan = (detail) => (detail || '').match(/\((\d+) kali sejak ([^)]+)\)$/);
+// (.+?) TAK LOKEK (bukan [^,)]+) — tarikh "sejak" sendiri MENGANDUNGI koma (format
+// toLocaleString ms-MY, cth "15/8/2026, 12:13:06 PTG"), jadi had [^,)]+ (elak koma) yang
+// dicuba mula-mula (2026-08-16) SILAP potong mulaSejak pada koma PERTAMA di dalam tarikh
+// itu sendiri, bukan pada sempadan sebelum ", terakhir ..." — regex jadi tak padan langsung,
+// kiraan jatuh balik ke default 2 SETIAP kali (kekal "2 kali" walau berapa kali pun berulang,
+// disahkan gagal via scratch/test_notify_race2.mjs). (.+?) tak lokek + akhiran ", terakhir
+// [^)]+)? opsyenal bersama \)$ betul kerana regex cuba sependek mungkin utk group 2 sehingga
+// baki rentetan sepadan penuh — sempadan sebenar cuma jumpa pada ", terakhir " (bukan
+// sebarang koma), disahkan padan pada ujian yang sama selepas pembetulan ni.
+const padanKiraan = (detail) => (detail || '').match(/\((\d+) kali sejak (.+?)(?:, terakhir [^)]+)?\)$/);
+
+// Kunci proses untuk kumpul (2026-08-16, pembetulan kali kedua — Izzat masih nampak baris
+// "Ambilan RSS gagal: Bernama" berasingan walaupun tingkap masa dah betul). Punca sebenar:
+// SELECT-then-write (baca "sedia", kemudian putuskan UPDATE atau INSERT) ialah corak
+// tolak-cek-tolak (TOCTOU) — kalau DUA panggilan notify() untuk kunci (userId+type+targetId)
+// SAMA berjalan lebih kurang serentak (cth penjadual dalaman + panggilan manual "Tarik RSS
+// Sekarang" berlaku hampir sama masa), kedua-dua boleh SELECT dahulu (jumpa tiada baris sedia
+// tertutup transaksi), lalu KEDUA-DUA INSERT baris baharu berasingan — kumpul gagal senyap,
+// bukan sebab tingkap masa salah (dah dibetulkan sebelum ni) tapi sebab bacaan-tulis tak atomik.
+// Kunci Promise per-kekunci di bawah paksa panggilan kunci SAMA berbaris (queue) dalam proses
+// Node ni — tidak menyelesaikan race merentasi PROSES berasingan (cth semasa restart pm2 yang
+// bertindih), tapi itu jauh lebih jarang berbanding race dalam-proses yang sebenarnya berlaku.
+const kunciDalamProses = new Map();
+async function denganKunciNotifikasi(kekunci, tugas) {
+  const sebelum = kunciDalamProses.get(kekunci) || Promise.resolve();
+  const giliranIni = sebelum.then(tugas, tugas);
+  kunciDalamProses.set(kekunci, giliranIni.catch(() => {}));
+  return giliranIni;
+}
 
 export async function notify(dbRun, dbGetOrPayload, payloadArg) {
   // Keserasian belakang — panggilan lama notify(dbRun, payload) tanpa dbGet (tiada kumpul)
@@ -31,6 +59,14 @@ export async function notify(dbRun, dbGetOrPayload, payloadArg) {
   const payload = ada3Argumen ? payloadArg : dbGetOrPayload;
   const { userId, type, title, detail, targetType, targetId, kumpul } = payload;
   if (!userId || !type || !title) return;
+  if (kumpul && dbGet && targetId) {
+    return denganKunciNotifikasi(`${userId}|${type}|${targetId}`, () => notifyTanpaKunci(dbRun, dbGet, payload));
+  }
+  return notifyTanpaKunci(dbRun, dbGet, payload);
+}
+
+async function notifyTanpaKunci(dbRun, dbGet, payload) {
+  const { userId, type, title, detail, targetType, targetId, kumpul } = payload;
   try {
     const kiniIso = new Date().toISOString();
     if (kumpul && dbGet && targetId) {
