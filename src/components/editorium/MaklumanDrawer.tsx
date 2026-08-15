@@ -120,16 +120,27 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
   // ChatGPT — "saya refresh, nampak badge, buka, tab Editorial nampak mesej LAMA, kena klik
   // Sistem baru nampak mesej baharu... saya rasa kecewa"). Punca: tab sentiasa mula di
   // 'editorial' walau apa pun kandungan lencana bell (kiraan gabungan Editorial+Sistem) — badge
-  // janji "ada sesuatu baharu", tapi tab default tak bawa terus ke situ. Kira belum-baca setiap
-  // tab daripada PROPS `notifikasi` semasa render pertama sahaja (lazy initializer — data ni
-  // ditangkap SEBELUM bukaMakluman() tanda-baca sampai ke server, jadi masih tepat pada saat
-  // laci baru dibuka). Nota Ketua Editor (jenisSumber nota_ketua_editor) tiada status baca
-  // sendiri (rujuk interface Nota di atas) — sengaja TAK dikira di sini, ia ambient/disemat,
-  // bukan isyarat "baharu" macam notifikasi bertindak.
+  // janji "ada sesuatu baharu", tapi tab default tak bawa terus ke situ.
+  //
+  // Peraturan KESEGARAN, bukan kuantiti (audit ChatGPT selepas fix pertama — matriks "Editorial
+  // 2 unread lama semalam vs Sistem 3 unread, satu 1 minit lepas" patut buka Sistem, BUKAN
+  // Editorial walaupun Editorial ada bilangan lebih). Bandingkan createdAt (dibuatPada) unread
+  // TERBAHARU setiap tab, bukan kiraan — tab dgn unread paling segar menang. Kedua-dua tab
+  // kosong unread -> kekal 'editorial' (tak berubah drpd reka bentuk asal).
+  //
+  // Dikira drpd PROPS `notifikasi` semasa render pertama sahaja (lazy initializer — komponen ni
+  // unmount/remount setiap kali laci dibuka/tutup, jadi "render pertama" = "saat laci baru
+  // dibuka", data ditangkap SEBELUM bukaMakluman() tanda-baca sampai ke server, masih tepat).
+  // Nota Ketua Editor (jenisSumber nota_ketua_editor) tiada status baca sendiri (rujuk interface
+  // Nota di atas) — sengaja TAK dikira, ia ambient/disemat, bukan isyarat "baharu".
   const [tab, setTab] = React.useState<'editorial' | 'sistem'>(() => {
-    const adaSistemBelumBaca = notifikasi.some((n) => n.jenis.startsWith('sistem_') && !n.dibaca);
-    const adaEditorialBelumBaca = notifikasi.some((n) => !n.jenis.startsWith('sistem_') && !n.dibaca);
-    return adaSistemBelumBaca && !adaEditorialBelumBaca ? 'sistem' : 'editorial';
+    const masaTerbaharu = (jenisSemak: (jenis: string) => boolean) =>
+      notifikasi
+        .filter((n) => jenisSemak(n.jenis) && !n.dibaca)
+        .reduce((terbaharu, n) => Math.max(terbaharu, new Date(n.dibuatPada).getTime() || 0), 0);
+    const terbaharuSistem = masaTerbaharu((jenis) => jenis.startsWith('sistem_'));
+    const terbaharuEditorial = masaTerbaharu((jenis) => !jenis.startsWith('sistem_'));
+    return terbaharuSistem > terbaharuEditorial ? 'sistem' : 'editorial';
   });
 
   // Senarai gabungan, tersusun terbaharu dahulu — nota disemat tetap naik ke atas dalam

@@ -128,6 +128,28 @@ laluan simpan yang sama seperti `validateContentBudget()` di atas. Pertukaran Bi
 slot tidak retroaktif — cuma mempengaruhi kandungan baharu selepas perubahan. Rujuk
 seksyen "03 — Bidang & Topik" dalam Perlembagaan (Editorium) untuk butiran penuh.
 
+### Peti Makluman — kontrak UX pusat makluman (2026-08-16)
+Ditulis selepas Izzat melaporkan kekecewaan sebenar kat ChatGPT: buka Peti Makluman selepas
+nampak lencana bell, tapi tab yang terbuka (Editorial, hardcoded) papar mesej LAMA — mesej
+baharu sebenar duduk di tab Sistem, kena klik sendiri baru jumpa. "Lencana bell janji ada
+sesuatu baharu, tapi tab default tak bawa terus ke situ" (audit ChatGPT). Peraturan yang
+mesti dipegang bila ubah/tambah apa-apa pada `MaklumanDrawer.tsx` atau laluan notifikasi:
+
+- **Lencana = janji.** Bila editor klik loceng, langkah SETERUSNYA (tab yang terbuka) MESTI
+  bawa terus ke punca lencana tu — bukan tab lalai tetap. Kira tab awal ikut **kesegaran**
+  (unread TERBAHARU, bandingkan `createdAt`), bukan kuantiti — satu notifikasi Sistem sejam
+  lepas lebih penting drpd tiga notifikasi Editorial semalam.
+- **Sistem vs Editorial ialah DUA kategori berbeza**, bukan satu senarai dipecah kosmetik —
+  kegagalan infrastruktur (RSS/cuaca/pautan mati) tidak memerlukan tindakan editor peribadi,
+  tindakan editorial (kandungan disiar/ditolak) memang perlu. Jangan gabung semula jadi satu
+  tab tunggal.
+- **Notifikasi BUKAN rekod tindakan sendiri** — actor yang buat sesuatu (terbit/tolak) tak
+  perlu dinotify pasal tindakan dia sendiri (toast dah cukup); lihat suppression di
+  `contentRoutes.js`. Notifikasi untuk memberitahu ORANG LAIN.
+- Bila tambah `kumpul: true` (agregat kegagalan berulang, `Notify.js`), ingat SELECT-then-
+  write TOCTOU-prone di bawah beban serentak — guna kunci per-kekunci (`denganKunciNotifikasi`)
+  atau corak setara, jangan andaikan panggilan berurutan sahaja akan pernah berlaku.
+
 ## Bila teragak-agak
 
 Kalau perubahan melibatkan kandungan editorial sebenar (bukan kod), UI/UX yang belum
