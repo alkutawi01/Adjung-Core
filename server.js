@@ -49,6 +49,7 @@ import { createViewStatsRoutes } from './core/routes/viewStatsRoutes.js';
 import { createEditorNotesRoutes } from './core/routes/editorNotesRoutes.js';
 import { createGlosariRoutes } from './core/routes/glosariRoutes.js';
 import { createEjaanRoutes } from './core/routes/ejaanRoutes.js';
+import { createPemenggalanRoutes } from './core/routes/pemenggalanRoutes.js';
 import { createProfileRoutes } from './core/routes/profileRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createUserAdminRoutes } from './core/routes/userAdminRoutes.js';
@@ -746,6 +747,20 @@ const initializeSchema = () => {
                 });
               });
             });
+
+            // Pengecualian Pemenggalan Suku Kata (2026-08-16, arahan Izzat) — peluasan kepada
+            // core/editorial/PemenggalSukuKata.js (algoritma (K)(K)V(K) deterministik sedia ada).
+            // RUJUKAN aktif editor, dibaca terus oleh FrontpageView.tsx (bukan cuma rujukan pasif
+            // macam Ejaan/Glosari) — lihat core/routes/pemenggalanRoutes.js.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS pemenggalan_pengecualian (
+                id TEXT PRIMARY KEY,
+                perkataan TEXT NOT NULL,
+                corak TEXT NOT NULL,
+                createdBy TEXT,
+                createdAt TEXT
+              )
+            `, () => {});
 
             // Pindaan had aksara per-tier (2026-07-30). Menyimpan PINDAAN sahaja — tier tanpa
             // baris di sini guna nilai lalai GeometryConfig.js. Lihat core/routes/tierSettingsRoutes.js.
@@ -3558,6 +3573,7 @@ app.use('/api/system', createViewStatsRoutes(dbAll, dbRun));
 app.use('/api', createEditorNotesRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createGlosariRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createEjaanRoutes(dbAll, dbRun, dbGet));
+app.use('/api/system', createPemenggalanRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createProfileRoutes(dbGet, dbRun));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));

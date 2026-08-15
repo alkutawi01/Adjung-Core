@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { penggalSukuKata, cariTitikPenggal, SOFT_HYPHEN } from '../core/editorial/PemenggalSukuKata.js';
+import { penggalSukuKata, cariTitikPenggal, SOFT_HYPHEN, setPemenggalanPengecualian } from '../core/editorial/PemenggalSukuKata.js';
 
 // Pemenggal ini menggantikan `hyphens: auto` yang GAGAL SECARA SENYAP apabila pelayar tiada
 // kamus hyphenation (diuji hidup: Melayu, Inggeris DAN Jerman semuanya gagal pecah dalam
@@ -141,5 +141,59 @@ test('KRITIKAL: tiada satu huruf pun ditambah atau dibuang daripada kandungan', 
   ];
   for (const teks of contoh) {
     assert.equal(penggalSukuKata(teks).split(SOFT_HYPHEN).join(''), teks);
+  }
+});
+
+// Pengecualian editor (2026-08-16, arahan Izzat — "sistem yg dah ada dah betul, cuma saya nak
+// sistem benarkan editor buat apa2 pengecualian... dia mcm autocorrect"). Contoh sebenar Izzat:
+// "pentadbiran". Algoritma fonetik hasilkan "pen-tad-bi-ran" (dikunci di atas, BUKAN salah — dia
+// sendiri sahkan "sistem yg dah ada dah betul") — ujian ni kunci KEBOLEHAN editor timpa dengan
+// corak lain ("pen-tad-bir-an") bila dia rasa perlu, bukan tuntutan satu jawapan sahaja betul.
+test('pengecualian editor: corak override diguna pakai, bukan algoritma automatik', () => {
+  try {
+    setPemenggalanPengecualian([{ perkataan: 'pentadbiran', corak: 'pen-tad-bir-an' }]);
+    assert.equal(penggal('pentadbiran'), 'pen-tad-bir-an', 'pengecualian mesti override algoritma automatik ("pen-tad-bi-ran")');
+    // Kes huruf ASAL kekal (huruf besar P dalam ayat sebenar), bukan huruf kecil corak tersimpan.
+    assert.equal(penggal('Pentadbiran'), 'Pen-tad-bir-an', 'huruf besar/kecil perkataan asal mesti dikekalkan, bukan corak');
+  } finally {
+    setPemenggalanPengecualian([]);
+  }
+});
+
+test('pengecualian editor: perkataan tanpa entri dalam peta terus guna algoritma biasa', () => {
+  try {
+    setPemenggalanPengecualian([{ perkataan: 'pentadbiran', corak: 'pen-tad-bir-an' }]);
+    assert.equal(penggal('kebudayaan'), 'ke-bu-da-ya-an', 'perkataan lain tak sepatutnya terjejas oleh pengecualian perkataan lain');
+  } finally {
+    setPemenggalanPengecualian([]);
+  }
+});
+
+// Pertahanan KEDUA (pelayan/pemenggalanRoutes.js pertahanan PERTAMA) — corak yang, bila sempang
+// dibuang, TIDAK sepadan tepat perkataan asal mesti DITOLAK senyap (fallback algoritma), bukan
+// diguna pakai. Kalau tidak, sisipan sempang akan merosakkan teks editorial sebenar dipaparkan —
+// melanggar falsafah teras "jangan sentuh teks editorial".
+test('pengecualian editor: corak yang tak sepadan perkataan (data rosak/lapuk) DITOLAK senyap', () => {
+  try {
+    setPemenggalanPengecualian([{ perkataan: 'pentadbiran', corak: 'pen-tad-XXX-an' }]);
+    // Corak rosak (segmen bergabung != "pentadbiran") — jatuh balik ke algoritma biasa, teks
+    // TIDAK dirosakkan oleh corak yang salah.
+    assert.equal(penggal('pentadbiran'), 'pen-tad-bi-ran');
+    assert.equal(penggalSukuKata('pentadbiran').split(SOFT_HYPHEN).join(''), 'pentadbiran');
+  } finally {
+    setPemenggalanPengecualian([]);
+  }
+});
+
+test('pengecualian editor: senarai kosong/tak sah dikendalikan dengan selamat', () => {
+  try {
+    setPemenggalanPengecualian([]);
+    assert.equal(penggal('kebudayaan'), 'ke-bu-da-ya-an');
+    setPemenggalanPengecualian(null);
+    assert.equal(penggal('kebudayaan'), 'ke-bu-da-ya-an');
+    setPemenggalanPengecualian([{ perkataan: '', corak: 'pen-tad-bir-an' }, { perkataan: 'pentadbiran', corak: '' }]);
+    assert.equal(penggal('pentadbiran'), 'pen-tad-bi-ran', 'entri tanpa perkataan/corak sah dilangkau, bukan diguna pakai');
+  } finally {
+    setPemenggalanPengecualian([]);
   }
 });

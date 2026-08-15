@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Entry, SystemSettings } from '../../types';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays, safeParseInline, setGlosSelariAktif, setTypographyRulesAktif } from '../../utils';
+import { setPemenggalanPengecualian } from '../../../core/editorial/PemenggalSukuKata.js';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, X, Lock, Search } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
@@ -1362,6 +1363,20 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .catch(err => console.error('Failed to load typography rules:', err));
   };
 
+  // Pengecualian Pemenggalan Suku Kata (2026-08-16, arahan Izzat — "sistem yg dah ada dah betul,
+  // cuma saya nak sistem benarkan editor buat apa2 pengecualian"). Muat SEKALI di sini (rujukan
+  // pasif editor, jarang berubah), selaraskan ke peta dalam-modul yang dibaca penggalSukuKata()
+  // via setPemenggalanPengecualian() — corak SAMA seperti Glos Selari/Autocondong di bawah.
+  const [pemenggalanPengecualianList, setPemenggalanPengecualianList] = useState<{ perkataan: string; corak: string }[]>([]);
+  const loadPemenggalanPengecualian = () => {
+    fetch('/api/system/pemenggalan-pengecualian')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setPemenggalanPengecualianList(data);
+      })
+      .catch(err => console.error('Failed to load pemenggalan pengecualian:', err));
+  };
+
   // Glos Selari (Fasa 6) — selaraskan bendera dalam-modul yang dibaca safeParseInline setiap
   // kali systemSettings berubah (cth Ketua Editor togol tetapan tanpa muat semula halaman).
   useEffect(() => {
@@ -1374,6 +1389,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   useEffect(() => {
     setTypographyRulesAktif(adjungTypographyRules);
   }, [adjungTypographyRules]);
+
+  useEffect(() => {
+    setPemenggalanPengecualian(pemenggalanPengecualianList);
+  }, [pemenggalanPengecualianList]);
 
   const loadSlotsConfig = () => {
     fetch('/api/system/slots')
@@ -1431,6 +1450,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .catch(err => console.error('Failed to load active Bidang list:', err));
 
     loadAdjungTypographyRules();
+    loadPemenggalanPengecualian();
   }, []);
 
   useEffect(() => {

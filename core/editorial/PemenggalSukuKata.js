@@ -74,6 +74,71 @@ const SERPIHAN_MIN = 2;
 const adalahVokal = (c) => VOKAL.has(c);
 
 /**
+ * Pengecualian editor (2026-08-16, arahan Izzat — "sistem yg dah ada dah betul, cuma saya nak
+ * sistem benarkan editor buat apa2 pengecualian, jika editor rasa perlu. dia mcm autocorrect").
+ * Peraturan (K)(K)V(K) di atas betul untuk kebanyakan perkataan Melayu, tapi bukan SEMUA — ada
+ * perkataan yang pemenggalan "betul" mengikut kelaziman berbeza daripada hasil algoritma (cth.
+ * kata pinjaman, nama khas, singkatan janggal). Peta ni PILIHAN TAMBAHAN yang diperiksa DAHULU,
+ * bukan gantian keseluruhan sistem — perkataan yang tiada dalam peta terus guna algoritma sedia
+ * ada seperti biasa.
+ *
+ * Diselaraskan oleh caller (FrontpageView.tsx) via setPemenggalanPengecualian() setiap kali
+ * senarai pengecualian berubah — corak SAMA seperti setGlosSelariAktif/setTypographyRulesAktif
+ * di utils.tsx (satu peta dalam-modul, bukan prop dihantar merentasi ~30 tapak render kad).
+ *
+ * Kunci peta ialah perkataan huruf kecil, nilai ialah SENARAI OFFSET aksara (bukan corak
+ * bersempang mentah) — offset dikira SEKALI di sini semasa dimuatkan, bukan berulang kali pada
+ * setiap render kad. Mengekalkan offset (bukan corak) juga bermakna penyisipan sempang guna
+ * huruf SEBENAR perkataan yang dipaparkan (cth. "Pentadbiran" huruf besar P kekal), bukan huruf
+ * daripada corak tersimpan (yang sentiasa huruf kecil) — jadi kes huruf asal tidak sekali-kali
+ * disentuh oleh ciri ni.
+ */
+let pengecualianPemenggalan = new Map();
+
+/**
+ * Tukar corak bersempang editor (cth. "pen-tad-bir-an") kepada senarai offset aksara tempat
+ * sempang patut disisip. Pulangkan null jika corak tidak sah (offset pertama < SERPIHAN_MIN dsb)
+ * — TIDAK sekali-kali mengubah kandungan tanpa jaminan struktur perkataan kekal utuh apabila
+ * sempang dibuang semula (lihat validasi di pemenggalanRoutes.js, yang dipanggil semasa simpan;
+ * semakan sini pertahanan KEDUA supaya data lapuk/rosak dalam DB tidak sekali-kali sampai ke
+ * paparan pembaca walaupun laluan simpan entah bagaimana terlepas).
+ */
+const corakKepadaOffset = (perkataan, corak) => {
+  if (typeof corak !== 'string' || !corak.includes('-')) return null;
+  const segmen = corak.split('-');
+  if (segmen.some((s) => s.length === 0)) return null;
+  // Corak (sempang dibuang) MESTI sepadan tepat perkataan asal — kalau tidak, sisipan sempang
+  // akan mengubah/rosakkan teks editorial sebenar, melanggar falsafah teras jangan sentuh teks.
+  if (segmen.join('').toLowerCase() !== perkataan.toLowerCase()) return null;
+  const offset = [];
+  let pos = 0;
+  for (let i = 0; i < segmen.length - 1; i++) {
+    pos += segmen[i].length;
+    offset.push(pos);
+  }
+  return offset;
+};
+
+/**
+ * Muatkan senarai pengecualian editor. `senarai` ialah array {perkataan, corak} (bentuk sama
+ * seperti baris jadual `pemenggalan_pengecualian`, lihat pemenggalanRoutes.js). Entri dengan
+ * corak tak sah dilangkau senyap (bukan lontar ralat) — satu entri rosak tidak patut gugurkan
+ * seluruh peta pengecualian untuk perkataan lain yang sah.
+ */
+export function setPemenggalanPengecualian(senarai) {
+  const peta = new Map();
+  for (const entri of senarai || []) {
+    const perkataan = (entri?.perkataan || '').trim();
+    const corak = (entri?.corak || '').trim();
+    if (!perkataan) continue;
+    const offset = corakKepadaOffset(perkataan, corak);
+    if (!offset || offset.length === 0) continue;
+    peta.set(perkataan.toLowerCase(), offset);
+  }
+  pengecualianPemenggalan = peta;
+}
+
+/**
  * Baca satu unit konsonan bermula pada indeks `i` — mengembalikan panjangnya (2 untuk digraf,
  * 1 untuk konsonan biasa). Digraf mesti dikira sebagai satu unit, jika tidak "bangun" akan
  * dipenggal "ban-gun" (salah) dan bukan "ba-ngun" (betul).
@@ -151,7 +216,11 @@ export function cariTitikPenggal(kata) {
 function penggalSatuPerkataan(kata) {
   if (!/^[A-Za-zÀ-ÿ']+$/.test(kata)) return kata;
 
-  const titik = cariTitikPenggal(kata);
+  // Pengecualian editor diperiksa DAHULU, sebelum algoritma (K)(K)V(K) — lihat komen
+  // pengecualianPemenggalan di atas. Tiada had PANJANG_MIN di sini (tak macam cariTitikPenggal)
+  // sebab editor mungkin sengaja mahu pengecualian pada perkataan pendek juga.
+  const override = pengecualianPemenggalan.get(kata.toLowerCase());
+  const titik = override || cariTitikPenggal(kata);
   if (titik.length === 0) return kata;
 
   let hasil = '';

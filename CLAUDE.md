@@ -236,6 +236,34 @@ storan atau parser** — sistem cuma jana prompt berbeza ikut mod, tiada infrast
   upload PDF) — semak tajuk sentence case tak akademik, huraian panjang berperenggan tanpa
   frasa ulasan jurnal, medan Sumber nama jurnal ringkas, publish ikut laluan sama mod rujukan.
 
+### Pengecualian Pemenggalan Suku Kata — modul editor "autocorrect" (2026-08-16)
+Arahan terus Izzat: sistem pemenggalan automatik (`core/editorial/PemenggalSukuKata.js`, algoritma
+(K)(K)V(K) fonetik) **tak salah**, cuma editor kadangkala perlu timpa hasilnya untuk perkataan
+tertentu. Ciri baharu (bukan gantian algoritma):
+
+- **Jadual baharu** `pemenggalan_pengecualian` (perkataan, corak bersempang cth "pen-tad-bir-an").
+  Modul admin di Editorium → Editorial → 4. Pemenggalan Perkataan (`EditorialConsole.tsx`, corak
+  identik Penyelarasan Ejaan — senarai+dialog tambah/sunting/buang). API di
+  `core/routes/pemenggalanRoutes.js`, GET AWAM (dibaca `FrontpageView.tsx` sendiri, bukan cuma
+  admin — lihat bawah), tulis digerbang `requirePermission('manageEditorial')`.
+- **Pengesahan DUA lapisan, WAJIB** — corak (sempang dibuang) MESTI sepadan tepat perkataan asal
+  (huruf kecil), kalau tidak DITOLAK: (1) `pemenggalanRoutes.js` tolak 400 semasa simpan, (2)
+  `corakKepadaOffset()` (`PemenggalSukuKata.js`) tolak senyap (jatuh balik ke algoritma automatik)
+  semasa paparan — pertahanan KEDUA sengaja, andai data lapuk/rosak entah bagaimana terlepas
+  laluan simpan, teks editorial pembaca TIDAK SEKALI-KALI rosak akibatnya.
+- **Engine simpan OFFSET aksara** (bukan corak bersempang mentah) dalam peta dalam-modul — supaya
+  sisipan sempang guna huruf SEBENAR perkataan dipaparkan (cth "Pentadbiran" P besar kekal), bukan
+  huruf kecil corak tersimpan. Kes huruf asal TAK SEKALI-KALI disentuh.
+- **Wiring client SAMA corak** seperti Glos Selari/Autocondong (`setGlosSelariAktif`/
+  `setTypographyRulesAktif`, `utils.tsx`) — `FrontpageView.tsx` muat senarai SEKALI (`useEffect`
+  `[]`), selaraskan ke peta dalam-modul via `setPemenggalanPengecualian()` setiap kali senarai
+  berubah. `FocusView.tsx` TAK perlu muat berasingan — ia sentiasa rendered SEBAGAI ANAK
+  `FrontpageView.tsx` (bukan laluan/halaman berasingan), jadi effect induk sentiasa dah jalan dulu.
+- **Ujian** (`tests/pemenggalSukuKata.test.js`): guna contoh SEBENAR Izzat (pentadbiran) — algoritma
+  automatik hasilkan "pen-tad-bi-ran" (BUKAN salah, dia sendiri sahkan), override boleh timpa jadi
+  "pen-tad-bir-an" bila editor rasa perlu. Turut kunci: perkataan lain tak terjejas, corak tak sah
+  ditolak senyap+algoritma jalan seperti biasa, senarai kosong/null selamat.
+
 ### Peti Makluman — kontrak UX pusat makluman (2026-08-16)
 Ditulis selepas Izzat melaporkan kekecewaan sebenar kat ChatGPT: buka Peti Makluman selepas
 nampak lencana bell, tapi tab yang terbuka (Editorial, hardcoded) papar mesej LAMA — mesej

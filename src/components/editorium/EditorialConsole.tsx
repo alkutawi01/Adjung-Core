@@ -22,17 +22,19 @@ import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../commo
 // sudah ada rumah di tempat lain (had aksara di Tier Kad, selang masa carousel di borang Urus Slot), ia
 // DIRUJUK ke sana, bukan disalin jadi kawalan kedua — dua kawalan untuk satu nilai bermakna
 // dua-duanya akhirnya bercanggah.
-type SubTab = 'autocondong' | 'glosari' | 'ejaan' | 'ai';
+type SubTab = 'autocondong' | 'glosari' | 'ejaan' | 'pemenggalan' | 'ai';
 
 interface Istilah { id: string; term: string; status: string }
 interface EntriGlosari { id: string; istilah: string; elakkan: string; maksud: string }
 interface EntriEjaan { id: string; betul: string; elakkan: string; catatan: string }
+interface EntriPemenggalan { id: string; perkataan: string; corak: string }
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: 'autocondong', label: '1. Autocondong' },
   { id: 'glosari', label: '2. Glosari' },
   { id: 'ejaan', label: '3. Penyelarasan Ejaan' },
-  { id: 'ai', label: '4. Templat AI' },
+  { id: 'pemenggalan', label: '4. Pemenggalan Perkataan' },
+  { id: 'ai', label: '5. Templat AI' },
 ];
 
 export const EditorialConsole: React.FC = () => {
@@ -228,6 +230,88 @@ export const EditorialConsole: React.FC = () => {
     }
   };
 
+  // ── Pemenggalan Perkataan ────────────────────────────────────────────────────
+  // Pengecualian editor kepada algoritma pemenggalan suku kata automatik (jadual
+  // pemenggalan_pengecualian) — "autocorrect" manual bagi perkataan yang hasil algoritma tak
+  // sepadan kelaziman sebenar. Lihat core/editorial/PemenggalSukuKata.js.
+  const [pemenggalan, setPemenggalan] = useState<EntriPemenggalan[]>([]);
+  const [memuatPemenggalan, setMemuatPemenggalan] = useState(true);
+  const [pPerkataan, setPPerkataan] = useState('');
+  const [pCorak, setPCorak] = useState('');
+  const [ralatPemenggalan, setRalatPemenggalan] = useState('');
+  const [menghantarPemenggalan, setMenghantarPemenggalan] = useState(false);
+  const [dialogPemenggalan, setDialogPemenggalan] = useState(false);
+  const [editPemenggalanId, setEditPemenggalanId] = useState<string | null>(null);
+  const [confirmBuangPemenggalan, setConfirmBuangPemenggalan] = useState('');
+
+  const bukaTambahPemenggalan = () => {
+    setEditPemenggalanId(null);
+    setPPerkataan(''); setPCorak('');
+    setRalatPemenggalan('');
+    setDialogPemenggalan(true);
+  };
+
+  const bukaSuntingPemenggalan = (x: EntriPemenggalan) => {
+    setEditPemenggalanId(x.id);
+    setPPerkataan(x.perkataan); setPCorak(x.corak);
+    setRalatPemenggalan('');
+    setDialogPemenggalan(true);
+  };
+
+  const muatPemenggalan = useCallback(() => {
+    setMemuatPemenggalan(true);
+    fetch('/api/system/pemenggalan-pengecualian')
+      .then((r) => r.json())
+      .then((d) => setPemenggalan(Array.isArray(d) ? d : []))
+      .catch(() => setRalatPemenggalan('Gagal membaca senarai pemenggalan.'))
+      .finally(() => setMemuatPemenggalan(false));
+  }, []);
+
+  // Corak (sempang dibuang) mesti sepadan tepat perkataan — semakan client SAMA seperti pelayan
+  // (pemenggalanRoutes.js), supaya editor nampak ralat serta-merta bukan lepas hantar borang.
+  const corakSahUntukPerkataan = (perkataan: string, corak: string): boolean => {
+    if (!corak.includes('-')) return false;
+    const segmen = corak.split('-');
+    if (segmen.some((s) => s.length === 0)) return false;
+    return segmen.join('').toLowerCase() === perkataan.trim().toLowerCase();
+  };
+  const pCorakSah = !pPerkataan.trim() || !pCorak.trim() || corakSahUntukPerkataan(pPerkataan, pCorak);
+
+  const tambahPemenggalan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (menghantarPemenggalan) return;
+    setRalatPemenggalan('');
+    setMenghantarPemenggalan(true);
+    try {
+      const res = await fetch(editPemenggalanId ? `/api/system/pemenggalan-pengecualian/${editPemenggalanId}` : '/api/system/pemenggalan-pengecualian', {
+        method: editPemenggalanId ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ perkataan: pPerkataan, corak: pCorak }),
+      });
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan pengecualian pemenggalan.');
+      setPPerkataan(''); setPCorak(''); setEditPemenggalanId(null);
+      setDialogPemenggalan(false);
+      muatPemenggalan();
+    } catch (err: any) {
+      setRalatPemenggalan(err.message || 'Gagal menyimpan pengecualian pemenggalan.');
+    } finally {
+      setMenghantarPemenggalan(false);
+    }
+  };
+
+  const buangPemenggalan = async (id: string) => {
+    try {
+      const res = await fetch(`/api/system/pemenggalan-pengecualian/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Gagal memadam pengecualian pemenggalan.');
+      setPemenggalan((prev) => prev.filter((x) => x.id !== id));
+    } catch (e: any) {
+      setRalatPemenggalan(e.message || 'Gagal memadam pengecualian pemenggalan.');
+    } finally {
+      setConfirmBuangPemenggalan('');
+    }
+  };
+
   // ── Templat AI ───────────────────────────────────────────────────────────────
   // masterPrompt (penjanaan kandungan) sudah wujud dan DIBACA oleh pembina prompt di Urus Slot —
   // menyuntingnya di sini mengubah prompt sebenar yang editor salin, bukan salinan berasingan.
@@ -279,8 +363,9 @@ export const EditorialConsole: React.FC = () => {
     if (subTab === 'autocondong') muatIstilah();
     if (subTab === 'glosari') muatGlosari();
     if (subTab === 'ejaan') muatEjaan();
+    if (subTab === 'pemenggalan') muatPemenggalan();
     if (subTab === 'ai') muatAi();
-  }, [subTab, muatIstilah, muatGlosari, muatEjaan, muatAi]);
+  }, [subTab, muatIstilah, muatGlosari, muatEjaan, muatPemenggalan, muatAi]);
 
   // Struktur modul (Pelan 01 Fasa D1): SATU kepala modul di atas, kemudian seksyen bernombor
   // berterusan 01–06 mengikut aliran tab sedia ada. Dahulu enam <h3> setara membuatkan setiap
@@ -290,7 +375,7 @@ export const EditorialConsole: React.FC = () => {
     <div className="space-y-4 font-sans">
       <ModulTajuk
         tajuk="Editorial"
-        huraian="Peraturan bahasa dan templat penjanaan AI: istilah autocondong, glosari pembaca, penyelarasan ejaan, dan templat arahan AI."
+        huraian="Peraturan bahasa dan templat penjanaan AI: istilah autocondong, glosari pembaca, penyelarasan ejaan, pengecualian pemenggalan perkataan, dan templat arahan AI."
       />
 
       <div className="flex flex-wrap gap-1 border-b border-stone-200 text-xs" role="tablist">
@@ -699,11 +784,154 @@ export const EditorialConsole: React.FC = () => {
         </div>
       )}
 
-      {/* 4. TEMPLAT AI */}
+      {/* 4. PEMENGGALAN PERKATAAN */}
+      {subTab === 'pemenggalan' && (
+        <div className="space-y-4">
+          {dialogPemenggalan && (
+            <EditorDialog
+              tajuk={editPemenggalanId ? 'Sunting Pengecualian Pemenggalan' : 'Tambah Pengecualian Pemenggalan'}
+              onTutup={() => { setDialogPemenggalan(false); setEditPemenggalanId(null); setRalatPemenggalan(''); }}
+              saiz="lg"
+              tindakan={
+                <>
+                  <Button variant="secondary" onClick={() => { setDialogPemenggalan(false); setEditPemenggalanId(null); setRalatPemenggalan(''); }}>
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit" form="borang-pemenggalan" variant="primary"
+                    disabled={menghantarPemenggalan || !pPerkataan.trim() || !pCorak.trim() || !pCorakSah}
+                  >
+                    {menghantarPemenggalan ? 'Menyimpan…' : (editPemenggalanId ? 'Simpan' : 'Tambah')}
+                  </Button>
+                </>
+              }
+            >
+              <form id="borang-pemenggalan" onSubmit={tambahPemenggalan} className="space-y-4">
+                <FormColumn saiz="md">
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="block">
+                      <span className={LABEL_BORANG}>Perkataan</span>
+                      <input
+                        type="text" value={pPerkataan} onChange={(e) => setPPerkataan(e.target.value)}
+                        placeholder="contoh: pentadbiran"
+                        className={INPUT_BORANG}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={LABEL_BORANG}>Corak (bersempang)</span>
+                      <input
+                        type="text" value={pCorak} onChange={(e) => setPCorak(e.target.value)}
+                        placeholder="contoh: pen-tad-bir-an"
+                        className={INPUT_BORANG}
+                      />
+                    </label>
+                  </div>
+                </FormColumn>
+
+                {!pCorakSah && (
+                  <MesejStatus tone="error">
+                    Corak (sempang dibuang) mesti sepadan tepat dengan perkataan — semak semula ejaan.
+                  </MesejStatus>
+                )}
+                {ralatPemenggalan && <MesejStatus tone="error">{ralatPemenggalan}</MesejStatus>}
+              </form>
+            </EditorDialog>
+          )}
+
+          <PanelCard className="space-y-3 text-xs">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <SectionLabel>04 — Pemenggalan Perkataan ({pemenggalan.length})</SectionLabel>
+                <p className="text-stone-500 text-xs max-w-[680px]">
+                  Sistem pemenggalan suku kata (untuk lipat baris pada kad telefon) berjalan
+                  automatik untuk semua perkataan Melayu. Senarai ini pengecualian manual — kalau
+                  hasil automatik untuk sesuatu perkataan tak sepadan kelaziman sebenar, tambah di
+                  sini dan sistem akan guna corak yang ditetapkan, bukan algoritma automatik, untuk
+                  perkataan itu sahaja.
+                </p>
+              </div>
+              <Button variant="primary" onClick={bukaTambahPemenggalan} className="shrink-0">
+                + Tambah Pengecualian
+              </Button>
+            </div>
+            {memuatPemenggalan ? (
+              <KeadaanMemuat baris={4} />
+            ) : pemenggalan.length === 0 ? (
+              <KeadaanKosong>Senarai pengecualian masih kosong.</KeadaanKosong>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className={KEPALA_JADUAL}>
+                      <th className="p-2.5">Perkataan</th>
+                      <th className="p-2.5">Corak</th>
+                      <th className="p-2.5"><span className="sr-only">Tindakan</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pemenggalan.map((x) => (
+                      <tr key={x.id} className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
+                        <td className="p-2.5 font-semibold text-stone-800">{x.perkataan}</td>
+                        <td className="p-2.5 text-stone-600 font-mono">{x.corak}</td>
+                        <td className="p-2.5 text-right">
+                          {confirmBuangPemenggalan === x.id ? (
+                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                              <span className="text-[10px] text-stone-500">Buang?</span>
+                              <button
+                                type="button"
+                                onClick={() => buangPemenggalan(x.id)}
+                                className="text-[10px] font-bold text-[var(--color-error)] hover:underline cursor-pointer"
+                              >
+                                Ya
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmBuangPemenggalan('')}
+                                className="text-[10px] text-stone-500 hover:underline cursor-pointer"
+                              >
+                                Batal
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-2.5">
+                              <Tooltip text="Sunting pengecualian">
+                                <button
+                                  type="button"
+                                  onClick={() => bukaSuntingPemenggalan(x)}
+                                  aria-label="Sunting pengecualian"
+                                  className="text-stone-400 hover:text-Adjung-maroon cursor-pointer"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              </Tooltip>
+                              <Tooltip text="Buang pengecualian">
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmBuangPemenggalan(x.id)}
+                                  aria-label="Buang pengecualian"
+                                  className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </Tooltip>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </PanelCard>
+        </div>
+      )}
+
+      {/* 5. TEMPLAT AI */}
       {subTab === 'ai' && (
         <PanelCard className="space-y-4 text-xs">
           <div>
-            <SectionLabel>04 — Templat Penjanaan AI</SectionLabel>
+            <SectionLabel>05 — Templat Penjanaan AI</SectionLabel>
             <p className="text-stone-500 text-xs">
               Peraturan am yang dimasukkan ke dalam setiap prompt AI. Templat kandungan di bawah digunakan
               sebagai "Peraturan Am" dalam Tulis Kandungan. Perubahan pada templat ini akan mengubah arahan
