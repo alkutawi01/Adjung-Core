@@ -207,6 +207,35 @@ kad frontpage/mobile):
   tak boleh overflow" CLAUDE.md. Kalau nama sumber masih tak muat 50 aksara di masa depan,
   singkatan biasa (NST, SCMP) ialah jalan keluar pertama sebelum naikkan had lagi.
 
+### Mod "Dengan Artikel Jurnal" — peluasan ketiga Jana Kandungan AI (2026-08-16)
+Arahan terus daripada Izzat: tambah cara sumber SATU LAGI (bukan platform/modul berasingan)
+untuk `genMode` di `buildAiPrompt()`/`SlotManagerModal.tsx` — editor lampirkan PDF artikel
+jurnal/akademik secara manual dalam sesi AI luaran (ChatGPT/Claude/Gemini) sendiri, tampal
+hasil kembali ke Adjung Brief macam biasa. **Adjung Brief SENGAJA TIDAK bina upload PDF,
+storan atau parser** — sistem cuma jana prompt berbeza ikut mod, tiada infrastruktur fail baharu.
+
+- **Berbeza daripada "Dengan rujukan" (URL)** — jangan anggap URL jurnal = URL artikel berita.
+  "Dengan rujukan" sesuai untuk berita/kenyataan rasmi/halaman web (AI boleh fetch URL).
+  "Dengan Artikel Jurnal" sesuai untuk PDF akademik (AI TAK fetch apa-apa — kandungan sudah
+  ditampal terus oleh editor dalam sesi AI luaran itu sendiri). Sebab tu medan "Nama jurnal"
+  (`aiPromptSource`, plain text, BUKAN struktur `sources[]` nama+URL macam mod rujukan) bersifat
+  PILIHAN sahaja — `copyPrompt()` TIDAK sekat mod ni walau kosong, tiada gerbang URL macam mod
+  rujukan (yang sengaja sekat sepenuhnya kalau URL kosong — dua falsafah berbeza, jangan campur).
+- **Gaya penulisan ialah teras ciri ni** — AI kerap tulis sumber jurnal sebagai "ulasan jurnal"
+  ("Kajian ini mendapati...", "Artikel jurnal ini membincangkan..."), padahal Adjung Brief
+  perlukan naratif editorial terus (macam AI sendiri faham & terangkan perkara tu, bukan
+  melaporkan tentang kewujudan kajian). Prompt sekarang eksplisit larang frasa gaya akademik +
+  beri contoh betul/salah (lihat seksyen `[Gaya penulisan]` dlm `sumberSection` mod ni).
+- **Medan Sumber ringkas, bukan citation akademik** — "Journal of Islamic Studies" bukan
+  "Ahmad, A. (2025). Tajuk. Jurnal X, Vol 10...".
+- **Kongsi sifat "SATU sumber = SATU kandungan"** dgn mod rujukan — flag gabungan
+  `isSingleSourceMode` (`isReferenceMode || isJournalMode`) kunci `Jumlah kandungan` = 1 dan
+  langkau seksyen `[Had usia sumber]`/`[Negara/Wilayah sumber]` (tak relevan utk PDF akademik,
+  yang selalunya jauh lebih lama drpd berita semasa dan tiada "negara asal" bermakna).
+- **Ujian**: Izzat jalankan simulasi sebenar SENDIRI (persekitaran Claude Code tiada keupayaan
+  upload PDF) — semak tajuk sentence case tak akademik, huraian panjang berperenggan tanpa
+  frasa ulasan jurnal, medan Sumber nama jurnal ringkas, publish ikut laluan sama mod rujukan.
+
 ### Peti Makluman — kontrak UX pusat makluman (2026-08-16)
 Ditulis selepas Izzat melaporkan kekecewaan sebenar kat ChatGPT: buka Peti Makluman selepas
 nampak lencana bell, tapi tab yang terbuka (Editorial, hardcoded) papar mesej LAMA — mesej

@@ -122,7 +122,7 @@ interface SlotManagerModalProps {
 }
 
 const TAB_LABEL: Record<string, string> = { borang: 'Borang kandungan', maklumat: 'Maklumat slot', ai: 'Arahan AI', sejarah: 'Sejarah versi' };
-const GEN_MODE_LABEL: Record<string, string> = { bebas: 'Bebas', dengan_rujukan: 'Dengan rujukan' };
+const GEN_MODE_LABEL: Record<string, string> = { bebas: 'Bebas', dengan_rujukan: 'Dengan rujukan', artikel_jurnal: 'Dengan Artikel Jurnal' };
 
 const labelCls = 'font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500';
 
@@ -215,9 +215,38 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
   // able). URL kosong pada mod "Dengan rujukan" TIDAK jatuh balik ke "AI cari sendiri" (itu cipta
   // mod ketiga tersembunyi yang mengelirukan) -- copyPrompt() sekat sepenuhnya sehingga URL diisi.
   const isReferenceMode = fc.genMode === 'dengan_rujukan';
+  // Mod "Dengan Artikel Jurnal" (2026-08-16, arahan Izzat) -- peluasan KETIGA kepada
+  // "Jana Kandungan AI", BUKAN mod URL. Editor lampirkan PDF jurnal secara manual terus dalam
+  // sesi AI luaran (ChatGPT/Claude/Gemini) sendiri -- Adjung Brief TIDAK simpan/proses fail PDF
+  // (tiada upload, storan atau parser dibina). Jadi tiada medan URL wajib macam "Dengan rujukan"
+  // -- copyPrompt() tak patut sekat berdasarkan URL utk mod ni. Bahagian yang dikongsi bersama
+  // "Dengan rujukan" (had usia sumber tak relevan, wilayah sumber tak relevan, kunci 1 kandungan
+  // bagi 1 sumber) guna flag gabungan `isSingleSourceMode` di bawah -- tapi seksyen sumber &
+  // gaya penulisan KEKAL berasingan sepenuhnya (jangan campur URL rujukan dgn PDF jurnal).
+  const isJournalMode = fc.genMode === 'artikel_jurnal';
+  const isSingleSourceMode = isReferenceMode || isJournalMode;
+  const journalName = (fc.aiPromptSource || '').trim();
   const referenceSources = parseReferenceSources(fc.aiPromptSource).filter((s) => s.url.trim());
   const isMultiSource = referenceSources.length > 1;
-  const sumberSection = isReferenceMode && referenceSources.length > 0
+  const sumberSection = isJournalMode
+    ? [
+        '[Sumber — artikel jurnal/akademik dalam bentuk PDF]',
+        journalName
+          ? `Editor telah melampirkan artikel jurnal berikut secara manual dalam sesi ini: ${journalName}.`
+          : 'Editor telah melampirkan satu artikel jurnal/dokumen akademik (PDF) secara manual dalam sesi ini.',
+        'Gunakan HANYA kandungan artikel/dokumen yang dilampirkan sebagai sumber maklumat. Jangan gunakan pengetahuan sendiri, ingatan model, atau sumber lain di luar dokumen ini.',
+        '',
+        '[Gaya penulisan — WAJIB, ini bukan ulasan jurnal]',
+        'Sumber anda ialah artikel jurnal/akademik, tetapi OUTPUT anda BUKAN ulasan jurnal atau ringkasan akademik. Adjung Brief ialah portal editorial, bukan jurnal akademik atau laman sorotan literatur. Tulis SEOLAH-OLAH anda sendiri telah memahami perkara yang dibincangkan dan menerangkannya terus kepada pembaca, bukan melaporkan tentang kewujudan kajian tersebut.',
+        'JANGAN gunakan frasa gaya ulasan akademik seperti "Kajian ini mendapati...", "Artikel jurnal ini membincangkan...", "Menurut penyelidik...", "Penulis artikel menyatakan...", "Kajian tersebut mengkaji..." — kecuali benar-benar perlu untuk konteks (contoh: merujuk dapatan khusus yang mesti diatribusikan).',
+        'Contoh BETUL (gaya editorial terus): "Pentadbiran fatwa di Malaysia mengalami perkembangan yang berkait rapat dengan perubahan struktur institusi agama dan keperluan penyelarasan di peringkat kebangsaan..."',
+        'Contoh SALAH (gaya ulasan jurnal): "Artikel jurnal tersebut mengkaji perubahan pentadbiran fatwa..."',
+        'Kekalkan fakta dan dapatan yang disokong oleh dokumen yang dilampirkan sahaja. Jangan menambah dakwaan, implikasi atau hubungan yang tidak disokong sumber.',
+        '',
+        '[Medan Sumber — gaya Adjung Brief, bukan citation akademik]',
+        'Pada medan Sumber, tulis nama jurnal secara ringkas sahaja (contoh: "Journal of Islamic Studies" atau "Jurnal Syariah"). JANGAN tulis citation akademik penuh (contoh JANGAN "Ahmad, A. (2025). Tajuk artikel. Jurnal X, Vol 10...") kecuali editor sendiri nyatakan mahu memasukkannya. Medan URL boleh dikosongkan jika artikel PDF tiada pautan web berkaitan.',
+      ]
+    : isReferenceMode && referenceSources.length > 0
     ? [
         '[Rujukan sumber wajib]',
         isMultiSource ? `Gunakan HANYA sumber-sumber berikut untuk kandungan ini:` : `Gunakan HANYA sumber berikut untuk kandungan ini:`,
@@ -282,11 +311,14 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     // berfungsi, cuma tak pernah dapat input berperenggan utk diuji). Fix (wording ChatGPT):
     // eksplisit minta pecah ikut PERUBAHAN IDEA (bukan bilangan perenggan tetap — panjang
     // kandungan berbeza-beza), kekalkan naratif bersambung (bukan nota berasingan gaya blog).
-    'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai naratif editorial yang mengalir dan mudah dibaca — JANGAN gunakan subtajuk, senarai bernombor, atau format berasingan (contoh "Apa:"/"Kenapa penting:"/"Konteks:"). Namun jangan hasilkan SATU blok teks yang terlalu panjang: pecahkan huraian kepada beberapa perenggan yang semula jadi berdasarkan perubahan idea atau perkembangan maklumat (bukan bilangan tetap — panjang berbeza ikut kandungan), dengan SATU baris kosong antara setiap perenggan. Setiap perenggan patut ada satu fokus utama (contoh: perenggan pembuka beri konteks/latar isu, perenggan seterusnya huraikan kenyataan/fakta utama, perenggan berikutnya jelaskan implikasi atau perkembangan berkaitan), tetapi kekal mengalir sebagai SATU naratif bersambung — bukan macam nota berasingan. Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.', '',
+    'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai naratif editorial yang mengalir dan mudah dibaca — JANGAN gunakan subtajuk, senarai bernombor, atau format berasingan (contoh "Apa:"/"Kenapa penting:"/"Konteks:"). Namun jangan hasilkan SATU blok teks yang terlalu panjang: pecahkan huraian kepada beberapa perenggan yang semula jadi berdasarkan perubahan idea atau perkembangan maklumat (bukan bilangan tetap — panjang berbeza ikut kandungan), dengan SATU baris kosong antara setiap perenggan. Setiap perenggan patut ada satu fokus utama (contoh: perenggan pembuka beri konteks/latar isu, perenggan seterusnya huraikan kenyataan/fakta utama, perenggan berikutnya jelaskan implikasi atau perkembangan berkaitan), tetapi kekal mengalir sebagai SATU naratif bersambung — bukan macam nota berasingan. Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.'
+      + (isJournalMode
+        ? ' Jika bahan rujukan merupakan artikel jurnal atau dokumen akademik, olah maklumat tersebut menjadi huraian editorial yang mudah difahami pembaca umum. Jangan menghasilkan ringkasan akademik, sorotan literatur atau ulasan terhadap jurnal. Tulis seolah-olah penulis telah memahami kandungan sumber tersebut dan menerangkan perkembangan, dapatan atau implikasinya kepada pembaca.'
+        : ''), '',
     ...sumberSection, '',
     '[Format teks]',
     'Gunakan teks biasa sahaja. JANGAN gunakan Markdown (tiada **tebal**, *condong*, atau simbol _ untuk penekanan) — medan borang Adjung paparkan teks mentah, simbol Markdown akan terpapar literal kepada pembaca, bukan diformat.', '',
-    ...(isReferenceMode ? [] : [
+    ...(isSingleSourceMode ? [] : [
       '[Had usia sumber — WAJIB, bukan pilihan]',
       `Sumber MESTI diterbitkan dalam tempoh ${fc.aiPromptRecency || '-'} sebelum hari ini. Kira tarikh dengan teliti sebelum pilih sumber — kalau sumber yang anda jumpa lebih lama daripada had ini, JANGAN gunakan, cari sumber lain yang lebih baharu.`, '',
     ]),
@@ -299,8 +331,8 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     '[Semakan sendiri — lakukan sebelum menghasilkan output akhir, jangan paparkan kiraan dalam output]',
     'Sebelum berikan jawapan akhir, kira semula aksara setiap medan (Topik/Tajuk/Huraian ringkas/Huraian panjang) satu-persatu dan bandingkan dengan sasaran di atas. Jika mana-mana medan melebihi had maksimum atau kurang daripada minimum, hasilkan semula medan tersebut sahaja sehingga memenuhi julat ditetapkan. Kandungan output akhir mesti teks tulen sahaja (Topik/Tajuk/Huraian ringkas/Huraian panjang) — jangan sertakan kiraan aksara atau nota semakan dalam jawapan akhir.', '',
     `[Bahasa kandungan]: ${fc.aiPromptLanguage || '-'}`,
-    ...(isReferenceMode ? [] : [`[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`]),
-    `[Jumlah kandungan]: ${isReferenceMode ? 1 : (fc.generationLimit || 1)}`,
+    ...(isSingleSourceMode ? [] : [`[Negara/Wilayah sumber]: ${fc.aiPromptRegion || '-'}`]),
+    `[Jumlah kandungan]: ${isSingleSourceMode ? 1 : (fc.generationLimit || 1)}`,
     `[Mod janaan]: ${GEN_MODE_LABEL[fc.genMode] || fc.genMode || 'Bebas'}`, '',
     'Berikan output dalam format berikut sahaja, satu blok bagi setiap kandungan, dipisahkan dengan baris "____":',
     '(Tarikh sumber MESTI format YYYY-MM-DD, contoh 2026-08-08 — format lain tidak dikenali oleh borang)',
@@ -1707,19 +1739,19 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     <SelectField label="Had usia sumber" value={formConfig.aiPromptRecency || ''} options={HAD_USIA_SUMBER_PILIHAN} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRecency: v }))} />
                   )}
                   <Field label="Bahasa kandungan" value={formConfig.aiPromptLanguage || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptLanguage: v }))} />
-                  {formConfig.genMode !== 'dengan_rujukan' && (
+                  {formConfig.genMode !== 'dengan_rujukan' && formConfig.genMode !== 'artikel_jurnal' && (
                     <Field label="Negara asal sumber" value={formConfig.aiPromptRegion || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptRegion: v }))} />
                   )}
                   <label className="flex flex-col gap-1">
                     <span className={`${labelCls} flex items-center gap-1`}>
                       Jumlah kandungan
-                      {formConfig.genMode === 'dengan_rujukan' && <Lock className="w-3 h-3 text-stone-400" />}
+                      {(formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal') && <Lock className="w-3 h-3 text-stone-400" />}
                     </span>
                     <input
                       type="number" min={1}
-                      value={formConfig.genMode === 'dengan_rujukan' ? 1 : (formConfig.generationLimit || 1)}
-                      disabled={formConfig.genMode === 'dengan_rujukan'}
-                      title={formConfig.genMode === 'dengan_rujukan' ? 'Mod "Dengan rujukan" hasilkan SATU kandungan bagi SATU sumber.' : undefined}
+                      value={(formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal') ? 1 : (formConfig.generationLimit || 1)}
+                      disabled={formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal'}
+                      title={(formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal') ? 'Mod ini hasilkan SATU kandungan bagi SATU sumber.' : undefined}
                       onChange={(e) => setFormConfig((prev: any) => ({ ...prev, generationLimit: Number(e.target.value) }))}
                       className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-mono text-sm text-stone-800 py-1.5 disabled:bg-stone-50 disabled:text-stone-400"
                     />
@@ -1729,7 +1761,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <div className="flex flex-col gap-1.5">
                   <span className={labelCls}>Mod janaan</span>
                   <div className="inline-flex border border-stone-300 rounded overflow-hidden w-fit">
-                    {(['bebas', 'dengan_rujukan'] as const).map((v, i) => (
+                    {(['bebas', 'dengan_rujukan', 'artikel_jurnal'] as const).map((v, i) => (
                       <button
                         key={v} type="button" onClick={() => setFormConfig((prev: any) => ({ ...prev, genMode: v }))}
                         className={`px-3.5 py-1.5 font-sans text-[11px] font-semibold cursor-pointer transition-colors ${i ? 'border-l border-stone-300' : ''} ${(formConfig.genMode || 'bebas') === v ? 'bg-[#802334] text-white' : 'bg-transparent text-stone-600'}`}
@@ -1785,6 +1817,17 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                       })()}
                       <span className="font-sans text-[9px] text-stone-400">AI akan menggunakan sumber di atas sahaja, tanpa mencari sumber lain. Lebih daripada satu sumber: AI banding & attribute/hedge kandungan yang bertindih, kad papar "Editorial Adjung" bila &gt;1 sumber digunakan.</span>
                       {referenceUrlNote && <span className="font-sans text-[9px] text-[#a8241f]">{referenceUrlNote}</span>}
+                    </div>
+                  )}
+                  {/* "Dengan Artikel Jurnal" (2026-08-16, arahan Izzat) -- TIADA upload PDF/URL wajib
+                      di sini secara sengaja: editor lampirkan PDF terus dalam sesi AI luaran sendiri
+                      (ChatGPT/Claude/Gemini), Adjung Brief tak simpan/proses fail. Medan "Nama jurnal"
+                      di bawah ni PILIHAN sahaja (bantu AI rujuk nama jurnal dlm prompt), copyPrompt()
+                      TIDAK sekat mod ni walau kosong -- lihat nota di fungsi tu. */}
+                  {formConfig.genMode === 'artikel_jurnal' && (
+                    <div className="mt-1 flex flex-col gap-2">
+                      <Field label="Nama jurnal (pilihan)" value={formConfig.aiPromptSource || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptSource: v }))} />
+                      <span className="font-sans text-[9px] text-stone-400">Editor lampirkan fail PDF artikel jurnal secara manual dalam sesi ChatGPT/Claude/Gemini sendiri, kemudian salin prompt di bawah untuk ditampal bersama. Adjung Brief tidak memuat naik atau menyimpan fail PDF.</span>
                     </div>
                   )}
                 </div>
