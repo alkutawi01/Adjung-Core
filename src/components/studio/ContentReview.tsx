@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Save, Search, Copy, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../common/Button';
 import { MesejStatus } from '../common/MesejStatus';
@@ -123,6 +123,15 @@ export function ContentReview() {
   const [bulkText, setBulkText] = useState('');
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkStatus, setBulkStatus] = useState('');
+  // Elak mesej "Selesai: N disimpan" terpadam serta-merta (2026-08-16, permintaan Izzat + audit
+  // ChatGPT — "tak ada notification ke lepas tekan butang ni?") — punca SEBENAR bukan mesej tak
+  // wujud, tapi ia dipadam sistem SENDIRI: saveBulk() panggil loadItems() (bukan await) selepas
+  // set mesej selesai; bila fetch tu sampai, `items` berubah, `pagedBulkItems` terbitan berubah,
+  // useEffect di bawah (reset bulkText+bulkStatus bila set kandungan berubah) tercetus dan
+  // KOSONGKAN bulkStatus dalam masa singkat (satu round-trip rangkaian) — editor tak sempat nampak
+  // mesej sebelum ia hilang. Bendera ni langkau SATU kali reset tu (selepas save), bukan
+  // lumpuhkan reset untuk kes lain (tukar penapis/halaman, yang MEMANG patut kosongkan status).
+  const langkauResetStatusRef = useRef(false);
 
   // Perpustakaan Prompt Semakan (REVIEW-01, ChatGPT + spesifikasi Izzat 2026-08-08) — Ketua
   // Editor tampal kandungan pukal di atas ke chatbox AI LUARAN (ChatGPT/Gemini/dll.) utk
@@ -295,7 +304,11 @@ export function ContentReview() {
   // nota PAGE_SIZE di atas.
   useEffect(() => {
     setBulkText(buildBulkText(pagedBulkItems));
-    setBulkStatus('');
+    if (langkauResetStatusRef.current) {
+      langkauResetStatusRef.current = false;
+    } else {
+      setBulkStatus('');
+    }
   }, [pagedBulkItems]);
 
   // Bulk save: edit-only. Matches each block back to its original item VIA UUID (identiti stabil
@@ -354,7 +367,15 @@ export function ContentReview() {
       }
     }
 
-    setBulkStatus(`Selesai: ${done} disimpan${failed > 0 ? `, ${failed} gagal` : ''}.`);
+    // "Gagal" bukan "Selesai" bila SIFAR berjaya (2026-08-16, audit ChatGPT — "jangan laporkan
+    // berjaya jika backend gagal") — "Selesai: 0 disimpan, 3 gagal" berbunyi macam kejayaan
+    // separa walhal tiada satu pun berjaya.
+    setBulkStatus(
+      done === 0 && failed > 0
+        ? `Gagal: ${failed} kandungan tidak dapat disimpan. Sila cuba semula.`
+        : `Selesai: ${done} disimpan${failed > 0 ? `, ${failed} gagal` : ''}.`
+    );
+    langkauResetStatusRef.current = true;
     loadItems();
     setBulkSaving(false);
   };
@@ -543,7 +564,17 @@ export function ContentReview() {
                 </div>
               )}
               <div className="flex justify-between items-center pt-3">
-                <span className="text-[10px] text-stone-500 font-sans">{bulkStatus}</span>
+                {/* Ketara secara visual (2026-08-16, audit ChatGPT — "tak ada notification ke
+                    lepas tekan butang ni?") — SEBELUM ni 10px kelabu senyap, mudah terlepas
+                    pandang walaupun tak dipadam awal (bug di atas). Warna ikut keputusan: hijau
+                    (semua berjaya), merah (ada gagal/gagal semua), kelabu neutral (dlm proses). */}
+                <span className={`text-xs font-sans font-semibold ${
+                  bulkStatus.startsWith('Gagal') || bulkStatus.includes(', ') && bulkStatus.includes('gagal')
+                    ? 'text-[#a8241f]'
+                    : bulkStatus.startsWith('Selesai')
+                    ? 'text-emerald-700'
+                    : 'text-stone-500'
+                }`}>{bulkStatus}</span>
                 <Button
                   type="button"
                   variant="primary"

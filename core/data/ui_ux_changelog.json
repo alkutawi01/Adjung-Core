@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-15T03:19:15.795Z",
+    "summary": "Semakan Kandungan (Studio): mesej 'Selesai: N disimpan' selepas Simpan Pukal SEBELUM ni terpadam serta-merta oleh muat-semula senarai lepas save -- kini kekal kelihatan sehingga penapis/halaman ditukar. Mesej juga jadi lebih ketara (warna hijau/merah ikut keputusan, bukan 10px kelabu senyap), dan wording 'Gagal' bila sifar berjaya (bukan 'Selesai' yang berbunyi macam kejayaan separa)",
+    "files": [
+      "src/components/studio/ContentReview.tsx"
+    ]
+  },
+  {
     "time": "2026-08-15T03:11:30.209Z",
     "summary": "Aktiviti Editor: penerbitan kandungan kini log baris KHUSUS 'Menerbitkan kandungan: <tajuk>' (bukan cuma entri generik 'kemas-kini-konfigurasi-slot: N slot disimpan' yang tak sebut tajuk/label mentah kod)",
     "files": [
