@@ -1886,7 +1886,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           Melayu asal "macam terjemahan dokumentasi perisian") — gaya editorial
                           penerbitan, bukan manual perisian teknikal: "lampirkan"→"muat naik",
                           "bahan PDF"→"artikel tersebut", "kandungan yang dijana"→"hasil tersebut". */}
-                      <span className="font-sans text-[9px] text-stone-400">Muat naik artikel tersebut dalam sesi AI pilihan anda (ChatGPT, Claude atau Gemini) bersama arahan di bawah. Selepas kandungan dijana, salin hasil tersebut ke Borang Kandungan untuk semakan dan penerbitan. Adjung Brief tidak menyimpan fail PDF — fail tersebut kekal dalam sesi AI yang digunakan.</span>
+                      <span className="font-sans text-[9px] text-stone-400">Muat naik artikel tersebut dalam sesi AI pilihan anda bersama arahan di bawah. Selepas kandungan dijana, salin hasil tersebut ke Borang Kandungan untuk semakan dan penerbitan. Adjung Brief tidak menyimpan fail PDF — fail tersebut kekal dalam sesi AI yang digunakan.</span>
                     </div>
                   )}
                 </div>
