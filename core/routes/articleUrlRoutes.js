@@ -189,7 +189,19 @@ export function createPublicArticleRoute(dbAll, dbGet) {
   router.get('/:bidangSlug/kandungan/:kodPendek', async (req, res, next) => {
     try {
       const obj = await dbGet('SELECT id FROM editorial_objects WHERE urlKod = ?', [req.params.kodPendek]);
-      if (!obj) return next(); // Kod tak dijumpai — jatuh balik ke SPA (papar 404 bergaya Adjung di klien).
+      if (!obj) {
+        // Kod tak dijumpai. Manusia jatuh balik ke SPA (papar 404 bergaya Adjung di klien, status
+        // 200 tak jadi masalah sebab pelayar akan render UI 404 sebenar). Bot (tak jalankan JS)
+        // sebelum ni turut jatuh balik ke SPA — dpt shell KOSONG dgn status 200 ("soft 404"),
+        // audit Launch Gate 2026-08-16 (curl -A Googlebot terus sahkan). Crawler boleh anggap
+        // URL kod-lapuk/salah-taip ni kandungan SAH kosong, bukan tiada wujud — risiko diindeks.
+        // Bot dapat status 404 SEBENAR di sini terus, sebelum sempat jatuh ke SPA.
+        if (adalahUserAgentBot(req.headers['user-agent'])) {
+          res.status(404).set('Content-Type', 'text/html; charset=utf-8');
+          return res.send('<!DOCTYPE html><html lang="ms"><head><meta charset="utf-8" /><title>Halaman Tidak Dijumpai — Adjung Brief</title></head><body><h1>404 — Halaman Tidak Dijumpai</h1></body></html>');
+        }
+        return next();
+      }
 
       if (!adalahUserAgentBot(req.headers['user-agent'])) return next(); // Manusia — SPA biasa.
 
