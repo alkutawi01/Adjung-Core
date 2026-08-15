@@ -1787,7 +1787,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{labelStatus(activeItemModal.status)}</strong></div>
                   <div><span className="text-stone-500 text-[9px] block">BIDANG</span><strong className="text-stone-900">{activeBidangList.find(b => b.name.toLowerCase() === activeItemModal.desk.toLowerCase())?.name || formatTitleCase(activeItemModal.desk)}</strong></div>
-                  <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik ? formatTitleCase(activeItemModal.topik) : '-'}</strong></div>
+                  {/* TIADA formatTitleCase() di sini (2026-08-16, pepijat ditemui simulasi Slot 3) — Topik
+                      medan bebas taip-sendiri editor (BUKAN taksonomi tak-konsisten macam desk RSS di atas),
+                      DB simpan tepat apa editor taip (cth "Zakat Pendeposit TH"). formatTitleCase() lower-
+                      case-then-recapitalize SILAP rosakkan akronim (TH -> Th) yang editor sengaja besarkan. */}
+                  <div><span className="text-stone-500 text-[9px] block">TOPIK</span><strong className="text-stone-900">{activeItemModal.topik || '-'}</strong></div>
                 </div>
               </div>
               <div>
