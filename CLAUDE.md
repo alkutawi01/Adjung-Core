@@ -291,6 +291,38 @@ jawapan sebelum ni ialah "kena minta Claude edit kod". Dipindah ke `core/routes/
   mesti menaik (amaran pertama < amaran kedua < gantung automatik), kalau tidak eskalasi tiga-
   tahap jadi tak bermakna.
 
+### Arahan AI — larang nota meta/epistemik dalam kandungan (2026-08-16)
+Izzat tangkap artikel AI sebenar terbit dengan ayat gaya "Walau bagaimanapun, maklumat sumber
+yang tersedia tidak memperincikan hasil perbincangan, keputusan dasar atau teknologi tertentu
+yang dibentangkan..." — bunyi macam nota audit/laporan kepada penyelia, BUKAN penulisan portal.
+Audit ChatGPT kesan punca tepat: dua baris `buildAiPrompt()` (`SlotManagerModal.tsx`) SECARA TAK
+SENGAJA mengarah AI tulis tentang HAD PENGETAHUAN DIRINYA SENDIRI terus ke dalam kandungan:
+`[Peranan AI]` ("...nyatakan keterbatasan tersebut") dan `[Rujukan sumber wajib]` ("...nyatakan
+keterbatasan itu dalam Huraian panjang"). Kedua-dua dibaiki — prinsip baharu (kata ChatGPT):
+**"AI perlu berdiam diri tentang batas pengetahuannya dan hanya menulis apa yang sumber
+menyokong"**, BUKAN "AI perlu memberitahu pembaca bahawa dia tidak tahu". Larangan eksplisit
+ditambah `[Fungsi huraian panjang]` (contoh salah disenaraikan terus dalam prompt supaya AI ada
+rujukan konkrit apa yang dielakkan). Arahan anti-hallucination ASAL (jangan reka fakta/andaian)
+KEKAL tak berubah — cuma cara AI patut BERTINDAK bila maklumat tak cukup yang ditukar: DIAM
+(jangan sebut fakta tu) bukan MENGAKU (tulis nota keterbatasan). Kesan pada SEMUA mod
+"Dengan rujukan"/"Dengan Artikel Jurnal" (bukan hanya artikel yang ditangkap tu) — fix di
+prompt, bukan edit artikel lepas fakta, sebab punca sama akan berulang pada kandungan seterusnya.
+
+### Dasar Aktif Editorial — muat semula LIVE, bukan cache boot (2026-08-16, pembetulan susulan)
+Selepas deploy ciri tempoh-boleh-laras (seksyen di atas), log pengeluaran sebenar dedah:
+`loadDasarAktifSettings(dbGet)` semasa boot **berlumba kalah** lawan CREATE TABLE async (jadual
+`dasar_aktif_editorial` BAHARU, tak macam `slot_am_settings` yang dah wujud lama pada fail DB
+sebenar — jadi race yang SAMA corak tak pernah terdedah untuk jadual lama). Kesan: cache
+dalam-memori jatuh balik ke lalai (7/14/21) SETIAP boot pelayan, walau Pentadbir dah simpan
+tempoh custom — `getDasarAktifAmbangMs()` (dibaca `runSemakanTakAktif()`) baca cache STALE ni
+terus tanpa muat semula, hanya "betul semula" secara tak sengaja bila seseorang buka panel
+Direktori dan simpan (POST muat semula cache). **Dibaiki**: `runSemakanTakAktif()` kini panggil
+`await loadDasarAktifSettings(dbGet)` SEGAR pada SETIAP jalanan (sekali sehari, kos boleh
+diabaikan) sebelum baca ambang — jamin nombor SENTIASA terkini drpd DB sebenar tak kira apa
+jadi semasa boot. **Peraturan am**: mana-mana job berjadual (`setInterval`) yang baca tetapan
+boleh-laras MESTI muat semula segar pada setiap jalanan, JANGAN percaya cache dimuat sekali
+semasa boot — boot-time preload cuma optimistik/best-effort, bukan jaminan.
+
 ### Text editorial mesti boleh disalin pembaca — `select-none` bekas akar (2026-08-16)
 Izzat tanya "kenapa tak boleh copy, highlight teks di kad?" — `select-none` wujud pada BEKAS AKAR
 seluruh `FrontpageView.tsx` (`<div className="...select-none animate-fade-in">`, bekas terluar

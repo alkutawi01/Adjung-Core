@@ -3777,9 +3777,15 @@ const emelAmaranTakAktif = (namaPena, hariTakAktif, tahap, ambangHari) => {
   return { tajuk, html };
 };
 
-const runSemakanTakAktif = async (dbAll, dbRun) => {
+const runSemakanTakAktif = async (dbAll, dbRun, dbGet) => {
   const now = Date.now();
-  // Baca cache dasarAktifRoutes.js LIVE — lihat nota di atas.
+  // Baca cache dasarAktifRoutes.js LIVE — muat semula terus daripada DB setiap kali fungsi ni
+  // jalan (bukan cuma getDasarAktifAmbangMs() baca cache dalam-memori sedia ada), sebab boot
+  // pelayan TIDAK dijamin cache dah segar semasa panggilan PERTAMA (loadDasarAktifSettings semasa
+  // boot berlumba dengan CREATE TABLE async — jadual baharu pada DB sebenar mungkin belum wujud
+  // lagi ketika boot, cache jatuh balik ke lalai buat sementara). Panggilan ni sekali sehari
+  // sahaja, kos dbGet tambahan boleh diabaikan — jamin nombor SENTIASA terkini drpd DB sebenar.
+  await loadDasarAktifSettings(dbGet);
   const AMBANG_TAK_AKTIF = getDasarAktifAmbangMs();
   const ambangHari = {
     amaranPertama: Math.round(AMBANG_TAK_AKTIF.amaranPertama / HARI_MS),
@@ -3963,7 +3969,7 @@ app.listen(PORT, '0.0.0.0', () => {
   // rebahkan server. Sekali sehari cukup — ambang dikira dalam HARI, bukan jam/minit.
   const SEMAKAN_TAK_AKTIF_INTERVAL_MS = 24 * 60 * 60 * 1000;
   setInterval(() => {
-    runSemakanTakAktif(dbAll, dbRun).catch((err) => console.error('[Semakan Tak Aktif] Ralat:', err.message));
+    runSemakanTakAktif(dbAll, dbRun, dbGet).catch((err) => console.error('[Semakan Tak Aktif] Ralat:', err.message));
   }, SEMAKAN_TAK_AKTIF_INTERVAL_MS);
   console.log(`Semakan tak aktif editorial aktif (sekali setiap ${SEMAKAN_TAK_AKTIF_INTERVAL_MS / 3600000} jam — tempoh boleh laras di Direktori, Editorium).`);
 
