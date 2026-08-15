@@ -1228,10 +1228,20 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       await dbRun('BEGIN TRANSACTION');
       let newRevId;
       try {
+        // createdBy WARIS token laluan asal (bukan req.session.user.username) — SAMA pepijat
+        // kritikal 2026-08-07 yang dibetulkan di PATCH /content/:id (lihat nota di situ), tapi
+        // laluan pulih-versi ni terlepas fix asal, ditemui 2026-08-16 selepas fix duplikasi
+        // carousel resolveSlotContent() (server.js): objek yang dipulihkan pakai createdBy=
+        // nama pengguna sebenar (cth "izzat") tak pernah lulus senarai putih Mod Manual
+        // (createdBy IN ('manual-slot-save', 'migration-manual-blob', 'content-review')) di
+        // resolveSlotContent() — kandungan pulihan terus TAK KELIHATAN pada frontpage awam
+        // LANGSUNG walaupun status kekal 'approved' dan UI admin nampak normal (sama corak
+        // kegagalan senyap macam pepijat 2026-08-07 asal, cuma laluan berbeza). Identiti
+        // penyunting sebenar sudah direkod berasingan dalam attribute 'editorName'.
         const newRev = await dbRun(
           `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
            VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
-          [id, nextVersion, oldRev.title, oldRev.summary, statusPulihan, req.session?.user?.username || 'pulih-versi', nowIso, nowIso]
+          [id, nextVersion, oldRev.title, oldRev.summary, statusPulihan, oldRev.createdBy || 'content-review', nowIso, nowIso]
         );
         newRevId = newRev.lastID;
 
