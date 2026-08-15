@@ -46,7 +46,21 @@ interface Staff {
   updatedAt: string;
   roles: string[];
   countPublished: number;
+  // Dasar Aktif Editorial (2026-08-16) — lihat core/routes/userAdminRoutes.js GET /users.
+  tertaklukDasarAktif: boolean;
+  hariTakAktif: number | null;
+  tahapAmaran: number;
+  ambangHariDasarAktif: { amaranPertama: number; amaranKedua: number; notisPenamatan: number };
 }
+
+// Tahap amaran -> ton/label lencana (2026-08-16) — 0 = belum ada amaran (Direktori tak papar
+// lencana, cuma bilangan hari). 1/2 amaran (kuning/oren), 3 = digantung (merah, status.suspended
+// pun turut Tidak Aktif, tapi lencana ni beri konteks SEBAB kenapa, bukan cuma status generik).
+const TAHAP_AMARAN_META: Record<number, { label: string; tone: StatusTone }> = {
+  1: { label: 'Amaran 1', tone: 'warning' },
+  2: { label: 'Amaran 2', tone: 'warning' },
+  3: { label: 'Digantung (tak aktif)', tone: 'error' },
+};
 
 interface DirektoriConsoleProps {
   // 2026-08-02 (Fasa 3) — Direktori domain Pentadbir sahaja (dahulu currentUserRole 'KETUA_EDITOR'
@@ -98,6 +112,47 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       .finally(() => setMemuat(false));
   };
   useEffect(muatSemula, []);
+
+  // Dasar Aktif Editorial — tempoh boleh laras (2026-08-16, soalan Izzat: "macam mana nak check
+  // dan adjust tempoh tu?"). Panel kecil terbenam di sini (bukan Tetapan berasingan) — Pentadbir
+  // sedang melihat status editor tepat di jadual bawah, kawalan yang mengubah nasib status tu
+  // patut berdekatan, bukan navigasi ke destinasi lain untuk cari semula.
+  const [dasarAktif, setDasarAktif] = useState({ amaranPertamaHari: 7, amaranKeduaHari: 14, notisPenamatanHari: 21 });
+  const [memuatDasarAktif, setMemuatDasarAktif] = useState(true);
+  const [ralatDasarAktif, setRalatDasarAktif] = useState('');
+  const [menyimpanDasarAktif, setMenyimpanDasarAktif] = useState(false);
+  const [dasarAktifDibuka, setDasarAktifDibuka] = useState(false);
+
+  const muatDasarAktif = () => {
+    setMemuatDasarAktif(true);
+    fetch('/api/system/dasar-aktif-editorial')
+      .then(r => r.json())
+      .then(d => { if (d && typeof d.amaranPertamaHari === 'number') setDasarAktif(d); })
+      .catch(() => setRalatDasarAktif('Gagal memuatkan Dasar Aktif Editorial.'))
+      .finally(() => setMemuatDasarAktif(false));
+  };
+  useEffect(muatDasarAktif, []);
+
+  const simpanDasarAktif = async () => {
+    setMenyimpanDasarAktif(true);
+    setRalatDasarAktif('');
+    try {
+      const res = await fetch('/api/system/dasar-aktif-editorial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dasarAktif),
+      });
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan Dasar Aktif Editorial.');
+      setDasarAktif({ amaranPertamaHari: data.amaranPertamaHari, amaranKeduaHari: data.amaranKeduaHari, notisPenamatanHari: data.notisPenamatanHari });
+      onToast?.('success', 'Dasar Aktif Editorial dikemas kini. Semakan esok guna tempoh baharu.');
+      muatSemula();
+    } catch (e: any) {
+      setRalatDasarAktif(e.message || 'Gagal menyimpan Dasar Aktif Editorial.');
+    } finally {
+      setMenyimpanDasarAktif(false);
+    }
+  };
 
   const filteredStaff = staffList.filter(s =>
     s.penName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -189,6 +244,84 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           disambungkan kepada jalan pulih dalam UI; Pentadbir terpaksa muat semula seluruh laman. */}
       {ralat && <MesejStatus tone="error" onCubaLagi={muatSemula}>{ralat}</MesejStatus>}
 
+      {/* Dasar Aktif Editorial (2026-08-16) — "editor mesti aktif dalam tempoh tertentu, kalau
+          tak aktif akan digantung" (dasar sedia ada sejak 2026-08-05) kini boleh dilaras di sini,
+          bukan lagi pemalar kod keras server.js. Ditutup lalai (accordion) — kawalan yang boleh
+          menggantung akaun editor secara automatik tak patut jadi elemen pertama yang menonjol
+          setiap kali Pentadbir buka Direktori, tapi tetap sentiasa boleh dicapai terus. */}
+      {isPentadbir && (
+        <PanelCard className="text-xs">
+          <button
+            type="button"
+            onClick={() => setDasarAktifDibuka(v => !v)}
+            className="w-full flex items-center justify-between text-left cursor-pointer"
+          >
+            <div>
+              <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold block mb-1">
+                DASAR AKTIF EDITORIAL
+              </span>
+              <p className="text-stone-500">
+                Editor wajib terbitkan kandungan dalam tempoh ditetapkan, kalau tidak akaun digantung automatik.
+                {!memuatDasarAktif && ` Semasa: amaran hari ke-${dasarAktif.amaranPertamaHari}, hari ke-${dasarAktif.amaranKeduaHari}, gantung automatik hari ke-${dasarAktif.notisPenamatanHari}.`}
+              </p>
+            </div>
+            <span className="text-stone-400 font-mono text-[10px] shrink-0 ml-3">{dasarAktifDibuka ? 'Tutup ▲' : 'Laraskan ▼'}</span>
+          </button>
+
+          {dasarAktifDibuka && (
+            <div className="mt-4 pt-4 border-t border-stone-200 space-y-3">
+              {memuatDasarAktif ? (
+                <KeadaanMemuat baris={1} />
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-xl">
+                    <label className="block">
+                      <span className={LABEL_BORANG}>Amaran pertama (hari)</span>
+                      <input
+                        type="number" min={1}
+                        value={dasarAktif.amaranPertamaHari}
+                        onChange={e => setDasarAktif(prev => ({ ...prev, amaranPertamaHari: Number(e.target.value) }))}
+                        className={INPUT_BORANG}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={LABEL_BORANG}>Amaran kedua (hari)</span>
+                      <input
+                        type="number" min={1}
+                        value={dasarAktif.amaranKeduaHari}
+                        onChange={e => setDasarAktif(prev => ({ ...prev, amaranKeduaHari: Number(e.target.value) }))}
+                        className={INPUT_BORANG}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={LABEL_BORANG}>Gantung automatik (hari)</span>
+                      <input
+                        type="number" min={1}
+                        value={dasarAktif.notisPenamatanHari}
+                        onChange={e => setDasarAktif(prev => ({ ...prev, notisPenamatanHari: Number(e.target.value) }))}
+                        className={INPUT_BORANG}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-stone-400 text-[10px] leading-relaxed">
+                    Tempoh mesti menaik (amaran pertama &lt; amaran kedua &lt; gantung automatik). "Aktif" ditakrif
+                    sebagai kandungan diterbitkan, bukan sekadar log masuk. Pentadbir dikecualikan (struktur peranan
+                    tak membenarkan Pentadbir menerbitkan kandungan). Semakan berjalan sekali sehari — perubahan
+                    di sini terpakai pada semakan seterusnya, tidak retroaktif pada akaun yang sudah digantung.
+                  </p>
+                  {ralatDasarAktif && <MesejStatus tone="error">{ralatDasarAktif}</MesejStatus>}
+                  <div className="flex justify-end">
+                    <Button variant="primary" size="sm" onClick={simpanDasarAktif} disabled={menyimpanDasarAktif}>
+                      {menyimpanDasarAktif ? 'Menyimpan…' : 'Simpan Dasar'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </PanelCard>
+      )}
+
       <PanelCard padding="p-0">
         <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse font-sans text-xs">
@@ -199,6 +332,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <th scope="col" className="p-4">ID Pengguna</th>
               <th scope="col" className="p-4">Peranan</th>
               <th scope="col" className="p-4">Status</th>
+              <th scope="col" className="p-4">Tak Aktif</th>
               <th scope="col" className="p-4">Kandungan Diterbitkan</th>
               <th scope="col" className="p-4">Akaun Dicipta</th>
               <th scope="col" className="p-4 text-right">Tindakan</th>
@@ -210,11 +344,11 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               // 2026-08-09) — dahulu ikon Hourglass berputar sendiri, kemudian KeadaanKosong
               // (sama rupa dengan keadaan KOSONG sebenar, editor tak dapat bezakan sistem
               // sedang bekerja atau data memang tiada). Kini KeadaanMemuat (rangka berdenyut).
-              <tr><td colSpan={7}><KeadaanMemuat baris={5} /></td></tr>
+              <tr><td colSpan={8}><KeadaanMemuat baris={5} /></td></tr>
             )}
             {!memuat && filteredStaff.length === 0 && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <KeadaanKosong
                     tindakan={searchQuery && (
                       <Button variant="secondary" size="sm" onClick={() => setSearchQuery('')}>
@@ -242,6 +376,18 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 </td>
                 <td className="p-4">
                   <StatusBadge tone={STATUS_TONE[staff.status]} label={staff.status} />
+                </td>
+                <td className="p-4">
+                  {!staff.tertaklukDasarAktif ? (
+                    <span className="text-stone-300">—</span>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-xs text-stone-600">{staff.hariTakAktif} hari</span>
+                      {staff.tahapAmaran > 0 && TAHAP_AMARAN_META[staff.tahapAmaran] && (
+                        <StatusBadge tone={TAHAP_AMARAN_META[staff.tahapAmaran].tone} label={TAHAP_AMARAN_META[staff.tahapAmaran].label} />
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="p-4 text-stone-700 font-mono text-xs">{staff.countPublished}</td>
                 <td className="p-4 text-stone-500 font-mono text-xs">{new Date(staff.createdAt).toLocaleDateString('ms-MY')}</td>

@@ -264,6 +264,46 @@ tertentu. Ciri baharu (bukan gantian algoritma):
   "pen-tad-bir-an" bila editor rasa perlu. Turut kunci: perkataan lain tak terjejas, corak tak sah
   ditolak senyap+algoritma jalan seperti biasa, senarai kosong/null selamat.
 
+### Dasar Aktif Editorial — tempoh kini DATA boleh laras, bukan pemalar kod (2026-08-16)
+Dasar sedia ada sejak 2026-08-05 (editor wajib terbitkan kandungan dalam tempoh ditetapkan, kalau
+tidak akaun digantung automatik — `runSemakanTakAktif()`, server.js) guna tempoh 7/14/21 hari
+HARDCODE (`AMBANG_TAK_AKTIF` pemalar). Izzat tanya "macam mana nak check dan adjust tempoh tu?" —
+jawapan sebelum ni ialah "kena minta Claude edit kod". Dipindah ke `core/routes/dasarAktifRoutes.js`:
+
+- **Jadual `dasar_aktif_editorial`** (satu baris `id='main'`, corak IDENTIK `slot_am_settings`) —
+  `amaranPertamaHari`/`amaranKeduaHari`/`notisPenamatanHari`, lalai 7/14/21.
+- **`getDasarAktifAmbangMs()` dibaca LIVE** di dalam `runSemakanTakAktif()` SETIAP kali ia jalan
+  (sekali sehari), BUKAN sekali semasa boot — perubahan Pentadbir buat hari ni terpakai pada
+  semakan esok TANPA restart pelayan. Jangan sesekali cache `AMBANG_TAK_AKTIF` sebagai pemalar
+  modul semula — itu punca asal soalan Izzat ("kena minta Claude" setiap kali nak ubah).
+- **`PERANAN_TERPAKAI_DASAR_AKTIF`** (senarai peranan tertakluk dasar ni, Pentadbir DIKECUALIKAN
+  — struktur RBAC dia `publish: false`, mengukurnya dengan neraca ni jamin gagal) kini **satu
+  sumber kebenaran dikongsi** `dasarAktifRoutes.js` — diimport server.js (kuatkuasakan sebenar)
+  DAN `userAdminRoutes.js` (paparan status Direktori). Jangan sekali-kali salin senarai ni ke
+  tempat ketiga; kalau perlu di tempat lain, import daripada `dasarAktifRoutes.js`.
+- **`GET /api/system/users`** kini sertakan `tertaklukDasarAktif`/`hariTakAktif`/`tahapAmaran` per
+  anggota (basis pengiraan SAMA PERSIS `runSemakanTakAktif()` — `lastPublishedAt` jatuh balik
+  `createdAt`) supaya Direktori boleh papar status SEBELUM gantungan berlaku, bukan cuma lepas
+  fakta. Kalau tukar basis pengiraan di server.js, WAJIB tukar sama di userAdminRoutes.js juga
+  (dua tempat, satu neraca — lihat komen kod di kedua-dua fail).
+- **UI**: `DirektoriConsole.tsx`, panel accordion tertutup lalai (Pentadbir sahaja) di atas jadual
+  anggota, + lajur "Tak Aktif" (hari + lencana tahap amaran) dalam jadual. Pengesahan: tempoh
+  mesti menaik (amaran pertama < amaran kedua < gantung automatik), kalau tidak eskalasi tiga-
+  tahap jadi tak bermakna.
+
+### Text editorial mesti boleh disalin pembaca — `select-none` bekas akar (2026-08-16)
+Izzat tanya "kenapa tak boleh copy, highlight teks di kad?" — `select-none` wujud pada BEKAS AKAR
+seluruh `FrontpageView.tsx` (`<div className="...select-none animate-fade-in">`, bekas terluar
+merangkumi SEMUA kad bento), menghalang seleksi/salin SEMUA teks kandungan editorial (tajuk,
+huraian, huraian panjang) — bukan cuma kawalan hiasan. Disahkan `git log -S` — wujud sejak SATU
+komit import pukal awal (v2.1/v2.2), TIADA komen/rasional didokumentasikan, tiada rujukan
+CLAUDE.md — leftover boilerplate templat carousel/drag (elak seleksi tak sengaja semasa leret),
+BUKAN keputusan editorial Izzat. Dibuang daripada bekas akar. Elemen HIASAN (badge tarikh siaran,
+anak panah carousel, logo transisi, dsb.) semuanya SUDAH ada `select-none` masing-masing di setiap
+tapak — buang `select-none` akar TIDAK menjejaskan elemen hiasan tu langsung. **Peraturan am**:
+`select-none` kena letak pada elemen HIASAN spesifik, jangan sekali-kali pada bekas yang
+merangkumi teks editorial sebenar.
+
 ### Peti Makluman — kontrak UX pusat makluman (2026-08-16)
 Ditulis selepas Izzat melaporkan kekecewaan sebenar kat ChatGPT: buka Peti Makluman selepas
 nampak lencana bell, tapi tab yang terbuka (Editorial, hardcoded) papar mesej LAMA — mesej

@@ -11,6 +11,7 @@ import { TIER_SLOTS } from '../editorial/GeometryConfig.js';
 import { MANUAL_BLOCK_SPLIT_REGEX, parseManualSummaryBlocks } from '../editorial/ManualBlockFormat.js';
 import { padamSesiPengguna } from '../auth/SesiPengguna.js';
 import { denganKunciKandungan } from '../utils/kunciKandungan.js';
+import { getDasarAktifAmbangMs, PERANAN_TERPAKAI_DASAR_AKTIF } from './dasarAktifRoutes.js';
 
 // Direktori (2026-08-02, Fasa 3) — dahulu `staffList` konsol client array kosong berkod keras,
 // "+ Tambah Anggota" hiasan, tindakan status hanya state React (hilang bila muat semula). Laluan
@@ -78,13 +79,21 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
   router.get('/users', requirePermission('manageAccounts'), async (req, res) => {
     try {
       const users = await dbAll(
-        `SELECT id, username, email, penName, status, isSuspended, createdAt, updatedAt FROM users ORDER BY createdAt ASC`
+        `SELECT id, username, email, penName, status, isSuspended, createdAt, updatedAt, lastPublishedAt, amaranTakAktifTahap FROM users ORDER BY createdAt ASC`
       );
       const roleRows = await dbAll(`SELECT userId, roleId FROM user_roles`);
       const rolesByUser = {};
       for (const r of roleRows || []) {
         (rolesByUser[r.userId] = rolesByUser[r.userId] || []).push(r.roleId);
       }
+
+      // Dasar Aktif Editorial — status "hari tak aktif" (2026-08-16, permintaan Izzat: "macam
+      // mana nak check" tempoh tu). Basis pengiraan SAMA PERSIS macam runSemakanTakAktif()
+      // server.js (lastPublishedAt jatuh balik ke createdAt), Pentadbir DIKECUALIKAN sama sebab
+      // (struktur RBAC tak boleh terbit kandungan) — satu neraca dikongsi, dua tempat (Direktori
+      // paparkan, server.js kuatkuasakan) tak boleh terpesong tentang siapa/berapa hari.
+      const ambangMs = getDasarAktifAmbangMs();
+      const HARI_MS_LOKAL = 24 * 60 * 60 * 1000;
 
       // Kiraan aktiviti (2026-08-02) — anggaran terbaik daripada atribut `editorName` yang
       // dicap semasa terbit (lihat server.js syncManualObjectsForSlot) — bukan kiraan sempurna
@@ -97,6 +106,17 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
            WHERE eav.attributeId = 'editorName' AND eav.valueText = ?`,
           [u.penName || '']
         );
+        const roles = rolesByUser[u.id] || [];
+        const tertaklukDasarAktif = roles.some((r) => PERANAN_TERPAKAI_DASAR_AKTIF.includes(r)) && !roles.includes('pentadbir');
+        let hariTakAktif = null;
+        let tahapAmaran = 0;
+        if (tertaklukDasarAktif) {
+          const basis = u.lastPublishedAt ? new Date(u.lastPublishedAt).getTime() : new Date(u.createdAt).getTime();
+          if (basis && !Number.isNaN(basis)) {
+            hariTakAktif = Math.floor((Date.now() - basis) / HARI_MS_LOKAL);
+            tahapAmaran = u.amaranTakAktifTahap || 0;
+          }
+        }
         return {
           id: u.id,
           username: u.username,
@@ -106,8 +126,16 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
           suspended: u.isSuspended === 1,
           createdAt: u.createdAt,
           updatedAt: u.updatedAt,
-          roles: rolesByUser[u.id] || [],
+          roles,
           countPublished: countRow ? countRow.cnt : 0,
+          tertaklukDasarAktif,
+          hariTakAktif,
+          tahapAmaran,
+          ambangHariDasarAktif: {
+            amaranPertama: Math.round(ambangMs.amaranPertama / HARI_MS_LOKAL),
+            amaranKedua: Math.round(ambangMs.amaranKedua / HARI_MS_LOKAL),
+            notisPenamatan: Math.round(ambangMs.notisPenamatan / HARI_MS_LOKAL),
+          },
         };
       }));
 

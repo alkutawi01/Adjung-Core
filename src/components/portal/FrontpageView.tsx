@@ -2503,7 +2503,17 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     // JenisAnimasiContext.Provider (Fasa 7, 2026-08-04) — bekalkan jenisAnimasi (Tetapan Am Slot)
     // kepada SEMUA 30 CarouselStableBlock bersarang tanpa perlu ubah tapak panggilan masing-masing.
     <JenisAnimasiContext.Provider value={tetapanAnimasi}>
-    <div className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-4 select-none animate-fade-in">
+    {/* `select-none` DIBUANG dari bekas akar ni (2026-08-16, soalan Izzat "kenapa tak boleh
+        copy, highlight teks di kad?") — punca sebenar, bukan ciri sengaja. Diperiksa git log:
+        wujud sejak SATU sahaja komit import pukal awal (v2.1/v2.2), tiada komen/rasional
+        didokumentasikan, tiada rujukan CLAUDE.md — leftover boilerplate templat carousel/drag
+        biasa (elak seleksi tak sengaja semasa leret), BUKAN keputusan editorial Izzat. Kesan
+        sebenarnya: SEMUA teks kandungan editorial (tajuk, huraian, huraian panjang) turut
+        terhalang daripada disalin pembaca, bukan cuma kawalan hiasan (anak panah/badge tarikh)
+        yang MEMANG patut kekal tak boleh pilih — elemen hiasan tu semua sudah ada `select-none`
+        SENDIRI di setiap tapak (badge tarikh siaran, anak panah carousel, dsb.), jadi buang
+        select-none akar ni tak jejaskan elemen hiasan tu langsung. */}
+    <div className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-4 animate-fade-in">
 
       <div className="max-w-5xl mx-auto w-full flex-1">
 

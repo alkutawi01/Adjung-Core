@@ -52,6 +52,7 @@ import { createEjaanRoutes } from './core/routes/ejaanRoutes.js';
 import { createPemenggalanRoutes } from './core/routes/pemenggalanRoutes.js';
 import { createProfileRoutes } from './core/routes/profileRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
+import { createDasarAktifRoutes, loadDasarAktifSettings, getDasarAktifAmbangMs, PERANAN_TERPAKAI_DASAR_AKTIF } from './core/routes/dasarAktifRoutes.js';
 import { createUserAdminRoutes } from './core/routes/userAdminRoutes.js';
 import { createAuditLogRoutes } from './core/routes/auditLogRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
@@ -759,6 +760,18 @@ const initializeSchema = () => {
                 corak TEXT NOT NULL,
                 createdBy TEXT,
                 createdAt TEXT
+              )
+            `, () => {});
+
+            // Dasar Aktif Editorial — tempoh boleh laras (2026-08-16, permintaan Izzat). Satu baris
+            // id='main', sama corak slot_am_settings. Lihat core/routes/dasarAktifRoutes.js.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS dasar_aktif_editorial (
+                id TEXT PRIMARY KEY,
+                amaranPertamaHari INTEGER DEFAULT 7,
+                amaranKeduaHari INTEGER DEFAULT 14,
+                notisPenamatanHari INTEGER DEFAULT 21,
+                updatedAt TEXT
               )
             `, () => {});
 
@@ -3574,6 +3587,7 @@ app.use('/api', createEditorNotesRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createGlosariRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createEjaanRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createPemenggalanRoutes(dbAll, dbRun, dbGet));
+app.use('/api/system', createDasarAktifRoutes(dbGet, dbRun));
 app.use('/api/system', createProfileRoutes(dbGet, dbRun));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));
@@ -3629,6 +3643,10 @@ if (fs.existsSync(distDir)) {
 // disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache
 // dalam-memori ni, bukan pangkalan data pada setiap pengesahan.
 loadAmSettings(dbGet);
+
+// Dasar Aktif Editorial (2026-08-16) — sama corak, runSemakanTakAktif() baca cache dalam-memori
+// ni SETIAP kali ia jalan (sekali sehari), bukan sekali semasa boot — lihat dasarAktifRoutes.js.
+loadDasarAktifSettings(dbGet);
 
 loadTierOverrides(dbAll).then(map => {
   const bil = Object.keys(map).length;
@@ -3722,27 +3740,30 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 // asas pengiraan ialah `lastPublishedAt` (dikemas kini contentRoutes.js setiap kali kandungan
 // bercap nama editor tu bertukar ke status approved BAHARU), jatuh balik ke `createdAt` untuk
 // akaun yang belum pernah terbit apa-apa (tempoh bertenang, bukan terus dikira tak aktif dari
-// hari pertama). Tiga tahap (nombor tepat daripada Izzat): hari ke-7 amaran pertama, hari ke-14
-// amaran kedua, hari ke-21 notis penamatan + akaun DIGANTUNG automatik (status='Tidak Aktif').
+// hari pertama). Tiga tahap (7/14/21 hari LALAI, kini boleh laras di Direktori — Editorium →
+// Direktori → Dasar Aktif Editorial, lihat core/routes/dasarAktifRoutes.js): amaran pertama,
+// amaran kedua, notis penamatan + akaun DIGANTUNG automatik (status='Tidak Aktif').
 // "Ditamatkan" (rekod pemecatan rasmi) KEKAL keputusan Pentadbir — sistem TIDAK menamatkan
 // terus, cuma menggantung (lihat DirektoriConsole.tsx, butang "Ditamatkan" sedia ada).
 // `amaranTakAktifTahap` (0-3) elak e-mel sama dihantar berulang setiap kali tik berjalan,
 // direset ke 0 automatik bila editor terbit semula (lihat contentRoutes.js).
 const HARI_MS = 24 * 60 * 60 * 1000;
-const AMBANG_TAK_AKTIF = { amaranPertama: 7 * HARI_MS, amaranKedua: 14 * HARI_MS, notisPenamatan: 21 * HARI_MS };
-const PERANAN_TERPAKAI_DASAR_AKTIF = ['editor', 'ketua_editor', 'penolong_ketua_editor'];
-
-const emelAmaranTakAktif = (namaPena, hariTakAktif, tahap) => {
+// Tempoh (7/14/21 hari) DIPINDAH ke dasarAktifRoutes.js sebagai DATA boleh laras (2026-08-16,
+// permintaan Izzat — "macam mana nak check dan adjust tempoh tu?"), bukan lagi pemalar kod keras
+// di sini. getDasarAktifAmbangMs() dipanggil LIVE setiap kali runSemakanTakAktif() jalan (bukan
+// sekali semasa boot) supaya perubahan Pentadbir buat hari ni terpakai pada semakan esok tanpa
+// restart pelayan.
+const emelAmaranTakAktif = (namaPena, hariTakAktif, tahap, ambangHari) => {
   const tajuk = tahap === 3
     ? 'Notis Penamatan: Akaun Adjung Brief Anda Digantung'
-    : `Amaran Tidak Aktif (Hari ke-${hariTakAktif >= 14 ? 14 : 7}) · Adjung Brief`;
+    : `Amaran Tidak Aktif (Hari ke-${tahap === 1 ? ambangHari.amaranPertama : ambangHari.amaranKedua}) · Adjung Brief`;
   const mesejUtama = tahap === 3
     ? `Akaun anda kini <strong>digantung automatik</strong> (status "Tidak Aktif") kerana tiada kandungan diterbitkan sejak ${hariTakAktif} hari. Log masuk telah disekat. Sidang Pentadbir/Ketua Editor akan menyemak akaun ini untuk keputusan seterusnya (aktifkan semula atau tamatkan rasmi).`
     : `Kami perhatikan akaun anda tiada kandungan diterbitkan sejak <strong>${hariTakAktif} hari</strong>. Sila terbitkan kandungan baharu tidak lama lagi untuk mengekalkan status akaun anda.`;
   const amaranSeterusnya = tahap === 1
-    ? '<p>Jika tiada kandungan diterbitkan sehingga hari ke-14, satu lagi amaran akan dihantar. Tiada kandungan sehingga hari ke-21, akaun akan digantung automatik.</p>'
+    ? `<p>Jika tiada kandungan diterbitkan sehingga hari ke-${ambangHari.amaranKedua}, satu lagi amaran akan dihantar. Tiada kandungan sehingga hari ke-${ambangHari.notisPenamatan}, akaun akan digantung automatik.</p>`
     : tahap === 2
-      ? '<p>Jika tiada kandungan diterbitkan sehingga hari ke-21, akaun akan digantung automatik.</p>'
+      ? `<p>Jika tiada kandungan diterbitkan sehingga hari ke-${ambangHari.notisPenamatan}, akaun akan digantung automatik.</p>`
       : '';
   const html = `
     <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
@@ -3758,6 +3779,13 @@ const emelAmaranTakAktif = (namaPena, hariTakAktif, tahap) => {
 
 const runSemakanTakAktif = async (dbAll, dbRun) => {
   const now = Date.now();
+  // Baca cache dasarAktifRoutes.js LIVE — lihat nota di atas.
+  const AMBANG_TAK_AKTIF = getDasarAktifAmbangMs();
+  const ambangHari = {
+    amaranPertama: Math.round(AMBANG_TAK_AKTIF.amaranPertama / HARI_MS),
+    amaranKedua: Math.round(AMBANG_TAK_AKTIF.amaranKedua / HARI_MS),
+    notisPenamatan: Math.round(AMBANG_TAK_AKTIF.notisPenamatan / HARI_MS),
+  };
   const placeholders = PERANAN_TERPAKAI_DASAR_AKTIF.map(() => '?').join(',');
   // Akaun berperanan `pentadbir` DIKECUALIKAN (2026-08-06, pembetulan audit) — dasar aktif ni
   // mengukur KANDUNGAN DITERBITKAN, tapi Pentadbir sendiri ada `publish: false` dalam matriks
@@ -3787,7 +3815,7 @@ const runSemakanTakAktif = async (dbAll, dbRun) => {
     if (tahapBaharu === null) continue;
 
     const hariTakAktif = Math.floor(takAktifMs / HARI_MS);
-    const { tajuk, html } = emelAmaranTakAktif(u.penName, hariTakAktif, tahapBaharu);
+    const { tajuk, html } = emelAmaranTakAktif(u.penName, hariTakAktif, tahapBaharu, ambangHari);
     if (u.email) {
       await hantarEmel({ to: u.email, subject: tajuk, html }).catch((e) => console.error('[Semakan Tak Aktif] Gagal hantar emel:', e.message));
     } else {
@@ -3937,7 +3965,7 @@ app.listen(PORT, '0.0.0.0', () => {
   setInterval(() => {
     runSemakanTakAktif(dbAll, dbRun).catch((err) => console.error('[Semakan Tak Aktif] Ralat:', err.message));
   }, SEMAKAN_TAK_AKTIF_INTERVAL_MS);
-  console.log(`Semakan tak aktif editorial aktif (sekali setiap ${SEMAKAN_TAK_AKTIF_INTERVAL_MS / 3600000} jam — amaran hari-7/hari-14, gantung automatik hari-21).`);
+  console.log(`Semakan tak aktif editorial aktif (sekali setiap ${SEMAKAN_TAK_AKTIF_INTERVAL_MS / 3600000} jam — tempoh boleh laras di Direktori, Editorium).`);
 
   // Pembersihan sesi luput (2026-08-07, Tier 1 audit inventori) — sebelum ni TIADA pembersihan
   // berkala langsung; jadual `sessions` (sessions.db, connect-sqlite3) membesar SELAMANYA. Ini
