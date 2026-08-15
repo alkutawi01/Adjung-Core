@@ -291,6 +291,27 @@ jawapan sebelum ni ialah "kena minta Claude edit kod". Dipindah ke `core/routes/
   mesti menaik (amaran pertama < amaran kedua < gantung automatik), kalau tidak eskalasi tiga-
   tahap jadi tak bermakna.
 
+### Sumber rujukan AI mesti reset setiap kali borang dibuka — bukan dasar slot (2026-08-16)
+Izzat tangkap DUA pepijat berkait dalam sesi yang sama, punca sama: `aiPromptSource` (medan
+DB/formConfig LAMA) dikongsi antara sub-mod "Pautan" (JSON berstruktur, `serializeReferenceSources`)
+DAN sub-mod "Artikel Jurnal" (teks mentah nama jurnal) yang saya tambah sesi ni — dua bentuk data
+tak serasi berkongsi SATU medan. (1) Tukar sub-mod Pautan→Artikel Jurnal dalam SATU sesi borang:
+JSON mentah `[{"name":"The Star","url":"..."}]` bocor terus ke medan "Nama Jurnal" teks. (2) Tutup
+modal, buka semula (slot SAMA ATAU lain): sumber rujukan artikel LAMA (khusus untuk SATU draf,
+bukan dasar slot) muncul semula sebab `useSlotEditor.ts` baca `config?.aiPromptSource` dari
+slot config TERSIMPAN (server, `slotsConfigRoutes.js`) — corak SAMA macam `aiPromptRecency`/
+`aiPromptRegion`/`aiPromptLanguage`, yang MEMANG patut berterusan sebagai dasar slot, tapi sumber
+rujukan BUKAN dasar — ia input SATU-KALI untuk SATU artikel tertentu.
+
+**Dibaiki**: (a) medan BERASINGAN sepenuhnya — `aiPromptSource` (Pautan, JSON) dan
+`aiPromptJournalName` (Artikel Jurnal, teks) — tukar sub-mod TAK LAGI bertindih walau berapa kali
+dalam sesi sama. (b) `useSlotEditor.ts` `openSlotEditor()` SENGAJA TAK baca kedua-dua medan ni
+daripada `config` — sentiasa mula `''` kosong setiap kali borang dibuka, tak kira apa disimpan di
+server sebelum ni. **Peraturan am**: medan `aiPrompt*` yang mewakili INPUT SATU-KALI (sumber/URL/
+nama jurnal artikel tertentu) MESTI reset setiap buka borang; medan yang mewakili DASAR/KEUTAMAAN
+berterusan (bahasa, wilayah, kebaruan, had aksara) BOLEH terus baca daripada config tersimpan.
+Jangan letak dua jenis medan ni dalam kumpulan yang sama tanpa fikir mana patut berterusan.
+
 ### Arahan AI — larang nota meta/epistemik dalam kandungan (2026-08-16)
 Izzat tangkap artikel AI sebenar terbit dengan ayat gaya "Walau bagaimanapun, maklumat sumber
 yang tersedia tidak memperincikan hasil perbincangan, keputusan dasar atau teknologi tertentu

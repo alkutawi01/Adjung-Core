@@ -225,7 +225,12 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
   // gaya penulisan KEKAL berasingan sepenuhnya (jangan campur URL rujukan dgn PDF jurnal).
   const isJournalMode = fc.genMode === 'artikel_jurnal';
   const isSingleSourceMode = isReferenceMode || isJournalMode;
-  const journalName = (fc.aiPromptSource || '').trim();
+  // Medan BERASINGAN drpd aiPromptSource (2026-08-16, pepijat Izzat: JSON sumber "Pautan" bocor
+  // terus ke medan "Nama Jurnal" sebab dua mod kongsi SATU medan formConfig lama — Pautan simpan
+  // JSON berstruktur (serializeReferenceSources) di aiPromptSource, Artikel Jurnal papar medan
+  // SAMA sebagai teks mentah. Kini dua medan formConfig berasingan sepenuhnya, tak boleh
+  // bertindih walau editor bertukar sub-mod berulang kali dalam satu sesi borang yang sama.
+  const journalName = (fc.aiPromptJournalName || '').trim();
   const referenceSources = parseReferenceSources(fc.aiPromptSource).filter((s) => s.url.trim());
   const isMultiSource = referenceSources.length > 1;
   const sumberSection = isJournalMode
@@ -1854,7 +1859,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                       TIDAK sekat mod ni walau kosong -- lihat nota di fungsi tu. */}
                   {formConfig.genMode === 'artikel_jurnal' && (
                     <div className="mt-1 flex flex-col gap-2">
-                      <Field label="Nama jurnal (pilihan)" value={formConfig.aiPromptSource || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptSource: v }))} />
+                      <Field label="Nama jurnal (pilihan)" value={formConfig.aiPromptJournalName || ''} onChange={(v) => setFormConfig((prev: any) => ({ ...prev, aiPromptJournalName: v }))} />
                       <span className="font-sans text-[9px] text-stone-400">Editor lampirkan fail PDF artikel jurnal secara manual dalam sesi ChatGPT/Claude/Gemini sendiri, kemudian salin prompt di bawah untuk ditampal bersama. Adjung Brief tidak memuat naik atau menyimpan fail PDF.</span>
                     </div>
                   )}

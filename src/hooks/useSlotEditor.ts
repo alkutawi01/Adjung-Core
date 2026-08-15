@@ -134,7 +134,18 @@ export function useSlotEditor(editorName?: string) {
       aiPromptRecency: config?.aiPromptRecency || '1 minggu',
       aiPromptLanguage: config?.aiPromptLanguage || 'Bahasa Melayu',
       aiPromptRegion: config?.aiPromptRegion || 'Global, Malaysia',
-      aiPromptSource: config?.aiPromptSource || '',
+      // aiPromptSource/aiPromptJournalName SENGAJA TIDAK dibaca daripada `config` (2026-08-16,
+      // soalan Izzat: "apabila saya dah tutup modul, dan buka semula, borang arahan AI ni
+      // sepatutnya dibersihkan/reset" + pepijat berkaitan: JSON sumber Pautan bocor ke medan
+      // Nama Jurnal). Medan lain (aiPromptRecency/aiPromptRegion/aiPromptLanguage) memang PATUT
+      // berterusan sebagai dasar/keutamaan slot — tetap sama setiap kali generate. Tapi sumber
+      // rujukan ialah input SATU-KALI untuk SATU draf tertentu (URL artikel tertentu/nama jurnal
+      // tertentu), bukan dasar slot — kekal daripada draf lama cuma buat editor keliru/tersalah
+      // guna sumber lama untuk artikel baharu. Sentiasa mula KOSONG setiap kali borang dibuka,
+      // walau server ada nilai lama tersimpan (backend kekal simpan medan ni buat masa ini,
+      // sekadar tak dibaca balik ke borang).
+      aiPromptSource: '',
+      aiPromptJournalName: '',
       genMode: config?.genMode || 'bebas',
       // Kawalan serentak (Fasa 6) — token versi ringkas: nilai `updatedAt` yang DIBACA semasa
       // buka slot ni, dihantar semula bila simpan supaya server boleh kesan jika seseorang lain
