@@ -272,7 +272,17 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     '[Peraturan am — sistem/global]', fc.masterPrompt || '-', '',
     '[Arahan khas — slot ini]', fc.promptText || 'Tiada arahan khas untuk slot ini. Ikut sepenuhnya Peraturan am di atas.', '',
     '[Fungsi huraian panjang]',
-    'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai huraian mengalir secara lancar — JANGAN gunakan subtajuk atau format berasingan (contoh "Apa:"/"Kenapa penting:"/"Konteks:"). Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.', '',
+    // Pecah kepada perenggan (2026-08-16, permintaan Izzat + audit ChatGPT) — arahan LAMA
+    // "Tulis sebagai huraian mengalir secara lancar — JANGAN gunakan subtajuk atau format
+    // berasingan" ambigu: AI (disahkan sebenar, simulasi Slot 3 rujukan URL Malaysian Reserve)
+    // tafsir "mengalir lancar" sebagai SATU blok teks tanpa noktah baris LANGSUNG (1502 aksara,
+    // sifar \n\n), walaupun kandungan tu ada beberapa "beat" jelas berasingan. Arahan asal cuma
+    // larang SUBTAJUK (Apa:/Kenapa:), tak pernah eksplisit MINTA perenggan pun — jurang ni
+    // punca sebenar, bukan pepijat parser/renderer (\n{2,} -> <p> di FocusView.tsx sedia
+    // berfungsi, cuma tak pernah dapat input berperenggan utk diuji). Fix (wording ChatGPT):
+    // eksplisit minta pecah ikut PERUBAHAN IDEA (bukan bilangan perenggan tetap — panjang
+    // kandungan berbeza-beza), kekalkan naratif bersambung (bukan nota berasingan gaya blog).
+    'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai naratif editorial yang mengalir dan mudah dibaca — JANGAN gunakan subtajuk, senarai bernombor, atau format berasingan (contoh "Apa:"/"Kenapa penting:"/"Konteks:"). Namun jangan hasilkan SATU blok teks yang terlalu panjang: pecahkan huraian kepada beberapa perenggan yang semula jadi berdasarkan perubahan idea atau perkembangan maklumat (bukan bilangan tetap — panjang berbeza ikut kandungan), dengan SATU baris kosong antara setiap perenggan. Setiap perenggan patut ada satu fokus utama (contoh: perenggan pembuka beri konteks/latar isu, perenggan seterusnya huraikan kenyataan/fakta utama, perenggan berikutnya jelaskan implikasi atau perkembangan berkaitan), tetapi kekal mengalir sebagai SATU naratif bersambung — bukan macam nota berasingan. Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber.', '',
     ...sumberSection, '',
     '[Format teks]',
     'Gunakan teks biasa sahaja. JANGAN gunakan Markdown (tiada **tebal**, *condong*, atau simbol _ untuk penekanan) — medan borang Adjung paparkan teks mentah, simbol Markdown akan terpapar literal kepada pembaca, bukan diformat.', '',
