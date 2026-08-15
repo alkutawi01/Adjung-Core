@@ -116,7 +116,21 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
   const refLaci = useRef<HTMLElement>(null);
   useModalFokus(refLaci, onTutup);
 
-  const [tab, setTab] = React.useState<'editorial' | 'sistem'>('editorial');
+  // Auto-pilih tab yang ada belum-baca bila laci dibuka (2026-08-16, aduan LANGSUNG Izzat kat
+  // ChatGPT — "saya refresh, nampak badge, buka, tab Editorial nampak mesej LAMA, kena klik
+  // Sistem baru nampak mesej baharu... saya rasa kecewa"). Punca: tab sentiasa mula di
+  // 'editorial' walau apa pun kandungan lencana bell (kiraan gabungan Editorial+Sistem) — badge
+  // janji "ada sesuatu baharu", tapi tab default tak bawa terus ke situ. Kira belum-baca setiap
+  // tab daripada PROPS `notifikasi` semasa render pertama sahaja (lazy initializer — data ni
+  // ditangkap SEBELUM bukaMakluman() tanda-baca sampai ke server, jadi masih tepat pada saat
+  // laci baru dibuka). Nota Ketua Editor (jenisSumber nota_ketua_editor) tiada status baca
+  // sendiri (rujuk interface Nota di atas) — sengaja TAK dikira di sini, ia ambient/disemat,
+  // bukan isyarat "baharu" macam notifikasi bertindak.
+  const [tab, setTab] = React.useState<'editorial' | 'sistem'>(() => {
+    const adaSistemBelumBaca = notifikasi.some((n) => n.jenis.startsWith('sistem_') && !n.dibaca);
+    const adaEditorialBelumBaca = notifikasi.some((n) => !n.jenis.startsWith('sistem_') && !n.dibaca);
+    return adaSistemBelumBaca && !adaEditorialBelumBaca ? 'sistem' : 'editorial';
+  });
 
   // Senarai gabungan, tersusun terbaharu dahulu — nota disemat tetap naik ke atas dalam
   // kumpulannya sendiri (peraturan sedia ada), notifikasi disisipkan ikut tarikh sahaja.
