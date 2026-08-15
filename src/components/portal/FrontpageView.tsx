@@ -167,6 +167,17 @@ export const getDisplayDate = (raw?: string): string => {
   return trimmed;
 };
 
+// Sumber = Adjung sendiri (2026-08-16, permintaan Izzat — kad papar DUA tarikh nampak redundan:
+// lencana "tarikh siaran" di bucu kad DAN baris tarikh sumber di bawah nama sumber, walhal
+// kedua-duanya jatuh balik ke publishedAt YANG SAMA bila sumber ialah Adjung sendiri (bukan
+// rujukan luar). Beza dua tarikh tu wujud utk bezakan "bila sumber ASAL diterbitkan" drpd "bila
+// Adjung sendiri terbitkan" — pembezaan tu tak bermakna langsung bila sumbernya Adjung sendiri.
+export const sumberAdjungSendiri = (source?: string): boolean => {
+  if (!source) return false;
+  const t = source.trim().toLowerCase();
+  return t === 'adjung editorial' || t === 'editorial adjung';
+};
+
 const MALAY_MONTHS = [
   'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun',
   'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember',
@@ -1715,10 +1726,19 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         itemToPush.source = 'Editorial Adjung';
         itemToPush.originalDate = '';
       }
+      // Tiada baris "tarikh sumber" langsung bila sumber Adjung sendiri (2026-08-16, permintaan
+      // Izzat — kad papar DUA tarikh nampak redundan sbb kedua-duanya jatuh balik ke publishedAt
+      // YANG SAMA bila sumber bukan rujukan luar). `sembunyikanTarikhSumber` dibaca semua tapak
+      // render (30 kad, ~baris 2900+) sbg pengawal SEBELUM fallback getDisplayDate||formatBentoDate
+      // sedia ada — bukan gantikan logik fallback, cuma sekat ia terpakai utk kes ni.
+      itemToPush.sembunyikanTarikhSumber = sumberAdjungSendiri(itemToPush.source);
       if (Array.isArray(itemToPush.items)) {
-        itemToPush.items = itemToPush.items.map((it: any) => (
-          Array.isArray(it.sources) && it.sources.length > 1 ? { ...it, source: 'Editorial Adjung', originalDate: '' } : it
-        ));
+        itemToPush.items = itemToPush.items.map((it: any) => {
+          const disatukan = Array.isArray(it.sources) && it.sources.length > 1
+            ? { ...it, source: 'Editorial Adjung', originalDate: '' }
+            : it;
+          return { ...disatukan, sembunyikanTarikhSumber: sumberAdjungSendiri(disatukan.source) };
+        });
       }
       if (itemToPush.desk === 'BELUM DIKELASKAN') {
         itemToPush.desk = 'SEMASA';
@@ -2899,7 +2919,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[0].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[10px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:border-l md:pt-0 border-stone-400/30 md:pl-4 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-1" style={getCardTheme(bentoNewsItems[0]).sourceStyle}>
                     <span>{bentoNewsItems[0].source}</span>
-                    {(getDisplayDate(bentoNewsItems[0].originalDate) || formatBentoDate(bentoNewsItems[0].publishedAt)) && <span className="opacity-70 normal-case font-mono text-[7px] md:text-[9px]">{(getDisplayDate(bentoNewsItems[0].originalDate) || formatBentoDate(bentoNewsItems[0].publishedAt))}</span>}
+                    {!bentoNewsItems[0].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[0].originalDate) || formatBentoDate(bentoNewsItems[0].publishedAt)) && <span className="opacity-70 normal-case font-mono text-[7px] md:text-[9px]">{(getDisplayDate(bentoNewsItems[0].originalDate) || formatBentoDate(bentoNewsItems[0].publishedAt))}</span>}
                   </a>
                 </BentoInner><span className="absolute top-8 right-8 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[0].publishedAt)}</span>
               </div>
@@ -2931,7 +2951,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <a href={bentoNewsItems[1].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[1]).sourceStyle}>
                       <span>{bentoNewsItems[1].source}</span>
-                      {(getDisplayDate(bentoNewsItems[1].originalDate) || formatBentoDate(bentoNewsItems[1].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[1].originalDate) || formatBentoDate(bentoNewsItems[1].publishedAt))}</span>}
+                      {!bentoNewsItems[1].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[1].originalDate) || formatBentoDate(bentoNewsItems[1].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[1].originalDate) || formatBentoDate(bentoNewsItems[1].publishedAt))}</span>}
                     </a>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[1].publishedAt)}</span>
                 </div>
@@ -2960,7 +2980,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <a href={bentoNewsItems[2].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[2]).sourceStyle}>
                       <span>{bentoNewsItems[2].source}</span>
-                      {(getDisplayDate(bentoNewsItems[2].originalDate) || formatBentoDate(bentoNewsItems[2].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[2].originalDate) || formatBentoDate(bentoNewsItems[2].publishedAt))}</span>}
+                      {!bentoNewsItems[2].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[2].originalDate) || formatBentoDate(bentoNewsItems[2].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[2].originalDate) || formatBentoDate(bentoNewsItems[2].publishedAt))}</span>}
                     </a>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[2].publishedAt)}</span>
                 </div>
@@ -2989,7 +3009,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <a href={bentoNewsItems[3].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[3]).sourceStyle}>
                       <span>{bentoNewsItems[3].source}</span>
-                      {(getDisplayDate(bentoNewsItems[3].originalDate) || formatBentoDate(bentoNewsItems[3].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[3].originalDate) || formatBentoDate(bentoNewsItems[3].publishedAt))}</span>}
+                      {!bentoNewsItems[3].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[3].originalDate) || formatBentoDate(bentoNewsItems[3].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[3].originalDate) || formatBentoDate(bentoNewsItems[3].publishedAt))}</span>}
                     </a>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[3].publishedAt)}</span>
                 </div>
@@ -3024,7 +3044,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       </div>
                       <a href={bentoNewsItems[4].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[4]).sourceStyle}>
                         <span>{bentoNewsItems[4].source}</span>
-                        {(getDisplayDate(bentoNewsItems[4].originalDate) || formatBentoDate(bentoNewsItems[4].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[4].originalDate) || formatBentoDate(bentoNewsItems[4].publishedAt))}</span>}
+                        {!bentoNewsItems[4].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[4].originalDate) || formatBentoDate(bentoNewsItems[4].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[4].originalDate) || formatBentoDate(bentoNewsItems[4].publishedAt))}</span>}
                       </a>
                     </BentoInner><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[4].publishedAt)}</span>
                   </div>
@@ -3054,7 +3074,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       </div>
                       <a href={bentoNewsItems[5].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[5]).sourceStyle}>
                         <span>{bentoNewsItems[5].source}</span>
-                        {(getDisplayDate(bentoNewsItems[5].originalDate) || formatBentoDate(bentoNewsItems[5].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[5].originalDate) || formatBentoDate(bentoNewsItems[5].publishedAt))}</span>}
+                        {!bentoNewsItems[5].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[5].originalDate) || formatBentoDate(bentoNewsItems[5].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[5].originalDate) || formatBentoDate(bentoNewsItems[5].publishedAt))}</span>}
                       </a>
                     </BentoInner><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[5].publishedAt)}</span>
                   </div>
@@ -3088,7 +3108,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[6].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[6]).sourceStyle}>
                     <span>{bentoNewsItems[6].source}</span>
-                    {(getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt))}</span>}
+                    {!bentoNewsItems[6].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[6].aiProvider && (
@@ -3121,7 +3141,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[12].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[12]).sourceStyle}>
                     <span>{bentoNewsItems[12].source}</span>
-                    {(getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt))}</span>}
+                    {!bentoNewsItems[12].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[12].aiProvider && (
@@ -3181,7 +3201,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                     <a href={bentoNewsItems[11].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[11]).sourceStyle}>
                       <span>{bentoNewsItems[11].source}</span>
-                      {(getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt))}</span>}
+                      {!bentoNewsItems[11].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt))}</span>}
                     </a>
 
                 
@@ -3220,7 +3240,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                     <a href={bentoNewsItems[13].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[13]).sourceStyle}>
                       <span>{bentoNewsItems[13].source}</span>
-                      {(getDisplayDate(bentoNewsItems[13].originalDate) || formatBentoDate(bentoNewsItems[13].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[13].originalDate) || formatBentoDate(bentoNewsItems[13].publishedAt))}</span>}
+                      {!bentoNewsItems[13].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[13].originalDate) || formatBentoDate(bentoNewsItems[13].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[13].originalDate) || formatBentoDate(bentoNewsItems[13].publishedAt))}</span>}
                     </a>
 
                 
@@ -3252,7 +3272,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                     <a href={bentoNewsItems[14].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[14]).sourceStyle}>
                       <span>{bentoNewsItems[14].source}</span>
-                      {(getDisplayDate(bentoNewsItems[14].originalDate) || formatBentoDate(bentoNewsItems[14].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[14].originalDate) || formatBentoDate(bentoNewsItems[14].publishedAt))}</span>}
+                      {!bentoNewsItems[14].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[14].originalDate) || formatBentoDate(bentoNewsItems[14].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[14].originalDate) || formatBentoDate(bentoNewsItems[14].publishedAt))}</span>}
                     </a>
 
                 
@@ -3293,7 +3313,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[15].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[15]).sourceStyle}>
                     <span>{bentoNewsItems[15].source}</span>
-                    {(getDisplayDate(bentoNewsItems[15].originalDate) || formatBentoDate(bentoNewsItems[15].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[15].originalDate) || formatBentoDate(bentoNewsItems[15].publishedAt))}</span>}
+                    {!bentoNewsItems[15].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[15].originalDate) || formatBentoDate(bentoNewsItems[15].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[15].originalDate) || formatBentoDate(bentoNewsItems[15].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[15].aiProvider && (
@@ -3325,7 +3345,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                     <a href={bentoNewsItems[16].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[16]).sourceStyle}>
                       <span>{bentoNewsItems[16].source}</span>
-                      {(getDisplayDate(bentoNewsItems[16].originalDate) || formatBentoDate(bentoNewsItems[16].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[16].originalDate) || formatBentoDate(bentoNewsItems[16].publishedAt))}</span>}
+                      {!bentoNewsItems[16].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[16].originalDate) || formatBentoDate(bentoNewsItems[16].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[16].originalDate) || formatBentoDate(bentoNewsItems[16].publishedAt))}</span>}
                     </a>
 
                 
@@ -3361,7 +3381,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <a href={bentoNewsItems[17].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[17]).sourceStyle}>
                       <span>{bentoNewsItems[17].source}</span>
-                      {(getDisplayDate(bentoNewsItems[17].originalDate) || formatBentoDate(bentoNewsItems[17].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[17].originalDate) || formatBentoDate(bentoNewsItems[17].publishedAt))}</span>}
+                      {!bentoNewsItems[17].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[17].originalDate) || formatBentoDate(bentoNewsItems[17].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[17].originalDate) || formatBentoDate(bentoNewsItems[17].publishedAt))}</span>}
                     </a>
                   
                   {bentoNewsItems[17].aiProvider && (
@@ -3391,7 +3411,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <a href={bentoNewsItems[18].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[18]).sourceStyle}>
                       <span>{bentoNewsItems[18].source}</span>
-                      {(getDisplayDate(bentoNewsItems[18].originalDate) || formatBentoDate(bentoNewsItems[18].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[18].originalDate) || formatBentoDate(bentoNewsItems[18].publishedAt))}</span>}
+                      {!bentoNewsItems[18].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[18].originalDate) || formatBentoDate(bentoNewsItems[18].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[18].originalDate) || formatBentoDate(bentoNewsItems[18].publishedAt))}</span>}
                     </a>
                   
                   {bentoNewsItems[18].aiProvider && (
@@ -3424,7 +3444,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[19].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[19]).sourceStyle}>
                     <span>{bentoNewsItems[19].source}</span>
-                    {(getDisplayDate(bentoNewsItems[19].originalDate) || formatBentoDate(bentoNewsItems[19].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[19].originalDate) || formatBentoDate(bentoNewsItems[19].publishedAt))}</span>}
+                    {!bentoNewsItems[19].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[19].originalDate) || formatBentoDate(bentoNewsItems[19].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[19].originalDate) || formatBentoDate(bentoNewsItems[19].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[19].aiProvider && (
@@ -3466,7 +3486,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[26].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[26]).sourceStyle}>
                     <span>{bentoNewsItems[26].source}</span>
-                    {(getDisplayDate(bentoNewsItems[26].originalDate) || formatBentoDate(bentoNewsItems[26].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[26].originalDate) || formatBentoDate(bentoNewsItems[26].publishedAt))}</span>}
+                    {!bentoNewsItems[26].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[26].originalDate) || formatBentoDate(bentoNewsItems[26].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[26].originalDate) || formatBentoDate(bentoNewsItems[26].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[26].aiProvider && (
@@ -3498,7 +3518,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[20].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[20]).sourceStyle}>
                     <span>{bentoNewsItems[20].source}</span>
-                    {(getDisplayDate(bentoNewsItems[20].originalDate) || formatBentoDate(bentoNewsItems[20].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[20].originalDate) || formatBentoDate(bentoNewsItems[20].publishedAt))}</span>}
+                    {!bentoNewsItems[20].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[20].originalDate) || formatBentoDate(bentoNewsItems[20].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[20].originalDate) || formatBentoDate(bentoNewsItems[20].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[20].aiProvider && (
@@ -3531,7 +3551,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                     <a href={bentoNewsItems[25].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[25]).sourceStyle}>
                       <span>{bentoNewsItems[25].source}</span>
-                      {(getDisplayDate(bentoNewsItems[25].originalDate) || formatBentoDate(bentoNewsItems[25].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[25].originalDate) || formatBentoDate(bentoNewsItems[25].publishedAt))}</span>}
+                      {!bentoNewsItems[25].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[25].originalDate) || formatBentoDate(bentoNewsItems[25].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[25].originalDate) || formatBentoDate(bentoNewsItems[25].publishedAt))}</span>}
                     </a>
 
                 
@@ -3595,7 +3615,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                     <a href={bentoNewsItems[27].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[27]).sourceStyle}>
                       <span>{bentoNewsItems[27].source}</span>
-                      {(getDisplayDate(bentoNewsItems[27].originalDate) || formatBentoDate(bentoNewsItems[27].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[27].originalDate) || formatBentoDate(bentoNewsItems[27].publishedAt))}</span>}
+                      {!bentoNewsItems[27].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[27].originalDate) || formatBentoDate(bentoNewsItems[27].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[27].originalDate) || formatBentoDate(bentoNewsItems[27].publishedAt))}</span>}
                     </a>
 
                 
@@ -3627,7 +3647,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                     <a href={bentoNewsItems[28].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[28]).sourceStyle}>
                       <span>{bentoNewsItems[28].source}</span>
-                      {(getDisplayDate(bentoNewsItems[28].originalDate) || formatBentoDate(bentoNewsItems[28].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[28].originalDate) || formatBentoDate(bentoNewsItems[28].publishedAt))}</span>}
+                      {!bentoNewsItems[28].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[28].originalDate) || formatBentoDate(bentoNewsItems[28].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[28].originalDate) || formatBentoDate(bentoNewsItems[28].publishedAt))}</span>}
                     </a>
 
                 
@@ -3668,7 +3688,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[29].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[29]).sourceStyle}>
                     <span>{bentoNewsItems[29].source}</span>
-                    {(getDisplayDate(bentoNewsItems[29].originalDate) || formatBentoDate(bentoNewsItems[29].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[29].originalDate) || formatBentoDate(bentoNewsItems[29].publishedAt))}</span>}
+                    {!bentoNewsItems[29].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[29].originalDate) || formatBentoDate(bentoNewsItems[29].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[29].originalDate) || formatBentoDate(bentoNewsItems[29].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[29].aiProvider && (
@@ -3700,7 +3720,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                     <a href={bentoNewsItems[30].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[30]).sourceStyle}>
                       <span>{bentoNewsItems[30].source}</span>
-                      {(getDisplayDate(bentoNewsItems[30].originalDate) || formatBentoDate(bentoNewsItems[30].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[30].originalDate) || formatBentoDate(bentoNewsItems[30].publishedAt))}</span>}
+                      {!bentoNewsItems[30].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[30].originalDate) || formatBentoDate(bentoNewsItems[30].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[30].originalDate) || formatBentoDate(bentoNewsItems[30].publishedAt))}</span>}
                     </a>
 
                 
@@ -3736,7 +3756,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <a href={bentoNewsItems[31].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[31]).sourceStyle}>
                       <span>{bentoNewsItems[31].source}</span>
-                      {(getDisplayDate(bentoNewsItems[31].originalDate) || formatBentoDate(bentoNewsItems[31].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[31].originalDate) || formatBentoDate(bentoNewsItems[31].publishedAt))}</span>}
+                      {!bentoNewsItems[31].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[31].originalDate) || formatBentoDate(bentoNewsItems[31].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[31].originalDate) || formatBentoDate(bentoNewsItems[31].publishedAt))}</span>}
                     </a>
                   
                   {bentoNewsItems[31].aiProvider && (
@@ -3766,7 +3786,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     </div>
                     <a href={bentoNewsItems[32].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[32]).sourceStyle}>
                       <span>{bentoNewsItems[32].source}</span>
-                      {(getDisplayDate(bentoNewsItems[32].originalDate) || formatBentoDate(bentoNewsItems[32].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[32].originalDate) || formatBentoDate(bentoNewsItems[32].publishedAt))}</span>}
+                      {!bentoNewsItems[32].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[32].originalDate) || formatBentoDate(bentoNewsItems[32].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[32].originalDate) || formatBentoDate(bentoNewsItems[32].publishedAt))}</span>}
                     </a>
                   
                   {bentoNewsItems[32].aiProvider && (
@@ -3799,7 +3819,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[33].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[33]).sourceStyle}>
                     <span>{bentoNewsItems[33].source}</span>
-                    {(getDisplayDate(bentoNewsItems[33].originalDate) || formatBentoDate(bentoNewsItems[33].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[33].originalDate) || formatBentoDate(bentoNewsItems[33].publishedAt))}</span>}
+                    {!bentoNewsItems[33].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[33].originalDate) || formatBentoDate(bentoNewsItems[33].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[33].originalDate) || formatBentoDate(bentoNewsItems[33].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[33].aiProvider && (
@@ -3840,7 +3860,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[34].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[34]).sourceStyle}>
                     <span>{bentoNewsItems[34].source}</span>
-                    {(getDisplayDate(bentoNewsItems[34].originalDate) || formatBentoDate(bentoNewsItems[34].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[34].originalDate) || formatBentoDate(bentoNewsItems[34].publishedAt))}</span>}
+                    {!bentoNewsItems[34].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[34].originalDate) || formatBentoDate(bentoNewsItems[34].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[34].originalDate) || formatBentoDate(bentoNewsItems[34].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[34].aiProvider && (
@@ -3872,7 +3892,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                   <a href={bentoNewsItems[37].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>
                     <span>{bentoNewsItems[37].source}</span>
-                    {(getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt))}</span>}
+                    {!bentoNewsItems[37].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt))}</span>}
                   </a>
                 
                   {bentoNewsItems[37].aiProvider && (
@@ -3905,7 +3925,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                       <a href={bentoNewsItems[35].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[35]).sourceStyle}>
                         <span>{bentoNewsItems[35].source}</span>
-                        {(getDisplayDate(bentoNewsItems[35].originalDate) || formatBentoDate(bentoNewsItems[35].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[35].originalDate) || formatBentoDate(bentoNewsItems[35].publishedAt))}</span>}
+                        {!bentoNewsItems[35].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[35].originalDate) || formatBentoDate(bentoNewsItems[35].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[35].originalDate) || formatBentoDate(bentoNewsItems[35].publishedAt))}</span>}
                       </a>
 
                   
@@ -3937,7 +3957,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   </div>
                       <a href={bentoNewsItems[36].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[36]).sourceStyle}>
                         <span>{bentoNewsItems[36].source}</span>
-                        {(getDisplayDate(bentoNewsItems[36].originalDate) || formatBentoDate(bentoNewsItems[36].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[36].originalDate) || formatBentoDate(bentoNewsItems[36].publishedAt))}</span>}
+                        {!bentoNewsItems[36].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[36].originalDate) || formatBentoDate(bentoNewsItems[36].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[36].originalDate) || formatBentoDate(bentoNewsItems[36].publishedAt))}</span>}
                       </a>
 
                   
