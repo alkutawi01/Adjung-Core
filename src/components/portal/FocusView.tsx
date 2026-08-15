@@ -218,6 +218,12 @@ export interface FocusViewProps {
   sourceDate?: string;
   /** Tarikh siaran — tarikh penyiaran Adjung, dipapar sebaris dengan eyebrow atas tajuk. */
   publishedDate?: string;
+  /** Nama editor kandungan INI (2026-08-16, permintaan Izzat) — attribute `editorName` per-
+   *  kandungan (dicap semasa Terbit, lihat contentRoutes.js), BUKAN identiti Ketua Editor semasa
+   *  log masuk (konsep berasingan yang sengaja tak disambung, lihat nota "MENGKHASKAN RUANG"
+   *  di bawah). Dipapar di lajur "Editor" bar kolofon desktop, sebelah Sumber/Kongsi. Pilihan —
+   *  tidak dirender bila tiada (kandungan lama tanpa editorName tercatat). */
+  editorName?: string;
   /** Lapisan kedua pilihan yang sangat samar atas latar pejal. */
   backdropImage?: string;
   backdropOpacity?: number;
@@ -259,7 +265,7 @@ export interface FocusViewProps {
 export const FocusView: React.FC<FocusViewProps> = ({
   wordmark = 'Adjung', icon, desk, topik, onCariEyebrow, deskColor, title, titleRendered, body,
   visual, visualCaption, related = [], note, notaMaxAksara = NOTA_MAX, autoAdvanceSec,
-  source, sourceUrl, sources = [], sourceDate, publishedDate,
+  source, sourceUrl, sources = [], sourceDate, publishedDate, editorName,
   backdropImage, backdropOpacity = 0.06,
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
   titleSizeScale = 1, bodySizePx = 15,
@@ -445,8 +451,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // bacaan apabila huraian pendek+panjang berkongsi jalur yang sama; dengan huraian pendek tiada,
   // satu lajur lurus lebih ringkas dan padan reka bentuk rujukan pemilik projek).
   const text = String(body || '').trim();
+  // \n{2,} -> \n+ (2026-08-16, permintaan Izzat — "sepatutnya enter akan membina perenggan
+  // baharu") — SEBELUM ni perenggan baharu perlu BARIS KOSONG (Enter DUA kali) sebab huraian
+  // panjang tersimpan mentah drpd apa editor taip (SATU Enter = SATU \n). Editor lazimnya tekan
+  // Enter SEKALI sahaja antara perenggan (jangkaan biasa borang teks), jadi \n{2,} (perlukan 2+
+  // newline berturutan) tak pernah padan — teks kekal SATU perenggan, \n tunggal collapse jadi
+  // ruang oleh CSS (elemen <p> ni tiada white-space:pre-wrap). \n+ (SATU atau lebih newline)
+  // jadikan SETIAP baris editor taip perenggannya sendiri, sepadan jangkaan biasa.
   const paragraphs = React.useMemo(
-    () => text.split(/\n{2,}/).filter(Boolean),
+    () => text.split(/\n+/).filter(Boolean),
     [text]
   );
 
@@ -1252,8 +1265,22 @@ export const FocusView: React.FC<FocusViewProps> = ({
               <KongsiButtons title={title} url={shareUrl} disalinBerjaya={disalinBerjaya} onSalin={salinPautan} />
             </span>
           )}
+          {/* Lajur "Editor" (2026-08-16, permintaan Izzat — "seragamkan ketiga2 medan tu... yg
+              kanan sepatutnya tulis Editor, nama, dan tarikh siaran") — SEBELUM ni cuma tarikh
+              mentah tanpa label langsung, tak seragam dengan lajur Sumber/Kongsi yang
+              kedua-duanya ada label kecil di atas kandungan. Kini label "Editor" + nama (bila
+              editorName sedia, lihat nota prop) + tarikh siaran, corak sama macam "{nama} · {tarikh}"
+              lajur Sumber. Label tetap "Editor" (bukan bersyarat) walaupun editorName tiada,
+              supaya lajur ni still ada label seragam dgn 2 lajur lain -- kandungan bawahnya
+              (tarikh sahaja) tetap papar. */}
           {publishedDate && (
-            <span style={{ ...micro, fontFamily: 'var(--font-mono)', color: 'var(--stone-500)', letterSpacing: 'var(--tracking-wide)', whiteSpace: 'nowrap' }}>{publishedDate}</span>
+            <span style={{ maxWidth: '30%', lineHeight: 1.5, textAlign: 'right' }}>
+              <span style={{ ...micro, display: 'block' }}>Editor</span>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', whiteSpace: 'nowrap' }}>
+                {editorName && <>{editorName}<span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · </span></>}
+                <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}>{publishedDate}</span>
+              </span>
+            </span>
           )}
         </div>
       </div>

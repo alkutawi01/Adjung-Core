@@ -3340,6 +3340,10 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
           publicationType: renderToken.publicationType || 'news',
           isOfficial: renderToken.isOfficial || false,
           aiProvider: null,
+          // editorName (2026-08-16) — laluan blob legasi ni ada `parsed.penulis` (medan sama
+          // 'Penulis:' yang ManualBlockFormat.js hurai), sepadan konsep dgn attribute 'editorName'
+          // di laluan DB sebenar di atas.
+          editorName: parsed.penulis || '',
           imageUrl: slot.manualImageUrl || '',
           // Peraturan Khas Slot Bar — kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
           organizer: parsed.organizer || '',
@@ -3420,6 +3424,11 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       const peneranganAv = avs.find(a => a.attributeId === 'penerangan');
       const noteAv = avs.find(a => a.attributeId === 'note');
       const imageAv = avs.find(a => a.attributeId === 'image');
+      // editorName (2026-08-16, permintaan Izzat -- Focus View kolofon "Editor") -- attribute
+      // sedia ada (dicap semasa Terbit, lihat contentRoutes.js) TAK PERNAH dihantar ke item awam
+      // sebelum ni (avs sudah SELECT * jadi nilai memang ada, cuma tak pernah dibaca/dipulangkan
+      // di sini). Nama editor SEBENAR kandungan ni, bukan Ketua Editor semasa log masuk.
+      const editorNameAv = avs.find(a => a.attributeId === 'editorName');
       // Sumber berbilang (2026-08-05) — parse selamat (JSON rosak/lama tiada medan ni langsung
       // = senarai kosong, bukan ranap laluan baca kandungan).
       const sourcesJsonAv = avs.find(a => a.attributeId === 'sourcesJson');
@@ -3457,6 +3466,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         publicationType: renderToken.publicationType || 'news',
         isOfficial: renderToken.isOfficial || false,
         aiProvider: aiProv ? aiProv.valueText : null,
+        editorName: editorNameAv ? editorNameAv.valueText : '',
         imageUrl,
         // Peraturan Khas Slot Bar — kosong ('') untuk tier lain, tiada kesan pada paparan mereka.
         organizer: organizerAv ? organizerAv.valueText : '',

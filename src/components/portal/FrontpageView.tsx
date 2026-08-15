@@ -4170,10 +4170,18 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           notaMaxAksara={systemSettings?.focusViewNotaMaxAksara}
           source={focusItem.source}
           sourceUrl={focusItem.url}
-          sources={Array.isArray(focusItem.sources) ? focusItem.sources : undefined}
+          sources={Array.isArray(focusItem.sources)
+            // Format tarikh per-sumber (2026-08-16, permintaan Izzat -- "tarikh sumber di focus
+            // view kenapa tak ikut format 15 Ogo 2026 macam di kad?") -- SEBELUM ni sources[]
+            // dihantar mentah (ISO/legasi tak diformat), asimetri dgn sourceDate legasi tunggal
+            // di bawah yang SUDAH lalui formatTarikhSumberPanjang(). Setiap sumber kini formatnya
+            // sama macam kad.
+            ? focusItem.sources.map((s: any) => ({ ...s, date: formatTarikhSumberPanjang(s.date) }))
+            : undefined}
           objectId={focusItem.objectId}
           sourceDate={formatTarikhSumberPanjang(focusItem.originalDate)}
           publishedDate={formatSiaranDate(focusItem.publishedAt)}
+          editorName={focusItem.editorName}
           onPrev={(focusNavMode === 'turutan' ? !!prevTurutanLoc : focusHistory.length > 1) ? focusPrev : undefined}
           onNext={nextRandomLoc ? focusNext : undefined}
           prevPreviewTitle={focusPrevTitle}

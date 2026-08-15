@@ -1,5 +1,14 @@
 [
   {
+    "time": "2026-08-15T02:02:34.536Z",
+    "summary": "Focus View: (1) perenggan Huraian panjang kini terbentuk dari SATU newline (Enter sekali), bukan perlu baris kosong (2) lajur kanan bar kolofon desktop kini label 'Editor' + nama editor sebenar kandungan + tarikh siaran, seragam dgn lajur Sumber/Kongsi (3) tarikh setiap sumber dalam sources[] kini diformat '15 Ogo 2026' sama macam kad, bukan ISO mentah. editorName per-kandungan (attribute sedia ada) kini dihantar ke item awam buat kali pertama",
+    "files": [
+      "src/components/portal/FocusView.tsx",
+      "src/components/portal/FrontpageView.tsx",
+      "server.js"
+    ]
+  },
+  {
     "time": "2026-08-14T11:31:07.069Z",
     "summary": "Focus View desktop: bar Sumber/Kongsi/Tarikh tukar alignItems flex-end->flex-start -- Kongsi/Tarikh tak lagi ikut turun bila senarai Sumber wrap jadi lebih tinggi (berbilang sumber)",
     "files": [
