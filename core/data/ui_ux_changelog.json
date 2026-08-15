@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-15T03:43:41.684Z",
+    "summary": "Notifikasi RSS gagal terkumpul kini sertakan waktu kegagalan TERAKHIR dalam teks (bukan cuma kiraan) -- editor boleh nilai sama ada insiden masih berlaku sekarang atau dah lama senyap",
+    "files": [
+      "core/notifications/Notify.js"
+    ]
+  },
+  {
     "time": "2026-08-15T03:39:00.796Z",
     "summary": "Pembetulan pepijat sendiri: pengumpulan notifikasi RSS gagal (kumpul:true) sebelum ni ikat pada isRead=0 -- tak berkesan sebab bukaMakluman() tanda SEMUA notifikasi dibaca serta-merta, jadi kegagalan seterusnya tak jumpa baris 'belum dibaca' utk kumpul, tetap cipta baris baharu. Tukar ke tingkap masa 6 jam (bukan status dibaca) + tanda semula belum-dibaca bila insiden lama berulang",
     "files": [

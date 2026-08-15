@@ -48,9 +48,14 @@ export async function notify(dbRun, dbGetOrPayload, payloadArg) {
         // isRead=0 (2026-08-16) — insiden lama yang DAH dibaca tapi berulang SEMULA dlm tingkap
         // masa ni patut tarik perhatian lagi (lencana bell naik semula) — "ni berlaku lagi" ialah
         // maklumat baharu yang berbaloi, walaupun baris DB yang sama dikemaskini bukan baris baru.
+        // Sertakan waktu KEGAGALAN TERAKHIR eksplisit dalam teks (2026-08-16, cadangan ChatGPT)
+        // — "(5 kali)" sahaja tak bagitahu editor sama ada insiden ni MASIH berlaku sekarang atau
+        // dah lama senyap; `createdAt` baris dikemaskini setiap kali (jadi UI boleh papar tarikh
+        // ringkas), tapi masa TEPAT (jam:minit) sebelum ni tak pernah masuk teks detail sendiri.
+        const masaTerakhir = new Date(kiniIso).toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
         await dbRun(
           `UPDATE notifications SET detail = ?, createdAt = ?, isRead = 0 WHERE id = ?`,
-          [`${detail || title} (${kiraanBaharu} kali sejak ${mulaSejak})`, kiniIso, sedia.id]
+          [`${detail || title} (${kiraanBaharu} kali sejak ${mulaSejak}, terakhir ${masaTerakhir})`, kiniIso, sedia.id]
         );
         return;
       }
