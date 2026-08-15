@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-15T03:39:00.796Z",
+    "summary": "Pembetulan pepijat sendiri: pengumpulan notifikasi RSS gagal (kumpul:true) sebelum ni ikat pada isRead=0 -- tak berkesan sebab bukaMakluman() tanda SEMUA notifikasi dibaca serta-merta, jadi kegagalan seterusnya tak jumpa baris 'belum dibaca' utk kumpul, tetap cipta baris baharu. Tukar ke tingkap masa 6 jam (bukan status dibaca) + tanda semula belum-dibaca bila insiden lama berulang",
+    "files": [
+      "core/notifications/Notify.js"
+    ]
+  },
+  {
     "time": "2026-08-15T03:29:58.284Z",
     "summary": "KRITIKAL: parseBulkText (Semakan Kandungan) tiada sokongan medan berbilang-baris langsung -- Huraian/Huraian Panjang/Nota cuma tangkap SATU baris pertama, perenggan seterusnya hilang senyap semasa parse, Simpan Pukal boleh hantar versi TERPANGKAS ke server (risiko kehilangan data sebenar, bukan cuma reset UI). Tambah state machine medanSemasa sama pattern ManualBlockFormat.js",
     "files": [

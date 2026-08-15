@@ -10,10 +10,17 @@
 // Kumpul (dbGet, opsyenal, 2026-08-16, permintaan Izzat + audit ChatGPT "notification hygiene")
 // — kegagalan berulang (cth RSS sumber sama gagal setiap 5 minit) SEBELUM ni cipta SATU baris
 // baharu SETIAP kali, banjir Peti Makluman dgn "kejadian" yang sebenarnya SATU insiden berterusan.
-// Bila `kumpul: true` dihantar, cari notifikasi jenis+sasaran SAMA yang masih belum dibaca —
-// kalau jumpa, KEMASKINI baris tu (naikkan kiraan + tarikh terkini) drpd INSERT baris baharu.
-// Bila editor tanda dibaca (isRead=1), kejadian SETERUSNYA akan mula baris baharu (insiden baharu
-// selepas editor dah nampak yang lama) — bukan skema/lajur baharu, guna corak carian sedia ada.
+//
+// Tingkap MASA, BUKAN status dibaca (2026-08-16, pembetulan pepijat sendiri — Izzat perasan
+// notifikasi RSS MASIH banjir baris berasingan selepas fix pertama). Percubaan pertama kumpul
+// ikut "notifikasi belum dibaca" (isRead=0) — tapi Izzat buka Peti Makluman kerap, dan MEMBUKA
+// dia terus tanda SEMUA notifikasi dibaca (reka bentuk sengaja, lihat EditoriumView.tsx
+// bukaMakluman()). Jadi pada masa kegagalan RSS SETERUSNYA berlaku, notifikasi terdahulu dah
+// isRead=1 (Izzat dah check inbox dlm masa tu) — carian "belum dibaca" tak jumpa apa-apa,
+// cipta baris BAHARU setiap kali juga, fix asal tak berkesan langsung dlm amalan. Kumpul ikut
+// TINGKAP MASA (baris sama jenis+sasaran diCIPTA/dikemaskini dlm KUMPUL_TINGKAP_MS lepas) — tak
+// kisah dibaca ke tidak — jauh lebih tahan terhadap corak sebenar editor kerap semak inbox.
+const KUMPUL_TINGKAP_MS = 6 * 60 * 60 * 1000; // 6 jam — kegagalan RSS di luar tingkap ni dikira insiden BAHARU, bukan sambungan lama.
 const padanKiraan = (detail) => (detail || '').match(/\((\d+) kali sejak ([^)]+)\)$/);
 
 export async function notify(dbRun, dbGetOrPayload, payloadArg) {
@@ -27,18 +34,22 @@ export async function notify(dbRun, dbGetOrPayload, payloadArg) {
   try {
     const kiniIso = new Date().toISOString();
     if (kumpul && dbGet && targetId) {
+      const tingkapMula = new Date(Date.now() - KUMPUL_TINGKAP_MS).toISOString();
       const sedia = await dbGet(
         `SELECT id, detail, createdAt FROM notifications
-         WHERE userId = ? AND type = ? AND targetId = ? AND isRead = 0
+         WHERE userId = ? AND type = ? AND targetId = ? AND createdAt > ?
          ORDER BY createdAt DESC LIMIT 1`,
-        [userId, type, targetId]
+        [userId, type, targetId, tingkapMula]
       );
       if (sedia) {
         const padanan = padanKiraan(sedia.detail);
         const kiraanBaharu = padanan ? parseInt(padanan[1], 10) + 1 : 2;
         const mulaSejak = padanan ? padanan[2] : new Date(sedia.createdAt).toLocaleString('ms-MY');
+        // isRead=0 (2026-08-16) — insiden lama yang DAH dibaca tapi berulang SEMULA dlm tingkap
+        // masa ni patut tarik perhatian lagi (lencana bell naik semula) — "ni berlaku lagi" ialah
+        // maklumat baharu yang berbaloi, walaupun baris DB yang sama dikemaskini bukan baris baru.
         await dbRun(
-          `UPDATE notifications SET detail = ?, createdAt = ? WHERE id = ?`,
+          `UPDATE notifications SET detail = ?, createdAt = ?, isRead = 0 WHERE id = ?`,
           [`${detail || title} (${kiraanBaharu} kali sejak ${mulaSejak})`, kiniIso, sedia.id]
         );
         return;
