@@ -2848,61 +2848,30 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           }
 
           /* Kad limpah teks di desktop Mac Safari — 2026-08-16, pepijat Izzat.
-             SEJARAH RINGKAS (supaya pembaca akan datang faham kenapa nota ni panjang): percubaan
-             PERTAMA cuma Slot 6 (andaian salah — saya teka nombor slot drpd bacaan JSX, tak
-             pernah sahkan terus drpd DOM sebenar). Izzat uji semula: "masih sama". Data
-             diagnostik Console Safari SEBENAR (console.table [...document.querySelectorAll
-             ('.kad-limpah')].map(el => el.closest('[data-slot]')...)) dedah slot SEBENAR yang
-             bermasalah ialah 2 dan 27 — BUKAN 6. Semakan kod (grep className) sahkan corak
-             min-h-[180px] h-full overflow-hidden yang SAMA PERSIS wujud pada 12 slot:
-             2, 6, 13, 14, 19, 20, 27, 28, 33, 34, 35, 36 — bukan isu satu slot terpencil,
-             satu KELAS pepijat struktur yang sama, cuma 2 daripadanya (setakat bukti sebenar
-             setakat ni) kena kandungan yang cukup panjang utk tercetus.
+             SEJARAH RINGKAS: percubaan PERTAMA cuma Slot 6 (andaian salah — teka drpd bacaan
+             JSX, tak sahkan terus drpd DOM). Izzat uji semula: "masih sama". Data diagnostik
+             Console Safari SEBENAR dedah slot SEBENAR yang bermasalah ialah 2 dan 27. Semakan
+             kod (grep className) dedah corak sama wujud pada 12 slot lain jua (2, 6, 13, 14,
+             19, 20, 27, 28, 33, 34, 35, 36) — cuba disenaraikan satu-satu, tapi Izzat betulkan
+             hala tuju: 3 slot LAGI (3, 16, 30) kongsi corak sama (h-full berkongsi baris dgn
+             jiran MENEGAK) tapi terlepas drpd senarai sebab wrapper luar dia tiada overflow-
+             hidden sendiri (BentoInner di dalam tetap overflow-hidden, risiko sama tetap wujud,
+             cuma belum tercetus dek kandungan semasa).
 
-             PUNCA SEBENAR (disahkan drpd data: fon Source Serif 4 dimuat betul, scrollHeight >
-             clientHeight 9-18px konsisten — bukan pepijat pemasaan fon): setiap slot ni kongsi
-             baris grid dgn jiran MENEGAK (row-span-2, min-h-[380px]) via h-full. Kombinasi
-             h-full + BentoInner min-h-0 + overflow-hidden buat sumbangan min-content slot ni
-             jadi SIFAR pada pengiraan tinggi baris grid — baris tak pernah membesar utk
-             kandungan slot ni sendiri, ia cuma warisi tinggi drpd jiran MENEGAK, tak kira
-             berapa panjang kandungan sebenar. Windows/Chrome kebetulan render teks lebih padat
-             (muat dlm ruang warisan), Safari render lebih tinggi (tak muat) — SEMUA platform
-             kongsi kotak tetap yang SAMA, cuma nasib fon berbeza. Sama corak PERSIS macam
-             pepijat KOMPAK 2026-08-10/12 (nota TINGGI KAD AUTOMATIK di bawah, media query
-             telefon) — mekanisme fix SAMA digunakan di sini.
-
-             FIX: lepaskan h-full/min-h-0 utk KESEMUA 12 slot bercorak sama, supaya tinggi
-             sebenar masing-masing turut menyumbang ke pengiraan baris grid; jiran MENEGAK
-             (masih h-full) meregang ikut kalau perlu, tiada jurang kosong terhasil. Diletak DI
-             SINI (luar media query, "desktop lalai") sebab pepijat berlaku di lebar desktop
-             (Mac) — mobile dah ada perlindungan sendiri (lihat #bento-news-grid [data-slot]
-             { height: auto !important } dlm media query di bawah). */
-          #bento-news-grid [data-slot="2"],
-          #bento-news-grid [data-slot="6"],
-          #bento-news-grid [data-slot="13"],
-          #bento-news-grid [data-slot="14"],
-          #bento-news-grid [data-slot="19"],
-          #bento-news-grid [data-slot="20"],
-          #bento-news-grid [data-slot="27"],
-          #bento-news-grid [data-slot="28"],
-          #bento-news-grid [data-slot="33"],
-          #bento-news-grid [data-slot="34"],
-          #bento-news-grid [data-slot="35"],
-          #bento-news-grid [data-slot="36"] {
+             KEPUTUSAN IZZAT (bukan senarai nombor slot lagi): tiga lapisan jaring keselamatan
+             kad, ikut susunan keutamaan — (1) had aksara [Content Budget Engine, kawalan
+             UTAMA — kandungan tak patut sampai ke peringkat perlu potong langsung], (2)
+             mengembang [kad tumbuh ikut kandungan sebenar bila sedikit terlebih], (3) overflow-
+             hidden/kad-limpah [jaring TERAKHIR sahaja, bukan mekanisme biasa]. SEMUA slot patut
+             ikut susunan ni, bukan sebahagian sahaja — sepadan corak SAMA yg dah terbukti di
+             mobile (#bento-news-grid [data-slot] { height: auto !important }, media query di
+             bawah, "Disahkan empirik: 38/38 kad, 0 limpahan"). Fix ni cuma lanjutkan peraturan
+             SAMA tu ke desktop, tanpa gerbang media query — universal, bukan senarai kes demi
+             kes yg senang tertinggal (spt yg baru berlaku). */
+          #bento-news-grid [data-slot] {
             height: auto !important;
           }
-          #bento-news-grid [data-slot="2"] [data-bento-inner],
-          #bento-news-grid [data-slot="6"] [data-bento-inner],
-          #bento-news-grid [data-slot="13"] [data-bento-inner],
-          #bento-news-grid [data-slot="14"] [data-bento-inner],
-          #bento-news-grid [data-slot="19"] [data-bento-inner],
-          #bento-news-grid [data-slot="20"] [data-bento-inner],
-          #bento-news-grid [data-slot="27"] [data-bento-inner],
-          #bento-news-grid [data-slot="28"] [data-bento-inner],
-          #bento-news-grid [data-slot="33"] [data-bento-inner],
-          #bento-news-grid [data-slot="34"] [data-bento-inner],
-          #bento-news-grid [data-slot="35"] [data-bento-inner],
-          #bento-news-grid [data-slot="36"] [data-bento-inner] {
+          #bento-news-grid [data-bento-inner] {
             min-height: auto !important;
           }
 
