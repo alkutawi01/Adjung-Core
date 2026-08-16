@@ -643,7 +643,23 @@ const CarouselStableBlock: React.FC<{
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => recompute()) : null;
     itemRefs.current.forEach((el) => { if (el && observer) observer.observe(el); });
 
+    // Susulan document.fonts.ready (2026-08-16, pepijat Mac Izzat — kad carousel "tak mengembang"
+    // di Safari walhal Windows/Android/iPhone semua mengembang betul). Fon web (Source Serif 4,
+    // display:swap) boleh reflow teks LEBIH TINGGI SELEPAS ukuran pertama di atas siap — BentoInner
+    // di atas fail ni SUDAH ada susulan sama utk masalah tepat ni (lihat useLayoutEffect BentoInner),
+    // tapi effect ni (yang sebenarnya kunci minHeight carousel, punca kad "mengembang" langsung)
+    // sebelum ni HANYA bergantung pada ResizeObserver. WebKit/Safari ada kuirk pemasaan terdokumen
+    // di mana ResizeObserver kadang tak tercetus utk reflow teks intrinsik dalam struktur grid
+    // bertindan macam ni — ukuran awal (fon sandaran, sebelum fon web sedia) terperangkap jadi
+    // minHeight KEKAL, walhal kandungan sebenar lebih tinggi. Susulan eksplisit ni MEKANISME SAMA
+    // yang sedia berfungsi betul di platform lain (bukan workaround berasingan) — cuma pastikan satu
+    // ukuran SAHIH lagi berlaku selepas fon web BENAR-BENAR sedia, tak kira ResizeObserver tercetus
+    // atau tidak.
+    let dibatal = false;
+    document.fonts?.ready?.then(() => { if (!dibatal) recompute(); });
+
     return () => {
+      dibatal = true;
       observer?.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
