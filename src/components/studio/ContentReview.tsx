@@ -554,7 +554,7 @@ export function ContentReview() {
                         <button
                           type="button"
                           onClick={() => padamPrompt(p.id)}
-                          aria-label={`Padam prompt ${p.name}`}
+                          aria-label={`Padam Arahan AI ${p.name}`}
                           className="text-stone-400 hover:text-[#a8241f] cursor-pointer p-1"
                         >
                           <Trash2 size={12} />
@@ -568,14 +568,14 @@ export function ContentReview() {
                     type="text"
                     value={namaPromptBaharu}
                     onChange={e => setNamaPromptBaharu(e.target.value)}
-                    placeholder="Nama prompt (cth: Betulkan ejaan Melayu baku)"
+                    placeholder="Nama Arahan AI (cth: Betulkan ejaan Melayu baku)"
                     className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-sans text-xs focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                   />
                   <textarea
                     value={teksPromptBaharu}
                     onChange={e => setTeksPromptBaharu(e.target.value)}
                     rows={2}
-                    placeholder="Kandungan prompt (cth: Sila betulkan semua ejaan mengikut ejaan bahasa Melayu baku)"
+                    placeholder="Kandungan Arahan AI (cth: Sila betulkan semua ejaan mengikut ejaan bahasa Melayu baku)"
                     className="w-full px-2.5 py-1.5 border border-stone-300 rounded font-sans text-xs focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                   />
                   <div className="flex justify-end">
@@ -586,7 +586,7 @@ export function ContentReview() {
                       onClick={simpanPromptBaharu}
                       disabled={menyimpanPrompt || !namaPromptBaharu.trim() || !teksPromptBaharu.trim()}
                     >
-                      {menyimpanPrompt ? 'Menyimpan...' : 'Simpan Prompt'}
+                      {menyimpanPrompt ? 'Menyimpan...' : 'Simpan Arahan AI'}
                     </Button>
                   </div>
                 </div>

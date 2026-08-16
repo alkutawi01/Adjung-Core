@@ -95,13 +95,28 @@ sebelum audit ni) — 5 pembetulan konkrit disenaraikan di atas (baris `Dashboar
 `LoginModal.tsx`/`ProfilEditorModal.tsx`) ialah SEMUA isu sebenar yang ditemui zon ni, bukan
 senarai separa.
 
+## Audit Zon 2: Editor Kandungan, Slot — selesai 2026-08-16
+
+Ekstrak menyeluruh 10 fail: `IndeksConsole.tsx`, `DrafSayaConsole.tsx`, `SenaraiSlotConsole.tsx`,
+`TierKadConsole.tsx`, `BidangConsole.tsx`, `PenugasanEditorPopover.tsx`, `SlotManagerModal.tsx`,
+`BarSlotManagerModal.tsx`, `TickerManagementModal.tsx`, `ContentReview.tsx` (dua fail terakhir
+sebahagian sudah disemak semasa fix "Arahan AI"/"sesi AI" sebelum ni — bahagian yang belum
+disentuh diperiksa penuh kali ni). Sama corak Zon 1: majoriti teks sudah kualiti baik. 3
+pembetulan konkrit ditemui:
+
+| Fail/lokasi | Asal | Dibetulkan kepada |
+|---|---|---|
+| `ContentReview.tsx`, borang Arahan AI Semakan (cipta baharu) | "Padam prompt"/"Nama prompt"/"Kandungan prompt"/"Simpan Prompt" | "Padam Arahan AI"/"Nama Arahan AI"/"Kandungan Arahan AI"/"Simpan Arahan AI" — terlepas semasa fix awal, borang cipta BUKAN cuma senarai/label panel |
+| `TickerManagementModal.tsx`, bar status | "MOD LIVE:" | "MOD SEMASA:" — "live" istilah Inggeris tak perlu, "semasa" (mod yang benar-benar berjalan, mungkin beza drpd BORANG kalau ada perubahan belum simpan) lebih tepat |
+| `TickerManagementModal.tsx`, placeholder Kandungan Manual Ticker | "Desk:"/"Source:"/"Url:" bercampur dgn "Tajuk:"/"Huraian ringkas:" DALAM SATU templat contoh | "Bidang:"/"Sumber:"/"URL:" — bahasa rojak dalam SATU contoh; parser sebenar (titleMatch/briefMatch) cuma baca "Tajuk:"/"Huraian ringkas:", medan lain sekadar ilustrasi jadi Melayukan label tak jejas fungsi |
+
 ## Kerja belum selesai (dilaporkan kepada Izzat, belum dijadualkan)
 
 ChatGPT mencadangkan audit bahasa penuh merentasi seluruh repo, dibahagikan ikut zon supaya
 tidak terlepas konteks istilah (bukan "lint bahasa" rawak):
 
-1. ~~Editorium, Tetapan, Modal, Papan Pemuka (Dashboard)~~ — **selesai 2026-08-16**, lihat di atas
-2. Editor Kandungan, Slot
+1. ~~Editorium, Tetapan, Modal, Papan Pemuka (Dashboard)~~ — **selesai 2026-08-16**
+2. ~~Editor Kandungan, Slot~~ — **selesai 2026-08-16**, lihat di atas
 3. Log Masuk/Auth, Onboarding, mesej ralat
 4. Halaman awam (frontpage, Focus View, halaman statik)
 

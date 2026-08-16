@@ -393,8 +393,12 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
           {/* Mod Live Status & Compliance Bar */}
           <div className="bg-[#F9F8F6] p-3.5 rounded-md border border-stone-200 flex flex-wrap items-center justify-between gap-3 text-xs select-none">
             <div className="flex items-center gap-2 flex-wrap">
+              {/* "MOD LIVE" -> "MOD SEMASA" (2026-08-16, audit bahasa Zon 2) -- "live" ialah
+                  perkataan Inggeris tak diperlukan, "semasa" (mod yang benar-benar berjalan
+                  sekarang, mungkin beza drpd BORANG di sebelah kalau ada perubahan belum
+                  disimpan) lebih tepat & konsisten dgn label Melayu sekelilingnya. */}
               <span className="font-mono text-[9px] uppercase tracking-widest text-stone-500 font-extrabold">
-                MOD LIVE:
+                MOD SEMASA:
               </span>
               <span className="px-2.5 py-0.5 rounded text-[9px] font-mono font-extrabold uppercase tracking-widest bg-[var(--color-Adjung-maroon)] text-white border border-[var(--color-Adjung-maroon-dark)]">
                 {(liveMode || 'Manual').toUpperCase()}
@@ -991,7 +995,13 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                     value={formConfig.manualSummary || ''}
                     onChange={(e) => setFormConfig({ ...formConfig, manualSummary: e.target.value })}
                     className="w-full p-3 border border-stone-300 rounded font-mono text-xs focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white leading-relaxed"
-                    placeholder={`Desk: SEMASA\nTajuk: GAPENA Abadikan Tarikh Kelahiran Usman Awang Sebagai Hari Puisi\nHuraian ringkas: Gabungan Persatuan Penulis Nasional Malaysia meluluskan resolusi rasmi.\nSource: Utusan Malaysia\nUrl: https://www.utusan.com.my/berita/1`}
+                    // "Desk:"/"Source:"/"Url:" -> "Bidang:"/"Sumber:"/"URL:" (2026-08-16, audit
+                    // bahasa Zon 2) -- contoh placeholder ni dahulu campur label Inggeris+Melayu
+                    // dalam SATU templat ("Desk:"/"Source:"/"Url:" di sisi "Tajuk:"/"Huraian
+                    // ringkas:"). Parser sebenar (lihat titleMatch/briefMatch atas) hanya baca
+                    // "Tajuk:"/"Huraian ringkas:" -- medan lain sekadar ilustrasi, jadi tukar
+                    // label kepada Melayu tak jejas fungsi, cuma buang bahasa rojak dlm contoh.
+                    placeholder={`Bidang: SEMASA\nTajuk: GAPENA Abadikan Tarikh Kelahiran Usman Awang Sebagai Hari Puisi\nHuraian ringkas: Gabungan Persatuan Penulis Nasional Malaysia meluluskan resolusi rasmi.\nSumber: Utusan Malaysia\nURL: https://www.utusan.com.my/berita/1`}
                   />
                 </div>
               </div>
