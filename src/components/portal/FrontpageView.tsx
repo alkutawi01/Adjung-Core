@@ -2847,6 +2847,34 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             display: none !important;
           }
 
+          /* Slot 6 (STANDARD, "Selangor") — 2026-08-16, pepijat Mac Izzat, disahkan drpd data
+             diagnostik Console Safari sebenar (fon Source Serif 4 dimuat betul, scrollHeight >
+             clientHeight 9-18px konsisten — bukan pepijat pemasaan fon). PUNCA SEBENAR: corak
+             SAMA PERSIS macam pepijat KOMPAK 2026-08-10/12 (lihat nota TINGGI KAD AUTOMATIK di
+             bawah, dlm media query telefon) — Slot 6 kongsi baris grid dgn Slot 12 (MENEGAK,
+             row-span-2, min-h-[380px]) via h-full; kombinasi h-full + BentoInner min-h-0 +
+             overflow-hidden buat sumbangan min-content Slot 6 jadi SIFAR pada pengiraan tinggi
+             baris grid, jadi baris tak pernah membesar utk kandungan Slot 6 sendiri — ia cuma
+             warisi tinggi drpd Slot 12, tak kira berapa panjang kandungan sebenar Slot 6. Fon
+             Windows/Chrome kebetulan render teks lebih padat (muat dlm ruang warisan tu), Safari
+             render lebih tinggi (tak muat) — DUA-DUA platform sebenarnya kongsi kotak tetap yang
+             SAMA, cuma nasib fon berbeza.
+             FIX: mekanisme SAMA yg dah terbukti utk KOMPAK (di bawah, media query telefon) —
+             lepaskan h-full/min-h-0 SUPAYA Slot 6 turut menyumbang tinggi sebenar ke pengiraan
+             baris; Slot 12 (masih h-full) meregang ikut kalau perlu, tiada jurang kosong
+             terhasil. Diletak DI SINI (luar media query, "desktop lalai") sebab pepijat ni
+             berlaku di lebar desktop (Mac), bukan telefon — mobile dah ada perlindungan sendiri
+             (lihat #bento-news-grid [data-slot] { height: auto !important } dlm media query).
+             Skop KETAT kpd Slot 6 sahaja — slot lain yg turut kongsi baris dgn MENEGAK BELUM
+             disahkan bermasalah, elak ubah tanpa bukti diagnostik sebenar (lihat CLAUDE.md —
+             uji dgn berhati-hati, tiada sandaran DB boleh dipercayai). */
+          #bento-news-grid [data-slot="6"] {
+            height: auto !important;
+          }
+          #bento-news-grid [data-slot="6"] [data-bento-inner] {
+            min-height: auto !important;
+          }
+
           @media (max-width: 767px) {
             /* TELEFON — hidupkan semula soft hyphen. Nilai manual bermakna: pecah HANYA pada titik
                yang kita tetapkan sendiri (U+00AD daripada PemenggalSukuKata.js), tidak pernah
