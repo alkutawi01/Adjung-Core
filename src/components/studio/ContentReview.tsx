@@ -424,8 +424,20 @@ export function ContentReview() {
         ? `Gagal: ${sebabGagal.join(' | ')}`
         : `Selesai: ${done} disimpan${failed > 0 ? `, ${failed} gagal (${sebabGagal.join(' | ')})` : ''}.`
     );
-    langkauResetStatusRef.current = true;
-    loadItems();
+    // Jangan muat semula drpd pelayan bila ADA kegagalan (2026-08-16, kemarahan Izzat sah —
+    // "SISTEM BODOH... saya kena tulis semula dan semula") — sebelum ni loadItems() dipanggil
+    // TANPA SYARAT lepas setiap cubaan simpan, walau SEMUA gagal. loadItems() tukar rujukan
+    // `items`/`pagedBulkItems`, tercetus effect resync di atas (setBulkText(buildBulkText(...))),
+    // yang TULIS GANTI kotak teks dgn versi PELAYAN (tak berubah sebab simpan gagal) — suntingan
+    // editor (termasuk bahagian yg GAGAL, yg dia baru cuba betulkan) HILANG SENYAP, kena taip
+    // semula dari kosong. Kini cuma muat semula bila TIADA kegagalan langsung — kalau ada,
+    // biarkan kotak teks kekal PERSIS macam yg editor taip (termasuk item yg berjaya, yg dah pun
+    // padan pelayan sekarang), supaya dia boleh betulkan sebab kegagalan SAHAJA dan cuba lagi,
+    // bukan tulis semula segala-galanya.
+    if (failed === 0) {
+      langkauResetStatusRef.current = true;
+      loadItems();
+    }
     setBulkSaving(false);
   };
 
