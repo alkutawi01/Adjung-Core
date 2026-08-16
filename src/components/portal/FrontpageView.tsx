@@ -16,6 +16,11 @@ import { WorldClockStrip } from './WorldClockStrip';
 import { BarCard } from './cards/BarCard';
 import { BarCardExpandedPanel } from './cards/BarCardExpandedPanel';
 import { KompakCardTeks } from './cards/KompakCardTeks';
+import { HeroCardTeks } from './cards/HeroCardTeks';
+import { MenegakCardTeks } from './cards/MenegakCardTeks';
+import { StandardCardTeks } from './cards/StandardCardTeks';
+import { SegiEmpatMediumCardTeks } from './cards/SegiEmpatMediumCardTeks';
+import { SegiEmpatSmallCardTeks } from './cards/SegiEmpatSmallCardTeks';
 import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
 import { BidangIcon } from '../common/BidangIcon';
@@ -2924,8 +2929,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       renderItem={(it) => (
                         <>
                           <div className="font-mono text-[9px] md:text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                          <h3 className="font-serif text-[16px] md:text-3xl leading-tight font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-100/90 leading-relaxed font-normal mt-3" style={getCardTheme(bentoNewsItems[0]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
+                          <HeroCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[0]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         </>
                       )}
                     />
@@ -2945,7 +2949,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[1] && (
                 <div
                   data-slot={1}
-                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group`}
+                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
                   <BentoInner itemKey="1" className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
                     <div className="space-y-4">
@@ -2956,8 +2960,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         renderItem={(it) => (
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <h3 className="font-serif text-[14px] md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-100/95 leading-relaxed font-normal mt-3" style={getCardTheme(bentoNewsItems[1]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
+                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[1]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                           </>
                         )}
                       />
@@ -2974,7 +2977,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[2] && (
                 <div
                   data-slot={2}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="flex-1">
@@ -2985,8 +2988,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         renderItem={(it) => (
                           <>
                             <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <h3 className="font-serif text-[15px] md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[2]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
+                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[2]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                           </>
                         )}
                       />
@@ -3003,7 +3005,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[3] && (
                 <div
                   data-slot={3}
-                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group`}
+                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
                  style={getCardTheme(bentoNewsItems[3], 'transparent').cardStyle} >
                   <BentoInner itemKey="3" className="gap-3" aiProvider={bentoNewsItems[3].aiProvider}>
                     <div>
@@ -3013,10 +3015,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(3, bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                            <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[3]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                          </>
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[3]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -3103,32 +3102,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[6] && (
                 <div
                   data-slot={6}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden group`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
-                  <div className="flex-1">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]]}
-                      activeIndex={bentoNewsItems[6].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(6, bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
-                          <h3 className="font-serif text-[15px] md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200 mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[6]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[6].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[6]).sourceStyle}>
-                    <span>{bentoNewsItems[6].source}</span>
-                    {!bentoNewsItems[6].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[6].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[6].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="6" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[6].aiProvider}>
+                    <div className="flex-1">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]]}
+                        activeIndex={bentoNewsItems[6].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(6, bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[6]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[6].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[6]).sourceStyle}>
+                      <span>{bentoNewsItems[6].source}</span>
+                      {!bentoNewsItems[6].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[6].originalDate) || formatBentoDate(bentoNewsItems[6].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
+                </div>
               )}
 
               {/* Right Column: Vertical (Index 12) */}
@@ -3136,32 +3131,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 <div
                   data-slot={12}
                   ref={bar1SiblingLocks.idx12.ref}
-                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full group`}
+                  className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={{ ...getCardTheme(bentoNewsItems[12], 'transparent').cardStyle, ...bar1SiblingLocks.idx12.lockStyle }} >
-                  <div className="space-y-4">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]]}
-                      activeIndex={bentoNewsItems[12].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(12, bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[12].publishedAt)}</span>
-                          <h3 className="font-serif text-[14px] md:text-2xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-3" style={getCardTheme(bentoNewsItems[12]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[12].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[12]).sourceStyle}>
-                    <span>{bentoNewsItems[12].source}</span>
-                    {!bentoNewsItems[12].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[12].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[12].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="12" className="gap-3" aiProvider={bentoNewsItems[12].aiProvider}>
+                    <div className="space-y-4">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]]}
+                        activeIndex={bentoNewsItems[12].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(12, bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[12]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[12].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[12]).sourceStyle}>
+                      <span>{bentoNewsItems[12].source}</span>
+                      {!bentoNewsItems[12].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[12].originalDate) || formatBentoDate(bentoNewsItems[12].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[12].publishedAt)}</span>
+                </div>
               )}
 
               <div className="col-span-2 flex flex-col h-full md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2" data-bar-cluster="">
@@ -3196,33 +3187,26 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 <div
                   data-slot={11}
                   ref={bar1SiblingLocks.idx11.ref}
-                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full group`}
+                  className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
                  style={{ ...getCardTheme(bentoNewsItems[11], 'transparent').cardStyle, ...bar1SiblingLocks.idx11.lockStyle }} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{<EyebrowKad item={bentoNewsItems[11]} bidang={bidangUntuk(bentoNewsItems[11])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
-                      activeIndex={bentoNewsItems[11].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(11, bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[11]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                  <BentoInner itemKey="11" className="gap-3" aiProvider={bentoNewsItems[11].aiProvider}>
+                    <div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[11]).deskStyle}>{<EyebrowKad item={bentoNewsItems[11]} bidang={bidangUntuk(bentoNewsItems[11])} onCari={cariDariEyebrow} />}</div>
+                      <CarouselStableBlock
+                        items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
+                        activeIndex={bentoNewsItems[11].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(11, bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]], dir)}
+                        renderItem={(it) => (
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[11]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                        )}
+                      />
+                    </div>
                     <a href={bentoNewsItems[11].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[11]).sourceStyle}>
                       <span>{bentoNewsItems[11].source}</span>
                       {!bentoNewsItems[11].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[11].originalDate) || formatBentoDate(bentoNewsItems[11].publishedAt))}</span>}
                     </a>
-
-                
-                  {bentoNewsItems[11].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[11].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
+                </div>
               )}
 
             </div>
@@ -3235,65 +3219,51 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[13] && (
                 <div 
                   data-slot={13}
-                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`} 
+                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[13], 'transparent').cardStyle} >
-                  <div className="space-y-2">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{<EyebrowKad item={bentoNewsItems[13]} bidang={bidangUntuk(bentoNewsItems[13])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[13].publishedAt)}</span>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]]}
-                      activeIndex={bentoNewsItems[13].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(13, bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[13]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                  <BentoInner itemKey="13" className="gap-3" aiProvider={bentoNewsItems[13].aiProvider}>
+                    <div className="space-y-2">
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[13]).deskStyle}>{<EyebrowKad item={bentoNewsItems[13]} bidang={bidangUntuk(bentoNewsItems[13])} onCari={cariDariEyebrow} />}</div>
+                      <CarouselStableBlock
+                        items={bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]]}
+                        activeIndex={bentoNewsItems[13].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(13, bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]], dir)}
+                        renderItem={(it) => (
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[13]).briefStyle} hoverClassName="hover:text-[#E9D8A6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                        )}
+                      />
+                    </div>
                     <a href={bentoNewsItems[13].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[13]).sourceStyle}>
                       <span>{bentoNewsItems[13].source}</span>
                       {!bentoNewsItems[13].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[13].originalDate) || formatBentoDate(bentoNewsItems[13].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[13].originalDate) || formatBentoDate(bentoNewsItems[13].publishedAt))}</span>}
                     </a>
-
-                
-                  {bentoNewsItems[13].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[13].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[13].publishedAt)}</span>
+                </div>
               )}
 
               {bentoNewsItems[14] && (
                 <div 
                   data-slot={14}
-                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden group`} 
+                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[14], 'transparent').cardStyle} >
-                  <div className="space-y-2">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{<EyebrowKad item={bentoNewsItems[14]} bidang={bidangUntuk(bentoNewsItems[14])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[14].publishedAt)}</span>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]]}
-                      activeIndex={bentoNewsItems[14].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(14, bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-xl leading-snug font-medium group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[14]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                  <BentoInner itemKey="14" className="gap-3" aiProvider={bentoNewsItems[14].aiProvider}>
+                    <div className="space-y-2">
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[14]).deskStyle}>{<EyebrowKad item={bentoNewsItems[14]} bidang={bidangUntuk(bentoNewsItems[14])} onCari={cariDariEyebrow} />}</div>
+                      <CarouselStableBlock
+                        items={bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]]}
+                        activeIndex={bentoNewsItems[14].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(14, bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]], dir)}
+                        renderItem={(it) => (
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[14]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                        )}
+                      />
+                    </div>
                     <a href={bentoNewsItems[14].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[14]).sourceStyle}>
                       <span>{bentoNewsItems[14].source}</span>
                       {!bentoNewsItems[14].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[14].originalDate) || formatBentoDate(bentoNewsItems[14].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[14].originalDate) || formatBentoDate(bentoNewsItems[14].publishedAt))}</span>}
                     </a>
-
-                
-                  {bentoNewsItems[14].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[14].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[14].publishedAt)}</span>
+                </div>
               )}
             </div>
 
@@ -3310,30 +3280,26 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   data-slot={15}
                   className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={getCardTheme(bentoNewsItems[15], 'transparent').cardStyle} >
-                  <div className="space-y-4">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]]}
-                      activeIndex={bentoNewsItems[15].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(15, bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[15].publishedAt)}</span>
-                          <h3 className="font-serif text-[14px] md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-3" style={getCardTheme(bentoNewsItems[15]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[15].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[15]).sourceStyle}>
-                    <span>{bentoNewsItems[15].source}</span>
-                    {!bentoNewsItems[15].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[15].originalDate) || formatBentoDate(bentoNewsItems[15].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[15].originalDate) || formatBentoDate(bentoNewsItems[15].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[15].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[15].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="15" className="gap-3" aiProvider={bentoNewsItems[15].aiProvider}>
+                    <div className="space-y-4">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]]}
+                        activeIndex={bentoNewsItems[15].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(15, bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[15]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[15].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[15]).sourceStyle}>
+                      <span>{bentoNewsItems[15].source}</span>
+                      {!bentoNewsItems[15].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[15].originalDate) || formatBentoDate(bentoNewsItems[15].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[15].originalDate) || formatBentoDate(bentoNewsItems[15].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[15].publishedAt)}</span>
+                </div>
               )}
 
               {/* Square (Index 16) */}
@@ -3342,31 +3308,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   data-slot={16}
                   className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
                  style={getCardTheme(bentoNewsItems[16], 'transparent').cardStyle} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[16]).deskStyle}>{<EyebrowKad item={bentoNewsItems[16]} bidang={bidangUntuk(bentoNewsItems[16])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[16].publishedAt)}</span>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]]}
-                      activeIndex={bentoNewsItems[16].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(16, bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[16]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                  <BentoInner itemKey="16" className="gap-3" aiProvider={bentoNewsItems[16].aiProvider}>
+                    <div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[16]).deskStyle}>{<EyebrowKad item={bentoNewsItems[16]} bidang={bidangUntuk(bentoNewsItems[16])} onCari={cariDariEyebrow} />}</div>
+                      <CarouselStableBlock
+                        items={bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]]}
+                        activeIndex={bentoNewsItems[16].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(16, bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]], dir)}
+                        renderItem={(it) => (
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[16]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                        )}
+                      />
+                    </div>
                     <a href={bentoNewsItems[16].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[16]).sourceStyle}>
                       <span>{bentoNewsItems[16].source}</span>
                       {!bentoNewsItems[16].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[16].originalDate) || formatBentoDate(bentoNewsItems[16].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[16].originalDate) || formatBentoDate(bentoNewsItems[16].publishedAt))}</span>}
                     </a>
-
-                
-                  {bentoNewsItems[16].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[16].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[16].publishedAt)}</span>
+                </div>
               )}
 
               {/* Two Stacked Compacts (Indices 17 & 18) */}
@@ -3439,32 +3398,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[19] && (
                 <div 
                   data-slot={19}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[19], 'transparent').cardStyle} >
-                  <div className="flex-1">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]]}
-                      activeIndex={bentoNewsItems[19].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(19, bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[19].publishedAt)}</span>
-                          <h3 className="font-serif text-[15px] md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[19]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[19].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[19]).sourceStyle}>
-                    <span>{bentoNewsItems[19].source}</span>
-                    {!bentoNewsItems[19].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[19].originalDate) || formatBentoDate(bentoNewsItems[19].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[19].originalDate) || formatBentoDate(bentoNewsItems[19].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[19].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[19].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="19" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[19].aiProvider}>
+                    <div className="flex-1">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]]}
+                        activeIndex={bentoNewsItems[19].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(19, bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[19]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[19].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[19]).sourceStyle}>
+                      <span>{bentoNewsItems[19].source}</span>
+                      {!bentoNewsItems[19].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[19].originalDate) || formatBentoDate(bentoNewsItems[19].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[19].originalDate) || formatBentoDate(bentoNewsItems[19].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[19].publishedAt)}</span>
+                </div>
               )}
 
             </div>
@@ -3483,62 +3438,54 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   ref={bar2SiblingLocks.idx26.ref}
                   className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={{ ...getCardTheme(bentoNewsItems[26], 'transparent').cardStyle, ...bar2SiblingLocks.idx26.lockStyle }} >
-                  <div className="space-y-4">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]]}
-                      activeIndex={bentoNewsItems[26].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(26, bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[26].publishedAt)}</span>
-                          <h3 className="font-serif text-[14px] md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-3" style={getCardTheme(bentoNewsItems[26]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[26].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[26]).sourceStyle}>
-                    <span>{bentoNewsItems[26].source}</span>
-                    {!bentoNewsItems[26].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[26].originalDate) || formatBentoDate(bentoNewsItems[26].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[26].originalDate) || formatBentoDate(bentoNewsItems[26].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[26].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[26].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="26" className="gap-3" aiProvider={bentoNewsItems[26].aiProvider}>
+                    <div className="space-y-4">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]]}
+                        activeIndex={bentoNewsItems[26].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(26, bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[26]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[26].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[26]).sourceStyle}>
+                      <span>{bentoNewsItems[26].source}</span>
+                      {!bentoNewsItems[26].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[26].originalDate) || formatBentoDate(bentoNewsItems[26].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[26].originalDate) || formatBentoDate(bentoNewsItems[26].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[26].publishedAt)}</span>
+                </div>
               )}
 
               {/* Right Top: Horizontal spanning across Col 3-6 (Index 20) */}
               {bentoNewsItems[20] && (
                 <div 
                   data-slot={20}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[20], 'transparent').cardStyle} >
-                  <div className="flex-1">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]]}
-                      activeIndex={bentoNewsItems[20].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(20, bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[20].publishedAt)}</span>
-                          <h3 className="font-serif text-[15px] md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[20]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[20].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[20]).sourceStyle}>
-                    <span>{bentoNewsItems[20].source}</span>
-                    {!bentoNewsItems[20].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[20].originalDate) || formatBentoDate(bentoNewsItems[20].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[20].originalDate) || formatBentoDate(bentoNewsItems[20].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[20].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[20].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="20" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[20].aiProvider}>
+                    <div className="flex-1">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]]}
+                        activeIndex={bentoNewsItems[20].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(20, bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[20]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[20].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[20]).sourceStyle}>
+                      <span>{bentoNewsItems[20].source}</span>
+                      {!bentoNewsItems[20].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[20].originalDate) || formatBentoDate(bentoNewsItems[20].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[20].originalDate) || formatBentoDate(bentoNewsItems[20].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[20].publishedAt)}</span>
+                </div>
               )}
 
               {/* Right Bottom Left: Square (Index 25) */}
@@ -3548,31 +3495,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   ref={bar2SiblingLocks.idx25.ref}
                   className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
                  style={{ ...getCardTheme(bentoNewsItems[25], 'transparent').cardStyle, ...bar2SiblingLocks.idx25.lockStyle }} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{<EyebrowKad item={bentoNewsItems[25]} bidang={bidangUntuk(bentoNewsItems[25])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[25].publishedAt)}</span>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]]}
-                      activeIndex={bentoNewsItems[25].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(25, bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[25]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                  <BentoInner itemKey="25" className="gap-3" aiProvider={bentoNewsItems[25].aiProvider}>
+                    <div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[25]).deskStyle}>{<EyebrowKad item={bentoNewsItems[25]} bidang={bidangUntuk(bentoNewsItems[25])} onCari={cariDariEyebrow} />}</div>
+                      <CarouselStableBlock
+                        items={bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]]}
+                        activeIndex={bentoNewsItems[25].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(25, bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]], dir)}
+                        renderItem={(it) => (
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[25]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                        )}
+                      />
+                    </div>
                     <a href={bentoNewsItems[25].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[25]).sourceStyle}>
                       <span>{bentoNewsItems[25].source}</span>
                       {!bentoNewsItems[25].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[25].originalDate) || formatBentoDate(bentoNewsItems[25].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[25].originalDate) || formatBentoDate(bentoNewsItems[25].publishedAt))}</span>}
                     </a>
-
-                
-                  {bentoNewsItems[25].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[25].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[25].publishedAt)}</span>
+                </div>
               )}
 
               <div className="col-span-2 flex flex-col h-full md:col-span-2 md:relative md:flex md:flex-col md:justify-between md:gap-2" data-bar-cluster="">
@@ -3610,65 +3550,51 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[27] && (
                 <div 
                   data-slot={27}
-                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`} 
+                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[27], 'transparent').cardStyle} >
-                  <div className="space-y-2">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[27]).deskStyle}>{<EyebrowKad item={bentoNewsItems[27]} bidang={bidangUntuk(bentoNewsItems[27])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[27].publishedAt)}</span>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]]}
-                      activeIndex={bentoNewsItems[27].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(27, bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[27]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                  <BentoInner itemKey="27" className="gap-3" aiProvider={bentoNewsItems[27].aiProvider}>
+                    <div className="space-y-2">
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[27]).deskStyle}>{<EyebrowKad item={bentoNewsItems[27]} bidang={bidangUntuk(bentoNewsItems[27])} onCari={cariDariEyebrow} />}</div>
+                      <CarouselStableBlock
+                        items={bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]]}
+                        activeIndex={bentoNewsItems[27].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(27, bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]], dir)}
+                        renderItem={(it) => (
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[27]).briefStyle} hoverClassName="hover:text-[#E9D8A6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                        )}
+                      />
+                    </div>
                     <a href={bentoNewsItems[27].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[27]).sourceStyle}>
                       <span>{bentoNewsItems[27].source}</span>
                       {!bentoNewsItems[27].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[27].originalDate) || formatBentoDate(bentoNewsItems[27].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[27].originalDate) || formatBentoDate(bentoNewsItems[27].publishedAt))}</span>}
                     </a>
-
-                
-                  {bentoNewsItems[27].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[27].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[27].publishedAt)}</span>
+                </div>
               )}
 
               {bentoNewsItems[28] && (
                 <div 
                   data-slot={28}
-                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`} 
+                  className={`col-span-3 md:col-span-3 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[28], 'transparent').cardStyle} >
-                  <div className="space-y-2">
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[28]).deskStyle}>{<EyebrowKad item={bentoNewsItems[28]} bidang={bidangUntuk(bentoNewsItems[28])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[28].publishedAt)}</span>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]]}
-                      activeIndex={bentoNewsItems[28].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(28, bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-xl leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[28]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                  <BentoInner itemKey="28" className="gap-3" aiProvider={bentoNewsItems[28].aiProvider}>
+                    <div className="space-y-2">
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold" style={getCardTheme(bentoNewsItems[28]).deskStyle}>{<EyebrowKad item={bentoNewsItems[28]} bidang={bidangUntuk(bentoNewsItems[28])} onCari={cariDariEyebrow} />}</div>
+                      <CarouselStableBlock
+                        items={bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]]}
+                        activeIndex={bentoNewsItems[28].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(28, bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]], dir)}
+                        renderItem={(it) => (
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[28]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                        )}
+                      />
+                    </div>
                     <a href={bentoNewsItems[28].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[28]).sourceStyle}>
                       <span>{bentoNewsItems[28].source}</span>
                       {!bentoNewsItems[28].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[28].originalDate) || formatBentoDate(bentoNewsItems[28].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[28].originalDate) || formatBentoDate(bentoNewsItems[28].publishedAt))}</span>}
                     </a>
-
-                
-                  {bentoNewsItems[28].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[28].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[28].publishedAt)}</span>
+                </div>
               )}
             </div>
 
@@ -3685,30 +3611,26 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   data-slot={29}
                   className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={getCardTheme(bentoNewsItems[29], 'transparent').cardStyle} >
-                  <div className="space-y-4">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]]}
-                      activeIndex={bentoNewsItems[29].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(29, bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[29].publishedAt)}</span>
-                          <h3 className="font-serif text-[14px] md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-3" style={getCardTheme(bentoNewsItems[29]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[29].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[29]).sourceStyle}>
-                    <span>{bentoNewsItems[29].source}</span>
-                    {!bentoNewsItems[29].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[29].originalDate) || formatBentoDate(bentoNewsItems[29].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[29].originalDate) || formatBentoDate(bentoNewsItems[29].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[29].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[29].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="29" className="gap-3" aiProvider={bentoNewsItems[29].aiProvider}>
+                    <div className="space-y-4">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]]}
+                        activeIndex={bentoNewsItems[29].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(29, bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[29]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[29].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[29]).sourceStyle}>
+                      <span>{bentoNewsItems[29].source}</span>
+                      {!bentoNewsItems[29].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[29].originalDate) || formatBentoDate(bentoNewsItems[29].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[29].originalDate) || formatBentoDate(bentoNewsItems[29].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[29].publishedAt)}</span>
+                </div>
               )}
 
               {/* Square (Index 30) */}
@@ -3717,31 +3639,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   data-slot={30}
                   className={`col-span-2 md:col-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full`}
                  style={getCardTheme(bentoNewsItems[30], 'transparent').cardStyle} >
-                  <div>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[30]).deskStyle}>{<EyebrowKad item={bentoNewsItems[30]} bidang={bidangUntuk(bentoNewsItems[30])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[30].publishedAt)}</span>
-                    <CarouselStableBlock
-                      items={bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]]}
-                      activeIndex={bentoNewsItems[30].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(30, bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[30]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                  <BentoInner itemKey="30" className="gap-3" aiProvider={bentoNewsItems[30].aiProvider}>
+                    <div>
+                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[30]).deskStyle}>{<EyebrowKad item={bentoNewsItems[30]} bidang={bidangUntuk(bentoNewsItems[30])} onCari={cariDariEyebrow} />}</div>
+                      <CarouselStableBlock
+                        items={bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]]}
+                        activeIndex={bentoNewsItems[30].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(30, bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]], dir)}
+                        renderItem={(it) => (
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[30]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                        )}
+                      />
+                    </div>
                     <a href={bentoNewsItems[30].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[30]).sourceStyle}>
                       <span>{bentoNewsItems[30].source}</span>
                       {!bentoNewsItems[30].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[30].originalDate) || formatBentoDate(bentoNewsItems[30].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[30].originalDate) || formatBentoDate(bentoNewsItems[30].publishedAt))}</span>}
                     </a>
-
-                
-                  {bentoNewsItems[30].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[30].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[30].publishedAt)}</span>
+                </div>
               )}
 
               {/* Two Stacked Compacts (Indices 31 & 32) */}
@@ -3814,32 +3729,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[33] && (
                 <div 
                   data-slot={33}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[33], 'transparent').cardStyle} >
-                  <div className="flex-1">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]]}
-                      activeIndex={bentoNewsItems[33].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(33, bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[33].publishedAt)}</span>
-                          <h3 className="font-serif text-[15px] md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[33]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[33].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[33]).sourceStyle}>
-                    <span>{bentoNewsItems[33].source}</span>
-                    {!bentoNewsItems[33].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[33].originalDate) || formatBentoDate(bentoNewsItems[33].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[33].originalDate) || formatBentoDate(bentoNewsItems[33].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[33].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[33].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="33" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[33].aiProvider}>
+                    <div className="flex-1">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]]}
+                        activeIndex={bentoNewsItems[33].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(33, bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[33]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[33].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[33]).sourceStyle}>
+                      <span>{bentoNewsItems[33].source}</span>
+                      {!bentoNewsItems[33].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[33].originalDate) || formatBentoDate(bentoNewsItems[33].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[33].originalDate) || formatBentoDate(bentoNewsItems[33].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[33].publishedAt)}</span>
+                </div>
               )}
 
             </div>
@@ -3855,32 +3766,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               {bentoNewsItems[34] && (
                 <div
                   data-slot={34}
-                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 min-h-[180px] h-full overflow-hidden`}
+                  className={`col-span-4 md:col-span-4 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                  style={getCardTheme(bentoNewsItems[34], 'transparent').cardStyle} >
-                  <div className="flex-1">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]]}
-                      activeIndex={bentoNewsItems[34].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(34, bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[34].publishedAt)}</span>
-                          <h3 className="font-serif text-[15px] md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[34]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[34].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[34]).sourceStyle}>
-                    <span>{bentoNewsItems[34].source}</span>
-                    {!bentoNewsItems[34].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[34].originalDate) || formatBentoDate(bentoNewsItems[34].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[34].originalDate) || formatBentoDate(bentoNewsItems[34].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[34].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[34].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="34" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[34].aiProvider}>
+                    <div className="flex-1">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]]}
+                        activeIndex={bentoNewsItems[34].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(34, bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[34]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[34].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={getCardTheme(bentoNewsItems[34]).sourceStyle}>
+                      <span>{bentoNewsItems[34].source}</span>
+                      {!bentoNewsItems[34].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[34].originalDate) || formatBentoDate(bentoNewsItems[34].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[34].originalDate) || formatBentoDate(bentoNewsItems[34].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[34].publishedAt)}</span>
+                </div>
               )}
 
               {/* Right Column: Vertical (Index 37) */}
@@ -3889,30 +3796,26 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   data-slot={37}
                   className={`col-span-2 row-span-2 md:col-span-2 md:row-span-2 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[380px] h-full`}
                  style={getCardTheme(bentoNewsItems[37], 'transparent').cardStyle} >
-                  <div className="space-y-4">
-                    <CarouselStableBlock
-                      items={bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]]}
-                      activeIndex={bentoNewsItems[37].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(37, bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[37].publishedAt)}</span>
-                          <h3 className="font-serif text-[14px] md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-3" style={getCardTheme(bentoNewsItems[37]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
-                  <a href={bentoNewsItems[37].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>
-                    <span>{bentoNewsItems[37].source}</span>
-                    {!bentoNewsItems[37].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt))}</span>}
-                  </a>
-                
-                  {bentoNewsItems[37].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[37].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                  <BentoInner itemKey="37" className="gap-3" aiProvider={bentoNewsItems[37].aiProvider}>
+                    <div className="space-y-4">
+                      <CarouselStableBlock
+                        items={bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]]}
+                        activeIndex={bentoNewsItems[37].carouselIndex || 0}
+                        onNavigate={(dir) => majuKarusel(37, bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]], dir)}
+                        renderItem={(it) => (
+                          <>
+                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
+                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[37]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          </>
+                        )}
+                      />
+                    </div>
+                    <a href={bentoNewsItems[37].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[37]).sourceStyle}>
+                      <span>{bentoNewsItems[37].source}</span>
+                      {!bentoNewsItems[37].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[37].originalDate) || formatBentoDate(bentoNewsItems[37].publishedAt))}</span>}
+                    </a>
+                  </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[37].publishedAt)}</span>
+                </div>
               )}
 
               {/* Left Bottom: Two Side-by-Side elements in Col 1-4 */}
@@ -3922,31 +3825,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   data-slot={35}
                   className={`col-span-2 md:col-span-1 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                    style={getCardTheme(bentoNewsItems[35], 'transparent').cardStyle} >
-                    <div>
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{<EyebrowKad item={bentoNewsItems[35]} bidang={bidangUntuk(bentoNewsItems[35])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[35].publishedAt)}</span>
-                      <CarouselStableBlock
-                      items={bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]]}
-                      activeIndex={bentoNewsItems[35].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(35, bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-[#F5EBE6] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[35]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                    <BentoInner itemKey="35" className="gap-3" aiProvider={bentoNewsItems[35].aiProvider}>
+                      <div>
+                        <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2" style={getCardTheme(bentoNewsItems[35]).deskStyle}>{<EyebrowKad item={bentoNewsItems[35]} bidang={bidangUntuk(bentoNewsItems[35])} onCari={cariDariEyebrow} />}</div>
+                        <CarouselStableBlock
+                          items={bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]]}
+                          activeIndex={bentoNewsItems[35].carouselIndex || 0}
+                          onNavigate={(dir) => majuKarusel(35, bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]], dir)}
+                          renderItem={(it) => (
+                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[35]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          )}
+                        />
+                      </div>
                       <a href={bentoNewsItems[35].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[35]).sourceStyle}>
                         <span>{bentoNewsItems[35].source}</span>
                         {!bentoNewsItems[35].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[35].originalDate) || formatBentoDate(bentoNewsItems[35].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[35].originalDate) || formatBentoDate(bentoNewsItems[35].publishedAt))}</span>}
                       </a>
-
-                  
-                  {bentoNewsItems[35].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[35].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                    </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[35].publishedAt)}</span>
+                  </div>
                 )}
 
                 {bentoNewsItems[36] && (
@@ -3954,31 +3850,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   data-slot={36}
                   className={`col-span-2 md:col-span-1 p-4 md:p-6 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col gap-3 min-h-[180px] h-full overflow-hidden`}
                    style={getCardTheme(bentoNewsItems[36], 'transparent').cardStyle} >
-                    <div>
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{<EyebrowKad item={bentoNewsItems[36]} bidang={bidangUntuk(bentoNewsItems[36])} onCari={cariDariEyebrow} />}</div><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[36].publishedAt)}</span>
-                      <CarouselStableBlock
-                      items={bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]]}
-                      activeIndex={bentoNewsItems[36].carouselIndex || 0}
-                      onNavigate={(dir) => majuKarusel(36, bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]], dir)}
-                      renderItem={(it) => (
-                        <>
-                          <h3 className="font-serif text-[14px] md:text-lg leading-snug font-medium hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                          <p className="font-serif text-xs text-stone-300/90 leading-relaxed font-normal mt-2" style={getCardTheme(bentoNewsItems[36]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
-                        </>
-                      )}
-                    />
-                  </div>
+                    <BentoInner itemKey="36" className="gap-3" aiProvider={bentoNewsItems[36].aiProvider}>
+                      <div>
+                        <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[36]).deskStyle}>{<EyebrowKad item={bentoNewsItems[36]} bidang={bidangUntuk(bentoNewsItems[36])} onCari={cariDariEyebrow} />}</div>
+                        <CarouselStableBlock
+                          items={bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]]}
+                          activeIndex={bentoNewsItems[36].carouselIndex || 0}
+                          onNavigate={(dir) => majuKarusel(36, bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]], dir)}
+                          renderItem={(it) => (
+                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[36]).briefStyle} hoverClassName="hover:text-stone-300" briefClassName="text-stone-300/90" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          )}
+                        />
+                      </div>
                       <a href={bentoNewsItems[36].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[36]).sourceStyle}>
                         <span>{bentoNewsItems[36].source}</span>
                         {!bentoNewsItems[36].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[36].originalDate) || formatBentoDate(bentoNewsItems[36].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(bentoNewsItems[36].originalDate) || formatBentoDate(bentoNewsItems[36].publishedAt))}</span>}
                       </a>
-
-                  
-                  {bentoNewsItems[36].aiProvider && (
-                    <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
-                      {bentoNewsItems[36].aiProvider.replace('Google ', '').split(' (')[0]}
-                    </span>
-                  )}</div>
+                    </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[36].publishedAt)}</span>
+                  </div>
                 )}
               </div>
 

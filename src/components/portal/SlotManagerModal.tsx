@@ -11,6 +11,12 @@ import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { useModalFokus } from '../../hooks/useModalFokus';
 import { useAutoSimpanTempatan, bacaDrafTempatan, buangDrafTempatan, masaRelatifRingkas } from '../../hooks/useAutoSimpanTempatan';
 import { KompakCardPreview } from './cards/KompakCardPreview';
+import { HeroCardPreview } from './cards/HeroCardPreview';
+import { MenegakCardPreview } from './cards/MenegakCardPreview';
+import { StandardCardPreview } from './cards/StandardCardPreview';
+import { SegiEmpatMediumCardPreview } from './cards/SegiEmpatMediumCardPreview';
+import { SegiEmpatSmallCardPreview } from './cards/SegiEmpatSmallCardPreview';
+import { BarCardPreview } from './cards/BarCardPreview';
 
 // Normalkan tarikh AI-tampal ke ISO yyyy-mm-dd (2026-08-08, pepijat Izzat — "kalau tampal output
 // AI, medan tarikh sumber tu kena isi sendiri jgk") — <input type="date"> HANYA papar nilai
@@ -413,6 +419,45 @@ export function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: n
   );
 }
 
+// Ctrl/Cmd+I — bungkus/nyahbungkus teks disorot dengan `*...*` (2026-08-16, Izzat: "kenapa tak
+// boleh italickan perkataan dlm tajuk/huraian ... guna keyboard?"). Medan-medan ni `<textarea>`/
+// `<input>` HTML biasa — TIADA sokongan format terbina-dalam, dan sebelum ni TIADA `onKeyDown`
+// langsung, jadi Ctrl+I tak buat apa-apa. Format condong sebenarnya SUDAH wujud (parser pembaca,
+// src/utils.tsx baris ~521, tukar `*teks*` -> `<em>`), cuma editor terpaksa taip asterisk tu
+// SENDIRI secara manual sebab tiada petunjuk/kekunci pintasan — sekarang Ctrl/Cmd+I bungkus
+// terus teks yang disorot, atau nyahbungkus jika sudah bertanda `*...*` (togol, macam Word).
+// Tiada apa-apa berlaku jika tiada teks disorot (elak sisipan asterisk tunggal mengelirukan).
+function tanganiKekunciItalic(
+  e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>,
+  value: string,
+  onChange: (v: string) => void
+) {
+  if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'i') return;
+  e.preventDefault();
+  const el = e.currentTarget;
+  const start = el.selectionStart ?? 0;
+  const end = el.selectionEnd ?? 0;
+  if (start === end) return; // tiada sorotan — tiada apa boleh ditogol
+  const selected = value.slice(start, end);
+
+  let baharu: string, mulaBaharu: number, akhirBaharu: number;
+  if (selected.length >= 2 && selected.startsWith('*') && selected.endsWith('*')) {
+    // Sorotan MERANGKUMI asterisk (cth. sorot "*Bidang*" penuh) — nyahbungkus.
+    const dalam = selected.slice(1, -1);
+    baharu = value.slice(0, start) + dalam + value.slice(end);
+    mulaBaharu = start; akhirBaharu = start + dalam.length;
+  } else if (start >= 1 && end <= value.length - 1 && value[start - 1] === '*' && value[end] === '*') {
+    // Sorotan DALAM asterisk sedia ada (cth. sorot "Bidang" dlm "*Bidang*") — nyahbungkus.
+    baharu = value.slice(0, start - 1) + selected + value.slice(end + 1);
+    mulaBaharu = start - 1; akhirBaharu = end - 1;
+  } else {
+    baharu = value.slice(0, start) + '*' + selected + '*' + value.slice(end);
+    mulaBaharu = start + 1; akhirBaharu = end + 1;
+  }
+  onChange(baharu);
+  requestAnimationFrame(() => { el.setSelectionRange(mulaBaharu, akhirBaharu); el.focus(); });
+}
+
 function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint, type }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; minLen?: number; hint?: string; type?: 'text' | 'date' }) {
   const over = typeof maxLen === 'number' && value.length > maxLen;
   const under = typeof minLen === 'number' && value.length > 0 && value.length < minLen;
@@ -433,11 +478,13 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint
       {rows ? (
         <textarea
           rows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => tanganiKekunciItalic(e, value, onChange)}
           className="w-full resize-none border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm leading-relaxed text-stone-800 py-1.5 transition-colors"
         />
       ) : (
         <input
           type={type || 'text'} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => tanganiKekunciItalic(e, value, onChange)}
           className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
         />
       )}
@@ -669,6 +716,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // banyak draf (cth 100+) jalur senarai terbuka automatik akan makan ruang skrin telefon
   // yang terhad; dibuka bila diklik sahaja.
   const [drafTerbukaPhone, setDrafTerbukaPhone] = useState(false);
+  // Pratonton Kad boleh ditutup/dibuka (2026-08-16, permintaan Izzat: "boleh ditutup dan dibuka
+  // sbb takut makan ruang") — kini merentasi SEMUA tier (dahulu cuma KOMPAK terpampang tetap,
+  // tiada togol). Lalai TERBUKA supaya tingkah laku sedia ada (KOMPAK) tak berubah tanpa sebab;
+  // editor tutup sendiri bila perlukan ruang lajur borang.
+  const [pratontonTerbuka, setPratontonTerbuka] = useState(true);
   const tier = tierForSlot(editingSlotIndex) || 'STANDARD';
   // Saiz grid dilekat pada nama tier (2026-08-08, permintaan Izzat) — supaya bentuk fizikal kad
   // kelihatan terus, bukan cuma nama. TIER_GRID_SIZE tiada kunci TICKER (bukan kad bento).
@@ -1573,26 +1625,97 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 </div>
 
                 {/* Pratonton kad SEBENAR (2026-08-08, "saya nak nampak persis rupa kad sebelum
-                    terbit" — Pelan Pratonton Kad, bukti konsep pertama). Guna komponen KONGSI
-                    SEBENAR (KompakCardPreview.tsx, dicabut drpd FrontpageView.tsx slot 4/5) —
-                    bukan tiruan. Diletak DALAM lajur borang (tatal bersama medan, bukan header
-                    tetap) — Izzat: "kalau slot tu tinggi, letak di bawah perlu scroll lebih
-                    elok" — header tetap akan membengkak ikut tinggi tier (Hero/Menegak boleh
-                    sampai 380px) dan sentiasa ambil ruang menegak tak kira tab mana dibuka.
-                    Cuma tier KOMPAK setakat ni (bukti konsep); tier lain disambung SATU-SATU
-                    ikut corak sama kemudian, bukan sekali gus. */}
-                {tier === 'KOMPAK' && (
+                    terbit" — Pelan Pratonton Kad). Guna komponen KONGSI SEBENAR (dicabut drpd
+                    FrontpageView.tsx, satu per tier) — bukan tiruan. Diletak DALAM lajur borang
+                    (tatal bersama medan, bukan header tetap) — Izzat: "kalau slot tu tinggi, letak
+                    di bawah perlu scroll lebih elok" — header tetap akan membengkak ikut tinggi
+                    tier (Hero/Menegak boleh sampai 380px) dan sentiasa ambil ruang menegak tak
+                    kira tab mana dibuka.
+                    Disambung ke SEMUA tier (2026-08-16, dahulu cuma KOMPAK bukti konsep — Izzat:
+                    "sepatutnya semua tier lain ada preview") — boleh ditutup/dibuka (togol
+                    `pratontonTerbuka`) sebab "takut makan ruang" bila slot tinggi (Hero/Menegak).
+                    Warna aksen SEGI_EMPAT_MEDIUM/SEGI_EMPAT_SMALL bergantung KEDUDUKAN slot
+                    (`editingSlotIndex`, padan eyebrow SEBENAR di FrontpageView.tsx, bukan agak). */}
+                {tier !== 'TICKER' && (
                   <div>
-                    <span className={labelCls}>Pratonton Kad</span>
-                    <div className="mt-1.5">
-                      <KompakCardPreview
-                        item={{
-                          title: current.title, brief: current.brief, desk, topik: current.topik,
-                          source: current.source, originalDate: current.date, imageUrl: current.image,
-                        }}
-                        bidang={bidang}
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPratontonTerbuka((v) => !v)}
+                      className="flex items-center gap-1.5 cursor-pointer group"
+                    >
+                      <span className={labelCls}>Pratonton Kad</span>
+                      {pratontonTerbuka ? <ChevronUp className="w-3 h-3 text-stone-400 group-hover:text-stone-600" /> : <ChevronDown className="w-3 h-3 text-stone-400 group-hover:text-stone-600" />}
+                    </button>
+                    {pratontonTerbuka && (
+                      <div className="mt-1.5">
+                        {tier === 'KOMPAK' && (
+                          <KompakCardPreview
+                            item={{
+                              title: current.title, brief: current.brief, desk, topik: current.topik,
+                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                            }}
+                            bidang={bidang}
+                          />
+                        )}
+                        {tier === 'HERO' && (
+                          <HeroCardPreview
+                            item={{
+                              title: current.title, brief: current.brief, desk, topik: current.topik,
+                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                            }}
+                            bidang={bidang}
+                          />
+                        )}
+                        {tier === 'MENEGAK' && (
+                          <MenegakCardPreview
+                            item={{
+                              title: current.title, brief: current.brief, desk, topik: current.topik,
+                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                            }}
+                            bidang={bidang}
+                          />
+                        )}
+                        {tier === 'STANDARD' && (
+                          <StandardCardPreview
+                            item={{
+                              title: current.title, brief: current.brief, desk, topik: current.topik,
+                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                            }}
+                            bidang={bidang}
+                          />
+                        )}
+                        {tier === 'SEGI_EMPAT_MEDIUM' && (
+                          <SegiEmpatMediumCardPreview
+                            item={{
+                              title: current.title, brief: current.brief, desk, topik: current.topik,
+                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                            }}
+                            bidang={bidang}
+                            aksen={[13, 27].includes(editingSlotIndex) ? 'kiri' : 'kanan'}
+                          />
+                        )}
+                        {tier === 'SEGI_EMPAT_SMALL' && (
+                          <SegiEmpatSmallCardPreview
+                            item={{
+                              title: current.title, brief: current.brief, desk, topik: current.topik,
+                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                            }}
+                            bidang={bidang}
+                            aksen={editingSlotIndex === 36 ? 'kelabu' : 'krem'}
+                          />
+                        )}
+                        {tier === 'BAR' && (
+                          /* Tiada medan Penganjur/Akses/Tarikh Tamat dlm modal ni (BAR tak
+                             pernah ada Field khusus utk itu, disahkan audit 2026-08-16) — pratonton
+                             guna sama fallback macam kandungan BAR sebenar yg belum lengkap
+                             (BarCard.tsx: tiada organizer -> lencana Akses "TERBUKA", tiada
+                             tarikh acara -> label Desk). */
+                          <BarCardPreview
+                            item={{ title: current.title, desk, originalDate: current.date }}
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 

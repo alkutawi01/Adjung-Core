@@ -452,6 +452,55 @@ KEKAL tak berubah — cuma cara AI patut BERTINDAK bila maklumat tak cukup yang 
 "Dengan rujukan"/"Dengan Artikel Jurnal" (bukan hanya artikel yang ditangkap tu) — fix di
 prompt, bukan edit artikel lepas fakta, sebab punca sama akan berulang pada kandungan seterusnya.
 
+### Pratonton Kad — semua tier + betulan sempang keyboard Italic (2026-08-16, Izzat)
+Pratonton Kad (modal Tulis Kandungan, `SlotManagerModal.tsx`) dahulu cuma tier KOMPAK ("bukti
+konsep pertama", 2026-08-08). Izzat tanya "kenapa hanya sesetengah slot je ada preview?" —
+disambung ke SEMUA tier bento (HERO, MENEGAK, STANDARD, SEGI_EMPAT_MEDIUM, SEGI_EMPAT_SMALL, BAR;
+TICKER dikecualikan, diedit modal berasingan). Corak KOMPAK (komponen `XxxCardTeks.tsx` +
+`XxxCardPreview.tsx` dicabut drpd `FrontpageView.tsx`, KONGSI sebenar bukan tiruan) diulang bagi
+setiap tier — fail baharu di `src/components/portal/cards/`.
+
+- **Boleh ditutup/dibuka** (togol `pratontonTerbuka`, `SlotManagerModal.tsx`) — permintaan Izzat
+  eksplisit ("boleh ditutup dan dibuka sbb takut makan ruang"), lalai TERBUKA (kekal tingkah laku
+  KOMPAK sedia ada).
+- **Ketekalan tier dibetulkan serentak** (audit dedah semasa pengekstrakan, BUKAN kerja
+  berasingan) — slot PERTAMA setiap tier (MENEGAK slot 1, STANDARD slot 2, SEGI_EMPAT_SMALL slot
+  3) berbeza drpd slot lain dalam tier SAMA: guna `<BentoInner>` (jaring limpahan overflow +
+  lencana AI automatik) + kadang warna hover berbeza, manakala slot lain guna `<div>` polos +
+  tiru lencana AI manual (TANPA jaring limpahan — pepijat, bukan reka bentuk). SEGI_EMPAT_MEDIUM
+  (4 slot) LANGSUNG tiada BentoInner pun sebelum ni. Diselaraskan: SEMUA slot setiap tier kini
+  bungkus `<BentoInner>`; gaya teks (warna hover, saiz brief) ikut CORAK MAJORITI tier tu supaya
+  rupa kandungan yg dah terbit paling minimum terjejas. **Pengecualian sengaja**: SEGI_EMPAT_SMALL
+  slot 36 kekal skema warna kelabu berasingan (eyebrow `#D6D3D1`, hover `stone-300`) — nampak
+  reka bentuk sengaja (semua sifat warna konsisten SESAMA sendiri), BUKAN pepijat separa macam
+  outlier lain, jadi TIDAK diselaraskan; `SegiEmpatSmallCardTeks`/`Preview` terima `aksen`
+  ('krem'/'kelabu') sebagai prop supaya kekal berasingan.
+- **Warna aksen SEGI_EMPAT_MEDIUM/SEGI_EMPAT_SMALL bergantung kedudukan slot** (kiri/kanan
+  pasangan) — dihantar sebagai STRING KELAS Tailwind literal (`hoverClassName`/`deskClassName`,
+  bukan hex mentah digubah runtime) supaya imbasan JIT Tailwind tetap jumpa corak tu (imbasan
+  regex teks fail, bukan sedar-JSX — hex mentah + `style` inline runtime TAKKAN pernah dijana
+  dalam CSS terkompil, rosak senyap tanpa ralat build).
+- **BAR** — `BarCard.tsx` sedia ada SUDAH satu komponen kongsi konsisten (tiada isu ketekalan),
+  `BarCardPreview.tsx` cuma pembalut nipis; modal ni tiada medan Penganjur/Akses/Tarikh Tamat,
+  pratonton guna fallback BarCard sendiri (Akses="Terbuka", label=nama Desk) sama seperti
+  kandungan BAR sebenar yang belum lengkap.
+
+**Ctrl/Cmd+I sekarang bungkus/nyahbungkus `*teks*`** (Izzat: "kenapa tak boleh italickan
+perkataan dlm tajuk/huraian ... guna keyboard?") — medan Tajuk/Huraian ringkas/panjang
+(`Field`, `SlotManagerModal.tsx`) ialah `<textarea>`/`<input>` HTML biasa, TIADA `onKeyDown`
+langsung sebelum ni; format condong (`*teks*` -> `<em>`, `src/utils.tsx`) SUDAH wujud tapi
+editor terpaksa taip asterisk sendiri, tiada petunjuk. Togol: sorot teks + Ctrl/Cmd+I bungkus;
+sorot teks BERTANDA (dalam/merangkumi `*...*`) + Ctrl/Cmd+I nyahbungkus. Tiada sorotan = tiada
+kesan (elak sisipan asterisk tunggal mengelirukan).
+
+**Medan borang terima sebarang glif Unicode** (Izzat: transliterasi penuh perkataan Arab, cth.
+"Ṣalāh", "ʿIlm") — disahkan medan input/textarea SUDAH terima sebarang glif secara asli (tiada
+tapisan aksara di pelayan/client). Ditemui SATU bug berkaitan semasa siasatan: pemadanan istilah
+Glosari dlm kandungan (`IstilahGlosari.tsx`) guna `\b` ASCII SAHAJA (`\w` = `[A-Za-z0-9_]`, tetap
+ASCII walau bendera 'u' dihidupkan) — istilah bermula/berakhir huruf diakritik/pengubah LANGSUNG
+tak dipadan (disahkan reproduce: sifar padanan). Digantikan lookaround Unicode
+`(?<![\p{L}\p{N}\p{M}])(...)(?![\p{L}\p{N}\p{M}])` — disahkan padan betul selepas pembetulan.
+
 ### Glosari Berasaskan Bidang — Sense (2026-08-16, arahan Izzat, seni bina disahkan v3)
 Glosari (`glosari_istilah`) dahulu SATU istilah = SATU `maksud` sejagat. Kini istilah boleh ada
 BANYAK **Sense**: SATU Sense **am** (`amSense=1`, tiada Bidang) DAN/ATAU beberapa Sense
