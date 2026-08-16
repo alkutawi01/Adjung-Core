@@ -46,6 +46,14 @@ export const AM_DEFAULTS = {
   // tayangSemasaTransisi bulan semasa). Jatuh balik ke Adjung sahaja bila tiada penaja layak,
   // supaya panel tak pernah kosong.
   nisbahPenajaTransisi: 0,
+  // Mod Warna Panel Transisi (2026-08-16, keputusan Izzat: "warna panel pula ada dua jenis: 1.
+  // seragam, semua animasi yg berkaitan akan guna warna panel yg sama 2. pelbagai, animasi guna
+  // warna panel yg berbeza2"). 'seragam' = ABAIKAN slots_config.warnaPanelOverride SEMUA slot
+  // (warnaPanelTransisi am menang tanpa syarat) — override TAK dipadam, cuma tak dibaca, boleh
+  // patah balik ke 'pelbagai' tanpa kehilangan apa-apa (keputusan Izzat eksplisit: jangan padam).
+  // 'pelbagai' = kelakuan SEDIA ADA (override menang, jatuh balik ke am). Lalai 'pelbagai' supaya
+  // pemasangan sedia ada tak berubah rupa. Lihat warnaPanelUntukSlot() (FrontpageView.tsx).
+  modWarnaPanel: 'pelbagai',
   // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL untuk seluruh
   // Focus View, bukan per-Bidang/tier. focusViewTitleScale darab tangga saiz tajuk responsif
   // sedia ada (1 = lalai/tak berubah). focusViewBodySize nilai literal px huraian (15 = lalai).
@@ -60,7 +68,11 @@ export const AM_DEFAULTS = {
 // Senarai ni sengaja terhad — jangan tawarkan pilihan yang tak dilaksanakan (lihat
 // CarouselStableBlock di FrontpageView.tsx untuk pelaksanaan sebenar setiap satu).
 export const JENIS_ANIMASI = [
-  { nilai: 'pudar', label: 'Pudar (1 saat)' },
+  // Label dahulu "Pudar (1 saat)" — tempoh 1 saat itu TETAP dahulu (2026-08-16). Kini Pudar
+  // ikut 3c. Kelajuan sama macam jenis lain (keputusan Izzat: "kelajuan animasi juga sepatutnya
+  // ada. pudar sepatutnya boleh dilaraskan masa atau tempohnya"), jadi label tak lagi janjikan
+  // tempoh tetap — lihat FrontpageView.tsx (tempohPudarMs) dan CLAUDE.md.
+  { nilai: 'pudar', label: 'Pudar' },
   { nilai: 'colophon', label: 'Colophon (panel maroon menegak)' },
   { nilai: 'sapuan_lajur', label: 'Sapuan Lajur (panel maroon sapu)' },
   // Gerak Susun (2026-08-07, permintaan Izzat eksplisit) — BERBEZA drpd Colophon/Sapuan Lajur:
@@ -125,6 +137,7 @@ export const loadAmSettings = async (dbGet) => {
         logoPenaja: row.logoPenaja || '',
         warnaPanelTransisi: row.warnaPanelTransisi || '#802334',
         nisbahPenajaTransisi: NISBAH_PENAJA_TRANSISI.some(n => n.nilai === Number(row.nisbahPenajaTransisi)) ? Number(row.nisbahPenajaTransisi) : 0,
+        modWarnaPanel: row.modWarnaPanel === 'seragam' ? 'seragam' : 'pelbagai',
         focusViewTitleScale: Number(row.focusViewTitleScale) || 1,
         focusViewBodySize: Number(row.focusViewBodySize) || 15,
       };
@@ -208,6 +221,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         logoPenaja: typeof b.logoPenaja === 'string' ? b.logoPenaja.slice(0, 500) : '',
         warnaPanelTransisi: warnaSah(b.warnaPanelTransisi) ? b.warnaPanelTransisi : '#802334',
         nisbahPenajaTransisi: NISBAH_PENAJA_TRANSISI.some(n => n.nilai === Number(b.nisbahPenajaTransisi)) ? Number(b.nisbahPenajaTransisi) : 0,
+        modWarnaPanel: b.modWarnaPanel === 'seragam' ? 'seragam' : 'pelbagai',
         focusViewTitleScale: TITLE_SCALE_SAH.includes(Number(b.focusViewTitleScale)) ? Number(b.focusViewTitleScale) : 1,
         focusViewBodySize: BODY_SIZE_SAH.includes(Number(b.focusViewBodySize)) ? Number(b.focusViewBodySize) : 15,
       };
@@ -231,8 +245,8 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi, animasiAktif, kelajuanAnimasi,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           hadHuraianPanjangMin, hadSumberMin, hadTopikMin, hadNotaEditorMin,
-          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, focusViewTitleScale, focusViewBodySize, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, updatedAt
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -251,6 +265,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           logoPenaja = excluded.logoPenaja,
           warnaPanelTransisi = excluded.warnaPanelTransisi,
           nisbahPenajaTransisi = excluded.nisbahPenajaTransisi,
+          modWarnaPanel = excluded.modWarnaPanel,
           focusViewTitleScale = excluded.focusViewTitleScale,
           focusViewBodySize = excluded.focusViewBodySize,
           updatedAt = excluded.updatedAt
@@ -259,7 +274,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         baharu.animasiAktif, baharu.kelajuanAnimasi,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
         baharu.hadHuraianPanjangMin, baharu.hadSumberMin, baharu.hadTopikMin, baharu.hadNotaEditorMin,
-        baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi,
+        baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi, baharu.modWarnaPanel,
         baharu.focusViewTitleScale, baharu.focusViewBodySize,
         new Date().toISOString(),
       ]);

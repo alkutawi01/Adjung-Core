@@ -420,7 +420,7 @@ export const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvi
 // (jadual `sponsors`, medan tayangSemasaTransisi). `jenis: 'adjung'` = papar wordmark Adjung
 // (LogoTransisiAdjung di bawah, bukan imej — sama sebab macam LoadingScreen: logo PNG marun-atas-
 // putih tak boleh dibaca atas panel gelap).
-interface LogoTransisi {
+export interface LogoTransisi {
   jenis: 'adjung' | 'penaja' | 'tiada';
   logoUrl?: string;
   nama?: string;
@@ -477,7 +477,11 @@ const JenisAnimasiContext = createContext<TetapanAnimasiCarousel>(LALAI_TETAPAN_
 // LoadingScreen.tsx (yang dah dibetulkan 2026-08-05 supaya sepadan lockup rasmi), diskalakan lebih
 // kecil untuk muat dalam panel carousel (bukan skrin penuh). Teks (bukan imej PNG) atas sebab sama
 // — logo rasmi marun-atas-putih tak boleh dibaca atas panel gelap.
-const LogoTransisiAdjung: React.FC = () => (
+// Diekspot (2026-08-16) untuk Pratonton Animasi (AnimasiPratonton.tsx, panel Tetapan Am/Tetapan
+// Kad Editorium) — helper TULEN, tiada pergantungan DOM/refs/portal, selamat dikongsi sama
+// rasional BentoInner/EyebrowKad diekspot untuk XxxCardPreview.tsx. CarouselStableBlock SENDIRI
+// (state machine/timer/portal fragile) TIDAK disentuh/dikongsi — cuma primitif visual ni.
+export const LogoTransisiAdjung: React.FC = () => (
   <div className="flex flex-col items-center justify-center select-none">
     <span className="font-serif font-normal tracking-tight text-2xl text-[#FDFDFD]">{BRAND.logoText}</span>
     <div className="flex items-center justify-center gap-1.5 mt-1">
@@ -500,7 +504,8 @@ const VEKTOR_ARAH: Record<string, { masuk: string; keluar: string }> = {
   bawah: { masuk: 'translateY(100%)', keluar: 'translateY(-100%)' },
 };
 const SONGSANG_ARAH: Record<string, string> = { kanan: 'kiri', kiri: 'kanan', atas: 'bawah', bawah: 'atas' };
-const vektorArahOverlay = (arah: string, songsang: boolean) => {
+// Diekspot (2026-08-16) — lihat nota LogoTransisiAdjung di atas, sama rasional.
+export const vektorArahOverlay = (arah: string, songsang: boolean) => {
   const arahSebenar = songsang ? (SONGSANG_ARAH[arah] || 'kiri') : arah;
   const v = VEKTOR_ARAH[arahSebenar] || VEKTOR_ARAH.kanan;
   return { '--transisi-masuk': v.masuk, '--transisi-keluar': v.keluar } as React.CSSProperties;
@@ -816,6 +821,10 @@ const CarouselStableBlock: React.FC<{
   // ni, regangan 3-panel (JSX di bawah) yang kelihatan sebaliknya.
   const gerakAktif = jenisEfektifRender === 'gerak_susun' && overlayAktif;
   const tempohGerakMs = Math.round(900 * kelajuanEfektifRender);
+  // Tempoh Pudar (2026-08-16, keputusan Izzat: "kelajuan animasi juga sepatutnya ada. pudar
+  // sepatutnya boleh dilaraskan masa atau tempohnya") — dahulu TETAP 1000ms tanpa mengira
+  // kelajuanEfektifRender. Kini ikut kelajuan SAMA macam Colophon/Sapuan Lajur/Gerak Susun.
+  const tempohPudarMs = Math.round(1000 * kelajuanEfektifRender);
   return (
     // data-carousel-stable: penanda supaya CSS telefon boleh melucutkan kunci tinggi ini. Kunci
     // itu diukur pada lebar semasa dan tidak pernah mengecil semula, jadi tinggi desktop (dengan
@@ -901,7 +910,13 @@ const CarouselStableBlock: React.FC<{
             // any real variance on every subsequent measurement.
             alignSelf: 'start',
             opacity: gerakAktif ? 0 : (i === indexDipaparkan ? 1 : 0),
-            transition: overlayAktif ? 'none' : 'opacity 1s ease-in-out',
+            // Tempoh ikut kelajuanEfektifRender (2026-08-16, dahulu 1s TETAP — lihat nota
+            // tempohPudarMs). Peralihan opacity ni SECARA KELIHATAN cuma berlaku bagi jenis
+            // 'pudar' — jenis lain (Colophon/Sapuan Lajur/Gerak Susun) sentiasa overlayAktif=true
+            // semasa visualIndex bertukar (transition='none' di bawah, kandungan bertukar SENYAP
+            // di sebalik panel yang tertutup penuh); kelajuan bagi jenis-jenis tu dikawal
+            // berasingan oleh tempohColophonMs/tempohGerakMs (animasi panel sendiri).
+            transition: overlayAktif ? 'none' : `opacity ${tempohPudarMs}ms ease-in-out`,
             pointerEvents: i === indexDipaparkan ? 'auto' : 'none',
           }}
           aria-hidden={i === indexDipaparkan ? undefined : true}
@@ -1824,7 +1839,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // sekiranya panggilan gagal.
   const [tetapanAnimasiMentah, setTetapanAnimasiMentah] = useState({
     jenisAnimasi: 'colophon', arahAnimasi: 'kanan', warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0,
-    animasiAktif: true, kelajuanAnimasi: 1,
+    animasiAktif: true, kelajuanAnimasi: 1, modWarnaPanel: 'pelbagai',
   });
   // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL, bukan per-Bidang/tier.
   // Lalai 1 / 15px sepadan kelakuan sedia ada sekiranya panggilan gagal.
@@ -1842,6 +1857,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             nisbahPenajaTransisi: Number(d.nisbahPenajaTransisi) || 0,
             animasiAktif: d.animasiAktif !== 0,
             kelajuanAnimasi: Number(d.kelajuanAnimasi) || 1,
+            modWarnaPanel: d.modWarnaPanel === 'seragam' ? 'seragam' : 'pelbagai',
           });
           setTetapanFontFocusView({
             titleSizeScale: Number(d.focusViewTitleScale) || 1,
@@ -1874,13 +1890,39 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // sahaja supaya round-robin penaja terus maju merentasi kitaran (bukan reset setiap kitaran).
   const putaranTransisiRef = useRef(0);
   const indeksPenajaTransisiRef = useRef(0);
+
+  // Kelayakan penaja masuk giliran panel transisi — DIASINGKAN jadi fungsi bernama sendiri
+  // (2026-08-16, persediaan modul penaja akan datang, Izzat: "ia melibatkan perubahan/penambahan
+  // kod yg besar... cuma apa yg awak buat skrg perlu bersedia utk terima modul ini. Jangan
+  // implement sekarang"). SATU-SATUNYA tapak semakan kelayakan — nanti bila modul penaja
+  // sebenar dibina, tiga syarat baharu Izzat masuk SINI SAHAJA, bukan bertaburan:
+  //   1. Tempoh tajaan (7 hari / 1 bulan) — kini `sponsors.bulan` (rentetan 'YYYY-MM', semak
+  //      pelayan di /api/public/sponsors/semasa) tak boleh nyatakan julat < sebulan. Perlu tukar
+  //      kepada `mulaTajaan`/`tamatTajaan` (tarikh ISO) dan bandingkan dgn SEKARANG di sini.
+  //   2. Skop tajaan (portal keseluruhan / slot tertentu) — perlu parameter `slotIndex` di
+  //      fungsi ni (kelayakan berbeza ikut slot mana panel transisi tu berada), dan jadual
+  //      pautan penaja<->slot baharu (skema TIADA lagi, memang sengaja belum dibina).
+  //   3. "Hanya semasa tempoh tajaan" — kelayakan MESTI dikira semasa RENDER (fungsi tulen,
+  //      dipanggil semula setiap render via useMemo deps), BUKAN cache/snapshot boot — sifat ni
+  //      SUDAH wujud (penajaSemasa datang dari fetch semasa mount, useMemo bergantung terus
+  //      padanya), kekalkan bila julat tarikh ditambah supaya logo hilang TEPAT bila tempoh tamat,
+  //      bukan tertangguh sampai muat semula halaman seterusnya.
+  const penajaLayakUntukTransisi = (p: { tayangSemasaTransisi?: boolean }): boolean =>
+    !!p.tayangSemasaTransisi;
   const penajaLayakTransisi = React.useMemo(
-    () => penajaSemasa.filter((p: any) => p.tayangSemasaTransisi),
+    () => penajaSemasa.filter((p: any) => penajaLayakUntukTransisi(p)),
     [penajaSemasa]
   );
   // `mod` (2026-08-07, Pelan 03) — pilihan logo PER-SLOT mengatasi giliran am:
   //   'adjung' logo Adjung sahaja · 'penaja' penaja sahaja (jatuh balik Adjung bila tiada penaja
   //   layak, supaya panel TIDAK PERNAH kosong) · 'tiada' tanpa logo · '' ikut giliran am di bawah.
+  //
+  // PINTU TUNGGAL resolusi logo (2026-08-16, persediaan modul penaja) — bila penaja boleh taja
+  // SLOT TERTENTU (bukan portal keseluruhan), fungsi ni yang perlu terima `slotIndexStr` sebagai
+  // parameter tambahan dan tapis `penajaLayakTransisi` ikut slot tu SEBELUM round-robin di bawah
+  // — jangan cipta laluan resolusi logo kedua di tempat lain, semua 3 tapak panggilan
+  // (CarouselStableBlock, Colophon/Sapuan Lajur/Gerak Susun) sudah hantar `data-slot` semasa
+  // (kadUntukJenis?.getAttribute('data-slot')), tinggal disalurkan ke sini.
   const ambilLogoTransisi = React.useCallback((mod?: string): LogoTransisi => {
     if (mod === 'tiada') return { jenis: 'tiada' };
     if (mod === 'adjung') return { jenis: 'adjung' };
@@ -1952,10 +1994,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     }
     return m;
   }, [slotsConfig]);
+  // Mod Warna Panel (2026-08-16, keputusan Izzat) — 'seragam' ABAIKAN warnaPanelPerSlot SEPENUHNYA
+  // (override kekal TERSIMPAN dlm slots_config, cuma tak dibaca di sini — boleh patah balik ke
+  // 'pelbagai' tanpa kehilangan apa-apa). 'pelbagai' ialah kelakuan SEDIA ADA (override menang).
   const warnaPanelUntukSlot = React.useCallback(
-    (slotIndexStr: string | null | undefined): string =>
-      (slotIndexStr != null && warnaPanelPerSlot[slotIndexStr]) || tetapanAnimasiMentah.warnaPanelTransisi,
-    [warnaPanelPerSlot, tetapanAnimasiMentah.warnaPanelTransisi]
+    (slotIndexStr: string | null | undefined): string => {
+      if (tetapanAnimasiMentah.modWarnaPanel === 'seragam') return tetapanAnimasiMentah.warnaPanelTransisi;
+      return (slotIndexStr != null && warnaPanelPerSlot[slotIndexStr]) || tetapanAnimasiMentah.warnaPanelTransisi;
+    },
+    [warnaPanelPerSlot, tetapanAnimasiMentah.warnaPanelTransisi, tetapanAnimasiMentah.modWarnaPanel]
   );
 
   const kelajuanPerSlot = React.useMemo(() => {

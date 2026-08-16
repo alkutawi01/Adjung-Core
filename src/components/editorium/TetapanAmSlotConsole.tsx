@@ -8,6 +8,7 @@ import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanMemuat } from '../common/KeadaanMemuat';
 import { Button } from '../common/Button';
 import { FormColumn } from '../common/FormColumn';
+import { AnimasiPratonton } from './AnimasiPratonton';
 import { tierForSlot, TIER_LABELS } from '../../../core/editorial/GeometryConfig.js';
 import { muatPindaanMedanLimit } from '../../config/medanLimitOverrides';
 
@@ -33,6 +34,7 @@ interface TetapanAm {
   hadNotaEditorMin: number;
   warnaPanelTransisi: string;
   nisbahPenajaTransisi: number;
+  modWarnaPanel: string;
   focusViewTitleScale: number;
   focusViewBodySize: number;
   jenisAnimasiPilihan?: { nilai: string; label: string }[];
@@ -76,6 +78,30 @@ const MEDAN_HAD: { kunci: keyof TetapanAm; kunciMin: keyof TetapanAm; label: str
 // panel kini papar wordmark Adjung SENDIRI secara lalai, bergilir dengan logo penaja SEBENAR
 // (jadual `sponsors`, medan "Tayang semasa transisi" di Urus Penaja) ikut nisbah di bawah).
 function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React.Dispatch<React.SetStateAction<TetapanAm | null>> }) {
+  // Senarai slot yang ada warna panel SENDIRI (2026-08-16, permintaan Izzat: "sepatutnya setiap
+  // slot ada pilihan ini... cuba semak" — semasa siasat, disahkan override per-slot MEMANG sudah
+  // wujud sejak Pelan 03, cuma tiada UI global tunjuk mana yang "lari" drpd seragam). Dibaca
+  // terus drpd /api/system/slots (SELECT * FROM slots_config, sudah termasuk warnaPanelOverride)
+  // — laluan baca-sahaja sedia ada, tiada endpoint baharu. Kekal dipaparkan walau mod = 'seragam'
+  // (override tu TAK dipadam, cuma tak dibaca — Ketua Editor patut nampak ia masih "sedia" untuk
+  // bila mod ditukar semula ke 'pelbagai').
+  const [slotWarnaSendiri, setSlotWarnaSendiri] = useState<{ slotIndex: number; warna: string }[]>([]);
+  useEffect(() => {
+    let dibatal = false;
+    fetch('/api/system/slots')
+      .then(r => (r.ok ? r.json() : []))
+      .then((rows: any[]) => {
+        if (dibatal || !Array.isArray(rows)) return;
+        const senarai = rows
+          .filter(r => r && typeof r.warnaPanelOverride === 'string' && /^#[0-9a-fA-F]{6}$/.test(r.warnaPanelOverride))
+          .map(r => ({ slotIndex: Number(r.slotIndex), warna: r.warnaPanelOverride }))
+          .sort((a, b) => a.slotIndex - b.slotIndex);
+        setSlotWarnaSendiri(senarai);
+      })
+      .catch(() => { /* senarai ni cuma maklumat tambahan — kegagalan tak halang panel dibuka */ });
+    return () => { dibatal = true; };
+  }, []);
+
   return (
     <div className="border border-stone-200 rounded p-4 space-y-3">
       <div className="font-semibold text-stone-800">3d. Warna panel &amp; giliran logo</div>
@@ -89,8 +115,51 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
         boleh menyediakannya lebih awal. Tandakan penaja <strong className="font-semibold">Tayang
         semasa transisi</strong> di Urus Penaja supaya ia layak masuk giliran.
       </p>
+
+      {/* Mod Warna Panel (2026-08-16, keputusan Izzat: "warna panel pula ada dua jenis: 1.
+          seragam ... 2. pelbagai") — Seragam ABAIKAN semua override per-slot (tak dipadam, boleh
+          patah balik), Pelbagai ialah kelakuan sedia ada. Diletak SEBELUM medan warna am supaya
+          Ketua Editor nampak KONTEKS dahulu (adakah warna di bawah ni terpakai serantau atau
+          setiap slot ada hak veto) sebelum ubah nilainya. */}
+      <div>
+        <span className="font-semibold text-stone-700 text-[11px] block mb-1">Mod Warna Panel</span>
+        <div className="inline-flex border border-stone-300 rounded overflow-hidden w-fit">
+          {([
+            { nilai: 'pelbagai', label: 'Pelbagai' },
+            { nilai: 'seragam', label: 'Seragam' },
+          ] as const).map((m, i) => (
+            <button
+              key={m.nilai} type="button"
+              onClick={() => setDraf(p => p ? { ...p, modWarnaPanel: m.nilai } : p)}
+              className={`px-3 py-1.5 font-sans text-[11px] font-semibold cursor-pointer transition-colors ${i ? 'border-l border-stone-300' : ''} ${draf.modWarnaPanel === m.nilai ? 'bg-Adjung-maroon text-white' : 'bg-transparent text-stone-600'}`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-stone-400 text-[10px] mt-1.5 leading-relaxed">
+          {draf.modWarnaPanel === 'seragam'
+            ? 'Seragam — semua slot guna warna panel am di bawah, walaupun sesetengah slot ada warna sendiri tersimpan (Senarai Slot → Tetapan Kad). Warna sendiri itu TAK dipadam, cuma tak terpakai buat masa ini.'
+            : 'Pelbagai — slot yang ditetapkan warna sendiri (Senarai Slot → Tetapan Kad) guna warna itu; slot lain jatuh balik ke warna am di bawah.'}
+        </p>
+        {slotWarnaSendiri.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {slotWarnaSendiri.map(s => (
+              <span
+                key={s.slotIndex}
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-mono ${draf.modWarnaPanel === 'seragam' ? 'border-stone-200 text-stone-400' : 'border-stone-300 text-stone-600'}`}
+                title={draf.modWarnaPanel === 'seragam' ? 'Tak terpakai buat masa ini (mod Seragam)' : 'Guna warna sendiri'}
+              >
+                <span className="w-2.5 h-2.5 rounded-full border border-stone-300" style={{ backgroundColor: s.warna }} />
+                Slot {s.slotIndex + 1}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
       <label className="flex items-center gap-2">
-        <span className="font-semibold text-stone-700 text-[11px]">Warna panel</span>
+        <span className="font-semibold text-stone-700 text-[11px]">Warna panel am</span>
         <input
           type="color"
           value={draf.warnaPanelTransisi}
@@ -419,28 +488,41 @@ export const TetapanAmSlotConsole: React.FC = () => {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="font-semibold text-stone-800 text-[11px]">
-                3b. Arah animasi lalai
-                {/* Gerak Susun sokong mendatar SAHAJA (nota spesifikasi, slotAmRoutes.js baris
-                    ~66-70). Kod render pukal apa-apa selain 'kiri' sebagai kanan
-                    (FrontpageView.tsx ~958: `arahEfektif !== 'kiri'`), jadi memilih Atas/Bawah
-                    untuk Gerak Susun senyap-senyap berkelakuan macam Kanan. Dinyatakan kepada
-                    editor (2026-08-16, audit Izzat) — dahulu langsung tiada petunjuk. */}
-                <span className="block font-normal text-stone-400 text-[10px] leading-relaxed mt-0.5">
-                  Atas/Bawah hanya untuk Colophon dan Sapuan Lajur. Gerak Susun mendatar sahaja
-                  &mdash; ia membaca Atas/Bawah sebagai Kanan.
-                </span>
-              </span>
-              <select
-                value={draf.arahAnimasi}
-                onChange={e => setDraf(p => p ? { ...p, arahAnimasi: e.target.value } : p)}
-                disabled={!draf.animasiAktif}
-                className="px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-semibold text-xs bg-stone-50 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors disabled:opacity-40"
-              >
-                {(draf.arahAnimasiPilihan || [{ nilai: 'kanan', label: 'Kanan (masuk dari kanan, keluar ke kiri)' }]).map(a => (
-                  <option key={a.nilai} value={a.nilai}>{a.label}</option>
-                ))}
-              </select>
+              <span className="font-semibold text-stone-800 text-[11px]">3b. Arah animasi lalai</span>
+              {/* Pudar TIADA arah (peralihan opacity semata-mata, tiada transform/panel) — dahulu
+                  dropdown ni tetap aktif dgn nilai tersimpan yang tak buat apa-apa, editor kena
+                  teka sendiri. Kini medan tunjuk keadaan SEBENAR: teks statik bila Pudar dipilih
+                  (2026-08-16, keputusan Izzat: "pudar adalah sebahagian daripada animasi. cuma,
+                  disebabkan tiada arah, maka ketika pilih pudar, 3.b menunjukkan: tidak
+                  berkaitan"). Nilai `arahAnimasi` TAK disentuh langsung — pulih automatik bila
+                  jenis ditukar semula ke Colophon/Sapuan Lajur/Gerak Susun. */}
+              {draf.jenisAnimasi === 'pudar' ? (
+                <div className="px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-200 rounded text-xs bg-stone-100 text-stone-400 italic">
+                  Tidak berkaitan — Pudar tiada arah
+                </div>
+              ) : (
+                <>
+                  <select
+                    value={draf.arahAnimasi}
+                    onChange={e => setDraf(p => p ? { ...p, arahAnimasi: e.target.value } : p)}
+                    disabled={!draf.animasiAktif}
+                    className="px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-semibold text-xs bg-stone-50 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors disabled:opacity-40"
+                  >
+                    {(draf.arahAnimasiPilihan || [{ nilai: 'kanan', label: 'Kanan (masuk dari kanan, keluar ke kiri)' }]).map(a => (
+                      <option key={a.nilai} value={a.nilai}>{a.label}</option>
+                    ))}
+                  </select>
+                  {/* Gerak Susun sokong mendatar SAHAJA (nota spesifikasi, slotAmRoutes.js baris
+                      ~66-70). Kod render pukal apa-apa selain 'kiri' sebagai kanan
+                      (FrontpageView.tsx: `arahEfektif !== 'kiri'`), jadi Atas/Bawah untuk Gerak
+                      Susun senyap-senyap berkelakuan macam Kanan (2026-08-16, audit Izzat). */}
+                  {draf.jenisAnimasi === 'gerak_susun' && (
+                    <span className="text-stone-400 text-[10px] leading-relaxed">
+                      Gerak Susun mendatar sahaja &mdash; Atas/Bawah dibaca sebagai Kanan.
+                    </span>
+                  )}
+                </>
+              )}
             </div>
           </div>
           </FormColumn>
@@ -449,28 +531,13 @@ export const TetapanAmSlotConsole: React.FC = () => {
             per-slot kini di <strong className="font-semibold">Senarai Slot → Tetapan Kad</strong>
             {' '}(bukan di sini).
           </p>
-          {/* Amaran "tetapan ni tak buat apa-apa" (2026-08-16, audit Izzat — tangkapan skrinnya
-              menunjukkan TEPAT keadaan ni: Jenis=Pudar, Arah=Kanan, Kelajuan=Perlahan 1.5x, di
-              mana DUA daripada tiga tetapan tu langsung tiada kesan). Disahkan pada kod render
-              (FrontpageView.tsx): `pudar` pulang awal sebelum overlay dibina, jadi `arahEfektif`
-              (baris ~923/935/958) dan `kelajuanEfektif` (baris ~783/818) tak pernah dibaca; pudar
-              guna peralihan opacity 1 saat TETAP.
-              SENGAJA tidak dinyahaktifkan (disabled) — arah/kelajuan MASIH berkuat kuasa pada
-              mana-mana slot yang menetapkan jenis lain sendiri di Senarai Slot, jadi
-              menyahaktifkannya di sini akan menyekat tetapan yang sebenarnya berfungsi. */}
-          {draf.animasiAktif && draf.jenisAnimasi === 'pudar' && (
-            <p className="text-[10px] leading-relaxed text-amber-800 bg-amber-50 border border-amber-200 rounded px-2.5 py-2">
-              <strong className="font-semibold">Perhatian:</strong> jenis lalai sekarang ialah{' '}
-              <em>Pudar</em>, yang tiada arah dan tempohnya tetap 1 saat. Jadi{' '}
-              <strong className="font-semibold">3b. Arah</strong> dan{' '}
-              <strong className="font-semibold">3c. Kelajuan</strong> di bawah tidak memberi
-              sebarang kesan pada slot yang mengikut tetapan lalai ini &mdash; kedua-duanya hanya
-              berkuat kuasa pada slot yang menetapkan Colophon, Sapuan Lajur atau Gerak Susun
-              sendiri di Senarai Slot → Tetapan Kad.
-            </p>
-          )}
 
-          {/* 3c. Kelajuan — baharu, permintaan eksplisit Izzat ("tetapan am seperti kelajuan"). */}
+          {/* 3c. Kelajuan — baharu, permintaan eksplisit Izzat ("tetapan am seperti kelajuan").
+              Terpakai pada SEMUA jenis termasuk Pudar (2026-08-16, keputusan Izzat: "kelajuan
+              animasi juga sepatutnya ada. pudar sepatutnya boleh dilaraskan masa atau
+              tempohnya") — satu medan kongsi, bukan dua kawalan berasingan. Izzat sedar dan
+              terima ini bermakna slot Pudar sedia ada TERUS ikut nilai kelajuan semasa (cth
+              1.5x) sebaik disimpan, bukan kekal 1 saat macam dahulu. */}
           <div className="flex flex-col gap-1.5">
             <span className="font-semibold text-stone-800 text-[11px]">3c. Kelajuan animasi</span>
             <select
@@ -483,14 +550,8 @@ export const TetapanAmSlotConsole: React.FC = () => {
                 <option key={k.nilai} value={k.nilai}>{k.label}</option>
               ))}
             </select>
-            {/* Dinyatakan secara EKSPLISIT yang Pudar tak terjejas (2026-08-16, audit Izzat) —
-                ayat lama cuma menyenaraikan tiga jenis yang terpakai, jadi editor yang memilih
-                Pudar + Perlahan munasabah menjangka pudaran jadi lebih lambat, sedangkan
-                tempohnya kekal 1 saat (peralihan opacity tetap, FrontpageView.tsx). */}
             <p className="text-stone-400 text-[10px] leading-relaxed">
-              Terpakai pada Colophon, Sapuan Lajur dan Gerak Susun sama rata.{' '}
-              <strong className="font-semibold">Tidak terpakai pada Pudar</strong>, yang tempohnya
-              kekal 1 saat.
+              Terpakai pada Pudar, Colophon, Sapuan Lajur dan Gerak Susun sama rata.
             </p>
           </div>
 
@@ -498,6 +559,23 @@ export const TetapanAmSlotConsole: React.FC = () => {
               tapi kekal ditunjukkan walaupun "Pudar" dipilih supaya Ketua Editor boleh sediakan
               dahulu sebelum tukar jenis animasi. */}
           <PanelTransisiField draf={draf} setDraf={setDraf} />
+
+          {/* Pratonton — permintaan Izzat eksplisit ("sila buat pratonton supaya editor nampak
+              mcm mana bentuk dan rupa animasi tersebut termasuk dengan 3d [warna panel]").
+              Diletak PALING BAWAH, selepas 3a-3d, supaya papar kesan GABUNGAN kesemua tetapan
+              lalai di atas serentak — bukan pratonton per-medan berasingan. */}
+          <div className="border border-stone-200 rounded p-3">
+            <span className="font-semibold text-stone-800 text-[11px] block mb-2">Pratonton</span>
+            {/* jenis paksa 'pudar' bila togol 3 mati — sama peraturan tepat FrontpageView.tsx
+                (`jenisEfektif = animasiAktif ? ... : 'pudar'`), supaya pratonton jujur bila
+                Ketua Editor sedang uji tetapan dgn animasi dinyahaktifkan. */}
+            <AnimasiPratonton
+              jenis={draf.animasiAktif ? draf.jenisAnimasi : 'pudar'}
+              arah={draf.arahAnimasi}
+              kelajuan={draf.kelajuanAnimasi}
+              warnaPanel={draf.warnaPanelTransisi}
+            />
+          </div>
         </div>
 
         {/* 4. Saiz fon Focus View — satu tetapan GLOBAL (bukan per-Bidang/tier), permintaan Izzat

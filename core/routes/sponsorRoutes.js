@@ -10,6 +10,24 @@ import { bulanMalaysia } from '../utils/waktuMalaysia.js';
 //     penuh (cipta/sunting/arkib).
 //   - Awam: /public/sponsors/semasa (footer, bulan SEMASA sahaja) dan /public/sponsors/semua
 //     (halaman /penaja, SEMUA penaja aktif — lama & semasa — susun bulan terbaru dahulu).
+//
+// PERSEDIAAN MODUL PENAJA AKAN DATANG (2026-08-16, Izzat: "ia melibatkan perubahan/penambahan
+// kod yg besar... cuma apa yg awak buat skrg perlu bersedia utk terima modul ini" — TIADA skema
+// diubah pusingan ni, nota SAHAJA supaya seni bina akan datang tahu tepat di mana ia bercantum):
+//   1. Tempoh tajaan 7 hari ATAU 1 bulan — model `bulan` (rentetan 'YYYY-MM') di bawah TAK BOLEH
+//      nyatakan julat < sebulan. Bila dibina nanti: tambah `mulaTajaan`/`tamatTajaan` (tarikh ISO)
+//      berasingan drpd `bulan` (jangan tulis ganti `bulan`, ramai baris sedia ada bergantung
+//      padanya), `bulanSemasa()` di atas jadi PILIHAN (bukan satu-satunya laluan tapisan).
+//   2. Skop tajaan (portal keseluruhan / slot tertentu) — perlukan jadual PAUTAN baharu
+//      (penaja<->slotIndex, satu penaja boleh berbilang slot), route ni terus penaja portal
+//      keseluruhan sahaja setakat ni (tiada tapisan slot langsung).
+//   3. Logo hilang TEPAT bila tempoh tamat — sifat ni SUDAH wujud (kelayakan dikira semasa
+//      RENDER client, bukan cache boot, lihat penajaLayakUntukTransisi() di FrontpageView.tsx),
+//      kekalkan bila julat tarikh ditambah.
+//   4. Selang-seli vs bersebelahan (susun atur logo Adjung/penaja dalam panel transisi) — BELUM
+//      diputuskan Izzat. Kekal sebagai TETAPAN (nisbahPenajaTransisi ikut round-robin selang-seli
+//      sekarang), JANGAN kunci andaian susun atur dalam kod bila dibina — nisbah/susun atur mesti
+//      boleh tukar tanpa deploy semula.
 const HAD_NAMA = 100;
 // Waktu Malaysia, bukan UTC (2026-08-07, Pelan 02 #9) — dahulu toISOString() menjadikan footer
 // awam memaparkan penaja bulan lepas antara 12:00 pagi dan 8:00 pagi MYT pada 1 haribulan.

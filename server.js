@@ -1968,6 +1968,15 @@ const initEditorialOS = (dbConn) => {
       // Lihat core/routes/slotAmRoutes.js. Lalai 0 = logo Adjung sahaja, tak bergantung penaja.
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN nisbahPenajaTransisi INTEGER DEFAULT 0", () => {});
 
+      // Mod Warna Panel Transisi (2026-08-16, keputusan Izzat: "warna panel pula ada dua jenis:
+      // 1. seragam ... 2. pelbagai") — 'seragam' ABAIKAN semua slots_config.warnaPanelOverride
+      // (kekal TERSIMPAN, cuma tak dibaca — boleh patah balik ke 'pelbagai' tanpa kehilangan
+      // apa-apa, keputusan Izzat eksplisit: "Jangan padam, mesti boleh patah balik"), 'pelbagai'
+      // ialah kelakuan SEDIA ADA (override menang, jatuh balik ke warnaPanelTransisi am). Lalai
+      // 'pelbagai' supaya pemasangan sedia ada TAK berubah rupa sebaik lajur ni wujud. Lihat
+      // core/routes/slotAmRoutes.js dan warnaPanelUntukSlot() (FrontpageView.tsx).
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN modWarnaPanel TEXT DEFAULT 'pelbagai'", () => {});
+
       // source_link_checks (2026-08-05, Fasa 8b — semakan pautan mati) — satu rekod PER URL
       // sumber unik (bukan per-kandungan; URL sama dikongsi rentas kandungan disemak sekali,
       // bukan berulang-ulang). Diisi/dikemas kini oleh core/editorial/LinkChecker.js, dibaca oleh

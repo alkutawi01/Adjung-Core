@@ -13,6 +13,7 @@ import { AmaranBelumSimpan } from '../common/AmaranBelumSimpan';
 import { FormColumn } from '../common/FormColumn';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { EditorDialog } from '../common/EditorDialog';
+import { AnimasiPratonton } from './AnimasiPratonton';
 import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
 import {
   GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH, tierForSlot,
@@ -169,6 +170,14 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
   // sekadar perkataan "lalai" yang tak memberitahu apa-apa.
   const [amWarnaPanel, setAmWarnaPanel] = useState('#802334');
   const [amKelajuan, setAmKelajuan] = useState(1);
+  // Jenis animasi LALAI am (2026-08-16, keputusan Izzat: Arah/3b baca "Tidak berkaitan" bila
+  // jenis EFEKTIF ialah Pudar) — perlu tahu jenis am supaya slot yang tak override langsung
+  // (jenisAnimasiOverride='') tetap tunjuk "Tidak berkaitan" dgn betul, bukan cuma slot yang
+  // override 'pudar' secara eksplisit. Corak sama seperti amWarnaPanel/amKelajuan di atas.
+  const [amJenis, setAmJenis] = useState('colophon');
+  // Arah LALAI am (2026-08-16, keperluan Pratonton Animasi — Tetapan Kad perlu tahu arah
+  // EFEKTIF slot, sama rasional amJenis di atas).
+  const [amArah, setAmArah] = useState('kanan');
   useEffect(() => {
     let dibatal = false;
     fetch('/api/system/slot-am-settings')
@@ -177,6 +186,8 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
         if (dibatal || !d) return;
         if (typeof d.warnaPanelTransisi === 'string' && d.warnaPanelTransisi) setAmWarnaPanel(d.warnaPanelTransisi);
         if (Number(d.kelajuanAnimasi) > 0) setAmKelajuan(Number(d.kelajuanAnimasi));
+        if (typeof d.jenisAnimasi === 'string' && d.jenisAnimasi) setAmJenis(d.jenisAnimasi);
+        if (typeof d.arahAnimasi === 'string' && d.arahAnimasi) setAmArah(d.arahAnimasi);
       })
       .catch(() => { /* tetapan am tak dapat dibaca — label kekal nilai lalai, bukan ralat */ });
     return () => { dibatal = true; };
@@ -645,6 +656,8 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
           drafAwal={drafTetapanAwal}
           amWarnaPanel={amWarnaPanel}
           amKelajuan={amKelajuan}
+          amJenis={amJenis}
+          amArah={amArah}
           menyimpan={menyimpanTetapan}
           ralat={ralatTetapan}
           ralatKonflik={ralatTetapanKonflik}
@@ -765,6 +778,8 @@ interface TetapanSlotModalProps {
   drafAwal: DrafTetapan | null;
   amWarnaPanel: string;
   amKelajuan: number;
+  amJenis: string;
+  amArah: string;
   menyimpan: boolean;
   ralat: string | null;
   ralatKonflik: boolean;
@@ -774,9 +789,16 @@ interface TetapanSlotModalProps {
 }
 
 const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
-  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, menyimpan, ralat, ralatKonflik,
+  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, amJenis, amArah, menyimpan, ralat, ralatKonflik,
   onSalinDraf, onSimpan, onTutup,
 }) => {
+  // Jenis/arah/kelajuan/warna EFEKTIF slot ni — override sendiri, atau jatuh balik ke tetapan am
+  // (2026-08-16). Perlu SEMUA empat untuk Pratonton Animasi papar kesan SEBENAR slot ni, sama
+  // rasional jenisEfektifSlot yang sedia ada (Arah/3b "Tidak berkaitan").
+  const jenisEfektifSlot = draf.jenisAnimasiOverride || amJenis;
+  const arahEfektifSlot = draf.arahOverride || amArah;
+  const kelajuanEfektifSlot = Number(draf.kelajuanOverride) > 0 ? Number(draf.kelajuanOverride) : amKelajuan;
+  const warnaEfektifSlot = draf.warnaPanelOverride || amWarnaPanel;
   const kotor = JSON.stringify(draf) !== JSON.stringify(drafAwal);
   const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onTutup);
 
@@ -928,7 +950,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
               className={INPUT_BORANG}
             >
               <option value="">Guna tetapan lalai</option>
-              <option value="pudar">Pudar (1 saat)</option>
+              <option value="pudar">Pudar</option>
               <option value="colophon">Colophon (panel maroon menegak)</option>
               <option value="sapuan_lajur">Sapuan Lajur (panel maroon sapu)</option>
               <option value="gerak_susun">Gerak Susun (kandungan+logo bergerak)</option>
@@ -936,17 +958,27 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
           </div>
           <div className="flex flex-col gap-1">
             <span className={LABEL_BORANG}>Arah Animasi</span>
-            <select
-              value={draf.arahOverride}
-              onChange={e => setDraf(p => p ? { ...p, arahOverride: e.target.value } : p)}
-              className={INPUT_BORANG}
-            >
-              <option value="">Guna tetapan lalai</option>
-              <option value="kanan">Kanan</option>
-              <option value="kiri">Kiri</option>
-              <option value="atas">Atas</option>
-              <option value="bawah">Bawah</option>
-            </select>
+            {/* Pudar tiada arah — sama rasional TetapanAmSlotConsole.tsx 3b (2026-08-16, keputusan
+                Izzat). `jenisEfektifSlot` (override slot ni ATAU jenis am) yang tentukan, bukan
+                `draf.jenisAnimasiOverride` mentah — slot yang langsung tak override pun perlu
+                tunjuk keadaan ni dgn betul bila jenis am semasa ialah Pudar. */}
+            {jenisEfektifSlot === 'pudar' ? (
+              <div className={`${INPUT_BORANG} bg-stone-100 text-stone-400 italic`}>
+                Tidak berkaitan — Pudar tiada arah
+              </div>
+            ) : (
+              <select
+                value={draf.arahOverride}
+                onChange={e => setDraf(p => p ? { ...p, arahOverride: e.target.value } : p)}
+                className={INPUT_BORANG}
+              >
+                <option value="">Guna tetapan lalai</option>
+                <option value="kanan">Kanan</option>
+                <option value="kiri">Kiri</option>
+                <option value="atas">Atas</option>
+                <option value="bawah">Bawah</option>
+              </select>
+            )}
           </div>
         </div>
         <p className="text-stone-400 text-[10px] leading-relaxed -mt-1">
@@ -1020,6 +1052,22 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
             &quot;Logo penaja sahaja&quot; jatuh balik ke logo Adjung apabila tiada penaja
             bertanda tayang bagi bulan semasa; panel tidak pernah kosong.
           </span>
+        </div>
+
+        {/* Pratonton — permintaan Izzat, papar kesan EFEKTIF slot ni (override sendiri ATAU
+            warisan Tetapan Am), bukan cuma medan yang diisi di modal ni. Andaian: togol 3
+            "Animasi transisi aktif" (Tetapan Am) dianggap HIDUP — modal ni tak fetch status togol
+            tu sendiri, jadi kalau ia dinyahaktifkan semua slot sebenarnya pudar tak kira tetapan
+            di sini (sama peraturan FrontpageView.tsx). */}
+        <div className="border border-stone-200 rounded p-3">
+          <span className={`${LABEL_BORANG} block mb-2`}>Pratonton (kesan sebenar slot ini)</span>
+          <AnimasiPratonton
+            jenis={jenisEfektifSlot}
+            arah={arahEfektifSlot}
+            kelajuan={kelajuanEfektifSlot}
+            warnaPanel={warnaEfektifSlot}
+            logoMode={draf.logoTransisiMode || 'adjung'}
+          />
         </div>
 
         {ralat && (

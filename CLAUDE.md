@@ -452,6 +452,53 @@ KEKAL tak berubah — cuma cara AI patut BERTINDAK bila maklumat tak cukup yang 
 "Dengan rujukan"/"Dengan Artikel Jurnal" (bukan hanya artikel yang ditangkap tu) — fix di
 prompt, bukan edit artikel lepas fakta, sebab punca sama akan berulang pada kandungan seterusnya.
 
+### Panel Tetapan Animasi diperbetulkan struktur (2026-08-16, Izzat: "ni tidak logik")
+Izzat tolak amaran amber saya tambah sehari sebelum ("tetapan ni tak buat apa-apa") sebagai
+tampalan gejala, bukan pembetulan struktur. Punca sebenar: togol "Animasi transisi aktif" dan
+pilihan "Pudar" dalam senarai jenis animasi menghasilkan OUTPUT SAMA (paksa 'pudar'), jadi panel
+boleh berada dalam keadaan bercanggah sendiri (togol ✓ tapi jenis = tiada-animasi). **Pudar
+KEKAL sebahagian senarai jenis** (bukan dibuang macam saya cadang mula-mula — Izzat betulkan:
+"pudar adalah sebahagian daripada animasi").
+
+- **Arah (3b) baca "Tidak berkaitan" bila Pudar** — bukan disembunyikan/dimatikan senyap, teks
+  statik menggantikan dropdown. Nilai `arahAnimasi`/`arahOverride` TAK disentuh, pulih automatik
+  bila jenis ditukar semula. Terpakai di Tetapan Am DAN Tetapan Kad per-slot (`jenisEfektifSlot`
+  — override slot ATAU jenis am, bukan cuma override mentah, supaya slot yang tak override pun
+  betul).
+- **Kelajuan (3c) kini terpakai pada Pudar juga** — keputusan Izzat eksplisit: "kelajuan animasi
+  juga sepatutnya ada. pudar sepatutnya boleh dilaraskan masa atau tempohnya." SATU medan kongsi
+  (bukan dua kawalan berasingan — Izzat pilih ni secara eksplisit selepas saya tanya, walaupun
+  bermakna slot Pudar sedia ada TERUS berubah rentak sebaik disimpan, cth 1.5x, bukan kekal 1
+  saat macam dahulu — TIADA migrasi/reset dibuat, perubahan tingkah laku ni DITERIMA Izzat).
+  `FrontpageView.tsx`: `tempohPudarMs = Math.round(1000 * kelajuanEfektifRender)` menggantikan
+  `opacity 1s` tetap.
+- **Pratonton Animasi** (`AnimasiPratonton.tsx`, baharu) — di Tetapan Am (papar lalai) DAN
+  Tetapan Kad per-slot (papar kesan EFEKTIF selepas override). Butang "Main" mainkan SATU
+  pusingan penuh. **Reka bentuk sengaja**: TIDAK guna semula `CarouselStableBlock` (mesin
+  keadaan/timer/portal/refs SANGAT rapuh) — cuma primitif visual TULEN dikongsi
+  (`vektorArahOverlay`, `LogoTransisiAdjung`, diekspot drpd `FrontpageView.tsx`; kelas keyframe
+  CSS `.carousel-colophon-penuh`/`.carousel-sapuan-penuh` sedia ada) dan FORMULA MASA yang sama
+  (masukMasa/tahanMasa/jumlahMasa/tempohGerakMs/tempohPudarMs) — kalau nombor asas berubah di
+  `FrontpageView.tsx`, kemas kini `AnimasiPratonton.tsx` SERENTAK.
+- **Mod Warna Panel: Seragam / Pelbagai** (medan baharu `modWarnaPanel`, `slot_am_settings`,
+  lalai `'pelbagai'`) — Izzat: "warna panel pula ada dua jenis: 1. seragam ... 2. pelbagai."
+  Seragam **ABAIKAN** `slots_config.warnaPanelOverride` SEMUA slot (warna am menang tanpa
+  syarat) — override **TAK dipadam**, cuma tak dibaca, boleh patah balik ke Pelbagai tanpa
+  kehilangan apa-apa (keputusan Izzat eksplisit: "Jangan padam, mesti boleh patah balik").
+  Digerbang di `warnaPanelUntukSlot()` (`FrontpageView.tsx`). Panel 3d turut papar **senarai
+  slot yang ada warna sendiri tersimpan** (dibaca terus drpd `/api/system/slots` sedia ada,
+  tiada endpoint baharu) supaya kelihatan sekali pandang walau sedang "tidur" bawah mod Seragam.
+- **Persediaan modul Penaja Per-Slot** (jahitan sahaja, **TIADA skema diubah** — Izzat: "ia
+  melibatkan perubahan/penambahan kod yg besar... cuma apa yg awak buat skrg perlu bersedia utk
+  terima modul ini"). Keperluan akan datang Izzat: (1) tempoh tajaan 7 hari/1 bulan, (2) taja
+  portal keseluruhan ATAU slot tertentu, (3) logo penaja dlm panel animasi (selang-seli/
+  bersebelahan, belum putus), (4) logo hilang TEPAT bila tempoh tamat. Seni bina sekarang:
+  kelayakan penaja diasingkan jadi `penajaLayakUntukTransisi()` (satu tapak semakan, komen
+  jelaskan tepat di mana julat tarikh/skop slot akan bercantum), `ambilLogoTransisi()` kekal
+  PINTU TUNGGAL resolusi logo (nota: perlu terima `slotIndexStr` bila skop-per-slot dibina,
+  ketiga-tiga tapak panggilan sudah hantar `data-slot`), kelayakan SUDAH dikira semasa render
+  (bukan cache boot — sifat perlu KEKAL, bukan baharu). Nota selari di `sponsorRoutes.js`.
+
 ### Had aksara: kandungan sedia ada dikecualikan + kad carousel tak mengembang (2026-08-16, Izzat)
 Tiga pepijat dilaporkan serentak selepas Izzat ketatkan had aksara.
 
