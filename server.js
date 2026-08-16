@@ -814,7 +814,18 @@ const initializeSchema = () => {
                 notisPenamatanHari INTEGER DEFAULT 21,
                 updatedAt TEXT
               )
-            `, () => {});
+            `, () => {
+              // Pramuat cache Dasar Aktif Editorial DI SINI, dalam panggil balik CREATE TABLE
+              // jadual itu sendiri — BUKAN bersama loadAmSettings/loadTierOverrides di bahagian
+              // boot bawah (lihat nota di situ). Sebabnya: penciptaan skema ni async, jadi
+              // panggilan di bahagian boot berlumba dengannya dan KALAH pada setiap permulaan
+              // pelayan, memuntahkan amaran "no such table: dasar_aktif_editorial" ke log PM2
+              // walaupun jadual tu memang wujud. Di sini jadual dijamin sudah wujud, jadi amaran
+              // yang tinggal dalam loadDasarAktifSettings() ialah amaran SEBENAR sahaja.
+              // `dbGet` diisytiharkan lebih bawah dalam fail ni (baris ~1306) — selamat sebab
+              // panggil balik ni hanya dijalankan selepas modul selesai dinilai sepenuhnya.
+              loadDasarAktifSettings(dbGet);
+            });
 
             // Pindaan had aksara per-tier (2026-07-30). Menyimpan PINDAAN sahaja — tier tanpa
             // baris di sini guna nilai lalai GeometryConfig.js. Lihat core/routes/tierSettingsRoutes.js.
@@ -3687,9 +3698,17 @@ if (fs.existsSync(distDir)) {
 // dalam-memori ni, bukan pangkalan data pada setiap pengesahan.
 loadAmSettings(dbGet);
 
-// Dasar Aktif Editorial (2026-08-16) — sama corak, runSemakanTakAktif() baca cache dalam-memori
-// ni SETIAP kali ia jalan (sekali sehari), bukan sekali semasa boot — lihat dasarAktifRoutes.js.
-loadDasarAktifSettings(dbGet);
+// Dasar Aktif Editorial (2026-08-16) — pramuatnya SENGAJA TIADA di sini, tidak seperti jirannya
+// di atas/bawah. Jadual `dasar_aktif_editorial` BAHARU (tidak seperti `slot_am_settings` yang
+// sudah lama wujud pada fail DB pengeluaran), jadi panggilan pramuat di sini berlumba dengan
+// `CREATE TABLE IF NOT EXISTS` async dan kalah pada setiap permulaan pelayan — log PM2 penuh
+// amaran "no such table" palsu. Pramuat dipindahkan ke dalam panggil balik CREATE TABLE jadual
+// tu sendiri (baris ~817) supaya susunannya dijamin, bukan diharap. Cache tetap perlu dipanaskan
+// semasa boot kerana `GET /api/system/users` (userAdminRoutes.js) membaca
+// `getDasarAktifAmbangMs()` terus tanpa memuat semula — lajur "Tak Aktif" Direktori akan papar
+// angka berasaskan lalai 7/14/21 kalau cache dibiar sejuk. runSemakanTakAktif() pula memuat
+// semula sendiri secara LIVE setiap jalanan (lihat nota di situ), jadi penguatkuasaan sebenar
+// tidak pernah bergantung pada pramuat ni.
 
 loadTierOverrides(dbAll).then(map => {
   const bil = Object.keys(map).length;

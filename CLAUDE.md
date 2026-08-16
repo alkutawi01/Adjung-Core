@@ -594,6 +594,23 @@ jadi semasa boot. **Peraturan am**: mana-mana job berjadual (`setInterval`) yang
 boleh-laras MESTI muat semula segar pada setiap jalanan, JANGAN percaya cache dimuat sekali
 semasa boot — boot-time preload cuma optimistik/best-effort, bukan jaminan.
 
+**Susulan kedua (2026-08-16) — race itu sendiri dihapuskan, bukan cuma diakali.** Pembetulan di
+atas menyelamatkan *tingkah laku* tetapi membiarkan *bunyi*: log PM2 memuntahkan amaran
+`no such table: dasar_aktif_editorial` pada SETIAP restart pengeluaran, kelihatan seperti
+kegagalan serius sedangkan jadual tu memang wujud — menyusahkan sesiapa yang membaca log semasa
+menyiasat masalah lain. Panggilan pramuat `loadDasarAktifSettings(dbGet)` dipindahkan daripada
+blok boot (sebelah `loadAmSettings`/`loadTierOverrides`) MASUK ke dalam panggil balik
+`CREATE TABLE IF NOT EXISTS dasar_aktif_editorial` jadual itu sendiri (server.js ~baris 817),
+jadi susunannya dijamin oleh struktur kod, bukan diharap. Amaran yang tinggal dalam
+`loadDasarAktifSettings()` kekal — kalau jadual tu betul-betul hilang suatu hari nanti, ia tetap
+menjerit. **Pramuat tu TIDAK boleh dibuang begitu sahaja** walaupun `runSemakanTakAktif()` sudah
+muat semula LIVE: `GET /api/system/users` (`userAdminRoutes.js` ~baris 95) membaca
+`getDasarAktifAmbangMs()` TERUS tanpa memuat semula, jadi lajur "Tak Aktif" Direktori akan papar
+angka berasaskan lalai 7/14/21 sepanjang tempoh antara restart dan jalanan job harian pertama.
+**Peraturan am**: kalau pramuat boot berlumba dengan penciptaan skema, sauhkan pramuat tu pada
+panggil balik CREATE TABLE jadual berkenaan — jangan senyapkan amaran, dan jangan buang pramuat
+tanpa memeriksa dahulu SIAPA LAGI yang membaca cache tu tanpa memuat semula.
+
 ### Text editorial mesti boleh disalin pembaca — `select-none` bekas akar (2026-08-16)
 Izzat tanya "kenapa tak boleh copy, highlight teks di kad?" — `select-none` wujud pada BEKAS AKAR
 seluruh `FrontpageView.tsx` (`<div className="...select-none animate-fade-in">`, bekas terluar
