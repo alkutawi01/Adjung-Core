@@ -62,6 +62,47 @@ const TAHAP_AMARAN_META: Record<number, { label: string; tone: StatusTone }> = {
   3: { label: 'Digantung (tak aktif)', tone: 'error' },
 };
 
+// Satu baris jadual anggota — diasingkan (2026-08-16) supaya boleh dipanggil dua tempat (kumpulan
+// Aktif dan kumpulan Ditamatkan di bawahnya) tanpa duplikasi JSX. `className` pilihan membezakan
+// baris ditamatkan secara visual (latar pudar) tanpa perlu dua salinan markup.
+const BarisAnggota: React.FC<{ staff: Staff; onLihatProfil: () => void; className?: string }> = ({ staff, onLihatProfil, className = '' }) => (
+  <tr className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS} ${className}`}>
+    <td className="p-4 font-serif font-bold text-stone-900">{staff.penName}</td>
+    <td className="p-4 text-stone-500 font-mono font-bold text-xs">{staff.username}</td>
+    <td className="p-4">
+      <div className="flex flex-wrap gap-1">
+        {staff.roles.map(r => (
+          <span key={r} className={`px-2 py-0.5 rounded font-bold text-[10px] ${ROLE_META[r]?.warna || 'bg-stone-200 text-stone-800'}`}>
+            {ROLE_META[r]?.label || r}
+          </span>
+        ))}
+      </div>
+    </td>
+    <td className="p-4">
+      <StatusBadge tone={STATUS_TONE[staff.status]} label={staff.status} />
+    </td>
+    <td className="p-4">
+      {!staff.tertaklukDasarAktif ? (
+        <span className="text-stone-300">—</span>
+      ) : (
+        <div className="flex flex-col gap-1">
+          <span className="font-mono text-xs text-stone-600">{staff.hariTakAktif} hari</span>
+          {staff.tahapAmaran > 0 && TAHAP_AMARAN_META[staff.tahapAmaran] && (
+            <StatusBadge tone={TAHAP_AMARAN_META[staff.tahapAmaran].tone} label={TAHAP_AMARAN_META[staff.tahapAmaran].label} />
+          )}
+        </div>
+      )}
+    </td>
+    <td className="p-4 text-stone-700 font-mono text-xs">{staff.countPublished}</td>
+    <td className="p-4 text-stone-500 font-mono text-xs">{new Date(staff.createdAt).toLocaleDateString('ms-MY')}</td>
+    <td className="p-4 text-right">
+      <Button variant="secondary" size="sm" onClick={onLihatProfil}>
+        Lihat Profil
+      </Button>
+    </td>
+  </tr>
+);
+
 interface DirektoriConsoleProps {
   // 2026-08-02 (Fasa 3) — Direktori domain Pentadbir sahaja (dahulu currentUserRole 'KETUA_EDITOR'
   // vs 'EDITOR', tapi Ketua Editor pun tak automatik dapat akses Direktori lagi melainkan dia
@@ -159,6 +200,15 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
     s.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Anggota Ditamatkan diasingkan ke bawah jadual (2026-08-16, permintaan Izzat: "sepatutnya
+  // diletakkan berasingan... supaya tak bercampur dengan yg masih aktif") — dahulu susunan ikut
+  // terus staffList (biasanya tarikh cipta), jadi akaun ditamatkan boleh terselit antara akaun
+  // aktif tanpa corak jelas. Dipecah dua kumpulan (bukan diurut ikut status sahaja) supaya baris
+  // pemisah "AKAUN DITAMATKAN" boleh dipaparkan di antaranya — susunan ASAL dikekalkan dalam
+  // setiap kumpulan (filter, bukan sort, jadi stabil).
+  const staffAktif = filteredStaff.filter(s => s.status !== 'Ditamatkan');
+  const staffDitamatkan = filteredStaff.filter(s => s.status === 'Ditamatkan');
 
   // Kemas kini rekod staf serentak dalam selectedStaff (jika modal profil masih terbuka pada
   // staf yang sama) dan staffList — dipanggil daripada ProfilAnggotaModal selepas tindakan
@@ -361,42 +411,20 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
                 </td>
               </tr>
             )}
-            {!memuat && filteredStaff.map(staff => (
-              <tr key={staff.id} className={`hover:bg-stone-50 transition-colors ${GARIS_BARIS}`}>
-                <td className="p-4 font-serif font-bold text-stone-900">{staff.penName}</td>
-                <td className="p-4 text-stone-500 font-mono font-bold text-xs">{staff.username}</td>
-                <td className="p-4">
-                  <div className="flex flex-wrap gap-1">
-                    {staff.roles.map(r => (
-                      <span key={r} className={`px-2 py-0.5 rounded font-bold text-[10px] ${ROLE_META[r]?.warna || 'bg-stone-200 text-stone-800'}`}>
-                        {ROLE_META[r]?.label || r}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="p-4">
-                  <StatusBadge tone={STATUS_TONE[staff.status]} label={staff.status} />
-                </td>
-                <td className="p-4">
-                  {!staff.tertaklukDasarAktif ? (
-                    <span className="text-stone-300">—</span>
-                  ) : (
-                    <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs text-stone-600">{staff.hariTakAktif} hari</span>
-                      {staff.tahapAmaran > 0 && TAHAP_AMARAN_META[staff.tahapAmaran] && (
-                        <StatusBadge tone={TAHAP_AMARAN_META[staff.tahapAmaran].tone} label={TAHAP_AMARAN_META[staff.tahapAmaran].label} />
-                      )}
-                    </div>
-                  )}
-                </td>
-                <td className="p-4 text-stone-700 font-mono text-xs">{staff.countPublished}</td>
-                <td className="p-4 text-stone-500 font-mono text-xs">{new Date(staff.createdAt).toLocaleDateString('ms-MY')}</td>
-                <td className="p-4 text-right">
-                  <Button variant="secondary" size="sm" onClick={() => setSelectedStaff(staff)}>
-                    Lihat Profil
-                  </Button>
+            {!memuat && staffAktif.map(staff => (
+              <BarisAnggota key={staff.id} staff={staff} onLihatProfil={() => setSelectedStaff(staff)} />
+            ))}
+            {!memuat && staffDitamatkan.length > 0 && (
+              <tr>
+                <td colSpan={8} className="px-4 pt-5 pb-1.5 bg-stone-50 border-t-2 border-stone-200">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                    Akaun Ditamatkan ({staffDitamatkan.length})
+                  </span>
                 </td>
               </tr>
+            )}
+            {!memuat && staffDitamatkan.map(staff => (
+              <BarisAnggota key={staff.id} staff={staff} onLihatProfil={() => setSelectedStaff(staff)} className="bg-stone-50/50" />
             ))}
           </tbody>
         </table>
