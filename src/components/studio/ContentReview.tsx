@@ -349,6 +349,31 @@ export function ContentReview() {
     }
   }, [pagedBulkItems]);
 
+  // Amaran "beforeunload" bila kotak teks pukal ada suntingan belum disimpan (2026-08-16,
+  // soalan Izzat susulan pepijat "SISTEM BODOH" -- "kalau tak disimpan, adakah sistem akan bg
+  // amaran kalau saya nak navigate ke modul lain?"). Jawapan jujur semasa ditanya: TIADA
+  // langsung -- kotak teks pukal boleh hilang senyap kalau tab/pelayar ditutup atau di-refresh
+  // sambil ada suntingan belum simpan (lebih genting SEKARANG selepas pembetulan di atas, sebab
+  // suntingan yang gagal simpan KEKAL dalam kotak teks, bukan terpadam serentak macam dahulu).
+  // `buildBulkText(pagedBulkItems)` ialah nilai "bersih" SEBENAR pada bila-bila masa (effect
+  // resync di atas sentiasa tetapkan bulkText kepadanya bila items/halaman/tapisan berubah) --
+  // banding terus dgn bulkText semasa, tiada state baseline berasingan diperlukan.
+  //
+  // Skop TERHAD kepada beforeunload (tutup pelayar/refresh/tutup tab) sahaja -- amaran bila
+  // TUKAR TAB dalam Editorium sendiri (klik Draf Saya/Slot/dll di EditoriumLayout.tsx) perlukan
+  // ubah kod navigasi DIKONGSI (kesan semua 12 tab, bukan cuma Semakan Kandungan ni), sengaja
+  // TIDAK dibina sesi ni tanpa kelulusan eksplisit -- lihat CLAUDE.md "Bila teragak-agak".
+  useEffect(() => {
+    const kotor = bulkText !== buildBulkText(pagedBulkItems);
+    if (!kotor) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [bulkText, pagedBulkItems]);
+
   // Bulk save: edit-only. Matches each block back to its original item VIA UUID (identiti stabil
   // — lihat nota di parseBulkText), bukan lagi nombor #Slot-Siri ordinal. Blok yang UUID-nya tak
   // sepadan mana-mana item semasa (baris UUID dipadam tanpa sengaja, atau item tu dah diarkib oleh
