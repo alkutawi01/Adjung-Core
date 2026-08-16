@@ -452,6 +452,43 @@ KEKAL tak berubah — cuma cara AI patut BERTINDAK bila maklumat tak cukup yang 
 "Dengan rujukan"/"Dengan Artikel Jurnal" (bukan hanya artikel yang ditangkap tu) — fix di
 prompt, bukan edit artikel lepas fakta, sebab punca sama akan berulang pada kandungan seterusnya.
 
+### Had aksara: kandungan sedia ada dikecualikan + kad carousel tak mengembang (2026-08-16, Izzat)
+Tiga pepijat dilaporkan serentak selepas Izzat ketatkan had aksara.
+
+- **Mesej "Kandungan tidak disiarkan" PALSU pada laluan sunting.** `ContentBudget.js` (modul
+  pengesahan TULEN) dahulu menyatakan AKIBAT dalam `reason`, sedangkan ia dipanggil dari laluan
+  yang akibatnya BERTENTANGAN: laluan Terbit (`server.js syncManualObjectsForSlot` — memang tak
+  disiarkan) DAN laluan sunting kandungan yang SUDAH terbit (`PATCH /content/:id` — kandungan lama
+  TETAP hidup di halaman awam, cuma suntingan ditolak). **Peraturan: modul pengesahan nyatakan
+  FAKTA sahaja, PEMANGGIL tambah ayat akibat.** Jangan pulangkan ayat akibat ke dalam
+  `ContentBudget.js`.
+- **Kandungan sedia ada DIKECUALIKAN daripada had yang DIKETATKAN kemudian** (keputusan Izzat:
+  "kandungan yg dah terbit ... tak perlu patuh had aksara baru; hanya kandungan baharu yg perlu
+  patuh"). Sebelum ni kandungan terperangkap kekal — sebarang suntingan (walau betulkan SATU
+  ejaan) ditolak selamanya. **Ujian pengecualian: adakah kandungan TERSIMPAN (sebelum suntingan)
+  sudah pun gagal had SEMASA?** Ya → dikecualikan (diterbitkan bawah had lama, bukan salah
+  editor). Tidak → kuat kuasa penuh (suntingan INI sendiri yang melimpahkan kad, patut disekat).
+  Terpakai pada bajet kad, had minimum huraian panjang, dan had medan tambahan. Teruji
+  `tests/hadDiketatkan.test.js`. **Gotcha**: `briefLong`/`source`/`topik`/`note` BUKAN lajur
+  `editorial_revisions` — ia dalam `editorial_attribute_values`; `rev.briefLong` sentiasa
+  `undefined` dan akan melumpuhkan pengecualian SECARA SENYAP tanpa sebarang ralat.
+- **Kad carousel mengembang bila item lebih besar berputar masuk.** Puncanya BUKAN pada carousel —
+  ia pada **lajur sumber di LUARnya**. Kunci tinggi `CarouselStableBlock` sah HANYA jika lebar
+  lajur kandungan kekal sama sepanjang putaran (`minHeight` ialah LANTAI, tak pernah boleh halang
+  kad MEMBESAR). Lajur sumber (`<a>` tepi kanan kad HERO/STANDARD) membaca `bentoNewsItems[n]`
+  iaitu item AKTIF yang digabung, jadi nama sumbernya berubah setiap putaran; dengan
+  `flex-shrink-0` + basis auto, lebarnya = lebar teks sumber aktif. Diukur pada laman SEBENAR:
+  slot 2 = **245px** lawan **99px** pada slot STANDARD lain yang seni binanya serupa — putaran
+  mencuri ~146px daripada lajur kandungan, teks membalut lebih tinggi, kad mengembang, dan
+  `maxSeen` mengunci nilai besar tu selamanya. **Pembetulan: lajur sumber sisi berlebar TETAP
+  (`md:w-28` STANDARD, `md:w-36` HERO) — ini SYARAT KETEPATAN kunci tinggi, bukan hiasan. JANGAN
+  pulangkan kepada lebar-ikut-teks.** Disahkan hidup selepas deploy: tinggi kad slot 2 kekal
+  205px merentasi SEMUA putaran (dahulu berubah-ubah).
+- **Regresi `group` dipulihkan** — commit 343755a (penyeragaman BentoInner) tercicirkan kelas
+  `group` daripada 8 slot (1, 2, 3, 6, 11, 12, 13, 14). Anak panah navigasi carousel di-portal ke
+  kad dan guna `group-hover:opacity-100`, jadi anak panah mati pada kad tu. `group` kini ada pada
+  KESEMUA 24 slot bento (sebelum regresi pun cuma 8/24 — jadi ni sekali gus menyeragamkan).
+
 ### Pratonton Kad — semua tier + betulan sempang keyboard Italic (2026-08-16, Izzat)
 Pratonton Kad (modal Tulis Kandungan, `SlotManagerModal.tsx`) dahulu cuma tier KOMPAK ("bukti
 konsep pertama", 2026-08-08). Izzat tanya "kenapa hanya sesetengah slot je ada preview?" —
