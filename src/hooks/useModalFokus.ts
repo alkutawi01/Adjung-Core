@@ -1,5 +1,16 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
+// Kiraan modal terbuka SERENTAK, dikira bersama merentasi SEMUA panggilan cangkuk ni (2026-08-16,
+// audit UI/UX Izzat — "skrol dalam ruang tertentu borang modal menggerakkan halaman DI BELAKANG
+// modal"). Punca: TIADA satu pun daripada 15+ modal Editorium yang guna cangkuk ni pernah kunci
+// skrol badan halaman semasa terbuka — skrol yang tersasar sedikit drpd kawasan menatal dalaman
+// modal (cth kena backdrop, bukan kandungan) terus gerakkan halaman di belakang, modal jadi
+// terapung di kedudukan pelik. Dikira di PERINGKAT MODUL (bukan per-komponen) supaya betul kalau
+// dua modal terbuka bertindan (cth modal pengesahan di atas modal borang) — body overflow cuma
+// dipulih bila BENAR-BENAR modal TERAKHIR tertutup, bukan yang pertama.
+let jumlahModalTerbuka = 0;
+let overflowAsalSebelumModal = '';
+
 // Cangkuk pengurusan fokus modal kongsi (2026-08-07, Audit UI/UX Editorium §G1/G2).
 // Sebelum ni TIADA satu pun daripada 13 modal Editorium memindahkan fokus masuk, memerangkap Tab,
 // atau memulangkan fokus kepada pencetus apabila ditutup — pengguna papan kekunci menaip ke medan
@@ -33,6 +44,24 @@ export function useModalFokus(refModal: RefObject<HTMLElement>, onTutup?: () => 
     );
     return senarai.filter((e: HTMLElement) => e.offsetParent !== null);
   };
+
+  // Kunci skrol badan halaman sepanjang modal ni terbuka (2026-08-16) — lihat nota
+  // jumlahModalTerbuka di atas fail ni. Berasingan drpd effect fokus di bawah (kebergantungan
+  // lain, tujuan lain) — kunci/urus fokus ialah DUA kebimbangan berbeza, walau kedua-duanya
+  // "buka modal" punca yang sama.
+  useEffect(() => {
+    if (jumlahModalTerbuka === 0) {
+      overflowAsalSebelumModal = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    jumlahModalTerbuka += 1;
+    return () => {
+      jumlahModalTerbuka -= 1;
+      if (jumlahModalTerbuka === 0) {
+        document.body.style.overflow = overflowAsalSebelumModal;
+      }
+    };
+  }, []);
 
   // Fokus awal + pulangkan fokus ke pencetus — HANYA semasa lekap/lucut modal (deps kosong),
   // bukan setiap kali `refModal`/`onTutup` bertukar rujukan.

@@ -824,6 +824,21 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   );
   const hasUnsavedWork = items.some(itemHasContent);
 
+  // Penanda aras "apa yang pelayan tahu buat masa ini" (2026-08-16, pembetulan Izzat: amaran
+  // tutup borang tersilap cetus lepas "Simpan sebagai draf" BERJAYA). TIDAK dibandingkan terus
+  // dgn formConfig.manualSummary mentah (prop asal drpd pelayan) — DUA sebab: (1) `items` di
+  // atas SUDAH ditapis (cuma blok editor semasa, baris 804-805), jadi serializeManualBentoQueue()
+  // hasil tapisan MEMANG berbeza drpd manualSummary penuh (blok editor lain turut ada) walau
+  // TIADA apa disunting; (2) parseManualSummaryBlocks() -> serializeManualBentoQueue() bukan
+  // round-trip stabil (disahkan skrip ujian berasingan — spasi/pemisah blok boleh berbeza),
+  // jadi banding terus dgn rentetan MENTAH boleh cetus amaran palsu SEBALIKNYA (positif palsu
+  // pada buka borang kali pertama, walau tiada suntingan). Penyelesaian: bina penanda aras
+  // SENDIRI drpd `items` yang SAMA (lazy initializer ni jalan SEKALI, guna nilai `items` mula-
+  // mula render ni juga — dua-dua serialize `items` yang SAMA, jadi SAH sama pada mulanya),
+  // kemas kini HANYA pada 3 titik simpanan berjaya (saveDraft/terbitSemua/publishOne).
+  const [manualSummaryTersimpanTerakhir, setManualSummaryTersimpanTerakhir] = useState<string>(() => serializeManualBentoQueue(items));
+  const drafBelumDisimpanKePelayan = serializeManualBentoQueue(items) !== manualSummaryTersimpanTerakhir;
+
   // Auto-simpan draf SENYAP (2026-08-08) — localStorage SAHAJA, tak pernah sentuh pelayan (lihat
   // src/hooks/useAutoSimpanTempatan.ts untuk sebab). Kunci ikut slot+editor supaya draf tempatan
   // seorang editor tak pernah tersilap dipulihkan untuk editor lain kongsi slot sama.
@@ -1109,6 +1124,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       commit(() => remainingDrafts);
       setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
       setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
+      setManualSummaryTersimpanTerakhir(serializeManualBentoQueue(remainingDrafts));
       buangDrafTempatan(kunciDrafTempatan);
       setRingkasanTerbitSemua({ berjaya, pending, gagal: itemsGagal });
       onLihatIndeks && onToast?.(
@@ -1142,6 +1158,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       commit(() => remainingDrafts);
       setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
       setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
+      setManualSummaryTersimpanTerakhir(serializeManualBentoQueue(remainingDrafts));
       buangDrafTempatan(kunciDrafTempatan);
       // Mesej tepat ikut status SEBENAR (LIFE-01, audit ChatGPT 2026-08-08) — dahulu sentiasa
       // papar "diterbitkan" walaupun kandungan mendarat 'pending' (Terbit Sendiri tak dibenarkan,
@@ -1181,6 +1198,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     setSavingDraft(false);
     if (ok) {
       setFormConfig((prev: any) => ({ ...prev, manualSummary }));
+      setManualSummaryTersimpanTerakhir(manualSummary);
       buangDrafTempatan(kunciDrafTempatan);
       setDraftNote(labelUi('toast.draf_disimpan'));
       setTimeout(() => setDraftNote(''), 2400);
@@ -1257,7 +1275,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // Masukkan" belum disentuh), sama falsafah macam amaran padam kandungan di atas.
   const handleSwitchSlot = (idx: number) => {
     if (idx === editingSlotIndex) return;
-    if (hasUnsavedWork) { setKonfirmTukarKe(idx); return; }
+    if (drafBelumDisimpanKePelayan) { setKonfirmTukarKe(idx); return; }
     onSwitchSlot?.(idx);
   };
 
@@ -1267,14 +1285,15 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // editorial ialah tulisan sebenar (lihat CLAUDE.md), draf separuh siap yang tersimpan senyap
   // ke DB tanpa editor sedar lebih berbahaya daripada amaran ringkas ni.
   const handleClose = () => {
-    if (hasUnsavedWork) { setKonfirmTutup(true); return; }
+    if (drafBelumDisimpanKePelayan) { setKonfirmTutup(true); return; }
     onClose();
   };
 
-  // Amaran tutup TAB/muat semula pelayar (2026-08-02) — hasUnsavedWork tak boleh dibaca terus
-  // dalam handler beforeunload (closure lapuk), jadi bergantung pada ref yang sentiasa disegarkan.
-  const hasUnsavedWorkRef = useRef(hasUnsavedWork);
-  hasUnsavedWorkRef.current = hasUnsavedWork;
+  // Amaran tutup TAB/muat semula pelayar (2026-08-02) — hasUnsavedWork/drafBelumDisimpanKePelayan
+  // tak boleh dibaca terus dalam handler beforeunload (closure lapuk), jadi bergantung pada ref
+  // yang sentiasa disegarkan.
+  const hasUnsavedWorkRef = useRef(drafBelumDisimpanKePelayan);
+  hasUnsavedWorkRef.current = drafBelumDisimpanKePelayan;
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (!hasUnsavedWorkRef.current) return;
