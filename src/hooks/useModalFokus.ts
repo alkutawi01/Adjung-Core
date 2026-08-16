@@ -20,7 +20,17 @@ let overflowAsalSebelumModal = '';
 // elemen pembalut modal (bukan backdrop). `onTutup` dipanggil apabila Escape ditekan — hantar
 // `undefined` untuk modal yang sengaja tidak boleh ditutup dengan Escape (cth LengkapkanProfilModal,
 // gerbang terma wajib).
-export function useModalFokus(refModal: RefObject<HTMLElement>, onTutup?: () => void) {
+//
+// `terbuka` (2026-08-16, pepijat serius Izzat — "satu Editorium tak boleh scroll") — lalai `true`
+// sebab KEBANYAKAN pemanggil (modal komponen) cuma LEKAP semasa modal tu betul-betul terbuka, jadi
+// lekap/lucut hook = buka/tutup modal, tiada perlu nyatakan terbuka secara eksplisit. TAPI
+// EditoriumView.tsx lekap hook ni SEKALI SAHAJA di peringkat cangkang halaman (kekal sepanjang
+// Editorium aktif) utk urus modal "Pilih Slot" — cuma `onTutup` bertukar antara aktif/`undefined`.
+// Kunci skrol yang ikat pada lekap/lucut HOOK (bukan buka/tutup MODAL SEBENAR) jadi kunci skrol
+// SELAMANYA sebaik Editorium dimuat, tak pernah lucut sebab hook tu tak pernah unmount. Pemanggil
+// macam ni MESTI hantar `terbuka` eksplisit (cth `terbuka={showSlotPicker}`) supaya kunci skrol
+// ikut keadaan buka/tutup SEBENAR, bukan hayat hook.
+export function useModalFokus(refModal: RefObject<HTMLElement>, onTutup?: () => void, terbuka: boolean = true) {
   const pencetusSebelumnya = useRef<HTMLElement | null>(null);
   // Rujukan sentiasa segar kepada `onTutup` (2026-08-07, pepijat Izzat — "tekan butang keyboard
   // delete, ia hanya delete satu aksara sahaja... kena klik semula di field") — punca akar:
@@ -50,6 +60,7 @@ export function useModalFokus(refModal: RefObject<HTMLElement>, onTutup?: () => 
   // lain, tujuan lain) — kunci/urus fokus ialah DUA kebimbangan berbeza, walau kedua-duanya
   // "buka modal" punca yang sama.
   useEffect(() => {
+    if (!terbuka) return;
     if (jumlahModalTerbuka === 0) {
       overflowAsalSebelumModal = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
@@ -61,7 +72,7 @@ export function useModalFokus(refModal: RefObject<HTMLElement>, onTutup?: () => 
         document.body.style.overflow = overflowAsalSebelumModal;
       }
     };
-  }, []);
+  }, [terbuka]);
 
   // Fokus awal + pulangkan fokus ke pencetus — HANYA semasa lekap/lucut modal (deps kosong),
   // bukan setiap kali `refModal`/`onTutup` bertukar rujukan.

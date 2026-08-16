@@ -262,9 +262,13 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const slotEditor = useSlotEditor(currentUser?.name);
   // Fokus & Escape modal "Pilih Slot" (Audit UI/UX §G1/G2/G6) — `onTutup` cuma aktif apabila
   // modal sebenarnya terbuka, supaya Escape di tempat lain dalam Editorium tak disilap tangkap.
+  // `terbuka` WAJIB dihantar eksplisit di sini (2026-08-16, pepijat kunci skrol — lihat nota di
+  // useModalFokus.ts) — hook ni lekap SEKALI di peringkat cangkang halaman, bukan setiap kali
+  // modal buka, jadi lalai `true` akan kunci skrol Editorium SELAMANYA sebaik dimuat.
   useModalFokus(
     refModalSlotPicker,
-    slotEditor.showSlotPicker ? () => slotEditor.setShowSlotPicker(false) : undefined
+    slotEditor.showSlotPicker ? () => slotEditor.setShowSlotPicker(false) : undefined,
+    slotEditor.showSlotPicker
   );
   // Slot Bar (2026-08-02, Fasa 7, item kedua terakhir) — native Editorium, gantikan borang LAMA
   // di FrontpageView.tsx yang tiada titik masuk UI langsung lagi (pencetus TERAKHIR isEditMode,
