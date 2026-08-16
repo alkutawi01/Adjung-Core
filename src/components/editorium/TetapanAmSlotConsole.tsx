@@ -79,10 +79,15 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
   return (
     <div className="border border-stone-200 rounded p-4 space-y-3">
       <div className="font-semibold text-stone-800">3d. Warna panel &amp; giliran logo</div>
+      {/* Ayat ni dahulu rosak: kurungan tak seimbang ("(kekal walaupun "Pudar" dipilih (cuma tak
+          dipaparkan...)." — dua buka, satu tutup) dan petikan berganda bersarang dalam ayat.
+          Ditulis semula sebagai dua ayat penuh (2026-08-16, audit Izzat). */}
       <p className="text-stone-500 text-[11px] leading-relaxed">
-        Panel semasa animasi Colophon/Sapuan Lajur papar logo Adjung sendiri secara lalai (kekal
-        walaupun "Pudar" dipilih (cuma tak dipaparkan sehingga jenis lain diaktifkan). Tanda
-        penaja "Tayang semasa transisi" di Urus Penaja supaya ia layak masuk giliran.
+        Panel semasa animasi Colophon, Sapuan Lajur dan Gerak Susun memaparkan logo Adjung sendiri
+        secara lalai. Tetapan ni kekal walaupun jenis animasi ialah <em>Pudar</em> &mdash; cuma
+        panelnya tidak dipaparkan sehingga salah satu jenis di atas digunakan, jadi Ketua Editor
+        boleh menyediakannya lebih awal. Tandakan penaja <strong className="font-semibold">Tayang
+        semasa transisi</strong> di Urus Penaja supaya ia layak masuk giliran.
       </p>
       <label className="flex items-center gap-2">
         <span className="font-semibold text-stone-700 text-[11px]">Warna panel</span>
@@ -106,10 +111,14 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
           ))}
         </select>
       </label>
+      {/* Nama medan dalaman `tayangSemasaTransisi` dibuang drpd teks pengguna (2026-08-16, audit
+          Izzat) — editor tak pernah nampak nama medan kod, cuma label UI sebenar. Sama kelas
+          pepijat macam kod status mentah dalam Log Audit dahulu ("bahasa rojak"). */}
       <p className="text-stone-400 text-[10px] leading-relaxed">
-        Berbilang penaja layak (tayangSemasaTransisi) berputar round-robin; setiap giliran
-        "penaja" dalam nisbah papar penaja SETERUSNYA dalam senarai, bukan penaja yang sama
-        berulang. Tiada penaja layak = kembali papar logo Adjung sahaja, panel tak pernah kosong.
+        Jika lebih daripada satu penaja layak, giliran mereka berputar bergilir-gilir: setiap
+        giliran &ldquo;penaja&rdquo; dalam nisbah memaparkan penaja seterusnya dalam senarai, bukan
+        penaja yang sama berulang kali. Jika tiada penaja layak, panel kembali memaparkan logo
+        Adjung sahaja &mdash; ia tidak pernah kosong.
       </p>
     </div>
   );
@@ -410,7 +419,18 @@ export const TetapanAmSlotConsole: React.FC = () => {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="font-semibold text-stone-800 text-[11px]">3b. Arah animasi lalai</span>
+              <span className="font-semibold text-stone-800 text-[11px]">
+                3b. Arah animasi lalai
+                {/* Gerak Susun sokong mendatar SAHAJA (nota spesifikasi, slotAmRoutes.js baris
+                    ~66-70). Kod render pukal apa-apa selain 'kiri' sebagai kanan
+                    (FrontpageView.tsx ~958: `arahEfektif !== 'kiri'`), jadi memilih Atas/Bawah
+                    untuk Gerak Susun senyap-senyap berkelakuan macam Kanan. Dinyatakan kepada
+                    editor (2026-08-16, audit Izzat) — dahulu langsung tiada petunjuk. */}
+                <span className="block font-normal text-stone-400 text-[10px] leading-relaxed mt-0.5">
+                  Atas/Bawah hanya untuk Colophon dan Sapuan Lajur. Gerak Susun mendatar sahaja
+                  &mdash; ia membaca Atas/Bawah sebagai Kanan.
+                </span>
+              </span>
               <select
                 value={draf.arahAnimasi}
                 onChange={e => setDraf(p => p ? { ...p, arahAnimasi: e.target.value } : p)}
@@ -425,9 +445,30 @@ export const TetapanAmSlotConsole: React.FC = () => {
           </div>
           </FormColumn>
           <p className="text-stone-400 text-[10px] leading-relaxed">
-            "Lalai" = dipakai slot yang TAK override jenis/arah sendiri. Override per-slot kini di{' '}
-            <strong className="font-semibold">Senarai Slot → Tetapan Kad</strong> (bukan di sini).
+            &ldquo;Lalai&rdquo; = dipakai slot yang tidak menetapkan jenis/arah sendiri. Tetapan
+            per-slot kini di <strong className="font-semibold">Senarai Slot → Tetapan Kad</strong>
+            {' '}(bukan di sini).
           </p>
+          {/* Amaran "tetapan ni tak buat apa-apa" (2026-08-16, audit Izzat — tangkapan skrinnya
+              menunjukkan TEPAT keadaan ni: Jenis=Pudar, Arah=Kanan, Kelajuan=Perlahan 1.5x, di
+              mana DUA daripada tiga tetapan tu langsung tiada kesan). Disahkan pada kod render
+              (FrontpageView.tsx): `pudar` pulang awal sebelum overlay dibina, jadi `arahEfektif`
+              (baris ~923/935/958) dan `kelajuanEfektif` (baris ~783/818) tak pernah dibaca; pudar
+              guna peralihan opacity 1 saat TETAP.
+              SENGAJA tidak dinyahaktifkan (disabled) — arah/kelajuan MASIH berkuat kuasa pada
+              mana-mana slot yang menetapkan jenis lain sendiri di Senarai Slot, jadi
+              menyahaktifkannya di sini akan menyekat tetapan yang sebenarnya berfungsi. */}
+          {draf.animasiAktif && draf.jenisAnimasi === 'pudar' && (
+            <p className="text-[10px] leading-relaxed text-amber-800 bg-amber-50 border border-amber-200 rounded px-2.5 py-2">
+              <strong className="font-semibold">Perhatian:</strong> jenis lalai sekarang ialah{' '}
+              <em>Pudar</em>, yang tiada arah dan tempohnya tetap 1 saat. Jadi{' '}
+              <strong className="font-semibold">3b. Arah</strong> dan{' '}
+              <strong className="font-semibold">3c. Kelajuan</strong> di bawah tidak memberi
+              sebarang kesan pada slot yang mengikut tetapan lalai ini &mdash; kedua-duanya hanya
+              berkuat kuasa pada slot yang menetapkan Colophon, Sapuan Lajur atau Gerak Susun
+              sendiri di Senarai Slot → Tetapan Kad.
+            </p>
+          )}
 
           {/* 3c. Kelajuan — baharu, permintaan eksplisit Izzat ("tetapan am seperti kelajuan"). */}
           <div className="flex flex-col gap-1.5">
@@ -442,8 +483,14 @@ export const TetapanAmSlotConsole: React.FC = () => {
                 <option key={k.nilai} value={k.nilai}>{k.label}</option>
               ))}
             </select>
+            {/* Dinyatakan secara EKSPLISIT yang Pudar tak terjejas (2026-08-16, audit Izzat) —
+                ayat lama cuma menyenaraikan tiga jenis yang terpakai, jadi editor yang memilih
+                Pudar + Perlahan munasabah menjangka pudaran jadi lebih lambat, sedangkan
+                tempohnya kekal 1 saat (peralihan opacity tetap, FrontpageView.tsx). */}
             <p className="text-stone-400 text-[10px] leading-relaxed">
-              Terpakai pada Colophon, Sapuan Lajur dan Gerak Susun sama rata.
+              Terpakai pada Colophon, Sapuan Lajur dan Gerak Susun sama rata.{' '}
+              <strong className="font-semibold">Tidak terpakai pada Pudar</strong>, yang tempohnya
+              kekal 1 saat.
             </p>
           </div>
 
