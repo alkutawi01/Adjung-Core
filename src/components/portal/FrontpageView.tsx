@@ -2847,31 +2847,62 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             display: none !important;
           }
 
-          /* Slot 6 (STANDARD, "Selangor") — 2026-08-16, pepijat Mac Izzat, disahkan drpd data
-             diagnostik Console Safari sebenar (fon Source Serif 4 dimuat betul, scrollHeight >
-             clientHeight 9-18px konsisten — bukan pepijat pemasaan fon). PUNCA SEBENAR: corak
-             SAMA PERSIS macam pepijat KOMPAK 2026-08-10/12 (lihat nota TINGGI KAD AUTOMATIK di
-             bawah, dlm media query telefon) — Slot 6 kongsi baris grid dgn Slot 12 (MENEGAK,
-             row-span-2, min-h-[380px]) via h-full; kombinasi h-full + BentoInner min-h-0 +
-             overflow-hidden buat sumbangan min-content Slot 6 jadi SIFAR pada pengiraan tinggi
-             baris grid, jadi baris tak pernah membesar utk kandungan Slot 6 sendiri — ia cuma
-             warisi tinggi drpd Slot 12, tak kira berapa panjang kandungan sebenar Slot 6. Fon
-             Windows/Chrome kebetulan render teks lebih padat (muat dlm ruang warisan tu), Safari
-             render lebih tinggi (tak muat) — DUA-DUA platform sebenarnya kongsi kotak tetap yang
-             SAMA, cuma nasib fon berbeza.
-             FIX: mekanisme SAMA yg dah terbukti utk KOMPAK (di bawah, media query telefon) —
-             lepaskan h-full/min-h-0 SUPAYA Slot 6 turut menyumbang tinggi sebenar ke pengiraan
-             baris; Slot 12 (masih h-full) meregang ikut kalau perlu, tiada jurang kosong
-             terhasil. Diletak DI SINI (luar media query, "desktop lalai") sebab pepijat ni
-             berlaku di lebar desktop (Mac), bukan telefon — mobile dah ada perlindungan sendiri
-             (lihat #bento-news-grid [data-slot] { height: auto !important } dlm media query).
-             Skop KETAT kpd Slot 6 sahaja — slot lain yg turut kongsi baris dgn MENEGAK BELUM
-             disahkan bermasalah, elak ubah tanpa bukti diagnostik sebenar (lihat CLAUDE.md —
-             uji dgn berhati-hati, tiada sandaran DB boleh dipercayai). */
-          #bento-news-grid [data-slot="6"] {
+          /* Kad limpah teks di desktop Mac Safari — 2026-08-16, pepijat Izzat.
+             SEJARAH RINGKAS (supaya pembaca akan datang faham kenapa nota ni panjang): percubaan
+             PERTAMA cuma Slot 6 (andaian salah — saya teka nombor slot drpd bacaan JSX, tak
+             pernah sahkan terus drpd DOM sebenar). Izzat uji semula: "masih sama". Data
+             diagnostik Console Safari SEBENAR (console.table [...document.querySelectorAll
+             ('.kad-limpah')].map(el => el.closest('[data-slot]')...)) dedah slot SEBENAR yang
+             bermasalah ialah 2 dan 27 — BUKAN 6. Semakan kod (grep className) sahkan corak
+             min-h-[180px] h-full overflow-hidden yang SAMA PERSIS wujud pada 12 slot:
+             2, 6, 13, 14, 19, 20, 27, 28, 33, 34, 35, 36 — bukan isu satu slot terpencil,
+             satu KELAS pepijat struktur yang sama, cuma 2 daripadanya (setakat bukti sebenar
+             setakat ni) kena kandungan yang cukup panjang utk tercetus.
+
+             PUNCA SEBENAR (disahkan drpd data: fon Source Serif 4 dimuat betul, scrollHeight >
+             clientHeight 9-18px konsisten — bukan pepijat pemasaan fon): setiap slot ni kongsi
+             baris grid dgn jiran MENEGAK (row-span-2, min-h-[380px]) via h-full. Kombinasi
+             h-full + BentoInner min-h-0 + overflow-hidden buat sumbangan min-content slot ni
+             jadi SIFAR pada pengiraan tinggi baris grid — baris tak pernah membesar utk
+             kandungan slot ni sendiri, ia cuma warisi tinggi drpd jiran MENEGAK, tak kira
+             berapa panjang kandungan sebenar. Windows/Chrome kebetulan render teks lebih padat
+             (muat dlm ruang warisan), Safari render lebih tinggi (tak muat) — SEMUA platform
+             kongsi kotak tetap yang SAMA, cuma nasib fon berbeza. Sama corak PERSIS macam
+             pepijat KOMPAK 2026-08-10/12 (nota TINGGI KAD AUTOMATIK di bawah, media query
+             telefon) — mekanisme fix SAMA digunakan di sini.
+
+             FIX: lepaskan h-full/min-h-0 utk KESEMUA 12 slot bercorak sama, supaya tinggi
+             sebenar masing-masing turut menyumbang ke pengiraan baris grid; jiran MENEGAK
+             (masih h-full) meregang ikut kalau perlu, tiada jurang kosong terhasil. Diletak DI
+             SINI (luar media query, "desktop lalai") sebab pepijat berlaku di lebar desktop
+             (Mac) — mobile dah ada perlindungan sendiri (lihat #bento-news-grid [data-slot]
+             { height: auto !important } dlm media query di bawah). */
+          #bento-news-grid [data-slot="2"],
+          #bento-news-grid [data-slot="6"],
+          #bento-news-grid [data-slot="13"],
+          #bento-news-grid [data-slot="14"],
+          #bento-news-grid [data-slot="19"],
+          #bento-news-grid [data-slot="20"],
+          #bento-news-grid [data-slot="27"],
+          #bento-news-grid [data-slot="28"],
+          #bento-news-grid [data-slot="33"],
+          #bento-news-grid [data-slot="34"],
+          #bento-news-grid [data-slot="35"],
+          #bento-news-grid [data-slot="36"] {
             height: auto !important;
           }
-          #bento-news-grid [data-slot="6"] [data-bento-inner] {
+          #bento-news-grid [data-slot="2"] [data-bento-inner],
+          #bento-news-grid [data-slot="6"] [data-bento-inner],
+          #bento-news-grid [data-slot="13"] [data-bento-inner],
+          #bento-news-grid [data-slot="14"] [data-bento-inner],
+          #bento-news-grid [data-slot="19"] [data-bento-inner],
+          #bento-news-grid [data-slot="20"] [data-bento-inner],
+          #bento-news-grid [data-slot="27"] [data-bento-inner],
+          #bento-news-grid [data-slot="28"] [data-bento-inner],
+          #bento-news-grid [data-slot="33"] [data-bento-inner],
+          #bento-news-grid [data-slot="34"] [data-bento-inner],
+          #bento-news-grid [data-slot="35"] [data-bento-inner],
+          #bento-news-grid [data-slot="36"] [data-bento-inner] {
             min-height: auto !important;
           }
 
