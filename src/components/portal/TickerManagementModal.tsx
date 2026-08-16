@@ -60,6 +60,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
   const [rssBlockedPenalty, setRssBlockedPenalty] = useState<number>(20);
   const [rssMaxNewsAgeHours, setRssMaxNewsAgeHours] = useState<number>(48);
   const [tickerMaxItems, setTickerMaxItems] = useState<number>(20);
+  const [tickerTitleMinChars, setTickerTitleMinChars] = useState<number>(0);
 
   const [openScoreAccordionId, setOpenScoreAccordionId] = useState<string | null>(null);
 
@@ -129,6 +130,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
           if (data.blockedPenalty) setRssBlockedPenalty(data.blockedPenalty);
           if (data.maxNewsAgeHours !== undefined) setRssMaxNewsAgeHours(data.maxNewsAgeHours);
           if (data.tickerMaxItems !== undefined) setTickerMaxItems(data.tickerMaxItems);
+          if (data.tickerTitleMinChars !== undefined) setTickerTitleMinChars(data.tickerTitleMinChars);
         }
       })
       .catch(() => {});
@@ -288,7 +290,8 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
           priorityBonus: rssPriorityBonus,
           blockedPenalty: rssBlockedPenalty,
           maxNewsAgeHours: rssMaxNewsAgeHours,
-          tickerMaxItems: tickerMaxItems
+          tickerMaxItems: tickerMaxItems,
+          tickerTitleMinChars: tickerTitleMinChars
         })
       });
       const data = await res.json();
@@ -716,6 +719,21 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                         </select>
                         <span className="text-[9px] text-stone-400 font-sans">
                           Hanya berita yang mendapat ranking markah skor tertinggi disiarkan secara terus ke Ticker Laman Utama.
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-1 md:col-span-2">
+                        <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Had Minimum Aksara Tajuk (0 = Tiada Had)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="200"
+                          value={tickerTitleMinChars}
+                          onChange={(e) => setTickerTitleMinChars(Number(e.target.value))}
+                          className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
+                        />
+                        <span className="text-[9px] text-stone-400 font-sans">
+                          Ticker Laman Utama papar tajuk sahaja (bukan huraian) semasa bergulir. Tajuk yang lebih pendek daripada had ni dihantar ke Review Queue untuk semakan manual (bukan ditolak terus) — Ketua Editor/Penolong nilai sama ada tajuk tu cukup konteks utk disiarkan.
                         </span>
                       </div>
 

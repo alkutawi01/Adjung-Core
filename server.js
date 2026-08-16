@@ -536,6 +536,12 @@ const initializeSchema = () => {
             db.run("ALTER TABLE rss_ticker_items ADD COLUMN briefTruncated INTEGER DEFAULT 0;", () => {});
             db.run("ALTER TABLE rss_editorial_settings ADD COLUMN maxNewsAgeHours INTEGER DEFAULT 48;", () => {});
             db.run("ALTER TABLE rss_editorial_settings ADD COLUMN tickerMaxItems INTEGER DEFAULT 20;", () => {});
+            // tickerTitleMinChars (2026-08-16, permintaan Izzat — "ticker ada yg terlalu pendek
+            // sampai taktau konteks... ada ke cara nak tetapkan minimum aksara?"). Ticker papar
+            // TAJUK sahaja (bukan huraian) semasa bergulir — tajuk RSS sumber kadang genuinely
+            // terlalu ringkas utk berdiri sendiri tanpa konteks. 0 = tiada had (sepadan konvensyen
+            // had minimum sedia ada di GeometryConfig.js/ContentBudget.js — MIN_BRIEF_LONG_CHARS).
+            db.run("ALTER TABLE rss_editorial_settings ADD COLUMN tickerTitleMinChars INTEGER DEFAULT 0;", () => {});
 
             db.run(`
               CREATE TABLE IF NOT EXISTS rss_editorial_memory (

@@ -74,6 +74,19 @@ export function calculateEditorialScore(item, sourceConfig = {}, editorialSettin
     status = 'rejected';
   }
 
+  // tickerTitleMinChars (2026-08-16, permintaan Izzat — "ticker ada yg terlalu pendek sampai
+  // taktau konteks"). Ticker papar TAJUK sahaja (bukan huraian) semasa bergulir — turunkan
+  // item yg tajuknya terlalu ringkas drpd AUTO_LIVE ke EDITOR_REVIEW (bukan REJECT terus: tajuk
+  // pendek tak semestinya kandungan buruk, Ketua Editor/Penolong yg patut nilai, bukan sistem
+  // buang senyap). Cuma terpakai bila item SEPATUTNYA lulus auto-live — item yg dah gagal
+  // ambang skor terus (REJECT/BLOCKED) tak diubah, tiada sebab "naikkan" status kandungan yg
+  // dah gagal atas sebab lain.
+  const tickerTitleMinChars = Number(editorialSettings.tickerTitleMinChars) || 0;
+  if (decision === 'AUTO_LIVE' && tickerTitleMinChars > 0 && title.length < tickerTitleMinChars) {
+    decision = 'TITLE_TOO_SHORT';
+    status = 'pending';
+  }
+
   const scoreBreakdown = {
     sourceTrust,
     languageMatch,

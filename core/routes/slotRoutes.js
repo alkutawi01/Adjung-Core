@@ -164,6 +164,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
           blockedKeywords: 'gempar, viral, panas, terbongkar',
           priorityBonus: 15,
           blockedPenalty: 40,
+          tickerTitleMinChars: 0,
           updatedAt: new Date().toISOString()
         };
       }
@@ -181,7 +182,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   // panggilan rangkaian (semua dbRun/dbAll/dbGet), jadi selamat bungkus SELURUH pengendali.
   router.post('/rss-settings', requirePermission('manageEditorial'), (req, res) => denganKunciTicker(async () => {
     try {
-      const { autoLiveThreshold, reviewThreshold, priorityKeywords, blockedKeywords, priorityBonus, blockedPenalty, maxNewsAgeHours, tickerMaxItems } = req.body;
+      const { autoLiveThreshold, reviewThreshold, priorityKeywords, blockedKeywords, priorityBonus, blockedPenalty, maxNewsAgeHours, tickerMaxItems, tickerTitleMinChars } = req.body;
       const updatedAt = new Date().toISOString();
 
       // Sahkan julat + hubungan ambang (2026-08-08, dapatan audit keselamatan ChatGPT) — dahulu
@@ -194,7 +195,10 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       const penaltyVal = blockedPenalty !== undefined ? Number(blockedPenalty) : 40;
       const ageVal = maxNewsAgeHours !== undefined ? Number(maxNewsAgeHours) : 48;
       const limitVal = tickerMaxItems !== undefined ? Number(tickerMaxItems) : 20;
-      if (![autoLiveVal, reviewVal, bonusVal, penaltyVal, ageVal, limitVal].every(Number.isFinite)) {
+      // tickerTitleMinChars (2026-08-16, permintaan Izzat) — sepadan konvensyen had minimum
+      // sedia ada (slotAmRoutes.js hadHuraianPanjangMin dsb): 0 = tiada had.
+      const minCharsVal = tickerTitleMinChars !== undefined ? Number(tickerTitleMinChars) : 0;
+      if (![autoLiveVal, reviewVal, bonusVal, penaltyVal, ageVal, limitVal, minCharsVal].every(Number.isFinite)) {
         return res.status(400).json({ error: 'Semua nilai tetapan RSS mesti nombor sah.' });
       }
       if (autoLiveVal < 0 || autoLiveVal > 100 || reviewVal < 0 || reviewVal > 100) {
@@ -212,11 +216,14 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       if (limitVal < 1 || limitVal > 100) {
         return res.status(400).json({ error: 'Bilangan maksimum item Ticker mesti antara 1 hingga 100.' });
       }
+      if (minCharsVal < 0 || minCharsVal > 200) {
+        return res.status(400).json({ error: 'Had minimum aksara tajuk Ticker mesti antara 0 hingga 200.' });
+      }
 
       await dbRun(`
         INSERT OR REPLACE INTO rss_editorial_settings (
-          id, autoLiveThreshold, reviewThreshold, priorityKeywords, blockedKeywords, priorityBonus, blockedPenalty, maxNewsAgeHours, tickerMaxItems, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, autoLiveThreshold, reviewThreshold, priorityKeywords, blockedKeywords, priorityBonus, blockedPenalty, maxNewsAgeHours, tickerMaxItems, tickerTitleMinChars, updatedAt
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         Math.round(autoLiveVal),
         Math.round(reviewVal),
@@ -226,6 +233,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         Math.round(penaltyVal),
         Math.round(ageVal),
         Math.round(limitVal),
+        Math.round(minCharsVal),
         updatedAt
       ]);
 
