@@ -45,7 +45,7 @@ export const PanduanConsole: React.FC = () => {
       {/* 00 — SELAMAT DATANG */}
       <div>
         <SectionLabel>00 — Selamat Datang</SectionLabel>
-        <Card title="Apa Adjung Brief">
+        <Card title="Mengenali Adjung Brief">
           Adjung Brief ialah portal berita/kandungan yang memaparkan kandungan editorial
           (berita, ilmu, kebudayaan) dalam bentuk kad-kad bersaiz berbeza (bento grid) di
           muka depan. Sebagai Editor, kerja anda ialah menulis kandungan, menghantarnya untuk
