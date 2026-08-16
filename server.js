@@ -2952,6 +2952,8 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
     if (isDraft(item)) continue;
     const budgetCheck = validateContentBudget(slotIndex, item.title, item.summary);
     if (!budgetCheck.isValid) {
+      // Laluan TERBIT — di sini akibatnya memang "tidak disiarkan" (kandungan belum pernah live).
+      // Laluan sunting kandungan yang SUDAH terbit ada ayat akibat sendiri (contentRoutes.js).
       const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason} Kandungan tidak disiarkan.`);
       err.isValidationError = true;
       throw err;

@@ -20,7 +20,16 @@ import {
 // nampak kosong tanpa mengira nisbah tajuk:huraian sendiri.
 const MIN_TOTAL_USAGE_FRACTION = 0.8;
 
-// Every slot of the same tier gets the exact same rule — there is no per-slot special-casing.
+// NOTA MESEJ RALAT (2026-08-16, pepijat Izzat) — `reason` di sini menyatakan FAKTA sahaja (apa
+// yang melebihi had, berapa banyak), TAK PERNAH menyatakan AKIBAT ("Kandungan tidak disiarkan").
+// Modul ni dipanggil dari laluan yang akibatnya BERBEZA sama sekali:
+//   - Terbitkan kali pertama (server.js syncManualObjectsForSlot) — ya, kandungan tak disiarkan.
+//   - Sunting kandungan yang SUDAH terbit (PATCH contentRoutes.js, guna Semakan Kandungan) —
+//     kandungan LAMA tetap kekal disiarkan, cuma SUNTINGAN yang ditolak.
+// Izzat tangkap mesej lama silap: "saya siarkan kandungan ni ... saya cuba sunting, saya save,
+// tak dapat tp kandungan (sebelum disunting) masih disiarkan" — mesej kata "tidak disiarkan"
+// sedangkan kandungan tu JELAS masih hidup di halaman awam. Setiap pemanggil tambah ayat akibat
+// yang BETUL bagi laluannya sendiri.
 const validateContentBudget = (slotIndex, title, summary) => {
   const tier = tierForSlot(slotIndex);
   const titleLen = (title || '').length;
@@ -63,7 +72,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
       if (briefLen === 0) {
         return {
           isValid: false,
-          reason: `Tajuk (${titleLen} aksara) melebihi ruang kad ${tier} (had tajuk: ${maxTitleAlone} aksara). Kandungan tidak disiarkan.`,
+          reason: `Tajuk (${titleLen} aksara) melebihi ruang kad ${tier} (had tajuk: ${maxTitleAlone} aksara).`,
         };
       }
       // Report the ACTUAL remaining huraian budget this specific title length leaves behind, not
@@ -74,7 +83,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
       const remainingBrief = Math.max(0, Math.round((1 - titleLen / maxTitleAlone) * maxBriefAlone));
       return {
         isValid: false,
-        reason: `Huraian (${briefLen} aksara) melebihi had yang dibenarkan untuk tajuk sepanjang ${titleLen} aksara ini (had huraian maksimum: ${remainingBrief} aksara, kad ${tier}). Kandungan tidak disiarkan.`,
+        reason: `Huraian (${briefLen} aksara) melebihi had yang dibenarkan untuk tajuk sepanjang ${titleLen} aksara ini (had huraian maksimum: ${remainingBrief} aksara, kad ${tier}).`,
       };
     }
 

@@ -730,17 +730,52 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         const nextTitle = title !== undefined ? title : rev.title;
         const nextSummary = summary !== undefined ? summary : rev.summary;
         const sentuhKandunganAtauSlot = title !== undefined || summary !== undefined || slotIndex !== undefined;
-        const budgetCheck = sentuhKandunganAtauSlot
+
+        // Kandungan sedia ada DIKECUALIKAN daripada had yang DIKETATKAN kemudian (2026-08-16,
+        // keputusan Izzat: "kandungan yg dah terbit ... tak perlu patuh had aksara baru; hanya
+        // kandungan baharu yg perlu patuh"). Senario sebenar yang dilaporkan: kandungan disiarkan
+        // ketika had lama, Ketua Editor ketatkan had di Tetapan Slot, kemudian SEBARANG suntingan
+        // kandungan tu (walau sekadar betulkan satu ejaan) ditolak selamanya — kandungan
+        // terperangkap, tak boleh dibaiki langsung, sedangkan versi lamanya TETAP hidup di halaman
+        // awam. Corak sama seperti pengecualian status-sahaja di bawah nota atas.
+        //
+        // Ujian pengecualian: adakah kandungan TERSIMPAN (sebelum suntingan ni) SUDAH pun gagal
+        // had SEMASA? Kalau ya, ia diterbitkan bawah had LAMA yang lebih longgar — bukan salah
+        // editor — jadi had baharu tak dikuatkuasakan ke atasnya. Kalau kandungan tersimpan masih
+        // LULUS had semasa, penguatkuasaan kekal penuh: itu bermakna suntingan INI sendiri yang
+        // buat ia melebihi had (bukan pindaan had), dan itu memang patut disekat supaya editor
+        // tak boleh merosakkan susun atur kad yang sedang elok.
+        const lulusSebelumSunting = validateContentBudget(targetSlotIndex, rev.title || '', rev.summary || '').isValid;
+        const budgetCheck = sentuhKandunganAtauSlot && lulusSebelumSunting
           ? validateContentBudget(targetSlotIndex, nextTitle, nextSummary)
           : { isValid: true };
         if (!budgetCheck.isValid) {
-          return res.status(400).json({ error: budgetCheck.reason });
+          // Ayat akibat yang BETUL untuk laluan ni (2026-08-16, pepijat Izzat) — kandungan LAMA
+          // kekal disiarkan, cuma suntingan ditolak. ContentBudget.js sengaja tak lagi menyatakan
+          // akibat sendiri, lihat nota di situ.
+          return res.status(400).json({
+            error: `${budgetCheck.reason} Suntingan tidak disimpan — versi sedia ada kekal disiarkan seperti sebelum ini.`,
+          });
         }
 
         // Had MINIMUM huraian panjang (2026-08-07, permintaan Izzat) — sama penguatkuasaan
         // seperti laluan Terbitkan (server.js syncManualObjectsForSlot). Hanya terpakai bila
         // `briefLong` BENAR-BENAR dihantar dalam PATCH ni (medan tak disentuh, tak disemak).
-        if (briefLong !== undefined && briefLong && briefLong.trim() && briefLong.length < effectiveMinBriefLong()) {
+        // Pengecualian had-diketatkan sama seperti bajet kad di atas (2026-08-16). Medan ni
+        // (briefLong/source/topik/note) TIDAK wujud sebagai lajur `editorial_revisions` — ia
+        // disimpan dalam `editorial_attribute_values` (rujuk skema server.js), jadi nilai lama
+        // MESTI dibaca dari situ; `rev.briefLong` sentiasa undefined dan akan senyap melumpuhkan
+        // pengecualian ni tanpa sebarang ralat.
+        const nilaiLamaRows = await dbAll(
+          `SELECT attributeId, valueText FROM editorial_attribute_values
+           WHERE objectId = ? AND revisionId = ? AND attributeId IN ('briefLong','source','topik','note')`,
+          [id, rev.id]
+        );
+        const nilaiLama = Object.fromEntries(nilaiLamaRows.map((r) => [r.attributeId, r.valueText || '']));
+
+        const briefLongLamaGagalMin = !!(nilaiLama.briefLong && nilaiLama.briefLong.trim()
+          && nilaiLama.briefLong.length < effectiveMinBriefLong());
+        if (!briefLongLamaGagalMin && briefLong !== undefined && briefLong && briefLong.trim() && briefLong.length < effectiveMinBriefLong()) {
           return res.status(400).json({
             error: `Huraian panjang terlalu pendek (${briefLong.length} aksara, minimum ${effectiveMinBriefLong()}). Panjangkan huraian atau kosongkan terus medan ni.`,
           });
@@ -748,9 +783,16 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
         // Had aksara medan bukan-kad (Tetapan Am Slot). Hanya medan yang benar-benar dihantar
         // disemak — kemas kini separa tak boleh ditolak kerana medan yang tak disentuh.
-        const medanCheck = validateMedanTambahan({ summaryLong: briefLong, source, topik, note });
+        // Pengecualian had-diketatkan sama seperti di atas (2026-08-16).
+        const medanLamaGagal = !validateMedanTambahan({
+          summaryLong: nilaiLama.briefLong, source: nilaiLama.source,
+          topik: nilaiLama.topik, note: nilaiLama.note,
+        }).isValid;
+        const medanCheck = medanLamaGagal
+          ? { isValid: true }
+          : validateMedanTambahan({ summaryLong: briefLong, source, topik, note });
         if (!medanCheck.isValid) {
-          return res.status(400).json({ error: medanCheck.reason });
+          return res.status(400).json({ error: `${medanCheck.reason} Suntingan tidak disimpan — versi sedia ada kekal disiarkan seperti sebelum ini.` });
         }
 
         // Had nisbah gloss interlinear (2026-08-12, keputusan Izzat) — lihat nota ContentBudget.js.
