@@ -39,53 +39,53 @@ export function stripMarkdown(text: string): string {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 }
 
-export function handleMarkdownShortcut(
-  e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>, 
-  value: string, 
-  onChange: (newVal: string) => void
+// Ctrl/Cmd+I — bungkus/nyahbungkus teks disorot dengan `*...*` (2026-08-16, Izzat: "kenapa tak
+// boleh italickan perkataan dlm tajuk/huraian ... guna keyboard?"). Medan-medan editorial ni
+// `<textarea>`/`<input>` HTML biasa — TIADA sokongan format terbina-dalam. Format condong
+// sebenarnya SUDAH wujud (parser pembaca, safeParseInline di bawah, tukar `*teks*` -> `<em>`),
+// cuma editor terpaksa taip asterisk tu SENDIRI secara manual sebab tiada petunjuk/kekunci
+// pintasan — Ctrl/Cmd+I bungkus terus teks yang disorot, atau nyahbungkus jika sudah bertanda
+// `*...*` (togol, macam Word). Tiada apa-apa berlaku jika tiada teks disorot (elak sisipan
+// asterisk tunggal mengelirukan).
+//
+// SATU FUNGSI KONGSI SAHAJA (2026-08-16, susulan kritikal Izzat — "SEMUA TEMPAT tak boleh
+// italic guna shortcut!!!!") — dahulu wujud DUA versi berasingan yang buat perkara SAMA:
+// versi ni gantikan `handleMarkdownShortcut` LAMA (tiada togol nyahbungkus, tiada pemanggil
+// langsung di seluruh kod — kod mati, baki modul WYSIWYG "Source Mode" yang dibuang 2026-08-13)
+// DAN versi tempatan `tanganiKekunciItalic` yang saya cipta semula tanpa perasan yang LAMA ni
+// dah wujud (SlotManagerModal.tsx, sesi sebelum ni). WAJIB sambung ke SETIAP medan editorial
+// (Tajuk/Huraian/Nota/dll.) di SELURUH Editorium, bukan hanya SATU modal — lihat setiap
+// `onKeyDown={(e) => tanganiKekunciItalic(...)}` merentasi src/components/ untuk senarai lengkap
+// tapak sambungan semasa.
+export function tanganiKekunciItalic(
+  e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>,
+  value: string,
+  onChange: (v: string) => void
 ) {
-  // Keeping this for Source Mode where we still use textareas
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
-    e.preventDefault();
-    const target = e.currentTarget;
-    const start = target.selectionStart;
-    const end = target.selectionEnd;
-    
-    if (start !== null && end !== null && start !== end) {
-      const selectedText = value.substring(start, end);
-      const before = value.substring(0, start);
-      const after = value.substring(end);
-      
-      const newVal = before + '*' + selectedText + '*' + after;
-      onChange(newVal);
-      
-      setTimeout(() => {
-        target.focus();
-        target.setSelectionRange(start + 1, end + 1);
-      }, 0);
-    }
+  if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'i') return;
+  e.preventDefault();
+  const el = e.currentTarget;
+  const start = el.selectionStart ?? 0;
+  const end = el.selectionEnd ?? 0;
+  if (start === end) return; // tiada sorotan — tiada apa boleh ditogol
+  const selected = value.slice(start, end);
+
+  let baharu: string, mulaBaharu: number, akhirBaharu: number;
+  if (selected.length >= 2 && selected.startsWith('*') && selected.endsWith('*')) {
+    // Sorotan MERANGKUMI asterisk (cth. sorot "*Bidang*" penuh) — nyahbungkus.
+    const dalam = selected.slice(1, -1);
+    baharu = value.slice(0, start) + dalam + value.slice(end);
+    mulaBaharu = start; akhirBaharu = start + dalam.length;
+  } else if (start >= 1 && end <= value.length - 1 && value[start - 1] === '*' && value[end] === '*') {
+    // Sorotan DALAM asterisk sedia ada (cth. sorot "Bidang" dlm "*Bidang*") — nyahbungkus.
+    baharu = value.slice(0, start - 1) + selected + value.slice(end + 1);
+    mulaBaharu = start - 1; akhirBaharu = end - 1;
+  } else {
+    baharu = value.slice(0, start) + '*' + selected + '*' + value.slice(end);
+    mulaBaharu = start + 1; akhirBaharu = end + 1;
   }
-  
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
-    e.preventDefault();
-    const target = e.currentTarget;
-    const start = target.selectionStart;
-    const end = target.selectionEnd;
-    
-    if (start !== null && end !== null && start !== end) {
-      const selectedText = value.substring(start, end);
-      const before = value.substring(0, start);
-      const after = value.substring(end);
-      
-      const newVal = before + '**' + selectedText + '**' + after;
-      onChange(newVal);
-      
-      setTimeout(() => {
-        target.focus();
-        target.setSelectionRange(start + 2, end + 2);
-      }, 0);
-    }
-  }
+  onChange(baharu);
+  requestAnimationFrame(() => { el.setSelectionRange(mulaBaharu, akhirBaharu); el.focus(); });
 }
 
 // markdownToHtml()/htmlToMarkdown() (WYSIWYG contenteditable round-trip, footnote/margin-note

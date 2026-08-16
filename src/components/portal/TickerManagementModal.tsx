@@ -8,6 +8,7 @@ import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
 import { AmaranBelumSimpan } from '../common/AmaranBelumSimpan';
 import { BudgetMeter } from './SlotManagerModal';
 import { ceilingForSlot } from '../../../core/editorial/GeometryConfig.js';
+import { tanganiKekunciItalic } from '../../utils.tsx';
 
 interface TickerManagementModalProps {
   isOpen: boolean;
@@ -1012,6 +1013,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                     rows={8}
                     value={formConfig.manualSummary || ''}
                     onChange={(e) => setFormConfig({ ...formConfig, manualSummary: e.target.value })}
+                    onKeyDown={(e) => tanganiKekunciItalic(e, formConfig.manualSummary || '', (v) => setFormConfig({ ...formConfig, manualSummary: v }))}
                     className="w-full p-3 border border-stone-300 rounded font-mono text-xs focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white leading-relaxed"
                     // "Desk:"/"Source:"/"Url:" -> "Bidang:"/"Sumber:"/"URL:" (2026-08-16, audit
                     // bahasa Zon 2) -- contoh placeholder ni dahulu campur label Inggeris+Melayu

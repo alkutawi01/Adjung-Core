@@ -17,6 +17,7 @@ import { StandardCardPreview } from './cards/StandardCardPreview';
 import { SegiEmpatMediumCardPreview } from './cards/SegiEmpatMediumCardPreview';
 import { SegiEmpatSmallCardPreview } from './cards/SegiEmpatSmallCardPreview';
 import { BarCardPreview } from './cards/BarCardPreview';
+import { tanganiKekunciItalic } from '../../utils.tsx';
 
 // Normalkan tarikh AI-tampal ke ISO yyyy-mm-dd (2026-08-08, pepijat Izzat — "kalau tampal output
 // AI, medan tarikh sumber tu kena isi sendiri jgk") — <input type="date"> HANYA papar nilai
@@ -419,44 +420,9 @@ export function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: n
   );
 }
 
-// Ctrl/Cmd+I — bungkus/nyahbungkus teks disorot dengan `*...*` (2026-08-16, Izzat: "kenapa tak
-// boleh italickan perkataan dlm tajuk/huraian ... guna keyboard?"). Medan-medan ni `<textarea>`/
-// `<input>` HTML biasa — TIADA sokongan format terbina-dalam, dan sebelum ni TIADA `onKeyDown`
-// langsung, jadi Ctrl+I tak buat apa-apa. Format condong sebenarnya SUDAH wujud (parser pembaca,
-// src/utils.tsx baris ~521, tukar `*teks*` -> `<em>`), cuma editor terpaksa taip asterisk tu
-// SENDIRI secara manual sebab tiada petunjuk/kekunci pintasan — sekarang Ctrl/Cmd+I bungkus
-// terus teks yang disorot, atau nyahbungkus jika sudah bertanda `*...*` (togol, macam Word).
-// Tiada apa-apa berlaku jika tiada teks disorot (elak sisipan asterisk tunggal mengelirukan).
-function tanganiKekunciItalic(
-  e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>,
-  value: string,
-  onChange: (v: string) => void
-) {
-  if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'i') return;
-  e.preventDefault();
-  const el = e.currentTarget;
-  const start = el.selectionStart ?? 0;
-  const end = el.selectionEnd ?? 0;
-  if (start === end) return; // tiada sorotan — tiada apa boleh ditogol
-  const selected = value.slice(start, end);
-
-  let baharu: string, mulaBaharu: number, akhirBaharu: number;
-  if (selected.length >= 2 && selected.startsWith('*') && selected.endsWith('*')) {
-    // Sorotan MERANGKUMI asterisk (cth. sorot "*Bidang*" penuh) — nyahbungkus.
-    const dalam = selected.slice(1, -1);
-    baharu = value.slice(0, start) + dalam + value.slice(end);
-    mulaBaharu = start; akhirBaharu = start + dalam.length;
-  } else if (start >= 1 && end <= value.length - 1 && value[start - 1] === '*' && value[end] === '*') {
-    // Sorotan DALAM asterisk sedia ada (cth. sorot "Bidang" dlm "*Bidang*") — nyahbungkus.
-    baharu = value.slice(0, start - 1) + selected + value.slice(end + 1);
-    mulaBaharu = start - 1; akhirBaharu = end - 1;
-  } else {
-    baharu = value.slice(0, start) + '*' + selected + '*' + value.slice(end);
-    mulaBaharu = start + 1; akhirBaharu = end + 1;
-  }
-  onChange(baharu);
-  requestAnimationFrame(() => { el.setSelectionRange(mulaBaharu, akhirBaharu); el.focus(); });
-}
+// Ctrl/Cmd+I italic shortcut — lihat tanganiKekunciItalic() di src/utils.tsx (fungsi KONGSI,
+// 2026-08-16 disatukan supaya SEMUA medan editorial merentasi Editorium guna SATU fungsi sama,
+// bukan bertaburan versi tempatan berbeza-beza per modal).
 
 function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint, type }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; minLen?: number; hint?: string; type?: 'text' | 'date' }) {
   const over = typeof maxLen === 'number' && value.length > maxLen;

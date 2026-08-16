@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Save, Search, Copy, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../common/Button';
 import { MesejStatus } from '../common/MesejStatus';
+import { tanganiKekunciItalic } from '../../utils.tsx';
 
 interface ContentItem {
   id: string;
@@ -638,6 +639,7 @@ export function ContentReview() {
               <textarea
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
+                onKeyDown={(e) => tanganiKekunciItalic(e, bulkText, setBulkText)}
                 rows={30}
                 className="w-full px-3 py-3 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white font-mono text-xs leading-relaxed"
               />

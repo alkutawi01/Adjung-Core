@@ -13,6 +13,7 @@ import { SectionLabel } from '../common/SectionLabel';
 import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { FormColumn } from '../common/FormColumn';
+import { tanganiKekunciItalic } from '../../utils.tsx';
 import { labelMod, labelStatus } from '../../config/istilah';
 import { formatKlDisplay, klLocalToIso, isoToKlLocalInput } from '../../../core/editorial/Scheduling.js';
 import { useTapisanSesi } from '../../hooks/useTapisanSesi';
@@ -1685,6 +1686,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       <textarea
                         value={drafNota}
                         onChange={(e) => setDrafNota(e.target.value)}
+                        onKeyDown={(e) => tanganiKekunciItalic(e, drafNota, setDrafNota)}
                         rows={3}
                         maxLength={280}
                         className="font-serif text-sm text-stone-700 leading-relaxed bg-amber-50 p-4 rounded border border-amber-200 resize-y focus:outline-none focus:ring-1 focus:ring-Adjung-maroon"

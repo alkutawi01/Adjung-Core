@@ -4,6 +4,7 @@ import { ceilingForSlot, MAX_PENERANGAN_CHARS } from '../../../core/editorial/Ge
 import { parseManualSummaryBlocks, serializeManualBarQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { useModalFokus } from '../../hooks/useModalFokus';
 import { useAutoSimpanTempatan, bacaDrafTempatan, buangDrafTempatan, masaRelatifRingkas } from '../../hooks/useAutoSimpanTempatan';
+import { tanganiKekunciItalic } from '../../utils.tsx';
 
 // Borang native Editorium untuk slot Bar (Fasa 7, 2026-08-02) — dibina selepas laluan LAMA
 // (klik kad Bar di FrontpageView semasa isEditMode) jadi tak boleh dicapai langsung: pencetus
@@ -49,11 +50,13 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, hint, type }
       {rows ? (
         <textarea
           rows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => tanganiKekunciItalic(e, value, onChange)}
           className="w-full resize-none border-0 border-b border-stone-300 focus:border-[var(--color-Adjung-maroon)] outline-none bg-white font-serif text-sm leading-relaxed text-stone-800 py-1.5 transition-colors"
         />
       ) : (
         <input
           type={type || 'text'} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => tanganiKekunciItalic(e, value, onChange)}
           className="w-full border-0 border-b border-stone-300 focus:border-[var(--color-Adjung-maroon)] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
         />
       )}
