@@ -492,11 +492,21 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint
   );
 }
 
-// Jenis Sumber (Fasa 8b, 2026-08-05) — dropdown Teks/Audio/Video. Adjung Brief cuma ambil
-// sumber daripada URL (laman web/audio/video dalam talian), tiada bahan bercetak fizikal — jadi
-// "Teks" (nilai simpanan 'web', sepadan SourceDetector.js) meliputi laman web/artikel/PDF, bukan
-// cuma laman web sempit. Dikesan automatik daripada URL/teks (core/editorial/SourceDetector.js)
-// bila editor tak override — medan ni bagi editor pilihan tulis ganti bila auto-kesan tersasar.
+// Jenis Sumber (Fasa 8b, 2026-08-05) — dropdown Teks/Audio/Video.
+//
+// DISEMBUNYIKAN drpd borang (2026-08-16, arahan Izzat) — audit langsung (rujuk kandungan ujian
+// slot Angkasa, rujukan video YouTube) dedah medan ni SIA-SIA sepenuhnya: nilai disimpan ke DB
+// pada setiap simpanan tapi TAK PERNAH dibaca semula di mana-mana (bukan pada kad awam, bukan
+// Focus View, bukan buildAiPrompt() — disahkan grep MENYELURUH `sourceType` merentasi src/,
+// SlotManagerModal.tsx SATU-SATUNYA fail yang sentuh medan ni). detectSourceType() (auto-kesan
+// drpd URL) turut wujud tapi cuma disambung ke laluan RSS/templat lama, bukan borang ni.
+// Keputusan Izzat: "hilangkan dahulu sehingga sistem benar2 boleh menyokong arahan AI utk jana
+// kandungan drpd sumber audio dan video" — iaitu sehingga buildAiPrompt() betul-betul beri
+// amaran/layanan khas bila sumber video/audio (lihat CLAUDE.md), BUKAN sekadar label kosmetik.
+// Medan `sourceType`/lajur DB TAK disentuh (data sejarah kekal, PATCH masih hantar nilai lama
+// tanpa berubah) — cuma kawalan UI ni yang dibuang, supaya senang disambung semula bila ciri
+// video/audio sebenar dibina. JENIS_SUMBER_PILIHAN dikekalkan (tak digunakan buat masa ini) utk
+// tak hilang senarai label bila disambung semula.
 const JENIS_SUMBER_PILIHAN: { value: string; label: string }[] = [
   { value: 'web', label: 'Teks' },
   { value: 'audio', label: 'Audio' },
@@ -1778,10 +1788,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-5">
-                  <SelectField label="Jenis sumber" value={current.sourceType || ''} options={JENIS_SUMBER_PILIHAN} onChange={(v) => patch(activeIndex, 'sourceType', v)} />
-                  <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
-                </div>
+                {/* "Jenis sumber" dibuang drpd sini (2026-08-16) — lihat nota JENIS_SUMBER_PILIHAN
+                    di atas fail ni. Imej kekal bersendirian (dahulu berkongsi grid-cols-2 dgn
+                    Jenis sumber) — lebar biasa (bukan grid) supaya tak nampak janggal separuh
+                    lebar sekarang. */}
+                <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
                 <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor (pilihan), hanya di Focus View" maxLen={280} onChange={(v) => patch(activeIndex, 'note', v)} />
                 {/* Penulis KANDUNGAN INI (2026-08-01, permintaan pemilik projek) — bukan lagi
                     sesiapa yang kebetulan sedang log masuk. Satu slot boleh dikendalikan lebih
