@@ -113,6 +113,13 @@ export const EditorialConsole: React.FC = () => {
   const [memuatGlosari, setMemuatGlosari] = useState(true);
   const [gIstilah, setGIstilah] = useState('');
   const [gMaksud, setGMaksud] = useState('');
+  // Jenis Sense AWAL istilah baharu (2026-08-16, permintaan Izzat: "sepatutnya ada modal borang:
+  // perkataan, makna am / makna khas. kalau makna khas ada bidang, pastu ada huraian makna" —
+  // dahulu "Tambah Istilah" cuma cipta baris `maksud` warisan, editor kena buka "Urus Sense"
+  // BERASINGAN selepas itu untuk tambah Sense sebenar. Kini satu langkah — istilah DAN Sense
+  // pertamanya dicipta serentak, atomik di pelayan (lihat senseAwal, POST /glosari).
+  const [gJenisAm, setGJenisAm] = useState(true);
+  const [gBidangIds, setGBidangIds] = useState<string[]>([]);
   const [ralatGlosari, setRalatGlosari] = useState('');
   const [menghantarGlosari, setMenghantarGlosari] = useState(false);
   // Borang "tambah istilah" dalam dialog, bukan terpampang kekal (2026-08-07, arahan Izzat —
@@ -129,6 +136,17 @@ export const EditorialConsole: React.FC = () => {
       .finally(() => setMemuatGlosari(false));
   }, []);
 
+  const bukaTambahGlosari = () => {
+    setGIstilah(''); setGMaksud(''); setGJenisAm(true); setGBidangIds([]);
+    setRalatGlosari('');
+    if (bidangAktifList.length === 0) muatBidangAktif();
+    setDialogGlosari(true);
+  };
+
+  const togolBidangGlosari = (bidangId: string) => {
+    setGBidangIds((prev) => prev.includes(bidangId) ? prev.filter((id) => id !== bidangId) : [...prev, bidangId]);
+  };
+
   const tambahGlosari = async (e: React.FormEvent) => {
     e.preventDefault();
     if (menghantarGlosari) return;
@@ -138,11 +156,14 @@ export const EditorialConsole: React.FC = () => {
       const res = await fetch('/api/system/glosari', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ istilah: gIstilah, maksud: gMaksud }),
+        body: JSON.stringify({
+          istilah: gIstilah,
+          senseAwal: { definisi: gMaksud, amSense: gJenisAm, bidangIds: gJenisAm ? [] : gBidangIds },
+        }),
       });
       const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan istilah.');
-      setGIstilah(''); setGMaksud('');
+      setGIstilah(''); setGMaksud(''); setGJenisAm(true); setGBidangIds([]);
       setDialogGlosari(false);
       muatGlosari();
     } catch (err: any) {
@@ -609,13 +630,21 @@ export const EditorialConsole: React.FC = () => {
                       butang ni berada di luar <form> dan tidak boleh menghantarnya secara tersirat. */}
                   <Button
                     type="submit" form="borang-glosari" variant="primary"
-                    disabled={menghantarGlosari || !gIstilah.trim() || !gMaksud.trim()}
+                    disabled={menghantarGlosari || !gIstilah.trim() || !gMaksud.trim() || (!gJenisAm && gBidangIds.length === 0)}
                   >
                     {menghantarGlosari ? 'Menambah…' : 'Tambah'}
                   </Button>
                 </>
               }
             >
+              {/* Borang ni cipta istilah DAN Sense pertamanya SERENTAK (2026-08-16, permintaan
+                  Izzat — dahulu dua langkah: cipta istilah dgn "Maksud" wajib, kemudian buka
+                  "Urus Sense" berasingan). Medan teks di sini (input/textarea HTML biasa) SUDAH
+                  terima sebarang glif Unicode secara asli (tiada `pattern`/tapisan aksara di
+                  pelayan atau client) — sesuai transliterasi PENUH perkataan Arab (cth. "Ṣalāh",
+                  "ʿIlm", "Ḥadīth"). Pemadanan istilah dalam kandungan (IstilahGlosari.tsx) turut
+                  dibetulkan supaya sempadan perkataan bukan-ASCII (huruf diakritik/pengubah)
+                  dikesan betul, bukan hanya \w ASCII. */}
               <form id="borang-glosari" onSubmit={tambahGlosari} className="space-y-4">
                 {/* Istilah lebih sempit daripada lajur borang — ia satu perkataan, bukan ayat.
                     Medan yang kelihatan sepanjang textarea di bawahnya memberi isyarat salah
@@ -625,18 +654,58 @@ export const EditorialConsole: React.FC = () => {
                     <span className={LABEL_BORANG}>Istilah</span>
                     <input
                       type="text" value={gIstilah} onChange={(e) => setGIstilah(e.target.value)}
-                      placeholder="contoh: Bidang"
+                      placeholder="contoh: Bidang, Ṣalāh, ʿIlm"
                       className={INPUT_BORANG}
                     />
                   </label>
                 </FormColumn>
 
-                {/* Maksud WAJIB (2026-08-07) — dahulu dilabel "(pilihan)", tetapi sejak Glosari
-                    bertukar menjadi tooltip pembaca, binaPetaGlosari() (src/components/common/
-                    IstilahGlosari.tsx) MELANGKAU terus mana-mana entri tanpa maksud. Entri tanpa
-                    maksud tidak melakukan apa-apa langsung — data mati. */}
+                <div>
+                  <span className={LABEL_BORANG}>Jenis Makna</span>
+                  <div className="inline-flex border border-stone-300 rounded overflow-hidden w-fit mt-1">
+                    {([true, false] as const).map((nilaiAm, i) => (
+                      <button
+                        key={String(nilaiAm)} type="button"
+                        onClick={() => { setGJenisAm(nilaiAm); if (nilaiAm) setGBidangIds([]); }}
+                        className={`px-3.5 py-1.5 font-sans text-[11px] font-semibold cursor-pointer transition-colors ${i ? 'border-l border-stone-300' : ''} ${gJenisAm === nilaiAm ? 'bg-Adjung-maroon text-white' : 'bg-transparent text-stone-600'}`}
+                      >
+                        {nilaiAm ? 'Makna Am' : 'Makna Khas (Bidang)'}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-stone-500 mt-1.5 leading-relaxed">
+                    {gJenisAm
+                      ? 'Makna Am — dipaparkan kepada pembaca tanpa mengira Bidang kandungan tempat istilah ini muncul.'
+                      : 'Makna Khas (Bidang) — dipaparkan HANYA apabila istilah ini muncul dalam kandungan bagi Bidang yang dipilih di bawah. Boleh tambah Bidang/makna lain kemudian melalui "Urus Sense".'}
+                  </p>
+                </div>
+
+                {!gJenisAm && (
+                  <div>
+                    <span className={LABEL_BORANG}>Bidang (boleh pilih lebih daripada satu)</span>
+                    {memuatBidangAktif ? (
+                      <KeadaanMemuat baris={2} />
+                    ) : bidangAktifList.length === 0 ? (
+                      <KeadaanKosong className="mt-1">Tiada Bidang aktif berdaftar.</KeadaanKosong>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-1.5 mt-1.5 max-h-48 overflow-y-auto border border-stone-200 rounded p-2">
+                        {bidangAktifList.map((b) => (
+                          <label key={b.id} className={`flex items-center gap-2 px-2 py-1.5 rounded border cursor-pointer text-xs ${gBidangIds.includes(b.id) ? 'border-Adjung-maroon bg-stone-50' : 'border-stone-200'}`}>
+                            <input
+                              type="checkbox" checked={gBidangIds.includes(b.id)}
+                              onChange={() => togolBidangGlosari(b.id)}
+                              className="accent-Adjung-maroon"
+                            />
+                            <span className="truncate">{b.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <label className="block">
-                  <span className={LABEL_BORANG}>Maksud</span>
+                  <span className={LABEL_BORANG}>Huraian Makna</span>
                   <textarea
                     value={gMaksud} onChange={(e) => setGMaksud(e.target.value)} rows={3}
                     placeholder="Penjelasan ringkas untuk pembaca"
@@ -661,7 +730,7 @@ export const EditorialConsole: React.FC = () => {
                   <strong className="font-semibold">Penyelarasan Ejaan</strong>.
                 </p>
               </div>
-              <Button variant="primary" onClick={() => setDialogGlosari(true)} className="shrink-0">
+              <Button variant="primary" onClick={bukaTambahGlosari} className="shrink-0">
                 + Tambah Istilah
               </Button>
             </div>

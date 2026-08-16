@@ -115,7 +115,15 @@ export function pisahkanGlosari(
   // Susun istilah PANJANG dahulu — elak "Bidang Ilmu" terpotong oleh padanan separa "Bidang".
   const istilahTersusun = [...peta.keys()].sort((a, b) => b.length - a.length);
   const corak = istilahTersusun.map((i) => i.replace(ESCAPE_REGEX, '\\$&')).join('|');
-  const regex = new RegExp(`\\b(${corak})\\b`, 'giu');
+  // Sempadan Unicode secara eksplisit (2026-08-16, permintaan Izzat — medan istilah mesti terima
+  // transliterasi PENUH perkataan Arab: huruf diakritik seperti Ṣalāh/Ḥadīth, huruf pengubah
+  // seperti ʿIlm). `\b` JavaScript SENTIASA ASCII-sahaja (\w = [A-Za-z0-9_], walaupun bendera
+  // 'u' dihidupkan) — istilah yang bermula/berakhir dengan huruf di luar julat tu langsung TAK
+  // dipadan, disahkan reproduce sebelum pembetulan ni (Ṣalāh/ʿIlm/Ḥadīth: SIFAR padanan dgn \b).
+  // Gunakan lookaround \p{L}\p{N}\p{M} (huruf + nombor + tanda gabungan diakritik) sebagai kelas
+  // "sempadan perkataan" sebenar merentasi mana-mana skrip, bukan hanya ASCII.
+  const KELAS_BATAS = String.raw`\p{L}\p{N}\p{M}`;
+  const regex = new RegExp(`(?<![${KELAS_BATAS}])(${corak})(?![${KELAS_BATAS}])`, 'giu');
 
   const hasil: Serpihan[] = [];
   let lastIndex = 0;

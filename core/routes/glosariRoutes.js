@@ -97,25 +97,79 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
       const istilah = (req.body?.istilah || '').trim();
       const elakkan = (req.body?.elakkan || '').trim();
       const maksud = (req.body?.maksud || '').trim();
+      // senseAwal (2026-08-16, permintaan Izzat) — borang "Tambah Istilah" kini cipta istilah
+      // DAN Sense pertamanya SERENTAK (satu langkah), bukan dua langkah berasingan (dahulu:
+      // cipta istilah dgn `maksud` wajib, kemudian buka "Urus Sense" berasingan untuk Sense
+      // sebenar). { definisi, amSense, bidangIds } — bentuk SAMA seperti body POST
+      // /glosari/:istilahId/sense di bawah.
+      const senseAwal = req.body?.senseAwal;
 
       if (!istilah) return res.status(400).json({ error: 'Istilah wajib diisi.' });
-      // Maksud wajib sejak Glosari menjadi tooltip pembaca (2026-08-07) — lihat nota kepala fail.
-      if (!maksud) return res.status(400).json({ error: 'Maksud wajib diisi. Tanpanya istilah tidak akan dipaparkan kepada pembaca.' });
       if (istilah.length > HAD_ISTILAH) return res.status(400).json({ error: `Istilah tidak boleh melebihi ${HAD_ISTILAH} aksara.` });
       if (elakkan.length > HAD_ELAKKAN) return res.status(400).json({ error: `Senarai "elakkan" tidak boleh melebihi ${HAD_ELAKKAN} aksara.` });
       if (maksud.length > HAD_MAKSUD) return res.status(400).json({ error: `Maksud tidak boleh melebihi ${HAD_MAKSUD} aksara.` });
+
+      // Maksud (fallback warisan) tak lagi wajib sejak Sense wujud (2026-08-16) — tapi istilah
+      // MESTI ada sekurang-kurangnya SATU sumber definisi (maksud ATAU senseAwal sah), jika tidak
+      // ia data mati (binaPetaGlosari(), IstilahGlosari.tsx, melangkau terus entri sebegini).
+      let senseDefinisi = '', senseAmSense = false, senseBidangIds = [];
+      if (senseAwal) {
+        senseDefinisi = (senseAwal.definisi || '').trim();
+        senseAmSense = !!senseAwal.amSense;
+        senseBidangIds = Array.isArray(senseAwal.bidangIds) ? senseAwal.bidangIds.filter(Boolean) : [];
+        if (!senseDefinisi) return res.status(400).json({ error: 'Huraian makna wajib diisi.' });
+        if (senseDefinisi.length > HAD_MAKSUD) return res.status(400).json({ error: `Huraian makna tidak boleh melebihi ${HAD_MAKSUD} aksara.` });
+      } else if (!maksud) {
+        return res.status(400).json({ error: 'Maksud wajib diisi. Tanpanya istilah tidak akan dipaparkan kepada pembaca.' });
+      }
 
       // Satu istilah satu entri — kalau tidak, dua baris bercanggah boleh wujud dan glosari berhenti
       // menjadi rujukan yang boleh dipercayai.
       const sedia = await dbGet('SELECT id FROM glosari_istilah WHERE LOWER(istilah) = LOWER(?)', [istilah]);
       if (sedia) return res.status(400).json({ error: `Istilah "${istilah}" sudah ada dalam glosari.` });
 
+      // Sahkan invariant Sense SEBELUM transaksi bermula (bukan selepas INSERT istilah) supaya
+      // ralat pengesahan pulang sebagai 400 biasa, bukan tertangkap sebagai ralat 500 generik
+      // dalam blok cuba/tangkap transaksi di bawah. `istilahId` di sini belum wujud lagi dalam DB
+      // — tak mengapa, sahkanInvariantSense() cuma cari Sense SEDIA ADA bagi istilahId tu (tiada,
+      // sebab istilah baharu) dan sahkan Bidang wujud dalam CategoryRegistry (tak bergantung
+      // istilah wujud).
       const id = `glo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      await dbRun(
-        'INSERT INTO glosari_istilah (id, istilah, elakkan, maksud, createdAt) VALUES (?, ?, ?, ?, ?)',
-        [id, istilah, elakkan, maksud, new Date().toISOString()]
-      );
+      if (senseAwal) {
+        const ralatInvariant = await sahkanInvariantSense(dbAll, dbGet, { istilahId: id, amSense: senseAmSense, bidangIds: senseBidangIds });
+        if (ralatInvariant) return res.status(400).json({ error: ralatInvariant });
+      }
+
+      const now = new Date().toISOString();
+      let senseId = null;
+      await dbRun('BEGIN TRANSACTION');
+      try {
+        await dbRun(
+          'INSERT INTO glosari_istilah (id, istilah, elakkan, maksud, createdAt) VALUES (?, ?, ?, ?, ?)',
+          [id, istilah, elakkan, maksud, now]
+        );
+        if (senseAwal) {
+          senseId = `gsn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          await dbRun(
+            'INSERT INTO glosari_sense (id, istilahId, definisi, amSense, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+            [senseId, id, senseDefinisi, senseAmSense ? 1 : 0, now, now]
+          );
+          for (const categoryId of senseBidangIds) {
+            await dbRun('INSERT INTO glosari_sense_bidang (senseId, categoryId) VALUES (?, ?)', [senseId, categoryId]);
+          }
+        }
+        await dbRun('COMMIT');
+      } catch (e) {
+        try { await dbRun('ROLLBACK'); } catch (rollbackErr) { console.error('Rollback gagal (cipta istilah+Sense):', rollbackErr.message); }
+        throw e;
+      }
+
       const baris = await dbGet('SELECT * FROM glosari_istilah WHERE id = ?', [id]);
+      const bidangPenuh = senseBidangIds.length
+        ? await dbAll(`SELECT id, name, slug FROM CategoryRegistry WHERE id IN (${senseBidangIds.map(() => '?').join(',')})`, senseBidangIds)
+        : [];
+      const senses = senseId ? [{ id: senseId, definisi: senseDefinisi, amSense: senseAmSense, bidang: bidangPenuh }] : [];
+
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
         actorName: req.session?.user?.penName || req.session?.user?.username,
@@ -124,7 +178,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
         targetId: id,
         detail: istilah,
       });
-      res.json({ success: true, entri: { ...barisKepadaEntri(baris), senses: [] } });
+      res.json({ success: true, entri: { ...barisKepadaEntri(baris), senses } });
     } catch (err) {
       console.error('POST glosari error:', err);
       res.status(500).json({ error: 'Gagal menyimpan istilah. ' + (err.message || '') });
