@@ -42,7 +42,15 @@ interface ToastProps {
 
 export const ToastContainer: React.FC<ToastProps> = ({ toasts, onDismiss }) => {
   return (
-    <div className="fixed bottom-0 right-0 z-50 flex flex-col items-end gap-px max-w-sm w-full pointer-events-none">
+    // z-[300] (2026-08-16, pepijat "kelakar" Izzat: toast tersembunyi di sebalik blur latar modal
+    // — tangkapan skrin Editorium/modul_khas nampak toast lenyap terus). Punca: Toast tadinya
+    // z-50, SAMA dgn backdrop blur kebanyakan modal Editorium (cth EditoriumView.tsx modal Pilih
+    // Slot, z-50 juga) — bila z-index SERI, urutan DOM yang menang, dan modal (dirender LEPAS
+    // ToastContainer dlm JSX) menutup toast sepenuhnya. Modal PALING tinggi dlm kod (audit) ialah
+    // z-[200] (LengkapkanProfilModal, gerbang terma wajib) — Toast mesti sentiasa di ATAS SEMUA
+    // modal (pemberitahuan tindakan pengguna, bukan sebahagian modal mana-mana), jadi z-[300]
+    // beri jurang selamat di atas had tertinggi sedia ada, bukan sekadar "lebih satu" yang rapuh.
+    <div className="fixed bottom-0 right-0 z-[300] flex flex-col items-end gap-px max-w-sm w-full pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
