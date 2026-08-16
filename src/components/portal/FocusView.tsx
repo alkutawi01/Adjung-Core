@@ -472,20 +472,24 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // sebenarnya di-commit ke DOM) sempat menanda — disahkan pepijat sebenar semasa ujian browser
   // (istilah "Warisan" langsung tak bertanda pada skrin, walaupun peta glosari + teks kedua-duanya
   // betul).
+  // `desk` (2026-08-16, Glosari Berasaskan Bidang) — Bidang KANDUNGAN semasa, dihantar terus ke
+  // renderDenganGlosari() untuk resolusi Sense (docs/glossary-architecture-proposal.md v3,
+  // Seksyen 3). `desk` sudah wujud sebagai prop komponen ni (destructured atas) — tiada data
+  // baharu diperlukan, cuma disalur ke fungsi render yang sedia ada.
   const glosariMudahAlih = React.useMemo(() => {
     const sudahDitanda = new Set<string>();
     return {
-      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda),
-      perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, safeParseInline)),
+      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda, desk),
+      perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, desk, safeParseInline)),
     };
-  }, [title, paragraphs, petaGlosari]);
+  }, [title, paragraphs, petaGlosari, desk]);
   const glosariDesktop = React.useMemo(() => {
     const sudahDitanda = new Set<string>();
     return {
-      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda),
-      perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, safeParseInline)),
+      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda, desk),
+      perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, desk, safeParseInline)),
     };
-  }, [title, paragraphs, petaGlosari]);
+  }, [title, paragraphs, petaGlosari, desk]);
 
   const [bodyRef, bodyFade] = useOverflowFade();
 

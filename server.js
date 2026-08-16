@@ -721,6 +721,47 @@ const initializeSchema = () => {
               )
             `, () => {});
 
+            // Glosari Berasaskan Bidang — Sense (2026-08-16, arahan Izzat, seni bina disahkan
+            // docs/glossary-architecture-proposal.md v3). ADDITIVE sepenuhnya — glosari_istilah
+            // di atas TAK diubah skema, `maksud` KEKAL sebagai fallback paling akhir. Satu
+            // istilah kini boleh ada BANYAK Sense: SATU Sense am (amSense=1, tiada Bidang) DAN/
+            // ATAU beberapa Sense khusus (amSense=0, WAJIB >=1 Bidang setiap satu). Invariant
+            // "maksimum SATU Sense am setiap istilah" dikuatkuasakan PERINGKAT DB (unique index
+            // separa di bawah) — invariant lain (Sense am tiada Bidang, Sense khusus >=1 Bidang,
+            // satu Bidang tak boleh dua Sense bagi istilah sama) dikuatkuasakan peringkat
+            // aplikasi (core/routes/glosariRoutes.js), bukan boleh dinyatakan sebagai constraint
+            // SQL tunggal (perlu semak silang jadual/skop istilahId).
+            db.run(`
+              CREATE TABLE IF NOT EXISTS glosari_sense (
+                id TEXT PRIMARY KEY,
+                istilahId TEXT NOT NULL REFERENCES glosari_istilah(id) ON DELETE CASCADE,
+                definisi TEXT NOT NULL,
+                amSense INTEGER NOT NULL DEFAULT 0,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+              )
+            `, () => {
+              db.run(`
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_glosari_sense_am_unik
+                ON glosari_sense(istilahId) WHERE amSense = 1
+              `, () => {});
+            });
+
+            // Perkaitan Sense <-> Bidang (banyak-ke-banyak). categoryId = CategoryRegistry.id
+            // (kunci STABIL — kandungan sendiri simpan NAMA Bidang, bukan id; resolusi konteks
+            // kandungan->Sense guna slug, lihat glosariRoutes.js/IstilahGlosari.tsx, BUKAN
+            // carian terus by name — CategoryRegistry.name TIADA kekangan unik, disahkan audit).
+            // ON DELETE CASCADE (padam Sense -> padam baris perkaitan serentak) ikut corak
+            // sedia ada konsisten dalam skema ni (editorial_objects->editorial_revisions, dll.),
+            // PRAGMA foreign_keys=ON aktif (lihat awal fail ni) jadi CASCADE ni benar berfungsi.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS glosari_sense_bidang (
+                senseId TEXT NOT NULL REFERENCES glosari_sense(id) ON DELETE CASCADE,
+                categoryId TEXT NOT NULL REFERENCES CategoryRegistry(id),
+                PRIMARY KEY (senseId, categoryId)
+              )
+            `, () => {});
+
             // Penyelarasan Ejaan (2026-08-02, Fasa 8) — dipisahkan daripada glosari_istilah.
             // RUJUKAN pasif sahaja, sama seperti Glosari. Lihat core/routes/ejaanRoutes.js.
             db.run(`

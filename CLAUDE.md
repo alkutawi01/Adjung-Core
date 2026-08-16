@@ -452,6 +452,47 @@ KEKAL tak berubah — cuma cara AI patut BERTINDAK bila maklumat tak cukup yang 
 "Dengan rujukan"/"Dengan Artikel Jurnal" (bukan hanya artikel yang ditangkap tu) — fix di
 prompt, bukan edit artikel lepas fakta, sebab punca sama akan berulang pada kandungan seterusnya.
 
+### Glosari Berasaskan Bidang — Sense (2026-08-16, arahan Izzat, seni bina disahkan v3)
+Glosari (`glosari_istilah`) dahulu SATU istilah = SATU `maksud` sejagat. Kini istilah boleh ada
+BANYAK **Sense**: SATU Sense **am** (`amSense=1`, tiada Bidang) DAN/ATAU beberapa Sense
+**khusus** (`amSense=0`, WAJIB >=1 Bidang setiap satu). Rujukan penuh: `docs/glossary-
+architecture-proposal.md` (v3, disahkan Izzat selepas 2 pusingan pembetulan — BACA sebelum ubah
+apa-apa bahagian ciri ni, seni bina sudah dikunci, jangan ubah keputusan tanpa arahan baharu).
+
+- **Peraturan tooltip MUKTAMAD** (jangan sekali-kali ubah tanpa arahan eksplisit — ini dibetulkan
+  DUA KALI oleh Izzat semasa reka bentuk): label `(Bidang)` HANYA dipaparkan bila Sense KHUSUS
+  Bidang digunakan. Sense am DAN `maksud` fallback (lajur lama) KEDUA-DUANYA **TIADA** label —
+  "Intervensi: (Sukan) ..." (khusus) lawan "Intervensi: ..." (am/lama, TIADA "(Bidang)").
+  Resolusi: Sense khusus sepadan Bidang kandungan > Sense am > `maksud` lama > tiada tooltip.
+- **Resolusi berlaku CLIENT-SIDE** (`core/editorial/GlosariResolusi.js`, fungsi TULEN, diimport
+  `IstilahGlosari.tsx` — corak SAMA seperti `ContentBudget.js`/`GeometryConfig.js` diimport
+  `SlotManagerModal.tsx`). Pelayan (`glosariRoutes.js`) cuma hantar peta PENUH sekali (`GET
+  /glosari`, senses+Bidang bersarang, DUA query pukal — elak N+1), setiap artikel (`FocusView.tsx`,
+  hantar `desk`) resolve sendiri ikut Bidangnya semasa render.
+- **Kunci resolusi Bidang ialah `slug`, BUKAN `name`** — `CategoryRegistry.name` TIADA kekangan
+  unik (disahkan audit kod sebenar), `slug` SATU-SATUNYA lajur benar-benar unik. `slugBidang()`
+  (`GlosariResolusi.js`) cermin `CategoryRegistry.getSlug()` — **gotcha**: nama kosong → `'umum'`
+  (bukan rentetan kosong), jadi semak kosong DAHULU sebelum panggil, jangan bergantung fallback
+  dalaman fungsi tu untuk kes "tiada Bidang" (Ticker, dsb.) — teruji `tests/glosariResolusi.test.js`.
+- **Invariant**: maksimum SATU Sense am setiap istilah dikuatkuasakan **PERINGKAT DB** (unique
+  index separa SQLite, `WHERE amSense = 1` — disahkan hidup, INSERT kedua ditolak
+  `SQLITE_CONSTRAINT`). Invariant lain (Sense am tiada Bidang, Sense khusus >=1 Bidang, satu
+  Bidang tak boleh dua Sense khusus bagi istilah sama) di peringkat aplikasi (`glosariRoutes.js`,
+  fungsi `sahkanInvariantSense`), transaksi atomik (BEGIN/COMMIT/ROLLBACK, corak sama
+  `contentRoutes.js`).
+- **`ON DELETE CASCADE`** (padam istilah/Sense → padam Sense/perkaitan Bidang berkaitan serentak)
+  — corak SEDIA ADA konsisten dalam skema ni (`editorial_objects→editorial_revisions`, dll.),
+  `PRAGMA foreign_keys = ON` aktif. Disahkan hidup (Sense dipadam, baris `glosari_sense_bidang`
+  ikut serta automatik). `DELETE /glosari/:id` dan `DELETE /glosari/sense/:senseId` TAK perlu
+  DELETE tambahan manual.
+- **Additive sepenuhnya** — `glosari_istilah` TAK diubah skema (sifar `ALTER TABLE`), 93+ istilah
+  sedia ada terus berfungsi (fallback `maksud`, laluan kod SAMA yang sudah berjalan).
+- **UI editorial** (`EditorialConsole.tsx`, tab Glosari) — butang "Urus Sense" per istilah buka
+  panel: senarai Sense + borang tambah/sunting dengan togol "Am"/"Khusus Bidang" (penerangan
+  pendek WAJIB di bawah togol, permintaan Izzat eksplisit) + pemilih Bidang berbilang (`GET
+  /categories/active` sedia ada, tiada endpoint baharu). Editor TAK PERNAH pilih Sense manual
+  pada kemunculan istilah — automatik sepenuhnya di pembaca.
+
 ### Dasar Aktif Editorial — muat semula LIVE, bukan cache boot (2026-08-16, pembetulan susulan)
 Selepas deploy ciri tempoh-boleh-laras (seksyen di atas), log pengeluaran sebenar dedah:
 `loadDasarAktifSettings(dbGet)` semasa boot **berlumba kalah** lawan CREATE TABLE async (jadual
