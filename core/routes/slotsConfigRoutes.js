@@ -169,11 +169,33 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
           );
           const updatedAtSemasa = semasaRow[0]?.updatedAt || null;
           if (updatedAtSemasa && updatedAtSemasa !== slot.updatedAt) {
+            // Cari SIAPA sebenarnya buat simpanan terkini, supaya mesej tepat (2026-08-16,
+            // soalan tajam Izzat: "saya orang lain ke?" — semakan ni sebelum ni cuma banding
+            // cap masa `updatedAt`, TAK PERNAH semak identiti penulis sebenar, jadi mesej
+            // sentiasa kata "orang lain" walaupun penulis sebenar ialah AKAUN SAMA dari
+            // tab/peranti lain, macam yang berlaku sesi ni). targetId jejak audit
+            // 'kemas-kini-konfigurasi-slot' ialah senarai slotIndex bergabung koma (cth
+            // "11" atau "5,11") — bungkus dgn koma kiri/kanan supaya padanan tepat SATU
+            // slotIndex, bukan sepadan separa (cth "1" tak silap padan dalam "11").
+            const entriTerkini = await dbAll(
+              `SELECT actorId, actorName FROM audit_log
+               WHERE action = 'kemas-kini-konfigurasi-slot' AND (',' || targetId || ',') LIKE ?
+               ORDER BY id DESC LIMIT 1`,
+              [`%,${slot.slotIndex},%`]
+            );
+            const penulisSebenar = entriTerkini[0] || null;
+            const idPemohon = req.session?.user?.id;
+            let mesej;
+            if (penulisSebenar?.actorId && penulisSebenar.actorId === idPemohon) {
+              mesej = `Slot ${slot.slotIndex + 1} telah anda sendiri kemas kini di tab/peranti lain sejak slot ini dibuka di sini. Muat semula slot ini dahulu supaya perubahan di sini tidak menimpa simpanan anda yang lebih baharu.`;
+            } else if (penulisSebenar?.actorName) {
+              mesej = `Slot ${slot.slotIndex + 1} telah dikemas kini oleh ${penulisSebenar.actorName} sejak anda membukanya. Muat semula slot ini dahulu supaya perubahan anda tidak menimpa kerja mereka.`;
+            } else {
+              mesej = `Slot ${slot.slotIndex + 1} telah dikemas kini sejak anda membukanya. Muat semula slot ini dahulu supaya perubahan anda tidak menimpa kerja yang lebih baharu.`;
+            }
             // Format ralat sepadan konvensyen sedia ada di seluruh laluan ni (`error` ialah
             // mesej terus dipapar, bukan kod) — client (useSlotEditor.ts) cuma baca `data.error`.
-            return res.status(409).json({
-              error: `Slot ${slot.slotIndex + 1} telah disimpan oleh orang lain sejak anda membukanya. Muat semula slot ini dahulu supaya perubahan anda tidak menimpa kerja orang lain.`,
-            });
+            return res.status(409).json({ error: mesej });
           }
         }
       }
