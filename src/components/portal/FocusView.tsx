@@ -837,10 +837,18 @@ export const FocusView: React.FC<FocusViewProps> = ({
               masuk sahaja, lihat nota `eyebrowNodes` di atas. `key={title}` (sama corak
               focusAutoScrollBar) paksa remount setiap artikel bertukar supaya animasi replay,
               bukan main sekali sahaja semasa Focus View pertama dibuka. */}
+          {/* display:inline-flex + alignItems:center (2026-08-17, Izzat: "icon tak sejajar
+              dengan bidang+topik") — ikon (.fv-eyebrow-ikon, inline-flex) dan kumpulan Bidang|
+              Topik (.fv-eyebrow-kumpulan-keluar, inline-block) tak sejajar bila bekas ni cuma
+              `<span>` inline biasa: baseline flex/inline-block yang tersasar drpd baseline teks
+              biasa buat ikon "terapung" lebih tinggi. Flex+align-items:center pusatkan
+              KEDUA-DUA secara menegak relatif sesama sendiri, tak lagi bergantung baseline
+              inline yang tak konsisten antara jenis elemen berlainan. */}
           {label && (
             <span key={`eyebrow-${title}`} style={{
               fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
               letterSpacing: 'var(--tracking-editorial)', color: warnaEyebrow,
+              display: 'inline-flex', alignItems: 'center',
             }}>{eyebrowNodes}</span>
           )}
 
@@ -1177,8 +1185,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 lapisan kedua (permintaan Izzat — "jgn benarkan tajuk...menceroboh kolum milik yg
                 lain") utk kes ekstrem satu perkataan tunggal lebih lebar drpd lajur. */}
             <div style={{ minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 'clamp(8px, 1.4vh, 14px)', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
+              {/* display:inline-flex + alignItems:center (2026-08-17, Izzat: "icon tak sejajar
+                  dengan bidang+topik") — lihat nota panjang di versi telefon di atas. */}
               {label && (
-                <span key={`eyebrow-${title}`} style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{eyebrowNodes}</span>
+                <span key={`eyebrow-${title}`} style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any, display: 'inline-flex', alignItems: 'center' }}>{eyebrowNodes}</span>
               )}
               {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-07 — lajur tajuk kini
                   sempit ~40% lebar helaian, sama alasan telefon di atas: titleRendered sisipkan
