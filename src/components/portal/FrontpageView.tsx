@@ -535,6 +535,67 @@ export const vektorArahOverlay = (arah: string, songsang: boolean) => {
 //
 // Sebab tu lajur sumber sisi kini berlebar TETAP (`md:w-28` STANDARD, `md:w-36` HERO) — bukan
 // hiasan, ia SYARAT KETEPATAN bagi kunci tinggi ni. JANGAN pulangkan ia kepada lebar-ikut-teks.
+// Kunci tinggi FOOTER SUMBER (2026-08-17, Izzat: kad carousel tak stabil di mobile — "ia akan
+// mengembang kalau ada tarikh, dan menguncup kalau takde tarikh... frontpage nampak bergerak2").
+// Diukur langsung pada laman sebenar (mobile 375px): satu slot berputar 282.75px -> 271.375px
+// tanpa sebarang interaksi pengguna, walhal kawasan tajuk+huraian yang dikunci CarouselStableBlock
+// TERBUKTI tekal (96.25px kedua-dua item). Punca: footer sumber (nama + tarikh) ialah SIBLING di
+// LUAR kawasan terkunci CarouselStableBlock, baca `bentoNewsItems[n]` (item aktif carousel yang
+// berubah setiap putaran) — nama sumber panjang boleh balut lebih baris utk SATU item drpd item
+// lain dlm putaran SAMA, jadi tinggi footer (dan seterusnya keseluruhan kad) berubah-ubah.
+//
+// SENGAJA komponen BERASINGAN drpd CarouselStableBlock (bukan pindah footer masuk renderItem) —
+// struktur JSX renderItem tu sangat fragile (lihat nota `alignSelf:'start'` di atas, wujud khusus
+// elak grid-stretch rosakkan ukuran scrollHeight). Guna teknik SAMA (render tersembunyi setiap
+// varian sebenar, ukur scrollHeight, kunci ke MAX yang pernah dilihat — "hanya membesar tak pernah
+// mengecut") tapi zero risiko kepada carousel utama. Bekas tersembunyi diletak position:absolute
+// DALAM bekas induk (BentoInner, yang sudah `relative`) supaya ia ukur pada LEBAR SEBENAR (wrap
+// teks bergantung lebar) — bukan lebar andaian.
+const FooterHeightLock: React.FC<{
+  items: any[];
+  renderFooter: (item: any) => React.ReactNode;
+  children: (minHeight: number | undefined) => React.ReactNode;
+}> = ({ items, renderFooter, children }) => {
+  const [minHeight, setMinHeight] = useState<number | undefined>(undefined);
+  const refs = useRef<(HTMLDivElement | null)[]>([]);
+  const contentKey = items
+    .map((it) => `${it?.source || ''}|${it?.originalDate || ''}|${it?.publishedAt || ''}|${it?.sembunyikanTarikhSumber ? 1 : 0}`)
+    .join('~');
+
+  useLayoutEffect(() => {
+    if (items.length <= 1) return;
+    let maxSeen = 0;
+    let dibatal = false;
+    const kira = () => {
+      const heights = refs.current.map((el) => (el ? el.scrollHeight : 0));
+      const max = Math.max(0, ...heights);
+      if (max > maxSeen) {
+        maxSeen = max;
+        if (!dibatal) setMinHeight(max);
+      }
+    };
+    kira();
+    const pemerhati = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => kira()) : null;
+    refs.current.forEach((el) => { if (el && pemerhati) pemerhati.observe(el); });
+    (document as any).fonts?.ready?.then(() => { if (!dibatal) kira(); });
+    return () => { dibatal = true; pemerhati?.disconnect(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentKey, items.length]);
+
+  if (items.length <= 1) return <>{children(undefined)}</>;
+
+  return (
+    <>
+      <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, width: '100%', visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
+        {items.map((it, i) => (
+          <div key={i} ref={(el) => { refs.current[i] = el; }}>{renderFooter(it)}</div>
+        ))}
+      </div>
+      {children(minHeight)}
+    </>
+  );
+};
+
 const CarouselStableBlock: React.FC<{
   items: any[];
   activeIndex: number;
@@ -3162,10 +3223,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           )}
                         />
                       </div>
-                      <a href={bentoNewsItems[4].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[4]).sourceStyle}>
-                        <span>{bentoNewsItems[4].source}</span>
-                        {!bentoNewsItems[4].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[4].originalDate) || formatBentoDate(bentoNewsItems[4].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[4].originalDate) || formatBentoDate(bentoNewsItems[4].publishedAt))}</span>}
-                      </a>
+                      <FooterHeightLock
+                        items={bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]]}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <a href={bentoNewsItems[4].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={{ ...getCardTheme(bentoNewsItems[4]).sourceStyle, minHeight }}>
+                            <span>{bentoNewsItems[4].source}</span>
+                            {!bentoNewsItems[4].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[4].originalDate) || formatBentoDate(bentoNewsItems[4].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[4].originalDate) || formatBentoDate(bentoNewsItems[4].publishedAt))}</span>}
+                          </a>
+                        )}
+                      </FooterHeightLock>
                     </BentoInner><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[4].publishedAt)}</span>
                   </div>
                 )}
@@ -3192,10 +3265,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           )}
                         />
                       </div>
-                      <a href={bentoNewsItems[5].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[5]).sourceStyle}>
-                        <span>{bentoNewsItems[5].source}</span>
-                        {!bentoNewsItems[5].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[5].originalDate) || formatBentoDate(bentoNewsItems[5].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[5].originalDate) || formatBentoDate(bentoNewsItems[5].publishedAt))}</span>}
-                      </a>
+                      <FooterHeightLock
+                        items={bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]]}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <a href={bentoNewsItems[5].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={{ ...getCardTheme(bentoNewsItems[5]).sourceStyle, minHeight }}>
+                            <span>{bentoNewsItems[5].source}</span>
+                            {!bentoNewsItems[5].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[5].originalDate) || formatBentoDate(bentoNewsItems[5].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[5].originalDate) || formatBentoDate(bentoNewsItems[5].publishedAt))}</span>}
+                          </a>
+                        )}
+                      </FooterHeightLock>
                     </BentoInner><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[5].publishedAt)}</span>
                   </div>
                 )}
@@ -3459,10 +3544,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[17].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[17]).sourceStyle}>
-                      <span>{bentoNewsItems[17].source}</span>
-                      {!bentoNewsItems[17].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[17].originalDate) || formatBentoDate(bentoNewsItems[17].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[17].originalDate) || formatBentoDate(bentoNewsItems[17].publishedAt))}</span>}
-                    </a>
+                    <FooterHeightLock
+                      items={bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]]}
+                      renderFooter={(it) => (
+                        <div className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                          <span>{it.source}</span>
+                          {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                        </div>
+                      )}
+                    >
+                      {(minHeight) => (
+                        <a href={bentoNewsItems[17].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={{ ...getCardTheme(bentoNewsItems[17]).sourceStyle, minHeight }}>
+                          <span>{bentoNewsItems[17].source}</span>
+                          {!bentoNewsItems[17].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[17].originalDate) || formatBentoDate(bentoNewsItems[17].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[17].originalDate) || formatBentoDate(bentoNewsItems[17].publishedAt))}</span>}
+                        </a>
+                      )}
+                    </FooterHeightLock>
                   
                   {bentoNewsItems[17].aiProvider && (
                     <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
@@ -3489,10 +3586,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[18].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[18]).sourceStyle}>
-                      <span>{bentoNewsItems[18].source}</span>
-                      {!bentoNewsItems[18].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[18].originalDate) || formatBentoDate(bentoNewsItems[18].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[18].originalDate) || formatBentoDate(bentoNewsItems[18].publishedAt))}</span>}
-                    </a>
+                    <FooterHeightLock
+                      items={bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]]}
+                      renderFooter={(it) => (
+                        <div className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                          <span>{it.source}</span>
+                          {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                        </div>
+                      )}
+                    >
+                      {(minHeight) => (
+                        <a href={bentoNewsItems[18].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={{ ...getCardTheme(bentoNewsItems[18]).sourceStyle, minHeight }}>
+                          <span>{bentoNewsItems[18].source}</span>
+                          {!bentoNewsItems[18].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[18].originalDate) || formatBentoDate(bentoNewsItems[18].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[18].originalDate) || formatBentoDate(bentoNewsItems[18].publishedAt))}</span>}
+                        </a>
+                      )}
+                    </FooterHeightLock>
                   
                   {bentoNewsItems[18].aiProvider && (
                     <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
@@ -3790,10 +3899,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[31].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[31]).sourceStyle}>
-                      <span>{bentoNewsItems[31].source}</span>
-                      {!bentoNewsItems[31].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[31].originalDate) || formatBentoDate(bentoNewsItems[31].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[31].originalDate) || formatBentoDate(bentoNewsItems[31].publishedAt))}</span>}
-                    </a>
+                    <FooterHeightLock
+                      items={bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]]}
+                      renderFooter={(it) => (
+                        <div className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                          <span>{it.source}</span>
+                          {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                        </div>
+                      )}
+                    >
+                      {(minHeight) => (
+                        <a href={bentoNewsItems[31].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={{ ...getCardTheme(bentoNewsItems[31]).sourceStyle, minHeight }}>
+                          <span>{bentoNewsItems[31].source}</span>
+                          {!bentoNewsItems[31].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[31].originalDate) || formatBentoDate(bentoNewsItems[31].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[31].originalDate) || formatBentoDate(bentoNewsItems[31].publishedAt))}</span>}
+                        </a>
+                      )}
+                    </FooterHeightLock>
                   
                   {bentoNewsItems[31].aiProvider && (
                     <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
@@ -3820,10 +3941,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         )}
                       />
                     </div>
-                    <a href={bentoNewsItems[32].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={getCardTheme(bentoNewsItems[32]).sourceStyle}>
-                      <span>{bentoNewsItems[32].source}</span>
-                      {!bentoNewsItems[32].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[32].originalDate) || formatBentoDate(bentoNewsItems[32].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[32].originalDate) || formatBentoDate(bentoNewsItems[32].publishedAt))}</span>}
-                    </a>
+                    <FooterHeightLock
+                      items={bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]]}
+                      renderFooter={(it) => (
+                        <div className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                          <span>{it.source}</span>
+                          {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                        </div>
+                      )}
+                    >
+                      {(minHeight) => (
+                        <a href={bentoNewsItems[32].url || '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={{ ...getCardTheme(bentoNewsItems[32]).sourceStyle, minHeight }}>
+                          <span>{bentoNewsItems[32].source}</span>
+                          {!bentoNewsItems[32].sembunyikanTarikhSumber && (getDisplayDate(bentoNewsItems[32].originalDate) || formatBentoDate(bentoNewsItems[32].publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(bentoNewsItems[32].originalDate) || formatBentoDate(bentoNewsItems[32].publishedAt))}</span>}
+                        </a>
+                      )}
+                    </FooterHeightLock>
                   
                   {bentoNewsItems[32].aiProvider && (
                     <span className="absolute bottom-1 right-2 font-mono text-[8px] opacity-40 pointer-events-none select-none">
