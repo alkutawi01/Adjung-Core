@@ -257,6 +257,15 @@ export function ContentReview() {
   // penyuntingan, bukan audit; carian sedia ada dah cukup untuk jumpa kandungan tu.
   const [activeBidangListCR, setActiveBidangListCR] = useState<string[]>([]);
 
+  // Reset sourceFilter bila Slot ditukar KELUAR daripada Ticker (2026-08-16) — kotak sumber kini
+  // hanya PAPAR bila Ticker dipilih (lihat JSX di bawah), tapi tanpa reset ni, tapisan sumber yang
+  // ditetapkan semasa Ticker aktif kekal TERPAKAI SENYAP (filteredItems masih baca sourceFilter,
+  // cuma kotaknya disorok) selepas ditukar ke slot lain — hasil tertapis tanpa kotak nampak
+  // kenapa, mengelirukan.
+  useEffect(() => {
+    if (slotFilter !== -1 && sourceFilter) setSourceFilter('');
+  }, [slotFilter]);
+
   const loadItems = () => {
     setLoading(true);
     fetch('/api/system/content/all')
@@ -298,7 +307,18 @@ export function ContentReview() {
     });
   }, [items, searchQuery, statusFilter, deskFilter, slotFilter, sourceFilter]);
 
-  const sourceOptionsCR = useMemo(() => Array.from(new Set(items.map(i => i.source).filter(Boolean))).sort(), [items]);
+  // Sumber TICKER sahaja (2026-08-16, Izzat: "kotak sumber tu listkan dropdown sumber... ia
+  // hanya muncul apabila slot ticker dipilih... sbb hanya ticker yg perlukannya sbb sumber dia
+  // terhad"). Dahulu kotak teks bebas terpakai pada SEMUA slot (sumber kandungan bento
+  // manual/AI hampir tak terhad — nama penerbit apa-apa editor taip), jadi dropdown tak
+  // bermakna di situ. Ticker BERBEZA: sumbernya senarai RSS berdaftar TETAP/terhad (Bernama,
+  // RTM, dll), jadi dropdown pilih-daripada-senarai lebih tepat drpd taip bebas. Dikira daripada
+  // item TICKER SAHAJA (slotIndex -1), bukan `items` penuh — senarai kekal SAHIH sekecil sumber
+  // yang benar-benar wujud dlm Ticker, bukan tersenarai sumber bento yang tak relevan sama sekali.
+  const sourceOptionsCR = useMemo(
+    () => Array.from(new Set(items.filter(i => i.slotIndex === -1).map(i => i.source).filter(Boolean))).sort(),
+    [items]
+  );
   const slotOptionsCR = useMemo(() => {
     const uniqueSlots: number[] = Array.from(new Set(items.map(i => i.slotIndex)));
     return uniqueSlots.sort((a, b) => a - b);
@@ -525,21 +545,25 @@ export function ContentReview() {
               <option value="Semua">Semua Slot (termasuk Ticker)</option>
               {slotOptionsCR.map(s => <option key={s} value={s}>{s === -1 ? 'Ticker' : `Slot ${s + 1}`}</option>)}
             </select>
-            {/* TIADA <datalist> di sini (2026-07-29, permintaan pemilik projek) — medan ni duduk
-                dalam header `sticky` (lihat <header> di bawah); cadangan native <datalist> ada
-                pepijat pelayar dikenali (Chromium) apabila induknya `position: sticky` dan halaman
-                dah tatal — anak tetingkap cadangan terpaut pada kedudukan ASAL elemen (sebelum
-                tatal), bukan kedudukan sebenar semasa "melekat". sourceOptionsCR (senarai
-                cadangan) tak lagi digunakan di sini akibat ni — carian teks bebas (padanan
-                separa, lihat filteredItems) kekal berfungsi, cuma tiada dropdown cadangan. Medan
-                serupa di IndeksConsole.tsx (bukan dalam header sticky) kekal guna <datalist>. */}
-            <input
-              type="text"
-              placeholder="Cari sumber…"
-              value={sourceFilter}
-              onChange={e => setSourceFilter(e.target.value)}
-              className="bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold"
-            />
+            {/* Dropdown, HANYA bila Ticker dipilih (2026-08-16, Izzat: "kotak sumber tu listkan
+                dropdown sumber (bukan taip sendiri) dan ia hanya muncul apabila slot ticker
+                dipilih... sbb hanya ticker yg perlukannya sbb sumber dia terhad"). Slot bento
+                lain (manual/AI) sumbernya hampir tak terhad (editor taip nama penerbit apa-apa),
+                jadi dropdown tak bermakna di situ — carian teks bebas di kotak carian utama di
+                atas (dah padan sumber juga, lihat filteredItems) kekal cara cari sumber utk slot
+                lain. Ganti kotak teks bebas LAMA sepenuhnya (bukan tambahan) — sourceOptionsCR
+                kini genuine digunakan (dahulu dikira tapi buang tak dipakai selepas <datalist>
+                dibuang 2026-07-29, lihat sejarah git). */}
+            {slotFilter === -1 && (
+              <select
+                value={sourceFilter}
+                onChange={e => setSourceFilter(e.target.value)}
+                className="bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold"
+              >
+                <option value="">Semua Sumber Ticker</option>
+                {sourceOptionsCR.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            )}
           </div>
         </div>
       </header>
@@ -660,7 +684,19 @@ export function ContentReview() {
                   </button>
                 </div>
               )}
-              <div className="flex justify-between items-center pt-3">
+              {/* Bar tindakan melekat DI BAWAH (2026-08-16, aduan Izzat — "kenapa page semakan
+                  kandungan tak boleh scroll?"). Punca sebenar: kotak teks pukal ni SANGAT tinggi
+                  (117 item termampat dlm satu textarea, scrollHeight boleh melebihi 10,000px),
+                  dan bar ni (status + butang Simpan Pukal) sebelum ni duduk dlm aliran biasa
+                  DI BAWAHNYA — pada skrin/zum lebih kecil drpd yang diuji, butang ni tertolak ke
+                  luar pandangan, dan skrol tetikus semasa kursor di ATAS textarea (mana-mana
+                  pelayar) skrol KANDUNGAN textarea dahulu (kelakuan asal, bukan pepijat), bukan
+                  halaman — jadi capai butang tu "terasa" macam langsung tak boleh skrol walhal
+                  halaman sendiri sebenarnya boleh (disahkan `scrollBy()`). Sama corak sedia ada
+                  dgn header ATAS (`sticky top-0`, `<header>` fail ni) — bar bawah ni kini melekat
+                  jugak, SENTIASA kelihatan tak kira berapa tinggi textarea, tiada skrol diperlukan
+                  langsung utk capai butang Simpan. */}
+              <div className="sticky bottom-0 bg-[var(--color-Adjung-cream)] border-t border-stone-200 flex justify-between items-center py-3 -mx-4 px-4 md:-mx-8 md:px-8">
                 {/* Ketara secara visual (2026-08-16, audit ChatGPT — "tak ada notification ke
                     lepas tekan butang ni?") — SEBELUM ni 10px kelabu senyap, mudah terlepas
                     pandang walaupun tak dipadam awal (bug di atas). Warna ikut keputusan: hijau
