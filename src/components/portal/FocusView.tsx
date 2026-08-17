@@ -321,6 +321,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const warnaEyebrow = deskColor || 'var(--color-Adjung-maroon)';
   const isPhone = usePhoneViewport();
 
+  // Kunci identiti artikel utk paksa remount animasi masuk (eyebrow/tajuk/huraian) setiap kali
+  // artikel BENAR-BENAR bertukar (2026-08-17, Izzat: "kenapa hanya item pertama sahaja yg
+  // eyebrow dia ada animasi? lepas slide yg kedua, ketiga dan seterusnya eyebrow dia statik?").
+  // Sebelum ini `key={title}` sahaja — tajuk BUKAN pengecam paling boleh dipercayai (dua
+  // kandungan berbeza secara teori boleh kongsi tajuk serupa, dan lebih penting, `objectId`
+  // ialah pengecam SEBENAR sistem gunakan di seluruh fail ni untuk isu serupa, lihat nota
+  // `sudahDitandaRef`/glosari di atas — "kunci objectId, sandaran title kalau objectId tiada").
+  // Diselaraskan supaya animasi guna corak pengecam SAMA, bukan bergantung title semata.
+  const identitiArtikel = objectId || title;
+
   // Segmen Bidang/Topik boleh klik berasingan + microanimasi garis-bawah tumbuh (2026-08-07,
   // permintaan Izzat — "topik di full view pun perlu ada microanimasi mcm di frontpage dan perlu
   // ke search jgk, utk keselarasan"). `.eyebrow-topik-teks` ialah kelas ANIMASI sedia ada daripada
@@ -815,7 +825,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           // kosong bila sambung. animationPlayState:'paused' bekukan animasi CSS TEPAT di kedudukan
           // semasa (kelakuan asli pelayar), 'running' sambung dari situ — tiada jejak masa manual
           // diperlukan utk bahagian visual ni (jejak masa sebenar utk onNext() di useEffect atas).
-          <div key={`bar-${title}`} style={{ height: '2px', flex: '0 0 auto', background: 'var(--stone-200)', overflow: 'hidden' }}>
+          <div key={`bar-${identitiArtikel}`} style={{ height: '2px', flex: '0 0 auto', background: 'var(--stone-200)', overflow: 'hidden' }}>
             <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards`, animationPlayState: autoPlay ? 'running' : 'paused' }} />
           </div>
         )}
@@ -845,7 +855,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               KEDUA-DUA secara menegak relatif sesama sendiri, tak lagi bergantung baseline
               inline yang tak konsisten antara jenis elemen berlainan. */}
           {label && (
-            <span key={`eyebrow-${title}`} style={{
+            <span key={`eyebrow-${identitiArtikel}`} style={{
               fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
               letterSpacing: 'var(--tracking-editorial)', color: warnaEyebrow,
               display: 'inline-flex', alignItems: 'center',
@@ -859,7 +869,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               Desktop KEKAL guna titleRendered (ruang lebih lapang, kurang patah baris).
               `fv-tajuk-masuk` + `key={title}` (2026-08-17, Izzat) — pudar+gelongsor masuk,
               replay setiap artikel bertukar. */}
-          <h1 key={`tajuk-${title}`} className="fv-tajuk-masuk" style={{
+          <h1 key={`tajuk-${identitiArtikel}`} className="fv-tajuk-masuk" style={{
             margin: 0, fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 500,
             lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty',
             textAlign: 'center',
@@ -906,7 +916,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   `fv-huraian-masuk` + `key={title}` (2026-08-17, Izzat) — pudar+gelongsor masuk
                   lepas tajuk (delay lebih panjang, ikut hierarki bidang+topik > tajuk > huraian
                   panjang), replay setiap artikel bertukar. */}
-              <div key={`huraian-${title}`} className="fv-huraian-masuk" style={{
+              <div key={`huraian-${identitiArtikel}`} className="fv-huraian-masuk" style={{
                 fontFamily: 'var(--font-serif)', fontSize: '14px', fontWeight: 300,
                 lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty',
                 padding: '0 10px',
@@ -1147,7 +1157,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
       </div>
       {onNext && (
         // Kekal mounted walau jeda — lihat nota sepadan di susun atur telefon di atas.
-        <div key={`bar-${title}`} style={{ height: '2px', flex: '0 0 auto', width: '100%', background: 'var(--border-subtle)', overflow: 'hidden' }}>
+        <div key={`bar-${identitiArtikel}`} style={{ height: '2px', flex: '0 0 auto', width: '100%', background: 'var(--border-subtle)', overflow: 'hidden' }}>
           <div style={{ height: '100%', background: 'var(--color-Adjung-maroon)', transformOrigin: 'left', animation: `focusAutoScrollBar ${AUTOSCROLL_MS}ms linear forwards`, animationPlayState: autoPlay ? 'running' : 'paused' }} />
         </div>
       )}
@@ -1188,7 +1198,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               {/* display:inline-flex + alignItems:center (2026-08-17, Izzat: "icon tak sejajar
                   dengan bidang+topik") — lihat nota panjang di versi telefon di atas. */}
               {label && (
-                <span key={`eyebrow-${title}`} style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any, display: 'inline-flex', alignItems: 'center' }}>{eyebrowNodes}</span>
+                <span key={`eyebrow-${identitiArtikel}`} style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any, display: 'inline-flex', alignItems: 'center' }}>{eyebrowNodes}</span>
               )}
               {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-07 — lajur tajuk kini
                   sempit ~40% lebar helaian, sama alasan telefon di atas: titleRendered sisipkan
@@ -1200,14 +1210,14 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   tengah perkataan. `fv-tajuk-masuk` + `key={title}` (2026-08-17, Izzat) — pudar+
                   gelongsor masuk, replay setiap artikel bertukar (mata bergerak ikut hierarki:
                   bidang+topik > tajuk > huraian panjang). */}
-              <h1 key={`tajuk-${title}`} ref={titleRef} className="fv-tajuk-masuk" style={{ margin: 0, minWidth: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none', wordBreak: 'normal', overflowWrap: 'normal' }}>{glosariDesktop.tajuk}</h1>
+              <h1 key={`tajuk-${identitiArtikel}`} ref={titleRef} className="fv-tajuk-masuk" style={{ margin: 0, minWidth: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none', wordBreak: 'normal', overflowWrap: 'normal' }}>{glosariDesktop.tajuk}</h1>
             </div>
 
             {/* Lajur kanan — huraian panjang, SATU-SATUNYA bahagian Focus View yang menatal. */}
             <div style={{ minHeight: 0, overflow: 'hidden', display: 'flex', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
               <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', scrollbarWidth: 'none', paddingRight: 'clamp(8px, 1vw, 16px)', paddingBottom: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
                 {paragraphs.length > 0 && (
-                  <div key={`huraian-${title}`} className="fv-huraian-masuk" style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
+                  <div key={`huraian-${identitiArtikel}`} className="fv-huraian-masuk" style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
                     {paragraphs.map((para, j) => (
                       <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{glosariDesktop.perenggan[j]}</p>
                     ))}
