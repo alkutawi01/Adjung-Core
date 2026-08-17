@@ -88,6 +88,24 @@ export function tanganiKekunciItalic(
   requestAnimationFrame(() => { el.setSelectionRange(mulaBaharu, akhirBaharu); el.focus(); });
 }
 
+// Sengkang ganda -> em dash automatik (2026-08-17, Izzat: "telegram pulak kalau taip -- auto
+// jadi em dash", disahkan mahu ciri ni ditambah). Dipanggil dari `onChange` (bukan `onKeyDown`
+// macam Ctrl+I di atas — perlu REAKSI SELEPAS aksara kedua "-" termasuk dalam value, bukan
+// pintas sebelum ia masuk). Semak HANYA dua aksara SEBELUM kedudukan kursor semasa (bukan cari
+// merata dokumen) — elak sentuh "--" yang sudah wujud sebelum ini (cth ditampal dari URL/kod,
+// atau ditaip sebelum ciri ni wujud); hanya sengkang yang BARU SAHAJA ditaip di kedudukan kursor
+// tercetus. Pulangkan `null` bila tiada padanan (pemanggil terus guna value asal tanpa ubah).
+export function gantiSengkangGandaOtomatik(
+  value: string,
+  cursorPos: number
+): { value: string; cursorPos: number } | null {
+  if (cursorPos < 2 || value.slice(cursorPos - 2, cursorPos) !== '--') return null;
+  return {
+    value: value.slice(0, cursorPos - 2) + '—' + value.slice(cursorPos),
+    cursorPos: cursorPos - 1,
+  };
+}
+
 // markdownToHtml()/htmlToMarkdown() (WYSIWYG contenteditable round-trip, footnote/margin-note
 // badge conversion included) dibuang 2026-08-13 (arahan Izzat: "nota kaki dan nota pinggir
 // tiada dalam Brief, itu wujud dlm Adjung Platform sahaja") — disahkan sifar pemanggil di

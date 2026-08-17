@@ -17,7 +17,7 @@ import { StandardCardPreview } from './cards/StandardCardPreview';
 import { SegiEmpatMediumCardPreview } from './cards/SegiEmpatMediumCardPreview';
 import { SegiEmpatSmallCardPreview } from './cards/SegiEmpatSmallCardPreview';
 import { BarCardPreview } from './cards/BarCardPreview';
-import { tanganiKekunciItalic } from '../../utils.tsx';
+import { tanganiKekunciItalic, gantiSengkangGandaOtomatik } from '../../utils.tsx';
 
 // Normalkan tarikh AI-tampal ke ISO yyyy-mm-dd (2026-08-08, pepijat Izzat — "kalau tampal output
 // AI, medan tarikh sumber tu kena isi sendiri jgk") — <input type="date"> HANYA papar nilai
@@ -427,6 +427,21 @@ export function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: n
 function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint, type }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; minLen?: number; hint?: string; type?: 'text' | 'date' }) {
   const over = typeof maxLen === 'number' && value.length > maxLen;
   const under = typeof minLen === 'number' && value.length > 0 && value.length < minLen;
+  // Sengkang ganda -> em dash automatik (2026-08-17, Izzat, gaya Telegram) — lihat
+  // gantiSengkangGandaOtomatik() di utils.tsx utk sebab guna onChange (bukan onKeyDown macam
+  // Ctrl+I) dan skop semakan (hanya dua aksara sebelum kursor).
+  const kendaliPerubahan = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+    const el = e.currentTarget;
+    const v = el.value;
+    const pos = el.selectionStart ?? v.length;
+    const hasil = gantiSengkangGandaOtomatik(v, pos);
+    if (hasil) {
+      onChange(hasil.value);
+      requestAnimationFrame(() => { el.setSelectionRange(hasil.cursorPos, hasil.cursorPos); });
+    } else {
+      onChange(v);
+    }
+  };
   return (
     <label className="flex flex-col gap-1">
       <span className="flex items-baseline justify-between gap-3">
@@ -443,13 +458,13 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint
       {under && <span className="font-sans text-[9px] text-[#a8241f] -mt-0.5">{minLen - value.length} aksara lagi diperlukan (minimum {minLen})</span>}
       {rows ? (
         <textarea
-          rows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+          rows={rows} value={value} placeholder={placeholder} onChange={kendaliPerubahan}
           onKeyDown={(e) => tanganiKekunciItalic(e, value, onChange)}
           className="w-full resize-none border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm leading-relaxed text-stone-800 py-1.5 transition-colors"
         />
       ) : (
         <input
-          type={type || 'text'} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+          type={type || 'text'} value={value} placeholder={placeholder} onChange={kendaliPerubahan}
           onKeyDown={(e) => tanganiKekunciItalic(e, value, onChange)}
           className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-serif text-sm text-stone-800 py-1.5 transition-colors"
         />
