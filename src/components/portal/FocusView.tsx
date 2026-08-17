@@ -347,6 +347,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // Izzat 2026-08-07 "ikon berlebihan, kekalkan perkataan") — ni BUKAN pembalikan keputusan
   // tu, cuma ikon kini muncul SEBENTAR sebagai animasi masuk sebelum Bidang, bukan kekal
   // selamanya macam kad bento.
+  // Pembetulan susulan (2026-08-17, Izzat: "salah awak buat tu. nama bidang keluar dari icon.
+  // keluar dari arah kiri ke kanan, dan ia akan engsot topik sekali gus") — `fv-eyebrow-bidang-
+  // keluar` guna teknik wipe-reveal (max-width, lihat index.css) bukan opacity semata, supaya
+  // Topik betul-betul "diengsot" oleh perubahan lebar kotak SEBENAR dlm aliran dokumen, bukan
+  // cuma pudar di tempat.
   const eyebrowNodes: React.ReactNode = (() => {
     const d = (desk || '').trim();
     const t = (topik || '').trim();
@@ -356,8 +361,8 @@ export const FocusView: React.FC<FocusViewProps> = ({
       return (
         <>
           <span className="fv-eyebrow-ikon" aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center' }}>{icon}</span>
-          <span className="fv-eyebrow-bidang-masuk eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>
-          <span className="fv-eyebrow-bidang-masuk" aria-hidden="true">{' | '}</span>
+          <span className="fv-eyebrow-bidang-keluar eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>
+          <span className="fv-eyebrow-pemisah-masuk" aria-hidden="true">{' | '}</span>
           <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>
         </>
       );

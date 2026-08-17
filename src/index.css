@@ -556,21 +556,40 @@ h1, h2, h3, h4, h5, h6, p {
    Focus View pertama dibuka. Kelewatan animation-delay berperingkat (0 -> 120ms -> 260ms)
    yang buat urutan tumpuan mata terasa, bukan tempoh animasi sendiri (semua 500ms).
 
-   Eyebrow: ikon+Topik dahulu, ikon kemudian mengecut+pudar SERENTAK Bidang+pemisah "|" pudar
-   masuk DI RUANG SAMA (2026-08-17, Izzat: "mula2 ikon+topik, kemudian bidang keluar daripada
-   ikon tu gantikan ikon") — bukan ikon hilang dahulu br Bidang muncul di tempat lain berasingan,
-   supaya kesan "bertukar" bukan "dua peristiwa berasingan". Topik kekal statik, cuma tersasar
-   sikit ke kanan secara semula jadi bila ikon (sempit) digantikan Bidang (lebih lebar). */
+   Eyebrow: ikon+Topik dahulu, ikon kemudian mengecut+pudar SERENTAK nama Bidang "keluar" dari
+   kedudukan ikon, kiri ke kanan (2026-08-17, Izzat, pembetulan susulan: "salah awak buat tu.
+   nama bidang keluar dari icon. keluar dari arah kiri ke kanan, dan ia akan engsot topik sekali
+   gus ke arah kanan"). Percubaan PERTAMA (opacity semata pada Bidang) tersasar — cuma pudar
+   DI TEMPAT, tiada kesan "keluar"/"engsot" langsung, Topik cuma tersasar disebabkan ikon
+   mengecut (bukan disebabkan Bidang sendiri "menolak"nya).
+
+   Fix: Bidang guna teknik "wipe reveal" SEBENAR (max-width 0 -> lebar penuh, overflow:hidden +
+   white-space:nowrap) — ni PERUBAHAN LEBAR KOTAK BENAR dlm aliran dokumen biasa (bukan
+   `transform`, yang cuma lukis semula visual tanpa ubah ruang sebenar), jadi Topik (anak
+   seterusnya dlm flex row yang sama) SECARA AUTOMATIK & SERENTAK "diengsot" ke kanan sepanjang
+   Bidang membesar — persis fizik sebenar objek menolak objek sebelahnya, bukan reflow senyap
+   lepas fakta. max-width 160px cukup jana utk nama Bidang terpanjang (~20 aksara) tanpa
+   terpotong; kotak akhir tetap ikut lebar KANDUNGAN sebenar (min(kandungan, max-width), bukan
+   160px tetap) sebab tiada `width` eksplisit ditetapkan. Pemisah "|" kekal pudar sahaja (opacity,
+   bukan wipe — satu aksara terlalu kecil utk kesan wipe kelihatan bermakna). */
 @keyframes fvEyebrowIkonKeluar {
   0%, 60% { opacity: 1; width: 13px; margin-right: 6px; }
   100% { opacity: 0; width: 0; margin-right: 0; }
 }
-@keyframes fvEyebrowBidangMasuk {
+@keyframes fvEyebrowBidangKeluar {
+  0%, 60% { max-width: 0; }
+  100% { max-width: 160px; }
+}
+@keyframes fvEyebrowPemisahMasuk {
   0%, 60% { opacity: 0; }
   100% { opacity: 1; }
 }
 .fv-eyebrow-ikon { overflow: hidden; animation: fvEyebrowIkonKeluar 900ms ease-in-out forwards; }
-.fv-eyebrow-bidang-masuk { animation: fvEyebrowBidangMasuk 900ms ease-in-out forwards; }
+.fv-eyebrow-bidang-keluar {
+  display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: bottom;
+  animation: fvEyebrowBidangKeluar 900ms ease-in-out forwards;
+}
+.fv-eyebrow-pemisah-masuk { animation: fvEyebrowPemisahMasuk 900ms ease-in-out forwards; }
 
 /* Tajuk + huraian panjang: pudar+gelongsor naik lembut semasa masuk (2026-08-17, Izzat: "kalau
    betul nak bg mata bergerak ikut hierarki sepatutnya tumpukan pada 3 benda penting: bidang+topik
