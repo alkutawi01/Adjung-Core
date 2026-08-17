@@ -16,14 +16,22 @@ export interface MenegakCardTeksProps {
   title: string;
   brief: string;
   briefStyle?: React.CSSProperties;
+  // Warna hover tajuk (2026-08-17, Izzat: "ada yg tukar warna maroon, ada yg jadi warna pelik...
+  // selaraskan jadi warna maroon") — dahulu `#FFE3D1` (aksen pic) TETAP dikodkan keras, sesuai
+  // untuk kad bertema GELAP tapi hampir tak kelihatan pada kad terang (kebanyakan kad SEBENAR
+  // kini, bg lalai 'transparent'). Diterima sebagai STRING KELAS Tailwind PENUH dari tapak
+  // panggilan (corak sama SegiEmpatMediumCardTeks/SegiEmpatSmallCardTeks — imbasan JIT Tailwind
+  // perlukan literal, bukan hex digubah runtime), dikira ikut `getCardTheme(item).finalIsDark`
+  // supaya maroon pada kad terang (biasa), aksen asal dikekalkan pada kad gelap (jarang berlaku).
+  hoverClassName?: string;
   onClickTajuk?: (e: React.MouseEvent) => void;
   onClickHuraian?: (e: React.MouseEvent) => void;
 }
 
-export const MenegakCardTeks: React.FC<MenegakCardTeksProps> = ({ title, brief, briefStyle, onClickTajuk, onClickHuraian }) => (
+export const MenegakCardTeks: React.FC<MenegakCardTeksProps> = ({ title, brief, briefStyle, hoverClassName = 'hover:text-[#802334]', onClickTajuk, onClickHuraian }) => (
   <>
     <h3
-      className="font-serif text-[14px] md:text-2xl leading-snug font-medium hover:text-[#FFE3D1] transition-colors"
+      className={`font-serif text-[14px] md:text-2xl leading-snug font-medium transition-colors ${hoverClassName}`}
       onClick={onClickTajuk}
     >
       {safeParseInline(title || '')}

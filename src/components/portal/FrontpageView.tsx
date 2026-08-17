@@ -2346,6 +2346,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   /** Pengendali klik untuk tajuk/huraian pada kad. */
   const focusClick = (item: any) => (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Elak klik-seret PILIH TEKS turut membuka Focus View (2026-08-17, Izzat: "saya tak boleh
+    // copy teks dlm kad sebab bila left click akan jadi focus view"). Pelayar tetap cetuskan
+    // event `click` biasa pada mouseup walaupun pengguna baru sahaja menyeret memilih teks (ia
+    // TIDAK menyekat `click` secara automatik) — jadi klik biasa dan klik-lepas-pilih-teks tak
+    // dapat dibezakan daripada `onClick` semata-mata. Semak `window.getSelection()` pada masa
+    // event ni tercetus: ada teks terpilih = pengguna baru salin, bukan niat navigasi, jangan
+    // buka. Selection kosong (klik biasa, tiada seretan) = buka macam biasa.
+    const teksTerpilih = window.getSelection()?.toString();
+    if (teksTerpilih && teksTerpilih.trim().length > 0) return;
     openFocus(item);
   };
 
@@ -3259,7 +3268,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(3, bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]], dir)}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[3]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[3]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[3]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -3533,7 +3542,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[11].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(11, bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]], dir)}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[11]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[11]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[11]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -3587,7 +3596,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[13].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(13, bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]], dir)}
                         renderItem={(it) => (
-                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[13]).briefStyle} hoverClassName="hover:text-[#E9D8A6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[13]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[13]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -3634,7 +3643,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[14].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(14, bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]], dir)}
                         renderItem={(it) => (
-                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[14]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[14]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[14]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -3731,7 +3740,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[16].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(16, bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]], dir)}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[16]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[16]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[16]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -3783,7 +3792,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         onNavigate={(dir) => majuKarusel(17, bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]], dir)}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-[#802334] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
                               <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[17]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
@@ -3835,7 +3844,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         onNavigate={(dir) => majuKarusel(18, bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]], dir)}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-[#802334] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
                               <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[18]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
@@ -4023,7 +4032,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[25].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(25, bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]], dir)}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[25]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[25]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[25]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4102,7 +4111,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[27].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(27, bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]], dir)}
                         renderItem={(it) => (
-                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[27]).briefStyle} hoverClassName="hover:text-[#E9D8A6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[27]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[27]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4149,7 +4158,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[28].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(28, bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]], dir)}
                         renderItem={(it) => (
-                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[28]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[28]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[28]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4246,7 +4255,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[30].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(30, bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]], dir)}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[30]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[30]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[30]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4298,7 +4307,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         onNavigate={(dir) => majuKarusel(31, bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]], dir)}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-[#802334] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
                               <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[31]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
@@ -4350,7 +4359,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         onNavigate={(dir) => majuKarusel(32, bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]], dir)}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-stone-300 transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-[14px] md:text-sm font-medium leading-snug hover:text-[#802334] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
                               <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[32]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
@@ -4537,7 +4546,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           activeIndex={bentoNewsItems[35].carouselIndex || 0}
                           onNavigate={(dir) => majuKarusel(35, bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]], dir)}
                           renderItem={(it) => (
-                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[35]).briefStyle} hoverClassName="hover:text-[#F5EBE6]" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[35]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[35]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                           )}
                         />
                       </div>
@@ -4584,7 +4593,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           activeIndex={bentoNewsItems[36].carouselIndex || 0}
                           onNavigate={(dir) => majuKarusel(36, bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]], dir)}
                           renderItem={(it) => (
-                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[36]).briefStyle} hoverClassName="hover:text-stone-300" briefClassName="text-stone-300/90" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[36]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[36]).finalIsDark ? 'hover:text-stone-300' : 'hover:text-[#802334]'} briefClassName="text-stone-300/90" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                           )}
                         />
                       </div>

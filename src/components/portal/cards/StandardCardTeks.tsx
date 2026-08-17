@@ -15,14 +15,17 @@ export interface StandardCardTeksProps {
   title: string;
   brief: string;
   briefStyle?: React.CSSProperties;
+  // Warna hover tajuk (2026-08-17, Izzat) — lihat nota panjang di MenegakCardTeks.tsx. `#E9D8A6`
+  // dikekalkan lalai untuk kad GELAP sahaja; kad terang (majoriti sebenar) kini maroon.
+  hoverClassName?: string;
   onClickTajuk?: (e: React.MouseEvent) => void;
   onClickHuraian?: (e: React.MouseEvent) => void;
 }
 
-export const StandardCardTeks: React.FC<StandardCardTeksProps> = ({ title, brief, briefStyle, onClickTajuk, onClickHuraian }) => (
+export const StandardCardTeks: React.FC<StandardCardTeksProps> = ({ title, brief, briefStyle, hoverClassName = 'hover:text-[#802334]', onClickTajuk, onClickHuraian }) => (
   <>
     <h3
-      className="font-serif text-[15px] md:text-xl leading-snug font-medium hover:text-[#E9D8A6] transition-colors mt-2"
+      className={`font-serif text-[15px] md:text-xl leading-snug font-medium transition-colors mt-2 ${hoverClassName}`}
       onClick={onClickTajuk}
     >
       {safeParseInline(title || '')}
