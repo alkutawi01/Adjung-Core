@@ -576,34 +576,27 @@ h1, h2, h3, h4, h5, h6, p {
    Pembetulan KEDUA (2026-08-17, Izzat: "tak cantik. apa kata kekalkan je ikon tu selepas bidang
    keluar? bidang pulak awak boldkan supaya tak nampak sama mcm topik... teks bidang dan topik
    dah tak selari") — ikon kekal statik selamanya, Bidang dibold, vertical-align dibetulkan.
-   Pembetulan KETIGA/akhir (2026-08-17, Izzat: "hodoh" pada percubaan kedua — punca: gap 0px
-   antara ikon+Bidang, margin-right terlupa dipindah balik lepas animasi ikon dibuang. Izzat
-   kemudian mudahkan keseluruhan reka bentuk: "bidang dan topik keluar bersama... satu group...
-   ikon tu mcm baseline") — SATU kotak wipe-reveal `.fv-eyebrow-kumpulan-keluar` merangkumi
-   "Bidang | Topik" SEKALI GUS (bukan Bidang wipe berasingan + Topik "diengsot" reflow) —
-   lebih ringkas DAN lebih kemas: tiada lagi isu jarak/jajaran antara elemen berasingan, cuma
-   SATU kotak vertical-align:baseline sejajar ikon secara semula jadi. Ikon (`fv-eyebrow-ikon`)
-   kekal statik, tiada animasi sendiri — cuma "pintu" tempat kumpulan Bidang+Topik keluar. */
-@keyframes fvEyebrowKumpulanKeluar {
-  0%, 60% { max-width: 0; }
-  100% { max-width: 260px; }
+   Pembetulan KETIGA (2026-08-17, Izzat: "hodoh" pada percubaan kedua — punca: gap 0px antara
+   ikon+Bidang. Izzat kemudian mudahkan reka bentuk: "bidang dan topik keluar bersama... satu
+   group... ikon tu mcm baseline") — SATU kotak `.fv-eyebrow-kumpulan-keluar` merangkumi
+   "Bidang | Topik" SEKALI GUS.
+   Pembetulan KEEMPAT (2026-08-17, Izzat, wipe-reveal max-width masih tersasar arah dedah —
+   dibetulkan text-align:right, tapi Izzat kemudian jelaskan maksud SEBENAR bukan reveal/potong
+   langsung: "faham tak maksud saya? bidang+topik tu bergerak... ia bergerak dari kiri ke
+   kanan... dari icon. icon tu jadi baseline!"). PERGERAKAN SEBENAR (transform:translateX),
+   BUKAN reveal/wipe (max-width+overflow:hidden+clip) — kumpulan Bidang+Topik bermula BERTINDAN
+   di kedudukan ikon (translateX negatif, opacity 0) lalu SECARA FIZIKAL BERGERAK ke kanan ke
+   kedudukan rehat akhirnya (translateX(0), opacity 1) — ikon kekal pegun sepanjang masa sebagai
+   titik asal ("baseline") pergerakan tu, bukan sebahagian animasi sendiri. */
+@keyframes fvEyebrowKumpulanGerak {
+  0%, 60% { opacity: 0; transform: translateX(-18px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
 .fv-eyebrow-ikon { display: inline-flex; align-items: center; margin-right: 6px; }
 .fv-eyebrow-kumpulan-keluar {
-  display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: baseline;
-  /* text-align:right (2026-08-17, Izzat: pembetulan arah dedah — bukan "$a / $ani / &anima /
-     &animasi" [reveal dari HURUF PERTAMA, hujung tumbuh], tapi "&i / &asi / &imasi / &animasi"
-     [reveal dari HURUF TERAKHIR, permulaan disambung kemudian]). Kotak kekal LABUH KIRI (sebelah
-     ikon, tak bergerak) dan lebarnya membesar ke kanan macam sebelum ni — tapi teks di DALAM
-     kotak dirata KANAN, jadi bila kotak masih sempit, bahagian AWAL teks yang melimpah ke kiri
-     TERPOTONG overflow:hidden (bukan bahagian akhir), hujung perkataan kekal melekat pada tepi
-     kanan kotak sepanjang animasi — hasilnya hujung perkataan nampak dahulu, awalan tersambung
-     kemudian sehingga penuh, sementara kotak sendiri tetap kelihatan "tumbuh keluar drpd ikon". */
-  text-align: right;
-  /* 900ms -> 1800ms (2026-08-17, Izzat: "animasi jgn terlalu laju") — nisbah tahan/keluar
-     (60%/40%) dikekalkan sama, cuma jumlah tempoh digandakan supaya keseluruhan terasa lebih
-     lambat/nyaman, bukan tergesa-gesa. */
-  animation: fvEyebrowKumpulanKeluar 1800ms ease-in-out forwards;
+  display: inline-block; vertical-align: baseline;
+  /* 1800ms, nisbah tahan/gerak 60%/40% (2026-08-17, Izzat: "animasi jgn terlalu laju"). */
+  animation: fvEyebrowKumpulanGerak 1800ms ease-in-out forwards;
 }
 
 /* Tajuk + huraian panjang: pudar+gelongsor naik lembut semasa masuk (2026-08-17, Izzat: "kalau
