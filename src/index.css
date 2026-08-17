@@ -591,7 +591,7 @@ h1, h2, h3, h4, h5, h6, p {
   0%, 60% { opacity: 0; }
   100% { opacity: 1; }
 }
-.fv-eyebrow-ikon { display: inline-flex; align-items: center; }
+.fv-eyebrow-ikon { display: inline-flex; align-items: center; margin-right: 6px; }
 .fv-eyebrow-bidang-keluar {
   display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: baseline;
   font-weight: var(--weight-bold, 700);
