@@ -454,7 +454,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           onBerjaya={(emel: string) => {
             setTambahTerbuka(false);
             muatSemula();
-            onToast?.('success', `Akaun dicipta. E-mel jemputan telah dihantar ke ${emel} untuk tetapkan kata laluan.`);
+            onToast?.('success', `Akaun dicipta. E-mel jemputan telah dihantar ke ${emel} untuk menetapkan kata laluan.`);
           }}
         />
       )}
