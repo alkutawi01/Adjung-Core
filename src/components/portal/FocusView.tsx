@@ -195,13 +195,13 @@ function SenaraiSumberDesktop({ sources, sourceDate }: { sources: { name: string
 export interface FocusViewProps {
   /** Logo Adjung, di kiri jalur masthead. */
   wordmark?: string;
-  /** Glif Bidang. DITERIMA tetapi tidak dirender: memaparkan ikon bersebelahan perkataan yang ikon
-   *  itu wakili adalah berlebihan, dan pemilik projek memilih untuk mengekalkan perkataan — ia
-   *  memberitahu pembaca Bidang apa tanpa perlu mengenali 25 simbol dahulu.
-   *
-   *  Prop ini dikekalkan supaya pemanggil (FrontpageView) tidak perlu diubah, dan supaya keputusan
-   *  ini boleh dipatah balik dengan satu suntingan kalau ikon khas menggantikan ikon lucide generik
-   *  nanti. Ikon Bidang masih dipakai seperti biasa di Taksonomi Editorium. */
+  /** Glif Bidang. Dahulu (2026-08-07) DITERIMA tetapi TIDAK dirender langsung — ikon kekal
+   *  bersebelahan perkataan dianggap berlebihan, kekalkan perkataan sahaja. Keputusan tu KEKAL
+   *  untuk paparan STATIK — ikon masih tak pernah kekal selamanya di sini. Susulan 2026-08-17
+   *  (Izzat, "mula2 ikon+topik, kemudian bidang keluar daripada ikon tu gantikan ikon"): ikon
+   *  kini muncul SEBENTAR sebagai animasi masuk eyebrow sahaja (lihat `eyebrowNodes` dlm
+   *  komponen), pudar+mengecut lalu digantikan perkataan Bidang selepas ~550ms — bukan
+   *  pembalikan keputusan asal, cuma lapisan animasi baharu di atasnya. */
   icon?: React.ReactNode;
   desk?: string;
   topik?: string;
@@ -340,11 +340,28 @@ export const FocusView: React.FC<FocusViewProps> = ({
       style: { cursor: 'pointer' },
     };
   };
+  // Animasi ikon->Bidang (2026-08-17, Izzat: "mula2 ikon+topik, kemudian bidang keluar
+  // daripada ikon tu gantikan ikon") — SAHAJA bila ikon SEDIA (bidang+topik kedua-duanya
+  // wujud, sama syarat `bolehGunaIkon` EyebrowKad kad bento). `icon` prop sedia lama, dahulu
+  // sengaja diterima tapi TAK DIRENDER (lihat nota jenis FocusViewProps di atas — keputusan
+  // Izzat 2026-08-07 "ikon berlebihan, kekalkan perkataan") — ni BUKAN pembalikan keputusan
+  // tu, cuma ikon kini muncul SEBENTAR sebagai animasi masuk sebelum Bidang, bukan kekal
+  // selamanya macam kad bento.
   const eyebrowNodes: React.ReactNode = (() => {
     const d = (desk || '').trim();
     const t = (topik || '').trim();
     if (!d) return <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>;
     if (!t) return <span className="eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>;
+    if (icon) {
+      return (
+        <>
+          <span className="fv-eyebrow-ikon" aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center' }}>{icon}</span>
+          <span className="fv-eyebrow-bidang-masuk eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>
+          <span className="fv-eyebrow-bidang-masuk" aria-hidden="true">{' | '}</span>
+          <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>
+        </>
+      );
+    }
     return (
       <>
         <span className="eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>
@@ -812,9 +829,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
           flex: '0 0 auto', padding: '20px 16px 14px', display: 'flex', flexDirection: 'column',
           alignItems: 'center', gap: '12px', borderBottom: '1px solid var(--border-subtle)',
         }}>
-          {/* Glif Bidang sengaja TIDAK dirender di sini — lihat nota `icon` dalam FocusViewProps. */}
+          {/* Ikon dahulu TIDAK dirender kekal di sini — kini muncul sebentar sebagai animasi
+              masuk sahaja, lihat nota `eyebrowNodes` di atas. `key={title}` (sama corak
+              focusAutoScrollBar) paksa remount setiap artikel bertukar supaya animasi replay,
+              bukan main sekali sahaja semasa Focus View pertama dibuka. */}
           {label && (
-            <span style={{
+            <span key={`eyebrow-${title}`} style={{
               fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
               letterSpacing: 'var(--tracking-editorial)', color: warnaEyebrow,
             }}>{eyebrowNodes}</span>
@@ -824,8 +844,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
               perlu hyphenation") — titleRendered sisipkan pemenggalan suku kata (gloss/autocondong)
               yang kelihatan sebagai sengkang lembut di tengah perkataan; pada skrin telefon yang
               sempit, tajuk sudah pun patah baris kerap, jadi sengkang tambahan jadi mengganggu.
-              Desktop KEKAL guna titleRendered (ruang lebih lapang, kurang patah baris). */}
-          <h1 style={{
+              Desktop KEKAL guna titleRendered (ruang lebih lapang, kurang patah baris).
+              `fv-tajuk-masuk` + `key={title}` (2026-08-17, Izzat) — pudar+gelongsor masuk,
+              replay setiap artikel bertukar. */}
+          <h1 key={`tajuk-${title}`} className="fv-tajuk-masuk" style={{
             margin: 0, fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 500,
             lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty',
             textAlign: 'center',
@@ -868,8 +890,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
               {/* Margin kiri/kanan tambahan (2026-08-05, permintaan Izzat) — kolum huraian
                   panjang dikecilkan drpd lebar penuh badan (padding 16px sedia ada), sengaja
                   berasingan drpd bahagian lain (Sumber/Nota kekal lebar asal) — huraian panjang
-                  paling banyak teks berturutan, lebar penuh skrin telefon sukar dibaca. */}
-              <div style={{
+                  paling banyak teks berturutan, lebar penuh skrin telefon sukar dibaca.
+                  `fv-huraian-masuk` + `key={title}` (2026-08-17, Izzat) — pudar+gelongsor masuk
+                  lepas tajuk (delay lebih panjang, ikut hierarki bidang+topik > tajuk > huraian
+                  panjang), replay setiap artikel bertukar. */}
+              <div key={`huraian-${title}`} className="fv-huraian-masuk" style={{
                 fontFamily: 'var(--font-serif)', fontSize: '14px', fontWeight: 300,
                 lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty',
                 padding: '0 10px',
@@ -1149,7 +1174,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 lain") utk kes ekstrem satu perkataan tunggal lebih lebar drpd lajur. */}
             <div style={{ minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 'clamp(8px, 1.4vh, 14px)', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
               {label && (
-                <span style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{eyebrowNodes}</span>
+                <span key={`eyebrow-${title}`} style={{ ...micro, color: warnaEyebrow, fontWeight: 'var(--weight-bold)' as any }}>{eyebrowNodes}</span>
               )}
               {/* `title` mentah sengaja, BUKAN `titleRendered` (2026-08-07 — lajur tajuk kini
                   sempit ~40% lebar helaian, sama alasan telefon di atas: titleRendered sisipkan
@@ -1158,15 +1183,17 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   overflowWrap 'normal' (bukan 'break-word') — biar tajuk patah HANYA di sempadan
                   perkataan, tak pernah potong tengah perkataan (cth "Dikem/udiankan"); ada cukup
                   ruang menegak di bawah tajuk utk baris tambahan, jadi tiada sebab paksa patah
-                  tengah perkataan. */}
-              <h1 ref={titleRef} style={{ margin: 0, minWidth: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none', wordBreak: 'normal', overflowWrap: 'normal' }}>{glosariDesktop.tajuk}</h1>
+                  tengah perkataan. `fv-tajuk-masuk` + `key={title}` (2026-08-17, Izzat) — pudar+
+                  gelongsor masuk, replay setiap artikel bertukar (mata bergerak ikut hierarki:
+                  bidang+topik > tajuk > huraian panjang). */}
+              <h1 key={`tajuk-${title}`} ref={titleRef} className="fv-tajuk-masuk" style={{ margin: 0, minWidth: 0, fontFamily: 'var(--font-serif)', fontWeight: 'var(--weight-regular)' as any, fontSize: titleSize, lineHeight: 1.18, letterSpacing: 'var(--tracking-tight)', color: 'var(--text-heading)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none', wordBreak: 'normal', overflowWrap: 'normal' }}>{glosariDesktop.tajuk}</h1>
             </div>
 
             {/* Lajur kanan — huraian panjang, SATU-SATUNYA bahagian Focus View yang menatal. */}
             <div style={{ minHeight: 0, overflow: 'hidden', display: 'flex', paddingTop: 'clamp(28px, 5vh, 56px)' }}>
               <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', scrollbarWidth: 'none', paddingRight: 'clamp(8px, 1vw, 16px)', paddingBottom: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
                 {paragraphs.length > 0 && (
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
+                  <div key={`huraian-${title}`} className="fv-huraian-masuk" style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.75, color: 'var(--stone-600)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
                     {paragraphs.map((para, j) => (
                       <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{glosariDesktop.perenggan[j]}</p>
                     ))}

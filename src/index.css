@@ -550,6 +550,42 @@ h1, h2, h3, h4, h5, h6, p {
   to { transform: scaleX(1); }
 }
 
+/* Mata bergerak ikut hierarki: Bidang+Topik > Tajuk > Huraian panjang (2026-08-17, Izzat).
+   Ketiga-tiga guna `key={title}` (sama corak `focusAutoScrollBar` di atas) supaya animasi
+   REPLAY setiap kali artikel bertukar (React remount elemen), bukan sekali sahaja semasa
+   Focus View pertama dibuka. Kelewatan animation-delay berperingkat (0 -> 120ms -> 260ms)
+   yang buat urutan tumpuan mata terasa, bukan tempoh animasi sendiri (semua 500ms).
+
+   Eyebrow: ikon+Topik dahulu, ikon kemudian mengecut+pudar SERENTAK Bidang+pemisah "|" pudar
+   masuk DI RUANG SAMA (2026-08-17, Izzat: "mula2 ikon+topik, kemudian bidang keluar daripada
+   ikon tu gantikan ikon") — bukan ikon hilang dahulu br Bidang muncul di tempat lain berasingan,
+   supaya kesan "bertukar" bukan "dua peristiwa berasingan". Topik kekal statik, cuma tersasar
+   sikit ke kanan secara semula jadi bila ikon (sempit) digantikan Bidang (lebih lebar). */
+@keyframes fvEyebrowIkonKeluar {
+  0%, 60% { opacity: 1; width: 13px; margin-right: 6px; }
+  100% { opacity: 0; width: 0; margin-right: 0; }
+}
+@keyframes fvEyebrowBidangMasuk {
+  0%, 60% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.fv-eyebrow-ikon { overflow: hidden; animation: fvEyebrowIkonKeluar 900ms ease-in-out forwards; }
+.fv-eyebrow-bidang-masuk { animation: fvEyebrowBidangMasuk 900ms ease-in-out forwards; }
+
+/* Tajuk + huraian panjang: pudar+gelongsor naik lembut semasa masuk (2026-08-17, Izzat: "kalau
+   betul nak bg mata bergerak ikut hierarki sepatutnya tumpukan pada 3 benda penting: bidang+topik
+   > tajuk > huraian panjang"). Nombor pagination (01/03) dan pudar tarikh siaran DITOLAK Izzat
+   secara eksplisit — jangan tambah semula tanpa arahan baharu. */
+@keyframes fvMasukFedAtas {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fv-tajuk-masuk { animation: fvMasukFedAtas 500ms ease-out both; animation-delay: 120ms; }
+.fv-huraian-masuk { animation: fvMasukFedAtas 500ms ease-out both; animation-delay: 260ms; }
+@media (prefers-reduced-motion: reduce) {
+  .fv-eyebrow-ikon, .fv-eyebrow-bidang-masuk, .fv-tajuk-masuk, .fv-huraian-masuk { animation: none; }
+}
+
 /* Panel transisi "kad tengah" Focus View (2026-08-05, permintaan Izzat) — lalu ATAS-BAWAH
    (bukan kiri-kanan macam carousel bento), sepadan bahasa visual Colophon. Fasa "tahan"
    (40%-60%) sengaja panel MENUTUP PENUH skrin lebih lama drpd satu bingkai supaya pertukaran
