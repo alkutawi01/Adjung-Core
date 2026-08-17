@@ -1222,16 +1222,22 @@ export const FocusView: React.FC<FocusViewProps> = ({
           pemanggil yang uruskan format, fail ni cuma papar apa yang diterima. */}
       <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ position: 'relative', flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) 0', display: 'flex', justifyContent: 'center' }}>
-        {/* alignItems flex-end -> flex-start (2026-08-16, permintaan Izzat -- "butang kongsi tak
-            boleh diusik walaupun sumber ada 10 pun") -- flex-end selaraskan BAWAH ketiga-tiga
-            lajur (Sumber/Kongsi/Tarikh) sesama sendiri; bila senarai Sumber wrap ke berbilang
-            baris (lebih tinggi), bawahnya turun, dan Kongsi/Tarikh (lebih pendek, tak pernah
-            wrap) terikut turun sekali untuk kekal sejajar bawah dgn Sumber -- kedudukan Kongsi
-            jadi bergantung berapa banyak sumber, tepat yang Izzat tak nak. flex-start jangkarkan
-            ketiga-tiga di ATAS baris ni sebaliknya -- Sumber boleh tumbuh ke bawah sepuas-puasnya
-            (10 sumber, 20 sumber) tanpa sentuh kedudukan Kongsi/Tarikh langsung. */}
-        <div style={{ width: 'min(74%, 1040px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
-          <span style={{ maxWidth: '70%', lineHeight: 1.5 }}>
+        {/* alignItems flex-end -> flex-start (2026-08-16) DAN flex -> grid 3-lajur (2026-08-17,
+            susulan kritikal Izzat -- "butang kongsi mesti fix di tengah. sumber kalau banyak
+            akan diwrap supaya tak kacau butang kongsi"). flex-start (2026-08-16) betulkan paksi
+            MENEGAK (Sumber tumbuh ke bawah tanpa tarik Kongsi turun sekali), tapi paksi MENDATAR
+            (justify-content:space-between) MASIH rosak -- lebar lajur Sumber SEBENAR berubah
+            ikut berapa banyak/panjang sumber (walau dibalut flex-wrap dalamnya), jadi "ruang
+            baki" yang space-between agih antara tiga lajur turut berubah, Kongsi (lajur tengah)
+            jadi TERGESER kiri/kanan drpd tengah SEBENAR viewport bergantung lebar Sumber semasa
+            itu -- disahkan Izzat via dua kandungan sebenar (3 sumber vs 1 sumber, Kongsi jelas
+            tak sejajar). Grid 3-lajur (1fr auto 1fr) betulkan ni SEPENUHNYA: lajur tengah (Kongsi)
+            lebar ikut kandungannya sahaja dan SENTIASA dipusatkan tepat pada tengah bekas, tak
+            kira sebesar mana lajur kiri (Sumber, boleh wrap berbilang baris) atau kanan (Editor)
+            membesar -- setiap lajur 1fr terpaksa berkongsi baki ruang SAMA RATA, jadi lajur
+            tengah kekal di titik tengah geometri, bukan titik tengah "ruang baki". */}
+        <div style={{ width: 'min(74%, 1040px)', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'flex-start', gap: '16px' }}>
+          <span style={{ lineHeight: 1.5 }}>
             <span style={micro}>{sources.length > 1 ? 'Sumber-sumber' : 'Sumber'}</span>
             {/* Sumber berbilang (2026-08-05) — senaraikan SEMUA (`sources`), dipisah "|"; jatuh
                 balik ke medan tunggal (`source`/`sourceUrl`) bila `sources` tiada (kandungan
@@ -1278,7 +1284,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               supaya lajur ni still ada label seragam dgn 2 lajur lain -- kandungan bawahnya
               (tarikh sahaja) tetap papar. */}
           {publishedDate && (
-            <span style={{ maxWidth: '30%', lineHeight: 1.5, textAlign: 'right' }}>
+            <span style={{ lineHeight: 1.5, textAlign: 'right' }}>
               <span style={{ ...micro, display: 'block' }}>Editor</span>
               <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', whiteSpace: 'nowrap' }}>
                 {editorName && <>{editorName}<span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · </span></>}
