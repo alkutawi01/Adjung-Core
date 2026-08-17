@@ -830,23 +830,30 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       )}
 
       {/* Modal Ticker native Editorium (2026-08-02, Fasa 7) — lihat useTickerEditor.ts. */}
-      <TickerManagementModal
-        isOpen={!!tickerEditor.formConfig}
-        onClose={tickerEditor.closeTickerEditor}
-        formConfig={tickerEditor.formConfig}
-        setFormConfig={tickerEditor.setFormConfig}
-        slotsConfig={tickerEditor.slotsConfig}
-        handleSaveSlot={tickerEditor.handleSaveSlot}
-        registeredRssSources={tickerEditor.registeredRssSources}
-        loadRssSources={tickerEditor.loadRssSources}
-        reviewQueue={tickerEditor.reviewQueue}
-        loadReviewQueue={tickerEditor.loadReviewQueue}
-        rssStatus={tickerEditor.rssStatus}
-        adjungDesks={tickerEditor.adjungDesks}
-        addToast={pushToast}
-        validateContentBudget={validateContentBudget}
-        handleOverrideTickerDesk={tickerEditor.handleOverrideTickerDesk}
-      />
+      {/* Gerbang MOUNT di sini, bukan early-return dlm TickerManagementModal.tsx sendiri
+          (2026-08-16, audit Izzat "benar2 berfungsi atau hiasan?" dedah pelanggaran Rules of
+          Hooks — komponen tu sebelum ni SENTIASA mounted dgn `if (!isOpen || !formConfig) return
+          null` SEBELUM sebarang useState/useEffect, jadi bilangan hook berbeza antara render
+          dibuka/ditutup pada FIBER SAMA. Corak sepadan SlotManagerModal/BarSlotManagerModal
+          sedia ada — parent gate mount, bukan komponen sendiri). */}
+      {!!tickerEditor.formConfig && (
+        <TickerManagementModal
+          onClose={tickerEditor.closeTickerEditor}
+          formConfig={tickerEditor.formConfig}
+          setFormConfig={tickerEditor.setFormConfig}
+          slotsConfig={tickerEditor.slotsConfig}
+          handleSaveSlot={tickerEditor.handleSaveSlot}
+          registeredRssSources={tickerEditor.registeredRssSources}
+          loadRssSources={tickerEditor.loadRssSources}
+          reviewQueue={tickerEditor.reviewQueue}
+          loadReviewQueue={tickerEditor.loadReviewQueue}
+          rssStatus={tickerEditor.rssStatus}
+          adjungDesks={tickerEditor.adjungDesks}
+          addToast={pushToast}
+          validateContentBudget={validateContentBudget}
+          handleOverrideTickerDesk={tickerEditor.handleOverrideTickerDesk}
+        />
+      )}
       <ToastContainer toasts={editoriumToasts} onDismiss={dismissToast} />
 
       {profilTerbuka && profilData && (

@@ -11,7 +11,6 @@ import { ceilingForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { tanganiKekunciItalic } from '../../utils.tsx';
 
 interface TickerManagementModalProps {
-  isOpen: boolean;
   onClose: () => void;
   formConfig: any;
   setFormConfig: React.Dispatch<React.SetStateAction<any>>;
@@ -29,7 +28,6 @@ interface TickerManagementModalProps {
 }
 
 export const TickerManagementModal: React.FC<TickerManagementModalProps> = React.memo(({
-  isOpen,
   onClose,
   formConfig,
   setFormConfig,
@@ -45,7 +43,6 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
   validateContentBudget,
   handleOverrideTickerDesk
 }) => {
-  if (!isOpen || !formConfig) return null;
 
   // Local Form States
   const [newRssName, setNewRssName] = useState('');
@@ -57,8 +54,14 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
   const [rssReviewThreshold, setRssReviewThreshold] = useState<number>(60);
   const [rssPriorityKeywords, setRssPriorityKeywords] = useState<string>('');
   const [rssBlockedKeywords, setRssBlockedKeywords] = useState<string>('');
-  const [rssPriorityBonus, setRssPriorityBonus] = useState<number>(10);
-  const [rssBlockedPenalty, setRssBlockedPenalty] = useState<number>(20);
+  // Lalai 15/40 (2026-08-16, audit Izzat "benar2 berfungsi atau hiasan?") — dahulu 10/20 di sini
+  // TAK SEPADAN nilai lalai sebenar di SETIAP tempat lain (slotRoutes.js GET fallback + POST
+  // fallback, lajur DEFAULT server.js, EditorialScoreEngine.js fallback dalaman — kesemuanya
+  // 15/40). Percanggahan ni sengaja diselaraskan, bukan cuma kosmetik — susulan effect di bawah
+  // (fetch mula) SEBELUM ni guna semakan truthy (`if (data.priorityBonus)`), jadi nilai SEBENAR
+  // 0 (kalau Ketua Editor sengaja tetapkan) gagal senyap dimuat, kekal pada lalai salah ni.
+  const [rssPriorityBonus, setRssPriorityBonus] = useState<number>(15);
+  const [rssBlockedPenalty, setRssBlockedPenalty] = useState<number>(40);
   const [rssMaxNewsAgeHours, setRssMaxNewsAgeHours] = useState<number>(48);
   const [tickerMaxItems, setTickerMaxItems] = useState<number>(20);
   const [tickerTitleMinChars, setTickerTitleMinChars] = useState<number>(0);
@@ -123,12 +126,20 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
       .then(res => res.json())
       .then(data => {
         if (data) {
-          if (data.autoLiveThreshold) setRssAutoLiveThreshold(data.autoLiveThreshold);
-          if (data.reviewThreshold) setRssReviewThreshold(data.reviewThreshold);
+          // !== undefined, BUKAN semakan truthy (2026-08-16, bug sebenar dijumpai audit Izzat)
+          // — autoLiveThreshold/reviewThreshold/priorityBonus/blockedPenalty SEMUA nilai SAH
+          // sebagai 0 (cth Ketua Editor sengaja tetapkan "ambang review = 0" utk hantar semua
+          // kandungan bukan-auto-live ke Review Queue). Semakan truthy (`if (data.x)`) sebelum
+          // ni gagal SENYAP muatkan 0 sebenar (0 falsy dlm JS) — borang papar lalai KOD, bukan
+          // nilai SEBENAR tersimpan; kalau Ketua Editor klik Simpan tanpa perasan, 0 sebenar
+          // TERTIMPA balik ke lalai salah. 4 baris lain di bawah dah betul (!== undefined),
+          // ni SELARASKAN 4 baris pertama ikut corak sama.
+          if (data.autoLiveThreshold !== undefined) setRssAutoLiveThreshold(data.autoLiveThreshold);
+          if (data.reviewThreshold !== undefined) setRssReviewThreshold(data.reviewThreshold);
           if (data.priorityKeywords !== undefined) setRssPriorityKeywords(data.priorityKeywords);
           if (data.blockedKeywords !== undefined) setRssBlockedKeywords(data.blockedKeywords);
-          if (data.priorityBonus) setRssPriorityBonus(data.priorityBonus);
-          if (data.blockedPenalty) setRssBlockedPenalty(data.blockedPenalty);
+          if (data.priorityBonus !== undefined) setRssPriorityBonus(data.priorityBonus);
+          if (data.blockedPenalty !== undefined) setRssBlockedPenalty(data.blockedPenalty);
           if (data.maxNewsAgeHours !== undefined) setRssMaxNewsAgeHours(data.maxNewsAgeHours);
           if (data.tickerMaxItems !== undefined) setTickerMaxItems(data.tickerMaxItems);
           if (data.tickerTitleMinChars !== undefined) setTickerTitleMinChars(data.tickerTitleMinChars);
@@ -762,6 +773,22 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           onChange={(e) => setRssPriorityKeywords(e.target.value)}
                           className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                         />
+                        {/* Jumlah bonus (2026-08-16, audit Izzat "benar2 berfungsi atau hiasan?")
+                            — medan ni SUDAH disimpan+digunakan sebenar di enjin skor
+                            (EditorialScoreEngine.js), tapi TIADA input UI langsung sebelum ni —
+                            Ketua Editor tak boleh laraskan jumlah bonus, cuma senarai kata kunci.
+                            "Mesin sebenar, tiada stereng." */}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[9px] text-stone-400">Jumlah bonus:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={rssPriorityBonus}
+                            onChange={(e) => setRssPriorityBonus(Number(e.target.value))}
+                            className="w-20 px-2 py-1 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] font-sans text-xs"
+                          />
+                          <span className="text-[9px] text-stone-400">mata</span>
+                        </div>
                       </div>
 
                       <div className="flex flex-col gap-1 md:col-span-2">
@@ -773,6 +800,17 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           onChange={(e) => setRssBlockedKeywords(e.target.value)}
                           className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                         />
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[9px] text-stone-400">Jumlah penalti:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={rssBlockedPenalty}
+                            onChange={(e) => setRssBlockedPenalty(Number(e.target.value))}
+                            className="w-20 px-2 py-1 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] font-sans text-xs"
+                          />
+                          <span className="text-[9px] text-stone-400">mata</span>
+                        </div>
                       </div>
                     </div>
 

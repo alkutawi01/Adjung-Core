@@ -164,6 +164,13 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
           blockedKeywords: 'gempar, viral, panas, terbongkar',
           priorityBonus: 15,
           blockedPenalty: 40,
+          // maxNewsAgeHours/tickerMaxItems (2026-08-16, audit Izzat) — dahulu TERTINGGAL drpd
+          // objek fallback ni (CLAUDE.md dah amaran corak ni: "nombor lalai disalin berulang
+          // di N tempat" — punca pepijat priorityBonus/blockedPenalty di atas). Tak sengaja
+          // pecah setakat ni sebab lalai frontend kebetulan sama (48/20), tapi rapuh, sengaja
+          // diselaraskan sekarang.
+          maxNewsAgeHours: 48,
+          tickerMaxItems: 20,
           tickerTitleMinChars: 0,
           updatedAt: new Date().toISOString()
         };
@@ -210,8 +217,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       if (bonusVal < 0 || penaltyVal < 0) {
         return res.status(400).json({ error: 'Bonus keutamaan dan penalti sekatan tak boleh negatif.' });
       }
-      if (ageVal <= 0) {
-        return res.status(400).json({ error: 'Had usia berita mesti lebih daripada 0 jam.' });
+      // ageVal < 0 (BUKAN <= 0, 2026-08-16, bug sebenar dijumpai audit Izzat "benar2 berfungsi
+      // atau hiasan?") — dropdown UI eksplisit tawarkan pilihan "Tiada Had (Semua Usia Berita)"
+      // (value={0}, TickerManagementModal.tsx), dan executeDirectRssFetch() SEDIA ADA sokong 0 =
+      // tiada penapis usia (`if (maxAgeHours > 0 && ...)` — 0 sengaja langkau penapis terus).
+      // Semakan `<= 0` di sini TOLAK 0 sebagai ralat 400 — pilih "Tiada Had" dan klik Simpan
+      // GAGAL SETIAP KALI, dan sebab kesemua 9 medan tetapan disimpan dlm SATU POST gabungan,
+      // sebarang perubahan LAIN yg dibuat serentak (kata kunci, ambang, dll.) turut terbuang
+      // senyap bersama satu ralat generik.
+      if (ageVal < 0) {
+        return res.status(400).json({ error: 'Had usia berita tidak boleh negatif.' });
       }
       if (limitVal < 1 || limitVal > 100) {
         return res.status(400).json({ error: 'Bilangan maksimum item Ticker mesti antara 1 hingga 100.' });
@@ -662,8 +677,13 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/system/rss-blocked-categories
-  router.get('/rss-blocked-categories', async (req, res) => {
+  // GET /api/system/rss-blocked-categories — requirePermission (2026-08-16, audit Izzat "benar2
+  // berfungsi atau hiasan?" dedah gerbang tertinggal) — SETIAP laluan RSS lain di fail ni
+  // (/rss-sources, /ticker/review-queue, /ticker/status, /rss-settings, /rss-text-rules) dah
+  // dikukuhkan requirePermission('manageEditorial') dlm audit keselamatan 2026-08-08, laluan ni
+  // sengaja TERLEPAS drpd pusingan tu — dedah senarai kategori disekat editorial kepada sesiapa
+  // tanpa log masuk. POST/DELETE bersebelahan SUDAH dikunci; GET patut sama.
+  router.get('/rss-blocked-categories', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const categories = await dbAll("SELECT * FROM rss_blocked_categories ORDER BY createdAt DESC");
       res.json(categories);
@@ -896,7 +916,12 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
       priorityKeywords: 'dasar, belanjawan, ekonomi, pendidikan, menteri, kerajaan',
       blockedKeywords: 'gempar, viral, panas, terbongkar',
       priorityBonus: 15,
-      blockedPenalty: 40
+      blockedPenalty: 40,
+      // maxNewsAgeHours/tickerMaxItems/tickerTitleMinChars (2026-08-16, audit Izzat) — sepadan
+      // pembetulan objek fallback GET /rss-settings di atas fail ni (nota sama di situ).
+      maxNewsAgeHours: 48,
+      tickerMaxItems: 20,
+      tickerTitleMinChars: 0,
     };
   }
 
