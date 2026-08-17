@@ -444,18 +444,6 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     });
   };
 
-  // Padam semua yang telah dibaca (2026-08-16) — susulan sama aduan di atas: senarai bertimbun
-  // berbulan-bulan, klik padam satu-satu terlalu perlahan untuk bersihkan backlog sekali gus.
-  // Sengaja HANYA yang telah dibaca (isRead=1) — elak padam sesuatu Izzat belum sempat lihat.
-  const padamSemuaDibaca = () => {
-    const sandaran = notifikasiMakluman;
-    setNotifikasiMakluman((prev) => prev.filter((n) => !n.dibaca));
-    fetch('/api/system/notifications/clear-read', { method: 'POST' }).catch((e) => {
-      console.warn('Gagal padam notifikasi telah dibaca, memulihkan paparan:', e.message);
-      setNotifikasiMakluman(sandaran);
-    });
-  };
-
   const klikNotifikasi = (id: string) => {
     // Kemas kini optimistik (2026-08-07, Audit UI/UX §D7) — dahulu tak dipulihkan bila gagal:
     // lencana NAMPAK kosong walaupun server masih kira belum baca, ia muncul semula pada muat
@@ -838,7 +826,6 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           onTutup={tutupMakluman}
           onKlikNotifikasi={klikNotifikasi}
           onPadamNotifikasi={padamNotifikasi}
-          onPadamSemuaDibaca={padamSemuaDibaca}
         />
       )}
 

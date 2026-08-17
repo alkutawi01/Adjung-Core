@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { StatusBadge } from '../common/StatusBadge';
-import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock, Trash2 } from 'lucide-react';
+import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock } from 'lucide-react';
 import { useModalFokus } from '../../hooks/useModalFokus';
 
 // Peti Makluman (2026-08-01, spesifikasi pemilik projek) — laci gelongsor yang memaparkan
@@ -47,10 +47,11 @@ interface MaklumanDrawerProps {
   onTutup: () => void;
   onKlikNotifikasi: (id: string) => void;
   // Padam (2026-08-16, Izzat: "inbox saya masih belum dibersihkan... takde cara ke nak delete
-  // kandungan secara manual?") — sebelum ni cuma tanda-dibaca wujud, tiada cara buang baris
-  // terus dari senarai.
+  // kandungan secara manual?"). Percubaan PERTAMA tambah butang "Padam semua yang telah dibaca"
+  // — Izzat tolak: "jangan 'padam semua'... skrg awak cuma bg satu pilihan: kekalkan semua, atau
+  // padam semua. kesian kat editor tak boleh pilih utk padam mesej tertentu." Butang pukal
+  // DIBUANG — pangkah (X) SETIAP mesej sahaja, editor pilih sendiri satu-satu.
   onPadamNotifikasi: (id: string) => void;
-  onPadamSemuaDibaca: () => void;
 }
 
 const LABEL_KATEGORI: Record<string, string> = { notis: 'Notis', am: 'Nota Am', khas: 'Nota Khas' };
@@ -112,7 +113,7 @@ const tarikhRingkas = (iso: string) => {
 // tergolong Editorial (ia memang tindakan/arahan manusia, bukan kegagalan sistem).
 const isNotifikasiSistem = (n: ItemMakluman) => n.jenisSumber === 'notifikasi' && n.jenis.startsWith('sistem_');
 
-export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi, memuat, onTutup, onKlikNotifikasi, onPadamNotifikasi, onPadamSemuaDibaca }) => {
+export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi, memuat, onTutup, onKlikNotifikasi, onPadamNotifikasi }) => {
   // Backdrop-click guard (lihat LoginModal.tsx, pepijat Izzat 2026-08-07) — kekal false selagi
   // mousedown tak bermula terus pada backdrop.
   const mousedownPadaBackdrop = React.useRef(false);
@@ -159,10 +160,6 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
 
   const bilSistemBelumBaca = senaraiPenuh.filter((n) => isNotifikasiSistem(n) && n.jenisSumber === 'notifikasi' && !n.dibaca).length;
   const senarai = senaraiPenuh.filter((n) => (tab === 'sistem' ? isNotifikasiSistem(n) : !isNotifikasiSistem(n)));
-  // Ada sesuatu untuk "Padam semua yang telah dibaca" bertindak ke atas? (2026-08-16) — semak
-  // MERENTASI kedua-dua tab (bukan cuma tab semasa) supaya butang tu benar-benar "bersihkan
-  // inbox", bukan cuma tab yang sedang dilihat.
-  const adaNotifikasiDibaca = notifikasi.some((n) => n.dibaca);
 
   return (
     <div
@@ -242,22 +239,6 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
           </button>
         </div>
 
-        {/* Padam semua yang telah dibaca (2026-08-16, Izzat: "inbox saya masih belum
-            dibersihkan... takde cara ke nak delete kandungan secara manual?") — sengaja HANYA
-            yang telah dibaca, elak padam sesuatu yang belum sempat dilihat. Merentasi kedua-dua
-            tab (lihat adaNotifikasiDibaca di atas), disorok bila tiada apa untuk dipadam. */}
-        {adaNotifikasiDibaca && (
-          <div className="flex-none px-5 py-2 border-b border-stone-200 flex justify-end">
-            <button
-              type="button"
-              onClick={onPadamSemuaDibaca}
-              className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 hover:text-[#a8241f] transition-colors cursor-pointer inline-flex items-center gap-1"
-            >
-              <Trash2 className="w-2.5 h-2.5" /> Padam semua yang telah dibaca
-            </button>
-          </div>
-        )}
-
         <div className="flex-1 min-h-0 overflow-y-auto">
           {memuat ? (
             <KeadaanKosong>Memuatkan makluman…</KeadaanKosong>
@@ -283,7 +264,7 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                           onKlikNotifikasi(n.id);
                         }
                       }}
-                      className={`group px-5 py-4 space-y-1.5 ${!n.dibaca ? 'bg-Adjung-maroon/[0.04] cursor-pointer' : ''}`}
+                      className={`px-5 py-4 space-y-1.5 ${!n.dibaca ? 'bg-Adjung-maroon/[0.04] cursor-pointer' : ''}`}
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         {!n.dibaca && <span className="w-1.5 h-1.5 rounded-full bg-Adjung-maroon" aria-hidden />}
@@ -291,19 +272,21 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                           {IKON_JENIS[n.jenis] || <Bell className="w-2.5 h-2.5" />}
                           {LABEL_JENIS[n.jenis] || n.jenis}
                         </span>
-                        {/* Padam satu-satu (2026-08-16) — sorok lalai, dedah bila baris di-hover
-                            (macam anak panah carousel), elak sesak visual pada senarai panjang.
-                            stopPropagation wajib: baris ni sendiri ada onClick (tanda-dibaca). */}
+                        <span className="font-mono text-[9px] text-stone-400">{tarikhRingkas(n.dibuatPada)}</span>
+                        {/* Padam satu-satu (2026-08-16, Izzat: "buat butang pangkah untuk setiap
+                            mesej... editor boleh padam sendiri" — percubaan pertama sorok-lalai/
+                            dedah-hover ditolak, editor perlu nampak butang ni SENTIASA, bukan
+                            teka ia wujud). stopPropagation wajib: baris ni sendiri ada onClick
+                            (tanda-dibaca) bila belum dibaca. */}
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); onPadamNotifikasi(n.id); }}
-                          className="ml-auto opacity-0 group-hover:opacity-100 text-stone-300 hover:text-[#a8241f] transition-opacity cursor-pointer"
+                          className="ml-auto text-stone-400 hover:text-[#a8241f] transition-colors cursor-pointer"
                           aria-label="Padam notifikasi ini"
                           title="Padam"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
-                        <span className="font-mono text-[9px] text-stone-400">{tarikhRingkas(n.dibuatPada)}</span>
                       </div>
                       <p className="font-serif text-[15px] leading-snug text-stone-900">{n.tajuk}</p>
                       {n.kandungan && <p className="text-stone-600 text-xs whitespace-pre-wrap leading-relaxed">{n.kandungan}</p>}
