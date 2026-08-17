@@ -338,23 +338,41 @@ export function ContentReview() {
     [groupedBySlot]
   );
 
-  // Had paparan (2026-07-29, permintaan pemilik projek) — 100 setiap halaman, sama macam Indeks
-  // (IndeksConsole.tsx PAGE_SIZE) — supaya kedua-dua paparan tak pernah proses/render kandungan
-  // tapisan PENUH sekali gus tanpa mengira berapa banyak rekod. Senarai Slot dihadkan ikut
-  // BILANGAN SLOT dipaparkan (unit semula jadi paparan tu — setiap slot dah kumpulan tersendiri);
-  // Teks Pukal dihadkan ikut BILANGAN KANDUNGAN (unit paparan tu — satu senarai rata bernombor).
-  const PAGE_SIZE = 100;
+  // Had paparan BOLEH LARAS (2026-08-16, Izzat: "pagination semakan pukal tukar kepada ada
+  // pilihan: 10, 20, dan 30 kandungan sahaja. sbb 50-100 terlalu banyak") — dahulu PEMALAR 100
+  // tetap (2026-07-29), satu halaman boleh bawa 100 kandungan sekali gus dlm SATU kotak teks
+  // besar (terus punca aduan "kenapa tak boleh scroll" sesi ni jugak — kotak jadi gergasi).
+  // Lalai 20 (nilai TENGAH tiga pilihan, bukan agakan).
+  const [bulkPageSize, setBulkPageSize] = useState(20);
   const [bulkPage, setBulkPage] = useState(1);
-  useEffect(() => { setBulkPage(1); }, [filteredItems]);
+  useEffect(() => { setBulkPage(1); }, [filteredItems, bulkPageSize]);
 
-  const sortedFilteredItems = useMemo(
-    () => [...filteredItems].sort((a, b) => a.slotIndex - b.slotIndex || a.seriesIndex - b.seriesIndex),
-    [filteredItems]
-  );
-  const bulkTotalPages = Math.max(1, Math.ceil(sortedFilteredItems.length / PAGE_SIZE));
+  // Susunan senarai BOLEH LARAS (2026-08-16, Izzat: "beri pilihan susunan 'paling baru-paling
+  // lama' atau 'paling lama-paling baru', dan apa yg awak fikir editor perlukan"). Cadangan
+  // tambahan saya: kekalkan "Ikut Slot" (susunan ASAL sedia ada, kumpul ikut kedudukan bento) —
+  // sesetengah kerja (cth semak SATU Bidang slot demi slot secara sistematik) masih perlukan
+  // susunan tu, bukan semua kerja mahukan susunan kronologi. Lalai "terbaru" (kandungan
+  // diterbitkan PALING BAHARU dahulu) — susulan kerja semakan biasanya fokus kandungan terkini.
+  // Tarikh diguna: createdAt (bila kandungan MULA diterbitkan), bukan updatedAt (bila terakhir
+  // disunting) — Semakan Kandungan skop semakan KUALITI kandungan sedia ada secara am, bukan
+  // "apa yg baru disunting", jadi tarikh penerbitan asal lebih bermakna sebagai isyarat "baharu".
+  const [bulkSortOrder, setBulkSortOrder] = useState<'slot' | 'terbaru' | 'terlama'>('terbaru');
+
+  const sortedFilteredItems = useMemo(() => {
+    const arr = [...filteredItems];
+    if (bulkSortOrder === 'terbaru') {
+      arr.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    } else if (bulkSortOrder === 'terlama') {
+      arr.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+    } else {
+      arr.sort((a, b) => a.slotIndex - b.slotIndex || a.seriesIndex - b.seriesIndex);
+    }
+    return arr;
+  }, [filteredItems, bulkSortOrder]);
+  const bulkTotalPages = Math.max(1, Math.ceil(sortedFilteredItems.length / bulkPageSize));
   const pagedBulkItems = useMemo(
-    () => sortedFilteredItems.slice((bulkPage - 1) * PAGE_SIZE, bulkPage * PAGE_SIZE),
-    [sortedFilteredItems, bulkPage]
+    () => sortedFilteredItems.slice((bulkPage - 1) * bulkPageSize, bulkPage * bulkPageSize),
+    [sortedFilteredItems, bulkPage, bulkPageSize]
   );
 
   // Re-sync the bulk textarea whenever we switch into bulk view (or the filtered/paged set
@@ -573,8 +591,37 @@ export function ContentReview() {
             Setiap entri bermula dengan nombor <code className="font-mono bg-stone-100 px-1 rounded">#Slot-Siri</code> (cth <code className="font-mono bg-stone-100 px-1 rounded">#1-1</code> = Slot 1, siri 1).
             Sunting terus dalam kotak ini (termasuk markdown <code className="font-mono bg-stone-100 px-1 rounded">*italic*</code> jika perlu), kemudian klik "Simpan Pukal".
             Paparan ini untuk sunting kandungan sedia ada sahaja — tambah/padam item dibuat di tab "Slot".
-            {bulkTotalPages > 1 && ` Menunjukkan ${pagedBulkItems.length} daripada ${sortedFilteredItems.length} kandungan lepas tapisan (had ${PAGE_SIZE} setiap halaman).`}
+            {` Menunjukkan ${pagedBulkItems.length} daripada ${sortedFilteredItems.length} kandungan lepas tapisan.`}
           </p>
+
+          {/* Susunan + had paparan (2026-08-16, Izzat) — lihat nota lengkap di bulkPageSize/
+              bulkSortOrder di atas fail ni utk sebab lalai/pilihan yang dibuat. */}
+          <div className="flex flex-wrap items-center gap-2 mb-4 font-sans text-xs">
+            <label className="flex items-center gap-1.5 text-stone-500">
+              Susunan:
+              <select
+                value={bulkSortOrder}
+                onChange={e => setBulkSortOrder(e.target.value as 'slot' | 'terbaru' | 'terlama')}
+                className="bg-stone-50 border border-stone-300 rounded px-2 py-1 font-semibold"
+              >
+                <option value="terbaru">Paling Baharu → Paling Lama</option>
+                <option value="terlama">Paling Lama → Paling Baharu</option>
+                <option value="slot">Ikut Slot</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-stone-500">
+              Setiap halaman:
+              <select
+                value={bulkPageSize}
+                onChange={e => setBulkPageSize(Number(e.target.value))}
+                className="bg-stone-50 border border-stone-300 rounded px-2 py-1 font-semibold"
+              >
+                <option value={10}>10 kandungan</option>
+                <option value={20}>20 kandungan</option>
+                <option value={30}>30 kandungan</option>
+              </select>
+            </label>
+          </div>
 
           <div className="border border-stone-200 rounded mb-4 bg-stone-50">
             <button
