@@ -269,7 +269,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 aria-disabled={isLocked}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={!sidebarTerbuka ? item.label : undefined}
-                className={`w-full flex items-center gap-2 text-xs font-medium py-2 rounded transition-colors duration-150 ${
+                className={`group w-full flex items-center gap-2 text-xs font-medium py-2 rounded transition-colors duration-150 ${
                   !sidebarTerbuka ? 'justify-center px-2' : 'justify-between px-3'
                 } ${
                   isActive
@@ -280,7 +280,22 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
                 }`}
               >
                 <span className={`flex items-center gap-2.5 min-w-0 ${!sidebarTerbuka ? 'justify-center' : ''}`}>
-                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-Adjung-maroon' : 'text-stone-400'}`} strokeWidth={2.2} />
+                  {/* Ikon menu sidebar (2026-08-17, permintaan Izzat: "tambah animasi pada logo
+                      menu di sidebar jika dihover") — dahulu warna ikon KEKAL text-stone-400
+                      hardcode walau butang induk hover (hanya label teks/latar yang bertindak
+                      balas), ikon sendiri kosong sunyi. `group-hover` sekarang tukar warna ikon
+                      (bukan sekadar label) + sedikit scale supaya hover terasa hidup, tanpa
+                      mengganggu keadaan aktif/berkunci yang kekal warna tetap sendiri. */}
+                  <Icon
+                    className={`w-3.5 h-3.5 shrink-0 transition-transform duration-150 ${
+                      isActive
+                        ? 'text-Adjung-maroon'
+                        : isLocked
+                        ? 'text-stone-300'
+                        : 'text-stone-400 group-hover:text-stone-700 group-hover:scale-110'
+                    }`}
+                    strokeWidth={2.2}
+                  />
                   {sidebarTerbuka && <span className="truncate">{item.label}</span>}
                 </span>
                 {sidebarTerbuka && !loggedOut && restricted(item.id) && <Lock className="w-3 h-3 shrink-0 text-stone-300" strokeWidth={2.2} />}
