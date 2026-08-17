@@ -152,6 +152,46 @@ function KongsiButtons({ title, url, disalinBerjaya, onSalin }: { title: string;
   );
 }
 
+/** Senarai Sumber (kolofon desktop) — pemisah "|" HANYA antara dua sumber pada BARIS SAMA
+ *  (2026-08-17, Izzat: "kalau dah wrap tak perlulah guna | utk memisahkan... ada mekanisme
+ *  ke nak buat?"). Bekas `flexWrap:'wrap'` sendiri tak dedahkan sama ada dua anak bersebelahan
+ *  benar-benar di baris sama atau dah patah baris — mesti diukur SEBENAR di DOM (teknik sama
+ *  CarouselStableBlock/FooterHeightLock: ukur dulu via `useLayoutEffect`, papar ikut hasil
+ *  ukuran sebenar, bukan teka). `offsetTop` setiap unit sumber dibandingkan dgn unit
+ *  sebelumnya — sama offsetTop = baris sama (papar "|"), berbeza = baru patah baris (sorok).
+ *  Anggapan lalai (render pertama, sebelum ukuran sedia) ialah SEMUA sama baris — elak
+ *  "|" berkelip masuk lepas ukuran, biasanya memang muat sebaris pada kebanyakan kandungan. */
+function SenaraiSumberDesktop({ sources, sourceDate }: { sources: { name: string; url?: string; date?: string }[]; sourceDate?: string }) {
+  const refs = React.useRef<(HTMLSpanElement | null)[]>([]);
+  const [samaBarisDgnSebelum, setSamaBarisDgnSebelum] = React.useState<boolean[]>(() => sources.map(() => true));
+
+  React.useLayoutEffect(() => {
+    const kira = () => {
+      const tops = refs.current.map((el) => el?.offsetTop ?? 0);
+      setSamaBarisDgnSebelum(tops.map((t, i) => i === 0 || t === tops[i - 1]));
+    };
+    kira();
+    const pemerhati = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(kira) : null;
+    refs.current.forEach((el) => { if (el && pemerhati) pemerhati.observe(el); });
+    return () => pemerhati?.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sources.length, sources.map((s) => s.name).join('|')]);
+
+  return (
+    <span style={{ display: 'flex', flexWrap: 'wrap', columnGap: '10px', rowGap: '2px' }}>
+      {sources.map((s, i) => (
+        <span key={i} style={{ display: 'inline-flex', alignItems: 'baseline', whiteSpace: 'nowrap' }}>
+          {i > 0 && samaBarisDgnSebelum[i] && <span style={{ color: 'var(--stone-300)', marginRight: '10px' }}>|</span>}
+          <span ref={(el) => { refs.current[i] = el; }} style={{ display: 'inline-flex', alignItems: 'baseline', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
+            <a href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)' }}>{s.name || '—'}</a>
+            {(s.date || (i === 0 && sourceDate)) && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {s.date || sourceDate}</span>}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export interface FocusViewProps {
   /** Logo Adjung, di kiri jalur masthead. */
   wordmark?: string;
@@ -1250,17 +1290,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 panjang makin tinggi senarai). Kini inline, dipisah "|", dalam kontena flex-wrap —
                 sumber yang tak muat pada baris semasa turun ke baris bawah SEBAGAI SATU UNIT UTUH
                 (whiteSpace:'nowrap' pada setiap unit sumber, BUKAN wordBreak:'break-all' macam
-                dahulu) — elak "Sumber 2" terbelah jadi "Sumb"/"er 2" merentasi baris. */}
+                dahulu) — elak "Sumber 2" terbelah jadi "Sumb"/"er 2" merentasi baris.
+                Pemisah "|" HANYA antara sumber pada baris SAMA (2026-08-17, Izzat: "kalau dah
+                wrap tak perlulah guna | utk memisahkan") — lihat SenaraiSumberDesktop() di atas
+                fail ni utk mekanisme ukur offsetTop sebenar. */}
             {sources.length > 0 ? (
-              <span style={{ display: 'flex', flexWrap: 'wrap', columnGap: '10px', rowGap: '2px' }}>
-                {sources.map((s, i) => (
-                  <span key={i} style={{ display: 'inline-flex', alignItems: 'baseline', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
-                    <a href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)' }}>{s.name || '—'}</a>
-                    {(s.date || (i === 0 && sourceDate)) && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {s.date || sourceDate}</span>}
-                    {i < sources.length - 1 && <span style={{ color: 'var(--stone-300)', marginLeft: '10px' }}>|</span>}
-                  </span>
-                ))}
-              </span>
+              <SenaraiSumberDesktop sources={sources} sourceDate={sourceDate} />
             ) : (
               <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
                 <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
