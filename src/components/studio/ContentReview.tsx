@@ -606,7 +606,7 @@ export function ContentReview() {
         <main className="max-w-5xl mx-auto px-4 md:px-8 py-6">
           <p className="text-[10px] text-stone-500 font-sans leading-normal mb-2">
             Setiap entri bermula dengan nombor <code className="font-mono bg-stone-100 px-1 rounded">#Slot-Siri</code> (cth <code className="font-mono bg-stone-100 px-1 rounded">#1-1</code> = Slot 1, siri 1).
-            Sunting terus dalam kotak ini (termasuk markdown <code className="font-mono bg-stone-100 px-1 rounded">*italic*</code> jika perlu), kemudian klik "Simpan Pukal".
+            Sunting terus dalam kotak ini (termasuk markdown <code className="font-mono bg-stone-100 px-1 rounded">*italic*</code> jika perlu), kemudian klik "{modeSatuItem ? 'Simpan' : 'Simpan Pukal'}".
             Paparan ini untuk sunting kandungan sedia ada sahaja — tambah/padam item dibuat di tab "Slot".
             {` Menunjukkan ${pagedBulkItems.length} daripada ${sortedFilteredItems.length} kandungan lepas tapisan.`}
           </p>
