@@ -587,28 +587,48 @@ h1, h2, h3, h4, h5, h6, p {
    BUKAN reveal/wipe (max-width+overflow:hidden+clip) — kumpulan Bidang+Topik bermula BERTINDAN
    di kedudukan ikon (translateX negatif, opacity 0) lalu SECARA FIZIKAL BERGERAK ke kanan ke
    kedudukan rehat akhirnya (translateX(0), opacity 1) — ikon kekal pegun sepanjang masa sebagai
-   titik asal ("baseline") pergerakan tu, bukan sebahagian animasi sendiri. */
+   titik asal ("baseline") pergerakan tu, bukan sebahagian animasi sendiri.
+   Pembetulan KELIMA (2026-08-17, Izzat: "mcm mana nak perasan kalau eyebrow tu keluar lambat
+   drpd tajuk+huraian panjang. kan awak sendiri cakap heirarki dia eyebrow > tajuk > huraian
+   panjang. yg awak buat mcm ni: tajuk+huraian panjang > eyebrow") — pepijat pemasaan SEBENAR:
+   eyebrow (1800ms, tahan 60% = 1080ms sebelum bergerak, selesai 1800ms) jauh lebih lambat
+   SIAP drpd tajuk (delay 150ms + 700ms = selesai 850ms) dan huraian (delay 320ms + 700ms =
+   selesai 1020ms) — jadi walau kod "hierarki"-nya betul di atas kertas, URUTAN SEBENAR yang
+   pembaca nampak di skrin TERBALIK (tajuk+huraian dah siap sepenuhnya sebelum eyebrow pun
+   mula bergerak). Dibetulkan: jujukan BERTURUTAN, bukan tiga animasi bertindih serentak —
+   eyebrow mesti SIAP SEPENUHNYA sebelum tajuk mula, tajuk SIAP sebelum huraian mula.
+   Pembetulan KEENAM (2026-08-17, Izzat serta-merta susulan: "tp jangan sampai terlalu lambat
+   pulak tajuk dan huraian panjang nak muncul. nanti pengguna bosan sbb lama menunggu animasi")
+   — jujukan berturutan PERTAMA (eyebrow 1400ms -> tajuk mula 1400ms -> huraian mula 2000ms,
+   huraian siap ~2600ms) betulkan URUTAN tapi jumlah masa tunggu jadi keterlaluan panjang untuk
+   pembaca yang sebenarnya nak terus baca. Nisbah dikecilkan: eyebrow 700ms (tahan 20%=140ms,
+   gerak 560ms), tajuk mula SEBAIK eyebrow siap (delay 700ms, tempoh 400ms, siap 1100ms),
+   huraian mula SEBAIK tajuk siap (delay 1100ms, tempoh 400ms, siap 1500ms) — urutan hierarki
+   KEKAL BETUL (tiada tindihan), tapi kandungan sepenuhnya kelihatan dalam 1.5s, bukan 2.6s. */
 @keyframes fvEyebrowKumpulanGerak {
-  0%, 60% { opacity: 0; transform: translateX(-18px); }
+  0%, 20% { opacity: 0; transform: translateX(-18px); }
   100% { opacity: 1; transform: translateX(0); }
 }
 .fv-eyebrow-ikon { display: inline-flex; align-items: center; margin-right: 6px; }
 .fv-eyebrow-kumpulan-keluar {
   display: inline-block; vertical-align: baseline;
-  /* 1800ms, nisbah tahan/gerak 60%/40% (2026-08-17, Izzat: "animasi jgn terlalu laju"). */
-  animation: fvEyebrowKumpulanGerak 1800ms ease-in-out forwards;
+  animation: fvEyebrowKumpulanGerak 700ms ease-in-out forwards;
 }
 
 /* Tajuk + huraian panjang: pudar+gelongsor naik lembut semasa masuk (2026-08-17, Izzat: "kalau
    betul nak bg mata bergerak ikut hierarki sepatutnya tumpukan pada 3 benda penting: bidang+topik
    > tajuk > huraian panjang"). Nombor pagination (01/03) dan pudar tarikh siaran DITOLAK Izzat
-   secara eksplisit — jangan tambah semula tanpa arahan baharu. */
+   secara eksplisit — jangan tambah semula tanpa arahan baharu.
+   Delay BERTURUTAN, tempoh keseluruhan dikawal ketat (2026-08-17, pembetulan KELIMA+KEENAM di
+   atas) — tajuk mula TEPAT bila eyebrow (700ms) siap, huraian mula TEPAT bila tajuk (400ms)
+   siap, semuanya kelihatan dalam 1.5s jumlah — urutan hierarki betul TANPA buat pembaca
+   menunggu lama. */
 @keyframes fvMasukFedAtas {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.fv-tajuk-masuk { animation: fvMasukFedAtas 700ms ease-out both; animation-delay: 150ms; }
-.fv-huraian-masuk { animation: fvMasukFedAtas 700ms ease-out both; animation-delay: 320ms; }
+.fv-tajuk-masuk { animation: fvMasukFedAtas 400ms ease-out both; animation-delay: 700ms; }
+.fv-huraian-masuk { animation: fvMasukFedAtas 400ms ease-out both; animation-delay: 1100ms; }
 @media (prefers-reduced-motion: reduce) {
   .fv-eyebrow-kumpulan-keluar, .fv-tajuk-masuk, .fv-huraian-masuk { animation: none; }
 }
