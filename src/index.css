@@ -575,29 +575,24 @@ h1, h2, h3, h4, h5, h6, p {
 
    Pembetulan KEDUA (2026-08-17, Izzat: "tak cantik. apa kata kekalkan je ikon tu selepas bidang
    keluar? bidang pulak awak boldkan supaya tak nampak sama mcm topik... teks bidang dan topik
-   dah tak selari, bidang tu jadi lebih tinggi drpd topik"):
-   1. Ikon KEKAL kelihatan selamanya (animasi mengecut/pudar `fvEyebrowIkonKeluar` DIBUANG) —
-      keadaan akhir kini [ikon] **Bidang** | Topik, bukan Bidang|Topik sahaja.
-   2. Bidang dibold (`font-weight` bukan warisan drpd `.eyebrow-topik-teks`) supaya jelas
-      berbeza drpd Topik biasa.
-   3. Punca tak selari: `vertical-align: bottom` pada `.fv-eyebrow-bidang-keluar` tersasar drpd
-      `vertical-align: baseline` lalai teks sekeliling (Topik/pemisah) — `inline-block` +
-      `bottom` angkat kotak Bidang drpd garis dasar teks biasa. Ditukar ke `baseline`. */
-@keyframes fvEyebrowBidangKeluar {
+   dah tak selari") — ikon kekal statik selamanya, Bidang dibold, vertical-align dibetulkan.
+   Pembetulan KETIGA/akhir (2026-08-17, Izzat: "hodoh" pada percubaan kedua — punca: gap 0px
+   antara ikon+Bidang, margin-right terlupa dipindah balik lepas animasi ikon dibuang. Izzat
+   kemudian mudahkan keseluruhan reka bentuk: "bidang dan topik keluar bersama... satu group...
+   ikon tu mcm baseline") — SATU kotak wipe-reveal `.fv-eyebrow-kumpulan-keluar` merangkumi
+   "Bidang | Topik" SEKALI GUS (bukan Bidang wipe berasingan + Topik "diengsot" reflow) —
+   lebih ringkas DAN lebih kemas: tiada lagi isu jarak/jajaran antara elemen berasingan, cuma
+   SATU kotak vertical-align:baseline sejajar ikon secara semula jadi. Ikon (`fv-eyebrow-ikon`)
+   kekal statik, tiada animasi sendiri — cuma "pintu" tempat kumpulan Bidang+Topik keluar. */
+@keyframes fvEyebrowKumpulanKeluar {
   0%, 60% { max-width: 0; }
-  100% { max-width: 160px; }
-}
-@keyframes fvEyebrowPemisahMasuk {
-  0%, 60% { opacity: 0; }
-  100% { opacity: 1; }
+  100% { max-width: 260px; }
 }
 .fv-eyebrow-ikon { display: inline-flex; align-items: center; margin-right: 6px; }
-.fv-eyebrow-bidang-keluar {
+.fv-eyebrow-kumpulan-keluar {
   display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: baseline;
-  font-weight: var(--weight-bold, 700);
-  animation: fvEyebrowBidangKeluar 900ms ease-in-out forwards;
+  animation: fvEyebrowKumpulanKeluar 900ms ease-in-out forwards;
 }
-.fv-eyebrow-pemisah-masuk { animation: fvEyebrowPemisahMasuk 900ms ease-in-out forwards; }
 
 /* Tajuk + huraian panjang: pudar+gelongsor naik lembut semasa masuk (2026-08-17, Izzat: "kalau
    betul nak bg mata bergerak ikut hierarki sepatutnya tumpukan pada 3 benda penting: bidang+topik
