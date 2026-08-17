@@ -1983,6 +1983,12 @@ const initEditorialOS = (dbConn) => {
       // core/routes/slotAmRoutes.js dan warnaPanelUntukSlot() (FrontpageView.tsx).
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN modWarnaPanel TEXT DEFAULT 'pelbagai'", () => {});
 
+      // Susunan kandungan carousel (2026-08-16, permintaan Izzat — "susunannya dari paling
+      // baharu ke paling lama?" + susulan "benarkan editor pilih sendiri... begini atau rawak").
+      // 'terbaharu' = kandungan paling baharu disiar/dikemaskini muncul dahulu (server.js
+      // resolveSlotContent()). 'rawak' = susunan diacak SETIAP muat halaman.
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN susunanCarousel TEXT DEFAULT 'terbaharu'", () => {});
+
       // source_link_checks (2026-08-05, Fasa 8b — semakan pautan mati) — satu rekod PER URL
       // sumber unik (bukan per-kandungan; URL sama dikongsi rentas kandungan disemak sekali,
       // bukan berulang-ulang). Diisi/dikemas kini oleh core/editorial/LinkChecker.js, dibaca oleh
@@ -3318,10 +3324,29 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
   return { manualSummary: persistedSummary, publishOutcomes };
 };
 
+// Acak Fisher-Yates (2026-08-16, Tetapan Am "Susunan Carousel" mod 'rawak') — dipanggil dalam
+// resolveSlotContent() SETIAP permintaan GET /layout/active (bukan dicache), jadi susunan
+// berbeza SETIAP muat halaman/kunjungan, sepadan keputusan Izzat ("acak setiap muat halaman").
+// Tidak guna .sort(() => Math.random() - 0.5) — corak tu bias (tak agihan sekata), Fisher-Yates
+// betul-betul sekata merentasi semua kedudukan.
+const acakSenarai = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
 const resolveSlotContent = async (slot, lang = 'ms') => {
   if (slot.contentMode === 'Disabled') {
     return null;
   }
+
+  // Susunan carousel (2026-08-16, permintaan Izzat) — dibaca SEKALI di atas, dipakai konsisten
+  // pada KEDUA-DUA mod Manual dan AI Generated (dahulu AI=DESC/terbaharu, Manual=ASC/paling
+  // lama — tak konsisten, kini satu tetapan tunggal).
+  const susunanCarousel = getAmSettings().susunanCarousel || 'terbaharu';
 
   let objectIds = [];
   let isManualParsed = false;
@@ -3351,6 +3376,7 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         ORDER BY eo.createdAt DESC LIMIT ?
       `, [slot.slotIndex, limit]);
       objectIds = dbObjects.map(o => o.id);
+      if (susunanCarousel === 'rawak') objectIds = acakSenarai(objectIds);
     } catch (e) {
       console.error(e);
     }
@@ -3373,9 +3399,10 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.status = 'approved'
           AND er.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = eo.id)
         WHERE eo.slotIndex = ? AND er.createdBy IN ('manual-slot-save', 'migration-manual-blob', 'content-review')
-        ORDER BY eo.createdAt ASC
+        ORDER BY eo.createdAt ${susunanCarousel === 'terbaharu' ? 'DESC' : 'ASC'}
       `, [slot.slotIndex]);
       objectIds = dbObjects.map(o => o.id);
+      if (susunanCarousel === 'rawak') objectIds = acakSenarai(objectIds);
     } catch (e) {
       console.error(e);
     }
@@ -3414,8 +3441,17 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       // Blok tanpa baris "Status:" langsung dihurai sebagai 'approved' oleh
       // parseManualSummaryTemplate (sengaja — kandungan lama sebelum medan Status wujud), jadi ia
       // tetap lulus penapis ni dan kekal terpapar seperti dahulu.
-      const parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot)
+      let parsedItems = parseManualSummaryTemplate(slot.manualSummary || '', slot)
         .filter((p) => p.status === 'approved');
+      // Susunan carousel (2026-08-16) — laluan sandaran blob legasi ni turut ikut tetapan sama
+      // (lihat dua laluan DB row di atas), supaya konsisten tak kira slot dah dimigrasi atau
+      // belum. Diorup ikut publishedAt (bukan urutan blok dlm teks mentah, yang tak semestinya
+      // kronologi).
+      if (susunanCarousel === 'rawak') {
+        parsedItems = acakSenarai(parsedItems);
+      } else {
+        parsedItems = [...parsedItems].sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));
+      }
       for (const parsed of parsedItems) {
         const approvedRevision = {
           title: parsed.title,

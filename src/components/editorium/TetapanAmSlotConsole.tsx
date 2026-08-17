@@ -37,6 +37,7 @@ interface TetapanAm {
   modWarnaPanel: string;
   focusViewTitleScale: number;
   focusViewBodySize: number;
+  susunanCarousel: string;
   jenisAnimasiPilihan?: { nilai: string; label: string }[];
   arahAnimasiPilihan?: { nilai: string; label: string }[];
   nisbahPenajaTransisiPilihan?: { nilai: number; label: string }[];
@@ -406,6 +407,32 @@ export const TetapanAmSlotConsole: React.FC = () => {
               pada kandungan pertama.
             </span>
           </label>
+        </div>
+
+        {/* 1c. Susunan kandungan carousel (2026-08-16, permintaan Izzat: "utk slot yg ada lebih
+            1 kandungan, boleh ke susunannya dari paling baharu ke paling lama?" + susulan
+            "benarkan editor pilih sendiri... begini atau rawak"). Berasingan drpd 1 di atas —
+            "Mula ikut masa akses" tentukan KEDUDUKAN MULA dlm senarai (offset ikut jam
+            pelawat), tetapan ni tentukan SUSUNAN SENARAI itu sendiri. */}
+        <div className="border border-stone-200 rounded p-4 space-y-2">
+          <div className="font-semibold text-stone-800">1c. Susunan kandungan carousel</div>
+          <p className="text-stone-500 text-[11px] leading-relaxed">
+            Bagi slot yang ada lebih daripada satu kandungan (carousel), susunan senarai
+            sebelum ia mula berputar.
+          </p>
+          <select
+            value={draf.susunanCarousel}
+            onChange={e => setDraf(p => p ? { ...p, susunanCarousel: e.target.value } : p)}
+            className="bg-white border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs focus:outline-none focus:border-Adjung-maroon"
+          >
+            <option value="terbaharu">Terbaharu dahulu</option>
+            <option value="rawak">Rawak (acak setiap muat halaman)</option>
+          </select>
+          <p className="text-stone-400 text-[10px] leading-relaxed">
+            <strong className="font-semibold">Terbaharu dahulu</strong>: kandungan yang disiar/
+            dikemaskini paling baharu muncul dahulu. <strong className="font-semibold">Rawak</strong>:
+            susunan diacak semula setiap kali pembaca memuat/muat semula halaman.
+          </p>
         </div>
 
         {/* 1b. Agih lengah bertingkat */}

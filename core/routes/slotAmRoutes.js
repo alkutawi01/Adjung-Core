@@ -59,6 +59,16 @@ export const AM_DEFAULTS = {
   // sedia ada (1 = lalai/tak berubah). focusViewBodySize nilai literal px huraian (15 = lalai).
   focusViewTitleScale: 1,
   focusViewBodySize: 15,
+  // Susunan kandungan carousel (2026-08-16, permintaan Izzat — "utk slot yg ada lebih 1
+  // kandungan, boleh ke susunannya dari paling baharu ke paling lama?"). Berasingan drpd
+  // mulaIkutMasa (di atas) — mulaIkutMasa tentukan KEDUDUKAN MULA dlm senarai (offset ikut jam
+  // pelawat), tetapan ni tentukan SUSUNAN SENARAI itu sendiri (server.js resolveSlotContent()).
+  // 'terbaharu' = kandungan disiar/dikemaskini PALING BAHARU muncul dahulu (sepadan corak sedia
+  // ada Mod AI Generated, ORDER BY createdAt DESC — Mod Manual dahulu ASC/paling lama dahulu,
+  // taknak konsisten, kini diselaraskan ke tetapan tunggal ni). 'rawak' = susunan diacak SETIAP
+  // muat halaman (resolveSlotContent dipanggil segar setiap permintaan GET /layout/active, jadi
+  // acak di situ = acak setiap kunjungan/refresh, bukan sekali sahaja).
+  susunanCarousel: 'terbaharu',
 };
 
 // Tiga jenis animasi carousel yang dilaksanakan sebenar dalam kod (2026-08-04, Fasa 7 — spesifikasi
@@ -140,6 +150,7 @@ export const loadAmSettings = async (dbGet) => {
         modWarnaPanel: row.modWarnaPanel === 'seragam' ? 'seragam' : 'pelbagai',
         focusViewTitleScale: Number(row.focusViewTitleScale) || 1,
         focusViewBodySize: Number(row.focusViewBodySize) || 15,
+        susunanCarousel: row.susunanCarousel === 'rawak' ? 'rawak' : 'terbaharu',
       };
     }
     // Pengesahan simpan (validateMedanTambahan) berjalan secara sync, jadi ia baca cache
@@ -224,6 +235,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         modWarnaPanel: b.modWarnaPanel === 'seragam' ? 'seragam' : 'pelbagai',
         focusViewTitleScale: TITLE_SCALE_SAH.includes(Number(b.focusViewTitleScale)) ? Number(b.focusViewTitleScale) : 1,
         focusViewBodySize: BODY_SIZE_SAH.includes(Number(b.focusViewBodySize)) ? Number(b.focusViewBodySize) : 15,
+        susunanCarousel: b.susunanCarousel === 'rawak' ? 'rawak' : 'terbaharu',
       };
 
       // Silang sah min <= max (2026-08-07) — kedua-dua ditetapkan (bukan 0) mesti julat SAH,
@@ -245,8 +257,8 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi, animasiAktif, kelajuanAnimasi,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           hadHuraianPanjangMin, hadSumberMin, hadTopikMin, hadNotaEditorMin,
-          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, updatedAt
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -268,6 +280,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           modWarnaPanel = excluded.modWarnaPanel,
           focusViewTitleScale = excluded.focusViewTitleScale,
           focusViewBodySize = excluded.focusViewBodySize,
+          susunanCarousel = excluded.susunanCarousel,
           updatedAt = excluded.updatedAt
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
@@ -275,7 +288,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
         baharu.hadHuraianPanjangMin, baharu.hadSumberMin, baharu.hadTopikMin, baharu.hadNotaEditorMin,
         baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi, baharu.modWarnaPanel,
-        baharu.focusViewTitleScale, baharu.focusViewBodySize,
+        baharu.focusViewTitleScale, baharu.focusViewBodySize, baharu.susunanCarousel,
         new Date().toISOString(),
       ]);
 
