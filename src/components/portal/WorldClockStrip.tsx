@@ -722,7 +722,7 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
 
           Susunan: Hijrah · Masa · Masihi — jam di tengah, satu kalendar di setiap sisinya. */}
       {isPhone && metaClock && (
-        <div className="flex items-baseline justify-center gap-2 pt-1.5 mt-1 border-t border-stone-200 w-full px-2">
+        <div className="flex items-baseline justify-center gap-2 pt-4 mt-1 border-t border-stone-200 w-full px-2">
           {/* SETIAP kalendar membawa jamnya SENDIRI (permintaan pemilik projek), bukan satu jam
               berkongsi di tengah seperti dahulu:
                 kiri  — Hijrah + masa gaya Melayu   ("16/02/48 JUMAAT 5:37 PETANG")
