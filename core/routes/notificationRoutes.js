@@ -67,6 +67,34 @@ export function createNotificationRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
+  // DELETE /api/system/notifications/:id — padam SATU notifikasi (2026-08-16, Izzat: "inbox
+  // saya masih belum dibersihkan... takde cara ke nak delete kandungan secara manual?").
+  // Sebelum ni cuma tanda-dibaca wujud, tiada laluan buang baris terus. Hanya baris milik SENDIRI
+  // boleh dipadam — WHERE userId sentiasa ikut sesi, sama corak macam mark-read di atas.
+  router.delete('/system/notifications/:id', requireAuth, async (req, res) => {
+    try {
+      await dbRun(`DELETE FROM notifications WHERE id = ? AND userId = ?`, [req.params.id, req.session.user.id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('DELETE notifications/:id error:', err);
+      res.status(500).json({ error: 'Gagal memadam notifikasi. ' + (err.message || '') });
+    }
+  });
+
+  // POST /api/system/notifications/clear-read — padam SEMUA notifikasi pengguna semasa yang
+  // TELAH DIBACA (2026-08-16, susulan sama aduan di atas — senarai bertimbun berbulan-bulan,
+  // padam satu-satu terlalu perlahan untuk bersihkan backlog sekali gus). Sengaja HANYA isRead=1
+  // — elak padam sesuatu yang belum sempat dilihat pengguna.
+  router.post('/system/notifications/clear-read', requireAuth, async (req, res) => {
+    try {
+      await dbRun(`DELETE FROM notifications WHERE userId = ? AND isRead = 1`, [req.session.user.id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('POST notifications/clear-read error:', err);
+      res.status(500).json({ error: 'Gagal memadam notifikasi telah dibaca. ' + (err.message || '') });
+    }
+  });
+
   return router;
 }
 

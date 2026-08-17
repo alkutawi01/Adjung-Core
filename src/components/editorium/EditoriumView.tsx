@@ -409,16 +409,51 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     }).finally(() => setMemuatMakluman(false));
   }, [currentUser, maklumanVersi]);
 
-  // Tanda-dibaca bila drawer DIBUKA (2026-08-02, Fasa 6b — "tanda-dibaca bila drawer dibuka atau
-  // item diklik") — buka laci sendiri dikira sebagai "dah nampak", bukan hanya klik satu-satu.
   const bukaMakluman = () => {
     setMaklumanTerbuka(true);
+  };
+
+  // Tanda-dibaca bila drawer DITUTUP, BUKAN dibuka (2026-08-16, aduan Izzat — "kenapa tak flag
+  // mesej yg baru?"). Punca sebenar: sebelum ni tanda-SEMUA-dibaca tercetus SEBAIK laci dibuka
+  // (lihat sejarah git) — dalam masa SATU pusingan rangkaian (bilangan milisaat), setiap titik/
+  // penonjol "baharu" pada senarai HILANG SEBELUM Izzat sempat nampak yang mana sebenarnya baharu.
+  // Lencana bell janji "ada sesuatu baru", tapi bukti visual tu sendiri lesap serta-merta bila dia
+  // cuba tengok. Kini tanda-dibaca tercetus di sini (bila laci TUTUP) — sepanjang laci terbuka,
+  // titik/penonjol kekal kelihatan (Izzat ada masa penuh untuk imbas), cuma dikosongkan bila dia
+  // dah selesai tengok dan tutup laci, iaitu isyarat "saya dah nampak semua ni" yang lebih tepat.
+  const tutupMakluman = () => {
+    setMaklumanTerbuka(false);
     fetch('/api/system/notifications/mark-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
       .then(() => {
         setNotifikasiMakluman((prev) => prev.map((n) => ({ ...n, dibaca: true })));
         setKiraanBelumBaca(0);
       })
       .catch((e) => console.warn('Gagal tanda semua makluman dibaca:', e.message));
+  };
+
+  // Padam notifikasi (2026-08-16, Izzat: "inbox saya masih belum dibersihkan... takde cara ke
+  // nak delete kandungan secara manual?") — sebelum ni cuma tanda-dibaca wujud, TIADA cara buang
+  // baris terus, jadi senarai membesar selama-lamanya. Kemas kini optimistik (sepadan corak
+  // klikNotifikasi di atas) — buang dari paparan serta-merta, pulihkan kalau pelayan gagal.
+  const padamNotifikasi = (id: string) => {
+    const sandaran = notifikasiMakluman;
+    setNotifikasiMakluman((prev) => prev.filter((n) => n.id !== id));
+    fetch(`/api/system/notifications/${id}`, { method: 'DELETE' }).catch((e) => {
+      console.warn('Gagal padam notifikasi, memulihkan paparan:', e.message);
+      setNotifikasiMakluman(sandaran);
+    });
+  };
+
+  // Padam semua yang telah dibaca (2026-08-16) — susulan sama aduan di atas: senarai bertimbun
+  // berbulan-bulan, klik padam satu-satu terlalu perlahan untuk bersihkan backlog sekali gus.
+  // Sengaja HANYA yang telah dibaca (isRead=1) — elak padam sesuatu Izzat belum sempat lihat.
+  const padamSemuaDibaca = () => {
+    const sandaran = notifikasiMakluman;
+    setNotifikasiMakluman((prev) => prev.filter((n) => !n.dibaca));
+    fetch('/api/system/notifications/clear-read', { method: 'POST' }).catch((e) => {
+      console.warn('Gagal padam notifikasi telah dibaca, memulihkan paparan:', e.message);
+      setNotifikasiMakluman(sandaran);
+    });
   };
 
   const klikNotifikasi = (id: string) => {
@@ -800,8 +835,10 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           nota={notaMakluman}
           notifikasi={notifikasiMakluman}
           memuat={memuatMakluman}
-          onTutup={() => setMaklumanTerbuka(false)}
+          onTutup={tutupMakluman}
           onKlikNotifikasi={klikNotifikasi}
+          onPadamNotifikasi={padamNotifikasi}
+          onPadamSemuaDibaca={padamSemuaDibaca}
         />
       )}
 
