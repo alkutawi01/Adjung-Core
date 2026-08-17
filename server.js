@@ -1149,21 +1149,37 @@ const seedDatabase = async () => {
               });
             });
 
-            // Seed RSS Direct Sources
-            await new Promise((resRss, rejRss) => {
-              db.serialize(() => {
-                const stmtRss = db.prepare(`
-                  INSERT OR IGNORE INTO rss_sources_registry (id, sourceName, rssUrl, language, trustScore, edition, categoryMapping, enabled, createdAt)
-                  VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
-                `);
-                const nowStr = new Date().toISOString();
-                stmtRss.run('rss-kosmo', 'Kosmo Digital', 'https://www.kosmo.com.my/feed/', 'ms-MY', 90, 'Malaysia', 'BERITA UTAMA', nowStr);
-                stmtRss.run('rss-utusan', 'Utusan Malaysia', 'https://www.utusan.com.my/feed/', 'ms-MY', 95, 'Malaysia', 'BERITA UTAMA', nowStr);
-                stmtRss.run('rss-metro', 'Harian Metro', 'https://www.hmetro.com.my/mutakhir.xml', 'ms-MY', 90, 'Malaysia', 'MUTAKHIR', nowStr);
-                stmtRss.run('rss-bernama', 'Bernama', 'https://www.bernama.com/bm/rss/news.php', 'ms-MY', 95, 'Malaysia', 'TERKINI', nowStr);
-                stmtRss.finalize((errRss) => errRss ? rejRss(errRss) : resRss());
-              });
+            // Seed RSS Direct Sources — HANYA bila jadual BENAR-BENAR kosong (2026-08-16, Izzat:
+            // "dah berapa kali saya buang Bernama, tp bila saya buka balik modal ni, dia appear
+            // semula... adakah setiap medan ni benar2 wired atau hiasan?"). Butang "Buang"
+            // MEMANG wired betul (DELETE /api/system/rss-sources/:id padam baris SEBENAR) — punca
+            // sebenar di SINI: INSERT OR IGNORE guna id TETAP ('rss-bernama' dsb.) berjalan TANPA
+            // syarat pada SETIAP but pelayan (bukan sekali sahaja semasa but pertama — lihat
+            // seedDatabase() dipanggil terus tanpa gerbang di hujung fail). "Baris tiada" ditafsir
+            // sebagai "belum pernah disemai", padahal boleh jadi "Izzat padam sengaja" — projek ni
+            // deploy (jadi pm2 restart) berkali-kali sehari, jadi apa-apa dipadam kembali semula
+            // pada deploy SETERUSNYA. Gerbang count() ni (padanan corak system_settings/usersCount
+            // di atas fungsi ni) jamin semaian ni HANYA sekali sepanjang hayat pangkalan data —
+            // padaman Izzat kekal padam selama-lamanya selepas ni.
+            const rssSourcesCount = await new Promise((res, rej) => {
+              db.get('SELECT COUNT(*) as count FROM rss_sources_registry', [], (err, row) => err ? rej(err) : res(row.count));
             });
+            if (rssSourcesCount === 0) {
+              await new Promise((resRss, rejRss) => {
+                db.serialize(() => {
+                  const stmtRss = db.prepare(`
+                    INSERT OR IGNORE INTO rss_sources_registry (id, sourceName, rssUrl, language, trustScore, edition, categoryMapping, enabled, createdAt)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+                  `);
+                  const nowStr = new Date().toISOString();
+                  stmtRss.run('rss-kosmo', 'Kosmo Digital', 'https://www.kosmo.com.my/feed/', 'ms-MY', 90, 'Malaysia', 'BERITA UTAMA', nowStr);
+                  stmtRss.run('rss-utusan', 'Utusan Malaysia', 'https://www.utusan.com.my/feed/', 'ms-MY', 95, 'Malaysia', 'BERITA UTAMA', nowStr);
+                  stmtRss.run('rss-metro', 'Harian Metro', 'https://www.hmetro.com.my/mutakhir.xml', 'ms-MY', 90, 'Malaysia', 'MUTAKHIR', nowStr);
+                  stmtRss.run('rss-bernama', 'Bernama', 'https://www.bernama.com/bm/rss/news.php', 'ms-MY', 95, 'Malaysia', 'TERKINI', nowStr);
+                  stmtRss.finalize((errRss) => errRss ? rejRss(errRss) : resRss());
+                });
+              });
+            }
 
             resolve();
           } catch (pricingErr) {
