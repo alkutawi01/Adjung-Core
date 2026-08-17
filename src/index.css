@@ -613,7 +613,19 @@ h1, h2, h3, h4, h5, h6, p {
   0%, 30% { opacity: 0; transform: translateX(-18px); }
   100% { opacity: 1; transform: translateX(0); }
 }
-.fv-eyebrow-ikon { display: inline-flex; align-items: center; margin-right: 6px; }
+/* Ikon pudar masuk (2026-08-17, Izzat: "ikon pun sepatutnya ada animasi. mungkin fade in?") —
+   dahulu statik (opacity:1 sejak render pertama), tiada animasi sendiri langsung walau ia
+   "titik asal" seluruh urutan. Tempoh SAMA 500ms (ikut prinsip "bezanya cuma pada delay" di
+   atas), delay 0ms (mula SERTA-MERTA, tiada elemen lain mendahuluinya — ikon ialah benda
+   PERTAMA pembaca patut nampak dlm seluruh jujukan). */
+@keyframes fvEyebrowIkonMasuk {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fv-eyebrow-ikon {
+  display: inline-flex; align-items: center; margin-right: 6px;
+  animation: fvEyebrowIkonMasuk 500ms ease-out both;
+}
 .fv-eyebrow-kumpulan-keluar {
   display: inline-block; vertical-align: baseline;
   animation: fvEyebrowKumpulanGerak 500ms ease-in-out forwards;
@@ -633,7 +645,7 @@ h1, h2, h3, h4, h5, h6, p {
 .fv-tajuk-masuk { animation: fvMasukFedAtas 500ms ease-out both; animation-delay: 500ms; }
 .fv-huraian-masuk { animation: fvMasukFedAtas 500ms ease-out both; animation-delay: 1000ms; }
 @media (prefers-reduced-motion: reduce) {
-  .fv-eyebrow-kumpulan-keluar, .fv-tajuk-masuk, .fv-huraian-masuk { animation: none; }
+  .fv-eyebrow-ikon, .fv-eyebrow-kumpulan-keluar, .fv-tajuk-masuk, .fv-huraian-masuk { animation: none; }
 }
 
 /* Panel transisi "kad tengah" Focus View (2026-08-05, permintaan Izzat) — lalu ATAS-BAWAH
