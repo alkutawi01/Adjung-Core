@@ -3207,7 +3207,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                    style={getCardTheme(bentoNewsItems[4], 'transparent').cardStyle} >
                     <BentoInner itemKey="4" className="gap-3" aiProvider={bentoNewsItems[4].aiProvider}>
                       <div>
-                        <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[4]).deskStyle}>{<EyebrowKad item={bentoNewsItems[4]} bidang={bidangUntuk(bentoNewsItems[4])} onCari={cariDariEyebrow} />}</div>
+                        <FooterHeightLock
+                          items={bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]]}
+                          renderFooter={(it) => (
+                            <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest font-bold mb-1"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          )}
+                        >
+                          {(minHeight) => (
+                            <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[4]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[4]} bidang={bidangUntuk(bentoNewsItems[4])} onCari={cariDariEyebrow} />}</div>
+                          )}
+                        </FooterHeightLock>
                         <CarouselStableBlock
                           items={bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]]}
                           activeIndex={bentoNewsItems[4].carouselIndex || 0}
@@ -3249,7 +3258,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                    style={getCardTheme(bentoNewsItems[5], 'transparent').cardStyle} >
                     <BentoInner itemKey="5" className="gap-3" aiProvider={bentoNewsItems[5].aiProvider}>
                       <div>
-                        <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[5]).deskStyle}>{<EyebrowKad item={bentoNewsItems[5]} bidang={bidangUntuk(bentoNewsItems[5])} onCari={cariDariEyebrow} />}</div>
+                        <FooterHeightLock
+                          items={bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]]}
+                          renderFooter={(it) => (
+                            <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest font-bold mb-1"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          )}
+                        >
+                          {(minHeight) => (
+                            <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[5]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[5]} bidang={bidangUntuk(bentoNewsItems[5])} onCari={cariDariEyebrow} />}</div>
+                          )}
+                        </FooterHeightLock>
                         <CarouselStableBlock
                           items={bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]]}
                           activeIndex={bentoNewsItems[5].carouselIndex || 0}
@@ -3531,7 +3549,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
                    style={getCardTheme(bentoNewsItems[17], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[17]).deskStyle}>{<EyebrowKad item={bentoNewsItems[17]} bidang={bidangUntuk(bentoNewsItems[17])} onCari={cariDariEyebrow} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[17].publishedAt)}</span>
+                      <FooterHeightLock
+                        items={bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest font-bold mb-1"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[17]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[17]} bidang={bidangUntuk(bentoNewsItems[17])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[17].publishedAt)}</span>
                       <CarouselStableBlock
                         items={bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]]}
                         activeIndex={bentoNewsItems[17].carouselIndex || 0}
@@ -3573,7 +3600,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
                    style={getCardTheme(bentoNewsItems[18], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[18]).deskStyle}>{<EyebrowKad item={bentoNewsItems[18]} bidang={bidangUntuk(bentoNewsItems[18])} onCari={cariDariEyebrow} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[18].publishedAt)}</span>
+                      <FooterHeightLock
+                        items={bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest font-bold mb-1"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[18]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[18]} bidang={bidangUntuk(bentoNewsItems[18])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[18].publishedAt)}</span>
                       <CarouselStableBlock
                         items={bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]]}
                         activeIndex={bentoNewsItems[18].carouselIndex || 0}
@@ -3886,7 +3922,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
                    style={getCardTheme(bentoNewsItems[31], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[31]).deskStyle}>{<EyebrowKad item={bentoNewsItems[31]} bidang={bidangUntuk(bentoNewsItems[31])} onCari={cariDariEyebrow} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[31].publishedAt)}</span>
+                      <FooterHeightLock
+                        items={bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest font-bold mb-1"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[31]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[31]} bidang={bidangUntuk(bentoNewsItems[31])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[31].publishedAt)}</span>
                       <CarouselStableBlock
                         items={bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]]}
                         activeIndex={bentoNewsItems[31].carouselIndex || 0}
@@ -3928,7 +3973,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
                    style={getCardTheme(bentoNewsItems[32], 'transparent').cardStyle} >
                     <div>
-                      <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={getCardTheme(bentoNewsItems[32]).deskStyle}>{<EyebrowKad item={bentoNewsItems[32]} bidang={bidangUntuk(bentoNewsItems[32])} onCari={cariDariEyebrow} />}</div><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[32].publishedAt)}</span>
+                      <FooterHeightLock
+                        items={bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest font-bold mb-1"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[32]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[32]} bidang={bidangUntuk(bentoNewsItems[32])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[32].publishedAt)}</span>
                       <CarouselStableBlock
                         items={bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]]}
                         activeIndex={bentoNewsItems[32].carouselIndex || 0}
