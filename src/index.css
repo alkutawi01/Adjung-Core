@@ -591,6 +591,15 @@ h1, h2, h3, h4, h5, h6, p {
 .fv-eyebrow-ikon { display: inline-flex; align-items: center; margin-right: 6px; }
 .fv-eyebrow-kumpulan-keluar {
   display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: baseline;
+  /* text-align:right (2026-08-17, Izzat: pembetulan arah dedah — bukan "$a / $ani / &anima /
+     &animasi" [reveal dari HURUF PERTAMA, hujung tumbuh], tapi "&i / &asi / &imasi / &animasi"
+     [reveal dari HURUF TERAKHIR, permulaan disambung kemudian]). Kotak kekal LABUH KIRI (sebelah
+     ikon, tak bergerak) dan lebarnya membesar ke kanan macam sebelum ni — tapi teks di DALAM
+     kotak dirata KANAN, jadi bila kotak masih sempit, bahagian AWAL teks yang melimpah ke kiri
+     TERPOTONG overflow:hidden (bukan bahagian akhir), hujung perkataan kekal melekat pada tepi
+     kanan kotak sepanjang animasi — hasilnya hujung perkataan nampak dahulu, awalan tersambung
+     kemudian sehingga penuh, sementara kotak sendiri tetap kelihatan "tumbuh keluar drpd ikon". */
+  text-align: right;
   /* 900ms -> 1800ms (2026-08-17, Izzat: "animasi jgn terlalu laju") — nisbah tahan/keluar
      (60%/40%) dikekalkan sama, cuma jumlah tempoh digandakan supaya keseluruhan terasa lebih
      lambat/nyaman, bukan tergesa-gesa. */
