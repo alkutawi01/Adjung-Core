@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Save, Search, Copy, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../common/Button';
 import { MesejStatus } from '../common/MesejStatus';
@@ -151,6 +152,21 @@ export function ContentReview() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Pautan pantas "Edit kandungan ini" dari frontpage/Focus View (2026-08-17, Izzat) — pensel
+  // kad hantar ?itemId=<UUID>, isi kotak carian sedia ada terus dengan UUID tu (bukan laluan
+  // penapis baharu — carian teks bebas dah padan i.id, lihat filteredItems di bawah, jadi UUID
+  // unik automatik mengasingkan SATU kandungan sahaja). `modeSatuItem` (itemId wujud di URL)
+  // tukar label butang "Simpan Pukal" -> "Simpan" (Izzat: "yg semakan kandungan tu boleh je
+  // semak satu item. cuma tukar 'simpan pukal' kepada 'simpan'") — tak kunci penapis lain,
+  // editor tetap boleh padam/ubah carian bila-bila utk kembali ke paparan pukal biasa.
+  const [searchParams] = useSearchParams();
+  const itemIdDariUrl = searchParams.get('itemId');
+  const modeSatuItem = !!itemIdDariUrl;
+  useEffect(() => {
+    if (itemIdDariUrl) setSearchQuery(itemIdDariUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemIdDariUrl]);
+
   const [bulkText, setBulkText] = useState('');
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkStatus, setBulkStatus] = useState('');
@@ -294,7 +310,8 @@ export function ContentReview() {
           i.title?.toLowerCase().includes(q) ||
           i.summary?.toLowerCase().includes(q) ||
           i.desk?.toLowerCase().includes(q) ||
-          i.source?.toLowerCase().includes(q);
+          i.source?.toLowerCase().includes(q) ||
+          i.id.toLowerCase().includes(q);
         if (!matches) return false;
       }
       if (statusFilter !== 'Semua' && i.status !== statusFilter) return false;
@@ -767,7 +784,7 @@ export function ContentReview() {
                   disabled={bulkSaving}
                   icon={<Save size={13} />}
                 >
-                  {bulkSaving ? 'Menyimpan...' : 'Simpan Pukal'}
+                  {bulkSaving ? 'Menyimpan...' : (modeSatuItem ? 'Simpan' : 'Simpan Pukal')}
                 </Button>
               </div>
             </>
