@@ -571,11 +571,18 @@ h1, h2, h3, h4, h5, h6, p {
    lepas fakta. max-width 160px cukup jana utk nama Bidang terpanjang (~20 aksara) tanpa
    terpotong; kotak akhir tetap ikut lebar KANDUNGAN sebenar (min(kandungan, max-width), bukan
    160px tetap) sebab tiada `width` eksplisit ditetapkan. Pemisah "|" kekal pudar sahaja (opacity,
-   bukan wipe — satu aksara terlalu kecil utk kesan wipe kelihatan bermakna). */
-@keyframes fvEyebrowIkonKeluar {
-  0%, 60% { opacity: 1; width: 13px; margin-right: 6px; }
-  100% { opacity: 0; width: 0; margin-right: 0; }
-}
+   bukan wipe — satu aksara terlalu kecil utk kesan wipe kelihatan bermakna).
+
+   Pembetulan KEDUA (2026-08-17, Izzat: "tak cantik. apa kata kekalkan je ikon tu selepas bidang
+   keluar? bidang pulak awak boldkan supaya tak nampak sama mcm topik... teks bidang dan topik
+   dah tak selari, bidang tu jadi lebih tinggi drpd topik"):
+   1. Ikon KEKAL kelihatan selamanya (animasi mengecut/pudar `fvEyebrowIkonKeluar` DIBUANG) —
+      keadaan akhir kini [ikon] **Bidang** | Topik, bukan Bidang|Topik sahaja.
+   2. Bidang dibold (`font-weight` bukan warisan drpd `.eyebrow-topik-teks`) supaya jelas
+      berbeza drpd Topik biasa.
+   3. Punca tak selari: `vertical-align: bottom` pada `.fv-eyebrow-bidang-keluar` tersasar drpd
+      `vertical-align: baseline` lalai teks sekeliling (Topik/pemisah) — `inline-block` +
+      `bottom` angkat kotak Bidang drpd garis dasar teks biasa. Ditukar ke `baseline`. */
 @keyframes fvEyebrowBidangKeluar {
   0%, 60% { max-width: 0; }
   100% { max-width: 160px; }
@@ -584,9 +591,10 @@ h1, h2, h3, h4, h5, h6, p {
   0%, 60% { opacity: 0; }
   100% { opacity: 1; }
 }
-.fv-eyebrow-ikon { overflow: hidden; animation: fvEyebrowIkonKeluar 900ms ease-in-out forwards; }
+.fv-eyebrow-ikon { display: inline-flex; align-items: center; }
 .fv-eyebrow-bidang-keluar {
-  display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: bottom;
+  display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: baseline;
+  font-weight: var(--weight-bold, 700);
   animation: fvEyebrowBidangKeluar 900ms ease-in-out forwards;
 }
 .fv-eyebrow-pemisah-masuk { animation: fvEyebrowPemisahMasuk 900ms ease-in-out forwards; }
