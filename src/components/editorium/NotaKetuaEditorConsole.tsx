@@ -45,7 +45,7 @@ interface Nota {
 }
 
 const LABEL_SKOP: Record<Nota['skop'], string> = {
-  dalaman: 'Dalaman',
+  dalaman: 'Nota Ketua Editor',
   catatan_ketua_editor: 'Catatan Ketua Editor',
   pengumuman: 'Pengumuman',
 };
@@ -60,16 +60,17 @@ interface NotaKetuaEditorConsoleProps {
   onBerubah?: () => void;
 }
 
-const KATEGORI: { id: Nota['kategori']; label: string; nota: string }[] = [
-  { id: 'notis', label: 'Notis', nota: 'Pengumuman rasmi berkeutamaan tinggi.' },
-  { id: 'am', label: 'Nota Am', nota: 'Peringatan dan garis panduan tugas harian.' },
-  { id: 'khas', label: 'Nota Khas', nota: 'Nota bersasar, contohnya bagi satu kempen atau Bidang.' },
-];
+// Medan `kategori` (Notis/Nota Am/Nota Khas) DIBUANG daripada borang+senarai (2026-08-18,
+// Izzat: "sepatutnya hanya ada 3: Nota Ketua Editor, Catatan Ketua Editor, Pengumuman") — dua
+// paksi berasingan (kategori × skop) menghasilkan matriks 3×3 yang mengelirukan, sedangkan
+// Izzat cuma bayangkan TIGA jenis (paksi SKOP sahaja). Lajur `category` DB dikekalkan (elak
+// migrasi/risiko skema) — nota BAHARU sentiasa hantar 'am' senyap (KATEGORI_LALAI di bawah),
+// nota LAMA yang tersimpan dgn kategori lain (notis/khas) kekal utuh dlm DB, cuma tak lagi
+// dipaparkan/disunting di UI ni.
+const KATEGORI_LALAI = 'am' as const;
 
 const HAD_TAJUK = 150;
 const HAD_KANDUNGAN = 5000;
-
-const labelKategori = (k: string) => KATEGORI.find((x) => x.id === k)?.label || k;
 
 const tarikhRingkas = (iso: string) => {
   if (!iso) return '—';
@@ -91,7 +92,6 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
   const [menyunting, setMenyunting] = useState<string>('');
   const [tajuk, setTajuk] = useState('');
   const [kandungan, setKandungan] = useState('');
-  const [kategori, setKategori] = useState<Nota['kategori']>('am');
   const [skop, setSkop] = useState<Nota['skop']>('dalaman');
   const [menyimpan, setMenyimpan] = useState(false);
   const [ralatBorang, setRalatBorang] = useState('');
@@ -122,7 +122,6 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
     setMenyunting('');
     setTajuk('');
     setKandungan('');
-    setKategori('am');
     setSkop('dalaman');
     setRalatBorang('');
   };
@@ -131,7 +130,6 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
     setMenyunting(n.id);
     setTajuk(n.tajuk);
     setKandungan(n.kandungan);
-    setKategori(n.kategori);
     setSkop(n.skop);
     setRalatBorang('');
     setConfirmSuntingId('');
@@ -159,7 +157,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
         {
           method: menyuntingSedia ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tajuk, kandungan, kategori, skop, penulis: editorName, penulisId: editorId }),
+          body: JSON.stringify({ tajuk, kandungan, kategori: KATEGORI_LALAI, skop, penulis: editorName, penulisId: editorId }),
         }
       );
       const data = await bacaJsonSelamat(res);
@@ -239,8 +237,9 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
             <div>
               <SectionLabel>01 — {menyunting ? 'Sunting Nota' : 'Terbitkan Nota'}</SectionLabel>
               <p className="text-stone-500 text-xs">
-                Nota <strong className="font-semibold text-stone-700">dalaman</strong> hanya kelihatan dalam Editorium.
-                Nota <strong className="font-semibold text-stone-700">awam</strong> boleh dipaparkan kepada pembaca.
+                <strong className="font-semibold text-stone-700">Nota Ketua Editor</strong> hanya kelihatan dalam Editorium.
+                <strong className="font-semibold text-stone-700"> Catatan Ketua Editor</strong> dan
+                <strong className="font-semibold text-stone-700"> Pengumuman</strong> disiarkan di Frontpage.
               </p>
             </div>
             {menyunting && (
@@ -252,37 +251,23 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
               perenggan yang mendominasi borang ni — satu lajur untuk semua medan supaya tepi
               kanannya rata, bukan textarea terjuih keluar daripada medan lain. */}
           <FormColumn saiz="lg" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <label className="flex flex-col gap-1">
-              <span className={LABEL_BORANG}>Kategori</span>
-              <select
-                value={kategori}
-                onChange={(e) => setKategori(e.target.value as Nota['kategori'])}
-                className={`${INPUT_BORANG} cursor-pointer`}
-              >
-                {KATEGORI.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
-              </select>
-              <span className="text-stone-400 text-[10px]">{KATEGORI.find((k) => k.id === kategori)?.nota}</span>
-            </label>
-
-            <label className="flex flex-col gap-1">
-              <span className={LABEL_BORANG}>Skop</span>
-              <select
-                value={skop}
-                onChange={(e) => setSkop(e.target.value as Nota['skop'])}
-                className={`${INPUT_BORANG} cursor-pointer`}
-              >
-                <option value="dalaman">Nota (Dalaman, Editorium sahaja)</option>
-                <option value="catatan_ketua_editor">Catatan Ketua Editor (disiarkan di Frontpage)</option>
-                <option value="pengumuman">Pengumuman (disiarkan di Frontpage)</option>
-              </select>
-              {skop !== 'dalaman' && (
-                <span className="text-Adjung-maroon text-[10px] font-semibold">
-                  Nota ini akan disiarkan di Frontpage (pautan footer "{LABEL_SKOP[skop]}"). Pastikan tiada maklumat dalaman di dalamnya.
-                </span>
-              )}
-            </label>
-          </div>
+          <label className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Jenis</span>
+            <select
+              value={skop}
+              onChange={(e) => setSkop(e.target.value as Nota['skop'])}
+              className={`${INPUT_BORANG} cursor-pointer`}
+            >
+              <option value="dalaman">Nota Ketua Editor (Editorium sahaja)</option>
+              <option value="catatan_ketua_editor">Catatan Ketua Editor (disiarkan di Frontpage)</option>
+              <option value="pengumuman">Pengumuman (disiarkan di Frontpage)</option>
+            </select>
+            {skop !== 'dalaman' && (
+              <span className="text-Adjung-maroon text-[10px] font-semibold">
+                Nota ini akan disiarkan di Frontpage (pautan footer "{LABEL_SKOP[skop]}"). Pastikan tiada maklumat dalaman di dalamnya.
+              </span>
+            )}
+          </label>
 
           <label className="flex flex-col gap-1">
             <span className={`${LABEL_BORANG} flex justify-between`}>
@@ -367,9 +352,6 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                           <Pin className="w-2.5 h-2.5" /> Disemat
                         </span>
                       )}
-                      <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
-                        {labelKategori(n.kategori)}
-                      </span>
                       {/* Skop nota — nota awam (disiarkan di Frontpage) diberi nada `success`
                           sebab ia tersiar; nota dalaman nada `neutral` sebab ia senyap. */}
                       <StatusBadge
