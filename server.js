@@ -21,7 +21,7 @@ import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
-import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, validateGlossLength } from './core/editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, validateSumberNama, validateTarikhSumber, validateGlossLength } from './core/editorial/ContentBudget.js';
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS, effectiveMinBriefLong } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
@@ -3117,11 +3117,32 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       throw err;
     }
     // Format sumber (Fasa 8b) — URL sumber mesti sekurang-kurangnya rupa URL sah kalau diisi.
-    const urlCheck = validateSourceUrl(item.url);
-    if (!urlCheck.isValid) {
-      const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${urlCheck.reason}`);
-      err.isValidationError = true;
-      throw err;
+    // Nama sumber placeholder + format Tarikh sumber (2026-08-19, pepijat sebenar Izzat — lihat
+    // nota penuh di ContentBudget.js) — disemak untuk SETIAP entri `item.sources` (bukan cuma
+    // `item.url`/`item.source` legasi tunggal), sebab kandungan berbilang sumber boleh ada
+    // placeholder tertinggal pada sumber ke-2/ke-3 walaupun sumber pertama bersih.
+    const sourcesUntukSemak = Array.isArray(item.sources) && item.sources.length > 0
+      ? item.sources
+      : [{ name: item.source, url: item.url, date: item.originalDate }];
+    for (const s of sourcesUntukSemak) {
+      const urlCheck = validateSourceUrl(s.url);
+      if (!urlCheck.isValid) {
+        const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${urlCheck.reason}`);
+        err.isValidationError = true;
+        throw err;
+      }
+      const namaCheck = validateSumberNama(s.name);
+      if (!namaCheck.isValid) {
+        const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${namaCheck.reason}`);
+        err.isValidationError = true;
+        throw err;
+      }
+      const tarikhCheck = validateTarikhSumber(s.date);
+      if (!tarikhCheck.isValid) {
+        const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${tarikhCheck.reason}`);
+        err.isValidationError = true;
+        throw err;
+      }
     }
     if (effectiveMaxBriefLong && item.briefLong && item.briefLong.length > effectiveMaxBriefLong) {
       const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan. Pendekkan huraian dahulu.`);

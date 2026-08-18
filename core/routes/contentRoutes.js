@@ -843,6 +843,18 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         if (!urlCheck.isValid) {
           return res.status(400).json({ error: urlCheck.reason });
         }
+        // Nama sumber placeholder + format Tarikh sumber (2026-08-19, pepijat sebenar Izzat —
+        // lihat nota penuh di ContentBudget.js) — laluan suntingan kandungan sedia ada patut
+        // tertakluk semakan sama seperti laluan Terbit baharu, kalau tidak editor boleh
+        // "membaiki" kandungan lama dengan menyimpan placeholder yang sama, terlepas gerbang ni.
+        const namaCheck = validateSumberNama(source);
+        if (!namaCheck.isValid) {
+          return res.status(400).json({ error: namaCheck.reason });
+        }
+        const tarikhCheck = validateTarikhSumber(originalDate);
+        if (!tarikhCheck.isValid) {
+          return res.status(400).json({ error: tarikhCheck.reason });
+        }
 
         // Bidang terkunci per-slot, Topik wajib — bila tajuk/huraian diedit, kandungan dipindah
         // ke slot lain, ATAU kandungan sedang diaktifkan semula (archived/rejected -> approved/

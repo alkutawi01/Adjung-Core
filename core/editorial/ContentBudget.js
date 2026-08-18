@@ -204,6 +204,46 @@ const validateSourceUrl = (url) => {
   return { isValid: true };
 };
 
+// Nama sumber placeholder tertinggal (2026-08-19, pepijat sebenar Izzat — kandungan terbit dgn
+// "Sumber: (nama sebenar sumber anda)", nilai CONTOH literal dalam Arahan AI (buildAiPrompt(),
+// SlotManagerModal.tsx baris ~373) yang sepatutnya AI ganti dgn kandungan sebenar tapi tersalin
+// verbatim dan lepas tanpa disedari editor — tiada semakan wujud sebelum ni langsung utk medan
+// nama sumber). Heuristik AM (bukan senarai literal string tertentu, supaya placeholder templat
+// LAIN yang serupa bentuknya turut tertangkap, bukan cuma contoh ni sahaja) — mana-mana nilai
+// SATU-BARIS yang selepas dipangkas DIBUNGKUS SEPENUHNYA dalam SATU pasang kurungan hampir pasti
+// arahan placeholder yang tak sempat diganti; tiada sumber berita sebenar ditulis "(Reuters)"
+// dengan kurungan merangkumi keseluruhan nilai macam tu.
+const validateSumberNama = (nama) => {
+  if (typeof nama !== 'string') return { isValid: true };
+  const trimmed = nama.trim();
+  if (!trimmed) return { isValid: true };
+  if (/^\(.+\)$/.test(trimmed)) {
+    return {
+      isValid: false,
+      reason: `Nama sumber ("${trimmed}") kelihatan seperti placeholder templat Arahan AI yang belum digantikan dengan nama sumber sebenar.`,
+    };
+  }
+  return { isValid: true };
+};
+
+// Format Tarikh sumber (2026-08-19, pepijat sebenar Izzat — kandungan terbit dgn "Tarikh sumber:
+// YYYY-MM-DD" literal, contoh format dalam Arahan AI yang sepatutnya diganti tarikh sebenar).
+// Medan ni sebelum ni TIADA semakan format langsung — apa-apa rentetan diterima terus. WAJIB ISO
+// YYYY-MM-DD (4 digit tahun, 2 digit bulan/hari) kalau diisi; medan kosong kekal dibenarkan (tak
+// semua kandungan ada tarikh sumber diketahui).
+const validateTarikhSumber = (tarikh) => {
+  if (typeof tarikh !== 'string') return { isValid: true };
+  const trimmed = tarikh.trim();
+  if (!trimmed) return { isValid: true };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return {
+      isValid: false,
+      reason: `Tarikh sumber ("${trimmed}") bukan format tarikh yang sah. Guna format YYYY-MM-DD sebenar (cth 2026-08-17), bukan templat.`,
+    };
+  }
+  return { isValid: true };
+};
+
 // Had panjang gloss interlinear (2026-08-12, keputusan Izzat + audit ChatGPT) — sintaks
 // `[label](gloss:makna)` (src/utils.tsx tokenize()) papar `makna` sebagai anotasi kecil di atas
 // `label`. Gloss terlalu panjang buat kad/Focus View nampak berselerak (bukti: simulasi UX #8,
@@ -404,7 +444,7 @@ const validateBidangTopik = ({ slotBidang, itemBidang, topik, requireTopik, slot
 export {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
-  validateContentBudget, validateBidangTopik, validateSourceUrl,
+  validateContentBudget, validateBidangTopik, validateSourceUrl, validateSumberNama, validateTarikhSumber,
   setMedanLimits, getMedanLimits, validateMedanTambahan, validateGlossLength,
   GLOSS_RENDERING_ENABLED,
 };
