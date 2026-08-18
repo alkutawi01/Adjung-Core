@@ -984,11 +984,19 @@ const CarouselStableBlock: React.FC<{
               (getCardTheme di atas, sudah kira kontras gelap/cerah setiap kad individu); ikon
               lucide default stroke=currentColor, jadi ia WARIS warna tajuk/huraian kad tu
               secara automatik — kontras terjamin tanpa perlu logik tema berasingan di sini. */}
+          {/* Hover animasi (2026-08-18, permintaan Izzat: "boleh tambah animasi sikit bila
+              hover") — dahulu HANYA fade opacity (group-hover, kad di-hover). Ditambah: hover
+              PADA BUTANG SENDIRI (bukan group) buat ikon membesar sikit (scale-110) + bergerak
+              sedikit ke ARAH navigasi (kiri gerak kiri, kanan gerak kanan) — isyarat visual
+              "tekan sini utk gerak arah ni". `-translate-y-1/2` (pusat menegak, base) DAN
+              hover:scale/translate-x digubah bersama tanpa konflik — utiliti transform Tailwind
+              v4 kekal digabung via CSS variables (--tw-translate-x/y, --tw-scale-x/y) ke SATU
+              `transform`, sama macam v3. */}
           <button
             type="button"
             aria-label="Kandungan sebelum"
             onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
-            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
+            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:-translate-x-0.5 transition-[opacity,transform] duration-200 pointer-events-auto"
           >
             <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
           </button>
@@ -996,7 +1004,7 @@ const CarouselStableBlock: React.FC<{
             type="button"
             aria-label="Kandungan seterusnya"
             onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
-            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto"
+            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:translate-x-0.5 transition-[opacity,transform] duration-200 pointer-events-auto"
           >
             <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
           </button>
