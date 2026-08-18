@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { StatusBadge } from '../common/StatusBadge';
-import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock } from 'lucide-react';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { useModalFokus } from '../../hooks/useModalFokus';
 
 // Peti Makluman (2026-08-01, spesifikasi pemilik projek) — laci gelongsor yang memaparkan
@@ -54,7 +55,6 @@ interface MaklumanDrawerProps {
   onPadamNotifikasi: (id: string) => void;
 }
 
-const LABEL_KATEGORI: Record<string, string> = { notis: 'Notis', am: 'Nota Am', khas: 'Nota Khas' };
 const LABEL_SKOP: Record<string, string> = { catatan_ketua_editor: 'Catatan Ketua Editor', pengumuman: 'Pengumuman' };
 
 // Ikon + label ringkas ikut jenis notifikasi (Fasa 6b) — bantu editor imbas cepat jenis apa
@@ -120,6 +120,39 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
   // Fokus-trap + Escape-tutup + pulang fokus (UX-06, audit ChatGPT 2026-08-08) — standard
   // sama seperti modal Editorium lain (lihat useModalFokus.ts), laci ni dahulu tiada.
   const refLaci = useRef<HTMLElement>(null);
+
+  // "Nota Terdahulu" (2026-08-18, keputusan Izzat selepas perbincangan reka bentuk — rujuk
+  // perbualan ChatGPT "Cadangan Reka Bentuk Nota...") — Nota Ketua Editor yang diarkibkan
+  // SEBELUM ni cuma boleh dilihat semula oleh Ketua Editor sendiri (konsol Nota Ketua Editor,
+  // togol "Lihat Arkib"). Editor biasa yang nampak nota di Peti Makluman lalu ia diarkibkan
+  // Ketua Editor SEBELUM sempat dibaca semula tak ada cara nampak ia lagi — rasa "hilang secara
+  // tiba-tiba" (keluhan Izzat: "saya dah baca benda tu tadi, kenapa hilang?"). Prinsip yang
+  // dipegang: nota yang tak lagi aktif bukan "dipadam", cuma "tak lagi aktif" — jadi ia patut
+  // kekal boleh dicapai semua editor, bukan cuma Ketua Editor. SENGAJA bukan tab ketiga
+  // berasingan (Izzat tanya ni secara eksplisit) — cuma seksyen boleh kembang di bawah senarai
+  // tab Editorial, dimuat malas (lazy fetch) bila dikembangkan sahaja, bukan setiap kali laci
+  // dibuka (kebanyakan pembukaan laci tak perlukan sejarah lama).
+  const [arkibDibuka, setArkibDibuka] = useState(false);
+  const [notaArkib, setNotaArkib] = useState<Nota[] | null>(null);
+  const [memuatArkib, setMemuatArkib] = useState(false);
+  const [ralatArkib, setRalatArkib] = useState('');
+  const togolArkib = () => {
+    const dibukaBaharu = !arkibDibuka;
+    setArkibDibuka(dibukaBaharu);
+    if (dibukaBaharu && notaArkib === null && !memuatArkib) {
+      setMemuatArkib(true);
+      setRalatArkib('');
+      fetch('/api/system/editor-notes?status=arkib')
+        .then(async (res) => {
+          const data = await bacaJsonSelamat(res);
+          if (!res.ok) throw new Error(data.error || 'Gagal membaca nota terdahulu.');
+          return data;
+        })
+        .then((d) => setNotaArkib(Array.isArray(d) ? d.map((n: any) => ({ ...n, jenisSumber: 'nota_ketua_editor' as const })) : []))
+        .catch((e) => setRalatArkib(e.message || 'Gagal membaca nota terdahulu.'))
+        .finally(() => setMemuatArkib(false));
+    }
+  };
   useModalFokus(refLaci, onTutup);
 
   // Auto-pilih tab yang ada belum-baca bila laci dibuka (2026-08-16, aduan LANGSUNG Izzat kat
@@ -301,9 +334,6 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                           <Pin className="w-2.5 h-2.5" /> Disemat
                         </span>
                       )}
-                      <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
-                        {LABEL_KATEGORI[n.kategori] || n.kategori}
-                      </span>
                       {/* Skop awam (disiarkan di Frontpage) — nada `success` seperti dalam konsol
                           Nota Ketua Editor supaya kedua-dua tempat sama bahasanya. */}
                       {n.skop !== 'dalaman' && (
@@ -318,6 +348,49 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                 );
               })}
             </ul>
+          )}
+
+          {/* Nota Terdahulu — lihat komen deklarasi state arkibDibuka di atas utk rasional
+              penuh. HANYA tab Editorial (nota tak pernah tergolong Sistem). */}
+          {tab === 'editorial' && (
+            <div className="border-t border-stone-200">
+              <button
+                type="button"
+                onClick={togolArkib}
+                className="w-full flex items-center justify-between px-5 py-3 text-[11px] font-semibold text-stone-500 hover:text-Adjung-maroon transition-colors cursor-pointer"
+                aria-expanded={arkibDibuka}
+              >
+                <span>Nota Terdahulu</span>
+                {arkibDibuka ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+              {arkibDibuka && (
+                <div>
+                  {memuatArkib ? (
+                    <KeadaanKosong className="px-6 pb-4">Memuatkan nota terdahulu…</KeadaanKosong>
+                  ) : ralatArkib ? (
+                    <p className="px-5 pb-4 text-[11px] text-[var(--color-error)]">{ralatArkib}</p>
+                  ) : !notaArkib || notaArkib.length === 0 ? (
+                    <KeadaanKosong className="px-6 pb-4">Tiada nota terdahulu.</KeadaanKosong>
+                  ) : (
+                    <ul className="list-none m-0 p-0 divide-y divide-Adjung-line bg-stone-50/60">
+                      {notaArkib.map((n) => (
+                        <li key={`nota-arkib-${n.id}`} className="px-5 py-4 space-y-1.5 opacity-80">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {n.skop !== 'dalaman' && (
+                              <StatusBadge tone="success" label={LABEL_SKOP[n.skop] || n.skop} />
+                            )}
+                            <span className="font-mono text-[9px] text-stone-400">Diarkibkan · {tarikhRingkas(n.dibuatPada)}</span>
+                          </div>
+                          <p className="font-serif text-[15px] leading-snug text-stone-900">{n.tajuk}</p>
+                          <p className="text-stone-600 text-xs whitespace-pre-wrap leading-relaxed">{n.kandungan}</p>
+                          {n.penulis && <p className="text-stone-400 text-[10px]">Ditulis oleh {n.penulis}</p>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
 

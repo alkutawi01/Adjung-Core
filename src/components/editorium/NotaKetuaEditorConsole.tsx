@@ -401,7 +401,13 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                                 Batal
                               </button>
                             </span>
-                          ) : (
+                          ) : n.status !== 'aktif' && (
+                            // Sunting HANYA utk nota diarkib (2026-08-18, keputusan Izzat: "sekat
+                            // sunting selepas aktif... macam mesej yang dah dihantar") — nota
+                            // aktif sudah tersiar dalam Peti Makluman editor, sunting di tempat
+                            // mengubah apa mereka lihat tanpa jejak. Butang ni disorok sepenuhnya
+                            // (bukan cuma dinyahaktifkan) utk nota aktif; gerbang server sepadan
+                            // (editorNotesRoutes.js PATCH) tetap semak, ni pertahanan client sahaja.
                             <Tooltip text="Sunting nota">
                               <button
                                 type="button"

@@ -179,6 +179,22 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
       if (!sedia) return res.status(404).json({ error: 'Nota tidak dijumpai.' });
 
       const { tajuk, kandungan, kategori, skop, status, disemat } = req.body || {};
+
+      // Kandungan nota AKTIF beku, tak boleh disunting (2026-08-18, keputusan Izzat — "sekat
+      // sunting selepas aktif... macam mesej yang dah dihantar") — Peti Makluman (MaklumanDrawer)
+      // baca terus dari pelayan setiap kali dibuka, TIADA petanda "disunting pada" dipaparkan
+      // kepada editor, jadi sunting senyap nota yg dah tersiar (dalam inbox editor) mengubah apa
+      // editor lihat tanpa jejak. Sebaik nota diterbitkan (status='aktif' — SEMUA nota lahir
+      // aktif, tiada mod draf), teksnya kekal muktamad; kesilapan dibetulkan dgn Arkib nota lama
+      // + terbitkan nota BAHARU, bukan sunting di tempat. Peralihan status (arkib/pulih) dan
+      // semat/nyahsemat TAK disentuh gerbang ni — cuma medan KANDUNGAN yang dikunci.
+      const cubaUbahKandungan = [tajuk, kandungan, kategori, skop].some((v) => v !== undefined);
+      if (cubaUbahKandungan && sedia.status === 'aktif') {
+        return res.status(400).json({
+          error: 'Nota yang sudah aktif tak boleh disunting — ia sudah tersiar dalam Peti Makluman editor. Arkibkan nota ini dan terbitkan nota baharu sebaliknya.',
+        });
+      }
+
       const set = [];
       const params = [];
 
