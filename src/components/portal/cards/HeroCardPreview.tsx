@@ -16,6 +16,9 @@ export interface HeroCardPreviewItem {
   originalDate?: string;
   publishedAt?: string;
   imageUrl?: string;
+  // Sorok baris tarikh sepenuhnya (2026-08-18) — sepadan kad SEBENAR bila sumber ialah
+  // 'Editorial Adjung'/'Adjung Editorial' (>1 sumber, sumberAdjungSendiri() FrontpageView.tsx).
+  sembunyikanTarikhSumber?: boolean;
 }
 
 export interface HeroCardPreviewProps {
@@ -44,7 +47,7 @@ export const HeroCardPreview: React.FC<HeroCardPreviewProps> = ({ item, bidang }
             wrap, tak sepadan kad SEBENAR (FrontpageView.tsx baris 3184). */}
         <span className="font-sans text-[7px] md:text-[10px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:border-l md:pt-0 border-stone-400/30 md:pl-4 flex-shrink-0 md:w-36 md:self-stretch flex flex-col justify-center gap-1" style={tema.sourceStyle}>
           <span>{item.source}</span>
-          {(getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)) && (
+          {!item.sembunyikanTarikhSumber && (getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)) && (
             <span className="opacity-70 normal-case font-mono text-[7px] md:text-[9px]">
               {getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)}
             </span>

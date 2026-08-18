@@ -134,7 +134,10 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
                 // Peralihan opacity kelihatan HANYA bagi jenis Pudar — jenis lain (Colophon/
                 // Sapuan Lajur/Gerak Susun) tukar kandungan SENYAP di sebalik panel/regangan
                 // (sama rasional CarouselStableBlock: transition='none' semasa overlay aktif).
-                transition: jenis === 'pudar' ? `opacity ${tempohPudarMs}ms ease-in-out` : 'none',
+                // jenisSemasa (RESOLVED), bukan `jenis` mentah (2026-08-18) — sisa terlepas
+                // semasa migrasi jenis->jenisSemasa; dlm mod Rawak `jenis` ialah FUNGSI, jadi
+                // `jenis === 'pudar'` sentiasa palsu dan fade tak pernah main.
+                transition: jenisSemasa === 'pudar' ? `opacity ${tempohPudarMs}ms ease-in-out` : 'none',
               }}
             >
               <KandunganContoh index={i} />

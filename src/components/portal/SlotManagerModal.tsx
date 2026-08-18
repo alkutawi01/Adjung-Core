@@ -17,6 +17,7 @@ import { StandardCardPreview } from './cards/StandardCardPreview';
 import { SegiEmpatMediumCardPreview } from './cards/SegiEmpatMediumCardPreview';
 import { SegiEmpatSmallCardPreview } from './cards/SegiEmpatSmallCardPreview';
 import { BarCardPreview } from './cards/BarCardPreview';
+import { sumberAdjungSendiri } from './FrontpageView';
 import { tanganiKekunciItalic, gantiSengkangGandaOtomatik } from '../../utils.tsx';
 
 // Normalkan tarikh AI-tampal ke ISO yyyy-mm-dd (2026-08-08, pepijat Izzat — "kalau tampal output
@@ -1658,6 +1659,13 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   const berbilangSumber = Array.isArray(current.sources) && current.sources.length > 1;
                   const sumberPaparanKad = berbilangSumber ? 'Editorial Adjung' : current.source;
                   const tarikhPaparanKad = berbilangSumber ? '' : current.date;
+                  // sembunyikanTarikhSumber (2026-08-18) — kad SEBENAR (FrontpageView.tsx
+                  // ~baris 1923) sorok baris tarikh SEPENUHNYA bila sumber ialah 'Editorial
+                  // Adjung' (guna helper sedia ada, bukan tulis semula ujian tu), bukan cuma
+                  // kosongkan tarikh dan harap fallback publishedAt jatuh senyap ke kosong —
+                  // pratonton sebelum ni tiada pengawal ni langsung, kebetulan sahaja nampak
+                  // sepadan sebab publishedAt tak pernah dihantar ke pratonton pun.
+                  const sembunyikanTarikhSumberKad = sumberAdjungSendiri(sumberPaparanKad);
                   return (
                   <div>
                     <button
@@ -1674,7 +1682,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <KompakCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image, sembunyikanTarikhSumber: sembunyikanTarikhSumberKad,
                             }}
                             bidang={bidang}
                           />
@@ -1683,7 +1691,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <HeroCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image, sembunyikanTarikhSumber: sembunyikanTarikhSumberKad,
                             }}
                             bidang={bidang}
                           />
@@ -1692,7 +1700,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <MenegakCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image, sembunyikanTarikhSumber: sembunyikanTarikhSumberKad,
                             }}
                             bidang={bidang}
                           />
@@ -1701,7 +1709,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <StandardCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image, sembunyikanTarikhSumber: sembunyikanTarikhSumberKad,
                             }}
                             bidang={bidang}
                           />
@@ -1710,7 +1718,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <SegiEmpatMediumCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image, sembunyikanTarikhSumber: sembunyikanTarikhSumberKad,
                             }}
                             bidang={bidang}
                             aksen={[13, 27].includes(editingSlotIndex) ? 'kiri' : 'kanan'}
@@ -1720,7 +1728,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <SegiEmpatSmallCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image, sembunyikanTarikhSumber: sembunyikanTarikhSumberKad,
                             }}
                             bidang={bidang}
                             aksen={editingSlotIndex === 36 ? 'kelabu' : 'krem'}

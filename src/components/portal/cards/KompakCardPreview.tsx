@@ -23,6 +23,9 @@ export interface KompakCardPreviewItem {
   /** Draf guna medan `image` (SlotManagerModal); tema kad guna `imageUrl` — pemanggil memetakan
    *  supaya komponen ni tak perlu tahu dua nama berbeza tu. */
   imageUrl?: string;
+  // Sorok baris tarikh sepenuhnya (2026-08-18) — sepadan kad SEBENAR bila sumber ialah
+  // 'Editorial Adjung'/'Adjung Editorial' (>1 sumber, sumberAdjungSendiri() FrontpageView.tsx).
+  sembunyikanTarikhSumber?: boolean;
 }
 
 export interface KompakCardPreviewProps {
@@ -46,7 +49,7 @@ export const KompakCardPreview: React.FC<KompakCardPreviewProps> = ({ item, bida
         </div>
         <span className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={tema.sourceStyle}>
           <span>{item.source}</span>
-          {(getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)) && (
+          {!item.sembunyikanTarikhSumber && (getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)) && (
             <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">
               {getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)}
             </span>

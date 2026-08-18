@@ -17,6 +17,9 @@ export interface MenegakCardPreviewItem {
   originalDate?: string;
   publishedAt?: string;
   imageUrl?: string;
+  // Sorok baris tarikh sepenuhnya (2026-08-18) — sepadan kad SEBENAR bila sumber ialah
+  // 'Editorial Adjung'/'Adjung Editorial' (>1 sumber, sumberAdjungSendiri() FrontpageView.tsx).
+  sembunyikanTarikhSumber?: boolean;
 }
 
 export interface MenegakCardPreviewProps {
@@ -37,7 +40,7 @@ export const MenegakCardPreview: React.FC<MenegakCardPreviewProps> = ({ item, bi
         </div>
         <span className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-200/90 pt-2 border-t border-white/10 flex flex-col gap-0.5 mt-auto" style={tema.sourceStyle}>
           <span>{item.source}</span>
-          {(getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)) && (
+          {!item.sembunyikanTarikhSumber && (getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)) && (
             <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">
               {getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)}
             </span>

@@ -567,7 +567,14 @@ export const TetapanAmSlotConsole: React.FC = () => {
               setiap pusingan tak?") — papar HANYA bila "Rawak" dipilih di 3a. Editor pilih SENDIRI
               jenis mana masuk kolam (keputusan Izzat eksplisit: "jangan jadikan ini sebagai
               default... biarkan ia jadi pilihan Ketua Editor") — bukan senarai dikunci Claude. */}
-          {draf.jenisAnimasi === 'rawak' && (
+          {draf.jenisAnimasi === 'rawak' && (() => {
+            // Pengawal Array.isArray (2026-08-18) — draf.jenisAnimasiRawakPool boleh hilang
+            // (undefined) kalau GET /slot-am-settings dihidangkan pelayan versi lama semasa
+            // tetingkap deploy (medan ni baharu). Tanpa pengawal ni, .includes/.filter/.length
+            // di bawah terhempas seluruh panel — DUA pengguna lain medan sama (FrontpageView.tsx,
+            // SenaraiSlotConsole.tsx) sudah mengawalnya, ini yang tercicir.
+            const kolamSemasa = Array.isArray(draf.jenisAnimasiRawakPool) ? draf.jenisAnimasiRawakPool : [];
+            return (
             <div className="border border-stone-200 rounded p-3 space-y-2 bg-stone-50">
               <span className="font-semibold text-stone-800 text-[11px] block">
                 Kolam jenis untuk mod Rawak
@@ -578,7 +585,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
               </p>
               <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                 {(draf.jenisAnimasiPilihan || []).filter(j => j.nilai !== 'rawak').map(j => {
-                  const ditanda = draf.jenisAnimasiRawakPool.includes(j.nilai);
+                  const ditanda = kolamSemasa.includes(j.nilai);
                   return (
                     <label key={j.nilai} className="flex items-center gap-1.5 cursor-pointer">
                       <input
@@ -586,9 +593,10 @@ export const TetapanAmSlotConsole: React.FC = () => {
                         checked={ditanda}
                         onChange={e => setDraf(p => {
                           if (!p) return p;
+                          const kolamSediaAda = Array.isArray(p.jenisAnimasiRawakPool) ? p.jenisAnimasiRawakPool : [];
                           const kolamBaharu = e.target.checked
-                            ? [...p.jenisAnimasiRawakPool, j.nilai]
-                            : p.jenisAnimasiRawakPool.filter(v => v !== j.nilai);
+                            ? [...kolamSediaAda, j.nilai]
+                            : kolamSediaAda.filter(v => v !== j.nilai);
                           // Sekat nyahtanda checkbox TERAKHIR — client-side guard, elak kolam
                           // kosong terus di UI (server pun sah semula, tapi lebih baik editor
                           // nampak keadaan tak sah tu MUSTAHIL berlaku langsung).
@@ -604,7 +612,8 @@ export const TetapanAmSlotConsole: React.FC = () => {
                 })}
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* 3c. Kelajuan — baharu, permintaan eksplisit Izzat ("tetapan am seperti kelajuan").
               Terpakai pada SEMUA jenis termasuk Pudar (2026-08-16, keputusan Izzat: "kelajuan
@@ -653,8 +662,9 @@ export const TetapanAmSlotConsole: React.FC = () => {
                   ? 'pudar'
                   : draf.jenisAnimasi === 'rawak'
                     ? () => {
-                        const kolam = draf.jenisAnimasiRawakPool.length
-                          ? draf.jenisAnimasiRawakPool
+                        const kolamDraf = Array.isArray(draf.jenisAnimasiRawakPool) ? draf.jenisAnimasiRawakPool : [];
+                        const kolam = kolamDraf.length
+                          ? kolamDraf
                           : ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'];
                         return kolam[Math.floor(Math.random() * kolam.length)];
                       }
