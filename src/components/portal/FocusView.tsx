@@ -379,7 +379,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
           <span className="fv-eyebrow-ikon" aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center' }}>{icon}</span>
           <span className="fv-eyebrow-kumpulan-keluar">
             <span className="eyebrow-topik-teks" style={{ fontWeight: 'var(--weight-bold, 700)' }} {...eyebrowKlikProps(d)}>{d}</span>
-            {' | '}
+            {/* Jarak eksplisit (margin), BUKAN teks ruang mentah `{' | '}` (2026-08-17, Izzat:
+                "kenapa terlalu rapat? sepatutnya ada jarak antara perkataan dengan tanda |") —
+                bekas label eyebrow (FrontpageView.tsx, pembetulan jajaran ikon sebelum ini)
+                ditukar `display:'inline-flex'` supaya ikon+teks sejajar baseline; kesan sampingan
+                flexbox: nod teks HANYA-RUANG yang jadi anak TERUS bekas flex (bukan dibalut span)
+                dikecut/diabaikan pelayar sebagai "anonymous flex item" tak bermakna — ruang
+                sekeliling "|" hilang walau kod tulis `{' | '}` dgn ruang jelas. Span eksplisit
+                dgn margin tak terjejas isu ni (bukan teks-ruang telanjang). */}
+            <span aria-hidden="true" style={{ margin: '0 4px' }}>|</span>
             <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>
           </span>
         </>
@@ -388,7 +396,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
     return (
       <>
         <span className="eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>
-        {' | '}
+        <span aria-hidden="true" style={{ margin: '0 4px' }}>|</span>
         <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>
       </>
     );
