@@ -829,6 +829,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             <button type="button" onClick={onClose} aria-label="Kembali ke halaman utama" style={{
               fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)',
               justifySelf: 'center', background: 'none', border: 0, padding: 0, cursor: 'pointer',
+              appearance: 'none', WebkitAppearance: 'none', lineHeight: 'normal',
             }}>{wordmark}</button>
           ) : (
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
@@ -1171,7 +1172,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           <button type="button" onClick={onClose} aria-label="Kembali ke halaman utama" style={{
             fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)',
             color: 'var(--color-Adjung-maroon)', justifySelf: 'center', background: 'none', border: 0,
-            padding: 0, cursor: 'pointer',
+            padding: 0, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', lineHeight: 'normal',
           }}>{wordmark}</button>
         ) : (
           <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
