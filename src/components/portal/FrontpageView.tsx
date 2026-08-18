@@ -608,20 +608,24 @@ const FooterHeightLock: React.FC<{
 // param ni dan auto-isi kotak carian dengan UUID tu (Izzat: "sistem secara automatik masukkan
 // UUID kandungan yg nak diedit tu di kotak search... hanya kandungan tu yg terpapar") — guna
 // SEMULA mekanisme carian sedia ada (bukan laluan penapis baharu berasingan).
+// TAB BAHARU sengaja (2026-08-18, keputusan Izzat: "saya nak tab baru bertambah") — window.open
+// (bukan navigate() react-router SPA) supaya frontpage awak sedang tatal KEKAL terbuka di tab
+// asal, tak hilang kedudukan/konteks bila lompat ke Editorium sunting. Sesi log masuk sama
+// (kuki sesi dikongsi rentas tab origin sama), jadi tab baharu terus log masuk tanpa perlu
+// sign-in semula.
 const EditPensil: React.FC<{
   objectId?: string;
   role?: string;
-  navigate: (path: string) => void;
   posisi: string;
-}> = ({ objectId, role, navigate, posisi }) => {
+}> = ({ objectId, role, posisi }) => {
   if (!role || !objectId) return null;
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); navigate(`/editorium?tab=kandungan&sub=semakan&itemId=${objectId}`); }}
+      onClick={(e) => { e.stopPropagation(); window.open(`/editorium?tab=kandungan&sub=semakan&itemId=${objectId}`, '_blank', 'noopener'); }}
       className={`absolute ${posisi} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
-      aria-label="Edit kandungan ini"
-      title="Edit kandungan ini"
+      aria-label="Edit kandungan ini (buka tab baharu)"
+      title="Edit kandungan ini (buka tab baharu)"
     >
       <Pencil className="w-3 h-3" />
     </button>
@@ -3188,7 +3192,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     )}
                   </FooterHeightLock>
                 </BentoInner><span className="absolute top-8 right-8 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[0].publishedAt)}</span>
-                <EditPensil objectId={bentoNewsItems[0].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-8 right-8" />
+                <EditPensil objectId={bentoNewsItems[0].objectId} role={currentEditoriumRole} posisi="bottom-8 right-8" />
               </div>
             )}
 
@@ -3232,7 +3236,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[1].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[1].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[1].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3273,7 +3277,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[2].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[2].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[2].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3321,7 +3325,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[3].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[3].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[3].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3378,7 +3382,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         )}
                       </FooterHeightLock>
                     </BentoInner><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[4].publishedAt)}</span>
-                    <EditPensil objectId={bentoNewsItems[4].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-4 right-4" />
+                    <EditPensil objectId={bentoNewsItems[4].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                   </div>
                 )}
                 {bentoNewsItems[5] && (
@@ -3430,7 +3434,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         )}
                       </FooterHeightLock>
                     </BentoInner><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[5].publishedAt)}</span>
-                    <EditPensil objectId={bentoNewsItems[5].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-4 right-4" />
+                    <EditPensil objectId={bentoNewsItems[5].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                   </div>
                 )}
               </div>
@@ -3477,7 +3481,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[6].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[6].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[6].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3519,7 +3523,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[12].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[12].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[12].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3595,7 +3599,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[11].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[11].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[11].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3649,7 +3653,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[13].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[13].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[13].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3696,7 +3700,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[14].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[14].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[14].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
             </div>
@@ -3745,7 +3749,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[15].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[15].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[15].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3793,7 +3797,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[16].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[16].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[16].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3817,7 +3821,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[17]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[17]} bidang={bidangUntuk(bentoNewsItems[17])} onCari={cariDariEyebrow} />}</div>
                         )}
                       </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[17].publishedAt)}</span>
-                      <EditPensil objectId={bentoNewsItems[17].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-4 right-4" />
+                      <EditPensil objectId={bentoNewsItems[17].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                       <CarouselStableBlock
                         items={bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]]}
                         activeIndex={bentoNewsItems[17].carouselIndex || 0}
@@ -3869,7 +3873,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[18]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[18]} bidang={bidangUntuk(bentoNewsItems[18])} onCari={cariDariEyebrow} />}</div>
                         )}
                       </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[18].publishedAt)}</span>
-                      <EditPensil objectId={bentoNewsItems[18].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-4 right-4" />
+                      <EditPensil objectId={bentoNewsItems[18].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                       <CarouselStableBlock
                         items={bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]]}
                         activeIndex={bentoNewsItems[18].carouselIndex || 0}
@@ -3944,7 +3948,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[19].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[19].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[19].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -3995,7 +3999,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[26].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[26].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[26].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -4036,7 +4040,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[20].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[20].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[20].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -4085,7 +4089,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[25].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[25].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[25].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -4164,7 +4168,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[27].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[27].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[27].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -4211,7 +4215,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[28].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[28].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[28].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
             </div>
@@ -4260,7 +4264,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[29].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[29].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[29].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -4308,7 +4312,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[30].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[30].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[30].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -4332,7 +4336,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[31]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[31]} bidang={bidangUntuk(bentoNewsItems[31])} onCari={cariDariEyebrow} />}</div>
                         )}
                       </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[31].publishedAt)}</span>
-                      <EditPensil objectId={bentoNewsItems[31].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-4 right-4" />
+                      <EditPensil objectId={bentoNewsItems[31].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                       <CarouselStableBlock
                         items={bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]]}
                         activeIndex={bentoNewsItems[31].carouselIndex || 0}
@@ -4384,7 +4388,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1" style={{ ...getCardTheme(bentoNewsItems[32]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[32]} bidang={bidangUntuk(bentoNewsItems[32])} onCari={cariDariEyebrow} />}</div>
                         )}
                       </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[32].publishedAt)}</span>
-                      <EditPensil objectId={bentoNewsItems[32].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-4 right-4" />
+                      <EditPensil objectId={bentoNewsItems[32].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                       <CarouselStableBlock
                         items={bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]]}
                         activeIndex={bentoNewsItems[32].carouselIndex || 0}
@@ -4459,7 +4463,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[33].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[33].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[33].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -4509,7 +4513,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[34].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[34].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[34].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -4550,7 +4554,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       )}
                     </FooterHeightLock>
                   </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[37].publishedAt)}</span>
-                  <EditPensil objectId={bentoNewsItems[37].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                  <EditPensil objectId={bentoNewsItems[37].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                 </div>
               )}
 
@@ -4599,7 +4603,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         )}
                       </FooterHeightLock>
                     </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[35].publishedAt)}</span>
-                    <EditPensil objectId={bentoNewsItems[35].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                    <EditPensil objectId={bentoNewsItems[35].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                   </div>
                 )}
 
@@ -4646,7 +4650,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         )}
                       </FooterHeightLock>
                     </BentoInner><span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[36].publishedAt)}</span>
-                    <EditPensil objectId={bentoNewsItems[36].objectId} role={currentEditoriumRole} navigate={navigate} posisi="bottom-6 right-6" />
+                    <EditPensil objectId={bentoNewsItems[36].objectId} role={currentEditoriumRole} posisi="bottom-6 right-6" />
                   </div>
                 )}
               </div>
