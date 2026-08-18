@@ -5,6 +5,7 @@ import { User, Entry, SystemSettings } from '../../types';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays, safeParseInline, setGlosSelariAktif, setTypographyRulesAktif } from '../../utils';
 import { setPemenggalanPengecualian } from '../../../core/editorial/PemenggalSukuKata.js';
+import { JENIS_ANIMASI_ASAS, pilihJenisRawak } from '../../../core/editorial/AnimasiConfig.js';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, X, Lock, Search, Pencil } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
@@ -474,7 +475,7 @@ const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
   warnaPanelUntukSlot: () => '#802334',
   kelajuanUntukSlot: () => 1,
   logoModeUntukSlot: () => '',
-  jenisAnimasiRawakPool: ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'],
+  jenisAnimasiRawakPool: JENIS_ANIMASI_ASAS,
 };
 const JenisAnimasiContext = createContext<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
 
@@ -624,8 +625,8 @@ const EditPensil: React.FC<{
       type="button"
       onClick={(e) => { e.stopPropagation(); window.open(`/editorium?tab=kandungan&sub=semakan&itemId=${objectId}`, '_blank', 'noopener'); }}
       className={`absolute ${posisi} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
-      aria-label="Edit kandungan ini (buka tab baharu)"
-      title="Edit kandungan ini (buka tab baharu)"
+      aria-label="Sunting kandungan ini (buka tab baharu)"
+      title="Sunting kandungan ini (buka tab baharu)"
     >
       <Pencil className="w-3 h-3" />
     </button>
@@ -822,8 +823,7 @@ const CarouselStableBlock: React.FC<{
     const kadUntukJenis = (containerRef.current?.closest('[data-slot]') as HTMLElement | null) || containerRef.current;
     let jenisEfektif = animasiAktif ? jenisAnimasiUntukSlot(kadUntukJenis?.getAttribute('data-slot')) : 'pudar';
     if (jenisEfektif === 'rawak') {
-      const kolam = jenisAnimasiRawakPool.length ? jenisAnimasiRawakPool : ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'];
-      jenisEfektif = kolam[Math.floor(Math.random() * kolam.length)];
+      jenisEfektif = pilihJenisRawak(jenisAnimasiRawakPool);
       setJenisRawakSemasa(jenisEfektif);
     }
     // Kelajuan/warna/logo EFEKTIF slot ni (Pelan 03) — sama corak seperti jenisEfektif di atas.
@@ -1989,7 +1989,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [tetapanAnimasiMentah, setTetapanAnimasiMentah] = useState({
     jenisAnimasi: 'colophon', arahAnimasi: 'kanan', warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0,
     animasiAktif: true, kelajuanAnimasi: 1, modWarnaPanel: 'pelbagai',
-    jenisAnimasiRawakPool: ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'] as string[],
+    jenisAnimasiRawakPool: JENIS_ANIMASI_ASAS as string[],
   });
   // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL, bukan per-Bidang/tier.
   // Lalai 1 / 15px sepadan kelakuan sedia ada sekiranya panggilan gagal.
@@ -2010,7 +2010,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             modWarnaPanel: d.modWarnaPanel === 'seragam' ? 'seragam' : 'pelbagai',
             jenisAnimasiRawakPool: Array.isArray(d.jenisAnimasiRawakPool) && d.jenisAnimasiRawakPool.length
               ? d.jenisAnimasiRawakPool
-              : ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'],
+              : JENIS_ANIMASI_ASAS,
           });
           setTetapanFontFocusView({
             titleSizeScale: Number(d.focusViewTitleScale) || 1,
@@ -2121,7 +2121,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const jenisAnimasiOverridePerSlot = React.useMemo(() => {
     const m: Record<string, string> = {};
     for (const s of slotsConfig) {
-      if (s && s.jenisAnimasiOverride && ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'].includes(s.jenisAnimasiOverride)) {
+      if (s && s.jenisAnimasiOverride && JENIS_ANIMASI_ASAS.includes(s.jenisAnimasiOverride)) {
         m[String(s.slotIndex)] = s.jenisAnimasiOverride;
       }
     }

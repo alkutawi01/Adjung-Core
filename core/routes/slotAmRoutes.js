@@ -1,6 +1,7 @@
 import express from 'express';
 import { setMedanLimits } from '../editorial/ContentBudget.js';
 import { setMedanLimitOverrides, MIN_BRIEF_LONG_CHARS } from '../editorial/GeometryConfig.js';
+import { JENIS_ANIMASI_ASAS, JENIS_ANIMASI_RAWAK } from '../editorial/AnimasiConfig.js';
 import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 
@@ -73,7 +74,7 @@ export const AM_DEFAULTS = {
   // animasi setiap pusingan tak?"). Terpakai HANYA bila jenisAnimasi==='rawak' — subset SAH
   // JENIS_ANIMASI di bawah, boleh dilaraskan editor (checkbox, TetapanAmSlotConsole.tsx). Lalai
   // SEMUA 4 jenis supaya mod Rawak "penuh" secara lalai bila dipilih julung kali.
-  jenisAnimasiRawakPool: ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'],
+  jenisAnimasiRawakPool: JENIS_ANIMASI_ASAS,
 };
 
 // Tiga jenis animasi carousel yang dilaksanakan sebenar dalam kod (2026-08-04, Fasa 7 — spesifikasi
@@ -99,7 +100,7 @@ export const JENIS_ANIMASI = [
   // jenis di atas SECARA RAWAK setiap kali carousel bertukar pusingan (kolam pilihan boleh
   // dilaraskan editor, lihat jenisAnimasiRawakPool). Pemilihan sebenar berlaku client-side
   // (FrontpageView.tsx CarouselStableBlock) — pelayan cuma simpan/sah pilihan 'rawak' + kolam ni.
-  { nilai: 'rawak', label: 'Rawak (jenis berbeza setiap pusingan)' },
+  { nilai: JENIS_ANIMASI_RAWAK, label: 'Rawak (jenis berbeza setiap pusingan)' },
 ];
 
 // Arah panel Colophon/Sapuan Lajur (2026-08-05, permintaan Izzat) — terpakai pada KEDUA-DUA jenis
@@ -165,7 +166,7 @@ export const loadAmSettings = async (dbGet) => {
           try {
             const parsed = JSON.parse(row.jenisAnimasiRawakPool || '[]');
             const sah = Array.isArray(parsed)
-              ? parsed.filter(v => JENIS_ANIMASI.some(j => j.nilai === v && j.nilai !== 'rawak'))
+              ? parsed.filter(v => JENIS_ANIMASI.some(j => j.nilai === v && j.nilai !== JENIS_ANIMASI_RAWAK))
               : [];
             return sah.length ? sah : AM_DEFAULTS.jenisAnimasiRawakPool;
           } catch {
@@ -263,7 +264,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         // kosong = carousel senyap tiada animasi terpapar langsung.
         jenisAnimasiRawakPool: (() => {
           const senarai = Array.isArray(b.jenisAnimasiRawakPool)
-            ? b.jenisAnimasiRawakPool.filter(v => JENIS_ANIMASI.some(j => j.nilai === v && j.nilai !== 'rawak'))
+            ? b.jenisAnimasiRawakPool.filter(v => JENIS_ANIMASI.some(j => j.nilai === v && j.nilai !== JENIS_ANIMASI_RAWAK))
             : [];
           return senarai.length ? senarai : AM_DEFAULTS.jenisAnimasiRawakPool;
         })(),

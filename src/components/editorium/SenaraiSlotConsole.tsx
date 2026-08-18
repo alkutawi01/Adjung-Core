@@ -18,6 +18,7 @@ import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
 import {
   GEOMETRY_RATIOS, TIER_SLOTS, TIER_LABELS, TIER_LABEL_IS_ENGLISH, tierForSlot,
 } from '../../../core/editorial/GeometryConfig.js';
+import { JENIS_ANIMASI_ASAS, pilihJenisRawak } from '../../../core/editorial/AnimasiConfig.js';
 
 // Senarai Slot (2026-07-30, permintaan pemilik projek) — satu jadual, satu baris satu slot,
 // memaparkan segala yang mentakrifkan slot itu.
@@ -182,7 +183,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
   // sendiri (jenisAnimasiOverride='') boleh jatuh balik ke jenisAnimasi am, yang kini boleh
   // bernilai 'rawak' — pratonton Tetapan Kad perlu tahu kolam ni utk resolusi jujur (§4 corak
   // sama TetapanAmSlotConsole.tsx).
-  const [amJenisAnimasiRawakPool, setAmJenisAnimasiRawakPool] = useState<string[]>(['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun']);
+  const [amJenisAnimasiRawakPool, setAmJenisAnimasiRawakPool] = useState<string[]>(JENIS_ANIMASI_ASAS);
   useEffect(() => {
     let dibatal = false;
     fetch('/api/system/slot-am-settings')
@@ -1074,12 +1075,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
           <AnimasiPratonton
             jenis={
               jenisEfektifSlot === 'rawak'
-                ? () => {
-                    const kolam = amJenisAnimasiRawakPool.length
-                      ? amJenisAnimasiRawakPool
-                      : ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'];
-                    return kolam[Math.floor(Math.random() * kolam.length)];
-                  }
+                ? () => pilihJenisRawak(amJenisAnimasiRawakPool)
                 : jenisEfektifSlot
             }
             arah={arahEfektifSlot}

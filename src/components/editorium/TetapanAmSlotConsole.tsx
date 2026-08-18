@@ -10,6 +10,7 @@ import { Button } from '../common/Button';
 import { FormColumn } from '../common/FormColumn';
 import { AnimasiPratonton } from './AnimasiPratonton';
 import { tierForSlot, TIER_LABELS } from '../../../core/editorial/GeometryConfig.js';
+import { pilihJenisRawak } from '../../../core/editorial/AnimasiConfig.js';
 import { muatPindaanMedanLimit } from '../../config/medanLimitOverrides';
 
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
@@ -580,8 +581,9 @@ export const TetapanAmSlotConsole: React.FC = () => {
                 Kolam jenis untuk mod Rawak
               </span>
               <p className="text-stone-400 text-[10px] leading-relaxed">
-                Setiap kali carousel slot bertukar kandungan, SATU jenis dipilih rawak drpd
-                senarai ditanda di bawah. Sekurang-kurangnya satu mesti kekal ditanda.
+                Setiap kali carousel slot bertukar kandungan, SATU jenis dipilih secara rawak
+                daripada senarai yang ditanda di bawah. Sekurang-kurangnya satu mesti kekal
+                ditanda.
               </p>
               <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                 {(draf.jenisAnimasiPilihan || []).filter(j => j.nilai !== 'rawak').map(j => {
@@ -661,13 +663,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
                 !draf.animasiAktif
                   ? 'pudar'
                   : draf.jenisAnimasi === 'rawak'
-                    ? () => {
-                        const kolamDraf = Array.isArray(draf.jenisAnimasiRawakPool) ? draf.jenisAnimasiRawakPool : [];
-                        const kolam = kolamDraf.length
-                          ? kolamDraf
-                          : ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'];
-                        return kolam[Math.floor(Math.random() * kolam.length)];
-                      }
+                    ? () => pilihJenisRawak(Array.isArray(draf.jenisAnimasiRawakPool) ? draf.jenisAnimasiRawakPool : [])
                     : draf.jenisAnimasi
               }
               arah={draf.arahAnimasi}

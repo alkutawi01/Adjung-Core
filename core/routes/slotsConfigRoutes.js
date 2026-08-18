@@ -1,5 +1,6 @@
 import express from 'express';
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS } from '../editorial/GeometryConfig.js';
+import { JENIS_ANIMASI_ASAS } from '../editorial/AnimasiConfig.js';
 import { detectSourceType } from '../editorial/SourceDetector.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, hasPermission } from '../middleware/auth.js';
@@ -298,7 +299,9 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
 
         const arahOverrideSah = ['', 'kanan', 'kiri', 'atas', 'bawah'].includes(slot.arahOverride) ? slot.arahOverride : '';
         // Jenis animasi PER-SLOT (2026-08-07) — sanitasi sama corak macam arahOverrideSah di atas.
-        const jenisAnimasiOverrideSah = ['', 'pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'].includes(slot.jenisAnimasiOverride) ? slot.jenisAnimasiOverride : '';
+        // Override per-slot SENGAJA terhad kepada JENIS_ANIMASI_ASAS sahaja (TIADA 'rawak') —
+        // 'rawak' cuma pilihan GLOBAL (Tetapan Am Slot) buat masa ni.
+        const jenisAnimasiOverrideSah = ['', ...JENIS_ANIMASI_ASAS].includes(slot.jenisAnimasiOverride) ? slot.jenisAnimasiOverride : '';
         // Warna panel / kelajuan / logo transisi PER-SLOT (2026-08-07, Pelan 03) — sanitasi corak
         // SAMA seperti dua di atas: nilai tak sah jatuh ke '' (warisi tetapan am), bukan ralat 500.
         // Ini penting sebab '' ialah keadaan lalai yang sah, jadi menolak input rosak dengan
