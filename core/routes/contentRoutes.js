@@ -32,6 +32,29 @@ async function tetapkanSebabMenunggu(dbGet, dbRun, objectId, revisionId, nilai) 
   }
 }
 
+// Pembantu pemilikan kandungan kongsi (2026-08-18) — semakan "adakah SAYA penulis asal
+// kandungan ni" disalin 4 kali merentasi fail ni dengan peraturan TAK KONSISTEN (3 tapak guna
+// padanan tepat sensitif-huruf, 1 tapak guna LOWER(TRIM(...)) dalam SQL) — akibat sebenar:
+// editor yang `penName` sesi berbeza huruf besar/kecil atau ada ruang lampau berbanding
+// `editorName` tersimpan boleh terkunci daripada kandungan SENDIRI. Satu takrifan sahaja,
+// dipangkas + huruf-kecil kedua-dua belah (padan corak SQL LOWER(TRIM(...)) yang sedia ada di
+// tapak lastPublishedAt — itu yang paling betul, bukan dua tapak strict di bawah).
+async function penulisAsalKandungan(dbGet, objectId, revisionId) {
+  const row = await dbGet(
+    "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'editorName'",
+    [objectId, revisionId]
+  );
+  return ((row && row.valueText) || '').trim();
+}
+function namaSepadan(a, b) {
+  const ta = (a || '').trim().toLowerCase();
+  const tb = (b || '').trim().toLowerCase();
+  return !!ta && !!tb && ta === tb;
+}
+function namaSayaSesi(req) {
+  return (req.session?.user?.penName || req.session?.user?.username || '').trim();
+}
+
 // Naik taraf AUTOMATIK kandungan 'slot_penuh' bila ruang berkosong dalam slot (2026-08-06) —
 // dipanggil selepas MANA-MANA tindakan yang mengurangkan kiraan 'approved' sesuatu slot (Arkib
 // manual, Tolak-ke-draf, Luput berjadual — lihat setiap tapak panggilan). Naikkan SATU sahaja
@@ -562,6 +585,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         return res.status(400).json({ error: 'Status "dipadam" hanya melalui tindakan Padam (Tong Sampah), bukan kemas kini status terus.' });
       }
 
+      // Ticker SENGAJA TERKECUALI daripada gerbang pemilikan + `editOwn` di bawah (2026-08-18,
+      // keputusan Izzat eksplisit) — item ticker ditarik automatik daripada suapan RSS, bukan
+      // tulisan editor, jadi konsep "pemilikan kandungan" tidak bermakna di sini. Ini keputusan
+      // SEDAR, bukan terlepas pandang — JANGAN tambah semakan pemilikan/`editOwn` ke cawangan ni
+      // tanpa arahan baharu Izzat.
       if (id.startsWith('ticker-')) {
         if (status !== undefined) {
           return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah. Buang baris tu terus daripada tetapan ticker untuk menariknya balik.' });
@@ -617,27 +645,26 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // Editor/Penolong (manageEditorial) KEKAL penuh (tindakan Indeks — arkib/tolak/dsb. perlu
       // terus berfungsi), Editor biasa hanya boleh sunting kandungan sendiri.
       if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
-        // Togol `editOwn` (2026-08-18, Izzat: "boleh benarkan editor sunting kandungan sendiri...
-        // mcm ketua editor benarkan editor terbitkan tanpa kelulusan") — kunci ni SUDAH wujud
-        // dalam matriks RBAC + checkbox "Edit Sendiri" (Kawalan Akses, TetapanConsole.tsx:1152)
-        // sejak Fasa 3, tapi tak pernah dibaca laluan ni — nyahtanda ia langsung tak buat apa-apa,
-        // editor kekal boleh sunting kandungan sendiri tanpa mengira togol (pepijat lama tercicir,
-        // bukan sengaja). Dibaiki: `editOwn=false` sekat suntingan sendiri SEPENUHNYA (kena Ketua
-        // Editor/Penolong), `editOwn=true` (lalai) kekalkan gerbang pemilikan sedia ada di bawah.
-        if (!hasPermission(req.session?.user?.roles, 'editOwn')) {
-          return res.status(403).json({
-            error: 'Anda tiada kebenaran menyunting kandungan — sunting sendiri dinyahaktifkan buat peranan anda. Hubungi Ketua Editor/Penolong Ketua Editor.',
-          });
-        }
-        const editorNameRowPemilik = await dbGet(
-          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'editorName'",
-          [id, rev.id]
-        );
-        const penulisSedia = ((editorNameRowPemilik && editorNameRowPemilik.valueText) || '').trim();
-        const namaSayaSedia = (req.session?.user?.penName || req.session?.user?.username || '').trim();
-        if (!penulisSedia || !namaSayaSedia || penulisSedia !== namaSayaSedia) {
+        const penulisSedia = await penulisAsalKandungan(dbGet, id, rev.id);
+        const namaSayaSedia = namaSayaSesi(req);
+        if (!namaSepadan(penulisSedia, namaSayaSedia)) {
           return res.status(403).json({
             error: 'Kandungan ni ditulis editor lain — anda tiada kebenaran menyuntingnya. Hubungi Ketua Editor/Penolong Ketua Editor.',
+          });
+        }
+
+        // Togol `editOwn` "Edit Sendiri" (2026-08-18, keputusan Izzat) — sengaja SEMPIT, hanya
+        // menembak bila permintaan ni benar-benar UBAH MEDAN KANDUNGAN (tajuk/huraian/atribut).
+        // Peralihan status (Terbit/Arkib) sudah digerbang `publish` (di bawah), dan Nota Editor
+        // sudah digerbang sendiri (bawah ni juga) — kedua-duanya TAK boleh ikut terkunci sekali
+        // bila `editOwn=false`, kalau tidak togol tu bercanggah dengan togol `publish`/
+        // `manageEditorNotes` yang Ketua Editor mungkin sengaja biarkan hidup. "Edit Sendiri"
+        // bermaksud menyunting yang SEDIA ADA sahaja.
+        const adaMedanKandungan = [title, summary, desk, source, url, imageUrl, topik, briefLong, originalDate]
+          .some((v) => v !== undefined);
+        if (adaMedanKandungan && !hasPermission(req.session?.user?.roles, 'editOwn')) {
+          return res.status(403).json({
+            error: 'Anda tiada kebenaran menyunting kandungan — Edit Sendiri dinyahaktifkan untuk peranan anda. Hubungi Ketua Editor/Penolong Ketua Editor.',
           });
         }
       }
@@ -652,14 +679,9 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // Editor lain (bukan penulis, bukan KE/Penolong) tak boleh sentuh nota kandungan ni langsung.
       let notaOlehBaharu;
       if (note !== undefined) {
-        const editorNameRow = await dbGet(
-          "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'editorName'",
-          [id, rev.id]
-        );
-        const penulisAsal = ((editorNameRow && editorNameRow.valueText) || '').trim();
-        const namaSaya = (req.session?.user?.penName || req.session?.user?.username || '').trim();
+        const penulisAsal = await penulisAsalKandungan(dbGet, id, rev.id);
         const sayaKetuaEditorAtauPenolong = hasPermission(req.session?.user?.roles, 'manageEditorial');
-        const sayaPenulisAsal = !!penulisAsal && !!namaSaya && penulisAsal === namaSaya;
+        const sayaPenulisAsal = namaSepadan(penulisAsal, namaSayaSesi(req));
         if (!sayaPenulisAsal && !sayaKetuaEditorAtauPenolong) {
           return res.status(403).json({
             error: 'Nota Editor cuma boleh ditulis penulis asal kandungan ini atau Ketua Editor/Penolong Ketua Editor, daripada Indeks.',
@@ -1206,11 +1228,32 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // menghidupkan semula objek yang dipadam sambil memintas laluan Pulihkan rasmi. Sama
       // sekatan macam PATCH: Pulihkan dulu, baru sunting/pulih versi.
       const revTerkini = await dbGet(
-        "SELECT status FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1",
+        "SELECT id, status FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1",
         [id]
       );
       if (revTerkini && revTerkini.status === 'dipadam') {
         return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah. Pulihkan dahulu sebelum memulihkan versi lama.' });
+      }
+
+      // Gerbang pemilikan + `editOwn` (2026-08-18) — laluan ni MENCIPTA REVISI BAHARU daripada
+      // teks versi lama, iaitu suntingan kandungan PENUH (sama kesan seperti PATCH title/summary
+      // di atas), tapi sebelum ni langsung TIADA semakan pemilikan mahupun `editOwn` — mana-mana
+      // editor log masuk boleh memulihkan versi lama kandungan EDITOR LAIN, bertentangan terus
+      // dengan keputusan Izzat 2026-08-08 yang gerbang pemilikan PATCH dibina untuk kuatkuasakan.
+      // Dibaiki menggunakan revisi TERKINI (bukan revisi lama yang dipulihkan) sebagai rujukan
+      // pemilikan — penulis kandungan sekarang, bukan siapa menulis versi lama tu.
+      if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
+        const penulisSedia = await penulisAsalKandungan(dbGet, id, revTerkini ? revTerkini.id : oldRev.id);
+        if (!namaSepadan(penulisSedia, namaSayaSesi(req))) {
+          return res.status(403).json({
+            error: 'Kandungan ni ditulis editor lain — anda tiada kebenaran memulihkan versi lamanya. Hubungi Ketua Editor/Penolong Ketua Editor.',
+          });
+        }
+        if (!hasPermission(req.session?.user?.roles, 'editOwn')) {
+          return res.status(403).json({
+            error: 'Anda tiada kebenaran menyunting kandungan — Edit Sendiri dinyahaktifkan untuk peranan anda. Hubungi Ketua Editor/Penolong Ketua Editor.',
+          });
+        }
       }
 
       // Versi lama berstatus 'approved' terus terbit semula apabila dipulihkan — jadi ia perlukan

@@ -2982,7 +2982,7 @@ const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n'
 //     dicipta/dikemas kini sebagai baris rasmi editorial_objects/editorial_revisions, dan
 //     DIKELUARKAN daripada manualSummary — ia sekarang rekod Indeks rasmi, bukan draf lagi.
 //   - Slot Bar dikecualikan (belum disokong ciri ni — kekal 100% tingkah laku lama).
-const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, roles) => {
+const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, roles, namaSayaSesi) => {
   const items = parseManualSummaryTemplate(manualSummary || '', slotConfig);
   const isBar = TIER_SLOTS.BAR.includes(slotIndex);
 
@@ -3117,6 +3117,35 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
   // Kandungan yang mendarat sebagai 'pending' (menunggu kelulusan) dikumpul di sini dan
   // dinotifikasikan SELEPAS COMMIT (2026-08-08) — bukan dalam transaksi: notifikasi ialah rekod
   // sampingan, tak patut memegang kunci tulis DB lebih lama atau menggagalkan penerbitan sebenar.
+  // Gerbang `editOwn` "Edit Sendiri" utk kemas kini BAR sedia ada di tempat (2026-08-18) —
+  // laluan ni ialah SATU-SATUNYA sunting-di-tempat kandungan SEDIA ADA (bukan draf/Terbit
+  // biasa yang sentiasa cipta objectId baharu, lihat komen di atas) yang sebelum ni langsung
+  // tiada semakan pemilikan/`editOwn`, sebab tier ni memang "tingkah laku LAMA tidak disentuh"
+  // (2026-08-02). Disemak SEBELUM transaksi bermula (sama corak semakan bajet/pengesahan di
+  // atas — semua-atau-tiada, gagal satu item tolak keseluruhan simpanan, bukan simpanan
+  // separa). Ketua Editor/Penolong (manageEditorial) KEKAL penuh.
+  if (isBarLikeRemoval && !hasPermission(roles, 'manageEditorial')) {
+    for (const item of items) {
+      if (!item.uuid || !existingIdSet.has(item.uuid)) continue; // bukan kemas kini di tempat
+      const editorNameRow = await dbGet(
+        "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND attributeId = 'editorName' ORDER BY revisionId DESC LIMIT 1",
+        [item.uuid]
+      );
+      const penulisSedia = ((editorNameRow && editorNameRow.valueText) || '').trim().toLowerCase();
+      const namaSaya = (namaSayaSesi || '').trim().toLowerCase();
+      if (!penulisSedia || !namaSaya || penulisSedia !== namaSaya) {
+        const err = new Error(`"${(item.title || '').slice(0, 40)}...": kandungan ni ditulis editor lain — anda tiada kebenaran menyuntingnya. Hubungi Ketua Editor/Penolong Ketua Editor.`);
+        err.isValidationError = true;
+        throw err;
+      }
+      if (!hasPermission(roles, 'editOwn')) {
+        const err = new Error(`"${(item.title || '').slice(0, 40)}...": Edit Sendiri dinyahaktifkan untuk peranan anda. Hubungi Ketua Editor/Penolong Ketua Editor.`);
+        err.isValidationError = true;
+        throw err;
+      }
+    }
+  }
+
   const menungguKelulusan = [];
   // Hasil sebenar setiap kandungan diterbitkan sesi ni (LIFE-01, audit ChatGPT 2026-08-08) —
   // dahulu route caller cuma tahu "berjaya/gagal", tak tahu kandungan mendarat 'approved' atau
