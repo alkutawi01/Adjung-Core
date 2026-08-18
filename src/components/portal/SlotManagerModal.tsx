@@ -1646,7 +1646,19 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     `pratontonTerbuka`) sebab "takut makan ruang" bila slot tinggi (Hero/Menegak).
                     Warna aksen SEGI_EMPAT_MEDIUM/SEGI_EMPAT_SMALL bergantung KEDUDUKAN slot
                     (`editingSlotIndex`, padan eyebrow SEBENAR di FrontpageView.tsx, bukan agak). */}
-                {tier !== 'TICKER' && (
+                {tier !== 'TICKER' && (() => {
+                  // Sumber/tarikh PAPARAN kad — cermin peraturan SEBENAR (FrontpageView.tsx
+                  // ~baris 1894-1927, "Editorial Adjung" bila >1 sumber) yang sebelum ni TAK
+                  // dipakai di sini (2026-08-18, Izzat tangkap: kad pratonton papar "BBC"
+                  // walhal 3 sumber wujud, sepatutnya "Editorial Adjung" macam kandungan
+                  // sebenar). `current.source` (medan legasi, `selarasSumberLegasi` di atas)
+                  // SENGAJA kekal sumber PERTAMA sahaja — betul utk borang/URL sumber, tapi
+                  // SALAH utk label kad bila >1 sumber. Tarikh turut dikosongkan (sama rasional
+                  // sumber) supaya tak papar tarikh SATU sumber yg mengelirukan.
+                  const berbilangSumber = Array.isArray(current.sources) && current.sources.length > 1;
+                  const sumberPaparanKad = berbilangSumber ? 'Editorial Adjung' : current.source;
+                  const tarikhPaparanKad = berbilangSumber ? '' : current.date;
+                  return (
                   <div>
                     <button
                       type="button"
@@ -1662,7 +1674,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <KompakCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
                             }}
                             bidang={bidang}
                           />
@@ -1671,7 +1683,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <HeroCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
                             }}
                             bidang={bidang}
                           />
@@ -1680,7 +1692,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <MenegakCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
                             }}
                             bidang={bidang}
                           />
@@ -1689,7 +1701,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <StandardCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
                             }}
                             bidang={bidang}
                           />
@@ -1698,7 +1710,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <SegiEmpatMediumCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
                             }}
                             bidang={bidang}
                             aksen={[13, 27].includes(editingSlotIndex) ? 'kiri' : 'kanan'}
@@ -1708,7 +1720,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                           <SegiEmpatSmallCardPreview
                             item={{
                               title: current.title, brief: current.brief, desk, topik: current.topik,
-                              source: current.source, originalDate: current.date, imageUrl: current.image,
+                              source: sumberPaparanKad, originalDate: tarikhPaparanKad, imageUrl: current.image,
                             }}
                             bidang={bidang}
                             aksen={editingSlotIndex === 36 ? 'kelabu' : 'krem'}
@@ -1727,7 +1739,8 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                       </div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
 
                 <Field label="Topik" value={current.topik || ''} maxLen={hadTopik} onChange={(v) => patch(activeIndex, 'topik', v)} />
                 <Field label="Tajuk" value={current.title || ''} maxLen={ceiling.maxTitle} onChange={(v) => patch(activeIndex, 'title', v)} />
