@@ -38,6 +38,10 @@ interface TetapanAm {
   focusViewTitleScale: number;
   focusViewBodySize: number;
   susunanCarousel: string;
+  // Kolam jenis animasi utk mod jenisAnimasi==='rawak' (2026-08-18, soalan Izzat). Subset SAH
+  // jenisAnimasiPilihan (bukan 'rawak' sendiri) — checkbox di bawah, editor pilih sendiri, TIADA
+  // default dipaksa selain "semua 4 jenis" bila mod Rawak dipilih julung kali.
+  jenisAnimasiRawakPool: string[];
   jenisAnimasiPilihan?: { nilai: string; label: string }[];
   arahAnimasiPilihan?: { nilai: string; label: string }[];
   nisbahPenajaTransisiPilihan?: { nilai: number; label: string }[];
@@ -559,6 +563,49 @@ export const TetapanAmSlotConsole: React.FC = () => {
             {' '}(bukan di sini).
           </p>
 
+          {/* 3a-i. Kolam mod Rawak (2026-08-18, soalan Izzat: "boleh buat rawak jenis animasi
+              setiap pusingan tak?") — papar HANYA bila "Rawak" dipilih di 3a. Editor pilih SENDIRI
+              jenis mana masuk kolam (keputusan Izzat eksplisit: "jangan jadikan ini sebagai
+              default... biarkan ia jadi pilihan Ketua Editor") — bukan senarai dikunci Claude. */}
+          {draf.jenisAnimasi === 'rawak' && (
+            <div className="border border-stone-200 rounded p-3 space-y-2 bg-stone-50">
+              <span className="font-semibold text-stone-800 text-[11px] block">
+                Kolam jenis untuk mod Rawak
+              </span>
+              <p className="text-stone-400 text-[10px] leading-relaxed">
+                Setiap kali carousel slot bertukar kandungan, SATU jenis dipilih rawak drpd
+                senarai ditanda di bawah. Sekurang-kurangnya satu mesti kekal ditanda.
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                {(draf.jenisAnimasiPilihan || []).filter(j => j.nilai !== 'rawak').map(j => {
+                  const ditanda = draf.jenisAnimasiRawakPool.includes(j.nilai);
+                  return (
+                    <label key={j.nilai} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ditanda}
+                        onChange={e => setDraf(p => {
+                          if (!p) return p;
+                          const kolamBaharu = e.target.checked
+                            ? [...p.jenisAnimasiRawakPool, j.nilai]
+                            : p.jenisAnimasiRawakPool.filter(v => v !== j.nilai);
+                          // Sekat nyahtanda checkbox TERAKHIR — client-side guard, elak kolam
+                          // kosong terus di UI (server pun sah semula, tapi lebih baik editor
+                          // nampak keadaan tak sah tu MUSTAHIL berlaku langsung).
+                          if (kolamBaharu.length === 0) return p;
+                          return { ...p, jenisAnimasiRawakPool: kolamBaharu };
+                        })}
+                        disabled={!draf.animasiAktif}
+                        className="w-3.5 h-3.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer disabled:opacity-40"
+                      />
+                      <span className="text-stone-700 text-xs">{j.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* 3c. Kelajuan — baharu, permintaan eksplisit Izzat ("tetapan am seperti kelajuan").
               Terpakai pada SEMUA jenis termasuk Pudar (2026-08-16, keputusan Izzat: "kelajuan
               animasi juga sepatutnya ada. pudar sepatutnya boleh dilaraskan masa atau
@@ -595,9 +642,24 @@ export const TetapanAmSlotConsole: React.FC = () => {
             <span className="font-semibold text-stone-800 text-[11px] block mb-2">Pratonton</span>
             {/* jenis paksa 'pudar' bila togol 3 mati — sama peraturan tepat FrontpageView.tsx
                 (`jenisEfektif = animasiAktif ? ... : 'pudar'`), supaya pratonton jujur bila
-                Ketua Editor sedang uji tetapan dgn animasi dinyahaktifkan. */}
+                Ketua Editor sedang uji tetapan dgn animasi dinyahaktifkan. Mod Rawak: hantar
+                FUNGSI (bukan literal) — AnimasiPratonton panggil ia semula pada SETIAP klik
+                "Main", cerminan jujur tingkah laku sebenar carousel (jenis berbeza tiap
+                pusingan). Kolam kosong (mustahil di UI, guard checkbox di atas) jatuh balik ke
+                senarai penuh — konsisten pengesahan pelayan (slotAmRoutes.js). */}
             <AnimasiPratonton
-              jenis={draf.animasiAktif ? draf.jenisAnimasi : 'pudar'}
+              jenis={
+                !draf.animasiAktif
+                  ? 'pudar'
+                  : draf.jenisAnimasi === 'rawak'
+                    ? () => {
+                        const kolam = draf.jenisAnimasiRawakPool.length
+                          ? draf.jenisAnimasiRawakPool
+                          : ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'];
+                        return kolam[Math.floor(Math.random() * kolam.length)];
+                      }
+                    : draf.jenisAnimasi
+              }
               arah={draf.arahAnimasi}
               kelajuan={draf.kelajuanAnimasi}
               warnaPanel={draf.warnaPanelTransisi}

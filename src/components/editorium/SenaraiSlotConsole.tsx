@@ -178,6 +178,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
   // Arah LALAI am (2026-08-16, keperluan Pratonton Animasi — Tetapan Kad perlu tahu arah
   // EFEKTIF slot, sama rasional amJenis di atas).
   const [amArah, setAmArah] = useState('kanan');
+  // Kolam mod Rawak (2026-08-18) — sama rasional amJenis di atas: slot yang TAK override jenis
+  // sendiri (jenisAnimasiOverride='') boleh jatuh balik ke jenisAnimasi am, yang kini boleh
+  // bernilai 'rawak' — pratonton Tetapan Kad perlu tahu kolam ni utk resolusi jujur (§4 corak
+  // sama TetapanAmSlotConsole.tsx).
+  const [amJenisAnimasiRawakPool, setAmJenisAnimasiRawakPool] = useState<string[]>(['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun']);
   useEffect(() => {
     let dibatal = false;
     fetch('/api/system/slot-am-settings')
@@ -188,6 +193,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
         if (Number(d.kelajuanAnimasi) > 0) setAmKelajuan(Number(d.kelajuanAnimasi));
         if (typeof d.jenisAnimasi === 'string' && d.jenisAnimasi) setAmJenis(d.jenisAnimasi);
         if (typeof d.arahAnimasi === 'string' && d.arahAnimasi) setAmArah(d.arahAnimasi);
+        if (Array.isArray(d.jenisAnimasiRawakPool) && d.jenisAnimasiRawakPool.length) setAmJenisAnimasiRawakPool(d.jenisAnimasiRawakPool);
       })
       .catch(() => { /* tetapan am tak dapat dibaca — label kekal nilai lalai, bukan ralat */ });
     return () => { dibatal = true; };
@@ -658,6 +664,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
           amKelajuan={amKelajuan}
           amJenis={amJenis}
           amArah={amArah}
+          amJenisAnimasiRawakPool={amJenisAnimasiRawakPool}
           menyimpan={menyimpanTetapan}
           ralat={ralatTetapan}
           ralatKonflik={ralatTetapanKonflik}
@@ -780,6 +787,7 @@ interface TetapanSlotModalProps {
   amKelajuan: number;
   amJenis: string;
   amArah: string;
+  amJenisAnimasiRawakPool: string[];
   menyimpan: boolean;
   ralat: string | null;
   ralatKonflik: boolean;
@@ -789,12 +797,14 @@ interface TetapanSlotModalProps {
 }
 
 const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
-  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, amJenis, amArah, menyimpan, ralat, ralatKonflik,
+  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, amJenis, amArah, amJenisAnimasiRawakPool, menyimpan, ralat, ralatKonflik,
   onSalinDraf, onSimpan, onTutup,
 }) => {
   // Jenis/arah/kelajuan/warna EFEKTIF slot ni — override sendiri, atau jatuh balik ke tetapan am
   // (2026-08-16). Perlu SEMUA empat untuk Pratonton Animasi papar kesan SEBENAR slot ni, sama
-  // rasional jenisEfektifSlot yang sedia ada (Arah/3b "Tidak berkaitan").
+  // rasional jenisEfektifSlot yang sedia ada (Arah/3b "Tidak berkaitan"). Override
+  // jenisAnimasiOverride TAK PERNAH 'rawak' (senarai pilihan override sengaja terhad 4 jenis
+  // sedia ada, FrontpageView.tsx) — 'rawak' cuma boleh datang drpd `amJenis` (fallback global).
   const jenisEfektifSlot = draf.jenisAnimasiOverride || amJenis;
   const arahEfektifSlot = draf.arahOverride || amArah;
   const kelajuanEfektifSlot = Number(draf.kelajuanOverride) > 0 ? Number(draf.kelajuanOverride) : amKelajuan;
@@ -1062,7 +1072,16 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
         <div className="border border-stone-200 rounded p-3">
           <span className={`${LABEL_BORANG} block mb-2`}>Pratonton (kesan sebenar slot ini)</span>
           <AnimasiPratonton
-            jenis={jenisEfektifSlot}
+            jenis={
+              jenisEfektifSlot === 'rawak'
+                ? () => {
+                    const kolam = amJenisAnimasiRawakPool.length
+                      ? amJenisAnimasiRawakPool
+                      : ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'];
+                    return kolam[Math.floor(Math.random() * kolam.length)];
+                  }
+                : jenisEfektifSlot
+            }
             arah={arahEfektifSlot}
             kelajuan={kelajuanEfektifSlot}
             warnaPanel={warnaEfektifSlot}

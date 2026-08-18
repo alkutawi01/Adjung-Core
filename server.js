@@ -2005,6 +2005,14 @@ const initEditorialOS = (dbConn) => {
       // resolveSlotContent()). 'rawak' = susunan diacak SETIAP muat halaman.
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN susunanCarousel TEXT DEFAULT 'terbaharu'", () => {});
 
+      // Kolam jenis animasi utk mod Rawak (2026-08-18, soalan Izzat: "boleh buat rawak jenis
+      // animasi setiap pusingan tak?"). JSON-encoded array subset drpd 4 jenis animasi sedia ada
+      // (pudar/colophon/sapuan_lajur/gerak_susun) — dibaca/disahkan di core/routes/slotAmRoutes.js,
+      // dipakai client-side di FrontpageView.tsx CarouselStableBlock. Lalai kosong di lajur DB
+      // (SQLite ALTER TABLE ADD COLUMN DEFAULT tak boleh literal JSON kompleks) — loadAmSettings()
+      // jatuh balik ke AM_DEFAULTS.jenisAnimasiRawakPool (SEMUA 4 jenis) bila lajur kosong/tak sah.
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN jenisAnimasiRawakPool TEXT", () => {});
+
       // source_link_checks (2026-08-05, Fasa 8b — semakan pautan mati) — satu rekod PER URL
       // sumber unik (bukan per-kandungan; URL sama dikongsi rentas kandungan disemak sekali,
       // bukan berulang-ulang). Diisi/dikemas kini oleh core/editorial/LinkChecker.js, dibaca oleh

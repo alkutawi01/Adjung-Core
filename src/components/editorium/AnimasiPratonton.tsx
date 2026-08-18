@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play } from 'lucide-react';
 import { vektorArahOverlay, LogoTransisiAdjung } from '../portal/FrontpageView';
 
@@ -16,7 +16,11 @@ import { vektorArahOverlay, LogoTransisiAdjung } from '../portal/FrontpageView';
 // tempohGerakMs untuk Gerak Susun, tempohPudarMs untuk Pudar) — kalau nombor asas (400/550/500/900/
 // 1000) berubah di FrontpageView.tsx, kemas kini SINI SERENTAK supaya pratonton kekal jujur.
 export interface AnimasiPratontonProps {
-  jenis: string;
+  // string = jenis literal (kelakuan asal, sentiasa sama tiap main). Fungsi = resolver dipanggil
+  // SETIAP kali butang "Main" diklik (2026-08-18, mod jenisAnimasi==='rawak', soalan Izzat) —
+  // pemanggil (TetapanAmSlotConsole.tsx) hantar fungsi yg pilih rawak drpd kolam supaya tiap
+  // klik "Main" boleh papar jenis animasi BERBEZA, cerminan jujur tingkah laku sebenar carousel.
+  jenis: string | (() => string);
   arah: string;
   kelajuan: number;
   warnaPanel: string;
@@ -53,39 +57,60 @@ const LogoPanel: React.FC<{ logoMode?: string }> = ({ logoMode }) => {
 };
 
 export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah, kelajuan, warnaPanel, logoMode }) => {
+  // jenis literal RESOLVED utk render (§ prop function, komen di deklarasi prop) — bila `jenis`
+  // ialah fungsi (mod Rawak), nilai ni HANYA dikemas kini di dalam main() (klik "Main"), bukan
+  // setiap render, supaya panel semasa main tak bertukar jenis di tengah-tengah animasi sendiri.
+  const [jenisSemasa, setJenisSemasa] = useState<string>(() => (typeof jenis === 'function' ? jenis() : jenis));
   const [aktif, setAktif] = useState(0);
   const [tayang, setTayang] = useState(false);
   const [fasaGerak, setFasaGerak] = useState<'diam' | 'gerak'>('diam');
   const lain = 1 - aktif;
 
+  // Segerak drpd prop bila LITERAL (bukan mod Rawak) — editor tukar dropdown jenis, pratonton
+  // patut ikut serta-merta tanpa perlu klik Main dulu (kelakuan asal, tak berubah).
+  useEffect(() => {
+    if (typeof jenis !== 'function') setJenisSemasa(jenis);
+  }, [jenis]);
+
   const main = () => {
     if (tayang) return;
-    if (jenis === 'pudar') {
+    // Resolusi SEKALI di sini (bukan baca jenisSemasa lama) — mod Rawak pilih jenis BAHARU
+    // setiap klik. Formula masa dikira drpd `j` tempatan (bukan konst luar `masukMasa` dll di
+    // bawah, yang masih berasaskan jenisSemasa PRA-klik) supaya setTimeout dijadualkan dgn nombor
+    // yg SEPADAN jenis yg BAHARU dipilih, bukan nombor pusingan sebelumnya.
+    const j = typeof jenis === 'function' ? jenis() : jenisSemasa;
+    setJenisSemasa(j);
+    const masukMasaJ = Math.round((j === 'sapuan_lajur' ? 550 : 400) * kelajuan);
+    const tahanMasaJ = Math.round(500 * kelajuan);
+    const jumlahMasaJ = masukMasaJ * 2 + tahanMasaJ;
+    const tempohGerakMsJ = Math.round(900 * kelajuan);
+    const tempohPudarMsJ = Math.round(1000 * kelajuan);
+    if (j === 'pudar') {
       setTayang(true);
       // Timeout kosong (1 bingkai) supaya opacity 0 render dahulu sebelum transition CSS tercetus.
       window.setTimeout(() => setAktif(lain), 20);
-      window.setTimeout(() => setTayang(false), tempohPudarMs + 50);
+      window.setTimeout(() => setTayang(false), tempohPudarMsJ + 50);
       return;
     }
-    if (jenis === 'gerak_susun') {
+    if (j === 'gerak_susun') {
       setTayang(true);
       setFasaGerak('gerak');
       window.setTimeout(() => {
         setAktif(lain);
         setFasaGerak('diam');
         setTayang(false);
-      }, tempohGerakMs);
+      }, tempohGerakMsJ);
       return;
     }
     // Colophon / Sapuan Lajur — sama formula FrontpageView.tsx (masukMasa/tahanMasa/jumlahMasa).
     setTayang(true);
-    window.setTimeout(() => setAktif(lain), masukMasa);
-    window.setTimeout(() => setTayang(false), jumlahMasa);
+    window.setTimeout(() => setAktif(lain), masukMasaJ);
+    window.setTimeout(() => setTayang(false), jumlahMasaJ);
   };
 
-  // Formula masa SAMA seperti FrontpageView.tsx — dikira sekali per render, dikongsi antara
-  // main() (pemasaan sebenar) dan JSX (animationDuration dipaparkan).
-  const masukMasa = Math.round((jenis === 'sapuan_lajur' ? 550 : 400) * kelajuan);
+  // Formula masa SAMA seperti FrontpageView.tsx — dikira dari jenisSemasa (jenis literal RESOLVED
+  // semasa, lihat komen deklarasi state di atas), dikongsi dgn JSX (animationDuration dipaparkan).
+  const masukMasa = Math.round((jenisSemasa === 'sapuan_lajur' ? 550 : 400) * kelajuan);
   const tahanMasa = Math.round(500 * kelajuan);
   const jumlahMasa = masukMasa * 2 + tahanMasa;
   const tempohGerakMs = Math.round(900 * kelajuan);
@@ -117,7 +142,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
           ))}
         </div>
 
-        {tayang && (jenis === 'colophon') && (
+        {tayang && (jenisSemasa === 'colophon') && (
           <div
             className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none carousel-colophon-penuh"
             style={{ backgroundColor: warnaPanel, animationDuration: `${jumlahMasa}ms`, ...vektorArahOverlay(arah, false) }}
@@ -125,7 +150,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
             <div className="scale-[0.6]"><LogoPanel logoMode={logoMode} /></div>
           </div>
         )}
-        {tayang && (jenis === 'sapuan_lajur') && (
+        {tayang && (jenisSemasa === 'sapuan_lajur') && (
           <div
             className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none carousel-sapuan-penuh"
             style={{ backgroundColor: warnaPanel, animationDuration: `${jumlahMasa}ms`, ...vektorArahOverlay(arah, true) }}
@@ -133,7 +158,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
             <div className="scale-[0.6]"><LogoPanel logoMode={logoMode} /></div>
           </div>
         )}
-        {tayang && jenis === 'gerak_susun' && (
+        {tayang && jenisSemasa === 'gerak_susun' && (
           <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
             <div
               className="flex h-full"

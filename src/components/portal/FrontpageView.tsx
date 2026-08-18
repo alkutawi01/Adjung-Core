@@ -457,6 +457,10 @@ interface TetapanAnimasiCarousel {
   kelajuanUntukSlot: (slotIndexStr: string | null | undefined) => number;
   // 'adjung' | 'penaja' | 'tiada' | '' ('' = ikut giliran am nisbahPenajaTransisi).
   logoModeUntukSlot: (slotIndexStr: string | null | undefined) => string;
+  // Kolam jenis animasi utk mod 'rawak' (2026-08-18, soalan Izzat) — SENGAJA global sahaja (bukan
+  // per-slot, sepadan jenisAnimasi='rawak' yg juga global-sahaja buat masa ni). Dibaca oleh
+  // CarouselStableBlock HANYA bila jenisAnimasiUntukSlot(...) pulangkan 'rawak'.
+  jenisAnimasiRawakPool: string[];
 }
 const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
   jenisAnimasi: 'colophon',
@@ -470,6 +474,7 @@ const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
   warnaPanelUntukSlot: () => '#802334',
   kelajuanUntukSlot: () => 1,
   logoModeUntukSlot: () => '',
+  jenisAnimasiRawakPool: ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'],
 };
 const JenisAnimasiContext = createContext<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
 
@@ -629,7 +634,14 @@ const CarouselStableBlock: React.FC<{
   renderItem: (item: any) => React.ReactNode;
   onNavigate?: (direction: 1 | -1) => void;
 }> = ({ items, activeIndex, renderItem, onNavigate }) => {
-  const { jenisAnimasi, warnaPanelTransisi, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot, animasiAktif, kelajuanAnimasi, warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot } = useContext(JenisAnimasiContext);
+  const { jenisAnimasi, warnaPanelTransisi, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot, animasiAktif, kelajuanAnimasi, warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot, jenisAnimasiRawakPool } = useContext(JenisAnimasiContext);
+  // Jenis animasi RAWAK dipilih utk pusingan SEMASA (2026-08-18, soalan Izzat) — ditetapkan SEKALI
+  // dalam useEffect di bawah bila jenisEfektif==='rawak', dibaca (bukan dikira semula) semasa
+  // render supaya effect (mulakan timer/overlay) dan render (papar JSX overlay) SENTIASA sepadan
+  // utk SATU pusingan yg sama. Kalau effect dan render masing-masing panggil Math.random() sendiri,
+  // ia boleh hasilkan jenis BERBEZA — overlay timer jalan utk satu jenis, JSX render jenis lain,
+  // animasi pecah/tak sepadan.
+  const [jenisRawakSemasa, setJenisRawakSemasa] = useState<string | null>(null);
   // Logo dipetik SEKALI setiap kali transisi bermula (bukan setiap render) — kalau dipanggil
   // ambilLogoTransisi() terus dalam JSX, ia maju giliran pada SETIAP render (banyak kali sepanjang
   // 1.3s/1.6s animasi), bukan sekali setiap pertukaran kandungan.
@@ -804,7 +816,12 @@ const CarouselStableBlock: React.FC<{
     // dinyahaktifkan, SEMUA slot paksa 'pudar' (kelakuan asal tanpa panel), tak kira pilihan
     // lain (2026-08-07, permintaan Izzat eksplisit).
     const kadUntukJenis = (containerRef.current?.closest('[data-slot]') as HTMLElement | null) || containerRef.current;
-    const jenisEfektif = animasiAktif ? jenisAnimasiUntukSlot(kadUntukJenis?.getAttribute('data-slot')) : 'pudar';
+    let jenisEfektif = animasiAktif ? jenisAnimasiUntukSlot(kadUntukJenis?.getAttribute('data-slot')) : 'pudar';
+    if (jenisEfektif === 'rawak') {
+      const kolam = jenisAnimasiRawakPool.length ? jenisAnimasiRawakPool : ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'];
+      jenisEfektif = kolam[Math.floor(Math.random() * kolam.length)];
+      setJenisRawakSemasa(jenisEfektif);
+    }
     // Kelajuan/warna/logo EFEKTIF slot ni (Pelan 03) — sama corak seperti jenisEfektif di atas.
     const kelajuanEfektif = kelajuanUntukSlot(kadUntukJenis?.getAttribute('data-slot'));
 
@@ -915,8 +932,11 @@ const CarouselStableBlock: React.FC<{
   const arahEfektif = arahUntukSlot(kadPenuhStabil?.getAttribute('data-slot'));
   // Jenis animasi EFEKTIF utk RENDER (cermin pengiraan sama dlm useEffect di atas, dikira semula
   // di sini sebab render dan effect ialah dua konteks berasingan) — togol animasiAktif MENGATASI
-  // pilihan per-slot/global.
-  const jenisEfektifRender = animasiAktif ? jenisAnimasiUntukSlot(kadPenuhStabil?.getAttribute('data-slot')) : 'pudar';
+  // pilihan per-slot/global. 'rawak' SENGAJA TAK re-roll di sini — baca `jenisRawakSemasa`
+  // ditetapkan effect di atas (lihat komen di deklarasi state), jamin render sepadan effect utk
+  // pusingan yg sama (bukan pilihan rawak KEDUA yang berpotensi berbeza drpd effect).
+  const jenisEfektifRenderMentah = animasiAktif ? jenisAnimasiUntukSlot(kadPenuhStabil?.getAttribute('data-slot')) : 'pudar';
+  const jenisEfektifRender = jenisEfektifRenderMentah === 'rawak' ? (jenisRawakSemasa || 'pudar') : jenisEfektifRenderMentah;
   // Warna panel & kelajuan EFEKTIF slot ni (Pelan 03) — cermin jenisEfektifRender di atas.
   const kelajuanEfektifRender = kelajuanUntukSlot(kadPenuhStabil?.getAttribute('data-slot'));
   const warnaPanelEfektif = warnaPanelUntukSlot(kadPenuhStabil?.getAttribute('data-slot'));
@@ -1944,6 +1964,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   const [tetapanAnimasiMentah, setTetapanAnimasiMentah] = useState({
     jenisAnimasi: 'colophon', arahAnimasi: 'kanan', warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0,
     animasiAktif: true, kelajuanAnimasi: 1, modWarnaPanel: 'pelbagai',
+    jenisAnimasiRawakPool: ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'] as string[],
   });
   // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL, bukan per-Bidang/tier.
   // Lalai 1 / 15px sepadan kelakuan sedia ada sekiranya panggilan gagal.
@@ -1962,6 +1983,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             animasiAktif: d.animasiAktif !== 0,
             kelajuanAnimasi: Number(d.kelajuanAnimasi) || 1,
             modWarnaPanel: d.modWarnaPanel === 'seragam' ? 'seragam' : 'pelbagai',
+            jenisAnimasiRawakPool: Array.isArray(d.jenisAnimasiRawakPool) && d.jenisAnimasiRawakPool.length
+              ? d.jenisAnimasiRawakPool
+              : ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'],
           });
           setTetapanFontFocusView({
             titleSizeScale: Number(d.focusViewTitleScale) || 1,

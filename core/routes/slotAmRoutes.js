@@ -69,6 +69,11 @@ export const AM_DEFAULTS = {
   // muat halaman (resolveSlotContent dipanggil segar setiap permintaan GET /layout/active, jadi
   // acak di situ = acak setiap kunjungan/refresh, bukan sekali sahaja).
   susunanCarousel: 'terbaharu',
+  // Kolam jenis animasi utk mod 'rawak' (2026-08-18, soalan Izzat: "boleh buat rawak jenis
+  // animasi setiap pusingan tak?"). Terpakai HANYA bila jenisAnimasi==='rawak' — subset SAH
+  // JENIS_ANIMASI di bawah, boleh dilaraskan editor (checkbox, TetapanAmSlotConsole.tsx). Lalai
+  // SEMUA 4 jenis supaya mod Rawak "penuh" secara lalai bila dipilih julung kali.
+  jenisAnimasiRawakPool: ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'],
 };
 
 // Tiga jenis animasi carousel yang dilaksanakan sebenar dalam kod (2026-08-04, Fasa 7 — spesifikasi
@@ -90,6 +95,11 @@ export const JENIS_ANIMASI = [
   // Kandungan lama bergerak keluar, diekori logo Adjung/penaja, diekori kandungan baharu — satu
   // regangan bergerak berterusan, arah kanan/kiri sahaja (tiada atas/bawah, ikut spesifikasi).
   { nilai: 'gerak_susun', label: 'Gerak Susun (kandungan+logo bergerak berturutan)' },
+  // Rawak (2026-08-18, soalan Izzat) — BUKAN jenis animasi sendiri, ia arahan pilih SATU drpd 4
+  // jenis di atas SECARA RAWAK setiap kali carousel bertukar pusingan (kolam pilihan boleh
+  // dilaraskan editor, lihat jenisAnimasiRawakPool). Pemilihan sebenar berlaku client-side
+  // (FrontpageView.tsx CarouselStableBlock) — pelayan cuma simpan/sah pilihan 'rawak' + kolam ni.
+  { nilai: 'rawak', label: 'Rawak (jenis berbeza setiap pusingan)' },
 ];
 
 // Arah panel Colophon/Sapuan Lajur (2026-08-05, permintaan Izzat) — terpakai pada KEDUA-DUA jenis
@@ -151,6 +161,17 @@ export const loadAmSettings = async (dbGet) => {
         focusViewTitleScale: Number(row.focusViewTitleScale) || 1,
         focusViewBodySize: Number(row.focusViewBodySize) || 15,
         susunanCarousel: row.susunanCarousel === 'rawak' ? 'rawak' : 'terbaharu',
+        jenisAnimasiRawakPool: (() => {
+          try {
+            const parsed = JSON.parse(row.jenisAnimasiRawakPool || '[]');
+            const sah = Array.isArray(parsed)
+              ? parsed.filter(v => JENIS_ANIMASI.some(j => j.nilai === v && j.nilai !== 'rawak'))
+              : [];
+            return sah.length ? sah : AM_DEFAULTS.jenisAnimasiRawakPool;
+          } catch {
+            return AM_DEFAULTS.jenisAnimasiRawakPool;
+          }
+        })(),
       };
     }
     // Pengesahan simpan (validateMedanTambahan) berjalan secara sync, jadi ia baca cache
@@ -236,6 +257,16 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         focusViewTitleScale: TITLE_SCALE_SAH.includes(Number(b.focusViewTitleScale)) ? Number(b.focusViewTitleScale) : 1,
         focusViewBodySize: BODY_SIZE_SAH.includes(Number(b.focusViewBodySize)) ? Number(b.focusViewBodySize) : 15,
         susunanCarousel: b.susunanCarousel === 'rawak' ? 'rawak' : 'terbaharu',
+        // Kolam mod Rawak (§ jenisAnimasi==='rawak') — subset SAH JENIS_ANIMASI (bukan 'rawak'
+        // sendiri, elak kolam rekursif tak bermakna), minimum 1 elemen. Kosong/tak sah jatuh
+        // balik ke lalai PENUH (bukan array kosong) — elak keadaan "Rawak" terpilih tapi kolam
+        // kosong = carousel senyap tiada animasi terpapar langsung.
+        jenisAnimasiRawakPool: (() => {
+          const senarai = Array.isArray(b.jenisAnimasiRawakPool)
+            ? b.jenisAnimasiRawakPool.filter(v => JENIS_ANIMASI.some(j => j.nilai === v && j.nilai !== 'rawak'))
+            : [];
+          return senarai.length ? senarai : AM_DEFAULTS.jenisAnimasiRawakPool;
+        })(),
       };
 
       // Silang sah min <= max (2026-08-07) — kedua-dua ditetapkan (bukan 0) mesti julat SAH,
@@ -257,8 +288,8 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi, animasiAktif, kelajuanAnimasi,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           hadHuraianPanjangMin, hadSumberMin, hadTopikMin, hadNotaEditorMin,
-          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, jenisAnimasiRawakPool, updatedAt
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -281,6 +312,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           focusViewTitleScale = excluded.focusViewTitleScale,
           focusViewBodySize = excluded.focusViewBodySize,
           susunanCarousel = excluded.susunanCarousel,
+          jenisAnimasiRawakPool = excluded.jenisAnimasiRawakPool,
           updatedAt = excluded.updatedAt
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
@@ -289,6 +321,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         baharu.hadHuraianPanjangMin, baharu.hadSumberMin, baharu.hadTopikMin, baharu.hadNotaEditorMin,
         baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi, baharu.modWarnaPanel,
         baharu.focusViewTitleScale, baharu.focusViewBodySize, baharu.susunanCarousel,
+        JSON.stringify(baharu.jenisAnimasiRawakPool),
         new Date().toISOString(),
       ]);
 
