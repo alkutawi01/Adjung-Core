@@ -792,6 +792,31 @@ h1, h2, h3, h4, h5, h6, p {
   }
 }
 
+/* Banner Pengumuman header (2026-08-18) — slide-down+fade masuk, teks skrol berterusan
+   (marquee) supaya banner boleh kekal SATU baris tak kira panjang teks, tanpa had aksara. */
+@keyframes pengumumanBannerMasuk {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pengumumanMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.pengumuman-banner-masuk {
+  animation: pengumumanBannerMasuk 400ms ease-out;
+}
+.pengumuman-marquee {
+  animation: pengumumanMarquee linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pengumuman-banner-masuk {
+    animation-duration: 0.01ms !important;
+  }
+  .pengumuman-marquee {
+    animation: none !important;
+  }
+}
+
 /* Microanimation ikon Focus View (2026-08-07, permintaan Izzat — "tambah microanimation di full
    screen view, mcm anak panah navigasi bertukar warna bila dihover, logo media sosial dll.").
    Diguna pakai SAMA RATA merentasi semua butang ikon-sahaja Focus View (nav ATAS/BAWAH, togol

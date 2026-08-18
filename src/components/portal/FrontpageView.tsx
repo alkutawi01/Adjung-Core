@@ -410,6 +410,74 @@ export const BentoInner: React.FC<{ itemKey: string; className?: string; aiProvi
 
 
 
+// Banner Pengumuman header (2026-08-18, permintaan Izzat) — jalur nipis merentasi lebar penuh di
+// atas wordmark, papar SATU pengumuman paling baharu (skop 'pengumuman') sebagai teks skrol
+// (marquee) SATU baris tanpa had aksara/potong. Pangkah (X) diingati per-pengumuman via
+// localStorage (bukan sesi/cookie) — sekali ditutup, tak muncul lagi untuk pembaca tu sehingga
+// pengumuman BAHARU diterbitkan (id berubah = kunci localStorage berubah = muncul semula).
+const PengumumanBanner: React.FC = () => {
+  const [nota, setNota] = React.useState<{ id: string; teks: string } | null>(null);
+  const [tertutup, setTertutup] = React.useState(false);
+
+  React.useEffect(() => {
+    let dibatal = false;
+    fetch('/api/public/editor-notes?type=pengumuman')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: any[]) => {
+        if (dibatal || !Array.isArray(data) || data.length === 0) return;
+        const terkini = [...data].sort(
+          (a, b) => new Date(b.dibuatPada || 0).getTime() - new Date(a.dibuatPada || 0).getTime()
+        )[0];
+        const teks = typeof terkini?.kandungan === 'string' ? terkini.kandungan : '';
+        if (!terkini?.id || !teks.trim()) return;
+        try {
+          if (localStorage.getItem(`adjung_pengumuman_tutup_${terkini.id}`) === '1') return;
+        } catch { /* localStorage tak tersedia — papar sahaja, gagal selamat */ }
+        setNota({ id: terkini.id, teks });
+      })
+      .catch(() => { /* senyap — banner bukan ciri kritikal, jangan pecahkan frontpage */ });
+    return () => { dibatal = true; };
+  }, []);
+
+  if (!nota || tertutup) return null;
+
+  const tutup = () => {
+    setTertutup(true);
+    try { localStorage.setItem(`adjung_pengumuman_tutup_${nota.id}`, '1'); } catch { /* abaikan */ }
+  };
+
+  // Kelajuan marquee berkadar panjang teks supaya kelajuan (piksel/saat) kekal tekal tak kira
+  // pengumuman pendek atau panjang, bukan tempoh tetap yang buat teks pendek terlalu perlahan.
+  const tempohMarqueeS = Math.max(12, Math.min(60, nota.teks.length * 0.16));
+
+  return (
+    <div className="w-full bg-[#802334] text-white overflow-hidden pengumuman-banner-masuk">
+      <div className="max-w-5xl mx-auto w-full flex items-center gap-3 px-4 md:px-8 py-2">
+        <span className="font-sans text-[10px] md:text-[11px] font-semibold uppercase tracking-wide shrink-0 text-white/90">
+          Pengumuman
+        </span>
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div
+            className="pengumuman-marquee inline-flex whitespace-nowrap font-sans text-xs md:text-[13px]"
+            style={{ animationDuration: `${tempohMarqueeS}s` }}
+          >
+            <span className="pr-20">{nota.teks}</span>
+            <span className="pr-20" aria-hidden="true">{nota.teks}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={tutup}
+          aria-label="Tutup pengumuman"
+          className="shrink-0 text-white/80 hover:text-white transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // Jenis animasi transisi carousel (Fasa 7, 2026-08-04) — dibekalkan oleh FrontpageView sekali di
 // peringkat atas (satu fetch /api/system/slot-am-settings), dibaca di sini via Context supaya
 // TIDAK perlu ubah 30 tapak panggilan CarouselStableBlock sedia ada satu-satu (struktur JSX
@@ -2745,6 +2813,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         SENDIRI di setiap tapak (badge tarikh siaran, anak panah carousel, dsb.), jadi buang
         select-none akar ni tak jejaskan elemen hiasan tu langsung. */}
     <div className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-4 animate-fade-in">
+
+      <PengumumanBanner />
 
       <div className="max-w-5xl mx-auto w-full flex-1">
 
