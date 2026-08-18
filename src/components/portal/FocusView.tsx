@@ -825,7 +825,14 @@ export const FocusView: React.FC<FocusViewProps> = ({
           alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--stone-300)',
         }}>
           <span />
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
+          {onClose ? (
+            <button type="button" onClick={onClose} aria-label="Kembali ke halaman utama" style={{
+              fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)',
+              justifySelf: 'center', background: 'none', border: 0, padding: 0, cursor: 'pointer',
+            }}>{wordmark}</button>
+          ) : (
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
+          )}
           {onClose && (
             <button {...closeProps} style={{
               justifySelf: 'end', background: 'none', border: 0, padding: 0, cursor: 'pointer',
@@ -1160,7 +1167,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
             </Tooltip>
           )}
         </span>
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
+        {onClose ? (
+          <button type="button" onClick={onClose} aria-label="Kembali ke halaman utama" style={{
+            fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)',
+            color: 'var(--color-Adjung-maroon)', justifySelf: 'center', background: 'none', border: 0,
+            padding: 0, cursor: 'pointer',
+          }}>{wordmark}</button>
+        ) : (
+          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
+        )}
         {onClose && (
           <button {...closeProps} className="fv-icon-btn" style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
