@@ -2743,11 +2743,14 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     // dalam pemboleh ubah tempatan di sini (bukan objek `fields` seperti ManualBlockFormat.js),
     // jadi guna penyetel bernama supaya baris sambungan tahu ke mana hendak ditambah.
     let medanSemasa = null;
+    // (2026-08-18) Elak '\n' hadapan berlebihan bila baris NILAI PERTAMA berada pada baris
+    // berasingan drpd labelnya ("Huraian ringkas:\nteks..." — bukan sebaris) — lihat nota sama
+    // di ManualBlockFormat.js.
     const tambahSambungan = (teks) => {
-      if (medanSemasa === 'briefLong') briefLong += '\n' + teks;
-      else if (medanSemasa === 'brief') brief += '\n' + teks;
-      else if (medanSemasa === 'note') note += '\n' + teks;
-      else if (medanSemasa === 'penerangan') penerangan += '\n' + teks;
+      if (medanSemasa === 'briefLong') briefLong += (briefLong ? '\n' : '') + teks;
+      else if (medanSemasa === 'brief') brief += (brief ? '\n' : '') + teks;
+      else if (medanSemasa === 'note') note += (note ? '\n' : '') + teks;
+      else if (medanSemasa === 'penerangan') penerangan += (penerangan ? '\n' : '') + teks;
     };
     // MESTI kekal segerak dengan LABEL_DIKENALI dalam ManualBlockFormat.js — lihat nota di sana.
     const LABEL_DIKENALI_SRV = [
@@ -2759,8 +2762,73 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     const adaLabelDikenaliSrv = (t) =>
       LABEL_DIKENALI_SRV.some((label) => t.toLowerCase().startsWith(label.toLowerCase()));
 
+    // Label TUNGGAL yang nilainya diletak pada baris BERASINGAN selepas label (2026-08-18,
+    // pepijat tampalan Izzat — kandungan Instagram, "sistem tak boleh baca") — SALINAN KEDUA
+    // pembetulan yang sama di ManualBlockFormat.js parseManualBlockFields (lihat nota penuh di
+    // sana). MESTI kekal selari dgn salinan client tu.
+    let labelTunggalMenanti = null;
+    const terapkanLabelTunggalSrv = (kunci, nilaiMentah) => {
+      const nilai = (nilaiMentah || '').trim();
+      switch (kunci) {
+        case 'uuid': uuid = nilai; break;
+        case 'status': {
+          const raw = nilai.toLowerCase();
+          if (raw === 'draf' || raw === 'draft') status = 'draft';
+          else if (raw === 'pending' || raw === 'menunggu') status = 'pending';
+          else status = 'approved';
+          break;
+        }
+        case 'tajuk': title = buangPetunjukHad(nilaiMentah || ''); break;
+        case 'event': title = nilai; desk = 'ACARA'; isEventBlock = true; break;
+        case 'desk': desk = nilai; break;
+        case 'topik': topik = buangPetunjukHad(nilaiMentah || ''); break;
+        case 'jenisSumber': sourceType = nilai; break;
+        case 'tarikhMula': date = nilai; break;
+        case 'tarikhTamat': dateEnd = nilai; break;
+        case 'tarikhSumberKonteks':
+          if (sources.length > 0) {
+            sources[sources.length - 1].date = nilai;
+            if (sources.length === 1) { date = nilai; dateEnd = nilai; }
+          }
+          break;
+        case 'tarikhSumberLegasi': date = nilai; dateEnd = nilai; break;
+        case 'tarikh': date = nilai; dateEnd = nilai; break;
+        case 'penulis': penulis = nilai; break;
+        case 'imej': image = nilai; break;
+        case 'penganjur': organizer = nilai; break;
+        case 'lokasi': location = nilai; break;
+        case 'akses': access = nilai; break;
+        case 'sumber':
+          if (sources.length === 0) source = nilai;
+          sources.push({ name: nilai, url: '', date: '' });
+          break;
+        case 'url':
+          if (sources.length === 0) {
+            sources.push({ name: '', url: nilai, date: '' });
+          } else {
+            sources[sources.length - 1].url = nilai;
+          }
+          if (sources.length === 1) url = nilai;
+          sumberDateArmed = true;
+          break;
+        default: break;
+      }
+    };
+
     for (const line of lines) {
       const trimmed = line.trim();
+
+      // Nilai bagi label tunggal yang menanti — lihat nota di ManualBlockFormat.js.
+      if (labelTunggalMenanti) {
+        if (trimmed === '') continue;
+        if (!adaLabelDikenaliSrv(trimmed)) {
+          terapkanLabelTunggalSrv(labelTunggalMenanti, trimmed);
+          labelTunggalMenanti = null;
+          continue;
+        }
+        labelTunggalMenanti = null;
+      }
+
       // Baris sambungan — lihat nota penuh dalam ManualBlockFormat.js. Tanpa ini, perenggan kedua
       // ke atas hilang senyap pada laluan SIMPAN SLOT (syncManualObjectsForSlot), iaitu laluan
       // yang butang "Simpan sebagai draf"/"Terbit" dalam modal editor benar-benar gunakan.
@@ -2770,26 +2838,25 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       }
       medanSemasa = null;
       if (trimmed.startsWith('Tarikh sumber:') && sumberDateArmed && sources.length > 0) {
-        const tarikhSumber = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
-        sources[sources.length - 1].date = tarikhSumber;
-        if (sources.length === 1) { date = tarikhSumber; dateEnd = tarikhSumber; }
+        const nilai = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
         sumberDateArmed = false;
+        if (nilai === '') { labelTunggalMenanti = 'tarikhSumberKonteks'; continue; }
+        terapkanLabelTunggalSrv('tarikhSumberKonteks', nilai);
         continue;
       }
       sumberDateArmed = false;
       if (trimmed.startsWith('UUID:')) {
-        uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^UUID:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'uuid'; else terapkanLabelTunggalSrv('uuid', nilai);
       } else if (trimmed.startsWith('Status:')) {
-        const raw = trimmed.replace(/^Status:\s*/i, '').trim().toLowerCase();
-        if (raw === 'draf' || raw === 'draft') status = 'draft';
-        else if (raw === 'pending' || raw === 'menunggu') status = 'pending';
-        else status = 'approved';
+        const nilai = trimmed.replace(/^Status:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'status'; else terapkanLabelTunggalSrv('status', nilai);
       } else if (trimmed.startsWith('Tajuk:')) {
-        title = buangPetunjukHad(trimmed.replace(/^Tajuk:\s*/i, ''));
+        const nilai = trimmed.replace(/^Tajuk:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'tajuk'; else terapkanLabelTunggalSrv('tajuk', nilai);
       } else if (trimmed.startsWith('Event:')) {
-        title = trimmed.replace(/^Event:\s*/i, '').trim();
-        desk = 'ACARA'; // Default desk untuk event
-        isEventBlock = true;
+        const nilai = trimmed.replace(/^Event:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'event'; else terapkanLabelTunggalSrv('event', nilai);
       } else if (trimmed.startsWith('Huraian panjang:')) {
         briefLong = buangPetunjukHad(trimmed.replace(/^Huraian panjang:\s*/i, ''));
         medanSemasa = 'briefLong';
@@ -2803,54 +2870,58 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         medanSemasa = 'brief';
         continue;
       } else if (trimmed.startsWith('Bidang:')) {
-        desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Bidang:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'desk'; else terapkanLabelTunggalSrv('desk', nilai);
       } else if (trimmed.startsWith('Kategori:')) {
-        desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Kategori:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'desk'; else terapkanLabelTunggalSrv('desk', nilai);
       } else if (trimmed.startsWith('Topik:')) {
-        topik = buangPetunjukHad(trimmed.replace(/^Topik:\s*/i, ''));
+        const nilai = trimmed.replace(/^Topik:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'topik'; else terapkanLabelTunggalSrv('topik', nilai);
       } else if (trimmed.startsWith('Jenis sumber:')) {
-        sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Jenis sumber:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'jenisSumber'; else terapkanLabelTunggalSrv('jenisSumber', nilai);
       } else if (trimmed.startsWith('Tarikh mula:')) {
-        date = trimmed.replace(/^Tarikh mula:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Tarikh mula:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'tarikhMula'; else terapkanLabelTunggalSrv('tarikhMula', nilai);
       } else if (trimmed.startsWith('Tarikh tamat:')) {
-        dateEnd = trimmed.replace(/^Tarikh tamat:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Tarikh tamat:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'tarikhTamat'; else terapkanLabelTunggalSrv('tarikhTamat', nilai);
       } else if (trimmed.startsWith('Tarikh sumber:')) {
-        date = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
-        dateEnd = date;
+        const nilai = trimmed.replace(/^Tarikh sumber:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'tarikhSumberLegasi'; else terapkanLabelTunggalSrv('tarikhSumberLegasi', nilai);
       } else if (trimmed.startsWith('Tarikh:')) {
-        date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
-        dateEnd = date;
+        const nilai = trimmed.replace(/^Tarikh:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'tarikh'; else terapkanLabelTunggalSrv('tarikh', nilai);
       } else if (trimmed.startsWith('Penulis:')) {
-        penulis = trimmed.replace(/^Penulis:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Penulis:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'penulis'; else terapkanLabelTunggalSrv('penulis', nilai);
       } else if (trimmed.startsWith('Nota:')) {
         note = trimmed.replace(/^Nota:\s*/i, '').trim();
         medanSemasa = 'note';
         continue;
       } else if (trimmed.startsWith('Imej:')) {
-        image = trimmed.replace(/^Imej:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Imej:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'imej'; else terapkanLabelTunggalSrv('imej', nilai);
       } else if (trimmed.startsWith('Penganjur:')) {
-        organizer = trimmed.replace(/^Penganjur:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Penganjur:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'penganjur'; else terapkanLabelTunggalSrv('penganjur', nilai);
       } else if (trimmed.startsWith('Lokasi:')) {
-        location = trimmed.replace(/^Lokasi:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Lokasi:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'lokasi'; else terapkanLabelTunggalSrv('lokasi', nilai);
       } else if (trimmed.startsWith('Akses:')) {
-        access = trimmed.replace(/^Akses:\s*/i, '').trim();
+        const nilai = trimmed.replace(/^Akses:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'akses'; else terapkanLabelTunggalSrv('akses', nilai);
       } else if (trimmed.startsWith('Penerangan:')) {
         penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
         medanSemasa = 'penerangan';
         continue;
       } else if (trimmed.startsWith('Sumber:')) {
-        const nama = trimmed.replace(/^Sumber:\s*/i, '').trim();
-        if (sources.length === 0) source = nama;
-        sources.push({ name: nama, url: '', date: '' });
+        const nilai = trimmed.replace(/^Sumber:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'sumber'; else terapkanLabelTunggalSrv('sumber', nilai);
       } else if (trimmed.startsWith('URL:')) {
-        const u = trimmed.replace(/^URL:\s*/i, '').trim();
-        if (sources.length === 0) {
-          sources.push({ name: '', url: u, date: '' });
-        } else {
-          sources[sources.length - 1].url = u;
-        }
-        if (sources.length === 1) url = u;
-        sumberDateArmed = true;
+        const nilai = trimmed.replace(/^URL:\s*/i, '');
+        if (nilai.trim() === '') labelTunggalMenanti = 'url'; else terapkanLabelTunggalSrv('url', nilai.trim());
       }
     }
 

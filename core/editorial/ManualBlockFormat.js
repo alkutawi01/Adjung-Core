@@ -128,6 +128,80 @@ export function parseManualBlockFields(block) {
   // tempat lain (cth. hujung blok, corak SEMUA kandungan sebelum ciri ni) jatuh ke cabang
   // legasi seperti biasa — serasi mundur penuh, tiada kandungan sedia ada terjejas.
   let sumberDateArmed = false;
+
+  // Label TUNGGAL (bukan berbilang-baris) yang nilainya diletak pada BARIS BERASINGAN selepas
+  // label, bukan sebaris ("Topik:\nLogo Baharu Instagram" — bukan "Topik: Logo Baharu Instagram")
+  // (2026-08-18, pepijat tampalan Izzat — kandungan Instagram, sistem "tak boleh baca"). Sebelum
+  // ni, baris label kosong ("Topik:") terus tetapkan medan kepada rentetan kosong dan baris nilai
+  // yang menyusul (bukan label dikenali, `medanSemasa` pun null) jatuh ke DALAM tiada cabang —
+  // HILANG SENYAP. Corak ni terpakai pada SEMUA label satu-baris (Tajuk, Topik, Sumber, URL,
+  // Tarikh sumber, dll — bukan Huraian ringkas/panjang/Nota/Penerangan, yang sememangnya sudah
+  // toleran corak ni via `medanSemasa`). `terapkanLabelTunggal()` di bawah ialah SATU-SATUNYA
+  // tempat yang benar-benar menetapkan nilai medan tunggal — dipanggil sama ada segera (nilai
+  // sebaris) atau lewat (nilai baris seterusnya), supaya kedua-dua laluan berkongsi logik SAMA.
+  let labelTunggalMenanti = null;
+
+  const terapkanLabelTunggal = (kunci, nilaiMentah) => {
+    const nilai = (nilaiMentah || '').trim();
+    switch (kunci) {
+      case 'uuid': fields.uuid = nilai; break;
+      case 'status': {
+        const raw = nilai.toLowerCase();
+        if (raw === 'draf' || raw === 'draft') fields.status = 'draft';
+        else if (raw === 'pending' || raw === 'menunggu') fields.status = 'pending';
+        else fields.status = 'approved';
+        break;
+      }
+      case 'tajuk': fields.title = stripLimitHint(nilaiMentah || ''); break;
+      case 'event':
+        fields.title = nilai;
+        fields.desk = 'ACARA';
+        fields.isEventBlock = true;
+        break;
+      case 'desk': fields.desk = nilai; break;
+      case 'topik': fields.topik = stripLimitHint(nilaiMentah || ''); break;
+      case 'jenisSumber': fields.sourceType = nilai; break;
+      case 'tarikhMula': fields.date = nilai; break;
+      case 'tarikhTamat': fields.dateEnd = nilai; break;
+      case 'tarikhSumberKonteks':
+        // Sejurus selepas "URL:" — ikat tarikh ni kepada sumber TERKINI (lihat sumberDateArmed).
+        if (fields.sources.length > 0) {
+          fields.sources[fields.sources.length - 1].date = nilai;
+          if (fields.sources.length === 1) { fields.date = nilai; fields.dateEnd = nilai; }
+        }
+        break;
+      case 'tarikhSumberLegasi':
+        fields.date = nilai;
+        fields.dateEnd = nilai;
+        break;
+      case 'tarikh':
+        fields.date = nilai;
+        fields.dateEnd = nilai;
+        break;
+      case 'penulis': fields.penulis = nilai; break;
+      case 'imej': fields.image = nilai; break;
+      case 'penganjur': fields.organizer = nilai; break;
+      case 'lokasi': fields.location = nilai; break;
+      case 'akses': fields.access = nilai; break;
+      case 'sumber':
+        if (fields.sources.length === 0) fields.source = nilai; // entri pertama = medan tunggal legasi.
+        fields.sources.push({ name: nilai, url: '', date: '' });
+        break;
+      case 'url': {
+        const url = nyahBungkusMarkdownLink(nilaiMentah || '');
+        if (fields.sources.length === 0) {
+          fields.sources.push({ name: '', url, date: '' });
+        } else {
+          fields.sources[fields.sources.length - 1].url = url;
+        }
+        if (fields.sources.length === 1) fields.url = url;
+        sumberDateArmed = true; // "Tarikh sumber:" seterusnya (sebaris ATAU baris lain) ikat ke sumber ni.
+        break;
+      }
+      default: break;
+    }
+  };
+
   for (const line of lines) {
     // Label bernombor (2026-08-16, pepijat simulasi tambahan Izzat — "betul2 tiada ralat
     // langsung?") — prompt SISTEM sendiri (buildAiPrompt) guna label bernombor "URL sumber 1:"/
@@ -140,6 +214,21 @@ export function parseManualBlockFields(block) {
     // Normalize di sini (SEBELUM apa-apa logik lain) supaya "Sumber 1:"/"URL 2:"/"Tarikh sumber 3:"
     // dilayan SAMA macam label polos, tanpa ubah tingkah laku label yang sedia betul.
     const trimmed = line.trim().replace(/^(Sumber|URL|Tarikh sumber)\s+\d+\s*:/i, '$1:');
+
+    // Nilai bagi label TUNGGAL yang menanti (lihat nota `labelTunggalMenanti` di atas) — baris
+    // ni ialah nilai "Topik:"/"Tajuk:"/dll yang diletak berasingan daripada labelnya.
+    if (labelTunggalMenanti) {
+      if (trimmed === '') continue; // baris kosong sebelum nilai sampai — terus tunggu.
+      if (!ADA_LABEL_DIKENALI(trimmed)) {
+        terapkanLabelTunggal(labelTunggalMenanti, trimmed);
+        labelTunggalMenanti = null;
+        continue;
+      }
+      // Baris seterusnya sendiri satu label BAHARU — label yang menanti tadi memang kosong
+      // (jarang, cth medan sengaja dibiarkan tiada nilai); biarkan kosong, proses baris ni biasa.
+      labelTunggalMenanti = null;
+    }
+
     // Baris sambungan (2026-08-12, pembetulan pepijat #21) — baris yang BUKAN label dikenali.
     // Sebelum ni ia jatuh melalui semua else-if TANPA else dan HILANG SENYAP: editor taip/tampal
     // Huraian panjang berbilang perenggan, simpan, buka semula -> perenggan 2 ke atas lenyap tanpa
@@ -147,7 +236,10 @@ export function parseManualBlockFields(block) {
     // memang pecah `\n{2,}` jadi <p> berasingan — kod render tu praktikalnya mati). Baris kosong
     // turut dikekalkan supaya sempadan perenggan (`\n\n`) sampai ke renderer.
     if (medanSemasa && !ADA_LABEL_DIKENALI(trimmed)) {
-      fields[medanSemasa] += '\n' + trimmed;
+      // Elak `\n` hadapan berlebihan bila baris NILAI PERTAMA medan ni berada pada baris
+      // berasingan daripada labelnya ("Huraian ringkas:\nteks..." — bukan sebaris) — tanpa syarat
+      // ni, `fields[medanSemasa]` bermula '' lalu jadi '\nteks...' (baris kosong hantu di depan).
+      fields[medanSemasa] += (fields[medanSemasa] ? '\n' : '') + trimmed;
       continue;
     }
     // Baris kosong DI ANTARA label (2026-08-16, pepijat simulasi "Tampal" Izzat) — AI luaran
@@ -161,26 +253,25 @@ export function parseManualBlockFields(block) {
     // Cabang medan berbilang-baris di bawah menetapkan semula `medanSemasa` selepas ni.
     medanSemasa = null;
     if (trimmed.startsWith('Tarikh sumber:') && sumberDateArmed && fields.sources.length > 0) {
-      const tarikhSumber = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
-      fields.sources[fields.sources.length - 1].date = tarikhSumber;
-      if (fields.sources.length === 1) { fields.date = tarikhSumber; fields.dateEnd = tarikhSumber; }
+      const nilai = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
       sumberDateArmed = false;
+      if (nilai === '') { labelTunggalMenanti = 'tarikhSumberKonteks'; continue; }
+      terapkanLabelTunggal('tarikhSumberKonteks', nilai);
       continue;
     }
     sumberDateArmed = false;
     if (trimmed.startsWith('UUID:')) {
-      fields.uuid = trimmed.replace(/^UUID:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^UUID:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'uuid'; else terapkanLabelTunggal('uuid', nilai);
     } else if (trimmed.startsWith('Status:')) {
-      const raw = trimmed.replace(/^Status:\s*/i, '').trim().toLowerCase();
-      if (raw === 'draf' || raw === 'draft') fields.status = 'draft';
-      else if (raw === 'pending' || raw === 'menunggu') fields.status = 'pending';
-      else fields.status = 'approved';
+      const nilai = trimmed.replace(/^Status:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'status'; else terapkanLabelTunggal('status', nilai);
     } else if (trimmed.startsWith('Tajuk:')) {
-      fields.title = stripLimitHint(trimmed.replace(/^Tajuk:\s*/i, ''));
+      const nilai = trimmed.replace(/^Tajuk:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'tajuk'; else terapkanLabelTunggal('tajuk', nilai);
     } else if (trimmed.startsWith('Event:')) {
-      fields.title = trimmed.replace(/^Event:\s*/i, '').trim();
-      fields.desk = 'ACARA';
-      fields.isEventBlock = true;
+      const nilai = trimmed.replace(/^Event:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'event'; else terapkanLabelTunggal('event', nilai);
     } else if (trimmed.startsWith('Huraian panjang:')) {
       fields.briefLong = stripLimitHint(trimmed.replace(/^Huraian panjang:\s*/i, ''));
       medanSemasa = 'briefLong';
@@ -194,56 +285,59 @@ export function parseManualBlockFields(block) {
       medanSemasa = 'brief';
       continue;
     } else if (trimmed.startsWith('Bidang:')) {
-      fields.desk = trimmed.replace(/^Bidang:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Bidang:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'desk'; else terapkanLabelTunggal('desk', nilai);
     } else if (trimmed.startsWith('Kategori:')) {
-      fields.desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Kategori:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'desk'; else terapkanLabelTunggal('desk', nilai);
     } else if (trimmed.startsWith('Topik:')) {
-      fields.topik = stripLimitHint(trimmed.replace(/^Topik:\s*/i, ''));
+      const nilai = trimmed.replace(/^Topik:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'topik'; else terapkanLabelTunggal('topik', nilai);
     } else if (trimmed.startsWith('Jenis sumber:')) {
-      fields.sourceType = trimmed.replace(/^Jenis sumber:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Jenis sumber:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'jenisSumber'; else terapkanLabelTunggal('jenisSumber', nilai);
     } else if (trimmed.startsWith('Tarikh mula:')) {
-      fields.date = trimmed.replace(/^Tarikh mula:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Tarikh mula:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'tarikhMula'; else terapkanLabelTunggal('tarikhMula', nilai);
     } else if (trimmed.startsWith('Tarikh tamat:')) {
-      fields.dateEnd = trimmed.replace(/^Tarikh tamat:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Tarikh tamat:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'tarikhTamat'; else terapkanLabelTunggal('tarikhTamat', nilai);
     } else if (trimmed.startsWith('Tarikh sumber:')) {
-      fields.date = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
-      fields.dateEnd = fields.date;
+      // Sampai sini bermakna `sumberDateArmed` palsu — tarikh legasi berkongsi (bukan per-sumber).
+      const nilai = trimmed.replace(/^Tarikh sumber:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'tarikhSumberLegasi'; else terapkanLabelTunggal('tarikhSumberLegasi', nilai);
     } else if (trimmed.startsWith('Tarikh:')) {
-      fields.date = trimmed.replace(/^Tarikh:\s*/i, '').trim();
-      fields.dateEnd = fields.date;
+      const nilai = trimmed.replace(/^Tarikh:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'tarikh'; else terapkanLabelTunggal('tarikh', nilai);
     } else if (trimmed.startsWith('Penulis:')) {
-      fields.penulis = trimmed.replace(/^Penulis:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Penulis:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'penulis'; else terapkanLabelTunggal('penulis', nilai);
     } else if (trimmed.startsWith('Nota:')) {
       fields.note = trimmed.replace(/^Nota:\s*/i, '').trim();
       medanSemasa = 'note';
       continue;
     } else if (trimmed.startsWith('Imej:')) {
-      fields.image = trimmed.replace(/^Imej:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Imej:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'imej'; else terapkanLabelTunggal('imej', nilai);
     } else if (trimmed.startsWith('Penganjur:')) {
-      fields.organizer = trimmed.replace(/^Penganjur:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Penganjur:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'penganjur'; else terapkanLabelTunggal('penganjur', nilai);
     } else if (trimmed.startsWith('Lokasi:')) {
-      fields.location = trimmed.replace(/^Lokasi:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Lokasi:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'lokasi'; else terapkanLabelTunggal('lokasi', nilai);
     } else if (trimmed.startsWith('Akses:')) {
-      fields.access = trimmed.replace(/^Akses:\s*/i, '').trim();
+      const nilai = trimmed.replace(/^Akses:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'akses'; else terapkanLabelTunggal('akses', nilai);
     } else if (trimmed.startsWith('Penerangan:')) {
       fields.penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
       medanSemasa = 'penerangan';
       continue;
     } else if (trimmed.startsWith('Sumber:')) {
-      const nama = trimmed.replace(/^Sumber:\s*/i, '').trim();
-      if (fields.sources.length === 0) fields.source = nama; // entri pertama = medan tunggal legasi.
-      fields.sources.push({ name: nama, url: '', date: '' });
+      const nilai = trimmed.replace(/^Sumber:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'sumber'; else terapkanLabelTunggal('sumber', nilai);
     } else if (trimmed.startsWith('URL:')) {
-      const url = nyahBungkusMarkdownLink(trimmed.replace(/^URL:\s*/i, ''));
-      if (fields.sources.length === 0) {
-        // Baris "URL:" muncul sebelum "Sumber:" (jarang, tapi templat tak kuatkuasa turutan) —
-        // cipta entri sumber kosong supaya URL ni tak hilang.
-        fields.sources.push({ name: '', url, date: '' });
-      } else {
-        fields.sources[fields.sources.length - 1].url = url;
-      }
-      if (fields.sources.length === 1) fields.url = url; // entri pertama = medan tunggal legasi.
-      sumberDateArmed = true; // "Tarikh sumber:" sejurus selepas ni (jika ada) diikat ke sumber ni.
+      const nilai = trimmed.replace(/^URL:\s*/i, '');
+      if (nilai.trim() === '') labelTunggalMenanti = 'url'; else terapkanLabelTunggal('url', nilai);
     }
   }
 
