@@ -1735,17 +1735,27 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         'publishing-policies': 'Dasar Penerbitan',
         'version-history': 'Sejarah Versi',
       };
-      const SKOP_FOOTER: Record<string, { skop: string; tajuk: string }> = {
+      // `arkib: true` (2026-08-18, permintaan Izzat) — pautan footer "Pengumuman" turut papar
+      // rekod yang sudah diarkibkan (bukan cuma aktif), ditanda jelas "(Diarkibkan · tarikh)"
+      // supaya pembaca tak keliru anggap ia masih terpakai. "Catatan Ketua Editor" TAK diubah
+      // (kekal aktif sahaja) — Izzat cuma minta Pengumuman.
+      const SKOP_FOOTER: Record<string, { skop: string; tajuk: string; arkib?: boolean }> = {
         'editors-notes': { skop: 'catatan_ketua_editor', tajuk: 'Catatan Ketua Editor' },
-        notices: { skop: 'pengumuman', tajuk: 'Pengumuman' },
+        notices: { skop: 'pengumuman', tajuk: 'Pengumuman', arkib: true },
       };
       if (SKOP_FOOTER[key]) {
-        const { skop, tajuk } = SKOP_FOOTER[key];
-        const res = await fetch(`/api/public/editor-notes?type=${skop}`);
+        const { skop, tajuk, arkib } = SKOP_FOOTER[key];
+        const suffixArkib = arkib ? '&termasukArkib=1' : '';
+        const res = await fetch(`/api/public/editor-notes?type=${skop}${suffixArkib}`);
         if (res.ok) {
           const notes = await res.json();
           const content = Array.isArray(notes) && notes.length > 0
-            ? notes.map((n: any) => `**${n.tajuk}**\n${n.kandungan}`).join('\n\n')
+            ? notes.map((n: any) => {
+                const labelArkib = n.status === 'arkib'
+                  ? ` (Diarkibkan · ${new Date(n.dibuatPada).toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })})`
+                  : '';
+                return `**${n.tajuk}**${labelArkib}\n${n.kandungan}`;
+              }).join('\n\n')
             : `Tiada ${tajuk.toLowerCase()} aktif buat masa ini.`;
           setFooterPageData({ title: tajuk, content });
         } else {

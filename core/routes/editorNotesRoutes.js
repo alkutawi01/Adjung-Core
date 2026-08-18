@@ -92,21 +92,31 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/public/editor-notes?type=catatan_ketua_editor|pengumuman — laluan AWAM. `type`
-  // WAJIB dan disahkan terhadap SENARAI PUTIH 2 nilai awam sahaja (SKOP_AWAM_SAH) — 'dalaman'
-  // tidak pernah termasuk dalam senarai tu langsung, jadi mustahil tercapai walaupun pelayar
-  // cuba `?type=dalaman` secara langsung. status='aktif' turut ditulis keras dalam SQL.
+  // GET /api/public/editor-notes?type=catatan_ketua_editor|pengumuman[&termasukArkib=1] —
+  // laluan AWAM. `type` WAJIB dan disahkan terhadap SENARAI PUTIH 2 nilai awam sahaja
+  // (SKOP_AWAM_SAH) — 'dalaman' tidak pernah termasuk dalam senarai tu langsung, jadi mustahil
+  // tercapai walaupun pelayar cuba `?type=dalaman` secara langsung.
+  //
+  // `termasukArkib=1` (2026-08-18, permintaan Izzat — footer "Pengumuman" patut turut papar
+  // rekod lama, bukan cuma aktif) — bila hadir, pulangkan status 'aktif' DAN 'arkib' sekali,
+  // aktif dahulu (ikut susunan sedia ada), arkib kemudian (terbaru dahulu). Setiap baris bawa
+  // `status` supaya klien boleh label jelas mana yang sudah diarkibkan — TANPA parameter ni,
+  // tingkah laku lama (aktif sahaja) kekal tak berubah, jadi banner header (yang cuma perlukan
+  // SATU pengumuman aktif terkini) terus guna panggilan sedia ada tanpa perubahan.
   router.get('/public/editor-notes', async (req, res) => {
     try {
-      const { type } = req.query;
+      const { type, termasukArkib } = req.query;
       if (!SKOP_AWAM_SAH.includes(type)) {
         return res.status(400).json({ error: 'Parameter type diperlukan (catatan_ketua_editor atau pengumuman).' });
       }
+      const where = termasukArkib === '1'
+        ? `type = ? AND status IN ('aktif', 'arkib')`
+        : `type = ? AND status = 'aktif'`;
       const rows = await dbAll(
-        `SELECT id, title, content, category, author_name, created_at
+        `SELECT id, title, content, category, author_name, created_at, status
          FROM editor_notes
-         WHERE type = ? AND status = 'aktif'
-         ORDER BY is_pinned DESC, created_at DESC`,
+         WHERE ${where}
+         ORDER BY (status = 'aktif') DESC, is_pinned DESC, created_at DESC`,
         [type]
       );
       res.json((rows || []).map((r) => ({
@@ -116,6 +126,7 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
         kategori: r.category,
         penulis: r.author_name || '',
         dibuatPada: r.created_at,
+        status: r.status,
       })));
     } catch (err) {
       console.error('GET public editor-notes error:', err);
