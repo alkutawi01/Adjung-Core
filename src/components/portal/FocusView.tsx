@@ -825,15 +825,24 @@ export const FocusView: React.FC<FocusViewProps> = ({
           alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--stone-300)',
         }}>
           <span />
-          {onClose ? (
-            <button type="button" onClick={onClose} aria-label="Kembali ke halaman utama" style={{
+          {/* `<button>` bukan `<span>` sengaja DIELAK di sini walau boleh klik — src/index.css:196
+              paksa `font-family: 'Inter'... !important` pada SEMUA elemen <button> (peraturan
+              global sengaja utk butang lain di seluruh apl), yang mengalahkan inline
+              `font-family: var(--font-serif)` di sini (2026-08-18, Izzat: "logo dah berubah,
+              kenapa?" — fon serif wordmark bertukar Inter selepas ditukar <button>). `<span
+              role="button">` + tabIndex/onKeyDown papar tingkah laku klik+kebolehcapaian yang
+              sama tanpa terkena peraturan CSS global butang. */}
+          <span
+            role={onClose ? 'button' : undefined}
+            tabIndex={onClose ? 0 : undefined}
+            onClick={onClose}
+            onKeyDown={onClose ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClose(); } } : undefined}
+            aria-label={onClose ? 'Kembali ke halaman utama' : undefined}
+            style={{
               fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)',
-              justifySelf: 'center', background: 'none', border: 0, padding: 0, cursor: 'pointer',
-              appearance: 'none', WebkitAppearance: 'none', lineHeight: 'normal',
-            }}>{wordmark}</button>
-          ) : (
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
-          )}
+              justifySelf: 'center', cursor: onClose ? 'pointer' : 'default',
+            }}
+          >{wordmark}</span>
           {onClose && (
             <button {...closeProps} style={{
               justifySelf: 'end', background: 'none', border: 0, padding: 0, cursor: 'pointer',
@@ -1168,15 +1177,19 @@ export const FocusView: React.FC<FocusViewProps> = ({
             </Tooltip>
           )}
         </span>
-        {onClose ? (
-          <button type="button" onClick={onClose} aria-label="Kembali ke halaman utama" style={{
+        {/* Elak <button> — lihat komen di tapak wordmark mobile (di atas) tentang src/index.css:196
+            memaksa font-family Inter !important pada elemen <button>. */}
+        <span
+          role={onClose ? 'button' : undefined}
+          tabIndex={onClose ? 0 : undefined}
+          onClick={onClose}
+          onKeyDown={onClose ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClose(); } } : undefined}
+          aria-label={onClose ? 'Kembali ke halaman utama' : undefined}
+          style={{
             fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)',
-            color: 'var(--color-Adjung-maroon)', justifySelf: 'center', background: 'none', border: 0,
-            padding: 0, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none', lineHeight: 'normal',
-          }}>{wordmark}</button>
-        ) : (
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)', color: 'var(--color-Adjung-maroon)', justifySelf: 'center' }}>{wordmark}</span>
-        )}
+            color: 'var(--color-Adjung-maroon)', justifySelf: 'center', cursor: onClose ? 'pointer' : 'default',
+          }}
+        >{wordmark}</span>
         {onClose && (
           <button {...closeProps} className="fv-icon-btn" style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
