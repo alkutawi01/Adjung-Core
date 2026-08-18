@@ -617,6 +617,18 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // Editor/Penolong (manageEditorial) KEKAL penuh (tindakan Indeks — arkib/tolak/dsb. perlu
       // terus berfungsi), Editor biasa hanya boleh sunting kandungan sendiri.
       if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
+        // Togol `editOwn` (2026-08-18, Izzat: "boleh benarkan editor sunting kandungan sendiri...
+        // mcm ketua editor benarkan editor terbitkan tanpa kelulusan") — kunci ni SUDAH wujud
+        // dalam matriks RBAC + checkbox "Edit Sendiri" (Kawalan Akses, TetapanConsole.tsx:1152)
+        // sejak Fasa 3, tapi tak pernah dibaca laluan ni — nyahtanda ia langsung tak buat apa-apa,
+        // editor kekal boleh sunting kandungan sendiri tanpa mengira togol (pepijat lama tercicir,
+        // bukan sengaja). Dibaiki: `editOwn=false` sekat suntingan sendiri SEPENUHNYA (kena Ketua
+        // Editor/Penolong), `editOwn=true` (lalai) kekalkan gerbang pemilikan sedia ada di bawah.
+        if (!hasPermission(req.session?.user?.roles, 'editOwn')) {
+          return res.status(403).json({
+            error: 'Anda tiada kebenaran menyunting kandungan — sunting sendiri dinyahaktifkan buat peranan anda. Hubungi Ketua Editor/Penolong Ketua Editor.',
+          });
+        }
         const editorNameRowPemilik = await dbGet(
           "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'editorName'",
           [id, rev.id]
