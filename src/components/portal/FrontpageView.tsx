@@ -995,20 +995,24 @@ const CarouselStableBlock: React.FC<{
               "tekan sini utk gerak arah ni". `-translate-y-1/2` (pusat menegak, base) DAN
               hover:scale/translate-x digubah bersama tanpa konflik — utiliti Tailwind v4
               gabungkan via CSS variables (--tw-translate-x/y, --tw-scale-x/y) ke SATU atribut.
-              **Pembetulan (2026-08-18, DUA pusingan)**: komen asal SILAP — Tailwind v4 jana
+              **Pembetulan (2026-08-18, TIGA pusingan)**: komen asal SILAP — Tailwind v4 jana
               sifat CSS ASLI berasingan `scale:`/`translate:` (BUKAN `transform:`), disahkan
-              dlm CSS terbina. Percubaan pertama tukar ke `transition-[opacity,transform,
-              translate,scale]` — TAK compile langsung (disahkan baca CSS terbina di pelayan:
-              class arbitrary bersenarai-koma ni tak pernah dijana Tailwind v4, kelas 'hantu'
-              yang wujud dlm JSX tapi tiada peraturan CSS sepadan). Dibetulkan ke utiliti
-              BERNAMA `transition-all` (bukan arbitrary), yg sudah terbukti compile stabil di
-              puluhan tapak lain fail ni — menganimasikan SEMUA sifat termasuk scale/translate/
-              opacity, tiada risiko sintaks arbitrary tak disokong. */}
+              dlm CSS terbina. Percubaan 1 (`transition-[opacity,transform,translate,scale]`)
+              TAK compile langsung — kelas 'hantu' arbitrary bersenarai-koma, tiada peraturan
+              CSS sepadan. Percubaan 2 (`transition-all`) COMPILE betul tapi masih tak
+              beranimasi hidup — punca SEBENAR: peraturan global `button:not(:disabled) {
+              transition: transform .15s }` (src/index.css, micro-interaction tekan butang
+              sedia ada) ada KESPESIFIKAN CSS lebih tinggi (elemen+pseudo-class) drpd satu
+              kelas Tailwind (`.transition-all`), jadi ia MENANG tanpa mengira susunan/utiliti
+              — SAMA kelas pepijat macam wordmark Adjung tukar fon (index.css:196, sesi ni
+              jugak). Dibetulkan guna `style` inline (sentiasa menang lawan mana-mana selector
+              kelas, tak perlu `!important`) — TAK lagi bergantung Tailwind lawan CSS global. */}
           <button
             type="button"
             aria-label="Kandungan sebelum"
             onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
-            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:-translate-x-0.5 transition-all duration-200 pointer-events-auto"
+            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:-translate-x-0.5 pointer-events-auto"
+            style={{ transition: 'opacity 200ms, transform 200ms, scale 200ms, translate 200ms' }}
           >
             <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
           </button>
@@ -1016,7 +1020,8 @@ const CarouselStableBlock: React.FC<{
             type="button"
             aria-label="Kandungan seterusnya"
             onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
-            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:translate-x-0.5 transition-all duration-200 pointer-events-auto"
+            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:translate-x-0.5 pointer-events-auto"
+            style={{ transition: 'opacity 200ms, transform 200ms, scale 200ms, translate 200ms' }}
           >
             <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
           </button>
