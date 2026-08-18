@@ -166,14 +166,23 @@ function SenaraiSumberDesktop({ sources, sourceDate }: { sources: { name: string
   const [samaBarisDgnSebelum, setSamaBarisDgnSebelum] = React.useState<boolean[]>(() => sources.map(() => true));
 
   React.useLayoutEffect(() => {
+    let dibatal = false;
     const kira = () => {
       const tops = refs.current.map((el) => el?.offsetTop ?? 0);
-      setSamaBarisDgnSebelum(tops.map((t, i) => i === 0 || t === tops[i - 1]));
+      if (!dibatal) setSamaBarisDgnSebelum(tops.map((t, i) => i === 0 || t === tops[i - 1]));
     };
     kira();
     const pemerhati = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(kira) : null;
     refs.current.forEach((el) => { if (el && pemerhati) pemerhati.observe(el); });
-    return () => pemerhati?.disconnect();
+    // Susulan document.fonts.ready (2026-08-17, sama punca CarouselStableBlock/FooterHeightLock
+    // — pengukuran PERTAMA boleh berlaku SEBELUM fon sebenar (serif/sans Adjung) selesai dimuat,
+    // guna metrik fon ganti (fallback) sementara. Lebar teks fon ganti selalunya BERBEZA drpd fon
+    // sebenar, jadi kesimpulan "sebaris/tak sebaris" pada pengukuran pertama itu boleh SILAP dan
+    // KEKAL silap — ResizeObserver cuma tercetus kalau kotak yang DIPERHATIKAN sendiri berubah
+    // saiz akibat pertukaran fon, tak semestinya berlaku. Semak SEKALI LAGI selepas fon sedia,
+    // tanpa bergantung ResizeObserver "mungkin" tercetus. */
+    (document as any).fonts?.ready?.then(() => { if (!dibatal) kira(); });
+    return () => { dibatal = true; pemerhati?.disconnect(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sources.length, sources.map((s) => s.name).join('|')]);
 
@@ -1329,7 +1338,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             tengah kekal di titik tengah geometri, bukan titik tengah "ruang baki". */}
         <div style={{ width: 'min(74%, 1040px)', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'flex-start', gap: '16px' }}>
           <span style={{ lineHeight: 1.5 }}>
-            <span style={micro}>{sources.length > 1 ? 'Sumber-sumber' : 'Sumber'}</span>
+            <span style={{ ...micro, display: 'block' }}>Sumber</span>
             {/* Sumber berbilang (2026-08-05) — senaraikan SEMUA (`sources`), dipisah "|"; jatuh
                 balik ke medan tunggal (`source`/`sourceUrl`) bila `sources` tiada (kandungan
                 lama). Tarikh PER-sumber (2026-08-15) — SEBELUM NI cuma sumber PERTAMA (i===0)
