@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Franklin:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&family=Pinyon+Script&family=Alex+Brush&family=Great+Vibes&family=Sacramento&family=Parisienne&family=Allura&family=Herr+Von+Muellerhoff&family=Birthstone:wght@400&family=Birthstone+Bounce:wght@400;500&family=Mrs+Saint+Delafield&family=Caveat:wght@400;500;600;700&family=Aref+Ruqaa:wght@400;700&family=Playpen+Sans:wght@300;400;500;600;700&family=Playpen+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+/* Fon Google DIPINDAH ke <link rel="stylesheet"> di index.html <head> (2026-08-19) — lihat nota
+   penuh di sana. Jangan tambah semula @import fon di sini; ia akan pulangkan kelewatan sama. */
 @import "tailwindcss";
 
 @theme {
