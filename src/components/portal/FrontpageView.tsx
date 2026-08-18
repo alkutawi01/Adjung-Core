@@ -2988,7 +2988,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               Dua ambang mesti sentiasa sepadan. */}
           <div className={`items-center gap-3 shrink-0 self-end md:self-auto ${enabledLanguages.length > 0 ? 'flex' : 'hidden md:flex'}`}>
             {parsedTickerNewsItems.length > 0 && (
-              <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200 mr-1 hidden md:inline">
+              // `lg:inline` (bukan `md:inline`) — pada lebar tablet (768-1023px) label ni
+              // ambil ruang mendatar yang cukup untuk terpotongkan tajuk ticker di sebelahnya
+              // (laporan pemilik projek). Disembunyikan sehingga desktop sebenar (lg, 1024px).
+              <span className="font-mono text-[8px] uppercase tracking-wider text-stone-400 group-hover:text-[#802334] transition duration-200 mr-1 hidden lg:inline">
                 &bull; Baca Paparan Penuh
               </span>
             )}
