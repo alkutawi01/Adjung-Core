@@ -35,7 +35,13 @@ export const StandardCardPreview: React.FC<StandardCardPreviewProps> = ({ item, 
           </div>
           <StandardCardTeks title={item.title || ''} brief={item.brief || ''} briefStyle={tema.briefStyle} />
         </div>
-        <span className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:self-stretch flex flex-col justify-center gap-0.5" style={tema.sourceStyle}>
+        {/* md:w-28 — lebar TETAP, bukan hiasan (CLAUDE.md "Had aksara: kandungan sedia ada
+            dikecualikan + kad carousel tak mengembang"): tanpa ni, teks sumber panjang render
+            SATU baris tanpa wrap (flex item tanpa had lebar = intrinsic max-content width) dan
+            melimpah keluar kad — TIADA di preview ni sebelum ni walaupun SEMUA 6 tapak STANDARD
+            sebenar (FrontpageView.tsx) ada, punca isu Izzat tangkap (2026-08-18): "preview tak
+            wrap sumber". Kandungan SEBENAR yang diterbitkan TIDAK terjejas — hanya pratonton. */}
+        <span className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:w-28 md:self-stretch flex flex-col justify-center gap-0.5" style={tema.sourceStyle}>
           <span>{item.source}</span>
           {(getDisplayDate(item.originalDate) || formatBentoDate(item.publishedAt)) && (
             <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">
