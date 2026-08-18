@@ -995,17 +995,20 @@ const CarouselStableBlock: React.FC<{
               "tekan sini utk gerak arah ni". `-translate-y-1/2` (pusat menegak, base) DAN
               hover:scale/translate-x digubah bersama tanpa konflik — utiliti Tailwind v4
               gabungkan via CSS variables (--tw-translate-x/y, --tw-scale-x/y) ke SATU atribut.
-              **Pembetulan (2026-08-18)**: komen asal di sini SILAP — Tailwind v4 jana sifat CSS
-              ASLI berasingan `scale:`/`translate:` (BUKAN `transform:`, tak macam andaian v3
-              sebelum ni), disahkan dlm CSS terbina. `transition-[opacity,transform]` sahaja
-              LANGSUNG TAK menganimasikan scale/translate — ikon melompat mendadak bila hover,
-              bukan membesar/beranjak lembut. Senarai transition kena sertakan `scale`/
-              `translate` secara eksplisit. */}
+              **Pembetulan (2026-08-18, DUA pusingan)**: komen asal SILAP — Tailwind v4 jana
+              sifat CSS ASLI berasingan `scale:`/`translate:` (BUKAN `transform:`), disahkan
+              dlm CSS terbina. Percubaan pertama tukar ke `transition-[opacity,transform,
+              translate,scale]` — TAK compile langsung (disahkan baca CSS terbina di pelayan:
+              class arbitrary bersenarai-koma ni tak pernah dijana Tailwind v4, kelas 'hantu'
+              yang wujud dlm JSX tapi tiada peraturan CSS sepadan). Dibetulkan ke utiliti
+              BERNAMA `transition-all` (bukan arbitrary), yg sudah terbukti compile stabil di
+              puluhan tapak lain fail ni — menganimasikan SEMUA sifat termasuk scale/translate/
+              opacity, tiada risiko sintaks arbitrary tak disokong. */}
           <button
             type="button"
             aria-label="Kandungan sebelum"
             onClick={(e) => { e.stopPropagation(); onNavigate(-1); }}
-            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:-translate-x-0.5 transition-[opacity,transform,translate,scale] duration-200 pointer-events-auto"
+            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:-translate-x-0.5 transition-all duration-200 pointer-events-auto"
           >
             <ChevronLeft className="w-4 h-4" strokeWidth={2.5} />
           </button>
@@ -1013,7 +1016,7 @@ const CarouselStableBlock: React.FC<{
             type="button"
             aria-label="Kandungan seterusnya"
             onClick={(e) => { e.stopPropagation(); onNavigate(1); }}
-            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:translate-x-0.5 transition-[opacity,transform,translate,scale] duration-200 pointer-events-auto"
+            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center p-1 opacity-0 group-hover:opacity-100 hover:scale-110 hover:translate-x-0.5 transition-all duration-200 pointer-events-auto"
           >
             <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
           </button>
