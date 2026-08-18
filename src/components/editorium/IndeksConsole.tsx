@@ -702,9 +702,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // betul-betul PULANG jadi draf peribadi semula (server salin kandungan penuh balik ke
   // slots_config.manualSummary slot asal, arkib rekod Indeks lama) — hilang terus daripada
   // senarai Indeks (draf tak pernah terpapar di sini), muncul semula dalam modal Tulis Kandungan.
-  // Sebab penolakan (2026-08-02, Fasa 6) — Tolak pulangkan draf, sebab (pilihan) dipaparkan
-  // kepada penulis. Dahulu window.prompt(); ditukar ke pengesahan sebaris (DLG-08, audit
-  // ChatGPT 2026-08-09) — sebab kekal PILIHAN sama macam sebelum ni.
+  // Sebab penolakan (2026-08-02, Fasa 6) — Tolak pulangkan draf, sebab dipaparkan kepada
+  // penulis. Dahulu window.prompt(); ditukar ke pengesahan sebaris (DLG-08, audit ChatGPT
+  // 2026-08-09) — sebab dahulu PILIHAN. Dijadikan WAJIB (2026-08-18, Izzat: "kenapa saya
+  // berjaya arkibkan tanpa perlu masukkan sebarang alasan?") — editor asal terima draf
+  // pulangan tanpa petunjuk apa isunya kalau sebab dibiarkan kosong.
   const handleRejectToDraft = async (id: string, sebab: string) => {
     setConfirmTolakId('');
     setTolakSebab('');
@@ -1424,13 +1426,33 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmPadamKekalId('')}>Batal</Button>
                         </span>
                       ) : confirmTolakId === rec.id ? (
-                        // DLG-08 (2B, audit ChatGPT 2026-08-09) — pantas dari baris, tiada
-                        // ruang utk medan sebab; sebab penuh masih boleh diisi via modal
-                        // butiran ("Tolak (kembali jadi draf)").
+                        // Sebab kini WAJIB (2026-08-18, keputusan Izzat: "kenapa saya berjaya
+                        // arkibkan tanpa perlu masukkan sebarang alasan?") — dahulu baris ni
+                        // hantar sebab KOSONG terus (DLG-08, "tiada ruang utk medan sebab"),
+                        // editor asal terima draf pulangan tanpa petunjuk apa isunya langsung.
+                        // Kini kotak teks kecil terus di baris (bukan hantar terus ke modal) —
+                        // butang "Ya" dilumpuhkan sehingga diisi. Gerbang pelayan (contentRoutes.js
+                        // reject-to-draft) turut tolak sebab kosong — pertahanan dua lapis.
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="text-[var(--color-error)] font-semibold">Arkib &amp; pulangkan draf?</span>
-                          <Button type="button" variant="primary" size="sm" onClick={() => handleRejectToDraft(rec.id, '')}>Ya</Button>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmTolakId('')}>Batal</Button>
+                          <span className="text-[var(--color-error)] font-semibold">Sebab ditolak:</span>
+                          <input
+                            type="text"
+                            autoFocus
+                            value={tolakSebab}
+                            onChange={(e) => setTolakSebab(e.target.value)}
+                            placeholder="Wajib diisi — dipaparkan kepada penulis"
+                            className="min-w-[220px] px-2 py-1 border border-stone-300 rounded font-sans text-[11px] focus:outline-none focus:border-Adjung-maroon"
+                          />
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            disabled={!tolakSebab.trim()}
+                            onClick={() => handleRejectToDraft(rec.id, tolakSebab)}
+                          >
+                            Ya
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => { setConfirmTolakId(''); setTolakSebab(''); }}>Batal</Button>
                         </span>
                       ) : rec.slot !== 'Ticker' && !isReadOnly && rec.status === 'Dipadam' ? (
                         <span className="inline-flex items-center gap-1.5">
@@ -1578,7 +1600,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           badanMenatal
           tindakanKiri={<span className="text-stone-500">Tarikh: <strong>{activeItemModal.date}</strong></span>}
           tindakan={confirmTolakId === activeItemModal.id ? (
-            <Button variant="bahaya" onClick={() => handleRejectToDraft(activeItemModal.id, tolakSebab)}>
+            <Button variant="bahaya" disabled={!tolakSebab.trim()} onClick={() => handleRejectToDraft(activeItemModal.id, tolakSebab)}>
               Ya, tolak kandungan
             </Button>
           ) : confirmSiarId === activeItemModal.id ? (
@@ -1625,11 +1647,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                   Tolak kandungan ini? Ia akan kembali jadi draf dalam modal Tulis Kandungan.
                 </span>
                 <label className="flex flex-col gap-1">
-                  <span className={LABEL_BORANG}>Sebab (pilihan, dipaparkan kepada penulis)</span>
+                  <span className={LABEL_BORANG}>Sebab (wajib, dipaparkan kepada penulis)</span>
                   <textarea
                     value={tolakSebab}
                     onChange={(e) => setTolakSebab(e.target.value)}
                     rows={2}
+                    autoFocus
                     className={INPUT_BORANG}
                   />
                 </label>

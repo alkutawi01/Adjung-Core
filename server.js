@@ -3527,8 +3527,13 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
           originalDate: parsed.originalDate || '',
           desk: (renderToken.desk || parsed.desk || 'UMUM').toUpperCase(),
           topik: parsed.topik || '',
-          publisherName: renderToken.publisherName || parsed.source || 'Umum',
-          source: renderToken.publisherName || parsed.source || 'Umum',
+          // 'Editorial Adjung' (2026-08-18, keputusan Izzat) — dahulu jatuh balik ke 'Umum' bila
+          // editor terbit kandungan TANPA isi medan Sumber langsung, senyap papar label yang
+          // nampak macam had sistem, bukan tulisan editorial. 'Editorial Adjung' konsisten dgn
+          // konvensyen SEDIA ADA untuk kandungan >1 sumber (FrontpageView.tsx sumberAdjungSendiri)
+          // — kandungan tanpa sumber luar dilayan sama macam kandungan tulisan Adjung sendiri.
+          publisherName: renderToken.publisherName || parsed.source || 'Editorial Adjung',
+          source: renderToken.publisherName || parsed.source || 'Editorial Adjung',
           url: renderToken.sourceUrl || renderToken.url || parsed.url || '#',
           // Sumber berbilang (2026-08-05) — senarai PENUH untuk Focus View; label kad ("source"
           // atas) diselaraskan ke "Editorial Adjung" di FrontpageView.tsx bila panjang > 1.
@@ -3653,8 +3658,9 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
         briefLong: briefLongAv ? briefLongAv.valueText : '',
         desk: (renderToken.desk || 'UMUM').toUpperCase(),
         topik: topikAv ? topikAv.valueText : '',
-        publisherName: renderToken.publisherName || 'Umum',
-        source: renderToken.publisherName || 'Umum',
+        // 'Editorial Adjung' (2026-08-18) — lihat komen rasional di tapak kembar ~baris 3530.
+        publisherName: renderToken.publisherName || 'Editorial Adjung',
+        source: renderToken.publisherName || 'Editorial Adjung',
         // PresentationComposer's token names this field sourceUrl, not url — this fallback
         // chain avoids silently dropping every DB-backed item's click-through link to '#'.
         url: renderToken.sourceUrl || renderToken.url || '#',

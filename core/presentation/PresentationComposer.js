@@ -7,7 +7,13 @@ class PresentationComposer {
     if (!url || url === '#' || !url.startsWith('http')) {
       return {
         publisherId: 'unknown',
-        publisherName: 'Umum',
+        // 'Editorial Adjung' (2026-08-18, keputusan Izzat) — dahulu 'Umum', senyap papar bila
+        // editor terbit kandungan TANPA isi URL sumber langsung. Ini PUNCA SEBENAR label "Umum"
+        // yang Izzat tangkap di kad frontpage — server.js baca publisherName ni terus (rentetan
+        // ini SENTIASA truthy, jadi fallback `||` di server.js tak pernah tercapai). 'Editorial
+        // Adjung' konsisten dgn konvensyen sedia ada kandungan >1 sumber (FrontpageView.tsx
+        // sumberAdjungSendiri) — kandungan tanpa sumber luar dilayan sama macam tulisan sendiri.
+        publisherName: 'Editorial Adjung',
         isOfficial: 0,
         authorityScore: 50,
         defaultGlyphProfile: 'general',
@@ -41,7 +47,7 @@ class PresentationComposer {
       // Fallback formatting for clean hostname display
       const cleanHost = hostname.replace('www.', '');
       const parts = cleanHost.split('.');
-      const rawName = parts[0] || 'Umum';
+      const rawName = parts[0] || 'Editorial Adjung'; // lihat komen rasional ~baris 10
       const capitalized = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
       return {
@@ -56,7 +62,7 @@ class PresentationComposer {
       console.error('PresentationComposer resolvePublisher error:', e);
       return {
         publisherId: 'unknown',
-        publisherName: 'Umum',
+        publisherName: 'Editorial Adjung', // lihat komen rasional ~baris 10
         isOfficial: 0,
         authorityScore: 50,
         defaultGlyphProfile: 'general',

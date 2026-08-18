@@ -1474,9 +1474,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // baris) — baris baharu literal di dalam nilai akan senyap terpotong semasa dihurai
       // semula, jadi digabung dengan pemisah dalam-baris, bukan \n\n.
       const sebab = (req.body?.sebab || '').toString().trim().replace(/\r?\n/g, ' ');
-      const notaGabungan = sebab
-        ? `Sebab ditolak: ${sebab}${attrs.note ? `. Nota: ${attrs.note}` : ''}`
-        : (attrs.note || '');
+      // Sebab kini WAJIB (2026-08-18, keputusan Izzat) — gerbang pelayan ni pertahanan LAPISAN
+      // KEDUA (client — IndeksConsole.tsx — dah kunci butang sehingga diisi), bukan satu-satunya
+      // semakan; laluan API boleh dipanggil terus (skrip/alat luar) memintas UI, jadi pelayan
+      // MESTI tolak sendiri, bukan percaya client sahaja.
+      if (!sebab) {
+        return res.status(400).json({ error: 'Sebab penolakan wajib diisi — penulis asal perlu tahu apa isunya.' });
+      }
+      const notaGabungan = `Sebab ditolak: ${sebab}${attrs.note ? `. Nota: ${attrs.note}` : ''}`;
 
       const draftBlock = [
         `UUID: object-manual-slot${objRow.slotIndex}-${Date.now()}-reject`,
