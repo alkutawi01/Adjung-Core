@@ -12,6 +12,7 @@ import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
+import { safeParseInline } from '../../utils';
 
 // Petikan — konsol editorial (2026-08-19, dipecah kepada sub-halaman selepas kajian ChatGPT).
 //
@@ -198,7 +199,7 @@ const BorangPetikan: React.FC<{
             className={`${INPUT_BORANG} font-serif`}
           />
           <p className="text-[10px] text-stone-500 mt-1">
-            Frontpage akan menandakannya “{labelTerjemahan(nilai.bahasaAsal) || 'Diterjemah daripada …'}”.
+            Frontpage akan menandakannya “{labelTerjemahan(nilai.bahasaAsal) || 'Diterjemahkan dari Bahasa …'}”.
           </p>
         </div>
       )}
@@ -843,33 +844,74 @@ export const PetikanConsole: React.FC = () => {
 
           {semakanDibuka && petikanSemakan && (
             <div className="border border-Adjung-line rounded p-4 space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">
-                  {indeksSemakan + 1} daripada {perluTindakan.length}
-                </span>
-                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
-                  {petikanSemakan.bahasaAsal}
-                </span>
-                {petikanSemakan.kategori ? (
-                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">{petikanSemakan.kategori}</span>
-                ) : (
-                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-amber-700">Kategori perlu diisi</span>
-                )}
-                {/* Konteks kelompok — kesilapan AI biasanya berkelompok, jadi penyemak patut tahu
-                    petikan mana datang bersama. Ia MAKLUMAT, bukan pemilihan: tiada tindakan pukal. */}
-                {bilSekumpulan > 1 && (
-                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-Adjung-maroon">
-                    Sesi AI sama · {bilSekumpulan} petikan
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">
+                    {indeksSemakan + 1} daripada {perluTindakan.length}
                   </span>
+                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
+                    {petikanSemakan.bahasaAsal}
+                  </span>
+                  {petikanSemakan.kategori ? (
+                    <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">{petikanSemakan.kategori}</span>
+                  ) : (
+                    <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-amber-700">Kategori perlu diisi</span>
+                  )}
+                  {/* Konteks kelompok — kesilapan AI biasanya berkelompok, jadi penyemak patut
+                      tahu petikan mana datang bersama. Ia MAKLUMAT, bukan pemilihan: tiada
+                      tindakan pukal. */}
+                  {bilSekumpulan > 1 && (
+                    <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-Adjung-maroon">
+                      Sesi AI sama · {bilSekumpulan} petikan
+                    </span>
+                  )}
+                </div>
+                {/* Sunting TERUS dalam mod semakan — tanpa ni, editor terpaksa tinggalkan mod
+                    semakan, cari petikan yang sama di Koleksi, sunting, baru kembali. Guna
+                    borang+state SAMA seperti Koleksi (mulaSunting/simpanSunting/BorangPetikan)
+                    supaya kedua-dua tempat tidak boleh terpesong. */}
+                {borangSunting?.id !== petikanSemakan.id && (
+                  <Button variant="ghost" size="sm" onClick={() => mulaSunting(petikanSemakan)}>
+                    <Pencil className="w-3.5 h-3.5" /> Sunting
+                  </Button>
                 )}
               </div>
 
+              {borangSunting?.id === petikanSemakan.id ? (
+                <div className="space-y-3 border-t border-Adjung-line pt-3">
+                  <BorangPetikan
+                    nilai={borangSunting}
+                    ubah={(t) => setBorangSunting((b) => (b ? { ...b, ...t } : b))}
+                  />
+                  {masalahKad(borangSunting).length > 0 && (
+                    <p className="text-[11px] text-amber-700">{masalahKad(borangSunting).join(' · ')}</p>
+                  )}
+                  <p className="text-[10px] text-stone-500">
+                    Mengubah teks asal atau teks Melayu akan meletakkan semula pengesahan
+                    berkaitan kepada Belum disemak.
+                  </p>
+                  <div className="flex items-center gap-2 justify-end">
+                    <Button variant="ghost" size="sm" onClick={() => setBorangSunting(null)}>Batal</Button>
+                    <Button
+                      variant="primary" size="sm"
+                      disabled={menyimpanSuntingan || masalahKad(borangSunting).length > 0}
+                      onClick={simpanSunting}
+                    >
+                      {menyimpanSuntingan ? 'Menyimpan…' : 'Simpan perubahan'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
               {/* LANGKAH 1 — sahkan teks asal terhadap karya. */}
               <div className="space-y-2">
                 <p className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-600">
                   1 — Sahkan teks asal terhadap sumber
                 </p>
-                <blockquote className="font-serif text-base text-stone-900 leading-relaxed border-l-2 border-stone-300 pl-4" dir="auto">
+                {/* not-italic WAJIB — index.css ada peraturan global `blockquote{font-style:italic}`
+                    (untuk prosa editor), yang bocor ke sini dan bercanggah terus dengan keputusan
+                    "TEGAK, bukan condong" (Izzat, 19/8/2026) untuk petikan. */}
+                <blockquote className="font-serif not-italic text-base text-stone-900 leading-relaxed border-l-2 border-stone-300 pl-4" dir="auto">
                   {petikanSemakan.teksAsal}
                 </blockquote>
                 <div className="text-stone-600 text-xs">
@@ -909,8 +951,8 @@ export const PetikanConsole: React.FC = () => {
                   <p className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-600">
                     2 — Sahkan terjemahan setia kepada teks asal
                   </p>
-                  <blockquote className="font-serif text-base text-stone-900 leading-relaxed border-l-2 border-stone-300 pl-4">
-                    {petikanSemakan.teksPaparan}
+                  <blockquote className="font-serif not-italic text-base text-stone-900 leading-relaxed border-l-2 border-stone-300 pl-4">
+                    {safeParseInline(petikanSemakan.teksPaparan)}
                   </blockquote>
                   {petikanSemakan.statusSumber !== 'sah' ? (
                     <p className="text-[11px] text-stone-500">
@@ -935,15 +977,18 @@ export const PetikanConsole: React.FC = () => {
                   )}
                 </div>
               )}
+                </>
+              )}
 
               <div className="flex flex-wrap items-center gap-2 border-t border-Adjung-line pt-3">
                 {/* Langkau memajukan indeks TANPA menulis apa-apa — penyemak yang tidak pasti patut
-                    boleh beredar tanpa terpaksa membuat keputusan palsu. */}
-                <Button variant="ghost" size="sm" disabled={indeksSemakan >= perluTindakan.length - 1} onClick={() => setIndeksSemakan((i) => i + 1)}>
+                    boleh beredar tanpa terpaksa membuat keputusan palsu. Kekal kelihatan walau
+                    sedang menyunting, supaya editor boleh navigasi tanpa terpaksa batal dahulu. */}
+                <Button variant="ghost" size="sm" disabled={indeksSemakan >= perluTindakan.length - 1} onClick={() => { setBorangSunting(null); setIndeksSemakan((i) => i + 1); }}>
                   <SkipForward className="w-3.5 h-3.5" /> Langkau
                 </Button>
                 {indeksSemakan > 0 && (
-                  <Button variant="ghost" size="sm" onClick={() => setIndeksSemakan((i) => i - 1)}>Sebelum</Button>
+                  <Button variant="ghost" size="sm" onClick={() => { setBorangSunting(null); setIndeksSemakan((i) => i - 1); }}>Sebelum</Button>
                 )}
               </div>
             </div>
@@ -1053,7 +1098,7 @@ export const PetikanConsole: React.FC = () => {
                               )}
                             </div>
 
-                            <p className="font-serif text-sm text-stone-900 leading-snug">“{p.teksPaparan}”</p>
+                            <p className="font-serif text-sm text-stone-900 leading-snug">“{safeParseInline(p.teksPaparan)}”</p>
                             <p className="text-stone-500 text-[11px] mt-1">
                               {p.pengarang} · <em>{p.karya}</em>{p.rujukan ? ` · ${p.rujukan}` : ''}
                               {p.statusTerjemahan !== 'tidak_perlu' && ` · ${labelTerjemahan(p.bahasaAsal)}`}

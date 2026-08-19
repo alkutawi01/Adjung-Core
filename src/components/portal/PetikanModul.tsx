@@ -1,4 +1,5 @@
 import React from 'react';
+import { safeParseInline } from '../../utils';
 
 /**
  * MODUL PETIKAN — paparan awam (Fasa 5).
@@ -9,8 +10,12 @@ import React from 'react';
  *   - `PetikanStatik`  — skrin sempit. SATU petikan tetap di atas footer, tiada putaran langsung.
  *
  * Keputusan Izzat yang dikunci dan TIDAK boleh diubah tanpa arahan baharu:
- *   1. Petikan BUKAN carousel. Ia bertukar hanya apabila pembaca menatal ke bawah dengan jarak
- *      bermakna — kalau pembaca duduk diam membaca, petikan kekal.
+ *   1. Petikan BUKAN carousel/pemasa. Ia bertukar SEMATA-MATA mengikut tatalan pembaca — kalau
+ *      pembaca duduk diam membaca, petikan kekal.
+ *   1b. DUA ARAH (dikemas kini 2026-08-19, selepas ujian langsung pengeluaran — reka bentuk asal
+ *      "900px + tunggu pembaca berhenti" terasa terlalu perlahan/tak responsif). Kini: menatal ke
+ *      BAWAH beberapa baris memajukan ke petikan seterusnya; menatal ke ATAS beberapa baris
+ *      KEMBALI ke petikan sebelum ini — pusingan boleh diterbalikkan sepenuhnya, bukan sehala.
  *   2. Skrin sempit STATIK. Bukan versi kecil marginalia yang berputar — gaya berbeza sepenuhnya.
  *   3. Ketua Editor boleh mematikan keseluruhan ciri. Kalau `aktif` palsu, modul ini tidak
  *      merender apa-apa langsung (gerbang sebenar ada di pelayan, lihat petikanRoutes.js).
@@ -152,13 +157,11 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
 // PetikanMargin — desktop lebar, terapung, bertukar mengikut tatalan
 // ---------------------------------------------------------------------------
 
-/** Jarak tatalan ke bawah (px) yang perlu dikumpul sebelum petikan bertukar. Sengaja BESAR —
- *  pembaca yang menatal perlahan membaca kad patut lihat petikan yang SAMA, bukan teks yang
- *  bertukar-tukar di ekor mata. */
-const JARAK_TUKAR_PX = 900;
-/** Tempoh berhenti menatal sebelum pertukaran benar-benar berlaku. Menukar teks di tengah-tengah
- *  tatalan laju menghasilkan kesan berkelip; tunggu pembaca berhenti dahulu. */
-const TEMPOH_REHAT_MS = 350;
+/** Jarak tatalan (px) bagi SATU langkah — lebih kurang beberapa baris teks badan. Direka semula
+ *  2026-08-19 (Izzat, ujian langsung pengeluaran): nilai asal 900px + tunggu-berhenti 350ms
+ *  terasa terlalu perlahan/tidak responsif — "sepatutnya scroll beberapa line, bertukar". Tiada
+ *  tempoh tunggu-berhenti lagi; setiap kali ambang dilepasi, langkah berlaku serta-merta. */
+const JARAK_TUKAR_PX = 200;
 
 export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
   const { kolam, aktif } = useKolamPetikan();
@@ -193,49 +196,45 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
     }
   }, [kolam.length]);
 
-  // Putaran mengikut tatalan.
+  // Putaran DUA ARAH mengikut tatalan (2026-08-19, reka bentuk semula — lihat nota atas fail).
+  // Menatal ke bawah beberapa baris memajukan; menatal ke atas beberapa baris KEMBALI ke
+  // petikan sebelum ini. `terkumpul` boleh bernilai negatif — bukan sekadar "reset ke 0" apabila
+  // arah berbalik, supaya tatalan kecil bolak-balik (contoh baca semula satu ayat) tidak
+  // terkumpul silang sebagai langkah palsu.
   React.useEffect(() => {
     if (kolam.length < 2 || ditutup) return;
 
     let terkumpul = 0;
     let yTerakhir = window.scrollY;
-    let pemasaRehat: ReturnType<typeof setTimeout> | null = null;
 
-    const majukan = () => {
-      // Semakan dibuat pada saat pertukaran, bukan semasa mengumpul — pembaca yang menuding
-      // pada blok SELEPAS menatal tetap terlindung, dan jarak yang dikumpul tidak hilang.
+    const langkah = (arah: 1 | -1) => {
       if (kunciTuding.current || bekuRef.current) return;
-      terkumpul = 0;
       setPudar(true);
       const tukar = () => {
         setIndeks((sebelum) => {
-          const baharu = (sebelum + 1) % kolam.length;
+          const baharu = (sebelum + arah + kolam.length) % kolam.length;
           tulisSesi({ tarikh: new Date().toISOString().slice(0, 10), indeks: baharu, ditutup: false });
           return baharu;
         });
         setPudar(false);
       };
       if (kurangGerak) tukar();
-      else setTimeout(tukar, 200);
+      else setTimeout(tukar, 150);
     };
 
     const kendali = () => {
       const y = window.scrollY;
       const delta = y - yTerakhir;
       yTerakhir = y;
-      // Tatalan ke ATAS tidak pernah menukar petikan dan tidak mengurangkan jarak terkumpul —
-      // pembaca yang naik semula untuk membaca semula sesuatu tidak sedang meminta petikan baharu.
-      if (delta > 0) terkumpul += delta;
-      if (terkumpul < JARAK_TUKAR_PX) return;
-      if (pemasaRehat) clearTimeout(pemasaRehat);
-      pemasaRehat = setTimeout(majukan, TEMPOH_REHAT_MS);
+      terkumpul += delta;
+      // `while` (bukan `if`) — satu gerakan tatal besar (cth PageDown) boleh melepasi ambang
+      // berkali-kali sekali gus; setiap langkah dikira, bukan cuma satu langkah tunggal.
+      while (terkumpul >= JARAK_TUKAR_PX) { terkumpul -= JARAK_TUKAR_PX; langkah(1); }
+      while (terkumpul <= -JARAK_TUKAR_PX) { terkumpul += JARAK_TUKAR_PX; langkah(-1); }
     };
 
     window.addEventListener('scroll', kendali, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', kendali);
-      if (pemasaRehat) clearTimeout(pemasaRehat);
-    };
+    return () => window.removeEventListener('scroll', kendali);
   }, [kolam.length, ditutup, kurangGerak]);
 
   if (!aktif || kolam.length === 0 || ditutup) return null;
@@ -285,11 +284,14 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
             ×
           </button>
 
-          {/* TEGAK, bukan condong (arahan Izzat, 19/8/2026). Petikan dibezakan daripada teks
-              sekeliling oleh garis tepi kiri dan kedudukan marginalianya, bukan oleh gaya huruf —
-              condong dikhaskan untuk penegasan sebenar dalam teks editorial. */}
+          {/* TEGAK secara lalai (arahan Izzat, 19/8/2026) — petikan dibezakan daripada teks
+              sekeliling oleh garis tepi kiri dan kedudukan marginalianya, bukan oleh gaya huruf.
+              `safeParseInline` (bukan teks mentah) supaya penanda `*kata pinjaman*` yang Arahan
+              AI kini wajibkan (peraturan 21, PetikanConfig.js — istilah asing belum mantap dalam
+              Teks Melayu) benar-benar dipaparkan condong — TANPA ini, pembaca nampak asterisk
+              literal. Ini PENEGASAN SEBENAR (istilah asing), bukan gaya "puitis" seluruh petikan. */}
           <p className={`font-serif text-stone-600 ${saizTeksMargin(p.teks.length)}`}>
-            {p.teks}
+            {safeParseInline(p.teks)}
           </p>
           {/* Tipografi label diselaraskan dengan token sistem reka bentuk sebenar (2026-08-19,
               laporan Izzat "gaya sangat jauh drpd sistem design Adjung Brief") — footer/utiliti
@@ -325,9 +327,9 @@ export const PetikanStatik: React.FC = () => {
     >
       <div className="border-t border-stone-200 pt-8 text-center">
         {/* TEGAK — lihat nota di PetikanMargin. Di sini pembezanya ialah garis atas, penengahan
-            dan ruang lapang di sekelilingnya. */}
+            dan ruang lapang di sekelilingnya. safeParseInline supaya kata pinjaman *dicondongkan* */}
         <p className="font-serif text-stone-700 text-[17px] leading-[1.7] max-w-2xl mx-auto">
-          {p.teks}
+          {safeParseInline(p.teks)}
         </p>
         <LabelTerjemahan p={p} kelas="mt-3 font-mono text-[9px] uppercase tracking-widest font-bold text-stone-400" />
         <Atribusi p={p} kelas="mt-1.5 font-sans text-[11px] uppercase tracking-wider font-bold text-stone-500" />

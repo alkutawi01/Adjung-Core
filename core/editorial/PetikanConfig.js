@@ -54,14 +54,21 @@ export function namaBahasa(mentah) {
 
 export const adalahBahasaMelayu = (mentah) => namaBahasa(mentah) === 'Melayu';
 
-/** Label metadata sekunder di bawah petikan. Dipendekkan daripada "Diterjemahkan daripada bahasa
- *  Arab" kepada "Diterjemah daripada Arab" — margin frontpage cuma 180-220px lebar, dan perkataan
- *  "bahasa" sudah tersirat. Pulangkan '' untuk sumber Melayu: "Diterjemah daripada Melayu" pada
- *  petikan yang tidak pernah diterjemahkan adalah salah, bukan sekadar janggal. */
+/** Label metadata sekunder di bawah petikan.
+ *
+ * "Diterjemah daripada X" (bentuk pendek asal) DIBUANG — Izzat tegur terus (2026-08-19):
+ * "salah ni, janggal sangat". Puncanya imbuhan tak lengkap: "diterjemah" tanpa akhiran "-kan"
+ * bukan bentuk pasif sah Bahasa Melayu. Bentuk BETUL yang Izzat berikan sendiri: "Diterjemahkan
+ * dari Bahasa X". Lebih panjang daripada percubaan pendek asal, tetapi tatabahasa BETUL
+ * mengatasi kepadatan ruang — margin 180-220px masih boleh tampung dua baris kalau perlu; teks
+ * editorial yang janggal tidak boleh dibiarkan demi jimat piksel.
+ *
+ * Pulangkan '' untuk sumber Melayu: label pada petikan yang tidak pernah diterjemahkan adalah
+ * salah, bukan sekadar janggal. */
 export function labelTerjemahan(bahasaAsal) {
   const nama = namaBahasa(bahasaAsal);
   if (!nama || nama === 'Melayu') return '';
-  return `Diterjemah daripada ${nama}`;
+  return `Diterjemahkan dari Bahasa ${nama}`;
 }
 
 // Label medan yang penghurai kenali. Apa-apa di luar senarai ni bukan label — ia teks biasa.
@@ -176,6 +183,12 @@ export function binaArahanAiPetikan({ maksimum = 20, pautanBuku = '' } = {}) {
     `18. JANGAN memotong petikan semata-mata untuk memenuhi had ${HAD_TEKS_PETIKAN} aksara. Jika petikan bermakna tidak dapat dikekalkan secara verbatim dalam had itu, jangan pilih petikan tersebut.`,
     `19. Pilih maksimum ${maksimum} petikan terbaik daripada sumber.`,
     '20. Jangan hasilkan petikan yang sama lebih daripada sekali.',
+    '21. Dalam medan "Teks Melayu" SAHAJA: istilah asing yang belum mantap atau tiada padanan',
+    '    Bahasa Melayu yang tepat MESTI ditandakan dengan tanda condong menggunakan asterisk,',
+    '    contohnya *framework*. Jangan condongkan singkatan teknikal antarabangsa (API, URL, PDF, AI)',
+    '    atau istilah pinjaman yang sudah lazim dalam Bahasa Melayu (status, draf, slot, modul).',
+    '    Contoh: "Sistem ini memerlukan *framework* yang sesuai." Peraturan ini TIDAK terpakai',
+    '    pada "Teks Asal" — teks asal kekal tepat seperti sumber, tanpa sebarang tanda tambahan.',
     '',
     '[DUA KERJA BERASINGAN — JANGAN CAMPURKAN]',
     '',
