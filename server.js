@@ -47,6 +47,7 @@ import { createSlotEditorRoutes } from './core/routes/slotEditorRoutes.js';
 import { createDraftRoutes } from './core/routes/draftRoutes.js';
 import { createViewStatsRoutes } from './core/routes/viewStatsRoutes.js';
 import { createEditorNotesRoutes } from './core/routes/editorNotesRoutes.js';
+import { createPetikanRoutes } from './core/routes/petikanRoutes.js';
 import { createGlosariRoutes } from './core/routes/glosariRoutes.js';
 import { createEjaanRoutes } from './core/routes/ejaanRoutes.js';
 import { createPemenggalanRoutes } from './core/routes/pemenggalanRoutes.js';
@@ -624,6 +625,14 @@ const initializeSchema = () => {
               // Had MINIMUM medan lain (2026-08-07, permintaan Izzat — "sepatutnya ada juga had
               // minimum... takkan huraian panjang boleh tulis 1 aksara sahaja"). Sebelum ni hanya
               // had MAKSIMUM wujud untuk keempat-empat medan ni.
+              // Togol ciri Petikan (2026-08-19, permintaan Izzat eksplisit: "pastikan ketua editor
+              // boleh matikan feature ni atau hidupkan, supaya kalau feature ni ada masalah atau
+              // tak matang, ia tak jejaskan portal"). LALAI 0 (MATI) — sengaja: ciri baharu tidak
+              // sepatutnya hidup sendiri pada pemasangan sedia ada tanpa Ketua Editor memilihnya.
+              // Disemak di PELAYAN (petikanRoutes.js GET /public/petikan) bukan hanya di klien,
+              // jadi mematikannya benar-benar menghentikan aliran data, bukan sekadar menyorok
+              // paparan. Injap keselamatan tanpa perlu deploy.
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN petikanAktif INTEGER DEFAULT 0', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN hadHuraianPanjangMin INTEGER DEFAULT 0', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN hadSumberMin INTEGER DEFAULT 0', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN hadTopikMin INTEGER DEFAULT 0', () => {});
@@ -669,6 +678,44 @@ const initializeSchema = () => {
               // Rekod lama (jarang, ciri ni baharu) dianggap 'pengumuman' sebagai lalai selamat.
               db.run("UPDATE editor_notes SET type = 'pengumuman' WHERE type = 'awam'", () => {});
             });
+
+            // Petikan (2026-08-19, spesifikasi Izzat selepas 6 pusingan audit reka bentuk) —
+            // kandungan editorial SAMPINGAN yang mengisi margin kiri frontpage pada skrin lebar
+            // (ruang lebihan sedia ada drpd `max-w-5xl`; audit sebenar: 203px boleh guna pada
+            // 1536px, 395px pada 1920px, grid 38 slot TIDAK berubah walau satu piksel kerana
+            // paparan Petikan `position:fixed`, di luar aliran dokumen).
+            //
+            // SATU jadual sahaja, SENGAJA — cadangan asal (jadual `works` + `attribution`
+            // berasingan, workflow 5-status, enjin promosi generik) ditolak selepas dinilai
+            // semula: Petikan belum terbukti bernilai, jadi jangan bina seni bina besar dahulu.
+            // Kalau nanti satu karya benar-benar ada berpuluh petikan dan pengulangan metadata
+            // jadi masalah SEBENAR, barulah pecahkan — bukan sekarang atas andaian.
+            //
+            // `statusSah` ialah gerbang KEBENARAN (petikan betul-betul wujud dalam karya, disemak
+            // manusia terhadap sumber), BUKAN gerbang editorial. AI boleh mencari calon petikan
+            // tetapi AI BUKAN sumber pengesahan — output AI sentiasa masuk sebagai 'belum_sah'.
+            // `aktif` pula gerbang PAPARAN (editor boleh nyahaktifkan tanpa memadam sejarah).
+            // Petikan hanya layak dipaparkan bila statusSah='sah' DAN aktif=1 — dua syarat
+            // berasingan, sengaja, supaya "betul" dan "sedang disiarkan" tak pernah bercampur.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS petikan (
+                id TEXT PRIMARY KEY,
+                teks TEXT NOT NULL,
+                pengarang TEXT NOT NULL,
+                karya TEXT NOT NULL,
+                rujukan TEXT,
+                bahasa TEXT NOT NULL DEFAULT 'ms',
+                statusSah TEXT NOT NULL DEFAULT 'belum_sah',
+                aktif INTEGER NOT NULL DEFAULT 1,
+                pautanBuku TEXT,
+                labelPautan TEXT,
+                tarikhMula TEXT,
+                tarikhAkhir TEXT,
+                dibuatOleh TEXT,
+                dibuatPada TEXT,
+                dikemasPada TEXT
+              )
+            `, () => {});
 
             // Penaja (2026-08-05, Fasa 12 — permintaan Izzat) — tajaan BULANAN, boleh berbilang
             // penaja serentak dalam satu bulan. `bulan` format 'YYYY-MM' (input type="month"
@@ -3849,6 +3896,7 @@ app.use('/api/system', createViewStatsRoutes(dbAll, dbRun));
 // /api/system/editor-notes (Editorium) dan /api/public/editor-notes (portal awam). Gerbang
 // peranan diletak DALAM editorNotesRoutes.js sendiri, pada setiap laluan.
 app.use('/api', createEditorNotesRoutes(dbAll, dbRun, dbGet));
+app.use('/api', createPetikanRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createGlosariRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createEjaanRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createPemenggalanRoutes(dbAll, dbRun, dbGet));

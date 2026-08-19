@@ -24,6 +24,10 @@ export const AM_DEFAULTS = {
   // dipakai pada Colophon/Sapuan Lajur/Gerak Susun — lihat CarouselStableBlock).
   animasiAktif: 1,
   kelajuanAnimasi: 1,
+  // Togol ciri Petikan (2026-08-19, permintaan Izzat) — 0 = MATI (lalai), 1 = HIDUP. Lihat nota
+  // penuh di server.js (ALTER TABLE petikanAktif). Bila 0, laluan awam /api/public/petikan
+  // pulangkan senarai kosong tanpa menyentuh jadual petikan langsung.
+  petikanAktif: 0,
   hadHuraianPanjang: 0,
   hadSumber: 0,
   hadTopik: 0,
@@ -146,6 +150,10 @@ export const loadAmSettings = async (dbGet) => {
         jenisAnimasi: row.jenisAnimasi || 'colophon',
         arahAnimasi: row.arahAnimasi || 'kanan',
         animasiAktif: row.animasiAktif === 0 ? 0 : 1,
+        // Lalai MATI bila lajur tiada/NULL (pemasangan sedia ada sebelum ciri ni) — sebaliknya
+        // daripada animasiAktif di atas yang lalai HIDUP. Sengaja: ciri baharu mesti dipilih
+        // secara sedar oleh Ketua Editor, bukan muncul sendiri selepas deploy.
+        petikanAktif: row.petikanAktif === 1 ? 1 : 0,
         kelajuanAnimasi: KELAJUAN_ANIMASI.some(k => k.nilai === Number(row.kelajuanAnimasi)) ? Number(row.kelajuanAnimasi) : 1,
         hadHuraianPanjang: Number(row.hadHuraianPanjang) || 0,
         hadSumber: Number(row.hadSumber) || 0,
@@ -229,6 +237,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         jenisAnimasi: JENIS_ANIMASI.some(j => j.nilai === b.jenisAnimasi) ? b.jenisAnimasi : 'colophon',
         arahAnimasi: ARAH_ANIMASI.some(a => a.nilai === b.arahAnimasi) ? b.arahAnimasi : 'kanan',
         animasiAktif: b.animasiAktif ? 1 : 0,
+        petikanAktif: b.petikanAktif ? 1 : 0,
         kelajuanAnimasi: KELAJUAN_ANIMASI.some(k => k.nilai === Number(b.kelajuanAnimasi)) ? Number(b.kelajuanAnimasi) : 1,
         hadHuraianPanjang: (() => {
           const n = nombor(b.hadHuraianPanjang, 'Had huraian panjang');
@@ -286,17 +295,18 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
 
       await dbRun(`
         INSERT INTO slot_am_settings (
-          id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi, animasiAktif, kelajuanAnimasi,
+          id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi, animasiAktif, petikanAktif, kelajuanAnimasi,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           hadHuraianPanjangMin, hadSumberMin, hadTopikMin, hadNotaEditorMin,
           logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, jenisAnimasiRawakPool, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
           jenisAnimasi = excluded.jenisAnimasi,
           arahAnimasi = excluded.arahAnimasi,
           animasiAktif = excluded.animasiAktif,
+          petikanAktif = excluded.petikanAktif,
           kelajuanAnimasi = excluded.kelajuanAnimasi,
           hadHuraianPanjang = excluded.hadHuraianPanjang,
           hadSumber = excluded.hadSumber,
@@ -317,7 +327,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           updatedAt = excluded.updatedAt
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
-        baharu.animasiAktif, baharu.kelajuanAnimasi,
+        baharu.animasiAktif, baharu.petikanAktif, baharu.kelajuanAnimasi,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
         baharu.hadHuraianPanjangMin, baharu.hadSumberMin, baharu.hadTopikMin, baharu.hadNotaEditorMin,
         baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi, baharu.modWarnaPanel,
