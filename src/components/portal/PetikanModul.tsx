@@ -6,16 +6,21 @@ import { safeParseInline } from '../../utils';
  *
  * Dua bentuk paparan, SATU sumber data:
  *   - `PetikanMargin`  — desktop lebar (>=1536px) sahaja. Marginalia terapung di margin kiri
- *                        bawah, bertukar apabila pembaca menatal, bukan mengikut pemasa.
+ *                        bawah, bertukar automatik mengikut PEMASA (TEMPOH_PUTARAN_MS).
  *   - `PetikanStatik`  — skrin sempit. SATU petikan tetap di atas footer, tiada putaran langsung.
  *
  * Keputusan Izzat yang dikunci dan TIDAK boleh diubah tanpa arahan baharu:
- *   1. Petikan BUKAN carousel/pemasa. Ia bertukar SEMATA-MATA mengikut tatalan pembaca — kalau
- *      pembaca duduk diam membaca, petikan kekal.
- *   1b. DUA ARAH (dikemas kini 2026-08-19, selepas ujian langsung pengeluaran — reka bentuk asal
- *      "900px + tunggu pembaca berhenti" terasa terlalu perlahan/tak responsif). Kini: menatal ke
- *      BAWAH beberapa baris memajukan ke petikan seterusnya; menatal ke ATAS beberapa baris
- *      KEMBALI ke petikan sebelum ini — pusingan boleh diterbalikkan sepenuhnya, bukan sehala.
+ *   1. PEMASA AUTOMATIK (2026-08-19, GANTIKAN keputusan asal — lihat sejarah di bawah). Arahan
+ *      terus Izzat: "jangan buat pertukaran berdasarkan scroll! menyusahkan guna scroll." Petikan
+ *      kini bertukar setiap `TEMPOH_PUTARAN_MS` (setInterval), TIDAK KIRA tatalan pembaca —
+ *      dijeda hanya oleh hover/fokus (`kunciTuding`) dan Focus View terbuka (`beku`).
+ *
+ *      SEJARAH (untuk konteks, bukan rujukan semasa): keputusan ASAL 19/8/2026 pagi ialah
+ *      "Petikan BUKAN carousel/pemasa... bertukar SEMATA-MATA mengikut tatalan", dikemas kini
+ *      "1b" tengahari jadi tatalan DUA ARAH (900px -> 1800px, beberapa pelarasan). Keputusan ni
+ *      DITERBALIKKAN SEPENUHNYA petang hari yang SAMA selepas ujian langsung menunjukkan tatalan
+ *      terasa menyusahkan. Sengaja dibiarkan dalam sejarah komen supaya jelas ni PERUBAHAN
+ *      SEDAR, bukan kekeliruan — jangan pulangkan ke tatalan tanpa arahan Izzat yang baharu.
  *   2. Skrin sempit STATIK. Bukan versi kecil marginalia yang berputar — gaya berbeza sepenuhnya.
  *   3. Ketua Editor boleh mematikan keseluruhan ciri. Kalau `aktif` palsu, modul ini tidak
  *      merender apa-apa langsung (gerbang sebenar ada di pelayan, lihat petikanRoutes.js).
@@ -154,19 +159,15 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
 // PetikanMargin — desktop lebar, terapung, bertukar mengikut tatalan
 // ---------------------------------------------------------------------------
 
-/** Jarak tatalan (px) bagi SATU langkah. Sejarah pelarasan sama hari (2026-08-19): 900 -> 200
- *  (terlalu pantas) -> 380 (terasa OK secara berasingan, tetapi video sebenar dedah ia masih
- *  terlalu KERAP untuk marginalia — setiap pertukaran, walau dihaluskan, tetap peristiwa visual
- *  di tepi mata; kalau kerap sangat, petikan "berubah daripada suasana editorial kepada
- *  carousel", kata ChatGPT selepas tonton rakaman sebenar).
- *
- *  PELARASAN KETIGA — 380 -> 1800. Sasaran BUKAN "berapa kerap boleh bertukar", tetapi "berapa
- *  banyak petikan pembaca biasa nampak dalam SATU lawatan" — dianggarkan 4-6 pertukaran sepanjang
- *  frontpage 38 slot (~9,000px tatalan sebenar) = kira-kira setiap 1,700-1,800px. Ini BERBEZA
- *  daripada saiz kolam harian (12, PetikanConfig.js `pilihDanSusunKolam`) — 12 ialah bekalan
- *  pengagihan, bukan jumlah yang wajib dilihat setiap lawatan; pembaca yang scroll sangat panjang
- *  tetap boleh capai lebih, tiada had buatan. */
-const JARAK_TUKAR_PX = 1800;
+/** Tempoh (ms) SATU petikan dipaparkan sebelum bertukar automatik. Sejarah: pertukaran asalnya
+ *  dipacu TATALAN (scroll) — beberapa pelarasan jarak (900 -> 200 -> 380 -> 1800px) dibuat dalam
+ *  sesi yang sama sebelum keputusan diTUKAR SEPENUHNYA (2026-08-19, arahan terus Izzat: "jangan
+ *  buat pertukaran berdasarkan scroll... menyusahkan guna scroll"). Mekanisme kini PEMASA, bukan
+ *  tatalan — keputusan terkunci #1 lama ("Petikan BUKAN carousel/pemasa") DIGANTIKAN arahan
+ *  eksplisit ni, bukan diabaikan senyap. 10 saat ialah anggaran munasabah untuk marginalia dibaca
+ *  selesa tanpa terasa terlalu pantas/perlahan — laras nilai ni kalau Izzat rasa perlu selepas
+ *  lihat sendiri di pengeluaran. */
+const TEMPOH_PUTARAN_MS = 10000;
 
 /** Transisi DUA FASA (2026-08-19, susulan video sebenar Izzat: "pertukaran terlalu mendadak...
  *  state lama hilang dan state baharu terasa muncul sebagai penggantian kandungan"). Fade tunggal
@@ -222,37 +223,33 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
     }
   }, [kolam.length]);
 
-  // Putaran DUA ARAH mengikut tatalan (2026-08-19, reka bentuk semula — lihat nota atas fail).
-  // Menatal ke bawah beberapa baris memajukan; menatal ke atas beberapa baris KEMBALI ke
-  // petikan sebelum ini. `terkumpul` boleh bernilai negatif — bukan sekadar "reset ke 0" apabila
-  // arah berbalik, supaya tatalan kecil bolak-balik (contoh baca semula satu ayat) tidak
-  // terkumpul silang sebagai langkah palsu.
+  // Putaran automatik berpemasa (2026-08-19, arahan terus Izzat: "jangan buat pertukaran
+  // berdasarkan scroll... menyusahkan guna scroll" — gantikan seni bina tatalan sepenuhnya, lihat
+  // nota TEMPOH_PUTARAN_MS di atas). Sentiasa MAJU sahaja (tiada lagi "kembali" — konsep itu
+  // bermakna dalam konteks tatalan dua-hala, tiada makna semula jadi untuk pemasa).
   React.useEffect(() => {
     if (kolam.length < 2 || ditutup) return;
-
-    let terkumpul = 0;
-    let yTerakhir = window.scrollY;
 
     // Transisi DUA FASA (2026-08-19, susulan video sebenar — lihat nota TEMPOH_FADE_KELUAR_MS di
     // atas fail). Urutan MESTI tepat: fade-keluar penuh -> tukar kandungan SEMASA tak kelihatan
     // (opacity 0) -> jeda kosong -> fade-masuk. `kurangGerak` langkau kesemua fasa, tukar terus.
-    const tukarIndeks = (arah: 1 | -1) => {
+    const tukarIndeks = () => {
       setIndeks((sebelum) => {
-        const baharu = (sebelum + arah + kolam.length) % kolam.length;
+        const baharu = (sebelum + 1) % kolam.length;
         tulisSesi({ tarikh: new Date().toISOString().slice(0, 10), indeks: baharu, ditutup: false });
         return baharu;
       });
     };
 
-    const langkah = (arah: 1 | -1) => {
+    const langkah = () => {
       if (kunciTuding.current || bekuRef.current) return;
-      if (kurangGerak) { tukarIndeks(arah); return; }
+      if (kurangGerak) { tukarIndeks(); return; }
 
       setTempohTransisiMs(TEMPOH_FADE_KELUAR_MS);
       setPudar(true); // fade-KELUAR bermula — teks LAMA masih dipaparkan sepanjang fasa ni
       setTimeout(() => {
         // opacity 0 PENUH sekarang — selamat tukar kandungan, mata tidak nampak langsung.
-        tukarIndeks(arah);
+        tukarIndeks();
         setTimeout(() => {
           // jeda kosong selesai — mula fade-MASUK dengan tempoh berlainan (lebih perlahan).
           setTempohTransisiMs(TEMPOH_FADE_MASUK_MS);
@@ -261,19 +258,8 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
       }, TEMPOH_FADE_KELUAR_MS);
     };
 
-    const kendali = () => {
-      const y = window.scrollY;
-      const delta = y - yTerakhir;
-      yTerakhir = y;
-      terkumpul += delta;
-      // `while` (bukan `if`) — satu gerakan tatal besar (cth PageDown) boleh melepasi ambang
-      // berkali-kali sekali gus; setiap langkah dikira, bukan cuma satu langkah tunggal.
-      while (terkumpul >= JARAK_TUKAR_PX) { terkumpul -= JARAK_TUKAR_PX; langkah(1); }
-      while (terkumpul <= -JARAK_TUKAR_PX) { terkumpul += JARAK_TUKAR_PX; langkah(-1); }
-    };
-
-    window.addEventListener('scroll', kendali, { passive: true });
-    return () => window.removeEventListener('scroll', kendali);
+    const pemasa = setInterval(langkah, TEMPOH_PUTARAN_MS);
+    return () => clearInterval(pemasa);
   }, [kolam.length, ditutup, kurangGerak]);
 
   if (!aktif || kolam.length === 0 || ditutup) return null;
