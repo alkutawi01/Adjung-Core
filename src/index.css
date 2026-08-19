@@ -634,10 +634,12 @@ h1, h2, h3, h4, h5, h6, p {
 .fv-eyebrow-ikon {
   display: inline-flex; align-items: center; margin-right: 6px;
   animation: fvEyebrowIkonMasuk 300ms ease-out both;
+  animation-delay: var(--fv-lengah-masuk, 0ms);
 }
 .fv-eyebrow-kumpulan-keluar {
   display: inline-block; vertical-align: baseline;
   animation: fvEyebrowKumpulanGerak 300ms ease-in-out forwards;
+  animation-delay: var(--fv-lengah-masuk, 0ms);
 }
 
 /* Tajuk + huraian panjang: pudar+gelongsor naik lembut semasa masuk (2026-08-17, Izzat: "kalau
@@ -651,8 +653,19 @@ h1, h2, h3, h4, h5, h6, p {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.fv-tajuk-masuk { animation: fvMasukFedAtas 150ms ease-out both; animation-delay: 150ms; }
-.fv-huraian-masuk { animation: fvMasukFedAtas 150ms ease-out both; animation-delay: 300ms; }
+/* --fv-lengah-masuk (2026-08-19) — lengah TAMBAHAN sebelum seluruh jujukan masuk bermula,
+   diwarisi drpd bekas akar Focus View (FocusView.tsx tetapkan nilainya). 0ms untuk kandungan
+   PERTAMA (tiada panel transisi, animasi terus kelihatan); ~520ms untuk kandungan KEDUA dan
+   seterusnya, iaitu saat panel transisi maroon MULA membuka (lihat keyframes
+   focusViewTransitionPanel di bawah: tutup penuh 40%-60% drpd 900ms = 360-540ms).
+
+   PEPIJAT YANG DIBAIKI (Izzat: "hanya kandungan pertama yg ada animasi, yg kedua dan seterusnya
+   0 animasi") — sebelum ni jujukan masuk SENTIASA bermula 0ms, iaitu SERENTAK panel transisi
+   mula menutup skrin. Untuk kandungan ke-2+, keseluruhan jujukan (dahulu tamat ~450ms) habis
+   SEPENUHNYA di sebalik panel yang masih menutup — pembaca tak pernah nampak SATU bingkai pun.
+   Kandungan pertama tiada panel, sebab tu ia SAHAJA yang kelihatan beranimasi. */
+.fv-tajuk-masuk { animation: fvMasukFedAtas 300ms ease-out both; animation-delay: calc(var(--fv-lengah-masuk, 0ms) + 150ms); }
+.fv-huraian-masuk { animation: fvMasukFedAtas 300ms ease-out both; animation-delay: calc(var(--fv-lengah-masuk, 0ms) + 300ms); }
 @media (prefers-reduced-motion: reduce) {
   .fv-eyebrow-ikon, .fv-eyebrow-kumpulan-keluar, .fv-tajuk-masuk, .fv-huraian-masuk { animation: none; }
 }

@@ -464,6 +464,28 @@ export const FocusView: React.FC<FocusViewProps> = ({
     return () => clearTimeout(t);
   }, [title]);
 
+  // Lengah jujukan animasi masuk (2026-08-19, pepijat Izzat: "hanya kandungan pertama yg ada
+  // animasi") — lihat nota penuh --fv-lengah-masuk di src/index.css. Dikira semasa RENDER (bukan
+  // effect) sebab elemen tajuk/huraian dilekap SERENTAK dgn render ni — animasi CSS bermula pada
+  // detik lekap, jadi keputusan lengah mesti sudah diketahui SEBELUM lekap, bukan selepas.
+  //
+  // Dikunci pada REF per-artikel, BUKAN dikira terus setiap render: nilai mesti KEKAL SAMA
+  // sepanjang hayat satu artikel. Percubaan pertama membaca `firstFocusRender.current` terus —
+  // salah, sebab ref itu bertukar false sebaik effect jalan, jadi render SETERUSNYA bagi artikel
+  // PERTAMA yang sama (dicetuskan sebab lain: tatal, resize, muat fon) mengira semula 520ms,
+  // menukar animation-delay elemen yang animasinya SEDANG/SUDAH berjalan — pelayar memulakan
+  // semula animasi itu, kandungan berkelip hilang-datang. Disahkan hidup sebelum pembetulan ni:
+  // artikel pertama membaca 520ms sedangkan sepatutnya 0ms.
+  const LENGAH_SELEPAS_PANEL_MS = 520;
+  const identitiSebelumRef = React.useRef<string | null>(null);
+  const lengahMasukRef = React.useRef(0);
+  if (identitiSebelumRef.current !== identitiArtikel) {
+    // null = belum pernah papar apa-apa (Focus View baru dibuka) -> tiada panel transisi -> 0ms.
+    lengahMasukRef.current = identitiSebelumRef.current === null ? 0 : LENGAH_SELEPAS_PANEL_MS;
+    identitiSebelumRef.current = identitiArtikel;
+  }
+  const gayaLengahMasuk = { '--fv-lengah-masuk': `${lengahMasukRef.current}ms` } as React.CSSProperties;
+
   // Tatal automatik Focus View (2026-08-04, permintaan Izzat) — lompat sendiri ke kandungan
   // seterusnya (rawak merentasi Bidang, ditentukan oleh `onNext` yang FrontpageView bekalkan)
   // supaya pembaca tak perlu klik tiap kali. Hanya aktif bila ada sasaran seterusnya (`onNext`
@@ -797,6 +819,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
     return (
       <div
         style={{
+          ...gayaLengahMasuk,
           position: 'fixed', inset: 0, zIndex: 200, background: 'var(--surface-page)',
           color: 'var(--text-body)', display: 'flex', flexDirection: 'column',
           // Bendera userSelect (2026-08-05) — FrontpageView.tsx punya bekas induk terkunci
@@ -1135,7 +1158,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // dengan kandungan lain semasa navigasi.
   // ==========================================================================================
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)', display: 'flex', flexDirection: 'column', userSelect: 'text', WebkitUserSelect: 'text' }}>
+    <div style={{ ...gayaLengahMasuk, position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)', display: 'flex', flexDirection: 'column', userSelect: 'text', WebkitUserSelect: 'text' }}>
       {transitionOverlay}
       {backdropImage && (
         <div aria-hidden="true" style={{
