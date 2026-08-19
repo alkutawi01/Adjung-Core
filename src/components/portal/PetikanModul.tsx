@@ -116,7 +116,8 @@ function saizTeksMargin(panjang: number) {
 const Atribusi: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => (
   <div className={kelas}>
     <span className="font-semibold">{p.pengarang}</span>
-    {p.karya && <span> · {p.karya}</span>}
+    {/* Nama karya condong — konvensyen tipografi standard untuk judul buku/karya, bukan hiasan. */}
+    {p.karya && <span> · <em>{p.karya}</em></span>}
     {p.rujukan && <span> · {p.rujukan}</span>}
   </div>
 );

@@ -742,7 +742,7 @@ export const PetikanConsole: React.FC = () => {
                         </p>
                         <p className="text-stone-500 text-[11px] mt-1">
                           {k.pengarang || <span className="text-stone-400">Pengarang belum diisi</span>}
-                          {k.karya ? ` · ${k.karya}` : ''}
+                          {k.karya ? <> · <em>{k.karya}</em></> : ''}
                         </p>
                       </div>
 
@@ -844,7 +844,7 @@ export const PetikanConsole: React.FC = () => {
                 </blockquote>
                 <div className="text-stone-600 text-xs">
                   <span className="font-semibold">{petikanSemakan.pengarang}</span>
-                  {petikanSemakan.karya && <span> · {petikanSemakan.karya}</span>}
+                  {petikanSemakan.karya && <span> · <em>{petikanSemakan.karya}</em></span>}
                   {petikanSemakan.rujukan && <span> · {petikanSemakan.rujukan}</span>}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1025,7 +1025,7 @@ export const PetikanConsole: React.FC = () => {
 
                             <p className="font-serif text-sm text-stone-900 leading-snug">“{p.teksPaparan}”</p>
                             <p className="text-stone-500 text-[11px] mt-1">
-                              {p.pengarang} · {p.karya}{p.rujukan ? ` · ${p.rujukan}` : ''}
+                              {p.pengarang} · <em>{p.karya}</em>{p.rujukan ? ` · ${p.rujukan}` : ''}
                               {p.statusTerjemahan !== 'tidak_perlu' && ` · ${labelTerjemahan(p.bahasaAsal)}`}
                             </p>
 
