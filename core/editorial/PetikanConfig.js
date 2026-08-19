@@ -173,9 +173,9 @@ export function binaArahanAiPetikan({ maksimum = 20, pautanBuku = '' } = {}) {
     '7. JANGAN menggabungkan ayat daripada lokasi berlainan untuk membentuk satu petikan baharu.',
     '8. JANGAN mencipta petikan berdasarkan idea atau maksud pengarang.',
     '8b. JANGAN memilih ayat al-Quran, hadis Nabi SAW, kata-kata sahabat, ulama, tokoh atau petikan',
-    '    daripada karya/sumber lain sebagai petikan pengarang buku. Jika pengarang buku hanya menukil',
-    '    atau memetik sumber lain, jangan masukkan petikan tersebut walaupun ia terdapat dalam teks',
-    '    sumber yang diberikan.',
+    '    daripada karya/sumber lain sebagai petikan pengarang sumber ini. Jika pengarang sumber ini',
+    '    hanya menukil atau memetik sumber lain, jangan masukkan petikan tersebut walaupun ia',
+    '    terdapat dalam teks sumber yang diberikan.',
     '8c. Pastikan setiap petikan yang dipilih benar-benar merupakan kata-kata atau tulisan pengarang',
     '    karya yang diberikan, bukan kata-kata sumber yang sedang dipetik, dinukil atau dirujuk oleh',
     '    pengarang. Jika asal-usul sesuatu petikan tidak dapat dipastikan, JANGAN pilih petikan',
@@ -185,7 +185,7 @@ export function binaArahanAiPetikan({ maksimum = 20, pautanBuku = '' } = {}) {
     '9. JANGAN menggunakan petikan daripada ingatan anda jika ia tidak dapat dikenal pasti dalam sumber yang diberikan.',
     '9b. JANGAN menentukan pengarang sesuatu petikan berdasarkan pengetahuan atau ingatan anda sahaja.',
     '    Gunakan konteks dalam sumber yang diberikan untuk menentukan atribusi. Jika teks menunjukkan',
-    '    petikan itu berasal daripada sumber lain (bukan tulisan asal pengarang buku ini), gugurkan',
+    '    petikan itu berasal daripada sumber lain (bukan tulisan asal pengarang sumber ini), gugurkan',
     '    petikan tersebut sepenuhnya daripada output.',
     '10. JANGAN mereka metadata. Nama pengarang, judul karya dan rujukan MESTI berdasarkan sumber.',
     '10b. Nama pengarang dan judul karya MESTI ditulis dalam TRANSLITERASI RUMI (huruf Latin standard), WALAUPUN sumber berskrip Arab/Cina/Cyrillic/lain. Contoh: "علاء الدين العطار" ditulis "Ala\' al-Din al-\'Attar", BUKAN skrip Arab asal. Ini BERBEZA daripada "Teks Asal" (peraturan 2), yang MESTI kekal dalam skrip/bahasa asal sumber tanpa transliterasi.',
@@ -587,13 +587,20 @@ export function huraiPetikanTampal(teksMentah) {
 // ---------------------------------------------------------------------------------------------
 // KOLAM HARIAN
 
-// Saiz berkadar dengan koleksi (2026-08-19) — kolam tetap 12 pada koleksi 15 bermakna hampir
-// seluruh pustaka terdedah setiap hari dan "kolam harian" hilang maknanya.
-export function saizKolamHarian(jumlahLayak) {
+// Saiz berkadar dengan koleksi (2026-08-19) — kolam tetap pada `maksimum` walaupun koleksi kecil
+// bermakna hampir seluruh pustaka terdedah setiap hari dan "kolam harian" hilang maknanya.
+//
+// `maksimum` kini BOLEH DILARAS Ketua Editor (2026-08-19, susulan arahan Izzat: "kuantiti
+// petikan sehari boleh dilaraskan di tetapan... semua yg boleh dilaraskan letak di tetapan") —
+// nilai DATA di `slot_am_settings.petikanKuantitiHarianMaksimum` (petikanRoutes.js), bukan
+// pemalar kod. Lalai 12 KEKAL kalau tetapan belum wujud/tidak sah (pemanggil sentiasa hantar
+// nombor sah — lalai di sini cuma pertahanan kedua).
+export function saizKolamHarian(jumlahLayak, maksimum = 12) {
   const n = Math.max(0, Number(jumlahLayak) || 0);
+  const m = Math.max(1, Number(maksimum) || 12);
   if (n === 0) return 0;
-  if (n < 4) return n;
-  return Math.min(12, Math.max(4, Math.ceil(n / 3)));
+  if (n < 4) return Math.min(n, m);
+  return Math.min(m, Math.max(Math.min(4, m), Math.ceil(n / 3)));
 }
 
 const benihDaripadaTarikh = (tarikhIso) => {
@@ -643,9 +650,9 @@ const kocokBerbenih = (senarai, rnd) => {
  * dengan NULL yang lain (dua NULL boleh berjiran), dan rekod berkategori diutamakan semasa
  * pemilihan supaya hutang data tidak tersembunyi.
  */
-export function pilihDanSusunKolam(layak, tarikhIso) {
+export function pilihDanSusunKolam(layak, tarikhIso, kuantitiMaksimum = 12) {
   const senarai = Array.isArray(layak) ? layak : [];
-  const saiz = saizKolamHarian(senarai.length);
+  const saiz = saizKolamHarian(senarai.length, kuantitiMaksimum);
   if (saiz === 0) return [];
 
   const rnd = rawakBerbenih(benihDaripadaTarikh(tarikhIso));

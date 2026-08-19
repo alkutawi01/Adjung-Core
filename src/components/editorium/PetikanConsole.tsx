@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
-import { BadgeCheck, Check, ChevronDown, ChevronRight, ClipboardPaste, Copy, Pencil, Plus, Power, Search, SkipForward, Trash2, TriangleAlert, X } from 'lucide-react';
+import { BadgeCheck, Check, ChevronDown, ChevronRight, ClipboardPaste, Copy, Pencil, Plus, Power, Search, Trash2, TriangleAlert, X } from 'lucide-react';
 import { KATEGORI_PETIKAN, HAD_TEKS_PETIKAN, labelTerjemahan, adalahBahasaMelayu } from '../../../core/editorial/PetikanConfig.js';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -40,13 +40,15 @@ import { safeParseInline, tanganiKekunciItalic } from '../../utils';
 // Kelayakan terbit diterbitkan daripada kedua-duanya di pelayan; konsol tidak pernah mengiranya
 // sendiri. Terjemahan tidak boleh disahkan sebelum sumber — pelayan membalas 400.
 
-type SubTab = 'ruang_kerja' | 'semakan' | 'koleksi' | 'tetapan';
+// Semakan DIBUANG sebagai sub-halaman berasingan (2026-08-19, arahan terus Izzat: "buang modul
+// '2. semakan', takde fungsi, editor boleh semak di koleksi") — pengesahan (Sahkan Teks Asal/
+// Terjemahan, Pertikai) kini terus di kad Koleksi (dibuka), guna borang+status SAMA.
+type SubTab = 'ruang_kerja' | 'koleksi' | 'tetapan';
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: 'ruang_kerja', label: '1. Ruang Kerja' },
-  { id: 'semakan', label: '2. Semakan' },
-  { id: 'koleksi', label: '3. Koleksi' },
-  { id: 'tetapan', label: '4. Tetapan' },
+  { id: 'koleksi', label: '2. Koleksi' },
+  { id: 'tetapan', label: '3. Tetapan' },
 ];
 
 interface Petikan {
@@ -245,6 +247,15 @@ export const PetikanConsole: React.FC = () => {
   const [ciriAktif, setCiriAktif] = useState<boolean | null>(null);
   const [menukarTogol, setMenukarTogol] = useState(false);
 
+  // Tempoh putaran (saat) + kuantiti harian maksimum — boleh dilaras Ketua Editor (2026-08-19,
+  // arahan terus Izzat: "tempoh putaran boleh ditetapkan di tetapan petikan... kuantiti petikan
+  // sehari boleh dilaraskan di tetapan. pendek kata, semua yg boleh dilaraskan letak di
+  // tetapan"). Rentetan (bukan nombor) supaya medan input boleh kosong sementara editor menaip,
+  // disahkan/ditukar ke nombor hanya semasa hantar.
+  const [tempohPutaranSaat, setTempohPutaranSaat] = useState('10');
+  const [kuantitiHarianMaksimum, setKuantitiHarianMaksimum] = useState('12');
+  const [menyimpanTetapanLanjutan, setMenyimpanTetapanLanjutan] = useState(false);
+
   const [pautanBukuSumber, setPautanBukuSumber] = useState('');
   const [teksTampal, setTeksTampal] = useState('');
   const [tampalDibuka, setTampalDibuka] = useState(false);
@@ -253,8 +264,9 @@ export const PetikanConsole: React.FC = () => {
   const [ditolak, setDitolak] = useState<Array<{ blok: number; sebab: string; cuplikan: string }>>([]);
   const [draf, setDraf] = useState<KadDraf[]>([]);
 
-  const [semakanDibuka, setSemakanDibuka] = useState(false);
-  const [indeksSemakan, setIndeksSemakan] = useState(0);
+  // teksDisalin/memprosesSemakan dikongsi Koleksi (butang Salin teks asal + Sahkan/Pertikai) —
+  // Semakan (sub-halaman berasingan) DIBUANG (2026-08-19, arahan terus Izzat: "buang modul '2.
+  // semakan', takde fungsi, editor boleh semak di koleksi"). Pengesahan kini terus di kad Koleksi.
   const [teksDisalin, setTeksDisalin] = useState('');
   const [memprosesSemakan, setMemprosesSemakan] = useState(false);
 
@@ -275,7 +287,12 @@ export const PetikanConsole: React.FC = () => {
   const muatTogol = useCallback(() => {
     fetch('/api/system/slot-am-settings')
       .then(async (res) => (res.ok ? bacaJsonSelamat(res) : null))
-      .then((d) => { if (d) setCiriAktif(!!d.petikanAktif); })
+      .then((d) => {
+        if (!d) return;
+        setCiriAktif(!!d.petikanAktif);
+        if (d.petikanTempohPutaranSaat) setTempohPutaranSaat(String(d.petikanTempohPutaranSaat));
+        if (d.petikanKuantitiHarianMaksimum) setKuantitiHarianMaksimum(String(d.petikanKuantitiHarianMaksimum));
+      })
       .catch(() => { /* senyap — togol cuma tak dipapar, konsol masih boleh guna */ });
   }, []);
 
@@ -307,6 +324,45 @@ export const PetikanConsole: React.FC = () => {
       setRalat(e.message || 'Gagal menukar togol ciri.');
     } finally {
       setMenukarTogol(false);
+    }
+  };
+
+  /** Simpan tempoh putaran + kuantiti harian — corak SAMA seperti tukarTogolCiri (baca semasa,
+   *  hantar semula dgn medan ditukar, endpoint simpanan PENUH bukan patch separa). */
+  const simpanTetapanLanjutan = async () => {
+    const saat = Number(tempohPutaranSaat);
+    const kuantiti = Number(kuantitiHarianMaksimum);
+    if (!Number.isInteger(saat) || saat < 1 || saat > 300) {
+      setRalat('Tempoh putaran mesti nombor bulat antara 1 dan 300 saat.');
+      return;
+    }
+    if (!Number.isInteger(kuantiti) || kuantiti < 1 || kuantiti > 100) {
+      setRalat('Kuantiti harian maksimum mesti nombor bulat antara 1 dan 100.');
+      return;
+    }
+    setMenyimpanTetapanLanjutan(true);
+    setRalat('');
+    try {
+      const resBaca = await fetch('/api/system/slot-am-settings');
+      const semasa = await bacaJsonSelamat(resBaca);
+      if (!resBaca.ok) throw new Error(semasa.error || 'Gagal membaca tetapan semasa.');
+
+      const res = await fetch('/api/system/slot-am-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...semasa,
+          petikanTempohPutaranSaat: saat,
+          petikanKuantitiHarianMaksimum: kuantiti,
+        }),
+      });
+      const data = await bacaJsonSelamat(res);
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan tetapan.');
+      lapor('Tetapan Petikan dikemas kini.');
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal menyimpan tetapan.');
+    } finally {
+      setMenyimpanTetapanLanjutan(false);
     }
   };
 
@@ -544,10 +600,6 @@ export const PetikanConsole: React.FC = () => {
     () => senarai.filter((p) => p.statusSumber !== 'sah' || (p.statusTerjemahan !== 'sah' && p.statusTerjemahan !== 'tidak_perlu')),
     [senarai]
   );
-  const petikanSemakan = perluTindakan[Math.min(indeksSemakan, Math.max(0, perluTindakan.length - 1))] || null;
-  const bilSekumpulan = petikanSemakan?.kumpulanImport
-    ? senarai.filter((p) => p.kumpulanImport === petikanSemakan.kumpulanImport).length
-    : 0;
 
   const senaraiDipapar = useMemo(() => {
     const carian = carianKoleksi.trim().toLowerCase();
@@ -565,7 +617,9 @@ export const PetikanConsole: React.FC = () => {
   // sub-halaman untuk tahu. Hanya dipaparkan apabila > 0 supaya tab bersih bila tiada kerja.
   const kiraanTab: Partial<Record<SubTab, number>> = {
     ruang_kerja: draf.length || undefined,
-    semakan: perluTindakan.length || undefined,
+    // Kiraan "perlu tindakan" dipindah ke tab Koleksi (2026-08-19) — pengesahan kini terus di
+    // situ, bukan sub-halaman Semakan berasingan yang dibuang.
+    koleksi: perluTindakan.length || undefined,
   };
 
   return (
@@ -815,188 +869,6 @@ export const PetikanConsole: React.FC = () => {
         </PanelCard>
       )}
 
-      {/* ═══ 2. SEMAKAN — Mod Semakan Pantas. ═══ */}
-      {subTab === 'semakan' && (
-        <PanelCard className="text-xs space-y-4">
-          <div className="flex flex-wrap justify-between items-end gap-4">
-            <div>
-              <SectionLabel>Semakan Editorial</SectionLabel>
-              <p className="text-stone-500 text-xs">
-                {perluTindakan.length > 0
-                  ? `${perluTindakan.length} petikan menunggu semakan terhadap sumber asalnya.`
-                  : 'Tiada petikan menunggu semakan.'}
-              </p>
-            </div>
-            {perluTindakan.length > 0 && (
-              <Button
-                variant={semakanDibuka ? 'secondary' : 'primary'} size="sm"
-                onClick={() => { setSemakanDibuka(!semakanDibuka); setIndeksSemakan(0); }}
-              >
-                {semakanDibuka ? 'Tutup mod semakan' : 'Mula semak'}
-              </Button>
-            )}
-          </div>
-
-          {perluTindakan.length === 0 && (
-            <KeadaanKosong>
-              Setiap petikan dalam koleksi sudah diputuskan. Petikan baharu akan muncul di sini
-              untuk disemak.
-            </KeadaanKosong>
-          )}
-
-          {semakanDibuka && petikanSemakan && (
-            <div className="border border-Adjung-line rounded p-4 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">
-                    {indeksSemakan + 1} daripada {perluTindakan.length}
-                  </span>
-                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
-                    {petikanSemakan.bahasaAsal}
-                  </span>
-                  {petikanSemakan.kategori ? (
-                    <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">{petikanSemakan.kategori}</span>
-                  ) : (
-                    <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-amber-700">Kategori perlu diisi</span>
-                  )}
-                  {/* Konteks kelompok — kesilapan AI biasanya berkelompok, jadi penyemak patut
-                      tahu petikan mana datang bersama. Ia MAKLUMAT, bukan pemilihan: tiada
-                      tindakan pukal. */}
-                  {bilSekumpulan > 1 && (
-                    <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-Adjung-maroon">
-                      Sesi AI sama · {bilSekumpulan} petikan
-                    </span>
-                  )}
-                </div>
-                {/* Sunting TERUS dalam mod semakan — tanpa ni, editor terpaksa tinggalkan mod
-                    semakan, cari petikan yang sama di Koleksi, sunting, baru kembali. Guna
-                    borang+state SAMA seperti Koleksi (mulaSunting/simpanSunting/BorangPetikan)
-                    supaya kedua-dua tempat tidak boleh terpesong. */}
-                {borangSunting?.id !== petikanSemakan.id && (
-                  <Button variant="ghost" size="sm" onClick={() => mulaSunting(petikanSemakan)}>
-                    <Pencil className="w-3.5 h-3.5" /> Sunting
-                  </Button>
-                )}
-              </div>
-
-              {borangSunting?.id === petikanSemakan.id ? (
-                <div className="space-y-3 border-t border-Adjung-line pt-3">
-                  <BorangPetikan
-                    nilai={borangSunting}
-                    ubah={(t) => setBorangSunting((b) => (b ? { ...b, ...t } : b))}
-                  />
-                  {masalahKad(borangSunting).length > 0 && (
-                    <p className="text-[11px] text-amber-700">{masalahKad(borangSunting).join(' · ')}</p>
-                  )}
-                  <p className="text-[10px] text-stone-500">
-                    Mengubah teks asal atau teks Melayu akan meletakkan semula pengesahan
-                    berkaitan kepada Belum disemak.
-                  </p>
-                  <div className="flex items-center gap-2 justify-end">
-                    <Button variant="ghost" size="sm" onClick={() => setBorangSunting(null)}>Batal</Button>
-                    <Button
-                      variant="primary" size="sm"
-                      disabled={menyimpanSuntingan || masalahKad(borangSunting).length > 0}
-                      onClick={simpanSunting}
-                    >
-                      {menyimpanSuntingan ? 'Menyimpan…' : 'Simpan perubahan'}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-              {/* LANGKAH 1 — sahkan teks asal terhadap karya. */}
-              <div className="space-y-2">
-                <p className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-600">
-                  1 — Sahkan teks asal terhadap sumber
-                </p>
-                {/* not-italic WAJIB — index.css ada peraturan global `blockquote{font-style:italic}`
-                    (untuk prosa editor), yang bocor ke sini dan bercanggah terus dengan keputusan
-                    "TEGAK, bukan condong" (Izzat, 19/8/2026) untuk petikan. */}
-                <blockquote className="font-serif not-italic text-base text-stone-900 leading-relaxed border-l-2 border-stone-300 pl-4" dir="auto">
-                  {petikanSemakan.teksAsal}
-                </blockquote>
-                <div className="text-stone-600 text-xs">
-                  <span className="font-semibold">{petikanSemakan.pengarang}</span>
-                  {petikanSemakan.karya && <span> · <em>{petikanSemakan.karya}</em></span>}
-                  {petikanSemakan.rujukan && <span> · {petikanSemakan.rujukan}</span>}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => salin(petikanSemakan.teksAsal, 'asal')}>
-                    {teksDisalin === 'asal' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {teksDisalin === 'asal' ? 'Disalin' : 'Salin teks asal'}
-                  </Button>
-                  {petikanSemakan.statusSumber === 'sah' ? (
-                    <StatusBadge tone="success" label="Teks Asal Disahkan" />
-                  ) : (
-                    <>
-                      <Button variant="primary" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(petikanSemakan.id, { statusSumber: 'sah' })}>
-                        <BadgeCheck className="w-3.5 h-3.5" /> Teks Asal Disahkan
-                      </Button>
-                      <Button variant="bahaya" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(petikanSemakan.id, { statusSumber: 'dipertikai' })}>
-                        <TriangleAlert className="w-3.5 h-3.5" /> Pertikai
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* LANGKAH 2 — sahkan terjemahan. Dikunci sehingga sumber disahkan: terjemahan yang
-                  setia kepada sumber yang salah tetap tidak berguna. Pelayan turut menolak 400,
-                  jadi kunci ini panduan, bukan satu-satunya pertahanan. */}
-              {petikanSemakan.statusTerjemahan === 'tidak_perlu' ? (
-                <p className="text-[11px] text-stone-500 border-t border-Adjung-line pt-3">
-                  Sumber berbahasa Melayu — tiada terjemahan untuk disemak.
-                </p>
-              ) : (
-                <div className="space-y-2 border-t border-Adjung-line pt-3">
-                  <p className="font-mono text-[10px] uppercase tracking-wider font-bold text-stone-600">
-                    2 — Sahkan terjemahan setia kepada teks asal
-                  </p>
-                  <blockquote className="font-serif not-italic text-base text-stone-900 leading-relaxed border-l-2 border-stone-300 pl-4">
-                    {safeParseInline(petikanSemakan.teksPaparan)}
-                  </blockquote>
-                  {petikanSemakan.statusSumber !== 'sah' ? (
-                    <p className="text-[11px] text-stone-500">
-                      Sahkan teks asal dahulu. Terjemahan yang tepat kepada sumber yang belum
-                      disahkan tidak bermakna apa-apa.
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-2">
-                      {petikanSemakan.statusTerjemahan === 'sah' ? (
-                        <StatusBadge tone="success" label="Terjemahan disahkan" />
-                      ) : (
-                        <>
-                          <Button variant="primary" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(petikanSemakan.id, { statusTerjemahan: 'sah' })}>
-                            <BadgeCheck className="w-3.5 h-3.5" /> Terjemahan disahkan
-                          </Button>
-                          <Button variant="bahaya" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(petikanSemakan.id, { statusTerjemahan: 'dipertikai' })}>
-                            <TriangleAlert className="w-3.5 h-3.5" /> Pertikai
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-                </>
-              )}
-
-              <div className="flex flex-wrap items-center gap-2 border-t border-Adjung-line pt-3">
-                {/* Langkau memajukan indeks TANPA menulis apa-apa — penyemak yang tidak pasti patut
-                    boleh beredar tanpa terpaksa membuat keputusan palsu. Kekal kelihatan walau
-                    sedang menyunting, supaya editor boleh navigasi tanpa terpaksa batal dahulu. */}
-                <Button variant="ghost" size="sm" disabled={indeksSemakan >= perluTindakan.length - 1} onClick={() => { setBorangSunting(null); setIndeksSemakan((i) => i + 1); }}>
-                  <SkipForward className="w-3.5 h-3.5" /> Langkau
-                </Button>
-                {indeksSemakan > 0 && (
-                  <Button variant="ghost" size="sm" onClick={() => { setBorangSunting(null); setIndeksSemakan((i) => i - 1); }}>Sebelum</Button>
-                )}
-              </div>
-            </div>
-          )}
-        </PanelCard>
-      )}
 
       {/* ═══ 3. KOLEKSI — cari, tapis, semak status, sunting. ═══
           Kekal SENARAI KAD, bukan jadual (keputusan tegas ChatGPT, pusingan 6): pengguna tunggal
@@ -1119,10 +991,44 @@ export const PetikanConsole: React.FC = () => {
                                 boleh dilipat. Editor sedang mengimbas koleksi, bukan membaca
                                 semula setiap petikan setiap kali. */}
                             {dibuka && (
-                              <div className="mt-2 space-y-1 border-t border-Adjung-line pt-2">
-                                {p.statusTerjemahan !== 'tidak_perlu' && (
-                                  <p className="font-serif text-[13px] text-stone-500 leading-snug" dir="auto">{p.teksAsal}</p>
+                              <div className="mt-2 space-y-2 border-t border-Adjung-line pt-2">
+                                {/* not-italic WAJIB — index.css ada peraturan global
+                                    `blockquote{font-style:italic}` yang bocor ke sini. */}
+                                <blockquote className="font-serif not-italic text-[13px] text-stone-700 leading-snug border-l-2 border-stone-200 pl-3" dir="auto">
+                                  {p.teksAsal}
+                                </blockquote>
+
+                                {/* Pengesahan TERUS di sini (2026-08-19, arahan terus Izzat: "buang
+                                    modul '2. semakan', takde fungsi, editor boleh semak di
+                                    koleksi") — Sahkan/Pertikai kini di kad Koleksi, gantikan
+                                    sepenuhnya sub-halaman Semakan yang dibuang. Butang hanya
+                                    dipaparkan bila status BELUM diputuskan (bukan 'sah'); lencana
+                                    di atas kad sudah cukup bagi status yang sudah selesai. */}
+                                {p.statusSumber !== 'sah' && (
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Button variant="secondary" size="sm" onClick={() => salin(p.teksAsal, `asal-${p.id}`)}>
+                                      {teksDisalin === `asal-${p.id}` ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                      {teksDisalin === `asal-${p.id}` ? 'Disalin' : 'Salin teks asal'}
+                                    </Button>
+                                    <Button variant="primary" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(p.id, { statusSumber: 'sah' })}>
+                                      <BadgeCheck className="w-3.5 h-3.5" /> Teks Asal Disahkan
+                                    </Button>
+                                    <Button variant="bahaya" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(p.id, { statusSumber: 'dipertikai' })}>
+                                      <TriangleAlert className="w-3.5 h-3.5" /> Pertikai
+                                    </Button>
+                                  </div>
                                 )}
+                                {p.statusSumber === 'sah' && p.statusTerjemahan !== 'tidak_perlu' && p.statusTerjemahan !== 'sah' && (
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Button variant="primary" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(p.id, { statusTerjemahan: 'sah' })}>
+                                      <BadgeCheck className="w-3.5 h-3.5" /> Terjemahan Disahkan
+                                    </Button>
+                                    <Button variant="bahaya" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(p.id, { statusTerjemahan: 'dipertikai' })}>
+                                      <TriangleAlert className="w-3.5 h-3.5" /> Pertikai
+                                    </Button>
+                                  </div>
+                                )}
+
                                 {(p.sumberDisahkanPada || p.terjemahanDisahkanPada) && (
                                   <p className="text-stone-400 text-[10px]">
                                     {p.sumberDisahkanPada && `Teks asal disahkan ${new Date(p.sumberDisahkanPada).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' })}`}
@@ -1202,30 +1108,78 @@ export const PetikanConsole: React.FC = () => {
         </PanelCard>
       )}
 
-      {/* ═══ 4. TETAPAN — togol hidup/mati. ═══
+      {/* ═══ 3. TETAPAN — togol hidup/mati + semua nilai boleh dilaras. ═══
           Injap keselamatan modul ni; diasingkan daripada kerja harian supaya editor tidak
-          terlanggar togol ni secara tidak sengaja semasa mengimport/menyemak. */}
+          terlanggar togol ni secara tidak sengaja semasa mengimport/menyemak.
+          Tempoh putaran + kuantiti harian (2026-08-19, arahan terus Izzat: "pendek kata, semua
+          yg boleh dilaraskan letak di tetapan") ditambah SATU panel berasingan di bawah togol —
+          bukan digabung dalam panel togol, supaya "matikan/hidupkan" (tindakan drastik) tidak
+          bercampur visual dengan "laraskan nombor" (tindakan halus, kerap diubah). */}
       {subTab === 'tetapan' && (
-        <PanelCard className="text-xs">
-          <div className="flex flex-wrap justify-between items-center gap-4">
+        <div className="space-y-4">
+          <PanelCard className="text-xs">
+            <div className="flex flex-wrap justify-between items-center gap-4">
+              <div>
+                <SectionLabel>Status Ciri Petikan</SectionLabel>
+                <p className="text-stone-500 text-xs">
+                  {ciriAktif === null
+                    ? 'Memuat status…'
+                    : ciriAktif
+                      ? 'Petikan sedang dipaparkan kepada pembaca di Frontpage.'
+                      : 'Petikan tidak dipaparkan kepada pembaca. Koleksi kekal seperti biasa — ini togol paparan, bukan padam.'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <StatusBadge tone={ciriAktif ? 'success' : 'neutral'} label={ciriAktif ? 'Hidup' : 'Mati'} />
+                <Button variant={ciriAktif ? 'secondary' : 'primary'} size="sm" disabled={ciriAktif === null || menukarTogol} onClick={tukarTogolCiri}>
+                  {menukarTogol ? 'Menukar…' : ciriAktif ? 'Matikan ciri' : 'Hidupkan ciri'}
+                </Button>
+              </div>
+            </div>
+          </PanelCard>
+
+          <PanelCard className="text-xs space-y-4">
             <div>
-              <SectionLabel>Status Ciri Petikan</SectionLabel>
+              <SectionLabel>Putaran &amp; Kuantiti</SectionLabel>
               <p className="text-stone-500 text-xs">
-                {ciriAktif === null
-                  ? 'Memuat status…'
-                  : ciriAktif
-                    ? 'Petikan sedang dipaparkan kepada pembaca di Frontpage.'
-                    : 'Petikan tidak dipaparkan kepada pembaca. Koleksi kekal seperti biasa — ini togol paparan, bukan padam.'}
+                Berapa kerap petikan bertukar di Frontpage, dan berapa banyak petikan masuk kolam
+                harian.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <StatusBadge tone={ciriAktif ? 'success' : 'neutral'} label={ciriAktif ? 'Hidup' : 'Mati'} />
-              <Button variant={ciriAktif ? 'secondary' : 'primary'} size="sm" disabled={ciriAktif === null || menukarTogol} onClick={tukarTogolCiri}>
-                {menukarTogol ? 'Menukar…' : ciriAktif ? 'Matikan ciri' : 'Hidupkan ciri'}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-md">
+              <div>
+                <label className={LABEL_BORANG}>Tempoh putaran (saat)</label>
+                <input
+                  type="number" min={1} max={300}
+                  value={tempohPutaranSaat}
+                  onChange={(e) => setTempohPutaranSaat(e.target.value)}
+                  className={INPUT_BORANG}
+                />
+                <p className="text-stone-500 text-[10px] mt-1">
+                  Berapa lama SATU petikan dipaparkan sebelum bertukar automatik. 1-300 saat.
+                </p>
+              </div>
+              <div>
+                <label className={LABEL_BORANG}>Kuantiti harian maksimum</label>
+                <input
+                  type="number" min={1} max={100}
+                  value={kuantitiHarianMaksimum}
+                  onChange={(e) => setKuantitiHarianMaksimum(e.target.value)}
+                  className={INPUT_BORANG}
+                />
+                <p className="text-stone-500 text-[10px] mt-1">
+                  Had ATAS bilangan petikan dalam kolam harian — koleksi kecil tetap dapat
+                  kurang, ikut formula sedia ada. 1-100.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button variant="primary" size="sm" disabled={menyimpanTetapanLanjutan} onClick={simpanTetapanLanjutan}>
+                {menyimpanTetapanLanjutan ? 'Menyimpan…' : 'Simpan tetapan'}
               </Button>
             </div>
-          </div>
-        </PanelCard>
+          </PanelCard>
+        </div>
       )}
     </div>
   );

@@ -633,6 +633,14 @@ const initializeSchema = () => {
               // jadi mematikannya benar-benar menghentikan aliran data, bukan sekadar menyorok
               // paparan. Injap keselamatan tanpa perlu deploy.
               db.run('ALTER TABLE slot_am_settings ADD COLUMN petikanAktif INTEGER DEFAULT 0', () => {});
+              // Tempoh putaran + kuantiti harian Petikan boleh dilaras (2026-08-19, arahan terus
+              // Izzat: "tempoh putaran boleh ditetapkan di tetapan petikan... kuantiti petikan
+              // sehari boleh dilaraskan di tetapan. pendek kata, semua yg boleh dilaraskan letak
+              // di tetapan"). Nilai DATA (bukan pemalar kod) — laras di Editorium -> Petikan ->
+              // Tetapan. Lalai sepadan pemalar asal (10 saat, 12 petikan) supaya tiada regresi
+              // tingkah laku pada pemasangan sedia ada.
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN petikanTempohPutaranSaat INTEGER DEFAULT 10', () => {});
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN petikanKuantitiHarianMaksimum INTEGER DEFAULT 12', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN hadHuraianPanjangMin INTEGER DEFAULT 0', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN hadSumberMin INTEGER DEFAULT 0', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN hadTopikMin INTEGER DEFAULT 0', () => {});

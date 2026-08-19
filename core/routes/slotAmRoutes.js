@@ -28,6 +28,12 @@ export const AM_DEFAULTS = {
   // penuh di server.js (ALTER TABLE petikanAktif). Bila 0, laluan awam /api/public/petikan
   // pulangkan senarai kosong tanpa menyentuh jadual petikan langsung.
   petikanAktif: 0,
+  // Tempoh putaran (saat) + kuantiti harian maksimum Petikan boleh dilaras (2026-08-19, arahan
+  // terus Izzat: "tempoh putaran boleh ditetapkan di tetapan petikan... kuantiti petikan sehari
+  // boleh dilaraskan di tetapan"). Lalai sepadan pemalar asal kod (10 saat, 12 petikan) — tiada
+  // regresi tingkah laku pada pemasangan sedia ada.
+  petikanTempohPutaranSaat: 10,
+  petikanKuantitiHarianMaksimum: 12,
   hadHuraianPanjang: 0,
   hadSumber: 0,
   hadTopik: 0,
@@ -154,6 +160,8 @@ export const loadAmSettings = async (dbGet) => {
         // daripada animasiAktif di atas yang lalai HIDUP. Sengaja: ciri baharu mesti dipilih
         // secara sedar oleh Ketua Editor, bukan muncul sendiri selepas deploy.
         petikanAktif: row.petikanAktif === 1 ? 1 : 0,
+        petikanTempohPutaranSaat: Number(row.petikanTempohPutaranSaat) > 0 ? Number(row.petikanTempohPutaranSaat) : 10,
+        petikanKuantitiHarianMaksimum: Number(row.petikanKuantitiHarianMaksimum) > 0 ? Number(row.petikanKuantitiHarianMaksimum) : 12,
         kelajuanAnimasi: KELAJUAN_ANIMASI.some(k => k.nilai === Number(row.kelajuanAnimasi)) ? Number(row.kelajuanAnimasi) : 1,
         hadHuraianPanjang: Number(row.hadHuraianPanjang) || 0,
         hadSumber: Number(row.hadSumber) || 0,
@@ -238,6 +246,22 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         arahAnimasi: ARAH_ANIMASI.some(a => a.nilai === b.arahAnimasi) ? b.arahAnimasi : 'kanan',
         animasiAktif: b.animasiAktif ? 1 : 0,
         petikanAktif: b.petikanAktif ? 1 : 0,
+        // 1-300 saat (5 minit) — had bawah elak "0 saat" (gelung tak terhingga/tersentak visual),
+        // had atas cuma pertahanan waras, bukan sekatan bermakna khusus.
+        petikanTempohPutaranSaat: (() => {
+          const n = Number(b.petikanTempohPutaranSaat);
+          if (!Number.isInteger(n) || n < 1 || n > 300) {
+            throw new Error('Tempoh putaran Petikan mesti nombor bulat antara 1 dan 300 saat.');
+          }
+          return n;
+        })(),
+        petikanKuantitiHarianMaksimum: (() => {
+          const n = Number(b.petikanKuantitiHarianMaksimum);
+          if (!Number.isInteger(n) || n < 1 || n > 100) {
+            throw new Error('Kuantiti harian maksimum Petikan mesti nombor bulat antara 1 dan 100.');
+          }
+          return n;
+        })(),
         kelajuanAnimasi: KELAJUAN_ANIMASI.some(k => k.nilai === Number(b.kelajuanAnimasi)) ? Number(b.kelajuanAnimasi) : 1,
         hadHuraianPanjang: (() => {
           const n = nombor(b.hadHuraianPanjang, 'Had huraian panjang');
@@ -296,10 +320,11 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       await dbRun(`
         INSERT INTO slot_am_settings (
           id, mulaIkutMasa, hadKandunganSlot, jenisAnimasi, arahAnimasi, animasiAktif, petikanAktif, kelajuanAnimasi,
+          petikanTempohPutaranSaat, petikanKuantitiHarianMaksimum,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           hadHuraianPanjangMin, hadSumberMin, hadTopikMin, hadNotaEditorMin,
           logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, jenisAnimasiRawakPool, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -308,6 +333,8 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           animasiAktif = excluded.animasiAktif,
           petikanAktif = excluded.petikanAktif,
           kelajuanAnimasi = excluded.kelajuanAnimasi,
+          petikanTempohPutaranSaat = excluded.petikanTempohPutaranSaat,
+          petikanKuantitiHarianMaksimum = excluded.petikanKuantitiHarianMaksimum,
           hadHuraianPanjang = excluded.hadHuraianPanjang,
           hadSumber = excluded.hadSumber,
           hadTopik = excluded.hadTopik,
@@ -328,6 +355,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
         baharu.animasiAktif, baharu.petikanAktif, baharu.kelajuanAnimasi,
+        baharu.petikanTempohPutaranSaat, baharu.petikanKuantitiHarianMaksimum,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
         baharu.hadHuraianPanjangMin, baharu.hadSumberMin, baharu.hadTopikMin, baharu.hadNotaEditorMin,
         baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi, baharu.modWarnaPanel,

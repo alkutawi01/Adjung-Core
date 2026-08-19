@@ -53,7 +53,13 @@ export interface PetikanAwam {
 /** Cache peringkat modul — kekal walaupun kini SATU komponen sahaja (bukan dua serentak seperti
  *  reka bentuk lama), sebab StrictMode/HMR pembangunan boleh pasang semula komponen berkali-kali;
  *  cache elak permintaan berulang tanpa perlu. */
-let kolamJanji: Promise<{ aktif: boolean; petikan: PetikanAwam[] }> | null = null;
+/** Tempoh putaran (ms) lalai — dipakai HANYA sebelum respons pelayan tiba (sekejap pada muatan
+ *  pertama) atau kalau pelayan gagal hantar nilai sah. Nilai SEBENAR datang daripada
+ *  `slot_am_settings.petikanTempohPutaranSaat` (Tetapan -> petikanRoutes.js), boleh dilaras
+ *  Ketua Editor tanpa deploy. */
+const TEMPOH_PUTARAN_LALAI_MS = 10000;
+
+let kolamJanji: Promise<{ aktif: boolean; petikan: PetikanAwam[]; tempohPutaranMs: number }> | null = null;
 
 function ambilKolam() {
   if (!kolamJanji) {
@@ -62,8 +68,9 @@ function ambilKolam() {
       .then((d) => ({
         aktif: d?.aktif === true,
         petikan: Array.isArray(d?.petikan) ? (d.petikan as PetikanAwam[]) : [],
+        tempohPutaranMs: Number(d?.tempohPutaranMs) > 0 ? Number(d.tempohPutaranMs) : TEMPOH_PUTARAN_LALAI_MS,
       }))
-      .catch(() => ({ aktif: false, petikan: [] as PetikanAwam[] }));
+      .catch(() => ({ aktif: false, petikan: [] as PetikanAwam[], tempohPutaranMs: TEMPOH_PUTARAN_LALAI_MS }));
   }
   return kolamJanji;
 }
@@ -71,6 +78,7 @@ function ambilKolam() {
 function useKolamPetikan() {
   const [kolam, setKolam] = React.useState<PetikanAwam[]>([]);
   const [aktif, setAktif] = React.useState(false);
+  const [tempohPutaranMs, setTempohPutaranMs] = React.useState(TEMPOH_PUTARAN_LALAI_MS);
 
   React.useEffect(() => {
     let hidup = true;
@@ -78,11 +86,12 @@ function useKolamPetikan() {
       if (!hidup) return;
       setAktif(d.aktif);
       setKolam(d.petikan);
+      setTempohPutaranMs(d.tempohPutaranMs);
     });
     return () => { hidup = false; };
   }, []);
 
-  return { kolam, aktif };
+  return { kolam, aktif, tempohPutaranMs };
 }
 
 // ---------------------------------------------------------------------------
@@ -156,15 +165,14 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
 // PetikanBar — blok tunggal di atas footer, SEMUA saiz skrin, putaran berpemasa
 // ---------------------------------------------------------------------------
 
-/** Tempoh (ms) SATU petikan dipaparkan sebelum bertukar automatik. Sejarah: pertukaran asalnya
- *  dipacu TATALAN (scroll) — beberapa pelarasan jarak (900 -> 200 -> 380 -> 1800px) dibuat dalam
- *  sesi yang sama sebelum keputusan diTUKAR SEPENUHNYA (2026-08-19, arahan terus Izzat: "jangan
- *  buat pertukaran berdasarkan scroll... menyusahkan guna scroll"). Mekanisme kini PEMASA, bukan
- *  tatalan — keputusan terkunci #1 lama ("Petikan BUKAN carousel/pemasa") DIGANTIKAN arahan
- *  eksplisit ni, bukan diabaikan senyap. 10 saat ialah anggaran munasabah untuk marginalia dibaca
- *  selesa tanpa terasa terlalu pantas/perlahan — laras nilai ni kalau Izzat rasa perlu selepas
- *  lihat sendiri di pengeluaran. */
-const TEMPOH_PUTARAN_MS = 10000;
+// Tempoh (ms) SATU petikan dipaparkan sebelum bertukar automatik. Sejarah: pertukaran asalnya
+// dipacu TATALAN (scroll) — beberapa pelarasan jarak (900 -> 200 -> 380 -> 1800px) dibuat dalam
+// sesi yang sama sebelum keputusan diTUKAR SEPENUHNYA (2026-08-19, arahan terus Izzat: "jangan
+// buat pertukaran berdasarkan scroll... menyusahkan guna scroll"). Mekanisme kini PEMASA, bukan
+// tatalan. Nilai SEBENAR kini BOLEH DILARAS Ketua Editor (susulan arahan sama hari: "tempoh
+// putaran boleh ditetapkan di tetapan petikan") — dihantar pelayan via `useKolamPetikan()`
+// (`tempohPutaranMs`), BUKAN pemalar tetap lagi. Lihat TEMPOH_PUTARAN_LALAI_MS di atas fail
+// untuk nilai lalai sementara respons pelayan belum tiba.
 
 /** Transisi DUA FASA (2026-08-19, susulan video sebenar Izzat: "pertukaran terlalu mendadak...
  *  state lama hilang dan state baharu terasa muncul sebagai penggantian kandungan"). Fade tunggal
@@ -184,7 +192,7 @@ const TEMPOH_JEDA_MS = 120;
 const TEMPOH_FADE_MASUK_MS = 450;
 
 export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
-  const { kolam, aktif } = useKolamPetikan();
+  const { kolam, aktif, tempohPutaranMs } = useKolamPetikan();
   const [indeks, setIndeks] = React.useState(() => bacaSesi().indeks);
   const [ditutup, setDitutup] = React.useState(() => bacaSesi().ditutup);
   const [pudar, setPudar] = React.useState(false);
@@ -253,9 +261,9 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
       }, TEMPOH_FADE_KELUAR_MS);
     };
 
-    const pemasa = setInterval(langkah, TEMPOH_PUTARAN_MS);
+    const pemasa = setInterval(langkah, tempohPutaranMs);
     return () => clearInterval(pemasa);
-  }, [kolam.length, ditutup, kurangGerak]);
+  }, [kolam.length, ditutup, kurangGerak, tempohPutaranMs]);
 
   if (!aktif || kolam.length === 0 || ditutup) return null;
 

@@ -173,7 +173,13 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       );
 
       const layak = (rows || []).map(barisKepadaPetikanAwam);
-      if (layak.length === 0) return res.json({ aktif: true, tarikh: hariIni, petikan: [] });
+      // Tempoh putaran dihantar ke klien di sini (bukan pemalar kod) — laluan SATU-SATUNYA
+      // tempat klien tahu berapa lama SATU petikan dipaparkan (2026-08-19, arahan Izzat:
+      // "tempoh putaran boleh ditetapkan di tetapan petikan"). Dihantar tak kira kolam kosong
+      // supaya klien konsisten walau kolam berubah kemudian (refetch tak berlaku selang masa
+      // singkat, tapi struktur respons kekal sama).
+      const tempohPutaranMs = Math.max(1, Number(tetapan.petikanTempohPutaranSaat) || 10) * 1000;
+      if (layak.length === 0) return res.json({ aktif: true, tarikh: hariIni, petikan: [], tempohPutaranMs });
 
       // Kolam DIPILIH dan DISUSUN sepenuhnya di pelayan (lihat pilihDanSusunKolam) — klien
       // menerima urutan siap dan cuma berjalan 1->N. Sengaja: kalau klien menyusun sendiri,
@@ -183,7 +189,8 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       res.json({
         aktif: true,
         tarikh: hariIni,
-        petikan: pilihDanSusunKolam(layak, hariIni),
+        petikan: pilihDanSusunKolam(layak, hariIni, Number(tetapan.petikanKuantitiHarianMaksimum) || 12),
+        tempohPutaranMs,
       });
     } catch (err) {
       console.error('GET public petikan error:', err);
