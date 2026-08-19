@@ -277,9 +277,21 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
     // offset piksel tetap dari tepi viewport. Kad sebenar (anak dalam) dipusatkan MELINTANG di
     // dalam jalur itu dengan flex, supaya pada skrin sangat lebar ia terapung di TENGAH ruang
     // kosong, bukan terikat ke tepi kiri viewport.
+    //
+    // PEPIJAT PENGELUARAN KRITIKAL DIBAIKI (2026-08-19, laporan Izzat "kenapa jadi mcm ni?!!!!!" +
+    // tangkapan skrin production menunjukkan teks bertindih rambang di tepi kiri): `style={{
+    // display: 'flex' }}` INLINE menewaskan kelas Tailwind `hidden` (inline style SENTIASA
+    // menewaskan kelas, tidak kira @layer/specificity) — jadi aside ni SENTIASA kelihatan pada
+    // SEMUA lebar skrin, bukan cuma ≥1536px seperti disangka. Di bawah 1024px, `calc((100vw -
+    // 1024px) / 2)` jadi NEGATIF (lebar CSS tak sah, jatuh ke 0px), tetapi kandungan dalam
+    // (clamp 180-220px) tetap cuba dipusatkan dalam kotak 0-lebar tu — melimpah ke tepi kiri
+    // viewport, bertindih kandungan utama. Dibetulkan: `display:flex` DIPINDAH ke kelas
+    // `2xl:flex` (gantikan `2xl:block`), BUANG dari inline style — cascade `hidden` (lalai)
+    // vs `2xl:flex` (≥1536px) kini betul-betul dikawal Tailwind, bukan inline style yang
+    // mengatasinya secara senyap.
     <aside
-      className="hidden 2xl:block fixed left-0 bottom-10 z-20"
-      style={{ width: 'calc((100vw - 1024px) / 2)', display: 'flex', justifyContent: 'center' }}
+      className="hidden 2xl:flex fixed left-0 bottom-10 z-20"
+      style={{ width: 'calc((100vw - 1024px) / 2)', justifyContent: 'center' }}
       aria-label="Petikan pilihan"
     >
       <div
@@ -365,8 +377,13 @@ export const PetikanStatik: React.FC = () => {
       <div className="border-t border-stone-200 pt-8 text-center">
         {/* TEGAK — lihat nota di PetikanMargin. Di sini pembezanya ialah garis atas, penengahan
             dan ruang lapang di sekelilingnya. safeParseInline supaya kata pinjaman *dicondongkan*.
-            Tanda petik besar maroon — sama rasional "pull quote" seperti PetikanMargin. */}
-        <p className="font-serif text-stone-900 text-[17px] leading-[1.7] max-w-2xl mx-auto">
+            Tanda petik besar maroon — sama rasional "pull quote" seperti PetikanMargin.
+            Saiz 17px -> 12px (2026-08-19, laporan Izzat versi telefon: "saiz petikan lebih besar
+            drpd saiz kandungan sebenar?!!!!!") — 17px melampaui saiz tajuk/huraian kandungan
+            editorial sekeliling (~13-16px), menjadikan petikan sampingan kelihatan lebih penting
+            drpd berita sebenar. PetikanMargin (desktop) TIDAK disentuh — arahan ni khusus versi
+            telefon (kelas 2xl:hidden), jangan tertukar dengan SAIZ_TEKS_MARGIN 13px di atas. */}
+        <p className="font-serif text-stone-900 text-[12px] leading-[1.7] max-w-2xl mx-auto">
           <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
           {safeParseInline(p.teks)}
           <span aria-hidden="true" className="text-[#802334]/60">&rdquo;</span>
