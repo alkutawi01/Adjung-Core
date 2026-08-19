@@ -638,7 +638,14 @@ h1, h2, h3, h4, h5, h6, p {
 }
 .fv-eyebrow-kumpulan-keluar {
   display: inline-block; vertical-align: baseline;
-  animation: fvEyebrowKumpulanGerak 300ms ease-in-out forwards;
+  /* `both`, BUKAN `forwards` (2026-08-19) — wajib sebaik --fv-lengah-masuk boleh bukan sifar.
+     `forwards` hanya mengekalkan keadaan AKHIR selepas animasi; semasa tempoh LENGAH ia biarkan
+     elemen pada keadaan semula jadi (opacity 1, tiada anjakan). Jadi utk kandungan ke-2+ eyebrow
+     akan kelihatan PENUH dahulu, kemudian MELOMPAT hilang pada 520ms baru gelongsor masuk —
+     kelipan. `both` turut menerapkan keadaan MULA (0% keyframe: opacity 0) sepanjang lengah,
+     jadi ia kekal tersembunyi sehingga gilirannya tiba. Ikon di atas sudah guna `both`; baris
+     ni tertinggal. Tiada beza langsung bila lengah 0ms (kandungan pertama). */
+  animation: fvEyebrowKumpulanGerak 300ms ease-in-out both;
   animation-delay: var(--fv-lengah-masuk, 0ms);
 }
 
