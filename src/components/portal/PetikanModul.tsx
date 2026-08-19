@@ -290,10 +290,13 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
           ×
         </button>
 
-        <p className={`font-serif italic text-stone-600 ${saizTeksMargin(p.teks.length)}`}>
+        {/* TEGAK, bukan condong (arahan Izzat, 19/8/2026). Petikan dibezakan daripada teks
+            sekeliling oleh garis tepi kiri dan kedudukan marginalianya, bukan oleh gaya huruf —
+            condong dikhaskan untuk penegasan sebenar dalam teks editorial. */}
+        <p className={`font-serif text-stone-600 ${saizTeksMargin(p.teks.length)}`}>
           {p.teks}
         </p>
-        <Atribusi p={p} kelas="mt-2 font-sans text-[10px] uppercase tracking-wider text-stone-500 not-italic" />
+        <Atribusi p={p} kelas="mt-2 font-sans text-[10px] uppercase tracking-wider text-stone-500" />
         <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[10px] text-stone-500 underline underline-offset-2 hover:text-stone-800" />
       </div>
     </aside>
@@ -319,7 +322,9 @@ export const PetikanStatik: React.FC = () => {
       aria-label="Petikan pilihan"
     >
       <div className="border-t border-stone-200 pt-8 text-center">
-        <p className="font-serif italic text-stone-700 text-[17px] leading-[1.7] max-w-2xl mx-auto">
+        {/* TEGAK — lihat nota di PetikanMargin. Di sini pembezanya ialah garis atas, penengahan
+            dan ruang lapang di sekelilingnya. */}
+        <p className="font-serif text-stone-700 text-[17px] leading-[1.7] max-w-2xl mx-auto">
           {p.teks}
         </p>
         <Atribusi p={p} kelas="mt-3 font-sans text-[11px] uppercase tracking-wider text-stone-500" />

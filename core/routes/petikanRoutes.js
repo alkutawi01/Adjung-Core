@@ -44,6 +44,11 @@ const barisKepadaPetikan = (r) => ({
   dibuatOleh: r.dibuatOleh || '',
   dibuatPada: r.dibuatPada,
   dikemasPada: r.dikemasPada,
+  // Kelompok import — dipakai Mod Semakan Pantas untuk memberitahu penyemak petikan mana
+  // datang daripada sesi AI yang SAMA. Berguna kerana kesilapan AI biasanya berkelompok:
+  // kalau satu petikan dalam kumpulan direka, yang lain dalam kumpulan itu patut diteliti
+  // lebih berhati-hati. Kosong untuk petikan yang ditaip manual.
+  kumpulanImport: r.kumpulanImport || '',
 });
 
 /** Bentuk AWAM — sengaja BUKAN `barisKepadaPetikan`. Medan pentadbiran (statusSah, dibuatOleh,

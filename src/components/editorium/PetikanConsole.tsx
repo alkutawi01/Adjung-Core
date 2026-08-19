@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
-import { BadgeCheck, ClipboardPaste, Copy, Pencil, Power, Trash2 } from 'lucide-react';
+import { BadgeCheck, ClipboardPaste, Copy, Pencil, Power, Trash2, Check, SkipForward, TriangleAlert, X } from 'lucide-react';
 import { KATEGORI_PETIKAN } from '../../../core/editorial/PetikanConfig.js';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -45,6 +45,7 @@ interface Petikan {
   dibuatOleh: string;
   dibuatPada: string;
   dikemasPada: string;
+  kumpulanImport: string;
 }
 
 // Sepadan had pelayan (petikanRoutes.js). Petikan marginal MESTI pendek — ruang sebenar cuma
@@ -96,6 +97,12 @@ export const PetikanConsole: React.FC = () => {
     rekod: any[]; gagal: { blok: number; sebab: string; cuplikan: string }[];
   }>(null);
   const [memprosesImport, setMemprosesImport] = useState(false);
+
+  // Mod Semakan Pantas — satu petikan pada satu masa.
+  const [semakanDibuka, setSemakanDibuka] = useState(false);
+  const [indeksSemakan, setIndeksSemakan] = useState(0);
+  const [teksDisalin, setTeksDisalin] = useState(false);
+  const [memprosesSemakan, setMemprosesSemakan] = useState(false);
   const [notaArahan, setNotaArahan] = useState('');
 
   const muat = useCallback(() => {
@@ -291,6 +298,54 @@ export const PetikanConsole: React.FC = () => {
     tapisan === 'semua' ? true : tapisan === 'sah' ? p.statusSah === 'sah' : p.statusSah !== 'sah'
   );
   const bilLayakSiar = senarai.filter((p) => p.statusSah === 'sah' && p.aktif).length;
+
+  // =========================================================================
+  // MOD SEMAKAN PANTAS
+  //
+  // Menyemak bermakna MEMBUKA karya asal dan mengesahkan petikan itu benar-benar ada di
+  // dalamnya, dengan kata-kata yang tepat. Ia kerja perlahan yang disengajakan. Modul ni cuma
+  // membuang geseran di SEKELILING kerja itu (mencari petikan seterusnya, menyalin teks untuk
+  // dicari dalam sumber), BUKAN mempercepatkan pertimbangan itu sendiri.
+  //
+  // SENGAJA TIADA "Sahkan Semua" — arahan eksplisit Izzat. Butang begitu menjadikan pengesahan
+  // satu klik untuk keseluruhan kelompok, iaitu tepat kebalikan maksud medan `statusSah`. Kalau
+  // ia wujud, ia akan digunakan, dan petikan yang tidak pernah disemak akan disiarkan sebagai
+  // "disahkan". Jangan tambah walau ia nampak menjimatkan masa.
+  // =========================================================================
+  const belumDisemak = senarai.filter((p) => p.statusSah === 'belum_sah');
+  const petikanSemakan = belumDisemak[Math.min(indeksSemakan, Math.max(0, belumDisemak.length - 1))] || null;
+  /** Petikan lain daripada sesi AI yang SAMA — konteks, bukan sasaran tindakan pukal. */
+  const bilSekumpulan = petikanSemakan?.kumpulanImport
+    ? senarai.filter((p) => p.kumpulanImport === petikanSemakan.kumpulanImport).length
+    : 0;
+  const kedudukanKumpulan = petikanSemakan?.kumpulanImport
+    ? senarai
+        .filter((p) => p.kumpulanImport === petikanSemakan.kumpulanImport)
+        .findIndex((p) => p.id === petikanSemakan.id) + 1
+    : 0;
+
+  const salinTeksSemakan = async (teksSalin: string) => {
+    try {
+      await navigator.clipboard.writeText(teksSalin);
+      setTeksDisalin(true);
+      setTimeout(() => setTeksDisalin(false), 1800);
+    } catch {
+      setRalat('Pelayar menghalang salinan automatik. Sila salin teks secara manual.');
+    }
+  };
+
+  /** Menetapkan status DAN memajukan. Indeks TIDAK dinaikkan selepas keputusan dibuat kerana
+   *  petikan yang diputuskan keluar daripada senarai `belumDisemak` selepas muat semula — indeks
+   *  yang sama sudah menunjuk kepada petikan berikutnya dengan sendirinya. Menaikkannya juga akan
+   *  melangkau satu petikan secara senyap. */
+  const putuskanSemakan = async (id: string, status: 'sah' | 'dipertikai') => {
+    setMemprosesSemakan(true);
+    try {
+      await tandaSah(id, status);
+    } finally {
+      setMemprosesSemakan(false);
+    }
+  };
 
   return (
     <div className="space-y-4 font-sans">
@@ -520,12 +575,149 @@ export const PetikanConsole: React.FC = () => {
         </form>
       </PanelCard>
 
-      {/* 04 — Senarai koleksi. Kekal SENARAI, bukan jadual: petikan ialah kandungan yang perlu
+      {/* 04 — Mod Semakan Pantas. Panel ni KEKAL dipaparkan walaupun baris semakan kosong —
+          menyembunyikannya membuatkan nombor seksyen melompat 03 ke 05, dan seksyen dirujuk
+          mengikut nombor. Bila tiada apa-apa menunggu, ia menjadi keadaan kosong yang tenang. */}
+      <PanelCard className="space-y-4 text-xs">
+        <div className="flex flex-wrap justify-between items-end gap-4">
+          <div>
+            <SectionLabel>04 — Mod Semakan Pantas</SectionLabel>
+            <p className="text-stone-500 text-xs">
+              {belumDisemak.length > 0
+                ? `${belumDisemak.length} petikan menunggu semakan terhadap sumber asalnya.`
+                : 'Tiada petikan menunggu semakan.'}
+            </p>
+          </div>
+          {belumDisemak.length > 0 && (
+            <Button
+              variant={semakanDibuka ? 'secondary' : 'primary'}
+              size="sm"
+              onClick={() => { setSemakanDibuka(!semakanDibuka); setIndeksSemakan(0); }}
+            >
+              {semakanDibuka ? 'Tutup mod semakan' : 'Mula semak'}
+            </Button>
+          )}
+        </div>
+
+        {belumDisemak.length === 0 && (
+          <KeadaanKosong>
+            Setiap petikan dalam koleksi sudah diputuskan. Petikan baharu daripada sesi AI akan
+            muncul di sini untuk disemak.
+          </KeadaanKosong>
+        )}
+
+          {semakanDibuka && petikanSemakan && (
+            <div className="border border-Adjung-line rounded p-4 space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">
+                  {indeksSemakan + 1} daripada {belumDisemak.length}
+                </span>
+                {petikanSemakan.kategori ? (
+                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">
+                    {petikanSemakan.kategori}
+                  </span>
+                ) : (
+                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-amber-700">
+                    Kategori perlu diisi
+                  </span>
+                )}
+                {/* Konteks kelompok — memberitahu penyemak petikan ni datang daripada sesi AI yang
+                    sama seperti beberapa yang lain, supaya kesilapan berkelompok lebih mudah
+                    dikesan. Ia MAKLUMAT, bukan pemilihan: tiada tindakan pukal di sini. */}
+                {bilSekumpulan > 1 && (
+                  <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-Adjung-maroon">
+                    Sesi AI sama · petikan {kedudukanKumpulan} drpd {bilSekumpulan}
+                  </span>
+                )}
+              </div>
+
+              <blockquote className="font-serif text-base text-stone-900 leading-relaxed border-l-2 border-stone-300 pl-4">
+                “{petikanSemakan.teks}”
+              </blockquote>
+
+              <div className="text-stone-600 text-xs">
+                <span className="font-semibold">{petikanSemakan.pengarang}</span>
+                {petikanSemakan.karya && <span> · {petikanSemakan.karya}</span>}
+                {petikanSemakan.rujukan && <span> · {petikanSemakan.rujukan}</span>}
+                {petikanSemakan.pautanBuku && (
+                  <>
+                    {' · '}
+                    <a
+                      href={petikanSemakan.pautanBuku}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-Adjung-maroon underline underline-offset-2"
+                    >
+                      {petikanSemakan.labelPautan || 'Buka pautan buku'}
+                    </a>
+                  </>
+                )}
+              </div>
+
+              <p className="text-stone-500 text-[11px] leading-relaxed">
+                Buka karya asal dan cari teks ini. Tandakan <strong>Disahkan</strong> hanya
+                apabila awak sudah melihatnya sendiri dalam sumber. AI boleh mencari calon
+                petikan, tetapi AI bukan sumber pengesahan.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-Adjung-line">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => salinTeksSemakan(petikanSemakan.teks)}
+                  className="mt-3"
+                >
+                  {teksDisalin ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {teksDisalin ? 'Disalin' : 'Salin teks'}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={memprosesSemakan}
+                  onClick={() => putuskanSemakan(petikanSemakan.id, 'sah')}
+                  className="mt-3"
+                >
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  Disahkan
+                </Button>
+                <Button
+                  variant="bahaya"
+                  size="sm"
+                  disabled={memprosesSemakan}
+                  onClick={() => putuskanSemakan(petikanSemakan.id, 'dipertikai')}
+                  className="mt-3"
+                >
+                  <TriangleAlert className="w-3.5 h-3.5" />
+                  Dipertikai
+                </Button>
+                {/* Langkau memajukan indeks TANPA menulis apa-apa — penyemak yang tidak pasti
+                    patut boleh beredar tanpa terpaksa membuat keputusan palsu. */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={indeksSemakan >= belumDisemak.length - 1}
+                  onClick={() => setIndeksSemakan((i) => i + 1)}
+                  className="mt-3"
+                >
+                  <SkipForward className="w-3.5 h-3.5" />
+                  Langkau
+                </Button>
+                {indeksSemakan > 0 && (
+                  <Button variant="ghost" size="sm" onClick={() => setIndeksSemakan((i) => i - 1)} className="mt-3">
+                    Sebelum
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+      </PanelCard>
+
+      {/* 05 — Senarai koleksi. Kekal SENARAI, bukan jadual: petikan ialah kandungan yang perlu
           DIBACA untuk dinilai, bukan data lajur untuk diimbas. */}
       <PanelCard className="space-y-4 text-xs">
         <div className="flex flex-wrap justify-between items-end gap-4">
           <div>
-            <SectionLabel>04 — Koleksi Petikan</SectionLabel>
+            <SectionLabel>05 — Koleksi Petikan</SectionLabel>
             <p className="text-stone-500 text-xs">
               {senarai.length} petikan dalam koleksi · {bilLayakSiar} layak disiarkan.
             </p>
