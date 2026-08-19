@@ -16,9 +16,9 @@ import {
 // Petikan layak dipapar hanya bila KEDUA-DUANYA benar. AI boleh mencari calon petikan, tetapi AI
 // BUKAN sumber pengesahan — apa-apa yang masuk daripada AI bermula 'belum_sah' tanpa pengecualian.
 const STATUS_SAH_SAH = ['belum_sah', 'sah', 'dipertikai'];
-// 'tidak_perlu' hanya sah untuk sumber Melayu, dan tidak pernah ditetapkan daripada payload klien
-// — ia diterbitkan daripada bahasa asal (lihat bentukTeksPaparan).
-const STATUS_TERJEMAHAN_SAH = ['tidak_perlu', 'belum_sah', 'sah', 'dipertikai'];
+// Nota: statusTerjemahan turut boleh bernilai 'tidak_perlu' dalam DB, tetapi nilai itu HANYA
+// diterbitkan daripada bahasa asal (bentukTeksPaparan) — klien tidak boleh menghantarnya, jadi
+// senarai nilai yang diterima daripada payload ialah STATUS_SAH_SAH yang sama.
 
 // Had aksara — petikan marginal mesti pendek supaya muat ruang 180-220px tanpa menenggelamkan
 // kandungan utama. Siling KERAS (bukan sasaran); petikan baik biasanya jauh lebih pendek. Had ni
@@ -297,8 +297,12 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       if (b.statusSumber !== undefined && !STATUS_SAH_SAH.includes(b.statusSumber)) {
         return res.status(400).json({ error: `Status sumber tidak sah. Guna salah satu: ${STATUS_SAH_SAH.join(', ')}.` });
       }
-      if (b.statusTerjemahan !== undefined && !STATUS_TERJEMAHAN_SAH.includes(b.statusTerjemahan)) {
-        return res.status(400).json({ error: `Status terjemahan tidak sah. Guna salah satu: ${STATUS_TERJEMAHAN_SAH.join(', ')}.` });
+      // 'tidak_perlu' SENGAJA tiada dalam senarai yang klien boleh hantar — ia DITERBITKAN
+      // daripada bahasa asal (bentukTeksPaparan), bukan ditetapkan. Kalau ia diterima dari
+      // payload, rekod Arab boleh ditanda 'tidak_perlu' dan melepasi gerbang penerbitan tanpa
+      // terjemahannya pernah disahkan (lubang sebenar, ditemui imbasan kod 19/8/2026).
+      if (b.statusTerjemahan !== undefined && !STATUS_SAH_SAH.includes(b.statusTerjemahan)) {
+        return res.status(400).json({ error: `Status terjemahan tidak sah. Guna salah satu: ${STATUS_SAH_SAH.join(', ')}.` });
       }
 
       // Menyunting teks membatalkan pengesahan berkaitan (2026-08-19) — kalau teks berubah,

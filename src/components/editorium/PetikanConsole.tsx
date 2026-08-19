@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { BadgeCheck, Check, ChevronDown, ChevronRight, ClipboardPaste, Copy, Plus, Power, SkipForward, Trash2, TriangleAlert } from 'lucide-react';
-import { KATEGORI_PETIKAN, HAD_TEKS_PETIKAN, labelTerjemahan } from '../../../core/editorial/PetikanConfig.js';
+import { KATEGORI_PETIKAN, HAD_TEKS_PETIKAN, labelTerjemahan, adalahBahasaMelayu } from '../../../core/editorial/PetikanConfig.js';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { SectionLabel } from '../common/SectionLabel';
@@ -83,7 +83,11 @@ const LABEL_STATUS: Record<string, string> = {
 
 const nadaStatus = (s: string) => (s === 'sah' ? 'success' : s === 'dipertikai' ? 'error' : 'neutral');
 
-const adalahMelayu = (b: string) => (b || '').trim().toLowerCase() === 'melayu';
+// Guna takrifan KONGSI, bukan padanan tempatan — pelayan menerima 'ms'/'Malay'/'Bahasa Melayu'
+// sebagai Melayu (peta NAMA_BAHASA), dan padanan tempatan `=== 'melayu'` akan menyekat kad yang
+// pelayan sebenarnya terima. Ini kelas pepijat "dua takrifan terpesong" yang PetikanConfig.js
+// memang wujud untuk mencegah (ditemui imbasan kod 19/8/2026).
+const adalahMelayu = (b: string) => adalahBahasaMelayu(b);
 
 let kiraKunci = 0;
 const kadKosong = (): KadDraf => ({
