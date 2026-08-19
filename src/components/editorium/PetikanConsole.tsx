@@ -600,7 +600,12 @@ export const PetikanConsole: React.FC = () => {
               if (sasaran) {
                 e.preventDefault();
                 setSubTab(sasaran);
-                requestAnimationFrame(() => document.getElementById(`petikan-subtab-${sasaran}`)?.focus());
+                // Panggilan SEGERAK, bukan requestAnimationFrame — semua butang tab dirender
+                // TANPA SYARAT (roving tabindex), jadi elemen sasaran sudah wujud dalam DOM
+                // sebelum setSubTab pun dipanggil. rAF menyebabkan fokus tidak berpindah langsung
+                // selepas anak panah (disahkan pelayar sebenar, 2026-08-19). Dibetulkan serentak
+                // di EditorialConsole.tsx, MaklumanDrawer.tsx, TetapanConsole.tsx — corak sama.
+                document.getElementById(`petikan-subtab-${sasaran}`)?.focus();
               }
             }}
             className={`px-4 py-2 font-semibold tracking-wide transition-all border-b-2 cursor-pointer inline-flex items-center gap-1.5 ${

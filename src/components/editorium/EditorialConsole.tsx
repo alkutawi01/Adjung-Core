@@ -514,7 +514,13 @@ export const EditorialConsole: React.FC = () => {
               if (sasaran) {
                 e.preventDefault();
                 setSubTab(sasaran);
-                requestAnimationFrame(() => document.getElementById(`editorial-subtab-${sasaran}`)?.focus());
+                // Panggilan SEGERAK, bukan requestAnimationFrame — semua butang tab dirender
+                // TANPA SYARAT (roving tabindex), jadi elemen sasaran sudah wujud dalam DOM
+                // sebelum setSubTab pun dipanggil. rAF pernah menyebabkan fokus tidak berpindah
+                // langsung selepas anak panah (disahkan pelayar sebenar, 2026-08-19) — kemungkinan
+                // callback rAF tidak dijamin sempat sebelum sesuatu lain (cth. blur semula jadi
+                // butang) berlaku. Panggilan terus tidak bergantung pada peringkat render React.
+                document.getElementById(`editorial-subtab-${sasaran}`)?.focus();
               }
             }}
             className={`px-4 py-2 font-semibold tracking-wide transition-all border-b-2 cursor-pointer ${

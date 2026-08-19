@@ -136,7 +136,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
     if (sasaran) {
       e.preventDefault();
       setSubTab(sasaran);
-      requestAnimationFrame(() => document.getElementById(`tetapan-subtab-${sasaran}`)?.focus());
+      // Panggilan SEGERAK — lihat nota di EditorialConsole.tsx (dibetulkan serentak, 2026-08-19).
+      // Semua butang tab dirender tanpa syarat, jadi elemen sasaran sudah wujud dalam DOM.
+      document.getElementById(`tetapan-subtab-${sasaran}`)?.focus();
     }
   };
 

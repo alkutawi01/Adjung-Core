@@ -236,7 +236,10 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
               if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'Home' || e.key === 'End') {
                 e.preventDefault();
                 setTab('sistem');
-                requestAnimationFrame(() => document.getElementById('makluman-tab-sistem')?.focus());
+                // Panggilan SEGERAK — lihat nota di EditorialConsole.tsx (dibetulkan serentak,
+                // 2026-08-19). Kedua-dua butang tab dirender tanpa syarat, jadi elemen sasaran
+                // sudah wujud; rAF menyebabkan fokus tidak berpindah selepas anak panah.
+                document.getElementById('makluman-tab-sistem')?.focus();
               }
             }}
             className={`flex-1 px-4 py-2 font-semibold text-center border-b-2 transition-colors cursor-pointer ${
@@ -256,7 +259,8 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
               if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'Home' || e.key === 'End') {
                 e.preventDefault();
                 setTab('editorial');
-                requestAnimationFrame(() => document.getElementById('makluman-tab-editorial')?.focus());
+                // Panggilan SEGERAK — lihat nota di EditorialConsole.tsx.
+                document.getElementById('makluman-tab-editorial')?.focus();
               }
             }}
             className={`flex-1 px-4 py-2 font-semibold text-center border-b-2 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 ${
