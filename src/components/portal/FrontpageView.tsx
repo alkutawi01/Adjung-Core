@@ -3274,7 +3274,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                   <FooterHeightLock
                     items={bentoNewsItems[0].items && bentoNewsItems[0].items.length > 0 ? bentoNewsItems[0].items : [bentoNewsItems[0]]}
                     renderFooter={(it) => (
-                      <div className="font-sans text-[7px] md:text-[10px] tracking-editorial uppercase text-stone-300 flex flex-col gap-1 md:w-36">
+                      <div className="font-sans text-[7px] md:text-[10px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:border-l md:pt-0 border-stone-400/30 md:pl-4 flex-shrink-0 md:w-36 md:self-stretch flex flex-col justify-center gap-1">
                         <span>{it.source}</span>
                         {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-70 normal-case font-mono text-[7px] md:text-[9px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                       </div>
@@ -3359,7 +3359,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <FooterHeightLock
                       items={bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]]}
                       renderFooter={(it) => (
-                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 flex flex-col gap-0.5 md:w-28">
+                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:w-28 md:self-stretch flex flex-col justify-center gap-0.5">
                           <span>{it.source}</span>
                           {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                         </div>
@@ -3563,7 +3563,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <FooterHeightLock
                       items={bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]]}
                       renderFooter={(it) => (
-                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 flex flex-col gap-0.5 md:w-28">
+                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:w-28 md:self-stretch flex flex-col justify-center gap-0.5">
                           <span>{it.source}</span>
                           {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                         </div>
@@ -4030,7 +4030,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <FooterHeightLock
                       items={bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]]}
                       renderFooter={(it) => (
-                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 flex flex-col gap-0.5 md:w-28">
+                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:w-28 md:self-stretch flex flex-col justify-center gap-0.5">
                           <span>{it.source}</span>
                           {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                         </div>
@@ -4122,7 +4122,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <FooterHeightLock
                       items={bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]]}
                       renderFooter={(it) => (
-                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 flex flex-col gap-0.5 md:w-28">
+                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:w-28 md:self-stretch flex flex-col justify-center gap-0.5">
                           <span>{it.source}</span>
                           {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                         </div>
@@ -4545,7 +4545,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <FooterHeightLock
                       items={bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]]}
                       renderFooter={(it) => (
-                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 flex flex-col gap-0.5 md:w-28">
+                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:w-28 md:self-stretch flex flex-col justify-center gap-0.5">
                           <span>{it.source}</span>
                           {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                         </div>
@@ -4595,7 +4595,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                     <FooterHeightLock
                       items={bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]]}
                       renderFooter={(it) => (
-                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 flex flex-col gap-0.5 md:w-28">
+                        <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 border-t pt-2 md:border-t-0 md:pt-0 md:pl-4 md:border-l md:border-stone-400/30 flex-shrink-0 md:w-28 md:self-stretch flex flex-col justify-center gap-0.5">
                           <span>{it.source}</span>
                           {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                         </div>
