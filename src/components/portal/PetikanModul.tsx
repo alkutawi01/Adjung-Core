@@ -164,7 +164,6 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
   const { kolam, aktif } = useKolamPetikan();
   const [indeks, setIndeks] = React.useState(() => bacaSesi().indeks);
   const [ditutup, setDitutup] = React.useState(() => bacaSesi().ditutup);
-  const [kelihatan, setKelihatan] = React.useState(false);
   const [pudar, setPudar] = React.useState(false);
 
   /** Tatalan tidak boleh menukar petikan semasa pembaca sedang membacanya. Disimpan sebagai ref
@@ -193,31 +192,6 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
       tulisSesi({ ...sesi, indeks: 0 });
     }
   }, [kolam.length]);
-
-  // Muncul hanya SELEPAS kad HERO dilepasi — margin di sebelah HERO ialah ruang bernafas reka
-  // bentuk masthead, bukan tempat meletakkan teks tambahan.
-  React.useEffect(() => {
-    if (kolam.length === 0 || ditutup) return;
-
-    const kiraAmbang = () => {
-      const hero = document.querySelector('[data-slot="0"]');
-      if (!hero) return 600;
-      const kotak = hero.getBoundingClientRect();
-      return window.scrollY + kotak.bottom;
-    };
-
-    let ambang = kiraAmbang();
-    const semak = () => setKelihatan(window.scrollY > ambang);
-    const kiraSemula = () => { ambang = kiraAmbang(); semak(); };
-
-    semak();
-    window.addEventListener('scroll', semak, { passive: true });
-    window.addEventListener('resize', kiraSemula);
-    return () => {
-      window.removeEventListener('scroll', semak);
-      window.removeEventListener('resize', kiraSemula);
-    };
-  }, [kolam.length, ditutup]);
 
   // Putaran mengikut tatalan.
   React.useEffect(() => {
@@ -275,44 +249,57 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
   };
 
   return (
+    // `hidden 2xl:block` — 1536px ialah lebar sebenar pertama yang meninggalkan margin kiri
+    // cukup luas di luar bekas kandungan 1024px. Di bawah lebar itu, PetikanStatik mengambil alih.
+    //
+    // KEDUDUKAN (dibetulkan 2026-08-19, laporan Izzat "rapat ke tepi, sepatutnya tengah margin"):
+    // `aside` ialah JALUR PENUH margin kiri sebenar — lebar dikira TEPAT sepadan formula
+    // `max-w-5xl mx-auto` bekas kandungan (1024px), iaitu `calc((100vw - 1024px) / 2)` — bukan
+    // offset piksel tetap dari tepi viewport. Kad sebenar (anak dalam) dipusatkan MELINTANG di
+    // dalam jalur itu dengan flex, supaya pada skrin sangat lebar ia terapung di TENGAH ruang
+    // kosong, bukan terikat ke tepi kiri viewport.
     <aside
-      // `hidden 2xl:block` — 1536px ialah lebar sebenar pertama yang meninggalkan margin kiri
-      // cukup luas di luar bekas kandungan 1024px (disahkan dengan audit susun atur, bukan
-      // dianggar). Di bawah lebar itu, PetikanStatik yang mengambil alih.
-      className={`hidden 2xl:block fixed left-6 bottom-10 z-20 transition-opacity duration-500 ${
-        kelihatan ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      }`}
-      style={{ width: 'clamp(180px, 12vw, 220px)' }}
+      className="hidden 2xl:block fixed left-0 bottom-10 z-20"
+      style={{ width: 'calc((100vw - 1024px) / 2)', display: 'flex', justifyContent: 'center' }}
       aria-label="Petikan pilihan"
-      onMouseEnter={() => { kunciTuding.current = true; }}
-      onMouseLeave={() => { kunciTuding.current = false; }}
-      onFocusCapture={() => { kunciTuding.current = true; }}
-      onBlurCapture={() => { kunciTuding.current = false; }}
     >
       <div
-        className={`group relative border-l-2 border-stone-300 pl-3 transition-opacity ${
-          kurangGerak ? '' : 'duration-200'
-        } ${pudar ? 'opacity-0' : 'opacity-100'}`}
+        style={{ width: 'clamp(180px, 12vw, 220px)' }}
+        onMouseEnter={() => { kunciTuding.current = true; }}
+        onMouseLeave={() => { kunciTuding.current = false; }}
+        onFocusCapture={() => { kunciTuding.current = true; }}
+        onBlurCapture={() => { kunciTuding.current = false; }}
       >
-        <button
-          type="button"
-          onClick={tutup}
-          aria-label="Tutup petikan"
-          title="Tutup petikan"
-          className="absolute -left-1 -top-5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-stone-400 hover:text-stone-700 text-[15px] leading-none p-1 select-none"
+        <div
+          className={`group relative border-l-2 border-stone-300 pl-3 transition-opacity ${
+            kurangGerak ? '' : 'duration-200'
+          } ${pudar ? 'opacity-0' : 'opacity-100'}`}
         >
-          ×
-        </button>
+          <button
+            type="button"
+            onClick={tutup}
+            aria-label="Tutup petikan"
+            title="Tutup petikan"
+            className="absolute -right-1 -top-5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-stone-400 hover:text-[#802334] text-[15px] leading-none p-1 select-none"
+          >
+            ×
+          </button>
 
-        {/* TEGAK, bukan condong (arahan Izzat, 19/8/2026). Petikan dibezakan daripada teks
-            sekeliling oleh garis tepi kiri dan kedudukan marginalianya, bukan oleh gaya huruf —
-            condong dikhaskan untuk penegasan sebenar dalam teks editorial. */}
-        <p className={`font-serif text-stone-600 ${saizTeksMargin(p.teks.length)}`}>
-          {p.teks}
-        </p>
-        <LabelTerjemahan p={p} kelas="mt-2 font-sans text-[9px] uppercase tracking-wider text-stone-400" />
-        <Atribusi p={p} kelas="mt-1 font-sans text-[10px] uppercase tracking-wider text-stone-500" />
-        <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[10px] text-stone-500 underline underline-offset-2 hover:text-stone-800" />
+          {/* TEGAK, bukan condong (arahan Izzat, 19/8/2026). Petikan dibezakan daripada teks
+              sekeliling oleh garis tepi kiri dan kedudukan marginalianya, bukan oleh gaya huruf —
+              condong dikhaskan untuk penegasan sebenar dalam teks editorial. */}
+          <p className={`font-serif text-stone-600 ${saizTeksMargin(p.teks.length)}`}>
+            {p.teks}
+          </p>
+          {/* Tipografi label diselaraskan dengan token sistem reka bentuk sebenar (2026-08-19,
+              laporan Izzat "gaya sangat jauh drpd sistem design Adjung Brief") — footer/utiliti
+              di FrontpageView.tsx guna `font-mono uppercase tracking-widest font-bold` + aksen
+              maroon `#802334` di seluruh laman; modul ni dahulu guna `font-sans tracking-wider`
+              tanpa font-bold dan hover kelabu generik, terpesong daripada corak sedia ada. */}
+          <LabelTerjemahan p={p} kelas="mt-2 font-mono text-[9px] uppercase tracking-widest font-bold text-stone-400" />
+          <Atribusi p={p} kelas="mt-1 font-sans text-[10px] uppercase tracking-wider font-bold text-stone-500" />
+          <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[10px] font-semibold text-stone-500 underline underline-offset-2 hover:text-[#802334] transition-colors" />
+        </div>
       </div>
     </aside>
   );
@@ -342,9 +329,9 @@ export const PetikanStatik: React.FC = () => {
         <p className="font-serif text-stone-700 text-[17px] leading-[1.7] max-w-2xl mx-auto">
           {p.teks}
         </p>
-        <LabelTerjemahan p={p} kelas="mt-3 font-sans text-[10px] uppercase tracking-wider text-stone-400" />
-        <Atribusi p={p} kelas="mt-1.5 font-sans text-[11px] uppercase tracking-wider text-stone-500" />
-        <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[11px] text-stone-500 underline underline-offset-2 hover:text-stone-800" />
+        <LabelTerjemahan p={p} kelas="mt-3 font-mono text-[9px] uppercase tracking-widest font-bold text-stone-400" />
+        <Atribusi p={p} kelas="mt-1.5 font-sans text-[11px] uppercase tracking-wider font-bold text-stone-500" />
+        <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[11px] font-semibold text-stone-500 underline underline-offset-2 hover:text-[#802334] transition-colors" />
       </div>
     </section>
   );
