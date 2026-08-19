@@ -199,7 +199,7 @@ const BorangPetikan: React.FC<{
             className={`${INPUT_BORANG} font-serif`}
           />
           <p className="text-[10px] text-stone-500 mt-1">
-            Frontpage akan menandakannya “{labelTerjemahan(nilai.bahasaAsal) || 'Diterjemahkan dari Bahasa …'}”.
+            Frontpage akan menandakannya “{labelTerjemahan(nilai.bahasaAsal) || 'Diterjemahkan daripada bahasa …'}”.
           </p>
         </div>
       )}

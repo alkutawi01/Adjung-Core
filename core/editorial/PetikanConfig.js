@@ -62,13 +62,16 @@ export const adalahBahasaMelayu = (mentah) => namaBahasa(mentah) === 'Melayu';
  * dari Bahasa X". Lebih panjang daripada percubaan pendek asal, tetapi tatabahasa BETUL
  * mengatasi kepadatan ruang — margin 180-220px masih boleh tampung dua baris kalau perlu; teks
  * editorial yang janggal tidak boleh dibiarkan demi jimat piksel.
+ * Pembetulan kedua (2026-08-19, Izzat): "dari" -> "daripada" (kata sendi asal-usul yang betul
+ * dalam konteks ni), dan "Bahasa X" -> "bahasa x" huruf kecil (nama bahasa ialah kata am dalam
+ * ayat ni, bukan sebahagian nama khas "Bahasa Melayu"/"Bahasa Inggeris" sebagai istilah rasmi).
  *
  * Pulangkan '' untuk sumber Melayu: label pada petikan yang tidak pernah diterjemahkan adalah
  * salah, bukan sekadar janggal. */
 export function labelTerjemahan(bahasaAsal) {
   const nama = namaBahasa(bahasaAsal);
   if (!nama || nama === 'Melayu') return '';
-  return `Diterjemahkan dari Bahasa ${nama}`;
+  return `Diterjemahkan daripada bahasa ${nama}`;
 }
 
 // Label medan yang penghurai kenali. Apa-apa di luar senarai ni bukan label — ia teks biasa.

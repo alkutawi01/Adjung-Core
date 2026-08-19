@@ -115,9 +115,13 @@ function tulisSesi(k: KeadaanSesi) {
  *  membalut lebih banyak baris (kotak margin tidak dikunci tinggi), bukan mengecilkan huruf. */
 const SAIZ_TEKS_MARGIN = 'text-[13px] leading-[1.6]';
 
+/** Hierarki warna (2026-08-19, laporan Izzat: "tukar semua petikan jadi warna hitam kecuali nama
+ *  pengarang, kekalkan warna maroon"). Maroon kini eksklusif untuk NAMA PENGARANG — satu-satunya
+ *  elemen yang perlu "menonjol" pada pandangan pertama untuk pembaca kenal pasti sumber; karya
+ *  dan rujukan ialah metadata SOKONGAN, jadi kekal warna teks biasa (stone-600), bukan maroon. */
 const Atribusi: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => (
-  <div className={kelas}>
-    <span className="font-semibold">{p.pengarang}</span>
+  <div className={`${kelas} text-stone-600`}>
+    <span className="font-semibold text-[#802334]">{p.pengarang}</span>
     {/* Nama karya condong — konvensyen tipografi standard untuk judul buku/karya, bukan hiasan. */}
     {p.karya && <span> · <em>{p.karya}</em></span>}
     {p.rujukan && <span> · {p.rujukan}</span>}
@@ -130,10 +134,11 @@ const Atribusi: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => 
  *
  *  Dipaparkan sebagai metadata sekunder, BUKAN sebahagian petikan — teks label dikira di pelayan
  *  (labelTerjemahan, PetikanConfig.js) supaya peraturan "tiada label untuk sumber Melayu" hidup
- *  di satu tempat sahaja. */
+ *  di satu tempat sahaja. Warna KELABU (2026-08-19, laporan Izzat) — bukan maroon, kerana maroon
+ *  kini eksklusif untuk nama pengarang; label ni metadata paling sekunder dalam blok. */
 const LabelTerjemahan: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => {
   if (!p.labelTerjemahan) return null;
-  return <div className={kelas}>{p.labelTerjemahan}</div>;
+  return <div className={`${kelas} text-stone-400`}>{p.labelTerjemahan}</div>;
 };
 
 const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => {
@@ -299,19 +304,18 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
               Teks Melayu) benar-benar dipaparkan condong — TANPA ini, pembaca nampak asterisk
               literal. Ini PENEGASAN SEBENAR (istilah asing), bukan gaya "puitis" seluruh petikan.
               Saiz TETAP (SAIZ_TEKS_MARGIN) — lihat nota di takrifan pemalar tu. */}
-          <p className={`font-serif text-stone-600 ${SAIZ_TEKS_MARGIN}`}>
-            <span aria-hidden="true" className="text-[#802334] font-serif text-lg leading-none align-[-2px]">“</span>
+          <p className={`font-serif text-stone-900 ${SAIZ_TEKS_MARGIN}`}>
+            <span aria-hidden="true" className="text-[#802334] font-serif text-lg leading-none align-[-2px]">&ldquo;</span>
             {safeParseInline(p.teks)}
-            <span aria-hidden="true" className="text-[#802334]/60">”</span>
+            <span aria-hidden="true" className="text-[#802334]/60">&rdquo;</span>
           </p>
-          {/* Huruf biasa (BUKAN uppercase) + warna maroon (2026-08-19, laporan Izzat "kenapa semua
-              yg saya bulat tu huruf besar?" dan "tukar warna maklumat buku ke warna maroon").
-              uppercase dibuang; warna kelabu digantikan maroon lutsinar (label lebih pudar
-              daripada atribusi — label ialah metadata SEKUNDER, nama pengarang/karya lebih
-              penting untuk pembaca kenal pasti sumber). */}
-          <LabelTerjemahan p={p} kelas="mt-2 font-sans text-[10px] tracking-wide text-[#802334]/60" />
-          <Atribusi p={p} kelas="mt-1 font-sans text-[11px] tracking-wide text-[#802334]" />
-          <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[10px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
+          {/* Hierarki (2026-08-19, laporan Izzat): petikan hitam ialah elemen UTAMA (SAIZ_TEKS_MARGIN,
+              13px) — metadata di bawah dikecilkan berperingkat supaya jelas SEKUNDER, bukan bersaing
+              dengan petikan. Warna kini ditentukan DALAM komponen masing-masing (Atribusi: maroon
+              hanya pada nama pengarang; LabelTerjemahan: kelabu) — kelas di sini saiz/susun sahaja. */}
+          <LabelTerjemahan p={p} kelas="mt-2 font-sans text-[9px] tracking-wide" />
+          <Atribusi p={p} kelas="mt-1 font-sans text-[10px] tracking-wide" />
+          <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[9px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
         </div>
       </div>
     </aside>
@@ -340,16 +344,17 @@ export const PetikanStatik: React.FC = () => {
         {/* TEGAK — lihat nota di PetikanMargin. Di sini pembezanya ialah garis atas, penengahan
             dan ruang lapang di sekelilingnya. safeParseInline supaya kata pinjaman *dicondongkan*.
             Tanda petik besar maroon — sama rasional "pull quote" seperti PetikanMargin. */}
-        <p className="font-serif text-stone-700 text-[17px] leading-[1.7] max-w-2xl mx-auto">
-          <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">“</span>
+        <p className="font-serif text-stone-900 text-[17px] leading-[1.7] max-w-2xl mx-auto">
+          <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
           {safeParseInline(p.teks)}
-          <span aria-hidden="true" className="text-[#802334]/60">”</span>
+          <span aria-hidden="true" className="text-[#802334]/60">&rdquo;</span>
         </p>
-        {/* Selaras dengan PetikanMargin (2026-08-19) — huruf biasa (bukan uppercase), maroon
-            menggantikan kelabu generik. */}
-        <LabelTerjemahan p={p} kelas="mt-3 font-sans text-[11px] tracking-wide text-[#802334]/60" />
-        <Atribusi p={p} kelas="mt-1.5 font-sans text-xs tracking-wide text-[#802334]" />
-        <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[11px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
+        {/* Selaras dengan PetikanMargin (2026-08-19) — huruf biasa (bukan uppercase); warna kini
+            ditentukan DALAM komponen (Atribusi: maroon hanya pengarang, LabelTerjemahan: kelabu);
+            saiz dikecilkan berperingkat supaya petikan hitam kekal elemen utama hierarki. */}
+        <LabelTerjemahan p={p} kelas="mt-3 font-sans text-[10px] tracking-wide" />
+        <Atribusi p={p} kelas="mt-1.5 font-sans text-[11px] tracking-wide" />
+        <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[10px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
       </div>
     </section>
   );
