@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, Rss, Clock, CalendarDays, Handshake, X } from 'lucide-react';
+import { Lock, Rss, Clock, CalendarDays, Handshake, Quote, X } from 'lucide-react';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { EditoriumLayout } from './EditoriumLayout';
 import { Tooltip } from '../common/Tooltip';
@@ -12,6 +12,7 @@ import { DrafSayaConsole } from './DrafSayaConsole';
 import { DashboardConsole } from './DashboardConsole';
 import { NotaKetuaEditorConsole } from './NotaKetuaEditorConsole';
 import { PenajaConsole } from './PenajaConsole';
+import { PetikanConsole } from './PetikanConsole';
 import { MaklumanDrawer } from './MaklumanDrawer';
 import { ProfilEditorModal } from './ProfilEditorModal';
 import { DirektoriConsole } from './DirektoriConsole';
@@ -200,6 +201,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       slot: 'Slot', modul_khas: 'Modul Khas', editorial: 'Editorial',
       nota_ketua_editor: 'Nota Ketua Editor', direktori: 'Direktori', tetapan: 'Tetapan',
       panduan: 'Panduan', dokumentasi: 'Dokumentasi', log_sistem: 'Log Sistem', penaja: 'Penaja',
+      petikan: 'Petikan',
     };
     document.title = label[activeTab]
       ? `${label[activeTab]} · Editorium · Adjung Brief`
@@ -733,6 +735,25 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               Urus Penaja
             </Button>
           </div>
+          {/* Petikan (2026-08-19, permintaan Izzat — "anggap je quote ni modul khas") — kandungan
+              editorial sampingan di margin kiri Frontpage pada skrin lebar. Digerbang
+              `manageEditorial` (editorial harian, BUKAN keputusan perniagaan) — jadi Ketua
+              Editor/Penolong boleh urus, tidak seperti Penaja yang Pentadbir sahaja. */}
+          <div className="flex items-center justify-between gap-4 border border-stone-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <Quote className="w-4 h-4 text-Adjung-maroon" />
+              <div>
+                <div className="text-sm font-semibold text-stone-800">Petikan</div>
+                <div className="text-[11px] text-stone-500">Petikan karya di margin kiri Frontpage (skrin lebar). Boleh dihidup/matikan.</div>
+              </div>
+            </div>
+            <Button
+              onClick={() => setActiveTab('petikan')}
+              className="shrink-0 w-[136px]"
+              >
+              Urus Petikan
+            </Button>
+          </div>
           </PanelCard>
         </div>
       )}
@@ -741,6 +762,15 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
         isPentadbir
           ? <PenajaConsole />
           : <AksesDitolak mesej="Penaja khusus untuk Pentadbir." />
+      )}
+
+      {/* Petikan (2026-08-19) — digerbang `isEditorialAdmin` supaya sepadan TEPAT dengan gerbang
+          pelayan `manageEditorial` (petikanRoutes.js). Ketua Editor DAN Penolong boleh urus;
+          Editor biasa ditolak di sini dan juga di pelayan (dua lapisan, bukan hanya UI). */}
+      {activeTab === 'petikan' && (
+        isEditorialAdmin
+          ? <PetikanConsole />
+          : <AksesDitolak mesej="Petikan khusus untuk Ketua Editor dan Penolong Ketua Editor." />
       )}
 
       {/* Slot — segala yang MENTAKRIFKAN slot: bentuk, Bidang, warna, had aksara, animasi.
