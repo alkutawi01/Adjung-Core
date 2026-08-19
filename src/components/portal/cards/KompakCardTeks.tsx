@@ -18,7 +18,7 @@ export interface KompakCardTeksProps {
 export const KompakCardTeks: React.FC<KompakCardTeksProps> = ({ title, brief, briefStyle, onClickTajuk, onClickHuraian }) => (
   <>
     <h3
-      className="font-serif text-[14px] md:text-sm font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200"
+      className="font-serif text-[15px] font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200"
       onClick={onClickTajuk}
     >
       {safeParseInline(title || '')}
