@@ -167,9 +167,18 @@ function SenaraiSumberDesktop({ sources, sourceDate }: { sources: { name: string
 
   React.useLayoutEffect(() => {
     let dibatal = false;
+    // Toleransi 8px (2026-08-19, pepijat sebenar Izzat — paip "|" hilang antara dua sumber yang
+    // SEBENARNYA sebaris) — nama sumber (fon sans-serif) + tarikh (fon mono) dalam SATU unit
+    // digariskan ikut alignItems:'baseline', bukan bucu atas; dua fon berlainan ada offset bucu-
+    // atas SEDIKIT berbeza (diukur sebenar: 6px) walaupun kedua-dua unit betul-betul sebaris
+    // (bounding box bertindih menegak, disahkan getBoundingClientRect). Semakan `===` (sama
+    // TEPAT) sebelum ni silap anggap ni "baris berlainan" — paip pemisah tersembunyi secara
+    // silap. 8px cukup longgar untuk telan jitter baseline-fon, cukup ketat untuk kekal kesan
+    // baris yang BENAR-BENAR berlainan (beza satu baris penuh, ~16-20px pada saiz fon ni).
+    const TOLERANSI_BASELINE_PX = 8;
     const kira = () => {
       const tops = refs.current.map((el) => el?.offsetTop ?? 0);
-      if (!dibatal) setSamaBarisDgnSebelum(tops.map((t, i) => i === 0 || t === tops[i - 1]));
+      if (!dibatal) setSamaBarisDgnSebelum(tops.map((t, i) => i === 0 || Math.abs(t - tops[i - 1]) <= TOLERANSI_BASELINE_PX));
     };
     kira();
     const pemerhati = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(kira) : null;

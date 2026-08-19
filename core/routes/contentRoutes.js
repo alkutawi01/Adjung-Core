@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, validateGlossLength, TIER_SLOTS } from '../editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, validateSumberNama, validateTarikhSumber, validateGlossLength, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import { effectiveMinBriefLong } from '../editorial/GeometryConfig.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
