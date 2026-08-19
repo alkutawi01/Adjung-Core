@@ -108,15 +108,12 @@ function tulisSesi(k: KeadaanSesi) {
 // Persembahan dikongsi
 // ---------------------------------------------------------------------------
 
-/** Petikan panjang tidak boleh dipotong (falsafah teras 1 — teks editorial tidak dipangkas
- *  secara mekanikal), jadi saiz font mengecil sedikit untuk petikan panjang supaya blok margin
- *  kekal munasabah tingginya. Had 400 aksara dikuatkuasakan semasa import, jadi ini menangani
- *  julat 250-400 sahaja. */
-function saizTeksMargin(panjang: number) {
-  if (panjang > 260) return 'text-[12px] leading-[1.55]';
-  if (panjang > 160) return 'text-[13px] leading-[1.6]';
-  return 'text-[14px] leading-[1.65]';
-}
+/** Saiz teks TETAP untuk kesemua petikan margin (2026-08-19, laporan Izzat "saiz font tak
+ *  seragam"). Sebelum ni saiz mengecil ikut panjang teks — nampak tekal untuk SATU petikan,
+ *  tetapi apabila putaran bertukar antara petikan pendek dan panjang, saiz font turut melompat
+ *  setiap kali, menjadikan pengalaman keseluruhan tidak seragam. Petikan panjang kini dibiar
+ *  membalut lebih banyak baris (kotak margin tidak dikunci tinggi), bukan mengecilkan huruf. */
+const SAIZ_TEKS_MARGIN = 'text-[13px] leading-[1.6]';
 
 const Atribusi: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => (
   <div className={kelas}>
@@ -131,9 +128,9 @@ const Atribusi: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => 
  *  petikan berasal daripada kitab Arab atau buku Inggeris, itu MESTI dinyatakan — kata-kata yang
  *  dibaca ialah terjemahan, bukan kata-kata asal pengarang.
  *
- *  Dipaparkan sebagai metadata sekunder, BUKAN sebahagian petikan: lebih kecil, lebih pudar, dan
- *  di luar tanda petik. Teks label dikira di pelayan (labelTerjemahan, PetikanConfig.js) supaya
- *  peraturan "tiada label untuk sumber Melayu" hidup di satu tempat sahaja. */
+ *  Dipaparkan sebagai metadata sekunder, BUKAN sebahagian petikan — teks label dikira di pelayan
+ *  (labelTerjemahan, PetikanConfig.js) supaya peraturan "tiada label untuk sumber Melayu" hidup
+ *  di satu tempat sahaja. */
 const LabelTerjemahan: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => {
   if (!p.labelTerjemahan) return null;
   return <div className={kelas}>{p.labelTerjemahan}</div>;
@@ -159,9 +156,13 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
 
 /** Jarak tatalan (px) bagi SATU langkah — lebih kurang beberapa baris teks badan. Direka semula
  *  2026-08-19 (Izzat, ujian langsung pengeluaran): nilai asal 900px + tunggu-berhenti 350ms
- *  terasa terlalu perlahan/tidak responsif — "sepatutnya scroll beberapa line, bertukar". Tiada
- *  tempoh tunggu-berhenti lagi; setiap kali ambang dilepasi, langkah berlaku serta-merta. */
-const JARAK_TUKAR_PX = 200;
+ *  terasa terlalu perlahan/tidak responsif ("sepatutnya scroll beberapa line, bertukar"). Tiada
+ *  tempoh tunggu-berhenti lagi; setiap kali ambang dilepasi, langkah berlaku serta-merta.
+ *
+ *  PELARASAN KEDUA (sama hari) — 200px pula terlalu PANTAS ("saiz font tak seragam, pertukaran
+ *  terlalu cepat"). Dinaikkan ke 380px — kira-kira 5-6 baris teks badan biasa, titik tengah
+ *  munasabah antara 900 (terlalu perlahan) dan 200 (terlalu pantas). */
+const JARAK_TUKAR_PX = 380;
 
 export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
   const { kolam, aktif } = useKolamPetikan();
@@ -270,11 +271,11 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
         onBlurCapture={() => { kunciTuding.current = false; }}
       >
         <div
-          // Aksen maroon Adjung (2026-08-19, laporan Izzat "takde langsung elemen warna maroon
-          // adjung... seolah2 ia bukan sebahagian drpd adjung brief") — garis tepi kelabu generik
-          // digantikan aksen maroon lutsinar separa, mengikat modul ni terus kepada identiti
-          // jenama yang dipakai merata FrontpageView.tsx (#802334).
-          className={`group relative border-l-2 border-[#802334]/35 pl-3 transition-opacity ${
+          // Garisan kiri DIBUANG (2026-08-19, laporan Izzat "rasanya tak perlu garisan belah kiri
+          // tu") — petikan kini dibezakan SEMATA-MATA oleh tanda petik besar + teks rata kanan,
+          // bukan bekas berbingkai. `text-right` (Izzat, "align teks ke sebelah kanan") terpakai
+          // pada SELURUH blok (petikan, label, atribusi, pautan) — bukan cuma petikan sendiri.
+          className={`group relative text-right transition-opacity ${
             kurangGerak ? '' : 'duration-200'
           } ${pudar ? 'opacity-0' : 'opacity-100'}`}
         >
@@ -283,33 +284,34 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
             onClick={tutup}
             aria-label="Tutup petikan"
             title="Tutup petikan"
+            // Kekal KANAN atas (arahan eksplisit Izzat sebelum ni: "butang pangkah di kanan atas,
+            // bukan kiri") — tidak diubah semula walau teks kini rata kanan; dua keputusan ni
+            // berasingan.
             className="absolute -right-1 -top-5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-stone-400 hover:text-[#802334] text-[15px] leading-none p-1 select-none"
           >
             ×
           </button>
 
           {/* TEGAK secara lalai (arahan Izzat, 19/8/2026) — petikan dibezakan daripada teks
-              sekeliling oleh garis tepi kiri dan kedudukan marginalianya, bukan oleh gaya huruf.
+              sekeliling oleh tanda petik + kedudukan marginalianya, bukan oleh gaya huruf.
               `safeParseInline` (bukan teks mentah) supaya penanda `*kata pinjaman*` yang Arahan
               AI kini wajibkan (peraturan 21, PetikanConfig.js — istilah asing belum mantap dalam
               Teks Melayu) benar-benar dipaparkan condong — TANPA ini, pembaca nampak asterisk
               literal. Ini PENEGASAN SEBENAR (istilah asing), bukan gaya "puitis" seluruh petikan.
-              Tanda petik pembuka BESAR + maroon (2026-08-19, laporan Izzat "sepatutnya ada
-              pengikat kata") — konvensyen "pull quote" majalah editorial standard; tanda petik
-              kecil di hujung ayat mudah terlepas pandang pada teks marginal sekecil ni. */}
-          <p className={`font-serif text-stone-600 ${saizTeksMargin(p.teks.length)}`}>
+              Saiz TETAP (SAIZ_TEKS_MARGIN) — lihat nota di takrifan pemalar tu. */}
+          <p className={`font-serif text-stone-600 ${SAIZ_TEKS_MARGIN}`}>
             <span aria-hidden="true" className="text-[#802334] font-serif text-lg leading-none align-[-2px]">“</span>
             {safeParseInline(p.teks)}
             <span aria-hidden="true" className="text-[#802334]/60">”</span>
           </p>
-          {/* Tipografi label diselaraskan dengan token sistem reka bentuk sebenar (2026-08-19,
-              laporan Izzat "gaya sangat jauh drpd sistem design Adjung Brief") — footer/utiliti
-              di FrontpageView.tsx guna `font-mono uppercase tracking-widest font-bold` + aksen
-              maroon `#802334` di seluruh laman; modul ni dahulu guna `font-sans tracking-wider`
-              tanpa font-bold dan hover kelabu generik, terpesong daripada corak sedia ada. */}
-          <LabelTerjemahan p={p} kelas="mt-2 font-mono text-[9px] uppercase tracking-widest font-bold text-stone-400" />
-          <Atribusi p={p} kelas="mt-1 font-sans text-[10px] uppercase tracking-wider font-bold text-stone-500" />
-          <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[10px] font-semibold text-stone-500 underline underline-offset-2 hover:text-[#802334] transition-colors" />
+          {/* Huruf biasa (BUKAN uppercase) + warna maroon (2026-08-19, laporan Izzat "kenapa semua
+              yg saya bulat tu huruf besar?" dan "tukar warna maklumat buku ke warna maroon").
+              uppercase dibuang; warna kelabu digantikan maroon lutsinar (label lebih pudar
+              daripada atribusi — label ialah metadata SEKUNDER, nama pengarang/karya lebih
+              penting untuk pembaca kenal pasti sumber). */}
+          <LabelTerjemahan p={p} kelas="mt-2 font-sans text-[10px] tracking-wide text-[#802334]/60" />
+          <Atribusi p={p} kelas="mt-1 font-sans text-[11px] tracking-wide text-[#802334]" />
+          <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[10px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
         </div>
       </div>
     </aside>
@@ -343,9 +345,11 @@ export const PetikanStatik: React.FC = () => {
           {safeParseInline(p.teks)}
           <span aria-hidden="true" className="text-[#802334]/60">”</span>
         </p>
-        <LabelTerjemahan p={p} kelas="mt-3 font-mono text-[9px] uppercase tracking-widest font-bold text-stone-400" />
-        <Atribusi p={p} kelas="mt-1.5 font-sans text-[11px] uppercase tracking-wider font-bold text-stone-500" />
-        <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[11px] font-semibold text-stone-500 underline underline-offset-2 hover:text-[#802334] transition-colors" />
+        {/* Selaras dengan PetikanMargin (2026-08-19) — huruf biasa (bukan uppercase), maroon
+            menggantikan kelabu generik. */}
+        <LabelTerjemahan p={p} kelas="mt-3 font-sans text-[11px] tracking-wide text-[#802334]/60" />
+        <Atribusi p={p} kelas="mt-1.5 font-sans text-xs tracking-wide text-[#802334]" />
+        <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[11px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
       </div>
     </section>
   );
