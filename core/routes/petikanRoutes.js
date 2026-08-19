@@ -2,6 +2,10 @@ import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { getAmSettings } from './slotAmRoutes.js';
+import {
+  KATEGORI_PETIKAN, HAD_TEKS_PETIKAN, huraiPetikanTampal, kunciDedupPetikan,
+  pilihDanSusunKolam, binaArahanAiPetikan,
+} from '../editorial/PetikanConfig.js';
 
 // Petikan (2026-08-19, spesifikasi Izzat) — kandungan editorial sampingan di margin kiri frontpage.
 // Lihat nota penuh di server.js (CREATE TABLE petikan) untuk rasional seni bina SATU jadual.
@@ -14,19 +18,14 @@ import { getAmSettings } from './slotAmRoutes.js';
 const STATUS_SAH_SAH = ['belum_sah', 'sah', 'dipertikai'];
 
 // Had aksara — petikan marginal mesti pendek supaya muat ruang 180-220px tanpa menenggelamkan
-// kandungan utama. 400 aksara ialah siling KERAS (bukan sasaran); petikan baik biasanya jauh
-// lebih pendek. Had ni juga melindungi hak cipta: petikan panjang berlebihan daripada karya
-// terlindung ialah risiko, bukan sekadar isu reka bentuk.
-const HAD_TEKS = 400;
+// kandungan utama. Siling KERAS (bukan sasaran); petikan baik biasanya jauh lebih pendek. Had ni
+// juga melindungi hak cipta: petikan panjang berlebihan daripada karya terlindung ialah risiko,
+// bukan sekadar isu reka bentuk. Nombornya datang daripada PetikanConfig.js supaya penghurai
+// tampalan dan pengesahan borang tidak boleh terpesong sesama sendiri.
+const HAD_TEKS = HAD_TEKS_PETIKAN;
 const HAD_PENGARANG = 120;
 const HAD_KARYA = 200;
 const HAD_RUJUKAN = 200;
-
-// Saiz kolam harian (2026-08-19) — bilangan petikan yang "bersiaran" pada satu-satu hari. Semua
-// pembaca hari itu berkongsi kolam SAMA; scroll cuma menentukan yang mana sedang dilihat. Ini
-// sengaja BUKAN rawak per-permintaan: refresh tidak sepatutnya menghasilkan koleksi lain, dan
-// editorial patut boleh tahu apa yang tersiar pada sesuatu hari.
-const SAIZ_KOLAM_HARIAN = 8;
 
 const barisKepadaPetikan = (r) => ({
   id: r.id,
@@ -35,6 +34,7 @@ const barisKepadaPetikan = (r) => ({
   karya: r.karya,
   rujukan: r.rujukan || '',
   bahasa: r.bahasa || 'ms',
+  kategori: r.kategori || null,
   statusSah: r.statusSah || 'belum_sah',
   aktif: r.aktif === 1,
   pautanBuku: r.pautanBuku || '',
@@ -46,31 +46,11 @@ const barisKepadaPetikan = (r) => ({
   dikemasPada: r.dikemasPada,
 });
 
-// Pemilih kolam harian DETERMINISTIK — hari yang sama sentiasa menghasilkan kolam yang sama,
-// tanpa menyimpan jadual tugasan berasingan. Benih = tarikh (YYYY-MM-DD), jadi kolam bertukar
-// tepat pada tengah malam waktu pelayan dan kekal stabil sepanjang hari itu walau pelayan
-// dimulakan semula. Ini sebab utama TIDAK guna ORDER BY RANDOM(): setiap permintaan akan beri
-// susunan berbeza, jadi refresh sahaja sudah menukar petikan — bercanggah dengan keputusan Izzat
-// bahawa petikan hanya bertukar apabila pembaca scroll.
-const benihDaripadaTarikh = (tarikhIso) => {
-  let h = 2166136261;
-  for (let i = 0; i < tarikhIso.length; i++) {
-    h ^= tarikhIso.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-};
-
-// PRNG mudah (mulberry32) — cukup untuk memilih kolam harian, bukan kegunaan kriptografi.
-const rawakBerbenih = (benih) => {
-  let a = benih;
-  return () => {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-};
+// Pemilihan + penyusunan kolam harian kini hidup di core/editorial/PetikanConfig.js
+// (pilihDanSusunKolam) — dikongsi, deterministik ikut tarikh, dengan kepelbagaian kategori.
+// Sebab ia TIDAK guna ORDER BY RANDOM(): setiap permintaan akan beri susunan berbeza, jadi
+// refresh sahaja sudah menukar petikan — bercanggah dengan keputusan Izzat bahawa petikan hanya
+// bertukar apabila pembaca scroll.
 
 export function createPetikanRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
@@ -94,33 +74,37 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       // Tapis di SQL, bukan di JS — petikan yang belum sah atau tidak aktif tidak sepatutnya
       // meninggalkan pangkalan data langsung. Julat tarikh (tarikhMula/tarikhAkhir) opsyenal:
       // NULL/kosong bermakna "sentiasa layak", bukan "tidak pernah layak".
+      //
+      // Kategori WAJIB untuk kelayakan (2026-08-19) — bukan sekadar metadata hiasan. Keperluan
+      // Izzat ialah petikan berturut-turut bukan daripada kategori sama; petikan TANPA kategori
+      // tidak boleh menyertai jaminan itu langsung, jadi ia ditahan sehingga editor mengisinya.
+      // Ini juga gerbang yang menangkap kes AI memulangkan kategori di luar senarai tertutup
+      // (disimpan NULL + amaran semasa import) — petikan itu tidak akan tersiar dengan kategori
+      // palsu, dan tidak juga tersiar tanpa kategori. Konsol memaparkan amaran jelas supaya
+      // keadaan ini kelihatan, bukan senyap.
       const rows = await dbAll(
         `SELECT * FROM petikan
          WHERE aktif = 1
            AND statusSah = 'sah'
+           AND kategori IS NOT NULL AND TRIM(kategori) != ''
            AND (tarikhMula IS NULL OR tarikhMula = '' OR tarikhMula <= ?)
            AND (tarikhAkhir IS NULL OR tarikhAkhir = '' OR tarikhAkhir >= ?)
          ORDER BY id`,
         [hariIni, hariIni]
       );
 
-      const layak = rows || [];
-      if (layak.length === 0) return res.json({ aktif: true, petikan: [] });
+      const layak = (rows || []).map(barisKepadaPetikan);
+      if (layak.length === 0) return res.json({ aktif: true, tarikh: hariIni, petikan: [] });
 
-      // Kocok deterministik ikut tarikh, kemudian ambil SAIZ_KOLAM_HARIAN pertama. `ORDER BY id`
-      // di atas penting: ia memberi susunan asas yang stabil supaya benih tarikh menghasilkan
-      // kolam yang SAMA setiap kali dipanggil pada hari yang sama.
-      const rnd = rawakBerbenih(benihDaripadaTarikh(hariIni));
-      const disusun = [...layak];
-      for (let i = disusun.length - 1; i > 0; i--) {
-        const j = Math.floor(rnd() * (i + 1));
-        [disusun[i], disusun[j]] = [disusun[j], disusun[i]];
-      }
-
+      // Kolam DIPILIH dan DISUSUN sepenuhnya di pelayan (lihat pilihDanSusunKolam) — klien
+      // menerima urutan siap dan cuma berjalan 1->N. Sengaja: kalau klien menyusun sendiri,
+      // setiap pembaca dapat urutan berbeza dan logik editorial berselerak di dua tempat.
+      // `ORDER BY id` di atas penting — ia memberi susunan asas stabil supaya benih tarikh
+      // menghasilkan kolam SAMA setiap kali dipanggil pada hari yang sama.
       res.json({
         aktif: true,
         tarikh: hariIni,
-        petikan: disusun.slice(0, SAIZ_KOLAM_HARIAN).map(barisKepadaPetikan),
+        petikan: pilihDanSusunKolam(layak, hariIni),
       });
     } catch (err) {
       console.error('GET public petikan error:', err);
@@ -148,7 +132,7 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
   router.post('/system/petikan', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const {
-        teks, pengarang, karya, rujukan = '', bahasa = 'ms',
+        teks, pengarang, karya, rujukan = '', bahasa = 'ms', kategori = null,
         pautanBuku = '', labelPautan = '', tarikhMula = '', tarikhAkhir = '',
       } = req.body || {};
 
@@ -164,10 +148,11 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       // boleh dilangkau dengan menghantar medan dalam permintaan cipta. Ini gerbang yang sama
       // menghalang output AI daripada terus dianggap sahih.
       await dbRun(
-        `INSERT INTO petikan (id, teks, pengarang, karya, rujukan, bahasa, statusSah, aktif,
+        `INSERT INTO petikan (id, teks, pengarang, karya, rujukan, bahasa, kategori, statusSah, aktif,
                               pautanBuku, labelPautan, tarikhMula, tarikhAkhir, dibuatOleh, dibuatPada, dikemasPada)
-         VALUES (?, ?, ?, ?, ?, ?, 'belum_sah', 1, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'belum_sah', 1, ?, ?, ?, ?, ?, ?, ?)`,
         [id, teks.trim(), pengarang.trim(), karya.trim(), (rujukan || '').trim(), (bahasa || 'ms').trim(),
+         kategoriSahAtauNull(kategori),
          (pautanBuku || '').trim(), (labelPautan || '').trim(), (tarikhMula || '').trim(), (tarikhAkhir || '').trim(),
          namaSesi, kini, kini]
       );
@@ -225,13 +210,14 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
 
       const kini = new Date().toISOString();
       await dbRun(
-        `UPDATE petikan SET teks = ?, pengarang = ?, karya = ?, rujukan = ?, bahasa = ?,
+        `UPDATE petikan SET teks = ?, pengarang = ?, karya = ?, rujukan = ?, bahasa = ?, kategori = ?,
                             statusSah = ?, aktif = ?, pautanBuku = ?, labelPautan = ?,
                             tarikhMula = ?, tarikhAkhir = ?, dikemasPada = ?
          WHERE id = ?`,
         [
           gabung.teks.trim(), gabung.pengarang.trim(), gabung.karya.trim(), (gabung.rujukan || '').trim(),
           (b.bahasa !== undefined ? b.bahasa : (sedia.bahasa || 'ms')).trim(),
+          b.kategori !== undefined ? kategoriSahAtauNull(b.kategori) : (sedia.kategori || null),
           statusSahBaharu,
           b.aktif !== undefined ? (b.aktif ? 1 : 0) : sedia.aktif,
           (gabung.pautanBuku || '').trim(),
@@ -281,7 +267,119 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
+  // GET /api/system/petikan-arahan-ai — teks Arahan AI untuk editor salin ke chatbot luar.
+  // Dijana di PELAYAN (bukan ditulis semula di klien) supaya prompt dan penghurai sentiasa
+  // datang daripada SATU takrifan — kalau prompt berubah tetapi penghurai tidak, import senyap
+  // rosak. Kedua-duanya hidup dalam PetikanConfig.js.
+  router.get('/system/petikan-arahan-ai', requirePermission('manageEditorial'), (req, res) => {
+    res.json({ arahan: binaArahanAiPetikan(), kategori: KATEGORI_PETIKAN });
+  });
+
+  // POST /api/system/petikan/hurai — PRATONTON sahaja, TIDAK menulis apa-apa ke pangkalan data.
+  //
+  // Dipisahkan daripada import sebenar dengan sengaja: editor mesti melihat berapa yang sah,
+  // berapa gagal dan SEBAB setiap kegagalan SEBELUM apa-apa disimpan. Import membuta terhadap
+  // output AI ialah cara pepijat "teks templat tersiar sebagai kandungan" berlaku pada mulanya.
+  router.post('/system/petikan/hurai', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const { teks } = req.body || {};
+      if (!teks || !teks.trim()) return res.status(400).json({ error: 'Tiada teks untuk dihurai.' });
+
+      const { rekod, gagal } = huraiPetikanTampal(teks);
+
+      // Dedup terhadap koleksi SEDIA ADA — tampal semula output yang sama tidak sepatutnya
+      // menghasilkan pendua senyap dalam pustaka.
+      const sedia = await dbAll('SELECT teks, pengarang, karya FROM petikan');
+      const kunciSedia = new Set((sedia || []).map(kunciDedupPetikan));
+      const baharu = [];
+      const pendua = [];
+      for (const r of rekod) {
+        if (kunciSedia.has(kunciDedupPetikan(r))) pendua.push(r);
+        else baharu.push(r);
+      }
+
+      res.json({
+        jumlahDikesan: rekod.length + gagal.length,
+        bolehImport: baharu.length,
+        rekod: baharu,
+        pendua: pendua.length,
+        gagal,
+      });
+    } catch (err) {
+      console.error('POST petikan/hurai error:', err);
+      res.status(500).json({ error: 'Gagal menghurai teks. ' + (err.message || '') });
+    }
+  });
+
+  // POST /api/system/petikan/import — simpan rekod yang editor SUDAH lihat dalam pratonton.
+  //
+  // Semua rekod masuk sebagai 'belum_sah' tanpa pengecualian. "Sah secara struktur" (format
+  // betul) TIDAK pernah bermaksud "sah terhadap sumber" (petikan betul-betul wujud dalam karya).
+  // Hanya manusia yang membandingkan dengan PDF asal boleh membuat lompatan itu.
+  router.post('/system/petikan/import', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const senarai = Array.isArray(req.body?.rekod) ? req.body.rekod : [];
+      if (!senarai.length) return res.status(400).json({ error: 'Tiada rekod untuk diimport.' });
+
+      const kini = new Date().toISOString();
+      const namaSesi = req.session?.user?.penName || req.session?.user?.username || '';
+      // Kumpulan import — supaya Mod Semakan boleh menapis "petikan daripada buku yang sama"
+      // dan editor menyemak berturut-turut tanpa melompat antara karya.
+      const kumpulan = `import-${Date.now()}`;
+
+      const sedia = await dbAll('SELECT teks, pengarang, karya FROM petikan');
+      const kunciSedia = new Set((sedia || []).map(kunciDedupPetikan));
+
+      let disimpan = 0;
+      let dilangkau = 0;
+      for (const r of senarai) {
+        // Sahkan SEMULA di pelayan — jangan percaya rekod yang datang balik daripada klien.
+        // Klien boleh diubah suai; pratonton bukan gerbang keselamatan.
+        const semakan = sahkanMedan({
+          teks: r.teks, pengarang: r.pengarang, karya: r.karya,
+          rujukan: r.rujukan, pautanBuku: r.pautanBuku, tarikhMula: '', tarikhAkhir: '',
+        });
+        if (semakan) { dilangkau++; continue; }
+        if (kunciSedia.has(kunciDedupPetikan(r))) { dilangkau++; continue; }
+        kunciSedia.add(kunciDedupPetikan(r));
+
+        const id = `petikan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        await dbRun(
+          `INSERT INTO petikan (id, teks, pengarang, karya, rujukan, bahasa, kategori, statusSah, aktif,
+                                pautanBuku, labelPautan, tarikhMula, tarikhAkhir, dibuatOleh, dibuatPada, dikemasPada, kumpulanImport)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'belum_sah', 1, ?, '', '', '', ?, ?, ?, ?)`,
+          [id, (r.teks || '').trim(), (r.pengarang || '').trim(), (r.karya || '').trim(),
+           (r.rujukan || '').trim(), (r.bahasa || 'ms').trim(), kategoriSahAtauNull(r.kategori),
+           (r.pautanBuku || '').trim(), namaSesi, kini, kini, kumpulan]
+        );
+        disimpan++;
+      }
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: namaSesi,
+        action: 'import-petikan', targetType: 'petikan', targetId: kumpulan,
+        detail: `${disimpan} petikan diimport (belum disahkan), ${dilangkau} dilangkau`,
+      });
+
+      res.json({ success: true, disimpan, dilangkau, kumpulanImport: kumpulan });
+    } catch (err) {
+      console.error('POST petikan/import error:', err);
+      res.status(500).json({ error: 'Gagal mengimport petikan. ' + (err.message || '') });
+    }
+  });
+
   return router;
+}
+
+// Kategori mesti daripada senarai TERTUTUP. Nilai di luar senarai jatuh ke NULL (bukan ditolak,
+// bukan dipadan secara kabur) — petikannya mungkin sempurna, cuma labelnya salah. NULL bermakna
+// "belum diklasifikasi" dan petikan itu tidak layak masuk kolam harian sehingga editor
+// membetulkannya, jadi tiada risiko ia tersiar dengan kategori palsu.
+function kategoriSahAtauNull(nilai) {
+  const t = (nilai || '').toString().trim();
+  if (!t) return null;
+  return KATEGORI_PETIKAN.find((k) => k.toLowerCase() === t.toLowerCase()) || null;
 }
 
 // Pengesahan medan dikongsi POST dan PATCH — SATU takrifan, supaya dua laluan tu tak boleh

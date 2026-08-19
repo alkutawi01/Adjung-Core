@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
-import { BadgeCheck, Pencil, Power, Trash2 } from 'lucide-react';
+import { BadgeCheck, ClipboardPaste, Copy, Pencil, Power, Trash2 } from 'lucide-react';
+import { KATEGORI_PETIKAN } from '../../../core/editorial/PetikanConfig.js';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
 import { SectionLabel } from '../common/SectionLabel';
@@ -34,6 +35,7 @@ interface Petikan {
   karya: string;
   rujukan: string;
   bahasa: string;
+  kategori: string | null;
   statusSah: 'belum_sah' | 'sah' | 'dipertikai';
   aktif: boolean;
   pautanBuku: string;
@@ -70,6 +72,7 @@ export const PetikanConsole: React.FC = () => {
   const [karya, setKarya] = useState('');
   const [rujukan, setRujukan] = useState('');
   const [bahasa, setBahasa] = useState('ms');
+  const [kategori, setKategori] = useState('');
   const [pautanBuku, setPautanBuku] = useState('');
   const [labelPautan, setLabelPautan] = useState('');
   const [menyimpan, setMenyimpan] = useState(false);
@@ -82,6 +85,18 @@ export const PetikanConsole: React.FC = () => {
   // di modul tetapan lain. Ia tetap disimpan dalam slot_am_settings (satu sumber kebenaran).
   const [ciriAktif, setCiriAktif] = useState<boolean | null>(null);
   const [menukarTogol, setMenukarTogol] = useState(false);
+
+  // Aliran import AI: editor salin Arahan AI -> muat naik PDF ke chatbot luar -> tampal hasil
+  // di sini -> PRATONTON -> baru import. Pratonton sengaja langkah berasingan: import membuta
+  // terhadap output AI ialah punca pepijat "teks templat tersiar sebagai kandungan" sebelum ni.
+  const [importDibuka, setImportDibuka] = useState(false);
+  const [teksTampal, setTeksTampal] = useState('');
+  const [pratonton, setPratonton] = useState<null | {
+    jumlahDikesan: number; bolehImport: number; pendua: number;
+    rekod: any[]; gagal: { blok: number; sebab: string; cuplikan: string }[];
+  }>(null);
+  const [memprosesImport, setMemprosesImport] = useState(false);
+  const [notaArahan, setNotaArahan] = useState('');
 
   const muat = useCallback(() => {
     setMemuat(true);
@@ -138,15 +153,69 @@ export const PetikanConsole: React.FC = () => {
   const kosongkanBorang = () => {
     setMenyunting('');
     setTeks(''); setPengarang(''); setKarya(''); setRujukan('');
-    setBahasa('ms'); setPautanBuku(''); setLabelPautan('');
+    setBahasa('ms'); setKategori(''); setPautanBuku(''); setLabelPautan('');
     setRalatBorang('');
   };
 
   const mulaSunting = (p: Petikan) => {
     setMenyunting(p.id);
     setTeks(p.teks); setPengarang(p.pengarang); setKarya(p.karya); setRujukan(p.rujukan);
-    setBahasa(p.bahasa); setPautanBuku(p.pautanBuku); setLabelPautan(p.labelPautan);
+    setBahasa(p.bahasa); setKategori(p.kategori || ''); setPautanBuku(p.pautanBuku); setLabelPautan(p.labelPautan);
     setRalatBorang('');
+  };
+
+  // --- Aliran import AI ---
+
+  const salinArahanAi = async () => {
+    try {
+      const res = await fetch('/api/system/petikan-arahan-ai');
+      const data = await bacaJsonSelamat(res);
+      if (!res.ok) throw new Error(data.error || 'Gagal menjana Arahan AI.');
+      await navigator.clipboard.writeText(data.arahan);
+      setNotaArahan('Arahan AI disalin — tampal ke sesi AI bersama fail PDF buku.');
+    } catch (e: any) {
+      setNotaArahan(e.message || 'Gagal menyalin Arahan AI.');
+    }
+    setTimeout(() => setNotaArahan(''), 6000);
+  };
+
+  const huraiTampalan = async () => {
+    setMemprosesImport(true);
+    setRalat('');
+    try {
+      const res = await fetch('/api/system/petikan/hurai', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teks: teksTampal }),
+      });
+      const data = await bacaJsonSelamat(res);
+      if (!res.ok) throw new Error(data.error || 'Gagal menghurai teks.');
+      setPratonton(data);
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal menghurai teks.');
+    } finally {
+      setMemprosesImport(false);
+    }
+  };
+
+  const sahkanImport = async () => {
+    if (!pratonton?.rekod?.length) return;
+    setMemprosesImport(true);
+    try {
+      const res = await fetch('/api/system/petikan/import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rekod: pratonton.rekod }),
+      });
+      const data = await bacaJsonSelamat(res);
+      if (!res.ok) throw new Error(data.error || 'Gagal mengimport.');
+      setMesej(`${data.disimpan} petikan diimport — semuanya BELUM DISEMAK. Sahkan satu per satu terhadap sumber asal.`);
+      setTimeout(() => setMesej(''), 10000);
+      setTeksTampal(''); setPratonton(null); setImportDibuka(false);
+      muat();
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal mengimport.');
+    } finally {
+      setMemprosesImport(false);
+    }
   };
 
   const hantar = async (e: React.FormEvent) => {
@@ -160,7 +229,7 @@ export const PetikanConsole: React.FC = () => {
         {
           method: sedangSunting ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ teks, pengarang, karya, rujukan, bahasa, pautanBuku, labelPautan }),
+          body: JSON.stringify({ teks, pengarang, karya, rujukan, bahasa, kategori: kategori || null, pautanBuku, labelPautan }),
         }
       );
       const data = await bacaJsonSelamat(res);
@@ -259,12 +328,95 @@ export const PetikanConsole: React.FC = () => {
         </div>
       </PanelCard>
 
-      {/* 02 — Borang tambah/sunting. */}
+      {/* 02 — Import daripada sesi AI. Aliran: Salin Arahan -> muat naik PDF ke chatbot luar ->
+          tampal hasil -> PRATONTON -> import. Pratonton WAJIB dan tidak boleh dilangkau. */}
+      <PanelCard className="text-xs">
+        <div className="flex flex-wrap justify-between items-end gap-4">
+          <div className="min-w-0">
+            <SectionLabel>02 — Import daripada Sesi AI</SectionLabel>
+            <p className="text-stone-500 text-xs">
+              Salin Arahan AI, muat naik PDF buku ke sesi AI pilihan anda, kemudian tampal hasilnya di sini.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="secondary" onClick={salinArahanAi} icon={<Copy className="w-3 h-3" />}>
+              Salin Arahan AI
+            </Button>
+            <Button variant={importDibuka ? 'secondary' : 'primary'} onClick={() => setImportDibuka((v) => !v)} icon={<ClipboardPaste className="w-3 h-3" />}>
+              {importDibuka ? 'Tutup' : 'Tampal Hasil'}
+            </Button>
+          </div>
+        </div>
+
+        {notaArahan && <MesejStatus tone="info">{notaArahan}</MesejStatus>}
+
+        {importDibuka && (
+          <div className="space-y-3 mt-4">
+            <textarea
+              value={teksTampal} onChange={(e) => { setTeksTampal(e.target.value); setPratonton(null); }}
+              rows={8}
+              placeholder="Tampal keseluruhan output daripada sesi AI di sini…"
+              className={INPUT_BORANG}
+            />
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="secondary" disabled={!teksTampal.trim() || memprosesImport} onClick={huraiTampalan}>
+                {memprosesImport ? 'Memproses…' : 'Semak Dahulu'}
+              </Button>
+            </div>
+
+            {/* Pratonton — editor mesti melihat kiraan dan SEBAB setiap kegagalan sebelum
+                apa-apa disimpan. "Sah secara struktur" tidak pernah bermakna "sah terhadap
+                sumber"; teks di bawah menyatakannya terus supaya tiada salah anggap. */}
+            {pratonton && (
+              <div className="border border-stone-200 rounded-lg p-3 space-y-3 bg-stone-50/50">
+                <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                  <span className="font-mono font-bold text-stone-700">{pratonton.jumlahDikesan} dikesan</span>
+                  <span className="text-[var(--color-success)] font-semibold">{pratonton.bolehImport} boleh diimport</span>
+                  {pratonton.pendua > 0 && <span className="text-stone-500">{pratonton.pendua} sudah wujud</span>}
+                  {pratonton.gagal.length > 0 && <span className="text-[var(--color-error)] font-semibold">{pratonton.gagal.length} ditolak</span>}
+                </div>
+
+                {pratonton.gagal.length > 0 && (
+                  <ul className="list-none m-0 p-0 space-y-1">
+                    {pratonton.gagal.map((g, i) => (
+                      <li key={i} className="text-[11px] text-[var(--color-error)]">
+                        <span className="font-mono">Blok {g.blok}:</span> {g.sebab}
+                        {g.cuplikan && <span className="text-stone-400"> — “{g.cuplikan}…”</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {pratonton.rekod.some((r: any) => r.amaran) && (
+                  <ul className="list-none m-0 p-0 space-y-1">
+                    {pratonton.rekod.filter((r: any) => r.amaran).map((r: any, i: number) => (
+                      <li key={i} className="text-[11px] text-amber-700">{r.pengarang}: {r.amaran}</li>
+                    ))}
+                  </ul>
+                )}
+
+                {pratonton.bolehImport > 0 && (
+                  <div className="flex items-center justify-between gap-3 pt-1">
+                    <span className="text-stone-500 text-[10px]">
+                      Semua akan masuk sebagai <strong>Belum disemak</strong>. Format yang betul tidak bermakna petikan sudah disahkan terhadap sumber.
+                    </span>
+                    <Button variant="primary" disabled={memprosesImport} onClick={sahkanImport} className="shrink-0">
+                      {memprosesImport ? 'Mengimport…' : `Import ${pratonton.bolehImport} Petikan`}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </PanelCard>
+
+      {/* 03 — Borang tambah/sunting. */}
       <PanelCard className="text-xs">
         <form onSubmit={hantar} className="space-y-4">
           <div className="flex flex-wrap justify-between items-end gap-4">
             <div>
-              <SectionLabel>02 — {menyunting ? 'Sunting Petikan' : 'Tambah Petikan'}</SectionLabel>
+              <SectionLabel>03 — {menyunting ? 'Sunting Petikan' : 'Tambah Petikan'}</SectionLabel>
               <p className="text-stone-500 text-xs">
                 Petikan baharu sentiasa bermula sebagai <strong>Belum disemak</strong>. Ia perlu disahkan terhadap sumber sebelum layak disiarkan.
               </p>
@@ -322,6 +474,21 @@ export const PetikanConsole: React.FC = () => {
               </label>
             </div>
 
+            {/* Kategori — WAJIB untuk disiarkan. Ia bukan "Bidang" Adjung dan tidak dipapar
+                kepada pembaca; fungsinya semata-mata memastikan dua petikan bidang sama tidak
+                muncul berturut-turut. Petikan tanpa kategori TIDAK akan disiarkan (gerbang di
+                pelayan), jadi teks bantuan di bawah menyatakannya terus supaya tiada kejutan. */}
+            <label className="flex flex-col gap-1">
+              <span className={LABEL_BORANG}>Kategori</span>
+              <select value={kategori} onChange={(e) => setKategori(e.target.value)} className={`${INPUT_BORANG} cursor-pointer`}>
+                <option value="">— Belum ditetapkan —</option>
+                {KATEGORI_PETIKAN.map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
+              <span className="text-stone-400 text-[10px]">
+                Wajib untuk disiarkan. Digunakan supaya dua petikan kategori sama tidak muncul berturut-turut. Tidak dipaparkan kepada pembaca.
+              </span>
+            </label>
+
             {/* Pautan buku Adjung (keputusan Izzat: masuk V1). Sengaja SEKUNDER dan halus —
                 tujuannya penemuan karya, bukan jualan. Lihat prinsip "PETIKAN MENARIK -> SIAPA
                 MENULIS -> DARIPADA BUKU APA" dalam pelan. */}
@@ -353,11 +520,12 @@ export const PetikanConsole: React.FC = () => {
         </form>
       </PanelCard>
 
-      {/* 03 — Senarai koleksi. */}
+      {/* 04 — Senarai koleksi. Kekal SENARAI, bukan jadual: petikan ialah kandungan yang perlu
+          DIBACA untuk dinilai, bukan data lajur untuk diimbas. */}
       <PanelCard className="space-y-4 text-xs">
         <div className="flex flex-wrap justify-between items-end gap-4">
           <div>
-            <SectionLabel>03 — Koleksi Petikan</SectionLabel>
+            <SectionLabel>04 — Koleksi Petikan</SectionLabel>
             <p className="text-stone-500 text-xs">
               {senarai.length} petikan dalam koleksi · {bilLayakSiar} layak disiarkan.
             </p>
@@ -397,6 +565,14 @@ export const PetikanConsole: React.FC = () => {
                       />
                       {!p.aktif && (
                         <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">Dinyahaktifkan</span>
+                      )}
+                      {/* Kategori hilang = petikan TIDAK akan disiarkan walaupun sudah disahkan
+                          dan aktif. Ditonjolkan amber (perlu tindakan) supaya keadaan ni tidak
+                          senyap — editor patut nampak sebab petikannya tak muncul. */}
+                      {p.kategori ? (
+                        <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">{p.kategori}</span>
+                      ) : (
+                        <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-amber-700">Kategori perlu diisi</span>
                       )}
                       {p.pautanBuku && (
                         <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-Adjung-maroon">

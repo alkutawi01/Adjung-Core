@@ -715,7 +715,22 @@ const initializeSchema = () => {
                 dibuatPada TEXT,
                 dikemasPada TEXT
               )
-            `, () => {});
+            `, () => {
+              // Kategori (2026-08-19) — senarai TERTUTUP, lihat KATEGORI_PETIKAN di
+              // core/editorial/PetikanConfig.js. Bukan taksonomi "Bidang" Adjung dan tidak
+              // dipaparkan kepada pembaca; fungsinya SATU sahaja iaitu memberi algoritma kolam
+              // harian sesuatu untuk mempelbagaikan susunan (elak dua petikan bidang sama
+              // berjiran). LALAI NULL, BUKAN 'Lain-lain' — NULL bermakna "belum diklasifikasi"
+              // manakala 'Lain-lain' ialah kategori sebenar; mencampurkan keduanya menyembunyikan
+              // hutang data. Rekod lama kekal NULL dan masih boleh dipapar (dilayan sebagai
+              // "tiada kekangan kategori"), cuma tidak diutamakan semasa pemilihan kolam.
+              db.run('ALTER TABLE petikan ADD COLUMN kategori TEXT', () => {});
+              // Kumpulan import (2026-08-19) — menandakan petikan yang masuk bersama daripada
+              // SATU tampalan/buku yang sama. Tujuannya operasi semakan: editor menyemak 20
+              // petikan daripada PDF yang sama berturut-turut tanpa melompat antara karya.
+              // NULL untuk petikan yang ditambah manual satu-satu.
+              db.run('ALTER TABLE petikan ADD COLUMN kumpulanImport TEXT', () => {});
+            });
 
             // Penaja (2026-08-05, Fasa 12 — permintaan Izzat) — tajaan BULANAN, boleh berbilang
             // penaja serentak dalam satu bulan. `bulan` format 'YYYY-MM' (input type="month"
