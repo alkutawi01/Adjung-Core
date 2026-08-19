@@ -169,6 +169,15 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
  *  munasabah antara 900 (terlalu perlahan) dan 200 (terlalu pantas). */
 const JARAK_TUKAR_PX = 380;
 
+/** Tempoh fade (ms) — dihaluskan 2026-08-19 (laporan Izzat: "animasi pertukaran perlu lebih
+ *  smooth... mungkin ada masa utk transisi, bukan mendadak", rujukan istilah "Scroll-Driven
+ *  Animations"). Sebelumnya 200ms + `ease` lalai pelayar terasa tersentak; 420ms + `ease-out`
+ *  (perlahan di hujung, bukan linear) memberi rasa lebih lembut tanpa terasa perlahan/lag
+ *  berbanding gerakan tatalan sendiri. Digunakan DUA tempat: kelas CSS `duration-[420ms]`
+ *  (fade) MESTI sepadan nilai JS ini (setTimeout sebelum tukar teks) — kalau salah satu diubah,
+ *  ubah kedua-duanya supaya fade-keluar selesai PENUH sebelum teks ditukar. */
+const TEMPOH_FADE_MS = 420;
+
 export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
   const { kolam, aktif } = useKolamPetikan();
   const [indeks, setIndeks] = React.useState(() => bacaSesi().indeks);
@@ -213,6 +222,11 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
     let terkumpul = 0;
     let yTerakhir = window.scrollY;
 
+    // Transisi (dihaluskan 2026-08-19, laporan Izzat: "animasi pertukaran perlu lebih smooth...
+    // mungkin ada masa utk transisi, bukan mendadak"). Fade-KELUAR mesti SELESAI PENUH (sepadan
+    // `TEMPOH_FADE_MS` CSS di bawah) sebelum teks ditukar — sebelum ni tukar berlaku pada 150ms
+    // separuh jalan fade 200ms, jadi teks lama "terputus" pertengahan transisi (nampak mendadak).
+    // Fade-MASUK kemudian berlaku sendiri apabila `pudar` kembali `false` (kelas CSS sedia ada).
     const langkah = (arah: 1 | -1) => {
       if (kunciTuding.current || bekuRef.current) return;
       setPudar(true);
@@ -225,7 +239,7 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
         setPudar(false);
       };
       if (kurangGerak) tukar();
-      else setTimeout(tukar, 150);
+      else setTimeout(tukar, TEMPOH_FADE_MS);
     };
 
     const kendali = () => {
@@ -280,9 +294,17 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
           // tu") — petikan kini dibezakan SEMATA-MATA oleh tanda petik besar + teks rata kanan,
           // bukan bekas berbingkai. `text-right` (Izzat, "align teks ke sebelah kanan") terpakai
           // pada SELURUH blok (petikan, label, atribusi, pautan) — bukan cuma petikan sendiri.
-          className={`group relative text-right transition-opacity ${
-            kurangGerak ? '' : 'duration-200'
-          } ${pudar ? 'opacity-0' : 'opacity-100'}`}
+          //
+          // Transisi dihaluskan (2026-08-19, laporan Izzat "perlu lebih smooth... bukan mendadak")
+          // — `duration-[420ms]` (sepadan TEMPOH_FADE_MS di atas, KEDUANYA mesti sama) + `ease-out`
+          // (perlahan di penghujung, bukan linear tersentak) menggantikan `duration-200` lalai
+          // linear. `translate-y-1` halus ditambah pada opacity-0 supaya teks sedikit beralih naik
+          // semasa pudar — pergerakan kecil ni yang beza "fade linear" drpd rasa "scroll-driven"
+          // lembut yang Izzat rujuk, tanpa perlu native CSS Scroll-Driven Animations (sokongan
+          // pelayar tak universal lagi) — kesan visual serupa dicapai via transisi masa biasa.
+          className={`group relative text-right transition-[opacity,transform] ${
+            kurangGerak ? '' : 'duration-[420ms] ease-out'
+          } ${pudar ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'}`}
         >
           <button
             type="button"
