@@ -46,6 +46,21 @@ const barisKepadaPetikan = (r) => ({
   dikemasPada: r.dikemasPada,
 });
 
+/** Bentuk AWAM — sengaja BUKAN `barisKepadaPetikan`. Medan pentadbiran (statusSah, dibuatOleh,
+ *  dibuatPada, tarikh julat) tidak ada kaitan dengan pembaca dan tidak sepatutnya keluar ke
+ *  halaman awam hanya kerana ia wujud dalam baris DB. Kalau medan baharu ditambah pada jadual
+ *  `petikan` kemudian, ia TIDAK terbocor automatik ke sini — mesti ditambah secara sedar. */
+const barisKepadaPetikanAwam = (r) => ({
+  id: r.id,
+  teks: r.teks,
+  pengarang: r.pengarang,
+  karya: r.karya,
+  rujukan: r.rujukan || '',
+  kategori: r.kategori || null,
+  pautanBuku: r.pautanBuku || '',
+  labelPautan: r.labelPautan || '',
+});
+
 // Pemilihan + penyusunan kolam harian kini hidup di core/editorial/PetikanConfig.js
 // (pilihDanSusunKolam) — dikongsi, deterministik ikut tarikh, dengan kepelbagaian kategori.
 // Sebab ia TIDAK guna ORDER BY RANDOM(): setiap permintaan akan beri susunan berbeza, jadi
@@ -93,7 +108,7 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
         [hariIni, hariIni]
       );
 
-      const layak = (rows || []).map(barisKepadaPetikan);
+      const layak = (rows || []).map(barisKepadaPetikanAwam);
       if (layak.length === 0) return res.json({ aktif: true, tarikh: hariIni, petikan: [] });
 
       // Kolam DIPILIH dan DISUSUN sepenuhnya di pelayan (lihat pilihDanSusunKolam) — klien

@@ -24,6 +24,7 @@ import { SegiEmpatMediumCardTeks } from './cards/SegiEmpatMediumCardTeks';
 import { SegiEmpatSmallCardTeks } from './cards/SegiEmpatSmallCardTeks';
 import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
+import { PetikanMargin, PetikanStatik } from './PetikanModul';
 import { BidangIcon } from '../common/BidangIcon';
 import { trackView } from '../../utils/trackView';
 
@@ -4775,6 +4776,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           </div>
         </section>
       </div>
+
+      {/* Modul Petikan (Fasa 5) — DUA bentuk paparan, dibezakan CSS mengikut lebar skrin, bukan
+          dipasang bersyarat. PetikanStatik duduk di sini (atas footer, skrin sempit sahaja);
+          PetikanMargin terapung `fixed` jadi kedudukannya dalam pokok JSX tidak penting, ia
+          diletakkan bersebelahan supaya kedua-dua bentuk mudah dijumpai serentak.
+          `beku` menghentikan putaran semasa Focus View terbuka — tatalan di dalam artikel
+          bukan tatalan di frontpage, jadi ia tidak sepatutnya memajukan petikan. */}
+      <PetikanStatik />
+      <PetikanMargin beku={!!focusLoc} />
 
       {/* Footer Reka Bentuk Premium */}
       <footer className="w-full max-w-5xl mx-auto mt-12 pt-10 pb-6 border-t border-stone-200">
