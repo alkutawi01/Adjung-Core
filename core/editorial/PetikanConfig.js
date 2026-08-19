@@ -368,6 +368,46 @@ function pecahBlok(bersih) {
   return hasil;
 }
 
+// Label metadata PENDEK yang selamat dikesan walau muncul di TENGAH baris — nilainya sentiasa
+// satu potongan pendek (nama, tajuk, nombor halaman), tidak pernah teks bebas panjang.
+// "Teks Asal"/"Teks Melayu" SENGAJA tidak disertakan di sini — nilainya teks bebas yang boleh
+// mengandungi apa-apa, memisahkannya secara automatik akan mengubah kandungan petikan sebenar.
+const LABEL_PENDEK_BOLEH_PISAH = /\b(Pengarang|Karya|Rujukan|Kategori|Pautan\s+Buku|Bahasa(?:\s+Asal)?)\s*:/gi;
+
+/**
+ * Pisahkan SATU baris yang menggabungkan berbilang medan metadata pendek menjadi beberapa baris.
+ *
+ * PUNCA (2026-08-19, laporan Izzat, 20/20 blok gagal): sesetengah chatbot (bukan hanya ChatGPT)
+ * tidak patuh arahan "setiap medan pada baris berasingan" untuk metadata ringkas — ia hasilkan
+ * "Pengarang: X Karya: Y Rujukan: Z Kategori: W Pautan Buku: -" SATU baris, dipisah ruang.
+ * Penghurai sedia ada hanya kenal label pada PERMULAAN baris, jadi seluruh baris tertelan
+ * sebagai nilai "Pengarang" sahaja — Karya/Rujukan/Kategori/Pautan Buku tidak pernah ditemui,
+ * rekod ditolak "Karya kosong" walaupun datanya sebenarnya ADA, cuma di tempat yang salah.
+ *
+ * Hanya baris yang BERMULA dengan label metadata PENDEK (bukan Teks Asal/Teks Melayu) diproses —
+ * baris sambungan Teks Asal/Teks Melayu (teks bebas panjang) tidak disentuh langsung, supaya
+ * kandungan petikan sebenar tidak pernah dipisah/diubah secara automatik.
+ */
+function pisahkanBarisLabelBergabung(baris) {
+  const label0 = normalkanLabel(baris);
+  if (!label0 || label0.label === 'Teks Asal' || label0.label === 'Teks Melayu') return [baris];
+
+  const kedudukan = [];
+  let m;
+  LABEL_PENDEK_BOLEH_PISAH.lastIndex = 0;
+  while ((m = LABEL_PENDEK_BOLEH_PISAH.exec(baris))) kedudukan.push(m.index);
+  if (kedudukan.length <= 1) return [baris];
+
+  const bahagian = [];
+  for (let i = 0; i < kedudukan.length; i++) {
+    const mula = kedudukan[i];
+    const tamat = i + 1 < kedudukan.length ? kedudukan[i + 1] : baris.length;
+    const potongan = baris.slice(mula, tamat).trim();
+    if (potongan) bahagian.push(potongan);
+  }
+  return bahagian.length ? bahagian : [baris];
+}
+
 /**
  * Hurai teks tampalan daripada chatbot menjadi rekod petikan.
  * Pulangkan { rekod, gagal } — kegagalan SEPARA dibenarkan (17 sah + 3 rosak = serap 17,
@@ -375,7 +415,9 @@ function pecahBlok(bersih) {
  * bermakna kita mengubah kata-kata pengarang, iaitu perkara yang seluruh ciri ni cuba elakkan.
  */
 export function huraiPetikanTampal(teksMentah) {
-  const bersih = buangCodeFence((teksMentah || '').replace(/\r\n/g, '\n'));
+  const bersihAsal = buangCodeFence((teksMentah || '').replace(/\r\n/g, '\n'));
+  // Pisahkan baris metadata bergabung SEBELUM apa-apa lagi — lihat pisahkanBarisLabelBergabung().
+  const bersih = bersihAsal.split('\n').flatMap(pisahkanBarisLabelBergabung).join('\n');
   const blok = pecahBlok(bersih);
 
   const rekod = [];
