@@ -261,9 +261,16 @@ button:not(:disabled):active {
   background-image: linear-gradient(to right, transparent, rgba(128, 35, 52, 0.3) 15%, rgba(128, 35, 52, 0.3) 85%, transparent);
 }
 
-/* Styled elements inside the editor canvas */
-#editorial-canvas-editor blockquote,
-blockquote {
+/* Styled elements inside the editor canvas. DIHADKAN kepada #editorial-canvas-editor sahaja
+   (2026-08-19, laporan Izzat: "saya tak nak petikan dicondongkan" — blockquote Petikan
+   Semakan/Koleksi masih nampak condong walaupun kelas `not-italic` Tailwind sudah ditambah,
+   commit 3d4bd34). Punca SEBENAR: selector `blockquote` BAKI (tanpa prefix) di sini bukan
+   peraturan berlapis (@layer) — ia CSS global biasa. Peraturan CSS global SENTIASA menewaskan
+   utiliti Tailwind (dijana dalam @layer utilities) tidak kira specificity ATAU susunan sumber;
+   `not-italic` tidak pernah berkesan sejak awal, walaupun nampak betul membaca kod. Selector
+   `blockquote` baki DIBUANG — peraturan ni kini HANYA terpakai pada blockquote di dalam kanvas
+   editor prosa (rich-text), bukan pada SETIAP <blockquote> di seluruh aplikasi. */
+#editorial-canvas-editor blockquote {
   border-left: 3px solid rgba(128, 35, 52, 0.25);
   padding-left: 1.25rem;
   margin: 1.5rem 0;

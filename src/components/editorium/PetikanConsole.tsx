@@ -12,7 +12,7 @@ import { StatusBadge } from '../common/StatusBadge';
 import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
-import { safeParseInline } from '../../utils';
+import { safeParseInline, tanganiKekunciItalic } from '../../utils';
 
 // Petikan — konsol editorial (2026-08-19, dipecah kepada sub-halaman selepas kajian ChatGPT).
 //
@@ -196,9 +196,11 @@ const BorangPetikan: React.FC<{
           <textarea
             value={nilai.teksMelayu} rows={3}
             onChange={(e) => ubah({ teksMelayu: e.target.value })}
+            onKeyDown={(e) => tanganiKekunciItalic(e, nilai.teksMelayu || '', (v) => ubah({ teksMelayu: v }))}
             className={`${INPUT_BORANG} font-serif`}
           />
           <p className="text-[10px] text-stone-500 mt-1">
+            Sorot perkataan pinjaman bahasa asing + Ctrl/Cmd+I untuk condongkan (cth *framework*).
             Frontpage akan menandakannya “{labelTerjemahan(nilai.bahasaAsal) || 'Diterjemahkan daripada bahasa …'}”.
           </p>
         </div>
