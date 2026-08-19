@@ -418,7 +418,11 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
   // datang daripada SATU takrifan — kalau prompt berubah tetapi penghurai tidak, import senyap
   // rosak. Kedua-duanya hidup dalam PetikanConfig.js.
   router.get('/system/petikan-arahan-ai', requirePermission('manageEditorial'), (req, res) => {
-    res.json({ arahan: binaArahanAiPetikan(), kategori: KATEGORI_PETIKAN });
+    // pautanBuku — AI tidak pernah tahu URL buku sendiri (larangan mereka URL sengaja dikuatkuasakan
+    // dalam arahan). Kalau editor sudah tahu URL sebenar (pautan pembelian/perpustakaan digital),
+    // dia isikan dahulu di konsol; nilai itu ditanam terus ke dalam teks arahan sebagai literal.
+    const pautanBuku = (req.query.pautanBuku || '').toString().trim().slice(0, 500);
+    res.json({ arahan: binaArahanAiPetikan({ pautanBuku }), kategori: KATEGORI_PETIKAN });
   });
 
   // POST /api/system/petikan/hurai — PRATONTON sahaja, TIDAK menulis apa-apa ke pangkalan data.

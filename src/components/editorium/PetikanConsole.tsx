@@ -242,6 +242,7 @@ export const PetikanConsole: React.FC = () => {
   const [ciriAktif, setCiriAktif] = useState<boolean | null>(null);
   const [menukarTogol, setMenukarTogol] = useState(false);
 
+  const [pautanBukuSumber, setPautanBukuSumber] = useState('');
   const [teksTampal, setTeksTampal] = useState('');
   const [tampalDibuka, setTampalDibuka] = useState(false);
   const [memproses, setMemproses] = useState(false);
@@ -308,11 +309,22 @@ export const PetikanConsole: React.FC = () => {
 
   const salinArahanAi = async () => {
     try {
-      const res = await fetch('/api/system/petikan-arahan-ai');
+      // AI tidak pernah tahu URL buku sendiri — arahan sendiri melarangnya mereka URL. Kalau
+      // editor sudah tahu pautan sebenar (pembelian/perpustakaan digital), ia dihantar di sini
+      // dan ditanam terus ke dalam teks arahan sebagai nilai literal untuk SETIAP rekod dalam
+      // sesi ni (satu sesi tampal = satu buku).
+      const url = pautanBukuSumber.trim()
+        ? `/api/system/petikan-arahan-ai?pautanBuku=${encodeURIComponent(pautanBukuSumber.trim())}`
+        : '/api/system/petikan-arahan-ai';
+      const res = await fetch(url);
       const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mengambil Arahan AI.');
       await navigator.clipboard.writeText(data.arahan);
-      setNotaArahan('Arahan AI disalin. Tampalkan ke sesi AI bersama buku atau PDF anda.');
+      setNotaArahan(
+        pautanBukuSumber.trim()
+          ? 'Arahan AI disalin (dengan pautan buku ditanam). Tampalkan ke sesi AI bersama buku atau PDF anda.'
+          : 'Arahan AI disalin. Tampalkan ke sesi AI bersama buku atau PDF anda.'
+      );
       setTimeout(() => setNotaArahan(''), 8000);
     } catch (e: any) {
       setRalat(e.message || 'Gagal menyalin Arahan AI.');
@@ -650,6 +662,24 @@ export const PetikanConsole: React.FC = () => {
                 <Plus className="w-3.5 h-3.5" /> Tambah manual
               </Button>
             </div>
+          </div>
+
+          {/* AI tidak pernah tahu URL buku sendiri (arahan sendiri melarangnya mereka URL) —
+              editor SATU-SATUNYA pihak yang tahu pautan sebenar. Isi di sini SEBELUM menyalin
+              arahan supaya AI ada nilai literal untuk ditulis, bukan meneka atau tinggalkan
+              kosong. Satu sesi tampal = satu buku, jadi satu URL berlaku untuk semua rekod. */}
+          <div className="max-w-md">
+            <label className={LABEL_BORANG}>Pautan buku (pilihan) — untuk sesi ini</label>
+            <input
+              value={pautanBukuSumber}
+              onChange={(e) => setPautanBukuSumber(e.target.value)}
+              className={INPUT_BORANG}
+              placeholder="https://… (kosongkan jika tiada pautan diketahui)"
+            />
+            <p className="text-stone-500 text-[10px] mt-1">
+              AI tidak tahu URL buku sendiri. Isi di sini kalau awak sudah tahu pautannya —
+              nilai ini ditanam terus ke dalam Arahan AI supaya AI menyalinnya, bukan meneka.
+            </p>
           </div>
 
           {notaArahan && <MesejStatus tone="success">{notaArahan}</MesejStatus>}

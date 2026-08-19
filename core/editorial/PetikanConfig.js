@@ -121,7 +121,20 @@ export const HAD_TEKS_PETIKAN = 400;
 // Nada sengaja TEGAS dan berulang pada perkara yang paling kerap dilanggar. Pengalaman sebenar
 // projek ni: arahan lembut diabaikan, dan "jangan guna Markdown" sahaja tidak menghalang AI
 // membungkus URL dalam Markdown. Jadi setiap larangan penting dinyatakan sebagai baris sendiri.
-export function binaArahanAiPetikan({ maksimum = 20 } = {}) {
+export function binaArahanAiPetikan({ maksimum = 20, pautanBuku = '' } = {}) {
+  // Pautan Buku — AI TIDAK PERNAH tahu URL buku sendiri; ia hanya boleh mereka atau tinggalkan
+  // kosong (peraturan 13 di bawah sengaja larang mereka URL). Editor SATU-SATUNYA pihak yang
+  // tahu URL sebenar (contoh pautan pembelian/perpustakaan digital). Kalau editor mengisinya
+  // di konsol SEBELUM menyalin arahan, URL itu ditanam sebagai nilai LITERAL yang sama untuk
+  // SETIAP rekod dalam sesi ni — sengaja begitu kerana satu sesi tampal ialah satu buku (lihat
+  // nota "SATU sumber = SATU sesi" di PetikanConsole.tsx), bukan medan yang AI kena "isi".
+  const arahanPautan = pautanBuku
+    ? [
+        `Pautan Buku bagi SEMUA rekod dalam sesi ini ialah: ${pautanBuku}`,
+        'Salin nilai ini TEPAT SAMA untuk setiap rekod — JANGAN ubah, JANGAN pendekkan, JANGAN tambah teks lain.',
+      ]
+    : ['Jika pautan buku tidak diketahui, tulis: Pautan Buku: -'];
+
   return [
     '[PERANAN]',
     '',
@@ -144,8 +157,9 @@ export function binaArahanAiPetikan({ maksimum = 20 } = {}) {
     '9. JANGAN menggunakan petikan daripada ingatan anda jika ia tidak dapat dikenal pasti dalam sumber yang diberikan.',
     '10. JANGAN mereka metadata. Nama pengarang, judul karya dan rujukan MESTI berdasarkan sumber.',
     '11. Jika rujukan tepat (halaman/bab) tidak dapat dikenal pasti, tulis: Rujukan: -',
-    '12. Jika pautan buku tidak diketahui, tulis: Pautan Buku: -',
-    '13. JANGAN mereka URL. JANGAN menambah URL daripada pengetahuan anda sendiri.',
+    `12. ${arahanPautan[0]}`,
+    ...(arahanPautan[1] ? [`   ${arahanPautan[1]}`] : []),
+    '13. JANGAN mereka URL. JANGAN menambah URL daripada pengetahuan anda sendiri, walaupun untuk mengisi medan yang kosong.',
     '14. Pilih petikan yang masih membawa maksud munasabah apabila dibaca secara tersendiri.',
     '15. Elakkan petikan yang memerlukan konteks panjang sehingga mudah disalahertikan.',
     '16. Utamakan kekuatan idea, bukan kata-kata motivasi generik.',
@@ -205,7 +219,7 @@ export function binaArahanAiPetikan({ maksimum = 20 } = {}) {
     'Karya: [[TAJUK_KARYA]]',
     'Rujukan: [[RUJUKAN_SUMBER]]',
     'Kategori: [[KATEGORI]]',
-    'Pautan Buku: [[PAUTAN_BUKU]]',
+    `Pautan Buku: ${pautanBuku || '[[PAUTAN_BUKU]]'}`,
     '',
     '____',
     '',
@@ -217,7 +231,9 @@ export function binaArahanAiPetikan({ maksimum = 20 } = {}) {
     SENTINEL_PETIKAN.join('\n'),
     '',
     'Gantikan semuanya dengan data sebenar daripada sumber.',
-    'Gunakan tanda "-" HANYA untuk Rujukan, Pautan Buku, dan Teks Melayu (apabila sumber memang berbahasa Melayu).',
+    pautanBuku
+      ? 'Gunakan tanda "-" HANYA untuk Rujukan, dan Teks Melayu (apabila sumber memang berbahasa Melayu). Pautan Buku SUDAH diberikan di atas — salin nilai itu, JANGAN tulis "-" untuknya.'
+      : 'Gunakan tanda "-" HANYA untuk Rujukan, Pautan Buku, dan Teks Melayu (apabila sumber memang berbahasa Melayu).',
     'JANGAN gunakan "-" untuk Teks Asal, Bahasa Asal, Pengarang, Karya atau Kategori.',
     '',
     '[LARANGAN FORMAT]',
