@@ -3230,6 +3230,25 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             #bento-news-grid [data-slot] p {
               font-size: 12px !important;
             }
+            /* Jarak eyebrow (Bidang | Topik) -> tajuk SERAGAM pada telefon (2026-08-19, aduan
+               Izzat: "jarak antara topik dengan tajuk pun tak seragam... menjengkelkan mata").
+               Diukur hidup pada 375px sebelum pembetulan: 0px (HERO slot 0), 4px (slot 17/18/
+               31/32), 5px (slot 4/5), 8px (majoriti 24 kad), 9px (slot 3) — lima nilai berbeza
+               kerana setiap tier menulis kelas margin sendiri (mb-1/mb-2/tiada) yang terpesong
+               antara satu sama lain sepanjang sejarah projek. Diseragamkan ke 8px, nilai
+               MAJORITI sedia ada, supaya rupa kebanyakan kad tidak berubah langsung.
+
+               Peraturan tunggal di sini (bukan menyunting 30 tapak kelas satu-satu) sengaja:
+               struktur JSX renderItem carousel sangat rapuh (lihat nota CarouselStableBlock),
+               dan satu peraturan CSS mustahil terpesong semula antara tier macam kelas bertaburan
+               tadi. Pemilih :has() memilih bekas eyebrow tanpa perlu kelas penanda baharu; pelayar
+               yang tidak menyokongnya cuma abaikan peraturan ni (kekal rupa lama, tiada rosak). */
+            #bento-news-grid [data-slot] div:has(> .eyebrow-kad) {
+              margin-bottom: 8px !important;
+            }
+            #bento-news-grid [data-slot] div:has(> .eyebrow-kad) + h3 {
+              margin-top: 0 !important;
+            }
           }
         `}</style>
 
