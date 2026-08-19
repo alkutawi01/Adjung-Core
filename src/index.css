@@ -623,13 +623,18 @@ h1, h2, h3, h4, h5, h6, p {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+/* Jujukan dipendekkan (2026-08-19, Izzat: "huraian panjang bazirkan masa org" — jumlah masa
+   sebelum SEMUA kelihatan dikurangkan drpd 1.5s -> 450ms, nisbah antara peringkat dikekalkan
+   (dipendekkan ~3.3x serata: 500ms->150ms setiap peringkat) supaya hierarki ikon->eyebrow->tajuk
+   ->huraian panjang yang Izzat minta 17/8 kekal terasa, cuma jauh lebih pantas — bukan dibuang
+   terus (pilihan lain yang ditawarkan tapi tidak dipilih). */
 .fv-eyebrow-ikon {
   display: inline-flex; align-items: center; margin-right: 6px;
-  animation: fvEyebrowIkonMasuk 500ms ease-out both;
+  animation: fvEyebrowIkonMasuk 150ms ease-out both;
 }
 .fv-eyebrow-kumpulan-keluar {
   display: inline-block; vertical-align: baseline;
-  animation: fvEyebrowKumpulanGerak 500ms ease-in-out forwards;
+  animation: fvEyebrowKumpulanGerak 150ms ease-in-out forwards;
 }
 
 /* Tajuk + huraian panjang: pudar+gelongsor naik lembut semasa masuk (2026-08-17, Izzat: "kalau
@@ -643,8 +648,8 @@ h1, h2, h3, h4, h5, h6, p {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.fv-tajuk-masuk { animation: fvMasukFedAtas 500ms ease-out both; animation-delay: 500ms; }
-.fv-huraian-masuk { animation: fvMasukFedAtas 500ms ease-out both; animation-delay: 1000ms; }
+.fv-tajuk-masuk { animation: fvMasukFedAtas 150ms ease-out both; animation-delay: 150ms; }
+.fv-huraian-masuk { animation: fvMasukFedAtas 150ms ease-out both; animation-delay: 300ms; }
 @media (prefers-reduced-motion: reduce) {
   .fv-eyebrow-ikon, .fv-eyebrow-kumpulan-keluar, .fv-tajuk-masuk, .fv-huraian-masuk { animation: none; }
 }
