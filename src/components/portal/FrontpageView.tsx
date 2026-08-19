@@ -3923,7 +3923,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[17] && (
                 <div 
                   data-slot={17}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto] group`} 
                    style={getCardTheme(bentoNewsItems[17], 'transparent').cardStyle} >
                     <div>
                       <FooterHeightLock
@@ -3943,7 +3943,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         onNavigate={(dir) => majuKarusel(17, bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]], dir)}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-[15px] font-medium leading-snug hover:text-[#802334] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-[15px] font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
                               <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[17]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
@@ -3975,7 +3975,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[18] && (
                 <div 
                   data-slot={18}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto] group`} 
                    style={getCardTheme(bentoNewsItems[18], 'transparent').cardStyle} >
                     <div>
                       <FooterHeightLock
@@ -3995,7 +3995,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         onNavigate={(dir) => majuKarusel(18, bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]], dir)}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-[15px] font-medium leading-snug hover:text-[#802334] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-[15px] font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
                               <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[18]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
@@ -4438,7 +4438,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[31] && (
                 <div 
                   data-slot={31}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto] group`} 
                    style={getCardTheme(bentoNewsItems[31], 'transparent').cardStyle} >
                     <div>
                       <FooterHeightLock
@@ -4458,7 +4458,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         onNavigate={(dir) => majuKarusel(31, bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]], dir)}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-[15px] font-medium leading-snug hover:text-[#802334] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-[15px] font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
                               <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[31]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
@@ -4490,7 +4490,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {bentoNewsItems[32] && (
                 <div 
                   data-slot={32}
-                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto]`} 
+                  className={`p-4 relative rounded-lg shadow-sm hover:scale-[1.01] hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col min-h-[120px] flex-[1_0_auto] group`} 
                    style={getCardTheme(bentoNewsItems[32], 'transparent').cardStyle} >
                     <div>
                       <FooterHeightLock
@@ -4510,7 +4510,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         onNavigate={(dir) => majuKarusel(32, bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]], dir)}
                         renderItem={(it) => (
                           <>
-                              <h3 className="font-serif text-[15px] font-medium leading-snug hover:text-[#802334] transition-colors " onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
+                              <h3 className="font-serif text-[15px] font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
                               <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[32]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
                             </>
                         )}
