@@ -866,6 +866,16 @@ const CarouselStableBlock: React.FC<{
   // bersebelahan dan gerakkan seluruh regangan.
   const [indeksLamaGerak, setIndeksLamaGerak] = useState(activeIndex);
   const [fasaGerak, setFasaGerak] = useState<'diam' | 'gerak'>('diam');
+  // Fasa "keluar" Pudar (2026-08-19, aduan Izzat: teks kandungan lama & baharu BERTINDIH ketara
+  // semasa kad berputar — disahkan hidup, 75 kes dua <h3> kelihatan serentak merentasi 5 slot
+  // dalam 20 saat). Punca: 'pudar' dahulu memaparkan `activeIndex` TERUS dan bergantung pada satu
+  // peralihan opacity CSS, iaitu CROSSFADE serentak — kandungan lama (opacity turun) dan baharu
+  // (opacity naik) sama-sama separa telus di atas satu sama lain sepanjang ~1 saat, jadi dua
+  // perenggan teks bertindan dan bercelaru. Boleh diterima untuk imej, TIDAK untuk teks.
+  // Kini DUA fasa berturutan: lama pudar KELUAR sepenuhnya (separuh tempoh), kandungan bertukar
+  // semasa skrin kosong, barulah yang baharu pudar MASUK (separuh lagi). Jumlah tempoh kekal
+  // sama seperti sebelum ini, jadi rentak putaran tidak berubah.
+  const [pudarKeluar, setPudarKeluar] = useState(false);
   // Padding kad SEBENAR (2026-08-07, pepijat Izzat tangkap: "kedudukan topik menyentuh sempadan
   // kad" semasa Gerak Susun) — renderItem() TIADA padding sendiri langsung; ia bergantung
   // SEPENUHNYA pada padding bekas induk (p-4/md:p-6, berbeza-beza tiap 30 tapak panggilan kad).
@@ -947,10 +957,24 @@ const CarouselStableBlock: React.FC<{
     const overlayBerkenaan = (jenisEfektif === 'colophon' || jenisEfektif === 'sapuan_lajur') && !prefersReduced;
 
     if (!overlayBerkenaan) {
-      setVisualIndex(activeIndex);
       setOverlayAktif(false);
+      // Pudar berturutan (lihat nota `pudarKeluar`). prefers-reduced-motion DIKECUALIKAN — di situ
+      // memang tiada animasi dikehendaki langsung, jadi tukar terus tanpa fasa.
+      const tempohPudarLokal = Math.round(1000 * kelajuanEfektif);
+      if (jenisEfektif === 'pudar' && !prefersReduced && tempohPudarLokal > 0) {
+        const separuhPudar = Math.max(1, Math.round(tempohPudarLokal / 2));
+        setPudarKeluar(true);
+        overlayTimersRef.current.push(setTimeout(() => {
+          setVisualIndex(activeIndex);
+          setPudarKeluar(false);
+        }, separuhPudar));
+      } else {
+        setVisualIndex(activeIndex);
+        setPudarKeluar(false);
+      }
       return;
     }
+    setPudarKeluar(false);
 
     const kadPenuh = kadUntukJenis;
     // Jamin bekas kedudukan (position:relative) untuk overlay absolute — sifat aditif sahaja,
@@ -1113,7 +1137,10 @@ const CarouselStableBlock: React.FC<{
         // visualIndex yang lag di sebalik overlay (lihat useEffect di atas). Gerak Susun turut
         // guna visualIndex (dikemas kini serta-merta, bukan lag — lihat nota di useEffect), tapi
         // senarai bertindan ni tersembunyi sepanjang overlayAktif (opacity 0, lihat gerakAktif).
-        const indexDipaparkan = jenisEfektifRender !== 'pudar' ? visualIndex : activeIndex;
+        // SEMUA jenis kini guna visualIndex (2026-08-19) — 'pudar' dahulu guna activeIndex terus,
+        // iaitu punca crossfade bertindih (lihat nota `pudarKeluar`). visualIndex hanya bertukar
+        // semasa kandungan tersembunyi sepenuhnya, jadi tiada dua teks boleh dibaca serentak.
+        const indexDipaparkan = visualIndex;
         return (
         <div
           key={i}
@@ -1126,14 +1153,17 @@ const CarouselStableBlock: React.FC<{
             // the stretched size instead of the item's true natural content height, masking
             // any real variance on every subsequent measurement.
             alignSelf: 'start',
-            opacity: gerakAktif ? 0 : (i === indexDipaparkan ? 1 : 0),
+            opacity: (gerakAktif || pudarKeluar) ? 0 : (i === indexDipaparkan ? 1 : 0),
             // Tempoh ikut kelajuanEfektifRender (2026-08-16, dahulu 1s TETAP — lihat nota
             // tempohPudarMs). Peralihan opacity ni SECARA KELIHATAN cuma berlaku bagi jenis
             // 'pudar' — jenis lain (Colophon/Sapuan Lajur/Gerak Susun) sentiasa overlayAktif=true
             // semasa visualIndex bertukar (transition='none' di bawah, kandungan bertukar SENYAP
             // di sebalik panel yang tertutup penuh); kelajuan bagi jenis-jenis tu dikawal
             // berasingan oleh tempohColophonMs/tempohGerakMs (animasi panel sendiri).
-            transition: overlayAktif ? 'none' : `opacity ${tempohPudarMs}ms ease-in-out`,
+            // SEPARUH tempoh setiap fasa (keluar, kemudian masuk) supaya JUMLAH masa transisi
+            // kekal `tempohPudarMs` seperti sebelum pembetulan bertindih — rentak putaran carousel
+            // dan tetapan Kelajuan Animasi sedia ada tidak berubah langsung.
+            transition: overlayAktif ? 'none' : `opacity ${Math.max(1, Math.round(tempohPudarMs / 2))}ms ease-in-out`,
             pointerEvents: i === indexDipaparkan ? 'auto' : 'none',
           }}
           aria-hidden={i === indexDipaparkan ? undefined : true}
