@@ -4,26 +4,30 @@ import { safeParseInline } from '../../utils';
 /**
  * MODUL PETIKAN — paparan awam (Fasa 5).
  *
- * Dua bentuk paparan, SATU sumber data:
- *   - `PetikanMargin`  — desktop lebar (>=1536px) sahaja. Marginalia terapung di margin kiri
- *                        bawah, bertukar automatik mengikut PEMASA (TEMPOH_PUTARAN_MS).
- *   - `PetikanStatik`  — skrin sempit. SATU petikan tetap di atas footer, tiada putaran langsung.
+ * SATU bentuk paparan sahaja (`PetikanBar`) untuk SEMUA saiz skrin (2026-08-19, GANTIKAN reka
+ * bentuk "dua bentuk" asal — lihat sejarah di bawah). Arahan terus Izzat: "letakkan petikan tu
+ * di atas footer mcm versi telefon dan skrin sempit" — blok di atas footer, dipusatkan, gaya
+ * PetikanStatik lama, kini terpakai pada SEMUA lebar skrin, bukan cuma skrin sempit.
  *
  * Keputusan Izzat yang dikunci dan TIDAK boleh diubah tanpa arahan baharu:
- *   1. PEMASA AUTOMATIK (2026-08-19, GANTIKAN keputusan asal — lihat sejarah di bawah). Arahan
- *      terus Izzat: "jangan buat pertukaran berdasarkan scroll! menyusahkan guna scroll." Petikan
- *      kini bertukar setiap `TEMPOH_PUTARAN_MS` (setInterval), TIDAK KIRA tatalan pembaca —
- *      dijeda hanya oleh hover/fokus (`kunciTuding`) dan Focus View terbuka (`beku`).
- *
- *      SEJARAH (untuk konteks, bukan rujukan semasa): keputusan ASAL 19/8/2026 pagi ialah
- *      "Petikan BUKAN carousel/pemasa... bertukar SEMATA-MATA mengikut tatalan", dikemas kini
- *      "1b" tengahari jadi tatalan DUA ARAH (900px -> 1800px, beberapa pelarasan). Keputusan ni
- *      DITERBALIKKAN SEPENUHNYA petang hari yang SAMA selepas ujian langsung menunjukkan tatalan
- *      terasa menyusahkan. Sengaja dibiarkan dalam sejarah komen supaya jelas ni PERUBAHAN
- *      SEDAR, bukan kekeliruan — jangan pulangkan ke tatalan tanpa arahan Izzat yang baharu.
- *   2. Skrin sempit STATIK. Bukan versi kecil marginalia yang berputar — gaya berbeza sepenuhnya.
- *   3. Ketua Editor boleh mematikan keseluruhan ciri. Kalau `aktif` palsu, modul ini tidak
+ *   1. PEMASA AUTOMATIK. Petikan bertukar setiap `TEMPOH_PUTARAN_MS` (setInterval), TIDAK KIRA
+ *      tatalan pembaca — dijeda hanya oleh hover/fokus (`kunciTuding`) dan Focus View terbuka
+ *      (`beku`). (Arahan terus Izzat, sesi sama: "jangan buat pertukaran berdasarkan scroll!
+ *      menyusahkan guna scroll.")
+ *   2. Ketua Editor boleh mematikan keseluruhan ciri. Kalau `aktif` palsu, modul ini tidak
  *      merender apa-apa langsung (gerbang sebenar ada di pelayan, lihat petikanRoutes.js).
+ *
+ *   SEJARAH (untuk konteks, bukan rujukan semasa — SEMUA berlaku dalam SATU hari, 19/8/2026):
+ *     (a) Reka bentuk ASAL pagi: "Petikan BUKAN carousel/pemasa... bertukar SEMATA-MATA mengikut
+ *         tatalan", dua bentuk berasingan (marginalia terapung desktop >=1536px vs blok statik
+ *         skrin sempit, TIADA putaran pada versi statik).
+ *     (b) Tengahari: tatalan dikemas kini jadi dua-hala (900px -> 1800px, beberapa pelarasan).
+ *     (c) Petang: (a)+(b) DITERBALIKKAN — tukar kepada pemasa automatik (arahan "jangan scroll").
+ *     (d) Lewat petang: DUA BENTUK digabung jadi SATU — kedudukan marginalia terapung dibuang
+ *         sepenuhnya, gaya blok-atas-footer (dahulu khusus skrin sempit) kini sejagat.
+ *   Sengaja dibiarkan dalam komen supaya jelas ni PERUBAHAN SEDAR berperingkat, bukan kekeliruan
+ *   — jangan pulangkan ke reka bentuk lama (marginalia terapung/dua bentuk/tatalan) tanpa arahan
+ *   Izzat yang baharu.
  *
  * Modul ini SENGAJA gagal senyap. Petikan ialah ciri SAMPINGAN — kalau ia gagal (rangkaian mati,
  * data rosak, kolam kosong), pembaca patut nampak halaman biasa tanpa petikan, BUKAN halaman
@@ -46,9 +50,9 @@ export interface PetikanAwam {
 // Sumber data — SATU permintaan rangkaian untuk KEDUA-DUA bentuk paparan.
 // ---------------------------------------------------------------------------
 
-/** Cache peringkat modul. `PetikanMargin` dan `PetikanStatik` kedua-duanya dipasang serentak
- *  (dibezakan CSS mengikut lebar skrin, bukan dipasang bersyarat), jadi tanpa cache ini
- *  setiap muatan halaman menghantar DUA permintaan identik untuk data yang sama. */
+/** Cache peringkat modul — kekal walaupun kini SATU komponen sahaja (bukan dua serentak seperti
+ *  reka bentuk lama), sebab StrictMode/HMR pembangunan boleh pasang semula komponen berkali-kali;
+ *  cache elak permintaan berulang tanpa perlu. */
 let kolamJanji: Promise<{ aktif: boolean; petikan: PetikanAwam[] }> | null = null;
 
 function ambilKolam() {
@@ -113,13 +117,6 @@ function tulisSesi(k: KeadaanSesi) {
 // Persembahan dikongsi
 // ---------------------------------------------------------------------------
 
-/** Saiz teks TETAP untuk kesemua petikan margin (2026-08-19, laporan Izzat "saiz font tak
- *  seragam"). Sebelum ni saiz mengecil ikut panjang teks — nampak tekal untuk SATU petikan,
- *  tetapi apabila putaran bertukar antara petikan pendek dan panjang, saiz font turut melompat
- *  setiap kali, menjadikan pengalaman keseluruhan tidak seragam. Petikan panjang kini dibiar
- *  membalut lebih banyak baris (kotak margin tidak dikunci tinggi), bukan mengecilkan huruf. */
-const SAIZ_TEKS_MARGIN = 'text-[13px] leading-[1.6]';
-
 /** Hierarki warna (2026-08-19, laporan Izzat: "tukar semua petikan jadi warna hitam kecuali nama
  *  pengarang, kekalkan warna maroon"). Maroon kini eksklusif untuk NAMA PENGARANG — satu-satunya
  *  elemen yang perlu "menonjol" pada pandangan pertama untuk pembaca kenal pasti sumber; karya
@@ -156,7 +153,7 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
 };
 
 // ---------------------------------------------------------------------------
-// PetikanMargin — desktop lebar, terapung, bertukar mengikut tatalan
+// PetikanBar — blok tunggal di atas footer, SEMUA saiz skrin, putaran berpemasa
 // ---------------------------------------------------------------------------
 
 /** Tempoh (ms) SATU petikan dipaparkan sebelum bertukar automatik. Sejarah: pertukaran asalnya
@@ -186,7 +183,7 @@ const TEMPOH_FADE_KELUAR_MS = 350;
 const TEMPOH_JEDA_MS = 120;
 const TEMPOH_FADE_MASUK_MS = 450;
 
-export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
+export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
   const { kolam, aktif } = useKolamPetikan();
   const [indeks, setIndeks] = React.useState(() => bacaSesi().indeks);
   const [ditutup, setDitutup] = React.useState(() => bacaSesi().ditutup);
@@ -196,8 +193,8 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
   // supaya satu elemen boleh bertukar tempoh mengikut arah tanpa dua salinan className.
   const [tempohTransisiMs, setTempohTransisiMs] = React.useState(TEMPOH_FADE_KELUAR_MS);
 
-  /** Tatalan tidak boleh menukar petikan semasa pembaca sedang membacanya. Disimpan sebagai ref
-   *  (bukan state) kerana ia dibaca di dalam pengendali tatalan yang tidak dipasang semula. */
+  /** Pembaca sedang tuding/fokus tak patut ditukar bawah dia. Disimpan sebagai ref (bukan state)
+   *  kerana dibaca dalam pemasa yang tidak dipasang semula setiap render. */
   const kunciTuding = React.useRef(false);
   const bekuRef = React.useRef(beku);
   bekuRef.current = beku;
@@ -224,9 +221,7 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
   }, [kolam.length]);
 
   // Putaran automatik berpemasa (2026-08-19, arahan terus Izzat: "jangan buat pertukaran
-  // berdasarkan scroll... menyusahkan guna scroll" — gantikan seni bina tatalan sepenuhnya, lihat
-  // nota TEMPOH_PUTARAN_MS di atas). Sentiasa MAJU sahaja (tiada lagi "kembali" — konsep itu
-  // bermakna dalam konteks tatalan dua-hala, tiada makna semula jadi untuk pemasa).
+  // berdasarkan scroll... menyusahkan guna scroll"). Sentiasa MAJU sahaja.
   React.useEffect(() => {
     if (kolam.length < 2 || ditutup) return;
 
@@ -273,136 +268,57 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
   };
 
   return (
-    // `hidden 2xl:block` — 1536px ialah lebar sebenar pertama yang meninggalkan margin kiri
-    // cukup luas di luar bekas kandungan 1024px. Di bawah lebar itu, PetikanStatik mengambil alih.
-    //
-    // KEDUDUKAN (dibetulkan 2026-08-19, laporan Izzat "rapat ke tepi, sepatutnya tengah margin"):
-    // `aside` ialah JALUR PENUH margin kiri sebenar — lebar dikira TEPAT sepadan formula
-    // `max-w-5xl mx-auto` bekas kandungan (1024px), iaitu `calc((100vw - 1024px) / 2)` — bukan
-    // offset piksel tetap dari tepi viewport. Kad sebenar (anak dalam) dipusatkan MELINTANG di
-    // dalam jalur itu dengan flex, supaya pada skrin sangat lebar ia terapung di TENGAH ruang
-    // kosong, bukan terikat ke tepi kiri viewport.
-    //
-    // PEPIJAT PENGELUARAN KRITIKAL DIBAIKI (2026-08-19, laporan Izzat "kenapa jadi mcm ni?!!!!!" +
-    // tangkapan skrin production menunjukkan teks bertindih rambang di tepi kiri): `style={{
-    // display: 'flex' }}` INLINE menewaskan kelas Tailwind `hidden` (inline style SENTIASA
-    // menewaskan kelas, tidak kira @layer/specificity) — jadi aside ni SENTIASA kelihatan pada
-    // SEMUA lebar skrin, bukan cuma ≥1536px seperti disangka. Di bawah 1024px, `calc((100vw -
-    // 1024px) / 2)` jadi NEGATIF (lebar CSS tak sah, jatuh ke 0px), tetapi kandungan dalam
-    // (clamp 180-220px) tetap cuba dipusatkan dalam kotak 0-lebar tu — melimpah ke tepi kiri
-    // viewport, bertindih kandungan utama. Dibetulkan: `display:flex` DIPINDAH ke kelas
-    // `2xl:flex` (gantikan `2xl:block`), BUANG dari inline style — cascade `hidden` (lalai)
-    // vs `2xl:flex` (≥1536px) kini betul-betul dikawal Tailwind, bukan inline style yang
-    // mengatasinya secara senyap.
-    <aside
-      className="hidden 2xl:flex fixed left-0 bottom-10 z-20"
-      style={{ width: 'calc((100vw - 1024px) / 2)', justifyContent: 'center' }}
+    // KEDUDUKAN (2026-08-19, arahan terus Izzat: "letakkan petikan tu di atas footer mcm versi
+    // telefon dan skrin sempit") — blok DIPUSATKAN di atas footer, SEMUA saiz skrin (tiada lagi
+    // `2xl:hidden`/`hidden 2xl:flex` — bekas dua reka bentuk berasingan digabung jadi satu; lihat
+    // sejarah penuh di komen kepala fail). Gaya (garis atas, penengahan, ruang lapang) diwarisi
+    // terus daripada bekas PetikanStatik (khusus skrin sempit dahulu), kini sejagat.
+    <section
+      className="w-full max-w-5xl mx-auto mt-6 px-1"
       aria-label="Petikan pilihan"
     >
       <div
-        style={{ width: 'clamp(180px, 12vw, 220px)' }}
+        className="relative border-t border-stone-200 pt-6 text-center"
         onMouseEnter={() => { kunciTuding.current = true; }}
         onMouseLeave={() => { kunciTuding.current = false; }}
         onFocusCapture={() => { kunciTuding.current = true; }}
         onBlurCapture={() => { kunciTuding.current = false; }}
       >
+        <button
+          type="button"
+          onClick={tutup}
+          aria-label="Tutup petikan"
+          title="Tutup petikan"
+          className="absolute right-1 top-3 text-stone-300 hover:text-[#802334] text-[15px] leading-none p-1 transition-colors select-none"
+        >
+          ×
+        </button>
+
+        {/* Transisi DUA FASA (2026-08-19, susulan video sebenar — lihat nota TEMPOH_FADE_KELUAR_MS
+            di atas fail). `translate-y` TIDAK PERNAH digunakan (arahan eksplisit: "Jangan gunakan
+            slide/translate... Itu akan menjadikannya widget/carousel") — OPACITY SAHAJA. Tempoh
+            dikawal via `tempohTransisiMs` (inline style) supaya fade-keluar (350ms) dan fade-masuk
+            (450ms) boleh berbeza tanpa dua salinan className. */}
         <div
-          // Garisan kiri DIBUANG (2026-08-19, laporan Izzat "rasanya tak perlu garisan belah kiri
-          // tu") — petikan kini dibezakan SEMATA-MATA oleh tanda petik besar + teks rata kanan,
-          // bukan bekas berbingkai. `text-right` (Izzat, "align teks ke sebelah kanan") terpakai
-          // pada SELURUH blok (petikan, label, atribusi, pautan) — bukan cuma petikan sendiri.
-          //
-          // Transisi DUA FASA (2026-08-19, susulan video sebenar — lihat nota TEMPOH_FADE_KELUAR_MS
-          // di atas fail). `translate-y` DIBUANG sepenuhnya (arahan eksplisit: "Jangan gunakan
-          // slide/translate... Itu akan menjadikannya widget/carousel") — OPACITY SAHAJA, kedudukan
-          // tetap sama sepanjang transisi. Tempoh dikawal via `tempohTransisiMs` (inline style,
-          // bukan kelas statik) supaya fade-keluar (350ms) dan fade-masuk (450ms) boleh berbeza
-          // tanpa dua salinan className. `ease-in-out` (bukan `ease-out`) — arahan eksplisit.
-          className={`group relative text-right transition-opacity ease-in-out ${
-            pudar ? 'opacity-0' : 'opacity-100'
-          }`}
+          className={`transition-opacity ease-in-out ${pudar ? 'opacity-0' : 'opacity-100'}`}
           style={{ transitionDuration: kurangGerak ? '0ms' : `${tempohTransisiMs}ms` }}
         >
-          <button
-            type="button"
-            onClick={tutup}
-            aria-label="Tutup petikan"
-            title="Tutup petikan"
-            // Kekal KANAN atas (arahan eksplisit Izzat sebelum ni: "butang pangkah di kanan atas,
-            // bukan kiri") — tidak diubah semula walau teks kini rata kanan; dua keputusan ni
-            // berasingan.
-            className="absolute -right-1 -top-5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-stone-400 hover:text-[#802334] text-[15px] leading-none p-1 select-none"
-          >
-            ×
-          </button>
-
           {/* TEGAK secara lalai (arahan Izzat, 19/8/2026) — petikan dibezakan daripada teks
-              sekeliling oleh tanda petik + kedudukan marginalianya, bukan oleh gaya huruf.
-              `safeParseInline` (bukan teks mentah) supaya penanda `*kata pinjaman*` yang Arahan
-              AI kini wajibkan (peraturan 21, PetikanConfig.js — istilah asing belum mantap dalam
-              Teks Melayu) benar-benar dipaparkan condong — TANPA ini, pembaca nampak asterisk
-              literal. Ini PENEGASAN SEBENAR (istilah asing), bukan gaya "puitis" seluruh petikan.
-              Saiz TETAP (SAIZ_TEKS_MARGIN) — lihat nota di takrifan pemalar tu. */}
-          <p className={`font-serif text-stone-900 ${SAIZ_TEKS_MARGIN}`}>
-            <span aria-hidden="true" className="text-[#802334] font-serif text-lg leading-none align-[-2px]">&ldquo;</span>
+              sekeliling oleh tanda petik + kedudukan/gaya blok, bukan oleh gaya huruf. Saiz 12px
+              (bukan 17px asal) — 17px melampaui saiz kandungan editorial sekeliling (~13-16px),
+              menjadikan petikan sampingan kelihatan lebih penting drpd berita sebenar (laporan
+              Izzat, versi telefon — kini terpakai sejagat sebab reka bentuk digabung). */}
+          <p className="font-serif text-stone-900 text-[12px] leading-[1.7] max-w-2xl mx-auto">
+            <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
             {safeParseInline(p.teks)}
             <span aria-hidden="true" className="text-[#802334]/60">&rdquo;</span>
           </p>
-          {/* Hierarki (2026-08-19, laporan Izzat): petikan hitam ialah elemen UTAMA (SAIZ_TEKS_MARGIN,
-              13px) — metadata di bawah dikecilkan berperingkat supaya jelas SEKUNDER, bukan bersaing
-              dengan petikan. Warna kini ditentukan DALAM komponen masing-masing (Atribusi: maroon
-              hanya pada nama pengarang) — kelas di sini saiz/susun sahaja. Label terjemahan
-              DIBUANG (lihat nota di atas fail). */}
-          <Atribusi p={p} kelas="mt-2 font-sans text-[10px] tracking-wide" />
-          <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[9px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
+          {/* Hierarki (2026-08-19, laporan Izzat): petikan hitam ialah elemen UTAMA, metadata di
+              bawah dikecilkan supaya jelas SEKUNDER. Maroon eksklusif nama pengarang (Atribusi).
+              Label terjemahan DIBUANG (keputusan Izzat berasingan, lihat Atribusi/komen atas). */}
+          <Atribusi p={p} kelas="mt-3 font-sans text-[11px] tracking-wide" />
+          <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[10px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
         </div>
-      </div>
-    </aside>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// PetikanStatik — skrin sempit, satu petikan tetap di atas footer
-// ---------------------------------------------------------------------------
-
-export const PetikanStatik: React.FC = () => {
-  const { kolam, aktif } = useKolamPetikan();
-  if (!aktif || kolam.length === 0) return null;
-
-  // Petikan PERTAMA kolam hari itu, sentiasa. Pada skrin sempit ini bukan marginalia yang
-  // menemani pembacaan — ia satu blok penutup, jadi ia tidak bertukar langsung dalam satu
-  // lawatan (keputusan Izzat: "skrin sempit statik").
-  const p = kolam[0];
-
-  return (
-    // Ruang atas dikecilkan mt-12+pt-8 (80px) -> mt-6+pt-6 (48px) (2026-08-19, laporan Izzat
-    // "ruang kosong terlalu luas" — tangkapan skrin nunjuk jurang kosong besar antara baris kad
-    // terakhir dan petikan). Garis border-t kekal sebagai pemisah visual; cuma jarak sebelum
-    // dan selepas garis tu dipadatkan.
-    <section
-      className="2xl:hidden w-full max-w-5xl mx-auto mt-6 px-1"
-      aria-label="Petikan pilihan"
-    >
-      <div className="border-t border-stone-200 pt-6 text-center">
-        {/* TEGAK — lihat nota di PetikanMargin. Di sini pembezanya ialah garis atas, penengahan
-            dan ruang lapang di sekelilingnya. safeParseInline supaya kata pinjaman *dicondongkan*.
-            Tanda petik besar maroon — sama rasional "pull quote" seperti PetikanMargin.
-            Saiz 17px -> 12px (2026-08-19, laporan Izzat versi telefon: "saiz petikan lebih besar
-            drpd saiz kandungan sebenar?!!!!!") — 17px melampaui saiz tajuk/huraian kandungan
-            editorial sekeliling (~13-16px), menjadikan petikan sampingan kelihatan lebih penting
-            drpd berita sebenar. PetikanMargin (desktop) TIDAK disentuh — arahan ni khusus versi
-            telefon (kelas 2xl:hidden), jangan tertukar dengan SAIZ_TEKS_MARGIN 13px di atas. */}
-        <p className="font-serif text-stone-900 text-[12px] leading-[1.7] max-w-2xl mx-auto">
-          <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
-          {safeParseInline(p.teks)}
-          <span aria-hidden="true" className="text-[#802334]/60">&rdquo;</span>
-        </p>
-        {/* Selaras dengan PetikanMargin (2026-08-19) — huruf biasa (bukan uppercase); warna kini
-            ditentukan DALAM komponen (Atribusi: maroon hanya pengarang); saiz dikecilkan
-            berperingkat supaya petikan hitam kekal elemen utama hierarki. Label terjemahan
-            DIBUANG (lihat nota di atas fail). */}
-        <Atribusi p={p} kelas="mt-3 font-sans text-[11px] tracking-wide" />
-        <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[10px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
       </div>
     </section>
   );
