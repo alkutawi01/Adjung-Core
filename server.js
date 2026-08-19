@@ -697,39 +697,81 @@ const initializeSchema = () => {
             // `aktif` pula gerbang PAPARAN (editor boleh nyahaktifkan tanpa memadam sejarah).
             // Petikan hanya layak dipaparkan bila statusSah='sah' DAN aktif=1 — dua syarat
             // berasingan, sengaja, supaya "betul" dan "sedang disiarkan" tak pernah bercampur.
-            db.run(`
+            // Skema petikan v2 (2026-08-19, petang) — DUA teks setiap rekod.
+            //
+            // Frontpage memaparkan Bahasa Melayu SAHAJA (keputusan Izzat). Tetapi petikan daripada
+            // kitab Arab atau buku Inggeris tidak dibuang: `teksAsal` disimpan untuk semakan Ketua
+            // Editor DALAM SISTEM, manakala pembaca melihat `teksPaparan` sahaja, berlabel
+            // "Diterjemah daripada Arab". `teksPaparan` diterbitkan daripada `bahasaAsal` semasa
+            // import (lihat PetikanConfig.js) supaya kes Melayu dan kes terjemahan tidak menjadi
+            // dua laluan kod yang boleh menyimpang.
+            //
+            // DUA status, bukan satu — kerana "disahkan" merangkumi dua dakwaan yang berbeza:
+            //   statusSumber     : teks asal benar-benar wujud dalam karya secara verbatim
+            //   statusTerjemahan : teks Melayu setia kepada teks asal ('tidak_perlu' bila Melayu)
+            // Kelayakan terbit DITERBITKAN daripada kedua-duanya, tidak pernah disimpan — satu
+            // lajur boolean akan segera menyimpang daripada dua status yang membentuknya.
+            //
+            // Terjemahan TIDAK boleh disahkan sebelum sumber disahkan: terjemahan yang tepat
+            // kepada sumber yang salah tetap tidak berguna. Dikuatkuasakan di petikanRoutes.js.
+            const buatJadualPetikanV2 = (selesai) => db.run(`
               CREATE TABLE IF NOT EXISTS petikan (
                 id TEXT PRIMARY KEY,
-                teks TEXT NOT NULL,
+                teksAsal TEXT NOT NULL,
+                bahasaAsal TEXT NOT NULL DEFAULT 'Melayu',
+                teksPaparan TEXT NOT NULL,
                 pengarang TEXT NOT NULL,
                 karya TEXT NOT NULL,
                 rujukan TEXT,
-                bahasa TEXT NOT NULL DEFAULT 'ms',
-                statusSah TEXT NOT NULL DEFAULT 'belum_sah',
+                kategori TEXT,
+                statusSumber TEXT NOT NULL DEFAULT 'belum_sah',
+                statusTerjemahan TEXT NOT NULL DEFAULT 'tidak_perlu',
+                sumberDisahkanPada TEXT,
+                terjemahanDisahkanPada TEXT,
                 aktif INTEGER NOT NULL DEFAULT 1,
                 pautanBuku TEXT,
                 labelPautan TEXT,
                 tarikhMula TEXT,
                 tarikhAkhir TEXT,
+                kumpulanImport TEXT,
                 dibuatOleh TEXT,
                 dibuatPada TEXT,
                 dikemasPada TEXT
               )
-            `, () => {
-              // Kategori (2026-08-19) — senarai TERTUTUP, lihat KATEGORI_PETIKAN di
-              // core/editorial/PetikanConfig.js. Bukan taksonomi "Bidang" Adjung dan tidak
-              // dipaparkan kepada pembaca; fungsinya SATU sahaja iaitu memberi algoritma kolam
-              // harian sesuatu untuk mempelbagaikan susunan (elak dua petikan bidang sama
-              // berjiran). LALAI NULL, BUKAN 'Lain-lain' — NULL bermakna "belum diklasifikasi"
-              // manakala 'Lain-lain' ialah kategori sebenar; mencampurkan keduanya menyembunyikan
-              // hutang data. Rekod lama kekal NULL dan masih boleh dipapar (dilayan sebagai
-              // "tiada kekangan kategori"), cuma tidak diutamakan semasa pemilihan kolam.
-              db.run('ALTER TABLE petikan ADD COLUMN kategori TEXT', () => {});
-              // Kumpulan import (2026-08-19) — menandakan petikan yang masuk bersama daripada
-              // SATU tampalan/buku yang sama. Tujuannya operasi semakan: editor menyemak 20
-              // petikan daripada PDF yang sama berturut-turut tanpa melompat antara karya.
-              // NULL untuk petikan yang ditambah manual satu-satu.
-              db.run('ALTER TABLE petikan ADD COLUMN kumpulanImport TEXT', () => {});
+            `, selesai);
+
+            // Migrasi bersih, BUKAN additif. Jadual v1 dihantar ke pengeluaran pada 19/8/2026
+            // tetapi ciri ini tidak pernah dihidupkan, jadi ia tidak pernah mempunyai satu baris
+            // pun — disahkan pada pangkalan data tempatan DAN pengeluaran sebelum perubahan ini.
+            // Membawa lajur `teks`/`bahasa`/`statusSah` yang kini kabur maknanya semata-mata
+            // kerana takut ada data adalah hutang tanpa faedah.
+            //
+            // PENGAWAL: jadual lama DIGUGURKAN hanya apabila ia benar-benar kosong. Kalau ia
+            // mengandungi walau satu baris, jadual dibiarkan sepenuhnya dan amaran dicatat —
+            // CLAUDE.md Falsafah Teras 4, tiada backup DB yang boleh dipercayai.
+            db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='petikan'", (errAda, adaJadual) => {
+              if (errAda) return console.error('Semakan jadual petikan gagal:', errAda.message);
+              if (!adaJadual) return buatJadualPetikanV2(() => {});
+
+              db.all('PRAGMA table_info(petikan)', (errLajur, lajur) => {
+                if (errLajur) return console.error('Semakan lajur petikan gagal:', errLajur.message);
+                if ((lajur || []).some((l) => l.name === 'teksAsal')) return; // sudah v2
+
+                db.get('SELECT COUNT(*) AS n FROM petikan', (errKira, baris) => {
+                  if (errKira) return console.error('Kiraan baris petikan gagal:', errKira.message);
+                  if ((baris?.n || 0) > 0) {
+                    console.warn(
+                      `AMARAN: jadual petikan masih skema lama dan mengandungi ${baris.n} baris. ` +
+                      'Migrasi automatik DILANGKAU supaya tiada data hilang. Migrasikan secara manual.'
+                    );
+                    return;
+                  }
+                  db.run('DROP TABLE petikan', (errBuang) => {
+                    if (errBuang) return console.error('Gugur jadual petikan gagal:', errBuang.message);
+                    buatJadualPetikanV2(() => console.log('Jadual petikan dimigrasikan ke skema v2 (dua teks, dua status).'));
+                  });
+                });
+              });
             });
 
             // Penaja (2026-08-05, Fasa 12 — permintaan Izzat) — tajaan BULANAN, boleh berbilang

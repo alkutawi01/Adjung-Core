@@ -22,8 +22,73 @@ export const KATEGORI_PETIKAN = [
   'Pendidikan', 'Ekonomi', 'Psikologi', 'Kehidupan', 'Lain-lain',
 ];
 
+// ---------------------------------------------------------------------------------------------
+// BAHASA — dua teks, satu rekod (2026-08-19, keputusan Izzat)
+//
+// Frontpage Adjung Brief memaparkan Bahasa Melayu SAHAJA. Tetapi petikan daripada kitab Arab atau
+// buku Inggeris TIDAK dibuang: teks asal disimpan dan dipaparkan DALAM SISTEM untuk semakan Ketua
+// Editor, manakala pembaca melihat terjemahan sahaja, berlabel.
+//
+// `teksPaparan` DITERBITKAN daripada bahasa asal, bukan disimpan sebagai keputusan berasingan —
+// supaya kes Melayu dan kes terjemahan tidak menjadi dua laluan kod yang boleh menyimpang:
+//
+//   bahasaAsal Melayu      -> teksPaparan = teksAsal,  terjemahan tidak diperlukan
+//   bahasaAsal bukan Melayu -> teksPaparan = teksMelayu, terjemahan perlu disahkan berasingan
+
+/** Nama bahasa yang dikenali, dipetakan ke bentuk paparan Melayu. Senarai ni BUKAN tertutup —
+ *  bahasa di luar senarai diterima dan dipaparkan sebagaimana ditulis; peta ni cuma mengemaskan
+ *  bentuk yang paling kerap muncul supaya label tidak berbunyi janggal. */
+const NAMA_BAHASA = {
+  'ms': 'Melayu', 'melayu': 'Melayu', 'bahasa melayu': 'Melayu', 'malay': 'Melayu',
+  'ar': 'Arab', 'arab': 'Arab', 'bahasa arab': 'Arab', 'arabic': 'Arab',
+  'en': 'Inggeris', 'inggeris': 'Inggeris', 'bahasa inggeris': 'Inggeris', 'english': 'Inggeris',
+  'id': 'Indonesia', 'indonesia': 'Indonesia',
+};
+
+/** Bentuk kemas nama bahasa untuk paparan. Kosong -> '' (pemanggil yang putuskan maknanya). */
+export function namaBahasa(mentah) {
+  const t = String(mentah || '').trim();
+  if (!t) return '';
+  return NAMA_BAHASA[t.toLowerCase()] || t;
+}
+
+export const adalahBahasaMelayu = (mentah) => namaBahasa(mentah) === 'Melayu';
+
+/** Label metadata sekunder di bawah petikan. Dipendekkan daripada "Diterjemahkan daripada bahasa
+ *  Arab" kepada "Diterjemah daripada Arab" — margin frontpage cuma 180-220px lebar, dan perkataan
+ *  "bahasa" sudah tersirat. Pulangkan '' untuk sumber Melayu: "Diterjemah daripada Melayu" pada
+ *  petikan yang tidak pernah diterjemahkan adalah salah, bukan sekadar janggal. */
+export function labelTerjemahan(bahasaAsal) {
+  const nama = namaBahasa(bahasaAsal);
+  if (!nama || nama === 'Melayu') return '';
+  return `Diterjemah daripada ${nama}`;
+}
+
 // Label medan yang penghurai kenali. Apa-apa di luar senarai ni bukan label — ia teks biasa.
-const LABEL_SAH = ['Teks', 'Pengarang', 'Karya', 'Rujukan', 'Bahasa', 'Kategori', 'Pautan Buku'];
+const LABEL_SAH = [
+  'Teks Asal', 'Bahasa Asal', 'Teks Melayu',
+  'Pengarang', 'Karya', 'Rujukan', 'Kategori', 'Pautan Buku',
+];
+
+/** Alias -> label kanonik. AI kerap memendekkan nama medan walaupun arahan menetapkan bentuk
+ *  penuh; menerima bentuk pendek jauh lebih murah daripada menolak rekod yang sempurna kerana
+ *  satu perkataan hilang. */
+const ALIAS_LABEL = {
+  'teks': 'Teks Asal',
+  'teks sumber': 'Teks Asal',
+  'bahasa': 'Bahasa Asal',
+  'terjemahan': 'Teks Melayu',
+  'terjemahan melayu': 'Teks Melayu',
+  'teks terjemahan': 'Teks Melayu',
+};
+
+/** Medan yang BOLEH mengandungi berbilang baris (termasuk baris kosong di tengah). Semua medan
+ *  lain ialah satu baris. */
+const MEDAN_BERBILANG_BARIS = new Set(['Teks Asal', 'Teks Melayu']);
+
+/** Label yang menandakan permulaan rekod baharu. Lihat nota penghurai di bawah tentang sebab
+ *  sempadan rekod TIDAK lagi bergantung pada pemisah "____". */
+const LABEL_SAUH = 'Teks Asal';
 
 // Sentinel penanda format dalam Arahan AI. Kemunculan mana-mana daripadanya dalam output bermakna
 // AI menyalin templat dan bukan mengisi data sebenar -> blok DITOLAK.
@@ -34,8 +99,11 @@ const LABEL_SAH = ['Teks', 'Pengarang', 'Karya', 'Rujukan', 'Bahasa', 'Kategori'
 // Sentinel bentuk [[...]] dipilih sebab ia MUSTAHIL wujud dalam petikan karya sebenar — berbeza
 // daripada meneka perkataan biasa seperti "petikan" yang akan menolak teks sah.
 export const SENTINEL_PETIKAN = [
-  '[[TEKS_PETIKAN]]', '[[NAMA_PENGARANG]]', '[[TAJUK_KARYA]]',
-  '[[RUJUKAN_SUMBER]]', '[[BAHASA]]', '[[KATEGORI]]', '[[PAUTAN_BUKU]]',
+  '[[TEKS_ASAL]]', '[[TEKS_MELAYU]]', '[[BAHASA_ASAL]]', '[[NAMA_PENGARANG]]',
+  '[[TAJUK_KARYA]]', '[[RUJUKAN_SUMBER]]', '[[KATEGORI]]', '[[PAUTAN_BUKU]]',
+  // Sentinel versi pertama ciri ni — dikekalkan supaya output daripada sesi AI lama yang masih
+  // terbuka pada skrin editor tetap ditolak dengan sebab yang betul, bukan diserap separuh.
+  '[[TEKS_PETIKAN]]', '[[BAHASA]]',
 ];
 
 // Placeholder LITERAL yang pernah/berpotensi muncul. Sengaja senarai TEPAT, bukan padanan kabur —
@@ -66,7 +134,7 @@ export function binaArahanAiPetikan({ maksimum = 20 } = {}) {
     '[PERATURAN MUTLAK]',
     '',
     '1. Gunakan SUMBER YANG DIBERIKAN sahaja.',
-    '2. Medan "Teks" MESTI mengandungi kata-kata yang benar-benar terdapat dalam sumber secara VERBATIM.',
+    '2. Medan "Teks Asal" MESTI mengandungi kata-kata yang benar-benar terdapat dalam sumber secara VERBATIM, dalam bahasa asal sumber.',
     '3. JANGAN parafrasa petikan.',
     '4. JANGAN memperkemas bahasa petikan.',
     '5. JANGAN membetulkan tatabahasa atau ejaan pengarang.',
@@ -86,6 +154,32 @@ export function binaArahanAiPetikan({ maksimum = 20 } = {}) {
     `19. Pilih maksimum ${maksimum} petikan terbaik daripada sumber.`,
     '20. Jangan hasilkan petikan yang sama lebih daripada sekali.',
     '',
+    '[DUA KERJA BERASINGAN — JANGAN CAMPURKAN]',
+    '',
+    'Setiap rekod memerlukan DUA perkara yang dihasilkan melalui dua kerja yang BERBEZA.',
+    '',
+    'KERJA PERTAMA — PENGEKSTRAKAN (medan "Teks Asal")',
+    'Salin kata-kata daripada sumber secara verbatim, dalam bahasa asalnya.',
+    'JANGAN terjemah di sini.',
+    'JANGAN perbetulkan.',
+    'JANGAN pendekkan.',
+    'Selesaikan kerja ini SEPENUHNYA sebelum memulakan kerja kedua.',
+    '',
+    'KERJA KEDUA — PENTERJEMAHAN (medan "Teks Melayu")',
+    'Terjemahkan teks asal yang telah anda ekstrak tadi ke dalam Bahasa Melayu.',
+    'Terjemahan MESTI setia kepada maksud teks asal.',
+    'JANGAN mencantikkan, memoden atau menguatkan ayat melebihi apa yang sumber katakan.',
+    'JANGAN menambah penjelasan yang tiada dalam teks asal.',
+    'Gunakan Bahasa Melayu penerbitan yang natural, bukan terjemahan harfiah yang janggal.',
+    '',
+    'AMARAN PALING PENTING: JANGAN mengubah "Teks Asal" untuk memudahkan penterjemahan.',
+    'Jika teks asal sukar diterjemah, teks asal TETAP KEKAL seperti dalam sumber.',
+    '',
+    'JIKA SUMBER MEMANG BERBAHASA MELAYU:',
+    'Tulis: Bahasa Asal: Melayu',
+    'Tulis: Teks Melayu: -',
+    'Jangan menterjemah apa-apa. Jangan menulis semula petikan itu.',
+    '',
     '[KATEGORI]',
     '',
     'Setiap petikan MESTI diberikan SATU kategori sahaja daripada senarai tertutup berikut:',
@@ -99,13 +193,17 @@ export function binaArahanAiPetikan({ maksimum = 20 } = {}) {
     '',
     'Gunakan susunan medan berikut dengan TEPAT untuk SETIAP petikan:',
     '',
-    'Teks:',
-    '[[TEKS_PETIKAN]]',
+    'Teks Asal:',
+    '[[TEKS_ASAL]]',
+    '',
+    'Bahasa Asal: [[BAHASA_ASAL]]',
+    '',
+    'Teks Melayu:',
+    '[[TEKS_MELAYU]]',
     '',
     'Pengarang: [[NAMA_PENGARANG]]',
     'Karya: [[TAJUK_KARYA]]',
     'Rujukan: [[RUJUKAN_SUMBER]]',
-    'Bahasa: [[BAHASA]]',
     'Kategori: [[KATEGORI]]',
     'Pautan Buku: [[PAUTAN_BUKU]]',
     '',
@@ -119,12 +217,12 @@ export function binaArahanAiPetikan({ maksimum = 20 } = {}) {
     SENTINEL_PETIKAN.join('\n'),
     '',
     'Gantikan semuanya dengan data sebenar daripada sumber.',
-    'Gunakan tanda "-" HANYA untuk Rujukan dan Pautan Buku apabila maklumat tidak tersedia.',
-    'JANGAN gunakan "-" untuk Teks, Pengarang, Karya, Bahasa atau Kategori.',
+    'Gunakan tanda "-" HANYA untuk Rujukan, Pautan Buku, dan Teks Melayu (apabila sumber memang berbahasa Melayu).',
+    'JANGAN gunakan "-" untuk Teks Asal, Bahasa Asal, Pengarang, Karya atau Kategori.',
     '',
     '[LARANGAN FORMAT]',
     '',
-    'Medan Teks boleh mengandungi lebih daripada satu baris jika teks asal memerlukannya.',
+    'Medan Teks Asal dan Teks Melayu boleh mengandungi lebih daripada satu baris.',
     'JANGAN tambah nombor pada nama medan. SALAH: "Pengarang 1:". BETUL: "Pengarang:".',
     'JANGAN gunakan Markdown.',
     'JANGAN gunakan bullet atau senarai bernombor.',
@@ -132,13 +230,15 @@ export function binaArahanAiPetikan({ maksimum = 20 } = {}) {
     'JANGAN gunakan tajuk atau subtajuk.',
     'JANGAN tambah penerangan, ulasan, skor atau sebab pemilihan.',
     'JANGAN tulis apa-apa sebelum petikan pertama atau selepas petikan terakhir.',
-    'Pisahkan SETIAP rekod dengan SATU baris yang hanya mengandungi: ____',
+    'Mulakan SETIAP rekod dengan baris "Teks Asal:".',
+    'Anda boleh memisahkan rekod dengan satu baris "____", tetapi itu tidak wajib.',
     '',
     '[SEMAKAN SENDIRI — sebelum memberikan jawapan akhir]',
     '',
-    'Sahkan bahawa: setiap Teks verbatim daripada sumber; tiada metadata direka; setiap petikan',
-    `tidak melebihi ${HAD_TEKS_PETIKAN} aksara; setiap Kategori daripada senarai tertutup; tiada`,
-    'penanda [[...]] tertinggal; semua medan wajib wujud; setiap rekod dipisahkan dengan ____.',
+    'Sahkan bahawa: setiap Teks Asal verbatim daripada sumber dan TIDAK diubah semasa menterjemah;',
+    'setiap Teks Melayu setia kepada teks asalnya; tiada metadata direka; setiap Teks Melayu tidak',
+    `melebihi ${HAD_TEKS_PETIKAN} aksara; setiap Kategori daripada senarai tertutup; tiada penanda`,
+    '[[...]] tertinggal; semua medan wajib wujud; setiap rekod bermula dengan "Teks Asal:".',
     '',
     '[SUMBER]',
     '',
@@ -164,7 +264,7 @@ const normalkanLabel = (baris) => {
   const m = baris.match(/^\s*([A-Za-zÀ-ɏ ]+?)\s*(\d+)?\s*:\s*(.*)$/);
   if (!m) return null;
   const asas = m[1].trim().toLowerCase().replace(/\s+/g, ' ');
-  const padanan = LABEL_SAH.find((l) => l.toLowerCase() === asas);
+  const padanan = LABEL_SAH.find((l) => l.toLowerCase() === asas) || ALIAS_LABEL[asas] || null;
   if (!padanan) return null;
   return { label: padanan, nilaiSebaris: (m[3] || '').trim() };
 };
@@ -204,9 +304,53 @@ const adaPlaceholder = (nilai) => {
 
 // Kunci dedup — normalisasi supaya beza ruang/huruf besar-kecil tidak lolos sebagai rekod berbeza.
 export const kunciDedupPetikan = (r) =>
-  [(r.teks || ''), (r.pengarang || ''), (r.karya || '')]
+  [(r.teksAsal || ''), (r.pengarang || ''), (r.karya || '')]
     .map((s) => s.toLowerCase().replace(/\s+/g, ' ').trim())
     .join('|');
+
+/**
+ * Pecahkan teks tampalan kepada blok rekod.
+ *
+ * SEMPADAN REKOD TIDAK LAGI BERGANTUNG PADA PEMISAH "____" (2026-08-19, selepas simulasi sebenar
+ * dengan ChatGPT). Sebabnya boleh dihasilkan semula: antara muka chatbot merender "____" sebagai
+ * garis mendatar Markdown. Diperiksa pada DOM ChatGPT — 4 elemen <hr>, SIFAR aksara garis bawah.
+ * Jadi editor yang menyalin dengan tetikus (cara paling biasa) kehilangan pemisah sepenuhnya, dan
+ * lima petikan bercantum menjadi satu blok yang gagal dengan sebab yang mengelirukan.
+ *
+ * Sauh sebenar ialah label "Teks Asal:" — kemunculan KEDUA bermakna rekod baharu bermula. Pemisah
+ * "____" masih diterima apabila ia terselamat, kerana ia isyarat yang bersih; ia cuma bukan lagi
+ * SATU-SATUNYA isyarat.
+ *
+ * AMARAN: ini menukar pemisah rapuh dengan STRUKTUR yang juga rapuh — AI masih boleh menukar nama
+ * label, mengulanginya, atau memasukkan "Teks Asal:" ke dalam kandungan petikan. Penghurai ni
+ * MESTI dianggap penghurai input tidak dipercayai, bukan kontrak data. Jaring keselamatan sebenar
+ * ialah kad boleh sunting yang editor lihat sebelum apa-apa disimpan.
+ */
+function pecahBlok(bersih) {
+  const blokKasar = bersih.split(/^\s*_{4,}\s*$/m);
+  const hasil = [];
+
+  for (const kasar of blokKasar) {
+    let semasa = [];
+    let nampakSauh = false;
+
+    for (const brs of kasar.split('\n')) {
+      const lbl = normalkanLabel(brs);
+      if (lbl && lbl.label === LABEL_SAUH) {
+        // Sauh kedua dalam blok yang sama -> rekod sebelumnya tamat di sini.
+        if (nampakSauh && semasa.some((x) => x.trim())) {
+          hasil.push(semasa.join('\n'));
+          semasa = [];
+        }
+        nampakSauh = true;
+      }
+      semasa.push(brs);
+    }
+    if (semasa.some((x) => x.trim())) hasil.push(semasa.join('\n'));
+  }
+
+  return hasil;
+}
 
 /**
  * Hurai teks tampalan daripada chatbot menjadi rekod petikan.
@@ -216,8 +360,7 @@ export const kunciDedupPetikan = (r) =>
  */
 export function huraiPetikanTampal(teksMentah) {
   const bersih = buangCodeFence((teksMentah || '').replace(/\r\n/g, '\n'));
-  // Pemisah rekod TUNGGAL: baris yang selepas dipangkas ialah tepat empat garis bawah atau lebih.
-  const blok = bersih.split(/^\s*_{4,}\s*$/m);
+  const blok = pecahBlok(bersih);
 
   const rekod = [];
   const gagal = [];
@@ -243,8 +386,8 @@ export function huraiPetikanTampal(teksMentah) {
         medan[lbl.label] = lbl.nilaiSebaris;
         semasa = lbl.label;
       } else if (semasa) {
-        // Baris sambungan — termasuk baris KOSONG bila medan semasa ialah Teks.
-        if (semasa === 'Teks') {
+        // Baris sambungan — termasuk baris KOSONG bila medan semasa boleh berbilang baris.
+        if (MEDAN_BERBILANG_BARIS.has(semasa)) {
           medan[semasa] = medan[semasa] ? `${medan[semasa]}\n${brs}` : brs;
         } else if (brs.trim()) {
           // Medan satu-baris: sambungan hanya diterima kalau nilai sebaris tadi kosong
@@ -254,37 +397,50 @@ export function huraiPetikanTampal(teksMentah) {
       }
     }
 
-    const tolak = (sebab) => gagal.push({ blok: nomborBlok, sebab, cuplikan: (medan.Teks || b).trim().slice(0, 80) });
+    const tolak = (sebab) => gagal.push({ blok: nomborBlok, sebab, cuplikan: (medan['Teks Asal'] || b).trim().slice(0, 80) });
 
     if (pendua.length) return tolak(`Label berulang dalam blok: ${[...new Set(pendua)].join(', ')}.`);
 
-    // Teks MESTI medan pertama — ini yang menjadikan peraturan sempadan Teks tidak taksa.
-    // (Susunan medan LAIN sengaja tidak dipaksa: sebaik Teks di hadapan, susunan baki tidak
+    // Sauh MESTI medan pertama — ini yang menjadikan peraturan sempadan teks berbilang baris tidak
+    // taksa. (Susunan medan LAIN sengaja tidak dipaksa: sebaik sauh di hadapan, susunan baki tidak
     // menjejaskan penghuraian, dan memaksanya cuma menambah kegagalan tanpa faedah keselamatan.)
-    if (labelPertama !== 'Teks') return tolak('Medan "Teks:" mesti medan PERTAMA dalam setiap blok.');
+    if (labelPertama !== LABEL_SAUH) return tolak(`Medan "${LABEL_SAUH}:" mesti medan PERTAMA dalam setiap blok.`);
 
-    const teks = (medan.Teks || '').replace(/^\n+|\n+$/g, '').trim();
+    const teksAsal = (medan['Teks Asal'] || '').replace(/^\n+|\n+$/g, '').trim();
+    const teksMelayuMentah = (medan['Teks Melayu'] || '').replace(/^\n+|\n+$/g, '').trim();
     const pengarang = (medan.Pengarang || '').trim();
     const karya = (medan.Karya || '').trim();
-    const bahasa = (medan.Bahasa || '').trim();
+    const bahasaMentah = (medan['Bahasa Asal'] || '').trim();
     const rujukanMentah = (medan.Rujukan || '').trim();
     const kategoriMentah = (medan.Kategori || '').trim();
     const pautanMentah = nyahBungkusPautan(medan['Pautan Buku'] || '');
 
-    const semuaNilai = [teks, pengarang, karya, bahasa, rujukanMentah, kategoriMentah, pautanMentah];
+    const semuaNilai = [teksAsal, teksMelayuMentah, pengarang, karya, bahasaMentah, rujukanMentah, kategoriMentah, pautanMentah];
     if (semuaNilai.some(adaSentinel)) {
       return tolak('Penanda format [[...]] daripada Arahan AI tertinggal — AI menyalin templat, bukan mengisi data sebenar.');
     }
-    if ([teks, pengarang, karya].some(adaPlaceholder)) {
+    if ([teksAsal, teksMelayuMentah, pengarang, karya].some(adaPlaceholder)) {
       return tolak('Nilai kelihatan seperti placeholder arahan, bukan data sebenar.');
     }
 
-    if (!teks) return tolak('Teks petikan kosong.');
+    if (!teksAsal) return tolak('Teks asal kosong.');
     if (!pengarang) return tolak('Pengarang kosong.');
     if (!karya) return tolak('Karya kosong.');
-    if (!bahasa) return tolak('Bahasa kosong.');
-    if (teks.length > HAD_TEKS_PETIKAN) {
-      return tolak(`Teks petikan ${teks.length} aksara, melebihi had ${HAD_TEKS_PETIKAN}. Tidak dipotong automatik — pilih petikan lebih pendek.`);
+    if (!bahasaMentah) return tolak('Bahasa asal kosong.');
+
+    // Teks paparan DITERBITKAN, bukan dipilih. Satu laluan kod untuk kedua-dua kes.
+    const sumberMelayu = adalahBahasaMelayu(bahasaMentah);
+    const teksMelayu = (teksMelayuMentah === '-' ? '' : teksMelayuMentah);
+    if (!sumberMelayu && !teksMelayu) {
+      return tolak(`Sumber berbahasa ${namaBahasa(bahasaMentah)} tetapi tiada "Teks Melayu:". Frontpage memaparkan Bahasa Melayu sahaja, jadi terjemahan wajib.`);
+    }
+    const teksPaparan = sumberMelayu ? teksAsal : teksMelayu;
+
+    // Had aksara dikenakan pada TEKS PAPARAN — itu yang perlu muat dalam margin. Teks asal
+    // sengaja TIDAK dihadkan: ia tidak pernah dipaparkan kepada pembaca, cuma disemak editor,
+    // dan memangkasnya bermakna memangkas kata-kata pengarang.
+    if (teksPaparan.length > HAD_TEKS_PETIKAN) {
+      return tolak(`Teks paparan ${teksPaparan.length} aksara, melebihi had ${HAD_TEKS_PETIKAN}. Tidak dipotong automatik — pilih petikan lebih pendek.`);
     }
 
     // Kategori tidak sah TIDAK menggagalkan rekod (keputusan reka bentuk): petikannya mungkin
@@ -293,7 +449,10 @@ export function huraiPetikanTampal(teksMentah) {
     const kategori = KATEGORI_PETIKAN.find((k) => k.toLowerCase() === kategoriMentah.toLowerCase()) || null;
 
     const calon = {
-      teks, pengarang, karya, bahasa,
+      teksAsal,
+      bahasaAsal: namaBahasa(bahasaMentah),
+      teksPaparan,
+      pengarang, karya,
       rujukan: rujukanMentah === '-' ? '' : rujukanMentah,
       kategori,
       pautanBuku: pautanMentah === '-' ? '' : pautanMentah,

@@ -27,6 +27,7 @@ export interface PetikanAwam {
   karya: string;
   rujukan: string;
   kategori: string | null;
+  labelTerjemahan: string;
   pautanBuku: string;
   labelPautan: string;
 }
@@ -119,6 +120,18 @@ const Atribusi: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => 
     {p.rujukan && <span> · {p.rujukan}</span>}
   </div>
 );
+
+/** Label sumber terjemahan. Pembaca melihat Bahasa Melayu sahaja (keputusan Izzat), jadi apabila
+ *  petikan berasal daripada kitab Arab atau buku Inggeris, itu MESTI dinyatakan — kata-kata yang
+ *  dibaca ialah terjemahan, bukan kata-kata asal pengarang.
+ *
+ *  Dipaparkan sebagai metadata sekunder, BUKAN sebahagian petikan: lebih kecil, lebih pudar, dan
+ *  di luar tanda petik. Teks label dikira di pelayan (labelTerjemahan, PetikanConfig.js) supaya
+ *  peraturan "tiada label untuk sumber Melayu" hidup di satu tempat sahaja. */
+const LabelTerjemahan: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => {
+  if (!p.labelTerjemahan) return null;
+  return <div className={kelas}>{p.labelTerjemahan}</div>;
+};
 
 const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => {
   if (!p.pautanBuku) return null;
@@ -296,7 +309,8 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
         <p className={`font-serif text-stone-600 ${saizTeksMargin(p.teks.length)}`}>
           {p.teks}
         </p>
-        <Atribusi p={p} kelas="mt-2 font-sans text-[10px] uppercase tracking-wider text-stone-500" />
+        <LabelTerjemahan p={p} kelas="mt-2 font-sans text-[9px] uppercase tracking-wider text-stone-400" />
+        <Atribusi p={p} kelas="mt-1 font-sans text-[10px] uppercase tracking-wider text-stone-500" />
         <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[10px] text-stone-500 underline underline-offset-2 hover:text-stone-800" />
       </div>
     </aside>
@@ -327,7 +341,8 @@ export const PetikanStatik: React.FC = () => {
         <p className="font-serif text-stone-700 text-[17px] leading-[1.7] max-w-2xl mx-auto">
           {p.teks}
         </p>
-        <Atribusi p={p} kelas="mt-3 font-sans text-[11px] uppercase tracking-wider text-stone-500" />
+        <LabelTerjemahan p={p} kelas="mt-3 font-sans text-[10px] uppercase tracking-wider text-stone-400" />
+        <Atribusi p={p} kelas="mt-1.5 font-sans text-[11px] uppercase tracking-wider text-stone-500" />
         <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[11px] text-stone-500 underline underline-offset-2 hover:text-stone-800" />
       </div>
     </section>

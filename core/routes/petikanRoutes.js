@@ -4,7 +4,7 @@ import { logAudit } from '../audit/AuditLog.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import {
   KATEGORI_PETIKAN, HAD_TEKS_PETIKAN, huraiPetikanTampal, kunciDedupPetikan,
-  pilihDanSusunKolam, binaArahanAiPetikan,
+  pilihDanSusunKolam, binaArahanAiPetikan, labelTerjemahan, namaBahasa, adalahBahasaMelayu,
 } from '../editorial/PetikanConfig.js';
 
 // Petikan (2026-08-19, spesifikasi Izzat) — kandungan editorial sampingan di margin kiri frontpage.
@@ -16,6 +16,9 @@ import {
 // Petikan layak dipapar hanya bila KEDUA-DUANYA benar. AI boleh mencari calon petikan, tetapi AI
 // BUKAN sumber pengesahan — apa-apa yang masuk daripada AI bermula 'belum_sah' tanpa pengecualian.
 const STATUS_SAH_SAH = ['belum_sah', 'sah', 'dipertikai'];
+// 'tidak_perlu' hanya sah untuk sumber Melayu, dan tidak pernah ditetapkan daripada payload klien
+// — ia diterbitkan daripada bahasa asal (lihat bentukTeksPaparan).
+const STATUS_TERJEMAHAN_SAH = ['tidak_perlu', 'belum_sah', 'sah', 'dipertikai'];
 
 // Had aksara — petikan marginal mesti pendek supaya muat ruang 180-220px tanpa menenggelamkan
 // kandungan utama. Siling KERAS (bukan sasaran); petikan baik biasanya jauh lebih pendek. Had ni
@@ -27,15 +30,34 @@ const HAD_PENGARANG = 120;
 const HAD_KARYA = 200;
 const HAD_RUJUKAN = 200;
 
+/** Kelayakan terbit DITERBITKAN daripada dua status, tidak pernah disimpan sebagai lajur —
+ *  satu boolean tersimpan akan segera menyimpang daripada status yang membentuknya.
+ *
+ *  Kategori termasuk dalam syarat kerana petikan tanpa kategori tidak boleh menyertai kolam
+ *  harian tanpa memecahkan jaminan "bukan kategori sama berturutan". */
+export function layakTerbit(r) {
+  const sumberOk = (r.statusSumber || 'belum_sah') === 'sah';
+  const st = r.statusTerjemahan || 'tidak_perlu';
+  const terjemahanOk = st === 'tidak_perlu' || st === 'sah';
+  const adaKategori = !!(r.kategori && String(r.kategori).trim());
+  return sumberOk && terjemahanOk && adaKategori && (r.aktif === 1 || r.aktif === true);
+}
+
+/** Bentuk EDITORIAL — segalanya, termasuk teks asal. Hanya untuk laluan /api/system. */
 const barisKepadaPetikan = (r) => ({
   id: r.id,
-  teks: r.teks,
+  teksAsal: r.teksAsal,
+  bahasaAsal: r.bahasaAsal || 'Melayu',
+  teksPaparan: r.teksPaparan,
   pengarang: r.pengarang,
   karya: r.karya,
   rujukan: r.rujukan || '',
-  bahasa: r.bahasa || 'ms',
   kategori: r.kategori || null,
-  statusSah: r.statusSah || 'belum_sah',
+  statusSumber: r.statusSumber || 'belum_sah',
+  statusTerjemahan: r.statusTerjemahan || 'tidak_perlu',
+  sumberDisahkanPada: r.sumberDisahkanPada || '',
+  terjemahanDisahkanPada: r.terjemahanDisahkanPada || '',
+  layakTerbit: layakTerbit(r),
   aktif: r.aktif === 1,
   pautanBuku: r.pautanBuku || '',
   labelPautan: r.labelPautan || '',
@@ -51,13 +73,22 @@ const barisKepadaPetikan = (r) => ({
   kumpulanImport: r.kumpulanImport || '',
 });
 
-/** Bentuk AWAM — sengaja BUKAN `barisKepadaPetikan`. Medan pentadbiran (statusSah, dibuatOleh,
- *  dibuatPada, tarikh julat) tidak ada kaitan dengan pembaca dan tidak sepatutnya keluar ke
- *  halaman awam hanya kerana ia wujud dalam baris DB. Kalau medan baharu ditambah pada jadual
- *  `petikan` kemudian, ia TIDAK terbocor automatik ke sini — mesti ditambah secara sedar. */
+/** Bentuk AWAM — sengaja BUKAN `barisKepadaPetikan`.
+ *
+ *  `teksAsal` TIDAK PERNAH keluar ke sini. Ini SEMPADAN DATA, bukan sekadar menyembunyikan elemen
+ *  dengan CSS: keputusan Izzat ialah teks asal untuk semakan dalam sistem sahaja, dan menghantar
+ *  teks Arab ke pelayar pembaca "walaupun tidak dipaparkan" membesarkan muatan, meletakkan
+ *  kandungan dalaman dalam respons awam, dan menjemput frontend memaparkannya secara tidak
+ *  sengaja suatu hari nanti.
+ *
+ *  Medan pentadbiran (status, dibuatOleh, tarikh julat) juga tidak keluar. Kalau lajur baharu
+ *  ditambah pada jadual kemudian, ia TIDAK terbocor automatik — mesti ditambah secara sedar. */
 const barisKepadaPetikanAwam = (r) => ({
   id: r.id,
-  teks: r.teks,
+  teks: r.teksPaparan,
+  // Nama bahasa asal dihantar SEMATA-MATA untuk label "Diterjemah daripada Arab". Kosong bila
+  // sumbernya Melayu, supaya klien tidak perlu menduplikasi peraturan itu.
+  labelTerjemahan: labelTerjemahan(r.bahasaAsal),
   pengarang: r.pengarang,
   karya: r.karya,
   rujukan: r.rujukan || '',
@@ -71,6 +102,30 @@ const barisKepadaPetikanAwam = (r) => ({
 // Sebab ia TIDAK guna ORDER BY RANDOM(): setiap permintaan akan beri susunan berbeza, jadi
 // refresh sahaja sudah menukar petikan — bercanggah dengan keputusan Izzat bahawa petikan hanya
 // bertukar apabila pembaca scroll.
+
+/** Terbitkan teks paparan + status terjemahan awal daripada bahasa asal.
+ *
+ *  SATU tempat, dipakai oleh laluan cipta DAN laluan sunting — supaya kes Melayu dan kes
+ *  terjemahan tidak pernah menjadi dua laluan kod yang boleh menyimpang. Pulangkan { error }
+ *  bila muatan tidak koheren, supaya pemanggil membalas 400 dan bukan menyimpan rekod separuh. */
+function bentukTeksPaparan({ teksAsal, bahasaAsal, teksMelayu }) {
+  const asal = String(teksAsal || '').trim();
+  const bahasa = namaBahasa(bahasaAsal) || 'Melayu';
+  const melayu = String(teksMelayu || '').trim();
+
+  if (!asal) return { error: 'Teks asal wajib diisi.' };
+
+  if (adalahBahasaMelayu(bahasa)) {
+    // Sumber Melayu: teks paparan IALAH teks asal. Tiada terjemahan wujud, jadi tiada apa untuk
+    // disahkan — 'tidak_perlu' bukan jalan pintas, ia keadaan yang tepat.
+    return { teksAsal: asal, bahasaAsal: 'Melayu', teksPaparan: asal, statusTerjemahan: 'tidak_perlu' };
+  }
+
+  if (!melayu) {
+    return { error: `Sumber berbahasa ${bahasa} memerlukan terjemahan Melayu — frontpage memaparkan Bahasa Melayu sahaja.` };
+  }
+  return { teksAsal: asal, bahasaAsal: bahasa, teksPaparan: melayu, statusTerjemahan: 'belum_sah' };
+}
 
 export function createPetikanRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
@@ -102,10 +157,14 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       // (disimpan NULL + amaran semasa import) — petikan itu tidak akan tersiar dengan kategori
       // palsu, dan tidak juga tersiar tanpa kategori. Konsol memaparkan amaran jelas supaya
       // keadaan ini kelihatan, bukan senyap.
+      // GERBANG PENERBITAN — kedua-dua pemeriksaan mesti lulus, bukan satu.
+      // Terjemahan 'tidak_perlu' ialah keadaan SAH untuk sumber Melayu, bukan jalan pintas:
+      // tiada terjemahan wujud, jadi tiada apa untuk disahkan.
       const rows = await dbAll(
         `SELECT * FROM petikan
          WHERE aktif = 1
-           AND statusSah = 'sah'
+           AND statusSumber = 'sah'
+           AND statusTerjemahan IN ('tidak_perlu', 'sah')
            AND kategori IS NOT NULL AND TRIM(kategori) != ''
            AND (tarikhMula IS NULL OR tarikhMula = '' OR tarikhMula <= ?)
            AND (tarikhAkhir IS NULL OR tarikhAkhir = '' OR tarikhAkhir >= ?)
@@ -152,27 +211,35 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
   router.post('/system/petikan', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const {
-        teks, pengarang, karya, rujukan = '', bahasa = 'ms', kategori = null,
+        teksAsal, bahasaAsal = 'Melayu', teksMelayu = '', pengarang, karya,
+        rujukan = '', kategori = null,
         pautanBuku = '', labelPautan = '', tarikhMula = '', tarikhAkhir = '',
       } = req.body || {};
 
-      const semakan = sahkanMedan({ teks, pengarang, karya, rujukan, pautanBuku, tarikhMula, tarikhAkhir });
+      const bentuk = bentukTeksPaparan({ teksAsal, bahasaAsal, teksMelayu });
+      if (bentuk.error) return res.status(400).json({ error: bentuk.error });
+
+      const semakan = sahkanMedan({
+        teks: bentuk.teksPaparan, pengarang, karya, rujukan, pautanBuku, tarikhMula, tarikhAkhir,
+      });
       if (semakan) return res.status(400).json({ error: semakan });
 
       const id = `petikan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const kini = new Date().toISOString();
       const namaSesi = req.session?.user?.penName || req.session?.user?.username || '';
 
-      // statusSah SENTIASA 'belum_sah' semasa cipta — TIDAK boleh ditetapkan daripada payload
+      // Kedua-dua status SENTIASA bermula belum disahkan — TIDAK boleh ditetapkan daripada payload
       // klien. Pengesahan ialah tindakan manusia berasingan (PATCH di bawah), bukan sesuatu yang
       // boleh dilangkau dengan menghantar medan dalam permintaan cipta. Ini gerbang yang sama
       // menghalang output AI daripada terus dianggap sahih.
       await dbRun(
-        `INSERT INTO petikan (id, teks, pengarang, karya, rujukan, bahasa, kategori, statusSah, aktif,
+        `INSERT INTO petikan (id, teksAsal, bahasaAsal, teksPaparan, pengarang, karya, rujukan, kategori,
+                              statusSumber, statusTerjemahan, aktif,
                               pautanBuku, labelPautan, tarikhMula, tarikhAkhir, dibuatOleh, dibuatPada, dikemasPada)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'belum_sah', 1, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, teks.trim(), pengarang.trim(), karya.trim(), (rujukan || '').trim(), (bahasa || 'ms').trim(),
-         kategoriSahAtauNull(kategori),
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'belum_sah', ?, 1, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, bentuk.teksAsal, bentuk.bahasaAsal, bentuk.teksPaparan,
+         pengarang.trim(), karya.trim(), (rujukan || '').trim(),
+         kategoriSahAtauNull(kategori), bentuk.statusTerjemahan,
          (pautanBuku || '').trim(), (labelPautan || '').trim(), (tarikhMula || '').trim(), (tarikhAkhir || '').trim(),
          namaSesi, kini, kini]
       );
@@ -182,7 +249,7 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
         actorId: req.session?.user?.id,
         actorName: namaSesi,
         action: 'cipta-petikan', targetType: 'petikan', targetId: id,
-        detail: teks.trim().slice(0, 60),
+        detail: bentuk.teksPaparan.slice(0, 60),
       });
       res.json({ success: true, petikan: barisKepadaPetikan(baris) });
     } catch (err) {
@@ -201,8 +268,22 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       if (!sedia) return res.status(404).json({ error: 'Petikan tidak dijumpai.' });
 
       const b = req.body || {};
+
+      // Teks paparan sentiasa DITERBITKAN semula daripada gabungan teks asal + bahasa + terjemahan,
+      // tidak pernah diterima terus daripada klien — supaya ia mustahil menyimpang daripada medan
+      // yang membentuknya.
+      const bentuk = bentukTeksPaparan({
+        teksAsal: b.teksAsal !== undefined ? b.teksAsal : sedia.teksAsal,
+        bahasaAsal: b.bahasaAsal !== undefined ? b.bahasaAsal : sedia.bahasaAsal,
+        teksMelayu: b.teksMelayu !== undefined
+          ? b.teksMelayu
+          // Bila bahasa asal bukan Melayu, teks paparan tersimpan IALAH terjemahannya.
+          : (adalahBahasaMelayu(sedia.bahasaAsal) ? '' : sedia.teksPaparan),
+      });
+      if (bentuk.error) return res.status(400).json({ error: bentuk.error });
+
       const gabung = {
-        teks: b.teks !== undefined ? b.teks : sedia.teks,
+        teks: bentuk.teksPaparan,
         pengarang: b.pengarang !== undefined ? b.pengarang : sedia.pengarang,
         karya: b.karya !== undefined ? b.karya : sedia.karya,
         rujukan: b.rujukan !== undefined ? b.rujukan : (sedia.rujukan || ''),
@@ -213,32 +294,73 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       const semakan = sahkanMedan(gabung);
       if (semakan) return res.status(400).json({ error: semakan });
 
-      if (b.statusSah !== undefined && !STATUS_SAH_SAH.includes(b.statusSah)) {
-        return res.status(400).json({ error: `Status pengesahan tidak sah. Guna salah satu: ${STATUS_SAH_SAH.join(', ')}.` });
+      if (b.statusSumber !== undefined && !STATUS_SAH_SAH.includes(b.statusSumber)) {
+        return res.status(400).json({ error: `Status sumber tidak sah. Guna salah satu: ${STATUS_SAH_SAH.join(', ')}.` });
+      }
+      if (b.statusTerjemahan !== undefined && !STATUS_TERJEMAHAN_SAH.includes(b.statusTerjemahan)) {
+        return res.status(400).json({ error: `Status terjemahan tidak sah. Guna salah satu: ${STATUS_TERJEMAHAN_SAH.join(', ')}.` });
       }
 
-      // Menyunting TEKS petikan membatalkan pengesahan sedia ada (2026-08-19) — kalau teks
-      // berubah, semakan lama terhadap sumber sudah tidak lagi terpakai pada teks BAHARU itu.
-      // Tanpa peraturan ni, editor boleh menyunting petikan yang sudah 'sah' menjadi apa-apa
-      // sahaja dan ia kekal bertanda sah — memusnahkan seluruh makna gerbang pengesahan.
-      // Pengecualian: kalau permintaan ini sendiri menetapkan statusSah secara eksplisit, hormati
-      // pilihan editor (dia mungkin membetulkan typo lalu mengesahkan semula dalam satu tindakan).
-      const teksBerubah = b.teks !== undefined && b.teks.trim() !== (sedia.teks || '').trim();
-      const statusSahBaharu = b.statusSah !== undefined
-        ? b.statusSah
-        : (teksBerubah ? 'belum_sah' : sedia.statusSah);
+      // Menyunting teks membatalkan pengesahan berkaitan (2026-08-19) — kalau teks berubah,
+      // semakan lama terhadap sumber sudah tidak lagi terpakai pada teks BAHARU itu. Tanpa
+      // peraturan ni, editor boleh menyunting petikan yang sudah 'sah' menjadi apa-apa sahaja dan
+      // ia kekal bertanda sah, memusnahkan seluruh makna gerbang pengesahan.
+      //
+      // Kedua-dua arah penting: mengubah teks ASAL membatalkan pengesahan sumber DAN pengesahan
+      // terjemahan (terjemahan itu kini merujuk kepada asal yang sudah berubah), manakala mengubah
+      // terjemahan sahaja cuma membatalkan pengesahan terjemahan.
+      const asalBerubah = bentuk.teksAsal !== (sedia.teksAsal || '').trim();
+      const paparanBerubah = bentuk.teksPaparan !== (sedia.teksPaparan || '').trim();
+
+      let statusSumberBaharu = b.statusSumber !== undefined
+        ? b.statusSumber
+        : (asalBerubah ? 'belum_sah' : (sedia.statusSumber || 'belum_sah'));
+
+      let statusTerjemahanBaharu;
+      if (bentuk.statusTerjemahan === 'tidak_perlu') {
+        // Sumber Melayu — tiada terjemahan wujud, apa pun yang klien hantar.
+        statusTerjemahanBaharu = 'tidak_perlu';
+      } else if (b.statusTerjemahan !== undefined) {
+        statusTerjemahanBaharu = b.statusTerjemahan;
+      } else if (asalBerubah || paparanBerubah) {
+        statusTerjemahanBaharu = 'belum_sah';
+      } else {
+        statusTerjemahanBaharu = sedia.statusTerjemahan === 'tidak_perlu' ? 'belum_sah' : (sedia.statusTerjemahan || 'belum_sah');
+      }
+
+      // URUTAN DIKUATKUASAKAN: terjemahan tidak boleh disahkan selagi sumber belum disahkan.
+      // Terjemahan yang setia kepada sumber yang salah tetap tidak berguna, jadi membenarkan
+      // "terjemahan sah + sumber belum sah" mencipta keadaan yang kelihatan maju tetapi tidak
+      // bermakna. Ditolak secara eksplisit supaya editor nampak sebabnya.
+      if (statusTerjemahanBaharu === 'sah' && statusSumberBaharu !== 'sah') {
+        return res.status(400).json({
+          error: 'Terjemahan tidak boleh disahkan sebelum teks asal disahkan terhadap sumber.',
+        });
+      }
 
       const kini = new Date().toISOString();
+      // Jejak keputusan bertarikh — bukan sekadar status akhir. Selepas koleksi membesar, "bila
+      // saya sahkan ini?" ialah soalan sebenar; satu boolean tidak boleh menjawabnya.
+      const capSumber = statusSumberBaharu === 'sah'
+        ? (sedia.statusSumber === 'sah' ? sedia.sumberDisahkanPada : kini)
+        : null;
+      const capTerjemahan = statusTerjemahanBaharu === 'sah'
+        ? (sedia.statusTerjemahan === 'sah' ? sedia.terjemahanDisahkanPada : kini)
+        : null;
+
       await dbRun(
-        `UPDATE petikan SET teks = ?, pengarang = ?, karya = ?, rujukan = ?, bahasa = ?, kategori = ?,
-                            statusSah = ?, aktif = ?, pautanBuku = ?, labelPautan = ?,
+        `UPDATE petikan SET teksAsal = ?, bahasaAsal = ?, teksPaparan = ?, pengarang = ?, karya = ?,
+                            rujukan = ?, kategori = ?, statusSumber = ?, statusTerjemahan = ?,
+                            sumberDisahkanPada = ?, terjemahanDisahkanPada = ?,
+                            aktif = ?, pautanBuku = ?, labelPautan = ?,
                             tarikhMula = ?, tarikhAkhir = ?, dikemasPada = ?
          WHERE id = ?`,
         [
-          gabung.teks.trim(), gabung.pengarang.trim(), gabung.karya.trim(), (gabung.rujukan || '').trim(),
-          (b.bahasa !== undefined ? b.bahasa : (sedia.bahasa || 'ms')).trim(),
+          bentuk.teksAsal, bentuk.bahasaAsal, bentuk.teksPaparan,
+          gabung.pengarang.trim(), gabung.karya.trim(), (gabung.rujukan || '').trim(),
           b.kategori !== undefined ? kategoriSahAtauNull(b.kategori) : (sedia.kategori || null),
-          statusSahBaharu,
+          statusSumberBaharu, statusTerjemahanBaharu,
+          capSumber, capTerjemahan,
           b.aktif !== undefined ? (b.aktif ? 1 : 0) : sedia.aktif,
           (gabung.pautanBuku || '').trim(),
           (b.labelPautan !== undefined ? b.labelPautan : (sedia.labelPautan || '')).trim(),
@@ -252,7 +374,7 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
         actorId: req.session?.user?.id,
         actorName: req.session?.user?.penName || req.session?.user?.username,
         action: 'sunting-petikan', targetType: 'petikan', targetId: id,
-        detail: `statusSah=${statusSahBaharu}, aktif=${baris.aktif}`,
+        detail: `sumber=${statusSumberBaharu}, terjemahan=${statusTerjemahanBaharu}, aktif=${baris.aktif}`,
       });
       res.json({ success: true, petikan: barisKepadaPetikan(baris) });
     } catch (err) {
@@ -278,7 +400,7 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
         actorId: req.session?.user?.id,
         actorName: req.session?.user?.penName || req.session?.user?.username,
         action: 'padam-petikan', targetType: 'petikan', targetId: id,
-        detail: (sedia.teks || '').slice(0, 60),
+        detail: (sedia.teksPaparan || '').slice(0, 60),
       });
       res.json({ success: true });
     } catch (err) {
@@ -309,7 +431,7 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
 
       // Dedup terhadap koleksi SEDIA ADA — tampal semula output yang sama tidak sepatutnya
       // menghasilkan pendua senyap dalam pustaka.
-      const sedia = await dbAll('SELECT teks, pengarang, karya FROM petikan');
+      const sedia = await dbAll('SELECT teksAsal, pengarang, karya FROM petikan');
       const kunciSedia = new Set((sedia || []).map(kunciDedupPetikan));
       const baharu = [];
       const pendua = [];
@@ -347,7 +469,7 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       // dan editor menyemak berturut-turut tanpa melompat antara karya.
       const kumpulan = `import-${Date.now()}`;
 
-      const sedia = await dbAll('SELECT teks, pengarang, karya FROM petikan');
+      const sedia = await dbAll('SELECT teksAsal, pengarang, karya FROM petikan');
       const kunciSedia = new Set((sedia || []).map(kunciDedupPetikan));
 
       let disimpan = 0;
@@ -355,21 +477,33 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       for (const r of senarai) {
         // Sahkan SEMULA di pelayan — jangan percaya rekod yang datang balik daripada klien.
         // Klien boleh diubah suai; pratonton bukan gerbang keselamatan.
+        // Terbitkan semula teks paparan di PELAYAN — kad boleh sunting di konsol bermakna editor
+        // boleh mengubah bahasa atau terjemahan sebelum menyimpan, dan klien tidak dipercayai
+        // untuk mengira medan terbitan itu sendiri.
+        const bentuk = bentukTeksPaparan({
+          teksAsal: r.teksAsal, bahasaAsal: r.bahasaAsal, teksMelayu: r.teksMelayu,
+        });
+        if (bentuk.error) { dilangkau++; continue; }
+
         const semakan = sahkanMedan({
-          teks: r.teks, pengarang: r.pengarang, karya: r.karya,
+          teks: bentuk.teksPaparan, pengarang: r.pengarang, karya: r.karya,
           rujukan: r.rujukan, pautanBuku: r.pautanBuku, tarikhMula: '', tarikhAkhir: '',
         });
         if (semakan) { dilangkau++; continue; }
-        if (kunciSedia.has(kunciDedupPetikan(r))) { dilangkau++; continue; }
-        kunciSedia.add(kunciDedupPetikan(r));
+
+        const kunci = kunciDedupPetikan({ teksAsal: bentuk.teksAsal, pengarang: r.pengarang, karya: r.karya });
+        if (kunciSedia.has(kunci)) { dilangkau++; continue; }
+        kunciSedia.add(kunci);
 
         const id = `petikan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         await dbRun(
-          `INSERT INTO petikan (id, teks, pengarang, karya, rujukan, bahasa, kategori, statusSah, aktif,
+          `INSERT INTO petikan (id, teksAsal, bahasaAsal, teksPaparan, pengarang, karya, rujukan, kategori,
+                                statusSumber, statusTerjemahan, aktif,
                                 pautanBuku, labelPautan, tarikhMula, tarikhAkhir, dibuatOleh, dibuatPada, dikemasPada, kumpulanImport)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'belum_sah', 1, ?, '', '', '', ?, ?, ?, ?)`,
-          [id, (r.teks || '').trim(), (r.pengarang || '').trim(), (r.karya || '').trim(),
-           (r.rujukan || '').trim(), (r.bahasa || 'ms').trim(), kategoriSahAtauNull(r.kategori),
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'belum_sah', ?, 1, ?, '', '', '', ?, ?, ?, ?)`,
+          [id, bentuk.teksAsal, bentuk.bahasaAsal, bentuk.teksPaparan,
+           (r.pengarang || '').trim(), (r.karya || '').trim(),
+           (r.rujukan || '').trim(), kategoriSahAtauNull(r.kategori), bentuk.statusTerjemahan,
            (r.pautanBuku || '').trim(), namaSesi, kini, kini, kumpulan]
         );
         disimpan++;
