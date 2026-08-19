@@ -287,9 +287,14 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // (Kandungan, Urus Slot) boleh papar toast SEBENAR selepas tindakan (Terbit/Arkib/Tolak), bukan
   // cuma mesej dalaman modal yang hilang lepas beberapa saat.
   const [editoriumToasts, setEditoriumToasts] = useState<ToastMessage[]>([]);
-  const pushToast = (type: 'success' | 'error' | 'info', message: string, action?: { label: string; onClick: () => void }) => {
+  const pushToast = (
+    type: 'success' | 'error' | 'info',
+    message: string,
+    action?: { label: string; onClick: () => void },
+    opts?: { bolehSalinAI?: boolean }
+  ) => {
     const id = Math.random().toString(36).substring(2, 9);
-    setEditoriumToasts((prev) => [...prev, { id, type, message, action }]);
+    setEditoriumToasts((prev) => [...prev, { id, type, message, action, bolehSalinAI: opts?.bolehSalinAI }]);
   };
   const dismissToast = (id: string) => {
     setEditoriumToasts((prev) => prev.filter((t) => t.id !== id));
@@ -957,6 +962,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           currentEditoriumName={currentUser.name}
           isSavingSlot={slotEditor.isSavingSlot}
           saveError={slotEditor.saveError}
+          saveErrorBolehSalinAI={slotEditor.saveErrorBolehSalinAI}
           onClose={tutupRuangMenulis}
           onSave={slotEditor.handleSaveSlot}
           // Slot yang sedang dibuka SENTIASA disertakan walaupun ia di luar tugasan pengguna
@@ -976,12 +982,6 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           onLihatIndeks={lihatDiIndeks}
         />
       )}
-      {slotEditor.saveError && (
-        <div className="fixed bottom-4 right-4 z-[60] bg-red-50 border border-[var(--color-error)] text-[var(--color-error)] text-xs px-4 py-3 rounded shadow-lg max-w-sm">
-          {slotEditor.saveError}
-        </div>
-      )}
-
       {/* Modal Slot Bar native Editorium (2026-08-02, Fasa 7) — lihat BarSlotManagerModal.tsx. */}
       {barSlotEditor.editingSlotIndex !== null && barSlotEditor.formConfig && (
         <BarSlotManagerModal
@@ -1003,11 +1003,6 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           onSwitchSlot={(i) => barSlotEditor.openSlotEditor(i)}
           onToast={pushToast}
         />
-      )}
-      {barSlotEditor.saveError && (
-        <div className="fixed bottom-4 right-4 z-[60] bg-red-50 border border-[var(--color-error)] text-[var(--color-error)] text-xs px-4 py-3 rounded shadow-lg max-w-sm">
-          {barSlotEditor.saveError}
-        </div>
       )}
     </EditoriumLayout>
   );

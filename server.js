@@ -3083,6 +3083,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       // Laluan sunting kandungan yang SUDAH terbit ada ayat akibat sendiri (contentRoutes.js).
       const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason} Kandungan tidak disiarkan.`);
       err.isValidationError = true;
+      err.bolehSalinAI = true;
       throw err;
     }
     // Had MINIMUM huraian panjang (2026-08-07, permintaan Izzat — "nak tetapkan had minimum
@@ -3094,6 +3095,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
     if (item.briefLong && item.briefLong.trim() && item.briefLong.length < effectiveMinBriefLong()) {
       const err = new Error(`Huraian panjang bagi "${(item.title || '').slice(0, 40)}..." terlalu pendek (${item.briefLong.length} aksara, minimum ${effectiveMinBriefLong()}). Kandungan tidak disiarkan. Panjangkan huraian atau kosongkan terus medan ni.`);
       err.isValidationError = true;
+      err.bolehSalinAI = true;
       throw err;
     }
     // Had aksara medan bukan-kad (Tetapan Am Slot) — huraian panjang, sumber, topik, nota.
@@ -3105,6 +3107,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
     if (!medanCheck.isValid) {
       const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${medanCheck.reason}`);
       err.isValidationError = true;
+      err.bolehSalinAI = true;
       throw err;
     }
     // Had nisbah gloss interlinear (2026-08-12, keputusan Izzat) — lihat nota ContentBudget.js.
@@ -3114,6 +3117,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
     if (!glossCheck.isValid) {
       const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${glossCheck.reason}`);
       err.isValidationError = true;
+      err.bolehSalinAI = true;
       throw err;
     }
     // Format sumber (Fasa 8b) — URL sumber mesti sekurang-kurangnya rupa URL sah kalau diisi.
@@ -3129,24 +3133,28 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       if (!urlCheck.isValid) {
         const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${urlCheck.reason}`);
         err.isValidationError = true;
+      err.bolehSalinAI = true;
         throw err;
       }
       const namaCheck = validateSumberNama(s.name);
       if (!namaCheck.isValid) {
         const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${namaCheck.reason}`);
         err.isValidationError = true;
+      err.bolehSalinAI = true;
         throw err;
       }
       const tarikhCheck = validateTarikhSumber(s.date);
       if (!tarikhCheck.isValid) {
         const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${tarikhCheck.reason}`);
         err.isValidationError = true;
+      err.bolehSalinAI = true;
         throw err;
       }
     }
     if (effectiveMaxBriefLong && item.briefLong && item.briefLong.length > effectiveMaxBriefLong) {
       const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan. Pendekkan huraian dahulu.`);
       err.isValidationError = true;
+      err.bolehSalinAI = true;
       throw err;
     }
     // Peraturan Khas Slot Bar — Penerangan diisi ke panel akordion (BarCardExpandedPanel.tsx),
@@ -3154,6 +3162,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
     if (isBar && item.penerangan && item.penerangan.length > MAX_PENERANGAN_CHARS) {
       const err = new Error(`Penerangan bagi "${(item.title || '').slice(0, 40)}..." melebihi had ${MAX_PENERANGAN_CHARS} aksara (semasa: ${item.penerangan.length}). Kandungan tidak disiarkan. Pendekkan penerangan dahulu.`);
       err.isValidationError = true;
+      err.bolehSalinAI = true;
       throw err;
     }
     // Bidang (kategori) terkunci per-slot, Topik wajib untuk kandungan baharu/diedit — kecuali

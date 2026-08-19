@@ -42,6 +42,11 @@ export function useSlotEditor(editorName?: string) {
   // papar butang "Salin draf saya ke papan klip" HANYA pada kes ni — editor tak perlu menaip
   // semula draf secara manual selepas muat semula slot.
   const [saveErrorIsConflict, setSaveErrorIsConflict] = useState(false);
+  // Ralat berkait kandungan AI (2026-08-19, permintaan Izzat) — true bila ralat ni tentang
+  // kandungan yang chatbot AI mungkin janakan (had aksara, format tarikh, placeholder templat)
+  // supaya toast global boleh papar butang "Salin" (editor tampal balik ralat tu ke sesi AI
+  // untuk pembetulan). Palsu untuk ralat bukan-kandungan (Bidang, kebenaran, konflik simpanan).
+  const [saveErrorBolehSalinAI, setSaveErrorBolehSalinAI] = useState(false);
 
   const fetchSlotsConfig = useCallback(() => {
     return fetch('/api/system/slots')
@@ -205,6 +210,7 @@ export function useSlotEditor(editorName?: string) {
     setIsSavingSlot(true);
     setSaveError('');
     setSaveErrorIsConflict(false);
+    setSaveErrorBolehSalinAI(false);
     const finalFormConfig = { ...formConfig, editorName: editorName || '' };
     if (typeof manualSummaryOverride === 'string') {
       finalFormConfig.manualSummary = manualSummaryOverride;
@@ -242,11 +248,13 @@ export function useSlotEditor(editorName?: string) {
       } else {
         setSaveError(data.error || 'Gagal menyimpan slot.');
         setSaveErrorIsConflict(response.status === 409);
+        setSaveErrorBolehSalinAI(!!data.bolehSalinAI);
         return false;
       }
     } catch (err: any) {
       setSaveError('Ralat menyimpan slot: ' + (err.message || ''));
       setSaveErrorIsConflict(false);
+      setSaveErrorBolehSalinAI(false);
       return false;
     } finally {
       setIsSavingSlot(false);
@@ -257,7 +265,7 @@ export function useSlotEditor(editorName?: string) {
     slotsConfig, activeBidangList,
     editingSlotIndex, formConfig, setFormConfig,
     showSlotPicker, setShowSlotPicker,
-    isSavingSlot, saveError, saveErrorIsConflict,
+    isSavingSlot, saveError, saveErrorIsConflict, saveErrorBolehSalinAI,
     openSlotEditor, closeSlotEditor, handleSaveSlot,
     salinDrafKePapanKlip,
   };

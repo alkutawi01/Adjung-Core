@@ -291,7 +291,10 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
             if (e.isValidationError) {
               // Hard-block: abort the whole save (not just this slot) so the admin sees exactly
               // why nothing was published, instead of a silent partial save.
-              return res.status(400).json({ error: e.message });
+              // bolehSalinAI (2026-08-19) — diteruskan dari server.js supaya klien tahu ralat ni
+              // berkait kandungan yang AI mungkin janakan (had aksara/format), bukan keputusan
+              // editorial (Bidang/kebenaran) — kawal sama ada toast papar butang salin.
+              return res.status(400).json({ error: e.message, bolehSalinAI: !!e.bolehSalinAI });
             }
             console.warn(`Failed to sync editorial_objects for slot ${slot.slotIndex}:`, e.message);
           }

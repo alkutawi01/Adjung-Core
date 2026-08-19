@@ -46,13 +46,13 @@ const validateContentBudget = (slotIndex, title, summary) => {
     if (maxBriefAlone === 0) {
       if (briefLen > 0) {
         return {
-          isValid: false,
+          isValid: false, bolehSalinAI: true,
           reason: `Kad ${tier} tidak menyokong huraian ringkas. Sila kosongkan huraian.`,
         };
       }
       if (maxTitleAlone && titleLen > maxTitleAlone) {
         return {
-          isValid: false,
+          isValid: false, bolehSalinAI: true,
           reason: `Tajuk (${titleLen} aksara) melebihi had maksimum ruang kad ${tier} (${maxTitleAlone} aksara).`,
         };
       }
@@ -71,7 +71,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
       // memang sudah kosong.
       if (briefLen === 0) {
         return {
-          isValid: false,
+          isValid: false, bolehSalinAI: true,
           reason: `Tajuk (${titleLen} aksara) melebihi ruang kad ${tier} (had tajuk: ${maxTitleAlone} aksara).`,
         };
       }
@@ -82,7 +82,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
       // THIS content, not the tier's theoretical maximum.
       const remainingBrief = Math.max(0, Math.round((1 - titleLen / maxTitleAlone) * maxBriefAlone));
       return {
-        isValid: false,
+        isValid: false, bolehSalinAI: true,
         reason: `Huraian (${briefLen} aksara) melebihi had yang dibenarkan untuk tajuk sepanjang ${titleLen} aksara ini (had huraian maksimum: ${remainingBrief} aksara, kad ${tier}).`,
       };
     }
@@ -93,7 +93,7 @@ const validateContentBudget = (slotIndex, title, summary) => {
     // bajet kongsi kad — elak kad nampak kosong tanpa kira nisbah tajuk:huraian sendiri.
     if (usedFraction < MIN_TOTAL_USAGE_FRACTION) {
       return {
-        isValid: false,
+        isValid: false, bolehSalinAI: true,
         reason: `Kandungan (${Math.round(usedFraction * 100)}% bajet kad ${tier}) terlalu ringkas. Sekurang-kurangnya ${Math.round(MIN_TOTAL_USAGE_FRACTION * 100)}% jumlah bajet tajuk+huraian mesti diguna, elak kad nampak kosong. Panjangkan tajuk dan/atau huraian.`,
       };
     }
@@ -102,10 +102,10 @@ const validateContentBudget = (slotIndex, title, summary) => {
 
   const ceiling = FALLBACK_CEILINGS[tier] || FALLBACK_CEILINGS.DEFAULT;
   if (ceiling.maxTitle && titleLen > ceiling.maxTitle) {
-    return { isValid: false, reason: `Tajuk melebihi had ${ceiling.maxTitle} aksara (semasa: ${titleLen}).` };
+    return { isValid: false, bolehSalinAI: true, reason: `Tajuk melebihi had ${ceiling.maxTitle} aksara (semasa: ${titleLen}).` };
   }
   if (ceiling.maxBrief && briefLen > ceiling.maxBrief) {
-    return { isValid: false, reason: `Huraian melebihi had ${ceiling.maxBrief} aksara (semasa: ${briefLen}).` };
+    return { isValid: false, bolehSalinAI: true, reason: `Huraian melebihi had ${ceiling.maxBrief} aksara (semasa: ${briefLen}).` };
   }
   return { isValid: true };
 };
@@ -160,7 +160,7 @@ const validateMedanTambahan = ({ summaryLong, source, topik, note } = {}) => {
     if (typeof nilai !== 'string') continue;
     if (had && nilai.length > had) {
       return {
-        isValid: false,
+        isValid: false, bolehSalinAI: true,
         reason: `${nama} (${nilai.length} aksara) melebihi had ${had} aksara yang ditetapkan di Tetapan Am Slot. Kandungan tidak disiarkan.`,
       };
     }
@@ -168,7 +168,7 @@ const validateMedanTambahan = ({ summaryLong, source, topik, note } = {}) => {
     // ramai kandungan tiada langsung dan itu sah. Kosong terus tak pernah ditolak sebab minimum.
     if (min && nilai.trim() && nilai.length < min) {
       return {
-        isValid: false,
+        isValid: false, bolehSalinAI: true,
         reason: `${nama} (${nilai.length} aksara) terlalu pendek. Minimum ${min} aksara yang ditetapkan di Tetapan Am Slot (atau kosongkan terus medan ni). Kandungan tidak disiarkan.`,
       };
     }
@@ -191,13 +191,13 @@ const validateSourceUrl = (url) => {
     parsed = new URL(trimmed);
   } catch {
     return {
-      isValid: false,
+      isValid: false, bolehSalinAI: true,
       reason: `URL sumber ("${trimmed}") bukan URL yang sah. Sertakan skema penuh (cth https://...).`,
     };
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     return {
-      isValid: false,
+      isValid: false, bolehSalinAI: true,
       reason: `URL sumber mesti bermula dengan http:// atau https:// (dapat "${parsed.protocol}//").`,
     };
   }
@@ -219,7 +219,7 @@ const validateSumberNama = (nama) => {
   if (!trimmed) return { isValid: true };
   if (/^\(.+\)$/.test(trimmed)) {
     return {
-      isValid: false,
+      isValid: false, bolehSalinAI: true,
       reason: `Nama sumber ("${trimmed}") kelihatan seperti placeholder templat Arahan AI yang belum digantikan dengan nama sumber sebenar.`,
     };
   }
@@ -237,7 +237,7 @@ const validateTarikhSumber = (tarikh) => {
   if (!trimmed) return { isValid: true };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     return {
-      isValid: false,
+      isValid: false, bolehSalinAI: true,
       reason: `Tarikh sumber ("${trimmed}") bukan format tarikh yang sah. Guna format YYYY-MM-DD sebenar (cth 2026-08-17), bukan templat.`,
     };
   }
@@ -348,7 +348,7 @@ const validateGlossLength = (fields) => {
     const pasangan = extractGlossPairs(teks);
     if (!GLOSS_AUTHORING_ENABLED && pasangan.length > 0) {
       return {
-        isValid: false,
+        isValid: false, bolehSalinAI: true,
         reason: `Gloss interlinear (${namaMedan}) dimatikan buat sementara (KIV) sehingga ciri ni stabil sepenuhnya. Kandungan gloss sedia ada terus dipaparkan seperti biasa — sekatan ni cuma pada simpanan baharu. Buang sintaks [label](gloss:...) drpd medan ni utk simpan.`,
       };
     }
@@ -356,7 +356,7 @@ const validateGlossLength = (fields) => {
       const bilPerkataanGloss = gloss.trim() ? gloss.trim().split(/\s+/).length : 0;
       if (bilPerkataanGloss > GLOSS_MAX_WORDS) {
         return {
-          isValid: false,
+          isValid: false, bolehSalinAI: true,
           reason: `Gloss untuk "${label}" (${namaMedan}) ada ${bilPerkataanGloss} perkataan. Maksimum ${GLOSS_MAX_WORDS} perkataan sahaja.`,
         };
       }
@@ -367,7 +367,7 @@ const validateGlossLength = (fields) => {
           ? `1.5x panjang perkataan "${label}"`
           : `had mutlak ${GLOSS_MAX_CHARS_ABSOLUTE} aksara`;
         return {
-          isValid: false,
+          isValid: false, bolehSalinAI: true,
           reason: `Gloss untuk "${label}" (${namaMedan}) terlalu panjang (${gloss.length} aksara). Maksimum ${hadTerpakai} aksara (${sebab}).`,
         };
       }

@@ -97,6 +97,9 @@ interface SlotManagerModalProps {
   // pulangkan boolean `ok`, jadi sebab kegagalan sebenar (termasuk konflik serentak Fasa 6) tak
   // pernah sampai ke UI langsung. Dibaca oleh publishOne/saveDraft di bawah bila `ok` palsu.
   saveError?: string;
+  // Ralat berkait kandungan AI (2026-08-19) — lihat nota penuh di useSlotEditor.ts. Diteruskan ke
+  // onToast supaya toast global boleh papar butang "Salin".
+  saveErrorBolehSalinAI?: boolean;
   onClose: () => void;
   // Tukar slot terus dalam modal ni (2026-07-29, permintaan pemilik projek) — sebelum ni satu-
   // satunya cara tukar slot ialah Batal + buka pemilih semula. Pilihan (semua slot KECUALI Bar,
@@ -118,10 +121,11 @@ interface SlotManagerModalProps {
   // truthy dlm JS, jadi semak `if (ok)` sedia ada kekal berfungsi; publishOne() di bawah baca
   // kandungan array ni terus utk papar mesej toast yang tepat.
   onSave: (e: React.FormEvent, manualSummaryOverride?: string, opts?: { closeOnSuccess?: boolean }) => Promise<{ objectId: string; title: string; status: string }[] | boolean | void> | void;
-  // Toast kongsi Editorium (2026-08-08) — makluman SEBENAR selepas Terbit/Simpan draf, bukan
-  // cuma mesej dalaman modal (draftNote/publishError) yang hilang dalam beberapa saat dan tak
-  // kelihatan langsung kalau editor dah tutup modal.
-  onToast?: (type: 'success' | 'error' | 'info', message: string, action?: { label: string; onClick: () => void }) => void;
+  // Toast kongsi Editorium (2026-08-08) — makluman SEBENAR selepas Terbit/Simpan draf. SATU-
+  // SATUNYA saluran mesej (2026-08-19, Izzat: dua notis serentak nampak bertindih) — notis
+  // dalaman modal (draftNote/publishError, dan kotak lapuk fixed bottom-right EditoriumView.tsx)
+  // dibuang, kedua-duanya sentiasa pendua mesej yang sama persis dengan toast ni.
+  onToast?: (type: 'success' | 'error' | 'info', message: string, action?: { label: string; onClick: () => void }, opts?: { bolehSalinAI?: boolean }) => void;
   // Navigasi terarah ke Indeks yang sudah ditapis (WF-01, Pusingan 5, audit ChatGPT 2026-08-09)
   // — lepas Terbit, editor boleh terus lihat rekod baharu di Indeks tanpa tutup modal & cari
   // sendiri. Pilihan — modal tetap berfungsi penuh tanpanya (cth BarSlotManagerModal berkongsi
@@ -644,7 +648,7 @@ const SidebarItem = React.memo(function SidebarItem({
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, onClose, onSave,
-  slotOptions, onSwitchSlot, initialUuid, saveError, onToast, onLihatIndeks,
+  slotOptions, onSwitchSlot, initialUuid, saveError, saveErrorBolehSalinAI, onToast, onLihatIndeks,
 }) => {
   // Kandungan mana yang terbuka dahulu. Lalai yang pertama; bila dibuka daripada "Draf Saya"
   // (initialUuid), terus mendarat pada draf yang diklik. Sengaja dikira dalam initializer useState
@@ -1073,7 +1077,6 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // Diterbitkan" — kandungan sama ada Draf DI SINI, atau sudah Pending DI Indeks, tiada keadaan
   // pertengahan yang kelihatan).
   const [publishingIndex, setPublishingIndex] = useState<number | null>(null);
-  const [publishError, setPublishError] = useState('');
 
   // WF-03 (Pusingan 5, audit ChatGPT 2026-08-09; skop+wording disahkan Izzat) — "Terbit Semua"
   // dalam giliran slot SEMASA sahaja. Endpoint POST /api/system/slots ialah SATU transaksi
@@ -1117,9 +1120,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       if (!onLihatIndeks) onToast?.('success', `${hasil.length} kandungan diterbitkan.`);
     } else {
       const mesej = saveError || labelUi('toast.gagal_terbit');
-      setPublishError(mesej);
-      setTimeout(() => setPublishError(''), 5000);
-      onToast?.('error', mesej);
+      onToast?.('error', mesej, undefined, { bolehSalinAI: saveErrorBolehSalinAI });
     }
   };
 
@@ -1127,8 +1128,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     const item = items[i];
     const check = itemFits(editingSlotIndex, desk, item);
     if (!check.isValid) {
-      setPublishError(check.reason || 'Kandungan ini tidak lulus bajet ruang kad atau Topik.');
-      setTimeout(() => setPublishError(''), 8000);
+      onToast?.('error', check.reason || 'Kandungan ini tidak lulus bajet ruang kad atau Topik.', undefined, { bolehSalinAI: (check as any).bolehSalinAI });
       return;
     }
     setPublishingIndex(i);
@@ -1161,9 +1161,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       );
     } else {
       const mesej = saveError || labelUi('toast.gagal_terbit');
-      setPublishError(mesej);
-      setTimeout(() => setPublishError(''), 5000);
-      onToast?.('error', mesej);
+      onToast?.('error', mesej, undefined, { bolehSalinAI: saveErrorBolehSalinAI });
     }
   };
 
@@ -1172,7 +1170,6 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // segera per-kandungan). Ganti dengan aksi eksplisit di bawah borang, sama tempat macam
   // Terbit: hantar SELURUH giliran draf semasa ke server (persist), modal KEKAL terbuka.
   const [savingDraft, setSavingDraft] = useState(false);
-  const [draftNote, setDraftNote] = useState('');
   const saveDraft = async () => {
     setSavingDraft(true);
     const manualSummary = serializeManualBentoQueue(items);
@@ -1182,14 +1179,10 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       setFormConfig((prev: any) => ({ ...prev, manualSummary }));
       setManualSummaryTersimpanTerakhir(manualSummary);
       buangDrafTempatan(kunciDrafTempatan);
-      setDraftNote(labelUi('toast.draf_disimpan'));
-      setTimeout(() => setDraftNote(''), 2400);
       onToast?.('success', 'Draf disimpan.');
     } else {
       const mesej = saveError || labelUi('toast.gagal_simpan_draf');
-      setPublishError(mesej);
-      setTimeout(() => setPublishError(''), 5000);
-      onToast?.('error', mesej);
+      onToast?.('error', mesej, undefined, { bolehSalinAI: saveErrorBolehSalinAI });
     }
   };
 
@@ -1833,9 +1826,6 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <div className="flex items-center justify-between gap-4">
                   <span className="flex flex-col gap-0.5">
                     <span className={labelCls}>Kandungan ini masih draf</span>
-                    {(publishError || draftNote) && (
-                      <span className={`font-sans text-[10px] ${publishError ? 'text-[#a8241f]' : 'text-stone-500'}`}>{publishError || draftNote}</span>
-                    )}
                   </span>
                   <span className="flex items-center gap-2">
                     <button

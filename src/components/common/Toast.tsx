@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { X } from 'lucide-react';
+import { X, Copy, Check } from 'lucide-react';
 
 export interface ToastMessage {
   id: string;
@@ -10,6 +10,12 @@ export interface ToastMessage {
   // Indeks →" lepas Terbit, supaya pembaca tak perlu keluar & cari semula secara manual. Bila
   // hadir, toast kekal lebih lama (lihat MASA_AUTO_TUTUP di bawah) supaya sempat diklik.
   action?: { label: string; onClick: () => void };
+  // Ralat berkait kandungan AI (2026-08-19, permintaan Izzat) — true HANYA untuk ralat pengesahan
+  // kandungan yang chatbot AI mungkin punca (had aksara, format tarikh, placeholder templat tak
+  // diganti) — BUKAN semua ralat (cth kebenaran/konflik simpanan/Bidang tak sepadan TIDAK
+  // ditandakan, sebab bukan sesuatu chatbot boleh betulkan). Papar butang "Salin" + tempoh lebih
+  // lama (10s) supaya editor sempat salin & tampal balik ke sesi AI untuk pembetulan.
+  bolehSalinAI?: boolean;
 }
 
 // Reka bentuk semula KEDUA (2026-08-08, Izzat: "yg awak ckp versi baru tu orang dah tau AI yg
@@ -64,17 +70,33 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
   const onDismissRef = React.useRef(onDismiss);
   onDismissRef.current = onDismiss;
 
+  // Tempoh: 10s utk ralat "boleh salin AI" (masa sempat baca + klik salin + tukar ke sesi AI),
+  // 8s bila ada butang tindakan (cth "Lihat di Indeks →"), 3s lalai (WF-01/2026-08-19).
   useEffect(() => {
+    const tempoh = toast.bolehSalinAI ? 10000 : toast.action ? 8000 : 3000;
     const timer = setTimeout(() => {
       onDismissRef.current(toast.id);
-    }, toast.action ? 8000 : 3000);
+    }, tempoh);
     return () => clearTimeout(timer);
-  }, [toast.id, toast.action]);
+  }, [toast.id, toast.action, toast.bolehSalinAI]);
 
   const isError = toast.type === 'error';
   // Audit UI/UX §G10 — Toast ialah animasi PALING kerap muncul dalam kerja harian Editorium,
   // tapi sebelum ni tak pernah menyemak prefers-reduced-motion langsung.
   const kurangGerak = useReducedMotion();
+  // Butang salin (2026-08-19, permintaan Izzat — notis dalaman borang SlotManagerModal dibuang
+  // sbb bertindih dgn toast global, toast kini SATU-SATUNYA saluran mesej. Ralat pengesahan
+  // (cth "Huraian panjang (2264 aksara) melebihi had 1800...") sering ada butiran teknikal
+  // (bilangan aksara tepat, nama medan) yang editor perlu SALIN — cth tampal balik dalam mesej
+  // kepada Ketua Editor, atau simpan sbg rujukan bila baiki kandungan — bukan sekadar dibaca
+  // sekali lalu hilang dalam 3-8 saat (lihat MASA_AUTO_TUTUP).
+  const [disalin, setDisalin] = useState(false);
+  const salinMesej = () => {
+    navigator.clipboard?.writeText(toast.message).then(() => {
+      setDisalin(true);
+      setTimeout(() => setDisalin(false), 2000);
+    });
+  };
 
   return (
     <motion.div
@@ -98,6 +120,16 @@ const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void
             className="mt-1.5 block font-mono text-[10px] font-bold uppercase tracking-wider underline underline-offset-2 opacity-90 hover:opacity-100 cursor-pointer"
           >
             {toast.action.label}
+          </button>
+        )}
+        {toast.bolehSalinAI && (
+          <button
+            type="button"
+            onClick={salinMesej}
+            className="mt-1.5 flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-wider underline underline-offset-2 opacity-90 hover:opacity-100 cursor-pointer"
+          >
+            {disalin ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            {disalin ? 'Disalin' : 'Salin untuk tampal ke AI'}
           </button>
         )}
       </div>
