@@ -925,11 +925,11 @@ export const PetikanConsole: React.FC = () => {
                     {teksDisalin === 'asal' ? 'Disalin' : 'Salin teks asal'}
                   </Button>
                   {petikanSemakan.statusSumber === 'sah' ? (
-                    <StatusBadge tone="success" label="Sumber disahkan" />
+                    <StatusBadge tone="success" label="Teks Asal Disahkan" />
                   ) : (
                     <>
                       <Button variant="primary" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(petikanSemakan.id, { statusSumber: 'sah' })}>
-                        <BadgeCheck className="w-3.5 h-3.5" /> Sumber disahkan
+                        <BadgeCheck className="w-3.5 h-3.5" /> Teks Asal Disahkan
                       </Button>
                       <Button variant="bahaya" size="sm" disabled={memprosesSemakan} onClick={() => tetapkanStatus(petikanSemakan.id, { statusSumber: 'dipertikai' })}>
                         <TriangleAlert className="w-3.5 h-3.5" /> Pertikai
@@ -1083,7 +1083,7 @@ export const PetikanConsole: React.FC = () => {
                               {/* DUA status dipaparkan berasingan, bukan digabung menjadi satu
                                   perkataan. "Disahkan" sahaja tidak memberitahu editor APA yang
                                   telah disahkan. */}
-                              <StatusBadge tone={nadaStatus(p.statusSumber)} label={`Sumber: ${LABEL_STATUS[p.statusSumber]}`} />
+                              <StatusBadge tone={nadaStatus(p.statusSumber)} label={`Teks Asal: ${LABEL_STATUS[p.statusSumber]}`} />
                               {p.statusTerjemahan !== 'tidak_perlu' && (
                                 <StatusBadge tone={nadaStatus(p.statusTerjemahan)} label={`Terjemahan: ${LABEL_STATUS[p.statusTerjemahan]}`} />
                               )}
@@ -1098,7 +1098,16 @@ export const PetikanConsole: React.FC = () => {
                               )}
                             </div>
 
-                            <p className="font-serif text-sm text-stone-900 leading-snug">“{safeParseInline(p.teksPaparan)}”</p>
+                            {/* Tanda petik BESAR + maroon (2026-08-19, laporan Izzat "takde
+                                langsung elemen warna maroon adjung" dan "sepatutnya ada pengikat
+                                kata") — “ ” kecil dalam ayat mudah terlepas pandang semasa
+                                mengimbas senarai; ini konvensyen pull-quote majalah, sekali gus
+                                mengikat kad kepada identiti jenama Adjung. */}
+                            <p className="font-serif text-sm text-stone-900 leading-snug">
+                              <span aria-hidden="true" className="text-[#802334] text-base leading-none align-[-1px]">“</span>
+                              {safeParseInline(p.teksPaparan)}
+                              <span aria-hidden="true" className="text-[#802334]/60">”</span>
+                            </p>
                             <p className="text-stone-500 text-[11px] mt-1">
                               {p.pengarang} · <em>{p.karya}</em>{p.rujukan ? ` · ${p.rujukan}` : ''}
                               {p.statusTerjemahan !== 'tidak_perlu' && ` · ${labelTerjemahan(p.bahasaAsal)}`}
@@ -1114,7 +1123,7 @@ export const PetikanConsole: React.FC = () => {
                                 )}
                                 {(p.sumberDisahkanPada || p.terjemahanDisahkanPada) && (
                                   <p className="text-stone-400 text-[10px]">
-                                    {p.sumberDisahkanPada && `Sumber disahkan ${new Date(p.sumberDisahkanPada).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                                    {p.sumberDisahkanPada && `Teks asal disahkan ${new Date(p.sumberDisahkanPada).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                                     {p.sumberDisahkanPada && p.terjemahanDisahkanPada && ' · '}
                                     {p.terjemahanDisahkanPada && `Terjemahan disahkan ${new Date(p.terjemahanDisahkanPada).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                                   </p>
@@ -1129,54 +1138,58 @@ export const PetikanConsole: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-1 shrink-0">
-                            <Tooltip text={dibuka ? 'Sembunyikan butiran' : 'Lihat butiran penuh'}>
-                              <button
-                                type="button" onClick={() => togolBukaKad(p.id)}
-                                aria-label={dibuka ? 'Sembunyikan butiran' : 'Lihat butiran'}
-                                className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
-                              >
-                                {dibuka ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                              </button>
-                            </Tooltip>
-                            <Tooltip text="Sunting">
-                              <button
-                                type="button" onClick={() => mulaSunting(p)} aria-label="Sunting"
-                                className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                            </Tooltip>
-                            <Tooltip text={p.aktif ? 'Nyahaktifkan (sembunyi tanpa padam)' : 'Aktifkan semula'}>
-                              <button
-                                type="button" onClick={() => togolAktif(p.id, !p.aktif)}
-                                aria-label={p.aktif ? 'Nyahaktifkan' : 'Aktifkan'}
-                                className={`p-1.5 cursor-pointer ${p.aktif ? 'text-stone-500 hover:text-Adjung-maroon' : 'text-stone-300 hover:text-Adjung-maroon'}`}
-                              >
-                                <Power className="w-3.5 h-3.5" />
-                              </button>
-                            </Tooltip>
-                            <Tooltip text="Padam">
-                              <button
-                                type="button" onClick={() => setSahMemadam(p.id)}
-                                aria-label="Padam" className="p-1.5 text-stone-500 hover:text-[var(--color-error)] cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </Tooltip>
+                            {/* Pengesahan padam GANTIKAN ikon DI TEMPAT SAMA (2026-08-19, laporan
+                                Izzat: "sistem minta pengesahan yg agak jauh dari butang padam
+                                pertama tadi. ni UX yg menyusahkan"). Sebelum ni pengesahan muncul
+                                sebagai banner di BAWAH keseluruhan kad — jauh daripada ikon yang
+                                diklik pada kad yang panjang/terbuka. Kini kekal pada baris ikon
+                                yang sama, tiada lompat mata. */}
+                            {sahMemadam === p.id ? (
+                              <>
+                                <span className="text-[10px] text-stone-600 whitespace-nowrap mr-1">Padam terus?</span>
+                                <Button variant="bahaya" size="sm" onClick={() => padam(p.id)}>Ya</Button>
+                                <Button variant="ghost" size="sm" onClick={() => setSahMemadam('')}>Batal</Button>
+                              </>
+                            ) : (
+                              <>
+                                <Tooltip text={dibuka ? 'Sembunyikan butiran' : 'Lihat butiran penuh'}>
+                                  <button
+                                    type="button" onClick={() => togolBukaKad(p.id)}
+                                    aria-label={dibuka ? 'Sembunyikan butiran' : 'Lihat butiran'}
+                                    className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
+                                  >
+                                    {dibuka ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                                  </button>
+                                </Tooltip>
+                                <Tooltip text="Sunting">
+                                  <button
+                                    type="button" onClick={() => mulaSunting(p)} aria-label="Sunting"
+                                    className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                </Tooltip>
+                                <Tooltip text={p.aktif ? 'Nyahaktifkan (sembunyi tanpa padam)' : 'Aktifkan semula'}>
+                                  <button
+                                    type="button" onClick={() => togolAktif(p.id, !p.aktif)}
+                                    aria-label={p.aktif ? 'Nyahaktifkan' : 'Aktifkan'}
+                                    className={`p-1.5 cursor-pointer ${p.aktif ? 'text-stone-500 hover:text-Adjung-maroon' : 'text-stone-300 hover:text-Adjung-maroon'}`}
+                                  >
+                                    <Power className="w-3.5 h-3.5" />
+                                  </button>
+                                </Tooltip>
+                                <Tooltip text="Padam">
+                                  <button
+                                    type="button" onClick={() => setSahMemadam(p.id)}
+                                    aria-label="Padam" className="p-1.5 text-stone-500 hover:text-[var(--color-error)] cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </Tooltip>
+                              </>
+                            )}
                           </div>
                         </div>
-
-                        {/* Pengesahan padam sebaris (bukan window.confirm) — corak sama seperti
-                            konsol lain dalam Editorium. Petikan boleh dipadam bersih kerana ia
-                            kutipan karya orang lain, bukan terbitan Adjung; peraturan "arkib,
-                            jangan padam" tidak terpakai. */}
-                        {sahMemadam === p.id && (
-                          <div className="mt-2 flex flex-wrap items-center gap-2 bg-[#802334]/5 p-2 rounded">
-                            <span className="text-[11px] text-stone-700">Padam petikan ini terus? Tidak boleh dibuat asal.</span>
-                            <Button variant="bahaya" size="sm" onClick={() => padam(p.id)}>Ya, padam</Button>
-                            <Button variant="ghost" size="sm" onClick={() => setSahMemadam('')}>Batal</Button>
-                          </div>
-                        )}
                       </>
                     )}
                   </li>

@@ -270,7 +270,11 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
         onBlurCapture={() => { kunciTuding.current = false; }}
       >
         <div
-          className={`group relative border-l-2 border-stone-300 pl-3 transition-opacity ${
+          // Aksen maroon Adjung (2026-08-19, laporan Izzat "takde langsung elemen warna maroon
+          // adjung... seolah2 ia bukan sebahagian drpd adjung brief") — garis tepi kelabu generik
+          // digantikan aksen maroon lutsinar separa, mengikat modul ni terus kepada identiti
+          // jenama yang dipakai merata FrontpageView.tsx (#802334).
+          className={`group relative border-l-2 border-[#802334]/35 pl-3 transition-opacity ${
             kurangGerak ? '' : 'duration-200'
           } ${pudar ? 'opacity-0' : 'opacity-100'}`}
         >
@@ -289,9 +293,14 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
               `safeParseInline` (bukan teks mentah) supaya penanda `*kata pinjaman*` yang Arahan
               AI kini wajibkan (peraturan 21, PetikanConfig.js — istilah asing belum mantap dalam
               Teks Melayu) benar-benar dipaparkan condong — TANPA ini, pembaca nampak asterisk
-              literal. Ini PENEGASAN SEBENAR (istilah asing), bukan gaya "puitis" seluruh petikan. */}
+              literal. Ini PENEGASAN SEBENAR (istilah asing), bukan gaya "puitis" seluruh petikan.
+              Tanda petik pembuka BESAR + maroon (2026-08-19, laporan Izzat "sepatutnya ada
+              pengikat kata") — konvensyen "pull quote" majalah editorial standard; tanda petik
+              kecil di hujung ayat mudah terlepas pandang pada teks marginal sekecil ni. */}
           <p className={`font-serif text-stone-600 ${saizTeksMargin(p.teks.length)}`}>
+            <span aria-hidden="true" className="text-[#802334] font-serif text-lg leading-none align-[-2px]">“</span>
             {safeParseInline(p.teks)}
+            <span aria-hidden="true" className="text-[#802334]/60">”</span>
           </p>
           {/* Tipografi label diselaraskan dengan token sistem reka bentuk sebenar (2026-08-19,
               laporan Izzat "gaya sangat jauh drpd sistem design Adjung Brief") — footer/utiliti
@@ -327,9 +336,12 @@ export const PetikanStatik: React.FC = () => {
     >
       <div className="border-t border-stone-200 pt-8 text-center">
         {/* TEGAK — lihat nota di PetikanMargin. Di sini pembezanya ialah garis atas, penengahan
-            dan ruang lapang di sekelilingnya. safeParseInline supaya kata pinjaman *dicondongkan* */}
+            dan ruang lapang di sekelilingnya. safeParseInline supaya kata pinjaman *dicondongkan*.
+            Tanda petik besar maroon — sama rasional "pull quote" seperti PetikanMargin. */}
         <p className="font-serif text-stone-700 text-[17px] leading-[1.7] max-w-2xl mx-auto">
+          <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">“</span>
           {safeParseInline(p.teks)}
+          <span aria-hidden="true" className="text-[#802334]/60">”</span>
         </p>
         <LabelTerjemahan p={p} kelas="mt-3 font-mono text-[9px] uppercase tracking-widest font-bold text-stone-400" />
         <Atribusi p={p} kelas="mt-1.5 font-sans text-[11px] uppercase tracking-wider font-bold text-stone-500" />
