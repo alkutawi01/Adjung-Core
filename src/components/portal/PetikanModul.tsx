@@ -154,30 +154,46 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
 // PetikanMargin — desktop lebar, terapung, bertukar mengikut tatalan
 // ---------------------------------------------------------------------------
 
-/** Jarak tatalan (px) bagi SATU langkah — lebih kurang beberapa baris teks badan. Direka semula
- *  2026-08-19 (Izzat, ujian langsung pengeluaran): nilai asal 900px + tunggu-berhenti 350ms
- *  terasa terlalu perlahan/tidak responsif ("sepatutnya scroll beberapa line, bertukar"). Tiada
- *  tempoh tunggu-berhenti lagi; setiap kali ambang dilepasi, langkah berlaku serta-merta.
+/** Jarak tatalan (px) bagi SATU langkah. Sejarah pelarasan sama hari (2026-08-19): 900 -> 200
+ *  (terlalu pantas) -> 380 (terasa OK secara berasingan, tetapi video sebenar dedah ia masih
+ *  terlalu KERAP untuk marginalia — setiap pertukaran, walau dihaluskan, tetap peristiwa visual
+ *  di tepi mata; kalau kerap sangat, petikan "berubah daripada suasana editorial kepada
+ *  carousel", kata ChatGPT selepas tonton rakaman sebenar).
  *
- *  PELARASAN KEDUA (sama hari) — 200px pula terlalu PANTAS ("saiz font tak seragam, pertukaran
- *  terlalu cepat"). Dinaikkan ke 380px — kira-kira 5-6 baris teks badan biasa, titik tengah
- *  munasabah antara 900 (terlalu perlahan) dan 200 (terlalu pantas). */
-const JARAK_TUKAR_PX = 380;
+ *  PELARASAN KETIGA — 380 -> 1800. Sasaran BUKAN "berapa kerap boleh bertukar", tetapi "berapa
+ *  banyak petikan pembaca biasa nampak dalam SATU lawatan" — dianggarkan 4-6 pertukaran sepanjang
+ *  frontpage 38 slot (~9,000px tatalan sebenar) = kira-kira setiap 1,700-1,800px. Ini BERBEZA
+ *  daripada saiz kolam harian (12, PetikanConfig.js `pilihDanSusunKolam`) — 12 ialah bekalan
+ *  pengagihan, bukan jumlah yang wajib dilihat setiap lawatan; pembaca yang scroll sangat panjang
+ *  tetap boleh capai lebih, tiada had buatan. */
+const JARAK_TUKAR_PX = 1800;
 
-/** Tempoh fade (ms) — dihaluskan 2026-08-19 (laporan Izzat: "animasi pertukaran perlu lebih
- *  smooth... mungkin ada masa utk transisi, bukan mendadak", rujukan istilah "Scroll-Driven
- *  Animations"). Sebelumnya 200ms + `ease` lalai pelayar terasa tersentak; 420ms + `ease-out`
- *  (perlahan di hujung, bukan linear) memberi rasa lebih lembut tanpa terasa perlahan/lag
- *  berbanding gerakan tatalan sendiri. Digunakan DUA tempat: kelas CSS `duration-[420ms]`
- *  (fade) MESTI sepadan nilai JS ini (setTimeout sebelum tukar teks) — kalau salah satu diubah,
- *  ubah kedua-duanya supaya fade-keluar selesai PENUH sebelum teks ditukar. */
-const TEMPOH_FADE_MS = 420;
+/** Transisi DUA FASA (2026-08-19, susulan video sebenar Izzat: "pertukaran terlalu mendadak...
+ *  state lama hilang dan state baharu terasa muncul sebagai penggantian kandungan"). Fade tunggal
+ *  (opacity sahaja, satu tempoh) tak cukup kalau TIMING salah — teks lama & baharu masih terasa
+ *  "swap" kalau tukar berlaku terlalu awal/lewat berbanding fade. Urutan MESTI tepat:
+ *
+ *    opacity 1 --(fade-KELUAR ${TEMPOH_FADE_KELUAR_MS}ms)--> opacity 0
+ *             --(jeda KOSONG ${TEMPOH_JEDA_MS}ms, kandungan ditukar SEMASA fasa ni)-->
+ *             opacity 0 --(fade-MASUK ${TEMPOH_FADE_MASUK_MS}ms)--> opacity 1
+ *
+ *  Jumlah ~920ms — lambat berbanding fade tunggal terdahulu (420ms), tetapi kerana TIADA
+ *  pergerakan spatial (translate/scale/height — lihat nota className di bawah, SEMUA dibuang),
+ *  ia tetap terasa tenang, bukan perlahan. Dua tempoh BERBEZA (350 keluar vs 450 masuk) sengaja
+ *  tidak simetri — fade-masuk sedikit lebih perlahan supaya kemunculan tidak "terkejut". */
+const TEMPOH_FADE_KELUAR_MS = 350;
+const TEMPOH_JEDA_MS = 120;
+const TEMPOH_FADE_MASUK_MS = 450;
 
 export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
   const { kolam, aktif } = useKolamPetikan();
   const [indeks, setIndeks] = React.useState(() => bacaSesi().indeks);
   const [ditutup, setDitutup] = React.useState(() => bacaSesi().ditutup);
   const [pudar, setPudar] = React.useState(false);
+  // Tempoh transisi SEMASA — berbeza ikut fasa (350ms fade-keluar vs 450ms fade-masuk, lihat
+  // nota TEMPOH_FADE_KELUAR_MS di atas). Dikawal via inline style (bukan kelas Tailwind statik)
+  // supaya satu elemen boleh bertukar tempoh mengikut arah tanpa dua salinan className.
+  const [tempohTransisiMs, setTempohTransisiMs] = React.useState(TEMPOH_FADE_KELUAR_MS);
 
   /** Tatalan tidak boleh menukar petikan semasa pembaca sedang membacanya. Disimpan sebagai ref
    *  (bukan state) kerana ia dibaca di dalam pengendali tatalan yang tidak dipasang semula. */
@@ -217,24 +233,32 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
     let terkumpul = 0;
     let yTerakhir = window.scrollY;
 
-    // Transisi (dihaluskan 2026-08-19, laporan Izzat: "animasi pertukaran perlu lebih smooth...
-    // mungkin ada masa utk transisi, bukan mendadak"). Fade-KELUAR mesti SELESAI PENUH (sepadan
-    // `TEMPOH_FADE_MS` CSS di bawah) sebelum teks ditukar — sebelum ni tukar berlaku pada 150ms
-    // separuh jalan fade 200ms, jadi teks lama "terputus" pertengahan transisi (nampak mendadak).
-    // Fade-MASUK kemudian berlaku sendiri apabila `pudar` kembali `false` (kelas CSS sedia ada).
+    // Transisi DUA FASA (2026-08-19, susulan video sebenar — lihat nota TEMPOH_FADE_KELUAR_MS di
+    // atas fail). Urutan MESTI tepat: fade-keluar penuh -> tukar kandungan SEMASA tak kelihatan
+    // (opacity 0) -> jeda kosong -> fade-masuk. `kurangGerak` langkau kesemua fasa, tukar terus.
+    const tukarIndeks = (arah: 1 | -1) => {
+      setIndeks((sebelum) => {
+        const baharu = (sebelum + arah + kolam.length) % kolam.length;
+        tulisSesi({ tarikh: new Date().toISOString().slice(0, 10), indeks: baharu, ditutup: false });
+        return baharu;
+      });
+    };
+
     const langkah = (arah: 1 | -1) => {
       if (kunciTuding.current || bekuRef.current) return;
-      setPudar(true);
-      const tukar = () => {
-        setIndeks((sebelum) => {
-          const baharu = (sebelum + arah + kolam.length) % kolam.length;
-          tulisSesi({ tarikh: new Date().toISOString().slice(0, 10), indeks: baharu, ditutup: false });
-          return baharu;
-        });
-        setPudar(false);
-      };
-      if (kurangGerak) tukar();
-      else setTimeout(tukar, TEMPOH_FADE_MS);
+      if (kurangGerak) { tukarIndeks(arah); return; }
+
+      setTempohTransisiMs(TEMPOH_FADE_KELUAR_MS);
+      setPudar(true); // fade-KELUAR bermula — teks LAMA masih dipaparkan sepanjang fasa ni
+      setTimeout(() => {
+        // opacity 0 PENUH sekarang — selamat tukar kandungan, mata tidak nampak langsung.
+        tukarIndeks(arah);
+        setTimeout(() => {
+          // jeda kosong selesai — mula fade-MASUK dengan tempoh berlainan (lebih perlahan).
+          setTempohTransisiMs(TEMPOH_FADE_MASUK_MS);
+          setPudar(false);
+        }, TEMPOH_JEDA_MS);
+      }, TEMPOH_FADE_KELUAR_MS);
     };
 
     const kendali = () => {
@@ -302,16 +326,16 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
           // bukan bekas berbingkai. `text-right` (Izzat, "align teks ke sebelah kanan") terpakai
           // pada SELURUH blok (petikan, label, atribusi, pautan) — bukan cuma petikan sendiri.
           //
-          // Transisi dihaluskan (2026-08-19, laporan Izzat "perlu lebih smooth... bukan mendadak")
-          // — `duration-[420ms]` (sepadan TEMPOH_FADE_MS di atas, KEDUANYA mesti sama) + `ease-out`
-          // (perlahan di penghujung, bukan linear tersentak) menggantikan `duration-200` lalai
-          // linear. `translate-y-1` halus ditambah pada opacity-0 supaya teks sedikit beralih naik
-          // semasa pudar — pergerakan kecil ni yang beza "fade linear" drpd rasa "scroll-driven"
-          // lembut yang Izzat rujuk, tanpa perlu native CSS Scroll-Driven Animations (sokongan
-          // pelayar tak universal lagi) — kesan visual serupa dicapai via transisi masa biasa.
-          className={`group relative text-right transition-[opacity,transform] ${
-            kurangGerak ? '' : 'duration-[420ms] ease-out'
-          } ${pudar ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'}`}
+          // Transisi DUA FASA (2026-08-19, susulan video sebenar — lihat nota TEMPOH_FADE_KELUAR_MS
+          // di atas fail). `translate-y` DIBUANG sepenuhnya (arahan eksplisit: "Jangan gunakan
+          // slide/translate... Itu akan menjadikannya widget/carousel") — OPACITY SAHAJA, kedudukan
+          // tetap sama sepanjang transisi. Tempoh dikawal via `tempohTransisiMs` (inline style,
+          // bukan kelas statik) supaya fade-keluar (350ms) dan fade-masuk (450ms) boleh berbeza
+          // tanpa dua salinan className. `ease-in-out` (bukan `ease-out`) — arahan eksplisit.
+          className={`group relative text-right transition-opacity ease-in-out ${
+            pudar ? 'opacity-0' : 'opacity-100'
+          }`}
+          style={{ transitionDuration: kurangGerak ? '0ms' : `${tempohTransisiMs}ms` }}
         >
           <button
             type="button"
