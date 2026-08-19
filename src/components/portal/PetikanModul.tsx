@@ -128,18 +128,13 @@ const Atribusi: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => 
   </div>
 );
 
-/** Label sumber terjemahan. Pembaca melihat Bahasa Melayu sahaja (keputusan Izzat), jadi apabila
- *  petikan berasal daripada kitab Arab atau buku Inggeris, itu MESTI dinyatakan — kata-kata yang
- *  dibaca ialah terjemahan, bukan kata-kata asal pengarang.
- *
- *  Dipaparkan sebagai metadata sekunder, BUKAN sebahagian petikan — teks label dikira di pelayan
- *  (labelTerjemahan, PetikanConfig.js) supaya peraturan "tiada label untuk sumber Melayu" hidup
- *  di satu tempat sahaja. Warna KELABU (2026-08-19, laporan Izzat) — bukan maroon, kerana maroon
- *  kini eksklusif untuk nama pengarang; label ni metadata paling sekunder dalam blok. */
-const LabelTerjemahan: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => {
-  if (!p.labelTerjemahan) return null;
-  return <div className={`${kelas} text-stone-400`}>{p.labelTerjemahan}</div>;
-};
+// Label "Diterjemahkan daripada bahasa X" DIBUANG daripada paparan pembaca (2026-08-19, Izzat:
+// "saya syorkan awak buang terus label ... sbb dlm amalan malaysia, terjemahan dianggap sama
+// dengan teks asal") — keputusan editorial eksplisit, ganti keputusan asal "label WAJIB" yang
+// dicatat sesi lepas. Data `labelTerjemahan` KEKAL dihantar API (PetikanConfig.js/petikanRoutes.js
+// tidak disentuh) — cuma TIDAK dirender di sini. Status terjemahan tetap dijejaki & disahkan
+// secara editorial (PetikanConsole.tsx, Semakan/Koleksi), cuma tidak lagi didedahkan kepada
+// pembaca sebagai label berasingan pada petikan.
 
 const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) => {
   if (!p.pautanBuku) return null;
@@ -346,9 +341,9 @@ export const PetikanMargin: React.FC<{ beku?: boolean }> = ({ beku = false }) =>
           {/* Hierarki (2026-08-19, laporan Izzat): petikan hitam ialah elemen UTAMA (SAIZ_TEKS_MARGIN,
               13px) — metadata di bawah dikecilkan berperingkat supaya jelas SEKUNDER, bukan bersaing
               dengan petikan. Warna kini ditentukan DALAM komponen masing-masing (Atribusi: maroon
-              hanya pada nama pengarang; LabelTerjemahan: kelabu) — kelas di sini saiz/susun sahaja. */}
-          <LabelTerjemahan p={p} kelas="mt-2 font-sans text-[9px] tracking-wide" />
-          <Atribusi p={p} kelas="mt-1 font-sans text-[10px] tracking-wide" />
+              hanya pada nama pengarang) — kelas di sini saiz/susun sahaja. Label terjemahan
+              DIBUANG (lihat nota di atas fail). */}
+          <Atribusi p={p} kelas="mt-2 font-sans text-[10px] tracking-wide" />
           <PautanBuku p={p} kelas="mt-1.5 inline-block font-sans text-[9px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
         </div>
       </div>
@@ -370,11 +365,15 @@ export const PetikanStatik: React.FC = () => {
   const p = kolam[0];
 
   return (
+    // Ruang atas dikecilkan mt-12+pt-8 (80px) -> mt-6+pt-6 (48px) (2026-08-19, laporan Izzat
+    // "ruang kosong terlalu luas" — tangkapan skrin nunjuk jurang kosong besar antara baris kad
+    // terakhir dan petikan). Garis border-t kekal sebagai pemisah visual; cuma jarak sebelum
+    // dan selepas garis tu dipadatkan.
     <section
-      className="2xl:hidden w-full max-w-5xl mx-auto mt-12 px-1"
+      className="2xl:hidden w-full max-w-5xl mx-auto mt-6 px-1"
       aria-label="Petikan pilihan"
     >
-      <div className="border-t border-stone-200 pt-8 text-center">
+      <div className="border-t border-stone-200 pt-6 text-center">
         {/* TEGAK — lihat nota di PetikanMargin. Di sini pembezanya ialah garis atas, penengahan
             dan ruang lapang di sekelilingnya. safeParseInline supaya kata pinjaman *dicondongkan*.
             Tanda petik besar maroon — sama rasional "pull quote" seperti PetikanMargin.
@@ -389,10 +388,10 @@ export const PetikanStatik: React.FC = () => {
           <span aria-hidden="true" className="text-[#802334]/60">&rdquo;</span>
         </p>
         {/* Selaras dengan PetikanMargin (2026-08-19) — huruf biasa (bukan uppercase); warna kini
-            ditentukan DALAM komponen (Atribusi: maroon hanya pengarang, LabelTerjemahan: kelabu);
-            saiz dikecilkan berperingkat supaya petikan hitam kekal elemen utama hierarki. */}
-        <LabelTerjemahan p={p} kelas="mt-3 font-sans text-[10px] tracking-wide" />
-        <Atribusi p={p} kelas="mt-1.5 font-sans text-[11px] tracking-wide" />
+            ditentukan DALAM komponen (Atribusi: maroon hanya pengarang); saiz dikecilkan
+            berperingkat supaya petikan hitam kekal elemen utama hierarki. Label terjemahan
+            DIBUANG (lihat nota di atas fail). */}
+        <Atribusi p={p} kelas="mt-3 font-sans text-[11px] tracking-wide" />
         <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[10px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
       </div>
     </section>
