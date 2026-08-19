@@ -115,6 +115,14 @@ const PLACEHOLDER_LITERAL = [
 
 export const HAD_TEKS_PETIKAN = 400;
 
+// Jaring keselamatan terhadap arahan Rumi (di atas) — kepatuhan AI terhadap arahan prompt tidak
+// pernah 100% terjamin (disahkan berulang kali dalam projek ni, cth pemisah "____" yang sepatutnya
+// dipatuhi tapi tidak). Pengarang/Karya yang masih dalam skrip Arab/Cina/Cyrillic/Ibrani/Thai/
+// Devanagari/Hangul selepas AI sepatutnya transliterasi ke Rumi ditandakan amaran (BUKAN ditolak —
+// petikannya mungkin sempurna, cuma metadata belum ditransliterasi, editor boleh betulkan terus
+// dalam kad sebelum simpan).
+const AKSARA_BUKAN_RUMI = /[؀-ۿݐ-ݿ一-鿿぀-ヿ가-힯Ѐ-ӿ֐-׿฀-๿ऀ-ॿ]/;
+
 // ---------------------------------------------------------------------------------------------
 // ARAHAN AI — teks yang editor salin ke chatbot luar bersama PDF/buku.
 //
@@ -156,6 +164,7 @@ export function binaArahanAiPetikan({ maksimum = 20, pautanBuku = '' } = {}) {
     '8. JANGAN mencipta petikan berdasarkan idea atau maksud pengarang.',
     '9. JANGAN menggunakan petikan daripada ingatan anda jika ia tidak dapat dikenal pasti dalam sumber yang diberikan.',
     '10. JANGAN mereka metadata. Nama pengarang, judul karya dan rujukan MESTI berdasarkan sumber.',
+    '10b. Nama pengarang dan judul karya MESTI ditulis dalam TRANSLITERASI RUMI (huruf Latin standard), WALAUPUN sumber berskrip Arab/Cina/Cyrillic/lain. Contoh: "علاء الدين العطار" ditulis "Ala\' al-Din al-\'Attar", BUKAN skrip Arab asal. Ini BERBEZA daripada "Teks Asal" (peraturan 2), yang MESTI kekal dalam skrip/bahasa asal sumber tanpa transliterasi.',
     '11. Jika rujukan tepat (halaman/bab) tidak dapat dikenal pasti, tulis: Rujukan: -',
     `12. ${arahanPautan[0]}`,
     ...(arahanPautan[1] ? [`   ${arahanPautan[1]}`] : []),
@@ -254,7 +263,8 @@ export function binaArahanAiPetikan({ maksimum = 20, pautanBuku = '' } = {}) {
     'Sahkan bahawa: setiap Teks Asal verbatim daripada sumber dan TIDAK diubah semasa menterjemah;',
     'setiap Teks Melayu setia kepada teks asalnya; tiada metadata direka; setiap Teks Melayu tidak',
     `melebihi ${HAD_TEKS_PETIKAN} aksara; setiap Kategori daripada senarai tertutup; tiada penanda`,
-    '[[...]] tertinggal; semua medan wajib wujud; setiap rekod bermula dengan "Teks Asal:".',
+    '[[...]] tertinggal; semua medan wajib wujud; setiap rekod bermula dengan "Teks Asal:";',
+    'setiap Pengarang dan Karya ditulis dalam RUMI (huruf Latin), BUKAN skrip asal sumber.',
     '',
     '[SUMBER]',
     '',
@@ -506,6 +516,23 @@ export function huraiPetikanTampal(teksMentah) {
     // sehingga editor membetulkannya, jadi tiada risiko ia tersiar dengan kategori salah.
     const kategori = KATEGORI_PETIKAN.find((k) => k.toLowerCase() === kategoriMentah.toLowerCase()) || null;
 
+    // Setiap amaran bawa AKIBAT sendiri — kategori kosong betul-betul MENYEKAT penerbitan
+    // (gerbang SQL awam menuntut kategori bukan NULL), tetapi skrip bukan Rumi TIDAK menyekat
+    // apa-apa secara automatik. Jangan kongsi satu ayat akibat untuk kedua-duanya — itu akan
+    // membuat amaran kosmetik kelihatan seolah-olah gerbang keras, atau sebaliknya.
+    const amaranBahagian = [];
+    if (!kategori) {
+      amaranBahagian.push(kategoriMentah
+        ? `Kategori "${kategoriMentah}" bukan nilai sah — perlu dibetulkan sebelum petikan boleh disiarkan.`
+        : 'Kategori tiada — perlu diisi sebelum petikan boleh disiarkan.');
+    }
+    const medanBukanRumi = [];
+    if (AKSARA_BUKAN_RUMI.test(pengarang)) medanBukanRumi.push('Pengarang');
+    if (AKSARA_BUKAN_RUMI.test(karya)) medanBukanRumi.push('Karya');
+    if (medanBukanRumi.length) {
+      amaranBahagian.push(`${medanBukanRumi.join(' & ')} nampak masih dalam skrip asal, bukan Rumi — sahkan/transliterasikan sebelum simpan.`);
+    }
+
     const calon = {
       teksAsal,
       bahasaAsal: namaBahasa(bahasaMentah),
@@ -514,7 +541,7 @@ export function huraiPetikanTampal(teksMentah) {
       rujukan: rujukanMentah === '-' ? '' : rujukanMentah,
       kategori,
       pautanBuku: pautanMentah === '-' ? '' : pautanMentah,
-      amaran: kategori ? null : (kategoriMentah ? `Kategori "${kategoriMentah}" bukan nilai sah — perlu dibetulkan sebelum petikan boleh disiarkan.` : 'Kategori tiada — perlu diisi sebelum petikan boleh disiarkan.'),
+      amaran: amaranBahagian.length ? amaranBahagian.join(' ') : null,
     };
 
     const kunci = kunciDedupPetikan(calon);
