@@ -173,6 +173,20 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // Timbalan Ketua Editor patut berkelakuan SAMA macam Ketua Editor di skrin ni (bukan disempitkan
   // macam Editor biasa), jadi dipadankan ke sini sekali sahaja.
   const effectiveEditorialRole: 'KETUA_EDITOR' | 'EDITOR' = isEditorialAdmin ? 'KETUA_EDITOR' : 'EDITOR';
+
+  // Dasar Terbit Sendiri Editor (2026-08-19, laporan Izzat: "jika editor boleh terbitkan dan edit
+  // sendiri tanpa kelulusan ketua editor, penapis kandungan di kandungan default tukar status
+  // drpd menunggu kepada aktif") — dimuat SEKALI di sini (induk), bukan dalam IndeksConsole
+  // sendiri, supaya nilai SUDAH sedia sebelum IndeksConsole buat kiraan DEFAULT_FILTERS pertama
+  // kali (lihat nota penuh di IndeksConsoleProps). `undefined` sehingga fetch selesai — dilayan
+  // sama seperti `false` (kekalkan tingkah laku sedia ada) di pihak IndeksConsole.
+  const [benarkanSelfPublish, setBenarkanSelfPublish] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    fetch('/api/system/editor-publish-policy')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d) => { if (d && typeof d.benarkanSelfPublish === 'boolean') setBenarkanSelfPublish(d.benarkanSelfPublish); })
+      .catch(() => { /* senyap — Indeks jatuh balik ke tingkah laku sedia ada (Status=Pending) */ });
+  }, []);
   // Destinasi peringkat atas (2026-08-01, permintaan pemilik projek — sidebar dua kumpulan, satu
   // klik terus). Lihat EditoriumLayout.tsx untuk susunan Operasi Harian / Tata Kelola & Rujukan.
   // Paparan Utama (Fasa 5) — destinasi lalai selepas log masuk, ganti Kandungan.
@@ -598,6 +612,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               sesiTanda={currentUser.sesiTanda}
               onToast={pushToast}
               penapisAwal={penapisIndeksAwal}
+              benarkanSelfPublish={benarkanSelfPublish}
             />
           )}
           {kandunganSubTab === 'semakan' && <ContentReview />}

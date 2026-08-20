@@ -87,6 +87,17 @@ interface IndeksConsoleProps {
   // pada slot/status yang SAMA tetap mencetuskan semula useEffect (dependency array React
   // bandingkan rujukan/nilai primitif, bukan "adakah ini permintaan baharu").
   penapisAwal?: { slot?: string; status?: string; generasi: number };
+  // Dasar Terbit Sendiri Editor (2026-08-19, laporan Izzat: "jika editor boleh terbitkan dan edit
+  // sendiri tanpa kelulusan ketua editor, penapis kandungan di kandungan default tukar status
+  // drpd menunggu kepada aktif"). Dibaca daripada GET /api/system/editor-publish-policy di
+  // EditoriumView.tsx (induk) dan dihantar turun sebagai prop — BUKAN diambil terus dalam
+  // komponen ni, sebab DEFAULT_FILTERS (di bawah) dikira SEGERAK semasa render pertama dan
+  // disuap ke useTapisanSesi() yang cuma baca nilai lalai SEKALI (useState lazy initializer);
+  // kalau nilai ni tiba lewat (fetch async DALAM komponen ni), tapisan awal sesi baharu akan
+  // terperangkap pada nilai lama sebelum fetch selesai. `undefined` semasa belum sedia (induk
+  // masih memuat) — dilayan SAMA seperti `false` (anggap kelulusan masih diperlukan, iaitu
+  // tingkah laku SEDIA ADA), bukan meneka.
+  benarkanSelfPublish?: boolean;
 }
 
 // Format ringkas DD/MM/YY untuk jadual Indeks (2026-07-29, permintaan pemilik projek) — jimat
@@ -183,6 +194,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   sesiTanda,
   onToast,
   penapisAwal,
+  benarkanSelfPublish,
 }) => {
   const [items, setItems] = useState<BriefRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -221,15 +233,23 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // Tetapan lalai ikut peranan (2026-07-29, permintaan pemilik projek):
   //   - EDITOR log masuk → Indeks lalai papar KANDUNGAN DIA SENDIRI sahaja ("Editor" = nama dia),
   //     susunan Paling Baharu — meja kerja peribadi, bukan semua kandungan sistem sekali gus.
-  //   - KETUA_EDITOR log masuk → Indeks lalai papar SEMUA editor tapi Status=Pending, susunan
-  //     Paling Baharu — baris giliran kelulusan (apa yang perlu tindakan dia), bukan semua status.
+  //   - KETUA_EDITOR log masuk → Indeks lalai papar SEMUA editor, susunan Paling Baharu.
+  //     Status lalai BERGANTUNG pada Dasar Terbit Sendiri Editor (2026-08-19, laporan Izzat:
+  //     "jika editor boleh terbitkan dan edit sendiri tanpa kelulusan ketua editor, penapis
+  //     kandungan di kandungan default tukar status drpd menunggu kepada aktif"):
+  //       - Kelulusan MASIH diperlukan (benarkanSelfPublish=false/belum sedia) → Status=Pending,
+  //         baris giliran kelulusan (apa yang perlu tindakan dia) — tingkah laku SEDIA ADA.
+  //       - Editor DIBENARKAN terbit sendiri (benarkanSelfPublish=true) → baris giliran Pending
+  //         nyaris SENTIASA kosong (editor tak pernah perlu tunggu kelulusan), jadi lalai
+  //         "berguna" bertukar ke Status=Live — paparan kandungan AKTIF sebenar, bukan senarai
+  //         kosong yang tak bermakna setiap kali Indeks dibuka.
   const DEFAULT_FILTERS: FilterState = currentUserRole === 'EDITOR'
     ? {
         search: '', status: 'Semua', cardType: 'Semua', source: '', creator: 'Semua', desk: 'Semua',
         slot: 'SemuaKecualiTicker', editor: currentUserName, sort: 'newest',
       }
     : {
-        search: '', status: 'Pending', cardType: 'Semua', source: '', creator: 'Semua', desk: 'Semua',
+        search: '', status: benarkanSelfPublish ? 'Live' : 'Pending', cardType: 'Semua', source: '', creator: 'Semua', desk: 'Semua',
         slot: 'SemuaKecualiTicker', editor: 'Semua', sort: 'newest',
       };
   // Tapisan kekal sepanjang sesi log masuk (2026-08-08, permintaan pemilik projek) — "apabila
