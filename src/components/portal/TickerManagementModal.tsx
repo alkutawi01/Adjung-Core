@@ -308,6 +308,13 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
       });
       const data = await res.json();
       if (data.success) {
+        // Muat semula kiraan SELEPAS simpan (2026-08-20, laporan Izzat "masih gagal" / "GAGAL"
+        // berulang kali) — pelayan menilai semula seluruh backlog RSS mengikut tetapan baharu
+        // dalam permintaan ni, jadi "Auto Aktif"/"Menunggu Review" HAMPIR PASTI berubah. Tanpa
+        // muat semula, panel kekal memaparkan nombor SEBELUM simpan; Izzat melihat angka yang
+        // sama persis selepas klik Simpan dan menyimpulkan simpanan gagal — walhal ia berjaya.
+        // Kiraan yang beku selepas tindakan yang mengubahnya ialah pepijat, bukan kosmetik.
+        loadReviewQueue();
         addToast('success', 'Tetapan & Peraturan Editorial RSS berjaya disimpan!');
       } else {
         addToast('error', data.error || 'Gagal menyimpan tetapan.');
@@ -570,7 +577,11 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 text-center select-none font-mono">
                     <div className="bg-white p-2.5 rounded border border-stone-200">
                       <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Sumber Aktif</div>
-                      <div className="text-sm font-bold text-stone-800">{registeredRssSources.filter(s => s.enabled).length || 1}</div>
+                      {/* `|| 1` DIBUANG (2026-08-20, dapatan audit): buang sumber terakhir dan
+                          kiraan sebenar 0 jatuh ke 1, jadi kad ni mendakwa "1 Sumber Aktif"
+                          sedangkan senarai betul-betul di bawahnya kosong. Kiraan 0 yang jujur
+                          ialah maklumat sebenar — Ketua Editor perlu tahu tiada sumber tinggal. */}
+                      <div className="text-sm font-bold text-stone-800">{registeredRssSources.filter(s => s.enabled).length}</div>
                     </div>
                     <div className="bg-white p-2.5 rounded border border-stone-200">
                       <div className="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Item Ditemui</div>

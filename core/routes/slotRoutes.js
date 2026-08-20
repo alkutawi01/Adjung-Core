@@ -30,24 +30,113 @@ async function beritahuPentadbirDanKetuaEditor(dbAll, dbRun, payload, dbGet) {
 // (ratusan/ribuan item) terperangkap keputusan LAMA selama-lamanya — bukan "tunggu larian
 // akan datang", ia takkan berubah LANGSUNG sampai bila-bila.
 //
-// Nilai semula SEMUA baris yang keputusannya berasaskan skor/panjang tajuk (BUKAN
-// BLOCKED_CATEGORY/BLOCKED_KEYWORD — dua sekatan tu tak berkaitan ambang, kekal tak disentuh)
-// guna tentukanKeputusanSkor() (EditorialScoreEngine.js) dengan tetapan TERKINI. `score`
-// tersimpan tak perlu dikira semula (ambang/had aksara tak mengubah skor, cuma tafsiran skor
-// sedia ada) — jadi ni murah (satu SELECT + UPDATE per baris terjejas, bukan panggil rangkaian).
+// Nilai semula SEMUA baris yang keputusannya berasaskan skor/panjang tajuk/kata kunci disekat
+// (BUKAN BLOCKED_CATEGORY — sekatan tag XML mentah tak berkaitan ambang editorial, kekal tak
+// disentuh) guna tentukanKeputusanSkor() (EditorialScoreEngine.js) dengan tetapan TERKINI.
 // Dipanggil di DUA tempat: (a) POST /rss-settings — kesan nampak SERTA-MERTA bila Ketua
 // Editor/Pentadbir simpan tetapan; (b) setiap larian executeDirectRssFetch() (jadual 3 jam +
 // "Serap RSS Sekarang") — sistem terus "automatik" (keperluan Izzat 2026-08-20: "tanpa perlu
 // saya buat apa2") walau tetapan tak disentuh langsung pada hari tu, cth selepas restart
 // pelayan atau perubahan tetapan yg tertinggal sebelum backlog sempat dinilai semula.
+//
+// KATA KUNCI DISEKAT DISEMAK DI SINI, bukan dalam blok purge berasingan (2026-08-20, pembetulan
+// susulan audit — bug SEBENAR dalam versi pertama fungsi ni beberapa jam sebelumnya): versi lama
+// hantar `containsSensational = false` TEGAR, jadi ia tak tahu apa-apa tentang kata kunci. Blok
+// "Retroactive Purge kata kunci" dalam POST /rss-settings pula cuma set `status='rejected'`
+// TANPA menyentuh `decision` — jadi baris yang baru sahaja disekat kekal `decision='AUTO_LIVE'`,
+// tertangkap semula oleh SELECT di bawah, dinilai semula dengan skor LAMA yang belum dipenalti,
+// dan DIHIDUPKAN SEMULA jadi 'approved' — membatalkan sekatan Ketua Editor dalam permintaan HTTP
+// yang SAMA. Sekatan kata kunci ialah DASAR EDITORIAL Izzat, bukan cadangan; ia mesti jadi kata
+// putus, jadi semakannya disatukan ke dalam SATU fungsi ni (bukan dua tempat yang boleh
+// berlawan) dan sentiasa menang atas skor.
+//
+// Skop jujur (had yang diketahui, sengaja TIDAK dilebihkan): item yang skornya tersimpan 0
+// kerana pernah disekat kata kunci TIDAK pulih automatik bila kata kunci itu dibuang daripada
+// senarai — skor 0 dah terbenam dalam baris, dan mengira semula skor sebenar perlukan teks RSS
+// mentah asal yang tidak disimpan. Ia kekal disekat (arah selamat: kandungan tersekat kekal
+// tersekat), bukan terpapar silap. Untuk memulihkannya, Ketua Editor buang kata kunci itu
+// kemudian tunggu item BAHARU daripada sumber sama.
 async function nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings) {
+  const senaraiDisekat = (editorialSettings.blockedKeywords || '')
+    .split(',').map((k) => k.trim().toLowerCase()).filter(Boolean);
+
   const items = await dbAll(
-    "SELECT id, score, title FROM rss_ticker_items WHERE decision IN ('AUTO_LIVE', 'EDITOR_REVIEW', 'REJECT', 'TITLE_TOO_SHORT')"
+    "SELECT id, score, title, formattedBrief, decision, status FROM rss_ticker_items WHERE decision IN ('AUTO_LIVE', 'EDITOR_REVIEW', 'REJECT', 'TITLE_TOO_SHORT', 'BLOCKED_KEYWORD')"
   );
+
+  // Kumpul dahulu, tulis kemudian — hanya baris yang keputusannya BENAR-BENAR berubah ditulis.
+  // Tanpa tapisan ni, setiap larian (setiap 3 jam) menulis semula ~2,900 baris walaupun tiada
+  // apa-apa berubah, di dalam kunci ticker, memblok laluan lain tanpa sebab.
+  const perubahan = [];
   for (const item of items) {
-    const { decision, status } = tentukanKeputusanSkor(item.score, false, (item.title || '').length, editorialSettings);
-    await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ? WHERE id = ?", [decision, status, item.id]);
+    const teks = `${item.title || ''} ${item.formattedBrief || ''}`.toLowerCase();
+    const adaKataDisekat = senaraiDisekat.some((kw) => teks.includes(kw));
+    const { decision, status } = tentukanKeputusanSkor(
+      item.score, adaKataDisekat, (item.title || '').length, editorialSettings
+    );
+    if (decision !== item.decision || status !== item.status) {
+      perubahan.push({ id: item.id, decision, status });
+    }
   }
+
+  if (perubahan.length === 0) return 0;
+
+  // Transaksi atomik (corak sama contentRoutes.js/glosariRoutes.js, CLAUDE.md) — ribuan UPDATE
+  // berasingan bermakna ribuan fsync SQLite; dalam satu transaksi ia jadi satu sahaja.
+  await dbRun('BEGIN TRANSACTION');
+  try {
+    for (const p of perubahan) {
+      await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ? WHERE id = ?", [p.decision, p.status, p.id]);
+    }
+    await dbRun('COMMIT');
+  } catch (err) {
+    await dbRun('ROLLBACK');
+    throw err;
+  }
+  return perubahan.length;
+}
+
+// janaSemulaTickerRssDirect() — SATU tapak penjanaan semula rentetan ticker mod 'RSS Direct'
+// (2026-08-20). Logik ni dahulu disalin DUA tempat (POST /rss-settings + executeDirectRssFetch)
+// dan sudah pun MENYIMPANG antara satu sama lain: satu salinan guna fallback huraian
+// `formattedBrief || description || ''`, satu lagi `formattedBrief || title` — dan lajur
+// `description` LANGSUNG tiada dalam skema rss_ticker_items, jadi salinan pertama sebenarnya
+// menghasilkan huraian KOSONG di tempat salinan kedua menghasilkan tajuk. Corak salinan-berbilang
+// ni yang CLAUDE.md rekod sebagai punca pepijat paling kerap dalam projek ni (5 salinan had
+// aksara, 2 daripadanya pepijat sebenar). Disatukan: fallback `|| item.title` dikekalkan kerana
+// itulah laluan yang benar-benar berjalan setiap 3 jam dan menghasilkan ticker hidup sekarang.
+//
+// KONTRAK KUNCI — PEMANGGIL MESTI SUDAH MEMEGANG denganKunciTicker. Fungsi ni SENGAJA tidak
+// mengunci sendiri: `denganKunciTicker` (kunciKandungan.js) ialah rantaian janji dan BUKAN
+// re-entrant, jadi mengunci di dalam sini akan MEMBUNTUKAN (deadlock) pemanggil yang sudah
+// terkunci — POST /rss-settings membalut SELURUH pengendalinya dengan kunci itu, jadi kunci
+// bersarang di sini menggantung permintaan itu selama-lamanya. Pemanggil tak terkunci
+// (cth /ticker/review-action) mesti membalut panggilan ini sendiri.
+async function janaSemulaTickerRssDirect(dbAll, dbGet, dbRun) {
+  const tetapan = await dbGet("SELECT tickerMaxItems FROM rss_editorial_settings WHERE id = 'main'");
+  const hadItem = tetapan && tetapan.tickerMaxItems ? Number(tetapan.tickerMaxItems) : 20;
+
+  const diluluskan = await dbAll(
+    "SELECT * FROM rss_ticker_items WHERE status = 'approved' ORDER BY score DESC, publishedAt DESC LIMIT ?",
+    [hadItem]
+  );
+  const blok = diluluskan.map((item) => {
+    const kategoriPapar = (item.category === 'BELUM DIKELASKAN' || !item.category) ? 'SEMASA' : item.category;
+    return {
+      desk: kategoriPapar,
+      title: item.title,
+      brief: item.formattedBrief || item.title,
+      source: item.source,
+      url: item.originalUrl,
+      mode: 'RSS Direct',
+    };
+  });
+
+  const semasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+  const teksBaharu = gantiBlokModTicker(semasa ? semasa.inTheNewsText : '', 'RSS Direct', blok);
+  await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [teksBaharu]);
+
+  return blok.length;
 }
 
 // NOTE: this router used to also define GET/POST /slots and POST /slots/run-now, plus a whole
@@ -171,6 +260,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       const newStatus = action === 'approve' ? 'approved' : 'rejected';
       const h = await dbRun("UPDATE rss_ticker_items SET status = ? WHERE id = ?", [newStatus, itemId]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Item Ticker tidak dijumpai.' });
+
+      // Jana semula ticker SERTA-MERTA (2026-08-20, dapatan audit) — dahulu laluan ni cuma
+      // menukar `status` dalam DB dan berhenti di situ. Editor yang meluluskan berita dalam
+      // Review Queue nampak ia bertukar "Lulus" di skrin, tetapi berita itu TIDAK muncul di
+      // ticker awam sehingga kitaran serapan berikutnya — sampai 3 JAM kemudian. Menolak pula
+      // lebih teruk: berita yang ditolak KEKAL terpapar kepada pembaca sepanjang tempoh itu.
+      // Kelulusan editor mesti berkuat kuasa apabila ia dibuat, bukan apabila jadual mengizinkan.
+      // Laluan ni TIDAK terkunci, jadi ia mengunci sendiri (lihat kontrak kunci di fungsi tu).
+      await denganKunciTicker(() => janaSemulaTickerRssDirect(dbAll, dbGet, dbRun));
+
       res.json({ success: true, itemId, status: newStatus });
     } catch (err) {
       console.error('Review action error:', err);
@@ -281,28 +380,22 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         updatedAt
       ]);
 
-      // Retroactive Purge & Filter of newly blocked keywords on existing approved ticker items
-      const blockedList = (blockedKeywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
-      if (blockedList.length > 0) {
-        const approvedItems = await dbAll("SELECT * FROM rss_ticker_items WHERE status = 'approved'");
-        for (const item of approvedItems) {
-          const textLower = `${item.title || ''} ${item.description || ''} ${item.formattedBrief || ''}`.toLowerCase();
-          const isBlocked = blockedList.some(kw => textLower.includes(kw));
-          if (isBlocked) {
-            await dbRun("UPDATE rss_ticker_items SET status = 'rejected' WHERE id = ?", [item.id]);
-          }
-        }
-      }
-
       // Nilai semula backlog sedia ada guna tetapan BAHARU (2026-08-20) — lihat komen penuh di
-      // nilaiSemulaKeputusanSediaAda() atas fail ni. WAJIB sebelum purge usia di bawah: kalau
-      // dibalikkan, item yg baru "diselamatkan" (cth had aksara diturunkan) boleh ditulis ganti
-      // semula jadi 'rejected' oleh nilai semula ni sekiranya ia turut lapuk — purge usia MESTI
-      // jadi kata putus TERAKHIR tentang kesegaran, bukan nilai semula skor.
+      // nilaiSemulaKeputusanSediaAda() atas fail ni. Fungsi tu SUDAH menyemak kata kunci disekat
+      // sekali dengan ambang skor/had aksara tajuk, jadi blok "Retroactive Purge & Filter of newly
+      // blocked keywords" yang dahulu berdiri di sini DIBUANG (bukan dipindah): ia menulis
+      // `status` sahaja tanpa `decision`, jadi baris yang disekatnya ditangkap semula dan
+      // DIHIDUPKAN SEMULA oleh nilai semula ni — dua blok berlawan dalam permintaan yang sama.
+      // Satu fungsi, satu kebenaran (CLAUDE.md: logik disalin dua tempat ialah punca pepijat
+      // paling kerap dalam projek ni).
+      //
+      // WAJIB sebelum purge usia di bawah: purge usia MESTI jadi kata putus TERAKHIR tentang
+      // kesegaran, bukan nilai semula skor.
       await nilaiSemulaKeputusanSediaAda(dbAll, dbRun, {
         autoLiveThreshold: autoLiveVal,
         reviewThreshold: reviewVal,
         tickerTitleMinChars: minCharsVal,
+        blockedKeywords: blockedKeywords || '',
       });
 
       // Retroactive Purge berdasarkan usia (2026-08-19, laporan Izzat: "kenapa ticker
@@ -331,18 +424,11 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         }
       }
 
-      // Re-generate live ticker string ordered by HIGHEST SCORE first!
-      const newApproved = await dbAll(`SELECT * FROM rss_ticker_items WHERE status = 'approved' ORDER BY score DESC, publishedAt DESC LIMIT ${limitVal}`);
-      // Kunci Title:/Brief: (bukan Tajuk:/Huraian ringkas:) padan parseTickerText & laluan RSS-Direct
-      // yang lain (baris ~915 di fail ni) — kunci Melayu lama diam-diam gugurkan tajuk/huraian bila
-      // dihurai. displayCategory padan pengiraan sama di laluan tu jugak (bukan Desk: SEMASA tegar).
-      const blocks = newApproved.map(item => {
-        const displayCategory = (item.category === 'BELUM DIKELASKAN' || !item.category) ? 'SEMASA' : item.category;
-        return { desk: displayCategory, title: item.title, brief: item.formattedBrief || item.description || '', source: item.source, url: item.originalUrl, mode: 'RSS Direct' };
-      });
-      const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
-      const formattedText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'RSS Direct', blocks);
-      await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
+      // Jana semula rentetan ticker — lihat janaSemulaTickerRssDirect() di atas fail ni (SATU
+      // tapak, dikongsi dengan executeDirectRssFetch dan /ticker/review-action). Pengendali ni
+      // SUDAH dibalut denganKunciTicker sepenuhnya, jadi ia dipanggil TANPA kunci tambahan —
+      // kunci bersarang akan membuntukan permintaan ni (kunci tu bukan re-entrant).
+      await janaSemulaTickerRssDirect(dbAll, dbGet, dbRun);
 
       res.json({ success: true });
     } catch (err) {
@@ -1130,8 +1216,9 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   const totalFetchedCount = totalFetchedRow ? totalFetchedRow.cnt : 0;
 
   // Query approved items ordered by HIGHEST SCORE first!
-  const settingsRow = await dbGet("SELECT tickerMaxItems, maxNewsAgeHours FROM rss_editorial_settings WHERE id = 'main'");
-  const maxLimit = settingsRow && settingsRow.tickerMaxItems ? Number(settingsRow.tickerMaxItems) : 20;
+  // tickerMaxItems TIDAK dibaca di sini lagi — janaSemulaTickerRssDirect() membacanya sendiri
+  // supaya had itu ada SATU tapak bacaan sahaja bagi semua pemanggil.
+  const settingsRow = await dbGet("SELECT maxNewsAgeHours FROM rss_editorial_settings WHERE id = 'main'");
 
   // Penyemakan usia BERTERUSAN pada item yang SUDAH approved (2026-08-19, laporan Izzat:
   // "kenapa ticker memaparkan yg lama? sedangkan saya dah set had usia berita 24 jam?").
@@ -1152,7 +1239,16 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   // yg dimuat segar di awal fungsi ni (baris ~937), jadi sentiasa tetapan terkini walau
   // Ketua Editor/Pentadbir tak sentuh panel Tetapan langsung hari ni. MESTI sebelum purge usia
   // di bawah — purge usia kata putus TERAKHIR tentang kesegaran, bukan nilai semula skor ni.
-  await nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings);
+  // Dibalut denganKunciTicker (2026-08-20) atas DUA sebab, kedua-duanya perlu:
+  // (1) nilaiSemulaKeputusanSediaAda() membuka BEGIN TRANSACTION. Laluan POST /rss-settings
+  //     memanggilnya SUDAH di dalam kunci ticker; kalau larian ni pula berjalan TANPA kunci,
+  //     dua transaksi boleh bertindih atas sambungan SQLite yang SAMA — SQLite tak benarkan
+  //     transaksi bersarang, jadi salah satu gagal ("cannot start a transaction within a
+  //     transaction") dan nilai semula terbatal separuh jalan.
+  // (2) Tanpa kunci, gelung UPDATE ni boleh berselang-seli dengan simpanan tetapan editor yang
+  //     berlaku serentak — dua set keputusan berdasarkan tetapan BERBEZA ditulis bercampur, dan
+  //     yang terakhir siap menang secara rawak.
+  await denganKunciTicker(() => nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings));
 
   const maxAgeHoursSemasa = settingsRow && settingsRow.maxNewsAgeHours !== undefined
     ? Number(settingsRow.maxNewsAgeHours) : 48;
@@ -1172,16 +1268,6 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
     }
   }
 
-  const approvedItems = await dbAll(`SELECT * FROM rss_ticker_items WHERE status = 'approved' ORDER BY score DESC, publishedAt DESC LIMIT ${maxLimit}`);
-  let tickerBlocks = [];
-
-  if (approvedItems.length > 0) {
-    tickerBlocks = approvedItems.map((item) => {
-      const displayCategory = (item.category === 'BELUM DIKELASKAN' || !item.category) ? 'SEMASA' : item.category;
-      return { desk: displayCategory, title: item.title, brief: item.formattedBrief || item.title, source: item.source, url: item.originalUrl, mode: 'RSS Direct' };
-    });
-  }
-
   // TANPA gerbang `length > 0` (2026-08-19, susulan laporan Izzat "masih ada berita lama...
   // kenapa?"): gerbang lama langkau penjanaan semula bila TIADA item layak — meninggalkan
   // rentetan ticker LAMA (dengan berita lapuk) kekal terpapar SELAMANYA. Kes sebenar di
@@ -1190,16 +1276,13 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   // KOSONG memang direka buang semua blok mod 'RSS Direct' sambil KEKALKAN blok mod lain
   // (Manual/AI Generated) — corak sama sudah dipakai EditorialPipeline.js:433. Ticker kosong
   // yang jujur ("Tiada berita semasa buat masa ini", FrontpageView) lebih betul daripada
-  // berita lapuk yang tak sepatutnya tersiar.
+  // berita lapuk yang tak sepatutnya tersiar. janaSemulaTickerRssDirect() memang tiada gerbang
+  // sedemikian — jangan tambah semula.
   //
   // denganKunciTicker (2026-08-08, dapatan audit keselamatan ChatGPT) — bahagian baca-ubah-
   // tulis inTheNewsText SAHAJA (bukan seluruh fungsi ni, yang buat panggilan rangkaian PERLAHAN
   // ke pelayan RSS luar sebelum sampai sini) — lihat nota di kunciKandungan.js.
-  await denganKunciTicker(async () => {
-    const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
-    const formattedTickerText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'RSS Direct', tickerBlocks);
-    await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedTickerText]);
-  });
+  const approvedCount = await denganKunciTicker(() => janaSemulaTickerRssDirect(dbAll, dbGet, dbRun));
 
   const lastFetchedAt = new Date().toISOString();
 
@@ -1219,7 +1302,7 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
     autoLiveCount,
     pendingReviewCount,
     lastFetchedAt,
-    approvedCount: approvedItems.length
+    approvedCount
   };
 }
 

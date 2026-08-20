@@ -1506,8 +1506,20 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     });
   }, [parsedNewsItemsA, parsedNewsItemsB, categoryColors]);
 
-  const activeTickerNewsItem = parsedTickerNewsItems[activeFrontpageIndex];
-  const overlayItem = parsedTickerNewsItems[activeOverlayIndex];
+  // Indeks diapit pada julat sebenar (2026-08-20, dapatan audit) — `activeFrontpageIndex` hanya
+  // dibetulkan oleh operator modulo di dalam setInterval, iaitu SELEPAS satu pusingan penuh
+  // (10 saat lalai). Kalau senarai ticker MENGECIL semasa indeks menunjuk melepasi hujung baharu
+  // (cth muat semula latar belakang selepas berita lapuk ditolak), `activeTickerNewsItem` jadi
+  // undefined dan ticker memaparkan "Tiada berita semasa buat masa ini" — mesej PALSU, sedangkan
+  // berita sebenar wujud — sehingga tik seterusnya membetulkannya sendiri. Apit di sini supaya
+  // paparan sentiasa betul pada render, bukan bergantung pada tik pemasa.
+  const jumlahItemTicker = parsedTickerNewsItems.length;
+  const activeTickerNewsItem = jumlahItemTicker > 0
+    ? parsedTickerNewsItems[activeFrontpageIndex % jumlahItemTicker]
+    : undefined;
+  const overlayItem = jumlahItemTicker > 0
+    ? parsedTickerNewsItems[activeOverlayIndex % jumlahItemTicker]
+    : undefined;
 
   // Frontpage news preview rotation
   useEffect(() => {
