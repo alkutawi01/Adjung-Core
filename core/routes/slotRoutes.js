@@ -265,6 +265,27 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         }
       }
 
+      // Retroactive Purge berdasarkan usia (2026-08-19, laporan Izzat: "kenapa ticker
+      // memaparkan yg lama? sedangkan saya dah set had usia berita 24 jam?") — corak SAMA
+      // seperti purge kata kunci di atas, sekarang untuk `maxNewsAgeHours`. Tanpa ni, mengetatkan
+      // had usia (cth 48 -> 24 jam) hanya beri kesan pada item BAHARU larian akan datang; item
+      // lama yang pernah lulus di bawah had lama kekal `approved` sehingga penjanaan semula
+      // berikutnya (setiap 3 jam, `executeDirectRssFetch` — semakan berterusan turut ditambah
+      // di situ untuk item yang lapuk secara semula jadi selepas ni, bukan hanya bila tetapan
+      // ditukar). Simpan tetapan patut nampak kesan SERTA-MERTA, bukan tunggu kitaran seterusnya.
+      if (ageVal > 0) {
+        const semuaApprovedUsia = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status = 'approved'");
+        const kiniMs = Date.now();
+        for (const item of semuaApprovedUsia) {
+          if (!item.publishedAt) continue;
+          const masaItem = new Date(item.publishedAt).getTime();
+          if (isNaN(masaItem)) continue;
+          if ((kiniMs - masaItem) / (1000 * 60 * 60) > ageVal) {
+            await dbRun("UPDATE rss_ticker_items SET status = 'rejected' WHERE id = ?", [item.id]);
+          }
+        }
+      }
+
       // Re-generate live ticker string ordered by HIGHEST SCORE first!
       const newApproved = await dbAll(`SELECT * FROM rss_ticker_items WHERE status = 'approved' ORDER BY score DESC, publishedAt DESC LIMIT ${limitVal}`);
       // Kunci Title:/Brief: (bukan Tajuk:/Huraian ringkas:) padan parseTickerText & laluan RSS-Direct
@@ -1064,8 +1085,38 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   const totalFetchedCount = totalFetchedRow ? totalFetchedRow.cnt : 0;
 
   // Query approved items ordered by HIGHEST SCORE first!
-  const settingsRow = await dbGet("SELECT tickerMaxItems FROM rss_editorial_settings WHERE id = 'main'");
+  const settingsRow = await dbGet("SELECT tickerMaxItems, maxNewsAgeHours FROM rss_editorial_settings WHERE id = 'main'");
   const maxLimit = settingsRow && settingsRow.tickerMaxItems ? Number(settingsRow.tickerMaxItems) : 20;
+
+  // Penyemakan usia BERTERUSAN pada item yang SUDAH approved (2026-08-19, laporan Izzat:
+  // "kenapa ticker memaparkan yg lama? sedangkan saya dah set had usia berita 24 jam?").
+  //
+  // PUNCA: "2. Freshness Filter" di atas (baris ~981) hanya tapis item BAHARU semasa satu-satu
+  // larian ambilan RSS — ia TIDAK PERNAH menyemak semula item yang SUDAH `status='approved'`
+  // daripada larian SEBELUM ni. Fungsi ni jalan setiap 3 jam (penjadual di server.js) dan
+  // SETIAP kali cuma `SELECT ... WHERE status='approved'` tanpa syarat usia langsung — jadi
+  // item lama yang pernah lulus (di bawah had lama/tiada had) kekal 'approved' SELAMANYA dan
+  // terus muncul dalam rentetan ticker setiap kali dijana semula, tak kira usia sebenar.
+  //
+  // Dibaiki dengan corak SAMA seperti "Retroactive Purge & Filter" kata kunci disekat (POST
+  // /rss-settings, baris ~255) — cuma di sini ia jalan pada SETIAP penjanaan semula (bukan
+  // hanya bila tetapan disimpan), supaya item yang lapuk secara semula jadi (masa berlalu,
+  // bukan sahaja tetapan ditukar) turut tertangkap dalam lingkungan 3 jam berikutnya.
+  const maxAgeHoursSemasa = settingsRow && settingsRow.maxNewsAgeHours !== undefined
+    ? Number(settingsRow.maxNewsAgeHours) : 48;
+  if (maxAgeHoursSemasa > 0) {
+    const semuaApproved = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status = 'approved'");
+    const kiniMs = Date.now();
+    const lapuk = semuaApproved.filter((item) => {
+      if (!item.publishedAt) return false;
+      const masaItem = new Date(item.publishedAt).getTime();
+      if (isNaN(masaItem)) return false;
+      return (kiniMs - masaItem) / (1000 * 60 * 60) > maxAgeHoursSemasa;
+    });
+    for (const item of lapuk) {
+      await dbRun("UPDATE rss_ticker_items SET status = 'rejected' WHERE id = ?", [item.id]);
+    }
+  }
 
   const approvedItems = await dbAll(`SELECT * FROM rss_ticker_items WHERE status = 'approved' ORDER BY score DESC, publishedAt DESC LIMIT ${maxLimit}`);
   let tickerBlocks = [];
