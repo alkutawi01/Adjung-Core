@@ -300,6 +300,15 @@ export const PetikanConsole: React.FC = () => {
 
   const lapor = (t: string) => { setMesej(t); setTimeout(() => setMesej(''), 6000); };
 
+  // Kedua-dua butang di bawah (togol ciri + simpan tetapan lanjutan) baca-gabung-tulis SELURUH
+  // slot_am_settings secara berasingan — endpoint ni simpanan PENUH, bukan patch separa (2026-08-20,
+  // dapatan audit). Kalau kedua-duanya diklik hampir serentak (togol sebaik lepas klik Simpan,
+  // sebelum respons pertama tiba), permintaan kedua baca snapshot LAMA (belum nampak simpanan
+  // pertama) dan menulisnya semula — menimpa balik medan yang baru sahaja disimpan. Butang
+  // saling melumpuhkan (`disabled={... || flag_satu_lagi}`) supaya cuma SATU simpanan boleh
+  // dalam penerbangan pada satu masa DALAM SATU tab. Ini TAK menutup race merentas DUA TAB
+  // pelayar berasingan (perlukan kunci optimistik peringkat pelayan) — dinilai berlebihan
+  // untuk risiko sebenar (satu Ketua Editor, bukan ramai pengguna serentak).
   const tukarTogolCiri = async () => {
     if (ciriAktif === null) return;
     setMenukarTogol(true);
@@ -1131,7 +1140,7 @@ export const PetikanConsole: React.FC = () => {
               </div>
               <div className="flex items-center gap-3">
                 <StatusBadge tone={ciriAktif ? 'success' : 'neutral'} label={ciriAktif ? 'Hidup' : 'Mati'} />
-                <Button variant={ciriAktif ? 'secondary' : 'primary'} size="sm" disabled={ciriAktif === null || menukarTogol} onClick={tukarTogolCiri}>
+                <Button variant={ciriAktif ? 'secondary' : 'primary'} size="sm" disabled={ciriAktif === null || menukarTogol || menyimpanTetapanLanjutan} onClick={tukarTogolCiri}>
                   {menukarTogol ? 'Menukar…' : ciriAktif ? 'Matikan ciri' : 'Hidupkan ciri'}
                 </Button>
               </div>
@@ -1174,7 +1183,7 @@ export const PetikanConsole: React.FC = () => {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button variant="primary" size="sm" disabled={menyimpanTetapanLanjutan} onClick={simpanTetapanLanjutan}>
+              <Button variant="primary" size="sm" disabled={menyimpanTetapanLanjutan || menukarTogol} onClick={simpanTetapanLanjutan}>
                 {menyimpanTetapanLanjutan ? 'Menyimpan…' : 'Simpan tetapan'}
               </Button>
             </div>

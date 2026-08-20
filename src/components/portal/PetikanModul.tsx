@@ -1,5 +1,6 @@
 import React from 'react';
 import { safeParseInline } from '../../utils';
+import { tarikhMalaysia } from '../../../core/utils/waktuMalaysia.js';
 
 /**
  * MODUL PETIKAN — paparan awam (Fasa 5).
@@ -70,7 +71,17 @@ function ambilKolam() {
         petikan: Array.isArray(d?.petikan) ? (d.petikan as PetikanAwam[]) : [],
         tempohPutaranMs: Number(d?.tempohPutaranMs) > 0 ? Number(d.tempohPutaranMs) : TEMPOH_PUTARAN_LALAI_MS,
       }))
-      .catch(() => ({ aktif: false, petikan: [] as PetikanAwam[], tempohPutaranMs: TEMPOH_PUTARAN_LALAI_MS }));
+      .catch(() => {
+        // Cache DIBATALKAN pada kegagalan (2026-08-20, dapatan audit) — sebelum ni hasil `catch`
+        // turut tersimpan dalam `kolamJanji` module-level buat SELAMA-LAMANYA (janji yang sama
+        // dipulangkan setiap panggilan seterusnya). Satu ralat rangkaian sekejap semasa muatan
+        // pertama bermakna TIADA petikan terpapar langsung sepanjang sesi tab tu, walau rangkaian
+        // pulih sedetik kemudian — mustahil pulih sendiri tanpa muat semula PENUH. Set `null` di
+        // sini supaya panggilan seterusnya (cth komponen lain memasang, atau navigasi dalam sesi
+        // sama) cuba fetch semula, bukan terus terperangkap dengan kegagalan lama.
+        kolamJanji = null;
+        return { aktif: false, petikan: [] as PetikanAwam[], tempohPutaranMs: TEMPOH_PUTARAN_LALAI_MS };
+      });
   }
   return kolamJanji;
 }
@@ -218,7 +229,11 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
   React.useEffect(() => {
     if (kolam.length === 0) return;
     const sesi = bacaSesi();
-    const hariIni = new Date().toISOString().slice(0, 10);
+    // tarikhMalaysia() (2026-08-20, dapatan audit), bukan toISOString().slice(0,10) — MESTI
+    // sepadan sempadan hari yang pelayan guna (petikanRoutes.js, sumber kebenaran sebenar
+    // kolam harian), jika tidak sesi klien "bertukar hari" 8 jam terlalu awal berbanding
+    // pelayan (tengah malam UTC = 8 pagi MY).
+    const hariIni = tarikhMalaysia();
     if (sesi.tarikh !== hariIni) {
       setIndeks(0);
       tulisSesi({ tarikh: hariIni, indeks: 0, ditutup: sesi.ditutup });
@@ -236,13 +251,29 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
     // Transisi DUA FASA (2026-08-19, susulan video sebenar — lihat nota TEMPOH_FADE_KELUAR_MS di
     // atas fail). Urutan MESTI tepat: fade-keluar penuh -> tukar kandungan SEMASA tak kelihatan
     // (opacity 0) -> jeda kosong -> fade-masuk. `kurangGerak` langkau kesemua fasa, tukar terus.
+    //
+    // `ditutup: false` TAK LAGI keras (2026-08-20, dapatan audit) — sebelum ni tukarIndeks()
+    // sentiasa tulis `false` tak kira keadaan sesi SEBENAR, jadi kalau pembaca klik × (tutup())
+    // TEPAT dalam tetingkap fade (350ms/120ms), timeout tertunda yang tak sempat dibatalkan tetap
+    // menembak dan MENIMPA `ditutup: true` yang baru sahaja ditulis balik ke `false`. Kesan tak
+    // nampak pada paparan SEMASA (state React `ditutup` betul, komponen terus papar null), tapi
+    // sessionStorage rosak — bar muncul semula pada navigasi/muat semula seterusnya dalam sesi
+    // sama, walaupun pembaca sudah tutup. Warisi `ditutup` daripada bacaan sesi TERKINI, bukan
+    // andaian tegar.
     const tukarIndeks = () => {
       setIndeks((sebelum) => {
         const baharu = (sebelum + 1) % kolam.length;
-        tulisSesi({ tarikh: new Date().toISOString().slice(0, 10), indeks: baharu, ditutup: false });
+        tulisSesi({ tarikh: tarikhMalaysia(), indeks: baharu, ditutup: bacaSesi().ditutup });
         return baharu;
       });
     };
+
+    // ID timeout bersarang disimpan supaya boleh dibatalkan (2026-08-20, dapatan audit) — dahulu
+    // TIADA cara membatalkan fasa fade yang sedang berjalan bila effect ni dibersihkan (cth
+    // `beku` bertukar true tengah-tengah fade, atau komponen unmount). clearInterval() sahaja
+    // tak menyentuh setTimeout yang sudah dijadualkan oleh larian interval SEBELUM ni.
+    let masaTamat1: ReturnType<typeof setTimeout> | null = null;
+    let masaTamat2: ReturnType<typeof setTimeout> | null = null;
 
     const langkah = () => {
       if (kunciTuding.current || bekuRef.current) return;
@@ -250,10 +281,10 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
 
       setTempohTransisiMs(TEMPOH_FADE_KELUAR_MS);
       setPudar(true); // fade-KELUAR bermula — teks LAMA masih dipaparkan sepanjang fasa ni
-      setTimeout(() => {
+      masaTamat1 = setTimeout(() => {
         // opacity 0 PENUH sekarang — selamat tukar kandungan, mata tidak nampak langsung.
         tukarIndeks();
-        setTimeout(() => {
+        masaTamat2 = setTimeout(() => {
           // jeda kosong selesai — mula fade-MASUK dengan tempoh berlainan (lebih perlahan).
           setTempohTransisiMs(TEMPOH_FADE_MASUK_MS);
           setPudar(false);
@@ -262,7 +293,11 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
     };
 
     const pemasa = setInterval(langkah, tempohPutaranMs);
-    return () => clearInterval(pemasa);
+    return () => {
+      clearInterval(pemasa);
+      if (masaTamat1) clearTimeout(masaTamat1);
+      if (masaTamat2) clearTimeout(masaTamat2);
+    };
   }, [kolam.length, ditutup, kurangGerak, tempohPutaranMs]);
 
   if (!aktif || kolam.length === 0 || ditutup) return null;
@@ -272,7 +307,7 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
 
   const tutup = () => {
     setDitutup(true);
-    tulisSesi({ tarikh: new Date().toISOString().slice(0, 10), indeks, ditutup: true });
+    tulisSesi({ tarikh: tarikhMalaysia(), indeks, ditutup: true });
   };
 
   return (

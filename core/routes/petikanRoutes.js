@@ -6,6 +6,7 @@ import {
   KATEGORI_PETIKAN, HAD_TEKS_PETIKAN, huraiPetikanTampal, kunciDedupPetikan,
   pilihDanSusunKolam, binaArahanAiPetikan, labelTerjemahan, namaBahasa, adalahBahasaMelayu,
 } from '../editorial/PetikanConfig.js';
+import { tarikhMalaysia } from '../utils/waktuMalaysia.js';
 
 // Petikan (2026-08-19, spesifikasi Izzat) — kandungan editorial sampingan di margin kiri frontpage.
 // Lihat nota penuh di server.js (CREATE TABLE petikan) untuk rasional seni bina SATU jadual.
@@ -144,7 +145,12 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
       }
 
       const kini = new Date();
-      const hariIni = kini.toISOString().slice(0, 10);
+      // tarikhMalaysia() (2026-08-20, dapatan audit), bukan toISOString().slice(0,10) — UTC
+      // bermakna sempadan kolam harian & julat tarikhMula/tarikhAkhir berkuat kuasa pada 8:00
+      // PAGI waktu Malaysia, bukan tengah malam. Ketua Editor yang jadualkan "tarikh akhir 20/8"
+      // akan lihat petikan itu masih tersiar sehingga 8 pagi 21/8. Helper kongsi ni (core/utils/
+      // waktuMalaysia.js) dah wujud khusus untuk kelas pepijat ni (sponsorRoutes pernah sama).
+      const hariIni = tarikhMalaysia(kini);
 
       // Tapis di SQL, bukan di JS — petikan yang belum sah atau tidak aktif tidak sepatutnya
       // meninggalkan pangkalan data langsung. Julat tarikh (tarikhMula/tarikhAkhir) opsyenal:

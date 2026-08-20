@@ -58,7 +58,7 @@ async function penulisAsalKandungan(dbGet, objectId, revisionId) {
   );
   return ((row && row.valueText) || '').trim();
 }
-function namaSepadan(a, b) {
+export function namaSepadan(a, b) {
   const ta = (a || '').trim().toLowerCase();
   const tb = (b || '').trim().toLowerCase();
   return !!ta && !!tb && ta === tb;

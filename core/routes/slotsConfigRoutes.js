@@ -6,6 +6,7 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { MANUAL_BLOCK_SPLIT_REGEX, MANUAL_BLOCK_SEPARATOR, parseManualBlockFields } from '../editorial/ManualBlockFormat.js';
+import { namaSepadan } from './contentRoutes.js';
 // denganKunciTicker (2026-08-20, dapatan audit modul Ticker) — simpanan Ticker mod Manual di
 // bawah menulis-ganti `inTheNewsText`, medan yang sama yang ditulis serapan RSS Direct
 // (slotRoutes.js) di bawah rantaian kunci BERASINGAN. Tanpa kunci ni, simpanan Manual boleh
@@ -79,8 +80,12 @@ function kekalkanDrafOrangLain(manualSummaryBaharu, manualSummaryLama, namaPengg
     const fields = parseManualBlockFields(block);
     // Cuma draf (status !== 'draft' bermakna dah TERBIT — direkodkan di editorial_objects,
     // bukan dalam manualSummary lagi, jadi tak sepatutnya muncul di sini pun; disemak untuk
-    // selamat) DAN penulis SAH bukan pengguna semasa.
-    return fields.status === 'draft' && fields.penulis && fields.penulis !== namaPenggunaSemasa;
+    // selamat) DAN penulis SAH bukan pengguna semasa. namaSepadan() (bukan !==, 2026-08-20,
+    // baki isu 1e daripada pelan 18/8 — helper pemilikan disatukan di tempat lain tapi tapak
+    // ni terlepas) — padanan tepat sensitif-huruf bermakna editor yang penName-nya beza huruf
+    // besar/kecil sikit sahaja (cth ejaan sesi vs ejaan blok tersimpan) dilayan sebagai "orang
+    // lain", draf sendiri boleh tersalin/berganda dalam gabungan ni.
+    return fields.status === 'draft' && fields.penulis && !namaSepadan(fields.penulis, namaPenggunaSemasa);
   });
   if (drafOrangLain.length === 0) return manualSummaryBaharu;
   const bahagianBaharu = (manualSummaryBaharu || '').trim();
