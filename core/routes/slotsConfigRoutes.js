@@ -6,7 +6,13 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { MANUAL_BLOCK_SPLIT_REGEX, MANUAL_BLOCK_SEPARATOR, parseManualBlockFields } from '../editorial/ManualBlockFormat.js';
-import { denganKunciKandungan } from '../utils/kunciKandungan.js';
+// denganKunciTicker (2026-08-20, dapatan audit modul Ticker) — simpanan Ticker mod Manual di
+// bawah menulis-ganti `inTheNewsText`, medan yang sama yang ditulis serapan RSS Direct
+// (slotRoutes.js) di bawah rantaian kunci BERASINGAN. Tanpa kunci ni, simpanan Manual boleh
+// mendarat tepat antara baca dan tulis serapan RSS — dan kandungan Manual yang baru disimpan
+// ditimpa semula oleh RSS beberapa milisaat kemudian, seolah-olah simpanan tak pernah berlaku.
+// SUSUNAN KUNCI: Kandungan DAHULU, Ticker KEMUDIAN (lihat nota penuh di contentRoutes.js).
+import { denganKunciKandungan, denganKunciTicker } from '../utils/kunciKandungan.js';
 
 // Gerbang Nota (2026-08-05, permintaan Ketua Editor) — medan "Nota editor" (Focus View)
 // sepatutnya HANYA boleh ditulis oleh (a) editor yang DITUGASKAN slot berkenaan (`slot_editors`,
@@ -380,7 +386,9 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         // manualSummary BENAR-BENAR ada kandungan bermakna — kosong/ruang kosong sahaja dilangkau
         // terus, inTheNewsText sedia ada KEKAL tak disentuh.
         if (slot.slotIndex === -1 && slot.contentMode === 'Manual' && (slot.manualSummary || '').trim() !== '') {
-          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [stampManualModeOnTickerBlocks(slot.manualSummary)]);
+          await denganKunciTicker(async () => {
+            await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [stampManualModeOnTickerBlocks(slot.manualSummary)]);
+          });
         }
       }
 

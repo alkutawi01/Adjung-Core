@@ -7,7 +7,19 @@ import { requireAuth, requirePermission, hasPermission } from '../middleware/aut
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { isDue, hasReplacementForExpiry, resolveEffectiveStatus } from '../editorial/Scheduling.js';
-import { denganKunciKandungan } from '../utils/kunciKandungan.js';
+// denganKunciTicker (2026-08-20, dapatan audit modul Ticker) — laluan dalam fail ni yang
+// membaca-ubah-menulis `system_settings.inTheNewsText` dahulu hanya memegang
+// denganKunciKandungan, iaitu rantaian yang BERBEZA SEPENUHNYA daripada rantaian yang
+// dipegang penulis Ticker lain (RSS Direct di slotRoutes.js). Dua rantaian berasingan
+// bermakna langsung TIADA saling-sekat: serapan RSS boleh menulis inTheNewsText tepat
+// antara baca dan tulis di sini, dan suntingan editor menimpanya (atau sebaliknya).
+//
+// SUSUNAN KUNCI (wajib dipatuhi mana-mana kod baharu): Kandungan DAHULU, Ticker KEMUDIAN.
+// slotRoutes.js memegang HANYA kunci Ticker dan tidak pernah mengambil kunci Kandungan,
+// jadi tiada kitaran dan tiada kebuntuan. JANGAN sekali-kali mengambil kunci Kandungan
+// di dalam blok yang sudah memegang kunci Ticker — itu menutup kitaran dan menggantung
+// pelayan.
+import { denganKunciKandungan, denganKunciTicker } from '../utils/kunciKandungan.js';
 import { kutipNamaFailDariAtribut, padamFailMuatNaikYatim } from '../utils/failMuatNaik.js';
 
 // Dua jenis Menunggu (2026-08-06, permintaan Izzat: "menunggu sepatutnya ada dua jenis, menunggu
@@ -155,9 +167,25 @@ async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotI
 // (see EditorialPipeline.js's slotIndex===-1 branch, and the ticker save path in POST
 // /api/system/slots). These mirror the client-side parseInTheNews()/serialization convention
 // (Desk:/Title:/Brief:/Source:/Url: fields) so the content-review endpoints can read/write it too.
+// Pemisah blok MESTI menduduki SATU BARIS PENUH (2026-08-20, dapatan audit modul Ticker).
+// Corak lama `/\n?[-_—–―]{3,}\n?/` menjadikan kedua-dua baris baharu PILIHAN, jadi tiga sempang
+// di MANA-MANA sahaja memecahkan blok — termasuk di tengah ayat editorial ("tanda ―――"), dan
+// yang paling mudah berlaku, di dalam URL berita yang mengandungi slug seperti
+// `.../berita---terkini`. Separuh blok yang terhasil tiada baris `Title:`, jadi ia digugurkan
+// SENYAP oleh gerbang `if (title)` di bawah: satu berita sebenar lenyap daripada ticker tanpa
+// sebarang ralat, dan blok mod lain di sekelilingnya boleh terpotong sekali.
+//
+// Penambat `^...$` (bendera `m`) memastikan hanya baris yang MEMANG baris pemisah memecahkan
+// blok. Serasi ke belakang sepenuhnya: serializeTickerText() sentiasa menulis `\n---\n`, iaitu
+// baris penuh — jadi semua data sedia ada terus dihurai sama seperti sebelum ini (disahkan
+// terhadap rentetan ticker production sebenar sebelum perubahan ni dihantar).
+// Corak pemisah DISELARASKAN dengan parseInTheNews() (src/utils.tsx) — termasuk `⸻`, yang
+// dahulu dikenali parser pelayar TETAPI tidak oleh parser pelayan ni. Teks yang sama dihurai
+// berbeza oleh dua belah bermakna apa yang editor lihat di skrin tidak sepadan apa yang
+// disimpan/diganti di pangkalan data. Kalau salah satu corak diubah, ubah kedua-duanya SERENTAK.
 export const parseTickerText = (text) => {
   if (!text) return [];
-  const blocks = text.split(/\n?[-_—–―]{3,}\n?/);
+  const blocks = text.split(/^[ \t]*(?:[-_—–―]{3,}|⸻+)[ \t]*$/m);
   const items = [];
   for (const block of blocks) {
     let desk = '', title = '', brief = '', source = '', url = '', mode = '';
@@ -190,9 +218,21 @@ export const parseTickerText = (text) => {
   return items;
 };
 
+// Format blok ialah `Kunci: nilai` SATU BARIS setiap medan, dan blok dipisahkan satu baris
+// sempang penuh. Maka nilai medan tidak boleh mengandungi baris baharu: kalau ia ada, segala
+// yang selepas baris baharu itu akan dibaca sebagai medan lain (atau digugurkan terus), dan
+// kalau baris itu kebetulan sempang sahaja ia memecahkan blok kepada dua. Baris baharu dilipat
+// menjadi satu ruang di sini — di tapak TULIS, supaya rentetan tersimpan sentiasa sah.
+//
+// Ini BUKAN pemotongan kandungan (tiada aksara dibuang, CLAUDE.md: "jangan potong/tulis-ganti
+// secara automatik") — cuma ruang baris ditukar ruang biasa. Ticker memang dipaparkan sebagai
+// satu baris bergulir, jadi perenggan tiada makna visual di situ; alternatifnya ialah kehilangan
+// separuh teks secara senyap, yang jauh lebih buruk.
+const satuBaris = (nilai) => String(nilai ?? '').replace(/[\r\n]+/g, ' ').trim();
+
 export const serializeTickerText = (items) => {
   return items
-    .map(i => `Desk: ${i.desk || 'UMUM'}\nTitle: ${i.title}\nBrief: ${i.brief || ''}\nSource: ${i.source || ''}\nUrl: ${i.url || '#'}${i.mode ? `\nMode: ${i.mode}` : ''}`)
+    .map(i => `Desk: ${satuBaris(i.desk) || 'UMUM'}\nTitle: ${satuBaris(i.title)}\nBrief: ${satuBaris(i.brief)}\nSource: ${satuBaris(i.source)}\nUrl: ${satuBaris(i.url) || '#'}${i.mode ? `\nMode: ${satuBaris(i.mode)}` : ''}`)
     .join('\n---\n');
 };
 
@@ -598,25 +638,35 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           return res.status(400).json({ error: 'Item ticker tidak menyokong Jadual Terbit/Luput, sebab ia disegarkan terus daripada suapan RSS.' });
         }
         const idx = parseInt(id.slice('ticker-'.length), 10);
-        const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
-        const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
-        if (idx < 0 || idx >= tickerItems.length) {
-          return res.status(404).json({ error: 'Item ticker tidak dijumpai.' });
+        // Baca-ubah-tulis inTheNewsText dikunci sebagai SATU unit (lihat nota susunan kunci di
+        // atas fail). Keputusan dipulangkan sebagai nilai dan dibalas SELEPAS kunci dilepaskan —
+        // `return res...` terus dari dalam panggil balik hanya keluar daripada panggil balik itu,
+        // bukan daripada pengendali, jadi aliran akan tersasar ke laluan bukan-ticker di bawah.
+        const hasilTicker = await denganKunciTicker(async () => {
+          const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+          const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
+          if (idx < 0 || idx >= tickerItems.length) {
+            return { kod: 404, ralat: 'Item ticker tidak dijumpai.' };
+          }
+          // Same hard-block as every other content path: an edit can never push this tier's
+          // title+brief over its budget, no matter which screen the edit came from.
+          const nextTitle = title !== undefined ? title : tickerItems[idx].title;
+          const nextBrief = summary !== undefined ? summary : tickerItems[idx].brief;
+          const tickerBudgetCheck = validateContentBudget(-1, nextTitle, nextBrief);
+          if (!tickerBudgetCheck.isValid) {
+            return { kod: 400, ralat: tickerBudgetCheck.reason };
+          }
+          if (title !== undefined) tickerItems[idx].title = title;
+          if (summary !== undefined) tickerItems[idx].brief = summary;
+          if (desk !== undefined) tickerItems[idx].desk = desk;
+          if (source !== undefined) tickerItems[idx].source = source;
+          if (url !== undefined) tickerItems[idx].url = url;
+          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
+          return { kod: 200 };
+        });
+        if (hasilTicker.kod !== 200) {
+          return res.status(hasilTicker.kod).json({ error: hasilTicker.ralat });
         }
-        // Same hard-block as every other content path: an edit can never push this tier's
-        // title+brief over its budget, no matter which screen the edit came from.
-        const nextTitle = title !== undefined ? title : tickerItems[idx].title;
-        const nextBrief = summary !== undefined ? summary : tickerItems[idx].brief;
-        const tickerBudgetCheck = validateContentBudget(-1, nextTitle, nextBrief);
-        if (!tickerBudgetCheck.isValid) {
-          return res.status(400).json({ error: tickerBudgetCheck.reason });
-        }
-        if (title !== undefined) tickerItems[idx].title = title;
-        if (summary !== undefined) tickerItems[idx].brief = summary;
-        if (desk !== undefined) tickerItems[idx].desk = desk;
-        if (source !== undefined) tickerItems[idx].source = source;
-        if (url !== undefined) tickerItems[idx].url = url;
-        await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
         return res.json({ success: true });
       }
 
@@ -1597,14 +1647,22 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // menjejaki keputusan editor, bukan menyimpan segala yang pernah melintas jalur.
       if (id.startsWith('ticker-')) {
         const idx = parseInt(id.slice('ticker-'.length), 10);
-        const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
-        const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
-        if (idx < 0 || idx >= tickerItems.length) {
-          return res.status(404).json({ error: 'Item ticker tidak dijumpai.' });
+        // Baca-ubah-tulis dikunci sebagai satu unit — lihat nota susunan kunci di atas fail.
+        const hasilPadam = await denganKunciTicker(async () => {
+          const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+          const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
+          if (idx < 0 || idx >= tickerItems.length) {
+            return { kod: 404, ralat: 'Item ticker tidak dijumpai.' };
+          }
+          const dipadamDlm = tickerItems[idx];
+          tickerItems.splice(idx, 1);
+          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
+          return { kod: 200, dipadam: dipadamDlm };
+        });
+        if (hasilPadam.kod !== 200) {
+          return res.status(hasilPadam.kod).json({ error: hasilPadam.ralat });
         }
-        const dipadam = tickerItems[idx];
-        tickerItems.splice(idx, 1);
-        await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
+        const dipadam = hasilPadam.dipadam;
         await logAudit(dbRun, {
           actorId: req.session?.user?.id,
           actorName: req.session?.user?.penName || req.session?.user?.username,
@@ -1741,25 +1799,31 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         if (!tickerUrlCheck.isValid) {
           return res.status(400).json({ error: tickerUrlCheck.reason });
         }
-        const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
-        const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
-        tickerItems.push({
-          desk: (desk || 'UMUM').trim().toUpperCase(),
-          title: title.trim(),
-          brief: (summary || '').trim(),
-          source: source || '',
-          url: url || '#'
+        // Baca-ubah-tulis dikunci sebagai satu unit — lihat nota susunan kunci di atas fail.
+        // Tanpa kunci, dua penambahan serentak (atau satu penambahan + satu serapan RSS) membaca
+        // rentetan yang sama dan yang menulis kemudian membuang item yang seorang lagi tambah.
+        const indeksBaharu = await denganKunciTicker(async () => {
+          const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+          const tickerItems = parseTickerText(settingsRow ? settingsRow.inTheNewsText : '');
+          tickerItems.push({
+            desk: (desk || 'UMUM').trim().toUpperCase(),
+            title: title.trim(),
+            brief: (summary || '').trim(),
+            source: source || '',
+            url: url || '#'
+          });
+          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
+          return tickerItems.length - 1;
         });
-        await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [serializeTickerText(tickerItems)]);
         await logAudit(dbRun, {
           actorId: req.session?.user?.id,
           actorName: req.session?.user?.penName || req.session?.user?.username,
           action: 'cipta-kandungan-ticker',
           targetType: 'kandungan',
-          targetId: `ticker-${tickerItems.length - 1}`,
+          targetId: `ticker-${indeksBaharu}`,
           detail: title.trim().slice(0, 100),
         });
-        return res.json({ success: true, id: `ticker-${tickerItems.length - 1}` });
+        return res.json({ success: true, id: `ticker-${indeksBaharu}` });
       }
 
       // Same hard-block as every other content-creation path: this slot's tier's budget rule applies

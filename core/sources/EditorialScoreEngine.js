@@ -48,7 +48,11 @@ export function tentukanKeputusanSkor(totalScore, containsSensational, titleLeng
 export function calculateEditorialScore(item, sourceConfig = {}, editorialSettings = {}) {
   const sourceTrust = typeof sourceConfig.trustScore === 'number' ? sourceConfig.trustScore : 90;
   const priorityBonus = Number(editorialSettings.priorityBonus) || 15;
-  const blockedPenalty = Number(editorialSettings.blockedPenalty) || 40;
+  // `blockedPenalty` SENGAJA tidak dibaca di sini (2026-08-20, dapatan audit) — ia dahulu
+  // dibaca ke dalam pemboleh ubah tempatan yang tidak pernah digunakan walau sekali, memberi
+  // gambaran palsu bahawa ia mengawal sesuatu. Sekatan kata kunci ialah sekatan MUTLAK
+  // (`totalScore` dipaksa 0 di bawah), bukan tolakan mata; ruang tetapannya di Editorium sudah
+  // digantikan penjelasan dasar. Lajur DB dikekalkan supaya tetapan lama tidak gagal dimuat.
 
   const priorityKwList = (editorialSettings.priorityKeywords || '')
     .split(',')

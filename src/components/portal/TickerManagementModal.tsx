@@ -75,16 +75,37 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [actionLoadingMap, setActionLoadingMap] = useState<Record<string, boolean>>({});
 
+  // Gerbang keselamatan simpan: hanya benar selepas tetapan SEBENAR berjaya dimuat daripada
+  // pelayan. Menghalang borang yang masih memaparkan nilai lalai kod daripada ditulis kembali
+  // ke pangkalan data dan memadam tetapan sebenar Ketua Editor.
+  const [tetapanDimuat, setTetapanDimuat] = useState<boolean>(false);
+  // Garis dasar nilai tetapan seperti yang dimuat daripada pelayan — pembanding untuk mengesan
+  // perubahan yang belum disimpan dalam bahagian Tetapan Editorial (lihat `tetapanKotor`).
+  const asasTetapanRef = useRef<null | {
+    autoLive: number; review: number; keutamaan: string; disekat: string;
+    bonus: number; usia: number; maksItem: number; minAksara: number;
+  }>(null);
   const [blockedCategories, setBlockedCategories] = useState<{ id: string; categoryName: string }[]>([]);
   const [newBlockedCatInput, setNewBlockedCatInput] = useState<string>('');
 
+  // Kegagalan dilaporkan, bukan ditelan (2026-08-20, dapatan audit) — `catch (e) {}` kosong
+  // bermakna sekiranya pelayan membalas ralat, senarai Kategori Tersekat kekal KOSONG di skrin
+  // tanpa sebarang tanda. Ketua Editor membacanya sebagai "tiada tag disekat" dan boleh
+  // menyekat semula tag yang sebenarnya sudah ada, atau menyangka sekatannya hilang.
   const loadBlockedCategories = useCallback(async () => {
     try {
       const res = await fetch('/api/system/rss-blocked-categories');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        addToast('error', data.error || 'Gagal memuatkan senarai kategori tersekat.');
+        return;
+      }
       const data = await res.json();
       if (Array.isArray(data)) setBlockedCategories(data);
-    } catch (e) {}
-  }, []);
+    } catch (e) {
+      addToast('error', 'Gagal memuatkan senarai kategori tersekat. Semak sambungan.');
+    }
+  }, [addToast]);
 
   const handleAddBlockedCategory = async (catName: string) => {
     const trimmed = (catName || '').trim();
@@ -116,14 +137,26 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
       if (data.success) {
         addToast('info', `Tag Kategori XML '${name}' dibuang daripada senarai sekat.`);
         loadBlockedCategories();
+        // Buang sekatan mengubah kelayakan berita — segarkan kiraan supaya panel tidak beku.
+        loadReviewQueue();
+      } else {
+        // Cabang ralat ditambah (2026-08-20, dapatan audit) — dahulu penolakan pelayan langsung
+        // tidak menghasilkan apa-apa mesej: tag kekal di skrin, editor menyangka klik tak masuk
+        // dan mengklik berulang kali.
+        addToast('error', data.error || `Gagal membuang tag '${name}'.`);
       }
-    } catch (e) {}
+    } catch (e) {
+      addToast('error', 'Gagal menyambung ke pelayan. Cuba lagi.');
+    }
   };
 
   // 1. Fetch Editorial Settings on Mount
   useEffect(() => {
     fetch('/api/system/rss-settings')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Status ' + res.status);
+        return res.json();
+      })
       .then(data => {
         if (data) {
           // !== undefined, BUKAN semakan truthy (2026-08-16, bug sebenar dijumpai audit Izzat)
@@ -143,11 +176,29 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
           if (data.maxNewsAgeHours !== undefined) setRssMaxNewsAgeHours(data.maxNewsAgeHours);
           if (data.tickerMaxItems !== undefined) setTickerMaxItems(data.tickerMaxItems);
           if (data.tickerTitleMinChars !== undefined) setTickerTitleMinChars(data.tickerTitleMinChars);
+          // Garis dasar diambil di sini (bukan semasa render pertama) kerana nilai sebenar tiba
+          // secara tak segerak — snapshot awal hanya akan merakam lalai kod, menjadikan setiap
+          // borang kelihatan "kotor" sebaik nilai sebenar mendarat.
+          asasTetapanRef.current = {
+            autoLive: data.autoLiveThreshold, review: data.reviewThreshold,
+            keutamaan: data.priorityKeywords ?? '', disekat: data.blockedKeywords ?? '',
+            bonus: data.priorityBonus, usia: data.maxNewsAgeHours,
+            maksItem: data.tickerMaxItems, minAksara: data.tickerTitleMinChars,
+          };
+          setTetapanDimuat(true);
         }
       })
-      .catch(() => {});
+      // Kegagalan muat TIDAK boleh senyap (2026-08-20, dapatan audit) — `.catch(() => {})`
+      // dahulu meninggalkan borang memaparkan nilai LALAI KOD (ambang 80, dsb.) yang kelihatan
+      // seperti tetapan sebenar. Kalau Ketua Editor kemudian menekan Simpan, lalai itu MENIMPA
+      // tetapan sebenar yang tersimpan — kerugian senyap, kelas pepijat yang SAMA seperti
+      // amaran `!== undefined` di atas. Jadi: beritahu, dan kunci butang Simpan sehingga nilai
+      // sebenar benar-benar dimuat.
+      .catch(() => {
+        addToast('error', 'Gagal memuatkan tetapan editorial. Tutup dan buka semula tetingkap ini sebelum menyimpan — borang mungkin memaparkan nilai lalai, bukan tetapan sebenar anda.');
+      });
     loadBlockedCategories();
-  }, [loadBlockedCategories]);
+  }, [loadBlockedCategories, addToast]);
 
   // 2. Memoized Manual Block Status List
   const manualBlocks = useMemo(() => {
@@ -314,6 +365,13 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
         // muat semula, panel kekal memaparkan nombor SEBELUM simpan; Izzat melihat angka yang
         // sama persis selepas klik Simpan dan menyimpulkan simpanan gagal — walhal ia berjaya.
         // Kiraan yang beku selepas tindakan yang mengubahnya ialah pepijat, bukan kosmetik.
+        // Garis dasar disegarkan supaya amaran "belum disimpan" hilang selepas simpanan berjaya.
+        asasTetapanRef.current = {
+          autoLive: rssAutoLiveThreshold, review: rssReviewThreshold,
+          keutamaan: rssPriorityKeywords, disekat: rssBlockedKeywords,
+          bonus: rssPriorityBonus, usia: rssMaxNewsAgeHours,
+          maksItem: tickerMaxItems, minAksara: tickerTitleMinChars,
+        };
         loadReviewQueue();
         addToast('success', 'Tetapan & Peraturan Editorial RSS berjaya disimpan!');
       } else {
@@ -362,12 +420,47 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
       carouselInterval: formConfig.carouselInterval ?? 10,
     };
   }
+  // Perubahan Tetapan Editorial yang BELUM disimpan (2026-08-20, dapatan audit) — bahagian
+  // Tetapan ada butang Simpan SENDIRI, berasingan daripada "Simpan Kandungan Ticker" di kaki
+  // borang. Menekan butang kaki itu menyimpan kandungan lalu MENUTUP tetingkap, memusnahkan
+  // apa-apa yang sudah ditaip dalam bahagian Tetapan tanpa sebarang amaran (snapshot `kotor`
+  // lama hanya menjejak tiga medan kandungan). Dijejak sekarang, dan dimasukkan ke dalam
+  // `kotor` supaya laluan X/Batal/Escape/tutup-pelayar turut dilindungi.
+  const a = asasTetapanRef.current;
+  const tetapanKotor = a !== null && (
+    rssAutoLiveThreshold !== a.autoLive || rssReviewThreshold !== a.review ||
+    rssPriorityKeywords !== a.keutamaan || rssBlockedKeywords !== a.disekat ||
+    rssPriorityBonus !== a.bonus || rssMaxNewsAgeHours !== a.usia ||
+    tickerMaxItems !== a.maksItem || tickerTitleMinChars !== a.minAksara
+  );
+  const buangPerubahanTetapan = () => {
+    if (!a) return;
+    setRssAutoLiveThreshold(a.autoLive); setRssReviewThreshold(a.review);
+    setRssPriorityKeywords(a.keutamaan); setRssBlockedKeywords(a.disekat);
+    setRssPriorityBonus(a.bonus); setRssMaxNewsAgeHours(a.usia);
+    setTickerMaxItems(a.maksItem); setTickerTitleMinChars(a.minAksara);
+  };
+
   const kotor = (
     (formConfig.manualSummary || '') !== initialSnapshotRef.current.manualSummary ||
     (formConfig.contentMode || 'Manual') !== initialSnapshotRef.current.contentMode ||
-    (formConfig.carouselInterval ?? 10) !== initialSnapshotRef.current.carouselInterval
+    (formConfig.carouselInterval ?? 10) !== initialSnapshotRef.current.carouselInterval ||
+    tetapanKotor
   );
   const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onClose);
+
+  // Menyimpan kandungan menutup tetingkap — jadi ia disekat selagi ada perubahan Tetapan yang
+  // belum disimpan, dengan jalan keluar yang jelas (simpan tetapan dahulu, atau buang perubahan
+  // itu). `window.confirm` SENGAJA tidak digunakan: dilarang dalam projek ni (DLG-01) kerana
+  // dialog asli pelayar berlanggar dengan perangkap fokus modal dan boleh disenyapkan pelayar.
+  const hantarKandunganTicker = async (e: React.FormEvent) => {
+    if (tetapanKotor) {
+      e.preventDefault();
+      addToast('error', 'Ada perubahan Tetapan Editorial yang belum disimpan. Simpan tetapan itu dahulu, atau buang perubahannya — menyimpan kandungan akan menutup tetingkap ini.');
+      return;
+    }
+    await handleSaveSlot(e);
+  };
 
   // Pengurusan fokus modal (2026-08-07, Audit UI/UX §G1/G6) — lihat nota sama dalam
   // BarSlotManagerModal.tsx/SlotManagerModal.tsx: sebelum ni fokus papan kekunci kekal di halaman
@@ -517,7 +610,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
           )}
 
           {/* Main Form */}
-          <form onSubmit={handleSaveSlot} className="space-y-5">
+          <form onSubmit={hantarKandunganTicker} className="space-y-5">
             {/* Mod Kandungan Select */}
             <div className="flex flex-col gap-1.5">
               <label className="font-mono text-[9px] uppercase tracking-wider text-stone-600 font-bold">Mod Kandungan Ticker</label>
@@ -803,7 +896,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       </div>
 
                       <div className="flex flex-col gap-1 md:col-span-2">
-                        <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Kata Kunci Diharamkan / Sensasi (-Penalti Skor)</label>
+                        <label className="text-[9px] uppercase tracking-wider text-stone-600 font-bold">Kata Kunci Diharamkan / Sensasi (Sekatan Mutlak)</label>
                         <input
                           type="text"
                           placeholder="gempar, viral, panas, terbongkar"
@@ -811,17 +904,18 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           onChange={(e) => setRssBlockedKeywords(e.target.value)}
                           className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                         />
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[9px] text-stone-400">Jumlah penalti:</span>
-                          <input
-                            type="number"
-                            min="0"
-                            value={rssBlockedPenalty}
-                            onChange={(e) => setRssBlockedPenalty(Number(e.target.value))}
-                            className="w-20 px-2 py-1 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] font-sans text-xs"
-                          />
-                          <span className="text-[9px] text-stone-400">mata</span>
-                        </div>
+                        {/* Medan nombor "Jumlah penalti" DIGANTIKAN teks statik (2026-08-20, dapatan
+                            audit). Nilainya dibaca oleh enjin skor tetapi TIDAK PERNAH digunakan —
+                            sekatan kata kunci ialah sekatan MUTLAK (skor dipaksa 0), bukan tolakan
+                            mata. Menjadikannya berfungsi bermakna melemahkan sekatan itu: dengan
+                            penalti 40, berita bertanda kata kunci diharamkan akan berskor 60 dan
+                            masuk semula ke giliran semakan, bukan disekat. Mengikut CLAUDE.md
+                            ("jangan biarkan medan UI kawal sesuatu yang sudah dikunci di tempat
+                            lain"), kawalan yang mengelirukan dibuang, dasar sebenar dinyatakan. */}
+                        <p className="text-[9px] text-stone-400 mt-0.5 leading-relaxed">
+                          Berita yang mengandungi mana-mana kata kunci ini disekat sepenuhnya
+                          daripada Ticker, tidak kira setinggi mana skor editorialnya.
+                        </p>
                       </div>
                     </div>
 
@@ -886,12 +980,35 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                       )}
                     </div>
 
-                    <div className="flex justify-end pt-1">
+                    {tetapanKotor && (
+                      <div className="flex items-center justify-between gap-3 flex-wrap px-3 py-2 bg-amber-50 border border-amber-300 rounded">
+                        <span className="text-[10px] text-amber-800 leading-relaxed">
+                          Perubahan tetapan belum disimpan. Ia akan hilang jika tetingkap ini ditutup
+                          atau jika anda menyimpan kandungan Ticker di bawah.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={buangPerubahanTetapan}
+                          className="px-2.5 py-1 border border-amber-400 text-amber-800 rounded text-[9px] font-mono font-bold uppercase tracking-wider hover:bg-amber-100 cursor-pointer shrink-0"
+                        >
+                          Buang perubahan
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex justify-end items-center gap-3 pt-1">
+                      {!tetapanDimuat && (
+                        <span className="text-[9px] text-amber-700 font-mono uppercase tracking-wider">
+                          Menunggu tetapan sebenar dimuat…
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={handleSaveRssEditorialSettings}
-                        disabled={isSavingSettings}
-                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                        // `!tetapanDimuat` (2026-08-20, dapatan audit) — lihat nota di useEffect
+                        // muatan tetapan: menyimpan sebelum nilai sebenar tiba akan menulis nilai
+                        // lalai kod ke atas tetapan sebenar Ketua Editor.
+                        disabled={isSavingSettings || !tetapanDimuat}
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-xs font-mono font-bold uppercase tracking-wider cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                       >
                         {isSavingSettings ? <RefreshCw size={12} className="animate-spin" /> : <Save size={12} />}
                         {isSavingSettings ? 'Menyimpan…' : 'Simpan Tetapan Editorial Dinamik'}

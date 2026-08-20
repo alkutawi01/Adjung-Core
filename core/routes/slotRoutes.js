@@ -50,18 +50,29 @@ async function beritahuPentadbirDanKetuaEditor(dbAll, dbRun, payload, dbGet) {
 // putus, jadi semakannya disatukan ke dalam SATU fungsi ni (bukan dua tempat yang boleh
 // berlawan) dan sentiasa menang atas skor.
 //
-// Skop jujur (had yang diketahui, sengaja TIDAK dilebihkan): item yang skornya tersimpan 0
-// kerana pernah disekat kata kunci TIDAK pulih automatik bila kata kunci itu dibuang daripada
-// senarai — skor 0 dah terbenam dalam baris, dan mengira semula skor sebenar perlukan teks RSS
-// mentah asal yang tidak disimpan. Ia kekal disekat (arah selamat: kandungan tersekat kekal
-// tersekat), bukan terpapar silap. Untuk memulihkannya, Ketua Editor buang kata kunci itu
-// kemudian tunggu item BAHARU daripada sumber sama.
+// PEMULIHAN BILA KATA KUNCI DIBUANG (2026-08-20, permintaan Izzat "baiki semua"): item yang
+// pernah disekat mempunyai `score` tersimpan 0 (skor dipaksa 0 semasa sekatan), jadi menilai
+// semula daripada skor tersimpan sahaja akan mengekalkannya disekat SELAMANYA walaupun Ketua
+// Editor sudah membuang kata kunci itu. Baris sebegitu — dan HANYA baris sebegitu — dikira
+// semula skornya daripada medan tersimpan (tajuk/huraian/tag + skor amanah sumber).
+//
+// SENGAJA SEMPIT, bukan kerana malas: mengira semula skor SEMUA ~2,900 baris setiap kitaran
+// berisiko MENURUNKAN berita yang sedang hidup, kerana skor asal dikira daripada huraian RSS
+// MENTAH manakala yang tersimpan ialah huraian yang sudah dibersihkan dan dipotong 220 aksara —
+// kata kunci keutamaan yang berada di hujung huraian panjang akan hilang, bonusnya tergugur, dan
+// berita sah jatuh di bawah ambang. Kes pemulihan tidak menanggung risiko itu: skor 0 memang
+// sudah tidak bermakna, jadi apa-apa kiraan semula adalah peningkatan.
 async function nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings) {
   const senaraiDisekat = (editorialSettings.blockedKeywords || '')
     .split(',').map((k) => k.trim().toLowerCase()).filter(Boolean);
 
+  // Peta sumber (skor amanah + pemetaan kategori) untuk kiraan semula skor kes pemulihan.
+  // Sumber yang sudah dibuang daripada pendaftaran jatuh ke lalai calculateEditorialScore().
+  const barisSumber = await dbAll("SELECT sourceName, trustScore, categoryMapping FROM rss_sources_registry");
+  const petaSumber = new Map((barisSumber || []).map((s) => [s.sourceName, s]));
+
   const items = await dbAll(
-    "SELECT id, score, title, formattedBrief, decision, status FROM rss_ticker_items WHERE decision IN ('AUTO_LIVE', 'EDITOR_REVIEW', 'REJECT', 'TITLE_TOO_SHORT', 'BLOCKED_KEYWORD')"
+    "SELECT id, score, title, formattedBrief, rawCategory, source, decision, status FROM rss_ticker_items WHERE decision IN ('AUTO_LIVE', 'EDITOR_REVIEW', 'REJECT', 'TITLE_TOO_SHORT', 'BLOCKED_KEYWORD')"
   );
 
   // Kumpul dahulu, tulis kemudian — hanya baris yang keputusannya BENAR-BENAR berubah ditulis.
@@ -71,11 +82,29 @@ async function nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings) {
   for (const item of items) {
     const teks = `${item.title || ''} ${item.formattedBrief || ''}`.toLowerCase();
     const adaKataDisekat = senaraiDisekat.some((kw) => teks.includes(kw));
+
+    let skorSemasa = item.score;
+    let skorBaharu = null;
+
+    // Kes pemulihan: pernah disekat kata kunci, kini tidak lagi sepadan (Ketua Editor sudah
+    // membuang kata kunci itu). Skor 0 yang terbenam dikira semula supaya berita boleh kembali
+    // dinilai atas merit sebenarnya, bukan terkubur kekal. Lihat nota skop di atas fungsi.
+    if (item.decision === 'BLOCKED_KEYWORD' && !adaKataDisekat) {
+      const sumber = petaSumber.get(item.source) || {};
+      const dikira = calculateEditorialScore(
+        { title: item.title, description: item.formattedBrief, category: item.rawCategory },
+        sumber,
+        editorialSettings
+      );
+      skorSemasa = dikira.score;
+      skorBaharu = dikira.score;
+    }
+
     const { decision, status } = tentukanKeputusanSkor(
-      item.score, adaKataDisekat, (item.title || '').length, editorialSettings
+      skorSemasa, adaKataDisekat, (item.title || '').length, editorialSettings
     );
-    if (decision !== item.decision || status !== item.status) {
-      perubahan.push({ id: item.id, decision, status });
+    if (decision !== item.decision || status !== item.status || skorBaharu !== null) {
+      perubahan.push({ id: item.id, decision, status, skor: skorBaharu });
     }
   }
 
@@ -86,7 +115,12 @@ async function nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings) {
   await dbRun('BEGIN TRANSACTION');
   try {
     for (const p of perubahan) {
-      await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ? WHERE id = ?", [p.decision, p.status, p.id]);
+      if (p.skor !== null) {
+        // Kes pemulihan sahaja — skor turut ditulis semula. Baris lain skornya TIDAK disentuh.
+        await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ?, score = ? WHERE id = ?", [p.decision, p.status, p.skor, p.id]);
+      } else {
+        await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ? WHERE id = ?", [p.decision, p.status, p.id]);
+      }
     }
     await dbRun('COMMIT');
   } catch (err) {

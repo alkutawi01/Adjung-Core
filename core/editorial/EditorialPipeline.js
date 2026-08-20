@@ -10,6 +10,13 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 import { validateContentBudget, validateBidangTopik } from './ContentBudget.js';
 import { TIER_SLOTS } from './GeometryConfig.js';
 import { gantiBlokModTicker } from '../routes/contentRoutes.js';
+// denganKunciTicker (2026-08-20, dapatan audit modul Ticker) — penjanaan Ticker mod
+// 'AI Generated' di bawah membaca-mengubah-menulis `inTheNewsText` TANPA sebarang kunci
+// sebelum ni, sedangkan penulis lain (RSS Direct, Manual, suntingan editor) semuanya
+// menyentuh medan yang sama. Laluan ni jarang berjalan (penjadual AI dimatikan sengaja,
+// Fasa 8) tetapi "run-now" manual masih wujud — dan bila ia berjalan, ia boleh memadam
+// blok mod lain yang ditulis serentak. SUSUNAN KUNCI: lihat nota di contentRoutes.js.
+import { denganKunciTicker } from '../utils/kunciKandungan.js';
 import { fetchSelamat, RalatUrlTakSelamat } from '../utils/urlSafety.js';
 
 const CONTENT_POOL_MAX_ITEMS = 30; // Bound prompt token cost regardless of how many sources are configured.
@@ -435,9 +442,11 @@ ${slot.sourcesList.trim()}
       // automatik dimatikan (Fasa 8), tapi run-now manual/laluan panggilan lain kekal wujud —
       // jangan tulis-ganti bila tiada kandungan baharu sebenar untuk disimpan.
       if (textItems.length > 0) {
-        const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
-        const formattedText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'AI Generated', textItems);
-        await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
+        await denganKunciTicker(async () => {
+          const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+          const formattedText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'AI Generated', textItems);
+          await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
+        });
       }
 
       // Track AI Usage Logs for Ticker
