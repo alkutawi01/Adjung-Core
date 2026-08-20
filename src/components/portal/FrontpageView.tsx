@@ -764,6 +764,29 @@ const CarouselStableBlock: React.FC<{
     }
     setKadPenuhStabil(kad);
   }, [list.length, onNavigate]);
+  // Segar semula ruang tempahan dot pada lintasan breakpoint md: (2026-08-20, dapatan audit) —
+  // pengukuran di atas ("padding bawah tetap") cuma berlaku SEKALI semasa lekap (dijaga
+  // `dataset.ruangDot`), diukur daripada padding Tailwind yang AKTIF pada saat itu (`p-4` mudah
+  // alih lwn `md:p-6`/`md:p-8` meja, berbeza-beza ikut tapak panggilan). Peranti yang bertukar
+  // saiz SELEPAS lekap (putar tablet, ubah saiz tetingkap merentasi 768px) kekal dengan nilai
+  // LAMA sebagai asas, jadi jurang dot jadi sedikit sempit/lebar berbanding sepatutnya — bukan
+  // ranap, cuma silap kecil. `matchMedia` (bukan ResizeObserver pada kad sendiri) sengaja
+  // dipilih: ResizeObserver pada elemen yang kita SENDIRI ubah padding-nya berisiko gelung
+  // maklum balas kalau padding menjejas saiz kotak sempadan; matchMedia digerakkan oleh lebar
+  // viewport semata-mata, tiada gelung. Kosongkan dahulu (baca semula padding Tailwind BERSIH,
+  // bukan nilai calc() kita sendiri yang tersimpan) sebelum kira semula.
+  useEffect(() => {
+    const kad = kadPenuhStabil;
+    if (!kad || list.length <= 1 || !onNavigate || !kad.dataset.ruangDot) return;
+    const mq = window.matchMedia('(min-width: 768px)');
+    const segarSemulaPadding = () => {
+      kad.style.paddingBottom = '';
+      const pbBersih = getComputedStyle(kad).paddingBottom;
+      kad.style.paddingBottom = `calc(${pbBersih} + 14px)`;
+    };
+    mq.addEventListener('change', segarSemulaPadding);
+    return () => mq.removeEventListener('change', segarSemulaPadding);
+  }, [kadPenuhStabil, list.length, onNavigate]);
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
   // Leret (swipe) tangan — hanya bertindak balas leret yang cukup mendatar (elak konflik dengan
   // skrol menegak biasa halaman) dan cukup jauh (elak leret tak sengaja yang kecil).
@@ -859,6 +882,18 @@ const CarouselStableBlock: React.FC<{
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const prevActiveIndexRef = useRef(activeIndex);
   const overlayTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // `overflowAsal` TIDAK LAGI ditangkap semula setiap larian effect (2026-08-20, dapatan audit —
+  // "overflow teracun kekal 'hidden' pada klik pantas"). Sebelum ni ia pembolehubah TEMPATAN
+  // dibaca terus daripada `kadPenuh.style.overflow` SEMASA setiap larian: kalau pembaca klik anak
+  // panah dua kali < ~1.3s (tempoh satu keyframe), larian kedua membatalkan pemasa pulih larian
+  // pertama (baris 885-886) SEBELUM sempat menembak, jadi bila larian kedua tangkap "nilai asal",
+  // ia sebenarnya baca 'hidden' yang larian pertama tetapkan — nilai palsu tu tersimpan sebagai
+  // "asal" dan dipulihkan pada penghujung larian kedua, mengunci kad pada overflow:hidden
+  // SELAMANYA. Ref ni kekal merentasi larian: HANYA ditangkap bila `null` (bermakna tiada kitaran
+  // animasi sedang berjalan untuk kad ni), dan direset balik ke `null` selepas benar-benar
+  // dipulihkan — jadi nilai TULEN (sebelum kad ni pernah disentuh carousel) yang sentiasa
+  // dipulihkan, tak kira berapa banyak klik pantas berturut-turut berlaku di antaranya.
+  const overflowAsalRef = useRef<string | null>(null);
   // Gerak Susun (2026-08-07) — indeks kandungan LAMA (utk panel kiri/kanan regangan bergerak,
   // lihat JSX di bawah) dan fasa gerakan (diam = kedudukan mula tanpa transition CSS, gerak =
   // dianimasikan ke kedudukan akhir). Dua state berasingan drpd visualIndex/overlayAktif sedia
@@ -901,15 +936,25 @@ const CarouselStableBlock: React.FC<{
     if (jenisEfektif === 'gerak_susun') {
       const prefersReduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       if (prefersReduced) {
+        // Pembersihan sisa (2026-08-20) — kalau kitaran SEBELUM ni terputus di tengah jalan (cth
+        // jenisAnimasi/kelajuanAnimasi berubah serentak dengan activeIndex, pemasa dibatalkan di
+        // baris 885-886 sebelum sempat pulih), overflowAsalRef mungkin masih bawa nilai lama dan
+        // kad mungkin masih overflow:hidden. Laluan ni tak jalankan animasi apa-apa, jadi selamat
+        // pulihkan terus di sini — jangan biar ia tersekat.
+        if (overflowAsalRef.current !== null && kadUntukJenis) {
+          kadUntukJenis.style.overflow = overflowAsalRef.current;
+          overflowAsalRef.current = null;
+        }
         setVisualIndex(activeIndex);
         setOverlayAktif(false);
         return;
       }
       const kadPenuh = kadUntukJenis;
-      let overflowAsal: string | null = null;
       if (kadPenuh) {
         if (getComputedStyle(kadPenuh).position === 'static') kadPenuh.style.position = 'relative';
-        overflowAsal = kadPenuh.style.overflow || '';
+        // Tangkap HANYA bila tiada kitaran sedang berjalan (ref masih null) — lihat nota penuh
+        // di deklarasi overflowAsalRef di atas fail ni.
+        if (overflowAsalRef.current === null) overflowAsalRef.current = kadPenuh.style.overflow || '';
         kadPenuh.style.overflow = 'hidden';
         const gayaKad = getComputedStyle(kadPenuh);
         setPadGerak({
@@ -939,7 +984,8 @@ const CarouselStableBlock: React.FC<{
       overlayTimersRef.current.push(setTimeout(() => {
         setOverlayAktif(false);
         setFasaGerak('diam');
-        if (kadPenuh) kadPenuh.style.overflow = overflowAsal || '';
+        if (kadPenuh) kadPenuh.style.overflow = overflowAsalRef.current || '';
+        overflowAsalRef.current = null;
       }, tempohGerak + 20));
       return () => cancelAnimationFrame(rafId);
     }
@@ -948,6 +994,11 @@ const CarouselStableBlock: React.FC<{
     const overlayBerkenaan = (jenisEfektif === 'colophon' || jenisEfektif === 'sapuan_lajur') && !prefersReduced;
 
     if (!overlayBerkenaan) {
+      // Pembersihan sisa — lihat nota kembar di cabang gerak_susun/prefersReduced di atas fail ni.
+      if (overflowAsalRef.current !== null && kadUntukJenis) {
+        kadUntukJenis.style.overflow = overflowAsalRef.current;
+        overflowAsalRef.current = null;
+      }
       setVisualIndex(activeIndex);
       setOverlayAktif(false);
       return;
@@ -956,7 +1007,6 @@ const CarouselStableBlock: React.FC<{
     const kadPenuh = kadUntukJenis;
     // Jamin bekas kedudukan (position:relative) untuk overlay absolute — sifat aditif sahaja,
     // TIDAK diubah kalau kad tu sudah `relative` (kebanyakan sedia ada), tak jejas apa-apa lain.
-    let overflowAsal: string | null = null;
     if (kadPenuh) {
       if (getComputedStyle(kadPenuh).position === 'static') {
         kadPenuh.style.position = 'relative';
@@ -966,8 +1016,9 @@ const CarouselStableBlock: React.FC<{
       // ke kad JIRAN semasa transit (Izzat tangkap: "kad tu boleh nampak bergerak dari kad lain
       // ke kad lain"). Disimpan/dipulih (bukan tulis-ganti kekal) — sesetengah kad mungkin
       // pentingkan overflow:visible untuk kesan lain (cth hover:scale), walaupun tak ditemui
-      // dalam audit semasa.
-      overflowAsal = kadPenuh.style.overflow || '';
+      // dalam audit semasa. Tangkap HANYA bila tiada kitaran sedang berjalan (ref masih null) —
+      // lihat nota penuh di deklarasi overflowAsalRef di atas fail ni.
+      if (overflowAsalRef.current === null) overflowAsalRef.current = kadPenuh.style.overflow || '';
       kadPenuh.style.overflow = 'hidden';
     }
     setPortalTarget(kadPenuh);
@@ -988,7 +1039,8 @@ const CarouselStableBlock: React.FC<{
     }, masukMasa));
     overlayTimersRef.current.push(setTimeout(() => {
       setOverlayAktif(false);
-      if (kadPenuh) kadPenuh.style.overflow = overflowAsal || '';
+      if (kadPenuh) kadPenuh.style.overflow = overflowAsalRef.current || '';
+      overflowAsalRef.current = null;
     }, jumlahMasa));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, jenisAnimasi, animasiAktif, kelajuanAnimasi]);
