@@ -1128,16 +1128,24 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
     });
   }
 
-  if (tickerBlocks.length > 0) {
-    // denganKunciTicker (2026-08-08, dapatan audit keselamatan ChatGPT) — bahagian baca-ubah-
-    // tulis inTheNewsText SAHAJA (bukan seluruh fungsi ni, yang buat panggilan rangkaian PERLAHAN
-    // ke pelayan RSS luar sebelum sampai sini) — lihat nota di kunciKandungan.js.
-    await denganKunciTicker(async () => {
-      const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
-      const formattedTickerText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'RSS Direct', tickerBlocks);
-      await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedTickerText]);
-    });
-  }
+  // TANPA gerbang `length > 0` (2026-08-19, susulan laporan Izzat "masih ada berita lama...
+  // kenapa?"): gerbang lama langkau penjanaan semula bila TIADA item layak — meninggalkan
+  // rentetan ticker LAMA (dengan berita lapuk) kekal terpapar SELAMANYA. Kes sebenar di
+  // production: had usia 24 jam + tiada berita baharu dalam 24 jam = 0 item approved, tetapi
+  // inTheNewsText masih penuh blok lama dari minggu lepas. gantiBlokModTicker dengan senarai
+  // KOSONG memang direka buang semua blok mod 'RSS Direct' sambil KEKALKAN blok mod lain
+  // (Manual/AI Generated) — corak sama sudah dipakai EditorialPipeline.js:433. Ticker kosong
+  // yang jujur ("Tiada berita semasa buat masa ini", FrontpageView) lebih betul daripada
+  // berita lapuk yang tak sepatutnya tersiar.
+  //
+  // denganKunciTicker (2026-08-08, dapatan audit keselamatan ChatGPT) — bahagian baca-ubah-
+  // tulis inTheNewsText SAHAJA (bukan seluruh fungsi ni, yang buat panggilan rangkaian PERLAHAN
+  // ke pelayan RSS luar sebelum sampai sini) — lihat nota di kunciKandungan.js.
+  await denganKunciTicker(async () => {
+    const settingsSemasa = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");
+    const formattedTickerText = gantiBlokModTicker(settingsSemasa ? settingsSemasa.inTheNewsText : '', 'RSS Direct', tickerBlocks);
+    await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedTickerText]);
+  });
 
   const lastFetchedAt = new Date().toISOString();
 
