@@ -274,7 +274,12 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       // di situ untuk item yang lapuk secara semula jadi selepas ni, bukan hanya bila tetapan
       // ditukar). Simpan tetapan patut nampak kesan SERTA-MERTA, bukan tunggu kitaran seterusnya.
       if (ageVal > 0) {
-        const semuaApprovedUsia = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status = 'approved'");
+        // 'pending' turut disemak (2026-08-20, laporan Izzat "kenapa yg lain kena tunggu
+        // semakan?" — toast papar 545 Menunggu Semakan, kebanyakannya berita LAPUK terkumpul
+        // berminggu): berita yang sudah melepasi had usia tidak patut kekal dalam giliran
+        // semakan — menyemaknya sia-sia (dah basi, takkan disiarkan pun), dan longgokan itu
+        // menenggelamkan item pending yang benar-benar layak disemak.
+        const semuaApprovedUsia = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status IN ('approved', 'pending')");
         const kiniMs = Date.now();
         for (const item of semuaApprovedUsia) {
           if (!item.publishedAt) continue;
@@ -1105,7 +1110,9 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   const maxAgeHoursSemasa = settingsRow && settingsRow.maxNewsAgeHours !== undefined
     ? Number(settingsRow.maxNewsAgeHours) : 48;
   if (maxAgeHoursSemasa > 0) {
-    const semuaApproved = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status = 'approved'");
+    // 'pending' turut disemak — sama seperti tapak POST /rss-settings di atas (2026-08-20,
+    // lihat nota penuh di situ): giliran semakan tak patut dilonggokkan berita lapuk.
+    const semuaApproved = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status IN ('approved', 'pending')");
     const kiniMs = Date.now();
     const lapuk = semuaApproved.filter((item) => {
       if (!item.publishedAt) return false;

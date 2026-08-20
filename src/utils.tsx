@@ -1658,50 +1658,40 @@ export function parseInTheNews(text: string): { items: NewsItem[]; errors: Parse
       return;
     }
     
-    // Validation on News A (always check if title or desk exists)
+    // Had panjang kini AMARAN sahaja, BUKAN penggugur item (2026-08-20, pepijat production
+    // sebenar — laporan Izzat "masih ada berita lama... kenapa?" bertukar "ticker kosong"):
+    // berita RSS sah bertajuk 96 aksara (tajuk penerbit sebenar, bukan input rosak) digugurkan
+    // SENYAP oleh semakan `> 80` lama di sini, dan sebab ia satu-satunya item segar dalam had
+    // usia 24 jam, ticker terus paparkan "Tiada berita semasa" walhal ada berita sah. Dengan
+    // 20 item dulu, gugur senyap macam ni tak pernah disedari — sentiasa ada baki.
+    //
+    // Menggugurkan kandungan sebenar pada PAPARAN kerana panjang ialah pemotongan mekanikal
+    // senyap (dilarang Perlembagaan/CLAUDE.md) — susun atur ticker SUDAH dilindungi CSS
+    // (md:truncate / line-clamp-2, FrontpageView.tsx), dan huraian sudah dipotong 220 aksara
+    // di pelayan (potongHuraianTicker + laluan RSS). `errors` juga tidak dibaca mana-mana tapak
+    // panggilan (kedua-duanya cuma ambil `items`) — jadi `return` di sini semata-mata
+    // menghilangkan berita tanpa sebarang isyarat kepada sesiapa. Amaran dikekalkan dalam
+    // `errors` untuk kegunaan validasi akan datang; semakan URL (bawah) KEKAL menggugurkan —
+    // itu perlindungan keselamatan href, bukan kekangan estetik.
     if (desk && desk.length > 30) {
-      errors.push({
-        index: itemIndex,
-        error: `Desk A field exceeds 30 characters limit`
-      });
-      return;
+      errors.push({ index: itemIndex, error: `Desk A field exceeds 30 characters limit` });
     }
-    
     if (title && title.length > 80) {
-      errors.push({
-        index: itemIndex,
-        error: `Title A field exceeds 80 characters limit`
-      });
-      return;
+      errors.push({ index: itemIndex, error: `Title A field exceeds 80 characters limit` });
     }
-    
     if (brief) {
       const briefWords = brief.trim().split(/\s+/).filter(Boolean).length;
       const briefChars = brief.length;
       if (briefWords > 50) {
-        errors.push({
-          index: itemIndex,
-          error: `Brief A field exceeds 50 words limit (has ${briefWords} words)`
-        });
-        return;
-      }
-      if (briefChars > 250) {
-        errors.push({
-          index: itemIndex,
-          error: `Brief A field exceeds 250 characters limit (has ${briefChars} characters)`
-        });
-        return;
+        errors.push({ index: itemIndex, error: `Brief A field exceeds 50 words limit (has ${briefWords} words)` });
+      } else if (briefChars > 250) {
+        errors.push({ index: itemIndex, error: `Brief A field exceeds 250 characters limit (has ${briefChars} characters)` });
       }
     }
-    
     if (source && source.length > 40) {
-      errors.push({
-        index: itemIndex,
-        error: `Source A field exceeds 40 characters limit`
-      });
-      return;
+      errors.push({ index: itemIndex, error: `Source A field exceeds 40 characters limit` });
     }
-    
+
     if (url && !url.startsWith('https://') && !url.startsWith('http://')) {
       errors.push({
         index: itemIndex,
@@ -1710,51 +1700,28 @@ export function parseInTheNews(text: string): { items: NewsItem[]; errors: Parse
       return;
     }
     
-    // Validation on News B (only if News B has content)
+    // Validation on News B (only if News B has content) — had panjang amaran sahaja, sama
+    // seperti News A di atas (layan sama rata, lihat nota penuh di situ). URL kekal gugur.
     if (titleB || deskB || briefB || sourceB || urlB) {
       if (deskB && deskB.length > 30) {
-        errors.push({
-          index: itemIndex,
-          error: `Desk B field exceeds 30 characters limit`
-        });
-        return;
+        errors.push({ index: itemIndex, error: `Desk B field exceeds 30 characters limit` });
       }
-      
       if (titleB && titleB.length > 80) {
-        errors.push({
-          index: itemIndex,
-          error: `Title B field exceeds 80 characters limit`
-        });
-        return;
+        errors.push({ index: itemIndex, error: `Title B field exceeds 80 characters limit` });
       }
-      
       if (briefB) {
         const briefBWords = briefB.trim().split(/\s+/).filter(Boolean).length;
         const briefBChars = briefB.length;
         if (briefBWords > 50) {
-          errors.push({
-            index: itemIndex,
-            error: `Brief B field exceeds 50 words limit (has ${briefBWords} words)`
-          });
-          return;
-        }
-        if (briefBChars > 250) {
-          errors.push({
-            index: itemIndex,
-            error: `Brief B field exceeds 250 characters limit (has ${briefBChars} characters)`
-          });
-          return;
+          errors.push({ index: itemIndex, error: `Brief B field exceeds 50 words limit (has ${briefBWords} words)` });
+        } else if (briefBChars > 250) {
+          errors.push({ index: itemIndex, error: `Brief B field exceeds 250 characters limit (has ${briefBChars} characters)` });
         }
       }
-      
       if (sourceB && sourceB.length > 40) {
-        errors.push({
-          index: itemIndex,
-          error: `Source B field exceeds 40 characters limit`
-        });
-        return;
+        errors.push({ index: itemIndex, error: `Source B field exceeds 40 characters limit` });
       }
-      
+
       if (urlB && !urlB.startsWith('https://') && !urlB.startsWith('http://')) {
         errors.push({
           index: itemIndex,
