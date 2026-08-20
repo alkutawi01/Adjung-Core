@@ -1295,6 +1295,19 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       if (!oldRev) {
         return res.status(404).json({ error: 'Versi tersebut tidak dijumpai untuk kandungan ini.' });
       }
+      // Jadual Terbit/Luput diwarisi daripada revisi TERKINI (bukan revisi lama yang dipulihkan
+      // — 2026-08-20, dapatan audit). INSERT revisi baharu di bawah dahulu tak sertakan kedua-dua
+      // lajur ni langsung, jadi ia jatuh ke NULL — kandungan Aktif ber-jadual-luput yang
+      // versinya dipulihkan kekal terpapar SELAMANYA, gerbang hasReplacementForExpiry() jadi
+      // sia-sia sebab tiada scheduledExpiresAt untuk dinilai. Jadual ialah dasar hayat KANDUNGAN
+      // (objek), bukan sifat teks versi tertentu — pulih teks lama sepatutnya tak diam-diam
+      // membatalkan tarikh luput yang Ketua Editor tetapkan untuk objek ni, jadi diwarisi daripada
+      // revisi SEMASA (yang akan digantikan), bukan daripada oldRev (yang mungkin ditulis sebelum
+      // jadual pun wujud).
+      const revSemasaJadual = await dbGet(
+        "SELECT scheduledPublishAt, scheduledExpiresAt FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1",
+        [id]
+      );
 
       // Kandungan dalam Tong Sampah dibekukan (2026-08-08, audit aliran penerbitan) — memulihkan
       // VERSI lama akan mencipta revisi baharu (versi tertinggi) berstatus approved/pending,
@@ -1409,9 +1422,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         // kegagalan senyap macam pepijat 2026-08-07 asal, cuma laluan berbeza). Identiti
         // penyunting sebenar sudah direkod berasingan dalam attribute 'editorName'.
         const newRev = await dbRun(
-          `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-           VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?)`,
-          [id, nextVersion, oldRev.title, oldRev.summary, statusPulihan, oldRev.createdBy || 'content-review', nowIso, nowIso]
+          `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt, scheduledPublishAt, scheduledExpiresAt)
+           VALUES (?, ?, 'ms', ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, nextVersion, oldRev.title, oldRev.summary, statusPulihan, oldRev.createdBy || 'content-review', nowIso, nowIso,
+            revSemasaJadual ? revSemasaJadual.scheduledPublishAt : null,
+            revSemasaJadual ? revSemasaJadual.scheduledExpiresAt : null]
         );
         newRevId = newRev.lastID;
 

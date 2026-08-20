@@ -3421,7 +3421,15 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
           { key: 'originalDate', val: item.originalDate || '' },
           { key: 'dateEnd', val: item.dateEnd || item.originalDate || '' },
           { key: 'topik', val: item.topik || '' },
-          { key: 'editorName', val: slotConfig.editorName || '' },
+          // editorName daripada SESI pelayan, BUKAN slotConfig.editorName (payload klien) —
+          // 2026-08-20, dapatan audit. Medan ni ialah TOKEN PEMILIKAN yang semua gerbang
+          // pemilikan (contentRoutes.js) bergantung padanya; payload API terus boleh menuntut
+          // nama editor lain (cth POST /api/system/slots dengan slotConfig.editorName ditetapkan
+          // palsu), mengambil alih kandungan yang bukan miliknya. namaSayaSesi (parameter fungsi
+          // ni) SUDAH diterbitkan daripada req.session di pemanggil (slotsConfigRoutes.js) dan
+          // sudah dipakai untuk SEMAKAN pemilikan (baris ~3348) — kini turut dipakai untuk
+          // MENULIS token yang sama, supaya sumber kebenaran konsisten hujung ke hujung.
+          { key: 'editorName', val: namaSayaSesi || '' },
           { key: 'organizer', val: item.organizer || '' },
           { key: 'location', val: item.location || '' },
           { key: 'access', val: item.access || '' },
@@ -3523,10 +3531,12 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
         { key: 'dateEnd', val: item.dateEnd || item.originalDate || '' },
         // Topik: kosong untuk slot BAR (tak terpakai di sana), diabaikan macam Penerangan berikut.
         { key: 'topik', val: item.topik || '' },
-        // Nama editor SEBENAR yang log masuk semasa Terbit (2026-07-29) — dihantar dari klien
-        // sebagai slotConfig.editorName (lihat useSlotEditor.ts handleSaveSlot), BUKAN per-item
-        // (satu sesi Simpan/Terbit = satu editor log masuk sahaja).
-        { key: 'editorName', val: slotConfig.editorName || '' },
+        // Nama editor SEBENAR yang log masuk semasa Terbit (2026-07-29) — daripada SESI
+        // pelayan (namaSayaSesi), BUKAN payload klien slotConfig.editorName (2026-08-20,
+        // dapatan audit — lihat nota penuh di tapak kembar baris ~3424: medan ni token
+        // pemilikan, payload API terus boleh menuntutnya secara palsu kalau dipercayai
+        // daripada klien).
+        { key: 'editorName', val: namaSayaSesi || '' },
         // Slot BAR sahaja (Peraturan Khas Slot Bar) — diabaikan (string kosong) untuk tier lain.
         { key: 'organizer', val: item.organizer || '' },
         { key: 'location', val: item.location || '' },
@@ -4220,20 +4230,35 @@ const runSemakanTakAktif = async (dbAll, dbRun, dbGet) => {
 
     const hariTakAktif = Math.floor(takAktifMs / HARI_MS);
     const { tajuk, html } = emelAmaranTakAktif(u.penName, hariTakAktif, tahapBaharu, ambangHari);
+    // Kegagalan HANTAR dilayan SAMA seperti "tiada emel berdaftar" (2026-08-20, dapatan audit)
+    // — sebelum ni cabang ni cuma log ke konsol dan diam, sedangkan eskalasi tahap di bawah
+    // (amaranTakAktifTahap) TETAP jalan tak kira e-mel berjaya atau tidak. Kerana tahap yang
+    // sudah dinaikkan menghalang penghantaran SEMULA amaran tahap sama (gerbang tahapSemasa <
+    // N di atas), editor yang SMTP-nya gagal pada tahap 1/2/3 tidak pernah menerima SEBARANG
+    // amaran tapi tetap digantung pada hari-21 — tiada sesiapa perasan sebab tiada apa-apa yang
+    // "gagal" kelihatan di UI. Eskalasi/gantungan TETAP diteruskan (ia dasar editorial, bukan
+    // bergantung notifikasi) — cuma Pentadbir/Ketua Editor kini dimaklumkan supaya boleh
+    // campur tangan manual, sama seperti kes tiada emel.
+    let emelBerjaya = true;
     if (u.email) {
-      await hantarEmel({ to: u.email, subject: tajuk, html }).catch((e) => console.error('[Semakan Tak Aktif] Gagal hantar emel:', e.message));
-    } else {
+      await hantarEmel({ to: u.email, subject: tajuk, html }).catch((e) => {
+        emelBerjaya = false;
+        console.error('[Semakan Tak Aktif] Gagal hantar emel:', e.message);
+      });
+    }
+    if (!u.email || !emelBerjaya) {
       // Editor tanpa emel berdaftar (2026-08-06, pembetulan audit) — dahulu eskalasi (termasuk
       // gantung automatik tahap 3) terus jalan senyap tanpa SEBARANG cara memberitahu editor tu
       // (notifikasi dalam-apl pun tak berguna kalau dia dah tak log masuk — itu puncanya jadi tak
       // aktif). Beritahu Pentadbir/Ketua Editor SETIAP peringkat (bukan tunggu tahap 3 gantung),
       // supaya seseorang boleh campur tangan secara manual (hubungi editor tu di luar sistem)
       // sebelum gantungan berlaku, bukan lepas fakta.
+      const sebabGagal = u.email ? 'penghantaran emel gagal (masalah SMTP)' : 'tiada emel berdaftar';
       const penerimaTiadaEmel = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
       await notifyMany(dbRun, (penerimaTiadaEmel || []).map((r) => r.userId), {
         type: 'sistem_amaran_tak_aktif',
-        title: `${u.penName || u.id}: tiada emel berdaftar, amaran tak aktif tahap ${tahapBaharu} tak dapat dihantar`,
-        detail: `Tak aktif ${hariTakAktif} hari. Editor ni tiada emel dalam sistem. Sila hubungi secara manual di luar sistem sebelum ${tahapBaharu === 3 ? 'gantungan berlaku' : 'eskalasi seterusnya'}.`,
+        title: `${u.penName || u.id}: ${sebabGagal}, amaran tak aktif tahap ${tahapBaharu} tak dapat dihantar`,
+        detail: `Tak aktif ${hariTakAktif} hari. ${u.email ? 'Emel editor ada tapi penghantaran gagal — semak konfigurasi SMTP.' : 'Editor ni tiada emel dalam sistem.'} Sila hubungi secara manual di luar sistem sebelum ${tahapBaharu === 3 ? 'gantungan berlaku' : 'eskalasi seterusnya'}.`,
         targetType: 'akaun', targetId: u.id,
       });
     }
@@ -4366,9 +4391,19 @@ app.listen(PORT, '0.0.0.0', () => {
   // penjadual lain di sini: setInterval dibalut cuba/tangkap penuh, kegagalan TIDAK sekali-kali
   // rebahkan server. Sekali sehari cukup — ambang dikira dalam HARI, bukan jam/minit.
   const SEMAKAN_TAK_AKTIF_INTERVAL_MS = 24 * 60 * 60 * 1000;
-  setInterval(() => {
+  const jalankanSemakanTakAktif = () => {
     runSemakanTakAktif(dbAll, dbRun, dbGet).catch((err) => console.error('[Semakan Tak Aktif] Ralat:', err.message));
-  }, SEMAKAN_TAK_AKTIF_INTERVAL_MS);
+  };
+  // Larian boot (2026-08-20, dapatan audit) — sebelum ni HANYA setInterval, tiada larian
+  // pertama semasa boot (tak macam bersihkanSesiLuput() di bawah, yang memang jalan serta-merta).
+  // Kalau pelayan di-restart lebih kerap daripada 24 jam (deploy harian/lebih kerap ialah corak
+  // sebenar projek ni), jam 24-jam ditetapkan SEMULA setiap restart — semakan ni boleh terus
+  // tak pernah jalan langsung selagi restart berlaku sebelum jam genap. Kesannya SENYAP (tiada
+  // amaran, tiada gantungan tercetus), jadi ia jenis pepijat yang paling lambat disedari:
+  // editor yang sepatutnya digantung selepas 21 hari tak aktif terus tak digantung, dan tiada
+  // sesiapa perasan sebab tiada apa-apa yang "gagal" untuk dilaporkan.
+  jalankanSemakanTakAktif();
+  setInterval(jalankanSemakanTakAktif, SEMAKAN_TAK_AKTIF_INTERVAL_MS);
   console.log(`Semakan tak aktif editorial aktif (sekali setiap ${SEMAKAN_TAK_AKTIF_INTERVAL_MS / 3600000} jam — tempoh boleh laras di Direktori, Editorium).`);
 
   // Pembersihan sesi luput (2026-08-07, Tier 1 audit inventori) — sebelum ni TIADA pembersihan

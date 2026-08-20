@@ -96,9 +96,15 @@ function kekalkanDrafOrangLain(manualSummaryBaharu, manualSummaryLama, namaPengg
 // 'Manual') was, by construction, entered manually, so this is safe to add unconditionally rather
 // than needing to parse per-block intent. Mirrors parseTickerText's tolerant block-separator regex
 // (core/routes/contentRoutes.js) so re-serializing here can't desync from how it'll be re-parsed.
-const stampManualModeOnTickerBlocks = (rawText) => {
+// Corak pemisah DISELARASKAN dengan parseTickerText (contentRoutes.js) — SALINAN KETIGA yang
+// terlepas semasa pembetulan 20/8 (dapatan audit susulan): corak lama tanpa penambat baris
+// memecahkan blok pada mana-mana tiga sempang, termasuk di dalam URL yang Ketua Editor tampal
+// terus dalam textarea Manual ni. "Ubah kedua-duanya SERENTAK" (nota asal di atas fungsi ni)
+// sebenarnya ada TIGA tempat, bukan dua — kalau corak ni diubah lagi, semak jugak
+// contentRoutes.js parseTickerText DAN src/utils.tsx parseInTheNews.
+export const stampManualModeOnTickerBlocks = (rawText) => {
   if (!rawText || !rawText.trim()) return rawText;
-  const blocks = rawText.split(/\n?[-_—–―]{3,}\n?/).map(b => b.trim()).filter(Boolean);
+  const blocks = rawText.split(/^[ \t]*(?:[-_—–―]{3,}|⸻+)[ \t]*$/m).map(b => b.trim()).filter(Boolean);
   const stamped = blocks.map(block => {
     const hasMode = block.split('\n').some(line => line.trim().toLowerCase().startsWith('mode:'));
     return hasMode ? block : `${block}\nMode: Manual`;

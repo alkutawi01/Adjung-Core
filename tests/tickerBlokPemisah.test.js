@@ -11,6 +11,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseTickerText, serializeTickerText, gantiBlokModTicker } from '../core/routes/contentRoutes.js';
+import { stampManualModeOnTickerBlocks } from '../core/routes/slotsConfigRoutes.js';
 
 const blok = (o) => [
   `Desk: ${o.desk}`, `Title: ${o.title}`, `Brief: ${o.brief}`,
@@ -95,4 +96,29 @@ test('senarai kosong membuang semua blok mod itu tetapi mengekalkan mod lain', (
   const hasil = parseTickerText(gantiBlokModTicker(teksSemasa, 'RSS Direct', []));
   assert.equal(hasil.length, 1);
   assert.equal(hasil[0].title, 'Manual kekal');
+});
+
+// stampManualModeOnTickerBlocks (slotsConfigRoutes.js) — SALINAN KETIGA corak pemisah, terlepas
+// semasa pembetulan 20/8 (dua salinan pertama: parseTickerText di sini, parseInTheNews di
+// src/utils.tsx). Fungsi ni terima teks MENTAH yang Ketua Editor tampal terus dalam textarea
+// Manual — kalau URL berita dalamnya ada tiga sempang berturutan, corak lama memecahkan blok
+// SEBELUM sempat dicap "Mode: Manual", jadi separuh blok kehilangan identiti modnya.
+test('stampManualModeOnTickerBlocks tak pecah pada URL bersempang tiga', () => {
+  const mentah = ['Desk: SEMASA', 'Title: Berita ujian', 'Brief: Huraian.',
+    'Source: Editor', 'Url: https://contoh.com/berita---terkini'].join('\n');
+  const hasil = stampManualModeOnTickerBlocks(mentah);
+  const items = parseTickerText(hasil);
+  assert.equal(items.length, 1, 'blok tidak boleh berpecah akibat URL');
+  assert.equal(items[0].url, 'https://contoh.com/berita---terkini', 'URL tidak boleh terpotong');
+  assert.equal(items[0].mode, 'Manual', 'cap Mode: Manual mesti kekal pada blok yang betul');
+});
+
+test('stampManualModeOnTickerBlocks kekal serasi dengan berbilang blok sebenar', () => {
+  const mentah = [
+    ['Desk: A', 'Title: Pertama', 'Brief: x', 'Source: s', 'Url: https://a.com'].join('\n'),
+    ['Desk: B', 'Title: Kedua', 'Brief: y', 'Source: t', 'Url: https://b.com', 'Mode: Manual'].join('\n'),
+  ].join('\n---\n');
+  const items = parseTickerText(stampManualModeOnTickerBlocks(mentah));
+  assert.equal(items.length, 2);
+  assert.ok(items.every((i) => i.mode === 'Manual'));
 });
