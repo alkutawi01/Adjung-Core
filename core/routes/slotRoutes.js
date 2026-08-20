@@ -1,7 +1,7 @@
 import express from 'express';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { parseRssXml, filterByLanguage, deduplicateRssItems } from '../sources/RssDirectEngine.js';
-import { calculateEditorialScore } from '../sources/EditorialScoreEngine.js';
+import { calculateEditorialScore, tentukanKeputusanSkor } from '../sources/EditorialScoreEngine.js';
 import { processTextWithTrace, normalizeEditorialText } from '../sources/EditorialTextNormalizer.js';
 import { calculateDeskScores, classifyDesk } from '../sources/DeskClassifier.js';
 import { parseTypographyTokens } from '../sources/TypographyRulesEngine.js';
@@ -19,6 +19,35 @@ import { sahkanUrlSelamatUntukFetch } from '../utils/urlSafety.js';
 async function beritahuPentadbirDanKetuaEditor(dbAll, dbRun, payload, dbGet) {
   const rows = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
   await notifyMany(dbRun, (rows || []).map((r) => r.userId), payload, dbGet);
+}
+
+// nilaiSemulaKeputusanSediaAda() (2026-08-20, laporan Izzat "GAGAL" — tetapan Editorial RSS
+// dinaikkan/diturunkan di Editorium tapi kiraan Auto Aktif/Menunggu Semakan langsung TAK
+// berubah) — PUNCA: `rssGuid` bertanda UNIQUE (server.js), jadi setiap INSERT item RSS guna
+// `INSERT OR IGNORE` (baris ~992/1032 fail ni) — sebaik SATU item pernah discan & disimpan
+// dengan SATU keputusan (cth TITLE_TOO_SHORT bawah had lama), ia tak PERNAH discan/dinilai
+// semula walau tetapan berubah, sebab rssGuid yg sama menghalang INSERT baharu. Backlog lama
+// (ratusan/ribuan item) terperangkap keputusan LAMA selama-lamanya — bukan "tunggu larian
+// akan datang", ia takkan berubah LANGSUNG sampai bila-bila.
+//
+// Nilai semula SEMUA baris yang keputusannya berasaskan skor/panjang tajuk (BUKAN
+// BLOCKED_CATEGORY/BLOCKED_KEYWORD — dua sekatan tu tak berkaitan ambang, kekal tak disentuh)
+// guna tentukanKeputusanSkor() (EditorialScoreEngine.js) dengan tetapan TERKINI. `score`
+// tersimpan tak perlu dikira semula (ambang/had aksara tak mengubah skor, cuma tafsiran skor
+// sedia ada) — jadi ni murah (satu SELECT + UPDATE per baris terjejas, bukan panggil rangkaian).
+// Dipanggil di DUA tempat: (a) POST /rss-settings — kesan nampak SERTA-MERTA bila Ketua
+// Editor/Pentadbir simpan tetapan; (b) setiap larian executeDirectRssFetch() (jadual 3 jam +
+// "Serap RSS Sekarang") — sistem terus "automatik" (keperluan Izzat 2026-08-20: "tanpa perlu
+// saya buat apa2") walau tetapan tak disentuh langsung pada hari tu, cth selepas restart
+// pelayan atau perubahan tetapan yg tertinggal sebelum backlog sempat dinilai semula.
+async function nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings) {
+  const items = await dbAll(
+    "SELECT id, score, title FROM rss_ticker_items WHERE decision IN ('AUTO_LIVE', 'EDITOR_REVIEW', 'REJECT', 'TITLE_TOO_SHORT')"
+  );
+  for (const item of items) {
+    const { decision, status } = tentukanKeputusanSkor(item.score, false, (item.title || '').length, editorialSettings);
+    await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ? WHERE id = ?", [decision, status, item.id]);
+  }
 }
 
 // NOTE: this router used to also define GET/POST /slots and POST /slots/run-now, plus a whole
@@ -264,6 +293,17 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
           }
         }
       }
+
+      // Nilai semula backlog sedia ada guna tetapan BAHARU (2026-08-20) — lihat komen penuh di
+      // nilaiSemulaKeputusanSediaAda() atas fail ni. WAJIB sebelum purge usia di bawah: kalau
+      // dibalikkan, item yg baru "diselamatkan" (cth had aksara diturunkan) boleh ditulis ganti
+      // semula jadi 'rejected' oleh nilai semula ni sekiranya ia turut lapuk — purge usia MESTI
+      // jadi kata putus TERAKHIR tentang kesegaran, bukan nilai semula skor.
+      await nilaiSemulaKeputusanSediaAda(dbAll, dbRun, {
+        autoLiveThreshold: autoLiveVal,
+        reviewThreshold: reviewVal,
+        tickerTitleMinChars: minCharsVal,
+      });
 
       // Retroactive Purge berdasarkan usia (2026-08-19, laporan Izzat: "kenapa ticker
       // memaparkan yg lama? sedangkan saya dah set had usia berita 24 jam?") — corak SAMA
@@ -1107,6 +1147,13 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   // /rss-settings, baris ~255) — cuma di sini ia jalan pada SETIAP penjanaan semula (bukan
   // hanya bila tetapan disimpan), supaya item yang lapuk secara semula jadi (masa berlalu,
   // bukan sahaja tetapan ditukar) turut tertangkap dalam lingkungan 3 jam berikutnya.
+  // Nilai semula backlog sedia ada guna tetapan TERKINI (2026-08-20) — lihat komen penuh di
+  // nilaiSemulaKeputusanSediaAda() (atas fail ni). `editorialSettings` di sini ialah objek SAMA
+  // yg dimuat segar di awal fungsi ni (baris ~937), jadi sentiasa tetapan terkini walau
+  // Ketua Editor/Pentadbir tak sentuh panel Tetapan langsung hari ni. MESTI sebelum purge usia
+  // di bawah — purge usia kata putus TERAKHIR tentang kesegaran, bukan nilai semula skor ni.
+  await nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings);
+
   const maxAgeHoursSemasa = settingsRow && settingsRow.maxNewsAgeHours !== undefined
     ? Number(settingsRow.maxNewsAgeHours) : 48;
   if (maxAgeHoursSemasa > 0) {
