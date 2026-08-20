@@ -412,13 +412,24 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
   // permintaan Izzat). Tiada laluan pulih lepas ni — betul-betul DELETE, bukan tanda status.
   try {
     const ambangIso = new Date(Date.now() - HARI_SIMPAN_TONG_SAMPAH * 24 * 60 * 60 * 1000).toISOString();
+    // Pertahanan lapis kedua terhadap baris 'dipadamPada' PENDUA (2026-08-20, dapatan audit —
+    // pulihkan-sampah sekarang membuang atribut lama semasa pulih, tapi baris pendua yang mungkin
+    // SUDAH wujud di production dari SEBELUM pembaikan itu mesti tetap selamat). Subquery MAX(av.
+    // valueText) ambil cap masa TERBARU sahaja bagi setiap objectId+revisionId — kalau ada baris
+    // lama basi tersorok, ia tak lagi boleh mencetuskan padam kekal pramatang. GROUP BY di
+    // paras subquery (bukan LEFT JOIN terus) mengelak fan-out baris yang sebelum ni jadi punca
+    // sebenar pepijat.
     const dueToPurge = await dbAll(`
-      SELECT er.id as revisionId, er.objectId, er.title, av.valueText as dipadamPada
+      SELECT er.id as revisionId, er.objectId, er.title, av.dipadamPada
       FROM editorial_revisions er
       INNER JOIN (SELECT objectId, MAX(version) as mv FROM editorial_revisions GROUP BY objectId) lv
         ON lv.objectId = er.objectId AND lv.mv = er.version
-      LEFT JOIN editorial_attribute_values av
-        ON av.objectId = er.objectId AND av.revisionId = er.id AND av.attributeId = 'dipadamPada'
+      LEFT JOIN (
+        SELECT objectId, revisionId, MAX(valueText) as dipadamPada
+        FROM editorial_attribute_values
+        WHERE attributeId = 'dipadamPada'
+        GROUP BY objectId, revisionId
+      ) av ON av.objectId = er.objectId AND av.revisionId = er.id
       WHERE er.status = 'dipadam'
     `);
     for (const row of dueToPurge) {
@@ -1473,6 +1484,22 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         ? statusSebelumRow.valueText
         : 'archived';
       await dbRun("UPDATE editorial_revisions SET status = ?, updatedAt = ? WHERE id = ?", [statusPulihan, new Date().toISOString(), rev.id]);
+      // Buang atribut 'dipadamPada'/'statusSebelumPadam' semasa pulih (2026-08-20, dapatan audit
+      // — bug SEBENAR, bukan teori). Sebelum ni laluan ni cuma menukar status, membiarkan kedua-dua
+      // atribut TERBENAM. Padam->Pulih->Padam semula (senario biasa: tersilap padam, pulihkan,
+      // padam betul-betul lain hari) mencipta baris KEDUA untuk attributeId yang SAMA (INSERT baharu
+      // semasa padam pertama), tanpa memadam baris LAMA. Tik purge Tong Sampah (server.js) LEFT JOIN
+      // ikut objectId+revisionId+attributeId='dipadamPada' — dua baris fan-out jadi DUA baris hasil
+      // bagi SATU revisi, dan baris yang bawa cap masa LAMA (dari padam pertama) turut dinilai
+      // terhadap ambang 30 hari. Kalau padam pertama itu sudah lebih 30 hari lalu, padam KEDUA yang
+      // baru sahaja berlaku terus layak dipadam KEKAL pada tik seterusnya — walhal kandungan tu baru
+      // sahaja masuk Tong Sampah semula. Tiada backup DB boleh dipercayai (CLAUDE.md Teras 4), jadi
+      // ni bukan risiko kecil. Buang di sini memastikan setiap kitaran padam mula dengan cap masa
+      // BERSIH, sama seperti kandungan yang tak pernah dipadam sebelum ni.
+      await dbRun(
+        "DELETE FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId IN ('dipadamPada', 'statusSebelumPadam')",
+        [id, rev.id]
+      );
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
         actorName: req.session?.user?.penName || req.session?.user?.username,
@@ -1851,6 +1878,13 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         return res.status(400).json({ error: urlCheck.reason });
       }
 
+      if (source) {
+        const namaCheck = validateSumberNama(source);
+        if (!namaCheck.isValid) {
+          return res.status(400).json({ error: namaCheck.reason });
+        }
+      }
+
       // Had bilangan kandungan seslot (Tetapan Am Slot; 0 = tiada had). Dikira daripada kandungan
       // yang masih hidup sahaja — kandungan arkib tidak mengambil ruang slot.
       const { hadKandunganSlot } = getAmSettings();
@@ -1867,6 +1901,18 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           });
         }
       }
+
+      // Gerbang status Terbit (2026-08-20, dapatan audit — pintasan SEBENAR ditemui, bukan
+      // teori). Sebelum ni status DIKODKAN KERAS 'approved' tanpa sebarang semakan — mana-mana
+      // Editor log masuk (kunci `publish` false) yang capai endpoint ni terus (bukan melalui UI,
+      // yang tak guna laluan ni sama sekali — disahkan sifar padanan fetch() di src/) mencipta
+      // kandungan Aktif tanpa kelulusan Ketua Editor, memintas dasar yang gerbang IDENTIK di
+      // PATCH /content/:id (atas fail ni) dan syncManualObjectsForSlot (server.js) kedua-duanya
+      // kuatkuasakan. Corak SAMA seperti kedua-dua laluan tu: manageEditorial ATAU kunci `publish`
+      // (Dasar Terbit Sendiri Editor) membenarkan approved terus, jika tidak 'pending'.
+      const bolehTerbitTerus = hasPermission(req.session?.user?.roles, 'manageEditorial')
+        || hasPermission(req.session?.user?.roles, 'publish');
+      const statusBaharu = bolehTerbitTerus ? 'approved' : 'pending';
 
       const timestamp = new Date().toISOString();
       const finalCategory = (desk || 'UMUM').trim().toUpperCase();
@@ -1911,8 +1957,8 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         );
         const rev = await dbRun(
           `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
-           VALUES (?, 1.0, 'ms', ?, ?, 'approved', 'content-review', ?, ?)`,
-          [objectId, title.trim(), (summary || '').trim(), timestamp, timestamp]
+           VALUES (?, 1.0, 'ms', ?, ?, ?, 'content-review', ?, ?)`,
+          [objectId, title.trim(), (summary || '').trim(), statusBaharu, timestamp, timestamp]
         );
         revisionId = rev.lastID;
 
@@ -1921,6 +1967,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           { key: 'url', val: url || '#' },
           { key: 'source', val: source || '' },
           { key: 'topik', val: topik || '' },
+          // editorName (2026-08-20, dapatan audit) — dahulu TIADA langsung, jadi kandungan lahir
+          // dari laluan ni tanpa pemilik: gerbang pemilikan (PATCH/pulih versi) tak jumpa
+          // editorName sepadan sesiapa pun, jadi HANYA Ketua Editor/Penolong boleh sunting
+          // kandungan yang editor sendiri baru cipta — kunci luar tanpa sengaja.
+          { key: 'editorName', val: req.session?.user?.penName || req.session?.user?.username || '' },
         ];
         if (imageUrl) attrs.push({ key: 'imageUrl', val: imageUrl });
         for (const a of attrs) {

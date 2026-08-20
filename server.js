@@ -3462,7 +3462,19 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       // gerbang RBAC yang sama yang sudah wujud dan diuji di contentRoutes.js (PATCH /content/:id)
       // — pepijat kritikal ditemui Izzat semasa ujian sebenar ("Ketua Editor pun kena tunggu
       // luluskan kandungan sendiri!"). Slot Bar kekal guna status yang dihurai terus (lama).
-      const bolehTerbitTerus = isBar || hasPermission(roles, 'manageEditorial') || hasPermission(roles, 'publish');
+      // Kunci draf ditolak (2026-08-20, dapatan audit — pintasan SEBENAR ditemui, bukan teori):
+      // `pernahDitolak` (attrs[] di bawah) DITULIS di sini tapi TAK PERNAH DIBACA sebelum ni —
+      // gerbang setara di PATCH /content/:id (contentRoutes.js ~768) menyemaknya, tapi laluan
+      // Terbit SEBENAR (Urus Slot, laluan yang draf ditolak/reject-to-draft memang pulang
+      // semula ke sini untuk "Terbit semula") tak pernah menyambungkannya. Kesan: draf yang
+      // Ketua Editor tolak, apabila Editor (kunci `publish` sahaja, BUKAN `manageEditorial`)
+      // klik Terbitkan semula dalam modal Tulis Kandungan, terus jadi Aktif tanpa kelulusan —
+      // laluan yang PALING kerap dilalui kandungan ditolak (bukan PATCH, yang jarang guna untuk
+      // ni), jadi kunci di PATCH sahaja hampir tak pernah sempat menembak.
+      const pernahDitolak = !isBar && item.uuid && String(item.uuid).endsWith('-reject');
+      const bolehTerbitTerus = isBar
+        || hasPermission(roles, 'manageEditorial')
+        || (hasPermission(roles, 'publish') && !pernahDitolak);
       let finalStatus = isBar ? (item.status || 'approved') : (bolehTerbitTerus ? 'approved' : 'pending');
       // Had bilangan kandungan AKTIF seslot (2026-08-14, ditemui oleh sim10-serentak.mjs) — gerbang
       // capacity yang sama sudah wujud di PATCH /content/:id (contentRoutes.js baris ~822) TAPI
