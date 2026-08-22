@@ -111,21 +111,20 @@ function useKolamPetikan() {
 
 const KUNCI_SESI = 'adjung_petikan_sesi';
 
-interface KeadaanSesi { tarikh: string; indeks: number; ditutup: boolean }
+interface KeadaanSesi { tarikh: string; indeks: number }
 
 function bacaSesi(): KeadaanSesi {
   try {
     const mentah = sessionStorage.getItem(KUNCI_SESI);
-    if (!mentah) return { tarikh: '', indeks: 0, ditutup: false };
+    if (!mentah) return { tarikh: '', indeks: 0 };
     const d = JSON.parse(mentah);
     return {
       tarikh: typeof d?.tarikh === 'string' ? d.tarikh : '',
       indeks: Number.isInteger(d?.indeks) ? d.indeks : 0,
-      ditutup: d?.ditutup === true,
     };
   } catch {
     // sessionStorage boleh melempar dalam mod peribadi sesetengah pelayar.
-    return { tarikh: '', indeks: 0, ditutup: false };
+    return { tarikh: '', indeks: 0 };
   }
 }
 
@@ -205,7 +204,6 @@ const TEMPOH_FADE_MASUK_MS = 450;
 export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
   const { kolam, aktif, tempohPutaranMs } = useKolamPetikan();
   const [indeks, setIndeks] = React.useState(() => bacaSesi().indeks);
-  const [ditutup, setDitutup] = React.useState(() => bacaSesi().ditutup);
   const [pudar, setPudar] = React.useState(false);
   // Tempoh transisi SEMASA — berbeza ikut fasa (350ms fade-keluar vs 450ms fade-masuk, lihat
   // nota TEMPOH_FADE_KELUAR_MS di atas). Dikawal via inline style (bukan kelas Tailwind statik)
@@ -236,7 +234,7 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
     const hariIni = tarikhMalaysia();
     if (sesi.tarikh !== hariIni) {
       setIndeks(0);
-      tulisSesi({ tarikh: hariIni, indeks: 0, ditutup: sesi.ditutup });
+      tulisSesi({ tarikh: hariIni, indeks: 0 });
     } else if (sesi.indeks >= kolam.length) {
       setIndeks(0);
       tulisSesi({ ...sesi, indeks: 0 });
@@ -246,24 +244,15 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
   // Putaran automatik berpemasa (2026-08-19, arahan terus Izzat: "jangan buat pertukaran
   // berdasarkan scroll... menyusahkan guna scroll"). Sentiasa MAJU sahaja.
   React.useEffect(() => {
-    if (kolam.length < 2 || ditutup) return;
+    if (kolam.length < 2) return;
 
     // Transisi DUA FASA (2026-08-19, susulan video sebenar — lihat nota TEMPOH_FADE_KELUAR_MS di
     // atas fail). Urutan MESTI tepat: fade-keluar penuh -> tukar kandungan SEMASA tak kelihatan
     // (opacity 0) -> jeda kosong -> fade-masuk. `kurangGerak` langkau kesemua fasa, tukar terus.
-    //
-    // `ditutup: false` TAK LAGI keras (2026-08-20, dapatan audit) — sebelum ni tukarIndeks()
-    // sentiasa tulis `false` tak kira keadaan sesi SEBENAR, jadi kalau pembaca klik × (tutup())
-    // TEPAT dalam tetingkap fade (350ms/120ms), timeout tertunda yang tak sempat dibatalkan tetap
-    // menembak dan MENIMPA `ditutup: true` yang baru sahaja ditulis balik ke `false`. Kesan tak
-    // nampak pada paparan SEMASA (state React `ditutup` betul, komponen terus papar null), tapi
-    // sessionStorage rosak — bar muncul semula pada navigasi/muat semula seterusnya dalam sesi
-    // sama, walaupun pembaca sudah tutup. Warisi `ditutup` daripada bacaan sesi TERKINI, bukan
-    // andaian tegar.
     const tukarIndeks = () => {
       setIndeks((sebelum) => {
         const baharu = (sebelum + 1) % kolam.length;
-        tulisSesi({ tarikh: tarikhMalaysia(), indeks: baharu, ditutup: bacaSesi().ditutup });
+        tulisSesi({ tarikh: tarikhMalaysia(), indeks: baharu });
         return baharu;
       });
     };
@@ -298,17 +287,12 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
       if (masaTamat1) clearTimeout(masaTamat1);
       if (masaTamat2) clearTimeout(masaTamat2);
     };
-  }, [kolam.length, ditutup, kurangGerak, tempohPutaranMs]);
+  }, [kolam.length, kurangGerak, tempohPutaranMs]);
 
-  if (!aktif || kolam.length === 0 || ditutup) return null;
+  if (!aktif || kolam.length === 0) return null;
 
   const p = kolam[Math.min(indeks, kolam.length - 1)];
   if (!p) return null;
-
-  const tutup = () => {
-    setDitutup(true);
-    tulisSesi({ tarikh: tarikhMalaysia(), indeks, ditutup: true });
-  };
 
   return (
     // KEDUDUKAN (2026-08-19, arahan terus Izzat: "letakkan petikan tu di atas footer mcm versi
@@ -327,15 +311,12 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
         onFocusCapture={() => { kunciTuding.current = true; }}
         onBlurCapture={() => { kunciTuding.current = false; }}
       >
-        <button
-          type="button"
-          onClick={tutup}
-          aria-label="Tutup petikan"
-          title="Tutup petikan"
-          className="absolute right-1 top-3 text-stone-300 hover:text-[#802334] text-[15px] leading-none p-1 transition-colors select-none"
-        >
-          ×
-        </button>
+        {/* Butang tutup (×) DIBUANG (2026-08-22, arahan terus Izzat: "buang butang pangkah, tak
+            perlu lg, sbb dia dah tak ganggu pembaca") — susulan pembaikan animasi 20/8 (dua fasa
+            fade + pembetulan race overflow) yang menghapuskan kelipan/transisi mendadak asal yang
+            jadi sebab butang ni wujud. Sekali dibuang, seluruh mekanisme `ditutup` (KeadaanSesi,
+            bacaSesi/tulisSesi, gerbang render) turut dibuang — bukan sekadar disembunyikan, supaya
+            tiada kod mati tertinggal untuk keadaan yang tak boleh berlaku lagi. */}
 
         {/* Transisi DUA FASA (2026-08-19, susulan video sebenar — lihat nota TEMPOH_FADE_KELUAR_MS
             di atas fail). `translate-y` TIDAK PERNAH digunakan (arahan eksplisit: "Jangan gunakan
@@ -347,20 +328,31 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
           style={{ transitionDuration: kurangGerak ? '0ms' : `${tempohTransisiMs}ms` }}
         >
           {/* TEGAK secara lalai (arahan Izzat, 19/8/2026) — petikan dibezakan daripada teks
-              sekeliling oleh tanda petik + kedudukan/gaya blok, bukan oleh gaya huruf. Saiz 12px
-              (bukan 17px asal) — 17px melampaui saiz kandungan editorial sekeliling (~13-16px),
-              menjadikan petikan sampingan kelihatan lebih penting drpd berita sebenar (laporan
-              Izzat, versi telefon — kini terpakai sejagat sebab reka bentuk digabung). */}
-          <p className="font-serif text-stone-900 text-[12px] leading-[1.7] max-w-2xl mx-auto">
+              sekeliling oleh tanda petik + kedudukan/gaya blok, bukan oleh gaya huruf.
+              Saiz DISELARASKAN ke text-sm/14px (2026-08-22, arahan Izzat "saiz font pun kena
+              selaras semula") — 12px lama TERSAMAR dengan teks footer (sama-sama 12px) walhal
+              petikan ni kandungan editorial berdiri sendiri, bukan teks kaki laman; disahkan
+              komputasi sebenar di brief.adjung.com — kad berita tepat di atas blok ni (14px),
+              badan petikan lama (12px), footer (12px). 14px sepadan saiz body teks majoriti kad
+              (StandardCardTeks/MenegakCardTeks text-sm) supaya petikan rasa sebahagian kandungan
+              editorial, bukan tenggelam jadi cetakan kecil. Atribusi/pautan buku turut dinaikkan
+              proportionally (11->12px, 10->11px) supaya nisbah hierarki dalaman kekal, bukan
+              terlepas kelihatan sama besar dengan badan petikan. */}
+          <p className="font-serif text-stone-900 text-sm leading-[1.7] max-w-2xl mx-auto">
+            {/* Tanda petik BETUL (2026-08-22, arahan Izzat "tanda petik tu kena betulkan") — buka
+                dan tutup dahulu TAK SIMETRIK: pembuka text-2xl penuh maroon, penutup warisi saiz
+                badan (12px lama) pada 60% legap sahaja, jadi tanda tutup kelihatan tersasar kecil
+                berbanding pembuka. Kedua-dua kini kongsi saiz/leading/jajaran serta legap PENUH —
+                pasangan yang padan, bukan sepasang yang berat sebelah. */}
             <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
             {safeParseInline(p.teks)}
-            <span aria-hidden="true" className="text-[#802334]/60">&rdquo;</span>
+            <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&rdquo;</span>
           </p>
           {/* Hierarki (2026-08-19, laporan Izzat): petikan hitam ialah elemen UTAMA, metadata di
               bawah dikecilkan supaya jelas SEKUNDER. Maroon eksklusif nama pengarang (Atribusi).
               Label terjemahan DIBUANG (keputusan Izzat berasingan, lihat Atribusi/komen atas). */}
-          <Atribusi p={p} kelas="mt-3 font-sans text-[11px] tracking-wide" />
-          <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[10px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
+          <Atribusi p={p} kelas="mt-3 font-sans text-xs tracking-wide" />
+          <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[11px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
         </div>
       </div>
     </section>
