@@ -171,6 +171,74 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
   );
 };
 
+// Kandungan SATU petikan (tanda petik + teks + atribusi + pautan buku) — diasingkan sebagai
+// fungsi kongsi (2026-08-22, laporan Izzat: "page jadi tak stabil sbb karousel petikan yg ada
+// pelbagai kuantiti baris. kalau baris banyak, page akan memanjang") supaya JSX yang SAMA boleh
+// dipakai dua kali: sekali kelihatan (petikan semasa), sekali lagi tersembunyi (SEMUA petikan
+// dalam kolam, untuk ukur tinggi — lihat KunciTinggiPetikan di bawah). Kalau dua salinan menyimpang
+// (cth satu terlupa Atribusi), ukuran tinggi jadi tak tepat lagi — SATU sumber elak persis itu.
+const KandunganPetikan: React.FC<{ p: PetikanAwam }> = ({ p }) => (
+  <>
+    <p className="font-serif text-stone-900 text-sm leading-[1.7] max-w-2xl mx-auto">
+      <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
+      {safeParseInline(p.teks)}
+      <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&rdquo;</span>
+    </p>
+    <Atribusi p={p} kelas="mt-3 font-sans text-xs tracking-wide" />
+    <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[11px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
+  </>
+);
+
+// Kunci tinggi merentas putaran (2026-08-22, laporan Izzat) — punca: petikan panjang berbeza-beza
+// (1 baris lawan 3+ baris), jadi setiap kali `tukarIndeks()` bertukar ke petikan lain, tinggi blok
+// ni berubah, menolak footer/kandungan bawahnya naik-turun setiap ~10 saat. Ini BUKAN carousel
+// bento (`CarouselStableBlock`/`FooterHeightLock`, FrontpageView.tsx) — modul berasingan, jadi
+// mekanisme sendiri diperlukan — tapi TEKNIK SAMA sengaja diguna semula (bukan dicipta dari kosong):
+// render SEMUA item kolam secara tersembunyi (position:absolute, visibility:hidden) dalam LEBAR
+// yang SAMA seperti paparan sebenar, ukur scrollHeight setiap satu via ResizeObserver, kunci
+// `minHeight` blok kelihatan kepada nilai MAKSIMUM. Berbeza sedikit drpd FooterHeightLock (yang
+// kunci ke "max PERNAH dilihat" secara progresif) — di sini SELURUH kolam harian sudah diketahui
+// di ingatan sejak awal (bukan didedahkan secara beransur oleh editor), jadi max boleh dikira
+// TERUS daripada permulaan tanpa perlu "nampak" setiap satu dalam putaran dahulu.
+const KunciTinggiPetikan: React.FC<{ kolam: PetikanAwam[]; children: (tinggiKunci: number | undefined) => React.ReactNode }> = ({ kolam, children }) => {
+  const [tinggiKunci, setTinggiKunci] = React.useState<number | undefined>(undefined);
+  const ruj = React.useRef<(HTMLDivElement | null)[]>([]);
+  const kunciKandungan = kolam.map((p) => p.id).join('~');
+
+  React.useLayoutEffect(() => {
+    if (kolam.length === 0) return;
+    let dibatal = false;
+    const kira = () => {
+      const heights = ruj.current.map((el) => (el ? el.scrollHeight : 0));
+      const max = Math.max(0, ...heights);
+      if (max > 0 && !dibatal) setTinggiKunci(max);
+    };
+    kira();
+    // ResizeObserver — tangkap perubahan lebar (skrin diubah saiz, putaran peranti) yang
+    // menjejaskan cara teks membalut, bukan sekadar ukuran sekali semasa lekap.
+    const pemerhati = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => kira()) : null;
+    ruj.current.forEach((el) => { if (el && pemerhati) pemerhati.observe(el); });
+    // Fon serif lambat siap kadangkala — ukur sekali lagi selepas fon benar-benar dimuat supaya
+    // pengiraan awal (guna fon fallback lebih sempit/lebar) tak terperangkap sebagai nilai kekal.
+    (document as any).fonts?.ready?.then(() => { if (!dibatal) kira(); });
+    return () => { dibatal = true; pemerhati?.disconnect(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kunciKandungan]);
+
+  return (
+    <>
+      <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, width: '100%', visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
+        {kolam.map((p, i) => (
+          <div key={p.id} ref={(el) => { ruj.current[i] = el; }}>
+            <KandunganPetikan p={p} />
+          </div>
+        ))}
+      </div>
+      {children(tinggiKunci)}
+    </>
+  );
+};
+
 // ---------------------------------------------------------------------------
 // PetikanBar — blok tunggal di atas footer, SEMUA saiz skrin, putaran berpemasa
 // ---------------------------------------------------------------------------
@@ -318,42 +386,30 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
             bacaSesi/tulisSesi, gerbang render) turut dibuang — bukan sekadar disembunyikan, supaya
             tiada kod mati tertinggal untuk keadaan yang tak boleh berlaku lagi. */}
 
-        {/* Transisi DUA FASA (2026-08-19, susulan video sebenar — lihat nota TEMPOH_FADE_KELUAR_MS
-            di atas fail). `translate-y` TIDAK PERNAH digunakan (arahan eksplisit: "Jangan gunakan
-            slide/translate... Itu akan menjadikannya widget/carousel") — OPACITY SAHAJA. Tempoh
-            dikawal via `tempohTransisiMs` (inline style) supaya fade-keluar (350ms) dan fade-masuk
-            (450ms) boleh berbeza tanpa dua salinan className. */}
-        <div
-          className={`transition-opacity ease-in-out ${pudar ? 'opacity-0' : 'opacity-100'}`}
-          style={{ transitionDuration: kurangGerak ? '0ms' : `${tempohTransisiMs}ms` }}
-        >
-          {/* TEGAK secara lalai (arahan Izzat, 19/8/2026) — petikan dibezakan daripada teks
-              sekeliling oleh tanda petik + kedudukan/gaya blok, bukan oleh gaya huruf.
-              Saiz DISELARASKAN ke text-sm/14px (2026-08-22, arahan Izzat "saiz font pun kena
-              selaras semula") — 12px lama TERSAMAR dengan teks footer (sama-sama 12px) walhal
-              petikan ni kandungan editorial berdiri sendiri, bukan teks kaki laman; disahkan
-              komputasi sebenar di brief.adjung.com — kad berita tepat di atas blok ni (14px),
-              badan petikan lama (12px), footer (12px). 14px sepadan saiz body teks majoriti kad
-              (StandardCardTeks/MenegakCardTeks text-sm) supaya petikan rasa sebahagian kandungan
-              editorial, bukan tenggelam jadi cetakan kecil. Atribusi/pautan buku turut dinaikkan
-              proportionally (11->12px, 10->11px) supaya nisbah hierarki dalaman kekal, bukan
-              terlepas kelihatan sama besar dengan badan petikan. */}
-          <p className="font-serif text-stone-900 text-sm leading-[1.7] max-w-2xl mx-auto">
-            {/* Tanda petik BETUL (2026-08-22, arahan Izzat "tanda petik tu kena betulkan") — buka
-                dan tutup dahulu TAK SIMETRIK: pembuka text-2xl penuh maroon, penutup warisi saiz
-                badan (12px lama) pada 60% legap sahaja, jadi tanda tutup kelihatan tersasar kecil
-                berbanding pembuka. Kedua-dua kini kongsi saiz/leading/jajaran serta legap PENUH —
-                pasangan yang padan, bukan sepasang yang berat sebelah. */}
-            <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
-            {safeParseInline(p.teks)}
-            <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&rdquo;</span>
-          </p>
-          {/* Hierarki (2026-08-19, laporan Izzat): petikan hitam ialah elemen UTAMA, metadata di
-              bawah dikecilkan supaya jelas SEKUNDER. Maroon eksklusif nama pengarang (Atribusi).
-              Label terjemahan DIBUANG (keputusan Izzat berasingan, lihat Atribusi/komen atas). */}
-          <Atribusi p={p} kelas="mt-3 font-sans text-xs tracking-wide" />
-          <PautanBuku p={p} kelas="mt-2 inline-block font-sans text-[11px] font-semibold text-[#802334]/80 underline underline-offset-2 hover:text-[#802334] transition-colors" />
-        </div>
+        {/* Saiz teks (2026-08-22, arahan Izzat "saiz font pun kena selaras semula") — 12px lama
+            TERSAMAR dengan teks footer (sama-sama 12px) walhal petikan ni kandungan editorial
+            berdiri sendiri, bukan teks kaki laman; disahkan komputasi sebenar di brief.adjung.com
+            — kad berita tepat di atas blok ni (14px), badan petikan lama (12px), footer (12px).
+            14px (text-sm) sepadan saiz body teks majoriti kad (StandardCardTeks/MenegakCardTeks)
+            supaya petikan rasa sebahagian kandungan editorial, bukan tenggelam jadi cetakan kecil.
+            Tanda petik BETUL (arahan Izzat "tanda petik tu kena betulkan") — buka/tutup kini
+            kongsi kelas SAMA (dahulu tutup terwarisi saiz badan pada 60% legap, tersasar kecil
+            berbanding pembuka). Kedua-dua diselaraskan dalam KandunganPetikan (atas fail ni). */}
+        <KunciTinggiPetikan kolam={kolam}>
+          {(tinggiKunci) => (
+            // Transisi DUA FASA (2026-08-19) — `translate-y` TIDAK PERNAH digunakan (arahan
+            // eksplisit: "Jangan gunakan slide/translate... Itu akan menjadikannya widget/
+            // carousel") — OPACITY SAHAJA. `minHeight` (2026-08-22, lihat KunciTinggiPetikan)
+            // ditambah pada bekas SAMA — kunci tinggi mengelak footer/kandungan bawah "melompat"
+            // setiap kali petikan bertukar panjang, transisi opacity kekal utuh macam sebelum ni.
+            <div
+              className={`transition-opacity ease-in-out ${pudar ? 'opacity-0' : 'opacity-100'}`}
+              style={{ transitionDuration: kurangGerak ? '0ms' : `${tempohTransisiMs}ms`, minHeight: tinggiKunci }}
+            >
+              <KandunganPetikan p={p} />
+            </div>
+          )}
+        </KunciTinggiPetikan>
       </div>
     </section>
   );

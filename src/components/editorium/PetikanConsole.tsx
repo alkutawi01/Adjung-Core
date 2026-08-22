@@ -68,6 +68,14 @@ interface Petikan {
   aktif: boolean;
   pautanBuku: string;
   labelPautan: string;
+  // tarikhMula/tarikhAkhir (2026-08-22, dapatan semasa audit "padam kad") — pelayan
+  // (barisKepadaPetikan(), petikanRoutes.js) sentiasa hantar dua medan ni, tapi jenis client
+  // tak pernah isytiharkannya — jurang lama sedia ada sejak muat() asal (sumber sama), bukan
+  // diperkenalkan oleh kemas kini tetapkanStatus/togolAktif/simpanSunting. Tiada kesan tingkah
+  // laku (medan tak pernah dibaca), tapi ditambah sekarang supaya jenis client benar-benar
+  // sepadan respons pelayan sebenar, bukan sebahagian sahaja.
+  tarikhMula: string;
+  tarikhAkhir: string;
   dibuatOleh: string;
   dibuatPada: string;
   dikemasPada: string;
