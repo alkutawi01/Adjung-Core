@@ -171,12 +171,17 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
   // Matriks 38 slot — status sebenar setiap slot (terisi/menunggu/kosong), dikira daripada
   // slotUsage (liveCount > 0 = terisi) + itemsRingkas (ada kandungan 'pending' = menunggu).
   // Slot 1-based dalam paparan (per konvensyen bercakap projek ni), 0-based dalam data.
+  //
+  // bilanganMenunggu (2026-08-22, permintaan Izzat "kalau aktif berapa byk berita yg ada?")
+  // — dikira daripada itemsRingkas SAMA persis yang menentukan adaMenunggu, cuma .length
+  // bukan .some(), supaya jawapan "berapa banyak" konsisten dengan gerbang status yang
+  // sudah wujud (bukan pengiraan berasingan yang boleh menyimpang daripadanya).
   const slotMatrix = Array.from({ length: JUMLAH_SLOT }, (_, idx) => {
     const usage = slotUsage.find(s => s.slotIndex === idx);
     const liveCount = usage?.liveCount || 0;
-    const adaMenunggu = itemsRingkas.some(i => i.slotIndex === idx && i.status === 'pending');
-    const status: 'terisi' | 'menunggu' | 'kosong' = liveCount > 0 ? 'terisi' : adaMenunggu ? 'menunggu' : 'kosong';
-    return { slotIndex: idx, status };
+    const bilanganMenunggu = itemsRingkas.filter(i => i.slotIndex === idx && i.status === 'pending').length;
+    const status: 'terisi' | 'menunggu' | 'kosong' = liveCount > 0 ? 'terisi' : bilanganMenunggu > 0 ? 'menunggu' : 'kosong';
+    return { slotIndex: idx, status, liveCount, bilanganMenunggu };
   });
   const jumlahBermasalah = slotMatrix.filter(s => s.status !== 'terisi').length;
 
@@ -309,6 +314,8 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
               key={s.slotIndex}
               slotNombor={s.slotIndex + 1}
               status={s.status}
+              bilanganAktif={s.liveCount}
+              bilanganMenunggu={s.bilanganMenunggu}
               onClick={() => onTukarTab('kandungan')}
             />
           ))}
