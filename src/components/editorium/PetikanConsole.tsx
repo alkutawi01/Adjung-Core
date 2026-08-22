@@ -484,6 +484,17 @@ export const PetikanConsole: React.FC = () => {
     }
   };
 
+  // Kemas kini SATU baris tempatan sahaja, TANPA muat() (2026-08-22, laporan Izzat: "apabila
+  // saya klik sahkan, ia akan kembali ke atas, bukan statik pada petikan tu"). Punca sebenar:
+  // muat() tetapkan `memuat=true` sebelum fetch, dan `{memuat ? <KeadaanMemuat baris={4}/> : ...}`
+  // gantikan SELURUH senarai (mungkin 15+ kad) dengan rangka pemuatan 4 baris sahaja — tinggi
+  // halaman runtuh mendadak, pelayar terpaksa jatuhkan scrollTop ke had baharu yang lebih rendah
+  // (tingkah laku pelayar piawai bila tinggi dokumen menyusut bawah kedudukan skrol semasa),
+  // nampak seperti "kembali ke atas" walhal sebenarnya cuma DOM disusun semula dari kosong.
+  //
+  // Pelayan SUDAH pulangkan baris PENUH terkini (`data.petikan`, `barisKepadaPetikan()` sama
+  // bentuk seperti GET /petikan) — cukup ganti SATU elemen dalam array tempatan, tak perlu fetch
+  // semula seluruh senarai. Ini juga lebih murah (satu PATCH, bukan PATCH + GET).
   const tetapkanStatus = async (id: string, tampalan: Record<string, string>) => {
     setMemprosesSemakan(true);
     try {
@@ -494,7 +505,11 @@ export const PetikanConsole: React.FC = () => {
       });
       const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini status.');
-      muat();
+      if (data.petikan) {
+        setSenarai((s) => s.map((p) => (p.id === id ? data.petikan : p)));
+      } else {
+        muat(); // jaring keselamatan — pelayan patut sentiasa pulangkan baris, tapi jangan senyap kalau tidak.
+      }
     } catch (e: any) {
       setRalat(e.message || 'Gagal mengemas kini status.');
     } finally {
@@ -511,7 +526,11 @@ export const PetikanConsole: React.FC = () => {
       });
       const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini petikan.');
-      muat();
+      if (data.petikan) {
+        setSenarai((s) => s.map((p) => (p.id === id ? data.petikan : p)));
+      } else {
+        muat();
+      }
     } catch (e: any) {
       setRalat(e.message || 'Gagal mengemas kini petikan.');
     }
@@ -523,7 +542,10 @@ export const PetikanConsole: React.FC = () => {
       const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal memadam petikan.');
       setSahMemadam('');
-      muat();
+      // Buang baris tempatan terus (sama sebab seperti tetapkanStatus/togolAktif di atas) — item
+      // yang dipadam memang perlu hilang daripada senarai, tapi tak perlu muat() ganggu skrol
+      // sekiranya editor sedang padam item lain dalam senarai yang sama.
+      setSenarai((s) => s.filter((p) => p.id !== id));
     } catch (e: any) {
       setRalat(e.message || 'Gagal memadam petikan.');
     }
@@ -579,7 +601,11 @@ export const PetikanConsole: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan suntingan.');
       setBorangSunting(null);
       lapor('Petikan dikemas kini. Pengesahan yang terjejas oleh perubahan teks diset semula.');
-      muat();
+      if (data.petikan) {
+        setSenarai((s) => s.map((p) => (p.id === borangSunting.id ? data.petikan : p)));
+      } else {
+        muat();
+      }
     } catch (e: any) {
       setRalat(e.message || 'Gagal menyimpan suntingan.');
     } finally {
