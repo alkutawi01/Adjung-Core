@@ -179,7 +179,7 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
 // (cth satu terlupa Atribusi), ukuran tinggi jadi tak tepat lagi — SATU sumber elak persis itu.
 const KandunganPetikan: React.FC<{ p: PetikanAwam }> = ({ p }) => (
   <>
-    <p className="font-serif text-stone-900 text-sm leading-[1.7] max-w-2xl mx-auto">
+    <p className="font-serif text-stone-900 text-sm leading-[1.7] max-w-2xl mx-auto text-pretty">
       <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
       {safeParseInline(p.teks)}
       <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&rdquo;</span>
