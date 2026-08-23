@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Image as ImageIcon } from 'lucide-react';
 import { labelTindakan } from './LogAuditConsole';
 import { SlotMatrixCell } from '../common/SlotMatrixCell';
 import { StatusBadge } from '../common/StatusBadge';
 import { Tooltip } from '../common/Tooltip';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { PosterGenerator } from './PosterGenerator';
 
 // Paparan Utama (2026-08-02, Fasa 5) — destinasi lalai selepas log masuk.
 //
@@ -46,6 +48,7 @@ const JUMLAH_SLOT = 38;
 
 export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }) => {
   const [memuat, setMemuat] = useState(true);
+  const [posterTerbuka, setPosterTerbuka] = useState(false);
   // Bendera kegagalan (UX-08, audit ChatGPT 2026-08-08) — bezakan "0 sebenar" drpd "gagal
   // diambil". Sebelum ni, .catch() jatuh balik ke {items:[]}/{hariIni:0,...} lalu paparan
   // terus tunjuk "0" macam ia bilangan sebenar, mengelirukan Ketua Editor semasa gangguan
@@ -216,7 +219,15 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
         <p className="mb-1 ml-auto max-w-[28ch] text-[11px] md:text-xs leading-relaxed text-stone-500 text-right">
           {tarikhHariIni} · data dikira semula setiap kali paparan dibuka.
         </p>
+        <button
+          type="button"
+          onClick={() => setPosterTerbuka(true)}
+          className="mb-1 inline-flex items-center gap-1.5 border border-stone-300 px-3 py-1.5 text-[11px] font-semibold text-stone-700 hover:border-Adjung-maroon hover:text-Adjung-maroon transition-colors cursor-pointer shrink-0"
+        >
+          <ImageIcon className="w-3.5 h-3.5" /> Jana Poster Media Sosial
+        </button>
       </div>
+      {posterTerbuka && <PosterGenerator onTutup={() => setPosterTerbuka(false)} />}
 
       {/* Statistik utama */}
       <section className="grid grid-cols-2 md:grid-cols-4 border-b border-stone-200">

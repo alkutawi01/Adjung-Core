@@ -86,7 +86,10 @@ const escapeHtml = (s) => String(s || '')
 function binaHtmlBot({ kandungan, url }) {
   const tajuk = escapeHtml(kandungan.title);
   const huraian = escapeHtml((kandungan.summary || '').slice(0, 300));
-  const gambar = kandungan.image ? escapeHtml(kandungan.image) : '';
+  // Fallback ke og-image.png jenama (2026-08-23) bila kandungan sendiri tiada imej — kebanyakan
+  // kandungan Adjung Brief memang tiada imej terlampir (portal berasaskan teks), jadi TANPA
+  // fallback ni pratonton kongsi majoriti artikel langsung tiada imej.
+  const gambar = escapeHtml(kandungan.image || 'https://brief.adjung.com/og-image.png');
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',

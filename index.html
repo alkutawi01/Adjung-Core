@@ -34,20 +34,20 @@
     <!-- URL/imej MUTLAK, bukan laluan relatif (2026-08-16, audit Launch Gate) — ramai crawler
          perkongsian sosial (Facebook/WhatsApp khususnya) tak selesaikan og:image/og:url relatif
          terhadap URL laman dgn boleh dipercayai; had spesifikasi cadangkan URL mutlak sentiasa.
-         SVG dikekalkan sebagai imej lalai (bukan pepijat baharu) — laman ni belum ada aset PNG/JPG
-         khas kongsi-sosial (1200x630), Facebook/Twitter kedua-duanya TIDAK sokong SVG untuk
-         og:image/twitter:image, jadi pratonton kongsi mungkin tiada imej pada platform tu sehingga
-         aset PNG sebenar disediakan — bukan boleh dibetulkan drpd baris kod sahaja, perlukan reka
-         bentuk aset baharu. -->
-    <meta property="og:image" content="https://brief.adjung.com/adjung-symbol.svg" />
+         2026-08-23: aset PNG 1200x630 khas kongsi-sosial (public/og-image.png) kini wujud,
+         gantikan adjung-symbol.svg lama (Facebook/Twitter TIDAK sokong SVG untuk og:image/
+         twitter:image — nota asal di sini, kekal sebagai rekod sejarah kenapa SVG dipakai dulu). -->
+    <meta property="og:image" content="https://brief.adjung.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:url" content="https://brief.adjung.com/" />
     <meta property="og:locale" content="ms_MY" />
 
     <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Adjung Brief" />
     <meta name="twitter:description" content="Portal berita dan ilmu bahasa Melayu bergaya majalah ilmiah — berita, ilmu dan kebudayaan disunting oleh pasukan editorial Adjung." />
-    <meta name="twitter:image" content="https://brief.adjung.com/adjung-symbol.svg" />
+    <meta name="twitter:image" content="https://brief.adjung.com/og-image.png" />
   </head>
   <body>
     <div id="root"></div>

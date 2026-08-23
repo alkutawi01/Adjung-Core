@@ -62,7 +62,11 @@ export function terapFocusSeo(input: FocusSeoInput): void {
 
   const title = input.title.trim() || 'Adjung Brief';
   const description = input.description.trim().slice(0, 300);
-  const image = input.imageUrl || '/adjung-symbol.svg';
+  // Fallback ke og-image.png jenama (2026-08-23) — bukan SVG (Facebook/Twitter tak sokong SVG
+  // untuk og:image/twitter:image, lihat nota sama di articleUrlRoutes.js binaHtmlBot()). URL
+  // MUTLAK, bukan laluan relatif — sepadan sebab di index.html (crawler perkongsian sosial tak
+  // selesaikan URL relatif dgn boleh dipercayai).
+  const image = input.imageUrl || 'https://brief.adjung.com/og-image.png';
   const url = input.url || window.location.href;
 
   document.title = `${title} — Adjung Brief`;

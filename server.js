@@ -67,6 +67,7 @@ import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
 import { createArticleUrlRoutes, createPublicArticleRoute } from './core/routes/articleUrlRoutes.js';
 import { createSearchRoutes } from './core/routes/searchRoutes.js';
+import { createPosterRoutes } from './core/routes/posterRoutes.js';
 import { createSponsorRoutes } from './core/routes/sponsorRoutes.js';
 import { semakKonfigSmtpStartup, hantarEmel } from './core/email/MailSender.js';
 import { semakKonfigBaseUrlStartup } from './core/utils/baseUrl.js';
@@ -3996,6 +3997,7 @@ app.use('/api/system', createAuditLogRoutes(dbAll));
 app.use('/api/system', createUiLabelRoutes(dbAll, dbRun));
 app.use('/api', createArticleUrlRoutes(dbAll, dbGet, dbRun));
 app.use('/api', createSearchRoutes(dbAll));
+app.use('/api', createPosterRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api', createSponsorRoutes(dbAll, dbRun, dbGet));
 // Bukan di bawah /api sengaja — sitemap.xml mesti wujud di root laman ikut konvensyen crawler
 // (robots.txt di public/robots.txt rujuk /sitemap.xml). Vite dev proxy hanya hantar laluan /api
