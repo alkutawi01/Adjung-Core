@@ -912,6 +912,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           onTutup={() => setProfilTerbuka(false)}
           onKemasKini={(patch) => {
             if (patch.penName) onProfilKemasKini({ penName: patch.penName });
+            // Pepijat "amaran belum simpan" palsu selepas Simpan Profil berjaya (2026-08-23,
+            // Izzat: "saya rasa saya dah simpan semua tetapan, tp keluar pertanyaan lagi") —
+            // dahulu cuma penName diteruskan ke atas, medan Butiran Profil (namaPenuh,
+            // kelulusan*, dll) tak pernah dikemas kini dlm profilData. Perbandingan "kotor"
+            // ProfilEditorModal (state dalaman vs prop profil) jadi silap anggap ada
+            // perubahan belum simpan sebaik sahaja simpan BERJAYA, sebab profilData (sumber
+            // prop) kekal versi lama sedangkan state modal dah ada nilai baharu. Kemas kini
+            // profilData PENUH (semua medan patch, bukan penName sahaja) supaya kedua-dua
+            // sumber sepadan semula.
+            setProfilData((prev) => (prev ? { ...prev, ...patch } : prev));
           }}
         />
       )}
