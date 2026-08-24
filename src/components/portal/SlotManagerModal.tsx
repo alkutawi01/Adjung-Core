@@ -405,7 +405,13 @@ export function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: n
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3">
         <span className={labelCls}>Bajet kandungan (Tajuk + Huraian ringkas)</span>
-        <span className={`font-mono text-[10px] font-bold tabular-nums ${tone}`}>{Math.round(used * 100)}%</span>
+        {/* Math.floor (BUKAN Math.round), sama sebab macam remainingBrief/remainingTitle di
+            bawah (2026-08-24, dapatan lapangan) — round-KE-ATAS boleh papar "80%" sedang nilai
+            sebenar 79.6% (di bawah ambang lulus 80% validateContentBudget), tone MERAH + hint
+            "panjangkan tajuk/huraian" tetap betul tapi nombor besar bercanggah dgn hint kecil di
+            sebelahnya, boleh disalah anggap "dah cukup, tinggal terbit". floor jamin nombor
+            dipapar TAK PERNAH menuntut lulus melainkan benar-benar lulus. */}
+        <span className={`font-mono text-[10px] font-bold tabular-nums ${tone}`}>{Math.floor(used * 100)}%</span>
       </div>
       <div className="h-[3px] w-full rounded-full bg-stone-200 overflow-hidden">
         <div className={`h-full transition-all duration-200 ${barTone}`} style={{ width: `${Math.min(used, 1) * 100}%` }} />
