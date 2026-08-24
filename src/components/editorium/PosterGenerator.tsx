@@ -159,15 +159,21 @@ async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Prom
   ctx.fillText(tarikh, SISI - MARGIN, eyebrowY);
   ctx.textAlign = 'left';
 
+  // Wordmark ditengahkan mendatar (2026-08-24, dapatan Izzat — "lebih sesuai align ke tengah
+  // berbanding ke kiri") — nisbah lebar:tinggi sama seperti dalam lukisWordmark() (WORDMARK_CROP),
+  // dikira di sini semata-mata utk cari titik-x tengah, bukan disalin semula logik lukis.
   const wmY = eyebrowY + 22;
-  const wmTinggi = await lukisWordmark(ctx, MARGIN, wmY, 76);
+  const wmTinggiSasaran = 76;
+  const wmLebarSasaran = wmTinggiSasaran * (WORDMARK_CROP.w / WORDMARK_CROP.h);
+  const wmX = (SISI - wmLebarSasaran) / 2;
+  const wmTinggi = await lukisWordmark(ctx, wmX, wmY, wmTinggiSasaran);
 
-  // Tag "N perkara penting hari ini" — signature editorial, bukan sekadar senarai terkini.
+  // Tag "N kandungan penting hari ini" — signature editorial, bukan sekadar senarai terkini.
   const tagY = wmY + wmTinggi + 26;
   ctx.fillStyle = '#78716C';
   ctx.font = '700 13px "JetBrains Mono", monospace';
   let tx = MARGIN;
-  for (const ch of `${items.length} PERKARA PENTING HARI INI`) {
+  for (const ch of `${items.length} KANDUNGAN PENTING HARI INI`) {
     ctx.fillText(ch, tx, tagY);
     tx += ctx.measureText(ch).width + 1.4;
   }
