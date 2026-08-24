@@ -3236,19 +3236,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               top: 16px !important;
               right: 16px !important;
             }
-            /* Kad KOMPAK (pasangan bertindan, data-kompak-pair) — pengecualian daripada peraturan
-               di atas. Punca berbeza drpd kad lain: bekas kad KOMPAK sendiri sudah p-4 (padding
-               16px) DAN relative (jadi containing block lencana absolute ialah TEPI PADDING
-               bekas tu, bukan tepi border). top:16px di atas bermaksud 16px DARIPADA tepi
-               padding — iaitu tertambah ATAS padding 16px sedia ada (jumlah 32px dari tepi border),
-               manakala ikon eyebrow (aliran biasa dalam bekas sama) hanya 16px dari tepi border.
-               Kad lain (bukan KOMPAK) meletakkan lencana pada bekas relatif BERASINGAN yang tiada
-               padding sendiri, jadi top:16px situ tepat sejajar dgn ikon — tiada konflik. Disahkan
-               empirik pada 375px (25/8, aduan Izzat "icon bidang tak sejajar dgn tarikh"): beza
-               14-16px konsisten pada kad KOMPAK (Slot 5/6, 17/18, 31/32 dll — 3 pasangan, 6 slot).
-               Lencana KOMPAK perlu top:0/right:0 (bukan 16px) sebab padding 16px bekas SUDAH
-               menyediakan inset yang sepadan dgn kedudukan ikon. */
-            #bento-news-grid [data-kompak-pair] .tarikh-siaran-badge {
+            /* PEMBETULAN 25/8 (percubaan PERTAMA, salah, dibetulkan di sini) — teka asal ialah
+               SEMUA kad KOMPAK (data-kompak-pair) berkongsi punca sama. Ukuran hidup selepas
+               deploy dedah itu SALAH: kad Slot 4/5 (KOMPAK juga) sudah sejajar SEBELUM sebarang
+               pembetulan, dan peraturan sasaran [data-kompak-pair] .tarikh-siaran-badge dgn
+               top:0 yang cuba dipakai global tadi PECAHKAN alignan Slot 4/5 tu (anjak lencana
+               16px ke atas ikon, songsang) sambil betulkan Slot 17/18/31/32. Punca SEBENAR
+               bukan padding bekas — kedua struktur guna bekas p-4 relative SAMA, nilai top-4
+               (16px) SAMA pada kedua-dua. Beza ialah struktur ANAK: Slot 4/5 bungkus
+               eyebrow+carousel dalam komponen BentoInner, yang tambah sub-padding sendiri yg
+               anjakkan ikon TURUN ~14-16px (padan dgn lencana top-4). Slot 17/18/31/32 TIADA
+               BentoInner — anak terus dalam bekas p-4 (grep sahkan lencana ni sentiasa ikut
+               penutup tag FooterHeightLock, bukan tag BentoInner), jadi ikon kekal di aras
+               padding asal (16px dari tepi border) tanpa sub-padding tambahan — 14-16px LEBIH
+               TINGGI drpd lencana top-4. Pembetulan kini SASAR HANYA 4 lencana ni (bukan
+               seluruh data-kompak-pair) — kelas tarikh-siaran-badge-tanpa-bento ditambah terus
+               pada keempat-empat span JSX berkenaan (grep nama kelas ni utk cari). Slot 4/5
+               (guna BentoInner) KEKAL ikut peraturan generik top:16px di atas, tidak disentuh. */
+            #bento-news-grid .tarikh-siaran-badge-tanpa-bento {
               top: 0 !important;
               right: 0 !important;
             }
@@ -4044,7 +4049,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         {(minHeight) => (
                           <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1 flex flex-col justify-end" style={{ ...getCardTheme(bentoNewsItems[17]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[17]} bidang={bidangUntuk(bentoNewsItems[17])} onCari={cariDariEyebrow} />}</div>
                         )}
-                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[17].publishedAt)}</span>
+                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge tarikh-siaran-badge-tanpa-bento font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[17].publishedAt)}</span>
                       <EditPensil objectId={bentoNewsItems[17].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                       <CarouselStableBlock
                         items={bentoNewsItems[17].items && bentoNewsItems[17].items.length > 0 ? bentoNewsItems[17].items : [bentoNewsItems[17]]}
@@ -4096,7 +4101,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         {(minHeight) => (
                           <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1 flex flex-col justify-end" style={{ ...getCardTheme(bentoNewsItems[18]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[18]} bidang={bidangUntuk(bentoNewsItems[18])} onCari={cariDariEyebrow} />}</div>
                         )}
-                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[18].publishedAt)}</span>
+                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge tarikh-siaran-badge-tanpa-bento font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[18].publishedAt)}</span>
                       <EditPensil objectId={bentoNewsItems[18].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                       <CarouselStableBlock
                         items={bentoNewsItems[18].items && bentoNewsItems[18].items.length > 0 ? bentoNewsItems[18].items : [bentoNewsItems[18]]}
@@ -4559,7 +4564,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         {(minHeight) => (
                           <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1 flex flex-col justify-end" style={{ ...getCardTheme(bentoNewsItems[31]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[31]} bidang={bidangUntuk(bentoNewsItems[31])} onCari={cariDariEyebrow} />}</div>
                         )}
-                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[31].publishedAt)}</span>
+                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge tarikh-siaran-badge-tanpa-bento font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[31].publishedAt)}</span>
                       <EditPensil objectId={bentoNewsItems[31].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                       <CarouselStableBlock
                         items={bentoNewsItems[31].items && bentoNewsItems[31].items.length > 0 ? bentoNewsItems[31].items : [bentoNewsItems[31]]}
@@ -4611,7 +4616,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         {(minHeight) => (
                           <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1 flex flex-col justify-end" style={{ ...getCardTheme(bentoNewsItems[32]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[32]} bidang={bidangUntuk(bentoNewsItems[32])} onCari={cariDariEyebrow} />}</div>
                         )}
-                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[32].publishedAt)}</span>
+                      </FooterHeightLock><span className="absolute top-4 right-4 tarikh-siaran-badge tarikh-siaran-badge-tanpa-bento font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(bentoNewsItems[32].publishedAt)}</span>
                       <EditPensil objectId={bentoNewsItems[32].objectId} role={currentEditoriumRole} posisi="bottom-4 right-4" />
                       <CarouselStableBlock
                         items={bentoNewsItems[32].items && bentoNewsItems[32].items.length > 0 ? bentoNewsItems[32].items : [bentoNewsItems[32]]}
