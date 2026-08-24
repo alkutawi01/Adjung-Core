@@ -403,7 +403,7 @@ export const PetikanBar: React.FC<{ beku?: boolean }> = ({ beku = false }) => {
             // ditambah pada bekas SAMA — kunci tinggi mengelak footer/kandungan bawah "melompat"
             // setiap kali petikan bertukar panjang, transisi opacity kekal utuh macam sebelum ni.
             <div
-              className={`transition-opacity ease-in-out ${pudar ? 'opacity-0' : 'opacity-100'}`}
+              className={`transition-opacity ease-in-out flex flex-col justify-center ${pudar ? 'opacity-0' : 'opacity-100'}`}
               style={{ transitionDuration: kurangGerak ? '0ms' : `${tempohTransisiMs}ms`, minHeight: tinggiKunci }}
             >
               <KandunganPetikan p={p} />
