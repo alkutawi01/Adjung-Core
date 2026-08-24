@@ -125,6 +125,22 @@ const PLACEHOLDER_LITERAL = [
 
 export const HAD_TEKS_PETIKAN = 400;
 
+// Jarak seragam di sekeliling em dash (2026-08-24, dapatan Izzat — tangkapan skrin petikan
+// "harian—bukan" tanpa jarak). Gaya Adjung Brief mahu em dash SENTIASA berjarak daripada
+// perkataan di kiri/kanan ("harian — bukan"), bukan gaya rapat konvensyen Inggeris yang kerap
+// terbawa terus daripada buku/laman sumber Inggeris yang ditampal editor. Dipanggil di SATU
+// tempat sahaja (bentukTeksPaparan(), petikanRoutes.js) merentasi ketiga-tiga laluan simpan
+// (cipta manual, sunting, import AI pukal) — bukan disalin ke setiap laluan, sama corak seperti
+// modul kongsi lain di fail ni. Hanya `teksPaparan` (apa pembaca lihat) dibersihkan; `teksAsal`
+// KEKAL tidak disentuh — ia rekod SEMAKAN literal terhadap sumber, bukan kandungan siaran.
+export function normalisasiEmDash(teks) {
+  if (typeof teks !== 'string' || teks === '') return teks;
+  return teks
+    .replace(/\s*—\s*/g, ' — ')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 // Jaring keselamatan terhadap arahan Rumi (di atas) — kepatuhan AI terhadap arahan prompt tidak
 // pernah 100% terjamin (disahkan berulang kali dalam projek ni, cth pemisah "____" yang sepatutnya
 // dipatuhi tapi tidak). Pengarang/Karya yang masih dalam skrip Arab/Cina/Cyrillic/Ibrani/Thai/

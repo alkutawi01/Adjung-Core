@@ -5,6 +5,7 @@ import { getAmSettings } from './slotAmRoutes.js';
 import {
   KATEGORI_PETIKAN, HAD_TEKS_PETIKAN, huraiPetikanTampal, kunciDedupPetikan,
   pilihDanSusunKolam, binaArahanAiPetikan, labelTerjemahan, namaBahasa, adalahBahasaMelayu,
+  normalisasiEmDash,
 } from '../editorial/PetikanConfig.js';
 import { tarikhMalaysia } from '../utils/waktuMalaysia.js';
 
@@ -119,13 +120,13 @@ function bentukTeksPaparan({ teksAsal, bahasaAsal, teksMelayu }) {
   if (adalahBahasaMelayu(bahasa)) {
     // Sumber Melayu: teks paparan IALAH teks asal. Tiada terjemahan wujud, jadi tiada apa untuk
     // disahkan — 'tidak_perlu' bukan jalan pintas, ia keadaan yang tepat.
-    return { teksAsal: asal, bahasaAsal: 'Melayu', teksPaparan: asal, statusTerjemahan: 'tidak_perlu' };
+    return { teksAsal: asal, bahasaAsal: 'Melayu', teksPaparan: normalisasiEmDash(asal), statusTerjemahan: 'tidak_perlu' };
   }
 
   if (!melayu) {
     return { error: `Sumber berbahasa ${bahasa} memerlukan terjemahan Melayu — frontpage memaparkan Bahasa Melayu sahaja.` };
   }
-  return { teksAsal: asal, bahasaAsal: bahasa, teksPaparan: melayu, statusTerjemahan: 'belum_sah' };
+  return { teksAsal: asal, bahasaAsal: bahasa, teksPaparan: normalisasiEmDash(melayu), statusTerjemahan: 'belum_sah' };
 }
 
 export function createPetikanRoutes(dbAll, dbRun, dbGet) {

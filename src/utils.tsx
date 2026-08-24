@@ -95,14 +95,26 @@ export function tanganiKekunciItalic(
 // merata dokumen) — elak sentuh "--" yang sudah wujud sebelum ini (cth ditampal dari URL/kod,
 // atau ditaip sebelum ciri ni wujud); hanya sengkang yang BARU SAHAJA ditaip di kedudukan kursor
 // tercetus. Pulangkan `null` bila tiada padanan (pemanggil terus guna value asal tanpa ubah).
+//
+// Jarak di sekeliling em dash (2026-08-24, dapatan Izzat — tangkapan skrin petikan
+// "harian—bukan" tanpa jarak) — gaya Adjung Brief mahu em dash SENTIASA berjarak daripada
+// perkataan di kiri/kanan ("harian — bukan"), bukan gaya rapat konvensyen Inggeris. Jarak
+// disisip HANYA jika belum wujud (elak jarak berganda kalau editor sudah taip "kata -- kata"
+// dengan jarak sendiri di sekeliling sengkang ganda) dan HANYA di sisi yang ada teks (elak
+// jarak hadapan di permulaan/akhir medan, cth petikan bermula terus dengan em dash).
 export function gantiSengkangGandaOtomatik(
   value: string,
   cursorPos: number
 ): { value: string; cursorPos: number } | null {
   if (cursorPos < 2 || value.slice(cursorPos - 2, cursorPos) !== '--') return null;
+  const sebelum = value.slice(0, cursorPos - 2);
+  const selepas = value.slice(cursorPos);
+  const jarakKiri = sebelum.length > 0 && !/\s$/.test(sebelum) ? ' ' : '';
+  const jarakKanan = selepas.length > 0 && !/^\s/.test(selepas) ? ' ' : '';
+  const gantian = jarakKiri + '—' + jarakKanan;
   return {
-    value: value.slice(0, cursorPos - 2) + '—' + value.slice(cursorPos),
-    cursorPos: cursorPos - 1,
+    value: sebelum + gantian + selepas,
+    cursorPos: sebelum.length + jarakKiri.length + 1,
   };
 }
 
