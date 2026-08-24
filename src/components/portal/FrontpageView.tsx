@@ -3236,6 +3236,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               top: 16px !important;
               right: 16px !important;
             }
+            /* Kad KOMPAK (pasangan bertindan, data-kompak-pair) — pengecualian daripada peraturan
+               di atas. Punca berbeza drpd kad lain: bekas kad KOMPAK sendiri sudah p-4 (padding
+               16px) DAN relative (jadi containing block lencana absolute ialah TEPI PADDING
+               bekas tu, bukan tepi border). top:16px di atas bermaksud 16px DARIPADA tepi
+               padding — iaitu tertambah ATAS padding 16px sedia ada (jumlah 32px dari tepi border),
+               manakala ikon eyebrow (aliran biasa dalam bekas sama) hanya 16px dari tepi border.
+               Kad lain (bukan KOMPAK) meletakkan lencana pada bekas relatif BERASINGAN yang tiada
+               padding sendiri, jadi top:16px situ tepat sejajar dgn ikon — tiada konflik. Disahkan
+               empirik pada 375px (25/8, aduan Izzat "icon bidang tak sejajar dgn tarikh"): beza
+               14-16px konsisten pada kad KOMPAK (Slot 5/6, 17/18, 31/32 dll — 3 pasangan, 6 slot).
+               Lencana KOMPAK perlu top:0/right:0 (bukan 16px) sebab padding 16px bekas SUDAH
+               menyediakan inset yang sepadan dgn kedudukan ikon. */
+            #bento-news-grid [data-kompak-pair] .tarikh-siaran-badge {
+              top: 0 !important;
+              right: 0 !important;
+            }
 
             /* Grid TUNGGAL merentasi HERO + kesemua slot — jamin garisan sejajar sepenuhnya
                (lihat nota "Jadual telefon TUNGGAL" di atas). Tepi KANAN + BAWAH jadual
