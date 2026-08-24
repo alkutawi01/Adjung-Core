@@ -544,6 +544,29 @@ export const FocusView: React.FC<FocusViewProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // Tekan skrin utama jeda/main tatal automatik (2026-08-24, permintaan Izzat — "user hanya
+  // perlu tekan tengah skrin untuk pause timer... tanpa perlu klik butang pause"). Sama togol
+  // `setAutoPlay` seperti kekunci Space di atas (2026-08-13), cuma pencetus berbeza — SATU
+  // sumber kebenaran keadaan main/jeda, bukan logik berasingan.
+  //
+  // Dipasang pada BEKAS AKAR (bukan cuma kawasan tajuk/huraian) supaya "tekan tengah skrin"
+  // benar-benar bermaksud ke mana-mana sahaja pembaca tekan pada permukaan Focus View — TAPI
+  // dengan dua pengecualian, kedua-duanya wajib:
+  //   1. Elemen interaktif (butang/pautan/medan input, atau ikon di dalamnya) — klik pada butang
+  //      Tutup/Kongsi/Auto/anak panah navigasi MESTI kekal buat fungsi asal sahaja, bukan turut
+  //      togol jeda sekali. Disemak via `closest()` menaik pokok DOM dari sasaran klik sebenar.
+  //   2. Pemilihan teks — permukaan ni sengaja `userSelect:text` (lihat nota di atas, pembaca
+  //      boleh salin teks huraian). Klik yang menamatkan gerakan seret-pilih teks (mouseup selepas
+  //      drag) tercetus sebagai "click" biasa di DOM; tanpa semakan ni, cuba salin ayat pun sekali
+  //      gus jeda/sambung tatal automatik — mengelirukan, bukan kelakuan yang diminta.
+  const kendaliTekanUtama = (e: React.MouseEvent) => {
+    if (!onNext) return; // Tiada kandungan seterusnya — tiada apa nak dijeda/dimainkan.
+    const sasaran = e.target as HTMLElement | null;
+    if (sasaran?.closest('button, a, input, textarea, [role="button"], [contenteditable="true"]')) return;
+    if ((window.getSelection?.()?.toString() || '').length > 0) return;
+    setAutoPlay((p) => !p);
+  };
+
   // Leret (swipe) untuk navigasi Focus View telefon (2026-08-05, permintaan Izzat — "user boleh
   // swap je di skrin"). MENDATAR (kiri/kanan) sengaja, BUKAN menegak — badan Focus View sendiri
   // menatal MENEGAK (huraian panjang), jadi leret menegak mesti kekal untuk tatal biasa; leret
@@ -838,6 +861,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
         }}
         onTouchStart={kendaliSentuhMula}
         onTouchEnd={kendaliSentuhTamat}
+        onClick={kendaliTekanUtama}
       >
         {transitionOverlay}
         {backdropImage && (
@@ -1158,7 +1182,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // dengan kandungan lain semasa navigasi.
   // ==========================================================================================
   return (
-    <div style={{ ...gayaLengahMasuk, position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)', display: 'flex', flexDirection: 'column', userSelect: 'text', WebkitUserSelect: 'text' }}>
+    <div style={{ ...gayaLengahMasuk, position: 'fixed', inset: 0, zIndex: 200, overflow: 'hidden', background: 'var(--surface-page)', color: 'var(--text-body)', display: 'flex', flexDirection: 'column', userSelect: 'text', WebkitUserSelect: 'text' }} onClick={kendaliTekanUtama}>
       {transitionOverlay}
       {backdropImage && (
         <div aria-hidden="true" style={{
