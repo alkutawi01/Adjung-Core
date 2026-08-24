@@ -60,7 +60,7 @@ export function createProfileRoutes(dbGet, dbRun) {
       if (!isSelf && !hasPermission(req.session.user.roles, 'manageAccounts')) {
         return res.status(403).json({ error: 'Hanya boleh sunting profil sendiri.' });
       }
-      const sedia = await dbGet('SELECT id, termaDipersetujuiPada FROM users WHERE id = ?', [id]);
+      const sedia = await dbGet('SELECT id, penName, termaDipersetujuiPada FROM users WHERE id = ?', [id]);
       if (!sedia) return res.status(404).json({ error: 'Akaun tidak dijumpai.' });
 
       const {
@@ -109,6 +109,31 @@ export function createProfileRoutes(dbGet, dbRun) {
       set.push('updatedAt = ?'); params.push(new Date().toISOString());
       params.push(id);
       await dbRun(`UPDATE users SET ${set.join(', ')} WHERE id = ?`, params);
+
+      // Tukar nama pena (2026-08-24, dapatan Izzat) — `editorName` disimpan sebagai SNAPSHOT
+      // teks pada setiap kandungan (bukan FK ke users.id — lihat nota baris 78 di atas: "penName
+      // ialah identiti... di seluruh sistem"), jadi tanpa cascade ni kandungan yang dah terbit
+      // SEBELUM penukaran kekal papar nama LAMA selama-lamanya di lokasi yang baca attribute tu
+      // terus (cth kad Indeks), walhal lokasi lain yang baca terus daripada users.penName semasa
+      // (cth Direktori) terus nampak nama BAHARU — dua sumber kebenaran tak segerak, bukan reka
+      // bentuk. Cascade guna padanan LOWER(TRIM()) sama seperti gerbang keunikan di atas dan
+      // lastPublishedAt (syncManualObjectsForSlot/contentRoutes.js), supaya SEMUA laluan guna
+      // definisi "sepadan" yang sama. Gagal senyap (console.warn) — kegagalan cascade ni tak
+      // patut menggagalkan simpanan profil yang sudah berjaya.
+      if (penName !== undefined) {
+        const namaLama = (sedia.penName || '').trim();
+        const namaBaharu = (penName || '').trim();
+        if (namaLama && namaLama.toLowerCase() !== namaBaharu.toLowerCase()) {
+          try {
+            await dbRun(
+              "UPDATE editorial_attribute_values SET valueText = ? WHERE attributeId = 'editorName' AND LOWER(TRIM(valueText)) = LOWER(?)",
+              [namaBaharu, namaLama]
+            );
+          } catch (e) {
+            console.warn('Gagal cascade tukar nama pena ke editorial_attribute_values:', e.message);
+          }
+        }
+      }
 
       const baris = await dbGet(
         `SELECT id, username, email, role, penName, namaPenuh, kelulusanKursus, kelulusanUniversiti,

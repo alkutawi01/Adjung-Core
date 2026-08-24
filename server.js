@@ -3366,6 +3366,16 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
   // 'pending'. Client (SlotManagerModal publishOne) sentiasa papar "Kandungan diterbitkan."
   // walaupun status sebenar cuma Menunggu Semakan.
   const publishOutcomes = [];
+  // Dasar aktif editorial (2026-08-24, dapatan Izzat) — laluan "Tulis Kandungan Baharu" ni
+  // TIDAK PERNAH kemas kini `users.lastPublishedAt`, tak macam PATCH /content/:id
+  // (contentRoutes.js) yang sudah buat ni sejak 2026-08-05. Kesan sebenar: editor yang HANYA
+  // guna laluan ni (paling kerap dilalui — lihat komen baris ~3304) langsung tak pernah reset
+  // kiraan tak-aktif walau aktif terbit setiap hari, jadi amaran hari-7/14/21
+  // (runSemakanTakAktif, server.js) tercetus PALSU. `namaSayaSesi` di sini SENTIASA penulis
+  // (attrs.editorName ditulis daripada nilai sama, lihat baris ~3433/3540) — tak macam PATCH
+  // yang boleh diluluskan Ketua Editor bagi kandungan ORANG LAIN, jadi tiada keperluan baca
+  // editorName attribute berasingan, terus guna parameter fungsi.
+  let anyApprovedNow = false;
   await dbRun('BEGIN TRANSACTION');
   try {
     const nowIso = new Date().toISOString();
@@ -3388,6 +3398,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       const isBarUpdate = isBar && item.uuid && existingIdSet.has(item.uuid);
 
       if (isBarUpdate) {
+        if ((item.status || 'approved') === 'approved') anyApprovedNow = true;
         // Item Bar SEDIA ADA — kemas kini di tempat, objectId & sejarah revisi KEKAL.
         const objectId = item.uuid;
         const updatedAt = new Date(baseTs + i).toISOString();
@@ -3508,6 +3519,8 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       }
       if (finalStatus === 'pending') {
         menungguKelulusan.push({ objectId, title: item.title || '' });
+      } else if (finalStatus === 'approved') {
+        anyApprovedNow = true;
       }
       publishOutcomes.push({ objectId, title: item.title || '', status: finalStatus });
       const rev = await dbRun(
@@ -3573,6 +3586,21 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       console.error('Rollback failed after syncManualObjectsForSlot error:', rollbackErr.message);
     }
     throw e;
+  }
+
+  // Dasar aktif editorial — kemas kini SELEPAS COMMIT (best-effort, sama corak notifikasi di
+  // bawah): gagal senyap (console.warn) tak patut menggagalkan penerbitan sebenar yang dah
+  // commit. Guna LOWER(TRIM()) sama macam contentRoutes.js supaya padanan konsisten hujung
+  // ke hujung dengan laluan Semakan Kandungan.
+  if (anyApprovedNow && namaSayaSesi && namaSayaSesi.trim()) {
+    try {
+      await dbRun(
+        "UPDATE users SET lastPublishedAt = ?, amaranTakAktifTahap = 0 WHERE LOWER(TRIM(penName)) = LOWER(?)",
+        [new Date().toISOString(), namaSayaSesi.trim()]
+      );
+    } catch (e) {
+      console.warn('Gagal kemas kini lastPublishedAt (dasar aktif, Tulis Kandungan Baharu):', e.message);
+    }
   }
 
   // Beritahu pelulus (2026-08-08, audit aliran penerbitan) — sebelum ni kandungan yang mendarat
