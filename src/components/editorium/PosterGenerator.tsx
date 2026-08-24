@@ -18,9 +18,21 @@ const SISI = 1080;
 interface ItemPoster {
   objectId: string;
   title: string;
+  summary: string;
   desk: string;
   warna: string;
   url: string;
+}
+
+const HARI_MELAYU = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+
+/** Satu baris teks dipangkas dgn elipsis kalau melebihi lebar — sama corak `bungkusTeks` tapi
+ *  SATU baris sahaja (utk konteks di bawah tajuk, bukan tajuk itu sendiri). */
+function pangkasSatuBaris(ctx: CanvasRenderingContext2D, teks: string, lebarMaks: number): string {
+  if (ctx.measureText(teks).width <= lebarMaks) return teks;
+  let t = teks;
+  while (t.length > 1 && ctx.measureText(t + '…').width > lebarMaks) t = t.slice(0, -1);
+  return t.replace(/\s+$/, '') + '…';
 }
 
 function bungkusTeks(ctx: CanvasRenderingContext2D, teks: string, lebarMaks: number, barisMaks: number): string[] {
@@ -100,15 +112,28 @@ async function lukisWordmark(ctx: CanvasRenderingContext2D, x: number, y: number
   return tinggiSasaran;
 }
 
+// Susunan atur (2026-08-24, dapatan Izzat — audit reka bentuk lengkap 8 perkara, disahkan
+// eksplisit "utk poster" iaitu Poster Media Sosial ni sahaja, BUKAN frontpage portal sebenar).
+// Perkara #5 (nama Bidang, cth "Automotif"/"Siber" ditukar "Mobiliti"/"Digital") SENGAJA tidak
+// dilaksanakan di sini — `desk` datang terus daripada CategoryRegistry yang dikongsi SELURUH
+// produk (frontpage, carian, sitemap, dsb.), bukan sesuatu poster ni boleh tukar bersendirian.
+// Perkara lain (1,2,3,4,6,7,8) semua dalam skop kanvas poster, dilaksanakan di bawah:
+//   1. Wordmark dikecilkan ~35% (118px -> 76px tinggi sasaran).
+//   2. Baris konteks satu-ayat di bawah setiap tajuk (daripada huraian ringkas sedia ada).
+//   3. Nombor "01" dipadankan SEBARIS dgn Bidang (gaya majalah), bukan besar terapung kanan.
+//   6. Garis pemisah antara kandungan dinipiskan + ruang menegak diperbesar.
+//   7. Tarikh naik taraf ke format "ISNIN, 24 OGOS 2026".
+//   8. Tag baris "N PERKARA PENTING HARI INI" + blok tandatangan jenama guna ruang bawah (#4/#8).
 async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Promise<void> {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
   await Promise.all([
-    document.fonts.load('600 27px "Source Serif 4"'),
+    document.fonts.load('700 25px "Source Serif 4"'),
     document.fonts.load('600 15px "Inter"'),
     document.fonts.load('500 15px "JetBrains Mono"'),
-    document.fonts.load('600 13px "JetBrains Mono"'),
+    document.fonts.load('700 13px "JetBrains Mono"'),
+    document.fonts.load('400 14px "Inter"'),
   ]);
   await document.fonts.ready;
 
@@ -117,7 +142,7 @@ async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Prom
   ctx.fillStyle = '#F7F4EC';
   ctx.fillRect(0, 0, SISI, SISI);
 
-  // Eyebrow + tarikh
+  // Eyebrow + tarikh (Isnin, 24 Ogos 2026)
   ctx.fillStyle = '#802334';
   ctx.font = '500 15px "JetBrains Mono", monospace';
   let ex = MARGIN;
@@ -129,62 +154,95 @@ async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Prom
   ctx.fillStyle = '#78716C';
   ctx.font = '400 13px "JetBrains Mono", monospace';
   ctx.textAlign = 'right';
-  const tarikh = new Date().toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
+  const kini = new Date();
+  const tarikh = `${HARI_MELAYU[kini.getDay()]}, ${kini.toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })}`.toUpperCase();
   ctx.fillText(tarikh, SISI - MARGIN, eyebrowY);
   ctx.textAlign = 'left';
 
-  const wmY = eyebrowY + 26;
-  const wmTinggi = await lukisWordmark(ctx, MARGIN, wmY, 118);
+  const wmY = eyebrowY + 22;
+  const wmTinggi = await lukisWordmark(ctx, MARGIN, wmY, 76);
 
-  const ruleY = wmY + wmTinggi + 30;
-  ctx.fillStyle = '#802334';
-  ctx.fillRect(MARGIN, ruleY, 56, 3);
+  // Tag "N perkara penting hari ini" — signature editorial, bukan sekadar senarai terkini.
+  const tagY = wmY + wmTinggi + 26;
+  ctx.fillStyle = '#78716C';
+  ctx.font = '700 13px "JetBrains Mono", monospace';
+  let tx = MARGIN;
+  for (const ch of `${items.length} PERKARA PENTING HARI INI`) {
+    ctx.fillText(ch, tx, tagY);
+    tx += ctx.measureText(ch).width + 1.4;
+  }
+
+  // Garis pemisah nipis, lebar penuh — pisah header drpd senarai.
+  const ruleY = tagY + 20;
+  ctx.fillStyle = '#D6D3D1';
+  ctx.fillRect(MARGIN, ruleY, SISI - MARGIN * 2, 1);
 
   // 5 baris kandungan
-  const areaAtas = ruleY + 46;
-  const areaBawah = SISI - 108;
+  const FOOTER_TINGGI = 130;
+  const areaAtas = ruleY + 34;
+  const areaBawah = SISI - FOOTER_TINGGI;
   const tinggiBaris = (areaBawah - areaAtas) / 5;
-  const lebarTeks = SISI - MARGIN * 2 - 28;
+  const lebarPenuh = SISI - MARGIN * 2;
 
   items.slice(0, 5).forEach((item, i) => {
     const y0 = areaAtas + i * tinggiBaris;
 
-    // Cip warna Bidang
-    ctx.fillStyle = item.warna || '#802334';
-    ctx.fillRect(MARGIN, y0 + 6, 14, 14);
-
-    // Nama Bidang
-    ctx.fillStyle = item.warna || '#802334';
-    ctx.font = '600 13px "JetBrains Mono", monospace';
-    ctx.fillText(item.desk.toUpperCase(), MARGIN + 26, y0 + 17);
-
-    // Tajuk (serif, dibalut maks 2 baris)
+    // "01   BIDANG" sebaris (gaya majalah) — nombor dahulu, jadi indeks INDENT visual utk
+    // tajuk/konteks di bawah (hanging indent, padan cadangan susun atur Izzat).
     ctx.fillStyle = '#1C1917';
-    ctx.font = '600 27px "Source Serif 4", serif';
-    const baris = bungkusTeks(ctx, item.title, lebarTeks, 2);
-    baris.forEach((l, li) => ctx.fillText(l, MARGIN, y0 + 54 + li * 34));
+    ctx.font = '700 15px "JetBrains Mono", monospace';
+    const nombor = String(i + 1).padStart(2, '0');
+    ctx.fillText(nombor, MARGIN, y0 + 15);
+    const INDENT = ctx.measureText(nombor).width + 16;
 
-    // Nombor kandungan (mono, kanan)
-    ctx.fillStyle = '#D6D3D1';
-    ctx.font = '500 32px "JetBrains Mono", monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(String(i + 1).padStart(2, '0'), SISI - MARGIN, y0 + 34);
-    ctx.textAlign = 'left';
+    ctx.fillStyle = item.warna || '#802334';
+    ctx.font = '700 12px "JetBrains Mono", monospace';
+    ctx.fillText(item.desk.toUpperCase(), MARGIN + INDENT, y0 + 15);
 
-    // Garis pemisah (kecuali baris terakhir)
+    const lebarInden = SISI - MARGIN - (MARGIN + INDENT);
+
+    // Tajuk (serif, dominan, dibalut maks 2 baris) — diindenkan padan Bidang di atas.
+    ctx.fillStyle = '#1C1917';
+    ctx.font = '700 25px "Source Serif 4", serif';
+    const baris = bungkusTeks(ctx, item.title, lebarInden, 2);
+    baris.forEach((l, li) => ctx.fillText(l, MARGIN + INDENT, y0 + 45 + li * 31));
+    const tajukTinggi = baris.length * 31;
+
+    // Konteks satu-baris — "kenapa ini penting", bukan cuma tajuk (dapatan Izzat #2).
+    if (item.summary) {
+      ctx.fillStyle = '#78716C';
+      ctx.font = '400 14px "Inter", sans-serif';
+      const konteksY = y0 + 45 + tajukTinggi + 20;
+      ctx.fillText(pangkasSatuBaris(ctx, item.summary, lebarInden), MARGIN + INDENT, konteksY);
+    }
+
+    // Garis pemisah nipis (kecuali baris terakhir) — lebih ringan drpd versi sebelumnya, ruang
+    // menegak besar (tinggiBaris) sendiri sudah pisahkan setiap blok, garis cuma penanda halus.
     if (i < items.length - 1 && i < 4) {
-      ctx.fillStyle = '#E7E5E4';
-      ctx.fillRect(MARGIN, y0 + tinggiBaris - 1, SISI - MARGIN * 2, 1);
+      ctx.fillStyle = '#EAE7E2';
+      ctx.fillRect(MARGIN, y0 + tinggiBaris - 1, lebarPenuh, 1);
     }
   });
 
-  // Footer
-  const footerY = SISI - 56;
+  // Blok tandatangan jenama (dapatan Izzat #4 + #8 — isi ruang kosong bawah dgn identiti Adjung,
+  // bukan biarkan kosong) + pautan portal sedia ada.
+  const footerAtas = SISI - FOOTER_TINGGI;
+  ctx.fillStyle = '#D6D3D1';
+  ctx.fillRect(MARGIN, footerAtas, SISI - MARGIN * 2, 1);
+
   ctx.fillStyle = '#802334';
-  ctx.fillRect(MARGIN, footerY - 20, 12, 24);
+  ctx.font = '700 15px "Source Serif 4", serif';
+  ctx.fillText('Adjung Brief', MARGIN, footerAtas + 34);
+
   ctx.fillStyle = '#78716C';
-  ctx.font = '400 15px "JetBrains Mono", monospace';
-  ctx.fillText('brief.adjung.com', MARGIN + 24, footerY);
+  ctx.font = '400 13px "Inter", sans-serif';
+  ctx.fillText('Ringkasan ilmu, sejarah dan perkembangan dunia.', MARGIN, footerAtas + 56);
+
+  ctx.fillStyle = '#A8A29E';
+  ctx.font = '400 13px "JetBrains Mono", monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('brief.adjung.com', SISI - MARGIN, footerAtas + 34);
+  ctx.textAlign = 'left';
 }
 
 export const PosterGenerator: React.FC<{ onTutup: () => void }> = ({ onTutup }) => {

@@ -22,7 +22,7 @@ export function createPosterRoutes(db, dbAll, dbGet, dbRun) {
       // Ticker (slotIndex -1) dikecualikan — sama seperti sitemap/rss, bukan kandungan boleh
       // dibuka di Focus View / ada URL sendiri.
       const rows = await dbAll(`
-        SELECT eo.id as objectId, eo.categoryId, er.id as revisionId, er.title, er.createdAt
+        SELECT eo.id as objectId, eo.categoryId, er.id as revisionId, er.title, er.summary, er.createdAt
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
@@ -40,6 +40,11 @@ export function createPosterRoutes(db, dbAll, dbGet, dbRun) {
         items.push({
           objectId: r.objectId,
           title: r.title || '',
+          // Konteks satu-baris di bawah tajuk (2026-08-24, dapatan Izzat — "pembaca tidak tahu
+          // kenapa artikel itu penting") — guna huraian ringkas sedia ada (bukan medan baharu),
+          // dipangkas ke SATU baris oleh PosterGenerator.tsx sendiri (bukan di sini — lebar
+          // sebenar bergantung fon/kanvas, elak pangkas dua kali dgn nombor berbeza).
+          summary: r.summary || '',
           desk: r.categoryId || 'Umum',
           warna,
           url: kodPendek ? `https://brief.adjung.com/${slugBidang(r.categoryId || 'Umum')}/kandungan/${kodPendek}` : 'https://brief.adjung.com/',
