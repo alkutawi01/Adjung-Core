@@ -661,9 +661,23 @@ const FooterHeightLock: React.FC<{
 
   return (
     <>
+      {/* Punca overflow palsu (2026-08-24, dapatan lapangan Izzat, dua tangkapan skrin — kotak
+          sitasi sumber kelihatan terpotong walhal kandungan sebenar pendek, jauh dalam bajet).
+          Bekas tersembunyi ni SENDIRI position:absolute (elak ganggu susun atur biasa), tapi
+          setiap ANAK di dalamnya dahulu aliran NORMAL (bertindan menegak, bukan bertindih) —
+          tinggi tabii bekas tersembunyi ni jadi JUMLAH kesemua varian sumber (cth 6 kad dlm
+          SATU carousel × ~20px setiap satu ≈ 120px), bukan HANYA satu. Sebab bekas ni sendiri
+          `position:absolute` di dalam BentoInner yang `position:relative`, tinggi jumlah yg
+          melangkaui sempadan BentoInner tu turut disumbang ke scrollHeight BentoInner —
+          mencetuskan jaring "kad-limpah" (kelipan + elipsis) SECARA PALSU walaupun kandungan
+          SEBENAR yang dipaparkan tak overflow langsung. Setiap anak kini turut `position:
+          absolute` (bertindih pada koordinat sama, teknik SAMA seperti stack carousel
+          CarouselStableBlock) — tinggi tabii bekas tersembunyi jadi ~0 (semua anak keluar
+          aliran biasa), scrollHeight refs individu (dipakai ukuran sebenar di atas) tak
+          terjejas langsung. */}
       <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, width: '100%', visibility: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
         {items.map((it, i) => (
-          <div key={i} ref={(el) => { refs.current[i] = el; }}>{renderFooter(it)}</div>
+          <div key={i} ref={(el) => { refs.current[i] = el; }} style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}>{renderFooter(it)}</div>
         ))}
       </div>
       {children(minHeight)}
