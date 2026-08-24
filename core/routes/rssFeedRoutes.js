@@ -1,7 +1,7 @@
 import express from 'express';
 import { BRAND } from '../../src/config/brand.ts';
 import { getOrCreateUrlKod } from './articleUrlRoutes.js';
-import { slugBidang } from '../editorial/UrlSlug.js';
+import { binaLaluanKandungan } from '../editorial/UrlSlug.js';
 
 // Fasa 10 — Suapan RSS KELUAR (bukan ingest). Adjung sudah ada mesin ingest RSS penuh
 // (core/sources/RssDirectEngine.js membaca suapan LUAR masuk ke rss_ticker_items), tapi tiada
@@ -105,7 +105,7 @@ export function createRssFeedRoutes(dbAll, dbGet, dbRun) {
           title: r.title || '',
           summary: r.summary || '',
           createdAt: r.revisionCreatedAt,
-          link: kod ? `${siteUrl}/${slugBidang(r.categoryId)}/kandungan/${kod}` : undefined,
+          link: kod ? `${siteUrl}${binaLaluanKandungan(r.title, r.categoryId, kod)}` : undefined,
         });
       }
 

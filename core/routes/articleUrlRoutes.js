@@ -1,5 +1,7 @@
 import express from 'express';
-import { janaKodPendek, slugBidang, adalahUserAgentBot } from '../editorial/UrlSlug.js';
+import {
+  janaKodPendek, slugBidang, adalahUserAgentBot, binaLaluanKandungan, kodDaripadaParamLaluan,
+} from '../editorial/UrlSlug.js';
 
 // Skema URL per-kandungan (2026-08-05, Fasa 9 — SEO & penemuan, keputusan Izzat):
 //   brief.adjung.com/<bidang-slug>/kandungan/<kod-pendek>
@@ -150,7 +152,11 @@ export function createArticleUrlRoutes(dbAll, dbGet, dbRun) {
   // terbuka kandungan lain.
   router.get('/system/content/by-kod/:kodPendek', async (req, res) => {
     try {
-      const obj = await dbGet('SELECT id, slotIndex FROM editorial_objects WHERE urlKod = ?', [req.params.kodPendek]);
+      // Parameter mungkin bawa slug tajuk di hadapan kod ("kapal-karam-rom-x7k2mq") sejak ciri
+      // slug SEO ditambah 2026-08-24 — ekstrak 6 aksara kod sebenar dahulu. Selamat utk pautan
+      // lama (kod kosong tanpa slug) juga — lihat nota kodDaripadaParamLaluan().
+      const kodSebenar = kodDaripadaParamLaluan(req.params.kodPendek);
+      const obj = await dbGet('SELECT id, slotIndex FROM editorial_objects WHERE urlKod = ?', [kodSebenar]);
       if (!obj) return res.status(404).json({ error: 'Kandungan tidak dijumpai.' });
       const revTerkini = await dbGet(
         `SELECT status FROM editorial_revisions er1
@@ -170,10 +176,15 @@ export function createArticleUrlRoutes(dbAll, dbGet, dbRun) {
 
   router.get('/system/content/:objectId/url-kod', async (req, res) => {
     try {
-      const obj = await dbGet('SELECT id, categoryId FROM editorial_objects WHERE id = ?', [req.params.objectId]);
+      const obj = await dbGet(
+        `SELECT eo.id as id, eo.categoryId as categoryId,
+                (SELECT er.title FROM editorial_revisions er WHERE er.objectId = eo.id ORDER BY er.version DESC LIMIT 1) as title
+         FROM editorial_objects eo WHERE eo.id = ?`,
+        [req.params.objectId]
+      );
       if (!obj) return res.status(404).json({ error: 'Kandungan tidak dijumpai.' });
       const kod = await getOrCreateUrlKod(dbGet, dbRun, req.params.objectId);
-      res.json({ bidangSlug: slugBidang(obj.categoryId), kodPendek: kod, laluan: `/${slugBidang(obj.categoryId)}/kandungan/${kod}` });
+      res.json({ bidangSlug: slugBidang(obj.categoryId), kodPendek: kod, laluan: binaLaluanKandungan(obj.title, obj.categoryId, kod) });
     } catch (err) {
       console.error('GET url-kod error:', err);
       res.status(500).json({ error: 'Gagal jana kod URL. ' + err.message });
@@ -191,7 +202,16 @@ export function createPublicArticleRoute(dbAll, dbGet) {
 
   router.get('/:bidangSlug/kandungan/:kodPendek', async (req, res, next) => {
     try {
-      const obj = await dbGet('SELECT id FROM editorial_objects WHERE urlKod = ?', [req.params.kodPendek]);
+      // Slug tajuk (2026-08-24) ditambah DEPAN kod dalam laluan BAHARU, tapi kod tetap 6 aksara
+      // terakhir — ekstrak dahulu supaya carian DB tak pernah bergantung pada slug (yang boleh
+      // lapuk/tak padan lepas tajuk disunting, itu okay, cuma kosmetik).
+      const kodSebenar = kodDaripadaParamLaluan(req.params.kodPendek);
+      const obj = await dbGet(
+        `SELECT eo.id as id, eo.categoryId as categoryId,
+                (SELECT er.title FROM editorial_revisions er WHERE er.objectId = eo.id ORDER BY er.version DESC LIMIT 1) as title
+         FROM editorial_objects eo WHERE eo.urlKod = ?`,
+        [kodSebenar]
+      );
       if (!obj) {
         // Kod tak dijumpai. Manusia jatuh balik ke SPA (papar 404 bergaya Adjung di klien, status
         // 200 tak jadi masalah sebab pelayar akan render UI 404 sebenar). Bot (tak jalankan JS)
@@ -204,6 +224,18 @@ export function createPublicArticleRoute(dbAll, dbGet) {
           return res.send('<!DOCTYPE html><html lang="ms"><head><meta charset="utf-8" /><title>Halaman Tidak Dijumpai — Adjung Brief</title></head><body><h1>404 — Halaman Tidak Dijumpai</h1></body></html>');
         }
         return next();
+      }
+
+      // Kanonikal 301 ke laluan slug-tajuk (2026-08-24) — konsolidasi sinyal SEO ke SATU URL
+      // sahaja per-kandungan (pautan lama tanpa slug, slug lapuk lepas tajuk disunting, atau
+      // sesiapa taip terus kod tanpa slug semuanya pulangkan kandungan SAMA tanpa redirect ni,
+      // yang enjin carian anggap kandungan pendua di URL berbeza). Redirect utk SEMUA (bot MAHU
+      // manusia) — pautan lama terus berfungsi (302 tak perlu, kandungan takkan berpindah lagi
+      // lepas kod pertama kali dijana), cuma browser/bot dihantar ke bentuk kanonikal.
+      const laluanKanonikal = binaLaluanKandungan(obj.title, obj.categoryId, kodSebenar);
+      if (`/${req.params.bidangSlug}/kandungan/${req.params.kodPendek}` !== laluanKanonikal) {
+        const suku = req.originalUrl.split('?')[1];
+        return res.redirect(301, suku ? `${laluanKanonikal}?${suku}` : laluanKanonikal);
       }
 
       if (!adalahUserAgentBot(req.headers['user-agent'])) return next(); // Manusia — SPA biasa.

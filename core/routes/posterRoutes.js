@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { getOrCreateUrlKod } from './articleUrlRoutes.js';
-import { slugBidang } from '../editorial/UrlSlug.js';
+import { binaLaluanKandungan } from '../editorial/UrlSlug.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 
 // posterRoutes.js (2026-08-23, permintaan Izzat — "reka poster yg boleh dijana automatik oleh
@@ -47,7 +47,7 @@ export function createPosterRoutes(db, dbAll, dbGet, dbRun) {
           summary: r.summary || '',
           desk: r.categoryId || 'Umum',
           warna,
-          url: kodPendek ? `https://brief.adjung.com/${slugBidang(r.categoryId || 'Umum')}/kandungan/${kodPendek}` : 'https://brief.adjung.com/',
+          url: kodPendek ? `https://brief.adjung.com${binaLaluanKandungan(r.title, r.categoryId || 'Umum', kodPendek)}` : 'https://brief.adjung.com/',
         });
       }
       res.json({ items });

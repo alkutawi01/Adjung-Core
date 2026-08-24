@@ -1,6 +1,6 @@
 import express from 'express';
 import { getOrCreateUrlKod } from './articleUrlRoutes.js';
-import { slugBidang } from '../editorial/UrlSlug.js';
+import { binaLaluanKandungan } from '../editorial/UrlSlug.js';
 
 // sitemapRoutes.js (Fasa 9 — SEO & penemuan)
 //
@@ -56,7 +56,7 @@ export function createSitemapRoutes(dbAll, dbGet, dbRun) {
       // Kandungan hidup (status 'approved', versi terkini per objek), tak termasuk Ticker
       // (slotIndex -1, tiada laluan URL sendiri — lihat nota EAV Ticker di server.js).
       const rows = await dbAll(`
-        SELECT eo.id, eo.categoryId, er.createdAt
+        SELECT eo.id, eo.categoryId, er.createdAt, er.title
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
@@ -73,7 +73,7 @@ export function createSitemapRoutes(dbAll, dbGet, dbRun) {
         const kod = await getOrCreateUrlKod(dbGet, dbRun, row.id).catch(() => null);
         if (!kod) continue; // Jana gagal (amat jarang) — lompat entri ni, jangan pecahkan sitemap.
         urls.push({
-          loc: `${baseUrl}/${slugBidang(row.categoryId)}/kandungan/${kod}`,
+          loc: `${baseUrl}${binaLaluanKandungan(row.title, row.categoryId, kod)}`,
           lastmod: row.createdAt ? new Date(row.createdAt).toISOString().slice(0, 10) : undefined,
           changefreq: 'weekly',
           priority: '0.7',
