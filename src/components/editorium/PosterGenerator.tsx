@@ -50,33 +50,54 @@ function bungkusTeks(ctx: CanvasRenderingContext2D, teks: string, lebarMaks: num
   return baris;
 }
 
-// Lockup jenama RASMI (padan tepat src/config/brand.ts + FrontpageView.tsx Wordmark Hero /
-// LoadingScreen.tsx) — bukan vektor logo dipangkas ikut agakan sendiri (kesilapan pusingan
-// pertama, ditegur Izzat 2026-08-23: "kenapa awak ubah logo adjung brief sesuka hati?"). "Adjung"
-// dilukis sebagai TEKS serif tulen (bukan SVG), garis pembahagi + "BRIEF" mono-spasi di bawah —
-// susunan/warna SAMA seperti lockup rasmi tiga-baris (serif normal, sub-label sans 0.25em
-// tracking uppercase warna #B4B4B4, digital rules).
-async function lukisWordmark(ctx: CanvasRenderingContext2D, x: number, y: number, saizAdjung: number): Promise<number> {
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = '#802334';
-  ctx.font = `400 ${saizAdjung}px "Source Serif 4", serif`;
-  ctx.fillText('Adjung', x, y + saizAdjung * 0.78);
-  const tinggiAdjung = saizAdjung * 0.78;
+// Lockup jenama RASMI (2026-08-24) — dilukis terus daripada fail vektor rasmi
+// `public/adjung-brief-lockup-official.svg` (dibekalkan Izzat), BUKAN dibina semula dgn teks
+// Canvas + geometri diagak/diukur. DUA pusingan sebelum ni (bina semula pakai fillText + fillRect
+// manual) kedua-duanya silap dari segi geometri — Izzat: "logo pun salah. awak tak check betul",
+// kemudian "logo masih salah, rasanya dah bagi fail svg semalam". Punca sebenar: fail SVG yang
+// dibekalkan tidak pernah digunakan langsung — pembetulan lepas ni cuma laraskan nombor dalam
+// pendekatan yang salah dari awal (bina semula tangan), bukan tukar kaedah.
+//
+// Fail SVG (viewBox tetap "0 0 1440 810") mengandungi TIGA elemen bertindan menegak: wordmark
+// "Adjung" (merah #9f2525), garis+"BRIEF"+garis (kelabu #a6a6a6), dan slogan "MEMBINA SEMULA
+// PERADABAN" (hitam) di bawah sekali. Poster media sosial padan Wordmark Hero portal
+// (FrontpageView.tsx) — DUA baris sahaja (wordmark + BRIEF), TANPA slogan — jadi kawasan sumber
+// dipotong (bukan seluruh fail dilukis).
+//
+// WORDMARK_CROP disahkan secara programatik (bukan agak mata) — muat fail SEBAGAI <img>, lukis
+// kawasan potongan ke kanvas luar-skrin, imbas piksel: baris merah paling atas bermula 16px dari
+// tepi atas kawasan potongan (bukan terpotong), baris kelabu (garis pembahagi) berakhir 19px
+// sebelum tepi bawah (bukan terpotong), margin kiri/kanan 20px/15px (kandungan tidak menyentuh
+// tepi), SIFAR piksel hitam (slogan berjaya dikecualikan). Kalau fail SVG rasmi ditukar/diganti
+// pada masa depan, imbasan verifikasi ni WAJIB dijalankan semula sebelum nombor di bawah dipercayai
+// — jangan agak semula secara manual, itu punca DUA pusingan silap sebelum ni.
+const WORDMARK_URL = '/adjung-brief-lockup-official.svg';
+const WORDMARK_VIEWBOX_LEBAR = 1440; // viewBox SVG tetap "0 0 1440 810"
+const WORDMARK_CROP = { x: 130, y: 155, w: 1175, h: 430 }; // unit viewBox — wordmark + BRIEF + garis sahaja
 
-  const subLabelY = y + tinggiAdjung + 30;
-  const garisLebar = 52;
-  ctx.fillStyle = '#B4B4B4';
-  ctx.fillRect(x, subLabelY - 1, garisLebar, 1);
-
-  ctx.font = '600 15px "Inter", sans-serif';
-  let cx = x + garisLebar + 14;
-  for (const ch of 'BRIEF') {
-    ctx.fillText(ch, cx, subLabelY + 5);
-    cx += ctx.measureText(ch).width + 3.2;
+let janjiImejWordmark: Promise<HTMLImageElement> | null = null;
+function muatImejWordmark(): Promise<HTMLImageElement> {
+  if (!janjiImejWordmark) {
+    janjiImejWordmark = new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Gagal muat ${WORDMARK_URL}`));
+      img.src = WORDMARK_URL;
+    });
   }
-  ctx.fillRect(cx + 10, subLabelY - 1, garisLebar, 1);
+  return janjiImejWordmark;
+}
 
-  return subLabelY - y + 6;
+async function lukisWordmark(ctx: CanvasRenderingContext2D, x: number, y: number, tinggiSasaran: number): Promise<number> {
+  const img = await muatImejWordmark();
+  const skala = img.naturalWidth / WORDMARK_VIEWBOX_LEBAR;
+  const sx = WORDMARK_CROP.x * skala;
+  const sy = WORDMARK_CROP.y * skala;
+  const sw = WORDMARK_CROP.w * skala;
+  const sh = WORDMARK_CROP.h * skala;
+  const lebarSasaran = tinggiSasaran * (WORDMARK_CROP.w / WORDMARK_CROP.h);
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, lebarSasaran, tinggiSasaran);
+  return tinggiSasaran;
 }
 
 async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Promise<void> {
@@ -84,7 +105,6 @@ async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Prom
   if (!ctx) return;
 
   await Promise.all([
-    document.fonts.load('400 96px "Source Serif 4"'),
     document.fonts.load('600 27px "Source Serif 4"'),
     document.fonts.load('600 15px "Inter"'),
     document.fonts.load('500 15px "JetBrains Mono"'),
@@ -114,7 +134,7 @@ async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Prom
   ctx.textAlign = 'left';
 
   const wmY = eyebrowY + 26;
-  const wmTinggi = await lukisWordmark(ctx, MARGIN, wmY, 96);
+  const wmTinggi = await lukisWordmark(ctx, MARGIN, wmY, 118);
 
   const ruleY = wmY + wmTinggi + 30;
   ctx.fillStyle = '#802334';
