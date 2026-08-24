@@ -855,8 +855,22 @@ const CarouselStableBlock: React.FC<{
     let dibatal = false;
     document.fonts?.ready?.then(() => { if (!dibatal) recompute(); });
 
+    // Susulan flex-basis settle (2026-08-24, dapatan lapangan — kad "WoW-KL 2026" Slot Buku
+    // dedah overflow 36px, BentoInner betul-betul mengesan+menandakannya, tapi minHeight
+    // CarouselStableBlock tak pernah naik untuk tampung). Punca paling mungkin ialah kes YANG
+    // komen di atas (baris ~820) sendiri ramalkan: lebar lajur kandungan (kad sumber-sebagai-
+    // lajur-sisi) masih berunding flex-basis semasa `recompute()` pertama jalan, jadi teks
+    // ukur bilangan baris lebih SEDIKIT drpd bentuk akhir — TAPI ResizeObserver tak sentiasa
+    // tercetus untuk kes ni: kalau kotak item sendiri sudah dikunci ketinggian oleh minHeight
+    // ANCESTOR (bukan oleh box-nya sendiri), kotak tu tak pernah "membesar" utk ResizeObserver
+    // kesan, walhal scrollHeight dalamannya sudah berbeza. Satu susulan lewat (bukan gelung
+    // berterusan — sekali cukup, "max tak pernah mengecil" di atas jamin ni selamat diulang)
+    // tangkap kes tu tanpa bergantung ResizeObserver tercetus langsung.
+    const susulanId = window.setTimeout(recompute, 350);
+
     return () => {
       dibatal = true;
+      window.clearTimeout(susulanId);
       observer?.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
