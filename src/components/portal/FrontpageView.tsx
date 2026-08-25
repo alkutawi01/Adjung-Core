@@ -741,13 +741,23 @@ const EditPensil: React.FC<{
   // BERBEZA drpd desktop (bottom-N right-N asal, dikekalkan tak berubah via md: di atas) — diukur
   // sebenar (375px, pelbagai tier) selesa duduk di ruang kosong antara badge tarikh siaran/eyebrow
   // (berakhir ~29px) dan tajuk (mula ~60px sekurang-kurangnya), tak bertindih kedua-duanya.
+  //
+  // JANGAN tambah semula `md:right-auto` di sini (dibuang 2026-08-26, aduan Izzat "icon tu
+  // bertindih dgn sumber+tarikh"). Ia dimaksudkan untuk membatalkan `right-4` telefon, tetapi
+  // `md:right-auto` dan `md:right-N` daripada posisiMd ialah DUA utiliti `right` dalam varian
+  // `md:` yang SAMA — pemenangnya ditentukan susunan Tailwind menjana CSS, bukan susunan dalam
+  // atribut class, dan `right-auto` menang. Kesannya `right` jadi auto pada desktop, kedudukan
+  // mendatar jatuh ke posisi STATIK (tepi kiri, diukur 33px daripada tepi kad HERO 1024px) —
+  // betul-betul di atas lajur sumber+tarikh. posisiMd SENTIASA membawa `md:right-N` sendiri,
+  // jadi pembatalan tu memang tak pernah diperlukan. `md:top-auto` KEKAL perlu: posisiMd cuma
+  // membawa `bottom-N`, tanpa pembatalan itu `top-10` telefon terus terpakai di desktop.
   const posisiMd = POSISI_DESKTOP_MD[posisi] || 'md:bottom-6 md:right-6';
   return (
     <Tooltip text="Sunting kandungan ini (buka tab baharu)">
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); window.open(`/editorium?tab=kandungan&sub=semakan&itemId=${objectId}`, '_blank', 'noopener'); }}
-        className={`absolute top-10 right-4 md:top-auto md:right-auto ${posisiMd} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
+        className={`absolute top-10 right-4 md:top-auto ${posisiMd} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
         aria-label="Sunting kandungan ini (buka tab baharu)"
       >
         <Pencil className="w-3 h-3" />
