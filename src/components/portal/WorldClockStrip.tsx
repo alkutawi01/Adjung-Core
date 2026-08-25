@@ -218,7 +218,7 @@ const KadBandar: React.FC<{
       </p>
       {isHoliday && holidayName && tunjukCuti && posisiTip && createPortal(
         <div
-          className="fixed -translate-x-1/2 flex flex-col items-center bg-[#FAF7F0] text-[#1F1F1F] px-3 py-1.5 rounded-sm shadow-md whitespace-nowrap z-[9999] pointer-events-none border border-[#802334]/30 text-center animate-fade-in"
+          className="fixed -translate-x-1/2 flex flex-col items-center bg-[#FAF7F0] text-[#1F1F1F] px-3 py-1.5 rounded-sm shadow-md max-w-[240px] z-[9999] pointer-events-none border border-[#802334]/30 text-center animate-fade-in"
           style={{ top: posisiTip.top, left: posisiTip.left }}
         >
           <span className="font-sans text-[8px] uppercase tracking-widest text-[#802334] font-bold">Cuti Umum</span>
