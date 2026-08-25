@@ -3236,27 +3236,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               top: 16px !important;
               right: 16px !important;
             }
-            /* PEMBETULAN 25/8 (percubaan PERTAMA, salah, dibetulkan di sini) — teka asal ialah
-               SEMUA kad KOMPAK (data-kompak-pair) berkongsi punca sama. Ukuran hidup selepas
-               deploy dedah itu SALAH: kad Slot 4/5 (KOMPAK juga) sudah sejajar SEBELUM sebarang
-               pembetulan, dan peraturan sasaran [data-kompak-pair] .tarikh-siaran-badge dgn
-               top:0 yang cuba dipakai global tadi PECAHKAN alignan Slot 4/5 tu (anjak lencana
-               16px ke atas ikon, songsang) sambil betulkan Slot 17/18/31/32. Punca SEBENAR
-               bukan padding bekas — kedua struktur guna bekas p-4 relative SAMA, nilai top-4
-               (16px) SAMA pada kedua-dua. Beza ialah struktur ANAK: Slot 4/5 bungkus
-               eyebrow+carousel dalam komponen BentoInner, yang tambah sub-padding sendiri yg
-               anjakkan ikon TURUN ~14-16px (padan dgn lencana top-4). Slot 17/18/31/32 TIADA
-               BentoInner — anak terus dalam bekas p-4 (grep sahkan lencana ni sentiasa ikut
-               penutup tag FooterHeightLock, bukan tag BentoInner), jadi ikon kekal di aras
-               padding asal (16px dari tepi border) tanpa sub-padding tambahan — 14-16px LEBIH
-               TINGGI drpd lencana top-4. Pembetulan kini SASAR HANYA 4 lencana ni (bukan
-               seluruh data-kompak-pair) — kelas tarikh-siaran-badge-tanpa-bento ditambah terus
-               pada keempat-empat span JSX berkenaan (grep nama kelas ni utk cari). Slot 4/5
-               (guna BentoInner) KEKAL ikut peraturan generik top:16px di atas, tidak disentuh. */
-            #bento-news-grid .tarikh-siaran-badge-tanpa-bento {
-              top: 0 !important;
-              right: 0 !important;
-            }
+            /* NOTA 25/8: override lama .tarikh-siaran-badge-tanpa-bento (top:0; right:0)
+               DIBUANG. Ia percubaan awal berdasarkan ukuran SEBELUM punca sebenar salah jajar
+               ditemui — bekas eyebrow guna justify-end dalam ruang simpanan minHeight
+               (FooterHeightLock), menolak baris ikon item aktif ke bawah. Selepas kesemua
+               bekas eyebrow ditukar ke justify-start (17 tapak, komit 32cd8d2), baris ikon
+               kini SENTIASA berada di aras padding 16px, jadi keempat-empat lencana kelas
+               ni patut ikut peraturan generik top:16px di atas sahaja. Kelas
+               tarikh-siaran-badge-tanpa-bento dikekalkan pada span JSX (penanda sejarah/
+               pencarian), cuma tiada lagi peraturan CSS khas untuknya. */
 
             /* Grid TUNGGAL merentasi HERO + kesemua slot — jamin garisan sejajar sepenuhnya
                (lihat nota "Jadual telefon TUNGGAL" di atas). Tepi KANAN + BAWAH jadual
