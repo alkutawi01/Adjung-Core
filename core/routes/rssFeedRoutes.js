@@ -1,7 +1,7 @@
 import express from 'express';
 import { BRAND } from '../../src/config/brand.ts';
 import { getOrCreateUrlKod } from './articleUrlRoutes.js';
-import { binaLaluanKandungan } from '../editorial/UrlSlug.js';
+import { binaLaluanKandungan, slugBidang } from '../editorial/UrlSlug.js';
 
 // Fasa 10 — Suapan RSS KELUAR (bukan ingest). Adjung sudah ada mesin ingest RSS penuh
 // (core/sources/RssDirectEngine.js membaca suapan LUAR masuk ke rss_ticker_items), tapi tiada
@@ -64,21 +64,38 @@ ${itemsXml}
 };
 
 const CACHE_TTL_MS = 12 * 60 * 1000; // 12 minit — cukup segar tanpa hentam DB setiap capaian.
-let cache = { xml: null, builtAt: 0 };
+// Cache per-suapan (2026-08-25, permintaan Izzat: "saya nak ikut kategori") — kunci '' ialah
+// suapan global sedia ada, kunci lain ialah slug Bidang (?bidang=sukan dsb). Bilangan Bidang
+// kecil (~30), jadi Map tak terkawal bukan risiko; entri lapuk cuma tamat TTL macam biasa.
+const cachePerSuapan = new Map();
 
 export function createRssFeedRoutes(dbAll, dbGet, dbRun) {
   const router = express.Router();
 
   // GET /rss.xml — suapan RSS 2.0 kandungan editorial hidup (approved) Adjung. Laluan awam,
   // tiada auth (tujuannya memang untuk pembaca/portal luar langgan).
+  //
+  // ?bidang=<slug> (2026-08-25, permintaan Izzat) — tapis kepada SATU Bidang sahaja, guna slug
+  // yang SAMA dengan laluan kanonikal kandungan (slugBidang() dari UrlSlug.js — cth "sukan",
+  // "al-quran-dan-sunnah"), jadi slug yang pelanggan nampak dalam URL artikel boleh dipakai
+  // terus sebagai nilai penapis. Slug tak dikenali pulangkan suapan sah dengan saluran kosong
+  // (bukan ralat) — pembaca RSS layan ia sebagai "tiada item baharu", bukan suapan rosak.
   router.get('/rss.xml', async (req, res) => {
     try {
+      // Normalisasi melalui slugBidang() sendiri supaya "?bidang=Sukan" dan "?bidang=sukan"
+      // kedua-duanya padan — input pengguna tak dipercayai bentuknya.
+      const bidangSlug = req.query.bidang ? slugBidang(String(req.query.bidang)) : '';
       const now = Date.now();
-      if (cache.xml && (now - cache.builtAt) < CACHE_TTL_MS) {
+      const cache = cachePerSuapan.get(bidangSlug);
+      if (cache && cache.xml && (now - cache.builtAt) < CACHE_TTL_MS) {
         res.set('Content-Type', 'application/rss+xml; charset=utf-8');
         return res.send(cache.xml);
       }
 
+      // LIMIT dinaikkan ke 300 (bukan 50) apabila penapis Bidang aktif — penapisan slug berlaku
+      // dalam JS selepas query (slugBidang tak boleh diungkap dalam SQL), jadi ambil kolam lebih
+      // besar dahulu supaya Bidang yang kandungannya jarang muncul tetap dapat item; suapan
+      // global kekal LIMIT 50 asal.
       const rows = await dbAll(`
         SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, er.title, er.summary, er.createdAt as revisionCreatedAt
         FROM editorial_objects eo
@@ -88,15 +105,18 @@ export function createRssFeedRoutes(dbAll, dbGet, dbRun) {
         ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
         WHERE er.status = 'approved' AND eo.slotIndex >= 0
         ORDER BY er.createdAt DESC
-        LIMIT 50
+        LIMIT ${bidangSlug ? 300 : 50}
       `);
+      const rowsDitapis = bidangSlug
+        ? rows.filter((r) => slugBidang(r.categoryId) === bidangSlug).slice(0, 50)
+        : rows;
 
       const siteUrl = `${req.protocol}://${req.get('host')}`;
       // Pautan kanonikal sebenar (Fasa 9, 2026-08-05) — skema /:bidangSlug/kandungan/:kodPendek
       // kini wujud, gantikan corak parameter slot/item lama (yang tak boleh dicecah sebagai
       // laluan sebenar).
       const items = [];
-      for (const r of rows) {
+      for (const r of rowsDitapis) {
         // eslint-disable-next-line no-await-in-loop
         const kod = await getOrCreateUrlKod(dbGet, dbRun, r.objectId).catch(() => null);
         items.push({
@@ -111,7 +131,7 @@ export function createRssFeedRoutes(dbAll, dbGet, dbRun) {
 
       const xml = buildRssXml(items, { siteUrl });
 
-      cache = { xml, builtAt: now };
+      cachePerSuapan.set(bidangSlug, { xml, builtAt: now });
       res.set('Content-Type', 'application/rss+xml; charset=utf-8');
       res.send(xml);
     } catch (err) {
