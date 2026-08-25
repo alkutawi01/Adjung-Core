@@ -707,7 +707,7 @@ const EditPensil: React.FC<{
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); window.open(`/editorium?tab=kandungan&sub=semakan&itemId=${objectId}`, '_blank', 'noopener'); }}
-      className={`absolute ${posisi} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
+      className={`hidden md:block absolute ${posisi} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
       aria-label="Sunting kandungan ini (buka tab baharu)"
       title="Sunting kandungan ini (buka tab baharu)"
     >
