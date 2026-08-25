@@ -533,12 +533,12 @@ interface TetapanAnimasiCarousel {
   jenisAnimasiRawakPool: string[];
 }
 const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
-  jenisAnimasi: 'swipe',
+  jenisAnimasi: 'pudar',
   arahAnimasi: 'kanan',
   warnaPanelTransisi: '#802334',
   ambilLogoTransisi: () => ({ jenis: 'adjung' }),
   arahUntukSlot: () => 'kanan',
-  jenisAnimasiUntukSlot: () => 'swipe',
+  jenisAnimasiUntukSlot: () => 'pudar',
   animasiAktif: true,
   kelajuanAnimasi: 1,
   warnaPanelUntukSlot: () => '#802334',
@@ -581,6 +581,22 @@ export const VEKTOR_ARAH: Record<string, { masuk: string; keluar: string }> = {
   bawah: { masuk: 'translateY(100%)', keluar: 'translateY(-100%)' },
 };
 const SONGSANG_ARAH: Record<string, string> = { kanan: 'kiri', kiri: 'kanan', atas: 'bawah', bawah: 'atas' };
+// Warna latar SEBENAR (2026-08-25, dipakai overlay Swipe) — banyak kad guna cardStyle.backgroundColor
+// = 'transparent' (getCardTheme, bg diwarisi laman/bekas induk), jadi getComputedStyle(kadPenuh)
+// SAHAJA akan pulangkan 'rgba(0,0,0,0)' — telus, BUKAN warna sebenar yang mata nampak. Jalan ke atas
+// pokok DOM sehingga jumpa latar PEJAL (opacity alfa > 0), jatuh balik putih kalau tiada satu pun.
+function warnaLatarSebenar(el: HTMLElement | null): string {
+  let node: HTMLElement | null = el;
+  while (node && node !== document.documentElement) {
+    const bg = getComputedStyle(node).backgroundColor;
+    const alfa = bg.match(/^rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*(?:,\s*([\d.]+)\s*)?\)$/);
+    if (bg && bg !== 'transparent' && !(alfa && alfa[1] !== undefined && parseFloat(alfa[1]) === 0)) {
+      return bg;
+    }
+    node = node.parentElement;
+  }
+  return '#FFFFFF';
+}
 // Diekspot (2026-08-16) — lihat nota LogoTransisiAdjung di atas, sama rasional.
 export const vektorArahOverlay = (arah: string, songsang: boolean) => {
   const arahSebenar = songsang ? (SONGSANG_ARAH[arah] || 'kiri') : arah;
@@ -946,6 +962,23 @@ const CarouselStableBlock: React.FC<{
   // berubah dalam satu transisi) dan dipakai sebagai gaya inline pada DUA panel kandungan (bukan
   // panel logo tengah, yang sengaja rata-tepi dgn logo dipusatkan).
   const [padGerak, setPadGerak] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
+  // Latar Swipe (2026-08-25, pembetulan selepas Izzat tangkap "kad berkelip" + "ikon/topik/tarikh
+  // siaran tak swipe") — footer sumber+tarikh, badge tarikh siaran (span sibling di ATAS
+  // CarouselStableBlock) dan eyebrow ikon+topik pada ~separuh slot (corak
+  // `EyebrowKad item={bentoNewsItems[N]}`) SEMUANYA hidup DI LUAR renderItem(), terus baca item
+  // AKTIF SEMASA (bentoNewsItems[n]) yang bertukar SERTA-MERTA saat carousel beralih tanpa animasi
+  // apa-apa. Colophon/Sapuan Lajur/Gerak Susun sembunyikan pertukaran senyap ni di sebalik panel
+  // PEJAL yang menutup SELURUH kad — Swipe (sengaja tiada panel penutup, ikut spesifikasi Izzat)
+  // dedahkan terus, kelihatan sebagai "kelip"/elemen tertinggal. Bukan membetulkan struktur
+  // (tarik footer/badge/eyebrow MASUK ke renderItem() merentasi 30 slot carousel ialah kerja jauh
+  // lebih besar+berisiko pada sistem overflow yang fragile — Izzat pilih laluan lebih selamat ni
+  // selepas ditanya) — dua lapisan Swipe kini diberi LATAR PEJAL (diukur terus daripada warna
+  // sebenar kadPenuh, bukan warna panel maroon macam Colophon/Sapuan Lajur — Swipe tiada "panel",
+  // ia kandungan sendiri yang bergerak) yang menutup SELURUH kad sepanjang peralihan, sama teknik
+  // seperti 3 jenis lain. Kesannya: footer/badge/eyebrow tersembunyi seketika (~640ms) semasa
+  // tajuk+huraian menolak, muncul SEMULA (bukan menolak sekali) sebaik overlay hilang — tiada
+  // kelip/tertinggal, tapi bukan "semua turut menolak" (had reka bentuk diterima, bukan pepijat).
+  const [warnaLatarSwipe, setWarnaLatarSwipe] = useState('#FFFFFF');
 
   useEffect(() => {
     if (activeIndex === prevActiveIndexRef.current) return;
@@ -1054,6 +1087,7 @@ const CarouselStableBlock: React.FC<{
           bottom: parseFloat(gayaKad.paddingBottom) || 0,
           left: parseFloat(gayaKad.paddingLeft) || 0,
         });
+        setWarnaLatarSwipe(warnaLatarSebenar(kadPenuh));
       }
       setPortalTarget(kadPenuh);
       setIndeksLamaGerak(indeksSebelum);
@@ -1375,6 +1409,13 @@ const CarouselStableBlock: React.FC<{
             className="absolute inset-0"
             style={{
               padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px`,
+              // Latar PEJAL (bukan warnaPanelEfektif/maroon macam Colophon/Sapuan Lajur — Swipe
+              // tiada "panel", kandungan sendiri yang bergerak) — menutup footer sumber/tarikh +
+              // badge tarikh siaran + eyebrow ikon/topik yang hidup DI LUAR renderItem() (lihat
+              // nota warnaLatarSwipe di deklarasi state), elak ia "berkelip"/tertinggal semasa
+              // peralihan. Dua lapisan ni SENTIASA bertemu genap (jumlah translate sama magnitud,
+              // arah bertentangan) — tiada jurang/pertindihan pada bila-bila masa transisi.
+              backgroundColor: warnaLatarSwipe,
               transform: fasaGerak === 'gerak' ? (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).masuk : 'translate(0, 0)',
               transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
             }}
@@ -1385,6 +1426,7 @@ const CarouselStableBlock: React.FC<{
             className="absolute inset-0"
             style={{
               padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px`,
+              backgroundColor: warnaLatarSwipe,
               transform: fasaGerak === 'gerak' ? 'translate(0, 0)' : (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).keluar,
               transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
             }}
@@ -2252,7 +2294,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // carousel bento sekali gus. Lalai 'pudar' (opacity fade sedia ada) supaya kelakuan tak berubah
   // sekiranya panggilan gagal.
   const [tetapanAnimasiMentah, setTetapanAnimasiMentah] = useState({
-    jenisAnimasi: 'swipe', arahAnimasi: 'kanan', warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0,
+    jenisAnimasi: 'pudar', arahAnimasi: 'kanan', warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0,
     animasiAktif: true, kelajuanAnimasi: 1, modWarnaPanel: 'pelbagai',
     jenisAnimasiRawakPool: JENIS_ANIMASI_ASAS as string[],
   });
@@ -2266,7 +2308,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         if (d && d.mulaIkutMasa !== undefined) setMulaIkutMasa(!!d.mulaIkutMasa);
         if (d) {
           setTetapanAnimasiMentah({
-            jenisAnimasi: d.jenisAnimasi || 'swipe',
+            jenisAnimasi: d.jenisAnimasi || 'pudar',
             arahAnimasi: d.arahAnimasi || 'kanan',
             warnaPanelTransisi: d.warnaPanelTransisi || '#802334',
             nisbahPenajaTransisi: Number(d.nisbahPenajaTransisi) || 0,

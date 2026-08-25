@@ -14,11 +14,13 @@ import { logAudit } from '../audit/AuditLog.js';
 export const AM_DEFAULTS = {
   mulaIkutMasa: 1,
   hadKandunganSlot: 0,
-  // Lalai ditukar 'colophon' -> 'swipe' (2026-08-25, keputusan Izzat selepas semak pratonton
-  // mockup) — Swipe kini jenis LALAI pemasangan baharu; pemasangan sedia ada yang sudah simpan
-  // baris slot_am_settings.jenisAnimasi eksplisit TIDAK terjejas (loadAmSettings() di bawah
-  // hanya jatuh balik ke lalai ni bila lajur kosong/NULL).
-  jenisAnimasi: 'swipe',
+  // 'swipe' ditambah 2026-08-25 tapi BUKAN lalai — audit visual sebenar (Izzat) dedah footer
+  // sumber+tarikh, badge tarikh siaran, dan eyebrow ikon+topik pada ~separuh slot (corak
+  // `EyebrowKad item={bentoNewsItems[N]}`) semuanya di LUAR kawasan animasi, kelihatan
+  // "kelip"/tertinggal sebab Swipe (sengaja) tiada panel penutup pejal macam 3 jenis lain yang
+  // menyembunyikan isu sama. Kekal 'pudar' sehingga dibaiki+disahkan merentasi SEMUA slot bukan
+  // Ticker/Bar — jangan tukar lalai ni sebelum itu.
+  jenisAnimasi: 'pudar',
   arahAnimasi: 'kanan',
   // Togol aktif/nyahaktif + kelajuan (2026-08-07, permintaan Izzat eksplisit — "modul Slot-
   // Tetapan Am hanya untuk mengaktifkan atau menyahaktifkan pilihan animasi serta menetapkan
@@ -163,7 +165,7 @@ export const loadAmSettings = async (dbGet) => {
       cache = {
         mulaIkutMasa: row.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: Number(row.hadKandunganSlot) || 0,
-        jenisAnimasi: row.jenisAnimasi || 'swipe',
+        jenisAnimasi: row.jenisAnimasi || 'pudar',
         arahAnimasi: row.arahAnimasi || 'kanan',
         animasiAktif: row.animasiAktif === 0 ? 0 : 1,
         // Lalai MATI bila lajur tiada/NULL (pemasangan sedia ada sebelum ciri ni) — sebaliknya
@@ -252,7 +254,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       const baharu = {
         mulaIkutMasa: b.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: nombor(b.hadKandunganSlot, 'Had bilangan kandungan'),
-        jenisAnimasi: JENIS_ANIMASI.some(j => j.nilai === b.jenisAnimasi) ? b.jenisAnimasi : 'swipe',
+        jenisAnimasi: JENIS_ANIMASI.some(j => j.nilai === b.jenisAnimasi) ? b.jenisAnimasi : 'pudar',
         arahAnimasi: ARAH_ANIMASI.some(a => a.nilai === b.arahAnimasi) ? b.arahAnimasi : 'kanan',
         animasiAktif: b.animasiAktif ? 1 : 0,
         petikanAktif: b.petikanAktif ? 1 : 0,

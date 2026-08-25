@@ -650,7 +650,7 @@ const initializeSchema = () => {
                 id TEXT PRIMARY KEY,
                 mulaIkutMasa INTEGER DEFAULT 1,
                 hadKandunganSlot INTEGER DEFAULT 0,
-                jenisAnimasi TEXT DEFAULT 'swipe',
+                jenisAnimasi TEXT DEFAULT 'pudar',
                 arahAnimasi TEXT DEFAULT 'kanan',
                 nisbahPenajaTransisi INTEGER DEFAULT 0,
                 hadHuraianPanjang INTEGER DEFAULT 0,

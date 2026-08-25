@@ -1,5 +1,15 @@
 [
   {
+    "time": "2026-08-25T15:58:49.453Z",
+    "summary": "Betulkan overlay Swipe: latar pejal (bukan telus) elak footer sumber/tarikh + badge tarikh siaran + eyebrow ikon/topik 'berkelip'/tertinggal; kekalkan lalai animasi = Pudar sehingga disahkan selamat",
+    "files": [
+      "core/routes/slotAmRoutes.js",
+      "server.js",
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/editorium/SenaraiSlotConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-08-25T15:31:20.344Z",
     "summary": "Tambah jenis animasi carousel baharu 'Swipe' (kandungan menolak keluar diekori kandungan baharu, tiada panel penutup) dan jadikan ia lalai pemasangan baharu",
     "files": [
