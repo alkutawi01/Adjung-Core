@@ -1130,11 +1130,21 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     }
   };
 
+  // Ralat sebaris Terbit sekarang (2026-08-25, pepijat Izzat: butang "langsung tak berfungsi").
+  // Punca senyap: kegagalan di sini dahulu HANYA disalurkan melalui onToast?., jadi jika prop
+  // toast tiada/tersekat dalam konteks render tertentu (mod sambung-draf pelayan), editor tidak
+  // nampak APA-APA — tiada permintaan rangkaian, tiada mesej, kelihatan seperti butang mati.
+  // Keadaan sebaris ini TIDAK bergantung pada prop luaran: sebab kegagalan sentiasa dipaparkan
+  // terus di bawah butang (lihat blok butang Terbit sekarang di bawah).
+  const [ralatTerbitSebaris, setRalatTerbitSebaris] = useState('');
   const publishOne = async (i: number) => {
+    setRalatTerbitSebaris('');
     const item = items[i];
     const check = itemFits(editingSlotIndex, desk, item);
     if (!check.isValid) {
-      onToast?.('error', check.reason || 'Kandungan ini tidak lulus bajet ruang kad atau Topik.', undefined, { bolehSalinAI: (check as any).bolehSalinAI });
+      const sebab = check.reason || 'Kandungan ini tidak lulus bajet ruang kad atau Topik.';
+      setRalatTerbitSebaris(sebab);
+      onToast?.('error', sebab, undefined, { bolehSalinAI: (check as any).bolehSalinAI });
       return;
     }
     setPublishingIndex(i);
@@ -1167,6 +1177,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       );
     } else {
       const mesej = saveError || labelUi('toast.gagal_terbit');
+      setRalatTerbitSebaris(mesej);
       onToast?.('error', mesej, undefined, { bolehSalinAI: saveErrorBolehSalinAI });
     }
   };
@@ -1829,6 +1840,14 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     footer (Simpan cuma simpan baki draf, tak terbitkan apa-apa). Status akhir
                     (Aktif terus atau Menunggu) ditentukan SERVER ikut kebenaran penekan butang
                     (server.js syncManualObjectsForSlot) — bukan dikodkan keras di sini. */}
+                {/* Semakan LIVE sebelum Terbit (2026-08-25, pepijat Izzat "butang tak berfungsi")
+                    — sebab yang sama dengan gerbang dalam publishOne() dikira di sini SETIAP
+                    render, supaya editor nampak MENGAPA Terbit tidak tersedia SEBELUM klik,
+                    bukan menemui butang yang kelihatan mati tanpa penjelasan. */}
+                {(() => {
+                  const semakanTerbit = itemFits(editingSlotIndex, desk, current);
+                  return (
+                <>
                 <div className="flex items-center justify-between gap-4">
                   <span className="flex flex-col gap-0.5">
                     <span className={labelCls}>Kandungan ini masih draf</span>
@@ -1841,13 +1860,25 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                       {savingDraft ? 'Menyimpan…' : 'Simpan sebagai draf'}
                     </button>
                     <button
-                      type="button" onClick={() => publishOne(activeIndex)} disabled={publishingIndex !== null || savingDraft}
-                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-wait text-white rounded text-[11px] font-sans font-semibold cursor-pointer transition-colors"
+                      type="button" onClick={() => publishOne(activeIndex)}
+                      disabled={publishingIndex !== null || savingDraft || !semakanTerbit.isValid}
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-[11px] font-sans font-semibold cursor-pointer transition-colors"
                     >
                       {publishingIndex === activeIndex ? 'Menerbitkan…' : 'Terbit sekarang'}
                     </button>
                   </span>
                 </div>
+                {!semakanTerbit.isValid && (
+                  <p className="mt-2 text-right font-sans text-[10px] text-[#802334]">
+                    {semakanTerbit.reason || 'Kandungan ini tidak lulus bajet ruang kad atau Topik.'}
+                  </p>
+                )}
+                {semakanTerbit.isValid && ralatTerbitSebaris && (
+                  <p className="mt-2 text-right font-sans text-[10px] text-[#802334]">{ralatTerbitSebaris}</p>
+                )}
+                </>
+                  );
+                })()}
               </>
             )}
 
@@ -1934,14 +1965,20 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                       Jumlah kandungan
                       {(formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal') && <Lock className="w-3 h-3 text-stone-400" />}
                     </span>
-                    <input
-                      type="number" min={1}
-                      value={(formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal') ? 1 : (formConfig.generationLimit || 1)}
-                      disabled={formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal'}
-                      title={(formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal') ? 'Mod ini hasilkan SATU kandungan bagi SATU sumber.' : undefined}
-                      onChange={(e) => setFormConfig((prev: any) => ({ ...prev, generationLimit: Number(e.target.value) }))}
-                      className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-mono text-sm text-stone-800 py-1.5 disabled:bg-stone-50 disabled:text-stone-400"
-                    />
+                    {/* Penyeragaman tooltip 25/8 (arahan Izzat): title= pelayar asal ditukar ke
+                        Tooltip kongsi. Span pembalut perlu: input disabled tidak menembak event
+                        hover React. */}
+                    <Tooltip text={(formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal') ? 'Mod ini menghasilkan SATU kandungan bagi SATU sumber.' : undefined}>
+                      <span className="inline-flex w-full">
+                        <input
+                          type="number" min={1}
+                          value={(formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal') ? 1 : (formConfig.generationLimit || 1)}
+                          disabled={formConfig.genMode === 'dengan_rujukan' || formConfig.genMode === 'artikel_jurnal'}
+                          onChange={(e) => setFormConfig((prev: any) => ({ ...prev, generationLimit: Number(e.target.value) }))}
+                          className="w-full border-0 border-b border-stone-300 focus:border-[#802334] outline-none bg-white font-mono text-sm text-stone-800 py-1.5 disabled:bg-stone-50 disabled:text-stone-400"
+                        />
+                      </span>
+                    </Tooltip>
                   </label>
                 </div>
 
