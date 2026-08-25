@@ -10,7 +10,7 @@ import { SectionLabel } from '../common/SectionLabel';
 // SlotManagerModal.tsx, useSlotEditor.ts, DrafSayaConsole.tsx, IndeksConsole.tsx,
 // SenaraiSlotConsole.tsx, TetapanAmSlotConsole.tsx) sebelum ditulis — jangan tambah langkah/ciri
 // yang belum wujud dalam sistem sebenar. Untuk peraturan teknikal penuh (had aksara, format
-// medan, dsb.) rujuk Dokumentasi → Peraturan Am (PerlembagaanConsole.tsx); fail ni sengaja tidak
+// medan, dsb.) rujuk Dokumentasi → Peraturan Am (PerlembagaanConsole.tsx); fail ini sengaja tidak
 // menyalin semula nombor tersebut, cuma merujuk ke sana.
 
 const Card: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -35,8 +35,8 @@ export const PanduanConsole: React.FC = () => {
         huraian={
           <span className="block max-w-2xl">
             Panduan lengkap untuk Editor baharu, dari log masuk pertama sehingga kandungan
-            anda tersiar. Baca ikut turutan seksyen kalau ini kali pertama anda guna sistem
-            ni. Untuk peraturan teknikal penuh (had aksara kad, format medan, dsb.), rujuk{' '}
+            anda tersiar. Baca ikut turutan seksyen jika ini kali pertama anda guna sistem
+            ini. Untuk peraturan teknikal penuh (had aksara kad, format medan, dsb.), rujuk{' '}
             <span className="font-semibold text-stone-800">Dokumentasi → 1. Peraturan Am</span>.
           </span>
         }
@@ -50,7 +50,7 @@ export const PanduanConsole: React.FC = () => {
           (berita, ilmu, kebudayaan) dalam bentuk kad-kad bersaiz berbeza (bento grid) di
           muka depan. Sebagai Editor, kerja anda ialah menulis kandungan, menghantarnya untuk
           disemak, dan mengurus kandungan yang sudah tersiar dalam slot yang ditugaskan
-          kepada anda. Panduan ni akan bawa anda dari log masuk pertama sampai kandungan
+          kepada anda. Panduan ini akan membawa anda dari log masuk pertama sehingga kandungan
           pertama anda tersiar.
         </Card>
       </div>
@@ -62,8 +62,8 @@ export const PanduanConsole: React.FC = () => {
           <Card title="1. Lengkapkan profil (wajib)">
             Kali pertama log masuk, satu tetingkap akan muncul meminta Nama Penuh, Kelulusan
             (nama kursus, universiti, tahun graduasi), Negeri Menetap, dan Nombor Telefon,
-            semua wajib diisi. Tetingkap ni <strong>tiada butang tutup, tiada Escape</strong>,
-            jadi anda tidak boleh langkau atau tunda langkah ni. Sistem tidak akan benarkan anda
+            semua wajib diisi. Tetingkap ini <strong>tiada butang tutup, tiada Escape</strong>,
+            jadi anda tidak boleh langkau atau tunda langkah ini. Sistem tidak membenarkan anda
             masuk ke Editorium sehingga profil lengkap.
           </Card>
           <Card title="2. Baca dan setuju Syarat & Peraturan Editor">
@@ -101,12 +101,12 @@ export const PanduanConsole: React.FC = () => {
           </Card>
           <Card title="Kandungan → Indeks">
             Senarai penuh SEMUA kandungan (Aktif, Menunggu, Arkib) merentasi seluruh sistem,
-            bukan cuma slot anda. Kalau anda ada kebenaran terbit sendiri, di sinilah anda
+            bukan cuma slot anda. Jika anda ada kebenaran terbit sendiri, di sinilah anda
             luluskan/tolak kandungan Menunggu.
           </Card>
           <Card title="Slot → Senarai Slot">
             Senarai semua 38 slot bento: status terisi/kosong, Bidang semasa, editor
-            ditugaskan, dan bilangan kandungan Menunggu bagi setiap slot (klik angka tu untuk
+            ditugaskan, dan bilangan kandungan Menunggu bagi setiap slot (klik angka itu untuk
             lihat senarai penuh).
           </Card>
           <Card title="Modul Khas & Editorial">
@@ -123,15 +123,15 @@ export const PanduanConsole: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Bidang terkunci per-slot">
             Setiap slot (kecuali Ticker dan tier Bar) terkunci kepada SATU Bidang tetap
-            (cth. Ekonomi, Kebudayaan). Semua kandungan yang anda tulis untuk slot tu mesti
+            (cth. Ekonomi, Kebudayaan). Semua kandungan yang anda tulis untuk slot itu mesti
             dalam Bidang yang sama. Anda tidak pilih Bidang setiap kali menulis, ia sudah
             ditetapkan pada slot.
           </Card>
-          <Card title="Topik bebas, tapi wajib diisi">
+          <Card title="Topik bebas, tetapi wajib diisi">
             Topik pula medan bebas yang anda isi sendiri setiap kali menulis kandungan baharu.
-            Boleh berbeza-beza dalam slot yang sama asalkan masih dalam Bidang terkunci tu
+            Boleh berbeza-beza dalam slot yang sama asalkan masih dalam Bidang terkunci itu
             (cth. Bidang Ekonomi tetap, Topik boleh Kewangan/Perbankan/dll.). Topik wajib
-            diisi, sistem akan tolak simpanan kalau kosong.
+            diisi, sistem menolak simpanan jika kosong.
           </Card>
         </div>
       </div>
@@ -141,23 +141,23 @@ export const PanduanConsole: React.FC = () => {
         <SectionLabel>04 — Menulis Kandungan</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="1. Buka ruang menulis">
-            Klik <strong>Tulis Kandungan</strong>, pilih slot yang mahu diisi. Ruang ni ruang
-            draf peribadi anda. Kandungan Aktif/Menunggu sedia ada dalam slot tu tidak
+            Klik <strong>Tulis Kandungan</strong>, pilih slot yang mahu diisi. Ruang ini ruang
+            draf peribadi anda. Kandungan Aktif/Menunggu sedia ada dalam slot itu tidak
             dipaparkan di sini, ia tidak terjejas sehingga anda benar-benar terbitkan draf
             baharu.
           </Card>
           <Card title="2. Medan yang perlu diisi">
             <strong>Topik</strong> (wajib), <strong>Tajuk</strong> (wajib), <strong>Huraian
-            ringkas</strong> (wajib), <strong>Huraian panjang</strong> (pilihan, tapi kalau
-            diisi, ada had MINIMUM aksara, tak boleh separuh jalan), <strong>Sumber</strong>{' '}
+            ringkas</strong> (wajib), <strong>Huraian panjang</strong> (pilihan, tetapi jika
+            diisi, ada had MINIMUM aksara, tidak boleh separuh jalan), <strong>Sumber</strong>{' '}
             (boleh lebih daripada satu), <strong>Jenis sumber</strong>, <strong>Tarikh
             sumber</strong>, <strong>Imej</strong> (muat naik atau URL), dan <strong>Nota</strong>{' '}
             (pilihan, ruang untuk catatan dalaman). Nama anda dicatat automatik sebagai
-            Penulis, tak perlu diisi.
+            Penulis, tidak perlu diisi.
           </Card>
           <Card title="3. Perhati Bajet Ruang semasa menaip">
             Petak biru/hijau di bawah borang menunjukkan peratus ruang kad yang digunakan.
-            Lihat seksyen 08 untuk maksud penuh warna dan angka ni.
+            Lihat seksyen 08 untuk maksud penuh warna dan angka ini.
           </Card>
           <Card title="4. Simpan sebagai draf">
             Klik <strong>Simpan sebagai draf</strong> untuk simpan kerja belum siap. Bajet
@@ -172,13 +172,13 @@ export const PanduanConsole: React.FC = () => {
         <SectionLabel>05 — Draf Saya</SectionLabel>
         <Card title="Apa yang anda nampak dan boleh buat">
           Draf Saya senaraikan semua draf peribadi anda merentasi slot. Setiap baris tunjuk
-          slot, tier kad, Bidang, Topik, tajuk (atau "Draf kosong" kalau belum ditulis), status
+          slot, tier kad, Bidang, Topik, tajuk (atau "Draf kosong" jika belum ditulis), status
           kelengkapan (ada/tiada Topik, ada huraian panjang atau ringkas sahaja), dan status
           Bajet Ruang (Lulus / Kurang bajet / Lebih had). Klik <strong>Sambung</strong> untuk
-          terus buka draf tu semula di ruang menulis dan teruskan dari mana anda berhenti.
+          terus buka draf itu semula di ruang menulis dan teruskan dari mana anda berhenti.
           Draf yang ditanda "Ikut slot" (bukan "Ikut nama anda") ialah draf lama yang tiada
           rekod penulis asal, ia dipaparkan ikut slot sebagai gantian. Tiada butang Terbit
-          atau Padam di sini. Kedua-dua tindakan tu hanya boleh dibuat di dalam ruang menulis
+          atau Padam di sini. Kedua-dua tindakan itu hanya boleh dibuat di dalam ruang menulis
           slot itu sendiri (SlotManagerModal), sebab di sanalah sistem nampak SEMUA draf lain
           yang berkongsi slot yang sama.
         </Card>
@@ -190,12 +190,12 @@ export const PanduanConsole: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Terbit sekarang">
             Apabila kandungan siap, klik <strong>Terbit sekarang</strong>. Sistem semak dua
-            perkara sebelum benarkan: (a) tajuk + huraian muat dalam bajet ruang kad tu, dan
-            (b) Bidang serta Topik sudah diisi. Kalau gagal semakan, sistem TOLAK dan tunjuk
+            perkara sebelum benarkan: (a) tajuk + huraian muat dalam bajet ruang kad itu, dan
+            (b) Bidang serta Topik sudah diisi. Jika gagal semakan, sistem TOLAK dan tunjuk
             sebab; kandungan tidak dihantar langsung, tiada terbit dengan teks terpotong.
           </Card>
           <Card title="Terbit Semua">
-            Kalau slot anda ada beberapa draf sekaligus, butang <strong>Terbit Semua</strong>{' '}
+            Jika slot anda ada beberapa draf sekaligus, butang <strong>Terbit Semua</strong>{' '}
             akan hantar semua draf yang LULUS bajet ruang dalam satu tindakan. Draf yang gagal
             semakan tidak dihantar, ia kekal sebagai draf, dan senarai sebab kegagalan
             dipaparkan supaya anda tahu apa perlu dibaiki.
@@ -203,8 +203,8 @@ export const PanduanConsole: React.FC = () => {
           <Card title="Status selepas hantar: bergantung kepada kebenaran anda">
             Kandungan anda boleh terus menjadi <strong>Aktif</strong> sebaik sahaja dihantar,
             JIKA anda mempunyai kebenaran terbit (dasar Terbit Sendiri Editor dibenarkan),
-            kandungan tu belum pernah ditolak sebelum ini, dan slot masih ada ruang. Jika
-            anda TIDAK mempunyai kebenaran terbit, ATAU kandungan tu pernah ditolak
+            kandungan itu belum pernah ditolak sebelum ini, dan slot masih ada ruang. Jika
+            anda TIDAK mempunyai kebenaran terbit, ATAU kandungan itu pernah ditolak
             sebelum ini, ia akan mendarat sebagai <strong>Menunggu Semakan</strong> dahulu.
             Jika slot penuh, kandungan yang sepatutnya boleh terus diterbitkan akan menunggu
             sebagai <strong>Menunggu Slot Kosong</strong>. Lihat seksyen 07 di bawah untuk
@@ -214,7 +214,7 @@ export const PanduanConsole: React.FC = () => {
             Sama ada anda sendiri boleh luluskan kandungan anda, atau perlu tunggu Ketua
             Editor/Penolong, bergantung kepada satu suis yang ditetapkan Ketua Editor di{' '}
             <strong>Tetapan → Tetapan Am Slot</strong> ("Dasar Terbit Sendiri Editor"). Tanya
-            Ketua Editor/Penolong anda kalau tak pasti dasar semasa. Pengecualian: kandungan
+            Ketua Editor/Penolong anda jika tidak pasti dasar semasa. Pengecualian: kandungan
             yang PERNAH ditolak sekali WAJIB mendarat sebagai Menunggu Semakan dan lalui Ketua
             Editor/Penolong untuk terbit semula, walaupun dasar terbit sendiri dibenarkan.
             Slot Bar (jalur acara/program) turut ikut peraturan tersendiri. Lihat Dokumentasi
@@ -229,14 +229,14 @@ export const PanduanConsole: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Menunggu Semakan">
             Kandungan anda perlu kelulusan manusia (anda sendiri jika dasar benarkan, atau
-            Ketua Editor/Penolong) sebelum tersiar. Semak status ni di{' '}
+            Ketua Editor/Penolong) sebelum tersiar. Semak status ini di{' '}
             <strong>Kandungan → Indeks</strong>.
           </Card>
           <Card title="Menunggu Slot Kosong">
-            Kandungan anda SUDAH lulus semakan, tapi slot tu sudah penuh (had bilangan
+            Kandungan anda SUDAH lulus semakan, tetapi slot itu sudah penuh (had bilangan
             kandungan tercapai). Ia akan naik taraf ke Aktif SECARA AUTOMATIK sebaik ruang
             terbuka (kandungan lain diarkibkan/ditolak/luput). Tiada tindakan tambahan
-            diperlukan daripada anda. Lihat status ni di <strong>Slot → Senarai Slot</strong>{' '}
+            diperlukan daripada anda. Lihat status ini di <strong>Slot → Senarai Slot</strong>{' '}
             (klik angka Menunggu bagi slot berkenaan).
           </Card>
           <Card title="Aktif">
@@ -256,8 +256,8 @@ export const PanduanConsole: React.FC = () => {
         <Card title="Apa berlaku dan apa perlu anda buat">
           Tolak BUKAN buang kandungan. Apabila Ketua Editor/Penolong menolak kandungan anda,
           ia dipulangkan semula sebagai draf boleh sunting, cari di <strong>Draf Saya</strong>{' '}
-          (ditandakan dengan nama anda sebagai Penulis). Sebab penolakan (kalau dicatat oleh
-          penyemak) akan kelihatan dalam medan Nota draf tu apabila anda buka semula. Baiki
+          (ditandakan dengan nama anda sebagai Penulis). Sebab penolakan (jika dicatat oleh
+          penyemak) akan kelihatan dalam medan Nota draf itu apabila anda buka semula. Baiki
           isu yang disebut, kemudian hantar semula ikut langkah di seksyen 06. Ambil perhatian:
           kandungan yang PERNAH ditolak sekali akan sentiasa wajib lalui semakan Ketua
           Editor/Penolong bila dihantar semula, walaupun dasar terbit sendiri anda dibenarkan.
@@ -272,13 +272,13 @@ export const PanduanConsole: React.FC = () => {
             Setiap kad bento (Hero, Menegak, Standard, dll.) ada saiz fizikal tetap, kad TAK
             boleh melimpah. Tajuk dan huraian satu kad berkongsi SATU bajet ruang, bukan dua
             had berasingan: tajuk panjang + huraian pendek boleh muat, huraian panjang + tajuk
-            pendek pun boleh, tapi kedua-duanya panjang serentak tak boleh.
+            pendek pun boleh, tetapi kedua-duanya panjang serentak tidak boleh.
             <br /><br />
             Petak Bajet Ruang di ruang menulis tunjuk peratus ruang digunakan, dengan tiga
             warna: <strong className="text-emerald-700">hijau</strong> (selamat, di bawah 90%),{' '}
             <strong className="text-amber-700">kuning/ambar</strong> (hampir penuh, di atas 90%
-            tapi masih muat, sempat dihantar), dan <strong style={{ color: '#a8241f' }}>merah</strong>{' '}
-            (TIDAK muat; sama ada terlalu panjang, atau kalau huraian panjang diisi, mungkin
+            tetapi masih muat, sempat dihantar), dan <strong style={{ color: '#a8241f' }}>merah</strong>{' '}
+            (TIDAK muat; sama ada terlalu panjang, atau jika huraian panjang diisi, mungkin
             terlalu pendek daripada had minimum). Pada warna merah, sistem tunjuk panduan
             ringkas sama ada perlu panjangkan atau pendekkan kandungan.
             <br /><br />
@@ -316,23 +316,27 @@ export const PanduanConsole: React.FC = () => {
       <div>
         <SectionLabel>11 — Jika Sesuatu Tidak Berjalan</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Card title='"Slot ni telah disimpan oleh orang lain"'>
-            Mesej merah ni muncul kalau ada editor/Ketua Editor lain menyimpan slot yang sama
+          {/* Petikan tajuk diselaraskan dengan mesej pelayan SEBENAR (slotsConfigRoutes.js ~208-212)
+              — versi lama "Slot ini telah disimpan oleh orang lain" sudah tidak wujud dalam sistem,
+              dan shortform dalam teks panduan dibersihkan (arahan Izzat 25/8: tiada shortform
+              dalam Brief). */}
+          <Card title='"Slot … telah dikemas kini sejak anda membukanya"'>
+            Mesej merah ini muncul apabila ada editor/Ketua Editor lain menyimpan slot yang sama
             selepas anda membukanya. Kerja anda dalam borang TIDAK hilang serta-merta, ruang
             menulis kekal terbuka. Salin dahulu apa yang anda taip (secara manual) sebelum
-            tutup, kemudian buka semula slot tu supaya anda dapat versi terkini, dan masukkan
-            semula kandungan anda dari situ. Sistem belum gabungkan perubahan secara automatik.
+            tutup, kemudian buka semula slot itu supaya anda mendapat versi terkini, dan masukkan
+            semula kandungan anda dari situ. Sistem belum menggabungkan perubahan secara automatik.
           </Card>
           <Card title="Simpanan gagal / kandungan hilang">
             Semak dahulu Bajet Ruang dan medan Topik/Bidang. Punca paling biasa ialah salah
-            satu daripada dua semakan tu gagal senyap. Kalau masih tak pasti, atau kandungan
+            satu daripada dua semakan itu gagal senyap. Jika masih tidak pasti, atau kandungan
             yang sepatutnya ada tiba-tiba hilang, minta Ketua Editor/Penolong semak{' '}
-            <strong>Log Sistem</strong> (destinasi ni khusus untuk Pentadbir/Ketua
-            Editor/Penolong; Editor biasa tak nampak dalam menu sendiri).
+            <strong>Log Sistem</strong> (destinasi ini khusus untuk Pentadbir/Ketua
+            Editor/Penolong; Editor biasa tidak nampak dalam menu sendiri).
           </Card>
           <Card title="Tak pasti kenapa kandungan ditolak">
-            Buka draf tu di <strong>Draf Saya</strong>. Sebab penolakan (kalau dicatat)
-            tertera dalam medan Nota. Kalau tiada catatan, tanya terus Ketua Editor/Penolong
+            Buka draf itu di <strong>Draf Saya</strong>. Sebab penolakan (jika dicatat)
+            tertera dalam medan Nota. Jika tiada catatan, tanya terus Ketua Editor/Penolong
             yang menolak.
           </Card>
           <Card title="Bila perlu hubungi Ketua Editor/Penolong">
@@ -377,14 +381,14 @@ export const PanduanConsole: React.FC = () => {
         <PanelCard padding="p-4">
           <dl>
             <Kamus istilah="Slot" maksud="Satu daripada 38 ruang kad tetap di muka depan (+ Ticker). Setiap slot terkunci kepada satu Bidang." />
-            <Kamus istilah="Bidang" maksud="Kategori tetap satu slot (cth. Ekonomi, Kebudayaan); semua kandungan dalam slot tu mesti sepadan." />
+            <Kamus istilah="Bidang" maksud="Kategori tetap satu slot (cth. Ekonomi, Kebudayaan); semua kandungan dalam slot itu mesti sepadan." />
             <Kamus istilah="Topik" maksud="Sub-label bebas per-kandungan dalam Bidang yang sama, wajib diisi setiap kali menulis." />
             <Kamus istilah="Draf" maksud="Kerja belum siap/belum dihantar; hanya anda (atau pemilik) boleh nampak dan sunting di Draf Saya." />
             <Kamus istilah="Menunggu" maksud="Sudah dihantar, belum jadi kandungan Aktif, sama ada tunggu semakan manusia atau tunggu slot kosong (lihat seksyen 07)." />
             <Kamus istilah="Aktif" maksud="Kandungan yang sedang tersiar di muka depan." />
-            <Kamus istilah="Arkib" maksud="Kandungan yang pernah Aktif tapi sudah ditarik/luput; masih ada rekod, tidak dipaparkan." />
+            <Kamus istilah="Arkib" maksud="Kandungan yang pernah Aktif tetapi sudah ditarik/luput; masih ada rekod, tidak dipaparkan." />
             <Kamus istilah="Ditolak" maksud="Keputusan penyemak menolak kandungan Menunggu; ia pulang jadi draf boleh sunting, bukan dipadam." />
-            <Kamus istilah="Bajet Ruang" maksud="Had aksara kongsi tajuk+huraian ikut saiz fizikal kad tu (tier)." />
+            <Kamus istilah="Bajet Ruang" maksud="Had aksara kongsi tajuk+huraian ikut saiz fizikal kad itu (tier)." />
             <Kamus istilah="Dasar Terbit Sendiri Editor" maksud="Suis (Tetapan → Tetapan Am Slot) yang tentukan sama ada Editor boleh luluskan kandungan sendiri tanpa Ketua Editor/Penolong." />
             <Kamus istilah="Terbit Semua" maksud="Hantar semua draf yang lulus bajet ruang dalam satu slot sekaligus." />
           </dl>

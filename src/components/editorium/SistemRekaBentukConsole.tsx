@@ -20,7 +20,7 @@ import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../commo
 
 const COLOR_TOKENS = [
   { varName: '--color-Adjung-maroon', tw: 'bg-Adjung-maroon', usage: 'Aksen jenama utama — butang, pautan, wordmark, sempadan aktif.' },
-  { varName: '--color-Adjung-maroon-dark', tw: 'bg-Adjung-maroon-dark', usage: 'State hover/tekan bagi elemen maroon. Terbitan HSL -10 lightness drpd maroon utama (349deg 57% 32% -> 22%), bukan tekaan tangan.' },
+  { varName: '--color-Adjung-maroon-dark', tw: 'bg-Adjung-maroon-dark', usage: 'Keadaan hover/tekan bagi elemen maroon. Terbitan HSL -10 kecerahan daripada maroon utama (349deg 57% 32% -> 22%), bukan tekaan tangan.' },
   { varName: '--color-Adjung-cream', tw: 'bg-Adjung-cream', usage: 'Latar halaman (portal awam & Editorium, diselaraskan 2026-07-26).' },
   { varName: '--color-Adjung-dark', tw: 'bg-Adjung-dark', usage: 'Warna teks/ink utama.' },
   { varName: '--color-Adjung-gray-light', tw: 'bg-Adjung-gray-light', usage: 'Neutral cair — sempadan, latar sekunder.' },

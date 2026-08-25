@@ -1404,7 +1404,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           {tawaranPulih && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
               <span className="font-sans text-xs text-stone-700">
-                Draf tempatan daripada sesi lalu dijumpai (disimpan {masaRelatifRingkas(tawaranPulih.pada)}, tak sempat disimpan ke pelayan).
+                Draf tempatan daripada sesi lalu dijumpai (disimpan {masaRelatifRingkas(tawaranPulih.pada)}, tidak sempat disimpan ke pelayan).
               </span>
               <div className="flex items-center gap-2 shrink-0">
                 <button type="button" onClick={buangTawaranPulih} className="font-sans text-xs font-semibold text-stone-500 hover:text-stone-700 px-2 py-1 cursor-pointer">

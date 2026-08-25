@@ -59,7 +59,7 @@ interface Staff {
 const TAHAP_AMARAN_META: Record<number, { label: string; tone: StatusTone }> = {
   1: { label: 'Amaran 1', tone: 'warning' },
   2: { label: 'Amaran 2', tone: 'warning' },
-  3: { label: 'Digantung (tak aktif)', tone: 'error' },
+  3: { label: 'Digantung (tidak aktif)', tone: 'error' },
 };
 
 // Satu baris jadual anggota — diasingkan (2026-08-16) supaya boleh dipanggil dua tempat (kumpulan

@@ -106,7 +106,7 @@ const UNIVERSAL_RULES = [
     body: <>Kalau terpaksa guna Bahasa Inggeris (tiada padanan Melayu yang diluluskan lagi), tulis dengan huruf condong (<em className="italic">italic</em>). Lihat carta tier di bawah: Bar dan Ticker kini bertulis condong kerana sebab ini.</>,
   },
   {
-    title: 'Fon tajuk tak boleh lebih kecil daripada fon huraian.',
+    title: 'Fon tajuk tidak boleh lebih kecil daripada fon huraian.',
     body: <>Saiz fon huraian tetap pada 14px (inline style yang mengatasi mana-mana class Tailwind) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier dan <em className="italic">breakpoint</em> (class Tailwind sahaja, tiada paksaan). Oleh sebab tajuk bersifat dinamik (panjang & saiz berubah ikut tier) tapi huraian bersifat tetap, setiap kombinasi tier dan breakpoint MESTI disemak: fon tajuk {'>='} 14px pada semua saiz skrin. (Diketahui melanggar setakat ini: kad Kompak guna text-xs [12px] untuk tajuk di bawah breakpoint md, belum dibetulkan, tunggu arahan.)</>,
   },
   {
