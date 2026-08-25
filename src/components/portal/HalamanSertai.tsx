@@ -25,8 +25,63 @@ interface BidangAwam {
 
 const INPUT_KELAS =
   'w-full border border-stone-300 rounded px-3 py-2 font-sans text-sm text-stone-800 bg-white focus:outline-none focus:border-[#802334] transition-colors';
+const INPUT_RALAT_KELAS =
+  'w-full border border-[#a8241f] rounded px-3 py-2 font-sans text-sm text-stone-800 bg-white focus:outline-none focus:border-[#a8241f] transition-colors';
 const LABEL_KELAS = 'font-sans text-xs font-semibold text-stone-700';
 const NOTA_KELAS = 'font-sans text-[11px] text-stone-500 mt-1';
+const RALAT_MEDAN_KELAS = 'font-sans text-[11px] text-[#a8241f] mt-1';
+
+// Senarai negeri/wilayah tetap (2026-08-25, teguran Izzat: "takkanlah boleh masukkan mcm ni
+// kan? kena auto validate kan?") — Negeri kini pilihan senarai, bukan teks bebas. Senarai SAMA
+// disemak semula di pelayan (permohonanEditorRoutes.js, NEGERI_SAH) supaya tidak boleh dipintas.
+export const NEGERI_SAH = [
+  'Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis',
+  'Pulau Pinang', 'Sabah', 'Sarawak', 'Selangor', 'Terengganu',
+  'Wilayah Persekutuan Kuala Lumpur', 'Wilayah Persekutuan Labuan', 'Wilayah Persekutuan Putrajaya',
+  'Luar Malaysia',
+];
+
+// Pengesahan per-medan — pulangkan mesej ralat atau '' jika sah. Peraturan DICERMINKAN di
+// pelayan (permohonanEditorRoutes.js, sahkanMedanPermohonan) — ubah di sana juga jika diubah
+// di sini, kalau tidak borang lulus di pelayar tetapi ditolak pelayan (atau sebaliknya).
+export function sahkanMedan(medan: string, nilai: string): string {
+  const v = nilai.trim();
+  switch (medan) {
+    case 'namaPenuh':
+      if (!v) return 'Sila isi nama penuh anda.';
+      if (!/^[\p{L}][\p{L}\p{M}'’.\- ]{2,}$/u.test(v)) return 'Nama penuh hanya boleh mengandungi huruf, ruang, tanda sempang dan noktah.';
+      if (!v.includes(' ')) return 'Sila berikan nama penuh anda, bukan satu perkataan sahaja.';
+      return '';
+    case 'emel':
+      if (!v) return 'Sila isi alamat e-mel anda.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return 'Alamat e-mel tidak sah. Contoh: nama@contoh.com';
+      return '';
+    case 'telefon': {
+      if (!v) return 'Sila isi nombor telefon anda.';
+      if (!/^\+?[0-9 ()\-]+$/.test(v)) return 'Nombor telefon hanya boleh mengandungi angka, ruang, tanda sempang dan tanda tambah.';
+      const angka = v.replace(/[^0-9]/g, '');
+      if (angka.length < 9 || angka.length > 15) return 'Nombor telefon mesti antara 9 hingga 15 angka. Contoh: 012-3456789';
+      return '';
+    }
+    case 'negeri':
+      if (!v) return 'Sila pilih negeri menetap anda.';
+      if (!NEGERI_SAH.includes(v)) return 'Sila pilih negeri daripada senarai.';
+      return '';
+    case 'kelulusan':
+      if (!v) return 'Sila isi kelulusan anda.';
+      if (v.length < 8 || !/\p{L}{3,}/u.test(v)) return 'Sila nyatakan kelulusan dengan lengkap, contohnya nama kursus, universiti dan tahun graduasi.';
+      return '';
+    case 'motivasi':
+      if (!v) return 'Sila isi bahagian ini.';
+      if (v.length < 20) return 'Sila terangkan dengan lebih lengkap, sekurang-kurangnya 20 aksara.';
+      return '';
+    case 'pautanContoh':
+      if (v && !/^https?:\/\/[^\s]+\.[^\s]{2,}/.test(v)) return 'Pautan mesti bermula dengan http:// atau https://';
+      return '';
+    default:
+      return '';
+  }
+}
 
 export const HalamanSertai: React.FC = () => {
   const [senaraiBidang, setSenaraiBidang] = useState<BidangAwam[]>([]);
@@ -47,6 +102,14 @@ export const HalamanSertai: React.FC = () => {
   const [menghantar, setMenghantar] = useState(false);
   const [ralat, setRalat] = useState('');
   const [berjaya, setBerjaya] = useState(false);
+  // Ralat per-medan (2026-08-25) — disemak semasa medan ditinggalkan (onBlur) dan sekali lagi
+  // semasa hantar; mesej dipaparkan terus di bawah medan berkenaan, bukan satu mesej umum.
+  const [ralatMedan, setRalatMedan] = useState<Record<string, string>>({});
+
+  const semakMedan = (medan: string, nilai: string) => {
+    setRalatMedan((prev) => ({ ...prev, [medan]: sahkanMedan(medan, nilai) }));
+  };
+  const kelasInput = (medan: string) => (ralatMedan[medan] ? INPUT_RALAT_KELAS : INPUT_KELAS);
 
   useEffect(() => {
     fetch('/api/system/categories/active')
@@ -64,12 +127,26 @@ export const HalamanSertai: React.FC = () => {
   const hantar = async (e: React.FormEvent) => {
     e.preventDefault();
     setRalat('');
-    if (!namaPenuh.trim() || !emel.trim() || !telefon.trim() || !negeri.trim() || !kelulusan.trim() || !motivasi.trim()) {
-      setRalat('Sila lengkapkan semua medan wajib.');
-      return;
+    const nilaiMedan: Record<string, string> = {
+      namaPenuh, emel, telefon, negeri, kelulusan, motivasi, pautanContoh,
+    };
+    const semuaRalat: Record<string, string> = {};
+    for (const [medan, nilai] of Object.entries(nilaiMedan)) {
+      const mesej = sahkanMedan(medan, nilai);
+      if (mesej) semuaRalat[medan] = mesej;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emel.trim())) {
-      setRalat('Alamat e-mel tidak sah.');
+    setRalatMedan(semuaRalat);
+    if (Object.keys(semuaRalat).length > 0) {
+      setRalat('Sila betulkan medan yang ditanda.');
+      // Skrol ke medan bermasalah PERTAMA ikut susunan borang (id medan = 'sertai-<medan>').
+      const susunan = ['namaPenuh', 'emel', 'telefon', 'negeri', 'kelulusan', 'pautanContoh', 'motivasi'];
+      const idMedan: Record<string, string> = {
+        namaPenuh: 'sertai-nama', emel: 'sertai-emel', telefon: 'sertai-telefon',
+        negeri: 'sertai-negeri', kelulusan: 'sertai-kelulusan',
+        pautanContoh: 'sertai-pautan', motivasi: 'sertai-motivasi',
+      };
+      const pertama = susunan.find((m) => semuaRalat[m]);
+      if (pertama) document.getElementById(idMedan[pertama])?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     if (bidangMinat.length === 0) {
@@ -124,7 +201,7 @@ export const HalamanSertai: React.FC = () => {
         </h1>
         <p className="font-serif text-[15px] leading-relaxed text-stone-700 mb-8">
           Adjung Brief sentiasa mencari penulis dan penyunting yang menghargai ketelitian bahasa
-          dan integriti editorial. Lengkapkan borang di bawah — Ketua Editor akan menyemak setiap
+          dan integriti editorial. Lengkapkan borang di bawah. Ketua Editor akan menyemak setiap
           permohonan dan menghubungi anda melalui e-mel jika permohonan diterima.
         </p>
 
@@ -148,26 +225,35 @@ export const HalamanSertai: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className={LABEL_KELAS} htmlFor="sertai-nama">Nama penuh *</label>
-                <input id="sertai-nama" type="text" className={INPUT_KELAS} value={namaPenuh} onChange={(e) => setNamaPenuh(e.target.value)} maxLength={120} />
+                <input id="sertai-nama" type="text" className={kelasInput('namaPenuh')} value={namaPenuh} onChange={(e) => setNamaPenuh(e.target.value)} onBlur={(e) => semakMedan('namaPenuh', e.target.value)} maxLength={120} placeholder="Contoh: Ahmad Fikri bin Zulkifli" />
+                {ralatMedan.namaPenuh && <p className={RALAT_MEDAN_KELAS}>{ralatMedan.namaPenuh}</p>}
               </div>
               <div>
                 <label className={LABEL_KELAS} htmlFor="sertai-emel">E-mel *</label>
-                <input id="sertai-emel" type="email" className={INPUT_KELAS} value={emel} onChange={(e) => setEmel(e.target.value)} maxLength={160} />
+                <input id="sertai-emel" type="email" className={kelasInput('emel')} value={emel} onChange={(e) => setEmel(e.target.value)} onBlur={(e) => semakMedan('emel', e.target.value)} maxLength={160} placeholder="nama@contoh.com" />
+                {ralatMedan.emel && <p className={RALAT_MEDAN_KELAS}>{ralatMedan.emel}</p>}
               </div>
               <div>
                 <label className={LABEL_KELAS} htmlFor="sertai-telefon">Nombor telefon *</label>
-                <input id="sertai-telefon" type="tel" className={INPUT_KELAS} value={telefon} onChange={(e) => setTelefon(e.target.value)} maxLength={30} />
+                <input id="sertai-telefon" type="tel" className={kelasInput('telefon')} value={telefon} onChange={(e) => setTelefon(e.target.value)} onBlur={(e) => semakMedan('telefon', e.target.value)} maxLength={30} placeholder="012-3456789" />
+                {ralatMedan.telefon && <p className={RALAT_MEDAN_KELAS}>{ralatMedan.telefon}</p>}
               </div>
               <div>
                 <label className={LABEL_KELAS} htmlFor="sertai-negeri">Negeri menetap *</label>
-                <input id="sertai-negeri" type="text" className={INPUT_KELAS} value={negeri} onChange={(e) => setNegeri(e.target.value)} maxLength={60} />
+                <select id="sertai-negeri" className={`${kelasInput('negeri')} ${negeri ? '' : 'text-stone-400'}`} value={negeri} onChange={(e) => { setNegeri(e.target.value); semakMedan('negeri', e.target.value); }} onBlur={(e) => semakMedan('negeri', e.target.value)}>
+                  <option value="" disabled>Pilih negeri…</option>
+                  {NEGERI_SAH.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                {ralatMedan.negeri && <p className={RALAT_MEDAN_KELAS}>{ralatMedan.negeri}</p>}
               </div>
             </div>
 
             <div>
               <label className={LABEL_KELAS} htmlFor="sertai-kelulusan">Kelulusan *</label>
-              <input id="sertai-kelulusan" type="text" className={INPUT_KELAS} value={kelulusan} onChange={(e) => setKelulusan(e.target.value)} maxLength={200} placeholder="Contoh: Sarjana Muda Komunikasi, Universiti Malaya, 2022" />
-              <p className={NOTA_KELAS}>Nama kursus, universiti dan tahun graduasi.</p>
+              <input id="sertai-kelulusan" type="text" className={kelasInput('kelulusan')} value={kelulusan} onChange={(e) => setKelulusan(e.target.value)} onBlur={(e) => semakMedan('kelulusan', e.target.value)} maxLength={200} placeholder="Contoh: Sarjana Muda Komunikasi, Universiti Malaya, 2022" />
+              {ralatMedan.kelulusan ? <p className={RALAT_MEDAN_KELAS}>{ralatMedan.kelulusan}</p> : <p className={NOTA_KELAS}>Nama kursus, universiti dan tahun graduasi.</p>}
             </div>
 
             <div>
@@ -205,13 +291,14 @@ export const HalamanSertai: React.FC = () => {
 
             <div>
               <label className={LABEL_KELAS} htmlFor="sertai-pautan">Pautan contoh penulisan (jika ada)</label>
-              <input id="sertai-pautan" type="url" className={INPUT_KELAS} value={pautanContoh} onChange={(e) => setPautanContoh(e.target.value)} maxLength={300} placeholder="https://" />
-              <p className={NOTA_KELAS}>Blog, portfolio, artikel yang pernah diterbitkan, atau dokumen awam.</p>
+              <input id="sertai-pautan" type="url" className={kelasInput('pautanContoh')} value={pautanContoh} onChange={(e) => setPautanContoh(e.target.value)} onBlur={(e) => semakMedan('pautanContoh', e.target.value)} maxLength={300} placeholder="https://" />
+              {ralatMedan.pautanContoh ? <p className={RALAT_MEDAN_KELAS}>{ralatMedan.pautanContoh}</p> : <p className={NOTA_KELAS}>Blog, portfolio, artikel yang pernah diterbitkan, atau dokumen awam.</p>}
             </div>
 
             <div>
               <label className={LABEL_KELAS} htmlFor="sertai-motivasi">Mengapa anda mahu menyertai Adjung Brief? *</label>
-              <textarea id="sertai-motivasi" className={`${INPUT_KELAS} min-h-[100px]`} value={motivasi} onChange={(e) => setMotivasi(e.target.value)} maxLength={1500} />
+              <textarea id="sertai-motivasi" className={`${kelasInput('motivasi')} min-h-[100px]`} value={motivasi} onChange={(e) => setMotivasi(e.target.value)} onBlur={(e) => semakMedan('motivasi', e.target.value)} maxLength={1500} />
+              {ralatMedan.motivasi && <p className={RALAT_MEDAN_KELAS}>{ralatMedan.motivasi}</p>}
             </div>
 
             {/* Honeypot — disorok daripada manusia; bot yang mengisi medan ini ditolak pelayan. */}

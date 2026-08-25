@@ -16,6 +16,44 @@ import { logAudit } from '../audit/AuditLog.js';
 // nombor/logik — lihat CLAUDE.md 2026-07-25).
 
 const STATUS_SAH = ['baharu', 'diterima', 'ditolak'];
+
+// Pengesahan kandungan medan (2026-08-25, teguran Izzat: "takkanlah boleh masukkan mcm ni kan?
+// kena auto validate kan?") — peraturan DICERMINKAN daripada sahkanMedan() di HalamanSertai.tsx
+// (klien). Klien memberi mesej mesra per-medan; semakan di sini ialah gerbang SEBENAR (borang
+// boleh dipintas dengan curl). Ubah kedua-dua tempat serentak jika peraturan berubah.
+const NEGERI_SAH = [
+  'Johor', 'Kedah', 'Kelantan', 'Melaka', 'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis',
+  'Pulau Pinang', 'Sabah', 'Sarawak', 'Selangor', 'Terengganu',
+  'Wilayah Persekutuan Kuala Lumpur', 'Wilayah Persekutuan Labuan', 'Wilayah Persekutuan Putrajaya',
+  'Luar Malaysia',
+];
+
+function sahkanMedanPermohonan(b) {
+  const nama = b.namaPenuh.trim();
+  if (!/^[\p{L}][\p{L}\p{M}'’.\- ]{2,}$/u.test(nama) || !nama.includes(' ')) {
+    return 'Nama penuh tidak sah. Sila berikan nama penuh sebenar anda.';
+  }
+  const telefon = b.telefon.trim();
+  const angkaTelefon = telefon.replace(/[^0-9]/g, '');
+  if (!/^\+?[0-9 ()\-]+$/.test(telefon) || angkaTelefon.length < 9 || angkaTelefon.length > 15) {
+    return 'Nombor telefon tidak sah. Contoh: 012-3456789';
+  }
+  if (!NEGERI_SAH.includes(b.negeri.trim())) {
+    return 'Sila pilih negeri daripada senarai yang disediakan.';
+  }
+  const kelulusan = b.kelulusan.trim();
+  if (kelulusan.length < 8 || !/\p{L}{3,}/u.test(kelulusan)) {
+    return 'Sila nyatakan kelulusan dengan lengkap (nama kursus, universiti dan tahun graduasi).';
+  }
+  if (b.motivasi.trim().length < 20) {
+    return 'Sila terangkan motivasi anda dengan lebih lengkap, sekurang-kurangnya 20 aksara.';
+  }
+  const pautan = (b.pautanContoh || '').trim();
+  if (pautan && !/^https?:\/\/[^\s]+\.[^\s]{2,}/.test(pautan)) {
+    return 'Pautan contoh penulisan mesti bermula dengan http:// atau https://';
+  }
+  return '';
+}
 const HAD = {
   namaPenuh: 120,
   emel: 160,
@@ -54,8 +92,12 @@ export function createPermohonanEditorRoutes(dbAll, dbGet, dbRun) {
         }
       }
       const emel = b.emel.trim().toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emel)) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emel)) {
         return res.status(400).json({ error: 'Alamat e-mel tidak sah.' });
+      }
+      const ralatMedan = sahkanMedanPermohonan(b);
+      if (ralatMedan) {
+        return res.status(400).json({ error: ralatMedan });
       }
       const bidangMinat = Array.isArray(b.bidangMinat)
         ? b.bidangMinat.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()).slice(0, 10)
