@@ -179,7 +179,11 @@ const PautanBuku: React.FC<{ p: PetikanAwam; kelas: string }> = ({ p, kelas }) =
 // (cth satu terlupa Atribusi), ukuran tinggi jadi tak tepat lagi — SATU sumber elak persis itu.
 const KandunganPetikan: React.FC<{ p: PetikanAwam }> = ({ p }) => (
   <>
-    <p className="font-serif text-stone-900 text-sm leading-[1.7] max-w-2xl mx-auto text-pretty">
+    {/* Saiz fon responsif (2026-08-25, arahan Izzat: "petikan di telefon font dia kena sama saiz
+        dgn font utk huraian pendek di telefon") — telefon 12px (text-xs, diukur hidup: kesemua
+        p huraian pendek kad papar 12px pada 375px), desktop kekal 14px (text-sm, sepadan body
+        teks kad — lihat nota pemilihan saiz pada komen KunciTinggiPetikan di bawah). */}
+    <p className="font-serif text-stone-900 text-xs md:text-sm leading-[1.7] max-w-2xl mx-auto text-pretty">
       <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
       {safeParseInline(p.teks)}
       <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&rdquo;</span>
