@@ -48,6 +48,36 @@
     <meta name="twitter:title" content="Adjung Brief" />
     <meta name="twitter:description" content="Portal berita dan ilmu bahasa Melayu bergaya majalah ilmiah. Berita, ilmu dan kebudayaan disunting oleh pasukan editorial Adjung." />
     <meta name="twitter:image" content="https://brief.adjung.com/og-image.png" />
+
+    <!-- SEO tambahan (2026-08-25, arahan Izzat "selesaikan SEO utk brief") — canonical elak
+         isu kandungan pendua (www/http/parameter), penemuan suapan RSS untuk agregator, dan
+         JSON-LD peringkat organisasi/laman (halaman ARTIKEL sudah ada JSON-LD NewsArticle
+         sendiri melalui pra-terap bot, articleUrlRoutes.js — ini untuk halaman UTAMA). -->
+    <link rel="canonical" href="https://brief.adjung.com/" />
+    <link rel="alternate" type="application/rss+xml" title="Adjung Brief" href="https://brief.adjung.com/rss.xml" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "NewsMediaOrganization",
+          "@id": "https://brief.adjung.com/#organisasi",
+          "name": "Adjung Brief",
+          "url": "https://brief.adjung.com/",
+          "logo": "https://brief.adjung.com/og-image.png",
+          "parentOrganization": { "@type": "Organization", "name": "Adjung Press" }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://brief.adjung.com/#laman",
+          "name": "Adjung Brief",
+          "url": "https://brief.adjung.com/",
+          "inLanguage": "ms-MY",
+          "publisher": { "@id": "https://brief.adjung.com/#organisasi" }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -5,4 +5,6 @@
 User-agent: *
 Allow: /
 
-Sitemap: /sitemap.xml
+# URL sitemap mesti MUTLAK ikut spesifikasi sitemaps.org — URL relatif tidak dijamin
+# difahami semua crawler (dibetulkan 2026-08-25, audit SEO).
+Sitemap: https://brief.adjung.com/sitemap.xml

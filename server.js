@@ -56,6 +56,7 @@ import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes
 import { createDasarAktifRoutes, loadDasarAktifSettings, getDasarAktifAmbangMs, PERANAN_TERPAKAI_DASAR_AKTIF } from './core/routes/dasarAktifRoutes.js';
 import { createUserAdminRoutes } from './core/routes/userAdminRoutes.js';
 import { createPermohonanEditorRoutes } from './core/routes/permohonanEditorRoutes.js';
+import { hantarIndexNow } from './core/seo/IndexNow.js';
 import { createAuditLogRoutes } from './core/routes/auditLogRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createUiLabelRoutes } from './core/routes/uiLabelRoutes.js';
@@ -4495,4 +4496,16 @@ app.listen(PORT, '0.0.0.0', () => {
   bersihkanSesiLuput();
   setInterval(bersihkanSesiLuput, PEMBERSIHAN_SESI_INTERVAL_MS);
   console.log(`Pembersihan sesi luput aktif (sekali setiap ${PEMBERSIHAN_SESI_INTERVAL_MS / 3600000} jam).`);
+
+  // IndexNow (2026-08-25, SEO) — hantar semua URL sitemap ke enjin carian peserta (Bing/Yandex/
+  // Seznam/Naver) sekali sehari + sekali semasa boot (sama rasional larian-boot Semakan Tak
+  // Aktif di atas: restart kerap menetapkan semula jam 24-jam). Google tidak menyokong
+  // IndexNow — saluran Google ialah sitemap + Search Console. Kegagalan cuma direkodkan
+  // (lihat core/seo/IndexNow.js), tidak sekali-kali merebahkan pelayan.
+  const INDEXNOW_INTERVAL_MS = 24 * 60 * 60 * 1000;
+  const jalankanIndexNow = () => { hantarIndexNow().catch((err) => console.warn('[IndexNow] Ralat:', err?.message)); };
+  // Tangguh 60 saat selepas boot supaya pelayan sendiri sudah stabil sebelum fetch sitemap sendiri.
+  setTimeout(jalankanIndexNow, 60 * 1000);
+  setInterval(jalankanIndexNow, INDEXNOW_INTERVAL_MS);
+  console.log(`IndexNow aktif (sekali setiap ${INDEXNOW_INTERVAL_MS / 3600000} jam).`);
 });
