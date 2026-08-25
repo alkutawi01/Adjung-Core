@@ -8,10 +8,11 @@
 // sebenar (5 salinan nombor had aksara, 2026-07-25). Import terus daripada fail ni; JANGAN taip
 // semula senarai jenis animasi di tempat lain.
 
-// Empat jenis animasi carousel yang DILAKSANAKAN sebenar dalam kod (Fasa 7, 2026-08-04) — lihat
-// CarouselStableBlock (FrontpageView.tsx) untuk pelaksanaan penuh setiap satu. Senarai ni SENGAJA
-// terhad kepada apa yang wujud — jangan tawarkan pilihan yang tak dilaksanakan.
-export const JENIS_ANIMASI_ASAS = ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun'];
+// Lima jenis animasi carousel yang DILAKSANAKAN sebenar dalam kod (Fasa 7, 2026-08-04; swipe
+// ditambah 2026-08-25) — lihat CarouselStableBlock (FrontpageView.tsx) untuk pelaksanaan penuh
+// setiap satu. Senarai ni SENGAJA terhad kepada apa yang wujud — jangan tawarkan pilihan yang
+// tak dilaksanakan.
+export const JENIS_ANIMASI_ASAS = ['pudar', 'colophon', 'sapuan_lajur', 'gerak_susun', 'swipe'];
 
 // 'rawak' BUKAN jenis animasi sendiri — ia arahan pilih SATU drpd JENIS_ANIMASI_ASAS secara
 // rawak setiap kali carousel bertukar pusingan (2026-08-18, soalan Izzat). Peringkat GLOBAL

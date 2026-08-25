@@ -533,12 +533,12 @@ interface TetapanAnimasiCarousel {
   jenisAnimasiRawakPool: string[];
 }
 const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
-  jenisAnimasi: 'colophon',
+  jenisAnimasi: 'swipe',
   arahAnimasi: 'kanan',
   warnaPanelTransisi: '#802334',
   ambilLogoTransisi: () => ({ jenis: 'adjung' }),
   arahUntukSlot: () => 'kanan',
-  jenisAnimasiUntukSlot: () => 'colophon',
+  jenisAnimasiUntukSlot: () => 'swipe',
   animasiAktif: true,
   kelajuanAnimasi: 1,
   warnaPanelUntukSlot: () => '#802334',
@@ -572,7 +572,9 @@ export const LogoTransisiAdjung: React.FC = () => (
 // LAWAN drpd `arahAnimasi` sebenar supaya dua jenis animasi ni kekal kelihatan berbeza antara satu
 // sama lain (bukan Colophon perlahan) — sepadan kelakuan asal (dahulu arah dikunci kod, bukan
 // tetapan; sekarang boleh tetap, tapi hubungan bertentangan dikekalkan).
-const VEKTOR_ARAH: Record<string, { masuk: string; keluar: string }> = {
+// Diekspot (2026-08-25) — dipakai TERUS oleh AnimasiPratonton.tsx utk jenis 'swipe' (sama rasional
+// LogoTransisiAdjung/vektorArahOverlay di atas: primitif visual tulen, tiada pergantungan DOM).
+export const VEKTOR_ARAH: Record<string, { masuk: string; keluar: string }> = {
   kanan: { masuk: 'translateX(100%)', keluar: 'translateX(-100%)' },
   kiri: { masuk: 'translateX(-100%)', keluar: 'translateX(100%)' },
   atas: { masuk: 'translateY(-100%)', keluar: 'translateY(100%)' },
@@ -1022,6 +1024,57 @@ const CarouselStableBlock: React.FC<{
       return () => cancelAnimationFrame(rafId);
     }
 
+    // Swipe (2026-08-25, permintaan Izzat, disahkan lewat pratonton mockup dahulu) — BERBEZA drpd
+    // Colophon/Sapuan Lajur (tiada panel penutup) DAN drpd Gerak Susun (tiada logo/3-panel, cuma
+    // DUA lapisan). Kandungan lama menolak terus ke arah animasi (arahEfektif), kandungan baharu
+    // mengekorinya masuk dari arah bertentangan SERENTAK — satu gerakan berterusan sahaja, tiada
+    // fasa "tahan" macam Colophon/Sapuan Lajur. Guna kembali indeksLamaGerak/fasaGerak/padGerak
+    // (state dikongsi dgn Gerak Susun) — kedua-dua jenis animasi ni saling eksklusif dalam SATU
+    // kitaran transisi, jadi kongsi state selamat (sama corak visualIndex/overlayAktif sedia ada).
+    if (jenisEfektif === 'swipe') {
+      const prefersReduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) {
+        if (overflowAsalRef.current !== null && kadUntukJenis) {
+          kadUntukJenis.style.overflow = overflowAsalRef.current;
+          overflowAsalRef.current = null;
+        }
+        setVisualIndex(activeIndex);
+        setOverlayAktif(false);
+        return;
+      }
+      const kadPenuh = kadUntukJenis;
+      if (kadPenuh) {
+        if (getComputedStyle(kadPenuh).position === 'static') kadPenuh.style.position = 'relative';
+        if (overflowAsalRef.current === null) overflowAsalRef.current = kadPenuh.style.overflow || '';
+        kadPenuh.style.overflow = 'hidden';
+        const gayaKad = getComputedStyle(kadPenuh);
+        setPadGerak({
+          top: parseFloat(gayaKad.paddingTop) || 0,
+          right: parseFloat(gayaKad.paddingRight) || 0,
+          bottom: parseFloat(gayaKad.paddingBottom) || 0,
+          left: parseFloat(gayaKad.paddingLeft) || 0,
+        });
+      }
+      setPortalTarget(kadPenuh);
+      setIndeksLamaGerak(indeksSebelum);
+      // visualIndex serta-merta (sama rasional Gerak Susun) — senarai bertindan di bawah
+      // tersembunyi (opacity 0, lihat swipeAktif) sepanjang overlayAktif.
+      setVisualIndex(activeIndex);
+      setFasaGerak('diam');
+      setOverlayAktif(true);
+      const tempohSwipe = Math.round(640 * kelajuanEfektif);
+      const rafId = requestAnimationFrame(() => {
+        overlayTimersRef.current.push(setTimeout(() => setFasaGerak('gerak'), 20));
+      });
+      overlayTimersRef.current.push(setTimeout(() => {
+        setOverlayAktif(false);
+        setFasaGerak('diam');
+        if (kadPenuh) kadPenuh.style.overflow = overflowAsalRef.current || '';
+        overflowAsalRef.current = null;
+      }, tempohSwipe + 20));
+      return () => cancelAnimationFrame(rafId);
+    }
+
     const prefersReduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const overlayBerkenaan = (jenisEfektif === 'colophon' || jenisEfektif === 'sapuan_lajur') && !prefersReduced;
 
@@ -1102,6 +1155,10 @@ const CarouselStableBlock: React.FC<{
   // ni, regangan 3-panel (JSX di bawah) yang kelihatan sebaliknya.
   const gerakAktif = jenisEfektifRender === 'gerak_susun' && overlayAktif;
   const tempohGerakMs = Math.round(900 * kelajuanEfektifRender);
+  // Swipe aktif — sama rasional gerakAktif di atas (senarai bertindan tersembunyi, dua lapisan
+  // JSX di bawah yang kelihatan sebaliknya).
+  const swipeAktif = jenisEfektifRender === 'swipe' && overlayAktif;
+  const tempohSwipeMs = Math.round(640 * kelajuanEfektifRender);
   // Tempoh Pudar (2026-08-16, keputusan Izzat: "kelajuan animasi juga sepatutnya ada. pudar
   // sepatutnya boleh dilaraskan masa atau tempohnya") — dahulu TETAP 1000ms tanpa mengira
   // kelajuanEfektifRender. Kini ikut kelajuan SAMA macam Colophon/Sapuan Lajur/Gerak Susun.
@@ -1211,7 +1268,7 @@ const CarouselStableBlock: React.FC<{
             // the stretched size instead of the item's true natural content height, masking
             // any real variance on every subsequent measurement.
             alignSelf: 'start',
-            opacity: gerakAktif ? 0 : (i === indexDipaparkan ? 1 : 0),
+            opacity: (gerakAktif || swipeAktif) ? 0 : (i === indexDipaparkan ? 1 : 0),
             // Tempoh ikut kelajuanEfektifRender (2026-08-16, dahulu 1s TETAP — lihat nota
             // tempohPudarMs). Peralihan opacity ni SECARA KELIHATAN cuma berlaku bagi jenis
             // 'pudar' — jenis lain (Colophon/Sapuan Lajur/Gerak Susun) sentiasa overlayAktif=true
@@ -1300,6 +1357,39 @@ const CarouselStableBlock: React.FC<{
                 <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}>{renderItem(list[activeIndex] || {})}</div>
               </>
             )}
+          </div>
+        </div>,
+        portalTarget
+      )}
+      {/* Swipe (2026-08-25, permintaan Izzat, disahkan lewat pratonton mockup dahulu) — BERBEZA
+          drpd Colophon/Sapuan Lajur (tiada panel penutup) DAN drpd Gerak Susun (tiada logo/3-
+          panel, cuma DUA lapisan kandungan SEBENAR — panggilan semula renderItem(), bukan
+          snapshot). Kandungan lama (lapisan atas) menolak ke arah `arahEfektif.masuk` (VEKTOR_ARAH
+          — namanya "masuk" sebab table sama dikongsi dgn panel Colophon/Sapuan Lajur yang guna
+          maksud terbalik; di sini ia SEKADAR "kedudukan hujung" lapisan lama), kandungan baharu
+          (lapisan bawah, mula di `.keluar` — kedudukan bertentangan, tersembunyi di luar kad)
+          bergerak SERENTAK ke translate(0) — satu gerakan berterusan, tiada fasa "tahan". */}
+      {overlayAktif && portalTarget && jenisEfektifRender === 'swipe' && createPortal(
+        <div className="absolute inset-0 z-40 overflow-hidden pointer-events-none" aria-hidden="true">
+          <div
+            className="absolute inset-0"
+            style={{
+              padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px`,
+              transform: fasaGerak === 'gerak' ? (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).masuk : 'translate(0, 0)',
+              transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+            }}
+          >
+            {renderItem(list[indeksLamaGerak] || {})}
+          </div>
+          <div
+            className="absolute inset-0"
+            style={{
+              padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px`,
+              transform: fasaGerak === 'gerak' ? 'translate(0, 0)' : (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).keluar,
+              transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+            }}
+          >
+            {renderItem(list[activeIndex] || {})}
           </div>
         </div>,
         portalTarget
@@ -2162,7 +2252,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // carousel bento sekali gus. Lalai 'pudar' (opacity fade sedia ada) supaya kelakuan tak berubah
   // sekiranya panggilan gagal.
   const [tetapanAnimasiMentah, setTetapanAnimasiMentah] = useState({
-    jenisAnimasi: 'colophon', arahAnimasi: 'kanan', warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0,
+    jenisAnimasi: 'swipe', arahAnimasi: 'kanan', warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0,
     animasiAktif: true, kelajuanAnimasi: 1, modWarnaPanel: 'pelbagai',
     jenisAnimasiRawakPool: JENIS_ANIMASI_ASAS as string[],
   });
@@ -2176,7 +2266,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         if (d && d.mulaIkutMasa !== undefined) setMulaIkutMasa(!!d.mulaIkutMasa);
         if (d) {
           setTetapanAnimasiMentah({
-            jenisAnimasi: d.jenisAnimasi || 'colophon',
+            jenisAnimasi: d.jenisAnimasi || 'swipe',
             arahAnimasi: d.arahAnimasi || 'kanan',
             warnaPanelTransisi: d.warnaPanelTransisi || '#802334',
             nisbahPenajaTransisi: Number(d.nisbahPenajaTransisi) || 0,

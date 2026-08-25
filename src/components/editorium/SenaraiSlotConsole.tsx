@@ -175,7 +175,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
   // jenis EFEKTIF ialah Pudar) — perlu tahu jenis am supaya slot yang tak override langsung
   // (jenisAnimasiOverride='') tetap tunjuk "Tidak berkaitan" dgn betul, bukan cuma slot yang
   // override 'pudar' secara eksplisit. Corak sama seperti amWarnaPanel/amKelajuan di atas.
-  const [amJenis, setAmJenis] = useState('colophon');
+  const [amJenis, setAmJenis] = useState('swipe');
   // Arah LALAI am (2026-08-16, keperluan Pratonton Animasi — Tetapan Kad perlu tahu arah
   // EFEKTIF slot, sama rasional amJenis di atas).
   const [amArah, setAmArah] = useState('kanan');
@@ -965,6 +965,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
               <option value="colophon">Colophon (panel maroon menegak)</option>
               <option value="sapuan_lajur">Sapuan Lajur (panel maroon sapu)</option>
               <option value="gerak_susun">Gerak Susun (kandungan+logo bergerak)</option>
+              <option value="swipe">Swipe (kandungan menolak keluar/masuk)</option>
             </select>
           </div>
           <div className="flex flex-col gap-1">

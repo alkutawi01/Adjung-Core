@@ -14,7 +14,11 @@ import { logAudit } from '../audit/AuditLog.js';
 export const AM_DEFAULTS = {
   mulaIkutMasa: 1,
   hadKandunganSlot: 0,
-  jenisAnimasi: 'colophon',
+  // Lalai ditukar 'colophon' -> 'swipe' (2026-08-25, keputusan Izzat selepas semak pratonton
+  // mockup) — Swipe kini jenis LALAI pemasangan baharu; pemasangan sedia ada yang sudah simpan
+  // baris slot_am_settings.jenisAnimasi eksplisit TIDAK terjejas (loadAmSettings() di bawah
+  // hanya jatuh balik ke lalai ni bila lajur kosong/NULL).
+  jenisAnimasi: 'swipe',
   arahAnimasi: 'kanan',
   // Togol aktif/nyahaktif + kelajuan (2026-08-07, permintaan Izzat eksplisit — "modul Slot-
   // Tetapan Am hanya untuk mengaktifkan atau menyahaktifkan pilihan animasi serta menetapkan
@@ -106,6 +110,12 @@ export const JENIS_ANIMASI = [
   // Kandungan lama bergerak keluar, diekori logo Adjung/penaja, diekori kandungan baharu — satu
   // regangan bergerak berterusan, arah kanan/kiri sahaja (tiada atas/bawah, ikut spesifikasi).
   { nilai: 'gerak_susun', label: 'Gerak Susun (kandungan+logo bergerak berturutan)' },
+  // Swipe (2026-08-25, permintaan Izzat eksplisit, disahkan lewat pratonton mockup dahulu) —
+  // BERBEZA drpd ketiga-tiga di atas: TIADA panel penutup langsung. Kandungan lama (ikon, tarikh,
+  // tajuk, huraian, sumber+tarikh sumber sekali) menolak terus keluar ke arah animasi, diekori
+  // SERENTAK oleh kandungan baharu yang masuk dari arah bertentangan — satu gerakan berterusan,
+  // bukan sembunyi-lalu-tukar di sebalik panel (lihat CarouselStableBlock).
+  { nilai: 'swipe', label: 'Swipe (kandungan menolak keluar, diekori kandungan baharu)' },
   // Rawak (2026-08-18, soalan Izzat) — BUKAN jenis animasi sendiri, ia arahan pilih SATU drpd 4
   // jenis di atas SECARA RAWAK setiap kali carousel bertukar pusingan (kolam pilihan boleh
   // dilaraskan editor, lihat jenisAnimasiRawakPool). Pemilihan sebenar berlaku client-side
@@ -153,7 +163,7 @@ export const loadAmSettings = async (dbGet) => {
       cache = {
         mulaIkutMasa: row.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: Number(row.hadKandunganSlot) || 0,
-        jenisAnimasi: row.jenisAnimasi || 'colophon',
+        jenisAnimasi: row.jenisAnimasi || 'swipe',
         arahAnimasi: row.arahAnimasi || 'kanan',
         animasiAktif: row.animasiAktif === 0 ? 0 : 1,
         // Lalai MATI bila lajur tiada/NULL (pemasangan sedia ada sebelum ciri ni) — sebaliknya
@@ -242,7 +252,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       const baharu = {
         mulaIkutMasa: b.mulaIkutMasa ? 1 : 0,
         hadKandunganSlot: nombor(b.hadKandunganSlot, 'Had bilangan kandungan'),
-        jenisAnimasi: JENIS_ANIMASI.some(j => j.nilai === b.jenisAnimasi) ? b.jenisAnimasi : 'colophon',
+        jenisAnimasi: JENIS_ANIMASI.some(j => j.nilai === b.jenisAnimasi) ? b.jenisAnimasi : 'swipe',
         arahAnimasi: ARAH_ANIMASI.some(a => a.nilai === b.arahAnimasi) ? b.arahAnimasi : 'kanan',
         animasiAktif: b.animasiAktif ? 1 : 0,
         petikanAktif: b.petikanAktif ? 1 : 0,

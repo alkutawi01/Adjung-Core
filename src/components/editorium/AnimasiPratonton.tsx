@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play } from 'lucide-react';
-import { vektorArahOverlay, LogoTransisiAdjung } from '../portal/FrontpageView';
+import { vektorArahOverlay, LogoTransisiAdjung, VEKTOR_ARAH } from '../portal/FrontpageView';
 
 // Pratonton Animasi Transisi Carousel (2026-08-16, permintaan Izzat: "sila buat pratonton supaya
 // editor nampak mcm mana bentuk dan rupa animasi tersebut termasuk dengan 3d [warna panel]") —
@@ -92,14 +92,15 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
       window.setTimeout(() => setTayang(false), tempohPudarMsJ + 50);
       return;
     }
-    if (j === 'gerak_susun') {
+    if (j === 'gerak_susun' || j === 'swipe') {
       setTayang(true);
       setFasaGerak('gerak');
+      const tempoh = j === 'swipe' ? Math.round(640 * kelajuan) : tempohGerakMsJ;
       window.setTimeout(() => {
         setAktif(lain);
         setFasaGerak('diam');
         setTayang(false);
-      }, tempohGerakMsJ);
+      }, tempoh);
       return;
     }
     // Colophon / Sapuan Lajur — sama formula FrontpageView.tsx (masukMasa/tahanMasa/jumlahMasa).
@@ -115,6 +116,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
   const jumlahMasa = masukMasa * 2 + tahanMasa;
   const tempohGerakMs = Math.round(900 * kelajuan);
   const tempohPudarMs = Math.round(1000 * kelajuan);
+  const tempohSwipeMs = Math.round(640 * kelajuan);
 
   return (
     <div className="space-y-1.5">
@@ -192,6 +194,28 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
                   <div className="w-1/3 h-full shrink-0 bg-stone-800"><KandunganContoh index={lain} /></div>
                 </>
               )}
+            </div>
+          </div>
+        )}
+        {tayang && jenisSemasa === 'swipe' && (
+          <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
+            <div
+              className="absolute inset-0 bg-stone-800"
+              style={{
+                transform: fasaGerak === 'gerak' ? (VEKTOR_ARAH[arah] || VEKTOR_ARAH.kanan).masuk : 'translate(0, 0)',
+                transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+              }}
+            >
+              <KandunganContoh index={aktif} />
+            </div>
+            <div
+              className="absolute inset-0 bg-stone-800"
+              style={{
+                transform: fasaGerak === 'gerak' ? 'translate(0, 0)' : (VEKTOR_ARAH[arah] || VEKTOR_ARAH.kanan).keluar,
+                transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+              }}
+            >
+              <KandunganContoh index={lain} />
             </div>
           </div>
         )}

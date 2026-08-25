@@ -1,5 +1,17 @@
 [
   {
+    "time": "2026-08-25T15:31:20.344Z",
+    "summary": "Tambah jenis animasi carousel baharu 'Swipe' (kandungan menolak keluar diekori kandungan baharu, tiada panel penutup) dan jadikan ia lalai pemasangan baharu",
+    "files": [
+      "core/editorial/AnimasiConfig.js",
+      "core/routes/slotAmRoutes.js",
+      "server.js",
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/editorium/SenaraiSlotConsole.tsx",
+      "src/components/editorium/AnimasiPratonton.tsx"
+    ]
+  },
+  {
     "time": "2026-08-15T03:43:41.684Z",
     "summary": "Notifikasi RSS gagal terkumpul kini sertakan waktu kegagalan TERAKHIR dalam teks (bukan cuma kiraan) -- editor boleh nilai sama ada insiden masih berlaku sekarang atau dah lama senyap",
     "files": [

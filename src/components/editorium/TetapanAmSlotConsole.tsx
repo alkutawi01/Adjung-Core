@@ -178,12 +178,12 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
         />
         <span className="font-mono text-[11px] text-stone-500">{draf.warnaPanelTransisi}</span>
       </label>
-      <label className="flex items-center gap-2 text-xs text-stone-600">
+      <label className="flex flex-wrap items-center gap-2 text-xs text-stone-600">
         <span className="font-semibold text-stone-700 text-[11px]">Nisbah Adjung : penaja</span>
         <select
           value={draf.nisbahPenajaTransisi}
           onChange={e => setDraf(p => p ? { ...p, nisbahPenajaTransisi: Number(e.target.value) } : p)}
-          className="px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-semibold text-xs bg-stone-50 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors"
+          className="max-w-full px-2.5 py-[calc(6px*var(--ed-kepadatan,1))] border border-stone-300 rounded font-semibold text-xs bg-stone-50 focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors"
         >
           {(draf.nisbahPenajaTransisiPilihan || [{ nilai: 0, label: 'Logo Adjung sahaja (tiada logo penaja)' }]).map(n => (
             <option key={n.nilai} value={n.nilai}>{n.label}</option>
