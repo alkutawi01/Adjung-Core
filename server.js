@@ -689,6 +689,15 @@ const initializeSchema = () => {
               db.run('ALTER TABLE slot_am_settings ADD COLUMN hadSumberMin INTEGER DEFAULT 0', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN hadTopikMin INTEGER DEFAULT 0', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN hadNotaEditorMin INTEGER DEFAULT 0', () => {});
+              // Jeda carousel (2026-08-26, permintaan Izzat: "pastikan pertukaran pertama carousel
+              // adalah selepas 15 saat" + "benarkan ketua editor laras tempoh masa pertukaran").
+              // carouselJedaPertama = LANTAI (floor) jeda sebelum pertukaran PERTAMA sebaik
+              // reload/akses (Math.max dgn carouselDelay per-slot sedia ada, lihat FrontpageView.tsx)
+              // — lalai 15s, boleh dilaras Ketua Editor. carouselTempohLalai = tempoh pertukaran
+              // BERULANG (interval) GLOBAL, terpakai SEMUA slot KECUALI ada override per-slot
+              // (slots_config.carouselIntervalOverride, Senarai Slot -> Tetapan Kad).
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN carouselJedaPertama INTEGER DEFAULT 15', () => {});
+              db.run('ALTER TABLE slot_am_settings ADD COLUMN carouselTempohLalai INTEGER DEFAULT 10', () => {});
             });
 
             // Penugasan editor kepada slot (2026-07-30). Banyak-ke-banyak: satu slot boleh
@@ -2582,6 +2591,14 @@ const initEditorialOS = (dbConn) => {
                               dbConn.run("ALTER TABLE editorial_objects ADD COLUMN slotIndex INTEGER", () => {
                                 dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselInterval INTEGER DEFAULT 10", () => {
                                   dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselDelay INTEGER DEFAULT 0", () => {
+                                    // Override tempoh carousel PER-SLOT (2026-08-26) — GANTIKAN carouselInterval
+                                    // di atas sebagai medan disunting Ketua Editor (lajur lama TETAP wujud, tak
+                                    // disentuh/dipadam — corak sama seperti logoPenaja lama). NULL (lalai lajur
+                                    // baharu) = "guna tetapan lalai" (slot_am_settings.carouselTempohLalai global);
+                                    // nilai = override slot ni sahaja. Sengaja TIADA DEFAULT (bukan 10 macam lajur
+                                    // lama) — supaya SEMUA slot mula dalam keadaan "ikut lalai global" secara
+                                    // automatik tanpa migrasi data (baris sedia ada tiada nilai utk lajur baharu ni).
+                                    dbConn.run("ALTER TABLE slots_config ADD COLUMN carouselIntervalOverride INTEGER", () => {});
                                     dbConn.run("ALTER TABLE slots_config ADD COLUMN generationLimit INTEGER DEFAULT 1", () => {
                                       dbConn.run("ALTER TABLE slots_config ADD COLUMN maxTitle INTEGER", () => {
                                         dbConn.run("ALTER TABLE slots_config ADD COLUMN maxBrief INTEGER", () => {
@@ -4004,7 +4021,10 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
     imageUrl: first.imageUrl || slot.manualImageUrl || '',
     language: lang,
     offset: 0,
-    carouselInterval: slot.carouselInterval || 10,
+    // Tempoh carousel (2026-08-26) — carouselIntervalOverride (per-slot, Senarai Slot -> Tetapan
+    // Kad) MENGATASI carouselTempohLalai (global, Tetapan Am Slot); lajur carouselInterval LAMA
+    // tak lagi dibaca di sini (dikekalkan dlm DB, bukan dipadam — lihat nota ALTER TABLE).
+    carouselInterval: slot.carouselIntervalOverride || getAmSettings().carouselTempohLalai || 10,
     carouselDelay: slot.carouselDelay || 0,
     maxTitle: slot.maxTitle,
     maxBrief: slot.maxBrief,

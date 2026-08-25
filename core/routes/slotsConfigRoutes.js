@@ -317,6 +317,13 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
           }
         }
 
+        // Override tempoh carousel PER-SLOT (2026-08-26) — corak SAMA seperti arahOverrideSah di
+        // bawah: nilai tak sah/kosong jatuh ke null (warisi carouselTempohLalai global), bukan
+        // ralat 500. 1-300 saat, sepadan had validasi slot_am_settings.carouselTempohLalai.
+        const carouselIntervalOverrideNombor = Number(slot.carouselIntervalOverride);
+        const carouselIntervalOverrideSah = Number.isInteger(carouselIntervalOverrideNombor) && carouselIntervalOverrideNombor >= 1 && carouselIntervalOverrideNombor <= 300
+          ? carouselIntervalOverrideNombor
+          : null;
         const arahOverrideSah = ['', 'kanan', 'kiri', 'atas', 'bawah'].includes(slot.arahOverride) ? slot.arahOverride : '';
         // Jenis animasi PER-SLOT (2026-08-07) — sanitasi sama corak macam arahOverrideSah di atas.
         // Override per-slot SENGAJA terhad kepada JENIS_ANIMASI_ASAS sahaja (TIADA 'rawak') —
@@ -354,12 +361,12 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         await dbRun(`
           INSERT OR REPLACE INTO slots_config (
             layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
-            manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselDelay, generationLimit, maxTitle, maxBrief, maxBriefLong, refreshHour, refreshDay, eventExpiryFilter,
+            manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselIntervalOverride, carouselDelay, generationLimit, maxTitle, maxBrief, maxBriefLong, refreshHour, refreshDay, eventExpiryFilter,
             aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType, genMode, arahOverride, jenisAnimasiOverride, warnaPanelOverride, kelajuanOverride, logoTransisiMode, updatedAt
-          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
-          slot.manualTitle, persistedManualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
+          slot.manualTitle, persistedManualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, carouselIntervalOverrideSah, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
           slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas', arahOverrideSah, jenisAnimasiOverrideSah, warnaPanelOverrideSah, kelajuanOverrideSah, logoTransisiModeSah, new Date().toISOString()
         ]);
 

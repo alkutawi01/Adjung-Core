@@ -1,5 +1,17 @@
 [
   {
+    "time": "2026-08-25T16:35:27.967Z",
+    "summary": "Set semula jam auto-putar carousel bila navigasi manual (elak 'terus kembali'); jeda 15s lalai (boleh laras) sebelum pertukaran pertama; tempoh pertukaran jadi tetapan global + override per-slot; pensel Sunting kelihatan semula di telefon (kedudukan selamat)",
+    "files": [
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/editorium/TetapanAmSlotConsole.tsx",
+      "src/components/editorium/SenaraiSlotConsole.tsx",
+      "core/routes/slotAmRoutes.js",
+      "core/routes/slotsConfigRoutes.js",
+      "server.js"
+    ]
+  },
+  {
     "time": "2026-08-25T15:58:49.453Z",
     "summary": "Betulkan overlay Swipe: latar pejal (bukan telus) elak footer sumber/tarikh + badge tarikh siaran + eyebrow ikon/topik 'berkelip'/tertinggal; kekalkan lalai animasi = Pudar sehingga disahkan selamat",
     "files": [

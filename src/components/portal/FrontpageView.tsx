@@ -715,6 +715,16 @@ const FooterHeightLock: React.FC<{
 // asal, tak hilang kedudukan/konteks bila lompat ke Editorium sunting. Sesi log masuk sama
 // (kuki sesi dikongsi rentas tab origin sama), jadi tab baharu terus log masuk tanpa perlu
 // sign-in semula.
+// Kedudukan DESKTOP (posisi bottom-N/right-N, prop sedia ada) dipeta ke padanan `md:` LITERAL
+// (2026-08-26) — Tailwind JIT imbas rentetan LITERAL dalam source, bukan gabungan rentetan masa
+// jalan (`md:${posisi}` takkan pernah dijana dalam CSS terkompil, sama kelas pepijat "hex mentah
+// runtime" CLAUDE.md rekodkan). Hanya 3 kombinasi wujud merentasi 30 tapak panggilan (disahkan
+// grep) — peta literal ni cukup, tak perlu skema lagi umum.
+const POSISI_DESKTOP_MD: Record<string, string> = {
+  'bottom-8 right-8': 'md:bottom-8 md:right-8',
+  'bottom-6 right-6': 'md:bottom-6 md:right-6',
+  'bottom-4 right-4': 'md:bottom-4 md:right-4',
+};
 const EditPensil: React.FC<{
   objectId?: string;
   role?: string;
@@ -724,12 +734,20 @@ const EditPensil: React.FC<{
   // Penyeragaman tooltip 25/8 (arahan Izzat): title= pelayar asal (kotak sistem yang tidak
   // boleh digayakan) ditukar ke komponen Tooltip kongsi — rupa sama dengan semua tooltip lain.
   // Tooltip mengklon butang terus (tiada elemen pembalut), jadi kedudukan absolute kekal tepat.
+  //
+  // Kelihatan di TELEFON juga (2026-08-26, susulan pepijat 91fe50a — dahulu `hidden md:block`
+  // terus sorok pensel di telefon elak bertindih badge tarikh siaran/lajur sumber, permintaan
+  // Izzat "pensel edit terus kandungan tu hilang di telefon"). Kedudukan telefon (top-10 right-4)
+  // BERBEZA drpd desktop (bottom-N right-N asal, dikekalkan tak berubah via md: di atas) — diukur
+  // sebenar (375px, pelbagai tier) selesa duduk di ruang kosong antara badge tarikh siaran/eyebrow
+  // (berakhir ~29px) dan tajuk (mula ~60px sekurang-kurangnya), tak bertindih kedua-duanya.
+  const posisiMd = POSISI_DESKTOP_MD[posisi] || 'md:bottom-6 md:right-6';
   return (
     <Tooltip text="Sunting kandungan ini (buka tab baharu)">
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); window.open(`/editorium?tab=kandungan&sub=semakan&itemId=${objectId}`, '_blank', 'noopener'); }}
-        className={`hidden md:block absolute ${posisi} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
+        className={`absolute top-10 right-4 md:top-auto md:right-auto ${posisiMd} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
         aria-label="Sunting kandungan ini (buka tab baharu)"
       >
         <Pencil className="w-3 h-3" />
@@ -2273,11 +2291,23 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
   const [carouselIndices, setCarouselIndices] = useState<{[key: number]: number}>({});
 
+  // Rujukan jam auto-putar SEMASA setiap slot (2026-08-26) — diisi/dikemas kini oleh effect
+  // setInterval di bawah, dibaca oleh majuKarusel() supaya navigasi manual boleh SET SEMULA jam
+  // slot berkenaan (bukan sekadar baca sahaja). Ref (bukan state) — tak patut cetus render sendiri.
+  const timerRefsMap = useRef<Record<number, { intervalId?: ReturnType<typeof setInterval>; intervalSecs: number; items: any[] }>>({});
+
   // Navigasi manual (klik anak panah / leret) untuk kad carousel — permintaan Izzat 2026-08-02:
   // pembaca tak patut perlu tunggu putaran automatik untuk lihat kandungan seterusnya. Guna
   // wraparound SAMA seperti timer automatik di bawah (moden % items.length) supaya kelakuan
-  // konsisten; timer automatik itu sendiri TIDAK direset/diberhentikan oleh navigasi manual — ia
-  // terus berjalan ikut jadual sedia ada (paling ringkas & selamat, tak sentuh seni bina timer).
+  // konsisten.
+  //
+  // Set semula jam auto-putar (2026-08-26, pepijat Izzat: "kandungan no. 3, saya swipe ke no. 2,
+  // ia terus kembali ke no. 3 semula") — timer setInterval slot ni dahulu TAK PERNAH direset oleh
+  // navigasi manual (keputusan asal 2026-08-02, "paling ringkas & selamat"), jadi kalau pusingan
+  // auto SEDIA DIJADUALKAN menembak sejurus selepas klik, ia terus maju daripada index SEMASA
+  // (yang baru ditukar manual tu) sekali lagi — nampak macam pembaca "ditolak balik". Kini
+  // navigasi manual padam+mula semula setInterval slot berkenaan drpd SAAT klik, jamin pembaca
+  // dapat TEMPOH JEDA PENUH tengok pilihan dia sebelum auto-putar sambung.
   const majuKarusel = React.useCallback((slotIdx: number, items: any[], arah: 1 | -1) => {
     if (!items || items.length <= 1) return;
     setCarouselIndices(prev => {
@@ -2285,6 +2315,17 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       const seterus = (semasa + arah + items.length) % items.length;
       return { ...prev, [slotIdx]: seterus };
     });
+    const rujukan = timerRefsMap.current[slotIdx];
+    if (rujukan) {
+      if (rujukan.intervalId) clearInterval(rujukan.intervalId);
+      rujukan.intervalId = setInterval(() => {
+        setCarouselIndices(prev => {
+          const currentIdx = prev[slotIdx] || 0;
+          const nextIdx = (currentIdx + 1) % rujukan.items.length;
+          return { ...prev, [slotIdx]: nextIdx };
+        });
+      }, rujukan.intervalSecs * 1000);
+    }
   }, []);
 
   // Tetapan Am Slot (Editorium → Slot → Tetapan Am). Lalai `true` supaya kelakuan sedia ada kekal
@@ -2301,6 +2342,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL, bukan per-Bidang/tier.
   // Lalai 1 / 15px sepadan kelakuan sedia ada sekiranya panggilan gagal.
   const [tetapanFontFocusView, setTetapanFontFocusView] = useState({ titleSizeScale: 1, bodySizePx: 15 });
+  // Jeda sebelum pertukaran PERTAMA carousel (2026-08-26, permintaan Izzat: "pastikan pertukaran
+  // pertama carousel adalah selepas 15 saat...tp benarkan ketua editor laraskan sendiri") — LANTAI
+  // (floor) dipakai bersama carouselDelay per-slot sedia ada (lihat useEffect setInterval di
+  // bawah, `Math.max`). Lalai 15 sekiranya panggilan gagal — sepadan keputusan Izzat.
+  const [jedaPertamaCarousel, setJedaPertamaCarousel] = useState(15);
   useEffect(() => {
     fetch('/api/system/slot-am-settings')
       .then(r => r.json())
@@ -2323,6 +2369,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             titleSizeScale: Number(d.focusViewTitleScale) || 1,
             bodySizePx: Number(d.focusViewBodySize) || 15,
           });
+          setJedaPertamaCarousel(Number(d.carouselJedaPertama) > 0 ? Number(d.carouselJedaPertama) : 15);
         }
       })
       .catch(() => {});
@@ -2510,11 +2557,19 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     rawBentoNewsItems.forEach((slotItem) => {
       if (!slotItem) return;
       const actualSlotIdx = slotItem.rawIndex > 0 ? slotItem.rawIndex - 1 : slotItem.index;
-      
-      const items = slotItem.items || [];
-      if (items.length <= 1) return;
 
-      const initialDelaySecs = slotItem.carouselDelay || 0;
+      const items = slotItem.items || [];
+      if (items.length <= 1) {
+        delete timerRefsMap.current[actualSlotIdx];
+        return;
+      }
+
+      // Lantai (floor) jeda pertukaran PERTAMA (2026-08-26) — carouselDelay per-slot (Lengah Mula/
+      // "Agih Lengah Bertingkat", Tetapan Am Slot) kekal berfungsi UNTUK slot yang sengaja diagih
+      // > jedaPertamaCarousel (staggered start di atas 15s tetap dihormati), tapi mana-mana slot
+      // yang carouselDelay-nya 0/kosong (majoriti, tak pernah diagih) TIDAK LAGI bertukar serta-
+      // merta ikut carouselInterval sahaja — dinaikkan ke sekurang-kurangnya jedaPertamaCarousel.
+      const initialDelaySecs = Math.max(slotItem.carouselDelay || 0, jedaPertamaCarousel);
       const intervalSecs = slotItem.carouselInterval || 10;
 
       // Treat the carousel as running continuously since the epoch, rather than always restarting
@@ -2551,6 +2606,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               return { ...prev, [actualSlotIdx]: nextIdx };
             });
           }, intervalSecs * 1000);
+          // Daftar rujukan (2026-08-26) — majuKarusel() (navigasi manual) baca ni utk set semula
+          // jam slot ni. Didaftar di SINI (bukan sebelum setTimeout initialDelaySecs di atas) sebab
+          // intervalId sebenar cuma wujud SELEPAS setTimeout tembak, bukan semasa render pertama.
+          timerRefsMap.current[actualSlotIdx] = { intervalId: timerRef.intervalId, intervalSecs, items };
         }, initialDelaySecs * 1000);
       } else {
         timerRef.intervalId = setInterval(() => {
@@ -2560,6 +2619,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             return { ...prev, [actualSlotIdx]: nextIdx };
           });
         }, intervalSecs * 1000);
+        timerRefsMap.current[actualSlotIdx] = { intervalId: timerRef.intervalId, intervalSecs, items };
       }
     });
 
@@ -2569,7 +2629,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         if (t.intervalId) clearInterval(t.intervalId);
       });
     };
-  }, [rawBentoNewsItems, mulaIkutMasa]);
+  }, [rawBentoNewsItems, mulaIkutMasa, jedaPertamaCarousel]);
 
   const bentoNewsItems = React.useMemo(() => {
     return rawBentoNewsItems.map((item) => {

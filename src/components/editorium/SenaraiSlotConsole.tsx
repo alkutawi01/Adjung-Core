@@ -37,6 +37,7 @@ interface SlotRow {
   slotIndex: number;
   manualDesk?: string | null;
   carouselInterval?: number | null;
+  carouselIntervalOverride?: number | null;
   carouselDelay?: number | null;
   bgColor?: string | null;
   borderColor?: string | null;
@@ -87,7 +88,7 @@ const LABEL_PERANAN_LEGASI: Record<string, string> = {
 // Bentuk draf modal "Tetapan Kad" — dikongsi antara komponen induk dan `TetapanSlotModal`
 // supaya nilai semasa dan nilai-awal (untuk semakan kotor §B2) sentiasa sepadan jenis.
 interface DrafTetapan {
-  manualDesk: string; bgColor: string; borderColor: string; carouselInterval: number; carouselDelay: number;
+  manualDesk: string; bgColor: string; borderColor: string; carouselIntervalOverride: number | null; carouselDelay: number;
   jenisAnimasiOverride: string; arahOverride: string; warnaPanelOverride: string; kelajuanOverride: string; logoTransisiMode: string;
 }
 
@@ -184,6 +185,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
   // bernilai 'rawak' — pratonton Tetapan Kad perlu tahu kolam ni utk resolusi jujur (§4 corak
   // sama TetapanAmSlotConsole.tsx).
   const [amJenisAnimasiRawakPool, setAmJenisAnimasiRawakPool] = useState<string[]>(JENIS_ANIMASI_ASAS);
+  // Tempoh pertukaran carousel LALAI am (2026-08-26, permintaan Izzat: "kawalan tempoh akan jadi
+  // tetapan global...kecuali ada slot yg guna tetapan sendiri") — sama rasional amJenis/amArah di
+  // atas: medan "Tempoh Carousel" di bawah kini OVERRIDE (kosong = ikut ni), perlu tahu nilai am
+  // supaya slot yang tak override tunjuk nilai EFEKTIF sebenar, bukan cuma placeholder teka.
+  const [amCarouselTempohLalai, setAmCarouselTempohLalai] = useState(10);
   useEffect(() => {
     let dibatal = false;
     fetch('/api/system/slot-am-settings')
@@ -195,6 +201,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
         if (typeof d.jenisAnimasi === 'string' && d.jenisAnimasi) setAmJenis(d.jenisAnimasi);
         if (typeof d.arahAnimasi === 'string' && d.arahAnimasi) setAmArah(d.arahAnimasi);
         if (Array.isArray(d.jenisAnimasiRawakPool) && d.jenisAnimasiRawakPool.length) setAmJenisAnimasiRawakPool(d.jenisAnimasiRawakPool);
+        if (Number(d.carouselTempohLalai) > 0) setAmCarouselTempohLalai(Number(d.carouselTempohLalai));
       })
       .catch(() => { /* tetapan am tak dapat dibaca — label kekal nilai lalai, bukan ralat */ });
     return () => { dibatal = true; };
@@ -229,7 +236,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
         manualDesk: baris.manualDesk || '',
         bgColor: baris.bgColor || 'transparent',
         borderColor: baris.borderColor || '',
-        carouselInterval: baris.carouselInterval || 10,
+        carouselIntervalOverride: Number(baris.carouselIntervalOverride) > 0 ? Number(baris.carouselIntervalOverride) : null,
         carouselDelay: baris.carouselDelay || 0,
         jenisAnimasiOverride: baris.jenisAnimasiOverride || '',
         arahOverride: baris.arahOverride || '',
@@ -299,7 +306,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
       `Bidang: ${drafTetapan.manualDesk || ''}`,
       `Warna Latar: ${drafTetapan.bgColor || ''}`,
       `Warna Bingkai: ${drafTetapan.borderColor || ''}`,
-      `Selang Carousel (saat): ${drafTetapan.carouselInterval}`,
+      `Selang Carousel (saat): ${drafTetapan.carouselIntervalOverride ?? '(guna tetapan lalai)'}`,
       `Lengah Mula (saat): ${drafTetapan.carouselDelay}`,
       `Jenis Animasi: ${drafTetapan.jenisAnimasiOverride || '(guna tetapan lalai)'}`,
       `Arah Animasi: ${drafTetapan.arahOverride || '(guna tetapan lalai)'}`,
@@ -500,7 +507,11 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
                   const namaBidang = (usage.find(u => u.slotIndex === i)?.bidang || cfg?.manualDesk || '').trim();
                   const bidang = bidangFor(namaBidang);
                   const live = usage.find(u => u.slotIndex === i)?.liveCount || 0;
-                  const selang = cfg?.carouselInterval;
+                  // Nilai EFEKTIF (2026-08-26) — override per-slot (cfg.carouselIntervalOverride)
+                  // MENGATASI lalai global (amCarouselTempohLalai, Tetapan Am Slot); lajur
+                  // carouselInterval LAMA tak lagi dibaca di sini (vestigial, lihat server.js).
+                  const selangOverride = Number(cfg?.carouselIntervalOverride) > 0 ? Number(cfg?.carouselIntervalOverride) : null;
+                  const selang = selangOverride ?? amCarouselTempohLalai;
                   const lengah = cfg?.carouselDelay;
                   return (
                     <tr key={i} className={`hover:bg-stone-50 ${GARIS_BARIS}`}>
@@ -537,7 +548,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
                       <td className="p-2.5 text-stone-600">
                         {selang ? (
                           <span className="font-mono text-[10px]">
-                            {selang}s{lengah ? ` · lengah ${lengah}s` : ''}
+                            {selang}s{!selangOverride ? ' (lalai)' : ''}{lengah ? ` · lengah ${lengah}s` : ''}
                           </span>
                         ) : (
                           <span className="text-stone-400">—</span>
@@ -666,6 +677,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
           amJenis={amJenis}
           amArah={amArah}
           amJenisAnimasiRawakPool={amJenisAnimasiRawakPool}
+          amCarouselTempohLalai={amCarouselTempohLalai}
           menyimpan={menyimpanTetapan}
           ralat={ralatTetapan}
           ralatKonflik={ralatTetapanKonflik}
@@ -789,6 +801,7 @@ interface TetapanSlotModalProps {
   amJenis: string;
   amArah: string;
   amJenisAnimasiRawakPool: string[];
+  amCarouselTempohLalai: number;
   menyimpan: boolean;
   ralat: string | null;
   ralatKonflik: boolean;
@@ -798,7 +811,7 @@ interface TetapanSlotModalProps {
 }
 
 const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
-  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, amJenis, amArah, amJenisAnimasiRawakPool, menyimpan, ralat, ralatKonflik,
+  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, amJenis, amArah, amJenisAnimasiRawakPool, amCarouselTempohLalai, menyimpan, ralat, ralatKonflik,
   onSalinDraf, onSimpan, onTutup,
 }) => {
   // Jenis/arah/kelajuan/warna EFEKTIF slot ni — override sendiri, atau jatuh balik ke tetapan am
@@ -929,10 +942,18 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
             <span className={LABEL_BORANG}>Selang Carousel (saat)</span>
+            {/* Override (2026-08-26, permintaan Izzat: "kawalan tempoh akan jadi tetapan global...
+                kecuali ada slot yg guna tetapan sendiri") — KOSONG = ikut tetapan lalai (Tetapan Am
+                Slot -> 1a), placeholder tunjuk nilai lalai SEMASA supaya Ketua Editor nampak apa
+                yang sebenarnya diwarisi, bukan teka. Isi nombor = override slot NI SAHAJA. */}
             <input
-              type="number" min={1}
-              value={draf.carouselInterval}
-              onChange={e => setDraf(p => p ? { ...p, carouselInterval: Math.max(1, parseInt(e.target.value) || 10) } : p)}
+              type="number" min={1} max={300}
+              placeholder={`${amCarouselTempohLalai} (lalai)`}
+              value={draf.carouselIntervalOverride ?? ''}
+              onChange={e => {
+                const teks = e.target.value;
+                setDraf(p => p ? { ...p, carouselIntervalOverride: teks === '' ? null : Math.max(1, parseInt(teks) || 1) } : p);
+              }}
               className={INPUT_BORANG}
             />
           </div>

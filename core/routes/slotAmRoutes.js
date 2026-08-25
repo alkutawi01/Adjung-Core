@@ -91,6 +91,15 @@ export const AM_DEFAULTS = {
   // JENIS_ANIMASI di bawah, boleh dilaraskan editor (checkbox, TetapanAmSlotConsole.tsx). Lalai
   // SEMUA 4 jenis supaya mod Rawak "penuh" secara lalai bila dipilih julung kali.
   jenisAnimasiRawakPool: JENIS_ANIMASI_ASAS,
+  // Jeda carousel (2026-08-26, permintaan Izzat) — dua tetapan BERASINGAN, bukan satu:
+  // carouselJedaPertama = LANTAI (floor) jeda sebelum pertukaran PERTAMA sebaik reload/akses
+  // (client Math.max ia dgn carouselDelay per-slot sedia ada — lihat FrontpageView.tsx), lalai 15
+  // saat ("pastikan pertukaran pertama...selepas 15 saat"), boleh dilaras Ketua Editor.
+  // carouselTempohLalai = tempoh pertukaran BERULANG (interval) GLOBAL, terpakai SEMUA slot
+  // KECUALI ada override per-slot (slots_config.carouselIntervalOverride, Senarai Slot -> Tetapan
+  // Kad -> Tetapan). Lalai 10 saat (sepadan kelakuan sedia ada sebelum ciri ni).
+  carouselJedaPertama: 15,
+  carouselTempohLalai: 10,
 };
 
 // Tiga jenis animasi carousel yang dilaksanakan sebenar dalam kod (2026-08-04, Fasa 7 — spesifikasi
@@ -183,6 +192,8 @@ export const loadAmSettings = async (dbGet) => {
         hadSumberMin: Number(row.hadSumberMin) || 0,
         hadTopikMin: Number(row.hadTopikMin) || 0,
         hadNotaEditorMin: Number(row.hadNotaEditorMin) || 0,
+        carouselJedaPertama: Number(row.carouselJedaPertama) > 0 ? Number(row.carouselJedaPertama) : 15,
+        carouselTempohLalai: Number(row.carouselTempohLalai) > 0 ? Number(row.carouselTempohLalai) : 10,
         logoPenaja: row.logoPenaja || '',
         warnaPanelTransisi: row.warnaPanelTransisi || '#802334',
         nisbahPenajaTransisi: NISBAH_PENAJA_TRANSISI.some(n => n.nilai === Number(row.nisbahPenajaTransisi)) ? Number(row.nisbahPenajaTransisi) : 0,
@@ -296,6 +307,23 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         hadSumberMin: nombor(b.hadSumberMin, 'Had minimum sumber'),
         hadTopikMin: nombor(b.hadTopikMin, 'Had minimum topik'),
         hadNotaEditorMin: nombor(b.hadNotaEditorMin, 'Had minimum nota editor'),
+        // Jeda carousel (2026-08-26) — julat 1-120 saat (jeda pertama) / 1-300 saat (tempoh
+        // berulang, sepadan had Petikan di atas) — had bawah elak "0 saat" (gelung tak terhingga/
+        // tersentak visual), had atas cuma pertahanan waras.
+        carouselJedaPertama: (() => {
+          const n = Number(b.carouselJedaPertama);
+          if (!Number.isInteger(n) || n < 1 || n > 120) {
+            throw new Error('Jeda sebelum pertukaran pertama carousel mesti nombor bulat antara 1 dan 120 saat.');
+          }
+          return n;
+        })(),
+        carouselTempohLalai: (() => {
+          const n = Number(b.carouselTempohLalai);
+          if (!Number.isInteger(n) || n < 1 || n > 300) {
+            throw new Error('Tempoh pertukaran carousel lalai mesti nombor bulat antara 1 dan 300 saat.');
+          }
+          return n;
+        })(),
         logoPenaja: typeof b.logoPenaja === 'string' ? b.logoPenaja.slice(0, 500) : '',
         warnaPanelTransisi: warnaSah(b.warnaPanelTransisi) ? b.warnaPanelTransisi : '#802334',
         nisbahPenajaTransisi: NISBAH_PENAJA_TRANSISI.some(n => n.nilai === Number(b.nisbahPenajaTransisi)) ? Number(b.nisbahPenajaTransisi) : 0,
@@ -335,8 +363,9 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           petikanTempohPutaranSaat, petikanKuantitiHarianMaksimum,
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           hadHuraianPanjangMin, hadSumberMin, hadTopikMin, hadNotaEditorMin,
+          carouselJedaPertama, carouselTempohLalai,
           logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, jenisAnimasiRawakPool, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -355,6 +384,8 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           hadSumberMin = excluded.hadSumberMin,
           hadTopikMin = excluded.hadTopikMin,
           hadNotaEditorMin = excluded.hadNotaEditorMin,
+          carouselJedaPertama = excluded.carouselJedaPertama,
+          carouselTempohLalai = excluded.carouselTempohLalai,
           logoPenaja = excluded.logoPenaja,
           warnaPanelTransisi = excluded.warnaPanelTransisi,
           nisbahPenajaTransisi = excluded.nisbahPenajaTransisi,
@@ -370,6 +401,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         baharu.petikanTempohPutaranSaat, baharu.petikanKuantitiHarianMaksimum,
         baharu.hadHuraianPanjang, baharu.hadSumber, baharu.hadTopik, baharu.hadNotaEditor,
         baharu.hadHuraianPanjangMin, baharu.hadSumberMin, baharu.hadTopikMin, baharu.hadNotaEditorMin,
+        baharu.carouselJedaPertama, baharu.carouselTempohLalai,
         baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi, baharu.modWarnaPanel,
         baharu.focusViewTitleScale, baharu.focusViewBodySize, baharu.susunanCarousel,
         JSON.stringify(baharu.jenisAnimasiRawakPool),

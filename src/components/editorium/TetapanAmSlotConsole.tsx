@@ -40,6 +40,11 @@ interface TetapanAm {
   focusViewTitleScale: number;
   focusViewBodySize: number;
   susunanCarousel: string;
+  // Jeda carousel (2026-08-26, permintaan Izzat). carouselJedaPertama = lantai jeda sebelum
+  // pertukaran PERTAMA (lalai 15s, boleh laras). carouselTempohLalai = tempoh pertukaran berulang
+  // GLOBAL, terpakai semua slot kecuali override per-slot (Senarai Slot -> Tetapan Kad).
+  carouselJedaPertama: number;
+  carouselTempohLalai: number;
   // Kolam jenis animasi utk mod jenisAnimasi==='rawak' (2026-08-18, soalan Izzat). Subset SAH
   // jenisAnimasiPilihan (bukan 'rawak' sendiri) — checkbox di bawah, editor pilih sendiri, TIADA
   // default dipaksa selain "semua 4 jenis" bila mod Rawak dipilih julung kali.
@@ -416,6 +421,30 @@ export const TetapanAmSlotConsole: React.FC = () => {
               pada kandungan pertama.
             </span>
           </label>
+        </div>
+
+        {/* 1a. Jeda carousel (2026-08-26, permintaan Izzat: "pastikan pertukaran pertama carousel
+            adalah selepas 15 saat...tp benarkan ketua editor laraskan sendiri" + "kawalan tempoh
+            akan jadi tetapan global yg merangkumi semua slot, kecuali ada slot yg guna tetapan
+            sendiri"). Dua medan BERASINGAN sengaja — jeda pertama (sekali sahaja, sebaik
+            reload/akses) berbeza tujuan drpd tempoh berulang (setiap pertukaran seterusnya). */}
+        <div className="border border-stone-200 rounded p-4 space-y-3">
+          <div className="font-semibold text-stone-800">1a. Jeda &amp; tempoh pertukaran carousel</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-stone-600 text-[11px]">Jeda sebelum pertukaran pertama (saat)</span>
+              {nombor('carouselJedaPertama')}
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-stone-600 text-[11px]">Tempoh pertukaran lalai (saat)</span>
+              {nombor('carouselTempohLalai')}
+            </div>
+          </div>
+          <p className="text-stone-400 text-[10px] leading-relaxed">
+            Jeda pertama terpakai SEKALI sahaja sebaik pembaca reload/akses laman, sebelum carousel
+            mula bertukar. Tempoh lalai terpakai pada SEMUA slot carousel bagi pertukaran seterusnya,
+            kecuali slot berkenaan ada tempoh tersendiri (Senarai Slot &rarr; Tetapan Kad &rarr; Tetapan).
+          </p>
         </div>
 
         {/* 1c. Susunan kandungan carousel (2026-08-16, permintaan Izzat: "utk slot yg ada lebih
