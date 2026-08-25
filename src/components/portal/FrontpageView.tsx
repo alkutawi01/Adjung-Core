@@ -4948,6 +4948,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 <li className="flex"><button onClick={() => handleFooterLinkClick('editors-notes')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Catatan Ketua Editor</button></li>
                 {halamanAktif('publishing-policies') && <li className="flex"><button onClick={() => handleFooterLinkClick('publishing-policies')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Dasar Penerbitan</button></li>}
                 <li className="flex"><button onClick={() => handleFooterLinkClick('notices')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Pengumuman</button></li>
+                {/* Borang permohonan editor awam (2026-08-25) — laluan sebenar, bukan modal. */}
+                <li className="flex"><Link to="/sertai-pasukan-editorial" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Sertai Pasukan Editorial</Link></li>
                 {/* "Sejarah Versi" DIBUANG dari footer (2026-08-16, keputusan Izzat selepas audit
                     ChatGPT) — bukan pepijat, keputusan positioning sengaja. Kandungan awam yang
                     sesuai untuk nama "Sejarah Versi" ialah sejarah PERKEMBANGAN PRODUK (release

@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter, Routes, Route, useParams, useLocation } from 'react-router-dom';
 import { HalamanStatik } from './components/portal/HalamanStatik';
 import { HalamanPenaja } from './components/portal/HalamanPenaja';
+import { HalamanSertai } from './components/portal/HalamanSertai';
 import { TidakDijumpai } from './components/portal/TidakDijumpai';
 import { TetapkanKataLaluan } from './components/portal/TetapkanKataLaluan';
 import { LengkapkanProfilModal } from './components/editorium/LengkapkanProfilModal';
@@ -408,6 +409,8 @@ export default function App() {
           {/* Penaja (2026-08-05, Fasa 12) — struktur data berkumpul (senarai per-bulan), bukan
               prosa title+content macam HalamanStatik, jadi komponen tersendiri. */}
           <Route path="/penaja" element={<HalamanPenaja />} />
+          {/* Borang permohonan editor awam (2026-08-25) — lihat core/routes/permohonanEditorRoutes.js. */}
+          <Route path="/sertai-pasukan-editorial" element={<HalamanSertai />} />
           <Route path="/tetapkan-kata-laluan" element={<TetapkanKataLaluan />} />
           <Route path="*" element={<TidakDijumpai />} />
 

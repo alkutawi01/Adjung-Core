@@ -55,6 +55,7 @@ import { createProfileRoutes } from './core/routes/profileRoutes.js';
 import { createSlotAmRoutes, loadAmSettings, getAmSettings } from './core/routes/slotAmRoutes.js';
 import { createDasarAktifRoutes, loadDasarAktifSettings, getDasarAktifAmbangMs, PERANAN_TERPAKAI_DASAR_AKTIF } from './core/routes/dasarAktifRoutes.js';
 import { createUserAdminRoutes } from './core/routes/userAdminRoutes.js';
+import { createPermohonanEditorRoutes } from './core/routes/permohonanEditorRoutes.js';
 import { createAuditLogRoutes } from './core/routes/auditLogRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createUiLabelRoutes } from './core/routes/uiLabelRoutes.js';
@@ -211,9 +212,23 @@ app.use('/api/system/track-view', hadKadarJejakLihat);
 // menembak beberapa GET setiap muatan, dan menghadkannya akan memecahkan pembacaan biasa tanpa
 // menghalang penyalahgunaan sebenar. 300 setiap 15 minit ≈ satu simpanan setiap 3 saat berterusan
 // — jauh di luar kadar manusia menyunting, jadi editor sah takkan sesekali menyentuhnya.
+// Had kadar permohonan editor (2026-08-25) — POST AWAM tanpa sesi (borang "Sertai Pasukan
+// Editorial"). Jauh lebih ketat daripada had mutasi am: manusia sah hantar SATU permohonan,
+// bukan berpuluh — 5 setiap 15 minit setiap IP sudah sangat longgar untuk isi rumah berkongsi
+// IP, tetapi menutup spam borang automatik (lapisan kedua ialah honeypot dalam laluan sendiri).
+const hadPermohonanEditor = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak permohonan daripada rangkaian ini. Cuba lagi selepas beberapa minit.' },
+});
+app.use('/api/public/permohonan-editor', hadPermohonanEditor);
+
 const LALUAN_HAD_SENDIRI = new Set([
   '/auth/login', '/auth/lupa-kata-laluan', '/auth/aktifkan-akaun',
   '/system/search', '/media/upload', '/system/track-view',
+  '/public/permohonan-editor',
 ]);
 const hadKadarMutasiApi = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -455,6 +470,33 @@ const initializeSchema = () => {
         )
       `);
       db.run("CREATE INDEX IF NOT EXISTS idx_notifications_userId ON notifications(userId, createdAt DESC)");
+
+      // 2026-08-25 (arahan Izzat — modul Permohonan Editor, KIV 14/8 kini dibina) — permohonan
+      // awam "Sertai Pasukan Editorial" (borang HalamanSertai.tsx -> POST /api/public/
+      // permohonan-editor). bidangMinat disimpan sebagai JSON array nama Bidang (input triage
+      // untuk Ketua Editor menentukan slot semasa keputusan, keperluan Izzat 2026-08-16).
+      // Status: baharu -> diterima/ditolak (keputusan direkod berserta catatan + penyemak).
+      // Lihat core/routes/permohonanEditorRoutes.js untuk aliran penuh.
+      db.run(`
+        CREATE TABLE IF NOT EXISTS permohonan_editor (
+          id TEXT PRIMARY KEY,
+          namaPenuh TEXT NOT NULL,
+          emel TEXT NOT NULL,
+          telefon TEXT NOT NULL,
+          negeri TEXT NOT NULL,
+          kelulusan TEXT NOT NULL,
+          bidangMinat TEXT NOT NULL,
+          pengalaman TEXT,
+          pautanContoh TEXT,
+          motivasi TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'baharu',
+          catatanSemakan TEXT,
+          disemakOleh TEXT,
+          disemakPada TEXT,
+          createdAt TEXT NOT NULL
+        )
+      `);
+      db.run("CREATE INDEX IF NOT EXISTS idx_permohonan_editor_status ON permohonan_editor(status, createdAt DESC)");
 
       // 2026-08-02 (Fasa 14, "Jejak pengunjung & populariti") — jejak dibina sendiri, KEPUTUSAN
       // Ketua Editor sedia ada (lihat "Keputusan sedia dibuat" dalam PELAN_PRA_LAUNCH.md): tiada
@@ -4020,6 +4062,7 @@ app.use('/api/system', createDasarAktifRoutes(dbGet, dbRun));
 app.use('/api/system', createProfileRoutes(dbGet, dbRun));
 app.use('/api/system', createSlotAmRoutes(dbGet, dbRun));
 app.use('/api/system', createUserAdminRoutes(dbAll, dbRun, dbGet));
+app.use('/api', createPermohonanEditorRoutes(dbAll, dbGet, dbRun));
 app.use('/api', createNotificationRoutes(dbAll, dbRun, dbGet));
 app.use('/api/system', createAuditLogRoutes(dbAll));
 app.use('/api/system', createUiLabelRoutes(dbAll, dbRun));

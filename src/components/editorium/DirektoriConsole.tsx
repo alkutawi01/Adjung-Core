@@ -28,6 +28,30 @@ const ROLE_META: Record<string, { label: string; warna: string }> = {
 };
 const ROLE_ORDER = ['pentadbir', 'ketua_editor', 'penolong_ketua_editor', 'editor'];
 const STATUS_SAH = ['Aktif', 'Cuti', 'Tidak Aktif', 'Ditamatkan'] as const;
+
+// Permohonan Editor (2026-08-25) — lihat core/routes/permohonanEditorRoutes.js.
+interface Permohonan {
+  id: string;
+  namaPenuh: string;
+  emel: string;
+  telefon: string;
+  negeri: string;
+  kelulusan: string;
+  bidangMinat: string[];
+  pengalaman: string;
+  pautanContoh: string;
+  motivasi: string;
+  status: 'baharu' | 'diterima' | 'ditolak';
+  catatanSemakan: string | null;
+  disemakOleh: string | null;
+  disemakPada: string | null;
+  createdAt: string;
+}
+const STATUS_PERMOHONAN_META: Record<Permohonan['status'], { label: string; tone: StatusTone }> = {
+  baharu: { label: 'Baharu', tone: 'warning' },
+  diterima: { label: 'Diterima', tone: 'success' },
+  ditolak: { label: 'Ditolak', tone: 'error' },
+};
 const STATUS_TONE: Record<typeof STATUS_SAH[number], StatusTone> = {
   Aktif: 'success',
   Cuti: 'warning',
@@ -194,6 +218,28 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       setMenyimpanDasarAktif(false);
     }
   };
+
+  // Permohonan Editor (2026-08-25, arahan Izzat — borang awam "Sertai Pasukan Editorial",
+  // lihat core/routes/permohonanEditorRoutes.js). Senarai permohonan 'baharu' dipaparkan di
+  // sini supaya Ketua Editor/Pentadbir menyemak kelulusan + Bidang minat pemohon SEBELUM
+  // memutuskan slot — Terima memanggil POST /api/system/users sedia ada (akaun + e-mel
+  // jemputan), kemudian menanda keputusan; TIADA logik cipta-akaun berganda.
+  const [permohonanList, setPermohonanList] = useState<Permohonan[]>([]);
+  const [memuatPermohonan, setMemuatPermohonan] = useState(true);
+  const [ralatPermohonan, setRalatPermohonan] = useState('');
+  const [permohonanDibuka, setPermohonanDibuka] = useState(false);
+  const [tapisanPermohonan, setTapisanPermohonan] = useState<'baharu' | 'diterima' | 'ditolak' | ''>('baharu');
+  const [permohonanDipilih, setPermohonanDipilih] = useState<Permohonan | null>(null);
+
+  const muatPermohonan = (status = tapisanPermohonan) => {
+    setMemuatPermohonan(true);
+    fetch(`/api/system/permohonan-editor${status ? `?status=${status}` : ''}`)
+      .then(r => r.json())
+      .then(d => { setPermohonanList(Array.isArray(d) ? d : []); setRalatPermohonan(''); })
+      .catch(() => setRalatPermohonan('Gagal memuatkan senarai permohonan.'))
+      .finally(() => setMemuatPermohonan(false));
+  };
+  useEffect(() => { if (isPentadbir) muatPermohonan('baharu'); }, [isPentadbir]);
 
   const filteredStaff = staffList.filter(s =>
     s.penName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -372,6 +418,77 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
         </PanelCard>
       )}
 
+      {/* Permohonan Editor (2026-08-25) — semakan borang awam "Sertai Pasukan Editorial".
+          Accordion sama corak Dasar Aktif di atas, tetapi dibuka automatik pentingnya jelas:
+          kiraan permohonan baharu sentiasa kelihatan pada kepala walaupun tertutup. */}
+      {isPentadbir && (
+        <PanelCard className="text-xs">
+          <button
+            type="button"
+            onClick={() => setPermohonanDibuka(v => !v)}
+            className="w-full flex items-center justify-between text-left cursor-pointer"
+          >
+            <div>
+              <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold block mb-1">
+                PERMOHONAN EDITOR
+              </span>
+              <p className="text-stone-500">
+                Permohonan daripada borang awam "Sertai Pasukan Editorial".
+                {!memuatPermohonan && tapisanPermohonan === 'baharu' && ` ${permohonanList.length} permohonan baharu menunggu semakan.`}
+              </p>
+            </div>
+            <span className="text-stone-400 font-mono text-[10px] shrink-0 ml-3">{permohonanDibuka ? 'Tutup ▲' : 'Semak ▼'}</span>
+          </button>
+
+          {permohonanDibuka && (
+            <div className="mt-4 pt-4 border-t border-stone-200 space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                {([['baharu', 'Baharu'], ['diterima', 'Diterima'], ['ditolak', 'Ditolak'], ['', 'Semua']] as const).map(([nilai, label]) => (
+                  <Button
+                    key={label}
+                    variant={tapisanPermohonan === nilai ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => { setTapisanPermohonan(nilai); muatPermohonan(nilai); }}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+              {ralatPermohonan && <MesejStatus tone="error" onCubaLagi={() => muatPermohonan()}>{ralatPermohonan}</MesejStatus>}
+              {memuatPermohonan ? (
+                <KeadaanMemuat baris={3} />
+              ) : permohonanList.length === 0 ? (
+                <KeadaanKosong>Tiada Permohonan Dalam Tapisan Ini</KeadaanKosong>
+              ) : (
+                <div className="border border-stone-200 rounded divide-y divide-Adjung-line">
+                  {permohonanList.map(p => (
+                    <div key={p.id} className="px-3 py-2.5 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-serif font-bold text-stone-900">{p.namaPenuh}</span>
+                          <StatusBadge tone={STATUS_PERMOHONAN_META[p.status].tone} label={STATUS_PERMOHONAN_META[p.status].label} />
+                        </div>
+                        <div className="text-stone-500 font-mono text-[10px] mt-0.5 truncate">
+                          {p.emel} · {p.negeri} · {new Date(p.createdAt).toLocaleDateString('ms-MY')}
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {p.bidangMinat.map(b => (
+                            <span key={b} className="px-1.5 py-0.5 rounded bg-stone-100 text-stone-700 text-[10px] font-semibold">{b}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <Button variant="secondary" size="sm" onClick={() => setPermohonanDipilih(p)}>
+                        Semak
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </PanelCard>
+      )}
+
       <PanelCard padding="p-0">
         <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse font-sans text-xs">
@@ -455,6 +572,19 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
             setTambahTerbuka(false);
             muatSemula();
             onToast?.('success', `Akaun dicipta. E-mel jemputan telah dihantar ke ${emel} untuk menetapkan kata laluan.`);
+          }}
+        />
+      )}
+
+      {permohonanDipilih && (
+        <PermohonanModal
+          permohonan={permohonanDipilih}
+          onTutup={() => setPermohonanDipilih(null)}
+          onSelesai={(mesej) => {
+            setPermohonanDipilih(null);
+            muatPermohonan();
+            muatSemula();
+            onToast?.('success', mesej);
           }}
         />
       )}
@@ -693,6 +823,174 @@ function ProfilAnggotaModal({
               </div>
             </div>
             {ralatStatus && <MesejStatus tone="error">{ralatStatus}</MesejStatus>}
+          </div>
+        )}
+      </div>
+    </EditorDialog>
+  );
+}
+
+// Modal semakan satu permohonan editor (2026-08-25) — papar SEMUA maklumat pemohon (kelulusan
+// + Bidang minat ialah input triage utama Ketua Editor untuk menentukan slot). Terima memanggil
+// POST /api/system/users SEDIA ADA dahulu (cipta akaun + e-mel jemputan bertoken — lihat nota
+// TambahAnggotaModal di bawah), KEMUDIAN merekodkan keputusan pada permohonan; kalau langkah
+// kedua gagal, akaun sudah wujud dan permohonan kekal 'baharu' — cuba semula keputusan sahaja
+// akan gagal 409 pada /api/system/users (e-mel sudah wujud), jadi ralat dipaparkan jelas.
+function PermohonanModal({ permohonan, onTutup, onSelesai }: {
+  permohonan: Permohonan;
+  onTutup: () => void;
+  onSelesai: (mesej: string) => void;
+}) {
+  const [roles, setRoles] = useState<string[]>(['editor']);
+  const [catatan, setCatatan] = useState('');
+  const [memproses, setMemproses] = useState(false);
+  const [ralat, setRalat] = useState('');
+  const bolehDiputuskan = permohonan.status === 'baharu';
+
+  const rekodKeputusan = async (keputusan: 'diterima' | 'ditolak') => {
+    const res = await fetch(`/api/system/permohonan-editor/${permohonan.id}/keputusan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keputusan, catatan }),
+    });
+    const data = await bacaJsonSelamat(res).catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Gagal merekodkan keputusan.');
+  };
+
+  const terima = async () => {
+    if (roles.length === 0) { setRalat('Pilih sekurang-kurangnya satu peranan.'); return; }
+    setMemproses(true);
+    setRalat('');
+    try {
+      const res = await fetch('/api/system/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: permohonan.emel, roles }),
+      });
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal mencipta akaun.');
+      await rekodKeputusan('diterima');
+      onSelesai(`Permohonan diterima. E-mel jemputan telah dihantar ke ${permohonan.emel}.`);
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal menerima permohonan.');
+    } finally {
+      setMemproses(false);
+    }
+  };
+
+  const tolak = async () => {
+    setMemproses(true);
+    setRalat('');
+    try {
+      await rekodKeputusan('ditolak');
+      onSelesai('Permohonan ditolak dan direkodkan.');
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal menolak permohonan.');
+    } finally {
+      setMemproses(false);
+    }
+  };
+
+  const Medan = ({ label, nilai }: { label: string; nilai: React.ReactNode }) => (
+    <div>
+      <span className="text-stone-500 block text-[10px] font-semibold uppercase">{label}</span>
+      <div className="text-stone-900 whitespace-pre-wrap break-words">{nilai || <span className="text-stone-300">—</span>}</div>
+    </div>
+  );
+
+  return (
+    <EditorDialog
+      saiz="lg"
+      onTutup={() => { if (!memproses) onTutup(); }}
+      tajuk={
+        <span className="block min-w-0">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold block mb-1">
+            SEMAKAN PERMOHONAN EDITOR
+          </span>
+          <span className="block font-serif text-lg font-bold text-Adjung-maroon">{permohonan.namaPenuh}</span>
+          <span className="block font-mono text-xs font-normal text-stone-500">{permohonan.emel} • {new Date(permohonan.createdAt).toLocaleDateString('ms-MY')}</span>
+        </span>
+      }
+    >
+      <div className="space-y-5 font-sans text-xs">
+        <div className="bg-stone-50 p-4 rounded border border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Medan label="Telefon" nilai={permohonan.telefon} />
+          <Medan label="Negeri" nilai={permohonan.negeri} />
+          <Medan label="Kelulusan" nilai={permohonan.kelulusan} />
+          <div>
+            <span className="text-stone-500 block text-[10px] font-semibold uppercase mb-1">Bidang Minat</span>
+            <div className="flex flex-wrap gap-1">
+              {permohonan.bidangMinat.map(b => (
+                <span key={b} className="px-2 py-0.5 rounded bg-Adjung-maroon text-white text-[10px] font-bold">{b}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3">
+          <Medan label="Pengalaman Penulisan" nilai={permohonan.pengalaman} />
+          <Medan label="Pautan Contoh Penulisan" nilai={permohonan.pautanContoh && (
+            <a href={permohonan.pautanContoh} target="_blank" rel="noopener noreferrer" className="text-Adjung-maroon underline break-all">{permohonan.pautanContoh}</a>
+          )} />
+          <Medan label="Motivasi" nilai={permohonan.motivasi} />
+        </div>
+
+        {permohonan.status !== 'baharu' && (
+          <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-2">
+            <div className="flex items-center gap-2">
+              <StatusBadge tone={STATUS_PERMOHONAN_META[permohonan.status].tone} label={STATUS_PERMOHONAN_META[permohonan.status].label} />
+              {permohonan.disemakOleh && (
+                <span className="text-stone-500 font-mono text-[10px]">
+                  oleh {permohonan.disemakOleh}{permohonan.disemakPada ? ` · ${new Date(permohonan.disemakPada).toLocaleDateString('ms-MY')}` : ''}
+                </span>
+              )}
+            </div>
+            {permohonan.catatanSemakan && <p className="text-stone-600 whitespace-pre-wrap">{permohonan.catatanSemakan}</p>}
+          </div>
+        )}
+
+        {bolehDiputuskan && (
+          <div className="border-t border-stone-200 pt-4 space-y-3">
+            <div>
+              <span className={LABEL_BORANG}>Peranan jika diterima</span>
+              <div className="grid grid-cols-2 gap-2">
+                {ROLE_ORDER.map(roleId => (
+                  <label key={roleId} className={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer ${roles.includes(roleId) ? 'border-Adjung-maroon bg-stone-50' : 'border-stone-200'}`}>
+                    <input
+                      type="checkbox"
+                      checked={roles.includes(roleId)}
+                      onChange={() => setRoles(prev => prev.includes(roleId) ? prev.filter(r => r !== roleId) : [...prev, roleId])}
+                      className="rounded border-stone-300 text-Adjung-maroon w-4 h-4"
+                    />
+                    <span className="font-semibold text-stone-800">{ROLE_META[roleId].label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <label className="block">
+              <span className={LABEL_BORANG}>Catatan semakan (pilihan)</span>
+              <textarea
+                value={catatan}
+                onChange={e => setCatatan(e.target.value)}
+                rows={2}
+                className={INPUT_BORANG}
+                placeholder="Sebab keputusan, nota untuk rekod dalaman…"
+              />
+            </label>
+            <p className="text-stone-400 text-[10px] leading-relaxed">
+              Terima akan mencipta akaun dan menghantar e-mel jemputan bertoken ke {permohonan.emel} supaya
+              pemohon menetapkan nama pena, ID pengguna dan kata laluan sendiri. Penugasan slot diurus
+              kemudian di destinasi Slot.
+            </p>
+            {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="bahaya" onClick={tolak} disabled={memproses}>
+                {memproses ? 'Memproses…' : 'Tolak'}
+              </Button>
+              <Button variant="primary" onClick={terima} disabled={memproses || roles.length === 0}>
+                {memproses ? 'Memproses…' : 'Terima + Hantar Jemputan'}
+              </Button>
+            </div>
           </div>
         )}
       </div>
