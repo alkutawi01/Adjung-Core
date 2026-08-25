@@ -218,11 +218,15 @@ const KadBandar: React.FC<{
       </p>
       {isHoliday && holidayName && tunjukCuti && posisiTip && createPortal(
         <div
-          className="fixed -translate-x-1/2 flex flex-col items-center bg-[#FAF7F0] text-[#1F1F1F] px-3 py-1.5 rounded-sm shadow-md max-w-[240px] z-[9999] pointer-events-none border border-[#802334]/30 text-center animate-fade-in"
+          className="fixed -translate-x-1/2 flex flex-col items-center bg-[#FDFDFD]/70 backdrop-blur-md text-black px-3 py-1.5 rounded-lg shadow-lg max-w-[240px] z-[9999] pointer-events-none text-center animate-fade-in"
           style={{ top: posisiTip.top, left: posisiTip.left }}
         >
+          {/* Penyeragaman 25/8 (arahan Izzat "audit keselarasan UI tooltip"): bekas kini ikut
+              gaya rasmi tooltip kongsi (common/Tooltip.tsx — putih lutsinar + kabur latar,
+              rounded-lg, shadow-lg, TIADA sempadan, teks 10px sans hitam). Label "Cuti Umum"
+              kekal maroon kecil sebagai kandungan dua baris khas tooltip ini. */}
           <span className="font-sans text-[8px] uppercase tracking-widest text-[#802334] font-bold">Cuti Umum</span>
-          <span className="font-serif text-[11px] text-[#1F1F1F] font-medium tracking-tight">{holidayName}</span>
+          <span className="font-sans text-[10px] leading-snug text-black">{holidayName}</span>
         </div>,
         document.body
       )}

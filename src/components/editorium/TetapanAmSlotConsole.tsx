@@ -3,6 +3,7 @@ import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { AlertTriangle, Save } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
 import { ModulTajuk } from '../common/ModulTajuk';
+import { Tooltip } from '../common/Tooltip';
 import { PanelCard } from '../common/PanelCard';
 import { MesejStatus } from '../common/MesejStatus';
 import { KeadaanMemuat } from '../common/KeadaanMemuat';
@@ -150,15 +151,18 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
         </p>
         {slotWarnaSendiri.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
+            {/* Penyeragaman tooltip 25/8 (arahan Izzat): title= pelayar asal ditukar ke Tooltip
+                kongsi. Ayat "Tak terpakai buat..." turut dibetulkan ke bentuk penuh UI
+                ("Tidak terpakai untuk...", Panduan Bahasa Melayu CLAUDE.md). */}
             {slotWarnaSendiri.map(s => (
-              <span
-                key={s.slotIndex}
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-mono ${draf.modWarnaPanel === 'seragam' ? 'border-stone-200 text-stone-400' : 'border-stone-300 text-stone-600'}`}
-                title={draf.modWarnaPanel === 'seragam' ? 'Tak terpakai buat masa ini (mod Seragam)' : 'Guna warna sendiri'}
-              >
-                <span className="w-2.5 h-2.5 rounded-full border border-stone-300" style={{ backgroundColor: s.warna }} />
-                Slot {s.slotIndex + 1}
-              </span>
+              <Tooltip key={s.slotIndex} text={draf.modWarnaPanel === 'seragam' ? 'Tidak terpakai buat masa ini (mod Seragam)' : 'Guna warna sendiri'}>
+                <span
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-mono ${draf.modWarnaPanel === 'seragam' ? 'border-stone-200 text-stone-400' : 'border-stone-300 text-stone-600'}`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full border border-stone-300" style={{ backgroundColor: s.warna }} />
+                  Slot {s.slotIndex + 1}
+                </span>
+              </Tooltip>
             ))}
           </div>
         )}

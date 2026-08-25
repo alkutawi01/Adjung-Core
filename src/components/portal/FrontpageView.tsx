@@ -703,16 +703,20 @@ const EditPensil: React.FC<{
   posisi: string;
 }> = ({ objectId, role, posisi }) => {
   if (!role || !objectId) return null;
+  // Penyeragaman tooltip 25/8 (arahan Izzat): title= pelayar asal (kotak sistem yang tidak
+  // boleh digayakan) ditukar ke komponen Tooltip kongsi — rupa sama dengan semua tooltip lain.
+  // Tooltip mengklon butang terus (tiada elemen pembalut), jadi kedudukan absolute kekal tepat.
   return (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); window.open(`/editorium?tab=kandungan&sub=semakan&itemId=${objectId}`, '_blank', 'noopener'); }}
-      className={`hidden md:block absolute ${posisi} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
-      aria-label="Sunting kandungan ini (buka tab baharu)"
-      title="Sunting kandungan ini (buka tab baharu)"
-    >
-      <Pencil className="w-3 h-3" />
-    </button>
+    <Tooltip text="Sunting kandungan ini (buka tab baharu)">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); window.open(`/editorium?tab=kandungan&sub=semakan&itemId=${objectId}`, '_blank', 'noopener'); }}
+        className={`hidden md:block absolute ${posisi} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
+        aria-label="Sunting kandungan ini (buka tab baharu)"
+      >
+        <Pencil className="w-3 h-3" />
+      </button>
+    </Tooltip>
   );
 };
 

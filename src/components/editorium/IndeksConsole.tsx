@@ -1877,28 +1877,37 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className={LABEL_BORANG}>Dijadualkan terbit</label>
-                    <input
-                      type="datetime-local"
-                      value={draftJadualTerbit}
-                      disabled={currentUserRole !== 'KETUA_EDITOR'}
-                      title={currentUserRole !== 'KETUA_EDITOR' ? 'Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan jadual penerbitan.' : undefined}
-                      onChange={e => setDraftJadualTerbit(e.target.value)}
-                      className={`${INPUT_BORANG} bg-white`}
-                    />
+                    {/* Penyeragaman tooltip 25/8 (arahan Izzat): title= pelayar asal ditukar ke
+                        Tooltip kongsi. Span pembalut perlu: input disabled tidak menembak event
+                        hover React. */}
+                    <Tooltip text={currentUserRole !== 'KETUA_EDITOR' ? 'Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan jadual penerbitan.' : undefined}>
+                      <span className="inline-flex w-full">
+                        <input
+                          type="datetime-local"
+                          value={draftJadualTerbit}
+                          disabled={currentUserRole !== 'KETUA_EDITOR'}
+                          onChange={e => setDraftJadualTerbit(e.target.value)}
+                          className={`${INPUT_BORANG} bg-white`}
+                        />
+                      </span>
+                    </Tooltip>
                     {activeItemModal.scheduledPublishAt && (
                       <p className="text-[9px] text-sky-700 mt-1">Dijadualkan terbit: {formatKlDisplay(activeItemModal.scheduledPublishAt)}</p>
                     )}
                   </div>
                   <div>
                     <label className={LABEL_BORANG}>Dijadualkan luput</label>
-                    <input
-                      type="datetime-local"
-                      value={draftJadualLuput}
-                      disabled={currentUserRole !== 'KETUA_EDITOR'}
-                      title={currentUserRole !== 'KETUA_EDITOR' ? 'Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan jadual penerbitan.' : undefined}
-                      onChange={e => setDraftJadualLuput(e.target.value)}
-                      className={`${INPUT_BORANG} bg-white`}
-                    />
+                    <Tooltip text={currentUserRole !== 'KETUA_EDITOR' ? 'Hanya Ketua Editor/Penolong Ketua Editor boleh menetapkan jadual penerbitan.' : undefined}>
+                      <span className="inline-flex w-full">
+                        <input
+                          type="datetime-local"
+                          value={draftJadualLuput}
+                          disabled={currentUserRole !== 'KETUA_EDITOR'}
+                          onChange={e => setDraftJadualLuput(e.target.value)}
+                          className={`${INPUT_BORANG} bg-white`}
+                        />
+                      </span>
+                    </Tooltip>
                     {activeItemModal.scheduledExpiresAt && (
                       <p className="text-[9px] text-sky-700 mt-1">Dijadualkan luput: {formatKlDisplay(activeItemModal.scheduledExpiresAt)}</p>
                     )}

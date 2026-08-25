@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Save, Search, Copy, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../common/Button';
+import { Tooltip } from '../common/Tooltip';
 import { MesejStatus } from '../common/MesejStatus';
 import { tanganiKekunciItalic } from '../../utils.tsx';
 
@@ -667,9 +668,14 @@ export function ContentReview() {
                   <ul className="space-y-1.5">
                     {promptSemakan.map(p => (
                       <li key={p.id} className="flex items-center gap-2 bg-white border border-stone-200 rounded px-2.5 py-1.5">
-                        <span className="flex-1 min-w-0 font-sans text-xs font-semibold text-stone-800 truncate" title={p.templateText}>
-                          {p.name}
-                        </span>
+                        {/* Penyeragaman tooltip 25/8 (arahan Izzat): title= pelayar asal ditukar
+                            ke Tooltip kongsi — templat penuh Arahan AI kini terpapar dalam
+                            gelembung gaya rasmi (balut ikut max-w-xs), bukan kotak sistem. */}
+                        <Tooltip text={p.templateText}>
+                          <span className="flex-1 min-w-0 font-sans text-xs font-semibold text-stone-800 truncate">
+                            {p.name}
+                          </span>
+                        </Tooltip>
                         <button
                           type="button"
                           onClick={() => salinPrompt(p)}

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { KeadaanKosong } from '../common/KeadaanKosong';
+import { Tooltip } from '../common/Tooltip';
 import { StatusBadge } from '../common/StatusBadge';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock, ChevronDown, ChevronUp } from 'lucide-react';
@@ -213,15 +214,18 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
             <h2 className="font-serif text-lg font-bold text-Adjung-maroon leading-none">Peti Makluman</h2>
             <p className="text-stone-500 text-[11px] mt-1">Nota Ketua Editor dan notifikasi anda.</p>
           </div>
-          <button
-            type="button"
-            onClick={onTutup}
-            className="text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
-            aria-label="Tutup"
-            title="Tutup (Escape)"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          {/* Penyeragaman tooltip 25/8 (arahan Izzat): title= pelayar asal ditukar ke Tooltip
+              kongsi, sama gaya dengan tooltip lain di seluruh Editorium. */}
+          <Tooltip text="Tutup (Escape)">
+            <button
+              type="button"
+              onClick={onTutup}
+              className="text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+              aria-label="Tutup"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </Tooltip>
         </header>
 
         <div className="flex-none flex border-b border-stone-200 text-xs" role="tablist">
@@ -315,15 +319,16 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                             dedah-hover ditolak, editor perlu nampak butang ni SENTIASA, bukan
                             teka ia wujud). stopPropagation wajib: baris ni sendiri ada onClick
                             (tanda-dibaca) bila belum dibaca. */}
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); onPadamNotifikasi(n.id); }}
-                          className="ml-auto text-stone-400 hover:text-[#a8241f] transition-colors cursor-pointer"
-                          aria-label="Padam notifikasi ini"
-                          title="Padam"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                        <Tooltip text="Padam">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onPadamNotifikasi(n.id); }}
+                            className="ml-auto text-stone-400 hover:text-[#a8241f] transition-colors cursor-pointer"
+                            aria-label="Padam notifikasi ini"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </Tooltip>
                       </div>
                       <p className="font-serif text-[15px] leading-snug text-stone-900">{n.tajuk}</p>
                       {n.kandungan && <p className="text-stone-600 text-xs whitespace-pre-wrap leading-relaxed">{n.kandungan}</p>}

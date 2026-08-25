@@ -181,15 +181,23 @@ export const TierKadConsole: React.FC = () => {
                         />
                       </td>
                       <td className="p-2.5 text-right">
-                        <input
-                          type="number"
-                          min={0}
-                          value={d.huraian}
-                          disabled={barSahaja}
-                          title={barSahaja ? 'Kad Bar tiada medan huraian langsung.' : undefined}
-                          onChange={e => setDraf(p => ({ ...p, [t.tierKey]: { ...d, huraian: e.target.value } }))}
-                          className="w-20 px-2 py-[calc(4px*var(--ed-kepadatan,1))] border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors disabled:bg-stone-100 disabled:text-stone-400"
-                        />
+                        {/* Penyeragaman tooltip 25/8 (arahan Izzat): title= pelayar asal ditukar
+                            ke komponen Tooltip kongsi supaya rupa sama dengan tooltip lain dalam
+                            konsol ini (cth "Kembali ke nilai lalai" beberapa baris di bawah).
+                            Span pembalut perlu: input disabled tidak menembak event hover React,
+                            jadi Tooltip mesti memerhati pembalutnya, bukan input itu sendiri. */}
+                        <Tooltip text={barSahaja ? 'Kad Bar tiada medan huraian langsung.' : undefined}>
+                          <span className="inline-flex">
+                            <input
+                              type="number"
+                              min={0}
+                              value={d.huraian}
+                              disabled={barSahaja}
+                              onChange={e => setDraf(p => ({ ...p, [t.tierKey]: { ...d, huraian: e.target.value } }))}
+                              className="w-20 px-2 py-[calc(4px*var(--ed-kepadatan,1))] border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors disabled:bg-stone-100 disabled:text-stone-400"
+                            />
+                          </span>
+                        </Tooltip>
                       </td>
                       <td className="p-2.5 font-mono text-[10px] text-stone-500">
                         {t.lalaiMaxTitleAlone} / {t.lalaiMaxBriefAlone}
