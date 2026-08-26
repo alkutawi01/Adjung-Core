@@ -7,6 +7,15 @@
     ]
   },
   {
+    "time": "2026-08-26T00:47:32.729Z",
+    "summary": "Betulkan konflik lantai jeda 1a vs Agih Lengah Bertingkat 1b (tambah bukan max); jujurkan warna pratonton animasi (latar hampir putih #FDFDFD, bukan kelabu gelap); tambah Swipe ke kolam Rawak; hidupkan togol animasi transisi global (arahan Izzat selepas audit menyeluruh)",
+    "files": [
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/editorium/AnimasiPratonton.tsx",
+      "src/components/editorium/TetapanAmSlotConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T00:02:46.842Z",
     "summary": "Betulkan carousel bertukar serta-merta lepas reload (bukan tunggu jeda) — kedudukan 'ikut masa akses' dikira semasa render pertama, bukan lonjak drpd index 0 via effect lewat",
     "files": [
