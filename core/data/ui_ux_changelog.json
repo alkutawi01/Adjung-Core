@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T06:56:43.387Z",
+    "summary": "Betulkan pertukaran carousel terkunci fasa sama secara kekal (susulan Agih Lengah Bertingkat) — setiap slot kini dapat period sedikit berbeza (jitter) supaya fasa relatif hanyut berterusan, bukan terkunci selamanya",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T06:48:21.534Z",
     "summary": "Betulkan pembalutan teks tiba-tiba berubah (cth '2026' jatuh baris kedua) sebaik transisi Gerak Susun/Swipe tamat — panel overlay kini dipaksa lebar kandungan sebenar, bukan lebar penuh kad",
     "files": [

@@ -2687,7 +2687,25 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       // mula sekurang-kurangnya pada lantai tu), (2) slot yang diagih tetap berperingkat SATU-
       // SATU (slot 0 pada 15s, slot 1 pada 16s, slot 2 pada 17s, dst — bukan lagi 15s serentak).
       const initialDelaySecs = jedaPertamaCarousel + (slotItem.carouselDelay || 0);
-      const intervalSecs = slotItem.carouselInterval || 10;
+      // Jitter halus (2026-08-26, susulan laporan Izzat: "masih ada pertukaran carousel berlaku
+      // serentak...dua kad yg berdekatan bertukar pada masa yg berdekatan" — SELEPAS Agih Lengah
+      // Bertingkat/susunan bisection di atas dideploy). Punca SEBENAR bukan susunan agihan lengah
+      // (yang betul — lihat nota di atas) tapi ALIASING PERIOD: SEMUA 30 slot kongsi intervalSecs
+      // yang SAMA PERSIS (lalai 10s, tiada per-slot). Dengan lengah 0-29s bertindih atas period
+      // 10s yang SAMA, mana-mana DUA slot yang lengahnya kongruen modulo period tu (cth lengah 3s
+      // & 13s & 23s, kesemuanya ≡3 (mod 10)) akan SENTIASA berada pada fasa SAMA — bertukar
+      // SERENTAK pada SETIAP kitaran, buat SELAMA-LAMANYA, tak kira macam mana susunan bisection
+      // mengagihkan NILAI 0-29 tu ke slot mana. Susunan bisection cuma pastikan slot BERJIRAN dpt
+      // NILAI lengah awal yang jauh berasingan — ia tak (dan tak boleh) elak pasangan slot (mana-
+      // mana pasangan, termasuk berjiran) yang kebetulan kongruen modulo period drpd terkunci fasa
+      // sama BUAT SELAMANYA. Fix SEBENAR: pastikan period (intervalSecs) itu sendiri SEDIKIT
+      // berbeza setiap slot (jitter halus ±2.9% berdasarkan carouselDelay/rank bisection sedia
+      // ada, TIADA medan DB baharu diperlukan) — fasa relatif MANA-MANA dua slot kini HANYUT
+      // berterusan dari semasa ke semasa (tak pernah terkunci kekal), bukan cuma dijarakkan sekali
+      // semasa lengah AWAL. Ini corak piawai penyelesaian "isyarat berkelip serentak" (fireflies
+      // synchronization problem) — jitter period, bukan cuma jitter fasa awal.
+      const intervalSecsAsas = slotItem.carouselInterval || 10;
+      const intervalSecs = intervalSecsAsas * (1 + (slotItem.carouselDelay || 0) * 0.001);
 
       // Treat the carousel as running continuously since the epoch, rather than always restarting
       // at item 0 on every page load — otherwise every visitor sees the exact same first item, which
