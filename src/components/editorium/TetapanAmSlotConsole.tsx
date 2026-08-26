@@ -49,6 +49,12 @@ interface TetapanAm {
   // jenisAnimasiPilihan (bukan 'rawak' sendiri) — checkbox di bawah, editor pilih sendiri, TIADA
   // default dipaksa selain "semua 4 jenis" bila mod Rawak dipilih julung kali.
   jenisAnimasiRawakPool: string[];
+  // Suis induk "paksa semua slot ikut Tetapan Am" (2026-08-26, permintaan Izzat: "pastikan ada
+  // pilihan utk overwrite semua tetapan berasingan tu di tetapan am"). false = kelakuan sedia ada
+  // (override per-slot menang). true = SEMUA enam tetapan per-slot (arah/jenis/warna/kelajuan/
+  // logo/nisbah, Senarai Slot -> Tetapan Kad) diabaikan, nilai am di halaman ni menang tanpa
+  // syarat. Override KEKAL TERSIMPAN — reversible, sama corak modWarnaPanel di atas.
+  paksaTetapanAmSemuaSlot: boolean;
   jenisAnimasiPilihan?: { nilai: string; label: string }[];
   arahAnimasiPilihan?: { nilai: string; label: string }[];
   nisbahPenajaTransisiPilihan?: { nilai: number; label: string }[];
@@ -302,11 +308,41 @@ export const TetapanAmSlotConsole: React.FC = () => {
   const [berjaya, setBerjaya] = useState<string | null>(null);
   const [mengagih, setMengagih] = useState(false);
 
-  // Agih lengah carousel bertingkat (2026-08-04, permintaan Izzat) — "kalau ada 30 slot carousel,
-  // setiap saat ada SATU yang bertukar, so 30 slot ambil 30 saat utk semua bertukar sekali" —
-  // slot ke-N (0-based) dapat carouselDelay = N saat. Baca SEMUA slot dulu (kekalkan setiap medan
-  // lain tak berubah — POST /api/system/slots INSERT OR REPLACE PENUH setiap baris, hantar objek
-  // separuh akan PADAM medan lain secara senyap), ubah carouselDelay sahaja, tulis balik.
+  // Susunan LEBAR-SAMA-RATA (2026-08-26, permintaan Izzat: "pastikan tiada pertukaran animasi
+  // yg berlaku serentak atau berdekatan (mcm slot 1 pada saat pertama, slot 2 pada saat 2, ni
+  // terlalu dekat, nak yg jauh mcm mula2 slot 30, kemudian slot 1, pastu slot 10, yg bertukar)")
+  // — bisection/pembahagian-dua berulang: lawat titik TENGAH dahulu, kemudian titik-suku
+  // (kiri dan kanan tengah), lalu titik-lapan, dst. — jarak antara mana-mana dua indeks yang
+  // BERSEBELAHAN (cth 0 dan 1) dalam URUTAN kunjungan ni sentiasa besar (indeks berdekatan
+  // dikunjungi pada peringkat kedalaman bisection yang jauh berbeza), berbanding susunan LAMA
+  // [0,1,2,3,...] yang urutan kunjungannya = urutan indeks itu sendiri (jarak minimum, punca
+  // "slot 1 saat pertama, slot 2 saat kedua" yg Izzat tangkap). Hasil digunakan sbg PERINGKAT
+  // (0=lengah terkecil, n-1=lengah terbesar) yg diagihkan ikut URUTAN spreadOrder ni, bukan ikut
+  // urutan slotIndex — dua slot yg BERJIRAN dlm grid (slotIndex bersebelahan) hampir pasti jatuh
+  // pada peringkat yg jauh berasingan.
+  const susunanLebarSamaRata = (n: number): number[] => {
+    const hasil: number[] = [];
+    const baris: Array<[number, number]> = [[0, n - 1]];
+    while (baris.length) {
+      const [lo, hi] = baris.shift()!;
+      if (lo > hi) continue;
+      const tengah = Math.floor((lo + hi) / 2);
+      hasil.push(tengah);
+      baris.push([lo, tengah - 1], [tengah + 1, hi]);
+    }
+    return hasil;
+  };
+
+  // Agih lengah carousel bertingkat (2026-08-04, permintaan Izzat; pembetulan susunan 2026-08-26)
+  // — "kalau ada 30 slot carousel, setiap saat ada SATU yang bertukar, so 30 slot ambil 30 saat
+  // utk semua bertukar sekali". DAHULU: slot ke-N (0-based, ikut slotIndex) dapat carouselDelay=N
+  // saat terus — bermakna slot 1 & slot 2 (BERJIRAN dlm grid bento) bertukar SATU SAAT berturutan,
+  // tepat kelakuan yg Izzat tangkap sbg "terlalu dekat". KINI: peringkat lengah (0..n-1 saat)
+  // diagihkan ikut susunanLebarSamaRata() di atas, bukan ikut urutan slotIndex — slot yg
+  // berjiran dlm grid jatuh pada peringkat lengah yg jauh berasingan. Baca SEMUA slot dulu
+  // (kekalkan setiap medan lain tak berubah — POST /api/system/slots INSERT OR REPLACE PENUH
+  // setiap baris, hantar objek separuh akan PADAM medan lain secara senyap), ubah carouselDelay
+  // sahaja, tulis balik.
   const agihLengahBertingkat = async () => {
     setMengagih(true);
     setRalat(null);
@@ -315,10 +351,16 @@ export const TetapanAmSlotConsole: React.FC = () => {
       const res = await fetch('/api/system/slots');
       const semua = await bacaJsonSelamat(res);
       if (!Array.isArray(semua)) throw new Error('Gagal membaca senarai slot.');
-      // Ticker (slotIndex -1) tiada carousel — langkau, jangan sentuh.
-      const dikemas = semua
-        .filter((s: any) => s.slotIndex >= 0)
-        .map((s: any) => ({ ...s, carouselDelay: s.slotIndex }));
+      // Ticker (slotIndex -1) tiada carousel — langkau, jangan sentuh. Disusun ikut slotIndex
+      // dahulu (kandungan `semua` daripada GET tak dijamin tersusun) supaya urutan ke-i dlm array
+      // ni sepadan slotIndex ke-i sebelum peringkat lengah diagihkan.
+      const slotBerkaitan = semua.filter((s: any) => s.slotIndex >= 0).sort((a: any, b: any) => a.slotIndex - b.slotIndex);
+      const urutanLebar = susunanLebarSamaRata(slotBerkaitan.length);
+      // peringkat[i] = peringkat lengah (0..n-1) bagi slot pada kedudukan ke-i dlm slotBerkaitan.
+      // urutanLebar[peringkat] = kedudukan; jadi peringkatUntukKedudukan ialah songsangan urutanLebar.
+      const peringkatUntukKedudukan = new Array(slotBerkaitan.length);
+      urutanLebar.forEach((kedudukan, peringkat) => { peringkatUntukKedudukan[kedudukan] = peringkat; });
+      const dikemas = slotBerkaitan.map((s: any, i: number) => ({ ...s, carouselDelay: peringkatUntukKedudukan[i] }));
       const simpan = await fetch('/api/system/slots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -326,7 +368,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
       });
       const data = await simpan.json();
       if (!simpan.ok) throw new Error(data.error || 'Gagal menyimpan.');
-      setBerjaya(`Lengah diagih: Slot 1 = 0 saat, Slot ${dikemas.length} = ${dikemas.length - 1} saat.`);
+      setBerjaya(`Lengah diagih (susunan lebar-sama-rata, bukan berurutan): ${dikemas.length} slot, 0-${dikemas.length - 1} saat.`);
     } catch (e: any) {
       setRalat(e.message || 'Gagal mengagih lengah carousel.');
     } finally {
@@ -477,14 +519,21 @@ export const TetapanAmSlotConsole: React.FC = () => {
         <div className="border border-stone-200 rounded p-4 space-y-2">
           <div className="font-semibold text-stone-800">1b. Agih lengah carousel bertingkat</div>
           <p className="text-stone-500 text-[11px] leading-relaxed">
-            Klik untuk agih Slot 1 → lengah tambahan 0 saat, Slot 2 → 1 saat, Slot 3 → 2 saat, dan
-            seterusnya, supaya carousel bertukar SATU-SATU merentasi masa (bukan semua serentak),
-            tanpa perlu laras setiap slot satu-satu di "Tetapan Kad". Lengah tambahan ini
-            DITAMBAH atas jeda pertukaran pertama (1a) di atas — Slot 1 sebenarnya bertukar pada
-            jeda 1a + 0 saat, Slot 2 pada jeda 1a + 1 saat, dan seterusnya, supaya tiada slot
-            bertukar lebih awal daripada jeda 1a yang ditetapkan. Boleh diklik semula bila-bila
-            untuk agih semula; laras individu selepas itu (Senarai Slot → Tetapan Kad) tetap
-            berfungsi seperti biasa.
+            Klik untuk agih lengah tambahan 0 hingga (jumlah slot - 1) saat merentasi semua slot
+            carousel, supaya ia bertukar SATU-SATU merentasi masa (bukan semua serentak), tanpa
+            perlu laras setiap slot satu-satu di "Tetapan Kad". Lengah tambahan ini DITAMBAH atas
+            jeda pertukaran pertama (1a) di atas — tiada slot bertukar lebih awal daripada jeda 1a
+            yang ditetapkan.
+          </p>
+          <p className="text-stone-500 text-[11px] leading-relaxed">
+            <strong className="font-semibold">Susunan lebar-sama-rata (2026-08-26)</strong>: lengah
+            TIDAK diagih ikut urutan slot (dahulu Slot 1=0s, Slot 2=1s bersebelahan — Izzat tangkap
+            ini "terlalu dekat", dua kad berjiran dlm grid bertukar berturutan). Kini diagih ikut
+            susunan bisection (tengah dahulu, kemudian suku, lapan, dst.) supaya dua slot yang
+            BERJIRAN dalam grid bento jatuh pada lengah yang JAUH berasingan — pembaca tidak nampak
+            dua kad bersebelahan bertukar dalam saat yang sama/berdekatan. Boleh diklik semula
+            bila-bila untuk agih semula; laras individu selepas itu (Senarai Slot → Tetapan Kad)
+            tetap berfungsi seperti biasa.
           </p>
           <Button variant="secondary" onClick={agihLengahBertingkat} disabled={mengagih}>
             {mengagih ? 'Mengagih…' : 'Agih Lengah Bertingkat'}
@@ -534,6 +583,27 @@ export const TetapanAmSlotConsole: React.FC = () => {
               <strong className="font-semibold">3. Animasi transisi aktif</strong>: bila
               dinyahtanda, SEMUA slot carousel guna pertukaran pudar ringkas (kelakuan asal),
               tak kira jenis animasi dipilih di sini atau di Senarai Slot per-slot.
+            </span>
+          </label>
+
+          {/* Suis induk "paksa semua slot ikut Tetapan Am" (2026-08-26, permintaan Izzat:
+              "pastikan ada pilihan utk overwrite semua tetapan berasingan tu di tetapan am") —
+              corak IDENTIK togol modWarnaPanel di bawah: reversible, override slot KEKAL tersimpan
+              (tak dipadam), cuma tak dibaca bila suis ni hidup. */}
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!draf.paksaTetapanAmSemuaSlot}
+              onChange={e => setDraf(p => p ? { ...p, paksaTetapanAmSemuaSlot: e.target.checked } : p)}
+              className="w-3.5 h-3.5 mt-0.5 rounded border-stone-300 text-Adjung-maroon cursor-pointer"
+            />
+            <span className="text-stone-700">
+              <strong className="font-semibold">Paksa semua slot ikut Tetapan Am ini</strong>: bila
+              ditanda, KESEMUA tetapan animasi berasingan yang Ketua Editor tetapkan per-slot di
+              Senarai Slot &rarr; Tetapan Kad (jenis, arah, warna panel, kelajuan, logo, nisbah
+              penaja) diabaikan sepenuhnya — semua 30 kad ikut nilai am di halaman ini tanpa
+              kecuali. Tetapan per-slot TIDAK dipadam, cuma tidak dibaca — nyahtanda semula untuk
+              kembali kepada tetapan berasingan tanpa kehilangan apa-apa.
             </span>
           </label>
 

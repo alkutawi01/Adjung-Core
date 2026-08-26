@@ -509,7 +509,10 @@ interface TetapanAnimasiCarousel {
   // pemanggil (CarouselStableBlock, useRef per-instance) — setiap kad kini alih giliran secara
   // BEBAS drpd kad lain, nisbah 1:1 bermakna kad TU SENDIRI alih Adjung/penaja setiap kali dia
   // bertukar, tak kira apa kad lain buat.
-  ambilLogoTransisi: (mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>) => LogoTransisi;
+  ambilLogoTransisi: (mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>, nisbahEfektif: number) => LogoTransisi;
+  // Nisbah penaja transisi PER-SLOT (2026-08-26, parity 100% dgn Tetapan Am) — cermin
+  // kelajuanUntukSlot di atas.
+  nisbahUntukSlot: (slotIndexStr: string | null | undefined) => number;
   // Arah PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah tertentu utk slot
   // tertentu sahaja?") — override slots_config.arahOverride (kini ditetapkan di Senarai Slot,
   // lihat nota jenisAnimasiUntukSlot di bawah utk sebab pertukaran lokasi) MENGATASI arahAnimasi
@@ -554,6 +557,7 @@ const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
   warnaPanelUntukSlot: () => '#802334',
   kelajuanUntukSlot: () => 1,
   logoModeUntukSlot: () => '',
+  nisbahUntukSlot: () => 0,
   jenisAnimasiRawakPool: JENIS_ANIMASI_ASAS,
 };
 const JenisAnimasiContext = createContext<TetapanAnimasiCarousel>(LALAI_TETAPAN_ANIMASI);
@@ -782,7 +786,7 @@ const CarouselStableBlock: React.FC<{
   renderItem: (item: any) => React.ReactNode;
   onNavigate?: (direction: 1 | -1) => void;
 }> = ({ items, activeIndex, renderItem, onNavigate }) => {
-  const { jenisAnimasi, warnaPanelTransisi, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot, animasiAktif, kelajuanAnimasi, warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot, jenisAnimasiRawakPool } = useContext(JenisAnimasiContext);
+  const { jenisAnimasi, warnaPanelTransisi, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot, animasiAktif, kelajuanAnimasi, warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot, nisbahUntukSlot, jenisAnimasiRawakPool } = useContext(JenisAnimasiContext);
   // Jenis animasi RAWAK dipilih utk pusingan SEMASA (2026-08-18, soalan Izzat) — ditetapkan SEKALI
   // dalam useEffect di bawah bila jenisEfektif==='rawak', dibaca (bukan dikira semula) semasa
   // render supaya effect (mulakan timer/overlay) dan render (papar JSX overlay) SENTIASA sepadan
@@ -1087,7 +1091,7 @@ const CarouselStableBlock: React.FC<{
         });
       }
       setPortalTarget(kadPenuh);
-      setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef));
+      setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef, nisbahUntukSlot(kadUntukJenis?.getAttribute('data-slot'))));
       setIndeksLamaGerak(indeksSebelum);
       // visualIndex dikemas kini SERTA-MERTA (bukan lag macam Colophon/Sapuan Lajur) — senarai
       // bertindan di bawah TERSEMBUNYI di sebalik regangan Gerak Susun sepanjang overlayAktif,
@@ -1196,7 +1200,7 @@ const CarouselStableBlock: React.FC<{
       kadPenuh.style.overflow = 'hidden';
     }
     setPortalTarget(kadPenuh);
-    setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef));
+    setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef, nisbahUntukSlot(kadUntukJenis?.getAttribute('data-slot'))));
 
     // Tempoh SATU keyframe berterusan (masuk -> TAHAN 500ms -> keluar) — masukMasa ialah TITIK
     // bila panel BARU tutup penuh (kedudukan translate(0,0), lihat peratusan @keyframes di
@@ -2387,6 +2391,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     jenisAnimasi: 'pudar', arahAnimasi: 'kanan', warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0,
     animasiAktif: true, kelajuanAnimasi: 1, modWarnaPanel: 'pelbagai',
     jenisAnimasiRawakPool: JENIS_ANIMASI_ASAS as string[],
+    // Suis induk "paksa semua slot ikut Tetapan Am" (2026-08-26) — lihat slotAmRoutes.js dan
+    // nota di arahUntukSlot/jenisAnimasiUntukSlot/dsb. (FrontpageView.tsx) untuk kesan penuh.
+    paksaTetapanAmSemuaSlot: false,
   });
   // Saiz fon Focus View (2026-08-04, permintaan Izzat) — SATU tetapan GLOBAL, bukan per-Bidang/tier.
   // Lalai 1 / 15px sepadan kelakuan sedia ada sekiranya panggilan gagal.
@@ -2413,6 +2420,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             jenisAnimasiRawakPool: Array.isArray(d.jenisAnimasiRawakPool) && d.jenisAnimasiRawakPool.length
               ? d.jenisAnimasiRawakPool
               : JENIS_ANIMASI_ASAS,
+            paksaTetapanAmSemuaSlot: !!d.paksaTetapanAmSemuaSlot,
           });
           setTetapanFontFocusView({
             titleSizeScale: Number(d.focusViewTitleScale) || 1,
@@ -2472,7 +2480,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // — jangan cipta laluan resolusi logo kedua di tempat lain, semua 3 tapak panggilan
   // (CarouselStableBlock, Colophon/Sapuan Lajur/Gerak Susun) sudah hantar `data-slot` semasa
   // (kadUntukJenis?.getAttribute('data-slot')), tinggal disalurkan ke sini.
-  const ambilLogoTransisi = React.useCallback((mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>): LogoTransisi => {
+  // `nisbahEfektif` (2026-08-26, parity per-slot) — pemanggil (CarouselStableBlock) kini hantar
+  // nisbah SUDAH-DIRESOLVE (nisbahUntukSlot(), warisi override slot atau am) sebagai parameter
+  // ketiga, bukan baca tetapanAnimasiMentah.nisbahPenajaTransisi terus di sini — sepadan corak
+  // giliranRef per-instance di atas (2026-08-26, pembetulan round-robin).
+  const ambilLogoTransisi = React.useCallback((mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>, nisbahEfektif: number): LogoTransisi => {
     if (mod === 'tiada') return { jenis: 'tiada' };
     if (mod === 'adjung') return { jenis: 'adjung' };
     if (mod === 'penaja') {
@@ -2481,16 +2493,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       giliranRef.current.indeksPenaja += 1;
       return { jenis: 'penaja', logoUrl: p.logoUrl, nama: p.nama };
     }
-    const nisbah = tetapanAnimasiMentah.nisbahPenajaTransisi;
-    if (nisbah <= 0 || penajaLayakTransisi.length === 0) return { jenis: 'adjung' };
-    const kitaran = nisbah + 1;
+    if (nisbahEfektif <= 0 || penajaLayakTransisi.length === 0) return { jenis: 'adjung' };
+    const kitaran = nisbahEfektif + 1;
     const posisi = giliranRef.current.putaran % kitaran;
     giliranRef.current.putaran += 1;
     if (posisi === 0) return { jenis: 'adjung' };
     const p = penajaLayakTransisi[giliranRef.current.indeksPenaja % penajaLayakTransisi.length];
     giliranRef.current.indeksPenaja += 1;
     return { jenis: 'penaja', logoUrl: p.logoUrl, nama: p.nama };
-  }, [tetapanAnimasiMentah.nisbahPenajaTransisi, penajaLayakTransisi]);
+  }, [penajaLayakTransisi]);
 
   // Arah animasi PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah tertentu utk
   // slot tertentu sahaja?") — dibina drpd `slotsConfig` (GET /api/system/slots) yang sudah dimuat
@@ -2506,9 +2517,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     return m;
   }, [slotsConfig]);
   const arahUntukSlot = React.useCallback(
-    (slotIndexStr: string | null | undefined): string =>
-      (slotIndexStr != null && arahOverridePerSlot[slotIndexStr]) || tetapanAnimasiMentah.arahAnimasi,
-    [arahOverridePerSlot, tetapanAnimasiMentah.arahAnimasi]
+    (slotIndexStr: string | null | undefined): string => {
+      if (tetapanAnimasiMentah.paksaTetapanAmSemuaSlot) return tetapanAnimasiMentah.arahAnimasi;
+      return (slotIndexStr != null && arahOverridePerSlot[slotIndexStr]) || tetapanAnimasiMentah.arahAnimasi;
+    },
+    [arahOverridePerSlot, tetapanAnimasiMentah.arahAnimasi, tetapanAnimasiMentah.paksaTetapanAmSemuaSlot]
   );
 
   // Jenis animasi PER-SLOT (2026-08-07, permintaan Izzat) — cermin arahOverridePerSlot/
@@ -2524,9 +2537,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     return m;
   }, [slotsConfig]);
   const jenisAnimasiUntukSlot = React.useCallback(
-    (slotIndexStr: string | null | undefined): string =>
-      (slotIndexStr != null && jenisAnimasiOverridePerSlot[slotIndexStr]) || tetapanAnimasiMentah.jenisAnimasi,
-    [jenisAnimasiOverridePerSlot, tetapanAnimasiMentah.jenisAnimasi]
+    (slotIndexStr: string | null | undefined): string => {
+      if (tetapanAnimasiMentah.paksaTetapanAmSemuaSlot) return tetapanAnimasiMentah.jenisAnimasi;
+      return (slotIndexStr != null && jenisAnimasiOverridePerSlot[slotIndexStr]) || tetapanAnimasiMentah.jenisAnimasi;
+    },
+    [jenisAnimasiOverridePerSlot, tetapanAnimasiMentah.jenisAnimasi, tetapanAnimasiMentah.paksaTetapanAmSemuaSlot]
   );
 
   // Warna panel / kelajuan / logo PER-SLOT (2026-08-07, Pelan 03 — arahan Izzat: "saya nak
@@ -2548,10 +2563,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // 'pelbagai' tanpa kehilangan apa-apa). 'pelbagai' ialah kelakuan SEDIA ADA (override menang).
   const warnaPanelUntukSlot = React.useCallback(
     (slotIndexStr: string | null | undefined): string => {
-      if (tetapanAnimasiMentah.modWarnaPanel === 'seragam') return tetapanAnimasiMentah.warnaPanelTransisi;
+      if (tetapanAnimasiMentah.modWarnaPanel === 'seragam' || tetapanAnimasiMentah.paksaTetapanAmSemuaSlot) return tetapanAnimasiMentah.warnaPanelTransisi;
       return (slotIndexStr != null && warnaPanelPerSlot[slotIndexStr]) || tetapanAnimasiMentah.warnaPanelTransisi;
     },
-    [warnaPanelPerSlot, tetapanAnimasiMentah.warnaPanelTransisi, tetapanAnimasiMentah.modWarnaPanel]
+    [warnaPanelPerSlot, tetapanAnimasiMentah.warnaPanelTransisi, tetapanAnimasiMentah.modWarnaPanel, tetapanAnimasiMentah.paksaTetapanAmSemuaSlot]
   );
 
   const kelajuanPerSlot = React.useMemo(() => {
@@ -2564,9 +2579,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     return m;
   }, [slotsConfig]);
   const kelajuanUntukSlot = React.useCallback(
-    (slotIndexStr: string | null | undefined): number =>
-      (slotIndexStr != null && kelajuanPerSlot[slotIndexStr]) || tetapanAnimasiMentah.kelajuanAnimasi,
-    [kelajuanPerSlot, tetapanAnimasiMentah.kelajuanAnimasi]
+    (slotIndexStr: string | null | undefined): number => {
+      if (tetapanAnimasiMentah.paksaTetapanAmSemuaSlot) return tetapanAnimasiMentah.kelajuanAnimasi;
+      return (slotIndexStr != null && kelajuanPerSlot[slotIndexStr]) || tetapanAnimasiMentah.kelajuanAnimasi;
+    },
+    [kelajuanPerSlot, tetapanAnimasiMentah.kelajuanAnimasi, tetapanAnimasiMentah.paksaTetapanAmSemuaSlot]
   );
 
   const logoModePerSlot = React.useMemo(() => {
@@ -2579,18 +2596,42 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     return m;
   }, [slotsConfig]);
   const logoModeUntukSlot = React.useCallback(
-    (slotIndexStr: string | null | undefined): string =>
-      (slotIndexStr != null && logoModePerSlot[slotIndexStr]) || '',
-    [logoModePerSlot]
+    (slotIndexStr: string | null | undefined): string => {
+      if (tetapanAnimasiMentah.paksaTetapanAmSemuaSlot) return '';
+      return (slotIndexStr != null && logoModePerSlot[slotIndexStr]) || '';
+    },
+    [logoModePerSlot, tetapanAnimasiMentah.paksaTetapanAmSemuaSlot]
+  );
+
+  // Nisbah penaja transisi PER-SLOT (2026-08-26, permintaan Izzat: parity 100% dgn Tetapan Am) —
+  // cermin corak kelajuanPerSlot/kelajuanUntukSlot di atas. Subset sah 0/1/2/3 (sama enum
+  // NISBAH_PENAJA_TRANSISI, slotAmRoutes.js), '' atau nilai luar julat jatuh ke tetapan am.
+  const nisbahPerSlot = React.useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const s of slotsConfig) {
+      const n = Number(s?.nisbahPenajaTransisiOverride);
+      if (s?.nisbahPenajaTransisiOverride !== '' && s?.nisbahPenajaTransisiOverride != null && Number.isInteger(n) && n >= 0 && n <= 3) {
+        m[String(s.slotIndex)] = n;
+      }
+    }
+    return m;
+  }, [slotsConfig]);
+  const nisbahUntukSlot = React.useCallback(
+    (slotIndexStr: string | null | undefined): number => {
+      if (tetapanAnimasiMentah.paksaTetapanAmSemuaSlot) return tetapanAnimasiMentah.nisbahPenajaTransisi;
+      const override = slotIndexStr != null ? nisbahPerSlot[slotIndexStr] : undefined;
+      return override !== undefined ? override : tetapanAnimasiMentah.nisbahPenajaTransisi;
+    },
+    [nisbahPerSlot, tetapanAnimasiMentah.nisbahPenajaTransisi, tetapanAnimasiMentah.paksaTetapanAmSemuaSlot]
   );
 
   const tetapanAnimasi = React.useMemo<TetapanAnimasiCarousel>(
     () => ({
       ...tetapanAnimasiMentah, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot,
-      warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot,
+      warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot, nisbahUntukSlot,
     }),
     [tetapanAnimasiMentah, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot,
-     warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot]
+     warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot, nisbahUntukSlot]
   );
 
   useEffect(() => {

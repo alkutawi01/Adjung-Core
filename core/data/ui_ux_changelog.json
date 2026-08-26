@@ -1,5 +1,17 @@
 [
   {
+    "time": "2026-08-26T04:43:34.918Z",
+    "summary": "Tambah parity animasi per-slot 100% (nisbah penaja transisi), suis induk 'Paksa semua slot ikut Tetapan Am', dan susun semula 'Agih Lengah Bertingkat' ke susunan lebar-sama-rata (bisection) bukan berurutan",
+    "files": [
+      "server.js",
+      "core/routes/slotAmRoutes.js",
+      "core/routes/slotsConfigRoutes.js",
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/editorium/SenaraiSlotConsole.tsx",
+      "src/components/editorium/TetapanAmSlotConsole.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T04:20:46.655Z",
     "summary": "Betulkan round-robin logo penaja transisi carousel — giliran dahulu dikongsi SEMUA 30 kad serentak (giliran kad kerap dicuri kad lain), kini setiap kad bawa giliran sendiri",
     "files": [

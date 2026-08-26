@@ -2178,6 +2178,17 @@ const initEditorialOS = (dbConn) => {
       // jatuh balik ke AM_DEFAULTS.jenisAnimasiRawakPool (SEMUA 4 jenis) bila lajur kosong/tak sah.
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN jenisAnimasiRawakPool TEXT", () => {});
 
+      // Suis induk "paksa semua slot ikut Tetapan Am" (2026-08-26, permintaan Izzat: "pastikan ada
+      // pilihan utk overwrite semua tetapan berasingan tu di tetapan am") — bila HIDUP (1), KESEMUA
+      // enam resolver PER-SLOT (arahUntukSlot/jenisAnimasiUntukSlot/warnaPanelUntukSlot/
+      // kelajuanUntukSlot/logoModeUntukSlot/nisbahUntukSlot, FrontpageView.tsx) langkau override
+      // slots_config SEPENUHNYA dan pulangkan nilai AM terus, tak kira apa override tersimpan.
+      // Ikut corak REVERSIBLE SAMA seperti modWarnaPanel='seragam' di atas — override KEKAL
+      // TERSIMPAN dlm slots_config, cuma tak dibaca; boleh patah balik ke override individu tanpa
+      // kehilangan apa-apa. Lalai 0 (OFF) supaya pemasangan sedia ada tak berubah rupa sebaik lajur
+      // ni wujud. Lihat core/routes/slotAmRoutes.js dan `paksaSemuaSlot` (FrontpageView.tsx).
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN paksaTetapanAmSemuaSlot INTEGER DEFAULT 0", () => {});
+
       // source_link_checks (2026-08-05, Fasa 8b — semakan pautan mati) — satu rekod PER URL
       // sumber unik (bukan per-kandungan; URL sama dikongsi rentas kandungan disemak sekali,
       // bukan berulang-ulang). Diisi/dikemas kini oleh core/editorial/LinkChecker.js, dibaca oleh
@@ -2337,6 +2348,11 @@ const initEditorialOS = (dbConn) => {
         dbConn.run("ALTER TABLE slots_config ADD COLUMN warnaPanelOverride TEXT DEFAULT ''", () => {});
         dbConn.run("ALTER TABLE slots_config ADD COLUMN kelajuanOverride TEXT DEFAULT ''", () => {});
         dbConn.run("ALTER TABLE slots_config ADD COLUMN logoTransisiMode TEXT DEFAULT ''", () => {});
+        // Nisbah penaja transisi PER-SLOT (2026-08-26, permintaan Izzat: parity 100% dgn Tetapan
+        // Am) — ikut konvensyen SAMA seperti tiga lajur di atas: '' = warisi nisbahPenajaTransisi
+        // (slot_am_settings), '0'/'1'/'2'/'3' = override slot ni sahaja. Disimpan TEKS (bukan
+        // INTEGER) supaya '' selamat sebagai "ikut am" — sama sebab kelajuanOverride guna TEKS.
+        dbConn.run("ALTER TABLE slots_config ADD COLUMN nisbahPenajaTransisiOverride TEXT DEFAULT ''", () => {});
       });
 
       // 11. pipeline_logs

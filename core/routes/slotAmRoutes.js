@@ -100,6 +100,12 @@ export const AM_DEFAULTS = {
   // Kad -> Tetapan). Lalai 10 saat (sepadan kelakuan sedia ada sebelum ciri ni).
   carouselJedaPertama: 15,
   carouselTempohLalai: 10,
+  // Suis induk "paksa semua slot ikut Tetapan Am" (2026-08-26, permintaan Izzat: "pastikan ada
+  // pilihan utk overwrite semua tetapan berasingan tu di tetapan am"). false = kelakuan SEDIA ADA
+  // (override per-slot menang bila ditetapkan). true = KESEMUA enam resolver per-slot
+  // (FrontpageView.tsx) langkau override slots_config dan pulangkan nilai am terus. Override KEKAL
+  // TERSIMPAN — reversible, sama corak modWarnaPanel di atas. Lalai false.
+  paksaTetapanAmSemuaSlot: 0,
 };
 
 // Tiga jenis animasi carousel yang dilaksanakan sebenar dalam kod (2026-08-04, Fasa 7 — spesifikasi
@@ -212,6 +218,7 @@ export const loadAmSettings = async (dbGet) => {
             return AM_DEFAULTS.jenisAnimasiRawakPool;
           }
         })(),
+        paksaTetapanAmSemuaSlot: row.paksaTetapanAmSemuaSlot === 1 ? 1 : 0,
       };
     }
     // Pengesahan simpan (validateMedanTambahan) berjalan secara sync, jadi ia baca cache
@@ -341,6 +348,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
             : [];
           return senarai.length ? senarai : AM_DEFAULTS.jenisAnimasiRawakPool;
         })(),
+        paksaTetapanAmSemuaSlot: b.paksaTetapanAmSemuaSlot ? 1 : 0,
       };
 
       // Silang sah min <= max (2026-08-07) — kedua-dua ditetapkan (bukan 0) mesti julat SAH,
@@ -364,8 +372,8 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           hadHuraianPanjangMin, hadSumberMin, hadTopikMin, hadNotaEditorMin,
           carouselJedaPertama, carouselTempohLalai,
-          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, jenisAnimasiRawakPool, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, jenisAnimasiRawakPool, paksaTetapanAmSemuaSlot, updatedAt
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -394,6 +402,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           focusViewBodySize = excluded.focusViewBodySize,
           susunanCarousel = excluded.susunanCarousel,
           jenisAnimasiRawakPool = excluded.jenisAnimasiRawakPool,
+          paksaTetapanAmSemuaSlot = excluded.paksaTetapanAmSemuaSlot,
           updatedAt = excluded.updatedAt
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
@@ -405,6 +414,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         baharu.logoPenaja, baharu.warnaPanelTransisi, baharu.nisbahPenajaTransisi, baharu.modWarnaPanel,
         baharu.focusViewTitleScale, baharu.focusViewBodySize, baharu.susunanCarousel,
         JSON.stringify(baharu.jenisAnimasiRawakPool),
+        baharu.paksaTetapanAmSemuaSlot,
         new Date().toISOString(),
       ]);
 

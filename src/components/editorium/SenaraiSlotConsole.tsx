@@ -90,6 +90,7 @@ const LABEL_PERANAN_LEGASI: Record<string, string> = {
 interface DrafTetapan {
   manualDesk: string; bgColor: string; borderColor: string; carouselIntervalOverride: number | null; carouselDelay: number;
   jenisAnimasiOverride: string; arahOverride: string; warnaPanelOverride: string; kelajuanOverride: string; logoTransisiMode: string;
+  nisbahPenajaTransisiOverride: string;
 }
 
 interface Props {
@@ -190,6 +191,10 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
   // atas: medan "Tempoh Carousel" di bawah kini OVERRIDE (kosong = ikut ni), perlu tahu nilai am
   // supaya slot yang tak override tunjuk nilai EFEKTIF sebenar, bukan cuma placeholder teka.
   const [amCarouselTempohLalai, setAmCarouselTempohLalai] = useState(10);
+  // Nisbah penaja transisi LALAI am (2026-08-26, permintaan Izzat: parity 100% dgn Tetapan Am) —
+  // sama rasional amKelajuan di atas: medan "Nisbah Penaja" di bawah kini OVERRIDE (kosong = ikut
+  // ni), perlu tahu nilai am supaya slot yang tak override tunjuk nilai EFEKTIF sebenar.
+  const [amNisbahPenajaTransisi, setAmNisbahPenajaTransisi] = useState(0);
   useEffect(() => {
     let dibatal = false;
     fetch('/api/system/slot-am-settings')
@@ -202,6 +207,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
         if (typeof d.arahAnimasi === 'string' && d.arahAnimasi) setAmArah(d.arahAnimasi);
         if (Array.isArray(d.jenisAnimasiRawakPool) && d.jenisAnimasiRawakPool.length) setAmJenisAnimasiRawakPool(d.jenisAnimasiRawakPool);
         if (Number(d.carouselTempohLalai) > 0) setAmCarouselTempohLalai(Number(d.carouselTempohLalai));
+        if (Number.isInteger(Number(d.nisbahPenajaTransisi)) && Number(d.nisbahPenajaTransisi) >= 0) setAmNisbahPenajaTransisi(Number(d.nisbahPenajaTransisi));
       })
       .catch(() => { /* tetapan am tak dapat dibaca — label kekal nilai lalai, bukan ralat */ });
     return () => { dibatal = true; };
@@ -243,6 +249,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
         warnaPanelOverride: baris.warnaPanelOverride || '',
         kelajuanOverride: baris.kelajuanOverride || '',
         logoTransisiMode: baris.logoTransisiMode || '',
+        nisbahPenajaTransisiOverride: baris.nisbahPenajaTransisiOverride ?? '',
       };
       setDrafTetapan(nilaiAwal);
       setDrafTetapanAwal(nilaiAwal);
@@ -313,6 +320,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
       `Warna Panel Transisi: ${drafTetapan.warnaPanelOverride || '(guna tetapan lalai)'}`,
       `Kelajuan Animasi: ${drafTetapan.kelajuanOverride || '(guna tetapan lalai)'}`,
       `Logo dalam Panel: ${drafTetapan.logoTransisiMode || '(guna tetapan lalai)'}`,
+      `Nisbah Penaja Transisi: ${drafTetapan.nisbahPenajaTransisiOverride !== '' ? drafTetapan.nisbahPenajaTransisiOverride : '(guna tetapan lalai)'}`,
     ].join('\n');
     try {
       await navigator.clipboard.writeText(teks);
@@ -678,6 +686,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
           amArah={amArah}
           amJenisAnimasiRawakPool={amJenisAnimasiRawakPool}
           amCarouselTempohLalai={amCarouselTempohLalai}
+          amNisbahPenajaTransisi={amNisbahPenajaTransisi}
           menyimpan={menyimpanTetapan}
           ralat={ralatTetapan}
           ralatKonflik={ralatTetapanKonflik}
@@ -802,6 +811,7 @@ interface TetapanSlotModalProps {
   amArah: string;
   amJenisAnimasiRawakPool: string[];
   amCarouselTempohLalai: number;
+  amNisbahPenajaTransisi: number;
   menyimpan: boolean;
   ralat: string | null;
   ralatKonflik: boolean;
@@ -811,7 +821,7 @@ interface TetapanSlotModalProps {
 }
 
 const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
-  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, amJenis, amArah, amJenisAnimasiRawakPool, amCarouselTempohLalai, menyimpan, ralat, ralatKonflik,
+  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, amJenis, amArah, amJenisAnimasiRawakPool, amCarouselTempohLalai, amNisbahPenajaTransisi, menyimpan, ralat, ralatKonflik,
   onSalinDraf, onSimpan, onTutup,
 }) => {
   // Jenis/arah/kelajuan/warna EFEKTIF slot ni — override sendiri, atau jatuh balik ke tetapan am
@@ -823,6 +833,9 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
   const arahEfektifSlot = draf.arahOverride || amArah;
   const kelajuanEfektifSlot = Number(draf.kelajuanOverride) > 0 ? Number(draf.kelajuanOverride) : amKelajuan;
   const warnaEfektifSlot = draf.warnaPanelOverride || amWarnaPanel;
+  // Nisbah EFEKTIF (2026-08-26, parity) — '' tidak boleh guna `||` (0 ialah nilai SAH "Adjung
+  // sahaja", `0 || amNisbah` akan silap jatuh ke am walau editor sengaja pilih 0).
+  const nisbahEfektifSlot = draf.nisbahPenajaTransisiOverride !== '' ? Number(draf.nisbahPenajaTransisiOverride) : amNisbahPenajaTransisi;
   const kotor = JSON.stringify(draf) !== JSON.stringify(drafAwal);
   const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onTutup);
 
@@ -1087,6 +1100,25 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
           </span>
         </div>
 
+        {/* Nisbah Penaja Transisi PER-SLOT (2026-08-26, permintaan Izzat: parity 100% dgn Tetapan
+            Am) — corak IDENTIK medan Kelajuan Animasi di atas. Terpisah drpd "Logo dalam Panel
+            Transisi" di atas: medan tu pilih SIAPA (Adjung/penaja/tiada) untuk slot ni khusus,
+            medan ni pilih KEKERAPAN giliran penaja masuk (bila mod ikut giliran am, '' di atas). */}
+        <div className="flex flex-col gap-1">
+          <span className={LABEL_BORANG}>Nisbah Penaja Transisi</span>
+          <select
+            value={draf.nisbahPenajaTransisiOverride}
+            onChange={e => setDraf(p => p ? { ...p, nisbahPenajaTransisiOverride: e.target.value } : p)}
+            className={INPUT_BORANG}
+          >
+            <option value="">Guna tetapan lalai ({amNisbahPenajaTransisi === 0 ? 'Adjung sahaja' : `1 Adjung : ${amNisbahPenajaTransisi} penaja`})</option>
+            <option value="0">Logo Adjung sahaja (tiada logo penaja)</option>
+            <option value="1">1 Adjung : 1 penaja</option>
+            <option value="2">1 Adjung : 2 penaja</option>
+            <option value="3">1 Adjung : 3 penaja</option>
+          </select>
+        </div>
+
         {/* Pratonton — permintaan Izzat, papar kesan EFEKTIF slot ni (override sendiri ATAU
             warisan Tetapan Am), bukan cuma medan yang diisi di modal ni. Andaian: togol 3
             "Animasi transisi aktif" (Tetapan Am) dianggap HIDUP — modal ni tak fetch status togol
@@ -1105,6 +1137,13 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
             warnaPanel={warnaEfektifSlot}
             logoMode={draf.logoTransisiMode || 'adjung'}
           />
+          {/* AnimasiPratonton SENGAJA tak render logo penaja sebenar (lihat CLAUDE.md — cuma
+              placeholder "Ruang Logo Penaja"/wordmark Adjung), jadi nisbah efektif dipaparkan
+              sebagai teks di sini supaya editor nampak kesan medan di atas walau pratonton visual
+              tak turut berubah. */}
+          <p className="text-stone-400 text-[10px] mt-2">
+            Nisbah penaja efektif: {nisbahEfektifSlot === 0 ? 'Logo Adjung sahaja' : `1 Adjung : ${nisbahEfektifSlot} penaja`}
+          </p>
         </div>
 
         {ralat && (

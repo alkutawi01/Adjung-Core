@@ -341,7 +341,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         // semula borang PENUH, jadi menolak akan menghalang suntingan kandungan yang sah).
         const bolehUbahEstetik = hasPermission(req.session?.user?.roles, 'manageEditorial');
         const sediaAdaRows = bolehUbahEstetik ? [] : await dbAll(
-          `SELECT warnaPanelOverride, kelajuanOverride, logoTransisiMode
+          `SELECT warnaPanelOverride, kelajuanOverride, logoTransisiMode, nisbahPenajaTransisiOverride
              FROM slots_config WHERE layoutTemplateId = 'frontpage' AND slotIndex = ?`,
           [slot.slotIndex]
         );
@@ -357,17 +357,24 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         const logoTransisiModeSah = !bolehUbahEstetik
           ? (sediaAda.logoTransisiMode || '')
           : ['', 'adjung', 'penaja', 'tiada'].includes(slot.logoTransisiMode) ? slot.logoTransisiMode : '';
+        // Nisbah penaja transisi PER-SLOT (2026-08-26, parity 100% dgn Tetapan Am) — corak SAMA
+        // seperti kelajuanOverride di atas: '' = warisi tetapan am, subset SAH NISBAH_PENAJA_TRANSISI
+        // (0/1/2/3) disimpan sebagai TEKS.
+        const nisbahSah = ['', '0', '1', '2', '3'].includes(String(slot.nisbahPenajaTransisiOverride ?? ''));
+        const nisbahPenajaTransisiOverrideSah = !bolehUbahEstetik
+          ? (sediaAda.nisbahPenajaTransisiOverride || '')
+          : nisbahSah ? String(slot.nisbahPenajaTransisiOverride ?? '') : '';
 
         await dbRun(`
           INSERT OR REPLACE INTO slots_config (
             layoutTemplateId, slotIndex, contentMode, providerId, model, promptText, sourcesList, refreshRate, allowedContentTypes, priority, expiresAt, bgColor, borderColor, textColor,
             manualTitle, manualSummary, manualSource, manualUrl, manualImageUrl, manualDesk, activeObjectId, searchStrategy, carouselInterval, carouselIntervalOverride, carouselDelay, generationLimit, maxTitle, maxBrief, maxBriefLong, refreshHour, refreshDay, eventExpiryFilter,
-            aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType, genMode, arahOverride, jenisAnimasiOverride, warnaPanelOverride, kelajuanOverride, logoTransisiMode, updatedAt
-          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            aiPromptTopic, aiPromptRecency, aiPromptLanguage, aiPromptRegion, aiPromptSource, sourceType, genMode, arahOverride, jenisAnimasiOverride, warnaPanelOverride, kelajuanOverride, logoTransisiMode, nisbahPenajaTransisiOverride, updatedAt
+          ) VALUES ('frontpage', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           slot.slotIndex, slot.contentMode, providerId, slot.model, slot.promptText, slot.sourcesList, slot.refreshRate, slot.allowedContentTypes, slot.priority, slot.expiresAt, slot.bgColor, slot.borderColor, slot.textColor,
           slot.manualTitle, persistedManualSummary, slot.manualSource, slot.manualUrl, slot.manualImageUrl, slot.manualDesk, slot.activeObjectId, slot.searchStrategy || 'Structured Sources Only', slot.carouselInterval || 10, carouselIntervalOverrideSah, slot.carouselDelay || 0, slot.generationLimit || 1, slot.maxTitle !== undefined ? slot.maxTitle : null, slot.maxBrief !== undefined ? slot.maxBrief : null, slot.maxBriefLong !== undefined ? slot.maxBriefLong : null, slot.refreshHour || '00:00', slot.refreshDay || 'Isnin', slot.eventExpiryFilter || '',
-          slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas', arahOverrideSah, jenisAnimasiOverrideSah, warnaPanelOverrideSah, kelajuanOverrideSah, logoTransisiModeSah, new Date().toISOString()
+          slot.aiPromptTopic || '', slot.aiPromptRecency || '', slot.aiPromptLanguage || '', slot.aiPromptRegion || '', slot.aiPromptSource || '', resolvedSourceType, slot.genMode || 'bebas', arahOverrideSah, jenisAnimasiOverrideSah, warnaPanelOverrideSah, kelajuanOverrideSah, logoTransisiModeSah, nisbahPenajaTransisiOverrideSah, new Date().toISOString()
         ]);
 
         if (slot.manualDesk && slot.manualDesk.trim() !== '') {
