@@ -662,7 +662,8 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
   // Zon KDH01 dan TRG01 masih diambil kerana versi desktop memerlukannya: di sana ketiga-tiga
   // bandar itu memapar tarikh Hijrah menggantikan tarikh Masihi dalam kadnya sendiri.
   const metaClock = timesMap['Kuala Lumpur'];
-  const metaHijriStr = timesMap['Kota Bharu']?.hijriStr || '';
+  const metaKotaBharu = timesMap['Kota Bharu'];
+  const metaHijriStr = metaKotaBharu?.hijriStr || '';
 
   return (
     <div
@@ -738,8 +739,14 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
               Nama hari huruf besar pada kedua-dua belah supaya baris kekal seragam. */}
           {metaHijriStr && (
             <>
+              {/* Nama hari sisi Hijrah MESTI guna dayFull Kota Bharu (bukan metaClock/Kuala
+                  Lumpur) — Kota Bharu (Kumpulan A) anjak nama harinya satu hari ke depan selepas
+                  Maghrib (dayUntukLabel di atas), sepadan tarikh Hijrah itu sendiri yang turut
+                  Maghrib-diselaraskan. Guna metaClock.dayFull (KL, tengah malam) di sini buat nama
+                  hari kekal SAMA dgn sisi Masihi walau tarikh dah bertukar — pepijat Izzat tangkap
+                  2026-08-26: "kenapa di telefon, sama?" (patutnya beza lepas Maghrib, macam desktop). */}
               <span className="font-serif text-[11px] font-light tracking-[0.02em] text-[#1F1F1F] whitespace-nowrap uppercase">
-                {metaHijriStr} {metaClock.dayFull} {metaClock.masaMelayuStr}
+                {metaHijriStr} {(metaKotaBharu?.dayFull || metaClock.dayFull)} {metaClock.masaMelayuStr}
               </span>
               <span className="w-px h-[9px] bg-stone-300" />
             </>
