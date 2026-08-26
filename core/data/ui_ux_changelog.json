@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T00:58:17.202Z",
+    "summary": "Betulkan nama hari Hijrah di baris meta telefon — dahulu ikut Kuala Lumpur (tengah malam), sepatutnya ikut Kota Bharu (Maghrib) sama macam tarikh Hijrah itu sendiri",
+    "files": [
+      "src/components/portal/WorldClockStrip.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T00:02:46.842Z",
     "summary": "Betulkan carousel bertukar serta-merta lepas reload (bukan tunggu jeda) — kedudukan 'ikut masa akses' dikira semasa render pertama, bukan lonjak drpd index 0 via effect lewat",
     "files": [
