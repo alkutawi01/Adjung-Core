@@ -1009,7 +1009,20 @@ const CarouselStableBlock: React.FC<{
   // sempadan kad. Diukur SEKALI setiap kali overlay bermula (bukan setiap render — padding tak
   // berubah dalam satu transisi) dan dipakai sebagai gaya inline pada DUA panel kandungan (bukan
   // panel logo tengah, yang sengaja rata-tepi dgn logo dipusatkan).
-  const [padGerak, setPadGerak] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
+  // `lebar` (2026-08-26, pembetulan pembalutan teks susulan laporan Izzat: "'2026' tiba-tiba
+  // berpindah ke baris kedua" sebaik animasi tamat) — panel Gerak Susun/Swipe di bawah dibentang
+  // ke LEBAR PENUH kadPenuh (inset-0 relatif kad, bukan relatif kawasan kandungan), tapi kad
+  // bertataletak flex-row (Hero/STANDARD, cth "space-y-2 max-w-3xl" bersebelahan lajur
+  // sumber+tarikh, lihat FooterHeightLock berhampiran) kandungan SEBENAR hanya ambil SEBAHAGIAN
+  // lebar kad — lajur sumber ambil baki. renderItem() dipanggil SEMULA di dalam panel Gerak
+  // Susun/Swipe (bukan snapshot), jadi ia membalut teks ikut lebar PANEL (lebih luas) semasa
+  // animasi, bukan lebar kandungan SEBENAR (lebih sempit) yang terpakai sebaik overlay hilang —
+  // pembalutan tiba-tiba berubah (cth "2026" jatuh baris kedua) TEPAT pada detik overlay hilang,
+  // kelihatan sebagai anjakan susun atur. `containerRef` (bekas CarouselStableBlock sendiri)
+  // IALAH kawasan kandungan sebenar (sibling FooterHeightLock, bukan kadPenuh) — lebarnya diukur
+  // serentak dgn padGerak (di bawah) dan dipaksa sebagai `width` eksplisit pada setiap renderItem()
+  // dalam panel Gerak Susun/Swipe, supaya pembalutan SAMA sepanjang masa (semasa & selepas).
+  const [padGerak, setPadGerak] = useState({ top: 0, right: 0, bottom: 0, left: 0, lebar: 0 });
   // Latar Swipe (2026-08-25, pembetulan selepas Izzat tangkap "kad berkelip" + "ikon/topik/tarikh
   // siaran tak swipe") — footer sumber+tarikh, badge tarikh siaran (span sibling di ATAS
   // CarouselStableBlock) dan eyebrow ikon+topik pada ~separuh slot (corak
@@ -1088,6 +1101,9 @@ const CarouselStableBlock: React.FC<{
           right: parseFloat(gayaKad.paddingRight) || 0,
           bottom: parseFloat(gayaKad.paddingBottom) || 0,
           left: parseFloat(gayaKad.paddingLeft) || 0,
+          // Lebar kawasan KANDUNGAN sebenar (bukan kadPenuh) — lihat nota penuh di deklarasi
+          // padGerak di atas fail ni. containerRef ialah bekas CarouselStableBlock sendiri.
+          lebar: containerRef.current?.getBoundingClientRect().width || 0,
         });
       }
       setPortalTarget(kadPenuh);
@@ -1145,6 +1161,9 @@ const CarouselStableBlock: React.FC<{
           right: parseFloat(gayaKad.paddingRight) || 0,
           bottom: parseFloat(gayaKad.paddingBottom) || 0,
           left: parseFloat(gayaKad.paddingLeft) || 0,
+          // Lebar kawasan KANDUNGAN sebenar (bukan kadPenuh) — lihat nota penuh di deklarasi
+          // padGerak di atas fail ni. containerRef ialah bekas CarouselStableBlock sendiri.
+          lebar: containerRef.current?.getBoundingClientRect().width || 0,
         });
         setWarnaLatarSwipe(warnaLatarSebenar(kadPenuh));
       }
@@ -1451,23 +1470,23 @@ const CarouselStableBlock: React.FC<{
           >
             {arahEfektif === 'kiri' ? (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}>{renderItem(list[activeIndex] || {})}</div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[activeIndex] || {})}</div></div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}>{renderItem(list[indeksLamaGerak] || {})}</div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div></div>
               </>
             ) : (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}>{renderItem(list[indeksLamaGerak] || {})}</div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div></div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}>{renderItem(list[activeIndex] || {})}</div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[activeIndex] || {})}</div></div>
               </>
             )}
           </div>
@@ -1502,7 +1521,7 @@ const CarouselStableBlock: React.FC<{
               transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
             }}
           >
-            {renderItem(list[indeksLamaGerak] || {})}
+            <div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>
           </div>
           <div
             className="absolute inset-0"
@@ -1513,7 +1532,7 @@ const CarouselStableBlock: React.FC<{
               transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
             }}
           >
-            {renderItem(list[activeIndex] || {})}
+            <div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[activeIndex] || {})}</div>
           </div>
         </div>,
         portalTarget

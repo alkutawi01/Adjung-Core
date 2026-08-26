@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T06:48:21.534Z",
+    "summary": "Betulkan pembalutan teks tiba-tiba berubah (cth '2026' jatuh baris kedua) sebaik transisi Gerak Susun/Swipe tamat — panel overlay kini dipaksa lebar kandungan sebenar, bukan lebar penuh kad",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T06:41:21.305Z",
     "summary": "Lembutkan lengkung animasi transisi carousel — Colophon/Sapuan Lajur kini ease-out masuk + ease-in keluar berasingan, Gerak Susun/Swipe diselaraskan ke lengkung sama kelembutan (bukan lagi tergesa-gesa)",
     "files": [
