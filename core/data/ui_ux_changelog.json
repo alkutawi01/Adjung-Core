@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T08:12:45.374Z",
+    "summary": "Betulkan kandungan Swipe turut pudar bersama latar (regresi pembetulan fade sebelum ni) — latar pejal kini elemen berasingan drpd kandungan, tajuk/huraian kekal opacity 1 sepanjang fade keluar",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T08:01:57.803Z",
     "summary": "Betulkan tajuk melompat turun sebaik eyebrow terdedah selepas transisi Gerak Susun/Swipe — panel kini diberi offset menegak (marginTop) sepadan tinggi eyebrow sebenar untuk tier yang eyebrow hidup di luar renderItem()",
     "files": [

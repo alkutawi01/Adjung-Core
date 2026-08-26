@@ -1560,39 +1560,51 @@ const CarouselStableBlock: React.FC<{
             className="absolute inset-0"
             style={{
               padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px`,
-              // Latar PEJAL (bukan warnaPanelEfektif/maroon macam Colophon/Sapuan Lajur — Swipe
-              // tiada "panel", kandungan sendiri yang bergerak) — menutup footer sumber/tarikh +
-              // badge tarikh siaran + eyebrow ikon/topik yang hidup DI LUAR renderItem() (lihat
-              // nota warnaLatarSwipe di deklarasi state), elak ia "berkelip"/tertinggal semasa
-              // peralihan. Dua lapisan ni SENTIASA bertemu genap (jumlah translate sama magnitud,
-              // arah bertentangan) — tiada jurang/pertindihan pada bila-bila masa transisi.
-              backgroundColor: warnaLatarSwipe,
               transform: fasaGerak === 'gerak' ? (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).masuk : 'translate(0, 0)',
               transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
-              // Pudar keluar (2026-08-26, Izzat: "sumber+tarikh sumber tu muncul terlalu mendadak,
-              // tak smooth") — dahulu latar ni hilang SERTA-MERTA bila overlayAktif jatuh false
-              // (unmount terus), footer/badge/eyebrow tersembunyi di sebaliknya terdedah dgn
-              // potongan keras. `swipeMemudar` (ditetapkan effect di atas, SELEPAS gerakan tolak
-              // tamat, SEBELUM overlay ditanggalkan) beri tempoh singkat opacity 1->0 di sini.
-              opacity: swipeMemudar ? 0 : 1,
-              ...(swipeMemudar ? { transition: `opacity ${tempohPudarSwipeMs}ms ease-out` } : {}),
             }}
           >
-            <div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>
+            {/* Latar PEJAL DIASINGKAN drpd kandungan (2026-08-26, pembetulan KEDUA susulan Izzat:
+                "kandungan 2 masuk, kandungan 2 hilang dan muncul semula dlm masa <1 saat" — bug
+                BAHARU saya sendiri cipta semasa tambah pudar keluar sebelum ni). Punca: `opacity`
+                pudar keluar dahulu ditetapkan pada div YANG SAMA dgn kandungan (renderItem() di
+                bawah) — opacity CSS terpakai pada SELURUH elemen+anaknya, jadi tajuk yang BARU
+                SAHAJA selesai menolak masuk (kelihatan penuh) turut PUDAR SEKALI dgn latar
+                sepanjang ~200ms tu, SEMENTARA kandungan sebenar di sebalik (swipeAktif masih true
+                sepanjang tempoh pudar ni) MASIH tersembunyi (opacity 0) — dua-dua tajuk (panel DAN
+                sebenar) tak kelihatan serentak sekejap = "hilang" yang Izzat tangkap, sebelum
+                muncul semula bila overlayAktif akhirnya jatuh false. Fix: latar pejal kini elemen
+                BERASINGAN (absolute inset-0 SENDIRI, di BAWAH kandungan), HANYA IA yang pudar;
+                kandungan (div di bawah) KEKAL opacity 1 sepanjang masa selepas ia selesai menolak
+                masuk — Izzat nampak tajuk STABIL sepanjang pudar latar, bukan turut lenyap. */}
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundColor: warnaLatarSwipe,
+                opacity: swipeMemudar ? 0 : 1,
+                transition: swipeMemudar ? `opacity ${tempohPudarSwipeMs}ms ease-out` : 'none',
+              }}
+            />
+            <div style={{ position: 'relative', width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>
           </div>
           <div
             className="absolute inset-0"
             style={{
               padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px`,
-              backgroundColor: warnaLatarSwipe,
               transform: fasaGerak === 'gerak' ? 'translate(0, 0)' : (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).keluar,
               transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
-              // Pudar keluar — sama rasional lapisan atas.
-              opacity: swipeMemudar ? 0 : 1,
-              ...(swipeMemudar ? { transition: `opacity ${tempohPudarSwipeMs}ms ease-out` } : {}),
             }}
           >
-            <div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[activeIndex] || {})}</div>
+            {/* Latar pejal diasingkan — sama rasional lapisan atas. */}
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundColor: warnaLatarSwipe,
+                opacity: swipeMemudar ? 0 : 1,
+                transition: swipeMemudar ? `opacity ${tempohPudarSwipeMs}ms ease-out` : 'none',
+              }}
+            />
+            <div style={{ position: 'relative', width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[activeIndex] || {})}</div>
           </div>
         </div>,
         portalTarget
