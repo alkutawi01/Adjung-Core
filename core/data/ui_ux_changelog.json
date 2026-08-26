@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T01:09:20.339Z",
+    "summary": "Tambah paparan Nama Editor di Focus View telefon (dahulu hanya wujud di desktop) — Nota Editor disahkan sudah wujud, cuma bersyarat ada kandungan",
+    "files": [
+      "src/components/portal/FocusView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T00:58:17.202Z",
     "summary": "Betulkan nama hari Hijrah di baris meta telefon — dahulu ikut Kuala Lumpur (tengah malam), sepatutnya ikut Kota Bharu (Maghrib) sama macam tarikh Hijrah itu sendiri",
     "files": [

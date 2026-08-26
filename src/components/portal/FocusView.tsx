@@ -1044,6 +1044,19 @@ export const FocusView: React.FC<FocusViewProps> = ({
             )}
           </div>
 
+          {/* Nama Editor (2026-08-26, permintaan Izzat — "nama editor...tak ada pun dlm focus
+              view telefon") — versi desktop dah papar ni sejak 2026-08-16 (lajur "Editor" di
+              kolofon), tapi terlepas semasa Focus View telefon dibina berasingan (cabang isPhone
+              ni langsung tiada rujukan editorName). Tarikh siaran SUDAH ada di kepala melekat (di
+              atas, bawah tajuk — lihat nota berkaitan), jadi di sini cuma nama editor sahaja
+              (tanpa ulang tarikh), diselaraskan dgn corak Kongsi di bawah (label kecil + isi). */}
+          {editorName && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+              <span style={micro}>Editor</span>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>{editorName}</span>
+            </div>
+          )}
+
           {/* Kongsi (2026-08-05, Fasa 11 — perkongsian sosial) — hanya dirender bila `shareUrl`
               sedia (kandungan diterbitkan sebenar, kod URL sudah diambil). Ikon bulat sepadan
               corak butang navigasi kaki sedia ada di bawah (round pill, border stone-300). */}
