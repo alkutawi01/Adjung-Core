@@ -477,9 +477,12 @@ export const TetapanAmSlotConsole: React.FC = () => {
         <div className="border border-stone-200 rounded p-4 space-y-2">
           <div className="font-semibold text-stone-800">1b. Agih lengah carousel bertingkat</div>
           <p className="text-stone-500 text-[11px] leading-relaxed">
-            Klik untuk agih Slot 1 → lengah 0 saat, Slot 2 → 1 saat, Slot 3 → 2 saat, dan
+            Klik untuk agih Slot 1 → lengah tambahan 0 saat, Slot 2 → 1 saat, Slot 3 → 2 saat, dan
             seterusnya, supaya carousel bertukar SATU-SATU merentasi masa (bukan semua serentak),
-            tanpa perlu laras setiap slot satu-satu di "Tetapan Kad". Boleh diklik semula bila-bila
+            tanpa perlu laras setiap slot satu-satu di "Tetapan Kad". Lengah tambahan ini
+            DITAMBAH atas jeda pertukaran pertama (1a) di atas — Slot 1 sebenarnya bertukar pada
+            jeda 1a + 0 saat, Slot 2 pada jeda 1a + 1 saat, dan seterusnya, supaya tiada slot
+            bertukar lebih awal daripada jeda 1a yang ditetapkan. Boleh diklik semula bila-bila
             untuk agih semula; laras individu selepas itu (Senarai Slot → Tetapan Kad) tetap
             berfungsi seperti biasa.
           </p>

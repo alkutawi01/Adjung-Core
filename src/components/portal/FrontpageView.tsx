@@ -2574,12 +2574,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         return;
       }
 
-      // Lantai (floor) jeda pertukaran PERTAMA (2026-08-26) — carouselDelay per-slot (Lengah Mula/
-      // "Agih Lengah Bertingkat", Tetapan Am Slot) kekal berfungsi UNTUK slot yang sengaja diagih
-      // > jedaPertamaCarousel (staggered start di atas 15s tetap dihormati), tapi mana-mana slot
-      // yang carouselDelay-nya 0/kosong (majoriti, tak pernah diagih) TIDAK LAGI bertukar serta-
-      // merta ikut carouselInterval sahaja — dinaikkan ke sekurang-kurangnya jedaPertamaCarousel.
-      const initialDelaySecs = Math.max(slotItem.carouselDelay || 0, jedaPertamaCarousel);
+      // Jeda pertukaran PERTAMA = jedaPertamaCarousel (lantai global) + carouselDelay per-slot
+      // (2026-08-26, dibetulkan susulan dapatan Izzat — "Agih Lengah Bertingkat" tak lagi
+      // bermakna" — Math.max() SEBELUM ni buat lantai 15s MENGHAPUSKAN agihan bertingkat sepenuhnya
+      // bagi setiap slot yang lengahnya < 15s, iaitu 11 drpd 30 slot: kesemuanya jatuh ke NILAI
+      // SAMA 15s dan bertukar SERENTAK — betul-betul kelakuan yang Agih Lengah Bertingkat sedia
+      // ada dibina untuk ELAKKAN. Keputusan Izzat (25/8): TAMBAH, bukan max() — dua janji kekal
+      // terpelihara serentak: (1) TIADA slot bertukar sebelum jedaPertamaCarousel (semua slot
+      // mula sekurang-kurangnya pada lantai tu), (2) slot yang diagih tetap berperingkat SATU-
+      // SATU (slot 0 pada 15s, slot 1 pada 16s, slot 2 pada 17s, dst — bukan lagi 15s serentak).
+      const initialDelaySecs = jedaPertamaCarousel + (slotItem.carouselDelay || 0);
       const intervalSecs = slotItem.carouselInterval || 10;
 
       // Treat the carousel as running continuously since the epoch, rather than always restarting

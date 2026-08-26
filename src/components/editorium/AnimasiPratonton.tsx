@@ -37,9 +37,9 @@ const KandunganContoh: React.FC<{ index: number }> = ({ index }) => {
   const k = KANDUNGAN_CONTOH[index % KANDUNGAN_CONTOH.length];
   return (
     <div className="px-3 py-2">
-      <div className="font-mono text-[8px] uppercase tracking-widest text-white/50 font-bold mb-1">Bidang Contoh</div>
-      <div className="font-serif text-[13px] text-white leading-snug font-medium">{k.tajuk}</div>
-      <div className="font-serif text-[10px] text-white/70 leading-relaxed mt-1">{k.huraian}</div>
+      <div className="font-mono text-[8px] uppercase tracking-widest text-[#802334] font-bold mb-1">Bidang Contoh</div>
+      <div className="font-serif text-[13px] text-[#1F1F1F] leading-snug font-medium">{k.tajuk}</div>
+      <div className="font-serif text-[10px] text-stone-600 leading-relaxed mt-1">{k.huraian}</div>
     </div>
   );
 };
@@ -48,8 +48,8 @@ const LogoPanel: React.FC<{ logoMode?: string }> = ({ logoMode }) => {
   if (logoMode === 'tiada') return null;
   if (logoMode === 'penaja') {
     return (
-      <div className="border border-dashed border-white/40 rounded px-2 py-1 text-center">
-        <span className="font-mono text-[8px] uppercase tracking-widest text-white/70">Ruang Logo Penaja</span>
+      <div className="border border-dashed border-stone-400 rounded px-2 py-1 text-center">
+        <span className="font-mono text-[8px] uppercase tracking-widest text-stone-500">Ruang Logo Penaja</span>
       </div>
     );
   }
@@ -121,7 +121,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
   return (
     <div className="space-y-1.5">
       <div
-        className="relative w-full max-w-[260px] h-32 rounded-lg overflow-hidden bg-stone-800 shadow-sm"
+        className="relative w-full max-w-[260px] h-32 rounded-lg overflow-hidden bg-[#FDFDFD] border border-stone-200 shadow-sm"
       >
         {/* Dua kandungan bertindan — corak SAMA seperti CarouselStableBlock (col-start-1
             row-start-1, alignSelf:start), tapi tanpa refs/ResizeObserver — pratonton bersaiz
@@ -179,19 +179,19 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
             >
               {arah === 'kiri' ? (
                 <>
-                  <div className="w-1/3 h-full shrink-0 bg-stone-800"><KandunganContoh index={lain} /></div>
+                  <div className="w-1/3 h-full shrink-0 bg-[#FDFDFD]"><KandunganContoh index={lain} /></div>
                   <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanel }}>
                     <div className="scale-[0.6]"><LogoPanel logoMode={logoMode} /></div>
                   </div>
-                  <div className="w-1/3 h-full shrink-0 bg-stone-800"><KandunganContoh index={aktif} /></div>
+                  <div className="w-1/3 h-full shrink-0 bg-[#FDFDFD]"><KandunganContoh index={aktif} /></div>
                 </>
               ) : (
                 <>
-                  <div className="w-1/3 h-full shrink-0 bg-stone-800"><KandunganContoh index={aktif} /></div>
+                  <div className="w-1/3 h-full shrink-0 bg-[#FDFDFD]"><KandunganContoh index={aktif} /></div>
                   <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanel }}>
                     <div className="scale-[0.6]"><LogoPanel logoMode={logoMode} /></div>
                   </div>
-                  <div className="w-1/3 h-full shrink-0 bg-stone-800"><KandunganContoh index={lain} /></div>
+                  <div className="w-1/3 h-full shrink-0 bg-[#FDFDFD]"><KandunganContoh index={lain} /></div>
                 </>
               )}
             </div>
@@ -200,7 +200,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
         {tayang && jenisSemasa === 'swipe' && (
           <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
             <div
-              className="absolute inset-0 bg-stone-800"
+              className="absolute inset-0 bg-[#FDFDFD]"
               style={{
                 transform: fasaGerak === 'gerak' ? (VEKTOR_ARAH[arah] || VEKTOR_ARAH.kanan).masuk : 'translate(0, 0)',
                 transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
@@ -209,7 +209,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
               <KandunganContoh index={aktif} />
             </div>
             <div
-              className="absolute inset-0 bg-stone-800"
+              className="absolute inset-0 bg-[#FDFDFD]"
               style={{
                 transform: fasaGerak === 'gerak' ? 'translate(0, 0)' : (VEKTOR_ARAH[arah] || VEKTOR_ARAH.kanan).keluar,
                 transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
