@@ -1040,6 +1040,14 @@ const CarouselStableBlock: React.FC<{
   // tajuk+huraian menolak, muncul SEMULA (bukan menolak sekali) sebaik overlay hilang — tiada
   // kelip/tertinggal, tapi bukan "semua turut menolak" (had reka bentuk diterima, bukan pepijat).
   const [warnaLatarSwipe, setWarnaLatarSwipe] = useState('#FFFFFF');
+  // Fasa PUDAR keluar (2026-08-26, permintaan Izzat: "sumber+tarikh sumber tu muncul terlalu
+  // mendadak, tak smooth") — dahulu overlayAktif jatuh terus false SEBAIK gerakan tolak tamat,
+  // footer/badge/eyebrow yang tersembunyi di sebaliknya (lihat nota warnaLatarSwipe di atas)
+  // terdedah SERTA-MERTA (potongan keras, bukan peralihan). Kini SATU sub-fasa tambahan: sebaik
+  // gerakan tolak tamat, latar PEJAL kedua-dua lapisan Swipe pudar (opacity 1->0) selama
+  // TEMPOH_PUDAR_SWIPE_MS di bawah SEBELUM overlay ditanggalkan — footer/badge/eyebrow di
+  // sebaliknya jadi kelihatan SECARA BERANGSUR, bukan potongan mendadak.
+  const [swipeMemudar, setSwipeMemudar] = useState(false);
 
   // useLayoutEffect (BUKAN useEffect) — pembetulan kelipan KEDUA (2026-08-26, siasatan susulan
   // laporan Izzat, dijumpai semasa audit menyeluruh selepas pembetulan opacity di atas). Mod
@@ -1174,16 +1182,24 @@ const CarouselStableBlock: React.FC<{
       setVisualIndex(activeIndex);
       setFasaGerak('diam');
       setOverlayAktif(true);
+      setSwipeMemudar(false);
       const tempohSwipe = Math.round(640 * kelajuanEfektif);
+      // Tempoh pudar keluar (2026-08-26) — ikut kelajuanEfektif SAMA seperti gerakan tolak,
+      // supaya nisbah "pantas vs perlahan" konsisten kalau editor laraskan kelajuan animasi.
+      const tempohPudarSwipe = Math.round(200 * kelajuanEfektif);
       const rafId = requestAnimationFrame(() => {
         overlayTimersRef.current.push(setTimeout(() => setFasaGerak('gerak'), 20));
       });
       overlayTimersRef.current.push(setTimeout(() => {
+        setSwipeMemudar(true);
+      }, tempohSwipe + 20));
+      overlayTimersRef.current.push(setTimeout(() => {
         setOverlayAktif(false);
         setFasaGerak('diam');
+        setSwipeMemudar(false);
         if (kadPenuh) kadPenuh.style.overflow = overflowAsalRef.current || '';
         overflowAsalRef.current = null;
-      }, tempohSwipe + 20));
+      }, tempohSwipe + 20 + tempohPudarSwipe));
       return () => cancelAnimationFrame(rafId);
     }
 
@@ -1271,6 +1287,8 @@ const CarouselStableBlock: React.FC<{
   // JSX di bawah yang kelihatan sebaliknya).
   const swipeAktif = jenisEfektifRender === 'swipe' && overlayAktif;
   const tempohSwipeMs = Math.round(640 * kelajuanEfektifRender);
+  // Tempoh pudar keluar Swipe (2026-08-26) — cermin tempohPudarSwipe dlm useEffect di atas.
+  const tempohPudarSwipeMs = Math.round(200 * kelajuanEfektifRender);
   // Tempoh Pudar (2026-08-16, keputusan Izzat: "kelajuan animasi juga sepatutnya ada. pudar
   // sepatutnya boleh dilaraskan masa atau tempohnya") — dahulu TETAP 1000ms tanpa mengira
   // kelajuanEfektifRender. Kini ikut kelajuan SAMA macam Colophon/Sapuan Lajur/Gerak Susun.
@@ -1519,6 +1537,13 @@ const CarouselStableBlock: React.FC<{
               backgroundColor: warnaLatarSwipe,
               transform: fasaGerak === 'gerak' ? (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).masuk : 'translate(0, 0)',
               transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
+              // Pudar keluar (2026-08-26, Izzat: "sumber+tarikh sumber tu muncul terlalu mendadak,
+              // tak smooth") — dahulu latar ni hilang SERTA-MERTA bila overlayAktif jatuh false
+              // (unmount terus), footer/badge/eyebrow tersembunyi di sebaliknya terdedah dgn
+              // potongan keras. `swipeMemudar` (ditetapkan effect di atas, SELEPAS gerakan tolak
+              // tamat, SEBELUM overlay ditanggalkan) beri tempoh singkat opacity 1->0 di sini.
+              opacity: swipeMemudar ? 0 : 1,
+              ...(swipeMemudar ? { transition: `opacity ${tempohPudarSwipeMs}ms ease-out` } : {}),
             }}
           >
             <div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>
@@ -1530,6 +1555,9 @@ const CarouselStableBlock: React.FC<{
               backgroundColor: warnaLatarSwipe,
               transform: fasaGerak === 'gerak' ? 'translate(0, 0)' : (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).keluar,
               transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
+              // Pudar keluar — sama rasional lapisan atas.
+              opacity: swipeMemudar ? 0 : 1,
+              ...(swipeMemudar ? { transition: `opacity ${tempohPudarSwipeMs}ms ease-out` } : {}),
             }}
           >
             <div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[activeIndex] || {})}</div>

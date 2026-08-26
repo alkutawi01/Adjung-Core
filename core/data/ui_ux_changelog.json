@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T07:21:08.247Z",
+    "summary": "Lembutkan kemunculan mendadak footer/badge/eyebrow selepas transisi Swipe — latar pejal kini pudar keluar (200ms) sebelum ditanggalkan, bukan potongan mendadak",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T06:56:43.387Z",
     "summary": "Betulkan pertukaran carousel terkunci fasa sama secara kekal (susulan Agih Lengah Bertingkat) — setiap slot kini dapat period sedikit berbeza (jitter) supaya fasa relatif hanyut berterusan, bukan terkunci selamanya",
     "files": [
