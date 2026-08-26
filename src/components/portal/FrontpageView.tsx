@@ -2651,7 +2651,23 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       if (itemsList.length <= 1) {
         resolvedItem = { ...item };
       } else {
-        const activeIdx = carouselIndices[actualSlotIdx] || 0;
+        // Pepijat SEBENAR ditangkap Izzat (2026-08-26): "refresh tab, hero tiba-tiba bertukar
+        // kandungan...tak sampai 15 saat pun" — jeda 15s (lantai di atas) cuma kawal jam AUTO-
+        // PUTAR, TAK PERNAH kawal effect BERASINGAN yang tetapkan kedudukan MULA "ikut masa akses"
+        // (di bawah, setCarouselIndices sekali sahaja selepas mount). Sebelum ni, render PERTAMA
+        // sentiasa jatuh balik ke index 0 (carouselIndices[slot] belum wujud), lalu SEBAIK effect
+        // tu jalan (serta-merta selepas mount, bukan tunggu apa-apa), carouselIndices dikemas kini
+        // ke kedudukan "ikut masa akses" sebenar — activeIndex CarouselStableBlock bertukar 0->N,
+        // mencetuskan animasi PENUH dalam beberapa milisaat, bukan 15 saat. Dibetulkan: kira
+        // formula "ikut masa akses" yang SAMA terus di sini (render-time, bukan tunggu effect),
+        // supaya render PERTAMA CarouselStableBlock nampak SUDAH terus kedudukan betul — tiada
+        // "lonjak" drpd 0 langsung. Effect di bawah masih perlu jalan (jamin carouselIndices
+        // tersimpan utk bacaan seterusnya timer auto-putar), tapi bila ia jalan, nilai yang
+        // ditetapkan SAMA seperti yang dikira di sini — activeIndex tak berubah, tiada animasi
+        // tercetus dua kali.
+        const activeIdx = carouselIndices[actualSlotIdx] !== undefined
+          ? carouselIndices[actualSlotIdx]
+          : (mulaIkutMasa ? Math.floor(Date.now() / 1000 / (item.carouselInterval || 10)) % itemsList.length : 0);
         const activeItem = itemsList[activeIdx] || itemsList[0] || item;
         resolvedItem = {
           ...item,
@@ -2690,7 +2706,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
       return resolvedItem;
     });
-  }, [rawBentoNewsItems, carouselIndices]);
+  }, [rawBentoNewsItems, carouselIndices, mulaIkutMasa]);
 
 
 

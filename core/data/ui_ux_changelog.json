@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T00:02:46.842Z",
+    "summary": "Betulkan carousel bertukar serta-merta lepas reload (bukan tunggu jeda) — kedudukan 'ikut masa akses' dikira semasa render pertama, bukan lonjak drpd index 0 via effect lewat",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-25T16:35:27.967Z",
     "summary": "Set semula jam auto-putar carousel bila navigasi manual (elak 'terus kembali'); jeda 15s lalai (boleh laras) sebelum pertukaran pertama; tempoh pertukaran jadi tetapan global + override per-slot; pensel Sunting kelihatan semula di telefon (kedudukan selamat)",
     "files": [
