@@ -727,20 +727,36 @@ h1, h2, h3, h4, h5, h6, p {
    keluar Colophon 400ms setiap satu (jumlah 1300ms), Sapuan Lajur 550ms setiap satu (jumlah
    1600ms) — CarouselStableBlock punya pemasaan JS (separuhMasa/jumlahMasa) MESTI sepadan nombor
    ni, jangan ubah salah satu tanpa yang lain. */
+/* Lengkung masuk/keluar BERASINGAN (2026-08-26, Izzat: "animasi... mcm tergesa2 pun ada" — audit
+   dibandingkan panduan animasi standard [Material Design, panduan animasi mudah alih] dan disahkan
+   teknikal: `animation-timing-function` ditetapkan DI keyframe berkuatkuasa untuk SEGMEN SETERUSNYA
+   sahaja, bukan keseluruhan animasi — sokongan asli CSS, disahkan MDN). Dahulu SATU lengkung
+   simetri (`cubic-bezier(0.4,0,0.2,1)`, dari `animation` shorthand di bawah) untuk KESELURUHAN
+   pusingan masuk-tahan-keluar — fasa keluar pakai lengkung yang direka untuk "mendarat", bukan
+   untuk "bergegas pergi", jadi rasa tak sepadan/tergesa-gesa di penghujung setiap pusingan.
+   Kini TIGA segmen dapat lengkung sendiri (ditetapkan di setiap peratusan keyframe, berkuat kuasa
+   SEHINGGA peratusan seterusnya):
+     - Masuk (0% -> 30.77%/34.38%): ease-out lembut (cubic-bezier(0.16,1,0.3,1), dikenali "circ-out")
+       — pantas mula, PERLAHAN-LAHAN mendarat, bukan berhenti mendadak.
+     - Tahan (30.77%/34.38% -> 69.23%/65.63%): kedudukan tak berubah, lengkung tak signifikan —
+       linear memadai.
+     - Keluar (69.23%/65.63% -> 100%): ease-in (cubic-bezier(0.7,0,0.84,0), "quart-in") — bergegas
+       pergi dengan LICIN (mempercepat berterusan), bukan lengkung "mendarat" yang sama diguna
+       terbalik (punca rasa tergesa-gesa asal). */
 @keyframes carouselColophonTransisi {
-  0% { transform: var(--transisi-masuk, translateX(100%)); }
-  30.77% { transform: translate(0, 0); }
-  69.23% { transform: translate(0, 0); }
+  0% { transform: var(--transisi-masuk, translateX(100%)); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  30.77% { transform: translate(0, 0); animation-timing-function: linear; }
+  69.23% { transform: translate(0, 0); animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0); }
   100% { transform: var(--transisi-keluar, translateX(-100%)); }
 }
 @keyframes carouselSapuanTransisi {
-  0% { transform: var(--transisi-masuk, translateX(-100%)); }
-  34.38% { transform: translate(0, 0); }
-  65.63% { transform: translate(0, 0); }
+  0% { transform: var(--transisi-masuk, translateX(-100%)); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  34.38% { transform: translate(0, 0); animation-timing-function: linear; }
+  65.63% { transform: translate(0, 0); animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0); }
   100% { transform: var(--transisi-keluar, translateX(100%)); }
 }
-.carousel-colophon-penuh { animation: carouselColophonTransisi 1.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.carousel-sapuan-penuh { animation: carouselSapuanTransisi 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.carousel-colophon-penuh { animation: carouselColophonTransisi 1.3s forwards; }
+.carousel-sapuan-penuh { animation: carouselSapuanTransisi 1.6s forwards; }
 
 
 /* ---------------------------------------------------------------------------------------------

@@ -1426,7 +1426,15 @@ const CarouselStableBlock: React.FC<{
           ikut arah), lebar 300% keseluruhan, digerakkan translateX satu hayunan berterusan.
           Kandungan lama/baharu ialah PANGGILAN SEMULA renderItem() dgn data item sebenar (bukan
           snapshot DOM/imej) — pendekatan paling mudah & tepat drpd cuba tangkap rupa visual
-          sedia ada. */}
+          sedia ada.
+
+          Lengkung `cubic-bezier(0.4, 0, 0.2, 1)` (2026-08-26, susulan audit "tergesa-gesa" Izzat,
+          gantikan `(0.65, 0, 0.35, 1)` asal) — regangan ni SATU gerakan berterusan (bukan tiga
+          fasa masuk/tahan/keluar macam Colophon/Sapuan Lajur), jadi ease-in-out SIMETRI kekal
+          betul dari segi jenis (panduan animasi: "pergerakan antara keadaan elemen SAMA guna
+          ease-in-out"), cuma lengkung Material Design "standard" ni mendarat LEBIH lembut di
+          hujung (titik kawalan 0.2 lwn 0.35 asal) — kurang berhenti mendadak, konsisten dgn nada
+          Colophon/Sapuan Lajur di atas. */}
       {overlayAktif && portalTarget && jenisEfektifRender === 'gerak_susun' && createPortal(
         <div className="absolute inset-0 z-40 overflow-hidden pointer-events-none" aria-hidden="true">
           <div
@@ -1438,7 +1446,7 @@ const CarouselStableBlock: React.FC<{
                 if (fasaGerak === 'gerak') return kanan ? 'translateX(-66.6667%)' : 'translateX(0%)';
                 return kanan ? 'translateX(0%)' : 'translateX(-66.6667%)';
               })(),
-              transition: fasaGerak === 'gerak' ? `transform ${tempohGerakMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+              transition: fasaGerak === 'gerak' ? `transform ${tempohGerakMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
             }}
           >
             {arahEfektif === 'kiri' ? (
@@ -1473,7 +1481,10 @@ const CarouselStableBlock: React.FC<{
           — namanya "masuk" sebab table sama dikongsi dgn panel Colophon/Sapuan Lajur yang guna
           maksud terbalik; di sini ia SEKADAR "kedudukan hujung" lapisan lama), kandungan baharu
           (lapisan bawah, mula di `.keluar` — kedudukan bertentangan, tersembunyi di luar kad)
-          bergerak SERENTAK ke translate(0) — satu gerakan berterusan, tiada fasa "tahan". */}
+          bergerak SERENTAK ke translate(0) — satu gerakan berterusan, tiada fasa "tahan".
+
+          Lengkung `cubic-bezier(0.4, 0, 0.2, 1)` (2026-08-26, sama pembetulan/rasional Gerak
+          Susun di atas — lihat nota lengkap di situ). */}
       {overlayAktif && portalTarget && jenisEfektifRender === 'swipe' && createPortal(
         <div className="absolute inset-0 z-40 overflow-hidden pointer-events-none" aria-hidden="true">
           <div
@@ -1488,7 +1499,7 @@ const CarouselStableBlock: React.FC<{
               // arah bertentangan) — tiada jurang/pertindihan pada bila-bila masa transisi.
               backgroundColor: warnaLatarSwipe,
               transform: fasaGerak === 'gerak' ? (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).masuk : 'translate(0, 0)',
-              transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+              transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
             }}
           >
             {renderItem(list[indeksLamaGerak] || {})}
@@ -1499,7 +1510,7 @@ const CarouselStableBlock: React.FC<{
               padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px`,
               backgroundColor: warnaLatarSwipe,
               transform: fasaGerak === 'gerak' ? 'translate(0, 0)' : (VEKTOR_ARAH[arahEfektif] || VEKTOR_ARAH.kanan).keluar,
-              transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+              transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
             }}
           >
             {renderItem(list[activeIndex] || {})}

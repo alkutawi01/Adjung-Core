@@ -1,5 +1,13 @@
 [
   {
+    "time": "2026-08-26T06:41:21.305Z",
+    "summary": "Lembutkan lengkung animasi transisi carousel — Colophon/Sapuan Lajur kini ease-out masuk + ease-in keluar berasingan, Gerak Susun/Swipe diselaraskan ke lengkung sama kelembutan (bukan lagi tergesa-gesa)",
+    "files": [
+      "src/index.css",
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T04:43:34.918Z",
     "summary": "Tambah parity animasi per-slot 100% (nisbah penaja transisi), suis induk 'Paksa semua slot ikut Tetapan Am', dan susun semula 'Agih Lengah Bertingkat' ke susunan lebar-sama-rata (bisection) bukan berurutan",
     "files": [
