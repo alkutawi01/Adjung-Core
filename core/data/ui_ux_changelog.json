@@ -1,5 +1,19 @@
 [
   {
+    "time": "2026-08-26T04:20:46.655Z",
+    "summary": "Betulkan round-robin logo penaja transisi carousel — giliran dahulu dikongsi SEMUA 30 kad serentak (giliran kad kerap dicuri kad lain), kini setiap kad bawa giliran sendiri",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
+    "time": "2026-08-26T01:37:31.039Z",
+    "summary": "Betulkan kelipan carousel (kad kosong sekejap selepas overlay transisi Colophon/Sapuan Lajur/Gerak Susun/Swipe hilang) — transition opacity Pudar tersalah terpakai pada jenis lain; pilihan jenis Rawak ditukar useEffect->useLayoutEffect elak kelip satu bingkai jenis animasi salah",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T01:09:20.339Z",
     "summary": "Tambah paparan Nama Editor di Focus View telefon (dahulu hanya wujud di desktop) — Nota Editor disahkan sudah wujud, cuma bersyarat ada kandungan",
     "files": [

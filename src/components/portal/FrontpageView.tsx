@@ -499,7 +499,17 @@ interface TetapanAnimasiCarousel {
   jenisAnimasi: string;
   arahAnimasi: string;
   warnaPanelTransisi: string;
-  ambilLogoTransisi: (mod?: string) => LogoTransisi;
+  // Pepijat round-robin (2026-08-26, ujian simulasi Izzat: nisbah 1:1 hasilkan "P1, Adjung, Adjung,
+  // Adjung, P2, P1, Adjung, P2" — P3 tak pernah muncul). Punca: giliranRef DAHULU disimpan SATU
+  // pasang (putaranTransisiRef/indeksPenajaTransisiRef) di PARENT ni, DIKONGSI oleh SEMUA 30
+  // instance CarouselStableBlock serentak. 30 kad bertukar ikut jadual masing-masing (jeda/agihan
+  // berlainan) — dari sudut pandang SATU kad, giliran "penaja"nya kerap "dicuri" kad LAIN yang
+  // kebetulan bertukar dahulu, jadi kad tu sendiri nampak Adjung berturut-turut walau nisbah
+  // global 1:1. Fix: setiap kad bawa giliranRef SENDIRI (parameter kedua ni), diagihkan oleh
+  // pemanggil (CarouselStableBlock, useRef per-instance) — setiap kad kini alih giliran secara
+  // BEBAS drpd kad lain, nisbah 1:1 bermakna kad TU SENDIRI alih Adjung/penaja setiap kali dia
+  // bertukar, tak kira apa kad lain buat.
+  ambilLogoTransisi: (mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>) => LogoTransisi;
   // Arah PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah tertentu utk slot
   // tertentu sahaja?") — override slots_config.arahOverride (kini ditetapkan di Senarai Slot,
   // lihat nota jenisAnimasiUntukSlot di bawah utk sebab pertukaran lokasi) MENGATASI arahAnimasi
@@ -536,7 +546,7 @@ const LALAI_TETAPAN_ANIMASI: TetapanAnimasiCarousel = {
   jenisAnimasi: 'pudar',
   arahAnimasi: 'kanan',
   warnaPanelTransisi: '#802334',
-  ambilLogoTransisi: () => ({ jenis: 'adjung' }),
+  ambilLogoTransisi: () => ({ jenis: 'adjung' as const }),
   arahUntukSlot: () => 'kanan',
   jenisAnimasiUntukSlot: () => 'pudar',
   animasiAktif: true,
@@ -780,6 +790,12 @@ const CarouselStableBlock: React.FC<{
   // ia boleh hasilkan jenis BERBEZA — overlay timer jalan utk satu jenis, JSX render jenis lain,
   // animasi pecah/tak sepadan.
   const [jenisRawakSemasa, setJenisRawakSemasa] = useState<string | null>(null);
+  // Giliran logo Adjung/penaja MILIK KAD NI SENDIRI (2026-08-26, pembetulan pepijat round-robin
+  // — lihat komen penuh di takrif jenis `ambilLogoTransisi` (JenisAnimasiContext) di atas fail
+  // ni). Dahulu DUA ref ni hidup di PARENT (dikongsi 30 kad serentak); kini setiap
+  // CarouselStableBlock bawa salinan SENDIRI — giliran kad ni tak lagi "dicuri" oleh kad lain yang
+  // kebetulan bertukar dahulu.
+  const giliranLogoRef = useRef({ putaran: 0, indeksPenaja: 0 });
   // Logo dipetik SEKALI setiap kali transisi bermula (bukan setiap render) — kalau dipanggil
   // ambilLogoTransisi() terus dalam JSX, ia maju giliran pada SETIAP render (banyak kali sepanjang
   // 1.3s/1.6s animasi), bukan sekali setiap pertukaran kandungan.
@@ -1071,7 +1087,7 @@ const CarouselStableBlock: React.FC<{
         });
       }
       setPortalTarget(kadPenuh);
-      setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot'))));
+      setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef));
       setIndeksLamaGerak(indeksSebelum);
       // visualIndex dikemas kini SERTA-MERTA (bukan lag macam Colophon/Sapuan Lajur) — senarai
       // bertindan di bawah TERSEMBUNYI di sebalik regangan Gerak Susun sepanjang overlayAktif,
@@ -1180,7 +1196,7 @@ const CarouselStableBlock: React.FC<{
       kadPenuh.style.overflow = 'hidden';
     }
     setPortalTarget(kadPenuh);
-    setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot'))));
+    setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef));
 
     // Tempoh SATU keyframe berterusan (masuk -> TAHAN 500ms -> keluar) — masukMasa ialah TITIK
     // bila panel BARU tutup penuh (kedudukan translate(0,0), lihat peratusan @keyframes di
@@ -2424,13 +2440,6 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     return () => { dibatal = true; };
   }, []);
 
-  // Giliran logo Adjung/penaja (2026-08-05) — dua ref kekal antara panggilan (BUKAN state — tak
-  // perlu re-render bila giliran maju, cuma perlu nilai TERKINI setiap kali dipanggil):
-  // `putaranRef` kira setiap giliran (Adjung ATAU penaja), `indeksPenajaRef` kira giliran PENAJA
-  // sahaja supaya round-robin penaja terus maju merentasi kitaran (bukan reset setiap kitaran).
-  const putaranTransisiRef = useRef(0);
-  const indeksPenajaTransisiRef = useRef(0);
-
   // Kelayakan penaja masuk giliran panel transisi — DIASINGKAN jadi fungsi bernama sendiri
   // (2026-08-16, persediaan modul penaja akan datang, Izzat: "ia melibatkan perubahan/penambahan
   // kod yg besar... cuma apa yg awak buat skrg perlu bersedia utk terima modul ini. Jangan
@@ -2463,23 +2472,23 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // — jangan cipta laluan resolusi logo kedua di tempat lain, semua 3 tapak panggilan
   // (CarouselStableBlock, Colophon/Sapuan Lajur/Gerak Susun) sudah hantar `data-slot` semasa
   // (kadUntukJenis?.getAttribute('data-slot')), tinggal disalurkan ke sini.
-  const ambilLogoTransisi = React.useCallback((mod?: string): LogoTransisi => {
+  const ambilLogoTransisi = React.useCallback((mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>): LogoTransisi => {
     if (mod === 'tiada') return { jenis: 'tiada' };
     if (mod === 'adjung') return { jenis: 'adjung' };
     if (mod === 'penaja') {
       if (penajaLayakTransisi.length === 0) return { jenis: 'adjung' };
-      const p = penajaLayakTransisi[indeksPenajaTransisiRef.current % penajaLayakTransisi.length];
-      indeksPenajaTransisiRef.current += 1;
+      const p = penajaLayakTransisi[giliranRef.current.indeksPenaja % penajaLayakTransisi.length];
+      giliranRef.current.indeksPenaja += 1;
       return { jenis: 'penaja', logoUrl: p.logoUrl, nama: p.nama };
     }
     const nisbah = tetapanAnimasiMentah.nisbahPenajaTransisi;
     if (nisbah <= 0 || penajaLayakTransisi.length === 0) return { jenis: 'adjung' };
     const kitaran = nisbah + 1;
-    const posisi = putaranTransisiRef.current % kitaran;
-    putaranTransisiRef.current += 1;
+    const posisi = giliranRef.current.putaran % kitaran;
+    giliranRef.current.putaran += 1;
     if (posisi === 0) return { jenis: 'adjung' };
-    const p = penajaLayakTransisi[indeksPenajaTransisiRef.current % penajaLayakTransisi.length];
-    indeksPenajaTransisiRef.current += 1;
+    const p = penajaLayakTransisi[giliranRef.current.indeksPenaja % penajaLayakTransisi.length];
+    giliranRef.current.indeksPenaja += 1;
     return { jenis: 'penaja', logoUrl: p.logoUrl, nama: p.nama };
   }, [tetapanAnimasiMentah.nisbahPenajaTransisi, penajaLayakTransisi]);
 
