@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"cross-env PORT=5000 tsx watch server.js\" \"vite --host=0.0.0.0\"",
-    "build": "vite build",
+    "build": "vite build && node scripts/strip-html-comments.mjs",
     "start": "npm run build && cross-env NODE_ENV=production tsx server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
