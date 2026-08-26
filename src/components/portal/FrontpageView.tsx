@@ -1022,7 +1022,23 @@ const CarouselStableBlock: React.FC<{
   // IALAH kawasan kandungan sebenar (sibling FooterHeightLock, bukan kadPenuh) — lebarnya diukur
   // serentak dgn padGerak (di bawah) dan dipaksa sebagai `width` eksplisit pada setiap renderItem()
   // dalam panel Gerak Susun/Swipe, supaya pembalutan SAMA sepanjang masa (semasa & selepas).
-  const [padGerak, setPadGerak] = useState({ top: 0, right: 0, bottom: 0, left: 0, lebar: 0 });
+  // `atas` (2026-08-26, pembetulan KEDUA susulan laporan Izzat: "eyebrow hanya muncul apabila
+  // transisi selesai...menjatuhkan tajuk+huraian ke bawah" — tertangkap khusus di slot Buku,
+  // BUKAN Hero). Punca BERBEZA drpd `lebar` di atas (isu lebar, bukan tinggi): untuk tier yang
+  // eyebrow HIDUP DI LUAR renderItem() (KOMPAK/SEGI_EMPAT_MEDIUM dll — lihat nota di bawah),
+  // panel Gerak Susun/Swipe panggil renderItem() (tajuk+huraian SAHAJA, TIADA eyebrow) dan
+  // meletakkannya RATA DI ATAS kawasan kandungan kad (padding kadPenuh sahaja, tiada offset
+  // eyebrow). Kandungan SEBENAR pula ada eyebrow MENDAHULUI CarouselStableBlock dlm susunan
+  // menegak, jadi tajuk sebenar duduk LEBIH KE BAWAH drpd tajuk dlm panel. Sepanjang animasi,
+  // eyebrow SEBENAR (tersembunyi di sebalik latar pejal) kekal di kedudukan BETUL (atas), tapi
+  // tajuk PANEL dilukis bertindih DI ATASnya (kedudukan salah) — sebaik overlay hilang, tajuk
+  // "melompat" turun ke kedudukan sebenar sebaik eyebrow terdedah semula. (Hero TIDAK terjejas —
+  // eyebrow dia SUDAH di dalam renderItem(), sentiasa sertai tajuk bergerak sekali.) Fix: ukur
+  // jarak menegak antara ATAS kawasan kandungan sebenar (containerRef) dgn ATAS kadPenuh (selepas
+  // padding), pakai sebagai `marginTop` tambahan pada kandungan panel — Hero dapat `atas: 0`
+  // (containerRef=item PERTAMA dlm aliran, tiada regresi), tier lain dapat offset eyebrow yang
+  // betul.
+  const [padGerak, setPadGerak] = useState({ top: 0, right: 0, bottom: 0, left: 0, lebar: 0, atas: 0 });
   // Latar Swipe (2026-08-25, pembetulan selepas Izzat tangkap "kad berkelip" + "ikon/topik/tarikh
   // siaran tak swipe") — footer sumber+tarikh, badge tarikh siaran (span sibling di ATAS
   // CarouselStableBlock) dan eyebrow ikon+topik pada ~separuh slot (corak
@@ -1104,14 +1120,22 @@ const CarouselStableBlock: React.FC<{
         if (overflowAsalRef.current === null) overflowAsalRef.current = kadPenuh.style.overflow || '';
         kadPenuh.style.overflow = 'hidden';
         const gayaKad = getComputedStyle(kadPenuh);
+        const kadPenuhTop = kadPenuh.getBoundingClientRect().top;
+        const kandunganTop = containerRef.current?.getBoundingClientRect().top;
+        const padAtasKad = parseFloat(gayaKad.paddingTop) || 0;
         setPadGerak({
-          top: parseFloat(gayaKad.paddingTop) || 0,
+          top: padAtasKad,
           right: parseFloat(gayaKad.paddingRight) || 0,
           bottom: parseFloat(gayaKad.paddingBottom) || 0,
           left: parseFloat(gayaKad.paddingLeft) || 0,
           // Lebar kawasan KANDUNGAN sebenar (bukan kadPenuh) — lihat nota penuh di deklarasi
           // padGerak di atas fail ni. containerRef ialah bekas CarouselStableBlock sendiri.
           lebar: containerRef.current?.getBoundingClientRect().width || 0,
+          // Offset menegak eyebrow (2026-08-26, lihat nota penuh di deklarasi padGerak) — jarak
+          // antara atas kawasan kandungan SEBENAR (containerRef) dgn atas kawasan kandungan
+          // kadPenuh (selepas padding sendiri). 0 bagi tier yang containerRef ialah anak PERTAMA
+          // (Hero — eyebrow sudah di dalam renderItem()).
+          atas: (kandunganTop !== undefined ? Math.max(0, kandunganTop - (kadPenuhTop + padAtasKad)) : 0),
         });
       }
       setPortalTarget(kadPenuh);
@@ -1164,14 +1188,22 @@ const CarouselStableBlock: React.FC<{
         if (overflowAsalRef.current === null) overflowAsalRef.current = kadPenuh.style.overflow || '';
         kadPenuh.style.overflow = 'hidden';
         const gayaKad = getComputedStyle(kadPenuh);
+        const kadPenuhTop = kadPenuh.getBoundingClientRect().top;
+        const kandunganTop = containerRef.current?.getBoundingClientRect().top;
+        const padAtasKad = parseFloat(gayaKad.paddingTop) || 0;
         setPadGerak({
-          top: parseFloat(gayaKad.paddingTop) || 0,
+          top: padAtasKad,
           right: parseFloat(gayaKad.paddingRight) || 0,
           bottom: parseFloat(gayaKad.paddingBottom) || 0,
           left: parseFloat(gayaKad.paddingLeft) || 0,
           // Lebar kawasan KANDUNGAN sebenar (bukan kadPenuh) — lihat nota penuh di deklarasi
           // padGerak di atas fail ni. containerRef ialah bekas CarouselStableBlock sendiri.
           lebar: containerRef.current?.getBoundingClientRect().width || 0,
+          // Offset menegak eyebrow (2026-08-26, lihat nota penuh di deklarasi padGerak) — jarak
+          // antara atas kawasan kandungan SEBENAR (containerRef) dgn atas kawasan kandungan
+          // kadPenuh (selepas padding sendiri). 0 bagi tier yang containerRef ialah anak PERTAMA
+          // (Hero — eyebrow sudah di dalam renderItem()).
+          atas: (kandunganTop !== undefined ? Math.max(0, kandunganTop - (kadPenuhTop + padAtasKad)) : 0),
         });
         setWarnaLatarSwipe(warnaLatarSebenar(kadPenuh));
       }
@@ -1488,23 +1520,23 @@ const CarouselStableBlock: React.FC<{
           >
             {arahEfektif === 'kiri' ? (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[activeIndex] || {})}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[activeIndex] || {})}</div></div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div></div>
               </>
             ) : (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div></div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[activeIndex] || {})}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[activeIndex] || {})}</div></div>
               </>
             )}
           </div>
@@ -1546,7 +1578,7 @@ const CarouselStableBlock: React.FC<{
               ...(swipeMemudar ? { transition: `opacity ${tempohPudarSwipeMs}ms ease-out` } : {}),
             }}
           >
-            <div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>
+            <div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>
           </div>
           <div
             className="absolute inset-0"
@@ -1560,7 +1592,7 @@ const CarouselStableBlock: React.FC<{
               ...(swipeMemudar ? { transition: `opacity ${tempohPudarSwipeMs}ms ease-out` } : {}),
             }}
           >
-            <div style={{ width: padGerak.lebar || undefined }}>{renderItem(list[activeIndex] || {})}</div>
+            <div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[activeIndex] || {})}</div>
           </div>
         </div>,
         portalTarget

@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T08:01:57.803Z",
+    "summary": "Betulkan tajuk melompat turun sebaik eyebrow terdedah selepas transisi Gerak Susun/Swipe — panel kini diberi offset menegak (marginTop) sepadan tinggi eyebrow sebenar untuk tier yang eyebrow hidup di luar renderItem()",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T07:21:08.247Z",
     "summary": "Lembutkan kemunculan mendadak footer/badge/eyebrow selepas transisi Swipe — latar pejal kini pudar keluar (200ms) sebelum ditanggalkan, bukan potongan mendadak",
     "files": [
