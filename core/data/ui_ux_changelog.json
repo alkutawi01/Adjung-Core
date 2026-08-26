@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T09:21:52.142Z",
+    "summary": "Betulkan warna eyebrow bertukar kelabu semasa transisi Swipe/Gerak Susun (regresi pembetulan sebelum ni) — 13 slot kini guna gaya paparan sebenar (termasuk tema warna dinamik), bukan salinan pengukuran tersembunyi",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T09:10:33.577Z",
     "summary": "Sertakan badge tarikh siaran dalam pergerakan bersatu Swipe/Gerak Susun (13 slot) — kini bergerak sekali dgn eyebrow/tajuk/footer, bukan pudar berasingan",
     "files": [
