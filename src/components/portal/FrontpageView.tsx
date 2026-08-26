@@ -785,7 +785,19 @@ const CarouselStableBlock: React.FC<{
   activeIndex: number;
   renderItem: (item: any) => React.ReactNode;
   onNavigate?: (direction: 1 | -1) => void;
-}> = ({ items, activeIndex, renderItem, onNavigate }) => {
+  // renderEyebrow/renderFooter (2026-08-26, permintaan Izzat: "pastikan kesemua elemen kandungan
+  // perlu transisi yg sama. bukan tajuk+huraian bergerak, eyebrow+sumber fade in fade out") —
+  // PILIHAN, dipanggil HANYA oleh panel Gerak Susun/Swipe di bawah supaya eyebrow (ikon+topik) dan
+  // footer (sumber+tarikh) SERTAI tajuk+huraian bergerak SEKALI sebagai SATU unit visual, bukan
+  // lagi disembunyikan-lalu-didedah/pudar berasingan di sebalik overlay. TIDAK menyentuh kandungan
+  // SEBENAR (senarai bertindan asal, tetap tanpa eyebrow/footer — struktur tu KEKAL, cuma panel
+  // animasi SEMENTARA ni yang kini bawa salinan tambahan). Slot yang TAK hantar prop ni (cth Hero,
+  // yang eyebrow-nya SUDAH sebahagian renderItem()) kekal berfungsi macam biasa, tiada regresi —
+  // kedua-dua fungsi ni menyalin EXACT callback yang sama sedia ada dihantar ke FooterHeightLock
+  // (renderFooter prop) di tapak panggilan, bukan cipta struktur/gaya baharu berasingan.
+  renderEyebrow?: (item: any) => React.ReactNode;
+  renderFooter?: (item: any) => React.ReactNode;
+}> = ({ items, activeIndex, renderItem, onNavigate, renderEyebrow, renderFooter }) => {
   const { jenisAnimasi, warnaPanelTransisi, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot, animasiAktif, kelajuanAnimasi, warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot, nisbahUntukSlot, jenisAnimasiRawakPool } = useContext(JenisAnimasiContext);
   // Jenis animasi RAWAK dipilih utk pusingan SEMASA (2026-08-18, soalan Izzat) — ditetapkan SEKALI
   // dalam useEffect di bawah bila jenisEfektif==='rawak', dibaca (bukan dikira semula) semasa
@@ -1520,23 +1532,23 @@ const CarouselStableBlock: React.FC<{
           >
             {arahEfektif === 'kiri' ? (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[activeIndex] || {})}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[activeIndex] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[activeIndex] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[activeIndex] || {})}</div> : null}</div></div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[indeksLamaGerak] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[indeksLamaGerak] || {})}</div> : null}</div></div>
               </>
             ) : (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[indeksLamaGerak] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[indeksLamaGerak] || {})}</div> : null}</div></div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[activeIndex] || {})}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[activeIndex] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[activeIndex] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[activeIndex] || {})}</div> : null}</div></div>
               </>
             )}
           </div>
@@ -1585,7 +1597,21 @@ const CarouselStableBlock: React.FC<{
                 transition: swipeMemudar ? `opacity ${tempohPudarSwipeMs}ms ease-out` : 'none',
               }}
             />
-            <div style={{ position: 'relative', width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>
+            {/* Eyebrow+footer SERTAI kandungan bergerak (2026-08-26, permintaan Izzat: "pastikan
+                kesemua elemen kandungan perlu transisi yg sama...utk semua kad") — dahulu HANYA
+                tajuk+huraian di sini, eyebrow/footer SEBENAR (di luar renderItem()) disembunyi-
+                lalu-didedah/pudar berasingan. Kini, KALAU pemanggil hantar renderEyebrow/
+                renderFooter (lihat props CarouselStableBlock), salinan tambahan disertakan DI
+                DALAM panel bergerak ni juga — SATU unit visual, sama gerakan, sama masa. `flex
+                flex-col h-full` + `mt-auto` pada footer meniru susun atur SEBENAR (eyebrow atas,
+                footer bawah rata, tajuk+huraian di antara). Slot yang TAK hantar prop ni (Hero)
+                jatuh balik ke gelagat asal (marginTop offset sahaja, tiada footer/eyebrow disertakan
+                di sini — struktur Hero letak eyebrow DI DALAM renderItem() sendiri). */}
+            <div style={{ position: 'relative', width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? '100%' : undefined, display: renderEyebrow || renderFooter ? 'flex' : undefined, flexDirection: renderEyebrow || renderFooter ? 'column' : undefined }}>
+              {renderEyebrow ? renderEyebrow(list[indeksLamaGerak] || {}) : null}
+              <div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>
+              {renderFooter ? <div className="mt-auto">{renderFooter(list[indeksLamaGerak] || {})}</div> : null}
+            </div>
           </div>
           <div
             className="absolute inset-0"
@@ -1604,7 +1630,12 @@ const CarouselStableBlock: React.FC<{
                 transition: swipeMemudar ? `opacity ${tempohPudarSwipeMs}ms ease-out` : 'none',
               }}
             />
-            <div style={{ position: 'relative', width: padGerak.lebar || undefined, marginTop: padGerak.atas || undefined }}>{renderItem(list[activeIndex] || {})}</div>
+            {/* Eyebrow+footer bergerak sekali — sama rasional lapisan atas. */}
+            <div style={{ position: 'relative', width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? '100%' : undefined, display: renderEyebrow || renderFooter ? 'flex' : undefined, flexDirection: renderEyebrow || renderFooter ? 'column' : undefined }}>
+              {renderEyebrow ? renderEyebrow(list[activeIndex] || {}) : null}
+              <div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[activeIndex] || {})}</div>
+              {renderFooter ? <div className="mt-auto">{renderFooter(list[activeIndex] || {})}</div> : null}
+            </div>
           </div>
         </div>,
         portalTarget
@@ -3939,6 +3970,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         items={bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]]}
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(3, bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]], dir)}
+                        renderEyebrow={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[3]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[3]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -3990,6 +4030,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           items={bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]]}
                           activeIndex={bentoNewsItems[4].carouselIndex || 0}
                           onNavigate={(dir) => majuKarusel(4, bentoNewsItems[4].items && bentoNewsItems[4].items.length > 0 ? bentoNewsItems[4].items : [bentoNewsItems[4]], dir)}
+                          renderEyebrow={(it) => (
+                            <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          )}
+                          renderFooter={(it) => (
+                            <div className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                              <span>{it.source}</span>
+                              {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                            </div>
+                          )}
                           renderItem={(it) => (
                             <KompakCardTeks
                               title={it.title}
@@ -4042,6 +4091,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           items={bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]]}
                           activeIndex={bentoNewsItems[5].carouselIndex || 0}
                           onNavigate={(dir) => majuKarusel(5, bentoNewsItems[5].items && bentoNewsItems[5].items.length > 0 ? bentoNewsItems[5].items : [bentoNewsItems[5]], dir)}
+                          renderEyebrow={(it) => (
+                            <div className="font-mono text-[9px] md:text-[8px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-1"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          )}
+                          renderFooter={(it) => (
+                            <div className="font-sans text-[7px] md:text-[8px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                              <span>{it.source}</span>
+                              {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                            </div>
+                          )}
                           renderItem={(it) => (
                             <KompakCardTeks
                               title={it.title}
@@ -4213,6 +4271,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
                         activeIndex={bentoNewsItems[11].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(11, bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]], dir)}
+                        renderEyebrow={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[11]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[11]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4267,6 +4334,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         items={bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]]}
                         activeIndex={bentoNewsItems[13].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(13, bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]], dir)}
+                        renderEyebrow={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[13]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[13]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4314,6 +4390,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         items={bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]]}
                         activeIndex={bentoNewsItems[14].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(14, bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]], dir)}
+                        renderEyebrow={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[14]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[14]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4411,6 +4496,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         items={bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]]}
                         activeIndex={bentoNewsItems[16].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(16, bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]], dir)}
+                        renderEyebrow={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[16]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[16]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4703,6 +4797,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         items={bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]]}
                         activeIndex={bentoNewsItems[25].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(25, bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]], dir)}
+                        renderEyebrow={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[25]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[25]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4782,6 +4885,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         items={bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]]}
                         activeIndex={bentoNewsItems[27].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(27, bentoNewsItems[27].items && bentoNewsItems[27].items.length > 0 ? bentoNewsItems[27].items : [bentoNewsItems[27]], dir)}
+                        renderEyebrow={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[27]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[27]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4829,6 +4941,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         items={bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]]}
                         activeIndex={bentoNewsItems[28].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(28, bentoNewsItems[28].items && bentoNewsItems[28].items.length > 0 ? bentoNewsItems[28].items : [bentoNewsItems[28]], dir)}
+                        renderEyebrow={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[28]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[28]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4926,6 +5047,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         items={bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]]}
                         activeIndex={bentoNewsItems[30].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(30, bentoNewsItems[30].items && bentoNewsItems[30].items.length > 0 ? bentoNewsItems[30].items : [bentoNewsItems[30]], dir)}
+                        renderEyebrow={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                        renderFooter={(it) => (
+                          <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                            <span>{it.source}</span>
+                            {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                          </div>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[30]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[30]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -5217,6 +5347,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           items={bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]]}
                           activeIndex={bentoNewsItems[35].carouselIndex || 0}
                           onNavigate={(dir) => majuKarusel(35, bentoNewsItems[35].items && bentoNewsItems[35].items.length > 0 ? bentoNewsItems[35].items : [bentoNewsItems[35]], dir)}
+                          renderEyebrow={(it) => (
+                            <div className="font-mono text-[9px] uppercase tracking-widest font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          )}
+                          renderFooter={(it) => (
+                            <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                              <span>{it.source}</span>
+                              {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                            </div>
+                          )}
                           renderItem={(it) => (
                             <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[35]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[35]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                           )}
@@ -5264,6 +5403,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           items={bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]]}
                           activeIndex={bentoNewsItems[36].carouselIndex || 0}
                           onNavigate={(dir) => majuKarusel(36, bentoNewsItems[36].items && bentoNewsItems[36].items.length > 0 ? bentoNewsItems[36].items : [bentoNewsItems[36]], dir)}
+                          renderEyebrow={(it) => (
+                            <div className="font-mono text-[9px] uppercase tracking-widest font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          )}
+                          renderFooter={(it) => (
+                            <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-400 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                              <span>{it.source}</span>
+                              {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
+                            </div>
+                          )}
                           renderItem={(it) => (
                             <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[36]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[36]).finalIsDark ? 'hover:text-stone-300' : 'hover:text-[#802334]'} briefClassName="text-stone-300/90" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                           )}
