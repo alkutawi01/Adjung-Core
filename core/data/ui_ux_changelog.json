@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-08-26T09:10:33.577Z",
+    "summary": "Sertakan badge tarikh siaran dalam pergerakan bersatu Swipe/Gerak Susun (13 slot) — kini bergerak sekali dgn eyebrow/tajuk/footer, bukan pudar berasingan",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-08-26T08:29:51.722Z",
     "summary": "Satukan pergerakan eyebrow+footer dengan tajuk+huraian dlm transisi Swipe/Gerak Susun (13 slot yg eyebrownya di luar renderItem) — semua elemen kandungan kini bergerak/pudar sebagai satu unit, bukan berasingan",
     "files": [

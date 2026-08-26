@@ -797,7 +797,15 @@ const CarouselStableBlock: React.FC<{
   // (renderFooter prop) di tapak panggilan, bukan cipta struktur/gaya baharu berasingan.
   renderEyebrow?: (item: any) => React.ReactNode;
   renderFooter?: (item: any) => React.ReactNode;
-}> = ({ items, activeIndex, renderItem, onNavigate, renderEyebrow, renderFooter }) => {
+  // renderBadge (2026-08-26, susulan laporan Izzat: "tarikh masih beranimasi berasingan drpd
+  // elemen lain") — badge tarikh siaran (`.tarikh-siaran-badge`, span sibling DI LUAR BentoInner,
+  // `position:absolute top-N right-N` relatif kadPenuh) turut terlepas drpd renderEyebrow/
+  // renderFooter di atas — ia elemen BERASINGAN (bukan sebahagian footer sumber), jadi masih
+  // pudar berasingan walau eyebrow+footer dah disatukan. Dibungkus dalam div "unpad" (negatif
+  // padGerak) supaya top-N/right-N badge (dikira relatif kadPenuh SEBENAR, bukan kotak berpad
+  // panel ni) mendarat tepat kedudukan sama macam badge sebenar.
+  renderBadge?: (item: any) => React.ReactNode;
+}> = ({ items, activeIndex, renderItem, onNavigate, renderEyebrow, renderFooter, renderBadge }) => {
   const { jenisAnimasi, warnaPanelTransisi, ambilLogoTransisi, arahUntukSlot, jenisAnimasiUntukSlot, animasiAktif, kelajuanAnimasi, warnaPanelUntukSlot, kelajuanUntukSlot, logoModeUntukSlot, nisbahUntukSlot, jenisAnimasiRawakPool } = useContext(JenisAnimasiContext);
   // Jenis animasi RAWAK dipilih utk pusingan SEMASA (2026-08-18, soalan Izzat) — ditetapkan SEKALI
   // dalam useEffect di bawah bila jenisEfektif==='rawak', dibaca (bukan dikira semula) semasa
@@ -1532,23 +1540,23 @@ const CarouselStableBlock: React.FC<{
           >
             {arahEfektif === 'kiri' ? (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[activeIndex] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[activeIndex] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[activeIndex] || {})}</div> : null}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[activeIndex] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[activeIndex] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[activeIndex] || {})}</div> : null}</div>{renderBadge ? <div style={{ position: "absolute", inset: 0 }}>{renderBadge(list[activeIndex] || {})}</div> : null}</div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[indeksLamaGerak] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[indeksLamaGerak] || {})}</div> : null}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[indeksLamaGerak] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[indeksLamaGerak] || {})}</div> : null}</div>{renderBadge ? <div style={{ position: "absolute", inset: 0 }}>{renderBadge(list[indeksLamaGerak] || {})}</div> : null}</div>
               </>
             ) : (
               <>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[indeksLamaGerak] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[indeksLamaGerak] || {})}</div> : null}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[indeksLamaGerak] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[indeksLamaGerak] || {})}</div> : null}</div>{renderBadge ? <div style={{ position: "absolute", inset: 0 }}>{renderBadge(list[indeksLamaGerak] || {})}</div> : null}</div>
                 <div className="w-1/3 h-full shrink-0 flex items-center justify-center" style={{ backgroundColor: warnaPanelEfektif }}>
                   {logoTransisiSemasa.jenis === 'tiada' ? null : logoTransisiSemasa.jenis === 'adjung'
                     ? <LogoTransisiAdjung />
                     : <img src={logoTransisiSemasa.logoUrl} alt={logoTransisiSemasa.nama || ''} className="max-w-[45%] max-h-[45%] object-contain opacity-95" />}
                 </div>
-                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[activeIndex] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[activeIndex] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[activeIndex] || {})}</div> : null}</div></div>
+                <div className="w-1/3 h-full shrink-0 overflow-hidden" style={{ padding: `${padGerak.top}px ${padGerak.right}px ${padGerak.bottom}px ${padGerak.left}px` }}><div style={{ width: padGerak.lebar || undefined, height: renderEyebrow || renderFooter ? "100%" : undefined, display: renderEyebrow || renderFooter ? "flex" : undefined, flexDirection: renderEyebrow || renderFooter ? "column" : undefined }}>{renderEyebrow ? renderEyebrow(list[activeIndex] || {}) : null}<div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[activeIndex] || {})}</div>{renderFooter ? <div className="mt-auto">{renderFooter(list[activeIndex] || {})}</div> : null}</div>{renderBadge ? <div style={{ position: "absolute", inset: 0 }}>{renderBadge(list[activeIndex] || {})}</div> : null}</div>
               </>
             )}
           </div>
@@ -1612,6 +1620,7 @@ const CarouselStableBlock: React.FC<{
               <div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[indeksLamaGerak] || {})}</div>
               {renderFooter ? <div className="mt-auto">{renderFooter(list[indeksLamaGerak] || {})}</div> : null}
             </div>
+            {renderBadge ? <div style={{ position: 'absolute', inset: 0 }}>{renderBadge(list[indeksLamaGerak] || {})}</div> : null}
           </div>
           <div
             className="absolute inset-0"
@@ -1636,6 +1645,7 @@ const CarouselStableBlock: React.FC<{
               <div style={{ marginTop: !renderEyebrow ? (padGerak.atas || undefined) : undefined }}>{renderItem(list[activeIndex] || {})}</div>
               {renderFooter ? <div className="mt-auto">{renderFooter(list[activeIndex] || {})}</div> : null}
             </div>
+            {renderBadge ? <div style={{ position: 'absolute', inset: 0 }}>{renderBadge(list[activeIndex] || {})}</div> : null}
           </div>
         </div>,
         portalTarget
@@ -3979,6 +3989,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                           </div>
                         )}
+                        renderBadge={(it) => (
+                          <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[3]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[3]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4038,6 +4051,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                               <span>{it.source}</span>
                               {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                             </div>
+                          )}
+                          renderBadge={(it) => (
+                            <span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                           )}
                           renderItem={(it) => (
                             <KompakCardTeks
@@ -4099,6 +4115,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                               <span>{it.source}</span>
                               {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[7px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                             </div>
+                          )}
+                          renderBadge={(it) => (
+                            <span className="absolute top-4 right-4 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                           )}
                           renderItem={(it) => (
                             <KompakCardTeks
@@ -4280,6 +4299,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                           </div>
                         )}
+                        renderBadge={(it) => (
+                          <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[11]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[11]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4343,6 +4365,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                           </div>
                         )}
+                        renderBadge={(it) => (
+                          <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[13]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[13]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4398,6 +4423,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             <span>{it.source}</span>
                             {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                           </div>
+                        )}
+                        renderBadge={(it) => (
+                          <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
                           <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[14]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[14]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
@@ -4504,6 +4532,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             <span>{it.source}</span>
                             {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                           </div>
+                        )}
+                        renderBadge={(it) => (
+                          <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[16]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[16]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
@@ -4806,6 +4837,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                           </div>
                         )}
+                        renderBadge={(it) => (
+                          <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[25]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[25]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4894,6 +4928,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                           </div>
                         )}
+                        renderBadge={(it) => (
+                          <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
+                        )}
                         renderItem={(it) => (
                           <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[27]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[27]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
@@ -4949,6 +4986,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             <span>{it.source}</span>
                             {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                           </div>
+                        )}
+                        renderBadge={(it) => (
+                          <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
                           <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[28]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[28]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
@@ -5055,6 +5095,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             <span>{it.source}</span>
                             {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                           </div>
+                        )}
+                        renderBadge={(it) => (
+                          <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
                           <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[30]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[30]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
@@ -5356,6 +5399,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                               {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                             </div>
                           )}
+                          renderBadge={(it) => (
+                            <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
+                          )}
                           renderItem={(it) => (
                             <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[35]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[35]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                           )}
@@ -5411,6 +5457,9 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                               <span>{it.source}</span>
                               {!it.sembunyikanTarikhSumber && (getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt)) && <span className="opacity-60 normal-case font-mono text-[7px] md:text-[8px]">{(getDisplayDate(it.originalDate) || formatBentoDate(it.publishedAt))}</span>}
                             </div>
+                          )}
+                          renderBadge={(it) => (
+                            <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                           )}
                           renderItem={(it) => (
                             <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[36]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[36]).finalIsDark ? 'hover:text-stone-300' : 'hover:text-[#802334]'} briefClassName="text-stone-300/90" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
