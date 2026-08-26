@@ -1008,7 +1008,18 @@ const CarouselStableBlock: React.FC<{
   // kelip/tertinggal, tapi bukan "semua turut menolak" (had reka bentuk diterima, bukan pepijat).
   const [warnaLatarSwipe, setWarnaLatarSwipe] = useState('#FFFFFF');
 
-  useEffect(() => {
+  // useLayoutEffect (BUKAN useEffect) — pembetulan kelipan KEDUA (2026-08-26, siasatan susulan
+  // laporan Izzat, dijumpai semasa audit menyeluruh selepas pembetulan opacity di atas). Mod
+  // Rawak pilih jenisRawakSemasa DI SINI (setJenisRawakSemasa, ~15 baris ke bawah) — `useEffect`
+  // biasa TIDAK dijamin jalan sebelum pelayar CAT bingkai seterusnya, jadi render yang tercetus
+  // serta-merta oleh activeIndex berubah (dalam kitaran pusingan ke-2 dst.) berpotensi terpapar
+  // SEBELUM effect sempat kemas kini jenisRawakSemasa — jenisEfektifRender (baca semasa render)
+  // jatuh balik ke nilai PUSINGAN LAMA seketika, kelip SATU bingkai jenis animasi salah sebelum
+  // effect kejar. `useLayoutEffect` jalan SEGERAK selepas commit, SEBELUM pelayar cat — jamin
+  // jenisRawakSemasa (dan overlayAktif/visualIndex/dsb. lain effect ni tetapkan) sentiasa BETUL
+  // pada bingkai PERTAMA yang dicat, tak kira mod animasi. Effect ni SUDAH baca DOM synchronously
+  // (getComputedStyle, closest) — kegunaan asal useLayoutEffect memang untuk kerja macam ni.
+  useLayoutEffect(() => {
     if (activeIndex === prevActiveIndexRef.current) return;
     const indeksSebelum = prevActiveIndexRef.current;
     prevActiveIndexRef.current = activeIndex;
@@ -1332,12 +1343,24 @@ const CarouselStableBlock: React.FC<{
             alignSelf: 'start',
             opacity: (gerakAktif || swipeAktif) ? 0 : (i === indexDipaparkan ? 1 : 0),
             // Tempoh ikut kelajuanEfektifRender (2026-08-16, dahulu 1s TETAP — lihat nota
-            // tempohPudarMs). Peralihan opacity ni SECARA KELIHATAN cuma berlaku bagi jenis
-            // 'pudar' — jenis lain (Colophon/Sapuan Lajur/Gerak Susun) sentiasa overlayAktif=true
-            // semasa visualIndex bertukar (transition='none' di bawah, kandungan bertukar SENYAP
-            // di sebalik panel yang tertutup penuh); kelajuan bagi jenis-jenis tu dikawal
-            // berasingan oleh tempohColophonMs/tempohGerakMs (animasi panel sendiri).
-            transition: overlayAktif ? 'none' : `opacity ${tempohPudarMs}ms ease-in-out`,
+            // tempohPudarMs). Peralihan opacity ni MESTI cuma berlaku bagi jenis 'pudar' —
+            // jenis lain (Colophon/Sapuan Lajur/Gerak Susun/Swipe) patut TUKAR SENYAP (transition
+            // 'none') bila overlay tutup/tersembunyi.
+            //
+            // PEMBETULAN KELIPAN (2026-08-26, laporan Izzat: "selepas kandungan baru berhenti, ia
+            // berkelip, kad kosong, baru ia muncul semula sekali lg"). Syarat asal cuma
+            // `overlayAktif ? 'none' : ...` — komen di atas (kekal, sejarah niat) SILAP anggap ini
+            // mencukupi. Detik TEPAT overlayAktif bertukar false (overlay/panel/swipe portal
+            // hilang, senarai bertindan ni didedahkan), render tu SENDIRI sudah guna cawangan
+            // `else` — opacity item bertukar 0->1 (swipeAktif/gerakAktif turut jatuh false serentak)
+            // DENGAN transition opacity ease-in-out ~1 saat (tempohPudarMs) TERPAKAI SEKALI GUS,
+            // walaupun jenis animasi ialah Swipe/Gerak Susun/Colophon/Sapuan Lajur bukan Pudar.
+            // `ease-in-out` mula hampir rata (opacity nyaris 0 seketika) sebelum melonjak ke 1 —
+            // kad kelihatan KOSONG sekejap lepas overlay hilang, baru "muncul semula" apabila
+            // lengkung lonjak. Fix: transition 'none' MELAINKAN jenis SEBENAR 'pudar' (bukan cuma
+            // overlayAktif) — jenis lain sentiasa snap serta-merta pada detik overlay hilang,
+            // padan niat asal komen di atas.
+            transition: (overlayAktif || jenisEfektifRender !== 'pudar') ? 'none' : `opacity ${tempohPudarMs}ms ease-in-out`,
             pointerEvents: i === indexDipaparkan ? 'auto' : 'none',
           }}
           aria-hidden={i === indexDipaparkan ? undefined : true}
