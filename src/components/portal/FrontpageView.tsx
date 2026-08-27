@@ -2903,9 +2903,21 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         // tersimpan utk bacaan seterusnya timer auto-putar), tapi bila ia jalan, nilai yang
         // ditetapkan SAMA seperti yang dikira di sini — activeIndex tak berubah, tiada animasi
         // tercetus dua kali.
+        //
+        // Susulan (2026-08-27, laporan Izzat "masih berlaku di production" selepas fix di atas):
+        // formula ni SILAP guna `item.carouselInterval` MENTAH, sedangkan effect di bawah
+        // (setCarouselIndices, baris ~2833) kira `timeBasedStart` guna `intervalSecs` yang SUDAH
+        // kena jitter halus (`intervalSecsAsas * (1 + carouselDelay*0.001)`, lihat nota jitter di
+        // useEffect bawah). Dua pembahagi BERBEZA pada nombor besar (Date.now()/1000) hampir tak
+        // pernah hasilkan Math.floor(...) SAMA — jadi utk 11/30 slot yang ada carouselDelay > 0,
+        // render pertama dan effect selepas mount tetap tidak sepadan, animasi penuh tercetus
+        // serta-merta macam asal. Pembetulan SEBENAR: render-time MESTI guna formula jitter yang
+        // SAMA PERSIS seperti effect, bukan carouselInterval mentah.
+        const intervalSecsAsasRender = item.carouselInterval || 10;
+        const intervalSecsJitterRender = intervalSecsAsasRender * (1 + (item.carouselDelay || 0) * 0.001);
         const activeIdx = carouselIndices[actualSlotIdx] !== undefined
           ? carouselIndices[actualSlotIdx]
-          : (mulaIkutMasa ? Math.floor(Date.now() / 1000 / (item.carouselInterval || 10)) % itemsList.length : 0);
+          : (mulaIkutMasa ? Math.floor(Date.now() / 1000 / intervalSecsJitterRender) % itemsList.length : 0);
         const activeItem = itemsList[activeIdx] || itemsList[0] || item;
         resolvedItem = {
           ...item,
