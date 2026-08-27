@@ -76,6 +76,8 @@ async function ambilKandunganUntukSeo(dbGet, dbAll, objectId) {
     sourceUrl: cari('url') || '',
     image: cari('image') || '',
     publishedAt: rev.createdAt || obj.createdAt || '',
+    modifiedAt: rev.updatedAt || rev.createdAt || obj.createdAt || '',
+    editorName: cari('editorName') || '',
   };
 }
 
@@ -83,27 +85,55 @@ const escapeHtml = (s) => String(s || '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+// Potong ikut sempadan PERKATAAN (2026-08-27, dapatan audit SEO) — `.slice(n)` mentah boleh
+// potong tengah perkataan, hasilkan serpihan janggal dalam pratonton carian/perkongsian sosial.
+function potongIkutPerkataan(teks, had) {
+  const t = String(teks || '').trim();
+  if (t.length <= had) return t;
+  const dipotong = t.slice(0, had);
+  const ruangTerakhir = dipotong.lastIndexOf(' ');
+  return `${(ruangTerakhir > had * 0.6 ? dipotong.slice(0, ruangTerakhir) : dipotong).trim()}…`;
+}
+
 /** Bina HTML pra-terap ringkas untuk bot — tajuk, meta description, OG, JSON-LD NewsArticle,
  *  teks kandungan boleh dibaca terus (tanpa perlu jalankan JavaScript langsung). Bukan replika
  *  penuh SPA — cukup untuk crawler faham & indeks kandungan sebenar. */
 function binaHtmlBot({ kandungan, url, objectId }) {
   const tajuk = escapeHtml(kandungan.title);
-  const huraian = escapeHtml((kandungan.summary || '').slice(0, 300));
+  const huraian = escapeHtml(potongIkutPerkataan(kandungan.summary, 155));
   // Fallback ke kad OG DINAMIK per-artikel (2026-08-27, OgImageRenderer.js) bila kandungan sendiri
   // tiada imej terlampir — kebanyakan kandungan Adjung Brief memang tiada imej (portal berasaskan
   // teks). Kad ni papar TAJUK sebenar artikel (bukan kad jenama generik og-image.png lama yang
   // sama untuk SEMUA artikel — dikritik Izzat: "OG yg baik patut buat orang faham 'artikel ini
   // tentang apa' dlm 1-2 saat", yg lama cuma jawab "ini portal apa").
   const gambar = escapeHtml(kandungan.image || `https://brief.adjung.com/api/system/content/${objectId}/og.png`);
+  // Dapatan audit SEO 2026-08-27 — DUA pembetulan pada JSON-LD ni:
+  //   1. `publisher` dahulu guna kandungan.source (sumber ASAL berita, cth "The Star") — SALAH
+  //      dari segi schema.org, `publisher` mesti entiti yang MENERBITKAN artikel di URL ni (Adjung
+  //      Brief sendiri), bukan sumber asal. Sumber asal kekal dipaparkan berasingan di badan HTML
+  //      (`<p>Sumber: ...</p>` di bawah) — itu cara betul rujuk sumber, bukan medan `publisher`.
+  //   2. Tambah `dateModified`, `mainEntityOfPage` dan `author` — medan Google rekomen untuk
+  //      kelayakan rich-result penuh, dahulu tiada langsung di laluan BOT ni (versi client-side
+  //      seoMeta.ts sudah ada, jadi laluan yang crawler SEBENAR nampak — tanpa perlu jalankan JS —
+  //      adalah yang lebih lemah, terbalik daripada keutamaan sepatutnya).
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: kandungan.title,
     description: kandungan.summary,
     datePublished: kandungan.publishedAt,
+    dateModified: kandungan.modifiedAt || kandungan.publishedAt,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     url,
     ...(gambar ? { image: [gambar] } : {}),
-    ...(kandungan.source ? { publisher: { '@type': 'Organization', name: kandungan.source } } : {}),
+    author: kandungan.editorName
+      ? { '@type': 'Person', name: kandungan.editorName }
+      : { '@type': 'Organization', name: 'Adjung Brief' },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Adjung Brief',
+      logo: { '@type': 'ImageObject', url: 'https://brief.adjung.com/og-image.png' },
+    },
   };
   return `<!DOCTYPE html>
 <html lang="ms">

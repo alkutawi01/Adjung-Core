@@ -19,6 +19,23 @@ const JSONLD_ID = 'adjung-focus-jsonld';
 
 let originalTitle: string | null = null;
 let originalMeta: Record<string, string | null> | null = null;
+let originalCanonical: string | null = null;
+
+function getCanonicalEl(): HTMLLinkElement | null {
+  return document.head.querySelector('link[rel="canonical"]');
+}
+
+// Potong ikut sempadan PERKATAAN, bukan kiraan aksara mentah (2026-08-27, dapatan audit SEO) —
+// `.slice(n)` mentah boleh potong di tengah perkataan, hasilkan serpihan janggal dalam pratonton
+// carian/perkongsian sosial. 155 aksara ≈ lebar paparan Google (bukan sempadan keras — description
+// JSON-LD boleh lebih panjang, cuma medan og/twitter/meta yang benar-benar dipaparkan pendek ni).
+function potongIkutPerkataan(teks: string, had: number): string {
+  const t = teks.trim();
+  if (t.length <= had) return t;
+  const dipotong = t.slice(0, had);
+  const ruangTerakhir = dipotong.lastIndexOf(' ');
+  return `${(ruangTerakhir > had * 0.6 ? dipotong.slice(0, ruangTerakhir) : dipotong).trim()}…`;
+}
 
 function getMetaEl(attr: 'name' | 'property', key: string): HTMLMetaElement | null {
   return document.head.querySelector(`meta[${attr}="${key}"]`);
@@ -58,10 +75,12 @@ export function terapFocusSeo(input: FocusSeoInput): void {
     originalMeta = {};
     for (const k of META_NAME_KEYS) originalMeta[`name:${k}`] = getMetaEl('name', k)?.getAttribute('content') ?? null;
     for (const k of META_PROPERTY_KEYS) originalMeta[`property:${k}`] = getMetaEl('property', k)?.getAttribute('content') ?? null;
+    originalCanonical = getCanonicalEl()?.getAttribute('href') ?? null;
   }
 
   const title = input.title.trim() || 'Adjung Brief';
-  const description = input.description.trim().slice(0, 300);
+  const descriptionPenuh = input.description.trim();
+  const description = potongIkutPerkataan(descriptionPenuh, 155);
   // Fallback ke og-image.png jenama (2026-08-23) — bukan SVG (Facebook/Twitter tak sokong SVG
   // untuk og:image/twitter:image, lihat nota sama di articleUrlRoutes.js binaHtmlBot()). URL
   // MUTLAK, bukan laluan relatif — sepadan sebab di index.html (crawler perkongsian sosial tak
@@ -70,6 +89,19 @@ export function terapFocusSeo(input: FocusSeoInput): void {
   const url = input.url || window.location.href;
 
   document.title = `${title} — Adjung Brief`;
+
+  // Kanonikal per-artikel (2026-08-27, dapatan audit) — dahulu TAK PERNAH disentuh di sini,
+  // jadi kekal pada nilai statik index.html (URL homepage) sepanjang Focus View dibuka. Google
+  // baca JSON-LD/meta selepas render JS (nota di atas), jadi kanonikal yang tersilap tunjuk ke
+  // homepage untuk SETIAP artikel bercanggah terus dengan kanonikal betul yang dihantar laluan
+  // bot (articleUrlRoutes.js) untuk URL SAMA — isyarat bercanggah antara dua laluan render.
+  let canonicalEl = getCanonicalEl();
+  if (!canonicalEl) {
+    canonicalEl = document.createElement('link');
+    canonicalEl.setAttribute('rel', 'canonical');
+    document.head.appendChild(canonicalEl);
+  }
+  canonicalEl.setAttribute('href', url);
 
   setMeta('name', 'description', description);
   setMeta('property', 'og:type', 'article');
@@ -86,16 +118,21 @@ export function terapFocusSeo(input: FocusSeoInput): void {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: title,
-    description,
+    // JSON-LD boleh bawa description LEBIH PANJANG daripada medan og/twitter yang benar-benar
+    // dipaparkan pendek (2026-08-27) — guna versi 300 aksara ikut sempadan perkataan, bukan
+    // `description` (155 aksara) yang dipotong utk paparan.
+    description: potongIkutPerkataan(descriptionPenuh, 300),
     image: image ? [image] : undefined,
     url,
     datePublished: input.publishedDate || undefined,
-    author: input.authorName ? { '@type': 'Person', name: input.authorName } : undefined,
+    dateModified: input.publishedDate || undefined,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    author: input.authorName ? { '@type': 'Person', name: input.authorName } : { '@type': 'Organization', name: 'Adjung Brief' },
     articleSection: input.desk || undefined,
     publisher: {
       '@type': 'Organization',
       name: 'Adjung Brief',
-      logo: { '@type': 'ImageObject', url: '/adjung-symbol.svg' },
+      logo: { '@type': 'ImageObject', url: 'https://brief.adjung.com/og-image.png' },
     },
   };
 
@@ -128,6 +165,10 @@ export function buangSemulaFocusSeo(): void {
       if (v !== null) setMeta('property', k, v as string);
     }
     originalMeta = null;
+  }
+  if (originalCanonical !== null) {
+    getCanonicalEl()?.setAttribute('href', originalCanonical);
+    originalCanonical = null;
   }
   const script = document.getElementById(JSONLD_ID);
   if (script) script.remove();

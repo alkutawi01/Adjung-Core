@@ -66,7 +66,10 @@ export function createSitemapRoutes(dbAll, dbGet, dbRun) {
       `).catch(() => []);
 
       const urls = [
-        { loc: `${baseUrl}/`, changefreq: 'hourly', priority: '1.0' },
+        // lastmod ditambah (2026-08-27, dapatan audit SEO) — frontpage berubah setiap kali mana-
+        // mana slot diterbit/dikemas kini, jadi "sekarang" ialah anggaran yang munasabah (tiada
+        // satu cap masa "kemas kini terakhir" tersendiri untuk halaman komposit macam ni).
+        { loc: `${baseUrl}/`, lastmod: new Date().toISOString().slice(0, 10), changefreq: 'hourly', priority: '1.0' },
       ];
       for (const row of rows) {
         // eslint-disable-next-line no-await-in-loop

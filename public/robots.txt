@@ -4,6 +4,11 @@
 # laman ni terus (lihat PELAN_PRA_LAUNCH.md Fasa 15, "laluan serve produksi" belum siap).
 User-agent: *
 Allow: /
+# Editorium (konsol dalaman, log masuk diperlukan) dan laluan API tak bermakna diindeks — laluan
+# ni tak dapat HTML pra-terap (createPublicArticleRoute hanya kendali /:bidang/kandungan/:kod),
+# jadi crawler cuma buang bajet imbasan pada cangkang SPA kosong (2026-08-27, dapatan audit SEO).
+Disallow: /editorium
+Disallow: /api/
 
 # URL sitemap mesti MUTLAK ikut spesifikasi sitemaps.org — URL relatif tidak dijamin
 # difahami semua crawler (dibetulkan 2026-08-25, audit SEO).

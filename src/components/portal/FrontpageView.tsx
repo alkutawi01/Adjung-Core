@@ -3462,9 +3462,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
         {/* Wordmark Hero */}
         <section className="text-center pt-2 pb-6 animate-fade-in">
-          <h1 className={`font-serif font-normal tracking-tight ${LOGO_SIZE.hero} text-[#802334]`}>
+          {/* Bukan <h1> sengaja (dapatan audit SEO 2026-08-27) — wordmark jenama, bukan tajuk
+              kandungan. Focus View (dibuka atas frontpage ni, tak pernah laluan berasingan) ada
+              <h1> sendiri utk tajuk artikel; dua <h1> serentak dalam DOM yg sama mengaburkan
+              isyarat topik utama halaman kepada crawler. */}
+          <div className={`font-serif font-normal tracking-tight ${LOGO_SIZE.hero} text-[#802334]`}>
             <HoverWords text={BRAND.logoText} />
-          </h1>
+          </div>
           <div className="flex items-center justify-center gap-3 mt-[8px] mb-1 max-w-xs mx-auto">
             <div className="h-[1px] bg-[#b4b4b4] w-12 md:w-16"></div>
             <span className="font-sans text-[11px] md:text-xs tracking-[0.25em] font-semibold text-[#b4b4b4] uppercase">{BRAND.subLabel}</span>
