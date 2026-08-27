@@ -684,10 +684,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
       publishedDate,
       desk,
       url: shareUrl || undefined,
+      // Kad OG dinamik per-artikel (2026-08-27) — hanya bila objectId sebenar wujud (draf tak
+      // diterbitkan tiada kad, sama syarat seperti butang Kongsi di atas).
+      imageUrl: (objectId && objectId !== 'manual')
+        ? `${window.location.origin}/api/system/content/${encodeURIComponent(objectId)}/og.png`
+        : undefined,
     });
     return () => { buangSemulaFocusSeo(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, text, publishedDate, desk, shareUrl]);
+  }, [title, text, publishedDate, desk, shareUrl, objectId]);
 
   // Had tajuk ialah 168 aksara (MENEGAK). Saiz menurun mengikut kiraan aksara supaya blok tajuk
   // menduduki ukuran yang sama sama ada tajuk 40 aksara atau 168 aksara penuh.

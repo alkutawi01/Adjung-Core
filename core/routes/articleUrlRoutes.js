@@ -2,6 +2,7 @@ import express from 'express';
 import {
   janaKodPendek, slugBidang, adalahUserAgentBot, binaLaluanKandungan, kodDaripadaParamLaluan,
 } from '../editorial/UrlSlug.js';
+import { janaOgImagePng } from '../editorial/OgImageRenderer.js';
 
 // Skema URL per-kandungan (2026-08-05, Fasa 9 — SEO & penemuan, keputusan Izzat):
 //   brief.adjung.com/<bidang-slug>/kandungan/<kod-pendek>
@@ -85,13 +86,15 @@ const escapeHtml = (s) => String(s || '')
 /** Bina HTML pra-terap ringkas untuk bot — tajuk, meta description, OG, JSON-LD NewsArticle,
  *  teks kandungan boleh dibaca terus (tanpa perlu jalankan JavaScript langsung). Bukan replika
  *  penuh SPA — cukup untuk crawler faham & indeks kandungan sebenar. */
-function binaHtmlBot({ kandungan, url }) {
+function binaHtmlBot({ kandungan, url, objectId }) {
   const tajuk = escapeHtml(kandungan.title);
   const huraian = escapeHtml((kandungan.summary || '').slice(0, 300));
-  // Fallback ke og-image.png jenama (2026-08-23) bila kandungan sendiri tiada imej — kebanyakan
-  // kandungan Adjung Brief memang tiada imej terlampir (portal berasaskan teks), jadi TANPA
-  // fallback ni pratonton kongsi majoriti artikel langsung tiada imej.
-  const gambar = escapeHtml(kandungan.image || 'https://brief.adjung.com/og-image.png');
+  // Fallback ke kad OG DINAMIK per-artikel (2026-08-27, OgImageRenderer.js) bila kandungan sendiri
+  // tiada imej terlampir — kebanyakan kandungan Adjung Brief memang tiada imej (portal berasaskan
+  // teks). Kad ni papar TAJUK sebenar artikel (bukan kad jenama generik og-image.png lama yang
+  // sama untuk SEMUA artikel — dikritik Izzat: "OG yg baik patut buat orang faham 'artikel ini
+  // tentang apa' dlm 1-2 saat", yg lama cuma jawab "ini portal apa").
+  const gambar = escapeHtml(kandungan.image || `https://brief.adjung.com/api/system/content/${objectId}/og.png`);
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -174,6 +177,42 @@ export function createArticleUrlRoutes(dbAll, dbGet, dbRun) {
     }
   });
 
+  // GET /api/system/content/:objectId/og.png — kad OG dinamik PER-ARTIKEL (2026-08-27,
+  // keputusan Izzat menggantikan og-image.png generik lama). Dipanggil oleh binaHtmlBot() di
+  // bawah (crawler perkongsian sosial) DAN client (seoMeta.ts, Focus View semasa dibuka oleh
+  // pembaca sebenar) — URL SAMA dua-dua tempat supaya crawler & pratonton langsung berlaku sama.
+  // PNG dijana atas permintaan (bukan pra-jana/simpan) — kandungan portal ni jarang dikongsi
+  // serentak dalam jumlah besar, jana sekali ambil beberapa saat tak jadi kesesakan; Cache-Control
+  // biar CDN/pelayar/Facebook cache hasil, elak jana berulang bagi pautan sama yang sama.
+  router.get('/system/content/:objectId/og.png', async (req, res) => {
+    try {
+      const kandungan = await ambilKandunganUntukSeo(dbGet, dbAll, req.params.objectId);
+      if (!kandungan) return res.status(404).end();
+      const kod = await getOrCreateUrlKod(dbGet, dbRun, req.params.objectId);
+      const laluan = binaLaluanKandungan(kandungan.title, kandungan.desk, kod);
+      const articleUrl = `${req.protocol}://${req.get('host')}${laluan}`;
+      // Ikon Bidang (SVG tersuai ATAU nama ikon lucide-react — lihat selesaikanIkonDataUrl()
+      // dalam OgImageRenderer.js, kebanyakan Bidang guna lucide, minoriti ada SVG tersuai) —
+      // dibaca "usaha terbaik sahaja"; kegagalan cari kategori tak patut gagalkan seluruh kad OG.
+      let iconSvg = null;
+      let iconName = null;
+      try {
+        const kategoriRow = await dbGet('SELECT icon, iconSvg FROM CategoryRegistry WHERE slug = ?', [slugBidang(kandungan.desk)]);
+        iconSvg = kategoriRow?.iconSvg || null;
+        iconName = kategoriRow?.icon || null;
+      } catch { /* ikon pilihan sahaja — kad OG tetap jana tanpanya */ }
+      const png = await janaOgImagePng({
+        title: kandungan.title, desk: kandungan.desk, articleUrl, topik: kandungan.topik, iconSvg, iconName,
+      });
+      res.set('Content-Type', 'image/png');
+      res.set('Cache-Control', 'public, max-age=86400');
+      res.send(png);
+    } catch (err) {
+      console.error('GET content/og.png error:', err);
+      res.status(500).end();
+    }
+  });
+
   router.get('/system/content/:objectId/url-kod', async (req, res) => {
     try {
       const obj = await dbGet(
@@ -245,7 +284,7 @@ export function createPublicArticleRoute(dbAll, dbGet) {
 
       const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
       res.set('Content-Type', 'text/html; charset=utf-8');
-      res.send(binaHtmlBot({ kandungan, url }));
+      res.send(binaHtmlBot({ kandungan, url, objectId: obj.id }));
     } catch (err) {
       console.error('GET public article route error:', err);
       next(); // Ralat — jatuh balik ke SPA, jangan tunjukkan ralat mentah kepada bot/pengguna.
