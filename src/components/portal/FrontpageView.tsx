@@ -3856,15 +3856,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                style={getCardTheme(bentoNewsItems[0], 'transparent').cardStyle} >
                 <BentoInner itemKey="0" className="md:flex-row md:items-center justify-between gap-6" aiProvider={bentoNewsItems[0].aiProvider}>
                   <div className="space-y-2 max-w-3xl">
+                    {/* Kunci tinggi baris eyebrow (2026-08-28, pembetulan jurang eyebrow->tajuk
+                        tak konsisten, laporan Izzat) — corak SAMA seperti SEGI_EMPAT_SMALL/KOMPAK
+                        (lihat slot 3/4/5), dipanjangkan ke HERO/MENEGAK/STANDARD supaya jurang
+                        eyebrow->tajuk kekal SAMA tak kira topik semasa pendek/panjang atau ada/
+                        tiada ikon Bidang — dikunci ke tinggi topik TERPANJANG dalam putaran
+                        carousel slot ni (bukan tinggi item aktif semasa sahaja). */}
+                    <FooterHeightLock
+                      items={bentoNewsItems[0].items && bentoNewsItems[0].items.length > 0 ? bentoNewsItems[0].items : [bentoNewsItems[0]]}
+                      renderFooter={(it) => (
+                        <div className="font-mono text-[9px] md:text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                      )}
+                    >
+                      {(minHeight) => (
+                        <div className="font-mono text-[9px] md:text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[0]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[0]} bidang={bidangUntuk(bentoNewsItems[0])} onCari={cariDariEyebrow} />}</div>
+                      )}
+                    </FooterHeightLock>
                     <CarouselStableBlock
                       items={bentoNewsItems[0].items && bentoNewsItems[0].items.length > 0 ? bentoNewsItems[0].items : [bentoNewsItems[0]]}
                       activeIndex={bentoNewsItems[0].carouselIndex || 0}
                       onNavigate={(dir) => majuKarusel(0, bentoNewsItems[0].items && bentoNewsItems[0].items.length > 0 ? bentoNewsItems[0].items : [bentoNewsItems[0]], dir)}
                       renderItem={(it) => (
-                        <>
-                          <div className="font-mono text-[9px] md:text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[0]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                          <HeroCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[0]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                        </>
+                        <HeroCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[0]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                       )}
                     />
                   </div>
@@ -3900,15 +3913,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[1], 'transparent').cardStyle} >
                   <BentoInner itemKey="1" className="gap-3" aiProvider={bentoNewsItems[1].aiProvider}>
                     <div className="space-y-4">
+                      <FooterHeightLock
+                        items={bentoNewsItems[1].items && bentoNewsItems[1].items.length > 0 ? bentoNewsItems[1].items : [bentoNewsItems[1]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2 flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[1]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[1]} bidang={bidangUntuk(bentoNewsItems[1])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[1].items && bentoNewsItems[1].items.length > 0 ? bentoNewsItems[1].items : [bentoNewsItems[1]]}
                         activeIndex={bentoNewsItems[1].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(1, bentoNewsItems[1].items && bentoNewsItems[1].items.length > 0 ? bentoNewsItems[1].items : [bentoNewsItems[1]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[1]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[1]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[1]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -3941,15 +3961,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[2], 'transparent').cardStyle} >
                   <BentoInner itemKey="2" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[2].aiProvider}>
                     <div className="flex-1">
+                      <FooterHeightLock
+                        items={bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[2]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[2]} bidang={bidangUntuk(bentoNewsItems[2])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]]}
                         activeIndex={bentoNewsItems[2].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(2, bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[2]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[2]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[2]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -3997,7 +4024,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[3].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(3, bentoNewsItems[3].items && bentoNewsItems[3].items.length > 0 ? bentoNewsItems[3].items : [bentoNewsItems[3]], dir)}
                         renderEyebrow={(it) => (
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[11]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[3]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
                         )}
                         renderFooter={(it) => (
                           <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
@@ -4181,15 +4208,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[6], 'transparent').cardStyle} >
                   <BentoInner itemKey="6" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[6].aiProvider}>
                     <div className="flex-1">
+                      <FooterHeightLock
+                        items={bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[6]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[6]} bidang={bidangUntuk(bentoNewsItems[6])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]]}
                         activeIndex={bentoNewsItems[6].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(6, bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[6]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[6]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[6]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4223,15 +4257,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={{ ...getCardTheme(bentoNewsItems[12], 'transparent').cardStyle, ...bar1SiblingLocks.idx12.lockStyle }} >
                   <BentoInner itemKey="12" className="gap-3" aiProvider={bentoNewsItems[12].aiProvider}>
                     <div className="space-y-4">
+                      <FooterHeightLock
+                        items={bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2 flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[12]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[12]} bidang={bidangUntuk(bentoNewsItems[12])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]]}
                         activeIndex={bentoNewsItems[12].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(12, bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[12]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[12]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[12]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4295,7 +4336,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <FooterHeightLock
                         items={bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]]}
                         renderFooter={(it) => (
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[16]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[11]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
                         )}
                       >
                         {(minHeight) => (
@@ -4307,7 +4348,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[11].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(11, bentoNewsItems[11].items && bentoNewsItems[11].items.length > 0 ? bentoNewsItems[11].items : [bentoNewsItems[11]], dir)}
                         renderEyebrow={(it) => (
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[25]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[11]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
                         )}
                         renderFooter={(it) => (
                           <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
@@ -4373,7 +4414,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[13].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(13, bentoNewsItems[13].items && bentoNewsItems[13].items.length > 0 ? bentoNewsItems[13].items : [bentoNewsItems[13]], dir)}
                         renderEyebrow={(it) => (
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold flex flex-col justify-start" style={getCardTheme(bentoNewsItems[14]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold flex flex-col justify-start" style={getCardTheme(bentoNewsItems[13]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
                         )}
                         renderFooter={(it) => (
                           <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
@@ -4420,7 +4461,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <FooterHeightLock
                         items={bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]]}
                         renderFooter={(it) => (
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex flex-col justify-start" style={getCardTheme(bentoNewsItems[27]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex flex-col justify-start" style={getCardTheme(bentoNewsItems[14]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
                         )}
                       >
                         {(minHeight) => (
@@ -4432,7 +4473,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[14].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(14, bentoNewsItems[14].items && bentoNewsItems[14].items.length > 0 ? bentoNewsItems[14].items : [bentoNewsItems[14]], dir)}
                         renderEyebrow={(it) => (
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold flex flex-col justify-start" style={getCardTheme(bentoNewsItems[28]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold flex flex-col justify-start" style={getCardTheme(bentoNewsItems[14]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
                         )}
                         renderFooter={(it) => (
                           <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
@@ -4485,15 +4526,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[15], 'transparent').cardStyle} >
                   <BentoInner itemKey="15" className="gap-3" aiProvider={bentoNewsItems[15].aiProvider}>
                     <div className="space-y-4">
+                      <FooterHeightLock
+                        items={bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2 flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[15]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[15]} bidang={bidangUntuk(bentoNewsItems[15])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]]}
                         activeIndex={bentoNewsItems[15].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(15, bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[15]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[15]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[15]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4529,7 +4577,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <FooterHeightLock
                         items={bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]]}
                         renderFooter={(it) => (
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[30]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[16]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
                         )}
                       >
                         {(minHeight) => (
@@ -4541,7 +4589,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[16].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(16, bentoNewsItems[16].items && bentoNewsItems[16].items.length > 0 ? bentoNewsItems[16].items : [bentoNewsItems[16]], dir)}
                         renderEyebrow={(it) => (
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[35]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[16]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
                         )}
                         renderFooter={(it) => (
                           <div className="font-sans text-[7px] md:text-[9px] tracking-editorial uppercase text-stone-300/90 pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
@@ -4696,15 +4744,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[19], 'transparent').cardStyle} >
                   <BentoInner itemKey="19" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[19].aiProvider}>
                     <div className="flex-1">
+                      <FooterHeightLock
+                        items={bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[19]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[19]} bidang={bidangUntuk(bentoNewsItems[19])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]]}
                         activeIndex={bentoNewsItems[19].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(19, bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[19]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[19]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[19]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4747,15 +4802,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={{ ...getCardTheme(bentoNewsItems[26], 'transparent').cardStyle, ...bar2SiblingLocks.idx26.lockStyle }} >
                   <BentoInner itemKey="26" className="gap-3" aiProvider={bentoNewsItems[26].aiProvider}>
                     <div className="space-y-4">
+                      <FooterHeightLock
+                        items={bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2 flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[26]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[26]} bidang={bidangUntuk(bentoNewsItems[26])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]]}
                         activeIndex={bentoNewsItems[26].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(26, bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[26]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[26]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[26]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4788,15 +4850,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[20], 'transparent').cardStyle} >
                   <BentoInner itemKey="20" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[20].aiProvider}>
                     <div className="flex-1">
+                      <FooterHeightLock
+                        items={bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[20]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[20]} bidang={bidangUntuk(bentoNewsItems[20])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]]}
                         activeIndex={bentoNewsItems[20].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(20, bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[20]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[20]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[20]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4833,7 +4902,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <FooterHeightLock
                         items={bentoNewsItems[25].items && bentoNewsItems[25].items.length > 0 ? bentoNewsItems[25].items : [bentoNewsItems[25]]}
                         renderFooter={(it) => (
-                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#D6D3D1] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[36]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#F5EBE6] font-bold mb-2 flex flex-col justify-start" style={getCardTheme(bentoNewsItems[25]).deskStyle}><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
                         )}
                       >
                         {(minHeight) => (
@@ -5048,15 +5117,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[29], 'transparent').cardStyle} >
                   <BentoInner itemKey="29" className="gap-3" aiProvider={bentoNewsItems[29].aiProvider}>
                     <div className="space-y-4">
+                      <FooterHeightLock
+                        items={bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2 flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[29]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[29]} bidang={bidangUntuk(bentoNewsItems[29])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]]}
                         activeIndex={bentoNewsItems[29].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(29, bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[29]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[29]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[29]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5259,15 +5335,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[33], 'transparent').cardStyle} >
                   <BentoInner itemKey="33" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[33].aiProvider}>
                     <div className="flex-1">
+                      <FooterHeightLock
+                        items={bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[33]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[33]} bidang={bidangUntuk(bentoNewsItems[33])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]]}
                         activeIndex={bentoNewsItems[33].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(33, bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[33]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[33]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[33]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5309,15 +5392,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[34], 'transparent').cardStyle} >
                   <BentoInner itemKey="34" className="md:flex-row md:items-center justify-between gap-4" aiProvider={bentoNewsItems[34].aiProvider}>
                     <div className="flex-1">
+                      <FooterHeightLock
+                        items={bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[34]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[34]} bidang={bidangUntuk(bentoNewsItems[34])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]]}
                         activeIndex={bentoNewsItems[34].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(34, bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={getCardTheme(bentoNewsItems[34]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[34]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[34]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5350,15 +5440,22 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                  style={getCardTheme(bentoNewsItems[37], 'transparent').cardStyle} >
                   <BentoInner itemKey="37" className="gap-3" aiProvider={bentoNewsItems[37].aiProvider}>
                     <div className="space-y-4">
+                      <FooterHeightLock
+                        items={bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]]}
+                        renderFooter={(it) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2"><EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} /></div>
+                        )}
+                      >
+                        {(minHeight) => (
+                          <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2 flex flex-col justify-start" style={{ ...getCardTheme(bentoNewsItems[37]).deskStyle, minHeight }}>{<EyebrowKad item={bentoNewsItems[37]} bidang={bidangUntuk(bentoNewsItems[37])} onCari={cariDariEyebrow} />}</div>
+                        )}
+                      </FooterHeightLock>
                       <CarouselStableBlock
                         items={bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]]}
                         activeIndex={bentoNewsItems[37].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(37, bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]], dir)}
                         renderItem={(it) => (
-                          <>
-                            <div className="font-mono text-[9px] uppercase tracking-widest text-[#FFE3D1] font-bold mb-2" style={getCardTheme(bentoNewsItems[37]).deskStyle}>{<EyebrowKad item={it} bidang={bidangUntuk(it)} onCari={cariDariEyebrow} />}</div>
-                            <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[37]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
-                          </>
+                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[37]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
