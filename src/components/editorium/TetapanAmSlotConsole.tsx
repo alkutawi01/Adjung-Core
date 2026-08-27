@@ -22,6 +22,7 @@ import { muatPindaanMedanLimit } from '../../config/medanLimitOverrides';
 interface TetapanAm {
   mulaIkutMasa: number;
   hadKandunganSlot: number;
+  hadJamRotasiSlotPenuh: number;
   jenisAnimasi: string;
   arahAnimasi: string;
   animasiAktif: boolean;
@@ -554,6 +555,24 @@ export const TetapanAmSlotConsole: React.FC = () => {
             kalau slot dah penuh dengan kandungan Aktif sedia ada, kandungan yang cuba diluluskan
             kekal Menunggu (ditanda "tunggu slot kosong") dan naik taraf AUTOMATIK sebaik ada
             ruang, tanpa perlu keputusan manusia kedua.
+          </p>
+          <div className="flex items-center gap-3 pt-2 border-t border-stone-100">
+            <input
+              type="number"
+              min={1}
+              max={720}
+              value={String(draf.hadJamRotasiSlotPenuh ?? 24)}
+              onChange={e => setDraf(p => p ? { ...p, hadJamRotasiSlotPenuh: Number(e.target.value) } : p)}
+              className="w-24 px-2 py-[calc(4px*var(--ed-kepadatan,1))] border border-stone-300 rounded text-right font-mono text-xs focus:outline-none focus:border-Adjung-maroon focus:bg-white transition-colors"
+            />
+            <span className="text-stone-500">jam sebelum kandungan Aktif paling lama diarkibkan automatik</span>
+          </div>
+          <p className="text-stone-400 text-[10px] leading-relaxed">
+            Bila ada kandungan yang menunggu ruang ("tunggu slot kosong") dan slot masih penuh,
+            kandungan Aktif <strong>PALING LAMA</strong> dalam slot itu diarkibkan automatik sebaik
+            usianya genap tempoh ini, bagi laluan kandungan baharu. Cuma terpakai bila had di atas
+            dihidupkan (bukan 0) DAN ada calon yang sedang menunggu — slot yang tiada giliran
+            menunggu tidak diputar sia-sia.
           </p>
         </div>
 

@@ -2189,6 +2189,14 @@ const initEditorialOS = (dbConn) => {
       // ni wujud. Lihat core/routes/slotAmRoutes.js dan `paksaSemuaSlot` (FrontpageView.tsx).
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN paksaTetapanAmSemuaSlot INTEGER DEFAULT 0", () => {});
 
+      // Tempoh putaran automatik slot penuh (2026-08-27, arahan Izzat) — kandungan 'Menunggu'
+      // sebab slot penuh (sebabMenunggu='slot_penuh') sebelum ni beratur TANPA HAD MASA, cuma naik
+      // taraf bila seseorang mengarkib/luputkan item lain dalam slot sama secara manual. Lajur ni
+      // bilangan JAM sebelum kandungan APPROVED paling lama dalam slot diarkibkan automatik untuk
+      // bagi laluan calon menunggu — lihat runSchedulingTick() (contentRoutes.js) untuk pelaksanaan
+      // penuh. Lalai 24 jam (spesifikasi Izzat verbatim).
+      dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN hadJamRotasiSlotPenuh INTEGER DEFAULT 24", () => {});
+
       // source_link_checks (2026-08-05, Fasa 8b — semakan pautan mati) — satu rekod PER URL
       // sumber unik (bukan per-kandungan; URL sama dikongsi rentas kandungan disemak sekali,
       // bukan berulang-ulang). Diisi/dikemas kini oleh core/editorial/LinkChecker.js, dibaca oleh

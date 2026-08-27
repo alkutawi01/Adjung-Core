@@ -477,6 +477,70 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
   } catch (err) {
     console.error('[Tong Sampah] Ralat tik auto-padam kekal:', err.message);
   }
+
+  // (4) Putaran automatik slot penuh — 24 jam (2026-08-27, arahan Izzat). Sebelum ni kandungan
+  // 'Menunggu' sebab slot penuh (sebabMenunggu='slot_penuh') beratur TANPA HAD MASA — cuma naik
+  // taraf (promosikanMenungguSlotKosong) bila SESEORANG mengarkibkan/luputkan item lain dalam
+  // slot sama secara manual. Kesan sebenar: giliran boleh tersekat SELAMA-LAMANYA kalau tiada
+  // siapa buat apa-apa pada slot tu — Izzat sahkan ini BUKAN tingkah laku dikehendaki ("ia patut
+  // autoterbit selepas tempoh tertentu"). Peraturan baharu, spesifikasi Izzat verbatim: kandungan
+  // APPROVED PALING LAMA dalam slot (o.createdAt terawal) diarkibkan AUTOMATIK sebaik usianya
+  // genap 24 jam, TAPI HANYA bila ada sekurang-kurangnya satu calon 'slot_penuh' sedang menunggu
+  // ruang (putar slot yang tiada giliran menunggu tiada faedah, cuma buang kandungan aktif
+  // sia-sia). Satu slot, satu putaran setiap tik — promosikanMenungguSlotKosong() naikkan SATU
+  // calon setiap panggilan (gilir adil, createdAt ASC), sama corak macam (1)/(2) di atas; tik
+  // seterusnya (90 saat) putar lagi satu kalau slot masih penuh & masih ada calon menunggu.
+  try {
+    const slotMenunggu = await dbAll(`
+      SELECT DISTINCT o.slotIndex AS slotIndex FROM editorial_objects o
+      JOIN editorial_revisions r ON r.objectId = o.id
+      JOIN editorial_attribute_values eav ON eav.objectId = o.id AND eav.revisionId = r.id
+        AND eav.attributeId = 'sebabMenunggu' AND eav.valueText = 'slot_penuh'
+      WHERE r.status = 'pending'
+        AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+    `);
+    const { hadKandunganSlot, hadJamRotasiSlotPenuh } = getAmSettings();
+    if (hadKandunganSlot > 0) {
+      const ambangRotasiIso = new Date(Date.now() - hadJamRotasiSlotPenuh * 60 * 60 * 1000).toISOString();
+      for (const { slotIndex } of slotMenunggu) {
+        if (TIER_SLOTS.BAR.includes(slotIndex)) continue; // Bar tak sokong alur Draf/Terbit
+        const terlama = await dbGet(`
+          SELECT o.id AS objectId, r.id AS revisionId, r.title, o.createdAt FROM editorial_objects o
+          JOIN editorial_revisions r ON r.objectId = o.id
+          WHERE o.slotIndex = ? AND r.status = 'approved'
+            AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+          ORDER BY o.createdAt ASC LIMIT 1
+        `, [slotIndex]);
+        // Belum ada calon approved (tak sepatutnya berlaku — slot 'penuh' tanpa apa-apa approved
+        // ialah keadaan tak konsisten), ATAU item terlama belum genap 24 jam lagi — tunggu tik
+        // seterusnya, JANGAN putar pramatang.
+        if (!terlama || terlama.createdAt > ambangRotasiIso) continue;
+        const hasilRotasi = await dbRun(
+          "UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ? AND status = 'approved'",
+          [nowIso, terlama.revisionId]
+        );
+        if (!hasilRotasi || hasilRotasi.changes === 0) continue; // status berubah sejak SELECT — langkau, tik lain uruskan
+        await logAudit(dbRun, {
+          actorId: null, actorName: 'Penjadual Sistem (Putaran Slot)',
+          action: 'kandungan-putar-auto-arkib-24-jam', targetType: 'kandungan', targetId: terlama.objectId,
+          detail: (terlama.title || '').slice(0, 100),
+        });
+        const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [slotIndex]);
+        await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
+          type: 'kandungan_putar_arkib', title: 'Kandungan anda diarkibkan automatik (giliran slot, 24 jam)',
+          detail: (terlama.title || '').slice(0, 150), targetType: 'kandungan', targetId: terlama.objectId,
+        });
+        // Ruang baharu terbuka — naik taraf calon 'slot_penuh' paling lama tertunggu SEKARANG,
+        // jangan tunggu tik lain (promosikanMenungguSlotKosong sendiri idempotent/selamat dipanggil
+        // berulang, lihat definisinya di atas).
+        await promosikanMenungguSlotKosong(dbAll, dbGet, dbRun, slotIndex).catch((e) => {
+          console.warn('[Putaran Slot] Gagal naik taraf kandungan slot-berkosong:', e.message);
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[Putaran Slot] Ralat tik putaran auto-arkib 24 jam:', err.message);
+  }
 }
 
 export function createContentRoutes(db, dbAll, dbGet, dbRun) {

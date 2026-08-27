@@ -106,6 +106,11 @@ export const AM_DEFAULTS = {
   // (FrontpageView.tsx) langkau override slots_config dan pulangkan nilai am terus. Override KEKAL
   // TERSIMPAN — reversible, sama corak modWarnaPanel di atas. Lalai false.
   paksaTetapanAmSemuaSlot: 0,
+  // Tempoh putaran automatik slot penuh, dalam JAM (2026-08-27, arahan Izzat — lihat penjelasan
+  // penuh di runSchedulingTick(), contentRoutes.js). Kandungan APPROVED PALING LAMA dalam slot
+  // diarkibkan automatik selepas tempoh ni bagi laluan calon 'Menunggu' (sebabMenunggu='slot_penuh')
+  // — HANYA berkuat kuasa bila hadKandunganSlot > 0 (had bilangan kandungan seslot dihidupkan).
+  hadJamRotasiSlotPenuh: 24,
 };
 
 // Tiga jenis animasi carousel yang dilaksanakan sebenar dalam kod (2026-08-04, Fasa 7 — spesifikasi
@@ -219,6 +224,7 @@ export const loadAmSettings = async (dbGet) => {
           }
         })(),
         paksaTetapanAmSemuaSlot: row.paksaTetapanAmSemuaSlot === 1 ? 1 : 0,
+        hadJamRotasiSlotPenuh: Number(row.hadJamRotasiSlotPenuh) > 0 ? Number(row.hadJamRotasiSlotPenuh) : 24,
       };
     }
     // Pengesahan simpan (validateMedanTambahan) berjalan secara sync, jadi ia baca cache
@@ -349,6 +355,16 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           return senarai.length ? senarai : AM_DEFAULTS.jenisAnimasiRawakPool;
         })(),
         paksaTetapanAmSemuaSlot: b.paksaTetapanAmSemuaSlot ? 1 : 0,
+        // Tempoh putaran slot penuh — 1 jam hingga 30 hari (720 jam), had bawah elak putaran
+        // gila-gila pantas (kandungan sepatutnya sempat dibaca sebelum diarkib), had atas cuma
+        // pertahanan waras.
+        hadJamRotasiSlotPenuh: (() => {
+          const n = Number(b.hadJamRotasiSlotPenuh);
+          if (!Number.isInteger(n) || n < 1 || n > 720) {
+            throw new Error('Tempoh putaran slot penuh mesti nombor bulat antara 1 dan 720 jam.');
+          }
+          return n;
+        })(),
       };
 
       // Silang sah min <= max (2026-08-07) — kedua-dua ditetapkan (bukan 0) mesti julat SAH,
@@ -372,8 +388,8 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           hadHuraianPanjang, hadSumber, hadTopik, hadNotaEditor,
           hadHuraianPanjangMin, hadSumberMin, hadTopikMin, hadNotaEditorMin,
           carouselJedaPertama, carouselTempohLalai,
-          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, jenisAnimasiRawakPool, paksaTetapanAmSemuaSlot, updatedAt
-        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          logoPenaja, warnaPanelTransisi, nisbahPenajaTransisi, modWarnaPanel, focusViewTitleScale, focusViewBodySize, susunanCarousel, jenisAnimasiRawakPool, paksaTetapanAmSemuaSlot, hadJamRotasiSlotPenuh, updatedAt
+        ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           mulaIkutMasa = excluded.mulaIkutMasa,
           hadKandunganSlot = excluded.hadKandunganSlot,
@@ -403,6 +419,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           susunanCarousel = excluded.susunanCarousel,
           jenisAnimasiRawakPool = excluded.jenisAnimasiRawakPool,
           paksaTetapanAmSemuaSlot = excluded.paksaTetapanAmSemuaSlot,
+          hadJamRotasiSlotPenuh = excluded.hadJamRotasiSlotPenuh,
           updatedAt = excluded.updatedAt
       `, [
         baharu.mulaIkutMasa, baharu.hadKandunganSlot, baharu.jenisAnimasi, baharu.arahAnimasi,
@@ -415,6 +432,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         baharu.focusViewTitleScale, baharu.focusViewBodySize, baharu.susunanCarousel,
         JSON.stringify(baharu.jenisAnimasiRawakPool),
         baharu.paksaTetapanAmSemuaSlot,
+        baharu.hadJamRotasiSlotPenuh,
         new Date().toISOString(),
       ]);
 
