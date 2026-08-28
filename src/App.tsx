@@ -108,7 +108,7 @@ export default function App() {
     setShowLoginModal(true);
   };
 
-  const handleLoginSuccess = (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[]; termaDipersetujuiPada?: string | null }, rememberMe: boolean) => {
+  const handleLoginSuccess = (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[]; termaDipersetujuiPada?: string | null; autoTerbit?: boolean }, rememberMe: boolean) => {
     // Tanda sesi (2026-08-08, "tapisan Indeks kekal sepanjang sesi") — dicap SEKALI di sini,
     // setiap kali log masuk berjaya (bukan setiap kali authUser dikemas kini — lihat
     // handleProfilKemasKini di bawah, sengaja TIDAK menjana tanda baharu). Konsol seperti Indeks

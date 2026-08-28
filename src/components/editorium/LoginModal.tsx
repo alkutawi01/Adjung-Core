@@ -12,7 +12,7 @@ interface LoginModalProps {
   // kepada editor ni (jadual slot_editors berkunci pada users.id, bukan nama pena). `roles`
   // (2026-08-02, Fasa 3) — senarai BERBILANG peranan (pentadbir/ketua_editor/
   // penolong_ketua_editor/editor); `role` legasi dikekalkan untuk paparan sahaja.
-  onSuccess: (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[]; termaDipersetujuiPada?: string | null }, rememberMe: boolean) => void;
+  onSuccess: (user: { id: string; username: string; penName: string; email: string; role: string; roles: string[]; termaDipersetujuiPada?: string | null; autoTerbit?: boolean }, rememberMe: boolean) => void;
 }
 
 // Log masuk Editorium (2026-07-29) — panggil /api/auth/login (core/routes/authRoutes.js,
@@ -61,6 +61,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onSuccess }) =>
         role: data.user.role,
         roles: Array.isArray(data.user.roles) ? data.user.roles : [],
         termaDipersetujuiPada: data.user.termaDipersetujuiPada || null,
+        // autoTerbit (2026-08-28) — tertinggal semasa ciri ni dibina; onSuccess() pilih medan
+        // secara manual (bukan spread data.user terus), jadi medan baharu senyap tak sampai ke
+        // authUser walau pelayan dah hantar betul. Punca sebenar laporan Izzat "dah togol, dah
+        // log keluar-masuk, masih sama".
+        autoTerbit: !!data.user.autoTerbit,
       }, rememberMe);
     } catch {
       setError('Log masuk gagal. Sila semak sambungan anda dan cuba lagi.');
