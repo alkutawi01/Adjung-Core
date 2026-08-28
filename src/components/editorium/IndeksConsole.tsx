@@ -1697,7 +1697,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             {activeItemModal.summaryLong.trim() && (
               <div className="flex flex-col gap-1">
                 <span className={LABEL_BORANG}>Huraian Panjang</span>
-                <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200">
+                <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200 whitespace-pre-wrap">
                   {activeItemModal.summaryLong}
                 </div>
               </div>
