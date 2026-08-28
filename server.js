@@ -21,7 +21,7 @@ import { GoogleGenAI } from '@google/genai';
 import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
-import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, validateSumberNama, validateTarikhSumber, validateGlossLength } from './core/editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateHuraianPanjangWajib, validateSourceUrl, validateSumberNama, validateTarikhSumber, validateGlossLength } from './core/editorial/ContentBudget.js';
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS, effectiveMinBriefLong } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
@@ -3295,13 +3295,21 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       throw err;
     }
     // Had MINIMUM huraian panjang (2026-08-07, permintaan Izzat — "nak tetapkan had minimum
-    // kependekan supaya tidak ada lagi huraian panjang yg terlalu pendek"). Medan ni OPSYENAL
-    // (ramai kandungan tiada langsung, itu sah) — had minimum cuma terpakai bila editor BENAR-
-    // BENAR isi sesuatu. Data sebenar sebelum had ni wujud: 294 aksara tersimpan sebagai "huraian
-    // panjang", praktikalnya cuma huraian ringkas dipanjangkan sikit, bukan bacaan Focus View
-    // dua-lajur yang medan ni dimaksudkan.
-    if (item.briefLong && item.briefLong.trim() && item.briefLong.length < effectiveMinBriefLong()) {
-      const err = new Error(`Huraian panjang bagi "${(item.title || '').slice(0, 40)}..." terlalu pendek (${item.briefLong.length} aksara, minimum ${effectiveMinBriefLong()}). Kandungan tidak disiarkan. Panjangkan huraian atau kosongkan terus medan ni.`);
+    // kependekan supaya tidak ada lagi huraian panjang yg terlalu pendek"). Data sebenar sebelum
+    // had ni wujud: 294 aksara tersimpan sebagai "huraian panjang", praktikalnya cuma huraian
+    // ringkas dipanjangkan sikit, bukan bacaan Focus View dua-lajur yang medan ni dimaksudkan.
+    //
+    // Huraian Panjang kini WAJIB (2026-08-28, keputusan Izzat) — medan ni dahulu OPSYENAL
+    // sepenuhnya (kosong terus sentiasa lulus, had minimum cuma terpakai bila editor mula isi),
+    // sehingga kandungan sebenar (Slot 7, "Asal Ibadah...") terbit dengan medan ni kosong
+    // sepenuhnya walau had minimum sudah ditetapkan. validateHuraianPanjangWajib() (bukan
+    // pemeriksaan "kalau diisi" lama) tolak kandungan BAHARU yang kosong terus — lihat komen
+    // penuh di ContentBudget.js. Kandungan LAMA yang sudah terbit dengan medan ni kosong tak
+    // terjejas laluan ni langsung (fungsi ni cuma dipanggil semasa TERBIT draf baharu, bukan
+    // semasa resync giliran draf sedia ada — lihat nota `isDraft` di atas).
+    const huraianPanjangWajibCheck = validateHuraianPanjangWajib(item.briefLong, effectiveMinBriefLong());
+    if (!huraianPanjangWajibCheck.isValid) {
+      const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${huraianPanjangWajibCheck.reason} Kandungan tidak disiarkan.`);
       err.isValidationError = true;
       err.bolehSalinAI = true;
       throw err;

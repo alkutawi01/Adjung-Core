@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateSourceUrl, validateSumberNama, validateTarikhSumber, validateGlossLength, TIER_SLOTS } from '../editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateHuraianPanjangWajib, validateSourceUrl, validateSumberNama, validateTarikhSumber, validateGlossLength, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import { effectiveMinBriefLong } from '../editorial/GeometryConfig.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
@@ -932,12 +932,21 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         );
         const nilaiLama = Object.fromEntries(nilaiLamaRows.map((r) => [r.attributeId, r.valueText || '']));
 
-        const briefLongLamaGagalMin = !!(nilaiLama.briefLong && nilaiLama.briefLong.trim()
-          && nilaiLama.briefLong.length < effectiveMinBriefLong());
-        if (!briefLongLamaGagalMin && briefLong !== undefined && briefLong && briefLong.trim() && briefLong.length < effectiveMinBriefLong()) {
-          return res.status(400).json({
-            error: `Huraian panjang terlalu pendek (${briefLong.length} aksara, minimum ${effectiveMinBriefLong()}). Panjangkan huraian atau kosongkan terus medan ni.`,
-          });
+        // Huraian Panjang kini WAJIB (2026-08-28, keputusan Izzat) — validateHuraianPanjangWajib()
+        // tolak KEDUA-DUA kosong-terus DAN terlalu-pendek (bukan cuma terlalu-pendek macam
+        // dahulu). Pengecualian had-diketatkan (2026-08-16) turut dikemas kini serentak: kandungan
+        // LAMA yang kosong terus kini turut dikira "sudah gagal had semasa" (bukan cuma "sudah
+        // terlalu pendek"), supaya kandungan lama macam ni (terbit sebelum keputusan ni) tak
+        // terperangkap — suntingan LAIN (cth betulkan ejaan tajuk) pada kandungan tu tak sepatutnya
+        // disekat sebab medan yang langsung tak disentuh suntingan ni.
+        const briefLongLamaGagalMin = !validateHuraianPanjangWajib(nilaiLama.briefLong, effectiveMinBriefLong()).isValid;
+        if (!briefLongLamaGagalMin && briefLong !== undefined) {
+          const wajibCheck = validateHuraianPanjangWajib(briefLong, effectiveMinBriefLong());
+          if (!wajibCheck.isValid) {
+            return res.status(400).json({
+              error: `${wajibCheck.reason} Suntingan tidak disimpan — versi sedia ada kekal disiarkan seperti sebelum ini.`,
+            });
+          }
         }
 
         // Had aksara medan bukan-kad (Tetapan Am Slot). Hanya medan yang benar-benar dihantar

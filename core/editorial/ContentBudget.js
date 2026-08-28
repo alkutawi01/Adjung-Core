@@ -145,6 +145,34 @@ const setMedanLimits = (nilai) => {
 
 const getMedanLimits = () => ({ ...MEDAN_LIMITS });
 
+// Huraian Panjang WAJIB apabila had minimum ditetapkan (2026-08-28, keputusan Izzat) — sebelum
+// ni had minimum (effectiveMinBriefLong()/hadHuraianPanjangMin) HANYA terpakai bila editor
+// BENAR-BENAR isi sesuatu; medan kosong terus sentiasa lulus. Izzat tangkap kandungan sebenar
+// (Slot 7, "Asal Ibadah Tidak Disyariatkan Sehingga Ada Dalil") terbit dengan Huraian Panjang
+// kosong sepenuhnya walau had minimum 1200 aksara sudah ditetapkan — niat had minimum ialah
+// "kalau nak isi, isi betul-betul", bukan "boleh terus tak isi". Fungsi ni sengaja BERASINGAN
+// daripada validateMedanTambahan (yang KEKAL tak berubah untuk Sumber/Topik/Nota Editor — medan
+// itu kekal opsyenal, cuma Huraian Panjang yang jadi wajib). Pemanggil (server.js penciptaan,
+// contentRoutes.js suntingan) uruskan pengecualian kandungan sedia ada sendiri, sama corak
+// seperti had lain di fail ni — fungsi ni cuma nyatakan FAKTA status semasa.
+const validateHuraianPanjangWajib = (summaryLong, min) => {
+  if (!min) return { isValid: true };
+  const trimmed = (summaryLong || '').trim();
+  if (!trimmed) {
+    return {
+      isValid: false, bolehSalinAI: true,
+      reason: `Huraian panjang wajib diisi (minimum ${min} aksara ditetapkan di Tetapan Am Slot).`,
+    };
+  }
+  if (trimmed.length < min) {
+    return {
+      isValid: false, bolehSalinAI: true,
+      reason: `Huraian panjang (${trimmed.length} aksara) terlalu pendek. Minimum ${min} aksara.`,
+    };
+  }
+  return { isValid: true };
+};
+
 /**
  * Semak had aksara bagi medan yang tiada kaitan dengan saiz kad. Medan yang tak dihantar
  * (undefined) tidak disemak — supaya kemas kini separa tidak menolak medan yang tak disentuh.
@@ -445,6 +473,6 @@ export {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
   validateContentBudget, validateBidangTopik, validateSourceUrl, validateSumberNama, validateTarikhSumber,
-  setMedanLimits, getMedanLimits, validateMedanTambahan, validateGlossLength,
+  setMedanLimits, getMedanLimits, validateMedanTambahan, validateHuraianPanjangWajib, validateGlossLength,
   GLOSS_RENDERING_ENABLED,
 };
