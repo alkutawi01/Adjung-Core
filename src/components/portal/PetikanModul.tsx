@@ -183,7 +183,16 @@ const KandunganPetikan: React.FC<{ p: PetikanAwam }> = ({ p }) => (
         dgn font utk huraian pendek di telefon") — telefon 12px (text-xs, diukur hidup: kesemua
         p huraian pendek kad papar 12px pada 375px), desktop kekal 14px (text-sm, sepadan body
         teks kad — lihat nota pemilihan saiz pada komen KunciTinggiPetikan di bawah). */}
-    <p className="font-serif text-stone-900 text-xs md:text-sm leading-[1.7] max-w-2xl mx-auto text-pretty">
+    {/* hyphens:none (2026-08-28, laporan Izzat: "kenapa desktop pun ada hyphenation") —
+        safeParseInline() sisip soft-hyphen (U+00AD) global ke SEMUA teks yang dipenggal suku
+        kata, sama fungsi kongsi yang kad bento guna. Kad bento dapat penyingkiran ni scoped
+        kepada #bento-news-grid sahaja (FrontpageView.tsx, hyphens:none desktop / hyphens:manual
+        <768px) — Petikan tak pernah termasuk skop tu, jadi jatuh balik ke lalai pelayar
+        (hyphens:manual), yang terus papar sempang bila baris patah, di MANA-MANA lebar skrin.
+        Petikan SATU bentuk untuk semua saiz skrin (nota fail di atas) — tiada senario lajur
+        sempit yang perlukan sempang manual, jadi hyphens:none tetap tanpa media query, sepadan
+        rawatan FocusView.tsx (tajuk/huraian artikel penuh). */}
+    <p className="font-serif text-stone-900 text-xs md:text-sm leading-[1.7] max-w-2xl mx-auto text-pretty" style={{ hyphens: 'none', WebkitHyphens: 'none' }}>
       <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&ldquo;</span>
       {safeParseInline(p.teks)}
       <span aria-hidden="true" className="text-[#802334] text-2xl leading-none align-[-4px]">&rdquo;</span>
