@@ -153,6 +153,18 @@ const urlFormatSah = (url: string): boolean => {
 // belum log masuk) — papar "—", bukan nama palsu.
 const EDITOR_PLACEHOLDER = '—';
 
+// Padanan nama pemilik draf — CERMIN namaSepadan() (core/routes/contentRoutes.js) dan samaNama()
+// (core/routes/draftRoutes.js): pangkas ruang + huruf kecil. Sebelum ni dua tapak di bawah guna
+// `===` tepat sensitif-huruf, sedangkan pelayan sudah lama beralih ke padanan dipangkas/huruf-
+// kecil (lihat komen kekalkanDrafOrangLain(), slotsConfigRoutes.js — isu 1e pelan 18/8). Kesan
+// percanggahan tu: pelayan mengiktiraf draf itu milik editor dan menyenaraikannya di "Draf Saya",
+// tetapi modal ni menapisnya keluar, jadi editor klik draf sendiri lalu mendarat pada borang
+// KOSONG (draf nampak "hilang" walaupun ia selamat dalam DB — kekalkanDrafOrangLain() memang
+// mengekalkannya semasa simpan). Satu takrifan sahaja merentasi klien/pelayan, jangan tulis
+// semula padanan nama di tempat lain.
+const namaPenulisSepadan = (a?: string, b?: string): boolean =>
+  (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
+
 // Sumber rujukan berbilang (2026-08-15, simulasi Izzat pusingan 4 + audit ChatGPT --
 // "berbilang URL boleh masuk v1, bukan sebagai senarai pautan bebas, tapi koleksi sumber
 // dengan peraturan keserasian"). aiPromptSource (kolum DB sedia ada, TEXT bebas format,
@@ -667,7 +679,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     // tersembunyi) tak sepadan kedudukan sebenar dalam `items`, mendaratkan editor pada draf
     // yang salah.
     const i = parseManualSummaryBlocks(formConfig.manualSummary || '')
-      .filter((b: any) => !b.penulis || b.penulis === currentEditoriumName)
+      .filter((b: any) => !b.penulis || namaPenulisSepadan(b.penulis, currentEditoriumName))
       .findIndex((b: any) => b.uuid === initialUuid);
     return i >= 0 ? i : 0;
   });
@@ -794,7 +806,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // penapisan ni tanpa mengalih keluar gabungan server jugak, dan sebaliknya.
   const [items, setItems] = useState<any[]>(() => {
     const parsed = parseManualSummaryBlocks(formConfig.manualSummary || '')
-      .filter((it) => !it.penulis || it.penulis === currentEditoriumName);
+      .filter((it) => !it.penulis || namaPenulisSepadan(it.penulis, currentEditoriumName));
     return parsed.length > 0 ? parsed : [blankItem()];
   });
   const activeIndex = Math.max(0, Math.min(active, items.length - 1));
