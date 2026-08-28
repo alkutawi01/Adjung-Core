@@ -974,7 +974,13 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                       {/* Tetapkan editor terus dari sini (2026-08-01) — sama data/peraturan macam
                           Editorium → Slot → Senarai Slot, cuma dibawa ke tempat editor sebenarnya
                           mula menulis, supaya tak perlu keluar konteks pemilih slot ni. */}
-                      <Tooltip text="Tetapkan editor yang menguruskan slot ini">
+                      <Tooltip
+                        text={
+                          editorSlot.length === 0
+                            ? 'Tetapkan editor yang menguruskan slot ini'
+                            : `Editor slot ini: ${editorSlot.map((p) => p.nama).join(', ')}`
+                        }
+                      >
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setPopoverEditorSlot((prev) => (prev === i ? null : i)); }}

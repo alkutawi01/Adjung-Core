@@ -399,6 +399,17 @@ button:not(:disabled):active {
   }
 }
 
+/* Matikan ikon tunjuk/sembunyi kata laluan NATIF browser (2026-08-28, laporan Izzat — "ada dua
+   icon mata... tiba2 hilang" pada Sahkan Kata Laluan). KataLaluanInput.tsx sudah sediakan SATU
+   butang mata kongsi konsisten merentasi apl; Edge (::-ms-reveal/-clear) dan sesetengah Chrome
+   letak ikon reveal/clear sendiri bertindih di penjuru kanan medan type="password", bergantung
+   heuristik dalaman browser (kadang muncul, kadang hilang) — bukan pepijat kod kita, tapi tetap
+   perlu dimatikan supaya cuma SATU ikon konsisten kelihatan tak kira browser. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 /* Elegant Dark Range Slider */
 input[type="range"].adjung-range {
   -webkit-appearance: none;
