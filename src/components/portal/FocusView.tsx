@@ -161,7 +161,33 @@ function KongsiButtons({ title, url, disalinBerjaya, onSalin }: { title: string;
  *  sebelumnya — sama offsetTop = baris sama (papar "|"), berbeza = baru patah baris (sorok).
  *  Anggapan lalai (render pertama, sebelum ukuran sedia) ialah SEMUA sama baris — elak
  *  "|" berkelip masuk lepas ukuran, biasanya memang muat sebaris pada kebanyakan kandungan. */
-function SenaraiSumberDesktop({ sources, sourceDate }: { sources: { name: string; url?: string; date?: string }[]; sourceDate?: string }) {
+// Tooltip "Diakses pada" (2026-08-28, permintaan Izzat) — pautan luar boleh mati lama-kelamaan
+// (link rot); tarikh capaian ialah metadata provenance macam sitasi akademik ("Retrieved on..."),
+// bukan disclaimer legal, jadi wording elak nada "disahkan"/amaran. Guna publishedDate (tarikh
+// kandungan INI dicipta/disunting di Adjung) sebagai anggaran tarikh sumber diakses editor —
+// tiada medan "tarikh capaian" berasingan disimpan, dan publishedDate cukup tepat untuk tujuan ni.
+function IkonDiakses({ tarikh }: { tarikh?: string }) {
+  if (!tarikh) return null;
+  return (
+    <Tooltip text={`Diakses pada ${tarikh}. Pautan luar mungkin berubah atau tidak lagi tersedia.`}>
+      <button
+        type="button"
+        aria-label={`Diakses pada ${tarikh}`}
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: '13px', height: '13px', marginLeft: '5px', borderRadius: '50%',
+          border: '1px solid var(--stone-300)', color: 'var(--stone-400)',
+          fontFamily: 'var(--font-serif)', fontSize: '9px', fontStyle: 'italic', lineHeight: 1,
+          background: 'transparent', cursor: 'default', verticalAlign: 'middle', flexShrink: 0,
+        }}
+      >
+        i
+      </button>
+    </Tooltip>
+  );
+}
+
+function SenaraiSumberDesktop({ sources, sourceDate, diaksesPada }: { sources: { name: string; url?: string; date?: string }[]; sourceDate?: string; diaksesPada?: string }) {
   const refs = React.useRef<(HTMLSpanElement | null)[]>([]);
   const [samaBarisDgnSebelum, setSamaBarisDgnSebelum] = React.useState<boolean[]>(() => sources.map(() => true));
 
@@ -203,6 +229,7 @@ function SenaraiSumberDesktop({ sources, sourceDate }: { sources: { name: string
           <span ref={(el) => { refs.current[i] = el; }} style={{ display: 'inline-flex', alignItems: 'baseline', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
             <a href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)' }}>{s.name || '—'}</a>
             {(s.date || (i === 0 && sourceDate)) && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {s.date || sourceDate}</span>}
+            {i === sources.length - 1 && <IkonDiakses tarikh={diaksesPada} />}
           </span>
         </span>
       ))}
@@ -1466,11 +1493,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 wrap tak perlulah guna | utk memisahkan") — lihat SenaraiSumberDesktop() di atas
                 fail ni utk mekanisme ukur offsetTop sebenar. */}
             {sources.length > 0 ? (
-              <SenaraiSumberDesktop sources={sources} sourceDate={sourceDate} />
+              <SenaraiSumberDesktop sources={sources} sourceDate={sourceDate} diaksesPada={publishedDate} />
             ) : (
               <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
                 <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
                 {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
+                <IkonDiakses tarikh={publishedDate} />
               </span>
             )}
           </span>
