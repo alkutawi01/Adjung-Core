@@ -92,6 +92,15 @@ interface SlotManagerModalProps {
   // Nama sebenar editor yang log masuk (2026-07-29) — papar di medan "Editor" (Maklumat slot +
   // Borang kandungan), lihat-sahaja. Kosong = belum log masuk (papar EDITOR_PLACEHOLDER).
   currentEditoriumName?: string;
+  // Auto-terbit (2026-08-28, permintaan Izzat) — togol per-editor ditetapkan Ketua Editor di
+  // Direktori (lihat core/routes/userAdminRoutes.js PATCH /users/:id/auto-terbit). Bila benar,
+  // saveDraft() di bawah TERUS menerbitkan (macam publishOne utk setiap item) seluruh giliran
+  // draf, bukan sekadar simpan. Label butang KEKAL "Simpan sebagai draf" (keputusan Izzat) —
+  // utk editor/automasi yang boleh klik butang ni tapi tak boleh klik "Terbit sekarang" sendiri
+  // (had teknikal alat automasi luaran, cth Codex). TIADA laluan kebenaran pelayan baharu dibuka
+  // — publishOne() dan saveDraft() panggil PATCH /content/:id yang SAMA, gerbang publish/
+  // pemilikan/bajet sedia ada terpakai tanpa pengecualian.
+  autoTerbit?: boolean;
   isSavingSlot: boolean;
   // Mesej ralat simpan terkini daripada useSlotEditor (2026-08-02) — sebelum ni `onSave` cuma
   // pulangkan boolean `ok`, jadi sebab kegagalan sebenar (termasuk konflik serentak Fasa 6) tak
@@ -665,7 +674,7 @@ const SidebarItem = React.memo(function SidebarItem({
 });
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
-  editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, onClose, onSave,
+  editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, autoTerbit, onClose, onSave,
   slotOptions, onSwitchSlot, initialUuid, saveError, saveErrorBolehSalinAI, onToast, onLihatIndeks,
 }) => {
   // Kandungan mana yang terbuka dahulu. Lalai yang pertama; bila dibuka daripada "Draf Saya"
@@ -1200,6 +1209,14 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // Terbit: hantar SELURUH giliran draf semasa ke server (persist), modal KEKAL terbuka.
   const [savingDraft, setSavingDraft] = useState(false);
   const saveDraft = async () => {
+    // Auto-terbit (2026-08-28) — lihat komen penuh di prop `autoTerbit` atas. Guna semula
+    // terbitSemua() sedia ada (WF-03) — sudah kendali item lulus/gagal berasingan (item gagal
+    // itemFits kekal draf, bukan semua-atau-tiada), tiada logik baharu diperlukan di sini.
+    if (autoTerbit) {
+      if (items.length === 0) return;
+      await terbitSemua();
+      return;
+    }
     setSavingDraft(true);
     const manualSummary = serializeManualBentoQueue(items);
     const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary, { closeOnSuccess: false });

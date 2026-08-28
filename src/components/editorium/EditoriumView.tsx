@@ -132,7 +132,7 @@ interface EditoriumViewProps {
   // masuk — bukan lagi togol manual. `roles` (2026-08-02, Fasa 3) — senarai BERBILANG peranan
   // sebenar (pentadbir/ketua_editor/penolong_ketua_editor/editor), satu akaun boleh pegang lebih
   // daripada satu serentak. `role` legasi kekal sebagai label paparan sahaja.
-  currentUser: { id: string; name: string; role: 'KETUA_EDITOR' | 'EDITOR'; roles: string[]; sesiTanda?: string } | null;
+  currentUser: { id: string; name: string; role: 'KETUA_EDITOR' | 'EDITOR'; roles: string[]; sesiTanda?: string; autoTerbit?: boolean } | null;
   onRequestLogin: () => void;
   onLogout: () => void;
   // Profil Editor (2026-08-01) — kemas kini nama pena serta-merta di sesi App.tsx (header/
@@ -1021,6 +1021,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           activeBidangList={slotEditor.activeBidangList}
           currentEditoriumRole={effectiveEditorialRole}
           currentEditoriumName={currentUser.name}
+          autoTerbit={!!currentUser.autoTerbit}
           isSavingSlot={slotEditor.isSavingSlot}
           saveError={slotEditor.saveError}
           saveErrorBolehSalinAI={slotEditor.saveErrorBolehSalinAI}

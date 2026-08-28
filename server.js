@@ -417,6 +417,17 @@ const initializeSchema = () => {
       db.run("ALTER TABLE users ADD COLUMN termaDipersetujuiPada TEXT;", () => {});
       db.run("ALTER TABLE users ADD COLUMN lastPublishedAt TEXT;", () => {});
       db.run("ALTER TABLE users ADD COLUMN amaranTakAktifTahap INTEGER DEFAULT 0;", () => {});
+      // autoTerbit (2026-08-28, permintaan Izzat) — togol per-editor Ketua Editor boleh
+      // hidup/matikan di Direktori. Bila hidup, butang "Simpan sebagai draf" (SlotManagerModal.tsx
+      // saveDraft()) TERUS menerbitkan (macam publishOne()) seluruh giliran draf slot tu bagi
+      // editor ni, bukan sekadar simpan draf — label butang SENGAJA KEKAL "Simpan sebagai draf"
+      // (keputusan Izzat), utk automasi luaran (cth Codex) yang boleh klik butang tu tapi TAK
+      // boleh klik "Terbit sekarang" (had teknikal alat automasi terhadap sesetengah kawalan).
+      // Ciri ni TIDAK buka laluan kebenaran baharu di pelayan — publishOne() dan saveDraft() kedua-
+      // duanya panggil PATCH /content/:id yang SAMA, gerbang publish/pemilikan/bajet sedia ada
+      // terpakai sama macam biasa; togol ni cuma tukar KEPUTUSAN KLIEN (draf vs terbit terus) bagi
+      // editor tertentu, bukan pintas semakan pelayan.
+      db.run("ALTER TABLE users ADD COLUMN autoTerbit INTEGER DEFAULT 0;", () => {});
 
       // Indeks UNIQUE email/penName (2026-08-08, dapatan audit keselamatan ChatGPT) — `username`
       // sudah ada UNIQUE sejak skema asal (baris ni atas), tapi `email`/`penName` tak pernah ada

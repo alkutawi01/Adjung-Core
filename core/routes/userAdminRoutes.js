@@ -79,7 +79,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
   router.get('/users', requirePermission('manageAccounts'), async (req, res) => {
     try {
       const users = await dbAll(
-        `SELECT id, username, email, penName, status, isSuspended, createdAt, updatedAt, lastPublishedAt, amaranTakAktifTahap FROM users ORDER BY createdAt ASC`
+        `SELECT id, username, email, penName, status, isSuspended, createdAt, updatedAt, lastPublishedAt, amaranTakAktifTahap, autoTerbit FROM users ORDER BY createdAt ASC`
       );
       const roleRows = await dbAll(`SELECT userId, roleId FROM user_roles`);
       const rolesByUser = {};
@@ -124,6 +124,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
           penName: u.penName || u.username,
           status: STATUS_SAH.includes(u.status) ? u.status : 'Aktif',
           suspended: u.isSuspended === 1,
+          autoTerbit: u.autoTerbit === 1,
           createdAt: u.createdAt,
           updatedAt: u.updatedAt,
           roles,
@@ -302,6 +303,38 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
     } catch (err) {
       console.error('PATCH user status error:', err);
       res.status(500).json({ error: 'Gagal mengemas kini status. ' + (err.message || '') });
+    }
+  });
+
+  // PATCH /api/system/users/:id/auto-terbit (2026-08-28, permintaan Izzat) — togol per-editor:
+  // bila hidup, butang "Simpan sebagai draf" editor tu (SlotManagerModal.tsx saveDraft()) TERUS
+  // menerbitkan seluruh giliran draf, bukan sekadar simpan. TIDAK buka laluan kebenaran baharu di
+  // pelayan — cuma tukar keputusan KLIEN; PATCH /content/:id yang menerbitkan sebenar tetap
+  // melalui gerbang publish/pemilikan/bajet sedia ada tanpa pengecualian.
+  router.patch('/users/:id/auto-terbit', requirePermission('manageAccounts'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { autoTerbit } = req.body || {};
+      if (typeof autoTerbit !== 'boolean') {
+        return res.status(400).json({ error: 'Medan autoTerbit mesti boolean.' });
+      }
+      const sedia = await dbGet('SELECT id, penName, username FROM users WHERE id = ?', [id]);
+      if (!sedia) return res.status(404).json({ error: 'Akaun tidak dijumpai.' });
+
+      await dbRun('UPDATE users SET autoTerbit = ?, updatedAt = ? WHERE id = ?', [autoTerbit ? 1 : 0, new Date().toISOString(), id]);
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: `auto-terbit:${autoTerbit ? 'hidup' : 'mati'}`,
+        targetType: 'akaun',
+        targetId: id,
+      });
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error('PATCH user auto-terbit error:', err);
+      res.status(500).json({ error: 'Gagal mengemas kini togol auto-terbit. ' + (err.message || '') });
     }
   });
 

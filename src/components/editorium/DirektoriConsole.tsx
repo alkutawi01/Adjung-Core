@@ -66,6 +66,9 @@ interface Staff {
   penName: string;
   status: typeof STATUS_SAH[number];
   suspended: boolean;
+  // autoTerbit (2026-08-28) — bila hidup, "Simpan sebagai draf" editor ni terus menerbitkan
+  // (lihat core/routes/userAdminRoutes.js PATCH /users/:id/auto-terbit).
+  autoTerbit: boolean;
   createdAt: string;
   updatedAt: string;
   roles: string[];
@@ -687,6 +690,23 @@ function ProfilAnggotaModal({
     }
   };
 
+  const [ralatAutoTerbit, setRalatAutoTerbit] = useState('');
+  const togolAutoTerbit = async (autoTerbit: boolean) => {
+    setRalatAutoTerbit('');
+    try {
+      const res = await fetch(`/api/system/users/${staff.id}/auto-terbit`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoTerbit }),
+      });
+      if (!res.ok) throw new Error();
+      onUpdated({ ...staff, autoTerbit });
+      onBerjaya(autoTerbit ? 'Auto-terbit dihidupkan.' : 'Auto-terbit dimatikan.');
+    } catch {
+      setRalatAutoTerbit('Gagal mengemas kini togol auto-terbit.');
+    }
+  };
+
   // "Ditamatkan" dipintas (bukan terus ubahStatus) — semak dulu Draf+Menunggu kepunyaannya
   // supaya Pentadbir buat keputusan termaklum, bukan terkejut kandungan hilang/tertinggal senyap.
   const klikTamatkan = async () => {
@@ -823,6 +843,31 @@ function ProfilAnggotaModal({
               </div>
             </div>
             {ralatStatus && <MesejStatus tone="error">{ralatStatus}</MesejStatus>}
+
+            {/* Auto-terbit (2026-08-28, permintaan Izzat) — utk editor/automasi yang boleh klik
+                "Simpan sebagai draf" tapi tak boleh klik "Terbit sekarang" (had teknikal alat
+                automasi luaran, cth Codex, terhadap sesetengah kawalan borang). Bila hidup, klik
+                "Simpan sebagai draf" editor ni TERUS menerbitkan seluruh giliran draf slot tu —
+                label butang KEKAL "Simpan sebagai draf" (keputusan Izzat), tiada laluan kebenaran
+                pelayan baharu dibuka (lihat komen penuh core/routes/userAdminRoutes.js). */}
+            <div className="flex items-start gap-2 pt-1">
+              <input
+                type="checkbox"
+                id={`auto-terbit-${staff.id}`}
+                checked={staff.autoTerbit}
+                onChange={(e) => togolAutoTerbit(e.target.checked)}
+                className="mt-0.5 cursor-pointer"
+              />
+              <label htmlFor={`auto-terbit-${staff.id}`} className="cursor-pointer">
+                <span className="text-stone-700 font-semibold">Auto-terbit</span>
+                <p className="text-stone-500 font-normal mt-0.5">
+                  Butang "Simpan sebagai draf" untuk editor ini terus menerbitkan kandungan, bukan
+                  sekadar simpan sebagai draf. Guna untuk editor/automasi yang tidak boleh klik
+                  "Terbit sekarang" sendiri.
+                </p>
+              </label>
+            </div>
+            {ralatAutoTerbit && <MesejStatus tone="error">{ralatAutoTerbit}</MesejStatus>}
           </div>
         )}
       </div>

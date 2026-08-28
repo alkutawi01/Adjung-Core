@@ -82,7 +82,10 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
       const authenticatedUser = {
         ...userWithoutPassword,
         roles,
-        suspended: userRow.isSuspended === 1
+        suspended: userRow.isSuspended === 1,
+        // autoTerbit (2026-08-28) — dibaca client-side sahaja utk keputusan "Simpan sebagai
+        // draf" vs terbit terus (SlotManagerModal.tsx); tiada gerbang kebenaran pelayan baharu.
+        autoTerbit: userRow.autoTerbit === 1,
       };
 
       // Sesi sebenar di SERVER (2026-08-02) — bukan sekadar blob localStorage yang boleh
