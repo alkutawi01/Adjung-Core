@@ -3090,7 +3090,17 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // pembaca lihat muka depan biasa (bukan ralat menakutkan untuk pautan lama/rosak).
   const sudahBukaDeepLink = React.useRef(false);
   React.useEffect(() => {
-    if (!deepLinkKodPendek || sudahBukaDeepLink.current || focusAllLocations.length === 0) return;
+    // `hasLoadedContent` (BUKAN cuma `focusAllLocations.length > 0`) — 2026-08-29, susulan
+    // kritikal: `focusAllLocations` positif SEBAIK render PERTAMA sekalipun, kerana 38 slot
+    // diisi kandungan pemegang tempat (`ABOUT_ADJUNG_GROUPS`/fallbacks) SERTA-MERTA sebelum
+    // `/api/system/layout/active` (fetch SEBENAR) selesai — kedua-duanya bawa medan `.index`
+    // yang sah untuk `posislotBenarKeArray`, jadi effect ni boleh tercetus dengan kandungan
+    // PLACEHOLDER/belum-muktamad. `sudahBukaDeepLink` kunci PERCUBAAN PERTAMA sahaja (memang
+    // sengaja — elak buka semula setiap kali carousel putar), jadi kalau percubaan pertama tu
+    // guna data belum sedia, ia terkunci pada hasil salah SELAMANYA. `hasLoadedContent`
+    // (useState sedia ada, ditetapkan `true` hanya dalam `.finally()` fetch layout SEBENAR)
+    // ialah isyarat betul "data sudah muktamad" — tunggu itu dahulu.
+    if (!deepLinkKodPendek || sudahBukaDeepLink.current || !hasLoadedContent || focusAllLocations.length === 0) return;
     sudahBukaDeepLink.current = true;
     fetch(`/api/system/content/by-kod/${encodeURIComponent(deepLinkKodPendek)}`)
       .then(r => (r.ok ? r.json() : null))
@@ -3130,7 +3140,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         if (loc) { viaDeepLinkRef.current = true; setFocusLoc(loc); setFocusHistory([loc]); }
       })
       .catch(() => {});
-  }, [deepLinkKodPendek, focusAllLocations, posislotBenarKeArray, focusItemsForSlot]);
+  }, [deepLinkKodPendek, focusAllLocations, posislotBenarKeArray, focusItemsForSlot, hasLoadedContent]);
 
   // Carian pengunjung (2026-08-05, Fasa 11 — keputusan Izzat: carian ringkas tajuk/topik).
   // Debounce 300ms elak hentam server setiap ketukan kekunci; had 2 aksara minimum sepadan
