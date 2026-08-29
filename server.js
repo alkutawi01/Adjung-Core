@@ -1511,6 +1511,32 @@ const dbAll = (query, params = []) => {
   });
 };
 
+// Muat semula peranan sesi LIVE pada setiap permintaan (2026-08-29, audit Izzat — "kenapa masih
+// perlukan kelulusan kalau editor mmg dibenarkan terus terbit sendiri?"). `req.session.user.roles`
+// sebelum ni SATU snapshot diambil sekali semasa log masuk (authRoutes.js) dan tak pernah disegarkan
+// sepanjang hayat sesi (kuki boleh kekal sah berhari-hari). Bila Ketua Editor tukar peranan seorang
+// editor (Direktori → "ubah-peranan") SEMASA editor tu sudah log masuk, sesi tu terus baca peranan
+// LAMA — bolehTerbitTerus (server.js/contentRoutes.js) dan requirePermission() (auth.js) kedua-dua
+// baca terus daripada req.session.user.roles, jadi kandungan yang sepatutnya terus terbit jatuh
+// senyap ke status Menunggu, TANPA sebarang ralat atau amaran kepada editor. Disahkan sebenar: akaun
+// "Claude Antrophic" diberi peranan penolong_ketua_editor pada 2026-08-27 09:13 tapi kandungan yang
+// diterbitkan BERJAM-JAM kemudian (sesi sama, tak pernah log keluar) masih jatuh Menunggu.
+//
+// Kos: SATU query ringkas (SELECT roleId) setiap permintaan /api/system/* bersesi — boleh diabaikan
+// untuk trafik alat editorial dalaman (bukan endpoint awam bertrafik tinggi). Gagal senyap (console.warn)
+// supaya kegagalan DB seketika tak tumbangkan keseluruhan permintaan — peranan lapuk sedia ada dalam
+// sesi dikekalkan sebagai jaring keselamatan.
+const refreshSessionRoles = (dbAllFn) => async (req, res, next) => {
+  if (!req.session?.user?.id) return next();
+  try {
+    const rows = await dbAllFn('SELECT roleId FROM user_roles WHERE userId = ?', [req.session.user.id]);
+    req.session.user.roles = rows.map((r) => r.roleId);
+  } catch (e) {
+    console.warn('Gagal segar semula peranan sesi:', e.message);
+  }
+  next();
+};
+
 // Helper: Query DB single row
 const dbGet = (query, params = []) => {
   return new Promise((resolve, reject) => {
@@ -4095,6 +4121,10 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
 // sebab yang sama: `.use()` tanpa laluan khusus turut menyekat laluan router lain yang
 // singgah melaluinya semasa Express menyemak susunan mount.
 app.use('/api/ai', requireAuthForWrites, createAIRoutes(dbAll, dbRun, dbGet));
+// Segar semula peranan sesi (lihat komen penuh di takrif refreshSessionRoles di atas) — MESTI
+// dimount SEBELUM setiap router /api/system supaya requirePermission()/bolehTerbitTerus di laluan
+// bawah sentiasa baca peranan terkini, bukan snapshot log masuk lapuk.
+app.use('/api/system', refreshSessionRoles(dbAll));
 app.use('/api/system', createCategoryRoutes(db));
 app.use('/api', createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb));
 app.use('/api/system', createSlotRoutes(dbAll, dbRun, dbGet));
