@@ -345,6 +345,13 @@ export interface FocusViewProps {
    *  Jatuh balik ke AUTOSCROLL_DEFAULT_SEC (14) kalau tiada (keserasian ke belakang, dan kalau
    *  pemanggil tak sambung system_settings.focusViewAutoAdvanceSec langsung). */
   autoAdvanceSec?: number;
+  /** Mula dalam keadaan JEDA, bukan main (2026-08-29, Izzat: pautan terus ke SATU kandungan
+   *  patut kekal papar kandungan itu sahaja, bukan terus tatal automatik ke kandungan lain).
+   *  Dibaca SEKALI sahaja (nilai awal useState) — FocusView remount setiap kali dibuka semula
+   *  (`focusLoc && focusItem && <FocusView .../>` di FrontpageView.tsx, tiada `key` tapi
+   *  unmount penuh bila focusLoc jadi null), jadi cukup hantar `true` untuk pembukaan pautan
+   *  terus (FrontpageView tetapkan ref SEBELUM setFocusLoc) tanpa perlu prop terkawal berterusan. */
+  startPaused?: boolean;
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
@@ -355,7 +362,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
   titleSizeScale = 1, bodySizePx = 15,
   navMode = 'rawak', onToggleNavMode,
-  objectId,
+  objectId, startPaused,
 }) => {
   // Format label datang daripada eyebrowLabel() di GeometryConfig — sumber SAMA yang dipakai kad
   // bento dan pengesahan simpan. Sebelum ini fail ini ada takrifannya sendiri (' · '), jadi Focus
@@ -524,7 +531,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // datang dari system_settings.focusViewAutoAdvanceSec (FrontpageView.tsx). Jatuh balik ke 14
   // saat kalau prop tiada (keserasian ke belakang).
   const AUTOSCROLL_MS = (autoAdvanceSec && autoAdvanceSec > 0 ? autoAdvanceSec : 14) * 1000;
-  const [autoPlay, setAutoPlay] = React.useState(true);
+  const [autoPlay, setAutoPlay] = React.useState(!startPaused);
   // Baki masa jeda (2026-08-16, permintaan Izzat — "tekan space, saya tak nak kiraan detik tu
   // direset... tekan space sekali lagi, progress bar kembali bergerak") — SEBELUM ni toggle
   // autoPlay off/on cuma clear+setTimeout PENUH (AUTOSCROLL_MS) semula, jadi jeda-sambung nampak

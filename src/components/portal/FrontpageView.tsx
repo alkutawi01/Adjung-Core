@@ -3050,7 +3050,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     openFocus(item);
   };
 
-  const closeFocus = () => setFocusLoc(null);
+  // Pautan mendalam patut kekal papar SATU kandungan itu sahaja, bukan terus tatal automatik
+  // ke kandungan lain (2026-08-29, Izzat: "sepatutnya... hanya full view artikel tu yg keluar").
+  // Ditetapkan `true` SEBELUM `setFocusLoc()` dalam effect pautan mendalam di bawah, dibaca
+  // sekali sahaja oleh FocusView (`startPaused`, nilai awal useState autoPlay) semasa ia
+  // remount pembukaan tu — reset balik `false` di sini supaya klik kad manual seterusnya
+  // (buka semula Focus View lain) kekal tatal automatik lalai seperti biasa.
+  const viaDeepLinkRef = React.useRef(false);
+  const closeFocus = () => { viaDeepLinkRef.current = false; setFocusLoc(null); };
 
   // Pautan mendalam per-kandungan (Fasa 9, 2026-08-05) — bila pembaca mendarat terus di
   // /:bidangSlug/kandungan/:kodPendek (App.tsx hantar kod tu sebagai `deepLinkKodPendek`), buka
@@ -3076,7 +3083,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         // tak sempat didiagnosis under tekanan masa — server-side check sahaja sudah cukup untuk
         // tutup lubang keselamatan/kepercayaan URL, jadi client dikekalkan ringkas macam asal.
         const loc = focusAllLocations.find(l => l.slotIndex === data.slotIndex) || null;
-        if (loc) { setFocusLoc(loc); setFocusHistory([loc]); }
+        if (loc) { viaDeepLinkRef.current = true; setFocusLoc(loc); setFocusHistory([loc]); }
       })
       .catch(() => {});
   }, [deepLinkKodPendek, focusAllLocations]);
@@ -5888,6 +5895,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           navMode={focusNavMode}
           onToggleNavMode={() => setFocusNavMode(m => m === 'rawak' ? 'turutan' : 'rawak')}
           autoAdvanceSec={systemSettings?.focusViewAutoAdvanceSec}
+          startPaused={viaDeepLinkRef.current}
         />
       )}
 
