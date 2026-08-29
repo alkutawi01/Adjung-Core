@@ -3109,17 +3109,28 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         // `data.slotIndex` daripada pelayan ialah nombor slot BENAR (DB) — terjemah dahulu ke
         // kedudukan tatasusunan sebenar (`posislotBenarKeArray`, lihat nota di takrifannya)
         // sebelum padan dengan `focusAllLocations` (2026-08-29 — tanpa terjemahan ni, pautan
-        // terus membuka slot LAIN sepenuhnya sebaik mana-mana slot lebih awal kosong). Padan
-        // `itemIndex` sekali (bukan ambil kedudukan carousel pertama yang ditemui) memandangkan
-        // terjemahan di atas kini boleh dipercayai.
+        // terus membuka slot LAIN sepenuhnya sebaik mana-mana slot lebih awal kosong).
+        //
+        // Padan `objectId` (bukan `data.itemIndex`) untuk cari kedudukan carousel SEBENAR
+        // (2026-08-29, susulan) — by-kod (articleUrlRoutes.js) sengaja hardcode `itemIndex: 0`
+        // ("usaha terbaik", nota di situ), jadi untuk slot berbilang item (cth HERO) ia HAMPIR
+        // TAK PERNAH tepat. `objectId` pula SUDAH dihantar pelayan (dipakai semakan PUBLIC-URL-001
+        // di bawah), dan setiap item carousel bawa `.objectId` sendiri (dipakai KongsiButtons) —
+        // padanan primitif string ni tak terjejas isu rujukan objek yang pernah pecahkan
+        // percubaan objectId TERUS (nota lama di atas guna PERBANDINGAN RUJUKAN objek penuh,
+        // bukan padanan medan `.objectId`, itu sebab ia rapuh). Fallback ke itemIndex 0 kalau
+        // objectId entah bagaimana tak ditemui (cth carousel belum selesai render).
         const kedudukanArray = posislotBenarKeArray.get(data.slotIndex);
-        const loc = kedudukanArray === undefined ? null :
-          (focusAllLocations.find(l => l.slotIndex === kedudukanArray && l.itemIndex === data.itemIndex)
-            || focusAllLocations.find(l => l.slotIndex === kedudukanArray) || null);
+        let loc: FocusLoc | null = null;
+        if (kedudukanArray !== undefined) {
+          const items = focusItemsForSlot(kedudukanArray);
+          const itemIdx = items.findIndex((it: any) => it?.objectId === data.objectId);
+          loc = { slotIndex: kedudukanArray, itemIndex: itemIdx >= 0 ? itemIdx : 0 };
+        }
         if (loc) { viaDeepLinkRef.current = true; setFocusLoc(loc); setFocusHistory([loc]); }
       })
       .catch(() => {});
-  }, [deepLinkKodPendek, focusAllLocations, posislotBenarKeArray]);
+  }, [deepLinkKodPendek, focusAllLocations, posislotBenarKeArray, focusItemsForSlot]);
 
   // Carian pengunjung (2026-08-05, Fasa 11 — keputusan Izzat: carian ringkas tajuk/topik).
   // Debounce 300ms elak hentam server setiap ketukan kekunci; had 2 aksara minimum sepadan
@@ -3187,16 +3198,21 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     setTimeout(() => searchInputRef.current?.focus(), 60);
   };
 
-  /** Buka Focus View terus daripada keputusan carian — sama corak "usaha terbaik" seperti
-   *  pautan mendalam (`by-kod`) di atas: itemIndex sentiasa 0, cukup baik memandangkan
-   *  kebanyakan slot satu kandungan sahaja (lihat nota articleUrlRoutes.js). */
-  const openSearchResult = (slotIndex: number) => {
+  /** Buka Focus View terus daripada keputusan carian. */
+  const openSearchResult = (slotIndex: number, objectId?: string) => {
     // `slotIndex` di sini ialah nombor slot BENAR (DB, dari searchRoutes.js `eo.slotIndex`) —
     // terjemah ke kedudukan tatasusunan dahulu, sama sebab/mekanisme seperti pautan mendalam
     // di atas (`posislotBenarKeArray`) — tanpanya keputusan carian buka slot LAIN sepenuhnya
     // sebaik mana-mana slot lebih awal kosong (2026-08-29, Izzat: "search... keluar artikel lain").
+    // Padan `objectId` untuk kedudukan carousel SEBENAR (sama sebab pautan mendalam di atas —
+    // slot berbilang item, cth HERO, tak boleh andaikan hasil carian sentiasa di kedudukan 0).
     const kedudukanArray = posislotBenarKeArray.get(slotIndex);
-    const loc = kedudukanArray === undefined ? undefined : focusAllLocations.find(l => l.slotIndex === kedudukanArray);
+    let loc: FocusLoc | undefined;
+    if (kedudukanArray !== undefined) {
+      const items = focusItemsForSlot(kedudukanArray);
+      const itemIdx = objectId ? items.findIndex((it: any) => it?.objectId === objectId) : -1;
+      loc = { slotIndex: kedudukanArray, itemIndex: itemIdx >= 0 ? itemIdx : 0 };
+    }
     // Sama sebab startPaused pautan mendalam (lihat viaDeepLinkRef di atas) — pembaca yang
     // klik SATU keputusan carian tertentu nak lihat kandungan tu, bukan terus tertatal ke
     // kandungan lain 14 saat kemudian (2026-08-29, Izzat: "search di kotak carian pun sama").
@@ -3492,7 +3508,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       <li key={r.objectId} className="border-b border-stone-150 last:border-b-0">
                         <button
                           type="button"
-                          onClick={() => openSearchResult(r.slotIndex)}
+                          onClick={() => openSearchResult(r.slotIndex, r.objectId)}
                           className="w-full text-left px-3 py-2.5 hover:bg-stone-50 cursor-pointer"
                         >
                           <div className="font-mono text-[9px] uppercase tracking-wide text-[#802334]">{r.topik || r.desk}</div>
