@@ -9,6 +9,13 @@ Allow: /
 # jadi crawler cuma buang bajet imbasan pada cangkang SPA kosong (2026-08-27, dapatan audit SEO).
 Disallow: /editorium
 Disallow: /api/
+# Kad OG dinamik per-artikel (og.png, articleUrlRoutes.js) DIKECUALIKAN daripada larangan /api/
+# di atas — 2026-08-29, Izzat lapor pautan tiada gambar semasa kongsi ke Threads. og:image kandungan
+# menuding terus ke laluan /api/ ni; sesetengah crawler pratonton pautan (Threads composer nampaknya
+# lebih ketat daripada facebookexternalhit klasik) menghormati robots.txt juga bila mengambil IMEJ
+# yang dirujuk, bukan cuma laman HTML — walau mesej og:image sendiri berjaya dibaca (laluan HTML
+# artikel tidak disekat), imej itu sendiri disekat kalau tiada pengecualian ni.
+Allow: /api/system/content/*/og.png
 
 # URL sitemap mesti MUTLAK ikut spesifikasi sitemaps.org — URL relatif tidak dijamin
 # difahami semua crawler (dibetulkan 2026-08-25, audit SEO).
