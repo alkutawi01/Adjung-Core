@@ -222,7 +222,12 @@ function SenaraiSumberDesktop({ sources, sourceDate, diaksesPada }: { sources: {
   }, [sources.length, sources.map((s) => s.name).join('|')]);
 
   return (
-    <span style={{ display: 'flex', flexWrap: 'wrap', columnGap: '10px', rowGap: '2px' }}>
+    // fontSize/lineHeight eksplisit (2026-08-29, Izzat: "nama sumber dan nama editor tak
+    // sejajar") — bekas ni display:flex TANPA fontSize sendiri, jadi ia jatuh balik ke saiz
+    // fon lalai pelayar (16px, tinggi baris 24px) bukannya var(--text-11) yang dipakai anak-
+    // anaknya, menjadikan tinggi baris keseluruhan lajur Sumber lebih besar drpd lajur Editor
+    // sebelah (yang tetapkan fontSize terus) — anjakkan teksnya ke atas berbanding Editor.
+    <span style={{ display: 'flex', flexWrap: 'wrap', columnGap: '10px', rowGap: '2px', fontSize: 'var(--text-11)', lineHeight: 1.5 }}>
       {sources.map((s, i) => (
         <span key={i} style={{ display: 'inline-flex', alignItems: 'baseline', whiteSpace: 'nowrap' }}>
           {i > 0 && samaBarisDgnSebelum[i] && <span style={{ color: 'var(--stone-300)', marginRight: '10px' }}>|</span>}
