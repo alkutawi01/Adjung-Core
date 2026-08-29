@@ -3023,6 +3023,29 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     return out;
   }, [bentoNewsItems]);
 
+  // Nombor slot BENAR (pangkalan data, 0-37) -> kedudukan TATASUSUNAN dalam `bentoNewsItems`
+  // (2026-08-29, Izzat: pautan terus/keputusan carian buka artikel LAIN sepenuhnya, rawak
+  // setiap muat semula). Punca: `/api/system/layout/active` (layoutRoutes.js) LANGKAU slot yang
+  // tiada kandungan (`if (resolved) resolvedSlots.push(resolved)`) — sebaik SATU slot lebih awal
+  // kosong (cth Slot 8 pernah kosong, lihat papan pemuka Editorium), SEMUA slot selepasnya
+  // beralih satu kedudukan dalam tatasusunan berbanding nombor slot benar mereka. Navigasi
+  // DALAMAN Focus View (rawak/turutan/kongsi) kekal selamat kerana ia hanya guna kedudukan
+  // tatasusunan secara konsisten sesama sendiri — TAPI dua laluan LUAR (pautan terus `by-kod`,
+  // keputusan carian) terima nombor slot BENAR terus daripada pelayan (`eo.slotIndex` DB), lalu
+  // padan terus dengan kedudukan tatasusunan tanpa terjemah — sepadan cuma secara KEBETULAN bila
+  // tiada slot kosong sebelumnya. Peta ni terjemah nombor benar -> kedudukan sebenar, guna
+  // formula IDENTIK seperti `actualSlotIdx` dalam bentoNewsItems useMemo (rawIndex daripada
+  // pelayan ialah nombor benar+1, item pemegang tempat guna .index terus).
+  const posislotBenarKeArray = React.useMemo(() => {
+    const m = new Map<number, number>();
+    bentoNewsItems.forEach((item: any, pos: number) => {
+      if (!item) return;
+      const slotBenar = item.rawIndex > 0 ? item.rawIndex - 1 : item.index;
+      if (typeof slotBenar === 'number' && !m.has(slotBenar)) m.set(slotBenar, pos);
+    });
+    return m;
+  }, [bentoNewsItems]);
+
   // Buka ikut RUJUKAN item, bukan nombor slot. Sengaja: pencetus klik ada di 33 tempat dalam
   // fail ni, dan kalau setiap satu kena taip nombor slot sendiri, satu salah taip = kad buka
   // kandungan slot lain — jenis pepijat senyap yang paling susah dikesan. Cara ni buat semua
@@ -3082,11 +3105,21 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         // pembetulan ni) pecahkan deep-link untuk kes BIASA disebabkan isu pemasaan/rujukan yang
         // tak sempat didiagnosis under tekanan masa — server-side check sahaja sudah cukup untuk
         // tutup lubang keselamatan/kepercayaan URL, jadi client dikekalkan ringkas macam asal.
-        const loc = focusAllLocations.find(l => l.slotIndex === data.slotIndex) || null;
+        //
+        // `data.slotIndex` daripada pelayan ialah nombor slot BENAR (DB) — terjemah dahulu ke
+        // kedudukan tatasusunan sebenar (`posislotBenarKeArray`, lihat nota di takrifannya)
+        // sebelum padan dengan `focusAllLocations` (2026-08-29 — tanpa terjemahan ni, pautan
+        // terus membuka slot LAIN sepenuhnya sebaik mana-mana slot lebih awal kosong). Padan
+        // `itemIndex` sekali (bukan ambil kedudukan carousel pertama yang ditemui) memandangkan
+        // terjemahan di atas kini boleh dipercayai.
+        const kedudukanArray = posislotBenarKeArray.get(data.slotIndex);
+        const loc = kedudukanArray === undefined ? null :
+          (focusAllLocations.find(l => l.slotIndex === kedudukanArray && l.itemIndex === data.itemIndex)
+            || focusAllLocations.find(l => l.slotIndex === kedudukanArray) || null);
         if (loc) { viaDeepLinkRef.current = true; setFocusLoc(loc); setFocusHistory([loc]); }
       })
       .catch(() => {});
-  }, [deepLinkKodPendek, focusAllLocations]);
+  }, [deepLinkKodPendek, focusAllLocations, posislotBenarKeArray]);
 
   // Carian pengunjung (2026-08-05, Fasa 11 — keputusan Izzat: carian ringkas tajuk/topik).
   // Debounce 300ms elak hentam server setiap ketukan kekunci; had 2 aksara minimum sepadan
@@ -3158,7 +3191,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
    *  pautan mendalam (`by-kod`) di atas: itemIndex sentiasa 0, cukup baik memandangkan
    *  kebanyakan slot satu kandungan sahaja (lihat nota articleUrlRoutes.js). */
   const openSearchResult = (slotIndex: number) => {
-    const loc = focusAllLocations.find(l => l.slotIndex === slotIndex);
+    // `slotIndex` di sini ialah nombor slot BENAR (DB, dari searchRoutes.js `eo.slotIndex`) —
+    // terjemah ke kedudukan tatasusunan dahulu, sama sebab/mekanisme seperti pautan mendalam
+    // di atas (`posislotBenarKeArray`) — tanpanya keputusan carian buka slot LAIN sepenuhnya
+    // sebaik mana-mana slot lebih awal kosong (2026-08-29, Izzat: "search... keluar artikel lain").
+    const kedudukanArray = posislotBenarKeArray.get(slotIndex);
+    const loc = kedudukanArray === undefined ? undefined : focusAllLocations.find(l => l.slotIndex === kedudukanArray);
     // Sama sebab startPaused pautan mendalam (lihat viaDeepLinkRef di atas) — pembaca yang
     // klik SATU keputusan carian tertentu nak lihat kandungan tu, bukan terus tertatal ke
     // kandungan lain 14 saat kemudian (2026-08-29, Izzat: "search di kotak carian pun sama").
