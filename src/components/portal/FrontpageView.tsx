@@ -3159,7 +3159,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
    *  kebanyakan slot satu kandungan sahaja (lihat nota articleUrlRoutes.js). */
   const openSearchResult = (slotIndex: number) => {
     const loc = focusAllLocations.find(l => l.slotIndex === slotIndex);
-    if (loc) { setFocusLoc(loc); setFocusHistory([loc]); }
+    // Sama sebab startPaused pautan mendalam (lihat viaDeepLinkRef di atas) — pembaca yang
+    // klik SATU keputusan carian tertentu nak lihat kandungan tu, bukan terus tertatal ke
+    // kandungan lain 14 saat kemudian (2026-08-29, Izzat: "search di kotak carian pun sama").
+    if (loc) { viaDeepLinkRef.current = true; setFocusLoc(loc); setFocusHistory([loc]); }
     setSearchQuery('');
     setSearchResults([]);
     setSearchOpen(false);
