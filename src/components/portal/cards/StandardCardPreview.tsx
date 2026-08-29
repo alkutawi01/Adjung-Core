@@ -29,9 +29,13 @@ export interface StandardCardPreviewProps {
 
 export const StandardCardPreview: React.FC<StandardCardPreviewProps> = ({ item, bidang }) => {
   const tema = getCardTheme(item, 'transparent');
+  // md:items-start (BUKAN md:items-center macam kad sebenar) — 2026-08-29, sama punca/nota
+  // seperti HeroCardPreview.tsx: kad sebenar mengecut ketat ikut kandungan sebab peraturan
+  // CSS #bento-news-grid (FrontpageView.tsx), yang diskop khusus grid tu dan tak sampai ke
+  // modal pratonton ini. items-start elak eyebrow terapung tengah bila kandungan pendek.
   return (
     <div className="p-4 md:p-6 relative rounded-lg shadow-sm flex flex-col gap-3 min-h-[180px]" style={tema.cardStyle}>
-      <BentoInner itemKey="pratonton-standard" className="md:flex-row md:items-center justify-between gap-4">
+      <BentoInner itemKey="pratonton-standard" className="md:flex-row md:items-start justify-between gap-4">
         <div className="flex-1">
           <div className="font-mono text-[9px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={tema.deskStyle}>
             <EyebrowKad item={item} bidang={bidang} />

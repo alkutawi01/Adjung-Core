@@ -34,8 +34,18 @@ export const HeroCardPreview: React.FC<HeroCardPreviewProps> = ({ item, bidang }
     // di frontpage sebenar. Susun atur md:flex-row SEBENAR terletak pada className BentoInner
     // (bukan bekas luar ni) — cermin tepat struktur slot 0 sebenar (FrontpageView.tsx), bekas
     // luar sendiri kekal flex-col gap-3 sahaja.
+    //
+    // md:items-start (BUKAN md:items-center macam kad sebenar) — 2026-08-29, aduan Izzat: eyebrow
+    // "terapung" tengah kad, tak melekat atas. Kad SEBENAR nampak melekat atas walau guna
+    // items-center sebab peraturan CSS #bento-news-grid (FrontpageView.tsx, [data-slot]{height:
+    // auto} + [data-bento-inner]{min-height:auto}) memaksa kad mengecut ketat ikut kandungan —
+    // peraturan tu diskop khusus #bento-news-grid, TIDAK terpakai dalam modal pratonton (DOM
+    // berasingan). Tanpa itu, items-center + min-h-[180px] tetap buat blok eyebrow+tajuk
+    // bertengah menegak bila kandungan pendek. items-start elak keperluan salin mekanisme
+    // #bento-news-grid tu ke modal — pratonton sentiasa satu item statik (tiada carousel untuk
+    // diratakan tinggi), jadi cukup pin terus ke atas.
     <div className="p-4 md:p-8 relative rounded-lg shadow-sm flex flex-col gap-3 min-h-[180px]" style={tema.cardStyle}>
-      <BentoInner itemKey="pratonton-hero" className="md:flex-row md:items-center justify-between gap-6">
+      <BentoInner itemKey="pratonton-hero" className="md:flex-row md:items-start justify-between gap-6">
         <div className="space-y-2 max-w-3xl">
           <div className="font-mono text-[9px] md:text-[10px] uppercase tracking-widest text-[#E9D8A6] font-bold" style={tema.deskStyle}>
             <EyebrowKad item={item} bidang={bidang} />
