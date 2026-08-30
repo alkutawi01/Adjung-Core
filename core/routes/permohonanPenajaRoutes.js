@@ -4,6 +4,7 @@ import { requirePermission } from '../middleware/auth.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { hantarEmel } from '../email/MailSender.js';
+import { simpanFailMuatNaik } from './mediaRoutes.js';
 
 // Permohonan Penaja (2026-08-30) — aliran awam "Mohon Jadi Penaja", dikunci selepas 10
 // pusingan perbincangan Izzat/ChatGPT (rujukan: PBS Funding Standards, Institute for Nonprofit
@@ -64,7 +65,7 @@ export function angkaRom(n) {
   return hasil || String(n);
 }
 
-export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun) {
+export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
   const router = express.Router();
 
   // POST /api/public/permohonan-penaja — borang awam, tiada auth. Honeypot `laman` sama corak
@@ -262,6 +263,29 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun) {
     } catch (err) {
       console.error('GET lengkapkan-penajaan error:', err);
       res.status(500).json({ error: 'Ralat pelayan.' });
+    }
+  });
+
+  // POST /public/lengkapkan-penajaan/:token/upload — muat naik bukti bayaran/logo TANPA sesi.
+  // `/api/media/upload` (mediaRoutes.js) digerbang `requireAuthForWrites` di peringkat mount
+  // (server.js) — pemohon penaja TIADA akaun (keputusan Izzat), jadi laluan ni sahkan kelayakan
+  // dgn cara LAIN: token permohonan mesti sah, status 'diluluskan' & belum tamat tempoh. Guna
+  // simpanFailMuatNaik() dikongsi (sama had jenis/saiz fail macam /media/upload).
+  router.post('/public/lengkapkan-penajaan/:token/upload', async (req, res) => {
+    try {
+      const rekod = await dbGet('SELECT id, status, tokenTamatPada FROM permohonan_penaja WHERE tokenBayaran = ?', [req.params.token]);
+      if (!rekod) return res.status(404).json({ error: 'Pautan tidak sah.' });
+      if (rekod.status !== 'diluluskan') return res.status(409).json({ error: 'Pautan ini tidak lagi aktif.' });
+      if (rekod.tokenTamatPada && new Date(rekod.tokenTamatPada).getTime() < Date.now()) {
+        return res.status(410).json({ error: 'Pautan ini telah tamat tempoh.' });
+      }
+      const { filename, fileData } = req.body || {};
+      const hasil = simpanFailMuatNaik(rootDir, filename, fileData);
+      if (hasil.error) return res.status(hasil.status || 400).json({ error: hasil.error });
+      res.json({ url: hasil.url });
+    } catch (err) {
+      console.error('POST lengkapkan-penajaan upload error:', err);
+      res.status(500).json({ error: 'Gagal memuat naik fail.' });
     }
   });
 

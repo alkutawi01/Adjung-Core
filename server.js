@@ -4247,7 +4247,7 @@ app.use('/api', createArticleUrlRoutes(dbAll, dbGet, dbRun));
 app.use('/api', createSearchRoutes(dbAll));
 app.use('/api', createPosterRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api', createSponsorRoutes(dbAll, dbRun, dbGet));
-app.use('/api', createPermohonanPenajaRoutes(dbAll, dbGet, dbRun));
+app.use('/api', createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, __dirname));
 // Bukan di bawah /api sengaja — sitemap.xml mesti wujud di root laman ikut konvensyen crawler
 // (robots.txt di public/robots.txt rujuk /sitemap.xml). Vite dev proxy hanya hantar laluan /api
 // ke server ni (lihat vite.config.ts); sehingga Fasa 15 sambungkan express.static untuk hidangkan

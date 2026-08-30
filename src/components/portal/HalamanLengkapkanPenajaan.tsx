@@ -9,11 +9,10 @@ import { BRAND, LOGO_SIZE } from '../../config/brand';
 // supaya pemohon yang tersalah muat naik boleh cuba semula. Corak visual & struktur token
 // mengikut TetapkanKataLaluan.tsx (GET semak status dahulu, borang selepas itu).
 //
-// Guna /api/media/upload sedia ada (core/routes/mediaRoutes.js) untuk KEDUA-DUA bukti bayaran
-// dan logo — laluan itu tiada auth langsung (cuma had kadar), jadi sesuai untuk borang tanpa
-// sesi ni. Had jenis fail mediaRoutes.js ialah imej sahaja (PNG/JPEG/WEBP/GIF/SVG) — bukti
-// bayaran V1 sengaja dihadkan format screenshot/imej resit, BUKAN PDF, supaya tak perlu
-// infrastruktur muat naik baharu.
+// Guna /api/public/lengkapkan-penajaan/:token/upload (BUKAN /api/media/upload — laluan tu
+// digerbang requireAuthForWrites di server.js, borang ni sengaja TANPA sesi) — kelayakan
+// disahkan token, bukan sesi. Sama had jenis fail (imej sahaja, PNG/JPEG/WEBP/GIF/SVG) — bukti
+// bayaran V1 sengaja dihadkan format screenshot/imej resit, BUKAN PDF.
 
 interface MaklumatToken {
   id: string;
@@ -78,7 +77,7 @@ export const HalamanLengkapkanPenajaan: React.FC = () => {
         reader.onerror = () => reject(new Error('Gagal baca fail'));
         reader.readAsDataURL(file);
       });
-      const res = await fetch('/api/media/upload', {
+      const res = await fetch(`/api/public/lengkapkan-penajaan/${encodeURIComponent(token)}/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: file.name, fileData }),
