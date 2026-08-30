@@ -71,6 +71,7 @@ import { createArticleUrlRoutes, createPublicArticleRoute } from './core/routes/
 import { createSearchRoutes } from './core/routes/searchRoutes.js';
 import { createPosterRoutes } from './core/routes/posterRoutes.js';
 import { createSponsorRoutes } from './core/routes/sponsorRoutes.js';
+import { createPermohonanPenajaRoutes } from './core/routes/permohonanPenajaRoutes.js';
 import { semakKonfigSmtpStartup, hantarEmel } from './core/email/MailSender.js';
 import { semakKonfigBaseUrlStartup } from './core/utils/baseUrl.js';
 import { requireAuthForWrites, loadRolePermissions, hasPermission } from './core/middleware/auth.js';
@@ -226,10 +227,22 @@ const hadPermohonanEditor = rateLimit({
 });
 app.use('/api/public/permohonan-editor', hadPermohonanEditor);
 
+// Had kadar permohonan penaja + pautan lengkapkan-penajaan (2026-08-30) — sama rasional
+// hadPermohonanEditor di atas: POST awam tanpa sesi, manusia sah hantar sekali-sekala sahaja.
+const hadPermohonanPenaja = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak permohonan daripada rangkaian ini. Cuba lagi selepas beberapa minit.' },
+});
+app.use('/api/public/permohonan-penaja', hadPermohonanPenaja);
+app.use('/api/public/lengkapkan-penajaan', hadPermohonanPenaja);
+
 const LALUAN_HAD_SENDIRI = new Set([
   '/auth/login', '/auth/lupa-kata-laluan', '/auth/aktifkan-akaun',
   '/system/search', '/media/upload', '/system/track-view',
-  '/public/permohonan-editor',
+  '/public/permohonan-editor', '/public/permohonan-penaja', '/public/lengkapkan-penajaan',
 ]);
 const hadKadarMutasiApi = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -903,6 +916,55 @@ const initializeSchema = () => {
                 FOREIGN KEY (sponsorId) REFERENCES sponsors(id) ON DELETE CASCADE
               )
             `, () => {});
+
+            // anonymousNo (2026-08-30, modul "Mohon Jadi Penaja" — reka bentuk dikunci selepas 10
+            // pusingan perbincangan Izzat/ChatGPT, rujuk core/routes/permohonanPenajaRoutes.js) —
+            // nombor kekal "Hamba Allah N" untuk penaja individu yang pilih tanpa nama. Diberi
+            // SEKALI sahaja semasa PENGAKTIFAN PERTAMA (bukan semasa lulus permohonan, supaya
+            // permohonan gagal/ditolak tidak "membakar" nombor), tidak pernah dikitar semula walau
+            // penaja tamat/diarkibkan. Label "Hamba Allah VII" dijana daripada nombor ni semasa
+            // paparan sahaja (angka Rom) — jangan simpan teks Rom terus.
+            db.run("ALTER TABLE sponsors ADD COLUMN anonymousNo INTEGER", () => {});
+
+            // permohonan_penaja (2026-08-30) — aliran permohonan awam "Mohon Jadi Penaja",
+            // BERASINGAN drpd jadual sponsors aktif (sama prinsip permohonan_editor vs users:
+            // permohonan = proses kelulusan, sponsors = pihak yang sudah diterima). Rujuk fail
+            // route utk carta status penuh + rasional setiap medan.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS permohonan_penaja (
+                id TEXT PRIMARY KEY,
+                jenisPemohon TEXT NOT NULL,
+                namaSebenar TEXT,
+                namaOrganisasi TEXT,
+                namaWakil TEXT,
+                emel TEXT NOT NULL,
+                laman TEXT,
+                noPendaftaran TEXT,
+                aktivitiUtama TEXT,
+                penerangan TEXT,
+                pilihanPaparan TEXT,
+                pilihanTajaan TEXT,
+                catatan TEXT,
+                status TEXT NOT NULL DEFAULT 'baharu',
+                catatanDalaman TEXT,
+                sebabTolak TEXT,
+                jumlahDipersetujui REAL,
+                tokenBayaran TEXT,
+                tokenTamatPada TEXT,
+                buktiBayaranUrl TEXT,
+                tarikhBayaranDihantar TEXT,
+                logoUrl TEXT,
+                sponsorId TEXT,
+                disemakOleh TEXT,
+                diluluskanPada TEXT,
+                dibayarPada TEXT,
+                diaktifkanPada TEXT,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT
+              )
+            `, () => {
+              db.run("CREATE INDEX IF NOT EXISTS idx_permohonan_penaja_status ON permohonan_penaja(status, createdAt DESC)", () => {});
+            });
 
             // Glosari (2026-08-01, dikemas kini 2026-08-02 Fasa 8) — senarai rujukan istilah +
             // definisi/nota penggunaan untuk editor. RUJUKAN sahaja: tidak pernah menulis-ganti
@@ -4185,6 +4247,7 @@ app.use('/api', createArticleUrlRoutes(dbAll, dbGet, dbRun));
 app.use('/api', createSearchRoutes(dbAll));
 app.use('/api', createPosterRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api', createSponsorRoutes(dbAll, dbRun, dbGet));
+app.use('/api', createPermohonanPenajaRoutes(dbAll, dbGet, dbRun));
 // Bukan di bawah /api sengaja — sitemap.xml mesti wujud di root laman ikut konvensyen crawler
 // (robots.txt di public/robots.txt rujuk /sitemap.xml). Vite dev proxy hanya hantar laluan /api
 // ke server ni (lihat vite.config.ts); sehingga Fasa 15 sambungkan express.static untuk hidangkan

@@ -15,6 +15,8 @@ import { BrowserRouter, Routes, Route, useParams, useLocation } from 'react-rout
 import { HalamanStatik } from './components/portal/HalamanStatik';
 import { HalamanPenaja } from './components/portal/HalamanPenaja';
 import { HalamanSertai } from './components/portal/HalamanSertai';
+import { HalamanMohonPenaja } from './components/portal/HalamanMohonPenaja';
+import { HalamanLengkapkanPenajaan } from './components/portal/HalamanLengkapkanPenajaan';
 import { TidakDijumpai } from './components/portal/TidakDijumpai';
 import { TetapkanKataLaluan } from './components/portal/TetapkanKataLaluan';
 import { LengkapkanProfilModal } from './components/editorium/LengkapkanProfilModal';
@@ -411,6 +413,9 @@ export default function App() {
           <Route path="/penaja" element={<HalamanPenaja />} />
           {/* Borang permohonan editor awam (2026-08-25) — lihat core/routes/permohonanEditorRoutes.js. */}
           <Route path="/sertai-pasukan-editorial" element={<HalamanSertai />} />
+          {/* Borang permohonan penaja awam (2026-08-30) — lihat core/routes/permohonanPenajaRoutes.js. */}
+          <Route path="/jadi-penaja" element={<HalamanMohonPenaja />} />
+          <Route path="/lengkapkan-penajaan" element={<HalamanLengkapkanPenajaan />} />
           <Route path="/tetapkan-kata-laluan" element={<TetapkanKataLaluan />} />
           <Route path="*" element={<TidakDijumpai />} />
 

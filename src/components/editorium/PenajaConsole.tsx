@@ -12,6 +12,7 @@ import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { FormColumn } from '../common/FormColumn';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
+import { EditorDialog } from '../common/EditorDialog';
 
 // Penaja (2026-08-05, Fasa 12 — permintaan Izzat; dikemas kini 2026-08-30 audit mendalam).
 // Tajaan BULANAN (lama) ATAU julat tarikh tepat (mulaTajaan/tamatTajaan, cth 7 hari), boleh
@@ -42,6 +43,44 @@ interface Penaja {
   status: 'aktif' | 'arkib';
   dikemasPada: string;
 }
+
+// Permohonan Penaja (2026-08-30) — aliran awam "Mohon Jadi Penaja", lihat
+// core/routes/permohonanPenajaRoutes.js untuk carta status penuh + rujukan reka bentuk.
+interface PermohonanPenaja {
+  id: string;
+  jenisPemohon: 'individu' | 'organisasi';
+  namaSebenar: string | null;
+  namaOrganisasi: string | null;
+  namaWakil: string | null;
+  emel: string;
+  laman: string | null;
+  noPendaftaran: string | null;
+  aktivitiUtama: string | null;
+  penerangan: string | null;
+  pilihanPaparan: string | null;
+  pilihanTajaan: string | null;
+  catatan: string | null;
+  status: string;
+  catatanDalaman: string | null;
+  sebabTolak: string | null;
+  jumlahDipersetujui: number | null;
+  buktiBayaranUrl: string | null;
+  logoUrl: string | null;
+  sponsorId: string | null;
+  createdAt: string;
+}
+
+const STATUS_LABEL_PERMOHONAN: Record<string, string> = {
+  baharu: 'Baharu',
+  dalam_semakan: 'Dalam Semakan',
+  perlu_maklumat: 'Perlu Maklumat',
+  ditolak: 'Ditolak',
+  diluluskan: 'Diluluskan — Menunggu Bayaran',
+  dibayar: 'Bayaran Disahkan',
+  aktif: 'Aktif',
+  tamat: 'Tamat',
+};
+const namaPaparPermohonan = (p: PermohonanPenaja) => (p.jenisPemohon === 'individu' ? p.namaSebenar : p.namaOrganisasi) || '—';
 
 const HAD_NAMA = 100;
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
@@ -93,6 +132,32 @@ export const PenajaConsole: React.FC = () => {
   const [notaLogo, setNotaLogo] = useState('');
   const [arkibDisahkanId, setArkibDisahkanId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [permohonan, setPermohonan] = useState<PermohonanPenaja[]>([]);
+  const [memuatPermohonan, setMemuatPermohonan] = useState(true);
+  const [ralatPermohonan, setRalatPermohonan] = useState('');
+  const [permohonanDibuka, setPermohonanDibuka] = useState<PermohonanPenaja | null>(null);
+  const [tunjukPermohonanSelesai, setTunjukPermohonanSelesai] = useState(false);
+
+  const muatPermohonan = useCallback(() => {
+    setMemuatPermohonan(true);
+    setRalatPermohonan('');
+    fetch('/api/system/permohonan-penaja')
+      .then(async (res) => {
+        const data = await bacaJsonSelamat(res);
+        if (!res.ok) throw new Error(data.error || 'Gagal membaca senarai permohonan.');
+        return data;
+      })
+      .then((d) => setPermohonan(Array.isArray(d) ? d : []))
+      .catch((e) => setRalatPermohonan(e.message || 'Gagal membaca senarai permohonan.'))
+      .finally(() => setMemuatPermohonan(false));
+  }, []);
+
+  useEffect(() => { muatPermohonan(); }, [muatPermohonan]);
+
+  const permohonanDipapar = permohonan.filter((p) =>
+    tunjukPermohonanSelesai ? ['aktif', 'ditolak', 'tamat'].includes(p.status) : !['aktif', 'ditolak', 'tamat'].includes(p.status)
+  );
 
   const muat = useCallback(() => {
     setMemuat(true);
@@ -231,6 +296,51 @@ export const PenajaConsole: React.FC = () => {
         tajuk="Penaja"
         huraian="Urus tajaan bulanan portal. Penaja bulan semasa dipapar di footer Frontpage, semua penaja aktif dipapar di halaman /penaja."
       />
+
+      <PanelCard className="space-y-4 text-xs">
+        <div className="flex flex-wrap justify-between items-end gap-4">
+          <div>
+            <SectionLabel>00 — Permohonan Penaja</SectionLabel>
+            <p className="text-stone-500 text-xs">
+              Permohonan awam daripada borang "Jadi Penaja Adjung Brief" (/jadi-penaja). Semak, lulus/tolak, dan aktifkan selepas bayaran disahkan.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={() => setTunjukPermohonanSelesai((v) => !v)}>
+            {tunjukPermohonanSelesai ? 'Lihat Dalam Proses' : 'Lihat Selesai/Ditolak'}
+          </Button>
+        </div>
+
+        {ralatPermohonan && <MesejStatus tone="error" onCubaLagi={muatPermohonan}>{ralatPermohonan}</MesejStatus>}
+
+        {memuatPermohonan ? (
+          <KeadaanMemuat baris={3} />
+        ) : permohonanDipapar.length === 0 ? (
+          <KeadaanKosong>{tunjukPermohonanSelesai ? 'Tiada permohonan selesai/ditolak.' : 'Tiada permohonan dalam proses.'}</KeadaanKosong>
+        ) : (
+          <ul className="list-none m-0 p-0 divide-y divide-Adjung-line">
+            {permohonanDipapar.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button" onClick={() => setPermohonanDibuka(p)}
+                  className="w-full text-left py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 cursor-pointer hover:bg-stone-50 -mx-2 px-2 rounded"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge
+                        tone={p.status === 'ditolak' ? 'neutral' : p.status === 'aktif' ? 'success' : 'warning'}
+                        label={STATUS_LABEL_PERMOHONAN[p.status] || p.status}
+                      />
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-stone-400">{p.id}</span>
+                    </div>
+                    <p className="font-serif text-sm text-stone-900 truncate mt-0.5">{namaPaparPermohonan(p)}</p>
+                    <p className="text-stone-400 text-[10px] truncate">{p.emel} · {p.jenisPemohon === 'individu' ? 'Individu' : 'Organisasi'}</p>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PanelCard>
 
       <PanelCard className="text-xs">
         <form onSubmit={hantar} className="space-y-4">
@@ -468,6 +578,200 @@ export const PenajaConsole: React.FC = () => {
           </ul>
         )}
       </PanelCard>
+
+      {permohonanDibuka && (
+        <PermohonanPenajaModal
+          permohonan={permohonanDibuka}
+          onTutup={() => setPermohonanDibuka(null)}
+          onSelesai={() => { setPermohonanDibuka(null); muatPermohonan(); muat(); }}
+        />
+      )}
     </div>
   );
 };
+
+// Modal semakan satu permohonan penaja (2026-08-30) — papar maklumat penuh pemohon + tindakan
+// ikut status semasa. Corak sama seperti PermohonanModal (DirektoriConsole.tsx): satu modal,
+// tindakan berubah ikut status, bukan pelbagai modal berasingan.
+function PermohonanPenajaModal({ permohonan, onTutup, onSelesai }: {
+  permohonan: PermohonanPenaja;
+  onTutup: () => void;
+  onSelesai: () => void;
+}) {
+  const [catatan, setCatatan] = useState('');
+  const [jumlah, setJumlah] = useState('');
+  const [tempohHari, setTempohHari] = useState('31');
+  const [slotIndexesTeks, setSlotIndexesTeks] = useState('');
+  const [sponsorSediaAdaId, setSponsorSediaAdaId] = useState('');
+  const [menghantar, setMenghantar] = useState(false);
+  const [ralat, setRalat] = useState('');
+
+  const p = permohonan;
+
+  const hantarKeputusan = async (tindakan: string, extra?: Record<string, any>) => {
+    setMenghantar(true);
+    setRalat('');
+    try {
+      const res = await fetch(`/api/system/permohonan-penaja/${p.id}/keputusan`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tindakan, catatan, ...extra }),
+      });
+      const data = await bacaJsonSelamat(res);
+      if (!res.ok) throw new Error(data.error || 'Gagal merekodkan keputusan.');
+      onSelesai();
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal merekodkan keputusan.');
+    } finally {
+      setMenghantar(false);
+    }
+  };
+
+  const sahkanBayaran = async () => {
+    setMenghantar(true);
+    setRalat('');
+    try {
+      const res = await fetch(`/api/system/permohonan-penaja/${p.id}/sahkan-bayaran`, { method: 'PATCH' });
+      const data = await bacaJsonSelamat(res);
+      if (!res.ok) throw new Error(data.error || 'Gagal mengesahkan bayaran.');
+      onSelesai();
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal mengesahkan bayaran.');
+    } finally {
+      setMenghantar(false);
+    }
+  };
+
+  const aktifkan = async () => {
+    setMenghantar(true);
+    setRalat('');
+    try {
+      const res = await fetch(`/api/system/permohonan-penaja/${p.id}/aktifkan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tempohHari: Number(tempohHari) || 31,
+          slotIndexes: slotIndexesDariTeks(slotIndexesTeks),
+          sponsorSediaAdaId: sponsorSediaAdaId.trim() || undefined,
+        }),
+      });
+      const data = await bacaJsonSelamat(res);
+      if (!res.ok) throw new Error(data.error || 'Gagal mengaktifkan penajaan.');
+      onSelesai();
+    } catch (e: any) {
+      setRalat(e.message || 'Gagal mengaktifkan penajaan.');
+    } finally {
+      setMenghantar(false);
+    }
+  };
+
+  return (
+    <EditorDialog tajuk={`${p.id} — ${namaPaparPermohonan(p)}`} onTutup={onTutup} saiz="lg">
+      <div className="space-y-4 text-xs font-sans">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <div><span className="text-stone-400">Status:</span> {STATUS_LABEL_PERMOHONAN[p.status] || p.status}</div>
+          <div><span className="text-stone-400">Jenis:</span> {p.jenisPemohon === 'individu' ? 'Individu' : 'Organisasi'}</div>
+          <div><span className="text-stone-400">E-mel:</span> {p.emel}</div>
+          {p.jenisPemohon === 'individu' ? (
+            <div><span className="text-stone-400">Paparan diminta:</span> {p.pilihanPaparan === 'hamba_allah' ? 'Hamba Allah' : 'Nama sebenar'}</div>
+          ) : (
+            <>
+              <div><span className="text-stone-400">Wakil:</span> {p.namaWakil || '—'}</div>
+              <div><span className="text-stone-400">Laman:</span> {p.laman || '—'}</div>
+              <div><span className="text-stone-400">No. Pendaftaran:</span> {p.noPendaftaran || '—'}</div>
+              <div><span className="text-stone-400">Aktiviti utama:</span> {p.aktivitiUtama || '—'}</div>
+            </>
+          )}
+          {p.pilihanTajaan && <div className="col-span-2"><span className="text-stone-400">Pilihan tajaan:</span> {p.pilihanTajaan}</div>}
+          {p.penerangan && <div className="col-span-2"><span className="text-stone-400">Penerangan:</span> {p.penerangan}</div>}
+          {p.catatan && <div className="col-span-2"><span className="text-stone-400">Catatan pemohon:</span> {p.catatan}</div>}
+          {p.catatanDalaman && <div className="col-span-2"><span className="text-stone-400">Catatan dalaman:</span> {p.catatanDalaman}</div>}
+          {p.sebabTolak && <div className="col-span-2"><span className="text-stone-400">Sebab tolak:</span> {p.sebabTolak}</div>}
+          {p.jumlahDipersetujui != null && <div><span className="text-stone-400">Jumlah dipersetujui:</span> RM{Number(p.jumlahDipersetujui).toLocaleString('ms-MY')}</div>}
+          {p.sponsorId && <div><span className="text-stone-400">Penaja:</span> {p.sponsorId}</div>}
+        </div>
+
+        {(p.buktiBayaranUrl || p.logoUrl) && (
+          <div className="flex gap-4 border-t border-Adjung-line pt-3">
+            {p.buktiBayaranUrl && (
+              <div>
+                <p className="text-stone-400 mb-1">Bukti Bayaran</p>
+                <a href={p.buktiBayaranUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={p.buktiBayaranUrl} alt="Bukti bayaran" className="h-24 object-contain border border-stone-150 rounded bg-white p-1" />
+                </a>
+              </div>
+            )}
+            {p.logoUrl && (
+              <div>
+                <p className="text-stone-400 mb-1">Logo</p>
+                <img src={p.logoUrl} alt="Logo" className="h-24 object-contain border border-stone-150 rounded bg-white p-1" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
+
+        <div className="border-t border-Adjung-line pt-3 space-y-3">
+          {p.status === 'baharu' && (
+            <Button variant="primary" disabled={menghantar} onClick={() => hantarKeputusan('mula_semakan')}>Mula Semakan</Button>
+          )}
+
+          {['baharu', 'dalam_semakan', 'perlu_maklumat'].includes(p.status) && (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className={LABEL_BORANG}>Catatan (untuk Minta Maklumat / Tolak)</span>
+                <textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} className={`${INPUT_BORANG} min-h-[60px]`} />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" disabled={menghantar} onClick={() => hantarKeputusan('minta_maklumat')}>Minta Maklumat</Button>
+                <Button variant="secondary" disabled={menghantar} onClick={() => hantarKeputusan('tolak')}>Tolak</Button>
+              </div>
+              <div className="flex items-end gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className={LABEL_BORANG}>Jumlah Tajaan Dipersetujui (RM)</span>
+                  <input type="number" min="0" value={jumlah} onChange={(e) => setJumlah(e.target.value)} className={INPUT_BORANG} />
+                </label>
+                <Button variant="primary" disabled={menghantar || !jumlah} onClick={() => hantarKeputusan('lulus', { jumlahDipersetujui: Number(jumlah) })}>
+                  Luluskan
+                </Button>
+              </div>
+            </>
+          )}
+
+          {p.status === 'diluluskan' && !p.buktiBayaranUrl && (
+            <p className="text-stone-500">Menunggu pemohon menghantar bukti bayaran melalui pautan e-mel.</p>
+          )}
+          {p.status === 'diluluskan' && p.buktiBayaranUrl && (
+            <Button variant="primary" disabled={menghantar} onClick={sahkanBayaran}>Sahkan Bayaran Diterima</Button>
+          )}
+
+          {p.status === 'dibayar' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span className={LABEL_BORANG}>Tempoh Tajaan (hari, maks 31)</span>
+                  <input type="number" min="1" max="31" value={tempohHari} onChange={(e) => setTempohHari(e.target.value)} className={INPUT_BORANG} />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className={LABEL_BORANG}>Skop Slot (pilihan)</span>
+                  <input type="text" value={slotIndexesTeks} onChange={(e) => setSlotIndexesTeks(e.target.value)} placeholder="Contoh: 0, 5, 12" className={INPUT_BORANG} />
+                </label>
+              </div>
+              <label className="flex flex-col gap-1">
+                <span className={LABEL_BORANG}>Pautkan kepada Penaja Sedia Ada (pembaharuan, pilihan)</span>
+                <input type="text" value={sponsorSediaAdaId} onChange={(e) => setSponsorSediaAdaId(e.target.value)} placeholder="ID penaja sedia ada — kosongkan untuk cipta baharu" className={INPUT_BORANG} />
+                <span className="text-stone-400 text-[10px]">Guna ni untuk Hamba Allah yang menyambung semula, supaya nombor kekal sama.</span>
+              </label>
+              <Button variant="primary" disabled={menghantar} onClick={aktifkan}>Aktifkan sebagai Penaja</Button>
+            </>
+          )}
+
+          {['aktif', 'ditolak', 'tamat'].includes(p.status) && (
+            <p className="text-stone-500">Permohonan ini sudah selesai.</p>
+          )}
+        </div>
+      </div>
+    </EditorDialog>
+  );
+}

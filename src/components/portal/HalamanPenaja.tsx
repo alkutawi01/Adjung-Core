@@ -69,9 +69,15 @@ export const HalamanPenaja: React.FC = () => {
         <h1 className="font-serif text-3xl md:text-4xl text-stone-900 font-normal tracking-tight mb-2">
           Penaja
         </h1>
-        <p className="font-sans text-xs text-stone-500 mb-8">
+        <p className="font-sans text-xs text-stone-500 mb-4">
           Adjung disokong secara bulanan oleh penaja yang dipilih. Terima kasih kepada semua yang menyokong.
         </p>
+        <Link
+          to="/jadi-penaja"
+          className="inline-block mb-8 font-sans text-xs font-semibold bg-[#802334] text-white px-4 py-2 rounded hover:opacity-90 transition-opacity"
+        >
+          Jadi Penaja Adjung Brief →
+        </Link>
 
         {memuat ? (
           <p className="font-sans text-sm text-stone-400">Memuatkan…</p>
