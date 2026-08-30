@@ -509,7 +509,7 @@ interface TetapanAnimasiCarousel {
   // pemanggil (CarouselStableBlock, useRef per-instance) — setiap kad kini alih giliran secara
   // BEBAS drpd kad lain, nisbah 1:1 bermakna kad TU SENDIRI alih Adjung/penaja setiap kali dia
   // bertukar, tak kira apa kad lain buat.
-  ambilLogoTransisi: (mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>, nisbahEfektif: number) => LogoTransisi;
+  ambilLogoTransisi: (mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>, nisbahEfektif: number, slotIndexStr?: string | null) => LogoTransisi;
   // Nisbah penaja transisi PER-SLOT (2026-08-26, parity 100% dgn Tetapan Am) — cermin
   // kelajuanUntukSlot di atas.
   nisbahUntukSlot: (slotIndexStr: string | null | undefined) => number;
@@ -1159,7 +1159,7 @@ const CarouselStableBlock: React.FC<{
         });
       }
       setPortalTarget(kadPenuh);
-      setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef, nisbahUntukSlot(kadUntukJenis?.getAttribute('data-slot'))));
+      setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef, nisbahUntukSlot(kadUntukJenis?.getAttribute('data-slot')), kadUntukJenis?.getAttribute('data-slot')));
       setIndeksLamaGerak(indeksSebelum);
       // visualIndex dikemas kini SERTA-MERTA (bukan lag macam Colophon/Sapuan Lajur) — senarai
       // bertindan di bawah TERSEMBUNYI di sebalik regangan Gerak Susun sepanjang overlayAktif,
@@ -1746,6 +1746,7 @@ const padToLimit = (text: string, maxLen: number): string => {
 // would exactly fill the shared budget if given ENTIRELY to one field; ratio = maxBriefAlone /
 // maxTitleAlone is how many brief characters one title character "costs" in shared vertical space.
 import { tierForSlot as getGeometryTierForIndex, ceilingForSlot, TIER_SLOTS, topikCeilingForSlot } from '../../../core/editorial/GeometryConfig.js';
+import { penajaLayakUntukSlot } from '../../../core/editorial/PenajaEligibility.js';
 
 const getLimitsForIndex = (idx: number, config?: any) => {
   // maxTitle/maxBrief per-slot daripada slots_config SENGAJA DIABAIKAN (2026-07-30). Dua lajur tu
@@ -2575,59 +2576,68 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       .catch(() => {});
   }, []);
 
-  // Penaja bulan semasa (2026-08-05, Fasa 12) — footer papar "Portal ini disokong oleh:" HANYA
-  // bila ada penaja utk bulan ni (keadaan kosong jujur — sembunyi terus, bukan baris kosong).
-  // Boleh berbilang penaja serentak (keputusan Izzat); klik mana-mana bahagian baris ni bawa ke
-  // /penaja (senarai PENUH, bukan terus ke laman penaja masing-masing). `tayangSemasaTransisi`
-  // (2026-08-05) menentukan penaja mana LAYAK muncul dalam giliran panel transisi — lihat
-  // ambilLogoTransisi di bawah.
-  const [penajaSemasa, setPenajaSemasa] = useState<{ id: string; nama: string; logoUrl: string; tayangSemasaTransisi?: boolean }[]>([]);
+  // Penaja bulan semasa (2026-08-05, Fasa 12; kemas kini 2026-08-30 audit modul Penaja) —
+  // footer papar "Portal ini disokong oleh:" HANYA bila ada penaja LAYAK sekarang (keadaan
+  // kosong jujur — sembunyi terus, bukan baris kosong). Boleh berbilang penaja serentak
+  // (keputusan Izzat); klik mana-mana bahagian baris ni bawa ke /penaja (senarai PENUH, bukan
+  // terus ke laman penaja masing-masing). `tayangSemasaTransisi` menentukan penaja mana LAYAK
+  // muncul dalam giliran panel transisi — lihat ambilLogoTransisi di bawah.
+  //
+  // Muat semula BERKALA (bukan sekali semasa mount sahaja) — supaya logo penaja yang tempoh
+  // tajaannya (mulaTajaan/tamatTajaan) tamat semasa pengguna sedang melayari frontpage turut
+  // hilang TANPA perlu muat semula halaman (keperluan Izzat 2026-08-16 #3/#4: "logo hilang TEPAT
+  // bila tempoh tamat"). 5 minit dipilih supaya cukup responsif tanpa membebankan pelayan.
+  const [penajaSemasa, setPenajaSemasa] = useState<{ id: string; nama: string; logoUrl: string; mulaTajaan?: string; tamatTajaan?: string; slotIndexes?: number[]; tayangSemasaTransisi?: boolean }[]>([]);
   React.useEffect(() => {
     let dibatal = false;
-    fetch('/api/public/sponsors/semasa')
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => { if (!dibatal) setPenajaSemasa(Array.isArray(data) ? data : []); })
-      .catch(() => {});
-    return () => { dibatal = true; };
+    const muat = () => {
+      fetch('/api/public/sponsors/semasa')
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => { if (!dibatal) setPenajaSemasa(Array.isArray(data) ? data : []); })
+        .catch(() => {});
+    };
+    muat();
+    const selang = setInterval(muat, 5 * 60 * 1000);
+    return () => { dibatal = true; clearInterval(selang); };
   }, []);
 
-  // Kelayakan penaja masuk giliran panel transisi — DIASINGKAN jadi fungsi bernama sendiri
-  // (2026-08-16, persediaan modul penaja akan datang, Izzat: "ia melibatkan perubahan/penambahan
-  // kod yg besar... cuma apa yg awak buat skrg perlu bersedia utk terima modul ini. Jangan
-  // implement sekarang"). SATU-SATUNYA tapak semakan kelayakan — nanti bila modul penaja
-  // sebenar dibina, tiga syarat baharu Izzat masuk SINI SAHAJA, bukan bertaburan:
-  //   1. Tempoh tajaan (7 hari / 1 bulan) — kini `sponsors.bulan` (rentetan 'YYYY-MM', semak
-  //      pelayan di /api/public/sponsors/semasa) tak boleh nyatakan julat < sebulan. Perlu tukar
-  //      kepada `mulaTajaan`/`tamatTajaan` (tarikh ISO) dan bandingkan dgn SEKARANG di sini.
-  //   2. Skop tajaan (portal keseluruhan / slot tertentu) — perlu parameter `slotIndex` di
-  //      fungsi ni (kelayakan berbeza ikut slot mana panel transisi tu berada), dan jadual
-  //      pautan penaja<->slot baharu (skema TIADA lagi, memang sengaja belum dibina).
-  //   3. "Hanya semasa tempoh tajaan" — kelayakan MESTI dikira semasa RENDER (fungsi tulen,
-  //      dipanggil semula setiap render via useMemo deps), BUKAN cache/snapshot boot — sifat ni
-  //      SUDAH wujud (penajaSemasa datang dari fetch semasa mount, useMemo bergantung terus
-  //      padanya), kekalkan bila julat tarikh ditambah supaya logo hilang TEPAT bila tempoh tamat,
-  //      bukan tertangguh sampai muat semula halaman seterusnya.
-  const penajaLayakUntukTransisi = (p: { tayangSemasaTransisi?: boolean }): boolean =>
+  // Kelayakan penaja masuk giliran panel transisi — SATU-SATUNYA tapak semakan (2026-08-16
+  // dirancang, dibina 2026-08-30). Dua syarat AND: (1) togol `tayangSemasaTransisi` DAN tempoh
+  // tajaan aktif (pelayan sudah tapis ikut ni di /api/public/sponsors/semasa — sponsorAktifPadaMasa,
+  // periksa semula sini pun tak salah, defence-in-depth); (2) skop slot (portal keseluruhan
+  // ATAU slot tertentu, lihat penajaLayakUntukSlot). Kelayakan dikira semasa RENDER (fungsi
+  // tulen via useCallback, deps = penajaSemasa) — logo hilang TEPAT bila tempoh tamat sebaik
+  // fetch berkala di atas kembalikan senarai baharu, bukan cache/snapshot boot.
+  const penajaLayakUntukTransisiIndividu = (p: { tayangSemasaTransisi?: boolean }): boolean =>
     !!p.tayangSemasaTransisi;
-  const penajaLayakTransisi = React.useMemo(
-    () => penajaSemasa.filter((p: any) => penajaLayakUntukTransisi(p)),
+  const penajaLayakTransisiSemua = React.useMemo(
+    () => penajaSemasa.filter((p: any) => penajaLayakUntukTransisiIndividu(p)),
     [penajaSemasa]
+  );
+  // Tapis lanjut ikut skop slot (2026-08-30) — dipanggil DALAM ambilLogoTransisi (bergantung
+  // slotIndexStr per-panggilan), guna helper kongsi penajaLayakUntukSlot() supaya definisi
+  // "portal keseluruhan vs slot tertentu" konsisten dengan pelayan (sponsorRoutes.js).
+  const penajaLayakUntukSlotSemasa = React.useCallback(
+    (slotIndexStr: string | null | undefined) => {
+      const slotIndex = slotIndexStr != null ? parseInt(slotIndexStr, 10) : undefined;
+      return penajaLayakTransisiSemua.filter((p: any) => penajaLayakUntukSlot(p, slotIndex));
+    },
+    [penajaLayakTransisiSemua]
   );
   // `mod` (2026-08-07, Pelan 03) — pilihan logo PER-SLOT mengatasi giliran am:
   //   'adjung' logo Adjung sahaja · 'penaja' penaja sahaja (jatuh balik Adjung bila tiada penaja
   //   layak, supaya panel TIDAK PERNAH kosong) · 'tiada' tanpa logo · '' ikut giliran am di bawah.
   //
-  // PINTU TUNGGAL resolusi logo (2026-08-16, persediaan modul penaja) — bila penaja boleh taja
-  // SLOT TERTENTU (bukan portal keseluruhan), fungsi ni yang perlu terima `slotIndexStr` sebagai
-  // parameter tambahan dan tapis `penajaLayakTransisi` ikut slot tu SEBELUM round-robin di bawah
-  // — jangan cipta laluan resolusi logo kedua di tempat lain, semua 3 tapak panggilan
-  // (CarouselStableBlock, Colophon/Sapuan Lajur/Gerak Susun) sudah hantar `data-slot` semasa
-  // (kadUntukJenis?.getAttribute('data-slot')), tinggal disalurkan ke sini.
+  // PINTU TUNGGAL resolusi logo — kini terima `slotIndexStr` (2026-08-30, skop per-slot),
+  // ditapis SEBELUM round-robin di bawah — jangan cipta laluan resolusi logo kedua di tempat
+  // lain, semua 3 tapak panggilan (CarouselStableBlock, Colophon/Sapuan Lajur/Gerak Susun) sudah
+  // hantar `data-slot` semasa (kadUntukJenis?.getAttribute('data-slot')).
   // `nisbahEfektif` (2026-08-26, parity per-slot) — pemanggil (CarouselStableBlock) kini hantar
   // nisbah SUDAH-DIRESOLVE (nisbahUntukSlot(), warisi override slot atau am) sebagai parameter
   // ketiga, bukan baca tetapanAnimasiMentah.nisbahPenajaTransisi terus di sini — sepadan corak
   // giliranRef per-instance di atas (2026-08-26, pembetulan round-robin).
-  const ambilLogoTransisi = React.useCallback((mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>, nisbahEfektif: number): LogoTransisi => {
+  const ambilLogoTransisi = React.useCallback((mod: string | undefined, giliranRef: React.MutableRefObject<{ putaran: number; indeksPenaja: number }>, nisbahEfektif: number, slotIndexStr?: string | null): LogoTransisi => {
+    const penajaLayakTransisi = penajaLayakUntukSlotSemasa(slotIndexStr);
     if (mod === 'tiada') return { jenis: 'tiada' };
     if (mod === 'adjung') return { jenis: 'adjung' };
     if (mod === 'penaja') {
@@ -2644,7 +2654,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     const p = penajaLayakTransisi[giliranRef.current.indeksPenaja % penajaLayakTransisi.length];
     giliranRef.current.indeksPenaja += 1;
     return { jenis: 'penaja', logoUrl: p.logoUrl, nama: p.nama };
-  }, [penajaLayakTransisi]);
+  }, [penajaLayakUntukSlotSemasa]);
 
   // Arah animasi PER-SLOT (2026-08-05, permintaan Izzat: "boleh ke nak pilih arah tertentu utk
   // slot tertentu sahaja?") — dibina drpd `slotsConfig` (GET /api/system/slots) yang sudah dimuat

@@ -881,7 +881,28 @@ const initializeSchema = () => {
               // yang betul disahkan). ALTER TABLE selamat diulang — DB sedia ada (jadual dicipta
               // sebelum lajur ni wujud) akan gagal senyap dgn ralat "duplicate column", diabaikan.
               db.run("ALTER TABLE sponsors ADD COLUMN jumlahBayaran REAL DEFAULT 0", () => {});
+
+              // mulaTajaan/tamatTajaan (2026-08-30, permintaan Izzat — audit + kemas kini modul
+              // Penaja) — julat tarikh ISO 8601 (+08:00) untuk tajaan 7-hari ATAU jangka lain,
+              // sokongan kepada `bulan` sedia ada (bukan gantian — penaja lama tanpa julat ISO
+              // kekal disemak ikut `bulan` sahaja, lihat core/editorial/PenajaEligibility.js).
+              // ALTER TABLE selamat diulang, sama corak macam jumlahBayaran di atas.
+              db.run("ALTER TABLE sponsors ADD COLUMN mulaTajaan TEXT", () => {});
+              db.run("ALTER TABLE sponsors ADD COLUMN tamatTajaan TEXT", () => {});
             });
+
+            // sponsor_slots (2026-08-30, permintaan Izzat) — skop PER-SLOT untuk penaja: baris
+            // wujud = penaja tu layak untuk slot tu sahaja; TIADA baris langsung untuk sponsorId
+            // tertentu = portal keseluruhan (semua slot layak, kelakuan asal/sedia ada dikekalkan).
+            // ON DELETE CASCADE supaya padam penaja turut bersihkan skop slotnya.
+            db.run(`
+              CREATE TABLE IF NOT EXISTS sponsor_slots (
+                sponsorId TEXT NOT NULL,
+                slotIndex INTEGER NOT NULL,
+                PRIMARY KEY (sponsorId, slotIndex),
+                FOREIGN KEY (sponsorId) REFERENCES sponsors(id) ON DELETE CASCADE
+              )
+            `, () => {});
 
             // Glosari (2026-08-01, dikemas kini 2026-08-02 Fasa 8) — senarai rujukan istilah +
             // definisi/nota penggunaan untuk editor. RUJUKAN sahaja: tidak pernah menulis-ganti

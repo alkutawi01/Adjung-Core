@@ -13,21 +13,25 @@ import { Tooltip } from '../common/Tooltip';
 import { FormColumn } from '../common/FormColumn';
 import { LABEL_BORANG, INPUT_BORANG } from '../common/gayaKongsi';
 
-// Penaja (2026-08-05, Fasa 12 — permintaan Izzat). Tajaan BULANAN, boleh berbilang penaja
-// serentak dalam satu bulan. Halaman awam /penaja senaraikan SEMUA penaja aktif (lama + semasa,
-// bulan terbaru dahulu); footer papar penaja bulan SEMASA sahaja — lihat FrontpageView.tsx dan
+// Penaja (2026-08-05, Fasa 12 — permintaan Izzat; dikemas kini 2026-08-30 audit mendalam).
+// Tajaan BULANAN (lama) ATAU julat tarikh tepat (mulaTajaan/tamatTajaan, cth 7 hari), boleh
+// berbilang penaja serentak. Halaman awam /penaja senaraikan SEMUA penaja aktif (lama + semasa,
+// bulan terbaru dahulu); footer papar penaja AKTIF SEMASA sahaja — lihat FrontpageView.tsx dan
 // HalamanPenaja.tsx. Gerbang server `manageSettings` (Pentadbir sahaja) — keputusan perniagaan/
 // penempatan, bukan editorial harian, sama corak macam Direktori/Tetapan/Halaman Awam.
 //
-// `tayangSemasaTransisi` — togol DATA sahaja buat masa ini (keputusan Izzat 2026-08-05): bina
-// tetapan/wiring dulu, overlay transisi carousel sebenar KEMUDIAN selepas reka bentuk/kelakuan
-// disahkan — JSX carousel tu rapuh (lihat CLAUDE.md). Togol ni belum beri sebarang kesan visual.
+// `tayangSemasaTransisi` — togol AKTIF sepenuhnya (overlay transisi carousel sebenar, lihat
+// ambilLogoTransisi()/FrontpageView.tsx). Skop kelayakan (tempoh + slot) dikira di
+// core/editorial/PenajaEligibility.js, SATU tapak semakan dikongsi pelayan+klien.
 interface Penaja {
   id: string;
   nama: string;
   logoUrl: string;
   url: string;
   bulan: string; // 'YYYY-MM'
+  mulaTajaan?: string; // ISO 8601 +08:00, pilihan — kosong = jatuh balik ke `bulan`
+  tamatTajaan?: string; // ISO 8601 +08:00, pilihan
+  slotIndexes?: number[]; // kosong = portal keseluruhan, tidak kosong = skop slot tertentu
   tayangSemasaTransisi: boolean;
   // Jumlah bayaran (2026-08-05, permintaan Izzat) — utk kegunaan DALAMAN sahaja buat masa ini:
   // halaman /penaja akan dinaik taraf supaya saiz "kotak" setiap penaja berkadar terus dgn
@@ -52,6 +56,20 @@ const bulanRingkas = (bulan: string) => {
 
 const bulanSemasaInput = () => new Date().toISOString().slice(0, 7);
 
+// Tarikh julat tajaan (mulaTajaan/tamatTajaan) disimpan ISO 8601 + offset +08:00 (Waktu
+// Malaysia, konvensyen sama seperti Jadual Terbit kandungan). Medan input HTML
+// `datetime-local` tiada offset — tambah/buang secara eksplisit di sempadan borang ni sahaja.
+const isoDariInputTempatan = (v: string) => (v ? `${v}:00+08:00` : '');
+const inputTempatanDariIso = (iso: string | undefined) => (iso ? iso.slice(0, 16) : '');
+
+// Skop slot dipaparkan/diedit sebagai teks nombor dipisah koma (cth "0, 5, 12") — 38 slot
+// terlalu ramai utk checkbox grid tanpa membebankan borang ni; editor bukan dev, nombor slot
+// sudah biasa dilihat di Editorium (label "Slot N" di mana-mana sahaja). Kosong = portal
+// keseluruhan.
+const slotIndexesDariTeks = (teks: string): number[] =>
+  teks.split(',').map((s) => s.trim()).filter((s) => s !== '').map((s) => parseInt(s, 10)).filter((n) => !Number.isNaN(n) && n >= -1 && n <= 37);
+const teksDariSlotIndexes = (arr: number[] | undefined) => (arr && arr.length > 0 ? arr.join(', ') : '');
+
 export const PenajaConsole: React.FC = () => {
   const [senarai, setSenarai] = useState<Penaja[]>([]);
   const [memuat, setMemuat] = useState(true);
@@ -63,6 +81,9 @@ export const PenajaConsole: React.FC = () => {
   const [logoUrl, setLogoUrl] = useState('');
   const [url, setUrl] = useState('');
   const [bulan, setBulan] = useState(bulanSemasaInput());
+  const [mulaTajaanInput, setMulaTajaanInput] = useState('');
+  const [tamatTajaanInput, setTamatTajaanInput] = useState('');
+  const [slotIndexesTeks, setSlotIndexesTeks] = useState('');
   const [tayangSemasaTransisi, setTayangSemasaTransisi] = useState(false);
   const [jumlahBayaran, setJumlahBayaran] = useState('');
   const [menyimpan, setMenyimpan] = useState(false);
@@ -70,6 +91,7 @@ export const PenajaConsole: React.FC = () => {
   const [mesej, setMesej] = useState('');
   const [memuatNaik, setMemuatNaik] = useState(false);
   const [notaLogo, setNotaLogo] = useState('');
+  const [arkibDisahkanId, setArkibDisahkanId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const muat = useCallback(() => {
@@ -94,6 +116,9 @@ export const PenajaConsole: React.FC = () => {
     setLogoUrl('');
     setUrl('');
     setBulan(bulanSemasaInput());
+    setMulaTajaanInput('');
+    setTamatTajaanInput('');
+    setSlotIndexesTeks('');
     setTayangSemasaTransisi(false);
     setJumlahBayaran('');
     setRalatBorang('');
@@ -105,6 +130,9 @@ export const PenajaConsole: React.FC = () => {
     setLogoUrl(p.logoUrl);
     setUrl(p.url);
     setBulan(p.bulan);
+    setMulaTajaanInput(inputTempatanDariIso(p.mulaTajaan));
+    setTamatTajaanInput(inputTempatanDariIso(p.tamatTajaan));
+    setSlotIndexesTeks(teksDariSlotIndexes(p.slotIndexes));
     setTayangSemasaTransisi(p.tayangSemasaTransisi);
     setJumlahBayaran(p.jumlahBayaran ? String(p.jumlahBayaran) : '');
     setRalatBorang('');
@@ -157,7 +185,14 @@ export const PenajaConsole: React.FC = () => {
         {
           method: menyuntingSedia ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nama, logoUrl, url, bulan, tayangSemasaTransisi, jumlahBayaran: jumlahBayaran === '' ? 0 : Number(jumlahBayaran) }),
+          body: JSON.stringify({
+            nama, logoUrl, url, bulan,
+            mulaTajaan: isoDariInputTempatan(mulaTajaanInput),
+            tamatTajaan: isoDariInputTempatan(tamatTajaanInput),
+            slotIndexes: slotIndexesDariTeks(slotIndexesTeks),
+            tayangSemasaTransisi,
+            jumlahBayaran: jumlahBayaran === '' ? 0 : Number(jumlahBayaran),
+          }),
         }
       );
       const data = await bacaJsonSelamat(res);
@@ -237,6 +272,38 @@ export const PenajaConsole: React.FC = () => {
           </label>
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <label className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Mula Tajaan (pilihan)</span>
+            <input
+              type="datetime-local" value={mulaTajaanInput} onChange={(e) => setMulaTajaanInput(e.target.value)}
+              className={`${INPUT_BORANG} cursor-pointer`}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={LABEL_BORANG}>Tamat Tajaan (pilihan)</span>
+            <input
+              type="datetime-local" value={tamatTajaanInput} onChange={(e) => setTamatTajaanInput(e.target.value)}
+              className={`${INPUT_BORANG} cursor-pointer`}
+            />
+          </label>
+        </div>
+        <p className="text-stone-400 text-[10px] -mt-2">
+          Isi keduanya untuk tempoh tajaan tepat (cth. 7 hari) — logo hilang tepat bila tamat. Kosongkan kedua-duanya untuk kekal ikut Bulan Tajaan di atas sahaja.
+        </p>
+
+        <label className="flex flex-col gap-1">
+          <span className={LABEL_BORANG}>Skop Slot (pilihan)</span>
+          <input
+            type="text" value={slotIndexesTeks} onChange={(e) => setSlotIndexesTeks(e.target.value)}
+            placeholder="Contoh: 0, 5, 12"
+            className={INPUT_BORANG}
+          />
+          <span className="text-stone-400 text-[10px]">
+            Nombor slot dipisah koma. Kosongkan untuk taja portal keseluruhan (semua slot).
+          </span>
+        </label>
+
         <label className="flex flex-col gap-1">
           <span className={LABEL_BORANG}>URL Laman Penaja (pilihan)</span>
           <input
@@ -295,7 +362,7 @@ export const PenajaConsole: React.FC = () => {
             className="cursor-pointer"
           />
           <span className="text-stone-600 text-xs">
-            Papar semasa transisi karusel <span className="text-stone-400">(akan datang dan belum tersedia dalam antara muka)</span>
+            Papar semasa transisi karusel <span className="text-stone-400">(logo penaja akan muncul dalam panel transisi kad, ikut nisbah dan skop slot di Tetapan Am)</span>
           </span>
         </label>
 
@@ -330,7 +397,7 @@ export const PenajaConsole: React.FC = () => {
           </Button>
         </div>
 
-        {ralat && <MesejStatus tone="error">{ralat}</MesejStatus>}
+        {ralat && <MesejStatus tone="error" onCubaLagi={muat}>{ralat}</MesejStatus>}
 
         {memuat ? (
           <KeadaanMemuat baris={4} />
@@ -375,16 +442,26 @@ export const PenajaConsole: React.FC = () => {
                       </button>
                     </Tooltip>
                   )}
-                  <Tooltip text={paparanArkib ? 'Pulihkan' : 'Arkibkan'}>
-                    <button
-                      type="button"
-                      onClick={() => ubahStatus(p.id, paparanArkib ? 'aktif' : 'arkib')}
-                      aria-label={paparanArkib ? 'Pulihkan' : 'Arkibkan'}
-                      className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
+                  {!paparanArkib && arkibDisahkanId === p.id ? (
+                    <Button
+                      variant="secondary" size="sm"
+                      onClick={() => { setArkibDisahkanId(''); ubahStatus(p.id, 'arkib'); }}
                     >
-                      {paparanArkib ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-                    </button>
-                  </Tooltip>
+                      Sah Arkib?
+                    </Button>
+                  ) : (
+                    <Tooltip text={paparanArkib ? 'Pulihkan' : 'Arkibkan'}>
+                      <button
+                        type="button"
+                        onClick={() => (paparanArkib ? ubahStatus(p.id, 'aktif') : setArkibDisahkanId(p.id))}
+                        onBlur={() => setArkibDisahkanId('')}
+                        aria-label={paparanArkib ? 'Pulihkan' : 'Arkibkan'}
+                        className="p-1.5 text-stone-500 hover:text-Adjung-maroon cursor-pointer"
+                      >
+                        {paparanArkib ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+                      </button>
+                    </Tooltip>
+                  )}
                 </div>
               </li>
             ))}
