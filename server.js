@@ -3034,6 +3034,13 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     let access = '';
     let penerangan = '';
     let note = '';
+    // Sebab Penolakan (2026-08-31) — DALAMAN sahaja, berlainan drpd `note` ("Nota editor",
+    // direka SENGAJA untuk paparan AWAM di Focus View). Diisi laluan reject-to-draft
+    // (contentRoutes.js) memaklumkan penulis asal sebab kandungan ditolak. SENGAJA TAK ditulis
+    // ke editorial_attribute_values di attrs[] (lihat dua tapak `{ key: 'note', ... }` di bawah)
+    // — lenyap automatik sebaik diterbitkan semula, tujuannya sudah tercapai. Lihat nota selari
+    // di ManualBlockFormat.js parseManualBlockFields.
+    let rejectionNote = '';
     let image = '';
     // Penulis blok draf — lihat nota penuh di ManualBlockFormat.js. Mesti dihurai DAN ditulis
     // semula (serializeDraftBlock di bawah), kalau tidak setiap simpan seterusnya akan memadam
@@ -3067,14 +3074,15 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       if (medanSemasa === 'briefLong') briefLong += (briefLong ? '\n' : '') + teks;
       else if (medanSemasa === 'brief') brief += (brief ? '\n' : '') + teks;
       else if (medanSemasa === 'note') note += (note ? '\n' : '') + teks;
+      else if (medanSemasa === 'rejectionNote') rejectionNote += (rejectionNote ? '\n' : '') + teks;
       else if (medanSemasa === 'penerangan') penerangan += (penerangan ? '\n' : '') + teks;
     };
     // MESTI kekal segerak dengan LABEL_DIKENALI dalam ManualBlockFormat.js — lihat nota di sana.
     const LABEL_DIKENALI_SRV = [
       'UUID:', 'Status:', 'Tajuk:', 'Event:', 'Huraian panjang:', 'Huraian ringkas:', 'Huraian:',
       'Bidang:', 'Kategori:', 'Topik:', 'Jenis sumber:', 'Tarikh mula:', 'Tarikh tamat:',
-      'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Imej:', 'Penganjur:', 'Lokasi:',
-      'Akses:', 'Penerangan:', 'Sumber:', 'URL:',
+      'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Sebab Penolakan:', 'Imej:', 'Penganjur:',
+      'Lokasi:', 'Akses:', 'Penerangan:', 'Sumber:', 'URL:',
     ];
     const adaLabelDikenaliSrv = (t) =>
       LABEL_DIKENALI_SRV.some((label) => t.toLowerCase().startsWith(label.toLowerCase()));
@@ -3217,6 +3225,10 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         note = trimmed.replace(/^Nota:\s*/i, '').trim();
         medanSemasa = 'note';
         continue;
+      } else if (trimmed.startsWith('Sebab Penolakan:')) {
+        rejectionNote = trimmed.replace(/^Sebab Penolakan:\s*/i, '').trim();
+        medanSemasa = 'rejectionNote';
+        continue;
       } else if (trimmed.startsWith('Imej:')) {
         const nilai = trimmed.replace(/^Imej:\s*/i, '');
         if (nilai.trim() === '') labelTunggalMenanti = 'imej'; else terapkanLabelTunggalSrv('imej', nilai);
@@ -3289,6 +3301,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         access,
         penerangan,
         note,
+        rejectionNote,
         image,
         penulis,
         source: organizer || source || defaultSlot.manualSource || '',
@@ -3352,6 +3365,9 @@ const serializeDraftBlock = (item) => {
     `Jenis sumber: ${item.sourceType || ''}`,
     `Imej: ${item.image || ''}`,
     `Nota: ${item.note || ''}`,
+    // Sebab Penolakan — ditulis semula supaya tak lenyap sendiri bila editor Simpan sebagai draf
+    // sebelum sedia Terbit semula. Lihat nota panjang di parseManualSummaryTemplate atas fail ni.
+    `Sebab Penolakan: ${item.rejectionNote || ''}`,
     `Penulis: ${item.penulis || ''}`,
   ].join('\n');
 };

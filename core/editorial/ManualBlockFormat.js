@@ -51,7 +51,7 @@ export const stripLimitHint = (s) =>
 // panjang rows=5, Nota rows=2, Penerangan bagi Bar) boleh mengandungi perenggan; medan lain
 // ialah <input> satu-baris (Tajuk, Topik, Sumber, URL, tarikh, dll) dan MESTI kekal satu baris —
 // baris berikutnya selepasnya bukan sambungan, ia baris sesat yang patut terus diabaikan.
-const MEDAN_BERBILANG_BARIS = new Set(['brief', 'briefLong', 'note', 'penerangan']);
+const MEDAN_BERBILANG_BARIS = new Set(['brief', 'briefLong', 'note', 'penerangan', 'rejectionNote']);
 
 // SEMUA label yang dikenali parser di bawah — satu senarai, dipakai utk menentukan sama ada satu
 // baris ialah permulaan medan BAHARU (tamatkan medan berbilang-baris semasa) atau cuma baris
@@ -61,8 +61,8 @@ const MEDAN_BERBILANG_BARIS = new Set(['brief', 'briefLong', 'note', 'penerangan
 const LABEL_DIKENALI = [
   'UUID:', 'Status:', 'Tajuk:', 'Event:', 'Huraian panjang:', 'Huraian ringkas:', 'Huraian:',
   'Bidang:', 'Kategori:', 'Topik:', 'Jenis sumber:', 'Tarikh mula:', 'Tarikh tamat:',
-  'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Imej:', 'Penganjur:', 'Lokasi:', 'Akses:',
-  'Penerangan:', 'Sumber:', 'URL:',
+  'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Sebab Penolakan:', 'Imej:', 'Penganjur:',
+  'Lokasi:', 'Akses:', 'Penerangan:', 'Sumber:', 'URL:',
 ];
 const ADA_LABEL_DIKENALI = (trimmed) =>
   LABEL_DIKENALI.some((label) => trimmed.toLowerCase().startsWith(label.toLowerCase()));
@@ -101,6 +101,15 @@ export function parseManualBlockFields(block) {
     sources: [],
     organizer: '', location: '', access: '', penerangan: '',
     note: '', image: '', isEventBlock: false,
+    // Sebab Penolakan (2026-08-31, dapatan Izzat — nota Tolak bocor ke Focus View) — DALAMAN
+    // SAHAJA, bertentangan dengan `note` di atas ("Nota editor", direka SENGAJA untuk paparan
+    // AWAM di Focus View, lihat placeholder di SlotManagerModal.tsx). Diisi oleh laluan
+    // reject-to-draft (contentRoutes.js) untuk beritahu penulis asal sebab kandungan ditolak.
+    // JANGAN SEKALI-KALI gabung/pindah nilai ni ke medan `note` — server.js
+    // (parseManualSummaryTemplate + syncManualObjectsForSlot) SENGAJA tidak menulis medan ni ke
+    // editorial_attribute_values langsung, jadi ia lenyap secara automatik sebaik kandungan
+    // diterbitkan semula (tujuannya sudah tercapai: memaklumkan editor sebelum pembetulan).
+    rejectionNote: '',
     // Penulis (2026-08-01, permintaan pemilik projek — modul "Draf Saya"): nama pena editor yang
     // MENCIPTA blok ni. Dicap sekali sahaja semasa blok baharu dibuat, tak berubah bila orang lain
     // menyuntingnya kemudian. Berasingan daripada attribute 'editorName' (dicap semasa TERBIT,
@@ -316,6 +325,10 @@ export function parseManualBlockFields(block) {
       fields.note = trimmed.replace(/^Nota:\s*/i, '').trim();
       medanSemasa = 'note';
       continue;
+    } else if (trimmed.startsWith('Sebab Penolakan:')) {
+      fields.rejectionNote = trimmed.replace(/^Sebab Penolakan:\s*/i, '').trim();
+      medanSemasa = 'rejectionNote';
+      continue;
     } else if (trimmed.startsWith('Imej:')) {
       const nilai = trimmed.replace(/^Imej:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'imej'; else terapkanLabelTunggal('imej', nilai);
@@ -415,6 +428,11 @@ export function serializeManualBentoItem(item) {
     `Jenis sumber: ${item.sourceType || ''}`,
     `Imej: ${item.image || ''}`,
     `Nota: ${item.note || ''}`,
+    // Sebab Penolakan — lihat nota panjang di parseManualBlockFields (medan dalaman, tak pernah
+    // sampai ke editorial_attribute_values/Focus View). Ditulis semula di sini SEMATA-MATA supaya
+    // ia tidak lenyap sendiri bila editor menyimpan draf lain (Simpan sebagai draf) sebelum sedia
+    // untuk Terbit semula.
+    `Sebab Penolakan: ${item.rejectionNote || ''}`,
     `Penulis: ${item.penulis || ''}`,
   ].join('\n');
 }

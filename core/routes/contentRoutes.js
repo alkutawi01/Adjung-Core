@@ -5,7 +5,7 @@ import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, requirePermission, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
-import { notifyMany } from '../notifications/Notify.js';
+import { notifyMany, selesaikanMenungguKelulusan } from '../notifications/Notify.js';
 import { isDue, hasReplacementForExpiry, resolveEffectiveStatus } from '../editorial/Scheduling.js';
 // denganKunciTicker (2026-08-20, dapatan audit modul Ticker) — laluan dalam fail ni yang
 // membaca-ubah-menulis `system_settings.inTheNewsText` dahulu hanya memegang
@@ -149,6 +149,7 @@ async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotI
     const kini = new Date().toISOString();
     await dbRun("UPDATE editorial_revisions SET status = 'approved', updatedAt = ? WHERE id = ?", [kini, calon.revisionId]);
     await tetapkanSebabMenunggu(dbGet, dbRun, calon.objectId, calon.revisionId, '');
+    await selesaikanMenungguKelulusan(dbRun, calon.objectId);
     await logAudit(dbRun, {
       actorId: null, actorName: 'Sistem (Slot Berkosong)',
       action: 'kandungan-naik-taraf-slot-kosong', targetType: 'kandungan', targetId: calon.objectId,
@@ -1225,6 +1226,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           detail: (title !== undefined ? title : rev.title || '').slice(0, 100),
         });
 
+        // Selesaikan notis "menunggu kelulusan" (2026-08-28, laporan Izzat: notis lama kekal
+        // "belum baca" walau kandungan dah lama disiar/ditolak/diarkib) — kandungan TINGGALKAN
+        // 'pending' di sini, tak kira status BAHARU jadi apa (approved/archived/dsb), jadi ni
+        // tapak TUNGGAL yang cukup untuk semua peralihan keluar-dari-pending laluan PATCH ni.
+        if (rev.status === 'pending' && effectiveStatus !== 'pending') {
+          await selesaikanMenungguKelulusan(dbRun, id);
+        }
+
         // Notifikasi Kandungan (Fasa 6b) — "kandungan disiar". Cuma bila status BAHARU mendarat
         // pada 'approved' (disiar) — bukan setiap perubahan status (arkib/tolak dilayan laluan
         // lain). Beritahu semua editor yang diamanahkan slot ni (bukan cuma penulis asal — slot
@@ -1645,8 +1654,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       for (const a of attrRows) attrs[a.attributeId] = a.valueText;
 
       // Sebab penolakan (2026-08-02, Fasa 6) — dahulu "Tolak" pulangkan draf TANPA sebarang
-      // catatan kepada penulis, penulis kena teka sendiri kenapa. Disemat depan Nota sedia ada
-      // (bukan gantikan) supaya nota asal editor tak hilang.
+      // catatan kepada penulis, penulis kena teka sendiri kenapa.
       // Nota ni SATU baris dalam format blok (parseManualSummaryBlocks huraikan baris demi
       // baris) — baris baharu literal di dalam nilai akan senyap terpotong semasa dihurai
       // semula, jadi digabung dengan pemisah dalam-baris, bukan \n\n.
@@ -1658,8 +1666,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       if (!sebab) {
         return res.status(400).json({ error: 'Sebab penolakan wajib diisi — penulis asal perlu tahu apa isunya.' });
       }
-      const notaGabungan = `Sebab ditolak: ${sebab}${attrs.note ? `. Nota: ${attrs.note}` : ''}`;
-
+      // PEMBETULAN KRITIKAL (2026-08-31, dapatan Izzat semasa ujian sebenar — nota "Sebab
+      // ditolak" hampir terbit ke Focus View) — dahulu sebab penolakan DIGABUNG terus ke medan
+      // `Nota:` sedia ada, iaitu medan YANG SAMA yang direka sengaja untuk paparan AWAM di Focus
+      // View ("Nota editor (pilihan), hanya di Focus View" — placeholder di SlotManagerModal.tsx).
+      // Editor yang terbit semula tanpa perasan/membuang nota tu akan mendedahkan sebab
+      // penolakan dalaman kepada pembaca. Kini ditulis ke medan BERASINGAN `Sebab Penolakan:`
+      // (dalaman sahaja, tak pernah ditulis ke editorial_attribute_values — lihat nota di
+      // ManualBlockFormat.js parseManualBlockFields/server.js parseManualSummaryTemplate) —
+      // Nota awam asal (attrs.note) KEKAL TAK DISENTUH.
       const draftBlock = [
         `UUID: object-manual-slot${objRow.slotIndex}-${Date.now()}-reject`,
         `Status: draf`,
@@ -1671,7 +1686,8 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         `URL: ${attrs.url || ''}`,
         `Tarikh sumber: ${attrs.originalDate || ''}`,
         `Imej: ${attrs.image || ''}`,
-        `Nota: ${notaGabungan}`,
+        `Nota: ${attrs.note || ''}`,
+        `Sebab Penolakan: ${sebab}`,
         // Dipulangkan kepada editor yang MENERBITKANnya dulu (attribute 'editorName'), supaya draf
         // yang ditolak muncul semula dalam "Draf Saya" orang yang sama — bukan hilang dalam slot
         // sehingga dia membelek satu-satu. Kandungan lama tanpa editorName kekal kosong: "Draf
@@ -1699,6 +1715,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       }
       await dbRun("UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ?", [new Date().toISOString(), rev.id]);
       await tetapkanSebabMenunggu(dbGet, dbRun, id, rev.id, '');
+      await selesaikanMenungguKelulusan(dbRun, id);
 
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,

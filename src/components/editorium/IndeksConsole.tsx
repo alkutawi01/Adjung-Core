@@ -1512,7 +1512,14 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           <option value="" disabled hidden>Tindakan ▾</option>
                           {rec.status !== 'Live' && <option value="Live">Siar</option>}
                           {rec.status !== 'Archive' && <option value="Archive">Arkib</option>}
-                          <option value="Tolak">Tolak (arkib &amp; pulangkan draf)</option>
+                          {/* Kebenaran `reject` lalai TERHAD kepada Ketua Editor/Penolong Ketua
+                              Editor (contentRoutes.js requirePermission('reject')) — dahulu
+                              opsyen ni terpapar kepada SEMUA editor tanpa gerbang, jadi Editor
+                              biasa boleh isi borang sebab penolakan penuh sebelum pelayan
+                              menolak dengan 403 "Anda tiada kebenaran". Digerbang sama corak
+                              seperti Padam di bawah supaya editor tak nampak langsung opsyen
+                              yang dia tak layak guna. */}
+                          {currentUserRole === 'KETUA_EDITOR' && <option value="Tolak">Tolak (arkib &amp; pulangkan draf)</option>}
                           {currentUserRole === 'KETUA_EDITOR' && <option value="Padam">Padam (ke Tong Sampah)</option>}
                         </select>
                       ) : (

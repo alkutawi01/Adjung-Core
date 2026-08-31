@@ -781,7 +781,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // key={editingSlotIndex} — tukar slot = remount penuh, bukan sekadar prop baharu.
   const blankItem = (suffix: string | number = '') => ({
     uuid: `object-manual-slot${editingSlotIndex}-${Date.now()}${suffix}`,
-    title: '', brief: '', briefLong: '', topik: '', source: '', url: '', sources: [], sourceType: '', date: '', note: '', image: '',
+    title: '', brief: '', briefLong: '', topik: '', source: '', url: '', sources: [], sourceType: '', date: '', note: '', rejectionNote: '', image: '',
     // Alur kerja Draf/Terbit (2026-07-29, permintaan pemilik projek) — lalai DRAF untuk
     // kandungan BAHARU: tak sesekali live sehingga editor sedar-sedar tekan "Terbit". Kandungan
     // sedia ada yang dihurai daripada manualSummary (lihat parseManualSummaryBlocks) bawa status
@@ -1853,6 +1853,18 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     Jenis sumber) — lebar biasa (bukan grid) supaya tak nampak janggal separuh
                     lebar sekarang. */}
                 <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
+                {/* Sebab Penolakan (2026-08-31, dapatan Izzat — nota Tolak hampir terbit ke Focus
+                    View) — DALAMAN SAHAJA, medan berasingan sepenuhnya drpd "Nota" di bawah (yang
+                    memang direka untuk paparan AWAM). Papar sebagai amaran read-only (bukan Field
+                    boleh sunting) supaya tak sesekali tersalah anggap sebagai draf Nota awam
+                    editor sendiri. Lenyap automatik sebaik Terbit semula (server tak tulisnya ke
+                    editorial_attribute_values — lihat nota di ManualBlockFormat.js). */}
+                {current.rejectionNote && (
+                  <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 flex items-start gap-2 text-amber-900 font-sans text-[12px]">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span><strong>Sebab ditolak (dalaman — TIDAK diterbitkan):</strong> {current.rejectionNote}</span>
+                  </div>
+                )}
                 <Field label="Nota" rows={2} value={current.note || ''} placeholder="Nota editor (pilihan), hanya di Focus View" maxLen={280} onChange={(v) => patch(activeIndex, 'note', v)} />
                 {/* Penulis KANDUNGAN INI (2026-08-01, permintaan pemilik projek) — bukan lagi
                     sesiapa yang kebetulan sedang log masuk. Satu slot boleh dikendalikan lebih
