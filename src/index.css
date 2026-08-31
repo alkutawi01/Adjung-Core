@@ -942,3 +942,13 @@ button:hover .fv-nav-chevron.fv-nav-chevron-up, button:focus-visible .fv-nav-che
 button:hover .fv-nav-chevron.fv-nav-chevron-down, button:focus-visible .fv-nav-chevron.fv-nav-chevron-down {
   transform: translateY(2px);
 }
+
+/* BriefNavigator (2026-08-31) — hormat prefers-reduced-motion. Sidebar slide (versi
+   muktamad, selepas dua percubaan rail-nipis/wheel ditolak semasa Izzat cuba sendiri)
+   guna transition transform terus di BriefNavigator.tsx; peraturan ni matikan sahaja
+   bagi pengguna yang set keutamaan tu, state buka/tutup kekal sama. */
+@media (prefers-reduced-motion: reduce) {
+  .brief-navigator * {
+    transition: none !important;
+  }
+}

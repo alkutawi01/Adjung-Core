@@ -24,6 +24,7 @@ import { SegiEmpatMediumCardTeks } from './cards/SegiEmpatMediumCardTeks';
 import { SegiEmpatSmallCardTeks } from './cards/SegiEmpatSmallCardTeks';
 import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
+import BriefNavigator from './BriefNavigator';
 import { PetikanBar } from './PetikanModul';
 import { BidangIcon } from '../common/BidangIcon';
 import { trackView } from '../../utils/trackView';
@@ -3056,6 +3057,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     return m;
   }, [bentoNewsItems]);
 
+  // Primitif buka-terus-guna-lokasi (2026-08-31, BriefNavigator — audit ChatGPT pusingan 4).
+  // Diasingkan drpd `openFocus` supaya pemanggil yang SUDAH ada FocusLoc (bukan rujukan objek
+  // kad) tak perlu isu carian `focusAllLocations.find()` (yang bergantung PERSAMAAN RUJUKAN
+  // objek — rapuh kalau data navigator dibina semula/disalin, ChatGPT tegaskan ini).
+  const openFocusLoc = React.useCallback((loc: FocusLoc) => {
+    setFocusLoc(loc);
+    setFocusHistory([loc]);
+  }, []);
+
   // Buka ikut RUJUKAN item, bukan nombor slot. Sengaja: pencetus klik ada di 33 tempat dalam
   // fail ni, dan kalau setiap satu kena taip nombor slot sendiri, satu salah taip = kad buka
   // kandungan slot lain — jenis pepijat senyap yang paling susah dikesan. Cara ni buat semua
@@ -3065,8 +3075,67 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     const loc = focusAllLocations.find(
       l => focusItemsForSlot(l.slotIndex)[l.itemIndex] === item
     );
-    if (loc) { setFocusLoc(loc); setFocusHistory([loc]); }
+    if (loc) openFocusLoc(loc);
   };
+
+  // ===== BriefNavigator — data model (2026-08-31) =====
+  // Kontrak dipersetujui bersama ChatGPT (audit pusingan 3-4): navigator TIDAK fetch semula
+  // ("Bidang -> GET slot mappings -> GET contents") dan TIDAK cipta definisi "aktif" baharu.
+  // Ia cuma mengumpul kandungan yang `focusAllLocations`/`bentoNewsItems` SENDIRI sudah anggap
+  // layak Focus View, ikut Bidang (`item.desk`) — susunan carousel/rawak yang sudah diselesaikan
+  // pelayan (`resolveSlotContent()`, server.js) dikekalkan, TIDAK di-shuffle semula di sini.
+  type NavigatorNewsItem = { objectId: string; title: string; loc: FocusLoc };
+  /** `totalCount` ialah jumlah SEBENAR, `news` dipangkas 10 (paparan sahaja) — dua nilai
+   *  SENGAJA berasingan (audit ChatGPT pusingan 6) supaya Bidang >10 kandungan tak hilang
+   *  maklumat sebenar walau navigator cuma papar 10 pertama. */
+  type NavigatorField = {
+    name: string;
+    totalCount: number;
+    news: NavigatorNewsItem[];
+    icon: string | null;
+    iconSvg: string | null;
+  };
+  const HAD_BERITA_NAVIGATOR = 10;
+
+  const navigatorFields = React.useMemo<NavigatorField[]>(() => {
+    // Kosong sehingga /api/system/layout/active benar-benar selesai (2026-08-31, audit
+    // ChatGPT) — `focusAllLocations` boleh berisi placeholder SEBELUM `hasLoadedContent`
+    // jadi true (corak sama pepijat deep-link 2026-08-29, lihat effect di bawah).
+    if (!hasLoadedContent) return [];
+    // Peta nama->ikon dibina terus dari `activeBidangList` (bukan `bidangByName`, yang
+    // ditakrif LEPAS memo ni dalam fail — sama sumber data, cuma diulang sini elak susunan
+    // deklarasi terbalik).
+    const ikonByName = new Map<string, { icon: string | null; iconSvg: string | null }>();
+    for (const b of activeBidangList) ikonByName.set(b.name.toLowerCase(), { icon: b.icon, iconSvg: b.iconSvg });
+    const groups = new Map<string, NavigatorField>();
+    for (const loc of focusAllLocations) {
+      const item = focusItemsForSlot(loc.slotIndex)[loc.itemIndex];
+      if (!item?.desk || !item?.title || !item?.objectId) continue;
+      const key = String(item.desk).trim();
+      if (!key) continue;
+      if (!groups.has(key)) {
+        const ikon = ikonByName.get(key.toLowerCase());
+        groups.set(key, { name: key, totalCount: 0, news: [], icon: ikon?.icon ?? null, iconSvg: ikon?.iconSvg ?? null });
+      }
+      const field = groups.get(key)!;
+      field.totalCount += 1;
+      if (field.news.length < HAD_BERITA_NAVIGATOR) {
+        field.news.push({ objectId: item.objectId, title: item.title, loc });
+      }
+    }
+    // Susunan Bidang dalam navigator (2026-08-31, permintaan Izzat: "1 utama. 2 sampai habis
+    // ikut ABCD, supaya senang user nak cari") — SENGAJA lain drpd urutan slotIndex frontpage
+    // (yang tetap ikut reka letak bento). "Utama" sentiasa pertama, selebihnya abjad menaik.
+    const senarai = Array.from(groups.values());
+    senarai.sort((a, b) => {
+      const aUtama = a.name.trim().toLowerCase() === 'utama';
+      const bUtama = b.name.trim().toLowerCase() === 'utama';
+      if (aUtama && !bUtama) return -1;
+      if (bUtama && !aUtama) return 1;
+      return a.name.localeCompare(b.name, 'ms');
+    });
+    return senarai;
+  }, [hasLoadedContent, focusAllLocations, focusItemsForSlot, activeBidangList]);
 
   /** Pengendali klik untuk tajuk/huraian pada kad. */
   const focusClick = (item: any) => (e: React.MouseEvent) => {
@@ -5914,6 +5983,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           dikongsi oleh semua kandungan dalam kad yang sama, dan cirinya masih KIV. Lampiran
           visual Focus View (`item.image`) pula berbeza bagi SETIAP kandungan — dua medan
           berlainan, jangan pinjam salah satu untuk yang lain. */}
+      {/* BriefNavigator (2026-08-31) — bar navigasi Bidang, lapisan navigasi milik SELURUH
+          portal (bukan sebahagian layout majalah bento), sengaja diletak SEBELUM FocusView
+          dalam DOM supaya z-index navigator (z-[60]) kekal di atas overlay Focus View (z-50),
+          jadi rail tetap boleh digunakan semasa membaca artikel — keputusan produk ChatGPT
+          pusingan 4 (navigator paling bernilai semasa Focus View dibuka, bukan cuma frontpage). */}
+      <BriefNavigator fields={navigatorFields} currentLoc={focusLoc} onOpenNews={openFocusLoc} />
+
       {focusLoc && focusItem && (
         <FocusView
           icon={focusBidang ? (
