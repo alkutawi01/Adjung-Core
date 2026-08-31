@@ -77,7 +77,7 @@ export const MESEJ_SISTEM_LABEL: Record<string, string> = {
   'toast.tetapan_am_disimpan': 'Tetapan disimpan dan berkuat kuasa serta-merta.',
   'toast.gagal_muat_sejarah': 'Gagal memuatkan sejarah versi.',
   'toast.kata_laluan_ditukar': 'Kata laluan berjaya ditukar',
-  'toast.username_ditukar': 'Username berjaya ditukar',
+  'toast.username_ditukar': 'Kata nama berjaya ditukar',
   'toast.emel_ditukar': 'Emel berjaya ditukar',
 };
 

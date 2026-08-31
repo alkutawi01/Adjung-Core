@@ -303,12 +303,12 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
           <p className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400 pt-1">Kelayakan Akaun</p>
 
           <div className="flex items-center justify-between text-[11px] text-stone-500">
-            <span>Nama pengguna semasa</span>
+            <span>Kata nama semasa</span>
             <span className="font-semibold text-stone-700">{username || '—'}</span>
           </div>
           <BorangPengesahan
-            tajuk="Tukar Nama Pengguna"
-            labelMedan="Nama Pengguna Baharu"
+            tajuk="Tukar Kata Nama"
+            labelMedan="Kata Nama Baharu"
             jenisInput="text"
             placeholder="cth. izzat_editor"
             mesejBerjaya={labelUi('toast.username_ditukar')}
@@ -320,11 +320,11 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
                   body: JSON.stringify({ newUsername: nilaiBaharu, currentPassword: kataLaluanSemasa }),
                 });
                 const data = await bacaJsonSelamat(res);
-                if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar nama pengguna.' };
+                if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar kata nama.' };
                 setUsername(data.username);
                 return { ok: true };
               } catch {
-                return { ok: false, ralat: 'Gagal menukar nama pengguna. Semak sambungan rangkaian.' };
+                return { ok: false, ralat: 'Gagal menukar kata nama. Semak sambungan rangkaian.' };
               }
             }}
           />
