@@ -8,6 +8,27 @@ Semua kerja persediaan (ujian, pembersihan, backup) sudah siap — dokumen ini S
 langkah-langkah; tiada satu pun dijalankan secara automatik. Tuan yang tekan setiap
 butang deploy sebenar.
 
+**Status semasa (dikemas kini 2026-08-31): produksi SUDAH live** di
+`https://brief.adjung.com` di atas Droplet `adjung-brief-prod` (178.128.209.57) — Langkah
+0-5 di bawah SUDAH selesai dijalankan, kekal sebagai rujukan sejarah/rebuild sahaja
+(cth kalau Droplet baharu diperlukan kelak), bukan langkah yang perlu diulang setiap
+deploy rutin. Untuk deploy rutin sedia ada (kod baharu ke server yang dah wujud), cuma:
+
+```bash
+git push origin main
+ssh adjung-brief-prod "cd /var/www/adjung-brief && git pull && npm run build && pm2 restart adjung-brief"
+```
+
+(Backend sahaja, tiada perubahan `.tsx`/`.ts` frontend — boleh langkau `npm run build`,
+cukup `git pull && pm2 restart`.)
+
+**Claude ada kunci SSH khas** (`adjung-brief-claude`, ditambah ke `authorized_keys`
+Droplet 31/8/2026 selepas kebenaran eksplisit Izzat via `.claude/settings.json`
+`Bash(ssh:*)`/`Bash(git push:*)`) — boleh jalankan push+deploy penuh sendiri tanpa Izzat
+taip manual, TERMASUK selepas insiden outage 31/8 (lihat memori
+`feedback_never_commit_whole_file_mixed_changes`). Tetap **backup `adjung.db` dan minta
+kelulusan Izzat dahulu** untuk apa-apa yang menyentuh data/skema, ikut prinsip CLAUDE.md.
+
 ---
 
 ## Platform sasaran: DigitalOcean Droplet (VPS)
@@ -183,8 +204,9 @@ Selepas server produksi hidup di URL sebenar:
 
 ## Nota
 
-- Semua langkah ATAS TIDAK dijalankan oleh Claude — dokumen ni rujukan sahaja. Setiap
-  arahan mesti tuan jalankan sendiri (atau minta saya jalankan satu-satu dengan kelulusan
-  eksplisit setiap satu, memandangkan sifatnya tak boleh patah balik).
+- Langkah 0-5 (persediaan Droplet PERTAMA KALI) TIDAK dijalankan oleh Claude — rujukan
+  sejarah/rebuild sahaja. Deploy RUTIN (push+pull+restart kod sedia ada) kini BOLEH
+  dijalankan Claude sendiri (lihat "Status semasa" di atas) — tetap minta kelulusan
+  eksplisit dahulu untuk apa-apa operasi yang tak boleh patah balik atau sentuh data.
 - Rujuk `PELAN_PRA_LAUNCH.md` seksyen "KIV — tunggu Izzat" untuk senarai penuh keputusan
   lain yang masih tertunggak (Fasa 8b, 11, 12, animasi transisi Fasa 7).
