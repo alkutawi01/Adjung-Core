@@ -144,4 +144,23 @@ export async function beritahuPelulusKandungan(dbAll, dbRun, payload) {
   await notifyMany(dbRun, (rows || []).map((r) => r.userId), payload);
 }
 
+// Selesaikan notifikasi "kandungan menunggu kelulusan" sebaik kandungan tu tinggalkan status
+// 'pending' (disiar/ditolak/diarkib/dijadualkan) — sebelum ni TIADA laluan langsung menutup
+// notis ni, jadi ia kekal "belum baca" dalam Peti Makluman pelulus walau kandungan dah lama
+// selesai (Izzat lapor 8 notis Editorial, 4 sahaja masih benar-benar Menunggu di Indeks
+// Kandungan). Tanda dibaca (bukan padam) — konsisten dgn corak `Padam` di MaklumanDrawer.tsx
+// yang sengaja jadikan pemadaman satu tindakan EKSPLISIT pengguna, bukan sesuatu sistem buat
+// senyap atas nama mereka.
+export async function selesaikanMenungguKelulusan(dbRun, targetId) {
+  if (!targetId) return;
+  try {
+    await dbRun(
+      "UPDATE notifications SET isRead = 1 WHERE type = 'kandungan_menunggu_kelulusan' AND targetId = ?",
+      [targetId]
+    );
+  } catch (err) {
+    console.error('Gagal selesaikan notifikasi menunggu kelulusan:', err.message);
+  }
+}
+
 export default notify;
