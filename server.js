@@ -3724,6 +3724,11 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
         || hasPermission(roles, 'manageEditorial')
         || (hasPermission(roles, 'publish') && !pernahDitolak);
       let finalStatus = isBar ? (item.status || 'approved') : (bolehTerbitTerus ? 'approved' : 'pending');
+      // sebabMenunggu ni ditentukan SERENTAK dengan finalStatus (bukan diandaikan 'semakan' buta
+      // di attrs[] macam dulu, lihat nota 2026-09-01 di bawah) — 'semakan' bermakna keputusan
+      // MANUSIA belum dibuat (bolehTerbitTerus palsu), 'slot_penuh' bermakna keputusan dah dibuat
+      // (bolehTerbitTerus benar) tapi slot tiada ruang, jadi layak untuk putaran auto-arkib 24 jam.
+      let sebabMenungguNi = finalStatus === 'pending' ? 'semakan' : '';
       // Had bilangan kandungan AKTIF seslot (2026-08-14, ditemui oleh sim10-serentak.mjs) — gerbang
       // capacity yang sama sudah wujud di PATCH /content/:id (contentRoutes.js baris ~822) TAPI
       // tak pernah disambung ke sini, jadi Ketua Editor/Penolong/Editor-dibenarkan-self-publish
@@ -3742,6 +3747,15 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
           `, [slotIndex]);
           if (kiraanAktif && kiraanAktif.n >= hadKandunganSlot) {
             finalStatus = 'pending';
+            // Keputusan terbit DAH dibuat (bolehTerbitTerus benar) — punca pending ni SEMATA-MATA
+            // slot penuh, bukan menunggu kelulusan manusia. Tandakan 'slot_penuh' supaya
+            // runSchedulingTick() (contentRoutes.js) nampak calon ni dan boleh putar-auto-arkib
+            // selepas 24 jam — SEBELUM pembetulan ni, laluan ni (Urus Slot, bukan Indeks) sentiasa
+            // tersalah tanda 'semakan', jadi calon overflow di sini kekal terperangkap SELAMA-
+            // LAMANYA sehingga Ketua Editor perasan dan klik "Siar" secara manual (disahkan
+            // reproduce langsung 2026-09-01 — Slot 32 penuh 10/10, kandungan baharu simpan
+            // 'semakan' bukan 'slot_penuh', putaran tak pernah tercetus walau 24+ jam berlalu).
+            sebabMenungguNi = 'slot_penuh';
           }
         }
       }
@@ -3792,11 +3806,11 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
         // sepadan, kandungan ni pernah ditolak sekali, tandakan supaya PATCH /content/:id
         // sekat Editor biasa self-approve semula tanpa kelulusan Ketua Editor/Penolong.
         { key: 'pernahDitolak', val: (item.uuid && String(item.uuid).endsWith('-reject')) ? '1' : '' },
-        // Dua jenis Menunggu (2026-08-06) — kandungan yang baru Terbitkan (finalStatus='pending')
-        // sentiasa mula sebagai 'semakan' (perlu keputusan manusia — self-publish ATAU Ketua
-        // Editor/Penolong, ikut dasar semasa). Ia cuma bertukar 'slot_penuh' kalau/bila seseorang
-        // cuba luluskannya tapi slot penuh — lihat PATCH /content/:id (contentRoutes.js).
-        { key: 'sebabMenunggu', val: finalStatus === 'pending' ? 'semakan' : '' },
+        // Dua jenis Menunggu (2026-08-06) — 'semakan' (perlu keputusan manusia) atau 'slot_penuh'
+        // (keputusan dah dibuat, cuma tunggu ruang — layak putaran auto-arkib 24 jam). Ditentukan
+        // di atas serentak dengan finalStatus (sebabMenungguNi) — lihat nota 2026-09-01 di situ
+        // untuk sejarah pepijat "sentiasa 'semakan'" yang dibetulkan.
+        { key: 'sebabMenunggu', val: sebabMenungguNi },
       ];
       for (const a of attrs) {
         await dbRun(
