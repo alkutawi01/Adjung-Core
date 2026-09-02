@@ -113,7 +113,15 @@ const MEDAN_BULK_BERBILANG_BARIS = new Set(['summary', 'summaryLong', 'note']);
 // dalam kurungan sahaja, jadi kesilapan berulang model AI dibetulkan senyap tanpa perlu editor
 // perasan/salin-tampal manual setiap kali.
 const ekstrakUrlMentah = (v: string): string => {
-  const md = v.match(/\]\((https?:\/\/[^\s)]+)\)\s*$/i);
+  // PEMBETULAN SUSULAN (2026-09-02, Izzat tangkap kes lebih teruk masih gagal selepas pembetulan
+  // pertama) — corak asal diikat ke HUJUNG teks (`\)\s*$`), cuma betulkan `[url](url)` BERSIH.
+  // Tapi model AI kadang tambah serpihan lain SELEPAS pautan Markdown (cth pecahan slug/deskripsi
+  // tertinggal daripada penyalinan tak kemas — "...(url) Tajuk, huraian... slug-fragmen/"),
+  // corak lama gagal padan sebab bukan lagi di hujung. Regex kini cari corak pautan Markdown
+  // DI MANA-MANA dalam teks (tak diikat ke hujung), ambil URL dalam kurungan bulat SAHAJA —
+  // apa-apa sebelum/selepas tu (label pendua, serpihan tertinggal) diabaikan terus, sebab
+  // ia bukan sebahagian URL sebenar.
+  const md = v.match(/\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/i);
   return md ? md[1] : v;
 };
 
