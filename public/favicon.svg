@@ -5,13 +5,27 @@
      berlatar marun + palang putih macam sebelum ni (versi lama terbalik: latar PEKAT, simbol
      lubang). Latar SVG lalai lutsinar (tiada rect latar langsung) — @media prefers-color-scheme
      tukar warna simbol sahaja (marun terang / putih gelap), disokong pelayar moden terus dalam
-     <link rel="icon"> tanpa JS. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 80">
+     <link rel="icon"> tanpa JS.
+
+     PEMBETULAN (2026-09-02, Izzat: "kenapa logo adjung jadi mcm ni? sepatutnya mcm di favicon" —
+     tangkapan skrin Google Search + bookmark papar blok warna pekat tanpa bentuk, bukan simbol
+     nipis tegak yang dikenali) — viewBox ASAL 40x80 (nisbah 1:2 tegak, sama adjung-symbol.svg)
+     BUKAN segi empat sama, tapi SETIAP konsumer favicon (tab pelayar, bookmark, keputusan carian
+     Google) andaikan bingkai SEGI EMPAT SAMA. Bila bentuk 1:2 dipaksa masuk bingkai 1:1, tiap
+     konsumer buat keputusan berbeza (regang, potong, atau letterbox) TANPA kawalan kita — Google
+     nyata memilih regang/potong penuh, jadi rajah nipis yang patut kelihatan sebagai jalur tegak
+     tersendiri hilang terus jadi blok pekat tanpa identiti. Dibetulkan: kanvas viewBox kini SEGI
+     EMPAT SAMA (80x80), simbol (lebar/tinggi/warna TAK berubah langsung — tetap 40x80 marun/putih)
+     ditengahkan dengan ruang lutsinar 20px setiap sisi. Ini MEMASTIKAN semua konsumer mendapat
+     bingkai sama untuk dimuatkan, tanpa perlu regang/potong bentuk sendiri lagi. adjung-symbol.svg
+     (rujukan kanun, dipakai di tempat lain dgn nisbah asal 1:2) SENGAJA TIDAK disentuh — fail ni
+     SAHAJA yang perlu bingkai segi empat sama sebab kegunaan khusus sebagai favicon. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
   <style>
     rect { fill: #802334; }
     @media (prefers-color-scheme: dark) {
       rect { fill: #FDFDFD; }
     }
   </style>
-  <rect width="40" height="80"/>
+  <rect x="20" width="40" height="80"/>
 </svg>
