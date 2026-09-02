@@ -99,8 +99,16 @@ export function createPermohonanEditorRoutes(dbAll, dbGet, dbRun) {
       if (ralatMedan) {
         return res.status(400).json({ error: ralatMedan });
       }
+      // Had panjang SETIAP item (2026-09-03, dapatan bug-hunt) — klien (HalamanSertai.tsx) cuma
+      // hantar nama Bidang SEBENAR (senarai tetap, checkbox) jadi selalunya pendek, tapi laluan
+      // ni awam tanpa auth (boleh dipintas curl, sama seperti medan lain di HAD di atas) —
+      // sebelum ni cuma bilangan item dihadkan (slice(0,10)), setiap item sendiri BOLEH sepanjang
+      // apa-apa (dibatas hanya oleh had body JSON global 10MB) — 10 item x jutaan aksara akan
+      // menggembungkan lajur `bidangMinat` (JSON) dan mesej makluman `detail` (join ke satu
+      // ayat) dgn teks tak bermakna. Had 60 aksara sepadan medan `negeri` (had lain yang serupa
+      // sifatnya — nilai pendek daripada senarai tetap).
       const bidangMinat = Array.isArray(b.bidangMinat)
-        ? b.bidangMinat.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()).slice(0, 10)
+        ? b.bidangMinat.filter((x) => typeof x === 'string' && x.trim() && x.trim().length <= 60).map((x) => x.trim()).slice(0, 10)
         : [];
       if (bidangMinat.length === 0) {
         return res.status(400).json({ error: 'Pilih sekurang-kurangnya satu Bidang minat.' });

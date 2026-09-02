@@ -26,7 +26,7 @@ import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
 import { checkAllSourceLinks } from './core/editorial/LinkChecker.js';
-import { sahkanUrlSelamatUntukFetch } from './core/utils/urlSafety.js';
+import { sahkanUrlSelamatUntukFetch, fetchSelamat } from './core/utils/urlSafety.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
 import { createCategoryRoutes } from './core/routes/categoryRoutes.js';
 import { createSystemRoutes } from './core/routes/systemRoutes.js';
@@ -2931,6 +2931,14 @@ const normalizeContent = (content) => {
 //      SourceFetcher.js/EditorialPipeline.js menggantikannya. Dibetulkan juga, bukan dibiar,
 //      sebab kod mati yang berbahaya ialah bom jangka bila disambung semula kelak.
 //   2. Cabang http(s) fetch terus tanpa semak SSRF (alamat dalaman/localhost/metadata cloud).
+//   3. (2026-09-03, dapatan bug-hunt susulan — fungsi ni MASIH kod mati, disahkan semula sifar
+//      pemanggil) fetch() mentah di bawah dgn redirect lalai 'follow' — semakan
+//      sahkanUrlSelamatUntukFetch() sebelum ni cuma sahkan URL AWAL, sumber yang 302 ke
+//      `http://127.0.0.1/...`/metadata cloud akan diikut senyap tanpa disahkan semula (SAMA
+//      celah P1-02 yang fetchSelamat() dicipta khusus utk tutup — lihat urlSafety.js dan
+//      pembetulan sepadan di slotRoutes.js executeDirectRssFetch/dbStateRoutes.js
+//      fetchGoogleDocText). Ditukar ke fetchSelamat() supaya kalau fungsi ni disambung semula
+//      kelak, ia tak mewarisi celah yang sudah ditutup di semua laluan aktif yang lain.
 const fetchSourceWithCache = async (sourceUri) => {
   if (!sourceUri) return { rawContent: '', fromCache: false };
   const trimmedUri = sourceUri.trim();
@@ -2961,8 +2969,8 @@ const fetchSourceWithCache = async (sourceUri) => {
   }
 
   try {
-    const res = await fetch(trimmedUri, { headers, timeout: 8000 });
-    
+    const res = await fetchSelamat(trimmedUri, { headers, timeout: 8000 });
+
     if (res.status === 304 && cacheEntry) {
       await dbRun("UPDATE source_fetch_cache SET fetchedAt = ? WHERE sourceUri = ?", [now, trimmedUri]);
       return { rawContent: cacheEntry.rawContent, fromCache: true };
