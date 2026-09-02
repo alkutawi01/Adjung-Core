@@ -78,7 +78,13 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
       const roleRows = await dbAll("SELECT roleId FROM user_roles WHERE userId = ?", [userRow.id]);
       const roles = (roleRows || []).map((r) => r.roleId);
 
-      const { password: _omit, ...userWithoutPassword } = userRow;
+      // 2026-09-02 (bug-hunt) — dahulu cuma `password` ditapis drpd baris `SELECT *` penuh,
+      // jadi `resetToken`/`resetTokenExpiresAt` (token set-semula kata laluan sebenar, jika
+      // akaun ada permohonan "lupa kata laluan" belum digunakan) turut terikut ke respons JSON
+      // /login — dibaca sesiapa yang buka Network tab pelanggan sendiri. Sama corak kebocoran
+      // yang sudah dibaiki di db-state.js ("tutup kebocoran resetToken di db-state") tapi
+      // terlepas di sini; disahkan grep `src/` kosong — tiada kod klien pernah baca medan ni.
+      const { password: _omit, resetToken: _rt, resetTokenExpiresAt: _rte, ...userWithoutPassword } = userRow;
       const authenticatedUser = {
         ...userWithoutPassword,
         roles,

@@ -1,4 +1,5 @@
 import express from 'express';
+import { tarikhMalaysia } from '../utils/waktuMalaysia.js';
 
 // GET /api/system/hijri-date?zone=KDH01 — official JAKIM Hijri date (Imkanur Rukyah) via
 // waktusolat.app's public e-Solat proxy, Maghrib-adjusted for the given zone. Not a client-side
@@ -35,7 +36,13 @@ export function createWorldClockRoutes(dbGet) {
   // GET /api/system/clock-holidays
   router.get('/clock-holidays', async (req, res) => {
     try {
-      const currentYear = new Date().getFullYear();
+      // Tahun waktu Malaysia, bukan UTC (2026-09-02, dapatan bug-hunt — sama corak
+      // calculateNextRunTime()/WorldClockStrip.tsx yang sudah dibaiki pusingan lalu). Pelayan
+      // (UTC) berada 8 jam DI BELAKANG Malaysia — antara pukul 16:00-23:59 UTC pada 31
+      // Disember, hari sudah 1 Januari waktu Malaysia tetapi `new Date().getFullYear()` pelayan
+      // masih pulangkan tahun LAMA, jadi API cuti awam disoal dengan tahun yang salah dan
+      // terlepas cuti awal Januari (termasuk 1 Januari itu sendiri) sepanjang tetingkap tu.
+      const currentYear = Number(tarikhMalaysia().slice(0, 4));
       let apiHolidays = [];
       try {
         const response = await fetch(`https://malaysia-holiday.dydxsoft.my/api/v1/holidays?year=${currentYear}`);

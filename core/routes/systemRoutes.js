@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth, requirePermission, loadRolePermissions } from '../middleware/auth.js';
+import { tarikhMalaysia } from '../utils/waktuMalaysia.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { logAudit } from '../audit/AuditLog.js';
 
@@ -20,7 +21,11 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   // bukan API awam, dan buat panggilan rangkaian sebenar + kemungkinan tulis notifikasi setiap
   // permintaan — sesiapa boleh cetuskan side-effect ni tanpa had. Sifar pengguna awam disahkan.
   router.get('/system/weather-status', requirePermission('manageSettings'), async (req, res) => {
-    const currentYear = new Date().getFullYear();
+    // Tahun waktu Malaysia, bukan UTC (2026-09-02, dapatan bug-hunt — sama corak
+    // worldClockRoutes.js /clock-holidays, yang guna API cuti SAMA). Kesan di sini cuma kosmetik
+    // (medan status `calendarYear` panel diagnostik), tapi diselaraskan sama demi konsisten
+    // dengan panggilan API cuti yang sama di kedua-dua tempat.
+    const currentYear = Number(tarikhMalaysia().slice(0, 4));
 
     const meteoStart = Date.now();
     let openMeteo;
