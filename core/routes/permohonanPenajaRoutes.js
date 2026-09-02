@@ -385,8 +385,13 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
       const { sponsorSediaAdaId, slotIndexes } = req.body || {};
       const kini = new Date();
       const mulaTajaan = kini.toISOString();
+      // PEMBETULAN (2026-09-02, dapatan bug-hunt) — dahulu cuma had ATAS disemak. tempohHari
+      // negatif/sifar/NaN (typo klien, manipulasi request) hasilkan tamatTajaan SEBELUM
+      // mulaTajaan — penaja terus tak aktif sebaik dicipta walau bayaran sudah disahkan.
       let tempohHari = Number(req.body?.tempohHari) || TEMPOH_TAJAAN_MAX_HARI;
-      if (tempohHari > TEMPOH_TAJAAN_MAX_HARI) tempohHari = TEMPOH_TAJAAN_MAX_HARI;
+      if (!Number.isFinite(tempohHari) || tempohHari <= 0 || tempohHari > TEMPOH_TAJAAN_MAX_HARI) {
+        tempohHari = TEMPOH_TAJAAN_MAX_HARI;
+      }
       const tamatTajaan = new Date(kini.getTime() + tempohHari * 86400000).toISOString();
       const bulanSemasa = mulaTajaan.slice(0, 7);
       const namaPapar = rekod.jenisPemohon === 'individu'
