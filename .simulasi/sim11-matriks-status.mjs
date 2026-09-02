@@ -8,7 +8,7 @@
 // Peraturan: HANYA 'approved' boleh dilihat pembaca. draf/menunggu/dijadualkan/arkib TIDAK.
 import path from 'node:path';
 import os from 'node:os';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb, isiHuraianCukup, HURAIAN_PANJANG_SAH } from './sim-lib.mjs';
 import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5210;
@@ -26,8 +26,14 @@ try {
 
   await api('POST', '/api/system/categories/activate', { name: BIDANG, color: '#802334', icon: 'TrendingUp' });
 
+  // Huraian Panjang WAJIB disertakan (2026-09-02, dapatan bug-hunt — lihat nota HURAIAN_PANJANG_SAH
+  // di sim-lib.mjs). Tanpanya, KES_BARIS di bawah (yang benar-benar melalui POST /slots) ditolak
+  // 400 pada penciptaan, `o` jadi undefined, PATCH status dilangkau senyap, dan ujian bahagian C
+  // (kandungan aktif mesti kelihatan) melaporkan kandungan "hilang dari frontpage" — sedangkan ia
+  // tidak pernah wujud pun langsung, bukan bocor/hilang di laluan render.
   const blok = (uuid, tajuk, status, slotIndex = 1) => [
     `UUID: ${uuid}`, `Tajuk: ${tajuk}`, 'Huraian ringkas: ' + isiHuraianCukup(ceilingForSlot, slotIndex, tajuk.length),
+    'Huraian panjang: ' + HURAIAN_PANJANG_SAH,
     'Bidang: ' + BIDANG, 'Topik: Kewangan', `Status: ${status}`,
   ].join('\n');
 

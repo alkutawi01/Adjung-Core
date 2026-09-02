@@ -5,8 +5,17 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import sqlite3 from 'sqlite3';
+import { fileURLToPath } from 'node:url';
 
-export const REPO = 'C:/Users/alkut/Downloads/Adjung Mini Main';
+// Dikira relatif kepada lokasi fail ni (sama corak seperti liputan.mjs), BUKAN laluan mutlak
+// dikod keras (2026-09-02, dapatan bug-hunt) — nilai lama `C:/Users/alkut/Downloads/Adjung Mini
+// Main` ialah laluan pada mesin lain, tak wujud langsung di persekitaran ni atau mana-mana klon
+// projek masa depan. Kesan senyap: bootServer() spawn `node ... server.js` dengan cwd yang tak
+// wujud, proses gagal serta-merta (ENOENT) sebelum sempat cuba /api/system/health, jadi SEMUA 13
+// simulasi (termasuk semakan keselamatan/race-condition kritikal) gagal dengan cara yang kelihatan
+// macam pepijat aplikasi sedangkan sebenarnya cuma laluan silap — berisiko disalahtafsir atau
+// diabaikan oleh sesiapa yang cuba jalankan suite ni pada mesin/klon baharu.
+export const REPO = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 export const hashPassword = (plain) => {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -111,6 +120,20 @@ export function isiHuraianCukup(ceilingForSlot, slotIndex, tajukLen) {
   while (huraian.length < sasaran) huraian += 'Tambah teks. ';
   return huraian.slice(0, sasaran).trim();
 }
+
+// Huraian Panjang SAH — >= MIN_BRIEF_LONG_CHARS (400 aksara, core/editorial/GeometryConfig.js) —
+// dikongsi (2026-09-02, dapatan bug-hunt) supaya SETIAP simulasi yang menerbitkan kandungan
+// "sah" tak tercicir medan ni lagi. Sebelum ni setiap fixture blok() simulasi tulis Huraian Panjang
+// sendiri (atau LANGSUNG TAK sertakan langsung) — sejak gerbang wajib >=400 aksara dikuatkuasakan
+// (2026-08-07, diperketat 2026-08-28 supaya kosong pun ditolak), MANA-MANA fixture tanpa medan ni
+// gagal pada langkah PERSEDIAAN, sebelum sempat sampai ke peraturan sebenar yang simulasi tu mahu
+// uji — kesan sebenar ditemui merentasi sim6/sim8/sim11 serentak. Guna pemalar SAMA di semua
+// tempat supaya pembetulan akan datang (kalau had 400 berubah) cukup di SATU tempat.
+export const HURAIAN_PANJANG_SAH = 'Ujian simulasi ini menyediakan Huraian Panjang yang cukup '
+  + 'panjang supaya gerbang had minimum 400 aksara tidak tercetus, membolehkan ujian menyasarkan '
+  + 'peraturan lain yang sebenarnya mahu diuji. Teks ini sengaja neutral dan tidak menyentuh '
+  + 'kandungan editorial sebenar, cuma memenuhi keperluan panjang minimum yang ditetapkan di '
+  + 'Tetapan Am Slot. Ayat tambahan ini semata-mata untuk memastikan jumlah aksara mencukupi ambang.';
 
 export function pelapor(namaSim) {
   const penemuan = [];

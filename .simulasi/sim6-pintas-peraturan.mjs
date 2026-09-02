@@ -9,7 +9,7 @@
 import path from 'node:path';
 import os from 'node:os';
 import sqlite3 from 'sqlite3';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb, isiHuraianCukup, HURAIAN_PANJANG_SAH } from './sim-lib.mjs';
 import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5204;
@@ -19,6 +19,13 @@ const lap = pelapor('SIM 6 — PINTAS PERATURAN');
 const SLOT = 1;
 const BIDANG = 'Ekonomi';
 const PANJANG_GILA = 'A'.repeat(3000);
+
+// HURAIAN_PANJANG_SAH (sim-lib.mjs) — WAJIB disertakan pada mana-mana kes ujian yang bukan sengaja
+// menguji had ni sendiri (2026-09-02, dapatan bug-hunt). Tanpanya, SETIAP percubaan terbit
+// kandungan "sah" (tajuk+huraian ringkas munasabah) ditolak oleh gerbang Huraian Panjang wajib
+// (ContentBudget.js validateHuraianPanjangWajib, lalai 400 aksara sejak 2026-08-07, dikuatkuasakan
+// walau kosong sejak 2026-08-28) SEBELUM sempat sampai ke peraturan Bidang/Topik yang ujian ni
+// sepatutnya sasarkan — lihat nota panjang di bawah pada setiap kes ujian terjejas.
 
 const srv = await bootServer({ port: PORT, dbFile: DBF, freshDb: true });
 try {
@@ -37,6 +44,7 @@ try {
     `UUID: ${o.uuid}`,
     `Tajuk: ${o.tajuk}`,
     `Huraian ringkas: ${o.huraian}`,
+    ...(o.huraianPanjang !== undefined ? [`Huraian panjang: ${o.huraianPanjang}`] : []),
     `Bidang: ${o.bidang}`,
     ...(o.topik !== undefined ? [`Topik: ${o.topik}`] : []),
     'Sumber: Ujian',
@@ -44,7 +52,17 @@ try {
     'Status: terbit',
   ].join('\n');
 
-  const cubaTerbit = async (label, o, sebabDijangkaDitolak) => {
+  // frasaDijangka (2026-09-02, dapatan bug-hunt) — sebelum ni cubaTerbit anggap MANA-MANA
+  // penolakan 400 sebagai "lulus", tanpa semak SEBAB sebenar. Ujian Bidang/Topik di bawah dahulu
+  // sentiasa "lulus" kerana fixture (`tajuk: 'Tajuk Sah', huraian: 'Huraian sah.'`) langsung tidak
+  // sertakan Huraian Panjang (wajib >=400 aksara sejak 2026-08-07/dikuatkuasakan penuh sejak
+  // 2026-08-28) DAN gagal had minimum 80% bajet kad (keputusan Izzat 2026-08-08) — kedua-dua
+  // gerbang tu tercetus DAHULU dalam server.js (baris ~3419-3518), jadi peraturan Bidang/Topik yang
+  // ujian ni sepatutnya sasarkan tidak pernah benar-benar tersentuh. Kalau `validateBidangTopik()`
+  // rosak/dibuang esok, ujian ni akan terus lapor "lulus" tanpa perasan langsung. Parameter
+  // `frasaDijangka` (pilihan) memaksa semakan mesej ralat SEBENAR mengandungi frasa yang disasarkan
+  // — kalau ditolak atas sebab LAIN, lapor sebagai penemuan, bukan diam-diam anggap lulus.
+  const cubaTerbit = async (label, o, sebabDijangkaDitolak, frasaDijangka) => {
     const sebelum = await bilKandungan();
     const r = await api('POST', '/api/system/slots', [{
       slotIndex: SLOT, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok(o),
@@ -54,6 +72,8 @@ try {
       lap.gagal(`PERATURAN DIPINTAS: ${label}`, `pelayan TERIMA (${sebabDijangkaDitolak}) dan kandungan tersimpan`);
     } else if (r.ok && selepas === sebelum) {
       lap.lulus(`${label} — tiada kandungan tercipta`);
+    } else if (frasaDijangka && !(r.json?.error || '').toLowerCase().includes(frasaDijangka.toLowerCase())) {
+      lap.gagal(`${label} — ditolak atas sebab LAIN, bukan yang disasarkan`, `dijangka mengandungi "${frasaDijangka}", sebenar: "${r.json?.error || ''}"`);
     } else {
       lap.lulus(`${label} -> ditolak ${r.status}`);
     }
@@ -73,27 +93,36 @@ try {
   }, 'jumlah bajet melebihi 1.0');
 
   // --- Bidang & Topik ------------------------------------------------------------------
+  // Huraian ringkas dijana via isiHuraianCukup() (lulus had minimum 80% bajet kad) + Huraian
+  // Panjang SAH disertakan (lulus gerbang wajib 400 aksara) supaya SATU-SATUNYA sebab penolakan
+  // yang mungkin ialah peraturan Bidang/Topik yang disasarkan — bukan "Huraian sah." pendek yang
+  // sebelum ni ditolak oleh gerbang lain dahulu (lihat nota panjang di cubaTerbit() di atas).
+  const tajukSah = 'Tajuk Sah';
+  const huraianRingkasSah = isiHuraianCukup(ceilingForSlot, SLOT, tajukSah.length);
+
   await cubaTerbit('Bidang tak sepadan Bidang terkunci slot', {
-    uuid: 'p4', tajuk: 'Tajuk Sah', huraian: 'Huraian sah.', bidang: 'Sukan', topik: 'Bola',
-  }, `slot dikunci ${BIDANG}, dihantar Sukan`);
+    uuid: 'p4', tajuk: tajukSah, huraian: huraianRingkasSah, huraianPanjang: HURAIAN_PANJANG_SAH, bidang: 'Sukan', topik: 'Bola',
+  }, `slot dikunci ${BIDANG}, dihantar Sukan`, 'tidak sepadan');
 
   await cubaTerbit('Topik tiada langsung', {
-    uuid: 'p5', tajuk: 'Tajuk Sah', huraian: 'Huraian sah.', bidang: BIDANG,
-  }, 'Topik wajib untuk kandungan baharu');
+    uuid: 'p5', tajuk: tajukSah, huraian: huraianRingkasSah, huraianPanjang: HURAIAN_PANJANG_SAH, bidang: BIDANG,
+  }, 'Topik wajib untuk kandungan baharu', 'topik diperlukan');
 
   await cubaTerbit('Bidang tidak wujud dalam Taksonomi', {
-    uuid: 'p6', tajuk: 'Tajuk Sah', huraian: 'Huraian sah.', bidang: 'BidangRekaan', topik: 'X',
-  }, 'Bidang bukan senarai aktif');
+    uuid: 'p6', tajuk: tajukSah, huraian: huraianRingkasSah, huraianPanjang: HURAIAN_PANJANG_SAH, bidang: 'BidangRekaan', topik: 'X',
+  }, 'Bidang bukan senarai aktif', 'tidak sepadan');
 
   // --- Laluan PATCH (edit terus) -------------------------------------------------------
-  // Cipta satu kandungan SAH dahulu, kemudian cuba rosakkan melalui PATCH.
-  await api('POST', '/api/system/slots', [{
+  // Cipta satu kandungan SAH dahulu, kemudian cuba rosakkan melalui PATCH. Huraian Panjang SAH
+  // WAJIB disertakan (2026-09-02, dapatan bug-hunt — lihat nota di cubaTerbit() di atas); tanpanya
+  // prasyarat ni gagal senyap, jadi KEDUA-DUA ujian PATCH di bawah tidak pernah benar-benar jalan.
+  const rSah = await api('POST', '/api/system/slots', [{
     slotIndex: SLOT, contentMode: 'Manual', manualDesk: BIDANG,
-    manualSummary: blok({ uuid: 'sah1', tajuk: 'Tajuk Sah Untuk Edit', huraian: isiHuraianCukup(ceilingForSlot, SLOT, 'Tajuk Sah Untuk Edit'.length), bidang: BIDANG, topik: 'Kewangan' }),
+    manualSummary: blok({ uuid: 'sah1', tajuk: 'Tajuk Sah Untuk Edit', huraian: isiHuraianCukup(ceilingForSlot, SLOT, 'Tajuk Sah Untuk Edit'.length), huraianPanjang: HURAIAN_PANJANG_SAH, bidang: BIDANG, topik: 'Kewangan' }),
   }]);
   const objSah = await dbGet(db, 'SELECT id FROM editorial_objects ORDER BY createdAt DESC LIMIT 1');
   if (!objSah) {
-    lap.gagal('prasyarat: kandungan sah tak tercipta', 'tidak dapat menguji laluan PATCH');
+    lap.gagal('prasyarat: kandungan sah tak tercipta', `tidak dapat menguji laluan PATCH (ralat pelayan: ${rSah.json?.error || rSah.status})`);
   } else {
     const rP = await api('PATCH', `/api/system/content/${objSah.id}`, { title: PANJANG_GILA });
     const tajukDb = (await dbGet(db, 'SELECT title FROM editorial_revisions WHERE objectId=? ORDER BY version DESC LIMIT 1', [objSah.id]))?.title;

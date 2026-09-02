@@ -8,7 +8,7 @@
 import path from 'node:path';
 import os from 'node:os';
 import sqlite3 from 'sqlite3';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, bukaDb, isiHuraianCukup, HURAIAN_PANJANG_SAH } from './sim-lib.mjs';
 import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5206;
@@ -32,10 +32,14 @@ try {
   await api('POST', '/api/system/categories/assign-slot', { slotIndex: SLOT, bidangName: BIDANG });
 
   // Terbitkan kandungan SEBENAR yang mengandungi nota dalaman, kemudian luluskan jadi Aktif.
+  // Huraian Panjang WAJIB disertakan (2026-09-02, dapatan bug-hunt — lihat nota di sim-lib.mjs
+  // HURAIAN_PANJANG_SAH); tanpanya publish ni ditolak 400 dan SELURUH ujian portal awam di bawah
+  // (kebocoran + kandungan aktif kelihatan) diuji terhadap kandungan yang tidak pernah wujud.
   const blok = [
     'UUID: awam-0001',
     'Tajuk: Dasar Ekonomi Negara Dikemas Kini',
     'Huraian ringkas: ' + isiHuraianCukup(ceilingForSlot, SLOT, 'Dasar Ekonomi Negara Dikemas Kini'.length),
+    'Huraian panjang: ' + HURAIAN_PANJANG_SAH,
     'Bidang: ' + BIDANG,
     'Topik: Kewangan',
     'Sumber: Berita Harian',
@@ -43,9 +47,10 @@ try {
     'Nota: ' + NOTA_RAHSIA,
     'Status: terbit',
   ].join('\n');
-  await api('POST', '/api/system/slots', [{ slotIndex: SLOT, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok }]);
+  const rBlok = await api('POST', '/api/system/slots', [{ slotIndex: SLOT, contentMode: 'Manual', manualDesk: BIDANG, manualSummary: blok }]);
   const obj = await dbGet(db, 'SELECT id FROM editorial_objects ORDER BY createdAt DESC LIMIT 1');
-  if (obj) await api('PATCH', `/api/system/content/${obj.id}`, { status: 'approved' });
+  if (!obj) throw new Error('prasyarat: kandungan awam sah tak tercipta — ' + JSON.stringify(rBlok.json));
+  await api('PATCH', `/api/system/content/${obj.id}`, { status: 'approved' });
 
   // Nota dalaman (Peti Makluman) yang TIDAK sepatutnya terbit awam.
   await api('POST', '/api/system/editor-notes', {

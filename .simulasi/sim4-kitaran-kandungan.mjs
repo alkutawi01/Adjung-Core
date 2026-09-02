@@ -9,7 +9,7 @@
 import path from 'node:path';
 import os from 'node:os';
 import sqlite3 from 'sqlite3';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, dbRun, bukaDb, isiHuraianCukup } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, dbRun, bukaDb, isiHuraianCukup, HURAIAN_PANJANG_SAH } from './sim-lib.mjs';
 import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5202;
@@ -40,6 +40,10 @@ try {
     'UUID: sim-uuid-0001',
     'Tajuk: Dasar Fiskal Baharu Diumumkan',
     'Huraian ringkas: ' + isiHuraianCukup(ceilingForSlot, SLOT, 'Dasar Fiskal Baharu Diumumkan'.length),
+    // Huraian Panjang WAJIB (2026-09-02, dapatan bug-hunt — lihat HURAIAN_PANJANG_SAH di
+    // sim-lib.mjs); tanpanya langkah A ditolak 400 dan SELURUH kitaran B-F yang bergantung
+    // padanya gagal berturutan.
+    'Huraian panjang: ' + HURAIAN_PANJANG_SAH,
     'Bidang: ' + BIDANG,
     'Topik: Kewangan',
     'Sumber: Berita Harian',
@@ -95,6 +99,10 @@ try {
     hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0,
     hadHuraianPanjangMin: 0, hadSumberMin: 0, hadTopikMin: 0, hadNotaEditorMin: 0, logoPenaja: '',
     warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0, focusViewTitleScale: 1, focusViewBodySize: 15,
+    // Medan wajib ditambah kemudian, fixture ni tak pernah dikemas kini — lihat nota panjang di
+    // sim3-tulisan-sah.mjs (dapatan bug-hunt 2026-09-02).
+    petikanTempohPutaranSaat: 10, petikanKuantitiHarianMaksimum: 12,
+    carouselJedaPertama: 15, carouselTempohLalai: 10, hadJamRotasiSlotPenuh: 24,
   });
   if (!amSet.ok) throw new Error('slot-am-settings gagal ditetapkan: ' + JSON.stringify(amSet.json));
 
@@ -104,6 +112,7 @@ try {
     'UUID: sim-uuid-0002',
     'Tajuk: Kandungan Kedua Menunggu Ruang',
     'Huraian ringkas: ' + isiHuraianCukup(ceilingForSlot, SLOT, 'Kandungan Kedua Menunggu Ruang'.length),
+    'Huraian panjang: ' + HURAIAN_PANJANG_SAH,
     'Bidang: ' + BIDANG,
     'Topik: Perbankan',
     'Sumber: Utusan',
@@ -147,7 +156,9 @@ try {
   // =====================================================================================
   if (globalThis.OBJ2) {
     const tajukAsal = (await dbGet(db, 'SELECT title FROM editorial_revisions WHERE objectId=? ORDER BY version DESC LIMIT 1', [globalThis.OBJ2]))?.title;
-    const r = await api('POST', `/api/system/content/${globalThis.OBJ2}/reject-to-draft`, {});
+    // `sebab` WAJIB sejak 2026-08-18 (dapatan bug-hunt 2026-09-02 — fixture ni tak pernah
+    // dikemas kini selepas keputusan Izzat tu, contentRoutes.js ~baris 1661).
+    const r = await api('POST', `/api/system/content/${globalThis.OBJ2}/reject-to-draft`, { sebab: 'Ujian simulasi: draf perlu semakan semula.' });
     if (!r.ok) {
       lap.gagal('Tolak ke draf', `HTTP ${r.status} ${r.teks.slice(0, 200)}`);
     } else {

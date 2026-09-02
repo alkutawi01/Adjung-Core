@@ -84,6 +84,13 @@ try {
     hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0,
     hadHuraianPanjangMin: 0, hadSumberMin: 0, hadTopikMin: 0, hadNotaEditorMin: 0, logoPenaja: '',
     warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0, focusViewTitleScale: 1, focusViewBodySize: 15,
+    // Medan wajib ditambah kemudian (Petikan 2026-08-19, jeda carousel 2026-08-26, putaran slot
+    // penuh) yang fixture ni tak pernah dikemas kini utk sertakan — sebelum ni slot-am-settings
+    // sentiasa ditolak 400 ("Tempoh putaran Petikan mesti nombor bulat...") dan ujian ni tak pernah
+    // sampai ke bahagian yang sepatutnya diuji (dapatan bug-hunt 2026-09-02, nombor sepadan
+    // AM_DEFAULTS di slotAmRoutes.js).
+    petikanTempohPutaranSaat: 10, petikanKuantitiHarianMaksimum: 12,
+    carouselJedaPertama: 15, carouselTempohLalai: 10, hadJamRotasiSlotPenuh: 24,
   }),
     async () => { const r = await dbGet(db, 'SELECT hadKandunganSlot FROM slot_am_settings LIMIT 1'); return Number(r?.hadKandunganSlot) === 7 ? null : `DB=${JSON.stringify(r)}`; });
 

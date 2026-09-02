@@ -8,7 +8,7 @@
 import path from 'node:path';
 import os from 'node:os';
 import sqlite3 from 'sqlite3';
-import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb } from './sim-lib.mjs';
+import { bootServer, ciptaPentadbir, login, buatKlien, pelapor, dbGet, dbAll, bukaDb, HURAIAN_PANJANG_SAH } from './sim-lib.mjs';
 import { ceilingForSlot } from '../core/editorial/GeometryConfig.js';
 
 const PORT = 5209;
@@ -43,8 +43,12 @@ try {
     return huraian.slice(0, sasaran).trim();
   };
 
+  // Huraian Panjang WAJIB disertakan (2026-09-02, dapatan bug-hunt — lihat HURAIAN_PANJANG_SAH
+  // di sim-lib.mjs); tanpanya SETIAP penciptaan kandungan di bawah ditolak 400 sebelum sempat
+  // menguji apa-apa perlumbaan serentak.
   const blok = (uuid, tajuk, slotIndex = SLOT) => [
     `UUID: ${uuid}`, `Tajuk: ${tajuk}`, 'Huraian ringkas: ' + isiHuraian(slotIndex, tajuk.length),
+    'Huraian panjang: ' + HURAIAN_PANJANG_SAH,
     'Bidang: ' + BIDANG, 'Topik: Kewangan', 'Status: terbit',
   ].join('\n');
 
@@ -86,6 +90,10 @@ try {
     hadHuraianPanjang: 0, hadSumber: 0, hadTopik: 0, hadNotaEditor: 0,
     hadHuraianPanjangMin: 0, hadSumberMin: 0, hadTopikMin: 0, hadNotaEditorMin: 0, logoPenaja: '',
     warnaPanelTransisi: '#802334', nisbahPenajaTransisi: 0, focusViewTitleScale: 1, focusViewBodySize: 15,
+    // Medan wajib ditambah kemudian, fixture ni tak pernah dikemas kini — lihat nota panjang di
+    // sim3-tulisan-sah.mjs (dapatan bug-hunt 2026-09-02).
+    petikanTempohPutaranSaat: 10, petikanKuantitiHarianMaksimum: 12,
+    carouselJedaPertama: 15, carouselTempohLalai: 10, hadJamRotasiSlotPenuh: 24,
   });
   if (!amSet.ok) throw new Error('slot-am-settings gagal ditetapkan: ' + JSON.stringify(amSet.json));
 
