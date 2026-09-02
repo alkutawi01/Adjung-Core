@@ -39,6 +39,14 @@ const HAD = {
   catatan: 800,
 };
 const STATUS_SENARAI = ['baharu', 'dalam_semakan', 'perlu_maklumat', 'ditolak', 'diluluskan', 'dibayar', 'aktif', 'tamat'];
+// Peringkat yang MASIH boleh dikenakan keputusan semakan (tolak/minta_maklumat/lulus) —
+// dapatan bug-hunt 2026-09-02: dahulu tiga tindakan ni terus UPDATE tanpa semak status
+// semasa (tak macam 'mula_semakan' yang sudah ada gerbang), jadi permohonan yang SUDAH
+// 'diluluskan'/'dibayar'/'aktif' boleh ditindih balik ke 'ditolak' atau 'perlu_maklumat'
+// oleh Pentadbir yang tersilap klik rekod lama — menghantar emel penolakan palsu kepada
+// penaja yang sudah aktif DAN mewujudkan percanggahan permohonan_penaja.status vs
+// sponsors.status yang tak pernah disegerakkan balik.
+const STATUS_BOLEH_DISEMAK = ['baharu', 'dalam_semakan', 'perlu_maklumat'];
 const TEMPOH_TOKEN_HARI = 7;
 const TEMPOH_TAJAAN_MAX_HARI = 31; // maksimum 1 bulan (keputusan Izzat 30/8/2026)
 
@@ -191,9 +199,15 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
         if (rekod.status !== 'baharu') return res.status(409).json({ error: 'Permohonan sudah dalam semakan.' });
         await dbRun('UPDATE permohonan_penaja SET status = ?, updatedAt = ? WHERE id = ?', ['dalam_semakan', kini, id]);
       } else if (tindakan === 'minta_maklumat') {
+        if (!STATUS_BOLEH_DISEMAK.includes(rekod.status)) {
+          return res.status(409).json({ error: 'Permohonan ini sudah melepasi peringkat semakan.' });
+        }
         await dbRun('UPDATE permohonan_penaja SET status = ?, catatanDalaman = ?, updatedAt = ? WHERE id = ?',
           ['perlu_maklumat', String(catatan || '').trim(), kini, id]);
       } else if (tindakan === 'tolak') {
+        if (!STATUS_BOLEH_DISEMAK.includes(rekod.status)) {
+          return res.status(409).json({ error: 'Permohonan ini sudah melepasi peringkat semakan.' });
+        }
         await dbRun('UPDATE permohonan_penaja SET status = ?, sebabTolak = ?, updatedAt = ? WHERE id = ?',
           ['ditolak', String(catatan || '').trim(), kini, id]);
         await hantarEmel({
@@ -202,6 +216,9 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
           html: `<p>Salam,</p><p>Selepas semakan, Adjung Brief tidak dapat menerima permohonan penajaan ${id} pada masa ini berdasarkan Dasar Penajaan Adjung.</p>${catatan ? `<p>${String(catatan).trim()}</p>` : ''}<p>Terima kasih atas minat anda.</p>`,
         });
       } else if (tindakan === 'lulus') {
+        if (!STATUS_BOLEH_DISEMAK.includes(rekod.status)) {
+          return res.status(409).json({ error: 'Permohonan ini sudah melepasi peringkat semakan.' });
+        }
         const jumlah = Number(jumlahDipersetujui);
         if (!jumlah || jumlah <= 0) return res.status(400).json({ error: 'Sila nyatakan jumlah tajaan yang dipersetujui.' });
         const token = crypto.randomBytes(32).toString('hex');
