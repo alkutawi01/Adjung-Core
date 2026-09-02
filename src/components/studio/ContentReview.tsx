@@ -5,6 +5,7 @@ import { Button } from '../common/Button';
 import { Tooltip } from '../common/Tooltip';
 import { MesejStatus } from '../common/MesejStatus';
 import { tanganiKekunciItalic } from '../../utils.tsx';
+import { bacaJsonSelamat } from '../../utils/bacaJson';
 
 interface ContentItem {
   id: string;
@@ -256,13 +257,20 @@ export function ContentReview() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: namaPromptBaharu.trim(), templateText: teksPromptBaharu.trim() }),
       });
-      if (!res.ok) throw new Error();
+      // Baca ralat SEBENAR daripada pelayan sebelum lempar (2026-09-02, dapatan bug-hunt — corak
+      // sama seperti simpanBulk() di fail ni: `throw new Error()` kosong sebelum ni buang mesej
+      // sebab sebenar pelayan (cth nama pendua), editor cuma nampak "Prompt gagal disimpan"
+      // generik tanpa cara tahu SEBAB — lihat peraturan am di CLAUDE.md ttg corak ni).
+      if (!res.ok) {
+        const data = await bacaJsonSelamat(res).catch(() => ({} as any));
+        throw new Error(data?.error || 'Prompt gagal disimpan.');
+      }
       setNamaPromptBaharu('');
       setTeksPromptBaharu('');
       muatPromptSemakan();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Gagal menyimpan prompt semakan:', e);
-      setRalatPrompt('Prompt gagal disimpan.');
+      setRalatPrompt(e?.message || 'Prompt gagal disimpan.');
     } finally {
       setMenyimpanPrompt(false);
     }
@@ -272,11 +280,14 @@ export function ContentReview() {
     setRalatPrompt('');
     try {
       const res = await fetch(`/api/system/semakan-prompts/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await bacaJsonSelamat(res).catch(() => ({} as any));
+        throw new Error(data?.error || 'Prompt gagal dipadam.');
+      }
       setPromptSemakan(prev => prev.filter(p => p.id !== id));
-    } catch (e) {
+    } catch (e: any) {
       console.error('Gagal memadam prompt semakan:', e);
-      setRalatPrompt('Prompt gagal dipadam.');
+      setRalatPrompt(e?.message || 'Prompt gagal dipadam.');
     }
   };
 
