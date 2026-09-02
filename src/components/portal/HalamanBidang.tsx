@@ -24,37 +24,65 @@ const formatTarikhArtikel = (raw?: string): string => {
   return d.toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-// Sumber + Tarikh Sumber (2026-09-02, Izzat: "papar semua yg ada dlm kad di frontpage kecuali
-// huraian ringkas") — senarai ni dahulu cuma papar Topik/Tajuk/Tarikh Siaran, tercicir medan
-// footer kad sebenar (FrontpageView.tsx ~baris 4063-4065: Sumber + Tarikh Sumber, sourceUrl
-// pautan luar). Komponen kongsi (dipakai TERKINI dan Koleksi Terdahulu) supaya logik SATU tempat
-// — corak sembunyikanTarikhSumber SAMA PERSIS kad sebenar (sumberAdjungSendiri(), FrontpageView.tsx)
-// supaya kandungan "Editorial Adjung" tak papar dua tarikh berlebihan (Tarikh Siaran di atas +
-// Tarikh Sumber sama di sini). Tiada pautan (sourceUrl kosong ATAU sentinel '#', lihat pembetulan
-// FocusView.tsx IkonDiakses hari ni) papar teks biasa, bukan `<a>`.
-const MedanSumber: React.FC<{ source: string; sourceUrl: string; originalDate: string }> = ({ source, sourceUrl, originalDate }) => {
-  if (!source) return null;
-  const tarikhSumber = !sumberAdjungSendiri(source) ? getDisplayDate(originalDate) : '';
+// Baris meta artikel — SATU baris mendatar, bukan bertingkat (2026-09-02, Izzat: "ni kenapa
+// susun bertingkat mcm ni? sumber dan tarikh sumber tak boleh letak kat belah kanan ke?").
+// Susunan asal (tambahan awal hari ni) letak Tarikh Siaran pada satu baris dan Sumber+Tarikh
+// Sumber pada baris SENDIRI di bawahnya — dua baris meta bertindan buat setiap entri, senarai
+// nampak sesak dan tinggi tanpa perlu, dan "· Arkib" tersepit di hujung tarikh siaran (nampak
+// macam sebahagian tarikh, bukan status kandungan tersendiri).
+//
+// Reka bentuk baharu: SATU baris, dua hujung — tarikh siaran + lencana Arkib di KIRI (bila-bila
+// artikel diterbitkan, konteks kronologi utama senarai ni), sumber + tarikh sumber di KANAN
+// (provenance, sepadan corak kad frontpage sebenar yang letak lajur sumber di tepi kanan kad).
+// `justify-between` + `flex-wrap`: pada skrin sempit (telefon) blok kanan turun ke baris bawah
+// SEBAGAI SATU UNIT UTUH, bukan berpecah tengah-tengah — corak sama macam lajur sumber kad
+// bento (FrontpageView.tsx). Lencana "Arkib" kini kotak bersempadan halus (bukan "· Arkib" teks
+// bersambung) supaya terbaca sebagai STATUS, jelas berasingan drpd tarikh di sebelahnya.
+//
+// sembunyikanTarikhSumber ikut corak SAMA PERSIS kad sebenar (sumberAdjungSendiri(),
+// FrontpageView.tsx) — kandungan "Editorial Adjung" tak papar dua tarikh berlebihan (Tarikh
+// Siaran kiri + Tarikh Sumber kanan yang sama). Tiada pautan (sourceUrl kosong ATAU sentinel
+// '#', lihat pembetulan FocusView.tsx IkonDiakses hari ni) papar teks biasa, bukan `<a>`.
+const BarisMeta: React.FC<{
+  publishedDate: string;
+  status: string;
+  source: string;
+  sourceUrl: string;
+  originalDate: string;
+}> = ({ publishedDate, status, source, sourceUrl, originalDate }) => {
+  const tarikhSumber = source && !sumberAdjungSendiri(source) ? getDisplayDate(originalDate) : '';
   const adaPautan = !!sourceUrl && sourceUrl !== '#';
-  const isiKandungan = (
+  const sumberTeks = (
     <>
       {source}
-      {tarikhSumber && <span className="font-mono"> · {tarikhSumber}</span>}
+      {tarikhSumber && <span className="text-stone-300"> · {tarikhSumber}</span>}
     </>
   );
   return (
-    <div className="font-sans text-[10px] uppercase tracking-widest text-stone-400 mt-1">
-      {adaPautan ? (
-        <a
-          href={sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="hover:text-Adjung-maroon transition-colors"
-        >
-          {isiKandungan}
-        </a>
-      ) : isiKandungan}
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mt-2 font-mono text-[10px] text-stone-400">
+      <span className="flex items-baseline gap-2">
+        {publishedDate && formatTarikhArtikel(publishedDate)}
+        {status === 'archived' && (
+          <span className="font-sans text-[8px] uppercase tracking-widest text-stone-400 border border-stone-200 rounded px-1.5 py-px">
+            Arkib
+          </span>
+        )}
+      </span>
+      {source && (
+        <span className="uppercase tracking-widest text-stone-400">
+          {adaPautan ? (
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="hover:text-Adjung-maroon transition-colors"
+            >
+              {sumberTeks}
+            </a>
+          ) : sumberTeks}
+        </span>
+      )}
     </div>
   );
 };
@@ -386,13 +414,13 @@ export function HalamanBidang() {
                             {safeParseInline(a.summary)}
                           </p>
                         )}
-                        {a.publishedDate && (
-                          <div className="font-mono text-[10px] text-stone-400 mt-1.5">
-                            {formatTarikhArtikel(a.publishedDate)}
-                            {a.status === 'archived' && <span className="ml-1.5 text-stone-300">· Arkib</span>}
-                          </div>
-                        )}
-                        <MedanSumber source={a.source} sourceUrl={a.sourceUrl} originalDate={a.originalDate} />
+                        <BarisMeta
+                          publishedDate={a.publishedDate}
+                          status={a.status}
+                          source={a.source}
+                          sourceUrl={a.sourceUrl}
+                          originalDate={a.originalDate}
+                        />
                       </button>
                     </li>
                   ))}
@@ -430,13 +458,13 @@ export function HalamanBidang() {
                             <div className="font-serif text-[16px] md:text-[17px] font-medium leading-snug text-[#1F1F1F] group-hover:text-Adjung-maroon transition-colors" style={{ hyphens: 'none', WebkitHyphens: 'none' }}>
                               {safeParseInline(a.title)}
                             </div>
-                            {a.publishedDate && (
-                              <div className="font-mono text-[10px] text-stone-400 mt-1.5">
-                                {formatTarikhArtikel(a.publishedDate)}
-                                {a.status === 'archived' && <span className="ml-1.5 text-stone-300">· Arkib</span>}
-                              </div>
-                            )}
-                            <MedanSumber source={a.source} sourceUrl={a.sourceUrl} originalDate={a.originalDate} />
+                            <BarisMeta
+                              publishedDate={a.publishedDate}
+                              status={a.status}
+                              source={a.source}
+                              sourceUrl={a.sourceUrl}
+                              originalDate={a.originalDate}
+                            />
                           </button>
                         </li>
                       ))}
