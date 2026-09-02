@@ -5,6 +5,15 @@ import { JENIS_ANIMASI_ASAS, JENIS_ANIMASI_RAWAK } from '../editorial/AnimasiCon
 import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 
+// Ralat pengesahan input (2026-09-02, dapatan bug-hunt) — dahulu kod status HTTP (400 vs 500)
+// ditentukan dgn semak substring "mesti nombor" dalam err.message, tapi BUKAN semua mesej
+// pengesahan dalam laluan ni mengandungi frasa tu (cth had huraian panjang "mesti sekurang-
+// kurangnya...", semakan silang min/max "tak boleh lebih besar..."). Kesan: editor taip nombor
+// tak sah dilog server sebagai 500 (ralat sistem), bukan 400 (input tak sah) — console.error
+// palsu + kadar 5xx palsu utk pemantauan. Kelas ni jadi penanda EKSPLISIT (instanceof), bukan
+// corak teks rapuh — SEMUA `throw new Error(...)` pengesahan dlm laluan ni ditukar ke kelas ni.
+class RalatPengesahan extends Error {}
+
 // Tetapan Am Slot (2026-07-30, permintaan pemilik projek) — tetapan yang terpakai pada SEMUA slot
 // bento sekali gus, bukan per-slot dan bukan per-tier. Ticker dan tier Bar tiada di sini; kedua-dua
 // tu ada rumah sendiri di Modul Khas.
@@ -261,7 +270,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       const b = req.body || {};
       const nombor = (nilai, nama) => {
         const n = Number(nilai);
-        if (!Number.isInteger(n) || n < 0) throw new Error(`${nama} mesti nombor bulat 0 atau lebih (0 = tiada had).`);
+        if (!Number.isInteger(n) || n < 0) throw new RalatPengesahan(`${nama} mesti nombor bulat 0 atau lebih (0 = tiada had).`);
         return n;
       };
 
@@ -287,14 +296,14 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         petikanTempohPutaranSaat: (() => {
           const n = Number(b.petikanTempohPutaranSaat);
           if (!Number.isInteger(n) || n < 1 || n > 300) {
-            throw new Error('Tempoh putaran Petikan mesti nombor bulat antara 1 dan 300 saat.');
+            throw new RalatPengesahan('Tempoh putaran Petikan mesti nombor bulat antara 1 dan 300 saat.');
           }
           return n;
         })(),
         petikanKuantitiHarianMaksimum: (() => {
           const n = Number(b.petikanKuantitiHarianMaksimum);
           if (!Number.isInteger(n) || n < 1 || n > 100) {
-            throw new Error('Kuantiti harian maksimum Petikan mesti nombor bulat antara 1 dan 100.');
+            throw new RalatPengesahan('Kuantiti harian maksimum Petikan mesti nombor bulat antara 1 dan 100.');
           }
           return n;
         })(),
@@ -306,7 +315,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
           // sedia ada (MIN_BRIEF_LONG_CHARS), kalau tidak mustahil simpan APA-APA kandungan (min >
           // max). 0 (tiada had) sentiasa dibenarkan.
           if (n > 0 && n < MIN_BRIEF_LONG_CHARS) {
-            throw new Error(`Had huraian panjang mesti sekurang-kurangnya ${MIN_BRIEF_LONG_CHARS} aksara (had minimum sedia ada), atau 0 untuk tiada had.`);
+            throw new RalatPengesahan(`Had huraian panjang mesti sekurang-kurangnya ${MIN_BRIEF_LONG_CHARS} aksara (had minimum sedia ada), atau 0 untuk tiada had.`);
           }
           return n;
         })(),
@@ -326,14 +335,14 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         carouselJedaPertama: (() => {
           const n = Number(b.carouselJedaPertama);
           if (!Number.isInteger(n) || n < 1 || n > 120) {
-            throw new Error('Jeda sebelum pertukaran pertama carousel mesti nombor bulat antara 1 dan 120 saat.');
+            throw new RalatPengesahan('Jeda sebelum pertukaran pertama carousel mesti nombor bulat antara 1 dan 120 saat.');
           }
           return n;
         })(),
         carouselTempohLalai: (() => {
           const n = Number(b.carouselTempohLalai);
           if (!Number.isInteger(n) || n < 1 || n > 300) {
-            throw new Error('Tempoh pertukaran carousel lalai mesti nombor bulat antara 1 dan 300 saat.');
+            throw new RalatPengesahan('Tempoh pertukaran carousel lalai mesti nombor bulat antara 1 dan 300 saat.');
           }
           return n;
         })(),
@@ -361,7 +370,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         hadJamRotasiSlotPenuh: (() => {
           const n = Number(b.hadJamRotasiSlotPenuh);
           if (!Number.isInteger(n) || n < 1 || n > 720) {
-            throw new Error('Tempoh putaran slot penuh mesti nombor bulat antara 1 dan 720 jam.');
+            throw new RalatPengesahan('Tempoh putaran slot penuh mesti nombor bulat antara 1 dan 720 jam.');
           }
           return n;
         })(),
@@ -377,7 +386,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       ];
       for (const [nama, min, maks] of pasanganMinMax) {
         if (min > 0 && maks > 0 && min > maks) {
-          throw new Error(`${nama}: had minimum (${min}) tak boleh lebih besar daripada had maksimum (${maks}).`);
+          throw new RalatPengesahan(`${nama}: had minimum (${min}) tak boleh lebih besar daripada had maksimum (${maks}).`);
         }
       }
 
@@ -454,7 +463,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       res.json({ success: true, ...getAmSettings() });
     } catch (err) {
       console.error('POST slot-am-settings error:', err);
-      const kod = err.message && err.message.includes('mesti nombor') ? 400 : 500;
+      const kod = err instanceof RalatPengesahan ? 400 : 500;
       res.status(kod).json({ error: err.message || 'Gagal menyimpan Tetapan Am Slot.' });
     }
   });
