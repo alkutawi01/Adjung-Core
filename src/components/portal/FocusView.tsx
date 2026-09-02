@@ -937,7 +937,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
             tabIndex={onClose ? 0 : undefined}
             onClick={onClose}
             onKeyDown={onClose ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClose(); } } : undefined}
-            aria-label={onClose ? 'Kembali ke halaman utama' : undefined}
+            aria-label={onClose ? 'Tutup' : undefined}
             style={{
               fontFamily: 'var(--font-serif)', fontSize: '20px', color: 'var(--color-Adjung-maroon)',
               justifySelf: 'center', cursor: onClose ? 'pointer' : 'default',
@@ -1051,7 +1051,15 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   lepas tajuk (delay lebih panjang, ikut hierarki bidang+topik > tajuk > huraian
                   panjang), replay setiap artikel bertukar. */}
               <div key={`huraian-${identitiArtikel}`} className="fv-huraian-masuk" style={{
-                fontFamily: 'var(--font-serif)', fontSize: '14px', fontWeight: 300,
+                fontFamily: 'var(--font-serif)', fontSize: '14px',
+                // Berat fon (2026-09-02, dapatan Izzat: "font huraian panjang di telefon sukar
+                // dibaca") — dahulu 300 (nipis), ditukar 400 (Regular) supaya PADAN dengan
+                // versi desktop kandungan SAMA (~baris 1379, var(--weight-regular)) — Izzat
+                // pilih 400 berbanding 500 (Medium) selepas ditunjukkan kedua-dua pilihan,
+                // sebab 400 lebih sesuai bacaan perenggan panjang, 500 lebih baik utk label
+                // pendek. Fon nipis pada saiz kecil (14px) di telefon memang cabaran bacaan
+                // biasa (strok terlalu halus pada skrin resolusi rendah/cahaya terang).
+                fontWeight: 'var(--weight-regular)' as any,
                 lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty',
                 padding: '0 10px',
               }}>
@@ -1297,7 +1305,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
           tabIndex={onClose ? 0 : undefined}
           onClick={onClose}
           onKeyDown={onClose ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClose(); } } : undefined}
-          aria-label={onClose ? 'Kembali ke halaman utama' : undefined}
+          aria-label={onClose ? 'Tutup' : undefined}
           style={{
             fontFamily: 'var(--font-serif)', fontSize: 'var(--text-18)', letterSpacing: 'var(--tracking-tight)',
             color: 'var(--color-Adjung-maroon)', justifySelf: 'center', cursor: onClose ? 'pointer' : 'default',
