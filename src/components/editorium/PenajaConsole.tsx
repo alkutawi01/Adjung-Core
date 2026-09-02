@@ -101,13 +101,28 @@ const bulanSemasaInput = () => new Date().toISOString().slice(0, 7);
 const isoDariInputTempatan = (v: string) => (v ? `${v}:00+08:00` : '');
 const inputTempatanDariIso = (iso: string | undefined) => (iso ? iso.slice(0, 16) : '');
 
-// Skop slot dipaparkan/diedit sebagai teks nombor dipisah koma (cth "0, 5, 12") — 38 slot
+// Skop slot dipaparkan/diedit sebagai teks nombor dipisah koma (cth "1, 6, 13") — 38 slot
 // terlalu ramai utk checkbox grid tanpa membebankan borang ni; editor bukan dev, nombor slot
 // sudah biasa dilihat di Editorium (label "Slot N" di mana-mana sahaja). Kosong = portal
 // keseluruhan.
+//
+// PEMBETULAN (2026-09-02, dapatan bug-hunt) — versi asal terima/papar nombor SEBAGAI slotIndex
+// dalaman 0-based mentah (placeholder "Contoh: 0, 5, 12"), TERUS BERCANGGAH dengan sebab reka
+// bentuk yang dinyatakan sendiri di atas ("nombor slot sudah biasa dilihat... label 'Slot N'")
+// — SETIAP label "Slot N" lain merentasi Editorium (SenaraiSlotConsole.tsx, DashboardConsole.tsx,
+// dll.) ialah 1-based (`slotIndex + 1`). Admin yang nak skop ke "Slot 1" (macam biasa dilihat)
+// akan taip "1", yang sebelum ni disimpan sebagai slotIndex 1 = Slot 2 SEBENAR — penaja berbayar
+// tersalah letak pada slot bersebelahan. Kini borang terima/papar nombor 1-based (padan label
+// Editorium), tukar ke/dari slotIndex 0-based dalaman di sempadan fungsi ni sahaja — enjin
+// kelayakan (PenajaEligibility.js) dan pelayan (sponsorRoutes.js) kekal guna slotIndex 0-based
+// tanpa diubah. "Ticker" (slotIndex -1, turut disahkan sah di pelayan) ditaip literal sebagai
+// perkataan "Ticker", bukan nombor — elak kekaburan "0" bermaksud Slot 1 ATAU Ticker.
 const slotIndexesDariTeks = (teks: string): number[] =>
-  teks.split(',').map((s) => s.trim()).filter((s) => s !== '').map((s) => parseInt(s, 10)).filter((n) => !Number.isNaN(n) && n >= -1 && n <= 37);
-const teksDariSlotIndexes = (arr: number[] | undefined) => (arr && arr.length > 0 ? arr.join(', ') : '');
+  teks.split(',').map((s) => s.trim()).filter((s) => s !== '')
+    .map((s) => (s.toLowerCase() === 'ticker' ? -1 : parseInt(s, 10) - 1))
+    .filter((n) => !Number.isNaN(n) && n >= -1 && n <= 37);
+const teksDariSlotIndexes = (arr: number[] | undefined) =>
+  (arr && arr.length > 0 ? arr.map((n) => (n === -1 ? 'Ticker' : n + 1)).join(', ') : '');
 
 export const PenajaConsole: React.FC = () => {
   const [senarai, setSenarai] = useState<Penaja[]>([]);
@@ -406,11 +421,11 @@ export const PenajaConsole: React.FC = () => {
           <span className={LABEL_BORANG}>Skop Slot (pilihan)</span>
           <input
             type="text" value={slotIndexesTeks} onChange={(e) => setSlotIndexesTeks(e.target.value)}
-            placeholder="Contoh: 0, 5, 12"
+            placeholder="Contoh: 1, 6, 13 (atau Ticker)"
             className={INPUT_BORANG}
           />
           <span className="text-stone-400 text-[10px]">
-            Nombor slot dipisah koma. Kosongkan untuk taja portal keseluruhan (semua slot).
+            Nombor slot (ikut label "Slot N" di Editorium) dipisah koma, atau "Ticker". Kosongkan untuk taja portal keseluruhan (semua slot).
           </span>
         </label>
 
@@ -755,7 +770,7 @@ function PermohonanPenajaModal({ permohonan, onTutup, onSelesai }: {
                 </label>
                 <label className="flex flex-col gap-1">
                   <span className={LABEL_BORANG}>Skop Slot (pilihan)</span>
-                  <input type="text" value={slotIndexesTeks} onChange={(e) => setSlotIndexesTeks(e.target.value)} placeholder="Contoh: 0, 5, 12" className={INPUT_BORANG} />
+                  <input type="text" value={slotIndexesTeks} onChange={(e) => setSlotIndexesTeks(e.target.value)} placeholder="Contoh: 1, 6, 13 (atau Ticker)" className={INPUT_BORANG} />
                 </label>
               </div>
               <label className="flex flex-col gap-1">

@@ -3,6 +3,7 @@ import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { bulanMalaysia } from '../utils/waktuMalaysia.js';
 import { sponsorAktifPadaMasa } from '../editorial/PenajaEligibility.js';
+import { angkaRom } from './permohonanPenajaRoutes.js';
 
 // Penaja (2026-08-05, Fasa 12 — permintaan Izzat; dikemas kini 2026-08-30, audit mendalam
 // modul Penaja). Tajaan BULANAN (lama) ATAU julat ISO 7-hari/tempoh bebas (baharu), boleh
@@ -35,9 +36,18 @@ const sahSenaraiSlot = (arr) => Array.isArray(arr) && arr.every((n) => Number.is
 // Baris ADMIN (Editorium) — sertakan jumlahBayaran, Pentadbir sahaja yang capai laluan ni.
 // `slotIndexes` disuap dari luar (peta sponsorId->slotIndex[], dibina sekali per senarai
 // supaya elak N+1 query) — lalai [] kalau tiada peta dibekalkan.
+// Label "Hamba Allah N" (2026-09-02, dapatan bug-hunt) — `anonymousNo` sengaja dijana secara
+// berjujukan (aktifkan permohonan penaja, permohonanPenajaRoutes.js) khusus supaya pembaca boleh
+// bezakan penaja "Hamba Allah" berbilang, TAPI medan ni sebelum ni tak pernah dihantar dalam
+// respons baris (admin ATAU awam) — angkaRom() (juga dieksport, tak pernah dipanggil mana-mana)
+// jadi kod mati, dan setiap penaja anonim (Editorium MAHUPUN halaman /penaja awam) papar
+// literal "Hamba Allah" sama, tak boleh dibezakan seorang drpd yang lain. Gabung nombor Rom
+// terus ke `nama` di sini (SATU tempat, dipakai admin dan awam serentak) — tiada perubahan skema.
+const namaPaparPenaja = (r) => (r.anonymousNo ? `${r.name} ${angkaRom(r.anonymousNo)}` : r.name);
+
 const barisKepadaPenaja = (r, petaSlot) => ({
   id: r.id,
-  nama: r.name,
+  nama: namaPaparPenaja(r),
   logoUrl: r.logoUrl || '',
   url: r.url || '',
   bulan: r.bulan,
