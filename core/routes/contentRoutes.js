@@ -714,6 +714,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           return res.status(400).json({ error: 'Item ticker tidak menyokong Jadual Terbit/Luput, sebab ia disegarkan terus daripada suapan RSS.' });
         }
         const idx = parseInt(id.slice('ticker-'.length), 10);
+        // Semak NaN EKSPLISIT (dapatan bug-hunt, 2026-09-03) — ID ticker terbentuk secara dalaman
+        // (`ticker-${idx}`, sentiasa nombor sah), tapi URL boleh ditaip/diuji tangan (cth
+        // "ticker-abc"). `parseInt` gagal jadi NaN, dan `NaN < 0`/`NaN >= length` KEDUA-DUANYA
+        // false — gerbang 404 di bawah akan TERLEPAS NaN, lalu `tickerItems[NaN]` ialah undefined
+        // dan `.title = ...` pada baris 735 ranap dgn TypeError (500 tak bermakna, bukan 404
+        // jelas). Tolak awal dgn mesej yang betul.
+        if (Number.isNaN(idx)) {
+          return res.status(404).json({ error: 'Item ticker tidak dijumpai.' });
+        }
         // Baca-ubah-tulis inTheNewsText dikunci sebagai SATU unit (lihat nota susunan kunci di
         // atas fail). Keputusan dipulangkan sebagai nilai dan dibalas SELEPAS kunci dilepaskan —
         // `return res...` terus dari dalam panggil balik hanya keluar daripada panggil balik itu,
@@ -1785,6 +1794,17 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // menjejaki keputusan editor, bukan menyimpan segala yang pernah melintas jalur.
       if (id.startsWith('ticker-')) {
         const idx = parseInt(id.slice('ticker-'.length), 10);
+        // Semak NaN EKSPLISIT (dapatan bug-hunt, 2026-09-03) — sama punca macam PATCH /content/:id
+        // di atas (ID ticker terbentuk dalaman "ticker-N", tapi URL boleh ditaip/diuji tangan cth
+        // "ticker-abc"). Di SINI kesannya LEBIH TERUK drpd PATCH: gerbang `idx < 0 || idx >=
+        // length` di bawah turut terlepas NaN (kedua-dua perbandingan false), tapi
+        // `tickerItems.splice(NaN, 1)` TAK ranap — `Array.prototype.splice` menukar NaN ke 0
+        // secara senyap (ECMA ToIntegerOrInfinity), jadi ia PADAM baris PERTAMA senarai ticker
+        // secara salah, bukan pulangkan 404 "tidak dijumpai". Tolak awal sebelum splice sempat
+        // jalan pada indeks yang salah.
+        if (Number.isNaN(idx)) {
+          return res.status(404).json({ error: 'Item ticker tidak dijumpai.' });
+        }
         // Baca-ubah-tulis dikunci sebagai satu unit — lihat nota susunan kunci di atas fail.
         const hasilPadam = await denganKunciTicker(async () => {
           const settingsRow = await dbGet("SELECT inTheNewsText FROM system_settings WHERE id = 'settings-main'");

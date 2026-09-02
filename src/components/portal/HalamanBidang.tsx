@@ -126,6 +126,10 @@ type Artikel = {
   briefLong: string;
   source: string;
   sourceUrl: string;
+  // Sumber berbilang (dapatan bug-hunt 2026-09-03) — bidangRoutes.js kini hantar sourcesJson
+  // artikel diurai; `source`/`sourceUrl` di atas KEKAL fallback legasi (entri pertama) untuk
+  // kandungan lama yang tiada medan ni. Lihat nota di FocusView `sources` prop di bawah.
+  sources: { name: string; url?: string; date?: string }[];
   editorName: string;
   image: string;
   status: string;
@@ -510,6 +514,16 @@ export function HalamanBidang() {
           note={undefined}
           source={focusItem.source}
           sourceUrl={focusItem.sourceUrl}
+          // Sumber berbilang (dapatan bug-hunt 2026-09-03) — sebelum ni prop `sources` TAK PERNAH
+          // dihantar di sini, jadi kandungan yang benar-benar ada >1 sumber (ciri sedia ada,
+          // dipapar penuh di Focus View biasa/FrontpageView.tsx) senyap kehilangan sumber ke-2/3
+          // bila dibuka melalui Halaman Bidang — FocusView jatuh balik ke source/sourceUrl tunggal
+          // di atas (entri pertama sahaja) walhal kandungan tu ada lebih. `getDisplayDate` (bukan
+          // formatTarikhSumberPanjang FrontpageView.tsx, yang tak dieksport) — sepadan formatter
+          // sedia ada fail ni (lihat sourceDate di bawah), bulan singkatan bukan penuh.
+          sources={(focusItem.sources || []).length > 0
+            ? focusItem.sources.map((s) => ({ ...s, date: getDisplayDate(s.date) }))
+            : undefined}
           objectId={focusItem.objectId}
           sourceDate={getDisplayDate(focusItem.originalDate)}
           publishedDate={formatSiaranDate(focusItem.publishedDate)}

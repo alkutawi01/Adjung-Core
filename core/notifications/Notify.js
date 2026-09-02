@@ -43,11 +43,24 @@ const padanKiraan = (detail) => (detail || '').match(/\((\d+) kali sejak (.+?)(?
 // Kunci Promise per-kekunci di bawah paksa panggilan kunci SAMA berbaris (queue) dalam proses
 // Node ni — tidak menyelesaikan race merentasi PROSES berasingan (cth semasa restart pm2 yang
 // bertindih), tapi itu jauh lebih jarang berbanding race dalam-proses yang sebenarnya berlaku.
+// Peta ni sebelum ni TAK PERNAH dibersihkan (dapatan bug-hunt, 2026-09-03) — setiap kekunci
+// (userId|type|targetId) BAHARU yang pernah lalui `kumpul: true` tinggalkan SATU entri kekal
+// selama-lamanya proses Node berjalan (PM2 tak pernah restart antara deploy). Kes penggunaan
+// SEMASA (satu-satunya panggilan, slotRoutes.js executeDirectRssFetch) terhad kepada set
+// rss_sources_registry.id yang kecil/stabil, jadi kesan sebenar hari ni kecil — tapi peta akan
+// membesar tanpa had bagi mana-mana panggilan `kumpul: true` MASA DEPAN dgn ruang targetId tak
+// terhad (cth per-objectId kandungan). Dibersihkan selepas giliran SELESAI — hapus kekunci HANYA
+// kalau tiada panggilan lebih baharu sudah menggantikannya (semakan `=== dijagaGiliran`), supaya
+// pembersihan tak pernah buang entri giliran BAHARU yang sedang menunggu gilirannya.
 const kunciDalamProses = new Map();
 async function denganKunciNotifikasi(kekunci, tugas) {
   const sebelum = kunciDalamProses.get(kekunci) || Promise.resolve();
   const giliranIni = sebelum.then(tugas, tugas);
-  kunciDalamProses.set(kekunci, giliranIni.catch(() => {}));
+  const dijagaGiliran = giliranIni.catch(() => {});
+  kunciDalamProses.set(kekunci, dijagaGiliran);
+  dijagaGiliran.finally(() => {
+    if (kunciDalamProses.get(kekunci) === dijagaGiliran) kunciDalamProses.delete(kekunci);
+  });
   return giliranIni;
 }
 

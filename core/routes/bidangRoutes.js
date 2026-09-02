@@ -28,7 +28,7 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 // disembunyikan dengan menyekat status='archived' di sini. Kalau kandungan bersumber Wikipedia
 // ditemui lagi pada masa depan, padam kandungan itu — jangan ulang tarik balik ciri ni.
 
-const ATTR_KEYS = ['desk', 'topik', 'briefLong', 'originalDate', 'source', 'url', 'editorName', 'image'];
+const ATTR_KEYS = ['desk', 'topik', 'briefLong', 'originalDate', 'source', 'url', 'editorName', 'image', 'sourcesJson'];
 
 function attrSubquery(attributeId, alias) {
   return `(SELECT valueText FROM editorial_attribute_values
@@ -101,31 +101,48 @@ export function createBidangRoutes(dbAll, dbGet) {
         LIMIT ? OFFSET ?
       `, [cat.name, perPage, offset]);
 
-      const artikel = rows.map((r) => ({
-        objectId: r.objectId,
-        slotIndex: r.slotIndex,
-        title: r.title || '',
-        summary: r.summary || '',
-        desk: r.desk || cat.name,
-        topik: r.topik || '',
-        briefLong: r.briefLong || '',
-        source: r.source || '',
-        sourceUrl: r.url || '',
-        editorName: r.editorName || '',
-        image: r.image || '',
-        status: r.status || 'approved',
-        originalDate: r.originalDate || '',
-        // Tarikh SIARAN (2026-09-02, Izzat: "susunan ikut tarikh siaran bukan tarikh sumber" —
-        // dahulu senarai ni SUSUN & PAPAR guna `effectiveDate` (originalDate Tarikh Sumber jatuh
-        // balik createdAt), yang mengelirukan teruk bila Tarikh Sumber ialah tarikh SEJARAH/
-        // PENUBUHAN organisasi (cth "13 Jan 1888" National Geographic Society) — kandungan
-        // terlontar ke bawah senarai "Koleksi Terdahulu" dan papar tarikh 1800-an, seolah-olah
-        // Adjung terbitkan pada tahun itu. Senarai kronologi MESTI ikut BILA Adjung sebenarnya
-        // menerbitkan (createdAt), bukan bila subjek/organisasi itu wujud. `originalDate` (Tarikh
-        // Sumber) kekal dihantar berasingan untuk Focus View sahaja (sourceDate, konteks yang
-        // betul untuknya), TIDAK lagi untuk SUSUN atau PAPAR senarai.
-        publishedDate: r.createdAt || '',
-      }));
+      const artikel = rows.map((r) => {
+        // Sumber berbilang (2026-08-05, server.js resolveSlotContent()) — attribute `sourcesJson`
+        // dibaca DI SINI (dapatan bug-hunt, 2026-09-03) sebab laluan ni sebelum ni cuma hantar
+        // `source`/`url` tunggal legasi (entri PERTAMA sahaja). Kandungan yang benar-benar ada
+        // >1 sumber (ciri sedia ada, dipapar penuh di Focus View biasa) kehilangan sumber ke-2/3
+        // SENYAP bila dibuka melalui Halaman Bidang — bukan ranap, cuma data tak lengkap. Parse
+        // selamat (JSON rosak/kandungan lama tiada medan ni = senarai kosong), sama corak persis
+        // server.js supaya FocusView jatuh balik ke source/sourceUrl legasi bila kosong.
+        let sources = [];
+        if (r.sourcesJson) {
+          try {
+            const parsed = JSON.parse(r.sourcesJson);
+            if (Array.isArray(parsed)) sources = parsed;
+          } catch { /* JSON rosak — kekal senarai kosong, jangan ranap. */ }
+        }
+        return {
+          objectId: r.objectId,
+          slotIndex: r.slotIndex,
+          title: r.title || '',
+          summary: r.summary || '',
+          desk: r.desk || cat.name,
+          topik: r.topik || '',
+          briefLong: r.briefLong || '',
+          source: r.source || '',
+          sourceUrl: r.url || '',
+          sources,
+          editorName: r.editorName || '',
+          image: r.image || '',
+          status: r.status || 'approved',
+          originalDate: r.originalDate || '',
+          // Tarikh SIARAN (2026-09-02, Izzat: "susunan ikut tarikh siaran bukan tarikh sumber" —
+          // dahulu senarai ni SUSUN & PAPAR guna `effectiveDate` (originalDate Tarikh Sumber jatuh
+          // balik createdAt), yang mengelirukan teruk bila Tarikh Sumber ialah tarikh SEJARAH/
+          // PENUBUHAN organisasi (cth "13 Jan 1888" National Geographic Society) — kandungan
+          // terlontar ke bawah senarai "Koleksi Terdahulu" dan papar tarikh 1800-an, seolah-olah
+          // Adjung terbitkan pada tahun itu. Senarai kronologi MESTI ikut BILA Adjung sebenarnya
+          // menerbitkan (createdAt), bukan bila subjek/organisasi itu wujud. `originalDate` (Tarikh
+          // Sumber) kekal dihantar berasingan untuk Focus View sahaja (sourceDate, konteks yang
+          // betul untuknya), TIDAK lagi untuk SUSUN atau PAPAR senarai.
+          publishedDate: r.createdAt || '',
+        };
+      });
 
       res.json({
         bidang: { name: cat.name, slug: cat.slug, description: cat.description || '' },
