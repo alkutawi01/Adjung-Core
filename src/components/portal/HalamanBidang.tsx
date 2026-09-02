@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { safeParseInline } from '../../utils';
-import { getDisplayDate, formatSiaranDate } from './FrontpageView';
+import { getDisplayDate, formatSiaranDate, sumberAdjungSendiri } from './FrontpageView';
 import { FocusView } from './FocusView';
 import BriefNavigator, { type NavigatorField } from './BriefNavigator';
 import { BidangIcon } from '../common/BidangIcon';
@@ -22,6 +22,41 @@ const formatTarikhArtikel = (raw?: string): string => {
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
   return d.toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+// Sumber + Tarikh Sumber (2026-09-02, Izzat: "papar semua yg ada dlm kad di frontpage kecuali
+// huraian ringkas") — senarai ni dahulu cuma papar Topik/Tajuk/Tarikh Siaran, tercicir medan
+// footer kad sebenar (FrontpageView.tsx ~baris 4063-4065: Sumber + Tarikh Sumber, sourceUrl
+// pautan luar). Komponen kongsi (dipakai TERKINI dan Koleksi Terdahulu) supaya logik SATU tempat
+// — corak sembunyikanTarikhSumber SAMA PERSIS kad sebenar (sumberAdjungSendiri(), FrontpageView.tsx)
+// supaya kandungan "Editorial Adjung" tak papar dua tarikh berlebihan (Tarikh Siaran di atas +
+// Tarikh Sumber sama di sini). Tiada pautan (sourceUrl kosong ATAU sentinel '#', lihat pembetulan
+// FocusView.tsx IkonDiakses hari ni) papar teks biasa, bukan `<a>`.
+const MedanSumber: React.FC<{ source: string; sourceUrl: string; originalDate: string }> = ({ source, sourceUrl, originalDate }) => {
+  if (!source) return null;
+  const tarikhSumber = !sumberAdjungSendiri(source) ? getDisplayDate(originalDate) : '';
+  const adaPautan = !!sourceUrl && sourceUrl !== '#';
+  const isiKandungan = (
+    <>
+      {source}
+      {tarikhSumber && <span className="font-mono"> · {tarikhSumber}</span>}
+    </>
+  );
+  return (
+    <div className="font-sans text-[10px] uppercase tracking-widest text-stone-400 mt-1">
+      {adaPautan ? (
+        <a
+          href={sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="hover:text-Adjung-maroon transition-colors"
+        >
+          {isiKandungan}
+        </a>
+      ) : isiKandungan}
+    </div>
+  );
 };
 
 // Halaman Bidang (/bidang/:slug, spesifikasi MUKTAMAD 2026-09-01, disahkan Izzat; disemak
@@ -357,6 +392,7 @@ export function HalamanBidang() {
                             {a.status === 'archived' && <span className="ml-1.5 text-stone-300">· Arkib</span>}
                           </div>
                         )}
+                        <MedanSumber source={a.source} sourceUrl={a.sourceUrl} originalDate={a.originalDate} />
                       </button>
                     </li>
                   ))}
@@ -400,6 +436,7 @@ export function HalamanBidang() {
                                 {a.status === 'archived' && <span className="ml-1.5 text-stone-300">· Arkib</span>}
                               </div>
                             )}
+                            <MedanSumber source={a.source} sourceUrl={a.sourceUrl} originalDate={a.originalDate} />
                           </button>
                         </li>
                       ))}
