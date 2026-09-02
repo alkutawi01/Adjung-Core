@@ -39,6 +39,15 @@ export function createTranslationRoutes(dbAll, dbRun) {
   // laluan kembar /api/ai yang sudah digerbang manageSettings.
   router.post('/configs', requirePermission('manageSettings'), async (req, res) => {
     try {
+      // Gerbang bentuk data (2026-09-03, dapatan bug-hunt) — sebelum ni `req.body` terus
+      // digunakan sebagai senarai (`for...of`) tanpa semak `Array.isArray()` dahulu, tak
+      // sepadan corak sedia ada di laluan kembar `POST /api/system/ai/pricing`
+      // (aiCostRoutes.js, bentuk badan IDENTIK). Klien hantar objek tunggal/null/nombor
+      // (bukan tatasusunan) akan gagal dgn "list is not iterable" — ralat 500 legap, bukan
+      // mesej 400 jelas.
+      if (!Array.isArray(req.body)) {
+        return res.status(400).json({ error: 'Badan permintaan mesti tatasusunan konfigurasi bahasa.' });
+      }
       const list = req.body;
       for (const item of list) {
         await dbRun(`
