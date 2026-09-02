@@ -13,7 +13,7 @@ import { SectionLabel } from '../common/SectionLabel';
 import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { FormColumn } from '../common/FormColumn';
-import { tanganiKekunciItalic } from '../../utils.tsx';
+import { tanganiKekunciItalic, safeParseInline } from '../../utils.tsx';
 import { labelMod, labelStatus } from '../../config/istilah';
 import { formatKlDisplay, klLocalToIso, isoToKlLocalInput } from '../../../core/editorial/Scheduling.js';
 import { useTapisanSesi } from '../../hooks/useTapisanSesi';
@@ -1618,7 +1618,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               </span>
               {/* Tajuk modal piawai (Pelan 01 Fasa D2): serif-lg maroon. */}
               <span className="font-serif text-lg font-bold text-Adjung-maroon">
-                {activeItemModal.title}
+                {safeParseInline(activeItemModal.title)}
               </span>
             </div>
           )}
@@ -1693,7 +1693,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <div className="flex flex-col gap-1">
               <span className={LABEL_BORANG}>Huraian Ringkas</span>
               <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200">
-                {activeItemModal.summary}
+                {safeParseInline(activeItemModal.summary)}
               </div>
             </div>
 
@@ -1705,7 +1705,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <div className="flex flex-col gap-1">
                 <span className={LABEL_BORANG}>Huraian Panjang</span>
                 <div className="font-serif text-sm text-stone-700 leading-relaxed bg-stone-50 p-4 rounded border border-stone-200 whitespace-pre-wrap">
-                  {activeItemModal.summaryLong}
+                  {safeParseInline(activeItemModal.summaryLong)}
                 </div>
               </div>
             )}
