@@ -15,6 +15,14 @@ import { vektorArahOverlay, LogoTransisiAdjung, VEKTOR_ARAH } from '../portal/Fr
 // SAMA seperti FrontpageView.tsx (masukMasa/tahanMasa/jumlahMasa untuk Colophon/Sapuan Lajur,
 // tempohGerakMs untuk Gerak Susun, tempohPudarMs untuk Pudar) — kalau nombor asas (400/550/500/900/
 // 1000) berubah di FrontpageView.tsx, kemas kini SINI SERENTAK supaya pratonton kekal jujur.
+//
+// Lengkung `cubic-bezier(0.4, 0, 0.2, 1)` pada transition Gerak Susun/Swipe di bawah (2026-09-02,
+// dapatan bug-hunt) — MESTI ikut lengkung SEBENAR FrontpageView.tsx, bukan nombor bebas sendiri.
+// Pepijat sebenar ditemui di sini: komited f3472fe (26/8) tukar lengkung Gerak Susun/Swipe di
+// FrontpageView.tsx drpd cubic-bezier(0.65,0,0.35,1) ke (0.4,0,0.2,1) ("lembutkan... bukan lagi
+// tergesa-gesa"), tapi fail ni (disunting kali terakhir SEBELUM komit tu pada hari sama) tak
+// pernah dikemas kini sekali — pratonton terus papar lengkung LAMA yang lebih mendadak berhenti,
+// bercanggah senyap dgn animasi sebenar walau semua nombor tempoh masa lain (900/640ms dsb) tepat.
 export interface AnimasiPratontonProps {
   // string = jenis literal (kelakuan asal, sentiasa sama tiap main). Fungsi = resolver dipanggil
   // SETIAP kali butang "Main" diklik (2026-08-18, mod jenisAnimasi==='rawak', soalan Izzat) —
@@ -174,7 +182,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
                   if (fasaGerak === 'gerak') return kanan ? 'translateX(-66.6667%)' : 'translateX(0%)';
                   return kanan ? 'translateX(0%)' : 'translateX(-66.6667%)';
                 })(),
-                transition: fasaGerak === 'gerak' ? `transform ${tempohGerakMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+                transition: fasaGerak === 'gerak' ? `transform ${tempohGerakMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
               }}
             >
               {arah === 'kiri' ? (
@@ -203,7 +211,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
               className="absolute inset-0 bg-[#FDFDFD]"
               style={{
                 transform: fasaGerak === 'gerak' ? (VEKTOR_ARAH[arah] || VEKTOR_ARAH.kanan).masuk : 'translate(0, 0)',
-                transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+                transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
               }}
             >
               <KandunganContoh index={aktif} />
@@ -212,7 +220,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
               className="absolute inset-0 bg-[#FDFDFD]"
               style={{
                 transform: fasaGerak === 'gerak' ? 'translate(0, 0)' : (VEKTOR_ARAH[arah] || VEKTOR_ARAH.kanan).keluar,
-                transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.65, 0, 0.35, 1)` : 'none',
+                transition: fasaGerak === 'gerak' ? `transform ${tempohSwipeMs}ms cubic-bezier(0.4, 0, 0.2, 1)` : 'none',
               }}
             >
               <KandunganContoh index={lain} />
