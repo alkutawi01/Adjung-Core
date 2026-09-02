@@ -44,6 +44,52 @@ const TINDAKAN_TONE: Record<string, 'success' | 'warning' | 'error' | 'neutral'>
   'ambilan-rss-selesai': 'success',
   'rss-huraian-dipendekkan': 'warning',
   'ralat-pelayan': 'error',
+
+  // PEMBETULAN (2026-09-02, dapatan bug-hunt — sambungan corak "peta/enum tercicir" yang
+  // terbukti di MaklumanDrawer.tsx pusingan 15/16). Disahkan terus daripada data audit_log
+  // SEBENAR (`SELECT action, COUNT(*) FROM audit_log GROUP BY action`): 'menerbit-kandungan'
+  // (tindakan Terbit paling kerap, 50 baris sedia ada) TIADA entri tone di sini, jadi lencana
+  // StatusBadge jatuh balik 'neutral' (kelabu, sama macam kemas kini tetapan biasa) walaupun ia
+  // tindakan POSITIF (kandungan berjaya disiar) — sepatutnya hijau 'success' sama seperti
+  // 'ambilan-rss-selesai'. Tindakan lain kekal automasi sistem, ikut nada yang sama:
+  'menerbit-kandungan': 'success',
+  'kandungan-terbit-berjadual': 'success',
+  'kandungan-naik-taraf-slot-kosong': 'success',
+  'pulihkan-kandungan-tong-sampah': 'success',
+  'kandungan-luput-berjadual': 'warning',
+  'kandungan-putar-auto-arkib-24-jam': 'warning',
+  'kandungan-berjadual-tunggu-slot': 'warning',
+  'padam-kandungan-tong-sampah': 'error',
+  'padam-kandungan-kekal': 'error',
+  'kandungan-padam-kekal-auto-tong-sampah': 'error',
+  'padam-kandungan-belum-terbit': 'error',
+  'cipta-kandungan': 'success',
+  'cipta-kandungan-ticker': 'success',
+  'cipta-prompt-semakan': 'success',
+  'padam-prompt-semakan': 'error',
+  'cipta-petikan': 'success',
+  'import-petikan': 'success',
+  'padam-petikan': 'error',
+  'cipta-penaja': 'success',
+  'tambah-ejaan-piawai': 'success',
+  'padam-ejaan-piawai': 'error',
+  'tambah-glosari': 'success',
+  'padam-glosari': 'error',
+  'tambah-sense-glosari': 'success',
+  'padam-sense-glosari': 'error',
+  'tambah-pengecualian-pemenggalan': 'success',
+  'padam-pengecualian-pemenggalan': 'error',
+  'padam-konfigurasi-terjemahan': 'error',
+  'reset-tetapan-tier': 'warning',
+  'set-semula-label-ui': 'warning',
+  'permohonan-penaja-lulus': 'success',
+  'permohonan-penaja-sahkan-bayaran': 'success',
+  'permohonan-penaja-aktifkan': 'success',
+  'permohonan-penaja-tolak': 'warning',
+  'permohonan-penaja-minta_maklumat': 'warning',
+  'terima-permohonan-editor': 'success',
+  'tolak-permohonan-editor': 'warning',
+  'konfigurasi-base-url-tiada': 'error',
 };
 
 export const tonTindakan = (action: string): 'success' | 'warning' | 'error' | 'neutral' => {
@@ -79,6 +125,78 @@ const TINDAKAN_LABEL: Record<string, string> = {
   'menerbit-kandungan': 'Menerbitkan kandungan',
   'kandungan-menunggu-kelulusan': 'Kandungan menunggu kelulusan',
   'kemas-kini-konfigurasi-slot': 'Kemas kini slot',
+
+  // PEMBETULAN (2026-09-02, dapatan bug-hunt) — audit penuh SEMUA tapak panggilan logAudit()
+  // merentasi core/routes/*.js dibandingkan senarai di atas dedah lebih 40 kod tindakan SAH
+  // (bukan hipotesis, disahkan wujud dalam data audit_log SEBENAR) yang tiada padanan di sini,
+  // jadi Log Sistem DAN panel "Aktiviti Editor" (DashboardConsole.tsx, guna labelTindakan()
+  // yang sama) memaparkannya mentah dalam gaya kod ("sunting-petikan", "tetapkan-bidang-slot").
+  // Round 16 nilai ni sebagai "fallback selamat" munasabah untuk kod BAHARU/JARANG — tapi
+  // semakan `SELECT action, COUNT(*) FROM audit_log GROUP BY action` dedah beberapa antaranya
+  // ialah tindakan KERAP, bukan jarang: 'padam-kandungan-tong-sampah' (81 baris),
+  // 'sunting-petikan' (74), 'padam-petikan' (47), 'tetapkan-bidang-slot' (44) — kesemuanya lebih
+  // kerap daripada 'tolak-ke-draf' (cuma 6) yang SUDAH dipadankan sejak awal. Ditambah SEMUA
+  // kod yang ditemui (bukan cuma yang kerap) supaya corak ni tak berulang setiap kali modul
+  // baharu (Petikan, Glosari, Ejaan, dll.) capai kadar guna tinggi.
+  'sunting-petikan': 'Sunting Petikan',
+  'padam-kandungan-tong-sampah': 'Hantar kandungan ke Tong Sampah',
+  'tetapkan-bidang-slot': 'Tetapkan Bidang slot',
+  'padam-petikan': 'Padam Petikan',
+  'cipta-petikan': 'Cipta Petikan',
+  'import-petikan': 'Import Petikan pukal',
+  'kemas-kini-tetapan-tier': 'Kemas kini Tetapan Tier',
+  'reset-tetapan-tier': 'Set semula Tetapan Tier ke lalai',
+  'kemas-kini-tetapan-am-slot': 'Kemas kini Tetapan Am Slot',
+  'kemas-kini-halaman-awam': 'Kemas kini Halaman Awam',
+  'kemas-kini-taksonomi': 'Kemas kini Bidang/Topik kandungan',
+  'kemas-kini-tetapan-sistem': 'Kemas kini Tetapan Sistem',
+  'kemas-kini-dasar-terbit-sendiri': 'Kemas kini Dasar Terbit Sendiri Editor',
+  'kemas-kini-dasar-aktif-editorial': 'Kemas kini Dasar Aktif Editorial',
+  'cipta-prompt-semakan': 'Cipta Arahan AI untuk Semakan',
+  'padam-prompt-semakan': 'Padam Arahan AI untuk Semakan',
+  'cipta-kandungan': 'Cipta kandungan baharu',
+  'cipta-kandungan-ticker': 'Cipta kandungan Ticker',
+  'padam-kandungan-kekal': 'Padam kandungan secara kekal',
+  'kandungan-padam-kekal-auto-tong-sampah': 'Padam kekal automatik (Tong Sampah lapuk)',
+  'padam-kandungan-belum-terbit': 'Padam kandungan belum terbit (akaun dipadam)',
+  'pulihkan-kandungan-tong-sampah': 'Pulihkan kandungan daripada Tong Sampah',
+  'kandungan-naik-taraf-slot-kosong': 'Naik taraf kandungan menunggu ke slot kosong',
+  'kandungan-luput-berjadual': 'Kandungan luput mengikut jadual',
+  'kandungan-terbit-berjadual': 'Kandungan diterbitkan mengikut jadual',
+  'kandungan-berjadual-tunggu-slot': 'Jadual terbit tertangguh — slot penuh',
+  'kandungan-putar-auto-arkib-24-jam': 'Putar automatik ke arkib (24 jam)',
+  'kemas-kini-editor-slot': 'Kemas kini penugasan editor slot',
+  'kemas-kini-ai-provider': 'Kemas kini pembekal AI',
+  'kemas-kini-templat-prompt-ai': 'Kemas kini templat Arahan AI',
+  'set-semula-kata-laluan-editor': 'Tetapkan semula kata laluan editor',
+  'selaraskan-warna-bidang': 'Selaraskan warna Bidang',
+  'pelbagaikan-warna-bidang': 'Pelbagaikan warna Bidang',
+  'tambah-ejaan-piawai': 'Tambah ejaan piawai',
+  'sunting-ejaan-piawai': 'Sunting ejaan piawai',
+  'padam-ejaan-piawai': 'Padam ejaan piawai',
+  'tambah-glosari': 'Tambah istilah Glosari',
+  'padam-glosari': 'Padam istilah Glosari',
+  'tambah-sense-glosari': 'Tambah Sense Glosari',
+  'sunting-sense-glosari': 'Sunting Sense Glosari',
+  'padam-sense-glosari': 'Padam Sense Glosari',
+  'tambah-pengecualian-pemenggalan': 'Tambah pengecualian pemenggalan suku kata',
+  'sunting-pengecualian-pemenggalan': 'Sunting pengecualian pemenggalan suku kata',
+  'padam-pengecualian-pemenggalan': 'Padam pengecualian pemenggalan suku kata',
+  'cipta-penaja': 'Cipta Penaja',
+  'kemas-kini-penaja': 'Kemas kini Penaja',
+  'kemas-kini-konfigurasi-terjemahan': 'Kemas kini konfigurasi Terjemahan',
+  'padam-konfigurasi-terjemahan': 'Padam konfigurasi Terjemahan',
+  'kemas-kini-label-ui': 'Kemas kini Label Sistem',
+  'set-semula-label-ui': 'Set semula Label Sistem ke lalai',
+  'permohonan-penaja-mula_semakan': 'Mula semakan permohonan penajaan',
+  'permohonan-penaja-minta_maklumat': 'Minta maklumat tambahan (permohonan penajaan)',
+  'permohonan-penaja-tolak': 'Tolak permohonan penajaan',
+  'permohonan-penaja-lulus': 'Luluskan permohonan penajaan',
+  'permohonan-penaja-sahkan-bayaran': 'Sahkan bayaran penajaan',
+  'permohonan-penaja-aktifkan': 'Aktifkan penajaan',
+  'terima-permohonan-editor': 'Terima permohonan editor',
+  'tolak-permohonan-editor': 'Tolak permohonan editor',
+  'konfigurasi-base-url-tiada': 'BASE_URL tiada dalam konfigurasi produksi',
 };
 
 // Label Bahasa Melayu bagi kod status DALAMAN kandungan (CONTENT_STATUSES, contentRoutes.js) —
@@ -104,6 +222,16 @@ export const labelTindakan = (action: string): string => {
   }
   if (action.startsWith('status-akaun:')) return `Tukar status akaun: ${action.slice('status-akaun:'.length)}`;
   if (action.startsWith('status-nota:')) return `Tukar status nota: ${action.slice('status-nota:'.length)}`;
+  // PEMBETULAN (2026-09-02, dapatan bug-hunt) — dua corak dinamik lagi (contentRoutes.js,
+  // userAdminRoutes.js) tiada gerbang prefix macam status:/status-akaun:/status-nota: di atas,
+  // jadi jatuh terus ke `return action` mentah ("pulih-versi:v2->v5", "auto-terbit:hidup").
+  if (action.startsWith('pulih-versi:')) {
+    return `Pulih versi kandungan: ${action.slice('pulih-versi:'.length).replace('->', ' → ')}`;
+  }
+  if (action.startsWith('auto-terbit:')) {
+    const nilai = action.slice('auto-terbit:'.length);
+    return `Tukar dasar auto-terbit editor: ${nilai.charAt(0).toUpperCase()}${nilai.slice(1)}`;
+  }
   return action;
 };
 
