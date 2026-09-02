@@ -1434,7 +1434,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
       const budgetCheck = validateContentBudget(objRow.slotIndex, oldRev.title || '', oldRev.summary || '');
       if (!budgetCheck.isValid) {
-        return res.status(400).json({ error: `Versi ini tak boleh dipulihkan: ${budgetCheck.reason}` });
+        return res.status(400).json({ error: `Versi ini tidak boleh dipulihkan: ${budgetCheck.reason}` });
       }
 
       if (!TIER_SLOTS.BAR.includes(objRow.slotIndex)) {
@@ -1455,7 +1455,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           slotIndex: objRow.slotIndex,
         });
         if (!bidangTopikCheck.isValid) {
-          return res.status(400).json({ error: `Versi ini tak boleh dipulihkan: ${bidangTopikCheck.reason}` });
+          return res.status(400).json({ error: `Versi ini tidak boleh dipulihkan: ${bidangTopikCheck.reason}` });
         }
       }
 

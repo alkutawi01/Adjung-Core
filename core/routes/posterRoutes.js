@@ -53,7 +53,7 @@ export function createPosterRoutes(db, dbAll, dbGet, dbRun) {
       res.json({ items });
     } catch (err) {
       console.error('GET /system/poster/latest error:', err);
-      res.status(500).json({ error: 'Gagal mendapatkan kandungan terbaharu utk poster. ' + err.message });
+      res.status(500).json({ error: 'Gagal mendapatkan kandungan terbaharu untuk poster. ' + err.message });
     }
   });
 

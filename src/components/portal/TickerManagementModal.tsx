@@ -773,7 +773,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                             </div>
                             {konfirmBuangSumberId === src.id && (
                               <div className="flex items-center justify-between gap-2 rounded border border-rose-300 bg-rose-50 px-2 py-1.5">
-                                <span className="text-[10px] font-sans text-rose-800">Buang sumber ni? Berita daripadanya akan berhenti diserap.</span>
+                                <span className="text-[10px] font-sans text-rose-800">Buang sumber ini? Berita daripadanya akan berhenti diserap.</span>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   <button type="button" onClick={() => setKonfirmBuangSumberId(null)} className="font-sans text-[10px] font-semibold text-stone-500 hover:text-stone-700 cursor-pointer">Batal</button>
                                   <button type="button" onClick={() => handleDeleteRssSource(src.id, src.sourceName)} className="font-sans text-[10px] font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded px-2 py-0.5 cursor-pointer">Buang</button>

@@ -210,7 +210,7 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
       const statusAkanJadiAktif = status !== undefined ? status === 'aktif' : sedia.status === 'aktif';
       if (cubaUbahKandungan && statusAkanJadiAktif) {
         return res.status(400).json({
-          error: 'Nota yang sudah aktif tak boleh disunting — ia sudah tersiar dalam Peti Makluman editor. Arkibkan nota ini dan terbitkan nota baharu sebaliknya.',
+          error: 'Nota yang sudah aktif tidak boleh disunting — ia sudah tersiar dalam Peti Makluman editor. Arkibkan nota ini dan terbitkan nota baharu sebaliknya.',
         });
       }
 

@@ -374,10 +374,10 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         return res.status(400).json({ error: 'Ambang auto-live/semakan mesti antara 0 hingga 100.' });
       }
       if (reviewVal > autoLiveVal) {
-        return res.status(400).json({ error: 'Ambang semakan tak boleh melebihi ambang auto-live (menyebabkan klasifikasi bercanggah).' });
+        return res.status(400).json({ error: 'Ambang semakan tidak boleh melebihi ambang auto-live (menyebabkan klasifikasi bercanggah).' });
       }
       if (bonusVal < 0 || penaltyVal < 0) {
-        return res.status(400).json({ error: 'Bonus keutamaan dan penalti sekatan tak boleh negatif.' });
+        return res.status(400).json({ error: 'Bonus keutamaan dan penalti sekatan tidak boleh negatif.' });
       }
       // ageVal < 0 (BUKAN <= 0, 2026-08-16, bug sebenar dijumpai audit Izzat "benar2 berfungsi
       // atau hiasan?") — dropdown UI eksplisit tawarkan pilihan "Tiada Had (Semua Usia Berita)"

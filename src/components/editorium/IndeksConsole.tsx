@@ -1441,7 +1441,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         // DLG-10 (2B, audit ChatGPT 2026-08-09) — dahulu label butang sahaja
                         // ("Padam kekal?"), tak terangkan ia tak boleh dibuat asal.
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="text-[var(--color-error)] font-semibold">Padam kekal, tak boleh dibuat asal?</span>
+                          <span className="text-[var(--color-error)] font-semibold">Padam kekal, tidak boleh dibuat asal?</span>
                           <Button type="button" variant="primary" size="sm" onClick={() => handlePadamKekal(rec.id)}>Padam Kekal</Button>
                           <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmPadamKekalId('')}>Batal</Button>
                         </span>

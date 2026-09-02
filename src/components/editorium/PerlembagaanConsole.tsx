@@ -75,11 +75,11 @@ const formatLogTime = (iso: string) => {
 const UNIVERSAL_RULES = [
   {
     title: 'Saiz kad tetap. Tiada pengecualian.',
-    body: <>Setiap slot ada saiz fizikal tetap ikut tier geometrinya. Kandungan mesti muat dalam saiz itu. Ini dikuatkuasakan di peringkat SIMPAN (server menolak kandungan yang tak muat), bukan diselesaikan lepas fakta dengan CSS <em className="italic">clipping</em> atau memotong teks sedia ada.</>,
+    body: <>Setiap slot ada saiz fizikal tetap ikut tier geometrinya. Kandungan mesti muat dalam saiz itu. Ini dikuatkuasakan di peringkat SIMPAN (server menolak kandungan yang tidak muat), bukan diselesaikan lepas fakta dengan CSS <em className="italic">clipping</em> atau memotong teks sedia ada.</>,
   },
   {
     title: 'Tajuk dan huraian berkongsi SATU bajet ruang.',
-    body: 'Bukan dua had berasingan. Formula: tajuk/maxTajukSendiri + huraian/maxHuraianSendiri ≤ 1. Tajuk panjang dan huraian pendek boleh muat, dan sebaliknya, tapi kedua-duanya panjang serentak tak boleh.',
+    body: 'Bukan dua had berasingan. Formula: tajuk/maxTajukSendiri + huraian/maxHuraianSendiri ≤ 1. Tajuk panjang dan huraian pendek boleh muat, dan sebaliknya, tapi kedua-duanya panjang serentak tidak boleh.',
   },
   {
     title: 'Semua slot dalam tier yang sama dilayan secara seragam.',
@@ -99,7 +99,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Penomboran slot bermula daripada 1, bukan 0.',
-    body: 'Manusia sentiasa nampak "Slot 1", "Slot 2" ... "Slot 38". TIADA "Slot 0" dipaparkan di mana-mana UI. Indeks dalaman kod (0-37) kekal tak berubah. Ini peraturan PAPARAN sahaja, bukan skema data.',
+    body: 'Manusia sentiasa nampak "Slot 1", "Slot 2" ... "Slot 38". TIADA "Slot 0" dipaparkan di mana-mana UI. Indeks dalaman kod (0-37) kekal tidak berubah. Ini peraturan PAPARAN sahaja, bukan skema data.',
   },
   {
     title: 'Label mesti 100% Bahasa Melayu.',
@@ -111,7 +111,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Akordion Bar: kad kekal statik, panel dipaparkan secara berasingan di bawahnya.',
-    body: <>Klik kad Bar (maroon) di luar Mod Sunting membuka/tutup panel Penerangan sebagai ELEMEN BAHARU selepas kad tu. Kad Bar itu sendiri TIDAK diubah langsung (tiada saiz/rupa berbeza apabila terbuka). Hanya SATU kad boleh terbuka pada satu masa PER KLUSTER (4 kad); klik kad lain dalam kluster yang sama tutup yang sebelum, buka yang baharu. Dua kad yang berkongsi baris <em className="italic">grid</em> dengan kluster Bar (row-span-2 menegak + satu lagi) WAJIB kekal statik (tinggi/kedudukan tak berubah) walaupun kluster Bar membesar, dikuatkuasakan melalui height-lock JS (ukur tinggi semula jadi sebelum terbuka, bekukan nilai tu semasa terbuka), BUKAN ubah struktur <em className="italic">grid</em> (lihat peraturan "jangan ubah grid bento"). Medan Penerangan dihadkan 460 aksara (core/editorial/GeometryConfig.js MAX_PENERANGAN_CHARS, dikuatkuasakan server.js syncManualObjectsForSlot), diukur empirik daripada lebar panel sebenar.</>,
+    body: <>Klik kad Bar (maroon) di luar Mod Sunting membuka/tutup panel Penerangan sebagai ELEMEN BAHARU selepas kad tu. Kad Bar itu sendiri TIDAK diubah langsung (tiada saiz/rupa berbeza apabila terbuka). Hanya SATU kad boleh terbuka pada satu masa PER KLUSTER (4 kad); klik kad lain dalam kluster yang sama tutup yang sebelum, buka yang baharu. Dua kad yang berkongsi baris <em className="italic">grid</em> dengan kluster Bar (row-span-2 menegak + satu lagi) WAJIB kekal statik (tinggi/kedudukan tidak berubah) walaupun kluster Bar membesar, dikuatkuasakan melalui height-lock JS (ukur tinggi semula jadi sebelum terbuka, bekukan nilai tu semasa terbuka), BUKAN ubah struktur <em className="italic">grid</em> (lihat peraturan "jangan ubah grid bento"). Medan Penerangan dihadkan 460 aksara (core/editorial/GeometryConfig.js MAX_PENERANGAN_CHARS, dikuatkuasakan server.js syncManualObjectsForSlot), diukur empirik daripada lebar panel sebenar.</>,
   },
   {
     title: 'Senarai kandungan berskala besar wajib berkelompok (dipaginasi).',
@@ -484,7 +484,7 @@ URL:`}</pre>
               Editor yang mempunyai kebenaran terbit (dasar Terbit Sendiri Editor dibenarkan,
               Tetapan → Tetapan Am Slot) boleh terus menjadikan kandungan sendiri Aktif,
               KECUALI kandungan tu pernah ditolak sebelum ini, yang sentiasa wajib mendarat
-              sebagai Menunggu Semakan tak kira dasar semasa. Editor tanpa kebenaran terbit
+              sebagai Menunggu Semakan tidak kira dasar semasa. Editor tanpa kebenaran terbit
               sentiasa mendarat sebagai Menunggu Semakan. Kandungan yang sepatutnya boleh
               terus Aktif tapi slot sudah penuh menunggu sebagai Menunggu Slot Kosong, dan
               naik taraf secara AUTOMATIK sebaik ruang terbuka; tiada tindakan manusia kedua
@@ -506,8 +506,8 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Indeks tidak pernah memaparkan status "Draf"</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Draf ialah ruang kerja peribadi editor sahaja, tak pernah punya baris rekod editorial,
-              jadi tak sesekali muncul dalam senarai/tapisan Indeks walau apa jua keadaan.
+              Draf ialah ruang kerja peribadi editor sahaja, tidak pernah punya baris rekod editorial,
+              jadi tidak sesekali muncul dalam senarai/tapisan Indeks walau apa jua keadaan.
             </p>
           </div>
         </PanelCard>
@@ -535,7 +535,7 @@ URL:`}</pre>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Pentadbir, Ketua Editor, Penolong Ketua Editor, dan Editor. Dikawal melalui matriks
               "Kawalan Akses" di Tetapan (Ketua Editor sahaja boleh menanda/membatalkan kebenaran).
-              Ketua Editor ialah peranan pentadbir tak boleh diubah suai (<em className="italic">immutable</em>);
+              Ketua Editor ialah peranan pentadbir tidak boleh diubah suai (<em className="italic">immutable</em>);
               kuasa tadbir urus utamanya (lihat semua/sunting semua/urus tetapan/urus Kawalan Akses)
               tidak boleh ditarik semula daripada akaun sendiri.
             </p>

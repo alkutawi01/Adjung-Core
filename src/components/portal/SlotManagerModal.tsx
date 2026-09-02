@@ -1505,7 +1505,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
         {formConfig.isDemoContent && (
           <div className="flex-none bg-amber-50 border-b border-amber-200 px-6 md:px-8 py-2 flex items-center gap-2 text-amber-900 font-sans text-[11px]">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span><strong>Kandungan contoh.</strong> Slot ni belum ada kandungan tersimpan. Medan di bawah diisi teks demo "Tentang Adjung" sebagai templat sahaja; gantikan sebelum Simpan.</span>
+            <span><strong>Kandungan contoh.</strong> Slot ini belum ada kandungan tersimpan. Medan di bawah diisi teks demo "Tentang Adjung" sebagai templat sahaja; gantikan sebelum Simpan.</span>
           </div>
         )}
 
