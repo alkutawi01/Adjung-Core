@@ -157,8 +157,8 @@ async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotI
     });
     const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [slotIndex]);
     await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
-      type: 'kandungan_disiar', title: 'Kandungan anda kini Aktif (slot dah berkosong)',
-      detail: (calon.title || '').slice(0, 150), targetType: 'kandungan', targetId: calon.objectId,
+      type: 'kandungan_disiar', title: 'Kandungan anda kini Aktif (giliran slot kini kosong)',
+      detail: (calon.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${slotIndex}:${calon.objectId}`,
     });
   }
 }
@@ -358,7 +358,7 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
           title: sebabJadual === 'slot_penuh'
             ? 'Kandungan berjadual anda menunggu slot kosong'
             : 'Kandungan berjadual anda kini disiarkan',
-          detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: row.objectId,
+          detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${objRow.slotIndex}:${row.objectId}`,
         });
       }
     }
@@ -396,7 +396,7 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
         const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [objRow.slotIndex]);
         await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
           type: 'kandungan_luput_berjadual', title: 'Kandungan anda telah luput & diarkibkan',
-          detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: row.objectId,
+          detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${objRow.slotIndex}:${row.objectId}`,
         });
         // Slot berkosong (2026-08-06) — luput berjadual bebaskan satu ruang 'approved'; naik
         // taraf calon 'slot_penuh' paling lama tertunggu dalam slot yang sama, kalau ada.
@@ -529,7 +529,7 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
         const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [slotIndex]);
         await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
           type: 'kandungan_putar_arkib', title: 'Kandungan anda diarkibkan automatik (giliran slot, 24 jam)',
-          detail: (terlama.title || '').slice(0, 150), targetType: 'kandungan', targetId: terlama.objectId,
+          detail: (terlama.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${slotIndex}:${terlama.objectId}`,
         });
         // Ruang baharu terbuka — naik taraf calon 'slot_penuh' paling lama tertunggu SEKARANG,
         // jangan tunggu tik lain (promosikanMenungguSlotKosong sendiri idempotent/selamat dipanggil
@@ -1252,7 +1252,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
             title: 'Kandungan anda telah disiarkan',
             detail: (title !== undefined ? title : rev.title || '').slice(0, 150),
             targetType: 'kandungan',
-            targetId: id,
+            targetId: `${notifySlotIndex}:${id}`,
           });
 
           // Dasar aktif editorial (2026-08-05, permintaan Izzat) — "aktif" ditakrif KANDUNGAN
@@ -1675,8 +1675,9 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // (dalaman sahaja, tak pernah ditulis ke editorial_attribute_values — lihat nota di
       // ManualBlockFormat.js parseManualBlockFields/server.js parseManualSummaryTemplate) —
       // Nota awam asal (attrs.note) KEKAL TAK DISENTUH.
+      const draftUuid = `object-manual-slot${objRow.slotIndex}-${Date.now()}-reject`;
       const draftBlock = [
-        `UUID: object-manual-slot${objRow.slotIndex}-${Date.now()}-reject`,
+        `UUID: ${draftUuid}`,
         `Status: draf`,
         `Tajuk: ${rev.title || ''}`,
         `Topik: ${attrs.topik || ''}`,
@@ -1751,10 +1752,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         .filter((eid) => eid !== req.session?.user?.id);
       await notifyMany(dbRun, penerimaIds, {
         type: 'kandungan_ditolak',
-        title: 'Kandungan anda ditolak',
-        detail: sebab ? `Sebab: ${sebab}` : (rev.title || '').slice(0, 150),
-        targetType: 'kandungan',
-        targetId: id,
+        title: `Kandungan anda ditolak: ${(rev.title || '').slice(0, 100)}`,
+        detail: sebab ? `Sebab: ${sebab}` : '',
+        // targetType 'draf_ditolak' (bukan 'kandungan' generik) — objek ASAL (id) sudah diarkibkan
+        // di atas dan bukan lagi boleh disunting; draf BOLEH-EDIT sebenar ialah blok teks baharu
+        // (draftUuid) yang baru ditulis ke slots_config.manualSummary slot ni. targetId gunakan
+        // format "slotIndex:draftUuid" supaya MaklumanDrawer boleh buka draf ni TERUS (bukaDraf)
+        // tanpa editor kena cari sendiri dalam "Draf Saya".
+        targetType: 'draf_ditolak',
+        targetId: `${objRow.slotIndex}:${draftUuid}`,
       });
 
       res.json({ success: true });

@@ -465,6 +465,35 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     });
   };
 
+  // Buka terus sasaran notifikasi kandungan/draf (2026-09-01, Izzat: "susah nak cari kandungan
+  // apa yg ditolak... pautan utk edit pun tak diberi"). `sasaranId` daripada Notify.js kini
+  // berformat "slotIndex:id" untuk semua jenis notifikasi kandungan (lihat contentRoutes.js/
+  // server.js) — parse dahulu sebelum guna. Kandungan lama sebelum ciri ni (targetId lama = id
+  // mentah tanpa ":") gagal senyap (parseInt NaN) — butang "Buka"/"Lihat" tak dipapar langsung
+  // sebab MaklumanDrawer dah semak sasaranId wujud, jadi kes ni jarang berlaku dalam amalan.
+  const STATUS_IKUT_JENIS: Record<string, string> = {
+    kandungan_disiar: 'Live',
+    kandungan_menunggu_kelulusan: 'Pending',
+    kandungan_luput_berjadual: 'Archive',
+    kandungan_putar_arkib: 'Archive',
+    // Terbit berjadual boleh mendarat Live ATAU tunggu slot (kekal Pending) — 'Semua' paling
+    // selamat drpd meneka salah dan tersembunyikan hasil sebenar.
+    kandungan_terbit_berjadual: 'Semua',
+  };
+  const bukaSasaranNotifikasi = (sasaranJenis: string, sasaranId: string, jenisNotifikasi?: string) => {
+    const kolon = sasaranId.indexOf(':');
+    if (kolon === -1) return;
+    const slotIndex = parseInt(sasaranId.slice(0, kolon), 10);
+    const sisa = sasaranId.slice(kolon + 1);
+    if (Number.isNaN(slotIndex)) return;
+    setMaklumanTerbuka(false);
+    if (sasaranJenis === 'draf_ditolak') {
+      bukaDraf(slotIndex, sisa);
+      return;
+    }
+    lihatDiIndeks({ slot: `Slot ${slotIndex + 1}`, status: (jenisNotifikasi && STATUS_IKUT_JENIS[jenisNotifikasi]) || 'Semua' });
+  };
+
   const klikNotifikasi = (id: string) => {
     // Kemas kini optimistik (2026-08-07, Audit UI/UX §D7) — dahulu tak dipulihkan bila gagal:
     // lencana NAMPAK kosong walaupun server masih kira belum baca, ia muncul semula pada muat
@@ -876,6 +905,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           onTutup={tutupMakluman}
           onKlikNotifikasi={klikNotifikasi}
           onPadamNotifikasi={padamNotifikasi}
+          onBukaSasaran={bukaSasaranNotifikasi}
         />
       )}
 

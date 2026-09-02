@@ -38,6 +38,8 @@ interface Notifikasi {
   kandungan: string;
   dibaca: boolean;
   dibuatPada: string;
+  sasaranJenis?: string | null;
+  sasaranId?: string | null;
 }
 
 type ItemMakluman = Nota | Notifikasi;
@@ -54,7 +56,18 @@ interface MaklumanDrawerProps {
   // padam semua. kesian kat editor tak boleh pilih utk padam mesej tertentu." Butang pukal
   // DIBUANG — pangkah (X) SETIAP mesej sahaja, editor pilih sendiri satu-satu.
   onPadamNotifikasi: (id: string) => void;
+  // Buka terus sasaran notifikasi kandungan/draf (2026-09-01, Izzat: "susah nak cari kandungan
+  // apa yg ditolak... pautan utk edit pun tak diberi"). Pilihan — tak semua jenis notifikasi ada
+  // sasaran boleh dibuka (cth Sistem RSS/cuaca gagal, Nota Ketua Editor).
+  onBukaSasaran?: (sasaranJenis: string, sasaranId: string, jenisNotifikasi: string) => void;
 }
+
+// Jenis notifikasi kandungan yang ada pautan "Buka" bermakna (targetType 'kandungan'/'draf_ditolak'
+// daripada Notify.js — lihat contentRoutes.js/server.js). Sistem/nota TIDAK disertakan di sini.
+const JENIS_BOLEH_BUKA = new Set([
+  'kandungan_disiar', 'kandungan_ditolak', 'draf_ditolak', 'kandungan_menunggu_kelulusan',
+  'kandungan_terbit_berjadual', 'kandungan_luput_berjadual', 'kandungan_putar_arkib',
+]);
 
 const LABEL_SKOP: Record<string, string> = { catatan_ketua_editor: 'Catatan Ketua Editor', pengumuman: 'Pengumuman' };
 
@@ -67,6 +80,7 @@ const IKON_JENIS: Record<string, React.ReactNode> = {
   kandungan_terbit_berjadual: <CheckCircle2 className="w-2.5 h-2.5" />,
   kandungan_luput_berjadual: <XCircle className="w-2.5 h-2.5" />,
   kandungan_penugasan_slot: <LayoutGrid className="w-2.5 h-2.5" />,
+  kandungan_putar_arkib: <XCircle className="w-2.5 h-2.5" />,
   sistem_rss_gagal: <Rss className="w-2.5 h-2.5" />,
   sistem_cuaca_gagal: <CloudOff className="w-2.5 h-2.5" />,
   sistem_kata_laluan_ditukar: <KeyRound className="w-2.5 h-2.5" />,
@@ -88,6 +102,7 @@ const LABEL_JENIS: Record<string, string> = {
   kandungan_terbit_berjadual: 'Terbit Berjadual',
   kandungan_luput_berjadual: 'Luput Berjadual',
   kandungan_penugasan_slot: 'Penugasan Slot',
+  kandungan_putar_arkib: 'Diarkibkan Automatik',
   sistem_rss_gagal: 'Sistem: RSS',
   sistem_cuaca_gagal: 'Sistem: Cuaca',
   sistem_kata_laluan_ditukar: 'Sistem: Akaun',
@@ -114,7 +129,7 @@ const tarikhRingkas = (iso: string) => {
 // tergolong Editorial (ia memang tindakan/arahan manusia, bukan kegagalan sistem).
 const isNotifikasiSistem = (n: ItemMakluman) => n.jenisSumber === 'notifikasi' && n.jenis.startsWith('sistem_');
 
-export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi, memuat, onTutup, onKlikNotifikasi, onPadamNotifikasi }) => {
+export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi, memuat, onTutup, onKlikNotifikasi, onPadamNotifikasi, onBukaSasaran }) => {
   // Backdrop-click guard (lihat LoginModal.tsx, pepijat Izzat 2026-08-07) — kekal false selagi
   // mousedown tak bermula terus pada backdrop.
   const mousedownPadaBackdrop = React.useRef(false);
@@ -332,6 +347,19 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                       </div>
                       <p className="font-serif text-[15px] leading-snug text-stone-900">{n.tajuk}</p>
                       {n.kandungan && <p className="text-stone-600 text-xs whitespace-pre-wrap leading-relaxed">{n.kandungan}</p>}
+                      {/* Buka terus sasaran (2026-09-01, Izzat: "susah nak cari kandungan apa yg
+                          ditolak... pautan utk edit pun tak diberi") — hanya papar bila jenis
+                          notifikasi ni memang ada sasaran boleh dibuka DAN pelayan bekalkan
+                          sasaranId (kandungan lama sebelum ciri ni mungkin tiada). */}
+                      {onBukaSasaran && n.sasaranJenis && n.sasaranId && JENIS_BOLEH_BUKA.has(n.jenis) && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onBukaSasaran(n.sasaranJenis!, n.sasaranId!, n.jenis); }}
+                          className="font-mono text-[10px] uppercase tracking-wide font-bold text-Adjung-maroon hover:underline cursor-pointer"
+                        >
+                          {n.jenis === 'kandungan_ditolak' || n.jenis === 'draf_ditolak' ? 'Buka draf →' : 'Lihat di Indeks →'}
+                        </button>
+                      )}
                     </li>
                   );
                 }
