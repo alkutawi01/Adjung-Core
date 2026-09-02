@@ -96,6 +96,12 @@ interface KadDraf {
   pautanBuku: string;
   amaran: string | null;
   dibuka: boolean;
+  // ralatSimpan (2026-09-02) — sebab SEBENAR pelayan langkau kad ni pada percubaan "Simpan"
+  // SEBELUM ni ("dilangkau", laporan Izzat "saya masukkan 20 petikan baru, semuanya hilang
+  // kecuali 1"). BEZA drpd `amaran` (isyarat pra-simpan daripada hurai(), cth kategori tak sah)
+  // — ni pengesahan pelayan SEBENAR semasa cuba INSERT (pendua, format tak sah, dsb), diisi
+  // hanya SELEPAS cuba simpan, null selagi belum cuba.
+  ralatSimpan: string | null;
 }
 
 /** Borang sunting untuk petikan yang SUDAH tersimpan (Koleksi). Bentuk sama seperti KadDraf
@@ -135,7 +141,7 @@ const kadKosong = (): KadDraf => ({
   kunci: `kad-${++kiraKunci}`,
   teksAsal: '', bahasaAsal: 'Melayu', teksMelayu: '',
   pengarang: '', karya: '', rujukan: '', kategori: '', pautanBuku: '',
-  amaran: null, dibuka: true,
+  amaran: null, ralatSimpan: null, dibuka: true,
 });
 
 /** Masalah yang menghalang kad daripada disimpan. Dikira di klien untuk maklum balas segera;
@@ -432,6 +438,7 @@ export const PetikanConsole: React.FC = () => {
         kategori: r.kategori || '',
         pautanBuku: r.pautanBuku || '',
         amaran: r.amaran || null,
+        ralatSimpan: null,
         // Kad dengan masalah dibuka TERUS; yang bersih kekal terlipat. Editor sedang membuat
         // triage pada peringkat ini, bukan membaca setiap satu.
         dibuka: false,
@@ -481,9 +488,28 @@ export const PetikanConsole: React.FC = () => {
       const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan petikan.');
 
-      const kunciSedia = new Set(drafSedia.map((k) => k.kunci));
-      setDraf((d) => d.filter((k) => !kunciSedia.has(k.kunci)));
-      lapor(`${data.disimpan} petikan masuk ke koleksi sebagai belum disemak${data.dilangkau ? `, ${data.dilangkau} dilangkau` : ''}.`);
+      // Padankan keputusan pelayan (`data.hasil`, satu entri setiap rekod, IKUT URUTAN SAMA
+      // seperti dihantar) balik ke kad asal guna indeks — BUKAN buang semua kad yang dihantar
+      // secara membuta macam dulu (punca sebenar "20 petikan hilang kecuali 1", lihat nota
+      // `ralatSimpan` di atas). Kad yang BERJAYA disimpan dibuang daripada ruang kerja; kad yang
+      // DILANGKAU kekal kelihatan dengan sebab sebenar terpapar, supaya editor boleh baiki/buang
+      // sendiri dengan sedar, bukan kehilangan kandungan tanpa jejak.
+      const hasilList: Array<{ disimpan: boolean; sebab?: string; id?: string }> = Array.isArray(data.hasil) ? data.hasil : [];
+      const kunciBerjaya = new Set<string>();
+      drafSedia.forEach((k, i) => {
+        if (hasilList[i]?.disimpan) kunciBerjaya.add(k.kunci);
+      });
+      setDraf((d) => d.map((k) => {
+        const i = drafSedia.findIndex((s) => s.kunci === k.kunci);
+        if (i === -1 || kunciBerjaya.has(k.kunci)) return k;
+        const sebab = hasilList[i]?.sebab || 'Pelayan menolak petikan ini, sebab tidak dinyatakan.';
+        return { ...k, ralatSimpan: sebab, dibuka: true };
+      }).filter((k) => !kunciBerjaya.has(k.kunci)));
+      if (data.dilangkau > 0) {
+        lapor(`${data.disimpan} petikan masuk ke koleksi sebagai belum disemak. ${data.dilangkau} DILANGKAU — kekal di ruang kerja di bawah dengan sebab masing-masing, sila semak.`);
+      } else {
+        lapor(`${data.disimpan} petikan masuk ke koleksi sebagai belum disemak.`);
+      }
       muat();
     } catch (e: any) {
       setRalat(e.message || 'Gagal menyimpan petikan.');
@@ -838,10 +864,15 @@ export const PetikanConsole: React.FC = () => {
                 const melayu = adalahMelayu(k.bahasaAsal);
                 const paparan = melayu ? k.teksAsal : k.teksMelayu;
                 return (
-                  <li key={k.kunci} className={`border rounded-lg ${masalah.length ? 'border-amber-300 bg-amber-50/40' : 'border-stone-200'}`}>
+                  <li key={k.kunci} className={`border rounded-lg ${k.ralatSimpan ? 'border-[var(--color-error)] bg-[var(--color-error)]/5' : masalah.length ? 'border-amber-300 bg-amber-50/40' : 'border-stone-200'}`}>
                     {/* Baris ringkas — sentiasa kelihatan. Prinsipnya: sembunyikan DATA, jangan
                         sembunyikan STATUS. Editor perlu mengimbas dan terus nampak mana yang
                         bermasalah tanpa membuka setiap kad. */}
+                    {k.ralatSimpan && (
+                      <p className="text-[11px] text-[var(--color-error)] font-semibold px-3 pt-3 -mb-1">
+                        Dilangkau semasa simpan: {k.ralatSimpan}
+                      </p>
+                    )}
                     <div className="flex items-start gap-3 p-3">
                       <button
                         type="button"

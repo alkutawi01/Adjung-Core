@@ -505,6 +505,18 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
 
       let disimpan = 0;
       let dilangkau = 0;
+      // Keputusan SETIAP rekod, ikut indeks SAMA seperti `senarai` masuk — klien padankan balik
+      // ke kad asal guna indeks ni. Sebelum ni laluan cuma pulangkan JUMLAH ("1 disimpan, 19
+      // dilangkau") tanpa cara langsung kenal pasti YANG MANA satu gagal atau SEBABNYA — bila
+      // pelayan langkau berbilang rekod (pendua sesama sendiri dalam tampalan yang sama, atau
+      // pendua dengan koleksi sedia ada), editor nampak jumlah tapi tiada cara kesan kandungan
+      // yang dilangkau tu, dan klien (lihat simpanDraf() di PetikanConsole.tsx) buang KESEMUA
+      // kad yang dihantar drpd senarai draf tempatan tanpa mengira status sebenar setiap satu —
+      // kad yang dilangkau hilang terus daripada skrin, tiada jejak, tiada cara pulih (dapatan
+      // Izzat 2026-09-02: "saya masukkan 20 petikan baru, semuanya hilang kecuali 1"). Dibaiki
+      // di SINI (bukan cuma di klien) sebab punca sebenar ialah pelayan tak pernah beritahu
+      // sebab sebenar setiap kegagalan.
+      const hasil = [];
       for (const r of senarai) {
         // Sahkan SEMULA di pelayan — jangan percaya rekod yang datang balik daripada klien.
         // Klien boleh diubah suai; pratonton bukan gerbang keselamatan.
@@ -514,16 +526,20 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
         const bentuk = bentukTeksPaparan({
           teksAsal: r.teksAsal, bahasaAsal: r.bahasaAsal, teksMelayu: r.teksMelayu,
         });
-        if (bentuk.error) { dilangkau++; continue; }
+        if (bentuk.error) { dilangkau++; hasil.push({ disimpan: false, sebab: bentuk.error }); continue; }
 
         const semakan = sahkanMedan({
           teks: bentuk.teksPaparan, pengarang: r.pengarang, karya: r.karya,
           rujukan: r.rujukan, pautanBuku: r.pautanBuku, tarikhMula: '', tarikhAkhir: '',
         });
-        if (semakan) { dilangkau++; continue; }
+        if (semakan) { dilangkau++; hasil.push({ disimpan: false, sebab: semakan }); continue; }
 
         const kunci = kunciDedupPetikan({ teksAsal: bentuk.teksAsal, pengarang: r.pengarang, karya: r.karya });
-        if (kunciSedia.has(kunci)) { dilangkau++; continue; }
+        if (kunciSedia.has(kunci)) {
+          dilangkau++;
+          hasil.push({ disimpan: false, sebab: 'Petikan ini sudah wujud dalam koleksi atau bertindih dengan satu lagi rekod dalam tampalan yang sama.' });
+          continue;
+        }
         kunciSedia.add(kunci);
 
         const id = `petikan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -538,6 +554,7 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
            (r.pautanBuku || '').trim(), namaSesi, kini, kini, kumpulan]
         );
         disimpan++;
+        hasil.push({ disimpan: true, id });
       }
 
       await logAudit(dbRun, {
@@ -547,7 +564,7 @@ export function createPetikanRoutes(dbAll, dbRun, dbGet) {
         detail: `${disimpan} petikan diimport (belum disahkan), ${dilangkau} dilangkau`,
       });
 
-      res.json({ success: true, disimpan, dilangkau, kumpulanImport: kumpulan });
+      res.json({ success: true, disimpan, dilangkau, kumpulanImport: kumpulan, hasil });
     } catch (err) {
       console.error('POST petikan/import error:', err);
       res.status(500).json({ error: 'Gagal mengimport petikan. ' + (err.message || '') });
