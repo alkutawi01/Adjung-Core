@@ -256,16 +256,20 @@ export function HalamanBidang() {
           balik ke atas semata-mata untuk klik "Laman Utama". `bg-[#FDFDFD]/95 backdrop-blur-sm`
           + `border-b` bila melekat supaya kandungan di bawahnya tak lenyap terus di bawah header. */}
       <header className="sticky top-0 z-40 bg-[#FDFDFD]/95 backdrop-blur-sm border-b border-stone-150 w-full px-6 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+        {/* Grid (2026-09-02, Izzat: "guna grid la... seragam, tempat lain pun guna grid") —
+            dahulu flexbox justify-between, tak konsisten dengan corak masthead sedia ada
+            (FocusView.tsx ~baris 924, `display: 'grid', gridTemplateColumns: '1fr auto 1fr'`).
+            Grid 2-lajur di sini (logo tak perlu ditengahkan macam FocusView, cuma dua hujung). */}
+        <div className="max-w-2xl mx-auto grid grid-cols-[1fr_auto] items-center">
           <Link
             to="/"
-            className={`font-serif ${LOGO_SIZE.header} text-[#802334] tracking-tight hover:opacity-80 transition-opacity`}
+            className={`font-serif ${LOGO_SIZE.header} text-[#802334] tracking-tight hover:opacity-80 transition-opacity justify-self-start`}
           >
             {BRAND.logoText}
           </Link>
           <Link
             to="/"
-            className="font-sans text-[10px] uppercase tracking-widest text-stone-500 hover:text-Adjung-maroon transition-colors"
+            className="font-sans text-[10px] uppercase tracking-widest text-stone-500 hover:text-Adjung-maroon transition-colors justify-self-end"
           >
             Laman Utama
           </Link>
