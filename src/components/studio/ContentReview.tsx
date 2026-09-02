@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Save, Search, Copy, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../common/Button';
@@ -367,8 +367,11 @@ export function ContentReview() {
   // pilihan: 10, 20, dan 30 kandungan sahaja. sbb 50-100 terlalu banyak") — dahulu PEMALAR 100
   // tetap (2026-07-29), satu halaman boleh bawa 100 kandungan sekali gus dlm SATU kotak teks
   // besar (terus punca aduan "kenapa tak boleh scroll" sesi ni jugak — kotak jadi gergasi).
-  // Lalai 20 (nilai TENGAH tiga pilihan, bukan agakan).
-  const [bulkPageSize, setBulkPageSize] = useState(20);
+  // DIKETATKAN LAGI (2026-09-02, Izzat: "tukar bilangan kandungan... kepada 5, 10, dan 15. sbb
+  // chatbot tak boleh proses input yg panjang") — kandungan pukal ditampal terus ke chatbox AI
+  // luaran (Perpustakaan Prompt Semakan di atas), yang ada had panjang input praktikal; 20-30
+  // kandungan sekali gus kadang terlebih untuk chatbot proses. Lalai 10 (nilai TENGAH).
+  const [bulkPageSize, setBulkPageSize] = useState(10);
   const [bulkPage, setBulkPage] = useState(1);
   useEffect(() => { setBulkPage(1); }, [filteredItems, bulkPageSize]);
 
@@ -437,6 +440,50 @@ export function ContentReview() {
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [bulkText, pagedBulkItems]);
+
+  // Garisan pemisah HALUS antara entri (2026-09-02, Izzat: "asingkan antara kandungan dlm
+  // semakan kandungan dengan garisan halus, yg tak boleh dicopy paste") — kotak teks pukal ni
+  // SATU <textarea> mentah (bukan berbilang elemen), jadi tak boleh sisip garisan SEBENAR ke
+  // dalam nilai textarea (garisan tu akan tersalin sekali bila editor Select All + Copy ke
+  // ChatGPT, mencemari prompt). Teknik: bekas overlay "cermin" (`bulkMirrorRef`) TERSEMBUNYI
+  // (visibility:hidden, pointerEvents:none) dgn font/padding/lebar SAMA PERSIS textarea (corak
+  // sama SenaraiSumberDesktop() di FocusView.tsx — ukur DOM sebenar, bukan agak), papar teks
+  // SAMA dipecah pada setiap penanda "#Slot-Siri" (permulaan entri). offsetTop setiap penanda
+  // selepas render SEBENAR jadi kedudukan garisan — garisan (elemen `<div>` KOSONG, bukan teks)
+  // dilukis DI ATAS textarea (position:absolute), jadi ia kelihatan tapi TIADA nod teks utk
+  // disalin sama sekali. Kekal SEGAR bila teks disunting (regex `#\d+-\d+` dikira semula setiap
+  // `bulkText` berubah) atau lebar tetingkap berubah (ResizeObserver, wrap textarea boleh ubah).
+  const bulkMirrorRef = useRef<HTMLDivElement>(null);
+  const bulkPenandaRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const [bulkGarisTop, setBulkGarisTop] = useState<number[]>([]);
+  const [bulkScrollTop, setBulkScrollTop] = useState(0);
+  const bulkSegmen = useMemo(() => {
+    const penanda = [...bulkText.matchAll(/^#\d+-\d+/gm)];
+    if (penanda.length <= 1) return [bulkText];
+    const potongan: string[] = [];
+    let mula = 0;
+    for (const p of penanda.slice(1)) {
+      potongan.push(bulkText.slice(mula, p.index));
+      mula = p.index as number;
+    }
+    potongan.push(bulkText.slice(mula));
+    return potongan;
+  }, [bulkText]);
+  useLayoutEffect(() => {
+    const ukur = () => {
+      const bekas = bulkMirrorRef.current;
+      if (!bekas) return;
+      const asas = bekas.getBoundingClientRect().top;
+      setBulkGarisTop(
+        bulkPenandaRefs.current
+          .filter((el): el is HTMLSpanElement => !!el)
+          .map((el) => el.getBoundingClientRect().top - asas)
+      );
+    };
+    ukur();
+    window.addEventListener('resize', ukur);
+    return () => window.removeEventListener('resize', ukur);
+  }, [bulkSegmen]);
 
   // Bulk save: edit-only. Matches each block back to its original item VIA UUID (identiti stabil
   // — lihat nota di parseBulkText), bukan lagi nombor #Slot-Siri ordinal. Blok yang UUID-nya tak
@@ -641,9 +688,9 @@ export function ContentReview() {
                 onChange={e => setBulkPageSize(Number(e.target.value))}
                 className="bg-stone-50 border border-stone-300 rounded px-2 py-1 font-semibold"
               >
+                <option value={5}>5 kandungan</option>
                 <option value={10}>10 kandungan</option>
-                <option value={20}>20 kandungan</option>
-                <option value={30}>30 kandungan</option>
+                <option value={15}>15 kandungan</option>
               </select>
             </label>
           </div>
@@ -737,13 +784,43 @@ export function ContentReview() {
             <p className="text-xs text-stone-500 text-center py-12">Memuatkan…</p>
           ) : (
             <>
-              <textarea
-                value={bulkText}
-                onChange={(e) => setBulkText(e.target.value)}
-                onKeyDown={(e) => tanganiKekunciItalic(e, bulkText, setBulkText)}
-                rows={30}
-                className="w-full px-3 py-3 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white font-mono text-xs leading-relaxed"
-              />
+              <div className="relative">
+                <textarea
+                  value={bulkText}
+                  onChange={(e) => setBulkText(e.target.value)}
+                  onKeyDown={(e) => tanganiKekunciItalic(e, bulkText, setBulkText)}
+                  onScroll={(e) => setBulkScrollTop(e.currentTarget.scrollTop)}
+                  rows={30}
+                  className="w-full px-3 py-3 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)] bg-white font-mono text-xs leading-relaxed"
+                />
+                {/* Garisan pemisah — lihat nota lengkap di bulkSegmen/bulkGarisTop di atas fail
+                    ni. `overflow-hidden` + `inset-0` sepadan tepat kotak nampak textarea (elak
+                    garisan terlebih bila kandungan lebih panjang drpd 30 baris kelihatan). */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+                  {bulkGarisTop.map((top, i) => (
+                    <div
+                      key={i}
+                      style={{ position: 'absolute', left: 12, right: 12, top: top - bulkScrollTop, height: 1, background: '#E7E5E4' }}
+                    />
+                  ))}
+                </div>
+                {/* Cermin TERSEMBUNYI — elemen KOSONG (bukan teks) di sini yang diukur, bukan
+                    teks itu sendiri, jadi Select All + Copy pada textarea di atas TAK PERNAH
+                    sertakan garisan ni. */}
+                <div
+                  ref={bulkMirrorRef}
+                  aria-hidden="true"
+                  className="w-full px-3 py-3 border border-stone-300 rounded bg-white font-mono text-xs leading-relaxed"
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, visibility: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pointerEvents: 'none' }}
+                >
+                  {bulkSegmen.map((seg, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && <span ref={(el) => { bulkPenandaRefs.current[i - 1] = el; }} />}
+                      {seg}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
               {bulkTotalPages > 1 && (
                 <div className="flex items-center justify-between gap-3 pt-3 font-sans text-xs">
                   <button
