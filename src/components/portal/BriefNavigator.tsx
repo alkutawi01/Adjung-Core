@@ -85,9 +85,9 @@ export default function BriefNavigator({ fields }: BriefNavigatorProps) {
         <button
           type="button"
           onClick={() => setTerbuka(true)}
-          aria-label="Buka navigasi Slot"
+          aria-label="Buka navigasi Bidang"
           aria-expanded={false}
-          className="fixed left-0 top-1/2 -translate-y-1/2 z-[61] bg-[var(--surface-page)] border border-l-0 border-[var(--border-default)] rounded-r-md shadow-md w-7 h-14 flex items-center justify-center text-stone-500 hover:text-Adjung-maroon transition-colors"
+          className="fixed left-0 top-[450px] md:top-1/2 md:-translate-y-1/2 z-[61] bg-[var(--surface-page)] border border-l-0 border-[var(--border-default)] rounded-r-md shadow-md w-7 h-14 flex items-center justify-center text-stone-500 hover:text-Adjung-maroon transition-colors"
         >
           <Menu size={16} />
         </button>
@@ -104,16 +104,16 @@ export default function BriefNavigator({ fields }: BriefNavigatorProps) {
 
       {/* Sidebar itu sendiri — slide dari kiri, tinggi PENUH skrin, SATU scroll sahaja. */}
       <div
-        className={`fixed left-0 top-0 bottom-0 z-[60] w-[280px] max-w-[80vw] bg-[var(--surface-page)] border-r border-[var(--border-default)] shadow-xl flex flex-col transition-transform ${
+        className={`fixed left-0 top-0 bottom-0 z-[60] w-[260px] max-w-[80vw] bg-[var(--surface-page)] border-r border-[var(--border-default)] shadow-xl flex flex-col transition-transform ${
           terbuka ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ transitionDuration: '220ms', transitionTimingFunction: 'cubic-bezier(.2,.8,.2,1)' }}
       >
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--border-default)] flex-shrink-0">
-          {/* Label PAPARAN sahaja "Slot" (permintaan Izzat — pembaca awam tak kenal istilah
-              dalaman "Bidang"). Kod/pembolehubah/CLAUDE.md KEKAL guna "Bidang" (istilah
-              produk sebenar); JANGAN ubah nama fungsi/prop/komen ikut label ni. */}
-          <span className="font-serif text-[var(--text-15)] font-bold text-[var(--text-heading)]">Slot</span>
+          {/* Label "Bidang" (2026-09-02, Izzat: selaraskan dengan URL /bidang/{slug} — label
+              "Slot" (keputusan sementara 2026-08-31) kini digantikan sebab istilah produk
+              sebenar "Bidang" sudah terdedah terus kepada pembaca via URL Halaman Bidang). */}
+          <span className="font-serif text-[var(--text-15)] font-bold text-[var(--text-heading)]">Bidang</span>
           <button type="button" onClick={tutupSidebar} aria-label="Tutup" className="text-stone-500 hover:text-Adjung-maroon">
             <X size={16} />
           </button>
