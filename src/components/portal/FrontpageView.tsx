@@ -198,20 +198,30 @@ const MALAY_MONTHS = [
 // ditaip sebelum pemetik kalendar wujud). Tak padan mana-mana (teks bebas lama lain) — jatuh balik
 // ke getDisplayDate() tidak disentuh, ikut falsafah sama: jangan hilangkan/rosakkan tarikh separa.
 const formatTarikhSumberPanjang = (raw?: string): string => {
-  const trimmed = getDisplayDate(raw);
-  if (!trimmed) return '';
-  const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!raw) return '';
+  // PEMBETULAN (2026-09-02, dapatan bug-hunt): dahulu corak ISO/legasi disemak pada HASIL
+  // getDisplayDate(raw), bukan raw asal — tapi getDisplayDate() SENDIRI sudah tukar corak ISO
+  // yyyy-mm-dd ke "D Bulan Pendek YYYY" (cth "7 Ogo 2026") SEBELUM regex di bawah sempat jalan,
+  // jadi cawangan ISO (yang patut hasilkan "7 Ogos 2026" nama bulan PENUH) tak pernah tercapai
+  // untuk sebarang tarikh ditaip guna <input type="date"> (SEMUA kandungan baharu sejak
+  // 2026-08-07) — Focus View sentiasa papar singkatan bulan, bukan nama penuh yang dimaksudkan.
+  // Dibetulkan: semak corak ISO/legasi pada RAW dahulu, getDisplayDate() jadi fallback SAHAJA
+  // (teks bebas lama yang tak padan mana-mana corak tarikh).
+  const trimmedRaw = raw.trim();
+  const iso = trimmedRaw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) {
     const [, yyyy, mm, dd] = iso;
     const monthName = MALAY_MONTHS[parseInt(mm, 10) - 1];
-    return monthName ? `${parseInt(dd, 10)} ${monthName} ${yyyy}` : trimmed;
+    return monthName ? `${parseInt(dd, 10)} ${monthName} ${yyyy}` : getDisplayDate(raw);
   }
-  const legasi = trimmed.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
-  if (!legasi) return trimmed;
-  const [, dd, mm, yy] = legasi;
-  const monthName = MALAY_MONTHS[parseInt(mm, 10) - 1];
-  if (!monthName) return trimmed;
-  return `${parseInt(dd, 10)} ${monthName} ${yy}`;
+  const legasi = trimmedRaw.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+  if (legasi) {
+    const [, dd, mm, yy] = legasi;
+    const monthName = MALAY_MONTHS[parseInt(mm, 10) - 1];
+    if (monthName) return `${parseInt(dd, 10)} ${monthName} ${yy}`;
+  }
+  const trimmed = getDisplayDate(raw);
+  return trimmed;
 };
 
 // Label kad awam: "Bidang | Topik". Kandungan lama tanpa Topik papar Bidang sahaja (tiada backfill).
