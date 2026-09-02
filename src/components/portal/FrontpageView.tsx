@@ -1814,7 +1814,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // CategoryRegistry, termasuk 93 baris lama tak aktif, untuk warna kad).
   // icon/iconSvg dibawa sekali (bukan hanya name/color) sebab Focus View papar glif Bidang
   // di sebelah label "Bidang Topik" — lihat openFocus() di bawah.
-  const [activeBidangList, setActiveBidangList] = useState<{ name: string; color: string; icon: string | null; iconSvg: string | null }[]>([]);
+  const [activeBidangList, setActiveBidangList] = useState<{ name: string; slug: string; color: string; icon: string | null; iconSvg: string | null }[]>([]);
   const [activeLanguage, setActiveLanguage] = useState<'ms' | 'zh' | 'ar' | 'en'>('ms');
   const [enabledLanguages, setEnabledLanguages] = useState<any[]>([]);
   // BAR accordion: which card (by slot index) is expanded, per cluster — independent so opening
@@ -2140,6 +2140,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         if (Array.isArray(data)) {
           setActiveBidangList(data.map((c: any) => ({
             name: c.name,
+            slug: c.slug,
             color: c.color,
             icon: c.icon ?? null,
             iconSvg: c.iconSvg ?? null,
@@ -3090,6 +3091,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
    *  maklumat sebenar walau navigator cuma papar 10 pertama. */
   type NavigatorField = {
     name: string;
+    slug: string;
     totalCount: number;
     news: NavigatorNewsItem[];
     icon: string | null;
@@ -3102,11 +3104,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
     // ChatGPT) — `focusAllLocations` boleh berisi placeholder SEBELUM `hasLoadedContent`
     // jadi true (corak sama pepijat deep-link 2026-08-29, lihat effect di bawah).
     if (!hasLoadedContent) return [];
-    // Peta nama->ikon dibina terus dari `activeBidangList` (bukan `bidangByName`, yang
+    // Peta nama->ikon/slug dibina terus dari `activeBidangList` (bukan `bidangByName`, yang
     // ditakrif LEPAS memo ni dalam fail — sama sumber data, cuma diulang sini elak susunan
-    // deklarasi terbalik).
-    const ikonByName = new Map<string, { icon: string | null; iconSvg: string | null }>();
-    for (const b of activeBidangList) ikonByName.set(b.name.toLowerCase(), { icon: b.icon, iconSvg: b.iconSvg });
+    // deklarasi terbalik). Slug (2026-09-01, Halaman Bidang) datang TERUS daripada
+    // CategoryRegistry.slug (server), bukan dikira semula client-side — satu sumber kebenaran.
+    const ikonByName = new Map<string, { icon: string | null; iconSvg: string | null; slug: string }>();
+    for (const b of activeBidangList) ikonByName.set(b.name.toLowerCase(), { icon: b.icon, iconSvg: b.iconSvg, slug: b.slug });
     const groups = new Map<string, NavigatorField>();
     for (const loc of focusAllLocations) {
       const item = focusItemsForSlot(loc.slotIndex)[loc.itemIndex];
@@ -3115,7 +3118,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       if (!key) continue;
       if (!groups.has(key)) {
         const ikon = ikonByName.get(key.toLowerCase());
-        groups.set(key, { name: key, totalCount: 0, news: [], icon: ikon?.icon ?? null, iconSvg: ikon?.iconSvg ?? null });
+        // Bidang tanpa padanan Taksonomi (jarang — kandungan lama/desk lapuk) jatuh balik ke
+        // slug dikira ringkas di sini (cermin CategoryRegistry.getSlug — bukan sumber kebenaran
+        // sebenar, cuma jaring keselamatan supaya pautan navigator tak pernah kosong).
+        const slugFallback = key.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'umum';
+        groups.set(key, { name: key, slug: ikon?.slug || slugFallback, totalCount: 0, news: [], icon: ikon?.icon ?? null, iconSvg: ikon?.iconSvg ?? null });
       }
       const field = groups.get(key)!;
       field.totalCount += 1;

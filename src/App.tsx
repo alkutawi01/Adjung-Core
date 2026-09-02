@@ -18,6 +18,7 @@ import { HalamanSertai } from './components/portal/HalamanSertai';
 import { HalamanMohonPenaja } from './components/portal/HalamanMohonPenaja';
 import { HalamanLengkapkanPenajaan } from './components/portal/HalamanLengkapkanPenajaan';
 import { TidakDijumpai } from './components/portal/TidakDijumpai';
+import { HalamanBidang } from './components/portal/HalamanBidang';
 import { TetapkanKataLaluan } from './components/portal/TetapkanKataLaluan';
 import { LengkapkanProfilModal } from './components/editorium/LengkapkanProfilModal';
 
@@ -338,6 +339,10 @@ export default function App() {
               )}
             </LaluanKandungan>
           } />
+          {/* Halaman Bidang (2026-09-01, spesifikasi MUKTAMAD Izzat) — lajur tunggal, TERKINI +
+              Koleksi Terdahulu, dibuka klik Bidang di BriefNavigator (sidebar). Laluan
+              BERASINGAN daripada frontpage ("/") — bukan overlay atas bento grid. */}
+          <Route path="/bidang/:slug" element={<HalamanBidang />} />
           <Route path="/sandbox" element={
             <motion.div
               key="sandbox"

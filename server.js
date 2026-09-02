@@ -69,6 +69,7 @@ import { createSitemapRoutes } from './core/routes/sitemapRoutes.js';
 import { createRssFeedRoutes } from './core/routes/rssFeedRoutes.js';
 import { createArticleUrlRoutes, createPublicArticleRoute } from './core/routes/articleUrlRoutes.js';
 import { createSearchRoutes } from './core/routes/searchRoutes.js';
+import { createBidangRoutes } from './core/routes/bidangRoutes.js';
 import { createPosterRoutes } from './core/routes/posterRoutes.js';
 import { createSponsorRoutes } from './core/routes/sponsorRoutes.js';
 import { createPermohonanPenajaRoutes } from './core/routes/permohonanPenajaRoutes.js';
@@ -2793,6 +2794,10 @@ const initEditorialOS = (dbConn) => {
                                                       updatedAt TEXT NOT NULL
                                                     )
                                                   `, () => {
+                                                    // description: deskripsi ringkas Bidang untuk Halaman Bidang (/bidang/:slug,
+                                                    // 2026-09-01) — TIADA sebelum ni, ditambah additive (kandungan sedia ada
+                                                    // tak disentuh). NULL/kosong = Halaman Bidang papar tanpa deskripsi.
+                                                    dbConn.run("ALTER TABLE CategoryRegistry ADD COLUMN description TEXT", () => {
                                                     // isActive: Bidang kini senarai tertutup kurasi Ketua Editor (bukan lagi
                                                     // auto-daftar bebas) — 93 baris sedia ada kekal isActive=0 (tak dipadam,
                                                     // cuma tak boleh dipilih/dipapar lagi). GET /categories (sumber warna kad
@@ -2852,6 +2857,7 @@ const initEditorialOS = (dbConn) => {
                                                         resolve();
                                                       });
                                                     });
+                                                  });
                                                   });
                                                 });
                                               });
@@ -3855,7 +3861,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       title: 'Kandungan menunggu kelulusan anda',
       detail: `Slot ${slotIndex + 1}: ${menunggu.title}`.slice(0, 150),
       targetType: 'kandungan',
-      targetId: menunggu.objectId,
+      targetId: `${slotIndex}:${menunggu.objectId}`,
     }).catch(async (e) => {
       // LIFE-03 (audit ChatGPT 2026-08-08) — kegagalan notifikasi TETAP tak boleh menjejaskan
       // penerbitan (prinsip sedia ada dikekalkan), tapi dahulu cuma console.warn — hilang bila
@@ -4275,6 +4281,7 @@ app.use('/api/system', createAuditLogRoutes(dbAll));
 app.use('/api/system', createUiLabelRoutes(dbAll, dbRun));
 app.use('/api', createArticleUrlRoutes(dbAll, dbGet, dbRun));
 app.use('/api', createSearchRoutes(dbAll));
+app.use('/api', createBidangRoutes(dbAll, dbGet));
 app.use('/api', createPosterRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api', createSponsorRoutes(dbAll, dbRun, dbGet));
 app.use('/api', createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, __dirname));
