@@ -90,6 +90,14 @@ const TINDAKAN_TONE: Record<string, 'success' | 'warning' | 'error' | 'neutral'>
   'terima-permohonan-editor': 'success',
   'tolak-permohonan-editor': 'warning',
   'konfigurasi-base-url-tiada': 'error',
+
+  // PEMBETULAN (2026-09-02, dapatan bug-hunt — sambungan corak sama) — dua lagi kod SAH
+  // (server.js) tiada tone di sini: 'akaun-digantung-tak-aktif' (Dasar Aktif Editorial
+  // gantung akaun automatik, tahap 3) dan 'gagal-notifikasi-kandungan-menunggu' (notifikasi
+  // pelulus gagal dihantar). Kedua-duanya jatuh balik 'neutral' (kelabu, sama macam kemas
+  // kini tetapan biasa) walhal kedua-duanya peristiwa NEGATIF yang patut menonjol.
+  'akaun-digantung-tak-aktif': 'error',
+  'gagal-notifikasi-kandungan-menunggu': 'warning',
 };
 
 export const tonTindakan = (action: string): 'success' | 'warning' | 'error' | 'neutral' => {
@@ -197,6 +205,12 @@ const TINDAKAN_LABEL: Record<string, string> = {
   'terima-permohonan-editor': 'Terima permohonan editor',
   'tolak-permohonan-editor': 'Tolak permohonan editor',
   'konfigurasi-base-url-tiada': 'BASE_URL tiada dalam konfigurasi produksi',
+
+  // PEMBETULAN (2026-09-02, dapatan bug-hunt — sambungan corak sama) — dua lagi kod SAH
+  // (server.js) tiada label di sini, jatuh balik ke teks kod mentah dalam Log Sistem/
+  // "Aktiviti Editor".
+  'akaun-digantung-tak-aktif': 'Akaun digantung automatik (tidak aktif)',
+  'gagal-notifikasi-kandungan-menunggu': 'Gagal menghantar notifikasi kandungan menunggu kelulusan',
 };
 
 // Label Bahasa Melayu bagi kod status DALAMAN kandungan (CONTENT_STATUSES, contentRoutes.js) —
