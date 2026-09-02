@@ -1935,7 +1935,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             {activeItemModal.status === 'Archive' && activeItemModal.slot !== 'Ticker' && (
               <div className="space-y-3 font-sans bg-amber-50 border border-amber-200 rounded p-4">
                 <div className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">
-                  Siar Semula. Bidang kandungan ni tak lagi sepadan slot asal, pilih Bidang dan slot sasaran (Bidang boleh diubah supaya sepadan slot lain).
+                  Siar Semula. Sahkan Bidang, Topik dan Slot Sasaran di bawah sebelum meneruskan (Bidang boleh ditukar jika slot asal sudah tidak sesuai lagi).
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1973,7 +1973,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       .map(s => <option key={s.slotIndex} value={s.slotIndex}>Slot {s.slotIndex + 1}</option>)}
                   </select>
                   {reactivateDesk && allSlots.filter(s => s.manualDesk.toLowerCase() === reactivateDesk.toLowerCase()).length === 0 && (
-                    <p className="text-[9px] text-amber-700 mt-1">Tiada slot ditetapkan untuk Bidang ni lagi. Tetapkan dulu di Tetapan &gt; Taksonomi.</p>
+                    <p className="text-[9px] text-amber-700 mt-1">Tiada slot ditetapkan untuk Bidang ini lagi. Tetapkan dahulu di Tetapan &gt; Taksonomi.</p>
                   )}
                 </div>
                 <Button
