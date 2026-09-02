@@ -183,6 +183,22 @@ export function HalamanBidang() {
     ? () => setFocusObjectId(gabungan[focusIndex - 1].objectId)
     : undefined;
 
+  // Kekunci: Esc tutup, atas/bawah/kiri/kanan gerak — dapatan bug-hunt (2026-09-02, soalan
+  // Izzat "boleh navigasi guna keyboard?"). Corak SAMA persis FrontpageView.tsx (~baris 3428) —
+  // fungsi tu wiring pendengar keydown di PERINGKAT INDUK (bukan dalam FocusView.tsx sendiri,
+  // yang cuma pegang Space play/pause), jadi ia MESTI diulang di sini juga, tak automatik
+  // datang sekali dengan komponen FocusView yang dikongsi.
+  React.useEffect(() => {
+    if (!focusItem) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') tutupArtikel();
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') keArtikelSeterusnya?.();
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') keArtikelSebelum?.();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [focusItem, keArtikelSeterusnya, keArtikelSebelum]);
+
   if (status === '404') return <TidakDijumpai />;
 
   return (
@@ -281,8 +297,8 @@ export function HalamanBidang() {
             {/* Koleksi Terdahulu — label PAPARAN sahaja (bukan "Arkib"). Disorok sepenuhnya
                 kalau jumlah keseluruhan <=10 (semua sudah muat dalam TERKINI). */}
             {totalKeseluruhan > PER_PAGE && (
-              <section className="mt-12">
-                <div className="flex items-center justify-center gap-3 mb-6">
+              <section className="mt-6">
+                <div className="flex items-center justify-center gap-3 mb-5">
                   <div className="h-px bg-stone-200 flex-1 max-w-[80px]" />
                   <p className="font-mono text-[10px] uppercase tracking-widest text-stone-400">
                     Koleksi Terdahulu
