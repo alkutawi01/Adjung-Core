@@ -3624,7 +3624,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           className="w-full text-left px-3 py-2.5 hover:bg-stone-50 cursor-pointer"
                         >
                           <div className="font-mono text-[9px] uppercase tracking-wide text-[#802334]">{r.topik || r.desk}</div>
-                          <div className="font-serif text-sm text-stone-800 leading-snug">{r.title}</div>
+                          <div className="font-serif text-sm text-stone-800 leading-snug">{safeParseInline(r.title)}</div>
                         </button>
                       </li>
                     ))}

@@ -2,7 +2,10 @@ import React, { useState, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 interface TooltipProps {
-  text: string | undefined | null;
+  // ReactNode (bukan string sahaja) — beberapa pemanggil (cth IndeksConsole.tsx) menghantar
+  // kandungan editorial yang sudah dihurai (safeParseInline()) supaya *condong*/istilah gloss
+  // terpapar betul dalam gelembung ni juga, bukan asterisk mentah.
+  text: React.ReactNode;
   children: React.ReactElement<any>;
   placement?: 'top' | 'bottom';
 }

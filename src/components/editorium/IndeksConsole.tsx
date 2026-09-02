@@ -1404,7 +1404,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         {rec.id}
                       </td>
                     </Tooltip>
-                    <Tooltip text={rec.title}>
+                    <Tooltip text={safeParseInline(rec.title)}>
                       <td className="p-2.5">
                         <button
                           type="button"
@@ -1412,10 +1412,10 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           className="w-full text-left cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"
                         >
                           <div className="font-serif font-medium text-stone-900 leading-snug truncate">
-                            {rec.title}
+                            {safeParseInline(rec.title)}
                           </div>
                           <div className="font-serif text-[11px] text-stone-500 truncate">
-                            {rec.summary}
+                            {safeParseInline(rec.summary)}
                           </div>
                         </button>
                       </td>
@@ -1591,7 +1591,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           }
         >
           <div className="space-y-2 font-sans text-xs text-stone-600">
-            <p className="font-semibold text-stone-800 break-words">{dialogSah.tajuk || '(tiada tajuk)'}</p>
+            <p className="font-semibold text-stone-800 break-words">{dialogSah.tajuk ? safeParseInline(dialogSah.tajuk) : '(tiada tajuk)'}</p>
             <p>
               {dialogSah.jenis === 'siar'
                 ? 'Kandungan ini akan terus kelihatan kepada pembaca di muka depan sebaik sahaja disiarkan.'
