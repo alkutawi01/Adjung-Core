@@ -13,12 +13,20 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 // sebab laluan ni langsung tak sentuh slots_config/CarouselStableBlock, cuma baca terus
 // editorial_objects/editorial_revisions/editorial_attribute_values.
 //
-// TARIK BALIK (2026-09-02) — 'archived' pernah disertakan sekali (Izzat luluskan awal hari ni,
-// "saya nak yg aktif dan yg arkib"), tapi ditarik balik SAMA HARI selepas Izzat sendiri jumpa
-// kandungan bersumber Wikipedia (dilarang) yang sepatutnya diarkibkan KEKAL, bukan disiar semula
-// secara awam — status='archived' TAK bezakan "diputar keluar giliran biasa" drpd "diarkibkan
-// sebab kandungan tu memang bermasalah/salah". Sehingga sistem ada cara bezakan dua kes tu,
-// status='approved' SAHAJA yang selamat dipapar awam di sini.
+// 'archived' disertakan (2026-09-02, Izzat: "saya nak yg aktif dan yg arkib") — Halaman Bidang
+// ialah paparan KOLEKSI, bukan cuma giliran carousel semasa, jadi kandungan yang diputar keluar
+// (approved -> archived, putaran 24 jam atau manual) kekal boleh dilihat di sini sebagai "Koleksi
+// Terdahulu".
+//
+// NOTA INSIDEN (2026-09-02): ciri ni sempat ditarik balik SAMA HARI selepas kandungan bersumber
+// Wikipedia (dilarang keras — lihat CLAUDE.md/Perlembagaan) terpapar melalui laluan ni. Punca
+// SEBENAR bukan ciri ni — 48 kandungan bersumber Wikipedia (ditulis sepanjang beberapa sesi lalu,
+// kebanyakannya format "[Institusi] genap X tahun") sudah dikesan dan DIPADAM KEKAL (Tong Sampah)
+// pada tarikh yang sama. Ciri paparan arkib dipulihkan selepas puncanya dibersihkan — jangan
+// tarik balik ciri ni lagi sebagai "fix" pepijat kandungan; kandungan yang salah dasar sumber
+// mesti dipadam terus di peringkat kandungan (lihat DELETE /api/system/content/:id), bukan
+// disembunyikan dengan menyekat status='archived' di sini. Kalau kandungan bersumber Wikipedia
+// ditemui lagi pada masa depan, padam kandungan itu — jangan ulang tarik balik ciri ni.
 
 const ATTR_KEYS = ['desk', 'topik', 'briefLong', 'originalDate', 'source', 'url', 'editorName', 'image'];
 
@@ -74,7 +82,7 @@ export function createBidangRoutes(dbAll, dbGet) {
           SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions GROUP BY objectId
         ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
         WHERE eo.slotIndex >= 0
-          AND er.status = 'approved'
+          AND er.status IN ('approved', 'archived')
           AND EXISTS (
             SELECT 1 FROM editorial_attribute_values av
             WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'desk'
@@ -86,7 +94,7 @@ export function createBidangRoutes(dbAll, dbGet) {
       const total = totalRow ? Number(totalRow.total) || 0 : 0;
 
       const rows = await dbAll(`
-        SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt,
+        SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt, er.status,
                ${attrSelects}
         ${whereClause}
         ORDER BY er.createdAt DESC
@@ -105,6 +113,7 @@ export function createBidangRoutes(dbAll, dbGet) {
         sourceUrl: r.url || '',
         editorName: r.editorName || '',
         image: r.image || '',
+        status: r.status || 'approved',
         originalDate: r.originalDate || '',
         // Tarikh SIARAN (2026-09-02, Izzat: "susunan ikut tarikh siaran bukan tarikh sumber" —
         // dahulu senarai ni SUSUN & PAPAR guna `effectiveDate` (originalDate Tarikh Sumber jatuh

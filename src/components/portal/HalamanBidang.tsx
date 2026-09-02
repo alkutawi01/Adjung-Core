@@ -36,10 +36,12 @@ const formatTarikhArtikel = (raw?: string): string => {
 // (telefon) blok kanan turun ke baris bawah SEBAGAI SATU UNIT UTUH, bukan berpecah tengah-tengah
 // — corak sama macam lajur sumber kad bento (FrontpageView.tsx).
 //
-// Lencana "Arkib" DIBUANG (2026-09-02, SAMA HARI) — server (bidangRoutes.js) sempat papar
-// kandungan status='archived' sekali sebelum ditarik balik selepas Izzat jumpa kandungan
-// bersumber Wikipedia (dilarang) tersiar semula secara awam. Senarai ni kini approved sahaja,
-// medan `status` tak lagi dihantar server, jadi lencana ni jadi tak berguna.
+// Lencana "Arkib" (2026-09-02) — papar bila `status === 'archived'`, supaya kandungan yang
+// diputar keluar giliran carousel (bukan dipadam) kekal boleh dikenal pasti sebagai "Koleksi
+// Terdahulu" yang bukan lagi aktif di frontpage. Sempat dibuang sekali hari yang sama selepas
+// insiden Wikipedia (lihat nota di bidangRoutes.js) — dipulihkan selepas 48 kandungan bersumber
+// Wikipedia dipadam KEKAL daripada DB. Jangan buang lencana ni lagi sebagai cara "fix" kandungan
+// bermasalah; padam kandungan itu sendiri (DELETE /api/system/content/:id) sebaliknya.
 //
 // sembunyikanTarikhSumber ikut corak SAMA PERSIS kad sebenar (sumberAdjungSendiri(),
 // FrontpageView.tsx) — kandungan "Editorial Adjung" tak papar dua tarikh berlebihan (Tarikh
@@ -50,7 +52,8 @@ const BarisMeta: React.FC<{
   source: string;
   sourceUrl: string;
   originalDate: string;
-}> = ({ publishedDate, source, sourceUrl, originalDate }) => {
+  status?: string;
+}> = ({ publishedDate, source, sourceUrl, originalDate, status }) => {
   const tarikhSumber = source && !sumberAdjungSendiri(source) ? getDisplayDate(originalDate) : '';
   const adaPautan = !!sourceUrl && sourceUrl !== '#';
   const sumberTeks = (
@@ -63,6 +66,11 @@ const BarisMeta: React.FC<{
     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 mt-2 font-mono text-[10px] text-stone-400">
       <span className="flex items-baseline gap-2">
         {publishedDate && formatTarikhArtikel(publishedDate)}
+        {status === 'archived' && (
+          <span className="uppercase tracking-widest text-stone-300 border border-stone-200 rounded-full px-1.5 py-0.5">
+            Arkib
+          </span>
+        )}
       </span>
       {source && (
         <span className="uppercase tracking-widest text-stone-400">
@@ -90,14 +98,11 @@ const BarisMeta: React.FC<{
 // PAPARAN sahaja — JANGAN guna perkataan "Arkib" sebagai NAMA SEKSYEN, sebab konflik dengan
 // status='archived' DB).
 //
-// Definisi kandungan awam: server (core/routes/bidangRoutes.js) kuatkuasakan status='approved'
-// SAHAJA + MAX(version) per objectId (AMARAN WAJIB CLAUDE.md). 'archived' pernah disertakan
-// sekali (2026-09-02), TAPI DITARIK BALIK SAMA HARI — Izzat jumpa kandungan bersumber Wikipedia
-// (dilarang) yang sepatutnya diarkibkan KEKAL tersiar semula secara awam sebaik perubahan tu
-// hidup. status='archived' tak bezakan "diputar keluar giliran biasa" drpd "diarkibkan sebab
-// kandungan tu memang bermasalah" — sehingga sistem ada cara bezakan dua kes tu, approved sahaja
-// yang selamat dipapar di sini. Halaman ni cuma paparkan apa yang pelayan pulangkan, tiada
-// tapisan tambahan di sini.
+// Definisi kandungan awam: server (core/routes/bidangRoutes.js) kuatkuasakan status IN
+// ('approved','archived') + MAX(version) per objectId (AMARAN WAJIB CLAUDE.md). Halaman ni cuma
+// paparkan apa yang pelayan pulangkan, tiada tapisan tambahan di sini. Lihat nota insiden
+// Wikipedia di bidangRoutes.js — puncanya ialah kandungan bermasalah itu sendiri, bukan ciri
+// paparan arkib ni; kandungan tu sudah dipadam KEKAL, bukan disembunyikan dengan menyekat status.
 //
 // Koleksi Terdahulu — "lihat lagi" (2026-09-02, Izzat: "takyah ke halaman lain, masih sambung
 // dlm halaman sama, mcm endless scroll") gantikan pagination bernombor [1][2][3] asal. Kelompok
@@ -123,6 +128,7 @@ type Artikel = {
   sourceUrl: string;
   editorName: string;
   image: string;
+  status: string;
   originalDate: string;
   publishedDate: string;
 };
@@ -416,6 +422,7 @@ export function HalamanBidang() {
                           source={a.source}
                           sourceUrl={a.sourceUrl}
                           originalDate={a.originalDate}
+                          status={a.status}
                         />
                       </button>
                     </li>
@@ -459,6 +466,7 @@ export function HalamanBidang() {
                               source={a.source}
                               sourceUrl={a.sourceUrl}
                               originalDate={a.originalDate}
+                              status={a.status}
                             />
                           </button>
                         </li>
