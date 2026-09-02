@@ -136,8 +136,10 @@ interface EditoriumViewProps {
   onRequestLogin: () => void;
   onLogout: () => void;
   // Profil Editor (2026-08-01) — kemas kini nama pena serta-merta di sesi App.tsx (header/
-  // Editorium papar nama tu) tanpa perlu log keluar-masuk semula.
-  onProfilKemasKini: (patch: { penName?: string }) => void;
+  // Editorium papar nama tu) tanpa perlu log keluar-masuk semula. username/email (2026-09-02,
+  // dapatan bug-hunt) turut disertakan sekarang — authUser.email khususnya dihantar terus ke
+  // kolofon Focus View awam (App.tsx currentEditoriumContact), jadi mesti segerak juga.
+  onProfilKemasKini: (patch: { penName?: string; username?: string; email?: string }) => void;
 }
 
 // Sesi log masuk (currentUser) kini state kongsi diangkat naik ke App.tsx — supaya FrontpageView
@@ -941,7 +943,15 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           profil={profilData}
           onTutup={() => setProfilTerbuka(false)}
           onKemasKini={(patch) => {
-            if (patch.penName) onProfilKemasKini({ penName: patch.penName });
+            // PEMBETULAN (2026-09-02, dapatan bug-hunt): dahulu cuma patch.penName diteruskan
+            // ke atas — username/email (Tukar Kata Nama/Tukar E-mel, ProfilEditorModal.tsx) tak
+            // pernah sampai ke authUser global App.tsx, kekal versi lama sehingga log keluar-
+            // masuk semula walau modal sendiri dah papar nilai baharu.
+            const keAtas: { penName?: string; username?: string; email?: string } = {};
+            if (patch.penName) keAtas.penName = patch.penName;
+            if (patch.username) keAtas.username = patch.username;
+            if (patch.email) keAtas.email = patch.email;
+            if (Object.keys(keAtas).length > 0) onProfilKemasKini(keAtas);
             // Pepijat "amaran belum simpan" palsu selepas Simpan Profil berjaya (2026-08-23,
             // Izzat: "saya rasa saya dah simpan semua tetapan, tp keluar pertanyaan lagi") —
             // dahulu cuma penName diteruskan ke atas, medan Butiran Profil (namaPenuh,

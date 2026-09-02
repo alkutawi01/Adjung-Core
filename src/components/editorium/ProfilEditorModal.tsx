@@ -322,6 +322,13 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
                 const data = await bacaJsonSelamat(res);
                 if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar kata nama.' };
                 setUsername(data.username);
+                // PEMBETULAN (2026-09-02, dapatan bug-hunt): dahulu cuma state LOKAL modal ni
+                // dikemas kini (setUsername) — onKemasKini (satu-satunya saluran naik ke
+                // authUser global App.tsx) tak pernah dipanggil untuk sub-borang ni, cuma untuk
+                // borang "Simpan Profil" utama. Kesan: authUser.username (App.tsx + localStorage)
+                // kekal versi LAMA walau modal sendiri dah papar nilai baharu, sehingga log
+                // keluar-masuk semula.
+                onKemasKini({ username: data.username });
                 return { ok: true };
               } catch {
                 return { ok: false, ralat: 'Gagal menukar kata nama. Semak sambungan rangkaian.' };
@@ -349,6 +356,12 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
                 const data = await bacaJsonSelamat(res);
                 if (!res.ok) return { ok: false, ralat: data.error || 'Gagal menukar e-mel.' };
                 setEmail(data.email);
+                // PEMBETULAN (2026-09-02, dapatan bug-hunt, sama isu macam Tukar Kata Nama di
+                // atas) — authUser.email dihantar terus sebagai `currentEditoriumContact` ke
+                // FrontpageView.tsx (kolofon e-mel Focus View AWAM). Tanpa onKemasKini ni,
+                // pembaca terus nampak E-MEL LAMA pada kolofon walau modal sendiri (sesi terbuka
+                // yang sama) dah papar e-mel baharu selepas tukar berjaya.
+                onKemasKini({ email: data.email });
                 return { ok: true };
               } catch {
                 return { ok: false, ralat: 'Gagal menukar e-mel. Semak sambungan rangkaian.' };
