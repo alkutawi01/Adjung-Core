@@ -27,21 +27,36 @@ const formatTarikhArtikel = (raw?: string): string => {
   return d.toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-// Halaman Bidang (/bidang/:slug, spesifikasi MUKTAMAD 2026-09-01, disahkan Izzat) — lajur
-// TUNGGAL, center-aligned, TIADA sidebar kanan, TIADA gambar langsung (keputusan Izzat, override
-// cadangan ChatGPT), TIADA seksyen Hero berasingan. Dua seksyen: TERKINI (10 artikel approved
-// terbaharu) dan "Koleksi Terdahulu" (baki artikel, dipaginasi 10/halaman — label PAPARAN sahaja,
-// JANGAN guna perkataan "Arkib" sebab konflik dengan status='archived' DB).
+// Halaman Bidang (/bidang/:slug, spesifikasi MUKTAMAD 2026-09-01, disahkan Izzat; disemak
+// 2026-09-02) — lajur TUNGGAL, center-aligned, TIADA sidebar kanan, TIADA gambar langsung
+// (keputusan Izzat, override cadangan ChatGPT), TIADA seksyen Hero berasingan. Dua seksyen:
+// TERKINI (10 artikel terbaharu, TIADA pagination) dan "Koleksi Terdahulu" (baki artikel, label
+// PAPARAN sahaja — JANGAN guna perkataan "Arkib" sebagai NAMA SEKSYEN, sebab konflik dengan
+// status='archived' DB; label "Arkib" PER-ITEM di bawah tak sama isu, ia rujuk status kandungan
+// ITU SENDIRI, bukan nama seksyen).
 //
-// Definisi kandungan awam: server (core/routes/bidangRoutes.js) sudah kuatkuasakan
-// status='approved' + MAX(version) per objectId (AMARAN WAJIB CLAUDE.md) — halaman ni cuma
-// paparkan apa yang pelayan pulangkan, tiada tapisan tambahan di sini.
+// Definisi kandungan awam: server (core/routes/bidangRoutes.js) kuatkuasakan status IN
+// ('approved','archived') + MAX(version) per objectId (AMARAN WAJIB CLAUDE.md) — Izzat sahkan
+// 2026-09-02 kandungan diarkibkan MEMANG patut kekal kelihatan di sini (Halaman Bidang ialah
+// arkib rasmi awam Bidang tu, bukan cuma senarai hidup semasa). Halaman ni cuma paparkan apa
+// yang pelayan pulangkan, tiada tapisan tambahan di sini.
+//
+// Koleksi Terdahulu — "lihat lagi" (2026-09-02, Izzat: "takyah ke halaman lain, masih sambung
+// dlm halaman sama, mcm endless scroll") gantikan pagination bernombor [1][2][3] asal. Kelompok
+// 20/klik (KOLEKSI_BATCH), TAMBAH ke senarai sedia ada (bukan GANTI) — `koleksi` mengumpul
+// merentasi berbilang klik "Lihat 20 Lagi" sepanjang lawatan Bidang ni, reset kosong hanya bila
+// `slug` bertukar. `koleksiDimuat` jejak BILANGAN item Koleksi Terdahulu sudah dimuat (bukan
+// nombor "halaman") — dihantar sebagai param `offset` eksplisit (offset = PER_PAGE + koleksiDimuat)
+// ke server sebab saiz kelompok Koleksi (20) BERBEZA drpd saiz TERKINI (10), jadi aritmetik
+// page*perPage seragam tak boleh dipakai untuk kira sambungan yang betul.
 
 const PER_PAGE = 10;
+const KOLEKSI_BATCH = 20;
 
 type Artikel = {
   objectId: string;
   slotIndex: number;
+  status: string;
   title: string;
   summary: string;
   desk: string;
@@ -67,9 +82,8 @@ export function HalamanBidang() {
   const [ikon, setIkon] = React.useState<{ icon: string | null; iconSvg: string | null; color: string } | null>(null);
   const [terkini, setTerkini] = React.useState<Artikel[]>([]);
   const [koleksi, setKoleksi] = React.useState<Artikel[]>([]);
-  const [totalKoleksi, setTotalKoleksi] = React.useState(0);
   const [totalKeseluruhan, setTotalKeseluruhan] = React.useState(0);
-  const [halamanKoleksi, setHalamanKoleksi] = React.useState(1);
+  const [memuatKoleksi, setMemuatKoleksi] = React.useState(false);
   const [focusObjectId, setFocusObjectId] = React.useState<string | null>(null);
 
   // Muat metadata Bidang + ikon/warna Taksonomi (2026-09-01) — sekali sahaja bila slug berubah.
@@ -77,13 +91,12 @@ export function HalamanBidang() {
     let dibatal = false;
     if (!slug) return;
     setStatus('memuat');
-    // PEMBETULAN (2026-09-01, dapatan bug-hunt): `halamanKoleksi` ialah state komponen ni
-    // sendiri, TIDAK reset automatik bila slug bertukar (React Router tak unmount komponen ni
-    // antara /bidang/buku dan /bidang/sains, cuma tukar param). Tanpa reset ni, pembaca yang
-    // tinggalkan Bidang lain di halaman Koleksi Terdahulu 3, kemudian klik ke Bidang BAHARU,
-    // akan mendarat terus di "halaman 3" Bidang baharu tu (selalunya kosong/salah kandungan)
-    // bukan halaman 1 yang sepatutnya.
-    setHalamanKoleksi(1);
+    // PEMBETULAN (2026-09-01, dapatan bug-hunt): `koleksi` ialah state komponen ni sendiri,
+    // TIDAK reset automatik bila slug bertukar (React Router tak unmount komponen ni antara
+    // /bidang/buku dan /bidang/sains, cuma tukar param). Tanpa reset ni, pembaca yang tinggalkan
+    // Bidang lain selepas beberapa klik "Lihat Lagi", kemudian klik ke Bidang BAHARU, akan
+    // mendarat dengan kandungan Koleksi Terdahulu Bidang LAMA masih terpapar.
+    setKoleksi([]);
     Promise.all([
       fetch(`/api/bidang/${encodeURIComponent(slug)}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))),
       fetch('/api/system/categories/active').then((r) => (r.ok ? r.json() : [])).catch(() => []),
@@ -118,24 +131,39 @@ export function HalamanBidang() {
     return () => { dibatal = true; };
   }, [status, slug]);
 
-  // Muat "Koleksi Terdahulu" — halaman kedua param API dan seterusnya, bermula selepas 10
-  // TERKINI. Guna offset param `page` berasaskan PER_PAGE yang SAMA supaya "halaman 1 koleksi"
-  // = item 11-20 keseluruhan (page=2 pada API), dsb.
+  // Muat kelompok PERTAMA "Koleksi Terdahulu" (item ke-11 dan seterusnya, offset=PER_PAGE)
+  // secara automatik sebaik TERKINI siap dimuat. Klik "Lihat Lagi" (lihatLagiKoleksi di bawah)
+  // sambung dari sini — kedua-dua guna offset EKSPLISIT (bukan page/perPage seragam) sebab saiz
+  // kelompok Koleksi (20) berbeza drpd TERKINI (10).
   React.useEffect(() => {
     if (status !== 'sedia' || !slug) return;
-    if (totalKeseluruhan <= PER_PAGE) { setKoleksi([]); setTotalKoleksi(0); return; }
+    if (totalKeseluruhan <= PER_PAGE) return;
     let dibatal = false;
-    const apiPage = halamanKoleksi + 1; // +1 sebab halaman 1 koleksi = page 2 API (selepas TERKINI)
-    fetch(`/api/bidang/${encodeURIComponent(slug)}/artikel?page=${apiPage}&perPage=${PER_PAGE}`)
+    setMemuatKoleksi(true);
+    fetch(`/api/bidang/${encodeURIComponent(slug)}/artikel?offset=${PER_PAGE}&perPage=${KOLEKSI_BATCH}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (dibatal || !data) return;
         setKoleksi(data.artikel || []);
-        setTotalKoleksi(Math.max(0, (data.total || 0) - PER_PAGE));
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (!dibatal) setMemuatKoleksi(false); });
     return () => { dibatal = true; };
-  }, [status, slug, halamanKoleksi, totalKeseluruhan]);
+  }, [status, slug, totalKeseluruhan]);
+
+  const lihatLagiKoleksi = () => {
+    if (!slug || memuatKoleksi) return;
+    const offset = PER_PAGE + koleksi.length;
+    setMemuatKoleksi(true);
+    fetch(`/api/bidang/${encodeURIComponent(slug)}/artikel?offset=${offset}&perPage=${KOLEKSI_BATCH}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setKoleksi((prev) => [...prev, ...(data.artikel || [])]);
+      })
+      .catch(() => {})
+      .finally(() => setMemuatKoleksi(false));
+  };
 
   const gabungan = React.useMemo(() => [...terkini, ...koleksi], [terkini, koleksi]);
   const focusIndex = focusObjectId ? gabungan.findIndex((a) => a.objectId === focusObjectId) : -1;
@@ -154,8 +182,6 @@ export function HalamanBidang() {
   const keArtikelSebelum = focusIndex > 0
     ? () => setFocusObjectId(gabungan[focusIndex - 1].objectId)
     : undefined;
-
-  const jumlahHalamanKoleksi = Math.max(1, Math.ceil(totalKoleksi / PER_PAGE));
 
   if (status === '404') return <TidakDijumpai />;
 
@@ -242,6 +268,7 @@ export function HalamanBidang() {
                         {a.effectiveDate && (
                           <div className="font-mono text-[10px] text-stone-400 mt-1.5">
                             {formatTarikhArtikel(a.effectiveDate)}
+                            {a.status === 'archived' && <span className="ml-1.5 text-stone-300">· Arkib</span>}
                           </div>
                         )}
                       </button>
@@ -284,6 +311,7 @@ export function HalamanBidang() {
                             {a.effectiveDate && (
                               <div className="font-mono text-[10px] text-stone-400 mt-1.5">
                                 {formatTarikhArtikel(a.effectiveDate)}
+                                {a.status === 'archived' && <span className="ml-1.5 text-stone-300">· Arkib</span>}
                               </div>
                             )}
                           </button>
@@ -291,25 +319,20 @@ export function HalamanBidang() {
                       ))}
                     </ol>
 
-                    {/* Pagination [1][2][3][4] */}
-                    {jumlahHalamanKoleksi > 1 && (
-                      <nav className="flex items-center justify-center gap-1.5 mt-8" aria-label="Halaman Koleksi Terdahulu">
-                        {Array.from({ length: jumlahHalamanKoleksi }, (_, i) => i + 1).map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() => setHalamanKoleksi(p)}
-                            aria-current={p === halamanKoleksi ? 'page' : undefined}
-                            className={`font-mono text-xs w-8 h-8 rounded flex items-center justify-center transition-colors ${
-                              p === halamanKoleksi
-                                ? 'bg-Adjung-maroon text-white'
-                                : 'text-stone-500 hover:bg-stone-100'
-                            }`}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      </nav>
+                    {/* "Lihat Lagi" — kumpul terus dalam senarai sedia ada (endless scroll gaya
+                        klik), bukan tukar ke halaman baharu. Disorok bila semua item Koleksi
+                        Terdahulu (totalKeseluruhan - PER_PAGE) dah dimuat. */}
+                    {koleksi.length < totalKeseluruhan - PER_PAGE && (
+                      <div className="flex justify-center mt-8">
+                        <button
+                          type="button"
+                          onClick={lihatLagiKoleksi}
+                          disabled={memuatKoleksi}
+                          className="font-mono text-[11px] uppercase tracking-widest text-stone-500 hover:text-Adjung-maroon border border-stone-300 hover:border-Adjung-maroon rounded-full px-5 py-2 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                        >
+                          {memuatKoleksi ? 'Memuatkan…' : `Lihat ${KOLEKSI_BATCH} Lagi`}
+                        </button>
+                      </div>
                     )}
                   </>
                 )}

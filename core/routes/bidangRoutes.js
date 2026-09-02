@@ -3,15 +3,24 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 
 // Halaman Bidang (/bidang/:slug, 2026-09-01) — laluan AWAM (tiada requireAuth), dua endpoint:
 //   GET /api/bidang/:slug           -> metadata Bidang (nama, slug, deskripsi)
-//   GET /api/bidang/:slug/artikel   -> senarai kandungan approved dalam Bidang, dipaginasi
+//   GET /api/bidang/:slug/artikel   -> senarai kandungan approved+archived dalam Bidang, dipaginasi
 //
 // Definisi kandungan awam WAJIB ikut CLAUDE.md ("AMARAN WAJIB — MAX(version)"): hanya revisi
-// TERKINI SEBENAR (version tertinggi objek tu, tanpa syarat status) yang status='approved' boleh
-// terpapar — corak SAMA seperti searchRoutes.js/sitemapRoutes.js/articleUrlRoutes.js, BUKAN
-// "MAX(version) WHERE status='approved'" (pepijat resolveSlotContent() 2026-08-16). Status
-// carousel/slot-rotation semasa TIDAK dikira — kandungan approved yang off-rotation tetap muncul,
-// sebab laluan ni langsung tak sentuh slots_config/CarouselStableBlock, cuma baca terus
-// editorial_objects/editorial_revisions/editorial_attribute_values.
+// TERKINI SEBENAR (version tertinggi objek tu, tanpa syarat status) yang status IN
+// ('approved','archived') boleh terpapar — corak SAMA seperti searchRoutes.js/sitemapRoutes.js/
+// articleUrlRoutes.js, BUKAN "MAX(version) WHERE status='approved'" (pepijat
+// resolveSlotContent() 2026-08-16). Status carousel/slot-rotation semasa TIDAK dikira —
+// kandungan approved yang off-rotation tetap muncul, sebab laluan ni langsung tak sentuh
+// slots_config/CarouselStableBlock, cuma baca terus editorial_objects/editorial_revisions/
+// editorial_attribute_values.
+//
+// 'archived' DISERTAKAN sengaja (2026-09-02, Izzat: "saya nak yg aktif dan yg arkib") — Halaman
+// Bidang ialah arkib rasmi awam untuk Bidang tu, bukan cuma senarai kandungan hidup semasa.
+// Kandungan yang diarkibkan (server.js ~baris 3619, `UPDATE editorial_revisions SET
+// status='archived' WHERE status IN ('approved','pending')`) TIDAK mencipta versi baharu — baris
+// MAX(version) sedia ada untuk objectId tu terus bertukar status kepada 'archived' di situ juga,
+// jadi ia tetap "revisi terkini sebenar" objek tu, cuma statusnya bukan 'approved'. `status`
+// turut dihantar ke klien (medan baharu) supaya UI boleh label kandungan arkib berbeza drpd aktif.
 
 const ATTR_KEYS = ['desk', 'topik', 'briefLong', 'originalDate', 'source', 'url', 'editorName', 'image'];
 
@@ -51,7 +60,11 @@ export function createBidangRoutes(dbAll, dbGet) {
 
       const page = Math.max(1, parseInt(req.query.page, 10) || 1);
       const perPage = Math.min(50, Math.max(1, parseInt(req.query.perPage, 10) || 10));
-      const offset = (page - 1) * perPage;
+      // `offset` eksplisit (pilihan) — Koleksi Terdahulu klien guna saiz kelompok "lihat lagi"
+      // (20) yang BERBEZA drpd saiz TERKINI (10), jadi aritmetik page/perPage seragam tak
+      // mencukupi untuk kira offset sambungan yang betul. Bila dihantar, ia menang drpd page.
+      const offsetParam = req.query.offset !== undefined ? Math.max(0, parseInt(req.query.offset, 10) || 0) : null;
+      const offset = offsetParam !== null ? offsetParam : (page - 1) * perPage;
 
       const attrSelects = ATTR_KEYS.map((k) => attrSubquery(k, k)).join(',\n               ');
 
@@ -62,7 +75,7 @@ export function createBidangRoutes(dbAll, dbGet) {
           SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions GROUP BY objectId
         ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
         WHERE eo.slotIndex >= 0
-          AND er.status = 'approved'
+          AND er.status IN ('approved', 'archived')
           AND EXISTS (
             SELECT 1 FROM editorial_attribute_values av
             WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'desk'
@@ -74,7 +87,7 @@ export function createBidangRoutes(dbAll, dbGet) {
       const total = totalRow ? Number(totalRow.total) || 0 : 0;
 
       const rows = await dbAll(`
-        SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt,
+        SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt, er.status,
                ${attrSelects},
                COALESCE(NULLIF((SELECT valueText FROM editorial_attribute_values
                  WHERE objectId = eo.id AND revisionId = er.id AND attributeId = 'originalDate'), ''), er.createdAt) as effectiveDate
@@ -86,6 +99,7 @@ export function createBidangRoutes(dbAll, dbGet) {
       const artikel = rows.map((r) => ({
         objectId: r.objectId,
         slotIndex: r.slotIndex,
+        status: r.status || 'approved',
         title: r.title || '',
         summary: r.summary || '',
         desk: r.desk || cat.name,
