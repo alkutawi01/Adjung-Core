@@ -41,9 +41,16 @@ interface ContentItem {
 // ni (editor yang guna Paparan Teks Pukal tak pernah nampak medan tu wujud pun). Nombor #Slot-Siri
 // kekal sebagai LABEL paparan (mudah diimbas manusia); UUID (2026-08-02, Fasa 2) kini kunci
 // PADANAN sebenar semasa simpan — lihat nota di parseBulkText/saveBulk.
+//
+// PEMBETULAN (2026-09-01, dapatan Izzat — "Susunan: Paling Baharu -> Paling Lama" langsung tak
+// beri kesan pada teks yang dipaparkan). Punca: fungsi ni dahulu SENTIASA susun semula ikut
+// slotIndex/seriesIndex sendiri (tanpa mengira urutan `items` yang dihantar pemanggil), jadi
+// pilihan "Susunan" di UI (sortedFilteredItems/pagedBulkItems, dikira betul di komponen induk)
+// dibuang senyap sebaik tiba di sini — teks SENTIASA papar ikut kedudukan slot/siri asal, tak
+// kira apa dipilih editor. Fungsi ni kini PERCAYA urutan `items` sepenuhnya (pemanggil, bukan
+// fungsi ni, yang bertanggungjawab menyusun) — SATU sumber urutan, bukan dua yang bercanggah.
 const buildBulkText = (items: ContentItem[]) => {
-  const sorted = [...items].sort((a, b) => a.slotIndex - b.slotIndex || a.seriesIndex - b.seriesIndex);
-  return sorted
+  return items
     .map(item => {
       const num = `#${item.slotIndex + 1}-${item.seriesIndex}`;
       return [
