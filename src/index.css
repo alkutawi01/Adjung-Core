@@ -34,6 +34,20 @@
      (bg-Adjung-paper, border-Adjung-line) — JANGAN taip semula hexnya. */
   --color-Adjung-paper: #F7F5F2;
   --color-Adjung-line: #F0EDE9;
+
+  /* PEMBETULAN (2026-09-02, dapatan Izzat — garisan header Halaman Bidang nampak "mengganggu",
+     gelap bukan pucat) — `--stone-150` (di :root, bukan @theme, lihat nota di bawah) diniatkan
+     sebagai satu lagi genap dalam skala neutral stone (antara stone-100 lalai Tailwind dan
+     stone-200), TAPI palet `stone` lalai Tailwind v4 TIADA genap "150" (cuma 50/100/200/...900),
+     dan kelas utiliti (`border-stone-150`/`divide-stone-150`/`bg-stone-150`/`text-stone-150`)
+     HANYA dijana Tailwind drpd token bernama `--color-*` di dalam @theme — deklarasi `:root`
+     biasa (walau nilai sama) TAK menghasilkan kelas utiliti langsung. Disahkan getComputedStyle
+     sebenar: border yang patut #EFEDEB papar rgb(31,31,31) (~#1F1F1F, sama --text-body — border-
+     color jatuh balik currentColor bila kelas tak wujud). Disahkan 43 tapak merentasi 14 fail
+     guna kelas -stone-150 (border-b/divide-y/bg/text) — SEMUA senyap rosak cara sama, bukan
+     isu terpencil satu tempat. Satu baris ni patch SEMUA 43 serentak, additive (tak sentuh
+     stone-200 ke atas yang MEMANG sudah wujud dlm palet lalai Tailwind, berfungsi betul). */
+  --color-stone-150: #EFEDEB;
 }
 
 /* Token semantik dari Adjung Brief Design System (tokens/colors.css + tokens/typography.css),
