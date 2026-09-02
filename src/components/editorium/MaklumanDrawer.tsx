@@ -3,7 +3,7 @@ import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Tooltip } from '../common/Tooltip';
 import { StatusBadge } from '../common/StatusBadge';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
-import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock, ChevronDown, ChevronUp, Handshake } from 'lucide-react';
+import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock, ChevronDown, ChevronUp, Handshake, UserPlus } from 'lucide-react';
 import { useModalFokus } from '../../hooks/useModalFokus';
 
 // Peti Makluman (2026-08-01, spesifikasi pemilik projek) — laci gelongsor yang memaparkan
@@ -97,6 +97,10 @@ const IKON_JENIS: Record<string, React.ReactNode> = {
   // ni sebelum ni, jadi jatuh balik ke ikon Bell generik + label kod mentah `n.jenis` (lihat
   // LABEL_JENIS di bawah, bug sebenar ditemui semasa audit 2026-09-02).
   sistem_permohonan_penaja: <Handshake className="w-2.5 h-2.5" />,
+  // Permohonan editor baharu (2026-08-25, permohonanEditorRoutes.js, borang awam "Sertai
+  // Pasukan Editorial") — corak IDENTIK bug sistem_permohonan_penaja di atas, terlepas daripada
+  // peta ni sejak ciri tu dibina, ditemui+dibaiki serentak semasa audit 2026-09-02.
+  sistem_permohonan_editor: <UserPlus className="w-2.5 h-2.5" />,
 };
 
 const LABEL_JENIS: Record<string, string> = {
@@ -116,6 +120,7 @@ const LABEL_JENIS: Record<string, string> = {
   sistem_ralat_pelayan: 'Sistem: Ralat Pelayan',
   sistem_pautan_mati: 'Sistem: Pautan Mati',
   sistem_permohonan_penaja: 'Sistem: Penajaan',
+  sistem_permohonan_editor: 'Sistem: Permohonan Editor',
 };
 
 const tarikhRingkas = (iso: string) => {
