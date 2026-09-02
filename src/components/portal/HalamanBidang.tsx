@@ -7,6 +7,26 @@ import { FocusView } from './FocusView';
 import { BidangIcon } from '../common/BidangIcon';
 import { TidakDijumpai } from './TidakDijumpai';
 
+// effectiveDate (server, bidangRoutes.js) ialah SAMA ADA originalDate tulen editor (ISO
+// yyyy-mm-dd, tarikh sahaja) ATAU jatuh balik er.createdAt (ISO timestamp PENUH dgn masa,
+// "2026-08-25T10:59:23.289Z") bila artikel tiada Tarikh Sumber — DUA bentuk berbeza, bukan
+// medan "Tarikh Sumber" bebas-teks yang getDisplayDate() direka untuknya (yang SENGAJA tak
+// hurai apa-apa selain corak yyyy-mm-dd tepat, supaya tarikh separa/teks lama macam "1980"
+// tak rosak). Bila corak tak padan (kes timestamp penuh ni), getDisplayDate pulangkan STRING
+// MENTAH (bukan kosong) — jadi `getDisplayDate(x) || formatSiaranDate(x)` di bawah TAK PERNAH
+// jatuh ke formatSiaranDate, sebab hasil pertama tu sentiasa "truthy" walau ISO mentah.
+// Kesan sebenar (dilaporkan Izzat, tangkapan skrin /bidang/geografi): artikel dgn Tarikh
+// Sumber diisi papar betul "21 Ogo 2026", artikel yang jatuh balik createdAt papar mentah
+// "2026-08-25T10:59:23.289Z". Dibetulkan dgn formatter khusus fail ni — kedua-dua corak
+// (tarikh sahaja & timestamp penuh) sah dihurai terus oleh `new Date()`, jadi cukup SATU
+// laluan format konsisten "D Bulan Pendek YYYY" tanpa cabang.
+const formatTarikhArtikel = (raw?: string): string => {
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return d.toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
 // Halaman Bidang (/bidang/:slug, spesifikasi MUKTAMAD 2026-09-01, disahkan Izzat) — lajur
 // TUNGGAL, center-aligned, TIADA sidebar kanan, TIADA gambar langsung (keputusan Izzat, override
 // cadangan ChatGPT), TIADA seksyen Hero berasingan. Dua seksyen: TERKINI (10 artikel approved
@@ -221,7 +241,7 @@ export function HalamanBidang() {
                         )}
                         {a.effectiveDate && (
                           <div className="font-mono text-[10px] text-stone-400 mt-1.5">
-                            {getDisplayDate(a.effectiveDate) || formatSiaranDate(a.effectiveDate)}
+                            {formatTarikhArtikel(a.effectiveDate)}
                           </div>
                         )}
                       </button>
@@ -263,7 +283,7 @@ export function HalamanBidang() {
                             </div>
                             {a.effectiveDate && (
                               <div className="font-mono text-[10px] text-stone-400 mt-1.5">
-                                {getDisplayDate(a.effectiveDate) || formatSiaranDate(a.effectiveDate)}
+                                {formatTarikhArtikel(a.effectiveDate)}
                               </div>
                             )}
                           </button>
