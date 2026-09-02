@@ -776,7 +776,7 @@ function PermohonanPenajaModal({ permohonan, onTutup, onSelesai }: {
               <label className="flex flex-col gap-1">
                 <span className={LABEL_BORANG}>Pautkan kepada Penaja Sedia Ada (pembaharuan, pilihan)</span>
                 <input type="text" value={sponsorSediaAdaId} onChange={(e) => setSponsorSediaAdaId(e.target.value)} placeholder="ID penaja sedia ada — kosongkan untuk cipta baharu" className={INPUT_BORANG} />
-                <span className="text-stone-400 text-[10px]">Guna ni untuk Hamba Allah yang menyambung semula, supaya nombor kekal sama.</span>
+                <span className="text-stone-400 text-[10px]">Guna ini untuk Hamba Allah yang menyambung semula, supaya nombor kekal sama.</span>
               </label>
               <Button variant="primary" disabled={menghantar} onClick={aktifkan}>Aktifkan sebagai Penaja</Button>
             </>

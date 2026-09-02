@@ -174,7 +174,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const muatSemula = () => {
     setMemuat(true);
     fetch('/api/system/users')
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(d => { setStaffList(Array.isArray(d) ? d : []); setRalat(''); })
       .catch(() => setRalat('Gagal memuatkan senarai anggota.'))
       .finally(() => setMemuat(false));
@@ -194,7 +194,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const muatDasarAktif = () => {
     setMemuatDasarAktif(true);
     fetch('/api/system/dasar-aktif-editorial')
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(d => { if (d && typeof d.amaranPertamaHari === 'number') setDasarAktif(d); })
       .catch(() => setRalatDasarAktif('Gagal memuatkan Dasar Aktif Editorial.'))
       .finally(() => setMemuatDasarAktif(false));
@@ -237,7 +237,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const muatPermohonan = (status = tapisanPermohonan) => {
     setMemuatPermohonan(true);
     fetch(`/api/system/permohonan-editor${status ? `?status=${status}` : ''}`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(d => { setPermohonanList(Array.isArray(d) ? d : []); setRalatPermohonan(''); })
       .catch(() => setRalatPermohonan('Gagal memuatkan senarai permohonan.'))
       .finally(() => setMemuatPermohonan(false));
@@ -601,15 +601,15 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           <div className="space-y-4">
             {(konfirmasiTamat.draf.length === 0 && konfirmasiTamat.menunggu.length === 0) ? (
               <p className="text-stone-600 leading-relaxed">
-                Tiada draf atau kandungan menunggu kepunyaan akaun ni, selamat ditamatkan.
+                Tiada draf atau kandungan menunggu kepunyaan akaun ini, selamat ditamatkan.
               </p>
             ) : (
               <>
                 <p className="text-stone-600 leading-relaxed">
-                  Akaun ni ada <strong className="text-stone-900">{konfirmasiTamat.draf.length} draf</strong> dan{' '}
+                  Akaun ini ada <strong className="text-stone-900">{konfirmasiTamat.draf.length} draf</strong> dan{' '}
                   <strong className="text-stone-900">{konfirmasiTamat.menunggu.length} kandungan menunggu</strong> yang
                   belum pernah diterbitkan. Kandungan yang SUDAH diterbitkan (aktif/arkib) tidak terjejas, cuma
-                  yang belum terbit ni pilihan awak.
+                  yang belum terbit ini pilihan awak.
                 </p>
                 <div className="max-h-32 overflow-y-auto border border-stone-200 rounded divide-y divide-Adjung-line">
                   {konfirmasiTamat.draf.map((d, i) => (
@@ -683,10 +683,11 @@ function ProfilAnggotaModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error();
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini status.');
       onUpdated({ ...staff, status });
-    } catch {
-      setRalatStatus('Gagal mengemas kini status.');
+    } catch (e: any) {
+      setRalatStatus(e.message || 'Gagal mengemas kini status.');
     }
   };
 
@@ -699,11 +700,12 @@ function ProfilAnggotaModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ autoTerbit }),
       });
-      if (!res.ok) throw new Error();
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini togol auto-terbit.');
       onUpdated({ ...staff, autoTerbit });
       onBerjaya(autoTerbit ? 'Auto-terbit dihidupkan.' : 'Auto-terbit dimatikan.');
-    } catch {
-      setRalatAutoTerbit('Gagal mengemas kini togol auto-terbit.');
+    } catch (e: any) {
+      setRalatAutoTerbit(e.message || 'Gagal mengemas kini togol auto-terbit.');
     }
   };
 
@@ -736,11 +738,12 @@ function ProfilAnggotaModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roles }),
       });
-      if (!res.ok) throw new Error();
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini peranan.');
       onUpdated({ ...staff, roles });
       onBerjaya('Peranan dikemas kini.');
-    } catch {
-      setRalatPeranan('Gagal mengemas kini peranan.');
+    } catch (e: any) {
+      setRalatPeranan(e.message || 'Gagal mengemas kini peranan.');
     }
   };
 
@@ -1109,7 +1112,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className={INPUT_BORANG} />
         </label>
         <p className="text-[10px] text-stone-500 leading-relaxed">
-          Nama pena, ID pengguna dan kata laluan tak ditetapkan di sini; e-mel jemputan bertoken
+          Nama pena, ID pengguna dan kata laluan tidak ditetapkan di sini; e-mel jemputan bertoken
           akan dihantar ke alamat emel di atas supaya anggota baharu menetapkan ketiga-tiganya sendiri.
         </p>
 

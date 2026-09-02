@@ -824,7 +824,7 @@ export const EditorialConsole: React.FC = () => {
               <div className="space-y-4 text-xs">
                 <p className="text-stone-500">
                   Sistem pilih Sense paling sesuai secara automatik ikut Bidang artikel tempat
-                  istilah ini muncul — editor tak perlu pilih makna setiap kali. Jika tiada Sense
+                  istilah ini muncul — editor tidak perlu memilih makna setiap kali. Jika tiada Sense
                   khusus sepadan Bidang artikel, sistem jatuh balik ke Sense Am, kemudian medan
                   "Maksud" (fallback lama) di jadual utama.
                 </p>
@@ -1180,7 +1180,7 @@ export const EditorialConsole: React.FC = () => {
                 <p className="text-stone-500 text-xs max-w-[680px]">
                   Sistem pemenggalan suku kata (untuk lipat baris pada kad telefon) berjalan
                   automatik untuk semua perkataan Melayu. Senarai ini pengecualian manual — kalau
-                  hasil automatik untuk sesuatu perkataan tak sepadan kelaziman sebenar, tambah di
+                  hasil automatik untuk sesuatu perkataan tidak sepadan kelaziman sebenar, tambah di
                   sini dan sistem akan guna corak yang ditetapkan, bukan algoritma automatik, untuk
                   perkataan itu sahaja.
                 </p>

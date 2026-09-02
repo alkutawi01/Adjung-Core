@@ -667,7 +667,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                 <p className="text-stone-500 text-xs">
                   Benarkan editor guna sintaks <code className="bg-stone-100 px-1 rounded">[kata](gloss:makna)</code> dalam
                   tajuk/huraian. Makna terpapar sebagai anotasi kecil di atas kata pada frontpage. Dimatikan lalai;
-                  sintaks yang wujud dipapar sebagai teks biasa (anotasi diabaikan) selagi togol ni tak dihidupkan.
+                  sintaks yang wujud dipapar sebagai teks biasa (anotasi diabaikan) selagi togol ini tidak dihidupkan.
                 </p>
                 {glosSelariSaveError && <MesejStatus tone="error">{glosSelariSaveError}</MesejStatus>}
               </div>
@@ -722,7 +722,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
               <div>
                 <SectionLabel>3.2 — Had Aksara Ikut Bentuk Kad</SectionLabel>
                 <p className="text-stone-500 text-[11px]">
-                  Carta penuh (live, terus dari <code className="bg-stone-100 text-Adjung-maroon px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>) kini di tab <strong>Perlembagaan</strong> supaya tak pernah lapuk.
+                  Carta penuh (live, terus dari <code className="bg-stone-100 text-Adjung-maroon px-1 py-0.5 rounded font-mono text-[10px]">core/editorial/GeometryConfig.js</code>) kini di tab <strong>Perlembagaan</strong> supaya tidak pernah lapuk.
                 </p>
               </div>
               <span className="font-mono text-[9px] uppercase tracking-widest text-Adjung-maroon font-bold whitespace-nowrap">
@@ -1000,7 +1000,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   />
                 </FormColumn>
                 <span className="text-[10px] text-stone-400 block">
-                  Lalai 180 aksara. Tidak berkaitan bajet ruang tajuk/huraian kad bento (Tier Kad); nota editor medan berasingan, tak dipapar pada kad.
+                  Lalai 180 aksara. Tidak berkaitan bajet ruang tajuk/huraian kad bento (Tier Kad); nota editor medan berasingan, tidak dipaparkan pada kad.
                 </span>
               </div>
 
@@ -1342,7 +1342,7 @@ function HalamanAwamPanel() {
         </div>
         <div>
           <span className={LABEL_BORANG}>
-            Dalaman: editor sahaja, tak dipaparkan kepada pembaca
+            Dalaman: editor sahaja, tidak dipaparkan kepada pembaca
           </span>
           <div className="flex flex-wrap gap-1.5">
             {HALAMAN_AWAM_SENARAI.filter(h => h.kumpulan === 'dalaman').map(h => (
