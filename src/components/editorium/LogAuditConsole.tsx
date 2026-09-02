@@ -180,7 +180,21 @@ export const LogAuditConsole: React.FC = () => {
                 <td className="p-3 text-stone-500 font-mono text-xs whitespace-nowrap">
                   {new Date(e.createdAt).toLocaleString('ms-MY')}
                 </td>
-                <td className="p-3 text-stone-800 font-serif font-semibold">{e.actorName || 'Tidak diketahui'}</td>
+                {/* PEMBETULAN (2026-09-02, dapatan bug-hunt) — dahulu `e.actorName || 'Tidak
+                    diketahui'` semata-mata, tanpa bezakan DUA sebab actorName kosong: (1)
+                    event AUTOMASI/SISTEM sengaja tiada actorId/actorName langsung (konvensyen
+                    CLAUDE.md, "actorId ialah kontrak pembeza manusia vs sistem") — cth
+                    `ambilan-rss-selesai` (slotRoutes.js) tercicir actorName walau ia SAH event
+                    automasi biasa; (2) actorId WUJUD tetapi actorName hilang/rosak — kes tu
+                    SEBENARNYA patut jadi "Tidak diketahui". Disahkan data sebenar: dalam SATU
+                    larian RSS, baris `rss-huraian-dipendekkan` label "RSS Direct (automatik)"
+                    tapi `ambilan-rss-selesai` (larian sama) label "Tidak diketahui" — nampak
+                    macam pelaku misteri sedangkan cuma ringkasan automasi biasa. Kini bezakan
+                    ikut `actorId === null` (konvensyen sengaja) lawan actorId ada tapi nama
+                    hilang (SEBENAR tak diketahui). */}
+                <td className="p-3 text-stone-800 font-serif font-semibold">
+                  {e.actorName || (e.actorId === null ? 'Automasi Sistem' : 'Tidak diketahui')}
+                </td>
                 <td className="p-3">
                   <StatusBadge tone={tonTindakan(e.action)} label={labelTindakan(e.action)} />
                 </td>

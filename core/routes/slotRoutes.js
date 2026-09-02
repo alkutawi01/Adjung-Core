@@ -1334,6 +1334,7 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   // dari sejarah, bukan cuma keadaan semasa.
   await logAudit(dbRun, {
     action: 'ambilan-rss-selesai',
+    actorName: 'RSS Direct (automatik)',
     targetType: 'rss',
     detail: `${activeSources.length} sumber aktif, ${totalFetchedCount} item ditemui, ${autoLiveCount} auto-live, ${pendingReviewCount} menunggu semakan`,
   });
