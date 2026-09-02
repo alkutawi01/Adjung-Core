@@ -20,6 +20,14 @@ import { Menu, X } from 'lucide-react';
 // - Komponen ni memiliki: buka/tutup sidebar, navigasi papan kekunci tempatan, animasi slide.
 // - Komponen ni TIDAK memiliki: data kandungan, definisi "aktif", panggilan API, atau FocusLoc
 //   state — semua tu kekal di FrontpageView (pemilik data sedia ada), dihantar sebagai props.
+//
+// z-index (2026-09-02, dapatan Izzat: "kalau berada di focus view, macam mana nak lihat bidang
+// lain?") — dinaikkan z-[59..61] ke z-[298..300] selepas disahkan SEBENAR (elementFromPoint) toggle
+// tertindih SEPENUHNYA oleh overlay FocusView.tsx (zIndex 200-250 di situ) bila artikel terbuka,
+// walau komen lama (FrontpageView.tsx, dibetulkan sama) mendakwa navigator "kekal di atas overlay
+// Focus View (z-50)" — dakwaan tu SALAH/lapuk berbanding nilai FocusView SEBENAR, bukan cuma di
+// Halaman Bidang. Kini toggle boleh diklik walau Focus View sedang terbuka (pindah Bidang terus
+// tanpa perlu tutup artikel dahulu).
 
 export type FocusLoc = { slotIndex: number; itemIndex: number };
 export type NavigatorNewsItem = { objectId: string; title: string; loc: FocusLoc };
@@ -87,7 +95,7 @@ export default function BriefNavigator({ fields }: BriefNavigatorProps) {
           onClick={() => setTerbuka(true)}
           aria-label="Buka navigasi Bidang"
           aria-expanded={false}
-          className="fixed left-0 top-[450px] md:top-1/2 md:-translate-y-1/2 z-[61] bg-[var(--surface-page)] border border-l-0 border-[var(--border-default)] rounded-r-md shadow-md w-7 h-14 flex items-center justify-center text-stone-500 hover:text-Adjung-maroon transition-colors"
+          className="fixed left-0 top-[450px] md:top-1/2 md:-translate-y-1/2 z-[300] bg-[var(--surface-page)] border border-l-0 border-[var(--border-default)] rounded-r-md shadow-md w-7 h-14 flex items-center justify-center text-stone-500 hover:text-Adjung-maroon transition-colors"
         >
           <Menu size={16} />
         </button>
@@ -96,7 +104,7 @@ export default function BriefNavigator({ fields }: BriefNavigatorProps) {
       {/* Overlay latar (mudah alih terutamanya) — klik luar tutup sidebar. */}
       {terbuka && (
         <div
-          className="fixed inset-0 z-[59] bg-black/20 md:bg-transparent"
+          className="fixed inset-0 z-[298] bg-black/20 md:bg-transparent"
           onClick={tutupSidebar}
           aria-hidden="true"
         />
@@ -104,7 +112,7 @@ export default function BriefNavigator({ fields }: BriefNavigatorProps) {
 
       {/* Sidebar itu sendiri — slide dari kiri, tinggi PENUH skrin, SATU scroll sahaja. */}
       <div
-        className={`fixed left-0 top-0 bottom-0 z-[60] w-[260px] max-w-[80vw] bg-[var(--surface-page)] border-r border-[var(--border-default)] shadow-xl flex flex-col transition-transform ${
+        className={`fixed left-0 top-0 bottom-0 z-[299] w-[260px] max-w-[80vw] bg-[var(--surface-page)] border-r border-[var(--border-default)] shadow-xl flex flex-col transition-transform ${
           terbuka ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ transitionDuration: '220ms', transitionTimingFunction: 'cubic-bezier(.2,.8,.2,1)' }}

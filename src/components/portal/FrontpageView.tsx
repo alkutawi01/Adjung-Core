@@ -6001,10 +6001,15 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           visual Focus View (`item.image`) pula berbeza bagi SETIAP kandungan — dua medan
           berlainan, jangan pinjam salah satu untuk yang lain. */}
       {/* BriefNavigator (2026-08-31) — bar navigasi Bidang, lapisan navigasi milik SELURUH
-          portal (bukan sebahagian layout majalah bento), sengaja diletak SEBELUM FocusView
-          dalam DOM supaya z-index navigator (z-[60]) kekal di atas overlay Focus View (z-50),
-          jadi rail tetap boleh digunakan semasa membaca artikel — keputusan produk ChatGPT
-          pusingan 4 (navigator paling bernilai semasa Focus View dibuka, bukan cuma frontpage). */}
+          portal (bukan sebahagian layout majalah bento) — keputusan produk ChatGPT pusingan 4
+          (navigator paling bernilai semasa Focus View dibuka, bukan cuma frontpage). Susunan
+          DOM (sebelum FocusView) TIDAK menentukan lapisan sini — kedua-dua `position: fixed`,
+          jadi z-index sahaja yang menang. PEMBETULAN (2026-09-02, dapatan Izzat): komen lama di
+          sini dakwa navigator (z-[60]) "kekal di atas" FocusView (didakwa z-50) — dakwaan tu
+          SALAH, disahkan `elementFromPoint` sebenar (FocusView.tsx zIndex SEBENAR 200-250, jauh
+          lebih tinggi drpd z-60/61 lama). Toggle navigator TERTINDIH SEPENUHNYA bila Focus View
+          terbuka sepanjang ni — bukan cuma isu Halaman Bidang yang mendedahkannya. Nilai
+          BriefNavigator.tsx dinaikkan ke z-[298..300] (lihat komen di situ) untuk betulkan. */}
       <BriefNavigator fields={navigatorFields} currentLoc={focusLoc} onOpenNews={openFocusLoc} />
 
       {focusLoc && focusItem && (
