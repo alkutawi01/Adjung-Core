@@ -677,8 +677,11 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
 
   // --- RSS DESK RULES ENDPOINTS ---
 
-  // GET /api/system/rss-desk-rules
-  router.get('/rss-desk-rules', async (req, res) => {
+  // GET /api/system/rss-desk-rules — requirePermission (dapatan bug-hunt 2026-09-02, sama
+  // kelas pepijat/pembetulan seperti /rss-sources dan /rss-settings dalam fail sama, audit
+  // 2026-08-08 — dedah formula pengelasan Bidang RSS (kata kunci, pemberat) tak sepatutnya
+  // awam, walau POST bersebelahan sudah bergerbang manageEditorial sejak awal.
+  router.get('/rss-desk-rules', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const rules = await dbAll("SELECT * FROM rss_desk_rules ORDER BY orderIndex ASC, createdAt ASC");
       res.json(rules);
@@ -821,8 +824,11 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/system/editorial-memory
-  router.get('/editorial-memory', async (req, res) => {
+  // GET /api/system/editorial-memory — sama kelas pepijat seperti aiRoutes.js/aiCostRoutes.js
+  // (dapatan bug-hunt 2026-09-01): tiada gerbang kebenaran, walhal laluan bersebelahan
+  // (POST /editorial-memory/promote) sudah digerbang manageEditorial. Data ni cadangan RSS
+  // belum disemak ("status='pending'") — bukan untuk paparan awam sebelum Ketua Editor luluskan.
+  router.get('/editorial-memory', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const memories = await dbAll("SELECT * FROM rss_editorial_memory WHERE status = 'pending' ORDER BY createdAt DESC LIMIT 20");
       res.json(memories);
@@ -914,8 +920,11 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/system/ticker/blocked-queue (Visual Audit Trail of Blocked News)
-  router.get('/ticker/blocked-queue', async (req, res) => {
+  // GET /api/system/ticker/blocked-queue (Visual Audit Trail of Blocked News) — requirePermission
+  // (dapatan bug-hunt 2026-09-02, sama kelas pepijat berulang dalam fail ni: /rss-sources,
+  // /rss-settings, /editorial-memory, /rss-desk-rules kesemuanya dibetulkan pusingan lepas).
+  // Laluan audit dalaman moderasi RSS, bukan untuk paparan awam.
+  router.get('/ticker/blocked-queue', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const items = await dbAll("SELECT * FROM rss_ticker_items WHERE status = 'blocked_category' ORDER BY createdAt DESC LIMIT 50");
       res.json(items);

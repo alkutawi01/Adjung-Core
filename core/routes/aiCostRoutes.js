@@ -4,8 +4,12 @@ import { requirePermission } from '../middleware/auth.js';
 export function createAiCostRoutes(dbAll, dbGet, dbRun) {
   const router = express.Router();
 
-  // GET /api/system/ai/statistics
-  router.get('/statistics', async (req, res) => {
+  // GET /api/system/ai/statistics — sama kelas pepijat seperti aiRoutes.js /logs (dapatan
+  // bug-hunt 2026-09-01): TIADA gerbang kebenaran langsung pada laluan ni MAHUPUN pada
+  // mount-level (server.js app.use('/api/system/ai', ...) tiada requireAuthForWrites pun,
+  // tak macam kebanyakan router lain). /breakdown di bawah lagi teruk — ia pulangkan
+  // ai_usage_logs.promptText/responseText PENUH bagi 10 panggilan terkini.
+  router.get('/statistics', requirePermission('manageSettings'), async (req, res) => {
     try {
       const todayStart = new Date();
       todayStart.setHours(0,0,0,0);
@@ -59,8 +63,10 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
     }
   });
 
-  // GET /api/system/ai/breakdown
-  router.get('/breakdown', async (req, res) => {
+  // GET /api/system/ai/breakdown — pulangkan `ai_usage_logs.*` (termasuk promptText/responseText
+  // PENUH) bagi 10 panggilan terkini, plus kos per-pembekal/model/30-hari. Sama pembetulan
+  // seperti /statistics di atas.
+  router.get('/breakdown', requirePermission('manageSettings'), async (req, res) => {
     try {
       const providerBreakdown = await dbAll(`
         SELECT providerId as provider, COUNT(*) as calls, SUM(estimatedCost) as cost
@@ -111,8 +117,8 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
     }
   });
 
-  // GET /api/system/ai/slot_costs
-  router.get('/slot_costs', async (req, res) => {
+  // GET /api/system/ai/slot_costs — sama pembetulan seperti /statistics di atas.
+  router.get('/slot_costs', requirePermission('manageSettings'), async (req, res) => {
     try {
       const rows = await dbAll(`
         SELECT
@@ -155,8 +161,9 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
     }
   });
 
-  // GET /api/system/ai/pricing
-  router.get('/pricing', async (req, res) => {
+  // GET /api/system/ai/pricing — sama pembetulan seperti /statistics di atas (POST bersebelahan
+  // sudah bergerbang, GET ni terlepas).
+  router.get('/pricing', requirePermission('manageSettings'), async (req, res) => {
     try {
       const pricing = await dbAll("SELECT * FROM ai_model_pricing");
       res.json(pricing);

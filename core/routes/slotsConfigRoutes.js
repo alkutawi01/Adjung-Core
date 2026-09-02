@@ -124,11 +124,44 @@ export const stampManualModeOnTickerBlocks = (rawText) => {
 export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot, parseManualSummaryTemplate) {
   const router = express.Router();
 
-  // GET /api/system/slots
+  // GET /api/system/slots (2026-09-02, dapatan audit keselamatan — laluan ni TIADA `requireAuth`
+  // sebab portal awam sendiri panggil terus, tanpa sesi, semasa muat frontpage
+  // (FrontpageView.tsx) untuk baca override transisi per-slot. Sebelum ni `SELECT *` PENUH
+  // dipulangkan kepada SESIAPA sahaja — lajur `manualSummary` menyimpan TEKS DRAF MENTAH sebenar
+  // (rujuk nota "Dua laluan edit selepas terbit" di CLAUDE.md — draf belum terbit/ditolak hidup
+  // sebagai teks bertanda dalam lajur ni, termasuk baris "Sebab Penolakan:" dan nama editor
+  // sebenar), dan `promptText`/`aiPromptSource`/`aiPromptTopic`/dll (Arahan AI dalaman) turut
+  // terdedah. Corak pembetulan SAMA seperti `/api/db-state` (dbStateRoutes.js) — subset terhad
+  // bila tiada sesi, `SELECT *` PENUH bila sesi Editorium wujud (tiada perubahan utk kes tu).
+  //
+  // Subset awam dijejak SEPENUHNYA daripada penggunaan sebenar `slotsConfig`
+  // (GET /api/system/slots) dalam FrontpageView.tsx (grep menyeluruh setiap akses `s.<medan>`
+  // pada state ni) — hanya lapan medan berikut yang benar-benar dibaca portal awam:
+  // slotIndex (kunci padanan), carouselInterval (kelajuan pusingan Ticker), dan enam override
+  // transisi PER-SLOT (arahOverride, jenisAnimasiOverride, warnaPanelOverride, kelajuanOverride,
+  // logoTransisiMode, nisbahPenajaTransisiOverride). Jangan tambah medan baharu di sini tanpa
+  // jejak dahulu sama ada ia benar-benar sampai ke kod portal awam — terutamanya JANGAN sertakan
+  // manualSummary/promptText/aiPromptSource/aiPromptTopic/aiPromptRecency/aiPromptLanguage/
+  // aiPromptRegion/masterPrompt walau agak-agak, semuanya draf/Arahan AI dalaman sensitif.
+  const MEDAN_SELAMAT_AWAM = [
+    'slotIndex', 'carouselInterval', 'arahOverride', 'jenisAnimasiOverride',
+    'warnaPanelOverride', 'kelajuanOverride', 'logoTransisiMode', 'nisbahPenajaTransisiOverride',
+  ];
+
   router.get('/slots', async (req, res) => {
     try {
       const slots = await dbAll("SELECT * FROM slots_config WHERE layoutTemplateId = 'frontpage' ORDER BY slotIndex ASC");
-      res.json(slots);
+      const disahkan = !!(req.session && req.session.user);
+      if (disahkan) {
+        res.json(slots);
+        return;
+      }
+      const slotsAwam = slots.map((slot) => {
+        const subset = {};
+        for (const medan of MEDAN_SELAMAT_AWAM) subset[medan] = slot[medan];
+        return subset;
+      });
+      res.json(slotsAwam);
     } catch (err) {
       console.error('Fetch slots config error:', err);
       res.status(500).json({ error: 'Gagal membaca konfigurasi slot.' });

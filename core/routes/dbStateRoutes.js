@@ -210,7 +210,16 @@ export function createDbStateRoutes(dbAll, dbGet) {
 
       const inTheNewsGoogleDocText = inTheNewsGoogleDocStatus === 'success' ? rawNewsText : '';
       const worldClockHolidaysGoogleDocText = worldClockHolidaysGoogleDocStatus === 'success' ? rawHolidaysText : '';
-      const researchFindingsGoogleDocText = researchFindingsGoogleDocStatus === 'success' ? rawFindingsText : '';
+      // `researchFindingsGoogleDocText` DIKECUALIKAN daripada corak dua abang di atas (dapatan
+      // bug-hunt 2026-09-02) — berbeza daripada inTheNewsGoogleDocText/worldClockHolidaysGoogleDocText
+      // (disahkan JEJAK sampai ke App.tsx/FrontpageView.tsx, portal awam), medan ni TIDAK PERNAH
+      // dirujuk mana-mana kod portal awam (grep kosong di src/components) — cuma dalam mockDb.ts
+      // (data demo) dan types.ts. URL sumbernya (researchFindingsGoogleDocUrl) SUDAH digerbang
+      // betul di bawah settingsDalaman (hanya kakitangan log masuk), tapi teks TERBITAN daripada
+      // URL tu sebelum ni bocor keluar tanpa gerbang sama — melanggar terus dasar sendiri fail ni
+      // ("jangan tambah medan baharu di sini tanpa jejak dahulu"). Kunci ke `disahkan` sama macam
+      // `settingsDalaman`, bukan pulangkan terus kepada semua pelawat.
+      const researchFindingsGoogleDocText = disahkan && researchFindingsGoogleDocStatus === 'success' ? rawFindingsText : '';
 
       res.json({
         users,

@@ -99,8 +99,11 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/ai/logs
-  router.get('/logs', async (req, res) => {
+  // GET /api/ai/logs — sama kelas pepijat seperti /providers dan /prompts di atas (2026-08-08,
+  // ChatGPT P2-02), tapi terlepas pandang semasa pembetulan asal tu (dapatan bug-hunt 2026-09-01).
+  // Tanpa gerbang ni, sesiapa di internet boleh baca pipeline_logs (mesej/status setiap larian AI
+  // per slot) tanpa log masuk.
+  router.get('/logs', requirePermission('manageSettings'), async (req, res) => {
     try {
       const logs = await dbAll("SELECT * FROM pipeline_logs ORDER BY createdAt DESC LIMIT 100");
       res.json(logs);
@@ -110,8 +113,10 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/ai/logs/:slotIndex
-  router.get('/logs/:slotIndex', async (req, res) => {
+  // GET /api/ai/logs/:slotIndex — sama pepijat, sama pembetulan seperti /logs di atas. Jadual
+  // ai_usage_logs bawa `promptText`/`responseText` PENUH (prompt & jawapan AI sebenar) dan
+  // estimatedCost — data operasi dalaman, bukan untuk paparan awam.
+  router.get('/logs/:slotIndex', requirePermission('manageSettings'), async (req, res) => {
     try {
       const slotIdx = parseInt(req.params.slotIndex, 10);
       const logs = await dbAll(`
