@@ -638,8 +638,29 @@ function IkonWarnaModal({
   const [savingIconFor, setSavingIconFor] = useState<string | null>(null);
   const [ikonError, setIkonError] = useState<string | null>(null);
   const [svgUploadPreview, setSvgUploadPreview] = useState<string | null>(null);
+  // Pratonton visual berasingan drpd svgUploadPreview (2026-09-03, dapatan bug-hunt keselamatan)
+  // — svgUploadPreview (teks SVG MENTAH, belum ditapis sanitizeSvgMarkup() pelayan) dahulu
+  // dipaparkan terus via dangerouslySetInnerHTML SEBAIK fail dipilih (sebelum butang "Muat Naik"
+  // pun diklik, jauh sebelum penapisan pelayan berjalan). SVG boleh bawa atribut pengendali on*
+  // (cth `<svg onload="...">`) yang tercetus SEBAIK dimasukkan ke DOM via innerHTML — ini
+  // corak XSS terkenal (bukan `<script>` yang browser sekat, sebaliknya atribut on* jalan macam
+  // biasa). Ancaman ni SAMA PERSIS yang sanitizeSvg.js dokumenkan wujud (nota kepala fail tu:
+  // "editor boleh menyerang Ketua Editor/Pentadbir") — cuma penapis server tu terlepas laluan
+  // pratonton klien ni. Fail SVG jahat yang diberi kepada MANA-MANA pengguna modal ni (termasuk
+  // Ketua Editor/Pentadbir sendiri, bukan cuma Editor biasa) akan jalan skrip SEBAIK fail dipilih.
+  // Pembetulan: pratonton guna `<img src={URL objek}>` (SVG sbg SUMBER IMEJ, bukan disuntik ke
+  // DOM) — spesifikasi web SENGAJA lumpuhkan skrip/pengendali on* bila SVG dimuat sbg imej, jadi
+  // laluan pratonton tak lagi jalankan apa-apa kandungan fail tanpa mengira kandungannya.
+  // svgUploadPreview (teks mentah) KEKAL untuk badan POST /set-icon-svg (pelayan yang sanitize).
+  const [svgPreviewObjectUrl, setSvgPreviewObjectUrl] = useState<string | null>(null);
   const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
   const [uploadingSvg, setUploadingSvg] = useState(false);
+
+  // Lepaskan URL objek pratonton bila modal ditutup/dilangkau lekap semula — elak kebocoran
+  // memori (setiap URL.createObjectURL mesti dipadankan revokeObjectURL).
+  useEffect(() => () => {
+    if (svgPreviewObjectUrl) URL.revokeObjectURL(svgPreviewObjectUrl);
+  }, [svgPreviewObjectUrl]);
 
   // Warna Bidang — dipentaskan dalam state supaya pemilih warna boleh diseret tanpa menghantar
   // satu permintaan bagi setiap piksel pergerakan.
@@ -691,6 +712,7 @@ function IkonWarnaModal({
   const handleSvgFileSelected = (file: File | null) => {
     setSvgUploadError(null);
     setSvgUploadPreview(null);
+    if (svgPreviewObjectUrl) { URL.revokeObjectURL(svgPreviewObjectUrl); setSvgPreviewObjectUrl(null); }
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.svg') && file.type !== 'image/svg+xml') {
       setSvgUploadError('Pilih fail .svg sahaja.');
@@ -700,6 +722,10 @@ function IkonWarnaModal({
       setSvgUploadError('Fail terlalu besar (had 100KB).');
       return;
     }
+    // URL objek untuk pratonton `<img>` (selamat drpd XSS — lihat nota di deklarasi state di
+    // atas) dicipta terus drpd File, BUKAN drpd teks dibaca — SVG sbg sumber imej tak jalankan
+    // kandungannya tak kira apa, jadi tiada keperluan tunggu FileReader untuk laluan ni.
+    setSvgPreviewObjectUrl(URL.createObjectURL(file));
     const reader = new FileReader();
     reader.onload = () => setSvgUploadPreview(String(reader.result || ''));
     reader.onerror = () => setSvgUploadError('Gagal membaca fail.');
@@ -816,12 +842,17 @@ function IkonWarnaModal({
                   onChange={e => handleSvgFileSelected(e.target.files?.[0] || null)}
                 />
               </label>
-              {svgUploadPreview && (
-                <span
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-stone-300 [&_svg]:w-4 [&_svg]:h-4"
-                  style={{ color: target.color }}
-                  dangerouslySetInnerHTML={{ __html: svgUploadPreview }}
-                />
+              {svgPreviewObjectUrl && (
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-stone-300">
+                  {/* <img> (bukan dangerouslySetInnerHTML) — SVG sbg sumber imej, tak jalankan
+                      apa-apa skrip/pengendali on* kandungannya tak kira apa (lihat nota
+                      keselamatan di deklarasi svgPreviewObjectUrl). Kesan sampingan: warna
+                      `currentColor` dalaman fail (kalau ada) TAK mewarisi `target.color` di sini
+                      lagi (sumber imej terasing drpd CSS luaran) — pratonton papar warna asal
+                      fail, bukan gangguan, sekadar tak lagi boleh dipaksa warna Bidang sebelum
+                      dimuat naik. Ikon TERSIMPAN (BidangIcon.tsx, selepas upload) tak terjejas. */}
+                  <img src={svgPreviewObjectUrl} alt="Pratonton ikon SVG" className="w-4 h-4" />
+                </span>
               )}
             </div>
             <p className="text-stone-400 text-[10px] mt-1.5">Saiz maksimum 100 KB. Semua fail SVG akan disanitasi di pelayan sebelum disimpan.</p>

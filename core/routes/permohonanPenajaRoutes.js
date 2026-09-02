@@ -329,11 +329,24 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
         return res.status(410).json({ error: 'Pautan ini telah tamat tempoh. Sila hubungi Adjung Brief untuk pautan baharu.' });
       }
       const { buktiBayaranUrl, logoUrl, tarikhBayaran } = req.body || {};
-      if (!buktiBayaranUrl || typeof buktiBayaranUrl !== 'string') {
-        return res.status(400).json({ error: 'Sila muat naik bukti bayaran.' });
+      // URL mesti laluan muat naik SEBENAR (format /uploads/<nama-fail>, persis pulangan
+      // simpanFailMuatNaik() di /upload sebelah) — bukan sebarang rentetan (dapatan bug-hunt
+      // 2026-09-03). Laluan ni TANPA sesi (token sahaja, sesiapa yang ada token permohonan
+      // yang diluluskan boleh panggil terus guna curl, langkau borang klien sepenuhnya), dan
+      // nilai yang disimpan dipaparkan sebagai `<a href>` KLIK boleh dibuka di PenajaConsole.tsx
+      // (Ketua Editor/Pentadbir log masuk). Tanpa sekatan format ni, pemohon boleh hantar
+      // `javascript:...` sebagai buktiBayaranUrl — bila admin klik pautan "lihat bukti bayaran"
+      // tu, skrip jalan dalam sesi admin (XSS tersimpan, bukan sesuatu klien halangi sebab klien
+      // cuma pernah hantar `data.url` daripada /upload, tak pernah biar pengguna taip terus).
+      const laluanMuatNaikSah = (v) => typeof v === 'string' && /^\/uploads\/[A-Za-z0-9._-]+$/.test(v);
+      if (!laluanMuatNaikSah(buktiBayaranUrl)) {
+        return res.status(400).json({ error: 'Sila muat naik bukti bayaran melalui borang (bukan pautan luaran).' });
       }
-      if (rekod.jenisPemohon === 'organisasi' && (!logoUrl || typeof logoUrl !== 'string')) {
-        return res.status(400).json({ error: 'Sila muat naik logo organisasi.' });
+      if (rekod.jenisPemohon === 'organisasi' && !laluanMuatNaikSah(logoUrl)) {
+        return res.status(400).json({ error: 'Sila muat naik logo organisasi melalui borang (bukan pautan luaran).' });
+      }
+      if (logoUrl !== undefined && logoUrl !== null && logoUrl !== '' && !laluanMuatNaikSah(logoUrl)) {
+        return res.status(400).json({ error: 'Logo mesti dimuat naik melalui borang (bukan pautan luaran).' });
       }
       const kini = new Date().toISOString();
       await dbRun(

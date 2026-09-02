@@ -1,5 +1,6 @@
 import express from 'express';
 import { safeJsonParse } from '../utils/jsonUtils.js';
+import { fetchSelamat } from '../utils/urlSafety.js';
 
 // Helper to extract plain text from published Google Doc HTML
 function extractTextFromHtml(html) {
@@ -54,6 +55,17 @@ async function fetchGoogleDocTextCached(docUrl) {
 }
 
 // Helper to fetch Google Doc text export in the background (supports standard and published URLs)
+//
+// fetchSelamat() (BUKAN fetch() mentah) — dapatan bug-hunt 2026-09-03: cabang "published URL"
+// di bawah (`docUrl.includes('/d/e/') || docUrl.includes('/pub')`) fetch terus URL yang DITAIP
+// Pentadbir/Ketua Editor (Tetapan → medan *GoogleDocUrl, systemRoutes.js — tiada sekatan format
+// semasa simpan, `(v) => v` sahaja) TANPA sahkan hos tu sebenarnya docs.google.com — mana-mana
+// rentetan yang mengandungi "/pub" (cth "http://169.254.169.254/latest/meta-data/x/pub") lulus
+// terus. Cabang lain (bukan-published) selamat sebab fetchUrl dibina SEMULA drpd docId yang
+// diekstrak (sentiasa https://docs.google.com/...), tapi cabang published tu tak pernah dapat
+// perlindungan sama. Sekatan SSRF SAMA corak seperti sumber RSS (slotRoutes.js) & senarai
+// rujukan slot AI (SourceFetcher.js/EditorialPipeline.js) kini terpakai di sini juga — Pentadbir
+// yang salah taip/tersilap tampal URL pun tak patut buka laluan pelayan mengambil alamat dalaman.
 async function fetchGoogleDocText(docUrl) {
   if (!docUrl) return '';
   try {
@@ -72,7 +84,7 @@ async function fetchGoogleDocText(docUrl) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 5000);
 
-    const response = await fetch(fetchUrl, { signal: controller.signal });
+    const response = await fetchSelamat(fetchUrl, { signal: controller.signal });
     clearTimeout(id);
 
     if (!response.ok) {

@@ -10,7 +10,7 @@ import { gantiBlokModTicker } from './contentRoutes.js';
 import { denganKunciTicker } from '../utils/kunciKandungan.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
-import { sahkanUrlSelamatUntukFetch } from '../utils/urlSafety.js';
+import { sahkanUrlSelamatUntukFetch, fetchSelamat } from '../utils/urlSafety.js';
 
 // Notifikasi Sistem (Fasa 6b) — RSS/cuaca gagal ditujukan kepada Pentadbir/Ketua Editor sahaja
 // (mereka yang boleh bertindak ke atas kegagalan infrastruktur, bukan setiap editor biasa).
@@ -1123,14 +1123,25 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   await Promise.allSettled(activeSources.map(async (source) => {
     try {
       // Sekatan SSRF (2026-08-08, audit keselamatan) — rssUrl didaftar sendiri oleh Ketua
-      // Editor/Penolong (manageEditorial), tapi tetap input manusia; semak sebelum ambil.
+      // Editor/Penolong (manageEditorial), tapi tetap input manusia; semak SENYAP sebelum ambil
+      // (skip terus, bukan lontar ralat — sumber lapuk/tak sah sepatutnya senyap disini, bukan
+      // banjir Log Audit setiap jalanan berjadual; laluan pendaftaran (POST /rss-sources di atas)
+      // dah tolak URL taksah pada TITIK MASUK dgn mesej terus kpd editor).
       const semakan = await sahkanUrlSelamatUntukFetch(source.rssUrl);
       if (!semakan.selamat) return;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s max wait per source
 
-      const response = await fetch(source.rssUrl, {
+      // fetchSelamat() (BUKAN fetch() mentah) — dapatan bug-hunt 2026-09-03: semakan
+      // sahkanUrlSelamatUntukFetch() di atas cuma sahkan URL AWAL sebelum pelencongan; fetch()
+      // mentah dgn redirect lalai 'follow' akan ikut 302 terus ke destinasi tanpa sesahkan
+      // semula sasaran (SAMA CELAH yang fetchSelamat() dicipta khusus untuk tutup, lihat
+      // urlSafety.js — semua pemanggil LAIN, SourceFetcher.js/EditorialPipeline.js/
+      // LinkChecker.js, sudah guna fetchSelamat(), laluan RSS Direct ni sahaja tertinggal guna
+      // fetch() mentah). Sumber RSS yang kemudian di-DNS-rebind atau 302 ke alamat dalaman
+      // (169.254.169.254 metadata cloud, dsb.) akan diikut senyap tanpa pembetulan ni.
+      const response = await fetchSelamat(source.rssUrl, {
         signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
