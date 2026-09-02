@@ -212,11 +212,11 @@ export function HalamanBidang() {
                             idx === 0 ? 'text-[22px] md:text-[26px] font-semibold' : 'text-[17px] md:text-[19px] font-medium'
                           }`}
                         >
-                          {a.title}
+                          {safeParseInline(a.title)}
                         </div>
                         {a.summary && idx === 0 && (
                           <p className="font-sans text-[13px] text-stone-500 mt-2 leading-relaxed max-w-[640px]">
-                            {a.summary}
+                            {safeParseInline(a.summary)}
                           </p>
                         )}
                         {a.effectiveDate && (
@@ -259,7 +259,7 @@ export function HalamanBidang() {
                               </div>
                             )}
                             <div className="font-serif text-[16px] md:text-[17px] font-medium leading-snug text-[#1F1F1F] group-hover:text-Adjung-maroon transition-colors">
-                              {a.title}
+                              {safeParseInline(a.title)}
                             </div>
                             {a.effectiveDate && (
                               <div className="font-mono text-[10px] text-stone-400 mt-1.5">
