@@ -169,6 +169,15 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
 
   // GET /api/system/permohonan-penaja — senarai untuk Editorium (gerbang manageSettings, sama
   // seperti sponsorRoutes.js — keputusan perniagaan/penempatan bukan editorial harian).
+  //
+  // tokenBayaran ditapis drpd respons (2026-09-02, dapatan bug-hunt) — sama corak kebocoran yang
+  // dibaiki di authRoutes.js /login (resetToken) dan db-state.js: `SELECT *` penuh bawa
+  // `tokenBayaran` (token pautan awam "Lengkapkan Penajaan", crypto.randomBytes(32) — lihat
+  // PATCH .../keputusan tindakan 'lulus') terus ke respons JSON senarai ni, dibaca sesiapa yang
+  // buka Network tab pelanggan Editorium. Klien (PenajaConsole.tsx, interface `PermohonanPenaja`)
+  // tak pernah baca medan ni — semua tindakan panggil laluan by-`id`, bukan by-token. Penapisan
+  // ni TAK menjejaskan laluan token awam (GET/POST /public/lengkapkan-penajaan/:token) — laluan
+  // tu cari baris terus drpd `tokenBayaran` dalam URL, tak bergantung respons senarai ni.
   router.get('/system/permohonan-penaja', requirePermission('manageSettings'), async (req, res) => {
     try {
       const status = STATUS_SENARAI.includes(req.query.status) ? req.query.status : null;
@@ -176,7 +185,7 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
         `SELECT * FROM permohonan_penaja ${status ? 'WHERE status = ?' : ''} ORDER BY createdAt DESC LIMIT 200`,
         status ? [status] : []
       );
-      res.json(rows);
+      res.json(rows.map(({ tokenBayaran, ...baki }) => baki));
     } catch (err) {
       console.error('GET permohonan-penaja error:', err);
       res.status(500).json({ error: 'Gagal memuatkan senarai permohonan.' });
