@@ -42,7 +42,16 @@ export function layakTerbit(r) {
   const st = r.statusTerjemahan || 'tidak_perlu';
   const terjemahanOk = st === 'tidak_perlu' || st === 'sah';
   const adaKategori = !!(r.kategori && String(r.kategori).trim());
-  return sumberOk && terjemahanOk && adaKategori && (r.aktif === 1 || r.aktif === true);
+  // PEMBETULAN (2026-09-02, dapatan bug-hunt): fungsi ni didokumenkan sebagai "SATU sumber
+  // kebenaran" kelayakan terbit, tapi dahulu tak semak julat tarikh — gerbang SQL awam sebenar
+  // (GET /api/public/petikan di bawah) ADA syarat tarikhMula/tarikhAkhir yang tak pernah
+  // dicerminkan di sini. Kesan: Editorium boleh papar lencana "Sedia diterbitkan" utk petikan
+  // yang sebenarnya TERSEMBUNYI di frontpage (tarikhAkhir dah lepas atau tarikhMula belum
+  // sampai) — dua takrifan "layak" menyimpang, persis kelas pepijat CLAUDE.md (5 salinan had
+  // aksara). hariIni guna tarikhMalaysia() (bukan UTC) supaya sepadan tepat dgn gerbang SQL.
+  const hariIni = tarikhMalaysia(new Date());
+  const tarikhOk = (!r.tarikhMula || r.tarikhMula <= hariIni) && (!r.tarikhAkhir || r.tarikhAkhir >= hariIni);
+  return sumberOk && terjemahanOk && adaKategori && tarikhOk && (r.aktif === 1 || r.aktif === true);
 }
 
 /** Bentuk EDITORIAL — segalanya, termasuk teks asal. Hanya untuk laluan /api/system. */
