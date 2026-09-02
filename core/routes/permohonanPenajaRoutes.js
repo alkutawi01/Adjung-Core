@@ -353,6 +353,17 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
     try {
       const rekod = await dbGet('SELECT * FROM permohonan_penaja WHERE id = ?', [req.params.id]);
       if (!rekod) return res.status(404).json({ error: 'Permohonan tidak dijumpai.' });
+      // Gerbang status (2026-09-02, dapatan bug-hunt, ikut cadangan pembetulan — sama corak
+      // STATUS_BOLEH_DISEMAK di atas) — dahulu cuma semak buktiBayaranUrl wujud, TAK semak
+      // status semasa. Rekod yang status dah 'aktif' (siap penuh: diluluskan->dibayar->aktif)
+      // tetap lulus semakan ni sebab buktiBayaranUrl masih ada dari peringkat awal — endpoint
+      // akan tulis balik status='dibayar', PADAM status 'aktif'. Ini buka laluan /aktifkan
+      // dipanggil semula (gerbangnya cuma status==='dibayar') yang boleh cipta baris `sponsors`
+      // KEDUA utk penaja SAMA kalau sponsorSediaAdaId tak dihantar. Hanya benarkan dari
+      // peringkat 'diluluskan' (satu-satunya peringkat sebelum 'dibayar' dalam carta status).
+      if (rekod.status !== 'diluluskan') {
+        return res.status(409).json({ error: 'Permohonan ini bukan pada peringkat menunggu pengesahan bayaran.' });
+      }
       if (!rekod.buktiBayaranUrl) return res.status(409).json({ error: 'Bukti bayaran belum dihantar pemohon.' });
       const kini = new Date().toISOString();
       await dbRun('UPDATE permohonan_penaja SET status = ?, dibayarPada = ?, updatedAt = ? WHERE id = ?', ['dibayar', kini, kini, rekod.id]);
@@ -383,6 +394,16 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
       }
 
       const { sponsorSediaAdaId, slotIndexes } = req.body || {};
+      // Pertahanan kedua (2026-09-02, dapatan bug-hunt) — kalau permohonan ni SEBELUM ni sudah
+      // pernah diaktifkan (rekod.sponsorId wujud dari kitaran lalu, cth status tertindih balik
+      // ke 'dibayar' melalui sahkan-bayaran sebelum gerbang di atas dibaiki), panggilan ni MESTI
+      // pautkan balik ke sponsorId SAMA — bukan biar cipta baris `sponsors` KEDUA secara senyap
+      // sekadar sebab borang UI dibuka semula tanpa sponsorSediaAdaId diisi.
+      if (rekod.sponsorId && rekod.sponsorId !== sponsorSediaAdaId) {
+        return res.status(409).json({
+          error: `Permohonan ini sudah pernah diaktifkan sebagai penaja "${rekod.sponsorId}" — pautkan ke penaja sedia ada tu, jangan cipta baharu.`,
+        });
+      }
       const kini = new Date();
       const mulaTajaan = kini.toISOString();
       // PEMBETULAN (2026-09-02, dapatan bug-hunt) — dahulu cuma had ATAS disemak. tempohHari
