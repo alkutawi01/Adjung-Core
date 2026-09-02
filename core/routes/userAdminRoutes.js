@@ -212,6 +212,14 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // pautan relatif "menyambung" kepadanya. Corak sama seperti sitemapRoutes.js/authRoutes.js.
       const baseUrlJemputan = baseUrlEmel();
       const pautanJemputan = `${baseUrlJemputan}/tetapkan-kata-laluan?token=${tokenJemputan}`;
+      // `emelDihantar` (di respons di bawah) kini DIBACA klien (DirektoriConsole.tsx,
+      // TambahAnggotaModal & PermohonanModal — dibaiki 2026-09-03, dapatan bug-hunt: dahulu
+      // mesej UI KEKAL menyatakan "telah dihantar" tanpa semak status sebenar). TIADA laluan
+      // "hantar semula jemputan" wujud lagi kalau hantaran ni gagal — akaun dah tercipta (emel
+      // sekarang "digunakan", POST ni akan 409 kalau cuba lagi) dan token 48 jam ni akan tamat
+      // tanpa cara pemohon dapatkannya semula melalui UI. Keputusan produk (bina laluan hantar
+      // semula, ATAU biarkan Pentadbir pulihkan secara manual DB) belum dibuat — tanya Izzat
+      // sebelum bina, jangan anggap salah satu sahaja jalan betul.
       const hantaran = await hantarEmel({
         to: e,
         subject: 'Jemputan Sertai Adjung Brief',

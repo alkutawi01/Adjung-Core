@@ -571,10 +571,18 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       {tambahTerbuka && (
         <TambahAnggotaModal
           onTutup={() => setTambahTerbuka(false)}
-          onBerjaya={(emel: string) => {
+          onBerjaya={(emel: string, emelDihantar: boolean) => {
             setTambahTerbuka(false);
             muatSemula();
-            onToast?.('success', `Akaun dicipta. E-mel jemputan telah dihantar ke ${emel} untuk menetapkan kata laluan.`);
+            // emelDihantar (2026-09-03, dapatan bug-hunt) — lihat nota sepadan di PermohonanModal
+            // terima() di bawah: hantarEmel() gagal senyap, mesej dahulu tak pernah baca status
+            // sebenar penghantaran.
+            onToast?.(
+              emelDihantar ? 'success' : 'error',
+              emelDihantar
+                ? `Akaun dicipta. E-mel jemputan telah dihantar ke ${emel} untuk menetapkan kata laluan.`
+                : `Akaun dicipta untuk ${emel}, tetapi e-mel jemputan GAGAL dihantar. Sila hubungi anggota tersebut secara manual dan semak konfigurasi e-mel sistem.`
+            );
           }}
         />
       )}
@@ -583,11 +591,11 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
         <PermohonanModal
           permohonan={permohonanDipilih}
           onTutup={() => setPermohonanDipilih(null)}
-          onSelesai={(mesej) => {
+          onSelesai={(mesej, tone) => {
             setPermohonanDipilih(null);
             muatPermohonan();
             muatSemula();
-            onToast?.('success', mesej);
+            onToast?.(tone || 'success', mesej);
           }}
         />
       )}
@@ -887,7 +895,7 @@ function ProfilAnggotaModal({
 function PermohonanModal({ permohonan, onTutup, onSelesai }: {
   permohonan: Permohonan;
   onTutup: () => void;
-  onSelesai: (mesej: string) => void;
+  onSelesai: (mesej: string, tone?: 'success' | 'error') => void;
 }) {
   const [roles, setRoles] = useState<string[]>(['editor']);
   const [catatan, setCatatan] = useState('');
@@ -918,7 +926,18 @@ function PermohonanModal({ permohonan, onTutup, onSelesai }: {
       const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal mencipta akaun.');
       await rekodKeputusan('diterima');
-      onSelesai(`Permohonan diterima. E-mel jemputan telah dihantar ke ${permohonan.emel}.`);
+      // emelDihantar (2026-09-03, dapatan bug-hunt) — POST /api/system/users pulangkan status
+      // penghantaran SEBENAR (hantarEmel() gagal senyap bila RESEND_API_KEY tak dikonfigurasi
+      // atau Resend API bermasalah, TAK PERNAH baling ralat — lihat MailSender.js), tapi mesej
+      // di sini dahulu KEKAL menyatakan "telah dihantar" tanpa baca medan ni langsung. Ketua
+      // Editor sangka jemputan sampai sedangkan akaun tercipta tanpa cara pemohon tahu/log masuk
+      // (tiada laluan "hantar semula jemputan" — lihat nota di userAdminRoutes.js).
+      onSelesai(
+        data.emelDihantar
+          ? `Permohonan diterima. E-mel jemputan telah dihantar ke ${permohonan.emel}.`
+          : `Permohonan diterima dan akaun dicipta, tetapi e-mel jemputan GAGAL dihantar ke ${permohonan.emel}. Sila hubungi pemohon secara manual dan semak konfigurasi e-mel sistem.`,
+        data.emelDihantar ? 'success' : 'error'
+      );
     } catch (e: any) {
       setRalat(e.message || 'Gagal menerima permohonan.');
     } finally {
@@ -1046,7 +1065,7 @@ function PermohonanModal({ permohonan, onTutup, onSelesai }: {
   );
 }
 
-function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerjaya: (emel: string) => void }) {
+function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerjaya: (emel: string, emelDihantar: boolean) => void }) {
   const [email, setEmail] = useState('');
   const [roles, setRoles] = useState<string[]>(['editor']);
   const [menyimpan, setMenyimpan] = useState(false);
@@ -1077,7 +1096,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
       });
       const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal mencipta akaun.');
-      onBerjaya(email);
+      onBerjaya(email, !!data.emelDihantar);
     } catch (err: any) {
       setRalat(err.message || 'Gagal mencipta akaun.');
     } finally {
