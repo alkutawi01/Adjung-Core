@@ -386,7 +386,7 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
       ];
       for (const [nama, min, maks] of pasanganMinMax) {
         if (min > 0 && maks > 0 && min > maks) {
-          throw new RalatPengesahan(`${nama}: had minimum (${min}) tak boleh lebih besar daripada had maksimum (${maks}).`);
+          throw new RalatPengesahan(`${nama}: had minimum (${min}) tidak boleh lebih besar daripada had maksimum (${maks}).`);
         }
       }
 

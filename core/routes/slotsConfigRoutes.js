@@ -200,7 +200,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
             : [];
           if (ditugaskan.length === 0) {
             return res.status(403).json({
-              error: `Anda tidak ditugaskan untuk Slot ${slot.slotIndex + 1}. Hubungi Ketua Editor kalau slot ni sepatutnya milik anda.`,
+              error: `Anda tidak ditugaskan untuk Slot ${slot.slotIndex + 1}. Hubungi Ketua Editor kalau slot ini sepatutnya milik anda.`,
             });
           }
         }

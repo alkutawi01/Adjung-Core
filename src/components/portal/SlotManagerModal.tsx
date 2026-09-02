@@ -1449,15 +1449,15 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
               bukan pengesahan tersimpan ke pelayan (itu tetap "Simpan Draf"/"Terbit" eksplisit). */}
           {!tawaranPulih && disimpanPada && hasUnsavedWork && (
             <p className="mt-2 font-sans text-[10px] text-emerald-700">
-              Disimpan pada peranti ni {masaRelatifRingkas(disimpanPada)}.
+              Disimpan pada peranti ini {masaRelatifRingkas(disimpanPada)}.
             </p>
           )}
           {(konfirmTutup || konfirmTukarKe !== null) && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-[#802334]/30 bg-[#802334]/5 px-3 py-2">
               <span className="font-sans text-xs text-stone-700">
                 {konfirmTutup
-                  ? 'Tutup borang ni akan buang draf belum diterbitkan/disimpan dalam slot ni. Teruskan?'
-                  : 'Tukar slot akan buang draf belum diterbitkan/disimpan dalam slot ni. Teruskan?'}
+                  ? 'Tutup borang ini akan buang draf belum diterbitkan/disimpan dalam slot ini. Teruskan?'
+                  : 'Tukar slot akan buang draf belum diterbitkan/disimpan dalam slot ini. Teruskan?'}
               </span>
               <div className="flex items-center gap-2 shrink-0">
                 <button

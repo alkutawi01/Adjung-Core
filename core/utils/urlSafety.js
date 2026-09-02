@@ -61,13 +61,13 @@ export async function sahkanUrlSelamatUntukFetch(url) {
 
   const hos = urlObj.hostname.toLowerCase();
   if (HOS_DISEKAT_LITERAL.has(hos)) {
-    return { selamat: false, sebab: 'Nama hos ni disekat (alamat pelayan tempatan).' };
+    return { selamat: false, sebab: 'Nama hos ini disekat (alamat pelayan tempatan).' };
   }
 
   // Hos itu sendiri IP literal — semak terus tanpa DNS.
   if (net.isIP(hos)) {
     if (isIpDalamJulatPeribadi(hos, net.isIP(hos))) {
-      return { selamat: false, sebab: 'Alamat IP ni dalam julat peribadi/dalaman, disekat.' };
+      return { selamat: false, sebab: 'Alamat IP ini dalam julat peribadi/dalaman, disekat.' };
     }
     return { selamat: true };
   }
@@ -85,7 +85,7 @@ export async function sahkanUrlSelamatUntukFetch(url) {
   }
   for (const { address, family } of alamat) {
     if (isIpDalamJulatPeribadi(address, family)) {
-      return { selamat: false, sebab: 'Domain ni menyelesaikan kepada alamat IP peribadi/dalaman, disekat.' };
+      return { selamat: false, sebab: 'Domain ini menyelesaikan kepada alamat IP peribadi/dalaman, disekat.' };
     }
   }
   return { selamat: true };

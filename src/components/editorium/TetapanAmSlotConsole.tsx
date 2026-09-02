@@ -158,7 +158,7 @@ function PanelTransisiField({ draf, setDraf }: { draf: TetapanAm; setDraf: React
         </div>
         <p className="text-stone-400 text-[10px] mt-1.5 leading-relaxed">
           {draf.modWarnaPanel === 'seragam'
-            ? 'Seragam — semua slot guna warna panel am di bawah, walaupun sesetengah slot ada warna sendiri tersimpan (Senarai Slot → Tetapan Kad). Warna sendiri itu TAK dipadam, cuma tak terpakai buat masa ini.'
+            ? 'Seragam — semua slot guna warna panel am di bawah, walaupun sesetengah slot ada warna sendiri tersimpan (Senarai Slot → Tetapan Kad). Warna sendiri itu TIDAK dipadam, cuma tidak terpakai buat masa ini.'
             : 'Pelbagai — slot yang ditetapkan warna sendiri (Senarai Slot → Tetapan Kad) guna warna itu; slot lain jatuh balik ke warna am di bawah.'}
         </p>
         {slotWarnaSendiri.length > 0 && (

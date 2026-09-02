@@ -197,7 +197,7 @@ const validateMedanTambahan = ({ summaryLong, source, topik, note } = {}) => {
     if (min && nilai.trim() && nilai.length < min) {
       return {
         isValid: false, bolehSalinAI: true,
-        reason: `${nama} (${nilai.length} aksara) terlalu pendek. Minimum ${min} aksara yang ditetapkan di Tetapan Am Slot (atau kosongkan terus medan ni). Kandungan tidak disiarkan.`,
+        reason: `${nama} (${nilai.length} aksara) terlalu pendek. Minimum ${min} aksara yang ditetapkan di Tetapan Am Slot (atau kosongkan terus medan ini). Kandungan tidak disiarkan.`,
       };
     }
   }
@@ -377,7 +377,7 @@ const validateGlossLength = (fields) => {
     if (!GLOSS_AUTHORING_ENABLED && pasangan.length > 0) {
       return {
         isValid: false, bolehSalinAI: true,
-        reason: `Gloss interlinear (${namaMedan}) dimatikan buat sementara (KIV) sehingga ciri ni stabil sepenuhnya. Kandungan gloss sedia ada terus dipaparkan seperti biasa — sekatan ni cuma pada simpanan baharu. Buang sintaks [label](gloss:...) drpd medan ni utk simpan.`,
+        reason: `Gloss interlinear (${namaMedan}) dimatikan buat sementara (KIV) sehingga ciri ini stabil sepenuhnya. Kandungan gloss sedia ada terus dipaparkan seperti biasa — sekatan ini cuma pada simpanan baharu. Buang sintaks [label](gloss:...) daripada medan ini untuk simpan.`,
       };
     }
     for (const { label, gloss } of pasangan) {

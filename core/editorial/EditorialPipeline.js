@@ -276,7 +276,7 @@ Arahan Bidang: Kandungan yang ditulis MESTILAH berkaitan dengan bidang: "${slot.
       // sudah diwajibkan, supaya Topik yang dijana kekal koheren dengan Bidang tersebut.
       if (slotIndex !== -1 && !isBarSlot) {
         userPrompt += `
-Arahan Topik: Sertakan juga 'topik' — fokus khusus kandungan ni DALAM bidang "${slot.manualDesk.trim().toUpperCase()}" yang diwajibkan di atas (cth: dalam bidang Ekonomi — Kewangan, Perbankan).
+Arahan Topik: Sertakan juga 'topik' — fokus khusus kandungan ini DALAM bidang "${slot.manualDesk.trim().toUpperCase()}" yang diwajibkan di atas (cth: dalam bidang Ekonomi — Kewangan, Perbankan).
 `;
       }
     }
@@ -339,7 +339,7 @@ Output MESTILAH dihasilkan dalam format JSON sahaja dengan struktur objek:
   "title": "Tajuk kandungan (Tidak melebihi ${maxTitleLen} aksara)",
   "summary": "Ringkasan kandungan (${limitDesc})",
   "category": "Kategori kandungan (Satu perkataan sahaja, cth: SUKAN, POLITIK, EKONOMI, TEKNOLOGI, KESIHATAN, DUNIA)",
-  "topik": "WAJIB — subbidang/fokus khusus kandungan ni (bebas teks, cth: Kewangan, Perbankan)",
+  "topik": "WAJIB — subbidang/fokus khusus kandungan ini (bebas teks, cth: Kewangan, Perbankan)",
   "source_url": "Pautan URL rujukan spesifik yang aktif — HANYA jika tiada sourceIndex"${sourceIndexInstruction}
 }
 Nothing more.`;

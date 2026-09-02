@@ -949,7 +949,7 @@ function StrategiWarnaModal({
       if (!res.ok) throw new Error(data.error || 'Gagal mempelbagaikan warna.');
       setMesejWarna(
         data.dikemas > 0
-          ? `${data.dikemas} Bidang diagihkan warna baharu (yang sudah unik tak diusik).`
+          ? `${data.dikemas} Bidang diagihkan warna baharu (yang sudah unik tidak diusik).`
           : 'Semua Bidang aktif sudah ada warna unik, tiada perubahan diperlukan.'
       );
       fetchActiveBidang();

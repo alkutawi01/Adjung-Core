@@ -198,7 +198,7 @@ export function createArticleUrlRoutes(dbAll, dbGet, dbRun) {
         [obj.id]
       );
       if (!revTerkini || revTerkini.status !== 'approved') {
-        return res.status(404).json({ error: 'Kandungan ni tidak lagi tersedia (mungkin diarkib atau dipadam).' });
+        return res.status(404).json({ error: 'Kandungan ini tidak lagi tersedia (mungkin diarkib atau dipadam).' });
       }
       res.json({ objectId: obj.id, slotIndex: obj.slotIndex, itemIndex: 0 });
     } catch (err) {

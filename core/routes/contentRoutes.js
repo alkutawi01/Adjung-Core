@@ -708,7 +708,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // tanpa arahan baharu Izzat.
       if (id.startsWith('ticker-')) {
         if (status !== undefined) {
-          return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah. Buang baris tu terus daripada tetapan ticker untuk menariknya balik.' });
+          return res.status(400).json({ error: 'Item ticker tiada status boleh-ubah. Buang baris itu terus daripada tetapan ticker untuk menariknya balik.' });
         }
         if (scheduledPublishAt !== undefined || scheduledExpiresAt !== undefined) {
           return res.status(400).json({ error: 'Item ticker tidak menyokong Jadual Terbit/Luput, sebab ia disegarkan terus daripada suapan RSS.' });
@@ -760,7 +760,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // status='approved' terus boleh "menghidupkan" kandungan sampah sambil meninggalkan atribut
       // statusSebelumPadam/dipadamPada tergantung — pulihan separa yang mengelirukan.
       if (rev.status === 'dipadam') {
-        return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah. Pulihkan dahulu sebelum menyunting, atau Padam Kekal.' });
+        return res.status(400).json({ error: 'Kandungan ini dalam Tong Sampah. Pulihkan dahulu sebelum menyunting, atau Padam Kekal.' });
       }
 
       // Gerbang pemilikan kandungan (2026-08-08, dapatan audit keselamatan ChatGPT P1-01a) —
@@ -775,7 +775,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         const namaSayaSedia = namaSayaSesi(req);
         if (!namaSepadan(penulisSedia, namaSayaSedia)) {
           return res.status(403).json({
-            error: 'Kandungan ni ditulis editor lain — anda tiada kebenaran menyuntingnya. Hubungi Ketua Editor/Penolong Ketua Editor.',
+            error: 'Kandungan ini ditulis editor lain — anda tiada kebenaran menyuntingnya. Hubungi Ketua Editor/Penolong Ketua Editor.',
           });
         }
 
@@ -843,7 +843,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         );
         if (bendera && bendera.valueText === '1') {
           return res.status(403).json({
-            error: 'Kandungan ni pernah ditolak sebelum ini, jadi perlu kelulusan Ketua Editor/Penolong Ketua Editor untuk terbit semula, bukan Editor sendiri.',
+            error: 'Kandungan ini pernah ditolak sebelum ini, jadi perlu kelulusan Ketua Editor/Penolong Ketua Editor untuk terbit semula, bukan Editor sendiri.',
           });
         }
       }
@@ -875,7 +875,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           `, [targetSlotIndex, id]);
           if (!hasReplacementForExpiry(lainDalamSlot.map((r) => r.status))) {
             return res.status(400).json({
-              error: 'Tak boleh tetapkan tarikh luput sebab ni satu-satunya kandungan slot ni. Sedia kandungan gantian dalam giliran dulu.',
+              error: 'Tidak boleh tetapkan tarikh luput sebab ini satu-satunya kandungan slot ini. Sedia kandungan gantian dalam giliran dahulu.',
             });
           }
         }
@@ -1400,7 +1400,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         [id]
       );
       if (revTerkini && revTerkini.status === 'dipadam') {
-        return res.status(400).json({ error: 'Kandungan ni dalam Tong Sampah. Pulihkan dahulu sebelum memulihkan versi lama.' });
+        return res.status(400).json({ error: 'Kandungan ini dalam Tong Sampah. Pulihkan dahulu sebelum memulihkan versi lama.' });
       }
 
       // Gerbang pemilikan + `editOwn` (2026-08-18) — laluan ni MENCIPTA REVISI BAHARU daripada
@@ -1414,7 +1414,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         const penulisSedia = await penulisAsalKandungan(dbGet, id, revTerkini ? revTerkini.id : oldRev.id);
         if (!namaSepadan(penulisSedia, namaSayaSesi(req))) {
           return res.status(403).json({
-            error: 'Kandungan ni ditulis editor lain — anda tiada kebenaran memulihkan versi lamanya. Hubungi Ketua Editor/Penolong Ketua Editor.',
+            error: 'Kandungan ini ditulis editor lain — anda tiada kebenaran memulihkan versi lamanya. Hubungi Ketua Editor/Penolong Ketua Editor.',
           });
         }
         if (!hasPermission(req.session?.user?.roles, 'editOwn')) {
@@ -1571,7 +1571,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         return res.status(404).json({ error: 'Item tidak dijumpai.' });
       }
       if (rev.status !== 'dipadam') {
-        return res.status(400).json({ error: 'Kandungan ni tiada dalam Tong Sampah.' });
+        return res.status(400).json({ error: 'Kandungan ini tiada dalam Tong Sampah.' });
       }
       const statusSebelumRow = await dbGet(
         "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'statusSebelumPadam'",
@@ -1921,7 +1921,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           ? await dbAll('SELECT 1 FROM slot_editors WHERE slotIndex = ? AND editorId = ?', [slotIndex, userId])
           : [];
         if (ditugaskan.length === 0) {
-          return res.status(403).json({ error: `Anda tidak ditugaskan untuk Slot ${slotIndex + 1}. Hubungi Ketua Editor kalau slot ni sepatutnya milik anda.` });
+          return res.status(403).json({ error: `Anda tidak ditugaskan untuk Slot ${slotIndex + 1}. Hubungi Ketua Editor kalau slot ini sepatutnya milik anda.` });
         }
       }
 

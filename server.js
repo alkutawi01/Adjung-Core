@@ -3582,7 +3582,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       const penulisSedia = ((editorNameRow && editorNameRow.valueText) || '').trim().toLowerCase();
       const namaSaya = (namaSayaSesi || '').trim().toLowerCase();
       if (!penulisSedia || !namaSaya || penulisSedia !== namaSaya) {
-        const err = new Error(`"${(item.title || '').slice(0, 40)}...": kandungan ni ditulis editor lain — anda tiada kebenaran menyuntingnya. Hubungi Ketua Editor/Penolong Ketua Editor.`);
+        const err = new Error(`"${(item.title || '').slice(0, 40)}...": kandungan ini ditulis editor lain — anda tiada kebenaran menyuntingnya. Hubungi Ketua Editor/Penolong Ketua Editor.`);
         err.isValidationError = true;
         throw err;
       }
@@ -4396,7 +4396,7 @@ app.use((err, req, res, next) => {
     dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')")
       .then((rows) => notifyMany(dbRun, (rows || []).map((r) => r.userId), {
         type: 'sistem_ralat_pelayan',
-        title: 'Ralat pelayan tak dijangka berlaku',
+        title: 'Ralat pelayan tidak dijangka berlaku',
         detail: `${req.method} ${req.originalUrl}: ${(err.message || String(err)).slice(0, 150)}`,
         targetType: 'sistem',
       }))
@@ -4545,8 +4545,8 @@ const runSemakanTakAktif = async (dbAll, dbRun, dbGet) => {
       const penerimaTiadaEmel = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
       await notifyMany(dbRun, (penerimaTiadaEmel || []).map((r) => r.userId), {
         type: 'sistem_amaran_tak_aktif',
-        title: `${u.penName || u.id}: ${sebabGagal}, amaran tak aktif tahap ${tahapBaharu} tak dapat dihantar`,
-        detail: `Tak aktif ${hariTakAktif} hari. ${u.email ? 'Emel editor ada tapi penghantaran gagal — semak konfigurasi SMTP.' : 'Editor ni tiada emel dalam sistem.'} Sila hubungi secara manual di luar sistem sebelum ${tahapBaharu === 3 ? 'gantungan berlaku' : 'eskalasi seterusnya'}.`,
+        title: `${u.penName || u.id}: ${sebabGagal}, amaran tidak aktif tahap ${tahapBaharu} tidak dapat dihantar`,
+        detail: `Tidak aktif ${hariTakAktif} hari. ${u.email ? 'Emel editor ada tapi penghantaran gagal — semak konfigurasi SMTP.' : 'Editor ini tiada emel dalam sistem.'} Sila hubungi secara manual di luar sistem sebelum ${tahapBaharu === 3 ? 'gantungan berlaku' : 'eskalasi seterusnya'}.`,
         targetType: 'akaun', targetId: u.id,
       });
     }
@@ -4567,7 +4567,7 @@ const runSemakanTakAktif = async (dbAll, dbRun, dbGet) => {
       const pentadbirRows = await dbAll("SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('pentadbir', 'ketua_editor')");
       await notifyMany(dbRun, (pentadbirRows || []).map((r) => r.userId), {
         type: 'sistem_akaun_digantung',
-        title: `${u.penName || u.id}: akaun digantung automatik (tak aktif ${hariTakAktif} hari)`,
+        title: `${u.penName || u.id}: akaun digantung automatik (tidak aktif ${hariTakAktif} hari)`,
         detail: 'Semak Direktori untuk keputusan seterusnya (aktifkan semula atau Ditamatkan).',
         targetType: 'akaun', targetId: u.id,
       });

@@ -401,7 +401,7 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
       // sekadar sebab borang UI dibuka semula tanpa sponsorSediaAdaId diisi.
       if (rekod.sponsorId && rekod.sponsorId !== sponsorSediaAdaId) {
         return res.status(409).json({
-          error: `Permohonan ini sudah pernah diaktifkan sebagai penaja "${rekod.sponsorId}" — pautkan ke penaja sedia ada tu, jangan cipta baharu.`,
+          error: `Permohonan ini sudah pernah diaktifkan sebagai penaja "${rekod.sponsorId}" — pautkan ke penaja sedia ada itu, jangan cipta baharu.`,
         });
       }
       const kini = new Date();
