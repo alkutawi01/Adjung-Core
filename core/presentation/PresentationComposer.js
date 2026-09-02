@@ -1,3 +1,5 @@
+import { tierForSlot } from '../editorial/GeometryConfig.js';
+
 class PresentationComposer {
   /**
    * Resolves a URL to a registered publisher in the database.
@@ -79,11 +81,15 @@ class PresentationComposer {
     const allowedTypes = (slot.allowedContentTypes || 'Brief').split(',');
     const outTypeRaw = allowedTypes[0].trim().toLowerCase(); // brief, book, event, etc.
 
-    // Map template types to layoutVariant
+    // Map template types to layoutVariant — nombor slot KOMPAK dahulu ditaip tangan
+    // (`slotIndex === 4 || === 5 || 31-32`), tercicir slot 17/18 (dapatan bug-hunt 2026-09-02) —
+    // corak IDENTIK sejarah bug CLAUDE.md 2026-07-25 (5 salinan had aksara ditaip tangan, 2
+    // bug sebenar). Diganti rujukan terus TIER_SLOTS.KOMPAK (GeometryConfig.js, satu sumber
+    // kebenaran tunggal nombor slot) via tierForSlot() — jangan taip semula nombor slot di sini.
     let layoutVariant = 'standard-news';
     if (slot.slotIndex === 0) {
       layoutVariant = 'hero-news';
-    } else if (slot.slotIndex === 4 || slot.slotIndex === 5 || slot.slotIndex >= 31 && slot.slotIndex <= 32 || outTypeRaw === 'sponsor') {
+    } else if (tierForSlot(slot.slotIndex) === 'KOMPAK' || outTypeRaw === 'sponsor') {
       layoutVariant = 'compact-news';
     }
 
