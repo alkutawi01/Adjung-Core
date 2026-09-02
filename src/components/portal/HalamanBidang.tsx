@@ -327,15 +327,27 @@ export function HalamanBidang() {
                             {a.topik}
                           </div>
                         )}
+                        {/* hyphens:none (2026-09-02, Izzat: "bukan ke saya dh cakap hyphenation
+                            hanya utk telefon?") — PemenggalSukuKata.js sisip sempang lembut
+                            (U+00AD) ke SEMUA teks tanpa mengira saiz skrin (sekali di peringkat
+                            data), peraturan hyphens:none untuk DESKTOP sedia ada (FrontpageView.tsx,
+                            PetikanModul.tsx, FocusView.tsx) skop `#bento-news-grid`/inline
+                            tersendiri — Halaman Bidang dirender di LUAR skop tu, jadi tak pernah
+                            dapat perlindungan sama, papar "kilome-ter"/"Antarti-ka" di desktop.
+                            Tiada media query mobile di sini (tak macam FrontpageView) sebab
+                            lajur senarai ni sudah cukup lebar di semua saiz skrin (bukan kad
+                            bento sempit yang perlukan sempang manual) — hyphens:none kekal
+                            tanpa syarat, sama corak macam FocusView.tsx (huraian artikel). */}
                         <div
                           className={`font-serif leading-snug text-[#1F1F1F] group-hover:text-Adjung-maroon transition-colors ${
                             idx === 0 ? 'text-[22px] md:text-[26px] font-semibold' : 'text-[17px] md:text-[19px] font-medium'
                           }`}
+                          style={{ hyphens: 'none', WebkitHyphens: 'none' }}
                         >
                           {safeParseInline(a.title)}
                         </div>
                         {a.summary && idx === 0 && (
-                          <p className="font-sans text-[13px] text-stone-500 mt-2 leading-relaxed max-w-[640px]">
+                          <p className="font-sans text-[13px] text-stone-500 mt-2 leading-relaxed max-w-[640px]" style={{ hyphens: 'none', WebkitHyphens: 'none' }}>
                             {safeParseInline(a.summary)}
                           </p>
                         )}
@@ -379,7 +391,7 @@ export function HalamanBidang() {
                                 {a.topik}
                               </div>
                             )}
-                            <div className="font-serif text-[16px] md:text-[17px] font-medium leading-snug text-[#1F1F1F] group-hover:text-Adjung-maroon transition-colors">
+                            <div className="font-serif text-[16px] md:text-[17px] font-medium leading-snug text-[#1F1F1F] group-hover:text-Adjung-maroon transition-colors" style={{ hyphens: 'none', WebkitHyphens: 'none' }}>
                               {safeParseInline(a.title)}
                             </div>
                             {a.publishedDate && (
