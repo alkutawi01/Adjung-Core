@@ -74,9 +74,22 @@ export function useModalFokus(refModal: RefObject<HTMLElement>, onTutup?: () => 
     };
   }, [terbuka]);
 
-  // Fokus awal + pulangkan fokus ke pencetus — HANYA semasa lekap/lucut modal (deps kosong),
-  // bukan setiap kali `refModal`/`onTutup` bertukar rujukan.
+  // Fokus awal + pulangkan fokus ke pencetus — bergantung `terbuka` (2026-09-02, dapatan
+  // bug-hunt), BUKAN deps kosong seperti sebelum ni. Punca: deps kosong bermakna effect ni HANYA
+  // jalan sekali sepanjang HAYAT HOOK (lekap/lucut) — betul untuk 15+ modal biasa (mount = buka),
+  // tapi EditoriumView.tsx lekap hook ni SEKALI SAHAJA di peringkat cangkang halaman untuk modal
+  // "Pilih Slot" (lihat nota `terbuka` di atas fail ni, sama isu akar yang kunci skrol effect di
+  // atas SUDAH dibetulkan 2026-08-16) — modal tu buka/tutup berulang kali TANPA hook pernah
+  // lucut, jadi effect fokus asal cuma cuba fokus SEKALI semasa Editorium baru dimuat (modal
+  // masih tertutup, tiada elemen boleh fokus wujud lagi) dan tak PERNAH jalan semula. Kesan
+  // sebenar: pengguna papan kekunci buka "Pilih Slot" — fokus TAK berpindah masuk modal langsung,
+  // dan bila tutup, fokus TAK kembali ke butang pencetus — pepijat aksesibiliti asal (audit §G1/
+  // G2) berulang untuk SATU modal ni sahaja, sedangkan 15+ modal lain (mount=buka sebenar) tak
+  // terjejas. Bergantung `[terbuka]` (sama corak persis effect kunci skrol) betulkan kedua-dua
+  // corak serentak: modal biasa (mount dgn terbuka=true) kekal fokus sekali macam asal, modal
+  // berterusan (terbuka bertukar tanpa lucut) kini fokus/pulih SETIAP kitaran buka/tutup sebenar.
   useEffect(() => {
+    if (!terbuka) return;
     pencetusSebelumnya.current = document.activeElement as HTMLElement | null;
     const senarai = bolehFokus();
     (senarai[0] || refModal.current)?.focus();
@@ -85,7 +98,7 @@ export function useModalFokus(refModal: RefObject<HTMLElement>, onTutup?: () => 
       pencetusSebelumnya.current?.focus?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [terbuka]);
 
   // Pendengar kekunci berasingan daripada fokus awal — kekal terikat sepanjang hayat modal,
   // baca `onTutupRef.current` supaya sentiasa panggil versi TERKINI tanpa perlu ikatan semula.

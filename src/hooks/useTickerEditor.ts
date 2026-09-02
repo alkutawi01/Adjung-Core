@@ -148,7 +148,13 @@ export function useTickerEditor() {
       eventExpiryFilter: '',
       aiPromptTopic: config?.aiPromptTopic || '',
       aiPromptRecency: config?.aiPromptRecency || '1 minggu terkini',
-      aiPromptLanguage: config?.aiPromptLanguage || 'Bahasa Melayu',
+      // Lalai "Bebas" (2026-08-16, sama pembetulan yang dibuat di useSlotEditor.ts — medan ni
+      // "Bahasa Sumber" (panduan carian AI sahaja, BUKAN bahasa output, lihat SlotManagerModal.tsx
+      // buildAiPrompt) TERLEPAS pada hook ni semasa pembetulan asal, jadi borang Ticker sentiasa
+      // pra-isi "Bahasa Melayu" — mengelirukan editor seolah-olah AI cuma boleh cari sumber
+      // Bahasa Melayu, sedangkan output kandungan Ticker sentiasa Bahasa Melayu tak kira nilai
+      // medan ni (dikunci hardcode [Peranan AI]).
+      aiPromptLanguage: config?.aiPromptLanguage || 'Bebas',
       aiPromptRegion: config?.aiPromptRegion || 'Global, Malaysia',
       aiPromptSource: config?.aiPromptSource || '',
     });

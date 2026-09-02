@@ -109,7 +109,7 @@ const BarisAnggota: React.FC<{ staff: Staff; onLihatProfil: () => void; classNam
       <StatusBadge tone={STATUS_TONE[staff.status]} label={staff.status} />
     </td>
     <td className="p-4">
-      {!staff.tertaklukDasarAktif ? (
+      {!staff.tertaklukDasarAktif || staff.hariTakAktif === null ? (
         <span className="text-stone-300">—</span>
       ) : (
         <div className="flex flex-col gap-1">
@@ -502,7 +502,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
               <th scope="col" className="p-4">ID Pengguna</th>
               <th scope="col" className="p-4">Peranan</th>
               <th scope="col" className="p-4">Status</th>
-              <th scope="col" className="p-4">Tak Aktif</th>
+              <th scope="col" className="p-4">Tidak Aktif</th>
               <th scope="col" className="p-4">Kandungan Diterbitkan</th>
               <th scope="col" className="p-4">Akaun Dicipta</th>
               <th scope="col" className="p-4 text-right">Tindakan</th>

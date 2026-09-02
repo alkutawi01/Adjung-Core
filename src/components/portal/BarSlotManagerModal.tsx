@@ -408,6 +408,17 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
               <Field label="Tarikh mula" type="date" value={current.date || ''} onChange={(v) => patchTarikhMula(activeIndex, v)} />
               <Field label="Tarikh tamat" type="date" value={current.dateEnd || current.date || ''} onChange={(v) => patch(activeIndex, 'dateEnd', v)} />
             </div>
+            {/* Amaran julat tarikh terbalik (2026-09-02, dapatan bug-hunt) — sebelum ni TIADA
+                langsung semakan Tarikh Tamat >= Tarikh Mula (client MAHUPUN pelayan), jadi julat
+                terbalik (cth editor tersilap tahun) terus tersiar di kad awam ("23 OGOS 2026 -
+                21 OGOS 2026"). Amaran SAHAJA, bukan sekatan simpan keras — elak ubah aliran Simpan
+                sedia ada (SATU hantaran keseluruhan giliran, lihat nota atas fail ni) tanpa
+                pengesahan visual Slot Bar sebenar dahulu. */}
+            {current.dateEnd && current.date && current.dateEnd < current.date && (
+              <p className="text-[11px] font-sans" style={{ color: 'var(--color-error)' }}>
+                Tarikh tamat lebih awal daripada tarikh mula — semak semula sebelum simpan.
+              </p>
+            )}
             <Field label="Penerangan" rows={4} value={current.penerangan || ''} maxLen={MAX_PENERANGAN_CHARS} placeholder="Huraian tambahan acara, dipapar di panel akordion, bukan pada muka kad" onChange={(v) => patch(activeIndex, 'penerangan', v)} />
 
             <hr className="border-stone-150" />
