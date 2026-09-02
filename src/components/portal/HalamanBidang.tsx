@@ -4,22 +4,19 @@ import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { safeParseInline } from '../../utils';
 import { getDisplayDate, formatSiaranDate } from './FrontpageView';
 import { FocusView } from './FocusView';
+import BriefNavigator, { type NavigatorField } from './BriefNavigator';
 import { BidangIcon } from '../common/BidangIcon';
 import { TidakDijumpai } from './TidakDijumpai';
 
-// effectiveDate (server, bidangRoutes.js) ialah SAMA ADA originalDate tulen editor (ISO
-// yyyy-mm-dd, tarikh sahaja) ATAU jatuh balik er.createdAt (ISO timestamp PENUH dgn masa,
-// "2026-08-25T10:59:23.289Z") bila artikel tiada Tarikh Sumber — DUA bentuk berbeza, bukan
-// medan "Tarikh Sumber" bebas-teks yang getDisplayDate() direka untuknya (yang SENGAJA tak
-// hurai apa-apa selain corak yyyy-mm-dd tepat, supaya tarikh separa/teks lama macam "1980"
-// tak rosak). Bila corak tak padan (kes timestamp penuh ni), getDisplayDate pulangkan STRING
-// MENTAH (bukan kosong) — jadi `getDisplayDate(x) || formatSiaranDate(x)` di bawah TAK PERNAH
-// jatuh ke formatSiaranDate, sebab hasil pertama tu sentiasa "truthy" walau ISO mentah.
-// Kesan sebenar (dilaporkan Izzat, tangkapan skrin /bidang/geografi): artikel dgn Tarikh
-// Sumber diisi papar betul "21 Ogo 2026", artikel yang jatuh balik createdAt papar mentah
-// "2026-08-25T10:59:23.289Z". Dibetulkan dgn formatter khusus fail ni — kedua-dua corak
-// (tarikh sahaja & timestamp penuh) sah dihurai terus oleh `new Date()`, jadi cukup SATU
-// laluan format konsisten "D Bulan Pendek YYYY" tanpa cabang.
+// Format tarikh SIARAN (publishedDate = er.createdAt, ISO timestamp PENUH dgn masa cth
+// "2026-08-25T10:59:23.289Z") konsisten "D Bulan Pendek YYYY" — pembetulan asal (2026-09-02,
+// dapatan bug-hunt) sebab getDisplayDate() (direka utk Tarikh Sumber bebas-teks) tak pernah
+// pulangkan kosong utk corak timestamp penuh ni, punca `||` fallback ke formatSiaranDate mati.
+// SUSULAN (sama hari, Izzat marah tangkapan skrin /bidang/geografi — organisasi lama papar
+// "13 Jan 1888"/"1 Jan 1885"): senarai ni dahulu SUSUN & PAPAR guna `originalDate` (Tarikh
+// Sumber, cth tarikh PENUBUHAN organisasi) jatuh balik createdAt — server (bidangRoutes.js)
+// kini hantar `publishedDate` SAHAJA (Tarikh Siaran Adjung sebenar), `originalDate` (Tarikh
+// Sumber) kekal wujud tapi HANYA untuk Focus View (sourceDate), tak lagi untuk senarai ni.
 const formatTarikhArtikel = (raw?: string): string => {
   if (!raw) return '';
   const d = new Date(raw);
@@ -68,7 +65,6 @@ type Artikel = {
   image: string;
   originalDate: string;
   publishedDate: string;
-  effectiveDate: string;
 };
 
 type BidangMeta = { name: string; slug: string; description: string };
@@ -85,6 +81,14 @@ export function HalamanBidang() {
   const [totalKeseluruhan, setTotalKeseluruhan] = React.useState(0);
   const [memuatKoleksi, setMemuatKoleksi] = React.useState(false);
   const [focusObjectId, setFocusObjectId] = React.useState<string | null>(null);
+  // Senarai Bidang untuk sidebar BriefNavigator (2026-09-02, dapatan Izzat: "kenapa takde
+  // toggle burger tu semasa berada di halaman bidang? macam mana kalau user nak tengok bidang
+  // lain?") — dahulu langsung tak dirender di sini, jadi satu-satunya jalan pindah Bidang ialah
+  // klik "Laman Utama" balik ke frontpage dahulu. `totalCount`/`news` diisi kosong sengaja —
+  // BriefNavigator (selepas pembuangan mod senarai-berita-dalam-sidebar, 2026-09-01) cuma baca
+  // slug/name/icon/iconSvg untuk navigasi terus ke /bidang/{slug}, dua medan lain warisan corak
+  // NavigatorField sedia ada (FrontpageView.tsx), tak dirender/digunakan lagi.
+  const [sidebarFields, setSidebarFields] = React.useState<NavigatorField[]>([]);
 
   // Muat metadata Bidang + ikon/warna Taksonomi (2026-09-01) — sekali sahaja bila slug berubah.
   React.useEffect(() => {
@@ -108,6 +112,12 @@ export function HalamanBidang() {
           ? kategoriAktif.find((c: any) => (c.slug || '').toLowerCase() === meta.slug.toLowerCase())
           : null;
         setIkon(match ? { icon: match.icon ?? null, iconSvg: match.iconSvg ?? null, color: match.color || '#802334' } : null);
+        setSidebarFields(Array.isArray(kategoriAktif)
+          ? kategoriAktif.map((c: any) => ({
+              name: c.name, slug: c.slug, totalCount: 0, news: [],
+              icon: c.icon ?? null, iconSvg: c.iconSvg ?? null,
+            }))
+          : []);
         setStatus('sedia');
       })
       .catch(() => {
@@ -203,6 +213,9 @@ export function HalamanBidang() {
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] font-serif text-[#1F1F1F]">
+      {sidebarFields.length > 0 && (
+        <BriefNavigator fields={sidebarFields} currentLoc={null} onOpenNews={() => {}} />
+      )}
       <header className="w-full max-w-2xl mx-auto px-6 pt-8 flex items-center justify-between">
         <Link
           to="/"
@@ -281,9 +294,9 @@ export function HalamanBidang() {
                             {safeParseInline(a.summary)}
                           </p>
                         )}
-                        {a.effectiveDate && (
+                        {a.publishedDate && (
                           <div className="font-mono text-[10px] text-stone-400 mt-1.5">
-                            {formatTarikhArtikel(a.effectiveDate)}
+                            {formatTarikhArtikel(a.publishedDate)}
                             {a.status === 'archived' && <span className="ml-1.5 text-stone-300">· Arkib</span>}
                           </div>
                         )}
@@ -324,9 +337,9 @@ export function HalamanBidang() {
                             <div className="font-serif text-[16px] md:text-[17px] font-medium leading-snug text-[#1F1F1F] group-hover:text-Adjung-maroon transition-colors">
                               {safeParseInline(a.title)}
                             </div>
-                            {a.effectiveDate && (
+                            {a.publishedDate && (
                               <div className="font-mono text-[10px] text-stone-400 mt-1.5">
-                                {formatTarikhArtikel(a.effectiveDate)}
+                                {formatTarikhArtikel(a.publishedDate)}
                                 {a.status === 'archived' && <span className="ml-1.5 text-stone-300">· Arkib</span>}
                               </div>
                             )}

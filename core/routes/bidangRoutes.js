@@ -48,8 +48,9 @@ export function createBidangRoutes(dbAll, dbGet) {
   });
 
   // GET /api/bidang/:slug/artikel?page=N&perPage=10 — kandungan approved (MAX version) dalam
-  // Bidang ni, ikut effectiveDate (originalDate, jatuh balik createdAt) DESC. Setiap item bawa
-  // medan cukup untuk SENARAI (tajuk, topik, tarikh) DAN Focus View penuh (huraian, sumber,
+  // Bidang ni, ikut er.createdAt (Tarikh SIARAN, 2026-09-02 — BUKAN originalDate/Tarikh Sumber,
+  // lihat nota di SELECT di bawah) DESC. Setiap item bawa medan cukup untuk SENARAI (tajuk,
+  // topik, tarikh) DAN Focus View penuh (huraian, sumber,
   // editor, objectId) — HalamanBidang.tsx guna terus tanpa panggilan API kedua bila artikel
   // diklik.
   router.get('/bidang/:slug/artikel', async (req, res) => {
@@ -88,11 +89,9 @@ export function createBidangRoutes(dbAll, dbGet) {
 
       const rows = await dbAll(`
         SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt, er.status,
-               ${attrSelects},
-               COALESCE(NULLIF((SELECT valueText FROM editorial_attribute_values
-                 WHERE objectId = eo.id AND revisionId = er.id AND attributeId = 'originalDate'), ''), er.createdAt) as effectiveDate
+               ${attrSelects}
         ${whereClause}
-        ORDER BY effectiveDate DESC, er.createdAt DESC
+        ORDER BY er.createdAt DESC
         LIMIT ? OFFSET ?
       `, [cat.name, perPage, offset]);
 
@@ -110,8 +109,16 @@ export function createBidangRoutes(dbAll, dbGet) {
         editorName: r.editorName || '',
         image: r.image || '',
         originalDate: r.originalDate || '',
+        // Tarikh SIARAN (2026-09-02, Izzat: "susunan ikut tarikh siaran bukan tarikh sumber" —
+        // dahulu senarai ni SUSUN & PAPAR guna `effectiveDate` (originalDate Tarikh Sumber jatuh
+        // balik createdAt), yang mengelirukan teruk bila Tarikh Sumber ialah tarikh SEJARAH/
+        // PENUBUHAN organisasi (cth "13 Jan 1888" National Geographic Society) — kandungan
+        // terlontar ke bawah senarai "Koleksi Terdahulu" dan papar tarikh 1800-an, seolah-olah
+        // Adjung terbitkan pada tahun itu. Senarai kronologi MESTI ikut BILA Adjung sebenarnya
+        // menerbitkan (createdAt), bukan bila subjek/organisasi itu wujud. `originalDate` (Tarikh
+        // Sumber) kekal dihantar berasingan untuk Focus View sahaja (sourceDate, konteks yang
+        // betul untuknya), TIDAK lagi untuk SUSUN atau PAPAR senarai.
         publishedDate: r.createdAt || '',
-        effectiveDate: r.effectiveDate || r.createdAt || '',
       }));
 
       res.json({
