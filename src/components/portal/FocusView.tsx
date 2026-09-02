@@ -1510,7 +1510,18 @@ export const FocusView: React.FC<FocusViewProps> = ({
               <span style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)' }}>
                 <a href={sourceUrl || '#'} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone-500)', wordBreak: 'break-all' }}>{source || '—'}</a>
                 {sourceDate && <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · {sourceDate}</span>}
-                <IkonDiakses tarikh={publishedDate} />
+                {/* PEMBETULAN (2026-09-02, dapatan Izzat: "kenapa sumber yg tak ada pun ada
+                    tooltip diakses pada?") — IkonDiakses dahulu hanya gerbang pada `tarikh`
+                    (publishedDate, SENTIASA wujud sebab setiap kandungan ada tarikh cipta),
+                    bukan pada kewujudan sumber itu sendiri. Kandungan tanpa sumber langsung papar
+                    "—" (baris di atas) TAPI ikon "Diakses pada" tetap muncul — mengelirukan,
+                    seolah-olah ada pautan sumber sedangkan tiada. `sourceUrl === '#'` turut
+                    disemak sebab tu SENTINEL sedia ada "tiada URL sebenar" (lihat fallback
+                    `href={sourceUrl || '#'}` sebaris di atas) — sesetengah kandungan lama
+                    tersimpan literal "#" sebagai url (bukan kosong), jadi semakan `sourceUrl`
+                    mentah sahaja akan tertipu (disahkan data sebenar, artikel "Portal data
+                    terbuka kerajaan..."). Gerbang: hanya papar bila ADA sumber sebenar. */}
+                {(source || (sourceUrl && sourceUrl !== '#')) && <IkonDiakses tarikh={publishedDate} />}
               </span>
             )}
           </span>
