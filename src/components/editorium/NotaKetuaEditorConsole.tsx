@@ -381,6 +381,20 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                               {n.disemat ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                             </button>
                           </Tooltip>
+                          <Tooltip text="Arkibkan nota">
+                            <button
+                              type="button"
+                              onClick={() => ubah(n.id, { status: 'arkib' }, 'Nota diarkibkan')}
+                              aria-label="Arkibkan nota"
+                              className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
+                            >
+                              <Archive className="w-3.5 h-3.5" />
+                            </button>
+                          </Tooltip>
+                        </>
+                      )}
+                      {paparanArkib && (
+                        <>
                           {confirmSuntingId === n.id ? (
                             // DLG-12 (2B, audit ChatGPT 2026-08-09) — dahulu "Buang draf semasa?"
                             // tak sebut apa hilang.
@@ -401,13 +415,18 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                                 Batal
                               </button>
                             </span>
-                          ) : n.status !== 'aktif' && (
+                          ) : (
                             // Sunting HANYA utk nota diarkib (2026-08-18, keputusan Izzat: "sekat
                             // sunting selepas aktif... macam mesej yang dah dihantar") — nota
                             // aktif sudah tersiar dalam Peti Makluman editor, sunting di tempat
                             // mengubah apa mereka lihat tanpa jejak. Butang ni disorok sepenuhnya
                             // (bukan cuma dinyahaktifkan) utk nota aktif; gerbang server sepadan
                             // (editorNotesRoutes.js PATCH) tetap semak, ni pertahanan client sahaja.
+                            // PEMBETULAN (2026-09-02, dapatan bug-hunt): blok ni dahulu tersalah
+                            // sarang dalam cawangan `!paparanArkib` (dengan syarat `n.status !==
+                            // 'aktif'` yang SENTIASA palsu di situ, sebab senarai tab "Aktif"
+                            // hanya mengandungi nota berstatus aktif) — Sunting tak pernah
+                            // kelihatan langsung dalam MANA-MANA tab. Kini betul di tab Arkib.
                             <Tooltip text="Sunting nota">
                               <button
                                 type="button"
@@ -419,20 +438,6 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
                               </button>
                             </Tooltip>
                           )}
-                          <Tooltip text="Arkibkan nota">
-                            <button
-                              type="button"
-                              onClick={() => ubah(n.id, { status: 'arkib' }, 'Nota diarkibkan')}
-                              aria-label="Arkibkan nota"
-                              className="p-1.5 text-stone-400 hover:text-Adjung-maroon transition-colors cursor-pointer"
-                            >
-                              <Archive className="w-3.5 h-3.5" />
-                            </button>
-                          </Tooltip>
-                        </>
-                      )}
-                      {paparanArkib && (
-                        <>
                           <Tooltip text="Pulihkan nota">
                             <button
                               type="button"
