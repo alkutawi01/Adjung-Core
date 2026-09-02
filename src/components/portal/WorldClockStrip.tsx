@@ -542,12 +542,18 @@ export const WorldClockStrip: React.FC<WorldClockStripProps> = React.memo(({
           }
 
           if (apiHolidaysData && Array.isArray(apiHolidaysData.schoolHolidays)) {
-            const today = new Date();
-            const yearStr = today.getFullYear();
-            const monthStr = String(today.getMonth() + 1).padStart(2, '0');
-            const dayStrVal = String(today.getDate()).padStart(2, '0');
-            const todayISO = `${yearStr}-${monthStr}-${dayStrVal}`;
-            
+            // Tarikh ikut zon waktu BANDAR ni sendiri (2026-09-02, dapatan bug-hunt pusingan 9)
+            // — bukan `new Date()` peranti PEMBACA. Pemadanan cuti UMUM sebaris di atas sudah
+            // betul (guna dateStr/gregKey terbit drpd formatter timeZone: c.tz), tapi pemadanan
+            // cuti SEKOLAH ni sebelum ni guna jam tempatan PERANTI pembaca terus — untuk pembaca
+            // yang melayari dari luar zon Malaysia (atau jam sistem tersasar), status cuti
+            // sekolah boleh tersilap tanda berbanding cuti umum yang dikira BETUL sebaris di atas
+            // untuk tujuan SAMA. `en-CA` menghasilkan terus format YYYY-MM-DD (corak sama seperti
+            // core/utils/waktuMalaysia.js).
+            const todayISO = new Intl.DateTimeFormat('en-CA', {
+              timeZone: c.tz, year: 'numeric', month: '2-digit', day: '2-digit',
+            }).format(new Date());
+
             const isGroupA = FRIDAY_SATURDAY_WEEKEND_CITIES.includes(c.name);
             const schoolMatch = apiHolidaysData.schoolHolidays.find((sh: any) => {
               const groupMatch = isGroupA ? sh.group === 'A' : sh.group === 'B';

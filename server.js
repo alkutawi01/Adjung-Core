@@ -1910,35 +1910,55 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
   return parsedJson;
 };
 
+// Waktu Malaysia (2026-09-02, dapatan bug-hunt pusingan 9) — `refreshHour`/`refreshDay` ialah
+// jangkaan EDITOR dalam waktu Malaysia (Ketua Editor taip "09:00" bermaksud 9 pagi Malaysia),
+// tapi fungsi ni dahulu bina `nextDate` guna kaedah Date LOCAL (getFullYear/getMonth/getDate/
+// getDay/setDate) yang ikut timezone PELAYAN proses Node berjalan, bukan Malaysia. Railway/
+// kontena tanpa TZ eksplisit lazimnya UTC — "09:00" jadi 9 pagi UTC = 5 petang Malaysia,
+// jadual auto-refresh AI Generated meleset 8 jam drpd niat editor, dan pengiraan hari "Weekly"
+// turut tersasar dekat sempadan tengah malam Malaysia. Corak yang sama (Intl.DateTimeFormat
+// timeZone: 'Asia/Kuala_Lumpur') sudah dipakai core/utils/waktuMalaysia.js dan
+// core/editorial/Scheduling.js — diselaraskan di sini supaya ketiga-tiga tempat sepadan.
 const calculateNextRunTime = (slot) => {
   const rate = slot.refreshRate || 'Daily';
   const targetHourStr = slot.refreshHour || '00:00';
   const [hour, minute] = targetHourStr.split(':').map(Number);
-  
+
   const now = new Date();
-  let nextDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute || 0, 0, 0);
-  
+  const bahagianMY = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kuala_Lumpur', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).formatToParts(now);
+  const ambilMY = (t) => bahagianMY.find((p) => p.type === t)?.value;
+  const HARI_SINGKATAN_KE_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const currentDayIndex = HARI_SINGKATAN_KE_INDEX[ambilMY('weekday')] ?? now.getUTCDay();
+
+  // Jam sasaran DIBINA sebagai waktu Malaysia eksplisit (+08:00), bukan medan tempatan objek
+  // Date (yang akan ikut timezone pelayan semula kalau guna constructor berasingan biasa).
+  const isoJamMY = `${ambilMY('year')}-${ambilMY('month')}-${ambilMY('day')}T${String(hour || 0).padStart(2, '0')}:${String(minute || 0).padStart(2, '0')}:00+08:00`;
+  let nextDate = new Date(isoJamMY);
+
   if (rate === 'Weekly') {
     const dayNames = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
     const targetDayStr = slot.refreshDay || 'Isnin';
     let targetDayIndex = dayNames.indexOf(targetDayStr);
     if (targetDayIndex === -1) targetDayIndex = 1; // Default to Isnin
-    
-    let currentDayIndex = now.getDay();
+
     let daysToAdd = (targetDayIndex - currentDayIndex + 7) % 7;
-    
+
     if (daysToAdd === 0 && nextDate.getTime() <= now.getTime()) {
       daysToAdd = 7;
     }
-    
-    nextDate.setDate(nextDate.getDate() + daysToAdd);
+
+    // Tambah hari sbg aritmetik ms mutlak (bukan setDate() tempatan) — Malaysia tiada DST, jadi
+    // N hari sentiasa tepat N*86400000ms, tiada risiko lompat sempadan bulan/tahun tempatan.
+    nextDate = new Date(nextDate.getTime() + daysToAdd * 86400000);
   } else {
     // Daily
     if (nextDate.getTime() <= now.getTime()) {
-      nextDate.setDate(nextDate.getDate() + 1);
+      nextDate = new Date(nextDate.getTime() + 86400000);
     }
   }
-  
+
   return nextDate.getTime();
 };
 
@@ -4654,9 +4674,24 @@ app.listen(PORT, '0.0.0.0', () => {
   // (~beberapa MB) hampir seketika, tapi tetap dibalut cuba/tangkap penuh — backup gagal MESTI
   // tak sekali-kali rebahkan server.
   const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // sekali sehari
-  const runScheduledBackup = () => {
+  const runScheduledBackup = async () => {
     try {
       if (!fs.existsSync(dbPath)) return;
+      // Checkpoint WAL dahulu (2026-09-02, dapatan bug-hunt pusingan 9) — mod WAL diaktifkan
+      // (baris ~356 "PRAGMA journal_mode = WAL"), jadi transaksi TERKINI boleh duduk dalam
+      // adjung.db-wal sahaja (belum digabung balik ke fail utama; SQLite auto-checkpoint hanya
+      // selepas fail WAL cecah ~1000 halaman, BUKAN lepas setiap transaksi). fs.copyFileSync
+      // fail utama SAHAJA di bawah (tanpa checkpoint dahulu) boleh tercicir kandungan/perubahan
+      // terkini yang masih dalam WAL semasa backup dijalankan — backup "automatik" yang sepatutnya
+      // jaring keselamatan (CLAUDE.md #4: "tiada backup DB lain yang boleh dipercayai") jadi senyap
+      // tak lengkap. TRUNCATE paksa semua data WAL masuk fail utama DAN kosongkan fail -wal, jadi
+      // salinan fail utama lepas ni satu snapshot genap. Kegagalan checkpoint TIDAK menghalang
+      // backup — salinan tanpa checkpoint masih lebih baik daripada tiada backup langsung.
+      try {
+        await dbRun('PRAGMA wal_checkpoint(TRUNCATE);');
+      } catch (errCheckpoint) {
+        console.warn('[Backup Automatik] wal_checkpoint gagal (backup diteruskan, mungkin tercicir transaksi paling terkini):', errCheckpoint.message);
+      }
       const ts = new Date().toISOString().replace(/[:.]/g, '-');
       const dirDb = path.dirname(dbPath);
       const namaDb = path.basename(dbPath);

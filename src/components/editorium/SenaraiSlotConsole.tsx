@@ -277,8 +277,14 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
     setRalatTetapan(null);
     setRalatTetapanKonflik(false);
     try {
+      // PEMBETULAN (2026-09-02, dapatan bug-hunt pusingan 9) — dahulu terus `.json()` tanpa
+      // semak `res.ok`/bacaJsonSelamat (tak macam laluan POST simpan di bawah, yang sudah betul).
+      // Respons rosak/ralat pelayan pada GET muat-semula ni (proksi timeout, 5xx HTML) jatuh ke
+      // "Slot tidak dijumpai" yang mengelirukan (bukan sebab sebenar) — corak sama yang CLAUDE.md
+      // catat sebagai bendera merah am ("throw new Error() tanpa mesej sebenar").
       const semasaRes = await fetch('/api/system/slots');
-      const semasaData = await semasaRes.json();
+      const semasaData = await bacaJsonSelamat(semasaRes);
+      if (!semasaRes.ok) throw new Error(semasaData?.error || 'Gagal memuat semula tetapan slot semasa.');
       const semasa = Array.isArray(semasaData) ? semasaData.find((s: any) => s.slotIndex === slotTetapan) : null;
       if (!semasa) throw new Error('Slot tidak dijumpai.');
       const gabungan = { ...semasa, ...drafTetapan };

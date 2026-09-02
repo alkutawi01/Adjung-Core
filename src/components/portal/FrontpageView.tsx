@@ -6,6 +6,7 @@ import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays, safeParseInline, setGlosSelariAktif, setTypographyRulesAktif } from '../../utils';
 import { setPemenggalanPengecualian } from '../../../core/editorial/PemenggalSukuKata.js';
 import { JENIS_ANIMASI_ASAS, pilihJenisRawak } from '../../../core/editorial/AnimasiConfig.js';
+import { tarikhMalaysia } from '../../../core/utils/waktuMalaysia.js';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, X, Lock, Search, Pencil } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
@@ -2994,10 +2995,14 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // Slot Bar tanpa acara sebenar — kad papar TETAP (bentuk BarCard biasa, bukan disorok/neutral),
   // dgn Tarikh=hari ini, Penganjur="Adjung Brief", Tajuk="Belum Ada Acara" (keputusan Izzat
   // 2026-08-11, satu kad per slot kosong — gantikan pendekatan sorok kluster S1 yg ditarik balik).
+  // tarikhMalaysia() bukan toISOString().slice(0,10) (2026-09-02, dapatan bug-hunt pusingan 9) —
+  // .toISOString() ambil tarikh kalendar UTC; antara 12:00am-7:59am waktu Malaysia (UTC+8), kad
+  // "hari ini" ni akan papar tarikh SEMALAM. Corak sama yang dibetulkan di viewStatsRoutes.js/
+  // sponsorRoutes.js (lihat core/utils/waktuMalaysia.js) — diselaraskan di sini.
   const barEmptyItem = {
     title: 'Belum Ada Acara',
     organizer: 'Adjung Brief',
-    originalDate: new Date().toISOString().slice(0, 10),
+    originalDate: tarikhMalaysia(),
   };
 
   // ==========================================================================
