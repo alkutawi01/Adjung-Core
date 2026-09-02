@@ -1,0 +1,28 @@
+name: Deploy ke pengeluaran
+
+# Auto-deploy ke Droplet adjung-brief-prod setiap kali push ke main (2026-09-01, Izzat —
+# lepas berulang kali kena tekan arahan deploy manual sendiri sebab SSH Claude Code disekat
+# classifier keselamatan platform sendiri, bukan isu kunci/kebenaran). Rujuk DEPLOY.md untuk
+# langkah manual (kekal sebagai fallback/rujukan sejarah, bukan lagi laluan utama rutin).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd /var/www/adjung-brief
+            cp adjung.db "adjung.db.backup-$(date +%Y%m%d-%H%M%S)-auto-deploy"
+            git pull
+            npm run build
+            pm2 restart adjung-brief
