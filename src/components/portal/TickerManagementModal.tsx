@@ -849,7 +849,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                           className="px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:border-[var(--color-Adjung-maroon)]"
                         />
                         <span className="text-[9px] text-stone-400 font-sans">
-                          Ticker Laman Utama papar tajuk sahaja (bukan huraian) semasa bergulir. Tajuk yang lebih pendek daripada had ni dihantar ke Review Queue untuk semakan manual (bukan ditolak terus) — Ketua Editor/Penolong nilai sama ada tajuk tu cukup konteks utk disiarkan.
+                          Ticker Laman Utama papar tajuk sahaja (bukan huraian) semasa bergulir. Tajuk yang lebih pendek daripada had ini dihantar ke Review Queue untuk semakan manual (bukan ditolak terus) — Ketua Editor/Penolong nilai sama ada tajuk itu cukup konteks untuk disiarkan.
                         </span>
                       </div>
 
