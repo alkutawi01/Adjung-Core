@@ -102,6 +102,21 @@ const LABEL_BULK_DIKENALI = [
 const adaLabelBulkDikenali = (t: string) => LABEL_BULK_DIKENALI.some((l) => t.toLowerCase().startsWith(l.toLowerCase()));
 const MEDAN_BULK_BERBILANG_BARIS = new Set(['summary', 'summaryLong', 'note']);
 
+// Auto-baiki URL dibalut format pautan Markdown (2026-09-02, dapatan Izzat — "chatgpt asyik
+// ulang kesilapan yg sama") — walaupun Arahan AI Perpustakaan Prompt Semakan minta URL MENTAH
+// sahaja pada medan "URL:", model AI (ChatGPT dsb.) kerap tetap tulis `[url](url)` gaya pautan
+// Markdown (tabiat model, bukan salah arahan — nampaknya sukar dielak sepenuhnya lewat prompting
+// sahaja, disahkan berulang kali dgn output sebenar). Server (validateSourceUrl, ContentBudget.js)
+// betul-betul TOLAK bentuk ni (`new URL()` gagal hurai kurungan+kurungan siku), Simpan Pukal
+// gagal senyap seolah-olah URL tu "rosak" walhal URL sebenar DI DALAM teks tu sah. Dibetulkan di
+// PARSER (bukan tunggu validation gagal) — kesan corak `[label](https://...)` dan ekstrak URL
+// dalam kurungan sahaja, jadi kesilapan berulang model AI dibetulkan senyap tanpa perlu editor
+// perasan/salin-tampal manual setiap kali.
+const ekstrakUrlMentah = (v: string): string => {
+  const md = v.match(/\]\((https?:\/\/[^\s)]+)\)\s*$/i);
+  return md ? md[1] : v;
+};
+
 const parseBulkText = (text: string): BulkParsedEntry[] => {
   const blocks = text.split(/\n(?=#\d+-\d+\s*$)/m);
   const entries: BulkParsedEntry[] = [];
@@ -134,7 +149,7 @@ const parseBulkText = (text: string): BulkParsedEntry[] => {
       else if (trimmed.startsWith('Kategori:')) medan.desk = trimmed.replace(/^Kategori:\s*/i, '').trim();
       else if (trimmed.startsWith('Topik:')) medan.topik = trimmed.replace(/^Topik:\s*/i, '').trim();
       else if (trimmed.startsWith('Sumber:')) medan.source = trimmed.replace(/^Sumber:\s*/i, '').trim();
-      else if (trimmed.startsWith('URL:')) medan.url = trimmed.replace(/^URL:\s*/i, '').trim();
+      else if (trimmed.startsWith('URL:')) medan.url = ekstrakUrlMentah(trimmed.replace(/^URL:\s*/i, '').trim());
       else if (trimmed.startsWith('Tarikh Sumber:')) medan.originalDate = trimmed.replace(/^Tarikh Sumber:\s*/i, '').trim();
       else if (trimmed.startsWith('Nota:')) { medan.note = trimmed.replace(/^Nota:\s*/i, '').trim(); medanSemasa = 'note'; }
     }
