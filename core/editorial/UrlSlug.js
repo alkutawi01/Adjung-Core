@@ -1,3 +1,5 @@
+import CategoryRegistry from '../category/CategoryRegistry.js';
+
 // Skema URL per-kandungan (2026-08-05, Fasa 9 — SEO & penemuan). Bentuk keputusan Izzat:
 // brief.adjung.com/<bidang-slug>/kandungan/<kod-pendek>
 //
@@ -18,16 +20,21 @@ export function janaKodPendek() {
   return kod;
 }
 
-// Slug URL daripada nama Bidang — huruf kecil, buang aksen/diakritik, ganti bukan-alfanumerik
-// dengan sengkang. "Al-Quran dan Sunnah" -> "al-quran-dan-sunnah". Bidang kosong/tak diketahui
-// jatuh balik ke "umum" (bukan slug kosong, yang akan pecahkan corak laluan /:bidang/kandungan/:kod).
+// Slug URL daripada nama Bidang (2026-09-02, pembetulan bug-hunt — dahulu salinan tersendiri di
+// sini normalize('NFD') buang aksen/diakritik SEBELUM slugify, manakala CategoryRegistry.getSlug()
+// (core/category/CategoryRegistry.js, SUMBER sebenar lajur CategoryRegistry.slug yang disimpan
+// bila Bidang didaftar) TIDAK buat langkah tu langsung. Dua fungsi ni WAJIB pulangkan hasil SAMA
+// PERSIS untuk Bidang yang sama — laluan kandungan awam dibina di sini (binaLaluanKandungan di
+// bawah) tapi disahkan/dicari semula terus menentang lajur `slug` tersimpan tu (lihat
+// GET /api/bidang/:slug, bidangRoutes.js, dan carian icon di articleUrlRoutes.js baris ~230).
+// Bidang sedia ada semua nama Melayu ASCII (disahkan CategoryRegistry sebenar, 2026-09-02) jadi
+// pepijat ni belum pernah nampak kesan sebenar, tapi mana-mana Bidang masa depan dengan aksen
+// (cth nama berasal bahasa Arab/Inggeris) akan hasilkan slug BERBEZA di sini vs lajur tersimpan —
+// URL kandungan jadi laluan yang GET /bidang/:slug tak pernah kenal. Import terus fungsi kanonikal
+// (corak sama seperti GeometryConfig.js/ContentBudget.js — SATU sumber, bukan disalin semula;
+// lihat CLAUDE.md, sejarah 5 salinan had aksara 2026-07-25) — bukan tiru semula logiknya di sini.
 export function slugBidang(bidang) {
-  const slug = (bidang || '')
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return slug || 'umum';
+  return CategoryRegistry.getSlug(bidang);
 }
 
 // Slug SEO daripada tajuk kandungan (2026-08-24, dapatan Izzat — "setiap kandungan takde slug

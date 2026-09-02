@@ -3,6 +3,7 @@ import { validateContentBudget, validateBidangTopik, TIER_SLOTS } from '../edito
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requirePermission } from '../middleware/auth.js';
 import { getAmSettings } from './slotAmRoutes.js';
+import { denganKunciKandungan } from '../utils/kunciKandungan.js';
 
 // Thin route wrappers around runEditorialPipeline/runAllScheduledSlots — those stay defined in
 // server.js since the internal 5-minute scheduler also calls them directly, so they're passed in
@@ -18,7 +19,17 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
   // Gerbang `publish` (2026-08-07, Pelan 02 #1, keputusan Izzat S1) — tampal pukal memang saluran
   // TERUS TERBIT (setiap item ditulis 'approved' tanpa singgah Menunggu), jadi ia alat pemegang
   // kunci terbit sahaja, bukan laluan editor biasa.
-  router.post('/pipeline/batch_paste', requirePermission('publish'), async (req, res) => {
+  // denganKunciKandungan (2026-09-02, dapatan bug-hunt) — laluan ni baca kiraan `hadKandunganSlot`
+  // seslot (semakan had) KEMUDIAN tulis editorial_objects/editorial_revisions/slots_config
+  // (activeObjectId) dalam permintaan yang SAMA, tanpa kunci — sama corak TOCTOU yang
+  // kunciKandungan.js sendiri didokumenkan wujud untuk elakkan ("SATU rantaian yang sama benar-
+  // benar menyekat merentasi SEMUA laluan yang mengubah editorial_revisions/slots_config..."),
+  // dan corak SAMA yang POST /content (contentRoutes.js) sudah dikunci dengannya. Dua tampalan
+  // pukal serentak (atau satu tampalan pukal + satu POST /content) ke slot SAMA boleh dua-duanya
+  // baca kiraan SEBELUM tulisan, lepasi had `hadKandunganSlot`, lalu dua-dua tulis — slot tembus
+  // had yang sepatutnya dikuatkuasakan. Dibungkus kunci kongsi SAMA supaya baca-semak-tulis jadi
+  // SATU unit tak boleh disisip laluan lain.
+  router.post('/pipeline/batch_paste', requirePermission('publish'), (req, res) => denganKunciKandungan(async () => {
     try {
       const { text } = req.body;
       if (!text || !text.trim()) {
@@ -221,7 +232,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
       console.error('Batch paste error:', err);
       res.status(500).json({ error: 'Gagal memproses data tampal pukal. ' + err.message });
     }
-  });
+  }));
 
   // Saluran AI dimatikan (keputusan 2026-08-02, dikuatkuasakan 2026-08-07 — Pelan 02 #12,
   // keputusan Izzat S2). Penjanaan kandungan AI automatik BUKAN saluran yang dibenarkan; saluran

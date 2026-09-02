@@ -20,7 +20,7 @@ interface PenugasanEditorPopoverProps {
   pengguna: Pengguna[];
   editorIdsSemasa: string[];
   onBatal: () => void;
-  onSimpan: (editorIds: string[]) => Promise<boolean>;
+  onSimpan: (editorIds: string[]) => Promise<{ ok: boolean; ralat?: string }>;
 }
 
 export const PenugasanEditorPopover: React.FC<PenugasanEditorPopoverProps> = ({
@@ -43,9 +43,9 @@ export const PenugasanEditorPopover: React.FC<PenugasanEditorPopoverProps> = ({
   const simpan = async () => {
     setMenyimpan(true);
     setRalat('');
-    const ok = await onSimpan(draf);
+    const hasil = await onSimpan(draf);
     setMenyimpan(false);
-    if (!ok) setRalat('Gagal menyimpan penugasan.');
+    if (!hasil.ok) setRalat(hasil.ralat || 'Gagal menyimpan penugasan.');
   };
 
   return (

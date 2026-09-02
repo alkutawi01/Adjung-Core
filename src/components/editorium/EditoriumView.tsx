@@ -560,19 +560,28 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const slotBolehTulis = Array.from({ length: 38 }, (_, i) => i)
     .filter((i) => !TIER_SLOTS.BAR.includes(i) && slotBolehDicapai(i));
 
-  const simpanEditorSlot = async (i: number, editorIds: string[]) => {
+  // Sebab kegagalan SEBENAR (2026-09-02, dapatan bug-hunt — pola sama seperti Simpan Pukal
+  // ContentReview.tsx, CLAUDE.md: "throw new Error() tanpa mesej ialah bendera merah"). Sebelum
+  // ni `!res.ok` terus pulangkan `false` mentah — POST /slot-editors (slotEditorRoutes.js) SEBENARNYA
+  // hantar sebab tepat ("Editor tidak dijumpai: ...", "Slot X ialah kad Bar...", 403 tiada
+  // kebenaran), tapi PenugasanEditorPopover cuma mampu papar "Gagal menyimpan penugasan." generik
+  // sebab teks sebenar tak pernah sampai ke situ. Kini baca `error` drpd respons dan bawa balik.
+  const simpanEditorSlot = async (i: number, editorIds: string[]): Promise<{ ok: boolean; ralat?: string }> => {
     try {
       const res = await fetch('/api/system/slot-editors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slotIndex: i, editorIds }),
       });
-      if (!res.ok) return false;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({} as any));
+        return { ok: false, ralat: data?.error || 'Gagal menyimpan penugasan.' };
+      }
       await muatPenugasanSlot();
       setPopoverEditorSlot(null);
-      return true;
+      return { ok: true };
     } catch {
-      return false;
+      return { ok: false, ralat: 'Ralat sambungan. Sila cuba sekali lagi.' };
     }
   };
 
