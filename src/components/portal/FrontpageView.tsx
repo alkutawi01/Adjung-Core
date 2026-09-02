@@ -1298,7 +1298,13 @@ const CarouselStableBlock: React.FC<{
       kadPenuh.style.overflow = 'hidden';
     }
     setPortalTarget(kadPenuh);
-    setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef, nisbahUntukSlot(kadUntukJenis?.getAttribute('data-slot'))));
+    // PEMBETULAN (2026-09-02, dapatan bug-hunt) — argumen ke-4 (slotIndexStr) tercicir di sini,
+    // tak macam tapak panggilan Gerak Susun (~baris 1173) yang hantar betul. ambilLogoTransisi()
+    // -> penajaLayakUntukSlotSemasa(undefined) -> penajaLayakUntukSlot() pulang FALSE terus utk
+    // penaja berskop slot (PenajaEligibility.js), jadi Penaja Per-Slot senyap tak pernah muncul
+    // pada jenis animasi Colophon/Sapuan Lajur walau MUNCUL betul pada Gerak Susun/lalai —
+    // tingkah laku tak konsisten ikut jenis animasi, bukan ikut slot sebenar.
+    setLogoTransisiSemasa(ambilLogoTransisi(logoModeUntukSlot(kadUntukJenis?.getAttribute('data-slot')), giliranLogoRef, nisbahUntukSlot(kadUntukJenis?.getAttribute('data-slot')), kadUntukJenis?.getAttribute('data-slot')));
 
     // Tempoh SATU keyframe berterusan (masuk -> TAHAN 500ms -> keluar) — masukMasa ialah TITIK
     // bila panel BARU tutup penuh (kedudukan translate(0,0), lihat peratusan @keyframes di
