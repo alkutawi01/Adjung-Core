@@ -199,8 +199,16 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
       // aktif, tiada mod draf), teksnya kekal muktamad; kesilapan dibetulkan dgn Arkib nota lama
       // + terbitkan nota BAHARU, bukan sunting di tempat. Peralihan status (arkib/pulih) dan
       // semat/nyahsemat TAK disentuh gerbang ni — cuma medan KANDUNGAN yang dikunci.
+      // PEMBETULAN (2026-09-02, dapatan bug-hunt): gerbang asal semak `sedia.status` (status
+      // SEBELUM permintaan ini) sahaja — kalau nota semasa 'arkib', gerbang tak terpakai
+      // langsung, walaupun request SAMA hantar `status: 'aktif'` BERSAMA `kandungan`/`tajuk`
+      // baharu serentak (hidupkan semula nota arkib dengan teks disunting dalam SATU UPDATE).
+      // Ini memintas terus peraturan "nota aktif beku" di atas — nota yang "dihidupkan semula"
+      // ni pun tersiar semula dalam Peti Makluman dengan kandungan berbeza, tiada jejak sunting.
+      // Semak status AKAN JADI (selepas permintaan ini), bukan status sebelum ini.
       const cubaUbahKandungan = [tajuk, kandungan, kategori, skop].some((v) => v !== undefined);
-      if (cubaUbahKandungan && sedia.status === 'aktif') {
+      const statusAkanJadiAktif = status !== undefined ? status === 'aktif' : sedia.status === 'aktif';
+      if (cubaUbahKandungan && statusAkanJadiAktif) {
         return res.status(400).json({
           error: 'Nota yang sudah aktif tak boleh disunting — ia sudah tersiar dalam Peti Makluman editor. Arkibkan nota ini dan terbitkan nota baharu sebaliknya.',
         });
