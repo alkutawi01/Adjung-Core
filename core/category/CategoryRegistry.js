@@ -395,12 +395,21 @@ class CategoryRegistry {
   // di atas, sebab dua fungsi tu cascade-tulis-ganti string 'desk' dalam editorial_objects/
   // editorial_attribute_values (melanggar peraturan "kandungan lama kekal"). Ni cuma ubah baris
   // taksonomi tu sendiri.
+  //
+  // Slug DIKUNCI kekal (2026-09-02, keputusan Izzat "ikut cadangan awak") — dahulu slug dikira
+  // semula dari nama BAHARU pada setiap rename, jadi pautan Halaman Bidang (/bidang/{slug}) yang
+  // dah dikongsi/diindeks enjin carian akan PECAH (404) sebaik Bidang tu dinamakan semula (cth
+  // baiki typo "Bahasa" -> "Bahasa Melayu"). Slug fungsi sebagai ID STABIL untuk URL (sama peranan
+  // seperti kunci utama DB), TERASING drpd `name` (label paparan sahaja) — dikira SEKALI sahaja
+  // semasa Bidang dicipta (createCategory/registerCategory di atas), tak pernah berubah selepas
+  // itu walau nama papar bertukar berapa kali sekali pun. TIADA sistem redirect-sejarah dibina
+  // (keputusan sengaja) — tiada rename pernah berlaku setakat ni (0 rekod log audit), jadi
+  // membina jadual/logik redirect utk masalah yang belum wujud ialah kerumitan pra-matang.
   static async renameActiveCategory(db, id, newName) {
     if (!newName || newName.trim() === '') throw new Error('Nama Bidang diperlukan.');
     const trimmedName = newName.trim();
-    const newSlug = this.getSlug(trimmedName);
     const now = new Date().toISOString();
-    await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET name = ?, slug = ?, updatedAt = ? WHERE id = ?", [trimmedName, newSlug, now, id]);
+    await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET name = ?, updatedAt = ? WHERE id = ?", [trimmedName, now, id]);
   }
 
   // Nombor slot (0-based) yang manualDesk-nya sepadan (case-insensitive) nama Bidang ni — untuk
