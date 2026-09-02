@@ -227,20 +227,26 @@ class CategoryRegistry {
 
     // Re-map any saved items matching source slug/category to target category uppercase
     const targetNameUpper = targetReg.name.toUpperCase();
-    
-    // Update editorial_objects
+
+    // PEMBETULAN (2026-09-02, dapatan bug-hunt) — padanan asal `valueText = ?` (case-sensitive)
+    // gagal senyap terhadap kandungan sebenar yang tersimpan bukan huruf besar penuh (disahkan
+    // DB sebenar: 1 baris `desk = 'Siber'` bersebelahan majoriti `'SIBER'`). Kandungan macam ni
+    // TAK PERNAH dipetakan semasa gabung Bidang — kekal senyap merujuk Bidang yang sudah dipadam
+    // daripada CategoryRegistry, "yatim" tanpa amaran. LOWER() pada kedua-dua belah gerbang ni
+    // padan tanpa kira huruf besar/kecil, sama corak `LOWER(TRIM())` yang sudah dipakai di tempat
+    // lain (contoh: padanan editorName pemilikan kandungan, contentRoutes.js).
     await this.dbRun(db, `
-      UPDATE editorial_objects 
-      SET categoryId = ? 
-      WHERE categoryId = ? OR categoryId = ?
-    `, [targetNameUpper, sourceCategory.trim().toUpperCase(), sourceReg.name.toUpperCase()]);
+      UPDATE editorial_objects
+      SET categoryId = ?
+      WHERE LOWER(categoryId) = LOWER(?) OR LOWER(categoryId) = LOWER(?)
+    `, [targetNameUpper, sourceCategory.trim(), sourceReg.name]);
 
     // Update attribute values
     await this.dbRun(db, `
       UPDATE editorial_attribute_values
       SET valueText = ?
-      WHERE attributeId = 'desk' AND (valueText = ? OR valueText = ?)
-    `, [targetNameUpper, sourceCategory.trim().toUpperCase(), sourceReg.name.toUpperCase()]);
+      WHERE attributeId = 'desk' AND (LOWER(valueText) = LOWER(?) OR LOWER(valueText) = LOWER(?))
+    `, [targetNameUpper, sourceCategory.trim(), sourceReg.name]);
   }
 
   // Senarai Bidang tertutup (isActive=1) — sumber untuk dropdown/Taksonomi. Baris isActive=0
