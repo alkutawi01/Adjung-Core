@@ -179,19 +179,53 @@ export function HalamanBidang() {
   const focusIndex = focusObjectId ? gabungan.findIndex((a) => a.objectId === focusObjectId) : -1;
   const focusItem = focusIndex >= 0 ? gabungan[focusIndex] : null;
 
-  const bukaArtikel = (objectId: string) => setFocusObjectId(objectId);
+  // Mod navigasi (2026-09-02, dapatan Izzat: "mana hilangnya butang rawak/turutan? sepatutnya
+  // masih ada cuma kalau buka focus view dari senarai bidang, maka ia default turutan") — lalai
+  // 'turutan' (spesifikasi asal Halaman Bidang, pembacaan ikut susunan senarai), TAPI butang
+  // togol kekal dipaparkan supaya pembaca boleh tukar ke 'rawak' bila mahu, sama seperti Focus
+  // View di frontpage. `focusHistory` cuma relevan utk mod rawak (undur sejarah dilawati, BUKAN
+  // rawak baharu — corak sama FrontpageView.tsx ~baris 3418).
+  const [navMode, setNavMode] = React.useState<'rawak' | 'turutan'>('turutan');
+  const [focusHistory, setFocusHistory] = React.useState<string[]>([]);
+
+  const bukaArtikel = (objectId: string) => { setFocusObjectId(objectId); setFocusHistory([objectId]); };
   const tutupArtikel = () => setFocusObjectId(null);
+  const togolNavMode = () => setNavMode((m) => (m === 'rawak' ? 'turutan' : 'rawak'));
+
+  // Sasaran rawak — dielakkan objectId SEMASA dan objectId SEBELUM (dalam sejarah), sama falsafah
+  // "jangan ulang tempat baru datang" macam frontpage, tapi tanpa logik elak-Bidang-sama (skop
+  // Halaman Bidang MEMANG satu Bidang sahaja, elak-Bidang-sama tak bermakna di sini). Dikira dari
+  // SENARAI DIMUAT SETAKAT INI (gabungan) sahaja — konsisten dgn skop turutan sedia ada, TIDAK
+  // fetch tambahan merentasi kandungan yang belum dimuat via "Lihat Lagi".
+  const sasaranRawak = React.useMemo(() => {
+    if (navMode !== 'rawak' || gabungan.length <= 1) return null;
+    const sebelum = focusHistory.length >= 2 ? focusHistory[focusHistory.length - 2] : null;
+    const calon = gabungan.filter((a) => a.objectId !== focusObjectId && a.objectId !== sebelum);
+    const kolam = calon.length > 0 ? calon : gabungan.filter((a) => a.objectId !== focusObjectId);
+    return kolam.length > 0 ? kolam[Math.floor(Math.random() * kolam.length)].objectId : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navMode, focusObjectId, gabungan]);
 
   // Navigasi turutan (2026-09-01, spesifikasi Halaman Bidang) — merentasi SEMUA artikel
   // dipaparkan (TERKINI + Koleksi Terdahulu SETAKAT halaman koleksi yang sudah dimuat), bukan
   // cuma halaman semasa. Di hujung senarai, prop tak dihantar (undefined) — FocusView sendiri
   // sorok anak panah bila `onPrev`/`onNext` tiada, ikut kontrak sedia ada.
-  const keArtikelSeterusnya = focusIndex >= 0 && focusIndex < gabungan.length - 1
-    ? () => setFocusObjectId(gabungan[focusIndex + 1].objectId)
-    : undefined;
-  const keArtikelSebelum = focusIndex > 0
-    ? () => setFocusObjectId(gabungan[focusIndex - 1].objectId)
-    : undefined;
+  const keArtikelSeterusnya = navMode === 'rawak'
+    ? (sasaranRawak ? () => { setFocusHistory((h) => [...h, sasaranRawak]); setFocusObjectId(sasaranRawak); } : undefined)
+    : (focusIndex >= 0 && focusIndex < gabungan.length - 1
+        ? () => setFocusObjectId(gabungan[focusIndex + 1].objectId)
+        : undefined);
+  const keArtikelSebelum = navMode === 'rawak'
+    ? (focusHistory.length > 1
+        ? () => setFocusHistory((h) => {
+            const next = h.slice(0, -1);
+            setFocusObjectId(next[next.length - 1]);
+            return next;
+          })
+        : undefined)
+    : (focusIndex > 0
+        ? () => setFocusObjectId(gabungan[focusIndex - 1].objectId)
+        : undefined);
 
   // Kekunci: Esc tutup, atas/bawah/kiri/kanan gerak — dapatan bug-hunt (2026-09-02, soalan
   // Izzat "boleh navigasi guna keyboard?"). Corak SAMA persis FrontpageView.tsx (~baris 3428) —
@@ -216,19 +250,26 @@ export function HalamanBidang() {
       {sidebarFields.length > 0 && (
         <BriefNavigator fields={sidebarFields} currentLoc={null} onOpenNews={() => {}} />
       )}
-      <header className="w-full max-w-2xl mx-auto px-6 pt-8 flex items-center justify-between">
-        <Link
-          to="/"
-          className={`font-serif ${LOGO_SIZE.header} text-[#802334] tracking-tight hover:opacity-80 transition-opacity`}
-        >
-          {BRAND.logoText}
-        </Link>
-        <Link
-          to="/"
-          className="font-sans text-[10px] uppercase tracking-widest text-stone-500 hover:text-Adjung-maroon transition-colors"
-        >
-          Laman Utama
-        </Link>
+      {/* Sticky (2026-09-02, dapatan Izzat: "kalau scroll sampai bawah, macam mana nak kembali
+          ke frontpage? kena naik atas dulu?") — dahulu header ni cuma di puncak halaman, pembaca
+          yang dah scroll jauh (terutama selepas beberapa klik "Lihat 20 Lagi") terpaksa scroll
+          balik ke atas semata-mata untuk klik "Laman Utama". `bg-[#FDFDFD]/95 backdrop-blur-sm`
+          + `border-b` bila melekat supaya kandungan di bawahnya tak lenyap terus di bawah header. */}
+      <header className="sticky top-0 z-40 bg-[#FDFDFD]/95 backdrop-blur-sm border-b border-stone-150 w-full px-6 py-3">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <Link
+            to="/"
+            className={`font-serif ${LOGO_SIZE.header} text-[#802334] tracking-tight hover:opacity-80 transition-opacity`}
+          >
+            {BRAND.logoText}
+          </Link>
+          <Link
+            to="/"
+            className="font-sans text-[10px] uppercase tracking-widest text-stone-500 hover:text-Adjung-maroon transition-colors"
+          >
+            Laman Utama
+          </Link>
+        </div>
       </header>
 
       {status === 'memuat' || !bidang ? (
@@ -394,7 +435,8 @@ export function HalamanBidang() {
           prevPreviewTitle={focusIndex > 0 ? gabungan[focusIndex - 1].title : undefined}
           nextPreviewTitle={(focusIndex >= 0 && focusIndex < gabungan.length - 1) ? gabungan[focusIndex + 1].title : undefined}
           onClose={tutupArtikel}
-          navMode="turutan"
+          navMode={navMode}
+          onToggleNavMode={togolNavMode}
           startPaused={true}
         />
       )}
