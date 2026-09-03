@@ -265,7 +265,24 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // isSuspended (disemak semasa log masuk, authRoutes.js) diselaraskan ikut status — Tidak
       // Aktif/Ditamatkan menyekat log masuk, Aktif/Cuti tidak.
       const isSuspended = (status === 'Tidak Aktif' || status === 'Ditamatkan') ? 1 : 0;
-      await dbRun('UPDATE users SET status = ?, isSuspended = ?, updatedAt = ? WHERE id = ?', [status, isSuspended, new Date().toISOString(), id]);
+      const kini = new Date().toISOString();
+      // Dapatan bug-hunt (2026-09-03): Pentadbir "aktifkan semula" akaun yang digantung Dasar
+      // Aktif Editorial (amaranTakAktifTahap=3) TIDAK PERNAH direset di sini sebelum ni.
+      // runSemakanTakAktif() (server.js) cuma eskalasi bila `tahapSemasa < 3/2/1` — dengan tahap
+      // kekal 3 selamanya, akaun yang diaktifkan semula jadi KEBAL kekal daripada dasar ni (tiada
+      // amaran/gantung automatik seterusnya) walau tak pernah terbit apa-apa lagi, sehingga dia
+      // terbit sekali (yang reset tahap ke 0 di contentRoutes.js). Reset ke 0 DI SINI apabila
+      // status bertukar ke 'Aktif' daripada keadaan digantung (`sedia.statusLama` != 'Aktif') —
+      // turut segarkan `lastPublishedAt` ke SEKARANG supaya editor dapat tempoh bertenang penuh
+      // (7/14/21 hari baharu) bermula dari tarikh diaktifkan semula, bukan terus tersepit ke tahap
+      // notis-penamatan pada semakan HARIAN pertama selepas aktifkan semula (basis lama sudah jauh
+      // melepasi ambang, tanpa reset ni dia akan digantung semula esok tanpa peluang langsung).
+      const patutResetDasarAktif = status === 'Aktif' && sedia.statusLama !== 'Aktif';
+      if (patutResetDasarAktif) {
+        await dbRun('UPDATE users SET status = ?, isSuspended = ?, amaranTakAktifTahap = 0, lastPublishedAt = ?, updatedAt = ? WHERE id = ?', [status, isSuspended, kini, kini, id]);
+      } else {
+        await dbRun('UPDATE users SET status = ?, isSuspended = ?, updatedAt = ? WHERE id = ?', [status, isSuspended, kini, id]);
+      }
 
       // Batalkan sesi aktif sedia ada (2026-08-08, dapatan audit keselamatan ChatGPT) —
       // isSuspended cuma disemak semasa log masuk (authRoutes.js), BUKAN pada setiap permintaan
