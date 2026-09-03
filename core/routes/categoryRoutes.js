@@ -251,10 +251,21 @@ export function createCategoryRoutes(db) {
     try {
       const rows = await CategoryRegistry.dbAll(db,
         "SELECT slotIndex, manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage'");
+      // WAJIB skop kepada revisi TERKINI (MAX(version)) setiap objek (lihat amaran CLAUDE.md
+      // "Dua laluan edit selepas terbit") — 2026-09-03, dapatan bug-hunt. Tanpa had ni, objek yang
+      // pernah diedit (Semakan Kandungan mencipta revisi BAHARU, revisi LAMA tak pernah disentuh)
+      // lalu kemudian ditolak status-sahaja (UPDATE terus atas revisi terkini, BUKAN revisi baharu)
+      // akan ada revisi LAMA berstatus 'approved' yang kekal selama-lamanya walau revisi TERKINI
+      // sudah 'rejected'/'archived'. Query lama padan MANA-MANA revisi berstatus approved/pending
+      // tanpa mengira version, jadi objek yang sebenarnya sudah tak live (rejected/archived pada
+      // revisi terkini) tetap dikira "liveCount" di sini kerana revisi lamanya masih approved —
+      // punca sebenar Taburan Bidang/matriks slot boleh melampaui bilangan kandungan sebenar yang
+      // live di frontpage.
       const counts = await CategoryRegistry.dbAll(db, `
         SELECT o.slotIndex AS slotIndex, COUNT(DISTINCT o.id) AS liveCount
         FROM editorial_objects o
         JOIN editorial_revisions r ON r.objectId = o.id AND r.status IN ('approved', 'pending')
+          AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
         WHERE o.slotIndex >= 0
         GROUP BY o.slotIndex
       `);
