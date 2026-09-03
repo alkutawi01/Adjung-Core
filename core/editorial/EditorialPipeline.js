@@ -154,7 +154,7 @@ class EditorialPipeline {
     } else if (provider.id.includes('claude')) {
       aiInstance = new ClaudeProvider(apiKey, modelToUse);
     } else {
-      aiInstance = new GeminiProvider(apiKey, modelToUse || 'gemini-3.5-flash');
+      aiInstance = new GeminiProvider(apiKey, modelToUse || 'gemini-2.5-flash');
     }
 
     // Fetch masterPrompt from system_settings
@@ -378,7 +378,7 @@ ${slot.sourcesList.trim()}
       if (!provider.id.includes('claude') && claudeKey) {
         fallbackInstance = new ClaudeProvider(claudeKey, 'claude-3-5-sonnet-latest');
       } else if (!provider.id.includes('gemini') && geminiKey) {
-        fallbackInstance = new GeminiProvider(geminiKey, 'gemini-3.5-flash');
+        fallbackInstance = new GeminiProvider(geminiKey, 'gemini-2.5-flash');
       }
 
       if (fallbackInstance) {

@@ -255,7 +255,7 @@ const migrate = async () => {
 
   // Seed default AI Providers
   const providers = [
-    { id: 'gemini', name: 'Google Gemini', secretName: 'GEMINI_API_KEY', model: 'gemini-3.5-flash' },
+    { id: 'gemini', name: 'Google Gemini', secretName: 'GEMINI_API_KEY', model: 'gemini-2.5-flash' },
     { id: 'openai', name: 'OpenAI ChatGPT', secretName: 'OPENAI_API_KEY', model: 'gpt-4o' },
     { id: 'claude', name: 'Anthropic Claude', secretName: 'CLAUDE_API_KEY', model: 'claude-3-5-sonnet' },
     { id: 'grok', name: 'xAI Grok', secretName: 'GROK_API_KEY', model: 'grok-beta' },

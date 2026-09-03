@@ -1325,7 +1325,7 @@ const seedDatabase = async () => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       const now = new Date().toISOString();
-      stmtProviders.run('gemini-1', 'Google Gemini', 'GEMINI_API_KEY', 'gemini-3.5-flash', 100, 10, 'Active', now, 1);
+      stmtProviders.run('gemini-1', 'Google Gemini', 'GEMINI_API_KEY', 'gemini-2.5-flash', 100, 10, 'Active', now, 1);
       stmtProviders.run('openai-1', 'ChatGPT (OpenAI)', 'OPENAI_API_KEY', 'gpt-4o', 100, 10, 'Active', now, 1);
       stmtProviders.run('claude-1', 'Claude (Anthropic)', 'CLAUDE_API_KEY', 'claude-3-5-sonnet-latest', 100, 10, 'Active', now, 1);
       stmtProviders.run('meta-1', 'Meta AI (Llama)', 'META_API_KEY', 'llama-3.3-70b-instruct', 100, 10, 'Active', now, 1);
@@ -1347,7 +1347,7 @@ const seedDatabase = async () => {
                 // Verified against https://ai.google.dev/gemini-api/docs/pricing — the previous
                 // 0.075/0.30 values here were Gemini 1.5 Flash's old rate, not this model's real
                 // price (1.50/9.00), and silently understated every cost estimate by ~20-30x.
-                stmtPricing.run('gemini-1', 'gemini-3.5-flash', 1.50, 9.00, nowStr);
+                stmtPricing.run('gemini-1', 'gemini-2.5-flash', 1.50, 9.00, nowStr);
                 stmtPricing.run('openai-1', 'gpt-4o', 2.50, 10.00, nowStr);
                 stmtPricing.run('claude-1', 'claude-3-5-sonnet-latest', 3.00, 15.00, nowStr);
                 stmtPricing.run('deepseek-1', 'deepseek-chat', 0.14, 0.28, nowStr);
@@ -1696,12 +1696,12 @@ const callAIProvider = async (provider, prompt, capability = 'Editorial Generati
   try {
     // 1. Google Gemini (Google AI SDK)
     if (provider.id === 'gemini-1') {
-      const modelToUse = provider.model || 'gemini-3.5-flash';
+      const modelToUse = provider.model || 'gemini-2.5-flash';
       console.log(`[Gemini API Call via legacy server.js]`);
       console.log(`- Request Reason: ${capability}`);
       console.log(`- Resolved Model Name: ${modelToUse}`);
       if (!provider.model) {
-        console.log(`- Fallback Triggered: Model name was not provided. Falling back to default model: gemini-3.5-flash`);
+        console.log(`- Fallback Triggered: Model name was not provided. Falling back to default model: gemini-2.5-flash`);
       }
 
       const ai = new GoogleGenAI({ apiKey });

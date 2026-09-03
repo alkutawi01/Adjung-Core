@@ -61,12 +61,12 @@ class GeminiProvider extends AIProvider {
       config.tools = searchTools;
     }
 
-    const modelToUse = this.modelName || 'gemini-3.5-flash';
+    const modelToUse = this.modelName || 'gemini-2.5-flash';
     console.log(`[Gemini API Call]`);
     console.log(`- Request Reason: Generating content for editorial slot`);
     console.log(`- Resolved Model Name: ${modelToUse}`);
     if (!this.modelName) {
-      console.log(`- Fallback Triggered: Model name was not provided. Falling back to default model: gemini-3.5-flash`);
+      console.log(`- Fallback Triggered: Model name was not provided. Falling back to default model: gemini-2.5-flash`);
     }
 
     const response = await ai.models.generateContent({
