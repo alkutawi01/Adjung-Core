@@ -1,5 +1,6 @@
 import dns from 'node:dns/promises';
 import net from 'node:net';
+import { Agent, fetch as fetchUndici } from 'undici';
 
 // Sekatan SSRF (2026-08-08, audit keselamatan — laporan luaran) — sebelum ni satu-satunya
 // pengesahan URL sumber (RSS berdaftar, senarai rujukan slot pipeline AI, pengesahan pautan
@@ -69,7 +70,10 @@ export async function sahkanUrlSelamatUntukFetch(url) {
     if (isIpDalamJulatPeribadi(hos, net.isIP(hos))) {
       return { selamat: false, sebab: 'Alamat IP ini dalam julat peribadi/dalaman, disekat.' };
     }
-    return { selamat: true };
+    // `alamat` disertakan (2026-09-03, dapatan bug-hunt — lihat nota DNS-rebinding di
+    // fetchSelamat() di bawah) supaya pemanggil boleh KUNCI sambungan sebenar ke IP yang BARU
+    // disahkan ini, bukan biar fetch() buat resolusi DNS/parse hos KEDUA secara berasingan.
+    return { selamat: true, alamat: [{ address: hos, family: net.isIP(hos) }] };
   }
 
   // Nama domain — selesaikan SEMUA rekod (IPv4 + IPv6) dan sekat kalau MANA-MANA satu jatuh
@@ -88,7 +92,9 @@ export async function sahkanUrlSelamatUntukFetch(url) {
       return { selamat: false, sebab: 'Domain ini menyelesaikan kepada alamat IP peribadi/dalaman, disekat.' };
     }
   }
-  return { selamat: true };
+  // `alamat` (senarai penuh rekod yang BARU disahkan selamat) disertakan dalam respons supaya
+  // fetchSelamat() boleh kunci sambungan terus ke alamat-alamat INI — lihat nota panjang di situ.
+  return { selamat: true, alamat };
 }
 
 const HAD_PELENCONGAN_LALAI = 5;
@@ -98,6 +104,38 @@ const HAD_PELENCONGAN_LALAI = 5;
  *  bezakan daripada ralat rangkaian biasa (tamat masa, DNS gagal, dsb.). */
 export class RalatUrlTakSelamat extends Error {}
 
+// Kunci sambungan terus ke alamat IP yang BARU disahkan (2026-09-03, dapatan bug-hunt, diluluskan
+// Izzat) — menutup jurang "DNS rebinding" TOCTOU yang tinggal selepas pembetulan pelencongan
+// 2026-08-08 di bawah. Sebelum ni `sahkanUrlSelamatUntukFetch()` selesaikan nama domain (dns.lookup)
+// untuk SEMAK IP, tapi `fetch()` yang menyusul buat resolusi DNS SENDIRI, BERASINGAN, semasa
+// sambungan sebenar dibuat — domain jahat dengan TTL rendah boleh pulangkan IP AWAM masa semakan
+// (lulus), kemudian pulangkan IP DALAMAN (169.254.169.254, 127.0.0.1, dsb.) masa sambungan sebenar
+// beberapa milisaat kemudian (dua carian DNS berasingan, jawapan BOLEH berbeza). Pemeriksaan dan
+// sambungan sebenar mesti guna IP yang SAMA PERSIS, bukan cuma nama hos yang sama.
+//
+// Diselesaikan dengan "pin" (kunci) sambungan terus ke senarai IP yang BARU disahkan
+// sahkanUrlSelamatUntukFetch(), guna Agent undici dengan `connect.lookup` disara ganti — lookup
+// pilihan ni langsung TAK buat carian DNS baharu, ia cuma pulangkan semula senarai alamat yang
+// SUDAH disahkan (fungsi Agent ni sekali pakai, dicipta sekali untuk SATU hos sahaja bagi SATU
+// percubaan sambungan, ditutup lepas selesai — bukan dikongsi rentas permintaan).
+function buatDispatcherTerkunci(hostnameDijangka, senaraiAlamat) {
+  const hosLower = hostnameDijangka.toLowerCase();
+  return new Agent({
+    connect: {
+      lookup: (hostnameDiminta, opsyen, callback) => {
+        if ((hostnameDiminta || '').toLowerCase() !== hosLower) {
+          // Sepatutnya TIDAK PERNAH berlaku — Agent ni dicipta khusus untuk SATU hos sahaja,
+          // sekali pakai bagi SATU percubaan sambungan. Gagal selamat (tolak) kalau entah
+          // bagaimana ada percubaan sambung ke hos LAIN melalui Agent terkunci ni.
+          callback(new Error(`Cubaan sambung ke hos tidak dijangka: ${hostnameDiminta}`));
+          return;
+        }
+        callback(null, senaraiAlamat.map(({ address, family }) => ({ address, family })));
+      },
+    },
+  });
+}
+
 /**
  * Ganti terus `fetch()` untuk apa-apa URL yang datang daripada input editor (sumber RSS, senarai
  * rujukan slot, URL citation AI, semakan pautan mati) — sahkanUrlSelamatUntukFetch() SAHAJA
@@ -105,7 +143,12 @@ export class RalatUrlTakSelamat extends Error {}
  * 302 ke `http://127.0.0.1/...` dan `fetch({redirect:'follow'})` akan ikut terus tanpa sesahkan
  * semula sasaran (2026-08-08, dapatan audit keselamatan ChatGPT P1-02). Fungsi ni sahkan SETIAP
  * URL dalam rantaian pelencongan (bukan cuma yang pertama) sebelum diikuti, dengan had bilangan
- * pelencongan supaya tak berputar tanpa henti.
+ * pelencongan supaya tak berputar tanpa henti. Setiap hop turut KUNCI sambungan ke IP yang
+ * disahkan bagi hop tu (lihat buatDispatcherTerkunci() di atas — pertahanan DNS-rebinding).
+ *
+ * Guna `fetch` undici (bukan `fetch` bawaan Node global) SEMATA-MATA supaya boleh hantar
+ * `dispatcher` tersuai — dua-dua sebenarnya pelaksanaan SAMA (fetch bawaan Node dibina atas
+ * undici), jadi kelakuan tak berbeza untuk pemanggil sedia ada.
  */
 export async function fetchSelamat(url, options = {}, { hadPelencongan = HAD_PELENCONGAN_LALAI } = {}) {
   let urlSemasa = url;
@@ -114,7 +157,17 @@ export async function fetchSelamat(url, options = {}, { hadPelencongan = HAD_PEL
     if (!semakan.selamat) {
       throw new RalatUrlTakSelamat(semakan.sebab);
     }
-    const res = await fetch(urlSemasa, { ...options, redirect: 'manual' });
+    const hostnameSemasa = new URL(urlSemasa).hostname;
+    const dispatcher = buatDispatcherTerkunci(hostnameSemasa, semakan.alamat);
+    let res;
+    try {
+      res = await fetchUndici(urlSemasa, { ...options, redirect: 'manual', dispatcher });
+    } finally {
+      // close() (bukan destroy()) — biar permintaan/respons yang sedang diproses (cth res.text()
+      // pemanggil selepas fungsi ni pulang) selesai dahulu sebelum soket benar-benar ditutup;
+      // Agent ni sekali pakai (tak dikongsi), jadi tiada kesan kepada permintaan lain.
+      dispatcher.close().catch(() => {});
+    }
     const lokasi = (res.status >= 300 && res.status < 400) ? res.headers.get('location') : null;
     if (!lokasi) return res;
     try {

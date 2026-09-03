@@ -31,6 +31,7 @@
     "sanitize-html": "^2.17.6",
     "satori": "^0.33.4",
     "sqlite3": "5.1.7",
+    "undici": "^8.10.1",
     "vite": "^6.2.3"
   },
   "devDependencies": {

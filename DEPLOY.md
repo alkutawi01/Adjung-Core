@@ -16,11 +16,17 @@ deploy rutin. Untuk deploy rutin sedia ada (kod baharu ke server yang dah wujud)
 
 ```bash
 git push origin main
-ssh adjung-brief-prod "cd /var/www/adjung-brief && git pull && npm run build && pm2 restart adjung-brief"
+ssh adjung-brief-prod "cd /var/www/adjung-brief && git pull && npm install && npm run build && pm2 restart adjung-brief"
 ```
 
-(Backend sahaja, tiada perubahan `.tsx`/`.ts` frontend — boleh langkau `npm run build`,
-cukup `git pull && pm2 restart`.)
+(Backend sahaja, tiada perubahan `.tsx`/`.ts` frontend DAN tiada perubahan `package.json` —
+boleh langkau `npm install && npm run build`, cukup `git pull && pm2 restart`.)
+
+**`npm install` WAJIB disertakan** (ditambah 2026-09-03, selepas dependency `undici`
+ditambah untuk pembetulan keselamatan DNS-rebinding, `core/utils/urlSafety.js`) — arahan
+LAMA (`git pull && npm run build` sahaja, tiada `npm install`) akan GAGAL/ranap pelayan
+sebaik pull membawa `package.json` yang perlukan pakej baharu tapi tak pernah dipasang.
+Jangan guna arahan lama yang tersimpan di skrin/nota sebelum tarikh ni.
 
 **Claude ada kunci SSH khas** (`adjung-brief-claude`, ditambah ke `authorized_keys`
 Droplet 31/8/2026 selepas kebenaran eksplisit Izzat via `.claude/settings.json`
