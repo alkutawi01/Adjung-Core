@@ -24,10 +24,15 @@ jobs:
       # berasingan yang cuma mount ${{ github.workspace }} (jadi /github/workspace di dalam
       # kontena), /tmp runner TAK kelihatan langsung dalam kontena tu ("no such file or
       # directory" 2026-09-03 selepas cuba /tmp/deploy_key).
+      # chmod 644 (bukan 600) — ssh-action jalankan proses SSH sebagai UID BERBEZA di dalam
+      # kontena Docker berbanding UID yang cipta fail ni di runner (2026-09-03, "permission
+      # denied" selepas 600 disahkan gagal). Kunci ni sekali-pakai, wujud sekejap sahaja dalam
+      # runner ephemeral yang dimusnahkan lepas job tamat — risiko keselamatan longgarkan baca
+      # boleh diabaikan berbanding kegagalan deploy berterusan.
       - name: Nyahkod kunci SSH
         run: |
           echo "${{ secrets.DEPLOY_SSH_KEY }}" | base64 -d > "${{ github.workspace }}/deploy_key"
-          chmod 600 "${{ github.workspace }}/deploy_key"
+          chmod 644 "${{ github.workspace }}/deploy_key"
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
