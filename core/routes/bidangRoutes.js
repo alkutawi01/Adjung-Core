@@ -93,11 +93,22 @@ export function createBidangRoutes(dbAll, dbGet) {
       const totalRow = await dbGet(`SELECT COUNT(*) as total ${whereClause}`, [cat.name]);
       const total = totalRow ? Number(totalRow.total) || 0 : 0;
 
+      // Susun approved DAHULU (semuanya, ikut tarikh), BARU archived (2026-09-03, dapatan
+      // Izzat — tangkapan skrin "ARKIB bocor ke TERKINI") — klien potong senarai gabungan ni
+      // secara KEDUDUKAN semata (page=1/perPage=10 = "TERKINI", offset seterusnya = "Koleksi
+      // Terdahulu"), TIADA penapis status berasingan dihantar dari klien. Susunan LAMA (semata
+      // ikut er.createdAt DESC merentasi KEDUA-DUA status serentak) bermakna kandungan yang
+      // BARU diarkibkan (putaran 24 jam/manual, tarikh siaran asal masih baharu) boleh menduduki
+      // 10 kedudukan teratas gabungan tu — terpapar dalam "TERKINI" walaupun dah bukan aktif,
+      // membelakangi niat seksyen tu (rujuk komen "10 artikel approved terbaharu" di
+      // HalamanBidang.tsx). Kesan sampingan sengaja diterima: kalau Bidang ada KURANG drpd
+      // `perPage` kandungan approved, baki slot TERKINI diisi archived terbaharu (fallback
+      // munasabah — lebih baik drpd seksyen TERKINI kosong).
       const rows = await dbAll(`
         SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt, er.status,
                ${attrSelects}
         ${whereClause}
-        ORDER BY er.createdAt DESC
+        ORDER BY (er.status = 'approved') DESC, er.createdAt DESC
         LIMIT ? OFFSET ?
       `, [cat.name, perPage, offset]);
 
