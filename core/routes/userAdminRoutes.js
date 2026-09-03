@@ -99,11 +99,25 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // dicap semasa terbit (lihat server.js syncManualObjectsForSlot) — bukan kiraan sempurna
       // (satu sesi Simpan/Terbit = satu nama editor untuk SEMUA item dalam sesi tu, lihat nota
       // sedia ada di server.js), tapi lebih jujur daripada angka rekaan yang wujud dulu.
+      //
+      // Skop ikut revisionId TERKINI sahaja (2026-09-03, dapatan bug-hunt susulan pepijat
+      // version-chain GET /content/all) — objek yang disunting >1 kali (Semakan Kandungan)
+      // ada BERBILANG baris `editorial_attribute_values` bagi attributeId='editorName' SATU
+      // objek (satu bagi setiap revisi lama DAN revisi terkini, lihat komen PATCH /content/:id
+      // di contentRoutes.js). Query lama `WHERE attributeId = 'editorName' AND valueText = ?`
+      // (tiada `revisionId`) mengira baris LAMA sekali — kalau kandungan disunting editor LAIN
+      // selepas ni (editorName attribut ditukar pada revisi baharu), objek tu KEKAL disumbang
+      // ke kiraan aktiviti editor ASAL selama-lamanya walau kandungan kini milik editor lain
+      // sepenuhnya. Sekat kepada revisionId = MAX(version) objek tu sahaja, corak SAMA seperti
+      // query "menunggu" di atas (baris ~53-59).
       const staff = await Promise.all((users || []).map(async (u) => {
         const countRow = await dbGet(
           `SELECT COUNT(DISTINCT eav.objectId) AS cnt
            FROM editorial_attribute_values eav
-           WHERE eav.attributeId = 'editorName' AND eav.valueText = ?`,
+           INNER JOIN (SELECT objectId, MAX(version) mv FROM editorial_revisions GROUP BY objectId) lv
+             ON lv.objectId = eav.objectId
+           INNER JOIN editorial_revisions er ON er.objectId = eav.objectId AND er.version = lv.mv
+           WHERE eav.attributeId = 'editorName' AND eav.valueText = ? AND eav.revisionId = er.id`,
           [u.penName || '']
         );
         const roles = rolesByUser[u.id] || [];
