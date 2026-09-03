@@ -578,11 +578,24 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         ORDER BY eo.slotIndex ASC, eo.createdAt ASC
       `);
 
-      const objectIds = rows.map(r => r.objectId);
+      // Skop ikut revisionId TERKINI (bukan objectId sahaja) — 2026-09-03, dapatan bug-hunt.
+      // PATCH /content/:id (edit ~baris 1158 di bawah) salin SEMUA atribut lama ke revisionId
+      // BAHARU setiap kali kandungan disunting (supaya medan tak disentuh PATCH tak "hilang"),
+      // jadi kandungan dengan >1 revisi (version chain) ada BERBILANG baris
+      // editorial_attribute_values bagi SATU attributeId sama — satu bagi setiap revisi lama DAN
+      // revisi terkini. Query lama `WHERE objectId IN (...)` (tiada `revisionId`) menarik SEMUA
+      // baris tu serentak, dan gelung JS ikut sahaja SUSUNAN BALASAN SQL (tiada `ORDER BY`,
+      // sifatnya TAK DIJAMIN oleh SQLite) untuk tentukan baris MANA menang bila attributeId sama
+      // ditulis-ganti berkali-kali dalam peta — Desk/Topik/Sumber/Imej/Nota yang terpapar di
+      // Indeks/Semakan Kandungan boleh senyap terbit daripada revisi LAMA, bukan revisi terkini,
+      // bergantung urutan balasan storan yang berubah-ubah. Sekat kepada revisionId yang SAMA
+      // dengan `rows` di atas (sudah MAX(version) per objek) — setiap objectId cuma sumbang SATU
+      // set atribut yang betul-betul sepadan revisi dipaparkan.
+      const revisionIds = rows.map(r => r.revisionId);
       let attrsByObject = {};
-      if (objectIds.length > 0) {
-        const placeholders = objectIds.map(() => '?').join(',');
-        const attrRows = await dbAll(`SELECT * FROM editorial_attribute_values WHERE objectId IN (${placeholders})`, objectIds);
+      if (revisionIds.length > 0) {
+        const placeholders = revisionIds.map(() => '?').join(',');
+        const attrRows = await dbAll(`SELECT * FROM editorial_attribute_values WHERE revisionId IN (${placeholders})`, revisionIds);
         for (const a of attrRows) {
           if (!attrsByObject[a.objectId]) attrsByObject[a.objectId] = {};
           attrsByObject[a.objectId][a.attributeId] = a.valueText;
