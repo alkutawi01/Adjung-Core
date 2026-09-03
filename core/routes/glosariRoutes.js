@@ -185,6 +185,58 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
+  // PATCH /glosari/:id — sunting istilah/maksud SAHAJA (2026-09-03, dapatan bug-hunt,
+  // diluluskan Izzat) — sebelum ni Glosari SATU-SATUNYA modul rujukan (Ejaan/Pemenggalan ada)
+  // tanpa laluan sunting untuk medan asasnya; satu-satunya jalan betulkan silap taip ialah
+  // padam + cipta semula, yang turut musnahkan SEMUA Sense berasaskan-Bidang (ON DELETE
+  // CASCADE) untuk istilah tu. SENGAJA TAK sentuh glosari_sense/glosari_sense_bidang langsung
+  // — sunting Sense sedia ada kekal laluan berasingan (PATCH /glosari/sense/:senseId di bawah).
+  router.patch('/glosari/:id', requirePermission('manageEditorial'), async (req, res) => {
+    try {
+      const sedia = await dbGet('SELECT id FROM glosari_istilah WHERE id = ?', [req.params.id]);
+      if (!sedia) return res.status(404).json({ error: 'Istilah tidak dijumpai.' });
+
+      const istilah = (req.body?.istilah || '').trim();
+      const elakkan = (req.body?.elakkan || '').trim();
+      const maksud = (req.body?.maksud || '').trim();
+
+      if (!istilah) return res.status(400).json({ error: 'Istilah wajib diisi.' });
+      if (istilah.length > HAD_ISTILAH) return res.status(400).json({ error: `Istilah tidak boleh melebihi ${HAD_ISTILAH} aksara.` });
+      if (elakkan.length > HAD_ELAKKAN) return res.status(400).json({ error: `Senarai "elakkan" tidak boleh melebihi ${HAD_ELAKKAN} aksara.` });
+      if (maksud.length > HAD_MAKSUD) return res.status(400).json({ error: `Maksud tidak boleh melebihi ${HAD_MAKSUD} aksara.` });
+
+      // Satu istilah satu entri (sama gerbang POST) — kecuali diri sendiri.
+      const pertindihan = await dbGet('SELECT id FROM glosari_istilah WHERE LOWER(istilah) = LOWER(?) AND id != ?', [istilah, req.params.id]);
+      if (pertindihan) return res.status(400).json({ error: `Istilah "${istilah}" sudah ada dalam glosari.` });
+
+      // Maksud wajib KECUALI istilah ni sudah ada sekurang-kurangnya satu Sense (definisi
+      // datang dari situ) — sama syarat "sekurang-kurangnya SATU sumber definisi" di POST.
+      if (!maksud) {
+        const adaSense = await dbGet('SELECT id FROM glosari_sense WHERE istilahId = ? LIMIT 1', [req.params.id]);
+        if (!adaSense) {
+          return res.status(400).json({ error: 'Maksud wajib diisi. Tanpanya istilah tidak akan dipaparkan kepada pembaca (tiada Sense tersedia).' });
+        }
+      }
+
+      await dbRun('UPDATE glosari_istilah SET istilah = ?, elakkan = ?, maksud = ? WHERE id = ?', [istilah, elakkan, maksud, req.params.id]);
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'sunting-glosari',
+        targetType: 'glosari',
+        targetId: req.params.id,
+        detail: istilah,
+      });
+
+      const baris = await dbGet('SELECT * FROM glosari_istilah WHERE id = ?', [req.params.id]);
+      res.json({ success: true, entri: barisKepadaEntri(baris) });
+    } catch (err) {
+      console.error('PATCH glosari error:', err);
+      res.status(500).json({ error: 'Gagal mengemas kini istilah. ' + (err.message || '') });
+    }
+  });
+
   router.delete('/glosari/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const sedia = await dbGet('SELECT id FROM glosari_istilah WHERE id = ?', [req.params.id]);

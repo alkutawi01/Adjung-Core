@@ -185,6 +185,51 @@ export const EditorialConsole: React.FC = () => {
     }
   };
 
+  // Sunting istilah/maksud sedia ada (2026-09-03, dapatan bug-hunt, diluluskan Izzat) — sebelum
+  // ni Glosari SATU-SATUNYA modul rujukan (Ejaan/Pemenggalan ada) TANPA laluan sunting untuk
+  // medan asasnya (istilah/maksud); satu-satunya cara betulkan silap taip ialah padam + cipta
+  // semula, yang turut musnahkan SEMUA Sense berasaskan-Bidang tersusun untuk istilah tu (ON
+  // DELETE CASCADE). Dialog BERASINGAN drpd "Tambah Istilah" (yang cipta istilah+Sense pertama
+  // SERENTAK) — sunting ni SENGAJA cuma sentuh istilah/maksud (PATCH /glosari/:id di pelayan
+  // pun begitu), Sense sedia ada langsung tak disentuh.
+  const [dialogSuntingGlosari, setDialogSuntingGlosari] = useState(false);
+  const [editGlosariId, setEditGlosariId] = useState<string | null>(null);
+  const [geIstilah, setGeIstilah] = useState('');
+  const [geMaksud, setGeMaksud] = useState('');
+  const [ralatEditGlosari, setRalatEditGlosari] = useState('');
+  const [menghantarEditGlosari, setMenghantarEditGlosari] = useState(false);
+
+  const bukaSuntingGlosari = (g: EntriGlosari) => {
+    setEditGlosariId(g.id);
+    setGeIstilah(g.istilah);
+    setGeMaksud(g.maksud);
+    setRalatEditGlosari('');
+    setDialogSuntingGlosari(true);
+  };
+
+  const suntingGlosari = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (menghantarEditGlosari || !editGlosariId) return;
+    setRalatEditGlosari('');
+    setMenghantarEditGlosari(true);
+    try {
+      const res = await fetch(`/api/system/glosari/${editGlosariId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ istilah: geIstilah, maksud: geMaksud }),
+      });
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini istilah.');
+      setDialogSuntingGlosari(false);
+      setEditGlosariId(null);
+      muatGlosari();
+    } catch (err: any) {
+      setRalatEditGlosari(err.message || 'Gagal mengemas kini istilah.');
+    } finally {
+      setMenghantarEditGlosari(false);
+    }
+  };
+
   // ── Urus Sense (Glosari Berasaskan Bidang) ──────────────────────────────────────
   // Editor TAK PERNAH pilih Sense manual pada kemunculan istilah (docs v3, Seksyen 6) — panel
   // ni cuma untuk KETUA EDITOR/PENOLONG tetapkan definisi ikut Bidang sekali, resolusi automatik
@@ -724,6 +769,53 @@ export const EditorialConsole: React.FC = () => {
             </EditorDialog>
           )}
 
+          {dialogSuntingGlosari && (
+            <EditorDialog
+              tajuk="Sunting Istilah Glosari"
+              onTutup={() => { setDialogSuntingGlosari(false); setEditGlosariId(null); setRalatEditGlosari(''); }}
+              saiz="lg"
+              tindakan={
+                <>
+                  <Button variant="secondary" onClick={() => { setDialogSuntingGlosari(false); setEditGlosariId(null); setRalatEditGlosari(''); }}>
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit" form="borang-sunting-glosari" variant="primary"
+                    disabled={menghantarEditGlosari || !geIstilah.trim()}
+                  >
+                    {menghantarEditGlosari ? 'Menyimpan…' : 'Simpan'}
+                  </Button>
+                </>
+              }
+            >
+              {/* SENGAJA cuma istilah/maksud — TIADA medan Sense di sini. Sunting Sense sedia
+                  ada kekal melalui "Urus Sense" (butang lajur Sense di jadual), elak dua borang
+                  bertindih menguruskan data sama secara berlainan. */}
+              <form id="borang-sunting-glosari" onSubmit={suntingGlosari} className="space-y-4">
+                <FormColumn saiz="sm">
+                  <label className="block">
+                    <span className={LABEL_BORANG}>Istilah</span>
+                    <input
+                      type="text" value={geIstilah} onChange={(e) => setGeIstilah(e.target.value)}
+                      className={INPUT_BORANG}
+                    />
+                  </label>
+                </FormColumn>
+
+                <label className="block">
+                  <span className={LABEL_BORANG}>Maksud (fallback)</span>
+                  <textarea
+                    value={geMaksud} onChange={(e) => setGeMaksud(e.target.value)} rows={3}
+                    placeholder="Penjelasan ringkas untuk pembaca — fallback bila tiada Sense khusus/am sepadan"
+                    className={`${INPUT_BORANG} resize-y`}
+                  />
+                </label>
+
+                {ralatEditGlosari && <MesejStatus tone="error">{ralatEditGlosari}</MesejStatus>}
+              </form>
+            </EditorDialog>
+          )}
+
           <PanelCard className="space-y-3 text-xs">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -791,16 +883,28 @@ export const EditorialConsole: React.FC = () => {
                               </button>
                             </span>
                           ) : (
-                            <Tooltip text="Buang daripada glosari">
-                              <button
-                                type="button"
-                                onClick={() => setConfirmBuangGlosari(g.id)}
-                                aria-label="Buang daripada glosari"
-                                className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </Tooltip>
+                            <span className="inline-flex items-center gap-2.5">
+                              <Tooltip text="Sunting istilah/maksud">
+                                <button
+                                  type="button"
+                                  onClick={() => bukaSuntingGlosari(g)}
+                                  aria-label="Sunting istilah/maksud"
+                                  className="text-stone-400 hover:text-Adjung-maroon cursor-pointer"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              </Tooltip>
+                              <Tooltip text="Buang daripada glosari">
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmBuangGlosari(g.id)}
+                                  aria-label="Buang daripada glosari"
+                                  className="text-stone-400 hover:text-[var(--color-error)] cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </Tooltip>
+                            </span>
                           )}
                         </td>
                       </tr>
