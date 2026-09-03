@@ -951,6 +951,7 @@ function PermohonanModal({ permohonan, onTutup, onSelesai }: {
     });
     const data = await bacaJsonSelamat(res).catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Gagal merekodkan keputusan.');
+    return data;
   };
 
   const terima = async () => {
@@ -1008,8 +1009,17 @@ function PermohonanModal({ permohonan, onTutup, onSelesai }: {
     setMemproses(true);
     setRalat('');
     try {
-      await rekodKeputusan('ditolak');
-      onSelesai('Permohonan ditolak dan direkodkan.');
+      // E-mel makluman penolakan (2026-09-03, soalan terbuka bug-hunt, diluluskan Izzat) —
+      // permohonanEditorRoutes.js kini hantar e-mel neutral ke pemohon bila ditolak, pulangkan
+      // emelDihantar SEBENAR (sama corak terima() di atas) — jangan dakwa "dimaklumkan" kalau
+      // hantaran sebenarnya gagal.
+      const data = await rekodKeputusan('ditolak');
+      onSelesai(
+        data?.emelDihantar
+          ? 'Permohonan ditolak dan direkodkan. Pemohon dimaklumkan melalui e-mel.'
+          : 'Permohonan ditolak dan direkodkan, tetapi e-mel makluman GAGAL dihantar ke pemohon.',
+        data?.emelDihantar ? 'success' : 'error'
+      );
     } catch (e: any) {
       setRalat(e.message || 'Gagal menolak permohonan.');
     } finally {

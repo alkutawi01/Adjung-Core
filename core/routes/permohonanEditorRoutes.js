@@ -2,6 +2,7 @@ import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { hantarEmel } from '../email/MailSender.js';
 
 // Laluan Permohonan Editor (2026-08-25, arahan Izzat — modul KIV 14/8 "Aliran Permohonan
 // Editor" kini dibina). Borang awam "Sertai Pasukan Editorial" (HalamanSertai.tsx) menghantar
@@ -221,7 +222,24 @@ export function createPermohonanEditorRoutes(dbAll, dbGet, dbRun) {
         targetId: id,
         detail: `${rekod.namaPenuh} (${rekod.emel})${catatan ? ` — ${String(catatan).trim()}` : ''}`,
       });
-      res.json({ success: true });
+
+      // E-mel makluman penolakan (2026-09-03, soalan terbuka bug-hunt, diluluskan Izzat) —
+      // sebelum ni cuma 'diterima' hantar e-mel (jemputan); 'ditolak' rekod senyap dalam DB,
+      // pemohon yang hantar borang awam TAK PERNAH tahu keputusan melainkan dia semak sendiri
+      // (borang tiada laluan semak status). Neutral SENGAJA — tiada sebab terperinci (catatan
+      // semakan kekal DALAMAN, bukan untuk pemohon).
+      let emelDihantar = true;
+      if (keputusan === 'ditolak') {
+        const hantaran = await hantarEmel({
+          to: rekod.emel,
+          subject: 'Permohonan Sertai Adjung Brief',
+          html: `<p>Salam ${rekod.namaPenuh || ''},</p>` +
+            `<p>Terima kasih di atas minat anda menyertai pasukan editorial Adjung Brief. Selepas semakan, kami memutuskan untuk tidak meneruskan permohonan anda pada masa ini.</p>` +
+            `<p>Kami menghargai masa dan usaha anda memohon, dan tidak menutup kemungkinan untuk permohonan akan datang.</p>`,
+        });
+        emelDihantar = hantaran.berjaya;
+      }
+      res.json({ success: true, emelDihantar });
     } catch (err) {
       console.error('POST permohonan-editor keputusan error:', err);
       res.status(500).json({ error: 'Gagal merekodkan keputusan.' });
