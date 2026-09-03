@@ -874,7 +874,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       {activeTab === 'tetapan' && (
         isPentadbir
           ? <TetapanConsole isPentadbir={isPentadbir} initialSubTab={tetapanTujuSubTab} />
-          : <AksesDitolak mesej="Tetapan Sistem khusus untuk Pentadbir." />
+          : <AksesDitolak mesej="Tetapan khusus untuk Pentadbir." />
       )}
 
       {/* Panduan (Fasa 16, 2026-08-02) — panduan operasi harian sebenar, lihat PanduanConsole.tsx. */}
