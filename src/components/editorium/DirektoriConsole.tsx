@@ -734,6 +734,32 @@ function ProfilAnggotaModal({
     }
   };
 
+  // Jemputan belum diaktifkan (2026-09-03, soalan terbuka bug-hunt, diluluskan Izzat) — username
+  // sementara berawalan "pending_" (AWALAN_USERNAME_SEMENTARA, core/auth/TokenLaluan.js — literal
+  // disalin di sini sebab modul server tak boleh diimport terus ke klien) bermaksud akaun ni
+  // dicipta tapi editor belum tetapkan identiti/kata laluan sendiri melalui pautan jemputan.
+  const jemputanBelumAktif = staff.username.startsWith('pending_');
+  const [menghantarSemula, setMenghantarSemula] = useState(false);
+  const [ralatHantarSemula, setRalatHantarSemula] = useState('');
+  const hantarSemulaJemputan = async () => {
+    setMenghantarSemula(true);
+    setRalatHantarSemula('');
+    try {
+      const res = await fetch(`/api/system/users/${staff.id}/hantar-semula-jemputan`, { method: 'POST' });
+      const data = await bacaJsonSelamat(res).catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal menghantar semula jemputan.');
+      onBerjaya(
+        data.emelDihantar
+          ? `E-mel jemputan dihantar semula ke ${staff.email}.`
+          : `Token jemputan dijana semula, tetapi e-mel GAGAL dihantar ke ${staff.email}. Semak konfigurasi e-mel sistem.`
+      );
+    } catch (e: any) {
+      setRalatHantarSemula(e.message || 'Gagal menghantar semula jemputan.');
+    } finally {
+      setMenghantarSemula(false);
+    }
+  };
+
   const togolPeranan = async (roleId: string) => {
     const roles = staff.roles.includes(roleId)
       ? staff.roles.filter(r => r !== roleId)
@@ -780,6 +806,20 @@ function ProfilAnggotaModal({
             <div><span className="text-stone-500 block text-[10px] font-semibold uppercase mb-1">Status</span><StatusBadge tone={STATUS_TONE[staff.status]} label={staff.status} /></div>
             <div><span className="text-stone-500 block text-[10px] font-semibold uppercase">Akaun Dicipta</span><strong className="font-mono font-bold">{new Date(staff.createdAt).toLocaleDateString('ms-MY')}</strong></div>
           </div>
+          {jemputanBelumAktif && (
+            <div className="pt-2 border-t border-stone-200 flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-stone-500 text-[11px]">Jemputan belum diaktifkan — editor belum tetapkan identiti/kata laluan sendiri.</span>
+              <button
+                type="button"
+                onClick={hantarSemulaJemputan}
+                disabled={menghantarSemula}
+                className="px-3 py-1.5 rounded border border-Adjung-maroon text-Adjung-maroon text-[11px] font-semibold hover:bg-Adjung-maroon hover:text-white transition-colors disabled:opacity-50"
+              >
+                {menghantarSemula ? 'Menghantar…' : 'Hantar Semula Jemputan'}
+              </button>
+            </div>
+          )}
+          {ralatHantarSemula && <MesejStatus tone="error">{ralatHantarSemula}</MesejStatus>}
         </div>
 
         <div className="bg-stone-50 p-4 rounded border border-stone-200 space-y-3 font-sans text-xs">

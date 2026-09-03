@@ -258,6 +258,54 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
     }
   }));
 
+  // POST /api/system/users/:id/hantar-semula-jemputan (2026-09-03, soalan terbuka bug-hunt,
+  // diluluskan Izzat) — sebelum ni TIADA cara pulihkan jemputan yang gagal/tamat tempoh selain
+  // pulih terus DB. Jana token 48-jam BAHARU + hantar e-mel jemputan sekali lagi, guna templat
+  // SAMA seperti POST /users di atas. Digerbang hanya untuk akaun yang MASIH belum diaktifkan
+  // (username sementara berawalan AWALAN_USERNAME_SEMENTARA) — akaun yang dah aktif tetapkan
+  // identiti sendiri, hantar semula "jemputan" kepada mereka tak bermakna/mengelirukan.
+  router.post('/users/:id/hantar-semula-jemputan', requirePermission('manageAccounts'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const sedia = await dbGet('SELECT id, username, email, role FROM users WHERE id = ?', [id]);
+      if (!sedia) return res.status(404).json({ error: 'Akaun tidak dijumpai.' });
+      if (!(sedia.username || '').startsWith(AWALAN_USERNAME_SEMENTARA)) {
+        return res.status(400).json({ error: 'Akaun ini sudah diaktifkan — jemputan tak boleh dihantar semula.' });
+      }
+      const roleRows = await dbAll('SELECT roleId FROM user_roles WHERE userId = ?', [id]);
+      const rolesToAssign = (roleRows || []).map((r) => r.roleId);
+
+      const tokenJemputan = crypto.randomBytes(32).toString('hex');
+      const tamatTempoh = janaTokenTamatTempoh(48);
+      await dbRun('UPDATE users SET resetToken = ?, resetTokenExpiresAt = ?, updatedAt = ? WHERE id = ?', [tokenJemputan, tamatTempoh, new Date().toISOString(), id]);
+
+      const baseUrlJemputan = baseUrlEmel();
+      const pautanJemputan = `${baseUrlJemputan}/tetapkan-kata-laluan?token=${tokenJemputan}`;
+      const hantaran = await hantarEmel({
+        to: sedia.email,
+        subject: 'Jemputan Sertai Adjung Brief',
+        html: `<p>Salam,</p>` +
+          `<p>Anda telah dijemput sertai Adjung Brief sebagai ${rolesToAssign.join(', ') || sedia.role}.</p>` +
+          `<p>Klik pautan berikut untuk menetapkan nama pena, ID pengguna dan kata laluan akaun anda (sah selama 48 jam):</p>` +
+          `<p><a href="${pautanJemputan}">${pautanJemputan}</a></p>`,
+      });
+
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'hantar-semula-jemputan',
+        targetType: 'akaun',
+        targetId: id,
+        detail: sedia.email,
+      });
+
+      res.json({ success: true, emelDihantar: hantaran.berjaya });
+    } catch (err) {
+      console.error('POST hantar-semula-jemputan error:', err);
+      res.status(500).json({ error: 'Gagal menghantar semula jemputan. ' + (err.message || '') });
+    }
+  });
+
   // PATCH /api/system/users/:id/status — Aktif/Cuti/Tidak Aktif/Ditamatkan.
   router.patch('/users/:id/status', requirePermission('manageAccounts'), async (req, res) => {
     try {
