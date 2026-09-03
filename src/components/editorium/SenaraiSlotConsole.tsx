@@ -411,6 +411,13 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
     const awal = editorBagiSlot(slotIndex).map(p => p.editorId);
     setDrafEditor(awal);
     setDrafEditorAwal(awal);
+    // Muat semula senarai pengguna LIVE (2026-09-03, audit UX) — `pengguna` dimuat SEKALI sahaja
+    // semasa lekapan konsol (muatSemuaData, useEffect []), jadi pengguna baharu/suspended selepas
+    // konsol dibuka tak pernah terpapar dalam pemilih ni sehingga muat semula seluruh halaman.
+    // Corak sama seperti EditoriumView.tsx (muat semula bila pemilih slot dibuka).
+    fetch('/api/db-state').then(r => r.json())
+      .then((d) => { if (Array.isArray(d?.users)) setPengguna(d.users.filter((u: Pengguna) => !u.isSuspended)); })
+      .catch(() => {});
   };
 
   const tutupEditor = () => {
