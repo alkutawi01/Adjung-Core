@@ -3,18 +3,25 @@ import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { requireAuth } from '../middleware/auth.js';
 
 const execFileAsync = promisify(execFile);
 
 export function createChangelogRoutes(rootDir) {
   const router = express.Router();
 
+  // requireAuth di KEDUA-DUA laluan (2026-09-03, dapatan bug-hunt, diluluskan Izzat) — sebelum ni
+  // tiada sekatan log masuk langsung, terdedah kepada sesiapa di internet: sejarah commit git
+  // projek (mesej commit dalaman, kadang sebut isu keselamatan/pepijat SEBELUM dibaiki) dan log
+  // perubahan UI/UX sistem. requireAuth sahaja (bukan requirePermission khusus) — sesiapa dalam
+  // pasukan (Editor ke atas) boleh baca, cukup untuk rujukan Perlembagaan, cuma orang luar disekat.
+
   // GET /api/system/rules-changelog — git commit history for core/editorial/ and server.js, so the
   // Perlembagaan reference page can show which real commit changed a geometry/budget rule, and the
   // chief editor has a real commit hash they can ask to have reverted. Read-only, never mutates the
   // repo. If git isn't available in this environment (e.g. a deploy without a .git directory), fails
   // soft with an empty list rather than breaking the page that renders it.
-  router.get('/rules-changelog', async (req, res) => {
+  router.get('/rules-changelog', requireAuth, async (req, res) => {
     try {
       const { stdout } = await execFileAsync('git', [
         'log',
@@ -42,7 +49,7 @@ export function createChangelogRoutes(rootDir) {
   // like /rules-changelog above, which only carries git's per-second commit timestamp and only
   // updates when a commit happens). Read-only here; fails soft with an empty list if the log file
   // doesn't exist yet.
-  router.get('/ui-ux-changelog', (req, res) => {
+  router.get('/ui-ux-changelog', requireAuth, (req, res) => {
     try {
       const logPath = path.join(rootDir, 'core', 'data', 'ui_ux_changelog.json');
       if (!fs.existsSync(logPath)) return res.json({ entries: [] });
