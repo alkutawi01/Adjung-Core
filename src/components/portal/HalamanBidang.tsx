@@ -511,6 +511,19 @@ export function HalamanBidang() {
           title={focusItem.title}
           titleRendered={safeParseInline(focusItem.title)}
           body={focusItem.briefLong || focusItem.summary}
+          // Grafik (dapatan bug-hunt 2026-09-03) — `image` sedia ada dalam data artikel (dihantar
+          // bidangRoutes.js, jenis Artikel di atas) tapi TAK PERNAH disalur ke prop `visual`
+          // FocusView di sini, walhal FrontpageView.tsx (laluan biasa) memaparkannya. Kandungan
+          // yang ada imej senyap kehilangannya bila dibuka melalui Halaman Bidang. onError
+          // sorok terus (corak sama FrontpageView.tsx) — imej rosak tak pernah terpapar ikon
+          // pecah pelayar walau sesaat.
+          visual={focusItem.image ? (
+            <img
+              src={focusItem.image}
+              alt={focusItem.title || ''}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          ) : undefined}
           note={undefined}
           source={focusItem.source}
           sourceUrl={focusItem.sourceUrl}
