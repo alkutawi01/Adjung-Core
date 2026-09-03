@@ -149,7 +149,7 @@ export function createDbStateRoutes(dbAll, dbGet) {
         penName: u.penName,
         username: u.username,
         status: u.status,
-        suspended: u.isSuspended === 1,
+        isSuspended: u.isSuspended === 1,
       }));
 
       const profiles = [];
