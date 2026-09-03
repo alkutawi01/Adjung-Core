@@ -741,16 +741,20 @@ const FooterHeightLock: React.FC<{
 // asal, tak hilang kedudukan/konteks bila lompat ke Editorium sunting. Sesi log masuk sama
 // (kuki sesi dikongsi rentas tab origin sama), jadi tab baharu terus log masuk tanpa perlu
 // sign-in semula.
-// Kedudukan DESKTOP (posisi bottom-N/right-N, prop sedia ada) dipeta ke padanan `md:` LITERAL
-// (2026-08-26) — Tailwind JIT imbas rentetan LITERAL dalam source, bukan gabungan rentetan masa
-// jalan (`md:${posisi}` takkan pernah dijana dalam CSS terkompil, sama kelas pepijat "hex mentah
-// runtime" CLAUDE.md rekodkan). Hanya 3 kombinasi wujud merentasi 30 tapak panggilan (disahkan
-// grep) — peta literal ni cukup, tak perlu skema lagi umum.
-const POSISI_DESKTOP_MD: Record<string, string> = {
-  'bottom-8 right-8': 'md:bottom-8 md:right-8',
-  'bottom-6 right-6': 'md:bottom-6 md:right-6',
-  'bottom-4 right-4': 'md:bottom-4 md:right-4',
-};
+// Kedudukan bucu BAWAH-KANAN (prop `posisi`, cth "bottom-8 right-8") SAMA di semua saiz skrin
+// (2026-09-03, pembetulan — Izzat: "letak icon tu di bucu kanan-bawah macam desktop. itu yg
+// asal") — ini reka bentuk ASAL 2026-08-17 ("ikon pensel di bucu bawah-kanan setiap kad").
+//
+// Sesi 2026-08-26 pernah pindahkan kedudukan TELEFON ke atas-kanan (top-10 right-4), atas
+// dakwaan ia akan bertindih dgn badge tarikh siaran/lajur sumber yang disangka di BAWAH kad
+// versi telefon. Dakwaan tu SILAP — badge tarikh siaran (`.tarikh-siaran-badge`, lihat susunan
+// `<BentoInner>`/`<FooterHeightLock>` di bawah) sebenarnya di ATAS-KANAN pada KEDUA-DUA
+// desktop DAN telefon (disahkan kod: kelas `top-N right-N`, DAN override CSS mobile eksplisit
+// `top:16px!important` — tiada satu pun letak badge di bawah). Kesannya, kedudukan "pembetulan"
+// 26/8 tu sebenarnya PINDAHKAN pensel ke bucu YANG SAMA dgn badge tarikh (kedua-duanya
+// atas-kanan) — bertindih terus, punca sebenar aduan Izzat 2026-09-03. Bucu bawah-kanan kekal
+// KOSONG di kedua-dua saiz skrin (disahkan visual telefon 375px) — jadi kedudukan asal 17/8
+// (bottom-N/right-N SAHAJA, tiada override telefon) sememangnya betul sejak awal.
 const EditPensil: React.FC<{
   objectId?: string;
   role?: string;
@@ -760,30 +764,12 @@ const EditPensil: React.FC<{
   // Penyeragaman tooltip 25/8 (arahan Izzat): title= pelayar asal (kotak sistem yang tidak
   // boleh digayakan) ditukar ke komponen Tooltip kongsi — rupa sama dengan semua tooltip lain.
   // Tooltip mengklon butang terus (tiada elemen pembalut), jadi kedudukan absolute kekal tepat.
-  //
-  // Kelihatan di TELEFON juga (2026-08-26, susulan pepijat 91fe50a — dahulu `hidden md:block`
-  // terus sorok pensel di telefon elak bertindih badge tarikh siaran/lajur sumber, permintaan
-  // Izzat "pensel edit terus kandungan tu hilang di telefon"). Kedudukan telefon (top-10 right-4)
-  // BERBEZA drpd desktop (bottom-N right-N asal, dikekalkan tak berubah via md: di atas) — diukur
-  // sebenar (375px, pelbagai tier) selesa duduk di ruang kosong antara badge tarikh siaran/eyebrow
-  // (berakhir ~29px) dan tajuk (mula ~60px sekurang-kurangnya), tak bertindih kedua-duanya.
-  //
-  // JANGAN tambah semula `md:right-auto` di sini (dibuang 2026-08-26, aduan Izzat "icon tu
-  // bertindih dgn sumber+tarikh"). Ia dimaksudkan untuk membatalkan `right-4` telefon, tetapi
-  // `md:right-auto` dan `md:right-N` daripada posisiMd ialah DUA utiliti `right` dalam varian
-  // `md:` yang SAMA — pemenangnya ditentukan susunan Tailwind menjana CSS, bukan susunan dalam
-  // atribut class, dan `right-auto` menang. Kesannya `right` jadi auto pada desktop, kedudukan
-  // mendatar jatuh ke posisi STATIK (tepi kiri, diukur 33px daripada tepi kad HERO 1024px) —
-  // betul-betul di atas lajur sumber+tarikh. posisiMd SENTIASA membawa `md:right-N` sendiri,
-  // jadi pembatalan tu memang tak pernah diperlukan. `md:top-auto` KEKAL perlu: posisiMd cuma
-  // membawa `bottom-N`, tanpa pembatalan itu `top-10` telefon terus terpakai di desktop.
-  const posisiMd = POSISI_DESKTOP_MD[posisi] || 'md:bottom-6 md:right-6';
   return (
     <Tooltip text="Sunting kandungan ini (buka tab baharu)">
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); window.open(`/editorium?tab=kandungan&sub=semakan&itemId=${objectId}`, '_blank', 'noopener'); }}
-        className={`absolute top-10 right-4 md:top-auto ${posisiMd} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
+        className={`absolute ${posisi} z-10 p-1 rounded-full bg-black/30 hover:bg-black/60 text-white/70 hover:text-white transition-colors`}
         aria-label="Sunting kandungan ini (buka tab baharu)"
       >
         <Pencil className="w-3 h-3" />
