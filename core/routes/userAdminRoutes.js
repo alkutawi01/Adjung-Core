@@ -107,7 +107,14 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
           [u.penName || '']
         );
         const roles = rolesByUser[u.id] || [];
-        const tertaklukDasarAktif = roles.some((r) => PERANAN_TERPAKAI_DASAR_AKTIF.includes(r)) && !roles.includes('pentadbir');
+        // u.status === 'Aktif' (2026-09-03, dapatan audit) — runSemakanTakAktif() (server.js)
+        // yang KUATKUASAKAN dasar ni cuma pertimbangkan akaun `WHERE u.status = 'Aktif'` (Cuti/
+        // Tidak Aktif/Ditamatkan tak pernah dieskalasi/gantung semasa status tu berkuatkuasa).
+        // Basis paparan ni sebelum ni terlepas syarat status, jadi Direktori boleh papar lencana
+        // amaran tahap 1/2/3 + hari tak aktif MENINGKAT untuk editor yang sedang 'Cuti' — nampak
+        // macam dia bakal digantung walhal enforcement sebenar tak sentuh dia langsung selagi
+        // status bukan 'Aktif'. Satu neraca dikongsi (nota di atas) — ni tutup jurang tu.
+        const tertaklukDasarAktif = u.status === 'Aktif' && roles.some((r) => PERANAN_TERPAKAI_DASAR_AKTIF.includes(r)) && !roles.includes('pentadbir');
         let hariTakAktif = null;
         let tahapAmaran = 0;
         if (tertaklukDasarAktif) {
