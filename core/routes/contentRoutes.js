@@ -900,6 +900,21 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         const nextSummary = summary !== undefined ? summary : rev.summary;
         const sentuhKandunganAtauSlot = title !== undefined || summary !== undefined || slotIndex !== undefined;
 
+        // Gerbang tajuk kosong (2026-09-03, dapatan bug-hunt, diluluskan Izzat) — sepadan gerbang
+        // sedia ada di laluan cipta kandungan baharu (POST /content di bawah: "Tajuk diperlukan").
+        // Sebelum ni laluan edit-cepat (Semakan Kandungan) tiada gerbang langsung: kalau huraian
+        // cukup panjang untuk sendiri capai lantai 80% bajet kad (MIN_TOTAL_USAGE_FRACTION,
+        // ContentBudget.js), validateContentBudget() di bawah TAK menghalang tajuk dikosongkan —
+        // editor boleh terkosongkan tajuk kandungan yang DAH TERBIT tanpa sebarang halangan.
+        // Semak HANYA bila `title` sebenarnya dihantar dalam PATCH ni (bukan retroaktif ke
+        // kandungan lama yang entah bagaimana sudah tajuk kosong sebelum pembetulan ni — sama
+        // falsafah "kandungan sedia ada dikecualikan" macam pengecualian had aksara di bawah).
+        // Huraian TIDAK disekat sama (tak macam Tajuk) sebab tier BAR sengaja tiada medan huraian
+        // (maxBriefAlone === 0, lihat ContentBudget.js) — huraian kosong sah untuk tier tu.
+        if (title !== undefined && (!title || !title.trim())) {
+          return res.status(400).json({ error: 'Tajuk diperlukan.' });
+        }
+
         // Kandungan sedia ada DIKECUALIKAN daripada had yang DIKETATKAN kemudian (2026-08-16,
         // keputusan Izzat: "kandungan yg dah terbit ... tak perlu patuh had aksara baru; hanya
         // kandungan baharu yg perlu patuh"). Senario sebenar yang dilaporkan: kandungan disiarkan
