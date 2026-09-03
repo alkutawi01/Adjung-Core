@@ -533,7 +533,7 @@ export const EditoriumLayout: React.FC<EditoriumLayoutProps> = ({
           (2026-08-07, laporan Izzat: "sidebar menutup footer apabila disematkan"). <aside>
           `fixed` setinggi viewport, jadi tanpa ini teks footer kiri terperangkap DI BAWAH
           sidebar. Nilai mesti kekal sepadan dengan md:pl-* pada <main> di atas. */}
-      <footer className={`border-t border-stone-200 bg-[#FDFDFD] px-4 md:px-8 py-3 font-sans text-[11px] text-stone-400 flex flex-wrap justify-between items-center gap-2 select-none transition-[padding] duration-150 ${disemat ? 'md:pl-[16.5rem]' : ''}`}>
+      <footer className={`border-t border-stone-200 bg-[#FDFDFD] px-4 md:px-8 py-3 font-sans text-[11px] text-stone-400 flex flex-wrap justify-between items-center gap-2 select-none transition-[padding] duration-150 ${disemat ? 'md:pl-60' : ''}`}>
         <div>
           Adjung Brief Editorium · Sistem Kawalan Editorial
         </div>
