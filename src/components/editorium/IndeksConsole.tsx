@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { AlertTriangle, X, Search, Pin, Lock, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
-import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
+import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH, TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
 import { EditorDialog } from '../common/EditorDialog';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
@@ -657,7 +657,22 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // kandungan tanpa sedar. Ticker dan baris baca-sahaja tak boleh dipilih langsung.
   const [pilihan, setPilihan] = useState<Set<string>>(new Set());
   const [tindakanPukalBerjalan, setTindakanPukalBerjalan] = useState(false);
-  const [confirmPukal, setConfirmPukal] = useState<'' | 'Archive' | 'Live' | 'Padam'>('');
+  const [confirmPukal, setConfirmPukal] = useState<'' | 'Archive' | 'Live' | 'Tolak' | 'Padam'>('');
+  // Sebab Penolakan pukal (2026-09-03, keputusan Izzat: bina borang sebab kongsi, bukan buang
+  // cabang kod mati) — SATU sebab dikongsi untuk SEMUA kandungan terpilih dalam satu tindakan
+  // pukal, padan gerbang wajib-isi individu (tolakSebab/confirmTolakId di atas) dan gerbang
+  // pelayan (contentRoutes.js reject-to-draft, tolak sebab kosong 400).
+  const [pukalTolakSebab, setPukalTolakSebab] = useState('');
+  // Slot Bar tak menyokong Tolak-ke-Draf (pelayan tolak 400, lihat TIER_SLOTS.BAR di
+  // contentRoutes.js reject-to-draft) — kalau pilihan merangkumi mana-mana slot Bar, butang
+  // Tolak pukal disembunyikan sepenuhnya (bukan dipaparkan lalu gagal separuh).
+  const pilihanMerangkumiBar = useMemo(
+    () => [...pilihan].some(id => {
+      const rec = items.find(i => i.id === id);
+      return rec != null && TIER_SLOTS.BAR.includes(rec.slotIndex);
+    }),
+    [pilihan, items]
+  );
   const idBolehPilihHalamanIni = useMemo(
     () => pagedRecords
       .filter(r => r.slot !== 'Ticker' && !(currentUserRole === 'EDITOR' && editorViewMode === 'all' && r.editorName !== currentUserName))
@@ -857,7 +872,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const jalankanTindakanPukal = async (tindakan: 'Archive' | 'Live' | 'Tolak' | 'Padam') => {
     const idTerpilih = [...pilihan];
     if (idTerpilih.length === 0) return;
+    const sebabPukal = pukalTolakSebab.trim();
     setConfirmPukal('');
+    setPukalTolakSebab('');
     setActionError(null);
     setTindakanPukalBerjalan(true);
     let berjaya = 0;
@@ -871,7 +888,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           res = await fetch(`/api/system/content/${encodeURIComponent(id)}/reject-to-draft`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sebab: '' }),
+            body: JSON.stringify({ sebab: sebabPukal }),
           });
         } else {
           res = await fetch(`/api/system/content/${encodeURIComponent(id)}`, {
@@ -1246,9 +1263,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       </div>
 
       {/* Bar tindakan pukal (2026-08-08) — muncul HANYA bila ada pilihan, jadi jadual kekal bersih
-          dalam kerja harian biasa. Arkib/Siar boleh terus (kesan boleh diundur); Tolak dan Padam
-          minta pengesahan dahulu sebab kesannya lebih jauh (Tolak buang rekod daripada Indeks,
-          Padam pindah ke Tong Sampah). */}
+          dalam kerja harian biasa. Arkib boleh terus (kesan boleh diundur); Siar, Tolak dan Padam
+          minta pengesahan dahulu sebab kesannya lebih jauh (Siar dedah ke pembaca awam serta-
+          merta, Tolak buang rekod daripada Indeks lalu perlukan sebab wajib, Padam pindah ke Tong
+          Sampah). Tolak pukal (2026-09-03, keputusan Izzat) guna SATU borang sebab dikongsi untuk
+          semua kandungan terpilih — lihat pukalTolakSebab/pilihanMerangkumiBar di atas. */}
       {pilihan.size > 0 && (
         <div className="flex items-center justify-between gap-4 flex-wrap rounded-md border border-Adjung-maroon/30 bg-Adjung-maroon/5 px-4 py-2.5">
           <span className="font-sans text-xs font-semibold text-stone-700">
@@ -1259,6 +1278,28 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
           </span>
           {tindakanPukalBerjalan ? (
             <span className="font-sans text-xs text-stone-500">Memproses…</span>
+          ) : confirmPukal === 'Tolak' ? (
+            <span className="flex items-center gap-2 font-sans text-xs flex-wrap">
+              <span className="text-[var(--color-error)] font-semibold">Tolak {pilihan.size} kandungan, sebab dikongsi:</span>
+              <input
+                type="text"
+                autoFocus
+                value={pukalTolakSebab}
+                onChange={(e) => setPukalTolakSebab(e.target.value)}
+                placeholder="Wajib diisi — dipaparkan kepada penulis"
+                className="min-w-[220px] px-2 py-1 border border-stone-300 rounded font-sans text-[11px] focus:outline-none focus:border-Adjung-maroon"
+              />
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={!pukalTolakSebab.trim()}
+                onClick={() => jalankanTindakanPukal('Tolak')}
+              >
+                Ya, teruskan
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setConfirmPukal(''); setPukalTolakSebab(''); }}>Batal</Button>
+            </span>
           ) : confirmPukal ? (
             <span className="flex items-center gap-2 font-sans text-xs">
               <span className="text-[var(--color-error)] font-semibold">
@@ -1271,6 +1312,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             <span className="flex items-center gap-2 font-sans text-xs">
               <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmPukal('Live')}>Siar</Button>
               <Button type="button" variant="secondary" size="sm" onClick={() => jalankanTindakanPukal('Archive')}>Arkib</Button>
+              {currentUserRole === 'KETUA_EDITOR' && !pilihanMerangkumiBar && (
+                <Button type="button" variant="bahaya" size="sm" onClick={() => { setConfirmPukal('Tolak'); setPukalTolakSebab(''); }}>Tolak</Button>
+              )}
               {currentUserRole === 'KETUA_EDITOR' && (
                 <Button type="button" variant="bahaya" size="sm" onClick={() => setConfirmPukal('Padam')}>Padam</Button>
               )}
