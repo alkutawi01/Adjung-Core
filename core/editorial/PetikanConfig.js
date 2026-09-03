@@ -682,7 +682,21 @@ export function pilihDanSusunKolam(layak, tarikhIso, kuantitiMaksimum = 12) {
     if (!ikutKategori.has(p.kategori)) ikutKategori.set(p.kategori, []);
     ikutKategori.get(p.kategori).push(p);
   }
-  const kunciKategori = [...ikutKategori.keys()].sort();
+  const kunciKategoriTersusun = [...ikutKategori.keys()].sort();
+
+  // Putarkan titik mula round-robin ikut tarikh — kalau tidak, kategori awal abjad
+  // (cth Agama, Ekonomi) sentiasa dapat "slot bonus" round-robin setiap hari, manakala
+  // kategori lewat abjad (cth Sains, Sejarah) sentiasa tercicir. Guna benih sedia ada
+  // (benihDaripadaTarikh) supaya konsisten dgn corak "seeded ikut tarikh" fungsi lain
+  // dalam fail ni — bukan cipta sistem tarikh berasingan. Deterministik: tarikh sama
+  // sentiasa hasilkan susunan sama; tarikh lain berputar offset berbeza.
+  const offsetPutaran = kunciKategoriTersusun.length
+    ? benihDaripadaTarikh(tarikhIso) % kunciKategoriTersusun.length
+    : 0;
+  const kunciKategori = [
+    ...kunciKategoriTersusun.slice(offsetPutaran),
+    ...kunciKategoriTersusun.slice(0, offsetPutaran),
+  ];
 
   const dipilih = [];
   let adaLagi = true;

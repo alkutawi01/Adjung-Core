@@ -185,7 +185,21 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
         `SELECT * FROM permohonan_penaja ${status ? 'WHERE status = ?' : ''} ORDER BY createdAt DESC LIMIT 200`,
         status ? [status] : []
       );
-      res.json(rows.map(({ tokenBayaran, ...baki }) => baki));
+      // Status 'tamat' dikira ON-READ sahaja (keputusan pemilik projek — bukan cron, tidak
+      // ditulis ke DB). Rekod 'aktif' berjulat tarikh (tamatTajaan diisi) yang tarikh
+      // tamatnya sudah berlalu dipaparkan sebagai 'tamat' dalam RESPONS ni sahaja — sama
+      // corak perbandingan tarikh macam `sponsorAktifPadaMasa()` (PenajaEligibility.js).
+      // Rekod bulanan (guna `bulan`, tiada `tamatTajaan`) TIDAK disentuh oleh logik ni.
+      const kini = Date.now();
+      res.json(rows.map(({ tokenBayaran, ...baki }) => {
+        if (baki.status === 'aktif' && baki.tamatTajaan) {
+          const tamat = new Date(baki.tamatTajaan).getTime();
+          if (!Number.isNaN(tamat) && tamat < kini) {
+            return { ...baki, status: 'tamat' };
+          }
+        }
+        return baki;
+      }));
     } catch (err) {
       console.error('GET permohonan-penaja error:', err);
       res.status(500).json({ error: 'Gagal memuatkan senarai permohonan.' });
