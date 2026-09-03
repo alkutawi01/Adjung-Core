@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { AlertTriangle, X, Search, Pin, Lock, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH } from '../../../core/editorial/GeometryConfig.js';
@@ -439,12 +439,20 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   // Muat semula senarai kandungan sahaja (2026-08-08) — diasingkan daripada useEffect pemuatan
   // awal supaya tindakan pukal boleh menyegarkan keadaan sebenar daripada server, bukan meneka
   // kesan sampingan (naik taraf giliran slot-penuh, Tolak yang membuang rekod terus).
+  // Token permintaan terkini (2026-09-03) — muatSemula() dipanggil dari BEBERAPA punca tak
+  // bersandar (mount awal, pulih versi, tindakan pukal); tanpa penanda ni, permintaan yang
+  // bermula LEBIH AWAL tapi tiba LEBIH LEWAT (respons pelayan tak terjamin tertib) akan menang
+  // dan menimpa senarai dengan snapshot yang dah lapuk. Hanya respons daripada permintaan
+  // TERBARU yang dibenarkan tulis ke state.
+  const muatSemulaTokenRef = useRef(0);
   const muatSemula = useCallback(() => {
+    const tokenSemasa = ++muatSemulaTokenRef.current;
     setLoading(true);
     setGagalMuatSenarai(false);
     fetch('/api/system/content/all')
       .then(res => res.json())
       .then(data => {
+        if (muatSemulaTokenRef.current !== tokenSemasa) return;
         const rawItems = data.items || [];
 
         const normalized: BriefRecord[] = rawItems.map((item: any, idx: number) => {
@@ -480,6 +488,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         setLoading(false);
       })
       .catch(err => {
+        if (muatSemulaTokenRef.current !== tokenSemasa) return;
         console.error('Error loading index data:', err);
         setGagalMuatSenarai(true);
         setLoading(false);
