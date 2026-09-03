@@ -115,7 +115,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Senarai kandungan berskala besar wajib berkelompok (dipaginasi).',
-    body: 'Mana-mana paparan yang berpotensi memuatkan kandungan dalam jumlah besar (Indeks, Semakan Kandungan) mesti menghadkan bilangan rekod yang diproses/dipaparkan serentak pada satu had tetap (100 rekod sehalaman), bukan memuatkan dan me-render kesemua rekod sekali gus tanpa had, tidak kira berapa banyak kandungan wujud dalam sistem.',
+    body: 'Mana-mana paparan yang berpotensi memuatkan kandungan dalam jumlah besar mesti menghadkan bilangan rekod yang diproses/dipaparkan serentak pada satu had, bukan memuatkan dan me-render kesemua rekod sekali gus tanpa had, tidak kira berapa banyak kandungan wujud dalam sistem. Indeks: 100 rekod sehalaman, had tetap. Semakan Kandungan: had boleh laras editor (5/10/15 kandungan sehalaman, lalai 10, sejak 2026-09-02).',
   },
 ];
 
