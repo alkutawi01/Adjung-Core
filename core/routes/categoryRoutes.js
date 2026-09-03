@@ -233,7 +233,10 @@ export function createCategoryRoutes(db) {
     } catch (err) {
       console.error('Set active category error:', err);
       const tiada = /tidak dijumpai/i.test(err.message || '');
-      res.status(tiada ? 404 : 500).json({ error: err.message || 'Gagal mengemas kini status Bidang.' });
+      // 400 (bukan 500) bila ditolak sebab pertindihan nama Bidang aktif (2026-09-03, lihat nota
+      // di setActiveStatus) — ralat VALIDASI eksplisit, bukan kegagalan pelayan.
+      const berlanggar = /sudah wujud/i.test(err.message || '');
+      res.status(tiada ? 404 : berlanggar ? 400 : 500).json({ error: err.message || 'Gagal mengemas kini status Bidang.' });
     }
   });
 

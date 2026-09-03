@@ -354,8 +354,34 @@ class CategoryRegistry {
     return hasil;
   }
 
+  // PEMBETULAN (2026-09-03, dapatan bug-hunt, susulan renameActiveCategory) — pulih (un-arkib)
+  // SATU Bidang cuma flip lajur isActive TANPA sebarang semakan pertindihan `name`, corak
+  // kelemahan SAMA yang dibaiki di renameActiveCategory di atas tapi lubang BERBEZA: bayangkan
+  // Bidang A ("Ekonomi", slug "ekonomi") diarkib, KEMUDIAN Bidang B (slug lain, cth "ekonomi-2")
+  // dinamakan-semula jadi "Ekonomi" — renameActiveCategory tak sekat sebab semakannya
+  // `isActive = 1` sahaja, dan A tak aktif ketika itu jadi bukan pertindihan pada masa tu. Kalau
+  // A dipulihkan SELEPAS itu tanpa semakan, DUA baris CategoryRegistry aktif serentak berkongsi
+  // `name` "Ekonomi" (slug berbeza) — laluan lain yang padan Bidang ikut NAMA (bukan id/slug:
+  // assign-slot `active.some(c => c.name...)`, getSlotsForCategory `WHERE LOWER(manualDesk) =
+  // LOWER(name)`, dropdown Bidang borang kandungan) jadi tak boleh bezakan dua baris tu lagi.
+  // Ditolak eksplisit di sini (sama falsafah `unifyAllColors`/`setColor`/`renameActiveCategory`)
+  // hanya bila PULIH (isActive jadi true) — arkib (isActive jadi false) tak perlu semakan ni,
+  // sebab keluar daripada set aktif tak boleh cipta pertindihan.
   static async setActiveStatus(db, id, isActive) {
     if (!id) throw new Error('id Bidang diperlukan.');
+    if (isActive) {
+      const baris = await this.dbGet(db, "SELECT name FROM CategoryRegistry WHERE id = ?", [id]);
+      if (baris) {
+        const berlanggar = await this.dbGet(
+          db,
+          "SELECT id FROM CategoryRegistry WHERE isActive = 1 AND id != ? AND LOWER(name) = LOWER(?)",
+          [id, baris.name]
+        );
+        if (berlanggar) {
+          throw new Error(`Bidang aktif "${baris.name}" sudah wujud. Namakan semula salah satu sebelum memulihkan Bidang ini.`);
+        }
+      }
+    }
     const now = new Date().toISOString();
     await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET isActive = ?, updatedAt = ? WHERE id = ?", [isActive ? 1 : 0, now, id]);
   }
