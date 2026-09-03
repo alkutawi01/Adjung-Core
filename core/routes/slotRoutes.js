@@ -1053,45 +1053,6 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // GET /api/system/editorial-calibration/export-txt (ACEF v1.0)
-  router.get('/system/editorial-calibration/export-txt', async (req, res) => {
-    try {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const sampleItems = [
-        { id: '10542', timestamp: '2026-07-23 08:22', source: 'Bernama', title: 'PDRM tahan tiga suspek pemalsuan pasport biometrik di KLIA', brief: 'Polis menahan tiga individu yang disyaki terlibat dalam sindiket pemalsuan dokumen perjalanan antarabangsa.', rssCategory: 'Semasa', proposedDesk: 'Nasional', score: 84, confidenceRating: 'HIGH', secondaryDesk: 'Politik', status: 'REVIEW' },
-        { id: '10543', timestamp: '2026-07-23 09:15', source: 'Kosmo!', title: 'NASA menemui exoplanet mempunyai atmosfera air luar sistem suria', brief: 'Teleskop Angkasa James Webb merekodkan spektrum atmosfera planet ekstrasolar LHS 1140b.', rssCategory: 'Sains', proposedDesk: 'Sains & Teknologi', score: 92, confidenceRating: 'HIGH', secondaryDesk: 'Astronomi', status: 'REVIEW' },
-        { id: '10544', timestamp: '2026-07-23 10:00', source: 'Sinar Harian', title: 'Bangunan MPKJ, INTI College berlaku gegaran luar biasa', brief: 'Laporan awal merekodkan pergerakan struktur di kawasan sekitar namun skop disiplin belum disahkan enjin.', rssCategory: 'Kultur', proposedDesk: 'BELUM DIKELASKAN', score: 41, confidenceRating: 'LOW', secondaryDesk: 'Pendidikan', status: 'REVIEW' },
-        { id: '10545', timestamp: '2026-07-23 10:45', source: 'Utusan Malaysia', title: 'Arab Saudi perkenal visa umrah baharu kemudahan jemaah antarabangsa', brief: 'Kementerian Haji dan Umrah Arab Saudi mengumumkan pelancaran platform sistem visa umrah elektronik baharu.', rssCategory: 'Antarabangsa', proposedDesk: 'Pelancongan', score: 65, confidenceRating: 'MEDIUM', secondaryDesk: 'Ibadah', status: 'REVIEW' }
-      ];
-
-      const headerBanner = `ADJUNG CALIBRATION EXCHANGE FORMAT (ACEF) v1.0\nTarikh Penjanaan: ${new Date().toLocaleString()}\nJumlah Berita: ${sampleItems.length}\n\n`;
-
-      const blocks = sampleItems.map(item => (
-        `==================================================\n\n` +
-        `RSS_ID          : ${item.id}\n` +
-        `DATE            : ${item.timestamp}\n` +
-        `SOURCE          : ${item.source}\n\n` +
-        `TITLE           : ${item.title}\n\n` +
-        `BRIEF           : ${item.brief}\n\n` +
-        `RSS_CATEGORY    : ${item.rssCategory}\n\n` +
-        `SYSTEM_DESK     : ${item.proposedDesk}\n` +
-        `SYSTEM_SCORE    : ${item.score}\n` +
-        `CONFIDENCE      : ${item.confidenceRating}\n` +
-        `SECONDARY_DESK  : ${item.secondaryDesk}\n\n` +
-        `STATUS          : ${item.status}\n`
-      ));
-
-      const fullTxt = headerBanner + blocks.join('\n') + `\n==================================================\n`;
-
-      res.setHeader('Content-Type', 'text/plain;charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="adjung_editorial_calibration_dataset_${todayStr}.txt"`);
-      res.send(fullTxt);
-    } catch (err) {
-      console.error('Export TXT error:', err);
-      res.status(500).send('Export error');
-    }
-  });
-
   return router;
 }
 
