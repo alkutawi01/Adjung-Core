@@ -20,17 +20,20 @@ jobs:
       # = 7) — root cause sebenar tak dapat disahkan (kotak teks GitHub/salin-tampal console
       # pelayar mengubah baris baharu/aksara entah bagaimana), tapi base64 SATU BARIS langsung
       # tak boleh rosak macam ni (tiada baris baharu/ruang untuk hilang). Nyahkod ke fail
-      # sementara di RUNNER (bukan pelayan), hantar key_path (bukan key mentah) ke ssh-action.
+      # DALAM ${{ github.workspace }} (BUKAN /tmp) — ssh-action jalan dalam kontena Docker
+      # berasingan yang cuma mount ${{ github.workspace }} (jadi /github/workspace di dalam
+      # kontena), /tmp runner TAK kelihatan langsung dalam kontena tu ("no such file or
+      # directory" 2026-09-03 selepas cuba /tmp/deploy_key).
       - name: Nyahkod kunci SSH
         run: |
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" | base64 -d > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" | base64 -d > "${{ github.workspace }}/deploy_key"
+          chmod 600 "${{ github.workspace }}/deploy_key"
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
-          key_path: /tmp/deploy_key
+          key_path: /github/workspace/deploy_key
           script: |
             set -e
             cd /var/www/adjung-brief
