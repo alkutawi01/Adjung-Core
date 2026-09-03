@@ -409,6 +409,26 @@ class CategoryRegistry {
     if (!newName || newName.trim() === '') throw new Error('Nama Bidang diperlukan.');
     const trimmedName = newName.trim();
     const now = new Date().toISOString();
+    // PEMBETULAN (2026-09-03, dapatan bug-hunt) — slug DIKUNCI (lihat nota di atas), jadi rename
+    // ni cuma tukar lajur `name` paparan tanpa sebarang semakan pertindihan. Sebelum ni dua Bidang
+    // AKTIF berbeza (slug berbeza, baris CategoryRegistry berbeza) boleh berakhir dengan `name`
+    // IDENTIK (cth "Ekonomi" dinamakan semula jadi "Sukan" sedangkan "Sukan" (slug lain) sudah
+    // wujud) — setiap laluan lain yang padan Bidang ikut NAMA (bukan id/slug: assign-slot
+    // `active.some(c => c.name...)`, getSlotsForCategory `WHERE LOWER(manualDesk) = LOWER(name)`,
+    // dropdown Bidang borang kandungan) jadi tak boleh bezakan dua baris tu — slot/kandungan boleh
+    // tersalah kaitkan senyap. Ditolak eksplisit di sini, sama corak `unifyAllColors`/`setColor`
+    // (tolak dengan sebab jelas, bukan apit senyap) — TIDAK diautomasi jadi gabung (mergeCategories)
+    // sebab fungsi tu sengaja TIDAK dipakai laluan ni (cascade tulis-ganti 'desk' kandungan lama,
+    // lihat nota di atas); Ketua Editor patut sedar konflik dan pilih nama lain atau gabung Bidang
+    // secara eksplisit sendiri.
+    const berlanggar = await this.dbGet(
+      db,
+      "SELECT id FROM CategoryRegistry WHERE isActive = 1 AND id != ? AND LOWER(name) = LOWER(?)",
+      [id, trimmedName]
+    );
+    if (berlanggar) {
+      throw new Error(`Bidang aktif "${trimmedName}" sudah wujud. Pilih nama lain atau gabungkan Bidang.`);
+    }
     await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET name = ?, updatedAt = ? WHERE id = ?", [trimmedName, now, id]);
   }
 
