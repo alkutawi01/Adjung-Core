@@ -461,7 +461,12 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // (cth Ketua Editor ditarik balik ke Editor sahaja) kekal ada kebenaran LAMA sepanjang sesi
       // masih hidup (sampai 12 jam) — bukan sekadar UI lapuk, kebenaran sebenar di pelayan pun
       // lapuk. Sama falsafah macam padamSesiPengguna sedia ada selepas tukar kata laluan.
-      await padamSesiPengguna(id);
+      //
+      // Sesi PEMANGGIL sendiri dikecualikan (2026-09-03, dapatan bug-hunt, diluluskan Izzat) —
+      // Pentadbir yang tukar peranan AKAUN DIA SENDIRI (cth uruskan peranan tambahan) tak sepatutnya
+      // log keluar sendiri sebagai kesan sampingan tak sengaja. Sama corak macam laluan tukar kata
+      // laluan (~baris 159 fail ni), yang sudah kecualikan `req.sessionID` betul.
+      await padamSesiPengguna(id, req.sessionID);
 
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
