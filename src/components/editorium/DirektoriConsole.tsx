@@ -924,7 +924,19 @@ function PermohonanModal({ permohonan, onTutup, onSelesai }: {
         body: JSON.stringify({ email: permohonan.emel, roles }),
       });
       const data = await bacaJsonSelamat(res).catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Gagal mencipta akaun.');
+      // Pulih daripada percubaan terputus (2026-09-03, dapatan bug-hunt, diluluskan Izzat) —
+      // Terima ialah DUA langkah tak-atomik (cipta akaun, kemudian rekodKeputusan). Kalau
+      // langkah PERTAMA berjaya tapi rangkaian putus SEBELUM langkah KEDUA (rekodKeputusan)
+      // sempat jalan, permohonan kekal 'baharu' (butang Terima masih aktif) tapi akaun DAH
+      // wujud — cuba Terima lagi akan gagal 409 SELAMANYA sebab emel "sudah digunakan", tiada
+      // cara pulih dalam UI. `bolehDiputuskan` (status masih 'baharu') jamin laluan ni cuma
+      // boleh dicapai SEKALI untuk permohonan ni — 409 pada titik ni hampir pasti bermaksud
+      // akaun tu ialah SISA percubaan lalu untuk PERMOHONAN NI SENDIRI (bukan pertembungan emel
+      // dgn permohonan lain, yang mustahil janakan Terima aktif serentak), jadi selamat teruskan
+      // ke rekodKeputusan dgn amaran (bukan gagal keras) — jauh lebih baik drpd disekat 409
+      // selama-lamanya tanpa jalan pulih.
+      const akaunSudahWujud = !res.ok && res.status === 409;
+      if (!res.ok && !akaunSudahWujud) throw new Error(data.error || 'Gagal mencipta akaun.');
       await rekodKeputusan('diterima');
       // emelDihantar (2026-09-03, dapatan bug-hunt) — POST /api/system/users pulangkan status
       // penghantaran SEBENAR (hantarEmel() gagal senyap bila RESEND_API_KEY tak dikonfigurasi
@@ -932,12 +944,19 @@ function PermohonanModal({ permohonan, onTutup, onSelesai }: {
       // di sini dahulu KEKAL menyatakan "telah dihantar" tanpa baca medan ni langsung. Ketua
       // Editor sangka jemputan sampai sedangkan akaun tercipta tanpa cara pemohon tahu/log masuk
       // (tiada laluan "hantar semula jemputan" — lihat nota di userAdminRoutes.js).
-      onSelesai(
-        data.emelDihantar
-          ? `Permohonan diterima. E-mel jemputan telah dihantar ke ${permohonan.emel}.`
-          : `Permohonan diterima dan akaun dicipta, tetapi e-mel jemputan GAGAL dihantar ke ${permohonan.emel}. Sila hubungi pemohon secara manual dan semak konfigurasi e-mel sistem.`,
-        data.emelDihantar ? 'success' : 'error'
-      );
+      if (akaunSudahWujud) {
+        onSelesai(
+          `Permohonan ditandakan diterima. Akaun untuk ${permohonan.emel} nampaknya SUDAH wujud (kemungkinan percubaan lalu terputus) — sila semak peranan/jemputan akaun tu di Direktori secara manual.`,
+          'error'
+        );
+      } else {
+        onSelesai(
+          data.emelDihantar
+            ? `Permohonan diterima. E-mel jemputan telah dihantar ke ${permohonan.emel}.`
+            : `Permohonan diterima dan akaun dicipta, tetapi e-mel jemputan GAGAL dihantar ke ${permohonan.emel}. Sila hubungi pemohon secara manual dan semak konfigurasi e-mel sistem.`,
+          data.emelDihantar ? 'success' : 'error'
+        );
+      }
     } catch (e: any) {
       setRalat(e.message || 'Gagal menerima permohonan.');
     } finally {
