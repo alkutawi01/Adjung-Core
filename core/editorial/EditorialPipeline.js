@@ -456,10 +456,14 @@ ${slot.sourcesList.trim()}
         estimatedCost = ((promptTokens / 1000000) * pricing.inputCostPerMillion) + ((completionTokens / 1000000) * pricing.outputCostPerMillion);
       }
 
+      // slotIndex = -1 disimpan eksplisit (2026-09-03, dapatan bug-hunt — lihat nota ALTER TABLE
+      // di server.js) supaya /api/system/ai/slot_costs boleh kumpul kos betul-betul ikut slot
+      // tanpa perlu JOIN silang ke pipeline_logs (yang berkongsi SATU runId merentasi semua slot
+      // dalam kitaran berjadual yang sama, punca pepijat cross-product asal).
       await dbRun(`
-        INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
-        VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?)
-      `, [currentRunId, provider.id, modelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text]);
+        INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex)
+        VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?)
+      `, [currentRunId, provider.id, modelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, -1]);
 
       return {
         status: 'SUCCESS',
@@ -565,10 +569,12 @@ ${slot.sourcesList.trim()}
       estimatedCost = ((promptTokens / 1000000) * pricing.inputCostPerMillion) + ((completionTokens / 1000000) * pricing.outputCostPerMillion);
     }
 
+    // slotIndex disimpan eksplisit (2026-09-03, dapatan bug-hunt — lihat nota ALTER TABLE di
+    // server.js) — sama rasional seperti baris Ticker di atas.
     await dbRun(`
-      INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText)
-      VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?)
-    `, [currentRunId, provider.id, modelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text]);
+      INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex)
+      VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?)
+    `, [currentRunId, provider.id, modelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, slotIndex]);
 
     return {
       status: 'SUCCESS',

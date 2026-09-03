@@ -2874,7 +2874,22 @@ const initEditorialOS = (dbConn) => {
                                                     });
                                                     dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN promptText TEXT", () => {
                                                       dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN responseText TEXT", () => {
-                                                        resolve();
+                                                        // slotIndex (2026-09-03, dapatan bug-hunt) — GET /api/system/ai/slot_costs
+                                                        // (aiCostRoutes.js) cuba kaitkan setiap baris ai_usage_logs kembali ke slot
+                                                        // asalnya dengan JOIN ke pipeline_logs guna runId SAHAJA. Tapi
+                                                        // runAllScheduledSlots() (di bawah) jana SATU currentRunId dikongsi
+                                                        // MERENTASI SEMUA slot yang diproses dalam satu kitaran berjadual — bukan
+                                                        // satu runId per slot. JOIN tu jadi cross-product: setiap panggilan AI dalam
+                                                        // kitaran tu dipadan ke SETIAP baris pipeline_logs runId sama (semua slot
+                                                        // lain dalam kitaran tu juga), jadi kos/kiraan panggilan setiap slot
+                                                        // digelembungkan dan bercampur dengan slot LAIN yang kebetulan berjalan
+                                                        // dalam kitaran sama. slotIndex disimpan terus pada setiap baris
+                                                        // ai_usage_logs (EditorialPipeline.js sudah ada pembolehubah ni dalam skop
+                                                        // semasa INSERT) supaya /slot_costs boleh kumpul terus ikut lajur ni, tanpa
+                                                        // JOIN silang langsung.
+                                                        dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN slotIndex INTEGER", () => {
+                                                          resolve();
+                                                        });
                                                       });
                                                     });
                                                   });

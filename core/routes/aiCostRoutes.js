@@ -118,20 +118,30 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
   });
 
   // GET /api/system/ai/slot_costs — sama pembetulan seperti /statistics di atas.
+  //
+  // PEMBETULAN (2026-09-03, dapatan bug-hunt) — dahulu kumpul kos guna LEFT JOIN ke pipeline_logs
+  // padan HANYA pada runId (bukan slotIndex), dengan andaian salah SATU runId = SATU slot.
+  // runAllScheduledSlots() (server.js) sebenarnya jana SATU currentRunId DIKONGSI merentasi
+  // SEMUA slot yang diproses dalam SATU kitaran berjadual — jadi JOIN tu jadi cross-product:
+  // setiap baris ai_usage_logs runId X dipadan ke SETIAP baris pipeline_logs runId X (satu bagi
+  // SETIAP slot lain yang turut berjalan dalam kitaran sama), menggelembungkan aiCalls/kos setiap
+  // slot dan mencampurkannya dengan kos slot LAIN yang kebetulan berjalan serentak. slotIndex kini
+  // disimpan terus pada setiap baris ai_usage_logs (EditorialPipeline.js) — kumpul terus ikut lajur
+  // ni, tiada JOIN silang. Baris LAMA (sebelum lajur ni wujud) ada slotIndex NULL, dikumpul di
+  // bawah -1 (sama makna "tidak diketahui" seperti lalai lama).
   router.get('/slot_costs', requirePermission('manageSettings'), async (req, res) => {
     try {
       const rows = await dbAll(`
         SELECT
-          COALESCE(p.slotIndex, -1) as slotIndex,
+          COALESCE(l.slotIndex, -1) as slotIndex,
           COUNT(l.id) as aiCalls,
           SUM(l.promptTokens) as promptTokens,
           SUM(l.completionTokens) as completionTokens,
           SUM(l.estimatedCost) as tokenCost
         FROM ai_usage_logs l
-        LEFT JOIN pipeline_logs p ON l.runId = p.runId AND p.slotIndex >= 0
         WHERE l.status = 'SUCCESS'
-        GROUP BY p.slotIndex
-        ORDER BY p.slotIndex ASC
+        GROUP BY COALESCE(l.slotIndex, -1)
+        ORDER BY slotIndex ASC
       `);
 
       const slots = await dbAll("SELECT slotIndex, searchStrategy FROM slots_config WHERE layoutTemplateId = 'frontpage'");
