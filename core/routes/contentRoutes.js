@@ -973,7 +973,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         // pengecualian ni tanpa sebarang ralat.
         const nilaiLamaRows = await dbAll(
           `SELECT attributeId, valueText FROM editorial_attribute_values
-           WHERE objectId = ? AND revisionId = ? AND attributeId IN ('briefLong','source','topik','note')`,
+           WHERE objectId = ? AND revisionId = ? AND attributeId IN ('briefLong','source','topik','note','originalDate')`,
           [id, rev.id]
         );
         const nilaiLama = Object.fromEntries(nilaiLamaRows.map((r) => [r.attributeId, r.valueText || '']));
@@ -1031,7 +1031,18 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         if (!namaCheck.isValid) {
           return res.status(400).json({ error: namaCheck.reason });
         }
-        const tarikhCheck = validateTarikhSumber(originalDate);
+        // Kewajipan Tarikh Sumber (2026-09-04, dapatan Izzat) turut ikut corak pengecualian
+        // "had-diketatkan" sama seperti medan lain di atas — kandungan LAMA yang sudah pun
+        // tiada Tarikh Sumber (sebelum kewajipan ni wujud) TAK boleh terperangkap: suntingan
+        // LAIN (cth betulkan ejaan tajuk) yang langsung tak sentuh `source`/`originalDate`
+        // sepatutnya tetap berjaya. Sumber EFEKTIF (source baharu kalau dihantar, jatuh balik
+        // nilai lama) dikira dahulu supaya semakan ni betul walau `source` sendiri tak disentuh
+        // PATCH ni (cth cuma originalDate diedit berasingan).
+        const sourceEfektif = source !== undefined ? source : nilaiLama.source;
+        const tarikhLamaGagal = !validateTarikhSumber(nilaiLama.originalDate, nilaiLama.source).isValid;
+        const tarikhCheck = (tarikhLamaGagal || originalDate === undefined)
+          ? { isValid: true }
+          : validateTarikhSumber(originalDate, sourceEfektif);
         if (!tarikhCheck.isValid) {
           return res.status(400).json({ error: tarikhCheck.reason });
         }

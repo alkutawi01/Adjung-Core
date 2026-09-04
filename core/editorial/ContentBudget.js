@@ -254,15 +254,34 @@ const validateSumberNama = (nama) => {
   return { isValid: true };
 };
 
-// Format Tarikh sumber (2026-08-19, pepijat sebenar Izzat — kandungan terbit dgn "Tarikh sumber:
-// YYYY-MM-DD" literal, contoh format dalam Arahan AI yang sepatutnya diganti tarikh sebenar).
-// Medan ni sebelum ni TIADA semakan format langsung — apa-apa rentetan diterima terus. WAJIB ISO
-// YYYY-MM-DD (4 digit tahun, 2 digit bulan/hari) kalau diisi; medan kosong kekal dibenarkan (tak
-// semua kandungan ada tarikh sumber diketahui).
-const validateTarikhSumber = (tarikh) => {
-  if (typeof tarikh !== 'string') return { isValid: true };
+// Sumber = Adjung sendiri — satu sumber kebenaran (2026-09-04). Cermin
+// src/components/portal/FrontpageView.tsx sumberAdjungSendiri() (definisi ASAL, 2026-08-16) —
+// diekstrak ke sini supaya validasi PELAYAN (di bawah, wajib Tarikh Sumber untuk sumber LUAR)
+// dan logik PAPARAN (client, sembunyi tarikh redundan bila sumber sendiri) guna neraca SAMA.
+// Kalau ubah senarai nilai sentinel ni, ubah SERENTAK di FrontpageView.tsx (import terus dari
+// sini kalau boleh — jangan biarkan dua definisi menyimpang).
+const sumberAdjungSendiri = (source) => {
+  if (!source) return false;
+  const t = source.trim().toLowerCase();
+  return t === 'adjung editorial' || t === 'editorial adjung';
+};
+
+// Format + kewajipan Tarikh Sumber (2026-08-19 format, 2026-09-04 kewajipan — dapatan Izzat:
+// kandungan bersumber LUAR [bukan Adjung sendiri] tanpa Tarikh Sumber terus disiarkan, walhal
+// pembaca perlu tahu BILA fakta sumber luar itu asalnya diterbitkan untuk nilai berita sebenar).
+// Medan ni sebelum ni TIADA semakan format langsung — apa-apa rentetan diterima terus, malah
+// KOSONG pun diterima tanpa mengira sumber. WAJIB ISO YYYY-MM-DD (4 digit tahun, 2 digit
+// bulan/hari) apabila diisi; medan KOSONG kini ditolak KECUALI sumber ialah Adjung sendiri
+// (`sumberAdjungSendiri()` — kandungan asli Adjung tiada "sumber luar" utk dicatat tarikhnya).
+const validateTarikhSumber = (tarikh, source) => {
+  if (typeof tarikh !== 'string' || !tarikh.trim()) {
+    if (sumberAdjungSendiri(source)) return { isValid: true };
+    return {
+      isValid: false, bolehSalinAI: true,
+      reason: 'Tarikh sumber wajib diisi apabila sumber bukan Adjung Editorial — pembaca perlu tahu bila fakta sumber luar itu diterbitkan.',
+    };
+  }
   const trimmed = tarikh.trim();
-  if (!trimmed) return { isValid: true };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     return {
       isValid: false, bolehSalinAI: true,
@@ -473,6 +492,7 @@ export {
   GEOMETRY_RATIOS, FALLBACK_CEILINGS, TIER_SLOTS, tierForSlot, ratiosForTier,
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
   validateContentBudget, validateBidangTopik, validateSourceUrl, validateSumberNama, validateTarikhSumber,
+  sumberAdjungSendiri,
   setMedanLimits, getMedanLimits, validateMedanTambahan, validateHuraianPanjangWajib, validateGlossLength,
   GLOSS_RENDERING_ENABLED,
 };

@@ -3533,7 +3533,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       err.bolehSalinAI = true;
         throw err;
       }
-      const tarikhCheck = validateTarikhSumber(s.date);
+      const tarikhCheck = validateTarikhSumber(s.date, s.name);
       if (!tarikhCheck.isValid) {
         const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${tarikhCheck.reason}`);
         err.isValidationError = true;
