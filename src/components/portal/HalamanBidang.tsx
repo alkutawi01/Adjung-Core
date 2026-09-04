@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { safeParseInline } from '../../utils';
-import { getDisplayDate, formatSiaranDate, sumberAdjungSendiri } from './FrontpageView';
+import { getDisplayDate, formatSiaranDate, sumberAdjungSendiri, EditPensil } from './FrontpageView';
 import { FocusView } from './FocusView';
 import BriefNavigator, { type NavigatorField } from './BriefNavigator';
 import { BidangIcon } from '../common/BidangIcon';
@@ -160,6 +160,27 @@ export function HalamanBidang() {
   // NavigatorField sedia ada (FrontpageView.tsx), tak dirender/digunakan lagi.
   const [sidebarFields, setSidebarFields] = React.useState<NavigatorField[]>([]);
 
+  // Peranan editor log masuk, untuk ikon pensel Sunting pada setiap entri (2026-09-04, Izzat:
+  // "kalau editor log masuk, ia akan nampak icon pencil di halaman bidang, yg kalau dia klik, ia
+  // akan terus ke Semakan Kandungan dengan UUID kandungan tu ... mcm yg ada skrg di kad slot
+  // sekarang"). Halaman ni SELF-CONTAINED (tiada props dari App.tsx, lihat routing <Route
+  // path="/bidang/:slug">), jadi kunci storan sesi dibaca TERUS di sini — corak identik App.tsx
+  // (AUTH_STORAGE_KEY 'adjung-auth-user', localStorage diutamakan drpd sessionStorage) — bukan
+  // salinan bebas, cuma bacaan storan sedia ada yang App.tsx SENDIRI tulis semasa log masuk.
+  // `EditPensil` (FrontpageView.tsx, kini dieksport) ialah komponen KONGSI SAMA yang dipakai kad
+  // bento — buka tab baharu ke /editorium?tab=kandungan&sub=semakan&itemId={objectId}, auto-isi
+  // kotak carian Semakan Kandungan (mekanisme sedia ada, bukan laluan penapis baharu).
+  const [currentEditoriumRole, setCurrentEditoriumRole] = React.useState<'KETUA_EDITOR' | 'EDITOR' | undefined>(undefined);
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem('adjung-auth-user') || window.sessionStorage.getItem('adjung-auth-user');
+      const parsed = stored ? JSON.parse(stored) : null;
+      if (parsed && (parsed.role === 'KETUA_EDITOR' || parsed.role === 'EDITOR')) setCurrentEditoriumRole(parsed.role);
+    } catch {
+      // Storan rosak/tak boleh diurai — ikon pensel kekal sorok, sama seperti pengguna tak log masuk.
+    }
+  }, []);
+
   // Muat metadata Bidang + ikon/warna Taksonomi (2026-09-01) — sekali sahaja bila slug berubah.
   React.useEffect(() => {
     let dibatal = false;
@@ -313,6 +334,22 @@ export function HalamanBidang() {
     return () => window.removeEventListener('keydown', onKey);
   }, [focusItem, keArtikelSeterusnya, keArtikelSebelum]);
 
+  // Esc balik Laman Utama bila TIADA artikel terbuka (2026-09-04, soalan Izzat "macam mana nak
+  // navigasi dari halaman Bidang ke Laman Utama guna papan kekunci? rasanya takde... patut guna
+  // Esc je") — pendengar DI ATAS sengaja hanya aktif bila `focusItem` wujud (tutup artikel balik
+  // ke senarai Bidang), jadi Esc semasa hanya MELAYARI senarai (tiada artikel terbuka) tak buat
+  // apa-apa. Pendengar KEDUA, berasingan, gerbang terbalik (`if (focusItem) return`) supaya kedua
+  // peringkat Esc tak pernah bertindih/bertindak serentak pada kekunci sama — "keluar satu
+  // peringkat" konsisten: artikel terbuka → Esc tutup artikel; senarai Bidang → Esc balik Utama.
+  React.useEffect(() => {
+    if (focusItem) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') navigate('/');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [focusItem, navigate]);
+
   if (status === '404') return <TidakDijumpai />;
 
   return (
@@ -386,11 +423,15 @@ export function HalamanBidang() {
                 </p>
                 <ol className="list-none m-0 p-0 divide-y divide-stone-150">
                   {terkini.map((a, idx) => (
-                    <li key={a.objectId} className={idx === 0 ? 'py-5' : 'py-4'}>
+                    <li key={a.objectId} className={`relative ${idx === 0 ? 'py-5' : 'py-4'}`}>
+                      {/* Ikon Sunting (2026-09-04) — di LUAR <button> pembuka artikel sengaja,
+                          bukan nested button (HTML tak benarkan <button> dalam <button>). `li`
+                          relative jadi sauh kedudukan `absolute` EditPensil sendiri. */}
+                      <EditPensil objectId={a.objectId} role={currentEditoriumRole} posisi="top-1/2 -translate-y-1/2 right-0" />
                       <button
                         type="button"
                         onClick={() => bukaArtikel(a.objectId)}
-                        className="w-full text-left group"
+                        className="w-full text-left group pr-10"
                       >
                         {a.topik && (
                           <div className="font-mono text-[9px] font-bold uppercase tracking-widest text-Adjung-maroon mb-1.5">
@@ -455,8 +496,9 @@ export function HalamanBidang() {
                   <>
                     <ol className="list-none m-0 p-0 divide-y divide-stone-150">
                       {koleksi.map((a) => (
-                        <li key={a.objectId} className="py-4">
-                          <button type="button" onClick={() => bukaArtikel(a.objectId)} className="w-full text-left group">
+                        <li key={a.objectId} className="relative py-4">
+                          <EditPensil objectId={a.objectId} role={currentEditoriumRole} posisi="top-1/2 -translate-y-1/2 right-0" />
+                          <button type="button" onClick={() => bukaArtikel(a.objectId)} className="w-full text-left group pr-10">
                             {a.topik && (
                               <div className="font-mono text-[9px] font-bold uppercase tracking-widest text-Adjung-maroon mb-1.5">
                                 {a.topik}

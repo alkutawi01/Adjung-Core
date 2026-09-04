@@ -1,5 +1,13 @@
 [
   {
+    "time": "2026-09-04T09:37:41.817Z",
+    "summary": "Tambah ikon pensel Sunting di Halaman Bidang (buka Semakan Kandungan terus); Esc di Halaman Bidang kini balik Laman Utama bila tiada artikel terbuka; tambah mod carousel 'Tukar bila klik' (lalai baharu) + panel Tetapan pembaca kanan-atas + butang terapung telefon",
+    "files": [
+      "src/components/portal/HalamanBidang.tsx",
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-09-04T04:17:09.324Z",
     "summary": "Pisahkan 'Menunggu' kepada dua sebab (Menunggu Semakan vs Menunggu Slot Kosong) di Dashboard, Indeks, toast Terbit, dan penapis Semakan Kandungan — sebelum ni digaul satu label mengelirukan editor",
     "files": [

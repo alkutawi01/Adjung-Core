@@ -8,7 +8,7 @@ import { setPemenggalanPengecualian } from '../../../core/editorial/PemenggalSuk
 import { JENIS_ANIMASI_ASAS, pilihJenisRawak } from '../../../core/editorial/AnimasiConfig.js';
 import { tarikhMalaysia } from '../../../core/utils/waktuMalaysia.js';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, X, Lock, Search, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Lock, Search, Pencil, Settings, RotateCw } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 import { penggalSukuKata } from '../../../core/editorial/PemenggalSukuKata.js';
@@ -755,7 +755,7 @@ const FooterHeightLock: React.FC<{
 // atas-kanan) — bertindih terus, punca sebenar aduan Izzat 2026-09-03. Bucu bawah-kanan kekal
 // KOSONG di kedua-dua saiz skrin (disahkan visual telefon 375px) — jadi kedudukan asal 17/8
 // (bottom-N/right-N SAHAJA, tiada override telefon) sememangnya betul sejak awal.
-const EditPensil: React.FC<{
+export const EditPensil: React.FC<{
   objectId?: string;
   role?: string;
   posisi: string;
@@ -2493,6 +2493,57 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
   const [carouselIndices, setCarouselIndices] = useState<{[key: number]: number}>({});
 
+  // Mod pertukaran carousel — pilihan PEMBACA, bukan tetapan Ketua Editor (2026-09-04, permintaan
+  // Izzat: "buat option kedua, carousel hanya akan bertukar (serentak) jika user klik pada ruang
+  // kosong"). LALAI 'klik' (bukan 'auto') — keputusan eksplisit Izzat semasa perbincangan ciri ni.
+  // Disimpan localStorage PER-PELAYAR (corak sama `adjung_pengumuman_tutup_*` sedia ada di fail
+  // ni) — bukan tetapan pelayan/DB, sebab ini keutamaan peribadi pembaca semasa melayari, bukan
+  // dasar editorial yang perlu Ketua Editor kawal (beza konsep drpd `tetapanAnimasiMentah` di atas,
+  // yang MEMANG tetapan pelayan sedia ada).
+  const CAROUSEL_MODE_KEY = 'adjung_carousel_mode';
+  const [modCarousel, setModCarouselState] = useState<'klik' | 'auto'>(() => {
+    try {
+      return window.localStorage.getItem(CAROUSEL_MODE_KEY) === 'auto' ? 'auto' : 'klik';
+    } catch {
+      return 'klik';
+    }
+  });
+  const setModCarousel = React.useCallback((m: 'klik' | 'auto') => {
+    setModCarouselState(m);
+    try { window.localStorage.setItem(CAROUSEL_MODE_KEY, m); } catch {
+      // Storan tak boleh capai (mod persendirian/kuota) — tetapan kekal utk sesi ni sahaja.
+    }
+  }, []);
+
+  // Lebar skrin desktop (2026-09-04) — klik-ruang-kosong HANYA aktif desktop (spesifikasi Izzat:
+  // "ni utk desktop sbb desktop ada ruang utk klik"); telefon guna butang terapung berasingan di
+  // bawah sebaliknya (grid telefon "borderless table" tersepit rapat, hampir tiada ruang kosong).
+  const [isDesktopLebar, setIsDesktopLebar] = useState<boolean>(() => (typeof window !== 'undefined' ? window.innerWidth >= 768 : true));
+  useEffect(() => {
+    const onResize = () => setIsDesktopLebar(window.innerWidth >= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Panel Tetapan pembaca (2026-09-04) — kanan-atas masthead, sejajar baris carian (Izzat:
+  // "kanan-atas, sejajar dgn icon carian ... kalau nanti ada tetapan mode gelap/cerah, akan jadi
+  // lagi sesuai"). Corak buka/tutup SAMA seperti kotak carian sedia ada di atas (klik luar tutup).
+  const [tetapanPanelTerbuka, setTetapanPanelTerbuka] = useState(false);
+  const tetapanPanelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!tetapanPanelTerbuka) return;
+    const onKlikLuar = (e: MouseEvent) => {
+      if (tetapanPanelRef.current && !tetapanPanelRef.current.contains(e.target as Node)) setTetapanPanelTerbuka(false);
+    };
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setTetapanPanelTerbuka(false); };
+    document.addEventListener('mousedown', onKlikLuar);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onKlikLuar);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [tetapanPanelTerbuka]);
+
   // Rujukan jam auto-putar SEMASA setiap slot (2026-08-26) — diisi/dikemas kini oleh effect
   // setInterval di bawah, dibaca oleh majuKarusel() supaya navigasi manual boleh SET SEMULA jam
   // slot berkenaan (bukan sekadar baca sahaja). Ref (bukan state) — tak patut cetus render sendiri.
@@ -2851,6 +2902,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         return { ...prev, [actualSlotIdx]: timeBasedStart };
       });
 
+      // Mod 'klik' (2026-09-04, LALAI) — kedudukan mula (di atas) tetap dikira supaya lawatan
+      // berbeza mendarat pada kandungan berbeza (kekal variasi sedia ada), tapi TIADA jam
+      // auto-putar dicipta langsung — pertukaran cuma berlaku via majuSemuaKarusel() (klik ruang
+      // kosong/butang terapung, di bawah). Slot ni gugur drpd timerRefsMap sepenuhnya dalam mod
+      // ni, konsisten dengan cabang `items.length <= 1` di atas yang turut memadamnya.
+      if (modCarousel !== 'auto') {
+        delete timerRefsMap.current[actualSlotIdx];
+        return;
+      }
+
       const timerRef: { timeoutId?: any; intervalId?: any } = {};
       activeTimers.push(timerRef);
 
@@ -2892,7 +2953,38 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         if (t.intervalId) clearInterval(t.intervalId);
       });
     };
-  }, [rawBentoNewsItems, mulaIkutMasa, jedaPertamaCarousel]);
+  }, [rawBentoNewsItems, mulaIkutMasa, jedaPertamaCarousel, modCarousel]);
+
+  // Maju SEMUA carousel serentak satu langkah (2026-09-04) — dicetuskan klik ruang kosong grid
+  // (desktop) atau butang terapung (telefon), HANYA bermakna dalam mod 'klik' (tiada kesan dalam
+  // mod 'auto' sebab jam sedia ada sudah menguasai pertukaran; butang/klik tetap dipapar mengikut
+  // mod semasa sahaja, lihat wiring JSX di bawah). Guna `rawBentoNewsItems` (senarai items PENUH
+  // setiap slot, sedia dikira) — bukan `bentoNewsItems` (versi resolved SATU item semasa sahaja).
+  const majuSemuaKarusel = React.useCallback(() => {
+    setCarouselIndices(prev => {
+      const next = { ...prev };
+      rawBentoNewsItems.forEach((slotItem) => {
+        if (!slotItem) return;
+        const items = slotItem.items || [];
+        if (items.length <= 1) return;
+        const actualSlotIdx = slotItem.rawIndex > 0 ? slotItem.rawIndex - 1 : slotItem.index;
+        const semasa = next[actualSlotIdx] || 0;
+        next[actualSlotIdx] = (semasa + 1) % items.length;
+      });
+      return next;
+    });
+  }, [rawBentoNewsItems]);
+
+  // Klik ruang kosong grid (2026-09-04, desktop sahaja, mod 'klik' sahaja) — `[data-slot]` ialah
+  // penanda setiap kad (lihat atribut sedia ada pada pembalut ROW, cth baris ~4045). `closest()`
+  // pada sasaran klik mengesan sama ada klik jatuh DALAM mana-mana kad; kalau tidak (null), klik
+  // tu jatuh pada jurang/ruang kosong antara kad dalam grid — sah untuk maju semua carousel.
+  const kendaliKlikRuangKosong = React.useCallback((e: React.MouseEvent<HTMLElement>) => {
+    if (modCarousel !== 'klik' || !isDesktopLebar) return;
+    const sasaran = e.target as HTMLElement;
+    if (sasaran.closest('[data-slot]')) return;
+    majuSemuaKarusel();
+  }, [modCarousel, isDesktopLebar, majuSemuaKarusel]);
 
   const bentoNewsItems = React.useMemo(() => {
     return rawBentoNewsItems.map((item) => {
@@ -3625,6 +3717,56 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             )}
           </div>
 
+          {/* Tetapan pembaca (2026-09-04) — kanan-atas, bertentangan carian di baris masthead
+              yang sama (`justify-between` sebelum ni cuma ada SATU anak, ruang kanan memang
+              disediakan). Buat masa ni satu tetapan sahaja (mod pertukaran carousel); ruang panel
+              ni sengaja disediakan boleh tambah tetapan lain kemudian (cth mod gelap/cerah). */}
+          <div ref={tetapanPanelRef} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setTetapanPanelTerbuka((t) => !t)}
+              aria-label="Tetapan paparan"
+              aria-expanded={tetapanPanelTerbuka}
+              className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
+                tetapanPanelTerbuka ? 'text-Adjung-maroon bg-stone-100' : 'text-stone-400 hover:text-Adjung-maroon hover:bg-stone-100'
+              }`}
+            >
+              <Settings size={14} />
+            </button>
+            {tetapanPanelTerbuka && (
+              <div className="absolute right-0 top-full mt-1 w-[240px] bg-white border border-stone-300 rounded shadow-lg z-30 p-3">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-stone-400 mb-2">Pertukaran Carousel</p>
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setModCarousel('klik')}
+                    className={`flex items-center gap-2 text-left px-2 py-1.5 rounded font-sans text-xs transition-colors ${
+                      modCarousel === 'klik' ? 'bg-stone-100 text-Adjung-maroon font-semibold' : 'text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${modCarousel === 'klik' ? 'bg-Adjung-maroon' : 'bg-stone-300'}`} />
+                    Tukar bila klik
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModCarousel('auto')}
+                    className={`flex items-center gap-2 text-left px-2 py-1.5 rounded font-sans text-xs transition-colors ${
+                      modCarousel === 'auto' ? 'bg-stone-100 text-Adjung-maroon font-semibold' : 'text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${modCarousel === 'auto' ? 'bg-Adjung-maroon' : 'bg-stone-300'}`} />
+                    Tukar automatik
+                  </button>
+                </div>
+                <p className="font-sans text-[10px] text-stone-400 mt-2.5 leading-relaxed">
+                  {modCarousel === 'klik'
+                    ? 'Klik ruang kosong (desktop) atau butang terapung (telefon) untuk tukar semua kandungan sekali gus.'
+                    : 'Kandungan bertukar sendiri secara berkala, tanpa perlu berbuat apa-apa.'}
+                </p>
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Wordmark Hero */}
@@ -3998,7 +4140,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         `}</style>
 
         {/* Bento Grid News Layout */}
-        <section className="my-8" id="bento-news-grid">
+        <section className="my-8" id="bento-news-grid" onClick={kendaliKlikRuangKosong}>
 
           {/* Jadual telefon TUNGGAL (2026-07-31, pusingan KEENAM): HERO + kesemua 8 blok ROW kini
               SATU grid CSS berterusan pada telefon (grid-cols-3), supaya garisan jadual sejajar
@@ -6215,6 +6357,21 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           aria-label="Kembali ke atas"
         >
           <ChevronLeft className="w-5 h-5 rotate-90 group-hover:-translate-y-0.5 transition-transform" />
+        </button>
+      )}
+      {/* Butang terapung "Tukar Semua" (2026-09-04, telefon sahaja, mod 'klik' sahaja) — spesifikasi
+          Izzat: "adapun pada telefon, tambah satu lg butang terapung, bulat, mcm butang 'ke atas
+          semula' yg ada skrg". Bucu KIRI-bawah (bukan kanan) supaya tak bertindih dgn "Kembali ke
+          Atas" (kanan-bawah) bila kedua-dua kelihatan serentak — `md:hidden` sorok terus di
+          desktop, sebab desktop guna klik ruang kosong grid (kendaliKlikRuangKosong) sebaliknya. */}
+      {modCarousel === 'klik' && (
+        <button
+          type="button"
+          onClick={majuSemuaKarusel}
+          className="md:hidden fixed bottom-6 left-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+          aria-label="Tukar semua kandungan carousel"
+        >
+          <RotateCw className="w-5 h-5 group-active:rotate-180 transition-transform duration-300" />
         </button>
       )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
