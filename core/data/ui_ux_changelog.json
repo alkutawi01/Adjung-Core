@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-09-04T12:56:44.642Z",
+    "summary": "Baiki klik-untuk-tukar-carousel supaya berfungsi di SELURUH margin kiri/kanan viewport desktop, bukan cuma dalam lajur kandungan max-w-6xl",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-09-04T12:18:22.070Z",
     "summary": "Pencondongan (Autocondong) kini hanya terpakai pada istilah dieja huruf kecil sepenuhnya, nama khas berhuruf besar (cth Town Hall) tak lagi tersalah condong",
     "files": [
