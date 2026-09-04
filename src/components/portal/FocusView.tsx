@@ -6,6 +6,7 @@ import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
 import { terapFocusSeo, buangSemulaFocusSeo } from '../../utils/seoMeta';
 import { binaPetaGlosari, renderDenganGlosari, type EntriGlosari } from '../common/IstilahGlosari';
 import { Tooltip } from '../common/Tooltip';
+import { EditPensil } from './FrontpageView';
 
 // ============================================================================
 // FOCUS VIEW — permukaan bacaan skrin penuh yang dibuka bila kad bento diklik.
@@ -345,6 +346,12 @@ export interface FocusViewProps {
    *  (sebelum ni jatuh balik ke window.location.href — lihat nota terapFocusSeo di bawah).
    *  Draf tak-diterbitkan tiada objectId sebenar — butang Kongsi tak dirender langsung. */
   objectId?: string;
+  /** Peranan editorium pengguna semasa (2026-09-04, permintaan Izzat — "focus view takde icon
+   *  pencil utk edit kandungan secara terus") — dihantar terus daripada `currentEditoriumRole`
+   *  pemanggil (FrontpageView.tsx/HalamanBidang.tsx). Sama kontrak dengan `EditPensil` di kad
+   *  bento/Halaman Bidang: `undefined`/kosong = bukan editor log masuk, ikon TIDAK dirender
+   *  langsung (bukan disorok CSS). */
+  role?: string;
   /** Tempoh tatal automatik, saat (2026-08-13, Tetapan Am — keputusan Izzat kekalkan model
    *  tempoh TETAP, boleh dilaraskan Ketua Editor/Pentadbir, bukan skala ikut panjang artikel).
    *  Jatuh balik ke AUTOSCROLL_DEFAULT_SEC (14) kalau tiada (keserasian ke belakang, dan kalau
@@ -367,7 +374,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
   onPrev, onNext, prevPreviewTitle, nextPreviewTitle, onClose,
   titleSizeScale = 1, bodySizePx = 15,
   navMode = 'rawak', onToggleNavMode,
-  objectId, startPaused,
+  objectId, startPaused, role,
 }) => {
   // Format label datang daripada eyebrowLabel() di GeometryConfig — sumber SAMA yang dipakai kad
   // bento dan pengesahan simpan. Sebelum ini fail ini ada takrifannya sendiri (' · '), jadi Focus
@@ -924,7 +931,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
           position: 'relative', flex: '0 0 auto', display: 'grid', gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--stone-300)',
         }}>
-          <span />
+          <span style={{ justifySelf: 'start', position: 'relative', display: 'inline-flex', width: 20, height: 20 }}>
+            <EditPensil objectId={objectId} role={role} posisi="top-0 left-0" />
+          </span>
           {/* `<button>` bukan `<span>` sengaja DIELAK di sini walau boleh klik — src/index.css:196
               paksa `font-family: 'Inter'... !important` pada SEMUA elemen <button> (peraturan
               global sengaja utk butang lain di seluruh apl), yang mengalahkan inline
@@ -1264,6 +1273,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
       <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
         <span style={{ justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
+          {role && objectId && (
+            <span style={{ position: 'relative', display: 'inline-flex', width: 20, height: 20 }}>
+              <EditPensil objectId={objectId} role={role} posisi="top-0 left-0" />
+            </span>
+          )}
           {/* Label teks "Rawak"/"Turutan"/"Auto" dibuang (2026-08-07, permintaan Izzat — "buang
               label rawak dan auto, kekalkan ikon sahaja") — ikon + title (tooltip hover) +
               aria-label (pembaca skrin) kekal cukup jelas tanpa teks kekal di sisi ikon. */}
