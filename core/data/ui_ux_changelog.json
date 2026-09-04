@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-09-04T10:06:18.393Z",
+    "summary": "Susun semula butang terapung telefon: 'Tukar Semua' carousel kini bertindan bawah 'Kembali ke Atas' di bucu kanan sahaja (bukan berasingan kiri/kanan)",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-09-04T09:37:41.817Z",
     "summary": "Tambah ikon pensel Sunting di Halaman Bidang (buka Semakan Kandungan terus); Esc di Halaman Bidang kini balik Laman Utama bila tiada artikel terbuka; tambah mod carousel 'Tukar bila klik' (lalai baharu) + panel Tetapan pembaca kanan-atas + butang terapung telefon",
     "files": [

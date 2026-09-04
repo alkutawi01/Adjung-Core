@@ -6349,26 +6349,30 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           )}
         </div>
       )}
+      {/* Kembali ke Atas + Tukar Semua kini SATU tindanan menegak di bucu kanan-bawah (2026-09-04,
+          Izzat: "letak butang tukar carousel tu di bawah butang kembali ke atas...skrg ni mcm main
+          game pulak ada butang kiri kanan" — versi asal letak Tukar Semua di bucu KIRI berasingan,
+          nampak macam kawalan D-pad permainan. Tukar Semua kekal PALING BAWAH (bottom-6, `di bawah`
+          secara literal), Kembali ke Atas naik ke bottom-24 di telefon SAHAJA (bila kedua-dua
+          kelihatan serentak) supaya tak bertindih — di desktop Kembali ke Atas kekal bottom-6 sebab
+          Tukar Semua langsung tak dirender (md:hidden, desktop guna klik ruang kosong grid). */}
       {showScrollToTop && (
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+          className={`fixed right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group ${
+            modCarousel === 'klik' ? 'bottom-24 md:bottom-6' : 'bottom-6'
+          }`}
           aria-label="Kembali ke atas"
         >
           <ChevronLeft className="w-5 h-5 rotate-90 group-hover:-translate-y-0.5 transition-transform" />
         </button>
       )}
-      {/* Butang terapung "Tukar Semua" (2026-09-04, telefon sahaja, mod 'klik' sahaja) — spesifikasi
-          Izzat: "adapun pada telefon, tambah satu lg butang terapung, bulat, mcm butang 'ke atas
-          semula' yg ada skrg". Bucu KIRI-bawah (bukan kanan) supaya tak bertindih dgn "Kembali ke
-          Atas" (kanan-bawah) bila kedua-dua kelihatan serentak — `md:hidden` sorok terus di
-          desktop, sebab desktop guna klik ruang kosong grid (kendaliKlikRuangKosong) sebaliknya. */}
       {modCarousel === 'klik' && (
         <button
           type="button"
           onClick={majuSemuaKarusel}
-          className="md:hidden fixed bottom-6 left-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+          className="md:hidden fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
           aria-label="Tukar semua kandungan carousel"
         >
           <RotateCw className="w-5 h-5 group-active:rotate-180 transition-transform duration-300" />
