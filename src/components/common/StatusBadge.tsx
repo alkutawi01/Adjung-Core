@@ -37,10 +37,19 @@ export interface StatusBadgeProps {
   /** Sembunyi ikon corak — jarang perlu, cuma bila ruang amat terhad (cth sel matriks kecil yang
    *  sudah guna SlotMatrixCell dgn corak latar sendiri). */
   hideIcon?: boolean;
+  /** Benarkan label panjang balut ke baris kedua dalam lencana (2026-09-04) — lalai KEKAL
+   *  whitespace-nowrap (bentuk pil, reka bentuk asal) sebab kebanyakan label pendek ("Aktif",
+   *  "Ralat") dan lencana ni dipakai serata (Papan Pemuka, Direktori, dsb) di mana nowrap
+   *  sengaja. Cuma perlu di lajur jadual yang lebarnya TETAP (`table-fixed`) dan boleh terima
+   *  label panjang (cth "Menunggu Slot Kosong" IndeksConsole.tsx) — di situ nowrap+lajur sempit
+   *  buat teks melimpah bertindan ke lajur sebelah; lebarkan lajur bukan penyelesaian sebab
+   *  kebanyakan baris papar label pendek ("Aktif"), jadi lajur jadi terlalu lebar tanpa sebab.
+   *  Wrap kekalkan lajur padat, cuma baris yang perlu tumbuh tinggi. */
+  wrap?: boolean;
   className?: string;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ tone, label, hideIcon, className = '' }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ tone, label, hideIcon, wrap, className = '' }) => {
   const warna = TONE_COLOR[tone];
   const style: React.CSSProperties = tone === 'warning'
     ? {
@@ -54,7 +63,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ tone, label, hideIcon,
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full font-mono text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 whitespace-nowrap ${className}`}
+      className={`inline-flex items-center gap-1 font-mono text-[10px] uppercase font-bold tracking-wide px-2 py-0.5 ${wrap ? 'rounded-md whitespace-normal text-center leading-tight' : 'rounded-full whitespace-nowrap'} ${className}`}
       style={style}
     >
       {!hideIcon && TONE_ICON[tone]}

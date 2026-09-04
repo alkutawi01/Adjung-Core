@@ -1417,7 +1417,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     penuh (dipotong di sini) boleh dibaca melalui tooltip bila hover, sama corak
                     macam lajur ID. */}
                 <th scope="col" className="p-2.5 w-40">Tajuk Kandungan</th>
-                <th scope="col" className="p-2.5 w-48">Status</th>
+                <th scope="col" className="p-2.5 w-32">Status</th>
                 <th scope="col" className="p-2.5 w-24">Bidang</th>
                 <th scope="col" className="p-2.5 w-28">Sumber</th>
                 <th scope="col" className="p-2.5 w-24">Editor</th>
@@ -1489,7 +1489,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       </td>
                     </Tooltip>
                     <td className="p-2.5">
-                      <StatusBadge tone={STATUS_TONE[rec.status] || 'neutral'} label={(rec.status === 'Pending' ? labelSebabMenunggu(rec.sebabMenunggu) : labelStatus(rec.status)).toUpperCase()} />
+                      <StatusBadge wrap tone={STATUS_TONE[rec.status] || 'neutral'} label={(rec.status === 'Pending' ? labelSebabMenunggu(rec.sebabMenunggu) : labelStatus(rec.status)).toUpperCase()} />
                     </td>
                     <td
                       className="p-2.5 font-sans text-xs font-semibold"
