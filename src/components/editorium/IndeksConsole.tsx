@@ -1417,7 +1417,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     penuh (dipotong di sini) boleh dibaca melalui tooltip bila hover, sama corak
                     macam lajur ID. */}
                 <th scope="col" className="p-2.5 w-40">Tajuk Kandungan</th>
-                <th scope="col" className="p-2.5 w-32">Status</th>
+                <th scope="col" className="p-2.5 w-48">Status</th>
                 <th scope="col" className="p-2.5 w-24">Bidang</th>
                 <th scope="col" className="p-2.5 w-28">Sumber</th>
                 <th scope="col" className="p-2.5 w-24">Editor</th>
