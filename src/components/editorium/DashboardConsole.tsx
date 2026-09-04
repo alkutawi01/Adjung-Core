@@ -56,7 +56,11 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
   // terjejas — medan berasaskan status (RSS/cuaca/pautan mati) sudah betul, terus `null`.
   const [gagalMuatKandungan, setGagalMuatKandungan] = useState(false);
   const [gagalMuatPengunjung, setGagalMuatPengunjung] = useState(false);
-  const [statusKandungan, setStatusKandungan] = useState({ menunggu: 0, aktif: 0, arkib: 0 });
+  // menunggu dipecah dua (2026-09-04, audit Izzat "menunggu sepatutnya ada dua") — menungguSemakan
+  // (perlu keputusan Ketua Editor/Penolong) vs menungguSlotPenuh (dah lulus, cuma tunggu ruang
+  // slot, naik taraf automatik). `menunggu` jumlah dikekalkan untuk kegunaan matriks slot di bawah,
+  // yang cuma perlu tahu "belum aktif", bukan sebabnya.
+  const [statusKandungan, setStatusKandungan] = useState({ menunggu: 0, menungguSemakan: 0, menungguSlotPenuh: 0, aktif: 0, arkib: 0 });
   const [maklumanTerbaru, setMaklumanTerbaru] = useState<Nota[]>([]);
   const [slotUsage, setSlotUsage] = useState<SlotUsage[]>([]);
   const [itemsRingkas, setItemsRingkas] = useState<ItemRingkas[]>([]);
@@ -94,6 +98,8 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
       const items = kandungan?.items || [];
       setStatusKandungan({
         menunggu: items.filter((i: any) => i.status === 'pending').length,
+        menungguSemakan: items.filter((i: any) => i.status === 'pending' && i.sebabMenunggu !== 'slot_penuh').length,
+        menungguSlotPenuh: items.filter((i: any) => i.status === 'pending' && i.sebabMenunggu === 'slot_penuh').length,
         aktif: items.filter((i: any) => i.status === 'approved').length,
         arkib: items.filter((i: any) => i.status === 'archived').length,
       });
@@ -249,9 +255,18 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
           </div>
         </button>
         <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 border-r md:border-r border-stone-200 text-center hover:bg-Adjung-maroon/5 transition-colors cursor-pointer">
-          <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Menunggu semakan</div>
+          <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Menunggu</div>
           <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: 'var(--color-warning)' }}>{gagalMuatKandungan ? '—' : statusKandungan.menunggu}</div>
-          <div className="text-[11px] text-stone-500 mt-2">{gagalMuatKandungan ? 'Gagal dimuatkan' : 'Dalam giliran semakan'}</div>
+          {/* Pecahan sebab (2026-09-04, audit Izzat) — "Menunggu semakan" generik sebelum ni
+              membayangkan SEMUA kandungan pending perlu keputusan Ketua Editor, walhal sebahagian
+              cuma beratur slot (dah lulus). */}
+          <div className="text-[11px] text-stone-500 mt-2">
+            {gagalMuatKandungan ? 'Gagal dimuatkan' : (
+              <>
+                {statusKandungan.menungguSemakan} semakan{statusKandungan.menungguSlotPenuh > 0 ? ` · ${statusKandungan.menungguSlotPenuh} slot kosong` : ''}
+              </>
+            )}
+          </div>
         </button>
         <button onClick={() => onTukarTab('kandungan')} className="p-5 md:p-6 text-center hover:bg-Adjung-maroon/5 transition-colors cursor-pointer">
           <div className="font-mono text-[9px] uppercase tracking-widest font-semibold text-stone-400 mb-2.5">Arkib</div>

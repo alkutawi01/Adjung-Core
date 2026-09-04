@@ -14,7 +14,7 @@ import { Button } from '../common/Button';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
 import { FormColumn } from '../common/FormColumn';
 import { tanganiKekunciItalic, safeParseInline } from '../../utils.tsx';
-import { labelMod, labelStatus } from '../../config/istilah';
+import { labelMod, labelStatus, labelSebabMenunggu } from '../../config/istilah';
 import { formatKlDisplay, klLocalToIso, isoToKlLocalInput } from '../../../core/editorial/Scheduling.js';
 import { useTapisanSesi } from '../../hooks/useTapisanSesi';
 
@@ -28,6 +28,10 @@ interface BriefRecord {
   // Kandungan sahaja (slots_config.manualSummary), tak pernah punya baris editorial_objects,
   // jadi tak sesekali muncul dalam Indeks. Lihat nota alur kerja di server.js.
   status: 'Pending' | 'Live' | 'Archive' | 'Scheduled' | 'Dipadam';
+  // sebabMenunggu (2026-09-04, audit Izzat "menunggu sepatutnya ada dua") — cuma bermakna bila
+  // status==='Pending'. '' / 'semakan' = perlu keputusan Ketua Editor/Penolong; 'slot_penuh' =
+  // dah lulus, cuma tunggu ruang slot kosong (naik taraf automatik). Lihat labelSebabMenunggu().
+  sebabMenunggu?: string;
   // Jadual Terbit/Luput (2026-08-02) — ISO 8601, null bermakna tiada jadual ditetapkan.
   scheduledPublishAt: string | null;
   scheduledExpiresAt: string | null;
@@ -466,6 +470,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
             desk: formatTitleCase(item.desk || 'Umum'),
             topik: item.topik || '',
             status: STATUS_TO_LABEL[item.status] || 'Live',
+            sebabMenunggu: item.sebabMenunggu || '',
             source: item.source || '',
             creator: formatCreatedBy(item.createdBy || ''),
             cardType: cardTypeForSlot(item.slotIndex),
@@ -513,6 +518,11 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
   const statusCounts = useMemo(() => {
     return {
       Pending: items.filter(i => i.status === 'Pending').length,
+      // Pecahan sebab (2026-09-04, audit Izzat "menunggu sepatutnya ada dua") — lencana MENUNGGU
+      // di header dahulu satu nombor gabungan, jadi kandungan yang dah lulus (cuma beratur slot)
+      // kelihatan seolah-olah masih perlu keputusan Ketua Editor.
+      PendingSemakan: items.filter(i => i.status === 'Pending' && i.sebabMenunggu !== 'slot_penuh').length,
+      PendingSlotPenuh: items.filter(i => i.status === 'Pending' && i.sebabMenunggu === 'slot_penuh').length,
       Live: items.filter(i => i.status === 'Live').length,
       Archive: items.filter(i => i.status === 'Archive').length,
       Scheduled: items.filter(i => i.status === 'Scheduled').length,
@@ -1005,7 +1015,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         huraian="Senarai induk semua kandungan editorial yang sudah direkodkan. Tapis mengikut status, Bidang, sumber, slot atau editor, dan uruskan penyiaran setiap kandungan."
         tindakan={
           <div className="flex items-center gap-2 font-sans text-[10px]">
-            <StatusBadge tone="warning" label={`MENUNGGU: ${statusCounts.Pending}`} />
+            {/* Lencana MENUNGGU kini beri tooltip pecahan sebab (2026-09-04, audit Izzat) — nombor
+                gabungan dikekalkan (masih "berapa banyak belum aktif"), tapi editor boleh tengok
+                pecahan tanpa buka setiap rekod satu-satu. */}
+            <Tooltip text={`${statusCounts.PendingSemakan} menunggu semakan Ketua Editor · ${statusCounts.PendingSlotPenuh} dah lulus, menunggu slot kosong`}>
+              <span className="inline-flex"><StatusBadge tone="warning" label={`MENUNGGU: ${statusCounts.Pending}`} /></span>
+            </Tooltip>
             <StatusBadge tone="success" label={`AKTIF: ${statusCounts.Live}`} />
             <StatusBadge tone="neutral" label={`ARKIB: ${statusCounts.Archive}`} />
           </div>
@@ -1474,7 +1489,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                       </td>
                     </Tooltip>
                     <td className="p-2.5">
-                      <StatusBadge tone={STATUS_TONE[rec.status] || 'neutral'} label={labelStatus(rec.status).toUpperCase()} />
+                      <StatusBadge tone={STATUS_TONE[rec.status] || 'neutral'} label={(rec.status === 'Pending' ? labelSebabMenunggu(rec.sebabMenunggu) : labelStatus(rec.status)).toUpperCase()} />
                     </td>
                     <td
                       className="p-2.5 font-sans text-xs font-semibold"
@@ -1890,7 +1905,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
               <div>
                 <span className="text-stone-400 text-[9px] uppercase tracking-widest font-bold block mb-1.5 border-b border-stone-200 pb-1">Kandungan</span>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{labelStatus(activeItemModal.status)}</strong></div>
+                  <div><span className="text-stone-500 text-[9px] block">STATUS</span><strong className="text-stone-900">{activeItemModal.status === 'Pending' ? labelSebabMenunggu(activeItemModal.sebabMenunggu) : labelStatus(activeItemModal.status)}</strong></div>
                   <div><span className="text-stone-500 text-[9px] block">BIDANG</span><strong className="text-stone-900">{activeBidangList.find(b => b.name.toLowerCase() === activeItemModal.desk.toLowerCase())?.name || formatTitleCase(activeItemModal.desk)}</strong></div>
                   {/* TIADA formatTitleCase() di sini (2026-08-16, pepijat ditemui simulasi Slot 3) — Topik
                       medan bebas taip-sendiri editor (BUKAN taksonomi tak-konsisten macam desk RSS di atas),

@@ -1114,7 +1114,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // konflik). Ini konsisten dgn seni bina sebenar, bukan reka andaian baharu.
   const [terbitSemuaBerjalan, setTerbitSemuaBerjalan] = useState(false);
   const [confirmTerbitSemua, setConfirmTerbitSemua] = useState(false);
-  const [ringkasanTerbitSemua, setRingkasanTerbitSemua] = useState<{ berjaya: number; pending: number; gagal: { title: string; reason: string }[] } | null>(null);
+  // pending dipecah dua (2026-09-04, audit Izzat "menunggu sepatutnya ada dua") — pendingSemakan
+  // = perlu keputusan Ketua Editor; pendingSlotPenuh = dah lulus, cuma tunggu ruang slot kosong
+  // (naik taraf automatik, lihat nota `hasil.slotPenuh` di publishOne). Ringkasan "Terbit Semua"
+  // sebelum ni gaul kedua-duanya di bawah satu label "Menunggu Semakan", jadi editor tak dapat
+  // beza kandungan yang betul-betul perlu tindakan Ketua Editor drpd yang cuma beratur slot.
+  const [ringkasanTerbitSemua, setRingkasanTerbitSemua] = useState<{ berjaya: number; pendingSemakan: number; pendingSlotPenuh: number; gagal: { title: string; reason: string }[] } | null>(null);
   const itemsLulus = items.filter((it) => itemFits(editingSlotIndex, desk, it).isValid);
   const itemsGagal = items
     .map((it) => ({ it, check: itemFits(editingSlotIndex, desk, it) }))
@@ -1132,13 +1137,14 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     if (ok) {
       const hasil = Array.isArray(ok) ? ok : [];
       const berjaya = hasil.filter((h: any) => h?.status !== 'pending').length;
-      const pending = hasil.filter((h: any) => h?.status === 'pending').length;
+      const pendingSlotPenuh = hasil.filter((h: any) => h?.status === 'pending' && h?.slotPenuh).length;
+      const pendingSemakan = hasil.filter((h: any) => h?.status === 'pending' && !h?.slotPenuh).length;
       commit(() => remainingDrafts);
       setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
       setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
       setManualSummaryTersimpanTerakhir(serializeManualBentoQueue(remainingDrafts));
       buangDrafTempatan(kunciDrafTempatan);
-      setRingkasanTerbitSemua({ berjaya, pending, gagal: itemsGagal });
+      setRingkasanTerbitSemua({ berjaya, pendingSemakan, pendingSlotPenuh, gagal: itemsGagal });
       onLihatIndeks && onToast?.(
         'success',
         `${hasil.length} kandungan diterbitkan.`,
@@ -1186,13 +1192,18 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       // sentiasa ada tepat SATU hasil di sini.
       const hasil = Array.isArray(ok) ? ok[0] : undefined;
       const statusSebenar = hasil?.status === 'pending' ? 'Pending' : 'Live';
-      // WF-01 (Pusingan 5, audit ChatGPT 2026-08-09) — "Lihat di Indeks ->" bawa editor terus
-      // ke rekod baharu, ditapis ikut STATUS SEBENAR respons pelayan (bukan andaian tetap),
-      // sepadan pelajaran LIFE-01: pelayan ialah sumber kebenaran, bukan satu mesej hardcode.
+      // Dua sebab 'pending' (2026-09-04, audit Izzat "menunggu sepatutnya ada dua") — 'pending'
+      // bukan bermakna perlu semakan manusia semestinya. `hasil.slotPenuh` (contentRoutes.js,
+      // sebabMenunggu==='slot_penuh') bermaksud kandungan ni DAH LULUS, cuma tunggu ruang slot
+      // kosong — naik taraf berlaku AUTOMATIK (Scheduling.js), tiada tindakan Ketua Editor
+      // diperlukan. Mesej "Menunggu Semakan" untuk kes ni mengelirukan editor yang ada kebenaran
+      // self-publish penuh (dia fikir kandungannya tersekat sedangkan cuma beratur).
       onToast?.(
         'success',
         hasil?.status === 'pending'
-          ? 'Kandungan dihantar dan kini Menunggu Semakan.'
+          ? (hasil?.slotPenuh
+            ? 'Kandungan dihantar dan dah lulus — cuma menunggu slot kosong (naik taraf automatik).'
+            : 'Kandungan dihantar dan kini Menunggu Semakan.')
           : 'Kandungan diterbitkan.',
         onLihatIndeks ? { label: 'Lihat di Indeks →', onClick: () => onLihatIndeks({ slot: `Slot ${editingSlotIndex + 1}`, status: statusSebenar }) } : undefined
       );
@@ -1562,7 +1573,8 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-sans text-[11px] text-stone-700">
                     {ringkasanTerbitSemua.berjaya > 0 && `${ringkasanTerbitSemua.berjaya} kandungan diterbitkan. `}
-                    {ringkasanTerbitSemua.pending > 0 && `${ringkasanTerbitSemua.pending} kandungan dihantar untuk Menunggu Semakan. `}
+                    {ringkasanTerbitSemua.pendingSemakan > 0 && `${ringkasanTerbitSemua.pendingSemakan} kandungan dihantar untuk Menunggu Semakan. `}
+                    {ringkasanTerbitSemua.pendingSlotPenuh > 0 && `${ringkasanTerbitSemua.pendingSlotPenuh} kandungan dah lulus, menunggu slot kosong. `}
                     {ringkasanTerbitSemua.gagal.length > 0 && `${ringkasanTerbitSemua.gagal.length} kandungan tidak diterbitkan.`}
                   </span>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setRingkasanTerbitSemua(null)}>Tutup</Button>

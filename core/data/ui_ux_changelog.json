@@ -1,5 +1,16 @@
 [
   {
+    "time": "2026-09-04T04:17:09.324Z",
+    "summary": "Pisahkan 'Menunggu' kepada dua sebab (Menunggu Semakan vs Menunggu Slot Kosong) di Dashboard, Indeks, toast Terbit, dan penapis Semakan Kandungan — sebelum ni digaul satu label mengelirukan editor",
+    "files": [
+      "src/components/editorium/DashboardConsole.tsx",
+      "src/components/editorium/IndeksConsole.tsx",
+      "src/components/portal/SlotManagerModal.tsx",
+      "src/components/studio/ContentReview.tsx",
+      "src/config/istilah.ts"
+    ]
+  },
+  {
     "time": "2026-08-26T09:21:52.142Z",
     "summary": "Betulkan warna eyebrow bertukar kelabu semasa transisi Swipe/Gerak Susun (regresi pembetulan sebelum ni) — 13 slot kini guna gaya paparan sebenar (termasuk tema warna dinamik), bukan salinan pengukuran tersembunyi",
     "files": [

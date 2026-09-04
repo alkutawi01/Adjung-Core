@@ -27,6 +27,12 @@ interface ContentItem {
   // paparan ni tak pernah tapis ikut status. Nilai mentah lowercase (approved/pending/rejected/
   // archived) sama macam disimpan di editorial_revisions.
   status?: string;
+  // sebabMenunggu (2026-09-04, audit Izzat "menunggu sepatutnya ada dua") — cuma bermakna bila
+  // status==='pending'. '' / 'semakan' = perlu keputusan Ketua Editor/Penolong; 'slot_penuh' =
+  // dah lulus, cuma tunggu ruang slot kosong (naik taraf automatik). Dipulangkan oleh /api/system/
+  // content/all (contentRoutes.js) tapi sebelum ni tak pernah diisytihar/digunakan di sini, jadi
+  // penapis "Menunggu" gaul kedua-dua sebab jadi satu — lihat statusFilter di bawah.
+  sebabMenunggu?: string;
   // summaryLong/note/originalDate (2026-07-29, permintaan pemilik projek) — /api/system/content/all
   // sentiasa pulangkan ketiga-tiga ni juga (lihat contentRoutes.js), tapi Paparan Teks Pukal
   // sebelum ni tak pernah papar/edit langsung — editor yang guna paparan pukal tak pernah nampak
@@ -356,7 +362,14 @@ export function ContentReview() {
           i.id.toLowerCase().includes(q);
         if (!matches) return false;
       }
-      if (statusFilter !== 'Semua' && i.status !== statusFilter) return false;
+      // Dua sub-tapisan "Menunggu" (2026-09-04, audit Izzat) — nilai 'pending' mentah tetap sah
+      // (papar SEMUA sebab, kegunaan lama), tapi 'pending_semakan'/'pending_slot_penuh' benarkan
+      // editor tapis khusus ikut SEBAB, bukan cuma status DB gabungan.
+      if (statusFilter === 'pending_semakan') {
+        if (i.status !== 'pending' || i.sebabMenunggu === 'slot_penuh') return false;
+      } else if (statusFilter === 'pending_slot_penuh') {
+        if (i.status !== 'pending' || i.sebabMenunggu !== 'slot_penuh') return false;
+      } else if (statusFilter !== 'Semua' && i.status !== statusFilter) return false;
       if (deskFilter !== 'Semua' && (i.desk || '').toLowerCase() !== deskFilter.toLowerCase()) return false;
       if (slotFilter === 'SemuaBukanTicker') {
         if (i.slotIndex === -1) return false;
@@ -644,7 +657,9 @@ export function ContentReview() {
               className="bg-stone-50 border border-stone-300 rounded px-2.5 py-1.5 font-sans text-xs font-semibold"
             >
               <option value="Semua">Semua Status</option>
-              <option value="pending">Menunggu</option>
+              <option value="pending">Menunggu (semua sebab)</option>
+              <option value="pending_semakan">Menunggu — Semakan</option>
+              <option value="pending_slot_penuh">Menunggu — Slot Kosong</option>
               <option value="approved">Aktif</option>
               <option value="archived">Arkib</option>
             </select>

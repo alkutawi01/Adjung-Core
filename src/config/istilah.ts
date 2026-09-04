@@ -48,6 +48,11 @@ export const labelMod = (nilai?: string | null): string => {
 /** Status kandungan seperti dipapar. Kunci ialah label dalaman IndeksConsole, bukan nilai DB. */
 export const STATUS_LABEL: Record<string, string> = {
   Live: 'Aktif',
+  // "Menunggu" (Pending) sebenarnya DUA sebab berbeza (lihat SEBAB_MENUNGGU_LABEL/labelSebabMenunggu
+  // di bawah, 2026-09-04, audit Izzat "menunggu sepatutnya ada dua") — label generik ni kekal
+  // sebagai LABEL STATUS am (untuk paparan yang tak (atau belum) sedar `sebabMenunggu`), tapi
+  // mana-mana paparan yang MEMANG ada medan `sebabMenunggu` WAJIB guna labelSebabMenunggu()
+  // dahulu, bukan label generik ni.
   Pending: 'Menunggu',
   Archive: 'Arkib',
   // Dijadualkan (2026-08-02) — BEZA daripada Menunggu (Pending): Menunggu = tunggu kelulusan
@@ -61,6 +66,28 @@ export const labelStatus = (nilai?: string | null): string => {
   if (!nilai) return '';
   const lalai = STATUS_LABEL[nilai] || nilai;
   return gantian(`status.${nilai}`, lalai);
+};
+
+// Dua sebab "Menunggu" (2026-09-04, audit Izzat: "menunggu sepatutnya ada dua: menunggu semakan,
+// menunggu slot kosong ... tapi sistem kelihatan keliru, kadang2 mencapuradukkan"). Kedua-duanya
+// simpan status DB `pending` yang SAMA, dibezakan atribut `sebabMenunggu` (EAV, contentRoutes.js) —
+// 'semakan' = perlu keputusan MANUSIA (Ketua Editor/Penolong); 'slot_penuh' = SUDAH lulus, cuma
+// tunggu ruang slot kosong, naik taraf AUTOMATIK (core/editorial/Scheduling.js). Sebelum label ni
+// wujud, paparan seperti Dashboard/Indeks/Semakan Kandungan mengira & melabel kedua-dua sebagai
+// SATU "Menunggu Semakan" — mengelirukan editor bila kandungan yang sebenarnya dah lulus (cuma
+// beratur slot) kelihatan seolah-olah masih perlu tindakan Ketua Editor.
+export const SEBAB_MENUNGGU_LABEL: Record<string, string> = {
+  semakan: 'Menunggu Semakan',
+  slot_penuh: 'Menunggu Slot Kosong',
+};
+
+/** Label "Menunggu" yang sedar sebab (semakan vs slot_penuh). `sebab` kosong/tidak dikenali jatuh
+ * balik ke label generik STATUS_LABEL.Pending — selamat untuk kandungan lama sebelum `sebabMenunggu`
+ * wujud, atau paparan yang tak sempat hantar medan tu. */
+export const labelSebabMenunggu = (sebab?: string | null): string => {
+  const kunci = (sebab || '').trim();
+  const lalai = SEBAB_MENUNGGU_LABEL[kunci] || STATUS_LABEL.Pending;
+  return gantian(`status.pending.${kunci || 'lalai'}`, lalai);
 };
 
 // Mesej sistem ringkas (toast simpan/terbit/gagal) — set terkurasi (2026-08-02, Fasa 6), BUKAN

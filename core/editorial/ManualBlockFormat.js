@@ -373,7 +373,7 @@ export function parseManualBlockFields(block) {
 // The "must have a title to publish" rule still applies server-side at actual save time.
 export function parseManualSummaryBlocks(summaryText) {
   if (!summaryText || (!summaryText.includes('Tajuk:') && !summaryText.includes('Event:'))) return [];
-  return (summaryText || '')
+  const blocks = (summaryText || '')
     .split(MANUAL_BLOCK_SPLIT_REGEX)
     // MANUAL_BLOCK_SPLIT_REGEX's alternatives overlap on the standard "\n\n____...____\n\n"
     // separator: the underscore run matches `___+` AND the blank line immediately before the
@@ -384,6 +384,23 @@ export function parseManualSummaryBlocks(summaryText) {
     // real "UUID: ...\nTajuk: \n..." lines, just empty values, and must be kept — see below).
     .filter((block) => block.trim().length > 0)
     .map(parseManualBlockFields);
+
+  // Dedup ikut UUID (2026-09-04, laporan Izzat — draf "Portal data terbuka..." muncul DUA baris
+  // sama di Draf Saya, dan buka salah satu daripada "Sambung" mendarat pada borang kosong).
+  // Punca: manualSummary tersimpan dengan blok teks yang sama tertampal DUA KALI (kemungkinan
+  // double-submit semasa simpan), berkongsi UUID literal yang SAMA — fungsi ni SATU-SATUNYA
+  // tempat semua pemanggil (Draf Saya, SlotManagerModal, BarSlotManagerModal, pembersihan akaun
+  // di userAdminRoutes.js) hurai manualSummary jadi senarai, jadi dedup di sini menyelesaikannya
+  // di SEMUA tapak sekali gus. Kekalkan kemunculan PERTAMA sahaja bagi setiap UUID bukan-kosong;
+  // blok kosong ('') SENGAJA tak digugurkan sesama sendiri — beberapa draf baharu yang belum
+  // dicap identiti (blankItem sebelum sempat simpan) sah wujud serentak dengan uuid kosong.
+  const uuidDilihat = new Set();
+  return blocks.filter((b) => {
+    if (!b.uuid) return true;
+    if (uuidDilihat.has(b.uuid)) return false;
+    uuidDilihat.add(b.uuid);
+    return true;
+  });
 }
 
 // Serializes one bento (non-BAR) item back into the Label: value block format, including a UUID:
