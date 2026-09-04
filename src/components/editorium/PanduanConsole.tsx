@@ -413,13 +413,11 @@ export const PanduanConsole: React.FC = () => {
             (Mufti Kerajaan, Dar al-Ifta, JAKIM, dll.) diterima penuh sebagai topik Syariah — hook
             berita + substance ilmiah serentak.
           </Card>
-          <Card title="Tidak bercanggah nilai Islam — piawaian Manhaj Salafi">
-            Kandungan TIDAK boleh mempromosikan perkara yang bercanggah dengan Manhaj Salafi —
-            ini piawaian khusus, bukan sekadar "Islam secara umum". Antara yang DITOLAK: amalan
-            bid'ah (perkara diada-adakan dalam ibadah tanpa dalil), maksiat (perbuatan dosa
-            dipromosikan/dinormalisasikan tanpa konteks kritikal), atau apa-apa yang bercanggah
-            akidah Ahlus Sunnah wal Jamaah mengikut kefahaman Salaf. Kalau ragu sama ada sesuatu
-            topik/program/amalan tergolong bid'ah atau bercanggah manhaj ini, JANGAN teruskan
+          <Card title="Tidak bercanggah nilai Islam">
+            Kandungan TIDAK boleh mempromosikan/menormalisasikan maksiat (perbuatan dosa) atau
+            amalan kontroversi yang dipertikaikan dari segi hukum syarak — walau sekadar disebut
+            sepintas lalu, jangan beri nada mengesahkan/menggalakkan tanpa konteks kritikal. Kalau
+            ragu sama ada sesuatu topik/program/amalan sesuai atau kontroversi, JANGAN teruskan
             tanpa kepastian — pilih topik lain atau tanya dahulu.
           </Card>
           <Card title="Gaya penulisan & format">
