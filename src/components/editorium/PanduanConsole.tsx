@@ -381,68 +381,80 @@ export const PanduanConsole: React.FC = () => {
           manusia, cuma memastikan AI ada konteks penuh dari awal supaya kesilapan sama tidak
           berulang. */}
       <div>
-        <SectionLabel>13 — Pengisian Kandungan oleh AI/Automasi</SectionLabel>
-        <Card title="Kenapa seksyen ini wujud">
-          Editor manusia tidak cukup untuk mengisi semua slot, jadi AI kerap diarahkan menulis
-          kandungan terus. Tanpa konteks penuh, AI boleh hilang arah — tidak tahu apa yang perlu
-          ditulis, bagaimana hendak sahkan fakta, atau apa yang dilarang. Seksyen ini ialah arahan
-          tetap yang perlu dibaca AI SEBELUM mula kerja, bukan diterangkan semula setiap kali
-          secara lisan.
+        <SectionLabel>13 — Pengisian Kandungan oleh AI dan Automasi</SectionLabel>
+        <Card title="Tujuan seksyen ini">
+          Bilangan editor manusia tidak mencukupi untuk mengisi semua slot, jadi AI kerap
+          diarahkan untuk menulis kandungan secara langsung. Tanpa konteks penuh, AI boleh
+          tersasar — tidak tahu apa yang perlu ditulis, cara mengesahkan fakta atau perkara yang
+          dilarang. Seksyen ini ialah arahan tetap yang perlu dibaca oleh AI SEBELUM mula bekerja
+          dan tidak perlu diterangkan semula setiap kali tugasan diberikan.
         </Card>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
           <Card title="Peraturan sumber — mutlak">
-            <strong>Wikipedia diharamkan sepenuhnya</strong> (baca, rujuk, cross-reference —
-            semuanya dilarang). Setiap fakta yang ditulis mesti wujud SEBENAR dalam perenggan
-            penuh sumber yang dibaca (bukan tajuk carian/snippet/andaian). Sumber mesti halaman
-            SPESIFIK, bukan laman utama domain. <strong>Sumber mesti masih terkini/segar</strong> —
-            sahkan tarikh penerbitan sumber dan pastikan fakta itu belum berubah/dikemas kini
-            sejak itu (cth. jawatan/status seseorang, keputusan yang mungkin dipinda kemudian);
-            jangan petik fakta lapuk sebagai semasa. Bahasa sumber bebas (Arab/Inggeris/dll.) —
-            utamakan paling berautoriti untuk topik berkenaan, bukan bahasa dia. Jangan guna alat
-            ringkasan automatik untuk "baca" sumber — navigasi terus dan baca sebenar.
+            <strong>Wikipedia diharamkan sepenuhnya</strong> (membaca, merujuk atau membuat
+            semakan silang — semuanya dilarang). Setiap fakta yang ditulis mesti BENAR-BENAR
+            terdapat dalam perenggan penuh sumber yang dibaca, bukan sekadar dalam tajuk hasil
+            carian, petikan carian atau andaian. Sumber mestilah halaman KHUSUS, bukan laman
+            utama sesebuah domain. <strong>Sumber mesti cukup terkini dan relevan</strong> —
+            sahkan tarikh penerbitan atau kemas kini sumber, dan pastikan maklumat berkenaan belum
+            berubah sejak tarikh itu (contohnya jawatan atau status seseorang, atau keputusan
+            yang mungkin dipinda kemudian). Jangan petik maklumat lapuk sebagai fakta semasa.
+            Sumber boleh dalam apa-apa bahasa (Arab, Inggeris dan sebagainya) — utamakan sumber
+            yang paling berautoriti bagi topik berkenaan, bukan berdasarkan bahasanya. Jangan
+            gunakan alat ringkasan automatik untuk "membaca" sumber — buka sumber asal secara
+            langsung dan baca kandungan asalnya.
           </Card>
-          <Card title="Semakan ChatGPT wajib sertakan sumber">
-            Bila hantar draf ke ChatGPT untuk semak, WAJIB sertakan URL sumber + petikan langsung
-            (salin-tampal) daripada sumber sekali dalam mesej yang sama — tanpa ini, ChatGPT cuma
-            nilai bahasa, BUKAN sahkan fakta wujud benar. Minta ChatGPT bandingkan SETIAP fakta
-            draf terhadap petikan yang disertakan. Amaran ChatGPT tentang mana-mana fakta tidak
-            boleh diabaikan — buang/betulkan fakta itu.
+          <Card title="Semakan oleh ChatGPT — sumber wajib disertakan">
+            Apabila menghantar draf kepada ChatGPT untuk disemak, WAJIB sertakan URL sumber dan
+            petikan langsung (salin-tampal) daripada sumber dalam mesej yang sama. Tanpa
+            kedua-duanya, ChatGPT hanya boleh menilai bahasa, BUKAN mengesahkan bahawa setiap
+            fakta benar-benar terdapat dalam sumber. Arahkan ChatGPT membandingkan SETIAP fakta
+            dalam draf dengan petikan yang disertakan. Sebarang amaran ChatGPT bahawa sesuatu
+            fakta tidak disokong oleh petikan tidak boleh diabaikan — buang atau betulkan fakta
+            tersebut.
           </Card>
           <Card title="Kriteria topik">
-            Skop global secara lalai (bukan Malaysia sahaja — slot "Malaysiana" sahaja yang
-            khusus Malaysia). Topik mesti ada nilai ilmiah/tahan lama sebenar, bukan sekadar sebut
-            perkataan berkaitan Bidang (elak berita pentadbiran/kewangan semata). Fatwa rasmi
-            (Mufti Kerajaan, Dar al-Ifta, JAKIM, dll.) diterima penuh sebagai topik Syariah — hook
-            berita + substance ilmiah serentak.
+            Skopnya global secara lalai; hanya slot "Malaysiana" dikhususkan kepada Malaysia.
+            Topik mesti mempunyai nilai ilmiah yang nyata dan tidak cepat lapuk, bukan sekadar
+            menyebut perkara yang berkaitan dengan Bidang. Elakkan berita pentadbiran atau
+            kewangan semata-mata. Fatwa rasmi (mufti kerajaan, Dar al-Ifta, JAKIM dan sebagainya)
+            diterima sebagai topik Syariah kerana mempunyai nilai berita dan kandungan ilmiah
+            secara serentak.
           </Card>
-          <Card title="Tidak bercanggah nilai Islam">
-            Kandungan TIDAK boleh mempromosikan/menormalisasikan maksiat (perbuatan dosa) atau
-            amalan kontroversi yang dipertikaikan dari segi hukum syarak — walau sekadar disebut
-            sepintas lalu, jangan beri nada mengesahkan/menggalakkan tanpa konteks kritikal. Kalau
-            ragu sama ada sesuatu topik/program/amalan sesuai atau kontroversi, JANGAN teruskan
-            tanpa kepastian — pilih topik lain atau tanya dahulu.
+          <Card title="Tidak bercanggah dengan nilai Islam">
+            Kandungan TIDAK boleh mempromosikan atau menormalkan maksiat (perbuatan dosa) atau
+            amalan yang dipertikaikan dari segi hukum syarak. Jika perkara sedemikian disebut
+            walaupun sepintas lalu, jangan gunakan nada yang seolah-olah mengesahkan atau
+            menggalakkannya tanpa konteks kritikal. Jika ragu-ragu sama ada sesuatu topik,
+            program atau amalan sesuai atau kontroversi, JANGAN teruskan selagi belum mendapat
+            kepastian — pilih topik lain atau tanya terlebih dahulu.
           </Card>
-          <Card title="Gaya penulisan & format">
-            Adjung Brief bukan berita 100%, ia berita+majalah: perenggan pertama fakta utama
-            (apa/siapa/bila), boleh berkembang konteks selepas itu — bukan headline kosong,
-            bukan entri ensiklopedia. Tajuk guna <em>sentence case</em>, bukan Title Case. Condong
-            (<code>*teks*</code>) hanya untuk istilah ASING/transliterasi (cth <em>ʿiddah</em>,{' '}
-            <em>jilbāb</em>), BUKAN nama khas atau perkataan Melayu biasa. Tiada condong hiasan.
+          <Card title="Gaya penulisan dan format">
+            Adjung Brief bukan portal berita semata-mata; gayanya menggabungkan berita dengan
+            majalah. Perenggan pertama mesti memuatkan fakta utama (apa, siapa dan bila). Selepas
+            itu, kandungan boleh berkembang dengan konteks yang lebih luas — bukan sekadar tajuk
+            berita tanpa isi dan bukan juga entri ensiklopedia. Gunakan <em>sentence case</em>{' '}
+            untuk tajuk, bukan Title Case. Gunakan tulisan condong (<code>*teks*</code>) hanya
+            untuk istilah ASING atau transliterasi (contohnya <em>ʿiddah</em>, <em>jilbāb</em>),
+            BUKAN untuk nama khas atau perkataan Melayu biasa. Jangan gunakan tulisan condong
+            untuk tujuan hiasan.
           </Card>
-          <Card title="Proses & had teknikal">
-            Semak kandungan sedia ada dalam slot sasaran dahulu — elak topik berulang dan elak
-            terbitkan lebih daripada bilangan diminta. Slot penuh (10/10) BUKAN halangan — sistem
-            ada putaran automatik 24 jam (kandungan baharu masuk "Menunggu Slot Kosong", naik
-            taraf sendiri); jangan arkib manual kandungan sedia ada untuk "buat ruang". Tarikh
-            Sumber (YYYY-MM-DD) wajib diisi untuk kandungan bersumber luar. Medan Sumber terhad
-            ~25 aksara, guna singkatan jika perlu.
+          <Card title="Proses dan had teknikal">
+            Semak kandungan sedia ada dalam slot sasaran terlebih dahulu — elakkan topik berulang
+            dan jangan terbitkan lebih daripada bilangan yang diminta. Slot penuh (10/10) BUKAN
+            halangan — sistem mempunyai putaran automatik setiap 24 jam. Kandungan baharu akan
+            masuk ke status "Menunggu Slot Kosong" dan dinaikkan ke slot secara automatik. Jangan
+            mengarkibkan kandungan sedia ada secara manual semata-mata untuk membuka ruang. Medan
+            Tarikh Sumber (YYYY-MM-DD) wajib diisi bagi kandungan yang menggunakan sumber luar.
+            Medan Sumber terhad kepada kira-kira 25 aksara; gunakan singkatan jika perlu.
           </Card>
-          <Card title="Sejarah — kenapa peraturan ini ketat">
-            Disusun 4/9/2026 selepas insiden sebenar: satu artikel direka SEPENUHNYA ("Serangan
-            Rusia musnah 100,000 naskhah buku BookChef") dan dikaitkan palsu ke URL sumber sebenar
-            yang langsung tidak menyebut fakta itu. Kandungan dipadam, tetapi punca (semakan
-            ChatGPT tanpa sumber disertakan, tiada gerbang anti-Wikipedia eksplisit) boleh
-            berulang kalau tidak ditulis sebagai peraturan tetap di sini.
+          <Card title="Latar belakang — mengapa peraturan ini ketat">
+            Disusun pada 2026-09-04 selepas insiden sebenar: satu artikel direka-reka SEPENUHNYA
+            ("Serangan Rusia musnah 100,000 naskhah buku BookChef") dan dikaitkan secara palsu
+            dengan URL sumber sebenar yang langsung tidak menyebut fakta tersebut. Kandungan itu
+            telah dipadam, tetapi kelemahan proses yang menjadi puncanya — semakan oleh ChatGPT
+            tanpa sumber yang disertakan dan ketiadaan larangan Wikipedia yang dinyatakan secara
+            eksplisit — boleh berulang jika perkara ini tidak dijadikan peraturan tetap.
           </Card>
         </div>
       </div>
