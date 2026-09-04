@@ -376,16 +376,18 @@ export const PanduanConsole: React.FC = () => {
       </div>
 
       {/* 13 — PENGISIAN KANDUNGAN OLEH AI/AUTOMASI (2026-09-04, arahan Izzat selepas insiden
-          fabrikasi sebenar — "BookChef") — seksyen ni WAJIB dibaca sebelum mana-mana AI (Claude,
-          ChatGPT, dll.) diarahkan isi kandungan editorial. Bukan pengganti penyeliaan manusia,
-          cuma pastikan AI ada konteks penuh dari awal supaya kesilapan sama tak berulang. */}
+          fabrikasi sebenar — "BookChef") — seksyen ini WAJIB dibaca sebelum mana-mana AI (Claude,
+          ChatGPT, dll.) diarahkan mengisi kandungan editorial. Bukan pengganti penyeliaan
+          manusia, cuma memastikan AI ada konteks penuh dari awal supaya kesilapan sama tidak
+          berulang. */}
       <div>
         <SectionLabel>13 — Pengisian Kandungan oleh AI/Automasi</SectionLabel>
         <Card title="Kenapa seksyen ini wujud">
-          Editor manusia tak cukup untuk isi semua slot, jadi AI kerap diarahkan tulis kandungan
-          terus. Tanpa konteks penuh, AI boleh hilang arah — tak tahu apa nak tulis, macam mana
-          nak sahkan fakta, atau apa yang dilarang. Seksyen ini ialah arahan tetap yang perlu
-          dibaca AI SEBELUM mula kerja, bukan diterangkan semula setiap kali secara lisan.
+          Editor manusia tidak cukup untuk mengisi semua slot, jadi AI kerap diarahkan menulis
+          kandungan terus. Tanpa konteks penuh, AI boleh hilang arah — tidak tahu apa yang perlu
+          ditulis, bagaimana hendak sahkan fakta, atau apa yang dilarang. Seksyen ini ialah arahan
+          tetap yang perlu dibaca AI SEBELUM mula kerja, bukan diterangkan semula setiap kali
+          secara lisan.
         </Card>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
           <Card title="Peraturan sumber — mutlak">
@@ -403,7 +405,7 @@ export const PanduanConsole: React.FC = () => {
             Bila hantar draf ke ChatGPT untuk semak, WAJIB sertakan URL sumber + petikan langsung
             (salin-tampal) daripada sumber sekali dalam mesej yang sama — tanpa ini, ChatGPT cuma
             nilai bahasa, BUKAN sahkan fakta wujud benar. Minta ChatGPT bandingkan SETIAP fakta
-            draf terhadap petikan yang disertakan. Amaran ChatGPT tentang mana-mana fakta tak
+            draf terhadap petikan yang disertakan. Amaran ChatGPT tentang mana-mana fakta tidak
             boleh diabaikan — buang/betulkan fakta itu.
           </Card>
           <Card title="Kriteria topik">
@@ -438,9 +440,9 @@ export const PanduanConsole: React.FC = () => {
           <Card title="Sejarah — kenapa peraturan ini ketat">
             Disusun 4/9/2026 selepas insiden sebenar: satu artikel direka SEPENUHNYA ("Serangan
             Rusia musnah 100,000 naskhah buku BookChef") dan dikaitkan palsu ke URL sumber sebenar
-            yang langsung tak menyebut fakta itu. Kandungan dipadam, tapi punca (semakan ChatGPT
-            tanpa sumber disertakan, tiada gerbang anti-Wikipedia eksplisit) boleh berulang kalau
-            tak ditulis sebagai peraturan tetap di sini.
+            yang langsung tidak menyebut fakta itu. Kandungan dipadam, tetapi punca (semakan
+            ChatGPT tanpa sumber disertakan, tiada gerbang anti-Wikipedia eksplisit) boleh
+            berulang kalau tidak ditulis sebagai peraturan tetap di sini.
           </Card>
         </div>
       </div>

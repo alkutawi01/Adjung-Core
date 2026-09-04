@@ -1554,7 +1554,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                           value=""
                           onChange={(e) => {
                             const val = e.target.value;
-                            if (val === 'Live') {
+                            if (val === 'Sunting') {
+                              // Sama laluan/mekanisme macam ikon pensel sedia ada di frontpage/
+                              // Focus View (2026-08-17) — buka Semakan Kandungan dalam tab baharu
+                              // dengan ?itemId= supaya carian sedia ada ContentReview.tsx terus
+                              // isi automatik dengan UUID ni (padanan teks bebas i.id, mengasingkan
+                              // SATU kandungan sahaja). Permintaan Izzat (2026-09-04): editor patut
+                              // boleh sunting terus dari Indeks tanpa cari manual di Semakan
+                              // Kandungan dahulu.
+                              window.open(`/editorium?tab=kandungan&sub=semakan&itemId=${rec.id}`, '_blank', 'noopener');
+                            } else if (val === 'Live') {
                               // Terbit & Padam disahkan melalui dialog (lihat nota dialogSah).
                               // Arkib sengaja TIDAK — ia menyembunyikan, bukan mendedahkan, dan
                               // boleh dibuat asal terus dari baris yang sama.
@@ -1578,6 +1587,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                               dan Arkib, dua tindakan rutin selamat -- <select> native tiada beza
                               warna/berat visual antara opsyen, jadi susunan sahaja pembeza. */}
                           <option value="" disabled hidden>Tindakan ▾</option>
+                          <option value="Sunting">Sunting</option>
                           {rec.status !== 'Live' && <option value="Live">Siar</option>}
                           {rec.status !== 'Archive' && <option value="Archive">Arkib</option>}
                           {/* Kebenaran `reject` lalai TERHAD kepada Ketua Editor/Penolong Ketua
