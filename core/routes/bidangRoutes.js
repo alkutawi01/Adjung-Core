@@ -75,6 +75,18 @@ export function createBidangRoutes(dbAll, dbGet) {
 
       const attrSelects = ATTR_KEYS.map((k) => attrSubquery(k, k)).join(',\n               ');
 
+      // TERKINI vs Koleksi Terdahulu (2026-09-04, pembetulan susulan — dapatan Izzat semasa
+      // kandungan fabrikasi diarkibkan: "apabila diarkibkan tidak boleh berada di TERKINI,
+      // tetapi di Koleksi Terdahulu"). HalamanBidang.tsx (nota di atas) panggil laluan ni DUA
+      // cara berbeza yang boleh dibezakan di sini: permintaan TERKINI SENTIASA `page=1` TANPA
+      // `offset` eksplisit; Koleksi Terdahulu SENTIASA hantar `offset` eksplisit. Guna ni untuk
+      // tentukan skop status — TERKINI kunci `approved` SAHAJA (tiada fallback archived lagi;
+      // Izzat sahkan seksyen tu tak boleh sekali-kali papar kandungan bukan aktif walau kosong
+      // separuh), Koleksi Terdahulu kekal terima 'approved'+'archived' (Izzat: reka bentuk
+      // sengaja supaya Bidang nampak kaya kandungan — BUKAN bug, jangan sentuh).
+      const iniTerkini = offsetParam === null && page === 1;
+      const statusScope = iniTerkini ? `er.status = 'approved'` : `er.status IN ('approved', 'archived')`;
+
       const whereClause = `
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
@@ -82,7 +94,7 @@ export function createBidangRoutes(dbAll, dbGet) {
           SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions GROUP BY objectId
         ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
         WHERE eo.slotIndex >= 0
-          AND er.status IN ('approved', 'archived')
+          AND ${statusScope}
           AND EXISTS (
             SELECT 1 FROM editorial_attribute_values av
             WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'desk'
@@ -93,17 +105,6 @@ export function createBidangRoutes(dbAll, dbGet) {
       const totalRow = await dbGet(`SELECT COUNT(*) as total ${whereClause}`, [cat.name]);
       const total = totalRow ? Number(totalRow.total) || 0 : 0;
 
-      // Susun approved DAHULU (semuanya, ikut tarikh), BARU archived (2026-09-03, dapatan
-      // Izzat — tangkapan skrin "ARKIB bocor ke TERKINI") — klien potong senarai gabungan ni
-      // secara KEDUDUKAN semata (page=1/perPage=10 = "TERKINI", offset seterusnya = "Koleksi
-      // Terdahulu"), TIADA penapis status berasingan dihantar dari klien. Susunan LAMA (semata
-      // ikut er.createdAt DESC merentasi KEDUA-DUA status serentak) bermakna kandungan yang
-      // BARU diarkibkan (putaran 24 jam/manual, tarikh siaran asal masih baharu) boleh menduduki
-      // 10 kedudukan teratas gabungan tu — terpapar dalam "TERKINI" walaupun dah bukan aktif,
-      // membelakangi niat seksyen tu (rujuk komen "10 artikel approved terbaharu" di
-      // HalamanBidang.tsx). Kesan sampingan sengaja diterima: kalau Bidang ada KURANG drpd
-      // `perPage` kandungan approved, baki slot TERKINI diisi archived terbaharu (fallback
-      // munasabah — lebih baik drpd seksyen TERKINI kosong).
       const rows = await dbAll(`
         SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt, er.status,
                ${attrSelects}
