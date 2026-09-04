@@ -81,7 +81,11 @@ export const EditorialConsole: React.FC = () => {
       const res = await fetch('/api/system/adjung-typography-rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ term, style: 'italic', category: 'foreign_term' }),
+        // caseSensitive: true (2026-09-04, Izzat) -- istilah di sini SENTIASA huruf kecil
+        // sepenuhnya (term ditulis-ganti .toLowerCase() di atas), jadi padanan mesti ejaan
+        // huruf kecil TEPAT dalam teks -- "Town Hall" (nama khas) tak lagi tersalah condong
+        // sama macam "town hall" (istilah generik yang sepatutnya dicondongkan).
+        body: JSON.stringify({ term, style: 'italic', category: 'foreign_term', caseSensitive: true }),
       });
       const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menambah istilah.');

@@ -665,8 +665,19 @@ const initializeSchema = () => {
                 updatedAt TEXT,
                 UNIQUE(term, language, scope)
               )
-            `, () => {});
-            
+            `, () => {
+              // Migrasi sekali sahaja (2026-09-04, Izzat: "perkataan tu hanya sesuai dicondongkan
+              // jika ditulis dengan pangkal huruf kecil... kalau ditulis Town Hall akan jadi kata
+              // nama khas") — peraturan italic SEDIA ADA disimpan caseSensitive=0 (padanan tanpa
+              // kira huruf besar/kecil, lihat parseTypographyTokensClient/parseTypographyTokens),
+              // jadi "Town Hall" (nama khas) turut tersalah condong sama seperti "town hall".
+              // Modul Autocondong (EditorialConsole.tsx) SENTIASA simpan istilah huruf kecil
+              // sepenuhnya (term.trim().toLowerCase()), jadi caseSensitive=1 untuk gaya 'italic'
+              // selamat dikuatkuasakan di sini — padanan kini perlukan ejaan huruf kecil TEPAT
+              // dalam teks kandungan, nama khas berhuruf besar tidak lagi terjejas.
+              db.run(`UPDATE adjung_typography_rules SET caseSensitive = 1 WHERE style = 'italic' AND caseSensitive = 0`, () => {});
+            });
+
             // Tetapan Am Slot (2026-07-30) — terpakai pada SEMUA slot bento (bukan Ticker/Bar).
             // Had aksara 0 bermakna "tiada had" supaya tiada apa berubah sehingga Ketua Editor
             // benar-benar menetapkan nombor. Lihat core/routes/slotAmRoutes.js.
