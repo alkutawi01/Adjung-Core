@@ -580,6 +580,7 @@ export function HalamanBidang() {
             ? focusItem.sources.map((s) => ({ ...s, date: getDisplayDate(s.date) }))
             : undefined}
           objectId={focusItem.objectId}
+          role={currentEditoriumRole}
           sourceDate={getDisplayDate(focusItem.originalDate)}
           publishedDate={formatSiaranDate(focusItem.publishedDate)}
           editorName={focusItem.editorName}

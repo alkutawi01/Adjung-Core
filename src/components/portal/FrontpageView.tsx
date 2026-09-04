@@ -6196,6 +6196,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             ? focusItem.sources.map((s: any) => ({ ...s, date: formatTarikhSumberPanjang(s.date) }))
             : undefined}
           objectId={focusItem.objectId}
+          role={currentEditoriumRole}
           sourceDate={formatTarikhSumberPanjang(focusItem.originalDate)}
           publishedDate={formatSiaranDate(focusItem.publishedAt)}
           editorName={focusItem.editorName}

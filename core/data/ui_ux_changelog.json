@@ -1,5 +1,14 @@
 [
   {
+    "time": "2026-09-04T10:40:55.032Z",
+    "summary": "Tambah icon pensel edit terus di masthead Focus View (mudah alih + desktop), hanya kelihatan bila editor log masuk dan kandungan ada objectId",
+    "files": [
+      "src/components/portal/FocusView.tsx",
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/portal/HalamanBidang.tsx"
+    ]
+  },
+  {
     "time": "2026-09-04T10:06:18.393Z",
     "summary": "Susun semula butang terapung telefon: 'Tukar Semua' carousel kini bertindan bawah 'Kembali ke Atas' di bucu kanan sahaja (bukan berasingan kiri/kanan)",
     "files": [
