@@ -375,9 +375,69 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 13 — KAMUS ADJUNG BRIEF */}
+      {/* 13 — PENGISIAN KANDUNGAN OLEH AI/AUTOMASI (2026-09-04, arahan Izzat selepas insiden
+          fabrikasi sebenar — "BookChef") — seksyen ni WAJIB dibaca sebelum mana-mana AI (Claude,
+          ChatGPT, dll.) diarahkan isi kandungan editorial. Bukan pengganti penyeliaan manusia,
+          cuma pastikan AI ada konteks penuh dari awal supaya kesilapan sama tak berulang. */}
       <div>
-        <SectionLabel>13 — Kamus Adjung Brief</SectionLabel>
+        <SectionLabel>13 — Pengisian Kandungan oleh AI/Automasi</SectionLabel>
+        <Card title="Kenapa seksyen ini wujud">
+          Editor manusia tak cukup untuk isi semua slot, jadi AI kerap diarahkan tulis kandungan
+          terus. Tanpa konteks penuh, AI boleh hilang arah — tak tahu apa nak tulis, macam mana
+          nak sahkan fakta, atau apa yang dilarang. Seksyen ini ialah arahan tetap yang perlu
+          dibaca AI SEBELUM mula kerja, bukan diterangkan semula setiap kali secara lisan.
+        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          <Card title="Peraturan sumber — mutlak">
+            <strong>Wikipedia diharamkan sepenuhnya</strong> (baca, rujuk, cross-reference —
+            semuanya dilarang). Setiap fakta yang ditulis mesti wujud SEBENAR dalam perenggan
+            penuh sumber yang dibaca (bukan tajuk carian/snippet/andaian). Sumber mesti halaman
+            SPESIFIK, bukan laman utama domain. Bahasa sumber bebas (Arab/Inggeris/dll.) — utamakan
+            paling berautoriti untuk topik berkenaan, bukan bahasa dia. Jangan guna alat ringkasan
+            automatik untuk "baca" sumber — navigasi terus dan baca sebenar.
+          </Card>
+          <Card title="Semakan ChatGPT wajib sertakan sumber">
+            Bila hantar draf ke ChatGPT untuk semak, WAJIB sertakan URL sumber + petikan langsung
+            (salin-tampal) daripada sumber sekali dalam mesej yang sama — tanpa ini, ChatGPT cuma
+            nilai bahasa, BUKAN sahkan fakta wujud benar. Minta ChatGPT bandingkan SETIAP fakta
+            draf terhadap petikan yang disertakan. Amaran ChatGPT tentang mana-mana fakta tak
+            boleh diabaikan — buang/betulkan fakta itu.
+          </Card>
+          <Card title="Kriteria topik">
+            Skop global secara lalai (bukan Malaysia sahaja — slot "Malaysiana" sahaja yang
+            khusus Malaysia). Topik mesti ada nilai ilmiah/tahan lama sebenar, bukan sekadar sebut
+            perkataan berkaitan Bidang (elak berita pentadbiran/kewangan semata). Tidak
+            bercanggah nilai Islam. Fatwa rasmi (Mufti Kerajaan, Dar al-Ifta, JAKIM, dll.)
+            diterima penuh sebagai topik Syariah — hook berita + substance ilmiah serentak.
+          </Card>
+          <Card title="Gaya penulisan & format">
+            Adjung Brief bukan berita 100%, ia berita+majalah: perenggan pertama fakta utama
+            (apa/siapa/bila), boleh berkembang konteks selepas itu — bukan headline kosong,
+            bukan entri ensiklopedia. Tajuk guna <em>sentence case</em>, bukan Title Case. Condong
+            (<code>*teks*</code>) hanya untuk istilah ASING/transliterasi (cth <em>ʿiddah</em>,{' '}
+            <em>jilbāb</em>), BUKAN nama khas atau perkataan Melayu biasa. Tiada condong hiasan.
+          </Card>
+          <Card title="Proses & had teknikal">
+            Semak kandungan sedia ada dalam slot sasaran dahulu — elak topik berulang dan elak
+            terbitkan lebih daripada bilangan diminta. Slot penuh (10/10) BUKAN halangan — sistem
+            ada putaran automatik 24 jam (kandungan baharu masuk "Menunggu Slot Kosong", naik
+            taraf sendiri); jangan arkib manual kandungan sedia ada untuk "buat ruang". Tarikh
+            Sumber (YYYY-MM-DD) wajib diisi untuk kandungan bersumber luar. Medan Sumber terhad
+            ~25 aksara, guna singkatan jika perlu.
+          </Card>
+          <Card title="Sejarah — kenapa peraturan ini ketat">
+            Disusun 4/9/2026 selepas insiden sebenar: satu artikel direka SEPENUHNYA ("Serangan
+            Rusia musnah 100,000 naskhah buku BookChef") dan dikaitkan palsu ke URL sumber sebenar
+            yang langsung tak menyebut fakta itu. Kandungan dipadam, tapi punca (semakan ChatGPT
+            tanpa sumber disertakan, tiada gerbang anti-Wikipedia eksplisit) boleh berulang kalau
+            tak ditulis sebagai peraturan tetap di sini.
+          </Card>
+        </div>
+      </div>
+
+      {/* 14 — KAMUS ADJUNG BRIEF */}
+      <div>
+        <SectionLabel>14 — Kamus Adjung Brief</SectionLabel>
         <PanelCard padding="p-4">
           <dl>
             <Kamus istilah="Slot" maksud="Satu daripada 38 ruang kad tetap di muka depan (+ Ticker). Setiap slot terkunci kepada satu Bidang." />
