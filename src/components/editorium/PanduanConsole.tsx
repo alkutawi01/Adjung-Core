@@ -392,9 +392,12 @@ export const PanduanConsole: React.FC = () => {
             <strong>Wikipedia diharamkan sepenuhnya</strong> (baca, rujuk, cross-reference —
             semuanya dilarang). Setiap fakta yang ditulis mesti wujud SEBENAR dalam perenggan
             penuh sumber yang dibaca (bukan tajuk carian/snippet/andaian). Sumber mesti halaman
-            SPESIFIK, bukan laman utama domain. Bahasa sumber bebas (Arab/Inggeris/dll.) — utamakan
-            paling berautoriti untuk topik berkenaan, bukan bahasa dia. Jangan guna alat ringkasan
-            automatik untuk "baca" sumber — navigasi terus dan baca sebenar.
+            SPESIFIK, bukan laman utama domain. <strong>Sumber mesti masih terkini/segar</strong> —
+            sahkan tarikh penerbitan sumber dan pastikan fakta itu belum berubah/dikemas kini
+            sejak itu (cth. jawatan/status seseorang, keputusan yang mungkin dipinda kemudian);
+            jangan petik fakta lapuk sebagai semasa. Bahasa sumber bebas (Arab/Inggeris/dll.) —
+            utamakan paling berautoriti untuk topik berkenaan, bukan bahasa dia. Jangan guna alat
+            ringkasan automatik untuk "baca" sumber — navigasi terus dan baca sebenar.
           </Card>
           <Card title="Semakan ChatGPT wajib sertakan sumber">
             Bila hantar draf ke ChatGPT untuk semak, WAJIB sertakan URL sumber + petikan langsung
