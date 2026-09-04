@@ -3113,7 +3113,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
    *  'turutan' = ikut susunan slot (Hero dulu, kemudian slot 2, 3, ...), guna urutan focusAllLocations
    *  sedia ada (sudah tersusun ikut slotIndex→itemIndex). Ditukar butang di Focus View sendiri (kedua
    *  telefon & desktop), kekal sepanjang sesi (tak reset tiap navigasi/buka semula). */
-  const [focusNavMode, setFocusNavMode] = useState<'rawak' | 'turutan'>('rawak');
+  const [focusNavMode, setFocusNavMode] = useState<'rawak' | 'turutan'>('turutan');
 
   /** Senarai item bagi satu slot — carousel penuh, atau slot itu sendiri kalau tunggal. */
   const focusItemsForSlot = React.useCallback((slotIndex: number): any[] => {

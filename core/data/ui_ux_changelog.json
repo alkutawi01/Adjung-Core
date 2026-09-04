@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-09-04T11:03:51.685Z",
+    "summary": "Tukar lalai mod navigasi Sebelum/Seterusnya Focus View (dari Frontpage) daripada Rawak ke Turutan",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-09-04T10:40:55.032Z",
     "summary": "Tambah icon pensel edit terus di masthead Focus View (mudah alih + desktop), hanya kelihatan bila editor log masuk dan kandungan ada objectId",
     "files": [
