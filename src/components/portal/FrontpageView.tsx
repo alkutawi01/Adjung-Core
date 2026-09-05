@@ -6173,6 +6173,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             <img
               src={focusItem.image}
               alt={asPlainText(focusItem.titleString) || asPlainText(focusItem.title) || ''}
+              loading="lazy"
               onError={(e) => {
                 // Sorok SERTA-MERTA (sebelum React sempat re-render) supaya ikon "imej rosak"
                 // pelayar tak pernah terpapar walau sesaat, kemudian tandakan rosak supaya

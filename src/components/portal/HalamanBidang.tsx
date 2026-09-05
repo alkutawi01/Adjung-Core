@@ -563,6 +563,7 @@ export function HalamanBidang() {
             <img
               src={focusItem.image}
               alt={focusItem.title || ''}
+              loading="lazy"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
           ) : undefined}
