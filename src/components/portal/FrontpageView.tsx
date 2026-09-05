@@ -2979,10 +2979,24 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // penanda setiap kad (lihat atribut sedia ada pada pembalut ROW, cth baris ~4045). `closest()`
   // pada sasaran klik mengesan sama ada klik jatuh DALAM mana-mana kad; kalau tidak (null), klik
   // tu jatuh pada jurang/ruang kosong antara kad dalam grid — sah untuk maju semua carousel.
+  //
+  // Margin KIRI/KANAN sebenar tak dilindungi handler ni (2026-09-04, dapatan Izzat: "klik di
+  // ruang kosong kiri dan kanan margin frontpage... kenapa caraosel tak bertukar?") — bekas
+  // `<section id="bento-news-grid">` bersarang dalam bekas induk `max-w-5xl mx-auto` (line 3653),
+  // jadi lebar SEBENAR section = lebar lajur kandungan sahaja, bukan lebar penuh viewport. Pada
+  // skrin desktop lebar (>5xl breakpoint), ruang kosong kiri/kanan lajur tu terletak DI LUAR
+  // section sepenuhnya — klik di situ tak sampai ke onClick section langsung, DOM event tak
+  // pernah tercetus. Dibaiki: handler kini dipasang pada bekas AKAR penuh-lebar (line ~3649),
+  // dgn semakan julat menegak TAMBAHAN (bandingkan e.clientY dgn getBoundingClientRect() grid)
+  // supaya klik di masthead/tajuk/footer (turut di luar section, tapi BUKAN "margin sisi grid")
+  // tidak tersalah cetus — hanya klik yang sejajar MENEGAK dengan grid (kiri/kanan grid) sah.
+  const gridSectionRef = React.useRef<HTMLElement>(null);
   const kendaliKlikRuangKosong = React.useCallback((e: React.MouseEvent<HTMLElement>) => {
     if (modCarousel !== 'klik' || !isDesktopLebar) return;
     const sasaran = e.target as HTMLElement;
-    if (sasaran.closest('[data-slot]')) return;
+    if (sasaran.closest('[data-slot], button, a, input, textarea, [role="button"]')) return;
+    const gridRect = gridSectionRef.current?.getBoundingClientRect();
+    if (!gridRect || e.clientY < gridRect.top || e.clientY > gridRect.bottom) return;
     majuSemuaKarusel();
   }, [modCarousel, isDesktopLebar, majuSemuaKarusel]);
 
@@ -3646,7 +3660,20 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         yang MEMANG patut kekal tak boleh pilih — elemen hiasan tu semua sudah ada `select-none`
         SENDIRI di setiap tapak (badge tarikh siaran, anak panah carousel, dsb.), jadi buang
         select-none akar ni tak jejaskan elemen hiasan tu langsung. */}
-    <div className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-4 animate-fade-in">
+    <div
+      className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-4 animate-fade-in"
+      onClick={kendaliKlikRuangKosong}
+      // Bekas ni sendiri masih terikat lebar `<main className="max-w-6xl w-full mx-auto">`
+      // (App.tsx) — TAK PERNAH mengehadkan apa-apa yang KELIHATAN sebab lajur kandungan
+      // sebenar (grandanak `max-w-5xl mx-auto`, line ~3653) sentiasa lebih sempit (5xl < 6xl),
+      // tapi ia MENGEHADKAN kawasan boleh klik bekas ni — margin sisi antara tepi viewport
+      // dan sempadan 6xl langsung tak sampai ke sini (2026-09-04, dapatan Izzat: "klik di
+      // ruang kosong kiri dan kanan margin frontpage... kenapa caraosel tak bertukar?").
+      // "Pecah keluar" penuh-lebar (teknik lazim full-bleed) supaya bekas ni (dan onClick di
+      // atas) benar-benar merangkumi viewport PENUH — tiada kesan visual (lajur kandungan
+      // kekal ditengahkan oleh max-w-5xl grandanak seperti biasa).
+      style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}
+    >
 
       <PengumumanBanner />
 
@@ -4140,7 +4167,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         `}</style>
 
         {/* Bento Grid News Layout */}
-        <section className="my-8" id="bento-news-grid" onClick={kendaliKlikRuangKosong}>
+        <section className="my-8" id="bento-news-grid" ref={gridSectionRef}>
 
           {/* Jadual telefon TUNGGAL (2026-07-31, pusingan KEENAM): HERO + kesemua 8 blok ROW kini
               SATU grid CSS berterusan pada telefon (grid-cols-3), supaya garisan jadual sejajar
