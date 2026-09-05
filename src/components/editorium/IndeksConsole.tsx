@@ -253,7 +253,12 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         slot: 'SemuaKecualiTicker', editor: currentUserName, sort: 'newest',
       }
     : {
-        search: '', status: benarkanSelfPublish ? 'Live' : 'Pending', cardType: 'Semua', source: '', creator: 'Semua', desk: 'Semua',
+        // Status lalai ditukar ke "Semua" (2026-09-05, permintaan Izzat: "jarang guna 'menunggu'
+        // mcm skrg") — sebelum ni bergantung Dasar Terbit Sendiri (Live/Pending, lihat nota di
+        // atas), tapi dalam amalan sebenar Ketua Editor lebih kerap nak lihat SEMUA kandungan
+        // sekali gus drpd giliran kelulusan sahaja. Giliran "Menunggu" tetap boleh dipilih terus
+        // drpd dropdown Status bila-bila diperlukan.
+        search: '', status: 'Semua', cardType: 'Semua', source: '', creator: 'Semua', desk: 'Semua',
         slot: 'SemuaKecualiTicker', editor: 'Semua', sort: 'newest',
       };
   // Tapisan kekal sepanjang sesi log masuk (2026-08-08, permintaan pemilik projek) — "apabila
