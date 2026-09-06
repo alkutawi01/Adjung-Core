@@ -354,7 +354,7 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
                     style={{ gridTemplateColumns: '26px 1fr auto' }}
                   >
                     <span className="font-mono text-[11px] font-bold tabular-nums text-stone-400">{String(i + 1).padStart(2, '0')}</span>
-                    <span className="font-sans text-[11px] text-stone-700 leading-snug">Padam acara ini? Tak boleh dibuat asal selepas disimpan.</span>
+                    <span className="font-sans text-[11px] text-stone-700 leading-snug">Padam acara ini? Tindakan ini tidak dapat dipulihkan selepas disimpan.</span>
                     <span className="flex items-center gap-2 shrink-0">
                       <button type="button" onClick={() => setKonfirmBuangIndex(null)} className="font-sans text-[11px] font-semibold text-stone-500 hover:text-stone-700 cursor-pointer">Batal</button>
                       <button type="button" onClick={() => remove(i)} className="font-sans text-[11px] font-semibold text-white bg-[var(--color-Adjung-maroon)] hover:opacity-90 rounded px-2 py-1 cursor-pointer">Padam</button>
