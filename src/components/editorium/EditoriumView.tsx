@@ -189,6 +189,27 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
       .then((d) => { if (d && typeof d.benarkanSelfPublish === 'boolean') setBenarkanSelfPublish(d.benarkanSelfPublish); })
       .catch(() => { /* senyap — Indeks jatuh balik ke tingkah laku sedia ada (Status=Pending) */ });
   }, []);
+  // Bidang SEBENAR per slot (2026-09-06, aduan editor sebenar — senarai "Pilih Slot" di bawah
+  // papar "Belum ditetapkan" untuk SETIAP slot walaupun semuanya sudah ada kandungan aktif).
+  // Punca: senarai ni baca `cfg?.manualDesk` SAHAJA — medan tetapan slot yang jarang diisi
+  // secara berasingan (kebanyakan slot diagihkan Bidang semasa kandungan pertama diterbitkan,
+  // bukan diset dahulu di Tetapan Slot) — sedangkan Bidang SEBENAR (dari kandungan aktif) hanya
+  // wujud dalam `/api/system/categories/slot-usage`. `SenaraiSlotConsole.tsx` (Editorium → Slot
+  // → Senarai Slot) SUDAH betul, guna `usage.bidang || cfg?.manualDesk` sebagai gandingan
+  // fallback (lihat komponen tu) — senarai "Pilih Slot" di sini TERLEPAS corak yang sama,
+  // sebab ia dibina lebih awal (2026-07-29) sebelum slot-usage wujud. Muat sekali di peringkat
+  // cangkang (bukan setiap kali modal Pilih Slot dibuka) — data ni jarang berubah drastik.
+  const [bidangSebenarSlot, setBidangSebenarSlot] = useState<Record<number, string>>({});
+  useEffect(() => {
+    fetch('/api/system/categories/slot-usage')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((rows) => {
+        if (Array.isArray(rows)) {
+          setBidangSebenarSlot(Object.fromEntries(rows.map((r: any) => [r.slotIndex, r.bidang || ''])));
+        }
+      })
+      .catch(() => { /* senyap — jatuh balik ke manualDesk/"Belum ditetapkan" sedia ada */ });
+  }, []);
   // Destinasi peringkat atas (2026-08-01, permintaan pemilik projek — sidebar dua kumpulan, satu
   // klik terus). Lihat EditoriumLayout.tsx untuk susunan Operasi Harian / Tata Kelola & Rujukan.
   // Paparan Utama (Fasa 5) — destinasi lalai selepas log masuk, ganti Kandungan.
@@ -1018,7 +1039,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                         className="flex-1 min-w-0 flex items-center gap-3 text-left cursor-pointer"
                       >
                         <span className="font-mono text-xs font-bold text-stone-400 shrink-0">Slot {i + 1}</span>
-                        <span className="font-sans text-xs text-stone-700 flex-1 truncate">{cfg?.manualDesk || <span className="text-stone-400 italic">— Belum ditetapkan —</span>}</span>
+                        <span className="font-sans text-xs text-stone-700 flex-1 truncate">{(bidangSebenarSlot[i] || cfg?.manualDesk) || <span className="text-stone-400 italic">— Belum ditetapkan —</span>}</span>
                       </button>
                       {/* Tetapkan editor terus dari sini (2026-08-01) — sama data/peraturan macam
                           Editorium → Slot → Senarai Slot, cuma dibawa ke tempat editor sebenarnya
@@ -1085,7 +1106,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             .sort((a, b) => (a as number) - (b as number))
             .map((i) => ({
               index: i as number,
-              label: `Slot ${(i as number) + 1}: ${slotEditor.slotsConfig.find((s: any) => s.slotIndex === i)?.manualDesk || 'Belum ditetapkan'}`,
+              label: `Slot ${(i as number) + 1}: ${bidangSebenarSlot[i as number] || slotEditor.slotsConfig.find((s: any) => s.slotIndex === i)?.manualDesk || 'Belum ditetapkan'}`,
             }))}
           onSwitchSlot={(i) => { setDrafDibuka(''); slotEditor.openSlotEditor(i); }}
           initialUuid={drafDibuka}
