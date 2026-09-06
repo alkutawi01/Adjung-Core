@@ -60,7 +60,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
   // (perlu keputusan Ketua Editor/Penolong) vs menungguSlotPenuh (dah lulus, cuma tunggu ruang
   // slot, naik taraf automatik). `menunggu` jumlah dikekalkan untuk kegunaan matriks slot di bawah,
   // yang cuma perlu tahu "belum aktif", bukan sebabnya.
-  const [statusKandungan, setStatusKandungan] = useState({ menunggu: 0, menungguSemakan: 0, menungguSlotPenuh: 0, aktif: 0, arkib: 0 });
+  const [statusKandungan, setStatusKandungan] = useState({ menunggu: 0, menungguSemakan: 0, menungguSlotPenuh: 0, dijadualkan: 0, aktif: 0, arkib: 0 });
   const [maklumanTerbaru, setMaklumanTerbaru] = useState<Nota[]>([]);
   const [slotUsage, setSlotUsage] = useState<SlotUsage[]>([]);
   const [itemsRingkas, setItemsRingkas] = useState<ItemRingkas[]>([]);
@@ -100,6 +100,12 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
         menunggu: items.filter((i: any) => i.status === 'pending').length,
         menungguSemakan: items.filter((i: any) => i.status === 'pending' && i.sebabMenunggu !== 'slot_penuh').length,
         menungguSlotPenuh: items.filter((i: any) => i.status === 'pending' && i.sebabMenunggu === 'slot_penuh').length,
+        // Dijadualkan (2026-09-06, permintaan Izzat) — kandungan status 'scheduled' (Jadual
+        // Terbit, IndeksConsole) berasingan sepenuhnya drpd 'pending' (tak pernah dikira dalam
+        // `menunggu` di atas), tapi Izzat nak ia kelihatan sekali pandang di kotak Menunggu yang
+        // sama juga (bukan gantikan angka utama, cuma baris pecahan tambahan sebelah "semakan"/
+        // "slot kosong") supaya kandungan berjadual tak "hilang" drpd papan pemuka.
+        dijadualkan: items.filter((i: any) => i.status === 'scheduled').length,
         aktif: items.filter((i: any) => i.status === 'approved').length,
         arkib: items.filter((i: any) => i.status === 'archived').length,
       });
@@ -263,7 +269,7 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
           <div className="text-[11px] text-stone-500 mt-2">
             {gagalMuatKandungan ? 'Gagal dimuatkan' : (
               <>
-                {statusKandungan.menungguSemakan} semakan{statusKandungan.menungguSlotPenuh > 0 ? ` · ${statusKandungan.menungguSlotPenuh} slot kosong` : ''}
+                {statusKandungan.menungguSemakan} semakan{statusKandungan.menungguSlotPenuh > 0 ? ` · ${statusKandungan.menungguSlotPenuh} slot kosong` : ''}{statusKandungan.dijadualkan > 0 ? ` · ${statusKandungan.dijadualkan} dijadualkan` : ''}
               </>
             )}
           </div>
