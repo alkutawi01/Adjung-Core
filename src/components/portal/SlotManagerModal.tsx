@@ -956,12 +956,34 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // `items` penuh untuk baca tajuk.
   const mintaBuang = useCallback((i: number) => setKonfirmBuangIndex(i), []);
   const batalBuang = useCallback(() => setKonfirmBuangIndex(null), []);
+  // Auto-simpan serta-merta selepas Buang (2026-09-06, dapatan Izzat + audit — "Buang" sebelum ni
+  // CUMA ubah senarai TEMPATAN dalam borang; simpanan sebenar ke pelayan perlu klik "Simpan
+  // sebagai draf" berasingan. Kesan sebenar: Izzat buang beberapa draf, tutup/tinggalkan borang
+  // tanpa Simpan eksplisit, dan draf yang "dibuang" itu muncul semula bila borang dibuka semula
+  // (baca semula manualSummary lama drpd pelayan) — nampak macam pepijat, sebenarnya langkah
+  // Simpan yang terlepas. Panggil terus onSave() dengan senarai BAHARU (bukan tunggu `items`
+  // closure lama, yang belum sempat kemas kini disebabkan setState tak segerak) supaya Buang
+  // SENTIASA tersimpan tanpa langkah tambahan.
   const remove = useCallback((i: number) => {
-    commit((prevItems) => prevItems.filter((_, n) => n !== i));
     setActive((a) => Math.max(0, Math.min(a, items.length - 2)));
     setKonfirmBuangIndex(null);
+    commit((prevItems) => {
+      const next = prevItems.filter((_, n) => n !== i);
+      const manualSummary = serializeManualBentoQueue(next);
+      Promise.resolve(onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary, { closeOnSuccess: false }))
+        .then((ok) => {
+          if (ok) {
+            setFormConfig((prev: any) => ({ ...prev, manualSummary }));
+            setManualSummaryTersimpanTerakhir(manualSummary);
+            onToast?.('success', 'Draf dibuang dan disimpan.');
+          } else {
+            onToast?.('error', 'Draf dibuang tempatan tetapi gagal disimpan ke pelayan — sila cuba "Simpan sebagai draf".');
+          }
+        });
+      return next;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length]);
+  }, [items.length, onSave, onToast, setFormConfig]);
   const moveUp = useCallback((i: number) => move(i, -1), [move]);
   const moveDown = useCallback((i: number) => move(i, 1), [move]);
   const insert = () => {

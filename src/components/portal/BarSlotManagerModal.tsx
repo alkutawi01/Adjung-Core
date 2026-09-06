@@ -165,10 +165,25 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
     n === i ? { ...it, date: value, dateEnd: (!it.dateEnd || it.dateEnd === it.date) ? value : it.dateEnd } : it
   )));
   const insert = () => { commit((prev) => [...prev, blankItem()]); setActive(items.length); };
+  // Auto-simpan serta-merta selepas Buang (2026-09-06) — sama pembetulan macam SlotManagerModal.tsx
+  // (lihat komen penuh di situ): Buang sebelum ni cuma ubah senarai tempatan, perlu klik "Simpan"
+  // berasingan untuk persist ke pelayan, punca draf "muncul semula" bila borang dibuka semula.
   const remove = (i: number) => {
-    commit((prev) => prev.filter((_, n) => n !== i));
     setActive((a) => Math.max(0, Math.min(a, items.length - 2)));
     setKonfirmBuangIndex(null);
+    commit((prev) => {
+      const next = prev.filter((_, n) => n !== i);
+      const manualSummary = serializeManualBarQueue(next);
+      Promise.resolve(onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary))
+        .then((ok) => {
+          if (ok !== false) {
+            onToast?.('success', 'Draf dibuang dan disimpan.');
+          } else {
+            onToast?.('error', 'Draf dibuang tempatan tetapi gagal disimpan ke pelayan — sila cuba "Simpan".');
+          }
+        });
+      return next;
+    });
   };
   const move = (i: number, d: number) => {
     const j = i + d;
