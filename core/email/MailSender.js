@@ -33,6 +33,23 @@ export function semakKonfigSmtpStartup() {
   if (!konfigResendLengkap()) paparAmaranSekali();
 }
 
+// escapeHtmlEmel (2026-09-08, bug-hunt) — pemboleh ubah yang disuap PEMOHON AWAM (borang
+// awam TANPA auth: permohonan-penaja, permohonan-editor) disulam terus ke templat `html` di
+// pelbagai laluan (namaOrganisasi/namaSebenar/namaPenuh, malah catatan semakan Pentadbir) TANPA
+// escape sebelum ni — pemohon boleh masukkan `<a href="https://phishing...">` atau tag HTML lain
+// dalam medan nama sendiri, yang kemudian terbenam SAH dalam e-mel rasmi "Adjung Brief" (Resend
+// hantar `html` mentah terus, tiada sanitize peringkat penghantar). Risiko sebenar: e-mel rasmi
+// jadi kenderaan suntikan pautan phishing/HTML rambang, bukan sekadar salah paparan. Fungsi ni
+// (bukan sanitize-html — templat di sini semua teks polos, tiada keperluan tag dibenarkan)
+// mesti dipanggil pada SETIAP nilai yang datang daripada input pengguna (borang awam ATAU medan
+// admin bebas-teks macam `catatan`) sebelum disulam ke `html`; nilai yang dijana SISTEM SENDIRI
+// (id rekod PEN-YYYY-NNNN, URL token terbina, senarai peranan tetap) tidak perlu.
+export function escapeHtmlEmel(nilai) {
+  return String(nilai ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
 export async function hantarEmel({ to, subject, html }) {
   if (!konfigResendLengkap()) {
     paparAmaranSekali();

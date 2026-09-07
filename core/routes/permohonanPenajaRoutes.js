@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { requirePermission } from '../middleware/auth.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { logAudit } from '../audit/AuditLog.js';
-import { hantarEmel } from '../email/MailSender.js';
+import { hantarEmel, escapeHtmlEmel } from '../email/MailSender.js';
 import { simpanFailMuatNaik } from './mediaRoutes.js';
 
 // Permohonan Penaja (2026-08-30) — aliran awam "Mohon Jadi Penaja", dikunci selepas 10
@@ -253,7 +253,7 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
         await hantarEmel({
           to: rekod.emel,
           subject: `Permohonan Penajaan Adjung Brief [${id}]`,
-          html: `<p>Salam,</p><p>Selepas semakan, Adjung Brief tidak dapat menerima permohonan penajaan ${id} pada masa ini berdasarkan Dasar Penajaan Adjung.</p>${catatan ? `<p>${String(catatan).trim()}</p>` : ''}<p>Terima kasih atas minat anda.</p>`,
+          html: `<p>Salam,</p><p>Selepas semakan, Adjung Brief tidak dapat menerima permohonan penajaan ${id} pada masa ini berdasarkan Dasar Penajaan Adjung.</p>${catatan ? `<p>${escapeHtmlEmel(String(catatan).trim())}</p>` : ''}<p>Terima kasih atas minat anda.</p>`,
         });
       } else if (tindakan === 'lulus') {
         if (!STATUS_BOLEH_DISEMAK.includes(rekod.status)) {
@@ -271,7 +271,7 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
         await hantarEmel({
           to: rekod.emel,
           subject: `Permohonan Penajaan Diluluskan [${id}]`,
-          html: `<p>Salam,</p><p>Tahniah, permohonan penajaan ${id} bagi ${namaPapar} telah diluluskan.</p>` +
+          html: `<p>Salam,</p><p>Tahniah, permohonan penajaan ${id} bagi ${escapeHtmlEmel(namaPapar)} telah diluluskan.</p>` +
             `<p>Jumlah tajaan yang dipersetujui: <strong>RM${jumlah.toLocaleString('ms-MY')}</strong> (tempoh maksimum 1 bulan).</p>` +
             `<p>Sila lengkapkan langkah terakhir (muat naik bukti bayaran${rekod.jenisPemohon === 'organisasi' ? ' dan logo' : ''}) melalui pautan berikut dalam tempoh ${TEMPOH_TOKEN_HARI} hari:</p>` +
             `<p><a href="${pautan}">${pautan}</a></p>` +

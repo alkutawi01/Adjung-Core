@@ -2,7 +2,7 @@ import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { logAudit } from '../audit/AuditLog.js';
-import { hantarEmel } from '../email/MailSender.js';
+import { hantarEmel, escapeHtmlEmel } from '../email/MailSender.js';
 
 // Laluan Permohonan Editor (2026-08-25, arahan Izzat — modul KIV 14/8 "Aliran Permohonan
 // Editor" kini dibina). Borang awam "Sertai Pasukan Editorial" (HalamanSertai.tsx) menghantar
@@ -250,7 +250,7 @@ export function createPermohonanEditorRoutes(dbAll, dbGet, dbRun) {
         const hantaran = await hantarEmel({
           to: rekod.emel,
           subject: 'Permohonan Sertai Adjung Brief',
-          html: `<p>Salam ${rekod.namaPenuh || ''},</p>` +
+          html: `<p>Salam ${escapeHtmlEmel(rekod.namaPenuh || '')},</p>` +
             `<p>Terima kasih di atas minat anda menyertai pasukan editorial Adjung Brief. Selepas semakan, kami memutuskan untuk tidak meneruskan permohonan anda pada masa ini.</p>` +
             `<p>Kami menghargai masa dan usaha anda memohon, dan tidak menutup kemungkinan untuk permohonan akan datang.</p>`,
         });
