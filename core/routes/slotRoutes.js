@@ -498,7 +498,19 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         // berminggu): berita yang sudah melepasi had usia tidak patut kekal dalam giliran
         // semakan — menyemaknya sia-sia (dah basi, takkan disiarkan pun), dan longgokan itu
         // menenggelamkan item pending yang benar-benar layak disemak.
-        const semuaApprovedUsia = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status IN ('approved', 'pending')");
+        //
+        // `decision NOT IN ('MANUAL_APPROVED', 'MANUAL_REJECTED')` (2026-09-08, dapatan bug-hunt
+        // — kelas pepijat SAMA yang dibaiki 2026-08-20 untuk purge kata kunci, dan hari ni untuk
+        // /ticker/review-action, tapi purge usia ni terlepas pembetulan yang sama). Tanpa had ni,
+        // purge usia menyasarkan SEMUA baris `status IN ('approved','pending')` tanpa mengira
+        // `decision` — item yang Ketua Editor/Penolong LULUSKAN SECARA MANUAL (Review Queue,
+        // decision='MANUAL_APPROVED') tetap `status='approved'`, jadi kalau berita asal itu lebih
+        // tua drpd `maxNewsAgeHours` (sebab tu ia pernah tersekat di Review Queue sejak awal, cth
+        // TITLE_TOO_SHORT/EDITOR_REVIEW backlog lapuk), purge ni DIAM-DIAM menolaknya semula
+        // (status='rejected') setiap kali /rss-settings disimpan ATAU setiap 3 jam
+        // (executeDirectRssFetch) — membatalkan kelulusan manual editor tanpa notifikasi/log,
+        // sama persis corak pepijat yang membatalkan kelulusan RSS Review Queue lepas 3 jam.
+        const semuaApprovedUsia = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status IN ('approved', 'pending') AND decision NOT IN ('MANUAL_APPROVED', 'MANUAL_REJECTED')");
         const kiniMs = Date.now();
         for (const item of semuaApprovedUsia) {
           if (!item.publishedAt) continue;
@@ -1444,7 +1456,10 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   if (maxAgeHoursSemasa > 0) {
     // 'pending' turut disemak — sama seperti tapak POST /rss-settings di atas (2026-08-20,
     // lihat nota penuh di situ): giliran semakan tak patut dilonggokkan berita lapuk.
-    const semuaApproved = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status IN ('approved', 'pending')");
+    // `decision NOT IN (...)` — sama pembetulan 2026-09-08, lihat nota penuh di tapak
+    // POST /rss-settings di atas fail ni (kelulusan manual Ketua Editor/Penolong tak patut
+    // dibatalkan diam-diam oleh purge usia automatik ni).
+    const semuaApproved = await dbAll("SELECT id, publishedAt FROM rss_ticker_items WHERE status IN ('approved', 'pending') AND decision NOT IN ('MANUAL_APPROVED', 'MANUAL_REJECTED')");
     const kiniMs = Date.now();
     const lapuk = semuaApproved.filter((item) => {
       if (!item.publishedAt) return false;
