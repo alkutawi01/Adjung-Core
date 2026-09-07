@@ -1338,18 +1338,33 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const [revisionsError, setRevisionsError] = useState('');
   const [restoringId, setRestoringId] = useState<number | null>(null);
   const isPublished = current.status && current.status !== 'draft';
+  // Ref (bukan state) jejak uuid PERMINTAAN TERKINI — bila pengguna tukar item carousel pantas
+  // (uuid1 -> uuid2) semasa tab Sejarah terbuka, dua fetch boleh terbang serentak; kalau fetch
+  // uuid1 (lebih lambat) selesai SELEPAS fetch uuid2 (lebih laju) sudah papar, jawapan lapuk tu
+  // akan menimpa sejarah versi uuid2 yang betul dgn sejarah uuid1 yang salah. Bandingkan uuid
+  // permintaan dgn uuid ref semasa respons tiba — abaikan jawapan lapuk senyap.
+  const revisionsRequestUuidRef = useRef<string | null>(null);
   const fetchRevisions = useCallback(() => {
     if (!isPublished || !current.uuid) { setRevisions(null); return; }
+    const requestUuid = current.uuid;
+    revisionsRequestUuidRef.current = requestUuid;
     setRevisionsLoading(true);
     setRevisionsError('');
-    fetch(`/api/system/content/${encodeURIComponent(current.uuid)}/revisions`)
+    fetch(`/api/system/content/${encodeURIComponent(requestUuid)}/revisions`)
       .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
       .then(({ ok, data }) => {
+        if (revisionsRequestUuidRef.current !== requestUuid) return; // jawapan lapuk, abaikan
         if (!ok) { setRevisionsError(data?.error || labelUi('toast.gagal_muat_sejarah')); setRevisions([]); return; }
         setRevisions(Array.isArray(data) ? data : []);
       })
-      .catch(() => setRevisionsError(labelUi('toast.gagal_muat_sejarah')))
-      .finally(() => setRevisionsLoading(false));
+      .catch(() => {
+        if (revisionsRequestUuidRef.current !== requestUuid) return;
+        setRevisionsError(labelUi('toast.gagal_muat_sejarah'));
+      })
+      .finally(() => {
+        if (revisionsRequestUuidRef.current !== requestUuid) return;
+        setRevisionsLoading(false);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current.uuid, isPublished]);
   useEffect(() => {
