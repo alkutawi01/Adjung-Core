@@ -358,6 +358,19 @@ export function parseManualBlockFields(block) {
       if (nilai.trim() === '') labelTunggalMenanti = 'sumber'; else terapkanLabelTunggal('sumber', nilai);
     } else if (trimmed.startsWith('URL:')) {
       const nilai = trimmed.replace(/^URL:\s*/i, '');
+      // Pepijat sebenar (2026-09-07, Izzat — "Tarikh sumber wajib diisi" walau tarikh dah
+      // diisi dan disimpan betul): sebelum ni sumberDateArmed cuma diset TRUE di dalam case
+      // 'url' (line ~211), yang HANYA jalan bila URL diisi SEBARIS ATAU nilai deferred sampai
+      // pada baris seterusnya. Bila URL kosong DAN baris seterusnya kebetulan label lain yang
+      // dikenali (cth "Tarikh sumber:" — kes biasa bila editor tak isi URL langsung), cabang
+      // labelTunggalMenanti (atas fail ni) lengahkan tanpa panggil terapkanLabelTunggal('url',
+      // ...) LANGSUNG — sumberDateArmed kekal `false`, "Tarikh sumber:" jatuh ke pengendali
+      // legasi (fields.date, BUKAN sources[].date). Nilai selamat di fields.date (originalDate)
+      // tapi validateTarikhSumber() di publish (server.js) baca s.date drpd sources[] dulu —
+      // kosong, tolak kandungan walau tarikh sebenarnya ADA. Set armed di sini TERUS (bukan
+      // dalam case 'url'), sebelum tahu URL kosong/tidak, supaya "Tarikh sumber:" seterusnya
+      // SENTIASA ikat ke sumber terkini tak kira URL diisi.
+      sumberDateArmed = true;
       if (nilai.trim() === '') labelTunggalMenanti = 'url'; else terapkanLabelTunggal('url', nilai);
     }
   }

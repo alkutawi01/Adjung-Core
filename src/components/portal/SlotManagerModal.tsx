@@ -988,15 +988,16 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     commit((prevItems) => {
       const next = prevItems.filter((_, n) => n !== i);
       const manualSummary = serializeManualBentoQueue(next);
+      // onSave() kini THROW (bukan resolve ke `false`) bila gagal — lihat nota panjang di
+      // useSlotEditor.ts handleSaveSlot — .catch() WAJIB di sini, bukan hanya .then(ok => ...).
       Promise.resolve(onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary, { closeOnSuccess: false }))
-        .then((ok) => {
-          if (ok) {
-            setFormConfig((prev: any) => ({ ...prev, manualSummary }));
-            setManualSummaryTersimpanTerakhir(manualSummary);
-            onToast?.('success', 'Draf dibuang dan disimpan.');
-          } else {
-            onToast?.('error', 'Draf dibuang tempatan tetapi gagal disimpan ke pelayan — sila cuba "Simpan sebagai draf".');
-          }
+        .then(() => {
+          setFormConfig((prev: any) => ({ ...prev, manualSummary }));
+          setManualSummaryTersimpanTerakhir(manualSummary);
+          onToast?.('success', 'Draf dibuang dan disimpan.');
+        })
+        .catch((err: any) => {
+          onToast?.('error', err?.message || 'Draf dibuang tempatan tetapi gagal disimpan ke pelayan — sila cuba "Simpan sebagai draf".');
         });
       return next;
     });
@@ -1172,9 +1173,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     const lulusSet = new Set(itemsLulus);
     const outgoing = items.map((it) => (lulusSet.has(it) ? { ...it, status: 'pending' } : it));
     const remainingDrafts = items.filter((it) => !lulusSet.has(it));
-    const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, serializeManualBentoQueue(outgoing), { closeOnSuccess: false });
-    setTerbitSemuaBerjalan(false);
-    if (ok) {
+    // Pepijat sebenar (2026-09-07, Izzat — mesej ralat "sesuap render" lewat). onSave() kini
+    // THROW terus dgn mesej sebenar bila gagal (lihat nota panjang di useSlotEditor.ts
+    // handleSaveSlot) — try/catch di sini, JANGAN baca prop `saveError` selepas await (nilai
+    // lama, belum sempat React re-render bawa masuk ralat percubaan INI).
+    try {
+      const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, serializeManualBentoQueue(outgoing), { closeOnSuccess: false });
       const hasil = Array.isArray(ok) ? ok : [];
       const berjaya = hasil.filter((h: any) => h?.status !== 'pending').length;
       const pendingSlotPenuh = hasil.filter((h: any) => h?.status === 'pending' && h?.slotPenuh).length;
@@ -1191,9 +1195,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
         { label: 'Lihat di Indeks →', onClick: () => onLihatIndeks({ slot: `Slot ${editingSlotIndex + 1}` }) }
       );
       if (!onLihatIndeks) onToast?.('success', `${hasil.length} kandungan diterbitkan.`);
-    } else {
-      const mesej = saveError || labelUi('toast.gagal_terbit');
-      onToast?.('error', mesej, undefined, { bolehSalinAI: saveErrorBolehSalinAI });
+    } catch (err: any) {
+      const mesej = err?.message || labelUi('toast.gagal_terbit');
+      onToast?.('error', mesej, undefined, { bolehSalinAI: !!err?.bolehSalinAI });
+    } finally {
+      setTerbitSemuaBerjalan(false);
     }
   };
 
@@ -1217,9 +1223,13 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     setPublishingIndex(i);
     const outgoing = items.map((it, n) => (n === i ? { ...it, status: 'pending' } : it));
     const remainingDrafts = items.filter((_, n) => n !== i);
-    const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, serializeManualBentoQueue(outgoing), { closeOnSuccess: false });
-    setPublishingIndex(null);
-    if (ok) {
+    // Pepijat sebenar (2026-09-07, Izzat — "Gagal menerbitkan kandungan" generik pada percubaan
+    // PERTAMA, sebab sebenar cuma papar pada klik KEDUA). onSave() kini THROW terus dgn mesej
+    // sebenar bila gagal (lihat nota panjang di useSlotEditor.ts handleSaveSlot) — try/catch di
+    // sini, JANGAN baca prop `saveError` selepas await (nilai LAMA, satu render di belakang;
+    // "klik dua kali nampak berfungsi" cuma sebab kegagalan sama berulang, bukan pembetulan).
+    try {
+      const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, serializeManualBentoQueue(outgoing), { closeOnSuccess: false });
       commit(() => remainingDrafts);
       setActive((a) => Math.max(0, Math.min(a, remainingDrafts.length - 1)));
       setFormConfig((prev: any) => ({ ...prev, manualSummary: serializeManualBentoQueue(remainingDrafts) }));
@@ -1247,10 +1257,12 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
           : 'Kandungan diterbitkan.',
         onLihatIndeks ? { label: 'Lihat di Indeks →', onClick: () => onLihatIndeks({ slot: `Slot ${editingSlotIndex + 1}`, status: statusSebenar }) } : undefined
       );
-    } else {
-      const mesej = saveError || labelUi('toast.gagal_terbit');
+    } catch (err: any) {
+      const mesej = err?.message || labelUi('toast.gagal_terbit');
       setRalatTerbitSebaris(mesej);
-      onToast?.('error', mesej, undefined, { bolehSalinAI: saveErrorBolehSalinAI });
+      onToast?.('error', mesej, undefined, { bolehSalinAI: !!err?.bolehSalinAI });
+    } finally {
+      setPublishingIndex(null);
     }
   };
 
@@ -1270,16 +1282,19 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
     }
     setSavingDraft(true);
     const manualSummary = serializeManualBentoQueue(items);
-    const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary, { closeOnSuccess: false });
-    setSavingDraft(false);
-    if (ok) {
+    // Sama pembetulan "mesej ralat sesuap render lewat" macam publishOne/terbitSemua di atas —
+    // lihat nota panjang di useSlotEditor.ts handleSaveSlot.
+    try {
+      await onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary, { closeOnSuccess: false });
       setFormConfig((prev: any) => ({ ...prev, manualSummary }));
       setManualSummaryTersimpanTerakhir(manualSummary);
       buangDrafTempatan(kunciDrafTempatan);
       onToast?.('success', 'Draf disimpan.');
-    } else {
-      const mesej = saveError || labelUi('toast.gagal_simpan_draf');
-      onToast?.('error', mesej, undefined, { bolehSalinAI: saveErrorBolehSalinAI });
+    } catch (err: any) {
+      const mesej = err?.message || labelUi('toast.gagal_simpan_draf');
+      onToast?.('error', mesej, undefined, { bolehSalinAI: !!err?.bolehSalinAI });
+    } finally {
+      setSavingDraft(false);
     }
   };
 

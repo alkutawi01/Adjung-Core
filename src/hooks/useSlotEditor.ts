@@ -246,16 +246,35 @@ export function useSlotEditor(editorName?: string) {
         // di SlotManagerModal yang perlu baca kandungan sebenar array ni.
         return Array.isArray(data.publishOutcomes) ? data.publishOutcomes : [];
       } else {
+        // Pepijat sebenar (2026-09-07, Izzat — toast pertama "Gagal menerbitkan kandungan"
+        // generik, klik SEKALI LAGI baru papar sebab sebenar). `setSaveError()` ialah setState
+        // — tak segerak, cuma terpakai pada RENDER SETERUSNYA. Pemanggil (publishOne/saveDraft/
+        // terbitSemua di SlotManagerModal.tsx) baca prop `saveError` SEJURUS SELEPAS `await
+        // onSave(...)` selesai, dalam closure render YANG SAMA — mereka baca nilai LAMA (sebelum
+        // percubaan ni), bukan `data.error` sebenar percubaan ni. "Klik dua kali" nampak
+        // berfungsi cuma sebab kegagalan sama berulang (mesej percubaan SEBELUM ni ditunjukkan
+        // sebagai mesej "semasa", secara kebetulan sama). Baiki: throw Error DENGAN mesej sebenar
+        // — pemanggil tangkap terus (try/catch), tak bergantung state React sama sekali. State
+        // saveError/saveErrorIsConflict/saveErrorBolehSalinAI KEKAL diset (pengguna lain field ni
+        // — cth borang ralat sebaris — masih perlukannya), cuma bukan lagi SATU-SATUNYA saluran.
         setSaveError(data.error || 'Gagal menyimpan slot.');
         setSaveErrorIsConflict(response.status === 409);
         setSaveErrorBolehSalinAI(!!data.bolehSalinAI);
-        return false;
+        const err: any = new Error(data.error || 'Gagal menyimpan slot.');
+        err.bolehSalinAI = !!data.bolehSalinAI;
+        err.isConflict = response.status === 409;
+        throw err;
       }
     } catch (err: any) {
+      if (err && err.message && (err.bolehSalinAI !== undefined || err.isConflict !== undefined)) {
+        // Sudah diproses (setSaveError dsb.) di blok `else` atas — jangan tulis ganti/timpa dua
+        // kali, cuma bawa terus err yang sama ke pemanggil.
+        throw err;
+      }
       setSaveError('Ralat menyimpan slot: ' + (err.message || ''));
       setSaveErrorIsConflict(false);
       setSaveErrorBolehSalinAI(false);
-      return false;
+      throw new Error('Ralat menyimpan slot: ' + (err.message || ''));
     } finally {
       setIsSavingSlot(false);
     }

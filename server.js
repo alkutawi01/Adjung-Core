@@ -3327,6 +3327,14 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         if (nilai.trim() === '') labelTunggalMenanti = 'sumber'; else terapkanLabelTunggalSrv('sumber', nilai);
       } else if (trimmed.startsWith('URL:')) {
         const nilai = trimmed.replace(/^URL:\s*/i, '');
+        // Pepijat sebenar (2026-09-07) — lihat nota panjang selari di ManualBlockFormat.js
+        // (medan client, DUA salinan penghurai MESTI kekal serasi). URL kosong diikuti terus
+        // "Tarikh sumber:" gagal ikat ke sources[].date (labelTunggalMenanti lengahkan tanpa
+        // panggil terapkanLabelTunggalSrv('url',...), sumberDateArmed kekal false) — tarikh
+        // jatuh ke fields.date legasi, sources[].date kekal kosong, validateTarikhSumber() di
+        // publish tolak kandungan walau tarikh sebenar ADA. Set armed di sini terus, sebelum
+        // tahu URL kosong/tidak.
+        sumberDateArmed = true;
         if (nilai.trim() === '') labelTunggalMenanti = 'url'; else terapkanLabelTunggalSrv('url', nilai.trim());
       }
     }

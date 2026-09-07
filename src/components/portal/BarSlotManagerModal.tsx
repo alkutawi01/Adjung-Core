@@ -174,13 +174,14 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
     commit((prev) => {
       const next = prev.filter((_, n) => n !== i);
       const manualSummary = serializeManualBarQueue(next);
+      // onSave() kini THROW (bukan resolve ke `false`) bila gagal — lihat nota panjang di
+      // useSlotEditor.ts handleSaveSlot — .catch() WAJIB, bukan hanya .then(ok => ...).
       Promise.resolve(onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary))
-        .then((ok) => {
-          if (ok !== false) {
-            onToast?.('success', 'Draf dibuang dan disimpan.');
-          } else {
-            onToast?.('error', 'Draf dibuang tempatan tetapi gagal disimpan ke pelayan — sila cuba "Simpan".');
-          }
+        .then(() => {
+          onToast?.('success', 'Draf dibuang dan disimpan.');
+        })
+        .catch((err: any) => {
+          onToast?.('error', err?.message || 'Draf dibuang tempatan tetapi gagal disimpan ke pelayan — sila cuba "Simpan".');
         });
       return next;
     });
@@ -229,18 +230,22 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
     setSaving(true);
     setLocalError('');
     const manualSummary = serializeManualBarQueue(items);
-    const ok = await onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary);
-    setSaving(false);
-    if (ok !== false) {
+    // Sama pembetulan "mesej ralat sesuap render lewat" macam SlotManagerModal.tsx — onSave()
+    // kini THROW dgn mesej sebenar bila gagal, jangan baca `saveError` selepas await (nilai
+    // lama). Lihat nota panjang di useSlotEditor.ts handleSaveSlot.
+    try {
+      await onSave({ preventDefault: () => {} } as React.FormEvent, manualSummary);
       buangDrafTempatan(kunciDrafTempatan);
       setSavedNote('Giliran Bar disimpan.');
       setTimeout(() => setSavedNote(''), 2400);
       onToast?.('success', 'Giliran Bar disimpan.');
-    } else {
-      const mesej = saveError || 'Gagal menyimpan slot Bar.';
+    } catch (err: any) {
+      const mesej = err?.message || 'Gagal menyimpan slot Bar.';
       setLocalError(mesej);
       setTimeout(() => setLocalError(''), 5000);
       onToast?.('error', mesej);
+    } finally {
+      setSaving(false);
     }
   };
 
