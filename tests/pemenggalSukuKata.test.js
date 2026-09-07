@@ -185,6 +185,25 @@ test('pengecualian editor: corak yang tak sepadan perkataan (data rosak/lapuk) D
   }
 });
 
+// Pembetulan 2026-09-08 — docstring corakKepadaOffset() lama mendakwa ia menolak "offset
+// pertama < SERPIHAN_MIN dsb" tapi kod sebenar tak pernah semak ni, jadi corak dengan serpihan
+// SATU huruf (di mana-mana kedudukan, bukan cuma hujung) diterima bulat-bulat dan hasilkan
+// tepat corak "serpihan terpencil" yang fail ni dokumentasikan sebagai nampak rosak.
+test('pengecualian editor: corak dengan serpihan SATU huruf (mana-mana kedudukan) DITOLAK', () => {
+  try {
+    setPemenggalanPengecualian([{ perkataan: 'pentadbiran', corak: 'p-entadbiran' }]);
+    assert.equal(penggal('pentadbiran'), 'pen-tad-bi-ran', 'serpihan satu huruf di HADAPAN mesti ditolak, jatuh balik ke algoritma');
+
+    setPemenggalanPengecualian([{ perkataan: 'pentadbiran', corak: 'pentadbira-n' }]);
+    assert.equal(penggal('pentadbiran'), 'pen-tad-bi-ran', 'serpihan satu huruf di BELAKANG mesti ditolak, jatuh balik ke algoritma');
+
+    setPemenggalanPengecualian([{ perkataan: 'pentadbiran', corak: 'pen-t-adbiran' }]);
+    assert.equal(penggal('pentadbiran'), 'pen-tad-bi-ran', 'serpihan satu huruf di TENGAH mesti ditolak, jatuh balik ke algoritma');
+  } finally {
+    setPemenggalanPengecualian([]);
+  }
+});
+
 test('pengecualian editor: senarai kosong/tak sah dikendalikan dengan selamat', () => {
   try {
     setPemenggalanPengecualian([]);

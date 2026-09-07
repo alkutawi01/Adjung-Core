@@ -110,6 +110,13 @@ const corakKepadaOffset = (perkataan, corak) => {
   // Corak (sempang dibuang) MESTI sepadan tepat perkataan asal — kalau tidak, sisipan sempang
   // akan mengubah/rosakkan teks editorial sebenar, melanggar falsafah teras jangan sentuh teks.
   if (segmen.join('').toLowerCase() !== perkataan.toLowerCase()) return null;
+  // SERPIHAN_MIN (2026-09-08 pembetulan) — dokstring fungsi ni SUDAH lama mendakwa ia menolak
+  // "offset pertama < SERPIHAN_MIN dsb", tapi kod sebenar tak pernah semak ni langsung. Tanpa
+  // semakan, corak seperti "p-entadbiran" (segmen pertama SATU huruf) diterima bulat-bulat dan
+  // menghasilkan tepat corak "serpihan satu huruf terpencil" yang fail ni sendiri dokumentasikan
+  // sebagai nampak rosak ("Didahulukan" -> "D-idahulukan"). Setiap segmen (bukan cuma yang
+  // pertama/akhir) mesti sekurang-kurangnya SERPIHAN_MIN aksara, sama disiplin dgn cariTitikPenggal().
+  if (segmen.some((s) => s.length < SERPIHAN_MIN)) return null;
   const offset = [];
   let pos = 0;
   for (let i = 0; i < segmen.length - 1; i++) {

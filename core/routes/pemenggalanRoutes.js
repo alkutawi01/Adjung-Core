@@ -21,10 +21,16 @@ import { logAudit } from '../audit/AuditLog.js';
 const HAD_PERKATAAN = 60;
 const HAD_CORAK = 90;
 
+// SERPIHAN_MIN sepadan PemenggalSukuKata.js (client, "pertahanan KEDUA") — dua huruf minimum
+// setiap serpihan, elak "Didahulukan" -> "D-idahulukan" (satu huruf terpencil, nampak rosak).
+// Pembetulan 2026-09-08: DUA-DUA lapisan pertahanan (sini DAN corakKepadaOffset() client) dulu
+// sama-sama terlepas semakan ni — corak seperti "p-entadbiran" diterima bulat-bulat.
+const SERPIHAN_MIN = 2;
+
 const corakSahUntukPerkataan = (perkataan, corak) => {
   if (!corak.includes('-')) return false;
   const segmen = corak.split('-');
-  if (segmen.some((s) => s.length === 0)) return false;
+  if (segmen.some((s) => s.length < SERPIHAN_MIN)) return false;
   return segmen.join('').toLowerCase() === perkataan.toLowerCase();
 };
 
