@@ -29,6 +29,64 @@ test('RssDirectEngine - parseRssXml extracts items and links from XML feed', () 
   assert.equal(items[0].formattedBrief.includes('KUALA LUMPUR -'), false);
 });
 
+test('RssDirectEngine - parseRssXml menolak skema javascript: pada <link> RSS 2.0 (elak XSS via href)', () => {
+  const maliciousXml = `
+    <rss version="2.0">
+      <channel>
+        <item>
+          <title>Suapan jahat cuba suntik pautan</title>
+          <description>Perenggan huraian biasa untuk item ini.</description>
+          <link>javascript:alert(document.cookie)</link>
+          <guid>javascript:alert(document.cookie)</guid>
+          <category>UMUM</category>
+          <pubDate>Wed, 22 Jul 2026 10:00:00 GMT</pubDate>
+        </item>
+      </channel>
+    </rss>
+  `;
+
+  const items = parseRssXml(maliciousXml);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].link, '');
+  assert.equal(items[0].rssGuid, '');
+});
+
+test('RssDirectEngine - parseRssXml menolak skema javascript: pada Atom <link href="..."> (laluan dahulu tak sanitize langsung)', () => {
+  const maliciousAtomXml = `
+    <feed>
+      <entry>
+        <title>Suapan Atom jahat</title>
+        <summary>Ringkasan biasa untuk item Atom ini.</summary>
+        <link href="javascript:alert(1)" />
+        <id>entry-123</id>
+        <updated>2026-07-22T10:00:00Z</updated>
+      </entry>
+    </feed>
+  `;
+
+  const items = parseRssXml(maliciousAtomXml);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].link, '');
+});
+
+test('RssDirectEngine - parseRssXml kekal terima link http(s) sah pada format Atom', () => {
+  const safeAtomXml = `
+    <feed>
+      <entry>
+        <title>Item Atom sah</title>
+        <summary>Ringkasan biasa untuk item Atom ini.</summary>
+        <link href="https://example.com/artikel-sah" />
+        <id>entry-456</id>
+        <updated>2026-07-22T10:00:00Z</updated>
+      </entry>
+    </feed>
+  `;
+
+  const items = parseRssXml(safeAtomXml);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].link, 'https://example.com/artikel-sah');
+});
+
 test('RssDirectEngine - formatRssBrief removes datelines, extracts 1 sentence, enforces bounds, no ellipsis', () => {
   const rawText = 'PUTRAJAYA: Kerajaan meluluskan pelan bantuan kewangan baharu untuk sektor pendidikan negara. Bantuan ini diagihkan mulai bulan hadapan kepada sekolah terpilih...';
   const formatted = formatRssBrief(rawText);

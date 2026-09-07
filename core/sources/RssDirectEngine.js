@@ -1,7 +1,7 @@
 // RssDirectEngine.js - High performance RSS 2.0 / Atom XML Parser, Link Extractor, and Language Filter.
 // Pure JS XML parser operating WITHOUT any AI API calls.
 
-import { sanitizeHtmlText, sanitizeUrlText, stripLocationDateline } from './SourceSanitizer.js';
+import { sanitizeHtmlText, sanitizeUrlText, stripLocationDateline, isSafeHttpUrl } from './SourceSanitizer.js';
 
 export function parseRssXml(xmlString) {
   if (!xmlString || typeof xmlString !== 'string') return [];
@@ -24,6 +24,15 @@ export function parseRssXml(xmlString) {
     // Extract link — sanitizeUrlText SAHAJA (bukan sanitizeHtmlText), sebab pembersih prosa
     // memadam segala-galanya selepas nama penerbit (cth "bernama") yang terkandung dalam
     // hostname URL itu sendiri. Lihat nota di SourceSanitizer.js.
+    //
+    // 2026-09-08 (pepijat kritikal) — link ni akhirnya dipaparkan terus sebagai `<a href>`
+    // di laman awam. sanitizeUrlText() (dan, lagi teruk, laluan Atom di bawah yang dahulu
+    // guna nilai href MENTAH tanpa sanitizeUrlText langsung) tak pernah sahkan SKEMA URL —
+    // suapan RSS jahat boleh hantar "javascript:alert(document.cookie)" sebagai <link> atau
+    // <link href="javascript:...">, ia terus tersimpan lepas tu jadi pautan boleh diklik yang
+    // jalankan skrip. isSafeHttpUrl() (SourceSanitizer.js) kini gerbang KEDUA-DUA laluan —
+    // hanya http(s):// dibenarkan, skema lain (javascript:, data:, dll) jatuh balik '' (UI
+    // sedia ada guna fallback '#' bila medan url/link kosong).
     let link = '';
     const linkMatch = block.match(/<link[^>]*>([\s\S]*?)<\/link>/i);
     if (linkMatch && linkMatch[1].trim()) {
@@ -31,13 +40,20 @@ export function parseRssXml(xmlString) {
     } else {
       // Atom link format: <link href="url" />
       const atomLinkMatch = block.match(/<link[^>]+href=["']([^"']+)["']/i);
-      if (atomLinkMatch) link = atomLinkMatch[1].trim();
+      if (atomLinkMatch) link = sanitizeUrlText(atomLinkMatch[1].trim());
     }
+    if (!isSafeHttpUrl(link)) link = '';
 
     // Extract guid / id — guid selalunya URL artikel juga, sama risiko macam link di atas.
     const guidMatch = block.match(/<(?:guid|id)[^>]*>([\s\S]*?)<\/(?:guid|id)>/i);
     const rawGuid = guidMatch ? guidMatch[1] : link;
-    const rssGuid = sanitizeUrlText(rawGuid.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')) || link;
+    let rssGuid = sanitizeUrlText(rawGuid.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')) || link;
+    // guid tak semestinya URL (sesetengah suapan guna ID rentetan bebas) — cuma tapis skema
+    // bahaya bila ia MEMANG kelihatan macam skema URL (mengandungi "://" atau "javascript:"
+    // dsb.), jangan buang guid sah yang bukan URL langsung (cth angka/UUID).
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(rssGuid) && !isSafeHttpUrl(rssGuid)) {
+      rssGuid = link || '';
+    }
 
     // Extract pubDate / updated
     const dateMatch = block.match(/<(?:pubDate|published|updated)[^>]*>([\s\S]*?)<\/(?:pubDate|published|updated)>/i);

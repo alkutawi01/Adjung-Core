@@ -82,6 +82,26 @@ export function sanitizeUrlText(rawText) {
     .trim();
 }
 
+// isSafeHttpUrl (2026-09-08, pepijat kritikal) — medan link/guid RSS akhirnya dipaparkan
+// terus sebagai `<a href={...}>` di laman awam (FrontpageView.tsx, FocusView.tsx, dll),
+// tapi sanitizeUrlText() di atas cuma buang tag HTML + nyahkod entiti — ia TAK PERNAH
+// sahkan skema URL. Suapan RSS jahat boleh hantar `<link>javascript:alert(document.cookie)
+// </link>` (atau format Atom `<link href="javascript:...">`, yang malah terus digunakan
+// mentah TANPA sanitizeUrlText langsung — lihat RssDirectEngine.js) dan skrip tu akan
+// jalan bila pembaca klik pautan sumber — stored-XSS melalui href, bukan melalui teks/HTML.
+// Fungsi ni WAJIB dipanggil pada setiap medan link/guid RSS sebelum disimpan — hanya
+// benarkan http:// / https:// (atau rentetan kosong), apa-apa skema lain (javascript:,
+// data:, vbscript:, dll) ditolak jadi rentetan kosong supaya UI jatuh balik ke '#'.
+export function isSafeHttpUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function truncateWords(text, maxWords = 100) {
   if (!text) return '';
   const words = text.split(/\s+/);
