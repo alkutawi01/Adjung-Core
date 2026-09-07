@@ -616,7 +616,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 // (validateBidangTopik) — bukan bajet sahaja. Dua-dua pengesahan ini KEKAL menyekat Simpan Slot di
 // server.js (syncManualObjectsForSlot), jadi meter/lulus di sini mesti guna formula SAMA supaya
 // tiada kandungan nampak "lulus" di modal tapi ditolak server semasa simpan.
-function itemFits(slotIndex: number, desk: string, item: { title?: string; brief?: string; briefLong?: string; topik?: string }) {
+function itemFits(slotIndex: number, desk: string, item: { title?: string; brief?: string; briefLong?: string; topik?: string; url?: string; sources?: { url?: string }[] }) {
   const budget = validateContentBudget(slotIndex, item.title || '', item.brief || '');
   if (!budget.isValid) return budget;
   // Had gloss (2026-08-12, keputusan Izzat) — semak SEBELUM Terbit, SAMA fungsi live spt
@@ -624,6 +624,25 @@ function itemFits(slotIndex: number, desk: string, item: { title?: string; brief
   // editor nampak mesej sebelum cuba hantar ke server, bukan cuma selepas 400 pulang.
   const gloss = validateGlossLength({ Tajuk: item.title, 'Huraian ringkas': item.brief, 'Huraian panjang': item.briefLong });
   if (!gloss.isValid) return gloss;
+  // Format URL sumber (2026-09-08) — medan "URL sumber" per-kandungan (`item.url`/`item.sources[].url`,
+  // borang di baris ~1907/1894) TIADA sebarang semakan client sebelum ni, walhal pelayan
+  // (syncManualObjectsForSlot, server.js ~baris 3573) TOLAK terus dengan validateSourceUrl kalau
+  // URL bukan http(s) sah. Sama corak pepijat Ticker yang dibaiki sesi ni (gerbang Terbit klien tak
+  // cermin semakan pelayan) — butang "Terbit" di sini kekal AKTIF walau URL jelas tak sah (cth
+  // "www.contoh.com" tanpa skema), editor cuma nampak ralat generik SELEPAS round-trip pelayan
+  // gagal. Guna urlFormatSah() sedia ada (cermin validateSourceUrl, definisi di atas fail ni) —
+  // sengaja LEMBUT: kosong/'#' dibenarkan lepas (padan tepat tingkah laku validateSourceUrl pelayan),
+  // cuma URL YANG DIISI tapi bukan http(s) sah yang disekat di sini.
+  const urlsUntukSemak = (Array.isArray(item.sources) && item.sources.length > 0)
+    ? item.sources.map((s) => s?.url || '')
+    : [item.url || ''];
+  for (const u of urlsUntukSemak) {
+    const trimmed = u.trim();
+    if (!trimmed || trimmed === '#') continue;
+    if (!urlFormatSah(trimmed)) {
+      return { isValid: false, bolehSalinAI: true, reason: `URL sumber ("${trimmed}") bukan URL yang sah — mesti bermula dengan http:// atau https://.` };
+    }
+  }
   return validateBidangTopik({ slotBidang: desk, itemBidang: desk, topik: item.topik || '', requireTopik: true, slotIndex });
 }
 
