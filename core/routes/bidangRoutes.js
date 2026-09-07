@@ -28,7 +28,7 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 // disembunyikan dengan menyekat status='archived' di sini. Kalau kandungan bersumber Wikipedia
 // ditemui lagi pada masa depan, padam kandungan itu — jangan ulang tarik balik ciri ni.
 
-const ATTR_KEYS = ['desk', 'topik', 'briefLong', 'originalDate', 'source', 'url', 'editorName', 'image', 'sourcesJson'];
+const ATTR_KEYS = ['desk', 'topik', 'briefLong', 'originalDate', 'source', 'url', 'editorName', 'image', 'sourcesJson', 'sumberAkademik'];
 
 function attrSubquery(attributeId, alias) {
   return `(SELECT valueText FROM editorial_attribute_values
@@ -141,6 +141,10 @@ export function createBidangRoutes(dbAll, dbGet) {
           sources,
           editorName: r.editorName || '',
           image: r.image || '',
+          // Sumber Akademik (2026-09-07) — bendera checkbox editor, badge di bucu kanan-atas kad
+          // Halaman Bidang SAHAJA (lihat HalamanBidang.tsx). Nilai tersimpan '1'/kosong, tukar
+          // ke boolean sebenar di sini (corak sama medan lain di laluan ni).
+          sumberAkademik: r.sumberAkademik === '1',
           status: r.status || 'approved',
           originalDate: r.originalDate || '',
           // Tarikh SIARAN (2026-09-02, Izzat: "susunan ikut tarikh siaran bukan tarikh sumber" —

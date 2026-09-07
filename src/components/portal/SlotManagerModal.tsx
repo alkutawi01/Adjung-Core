@@ -799,7 +799,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // key={editingSlotIndex} — tukar slot = remount penuh, bukan sekadar prop baharu.
   const blankItem = (suffix: string | number = '') => ({
     uuid: `object-manual-slot${editingSlotIndex}-${Date.now()}${suffix}`,
-    title: '', brief: '', briefLong: '', topik: '', source: '', url: '', sources: [], sourceType: '', date: '', note: '', rejectionNote: '', image: '',
+    title: '', brief: '', briefLong: '', topik: '', source: '', url: '', sources: [], sourceType: '', date: '', note: '', rejectionNote: '', image: '', sumberAkademik: false,
     // Alur kerja Draf/Terbit (2026-07-29, permintaan pemilik projek) — lalai DRAF untuk
     // kandungan BAHARU: tak sesekali live sehingga editor sedar-sedar tekan "Terbit". Kandungan
     // sedia ada yang dihurai daripada manualSummary (lihat parseManualSummaryBlocks) bawa status
@@ -908,7 +908,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   const [konfirmBuangIndex, setKonfirmBuangIndex] = useState<number | null>(null);
 
   const commit = (mutator: (prevItems: any[]) => any[]) => setItems((prev) => mutator(prev));
-  const patch = (i: number, key: string, value: string) => commit((prevItems) => (
+  const patch = (i: number, key: string, value: string | boolean) => commit((prevItems) => (
     // Sama pertahanan macam initializer di atas — kalau entah bagaimana items jadi kosong (cth.
     // remove() buang kandungan terakhir), patch() masih WAJIB ada sesuatu untuk disunting, bukan
     // no-op senyap.
@@ -1905,6 +1905,21 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     Jenis sumber) — lebar biasa (bukan grid) supaya tak nampak janggal separuh
                     lebar sekarang. */}
                 <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
+                {/* Sumber Akademik (2026-09-07, permintaan Izzat) — checkbox BERASINGAN, TAK
+                    terikat Mod Janaan "Dengan Artikel Jurnal" (editor boleh taip manual terus
+                    tanpa pipeline AI dan tetap tandakan ni). Papar badge "Sumber Akademik" di
+                    bucu kanan-atas kad Halaman Bidang (bidangRoutes.js/HalamanBidang.tsx) —
+                    label disahkan ChatGPT lebih tepat drpd "Akademik"/"Artikel Jurnal" sahaja
+                    (merangkumi kertas kerja/tesis/prosiding, bukan cuma artikel jurnal). */}
+                <label className="flex items-center gap-2 font-sans text-[12px] text-stone-600 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={!!current.sumberAkademik}
+                    onChange={(e) => patch(activeIndex, 'sumberAkademik', e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  Kandungan ini berdasarkan artikel jurnal/dokumen akademik (papar label "Sumber Akademik" di Halaman Bidang)
+                </label>
                 {/* Sebab Penolakan (2026-08-31, dapatan Izzat — nota Tolak hampir terbit ke Focus
                     View) — DALAMAN SAHAJA, medan berasingan sepenuhnya drpd "Nota" di bawah (yang
                     memang direka untuk paparan AWAM). Papar sebagai amaran read-only (bukan Field

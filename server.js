@@ -2702,6 +2702,17 @@ const initEditorialOS = (dbConn) => {
           // keputusan manusia kedua diperlukan. Lihat PATCH /content/:id untuk logik penuh.
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('sebabMenunggu', 'Sebab Menunggu', 'text')", () => {});
 
+          // sumberAkademik (2026-09-07, permintaan Izzat) — bendera ditanda MANUAL oleh editor
+          // semasa isi borang (checkbox berasingan, TAK terikat Mod Janaan "Dengan Artikel
+          // Jurnal" — editor boleh taip manual terus tanpa guna pipeline AI dan tetap tandakan
+          // ni). '1' = kandungan ditulis berdasarkan artikel jurnal/dokumen akademik, papar
+          // label "Sumber Akademik" (disahkan ChatGPT — lebih tepat drpd "Akademik"/"Artikel
+          // Jurnal" sahaja, sebab merangkumi kertas kerja/tesis/prosiding juga) di bucu
+          // kanan-atas kad Halaman Bidang SAHAJA (bidangRoutes.js) — bukan frontpage/Focus View,
+          // ikut skop diminta. Corak nilai SAMA macam pernahDitolak ('1'/kosong), bukan boolean
+          // asli (lajur valueType 'text' generik, sama macam semua attribute lain di sini).
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('sumberAkademik', 'Sumber Akademik', 'text')", () => {});
+
           // urlKod: kod pendek unik per-kandungan (Fasa 9, 2026-08-05) — skema URL
           // /<bidang-slug>/kandungan/<kod-pendek>. Lihat core/editorial/UrlSlug.js untuk sebab
           // ia kod RAWAK baharu (bukan potongan editorial_objects.id sedia ada). Indeks unik
@@ -3106,6 +3117,9 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     // semula (serializeDraftBlock di bawah), kalau tidak setiap simpan seterusnya akan memadam
     // cap nama tu secara senyap dan draf jadi yatim dalam "Draf Saya".
     let penulis = '';
+    // Sumber Akademik (2026-09-07) — bendera checkbox editor, lihat nota penuh di pendaftaran
+    // attribute (bahagian boot fail ni) dan sync attrs[] di bawah.
+    let sumberAkademik = '';
 
     // Blok kandungan manual membawa petunjuk had aksara dalam teksnya sendiri, cth
     // "Tajuk: (had 168 aksara) ..." — ditulis dan dikemas kini oleh updateLimitsInText() di
@@ -3142,7 +3156,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       'UUID:', 'Status:', 'Tajuk:', 'Event:', 'Huraian panjang:', 'Huraian ringkas:', 'Huraian:',
       'Bidang:', 'Kategori:', 'Topik:', 'Jenis sumber:', 'Tarikh mula:', 'Tarikh tamat:',
       'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Sebab Penolakan:', 'Imej:', 'Penganjur:',
-      'Lokasi:', 'Akses:', 'Penerangan:', 'Sumber:', 'URL:',
+      'Lokasi:', 'Akses:', 'Penerangan:', 'Sumber:', 'URL:', 'Sumber Akademik:',
     ];
     const adaLabelDikenaliSrv = (t) =>
       LABEL_DIKENALI_SRV.some((label) => t.toLowerCase().startsWith(label.toLowerCase()));
@@ -3278,6 +3292,9 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       } else if (trimmed.startsWith('Tarikh:')) {
         const nilai = trimmed.replace(/^Tarikh:\s*/i, '');
         if (nilai.trim() === '') labelTunggalMenanti = 'tarikh'; else terapkanLabelTunggalSrv('tarikh', nilai);
+      } else if (trimmed.startsWith('Sumber Akademik:')) {
+        sumberAkademik = trimmed.replace(/^Sumber Akademik:\s*/i, '').trim();
+        continue;
       } else if (trimmed.startsWith('Penulis:')) {
         const nilai = trimmed.replace(/^Penulis:\s*/i, '');
         if (nilai.trim() === '') labelTunggalMenanti = 'penulis'; else terapkanLabelTunggalSrv('penulis', nilai);
@@ -3364,6 +3381,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
         rejectionNote,
         image,
         penulis,
+        sumberAkademik: sumberAkademik === '1',
         source: organizer || source || defaultSlot.manualSource || '',
         sources,
         // TIADA fallback ke defaultSlot.manualUrl/'#' di sini lagi (2026-07-29) — defaultSlot.manualUrl
@@ -3429,6 +3447,7 @@ const serializeDraftBlock = (item) => {
     // sebelum sedia Terbit semula. Lihat nota panjang di parseManualSummaryTemplate atas fail ni.
     `Sebab Penolakan: ${item.rejectionNote || ''}`,
     `Penulis: ${item.penulis || ''}`,
+    `Sumber Akademik: ${item.sumberAkademik ? '1' : ''}`,
   ].join('\n');
 };
 const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n';
@@ -3863,6 +3882,9 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
         { key: 'penerangan', val: item.penerangan || '' },
         { key: 'note', val: item.note || '' },
         { key: 'image', val: item.image || '' },
+        // Sumber Akademik (2026-09-07) — lihat nota panjang di pendaftaran attribute atas fail
+        // ni. Checkbox editor tandakan manual, TIADA kaitan dgn genMode/aiPromptSource.
+        { key: 'sumberAkademik', val: item.sumberAkademik ? '1' : '' },
         // Kunci draf ditolak (2026-08-05) — item.uuid ialah UUID blok DRAF asal (bukan
         // objectId, yang sentiasa baharu untuk tier bukan-Bar di atas). Blok yang lahir drpd
         // "Tolak" (reject-to-draft, contentRoutes.js) diberi UUID berakhir '-reject' — kalau
