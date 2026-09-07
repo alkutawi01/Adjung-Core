@@ -56,8 +56,27 @@ export function parseRssXml(xmlString) {
     }
 
     // Extract pubDate / updated
+    // 2026-09-08 (dapatan bug-hunt tarikh/masa) — dahulu `new Date(dateMatch[1]).toISOString()`
+    // terus tanpa sahkan format tarikh boleh hurai dahulu. Sesetengah suapan RSS sebenar hantar
+    // pubDate rosak/kosong/format bukan-standard (bukan RFC822/ISO8601) — `new Date(...)`
+    // pulangkan `Invalid Date`, dan `.toISOString()` atas `Invalid Date` LONTAR `RangeError`
+    // (bukan pulangkan rentetan). Ralat tu terlepas KELUAR dari parseRssXml() (tiada try/catch
+    // di sini), ditangkap oleh gerbang `catch (fetchErr)` di executeDirectRssFetch()
+    // (slotRoutes.js) yang membungkus SELURUH sumber — SATU item bertarikh rosak dalam suapan
+    // menggugurkan KESEMUA item SAH lain dalam suapan yang SAMA pada jalanan tu, dicatat sebagai
+    // "ralat-ambilan-rss" mengelirukan (nampak macam suapan mati/rangkaian gagal, sedangkan
+    // suapan tu okay — cuma satu medan tarikh rosak). Kini disahkan dahulu (`isNaN`) sebelum
+    // panggil toISOString(); tarikh tak sah jatuh balik ke SEKARANG (sama corak seperti cabang
+    // "tiada dateMatch langsung" di bawah) — item tu tetap diproses, cuma dianggap "baharu" bagi
+    // tujuan penapisan usia (`maxNewsAgeHours`), bukan digugurkan bersama seluruh suapan.
     const dateMatch = block.match(/<(?:pubDate|published|updated)[^>]*>([\s\S]*?)<\/(?:pubDate|published|updated)>/i);
-    const publishedAt = dateMatch ? new Date(sanitizeHtmlText(dateMatch[1])).toISOString() : new Date().toISOString();
+    let publishedAt = new Date().toISOString();
+    if (dateMatch) {
+      const parsedDate = new Date(sanitizeHtmlText(dateMatch[1]));
+      if (!isNaN(parsedDate.getTime())) {
+        publishedAt = parsedDate.toISOString();
+      }
+    }
 
     // Extract all category tags
     const catMatches = block.match(/<category[^>]*>([\s\S]*?)<\/category>/gi) || [];
