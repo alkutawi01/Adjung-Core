@@ -1389,15 +1389,6 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
     }
   }));
 
-  // Query total DB counts for actual statistics
-  const autoLiveRow = await dbGet("SELECT COUNT(*) as cnt FROM rss_ticker_items WHERE status = 'approved'");
-  const pendingReviewRow = await dbGet("SELECT COUNT(*) as cnt FROM rss_ticker_items WHERE status = 'pending'");
-  const totalFetchedRow = await dbGet("SELECT COUNT(*) as cnt FROM rss_ticker_items");
-
-  const autoLiveCount = autoLiveRow ? autoLiveRow.cnt : 0;
-  const pendingReviewCount = pendingReviewRow ? pendingReviewRow.cnt : 0;
-  const totalFetchedCount = totalFetchedRow ? totalFetchedRow.cnt : 0;
-
   // Query approved items ordered by HIGHEST SCORE first!
   // tickerMaxItems TIDAK dibaca di sini lagi — janaSemulaTickerRssDirect() membacanya sendiri
   // supaya had itu ada SATU tapak bacaan sahaja bagi semua pemanggil.
@@ -1468,6 +1459,20 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
   const approvedCount = await denganKunciTicker(() => janaSemulaTickerRssDirect(dbAll, dbGet, dbRun));
 
   const lastFetchedAt = new Date().toISOString();
+
+  // Kiraan statistik diambil DI SINI (selepas nilaiSemulaKeputusanSediaAda() dan purge usia di
+  // atas), bukan sejurus lepas gelung ambilan RSS — 2026-09-08, susulan dapatan audit bug: log
+  // pernah catat "21 menunggu semakan" sedangkan giliran sebenar cuma 20, kerana kiraan lama
+  // diambil SEBELUM dua langkah mutasi status ni sempat jalan (satu item 'pending' lapuk ke
+  // 'rejected' semasa purge, selepas kiraan tapi sebelum log). Kiraan diambil di sini sentiasa
+  // sepadan keadaan AKHIR sebenar dalam DB.
+  const autoLiveRow = await dbGet("SELECT COUNT(*) as cnt FROM rss_ticker_items WHERE status = 'approved'");
+  const pendingReviewRow = await dbGet("SELECT COUNT(*) as cnt FROM rss_ticker_items WHERE status = 'pending'");
+  const totalFetchedRow = await dbGet("SELECT COUNT(*) as cnt FROM rss_ticker_items");
+
+  const autoLiveCount = autoLiveRow ? autoLiveRow.cnt : 0;
+  const pendingReviewCount = pendingReviewRow ? pendingReviewRow.cnt : 0;
+  const totalFetchedCount = totalFetchedRow ? totalFetchedRow.cnt : 0;
 
   // Log Audit (Fasa 4) — satu baris ringkasan setiap larian, di atas kegagalan per-sumber yang
   // dicatat individu di atas — supaya "berapa sumber aktif, berapa item ditemui" boleh disemak
