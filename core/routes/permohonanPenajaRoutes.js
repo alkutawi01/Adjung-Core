@@ -27,6 +27,23 @@ import { simpanFailMuatNaik } from './mediaRoutes.js';
 // pemohon tidak boleh bercanggah dengan syariat Islam. Checklist semakan di bawah ialah PANDUAN
 // bidang yang perlu disemak, bukan kriteria automatik lulus/tolak.
 
+// Kunci pengaktifan penajaan (2026-09-08, bug-hunt) — POST .../aktifkan baca `rekod.sponsorId`
+// (jaring pertahanan kedua sedia ada, komen 2026-09-02 di bawah) SEBELUM menulis balik
+// `permohonan_penaja.sponsorId`, bukan operasi baca-ubah-tulis atomik. Dua permintaan hampir
+// serentak (klik dua kali pada butang "Aktifkan", atau percubaan semula rangkaian) pada
+// permohonan SAMA tanpa `sponsorSediaAdaId` kedua-duanya baca `rekod.sponsorId` sebagai NULL
+// sebelum mana-mana sempat tulis balik — jaring pertahanan "sudah pernah diaktifkan" tu sendiri
+// terdedah kepada race yang ia cuba elakkan, dua baris `sponsors` (dan dua e-mel "Penajaan Anda
+// Kini Aktif") tercipta bagi SATU bayaran. Sama corak `denganKunciKandungan`/
+// `denganKunciPenugasanSlot` (kunci rantaian promise global) — tindakan pentadbiran duit
+// sebenar, jarang berlaku, serialisasi global mencukupi.
+let rantaianKunciAktifkanPenaja = Promise.resolve();
+function denganKunciAktifkanPenaja(fn) {
+  const giliran = rantaianKunciAktifkanPenaja.catch(() => {}).then(fn);
+  rantaianKunciAktifkanPenaja = giliran.catch(() => {});
+  return giliran;
+}
+
 const HAD = {
   namaSebenar: 120,
   namaOrganisasi: 150,
@@ -420,7 +437,7 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
   // POST /api/system/permohonan-penaja/:id/aktifkan — cipta/kemas kini baris `sponsors` sedia
   // ada. `sponsorSediaAdaId` (pilihan) — pembaharuan penaja Hamba Allah sedia ada, PAUTKAN
   // (jangan cipta baris baharu / jangan teka ikut nama) supaya anonymousNo dikekalkan.
-  router.post('/system/permohonan-penaja/:id/aktifkan', requirePermission('manageSettings'), async (req, res) => {
+  router.post('/system/permohonan-penaja/:id/aktifkan', requirePermission('manageSettings'), (req, res) => denganKunciAktifkanPenaja(async () => {
     try {
       const rekod = await dbGet('SELECT * FROM permohonan_penaja WHERE id = ?', [req.params.id]);
       if (!rekod) return res.status(404).json({ error: 'Permohonan tidak dijumpai.' });
@@ -507,7 +524,7 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
       console.error('POST aktifkan permohonan-penaja error:', err);
       res.status(500).json({ error: 'Gagal mengaktifkan penajaan.' });
     }
-  });
+  }));
 
   return router;
 }
