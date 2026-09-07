@@ -1516,7 +1516,19 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
       // Versi lama berstatus 'approved' terus terbit semula apabila dipulihkan — jadi ia perlukan
       // kebenaran `publish` yang sama seperti laluan kelulusan lain.
-      if (oldRev.status === 'approved' && !hasPermission(req.session?.user?.roles, 'publish')) {
+      // PEMBETULAN (2026-09-08, bug-hunt) — semakan asal cuma baca kunci `publish`, terlepas
+      // pengecualian `manageEditorial` yang gerbang KELULUSAN LAIN semua guna (cth PATCH
+      // /content/:id baris ~893: `status==='approved' && !manageEditorial` DAHULU sebelum
+      // baca `publish`). Kunci RBAC ni dua togol BERASINGAN (TetapanConsole.tsx) — matriks
+      // LALAI kebetulan sentiasa hidupkan kedua-duanya bersama utk ketua_editor/penolong,
+      // jadi pepijat ni tak pernah terdedah, tapi Ketua Editor BOLEH nyahaktifkan `publish`
+      // sendiri (togol Dasar Terbit Sendiri Editor) tanpa niat menyekat DIRINYA SENDIRI drpd
+      // memulihkan versi lama — `manageEditorial` sepatutnya KEKAL penuh macam semua gerbang
+      // penerbitan lain (lihat komen "Ketua Editor/Penolong (manageEditorial) KEKAL penuh"
+      // merata fail ni). Dibetulkan supaya konsisten.
+      if (oldRev.status === 'approved'
+        && !hasPermission(req.session?.user?.roles, 'manageEditorial')
+        && !hasPermission(req.session?.user?.roles, 'publish')) {
         return res.status(403).json({
           error: 'Anda tiada kebenaran untuk memulihkan versi yang terus terbit. Minta Ketua Editor/Penolong Ketua Editor.',
         });
