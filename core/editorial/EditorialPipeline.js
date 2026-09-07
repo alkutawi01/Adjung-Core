@@ -7,7 +7,7 @@ import GeminiProvider from '../ai/GeminiProvider.js';
 import ClaudeProvider from '../ai/ClaudeProvider.js';
 import EditorialValidator from './EditorialValidator.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
-import { validateContentBudget, validateBidangTopik } from './ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateTarikhSumber } from './ContentBudget.js';
 import { TIER_SLOTS } from './GeometryConfig.js';
 import { gantiBlokModTicker } from '../routes/contentRoutes.js';
 // denganKunciTicker (2026-08-20, dapatan audit modul Ticker) — penjanaan Ticker mod
@@ -526,6 +526,33 @@ ${slot.sourcesList.trim()}
     }
     const finalSource = isBarSlot ? (parsedJson.source || parsedJson.date || '19 Jul 2026') : provider.name;
 
+    // Tarikh Sumber (2026-09-04, dasar "Format + kewajipan Tarikh Sumber" — lihat CLAUDE.md)
+    // sebelum ni TIDAK PERNAH disimpan untuk kandungan laluan pipeline AI ni — attributesToSave
+    // di bawah langsung tiada `originalDate`, walhal Content Pool (poolItemForUrl.publishedAt)
+    // SELALUNYA sudah ada tarikh sebenar sumber yang baru difetch di buildContentPool(). Kesan:
+    // kad kandungan AI Generated jatuh balik papar tarikh PENCIPTAAN rekod (createdAt kad, bila
+    // AI menjana) sebagai proksi "bila fakta ini diterbitkan" (lihat fallback
+    // `getDisplayDate(originalDate) || formatBentoDate(publishedAt)` di FrontpageView.tsx/
+    // HalamanBidang.tsx) — bukan bila sumber ASAL sebenarnya diterbitkan, walaupun tarikh sebenar
+    // itu sudah ada dalam ingatan pipeline sepanjang larian ni. Simpan tarikh sebenar bila ada;
+    // guna gerbang format sama (validateTarikhSumber) semata-mata untuk sahkan formatnya —
+    // format tak sah (bukan ketiadaan tarikh, yang memang biasa untuk banyak feed) jatuh balik
+    // kosong dgn amaran log, bukan gagalkan seluruh larian AI (tidak seperti laluan manual/edit,
+    // dasar kewajipan-Tarikh-Sumber TAK dikuatkuasakan keras di sini — banyak strategi carian di
+    // pipeline ni memang tiada tarikh sumber boleh dipercayai langsung, cth "Search Only").
+    let finalOriginalDate = '';
+    if (poolItemForUrl && poolItemForUrl.publishedAt) {
+      const parsedDate = new Date(poolItemForUrl.publishedAt);
+      if (!isNaN(parsedDate.getTime())) {
+        const candidate = parsedDate.toISOString().slice(0, 10);
+        if (validateTarikhSumber(candidate, finalSource).isValid) {
+          finalOriginalDate = candidate;
+        } else {
+          console.warn(`[Tarikh Sumber] Slot ${slotIndex}: tarikh sumber pool tak sah format (${poolItemForUrl.publishedAt}), dibiarkan kosong.`);
+        }
+      }
+    }
+
     // 8. Save Editorial Object and attributes to Database
     const objectId = `object-${outputType.toLowerCase()}-slot${slotIndex}-${Date.now()}`;
     try {
@@ -552,7 +579,9 @@ ${slot.sourcesList.trim()}
       { key: 'url', val: finalSourceUrl },
       { key: 'aiProvider', val: provider.name },
       // Topik: kosong untuk slot BAR (tak terpakai di sana).
-      { key: 'topik', val: finalTopik }
+      { key: 'topik', val: finalTopik },
+      // Tarikh Sumber sebenar (dari Content Pool bila ada) — lihat nota validateTarikhSumber di atas.
+      { key: 'originalDate', val: finalOriginalDate }
     ];
 
     for (const attr of attributesToSave) {
