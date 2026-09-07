@@ -1,5 +1,17 @@
 import { tierForSlot } from '../editorial/GeometryConfig.js';
 
+// Cache dalam-memori bagi `publisher_directory` (2026-09-08, dapatan bug-hunt prestasi).
+// `resolvePublisher()` dipanggil oleh `composeToken()` untuk SETIAP item kandungan yang
+// diselesaikan — dan `composeToken()` sendiri dipanggil sekali bagi SETIAP objectId dalam SETIAP
+// slot semasa `resolveSlotContent()` (server.js), yang jalan untuk KESEMUA ~38 slot pada SETIAP
+// permintaan `GET /api/system/layout/active` — laluan AWAM PALING kerap dicapai (satu muat
+// frontpage). Sebelum ni, setiap panggilan buat `SELECT * FROM publisher_directory` (imbasan
+// jadual PENUH) berasingan — sehingga ratusan query berulang bagi jadual STATIK yang sama pada
+// SATU muat halaman. Jadual ni hanya diisi SEKALI semasa boot pelayan (`INSERT OR IGNORE`
+// seedPublishers, server.js) — TIADA laluan admin/tulis wujud untuk mengubahnya semasa pelayan
+// berjalan — jadi selamat dicache seumur proses, tiada mekanisme invalidate diperlukan.
+let _publisherDirectoryCache = null;
+
 class PresentationComposer {
   /**
    * Resolves a URL to a registered publisher in the database.
@@ -27,10 +39,13 @@ class PresentationComposer {
       const urlObj = new URL(url);
       const hostname = urlObj.hostname.toLowerCase();
 
-      // Query publishers from SQLite
-      const publishers = await new Promise((resolve, reject) => {
-        db.all("SELECT * FROM publisher_directory", [], (err, rows) => err ? reject(err) : resolve(rows || []));
-      });
+      // Query publishers from SQLite (dicache — lihat nota _publisherDirectoryCache di atas).
+      if (!_publisherDirectoryCache) {
+        _publisherDirectoryCache = await new Promise((resolve, reject) => {
+          db.all("SELECT * FROM publisher_directory", [], (err, rows) => err ? reject(err) : resolve(rows || []));
+        });
+      }
+      const publishers = _publisherDirectoryCache;
 
       // Match hostname against domainPattern patterns
       const matched = publishers.find(p => hostname.includes(p.domainPattern.toLowerCase()));
